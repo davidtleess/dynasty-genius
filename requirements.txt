@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+httpx
+beautifulsoup4
+playwright
+python-dotenv
+pydantic
+requests
+nfl_data_py
+scikit-learn

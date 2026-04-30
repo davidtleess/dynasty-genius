@@ -1,0 +1,29 @@
+# Environment & secrets
+.env
+.env.*
+*.env
+*.pem
+*.key
+*secret*
+*credential*
+
+# API keys and config
+config.local.*
+secrets.*
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
