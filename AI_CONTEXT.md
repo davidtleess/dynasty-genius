@@ -122,37 +122,38 @@ This shared value layer should eventually power:
 Existing FastAPI app:
 
 - `app/main.py` creates the FastAPI app and mounts rookie, roster, and trade routes under `/api`.
-- `app/services/rookie_evaluator.py` loads one pickled model per position from `app/data/models` and scores prospects using `pick`, `round`, and `age`.
-- `app/services/roster_auditor.py` reads David's Sleeper roster using hardcoded username, league name, and season, then flags players around age cliffs.
-- `app/services/trade_analyzer.py` currently values picks with static round values and values players by reusing the rookie evaluator plus an age discount.
-- `app/data/pipeline/train_models.py` trains current model artifacts.
+- `app/services/rookie_evaluator.py` loads the latest versioned rookie model run from `app/data/models/latest.json`, preserves legacy flat pickle fallback, and emits rookie outputs aligned to the unified valuation contract.
+- `app/services/roster_auditor.py` reads Sleeper roster config from environment variables and emits neutral age-curve signals in an experimental, non-decision-grade response.
+- `app/services/trade_analyzer.py` is explicitly quarantined as experimental and returns per-asset heuristic breakdowns without verdicts, totals, or win/loss language.
+- `app/data/pipeline/train_models.py` trains current model artifacts with temporal holdout validation, versioned run directories, metadata JSON, validation reports, data hashes, and feature means for centered driver attribution.
 
 Known current limitations:
 
-- Some service code still has hardcoded David/league/season assumptions.
 - Current rookie scoring is early-stage and uses only draft pick, round, and age.
-- Trade analysis is internal and preliminary; do not treat it as a validated market-value engine.
+- Rookie `top_drivers` use provisional centered Ridge coefficient attribution, not calibrated SHAP-style explanation.
+- Trade analysis is internal and experimental; do not treat it as a validated market-value engine.
+- Roster audit is age-curve-only and experimental until Engine B usage, efficiency, and market signals exist.
 - The active-player valuation engine is not fully represented yet.
-- The unified value schema is a target architecture, not fully implemented.
-- Validation harnesses and quality gates need to be added before expanding product surfaces.
+- The unified value schema exists for rookie outputs but is not yet implemented across active players, roster, waiver, and trade.
+- Validation reports exist, but pass/fail quality gates still need to be formalized.
 
 ## Current Sprint Priorities
 
 Prioritize these before frontend expansion:
 
-1. Stabilize configuration and remove hardcoded league/user settings from services.
-2. Expand training features from available `nfl_data_py` Year 1 signals.
-3. Add RAS ingestion and map RAS into the rookie feature set.
-4. Build holdout validation and sanity-check suites with pass/fail gates by position.
-5. Add model versioning, artifact metadata, and saved metrics so model outputs are traceable.
+1. Formalize validation gates by position using the current temporal holdout reports.
+2. Expand Engine A rookie features beyond pick, round, and age, starting with RAS and available `nfl_data_py`/college proxy signals.
+3. Update decision contracts for heuristic surfaces, especially roster and trade, so docs match the safer experimental API shapes.
+4. Build the Engine B active-player skeleton: feature collection, service boundary, and output contract.
+5. Add tests around output contracts, artifact loading, and experimental surface safety.
 
 Definition of done for the next iteration:
 
 - The code and docs clearly represent two modeling tracks: rookie forecast and active-player forecast.
 - Each training run emits a validation report.
-- TE model quality improves to non-negative explanatory signal on agreed validation.
+- Each model-facing response states its model version, validation metadata, caveats, and decision-grade status.
 - Model artifacts are versioned and not silently overwritten.
-- Trade evaluator remains internal but starts reading from the shared valuation direction.
+- Trade and roster remain explicitly experimental until they consume the shared valuation direction.
 
 ## Modeling Principles
 
@@ -173,16 +174,18 @@ Definition of done for the next iteration:
 - Add tests or validation scripts where model behavior, scoring, or external-data parsing can silently drift.
 - Avoid broad refactors that do not directly support the valuation mission.
 
-## GitHub Status
+## GitHub and CI Status
 
-David does not have GitHub set up yet. Do not assume remote branches, pull requests, or GitHub Actions exist.
+GitHub is configured at `https://github.com/davidtleess/dynasty-genius`.
 
-Until GitHub is configured, use local git safely:
+`main` tracks `origin/main`, and lightweight GitHub Actions CI runs on push/PR. CI installs dependencies, compiles `app`, validates the rookie temporal split, and checks that generated cache/raw/artifact paths are not tracked.
 
-- Check `git status` before making major changes.
-- Create local branches for separate lines of work if git is initialized.
-- Do not run destructive git commands without explicit permission.
-- Keep work split into small, reviewable local changes.
+Current local orchestration pattern:
+
+- `main`: clean integration branch, pushed to GitHub.
+- `agent/modeling-backend`: GPT-5.5/Codex-style implementation worktree.
+- `agent/product-strategy`: Claude product-safety review worktree.
+- Use Session A for backend/modeling changes, Session B for product-safety review, then merge reviewed work back to `main`.
 
 ## Agent Review Prompt
 

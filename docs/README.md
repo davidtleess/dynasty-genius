@@ -12,4 +12,5 @@
 - `review-rookie-drivers-and-ranks-2026-04-30.md` — Session B review of Session A's `top_drivers` and class-ranks additions; recommends NO-MERGE pending centered driver attribution and removal of intercept-as-driver.
 - `review-trade-quarantine-2026-04-30.md` — Session B review of Session A's trade-quarantine work; recommends MERGE with non-blocking follow-ups (drop `experimental_totals`, remove `deprecated_fields` runtime block, drop legacy field-name pairs, align enum values).
 - `review-roster-auditor-2026-04-30.md` — Session B review of Session A's roster-auditor cleanup; recommends MERGE; flags contract drift on `signal` enum and envelope shape that should be resolved by updating the contract to formalize a "heuristic surface" envelope.
+- `session-summary-2026-04-30.md` — end-of-day summary covering setup, merged product-safety changes, current branch state, next work, and deferred surfaces.
 - `storage-strategy.md` — git vs artifact storage policy for data, caches, models, and future GitHub setup.
