@@ -6,6 +6,7 @@ import nfl_data_py as nfl
 POSITIONS = {"WR", "RB", "TE", "QB"}
 DRAFT_YEARS = list(range(2015, 2026))
 SEASONAL_YEARS = list(range(2016, 2025))
+MAX_COMPLETE_DRAFT_YEAR = max(SEASONAL_YEARS) - 3
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 OUTPUT_PATH = BASE_DIR / "app" / "data" / "training" / "prospects_with_outcomes.csv"
@@ -30,6 +31,11 @@ def pivot_outcomes(gsis_id: str, draft_year: int, seasonal: pd.DataFrame) -> dic
             result[f"{label}_games"] = 0
             result[f"{label}_points"] = 0.0
     return result
+
+
+def is_training_season(draft_year: int) -> int:
+    """Reserve the latest complete draft class as temporal holdout."""
+    return 1 if draft_year < MAX_COMPLETE_DRAFT_YEAR else 0
 
 
 def run() -> None:
@@ -74,7 +80,7 @@ def run() -> None:
             "total_points":    round(total_points, 2),
             "y24_ppg":         y24_ppg,
             "low_sample_flag": 1 if total_games < 16 else 0,
-            "is_training":     1 if int(row["season"]) <= 2022 else 0,
+            "is_training":     is_training_season(int(row["season"])),
         })
 
     result_df = pd.DataFrame(records, columns=OUTPUT_COLUMNS)
@@ -93,6 +99,9 @@ def run() -> None:
 
     print("\nis_training distribution:")
     print(result_df["is_training"].value_counts().sort_index().to_string())
+    print(
+        f"\nLatest complete draft class reserved for holdout: {MAX_COMPLETE_DRAFT_YEAR}"
+    )
 
     bust_count = (result_df["y24_ppg"] == 0.0).sum()
     print(f"\nBust count (y24_ppg == 0): {bust_count}")
