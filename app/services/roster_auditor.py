@@ -1,6 +1,8 @@
 import os
 from typing import Optional
 
+import httpx
+
 from app.data.sleeper import get_user, get_leagues, get_rosters, get_all_players
 
 USERNAME_ENV = "DYNASTY_SLEEPER_USERNAME"
@@ -54,15 +56,32 @@ def _roster_config() -> dict:
     }
 
 
+async def _sleeper_config_lookup(description: str, lookup) -> object:
+    try:
+        return await lookup
+    except ValueError as e:
+        raise RosterConfigError(f"{description}: {e}") from e
+    except httpx.HTTPStatusError as e:
+        raise RosterConfigError(
+            f"{description} failed with Sleeper status {e.response.status_code}; check roster config."
+        ) from e
+
+
 async def get_my_roster() -> list[dict]:
     config = _roster_config()
-    user = await get_user(config["username"])
+    user = await _sleeper_config_lookup(
+        "Sleeper username lookup",
+        get_user(config["username"]),
+    )
     user_id = user["user_id"]
 
     if config["league_id"]:
         league_id = config["league_id"]
     else:
-        leagues = await get_leagues(user_id, config["season"])
+        leagues = await _sleeper_config_lookup(
+            "Sleeper league lookup",
+            get_leagues(user_id, config["season"]),
+        )
         league = next(
             (lg for lg in leagues if lg.get("name") == config["league_name"]),
             None,
@@ -73,7 +92,10 @@ async def get_my_roster() -> list[dict]:
             )
         league_id = league["league_id"]
 
-    rosters = await get_rosters(league_id)
+    rosters = await _sleeper_config_lookup(
+        "Sleeper roster lookup",
+        get_rosters(league_id),
+    )
     my_roster = next((r for r in rosters if r["owner_id"] == user_id), None)
     if my_roster is None:
         raise RosterConfigError(
@@ -120,7 +142,7 @@ def audit_player(player: dict) -> Optional[dict]:
         cliff_status = "Approaching"
         signal = "approaching_cliff"
     else:
-        cliff_status = "Safe"
+        cliff_status = "No age signal"
         signal = "no_age_signal"
 
     return {
