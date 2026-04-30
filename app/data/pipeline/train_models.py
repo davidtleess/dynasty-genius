@@ -141,6 +141,9 @@ def train_position(
         "coefficients": {
             name: round(float(coef), 6) for name, coef in zip(FEATURES, model.coef_)
         },
+        "feature_means": {
+            name: round(float(pos_train[name].mean()), 6) for name in FEATURES
+        },
         "intercept": round(float(model.intercept_), 6),
     }
 

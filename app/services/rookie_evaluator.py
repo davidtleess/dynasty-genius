@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import pickle
 from pathlib import Path
@@ -21,6 +23,25 @@ DEFAULT_MODEL_VERSION = "unversioned"
 DISPLAY_PRECISION = 1
 HORIZON_YEARS = 3
 SIGNAL_COMPLETENESS = "draft_capital_only"
+PROVISIONAL_DYNASTY_VALUE_NOTE = (
+    "dynasty_value_score is provisional pre-normalization Engine A output"
+)
+PROVISIONAL_DRIVERS_NOTE = (
+    "top_drivers and per-prospect risk_flags are provisional this iteration"
+)
+DRIVER_ATTRIBUTION_NOTE = (
+    "top_drivers are provisional Ridge coefficient attributions."
+)
+DRIVER_CENTERING_NOTE = (
+    "top_drivers use coef x (feature - position_mean); positive direction means "
+    "the prospect feature is better than the position training-set average."
+)
+DRAFT_CAPITAL_DRIVER_NOTE = (
+    "pick and round are combined as draft_capital because they are collinear."
+)
+CLASS_RANK_NOTE = (
+    "class_overall_rank does not yet account for positional scarcity."
+)
 
 
 def _latest_model_dir() -> Path | None:
@@ -143,6 +164,52 @@ def _counter_argument() -> str:
     )
 
 
+def _direction(contribution: float) -> str:
+    if contribution > 0:
+        return "positive"
+    if contribution < 0:
+        return "negative"
+    return "neutral"
+
+
+def _display_contribution(contribution: float) -> float:
+    rounded = round(contribution, DISPLAY_PRECISION)
+    return 0.0 if rounded == 0 else rounded
+
+
+def _top_drivers(position: str, pick: int, round_num: int, age: float) -> list[dict]:
+    metadata = _MODEL_METADATA.get(position, {})
+    coefficients = metadata.get("coefficients", {})
+    feature_means = metadata.get("feature_means", {})
+
+    draft_capital = (
+        float(coefficients.get("pick", 0.0))
+        * (pick - float(feature_means.get("pick", pick)))
+        + float(coefficients.get("round", 0.0))
+        * (round_num - float(feature_means.get("round", round_num)))
+    )
+    age_term = float(coefficients.get("age", 0.0)) * (
+        age - float(feature_means.get("age", age))
+    )
+
+    draft_capital_display = _display_contribution(draft_capital)
+    age_display = _display_contribution(age_term)
+
+    drivers = [
+        {
+            "feature": "draft_capital",
+            "contribution": draft_capital_display,
+            "direction": _direction(draft_capital_display),
+        },
+        {
+            "feature": "age_at_entry",
+            "contribution": age_display,
+            "direction": _direction(age_display),
+        },
+    ]
+    return sorted(drivers, key=lambda item: abs(item["contribution"]), reverse=True)
+
+
 def _dynasty_valuation(
     *,
     position: str,
@@ -163,8 +230,14 @@ def _dynasty_valuation(
         projection_3y=projected,
         source_projection={"predicted_y24_ppg": ppg},
         notes=[
+            PROVISIONAL_DYNASTY_VALUE_NOTE,
             "Current rookie model predicts aggregate Y2-Y4 PPG, not calibrated year-specific projections.",
             "Confidence band is deferred until holdout error calibration is implemented.",
+            PROVISIONAL_DRIVERS_NOTE,
+            DRIVER_ATTRIBUTION_NOTE,
+            DRIVER_CENTERING_NOTE,
+            DRAFT_CAPITAL_DRIVER_NOTE,
+            CLASS_RANK_NOTE,
         ],
     )
     return valuation.model_dump(mode="json")
@@ -197,6 +270,7 @@ def score_prospect(
         *valuation["notes"],
         "Legacy confidence was pick-bucket logic and is intentionally not emitted.",
     ]
+    top_drivers = _top_drivers(position, pick, round_num, age)
 
     result = {
         "engine":            ValuationEngine.ROOKIE_FORECAST.value,
@@ -223,6 +297,7 @@ def score_prospect(
         "predicted_y24_ppg": ppg,
         "threshold_flags":   _threshold_flags(position, pick, age),
         "roster_fit_signal": "unknown",
+        "top_drivers":       top_drivers,
         "risk_flags":        ["draft_capital_age_only"],
         "counter_argument":  _counter_argument(),
         "market_overlay":    None,
@@ -248,5 +323,12 @@ def score_draft_class(prospects: list[dict]) -> list[dict]:
         result["valuation"]["name"] = p["name"]
         results.append(result)
 
-    results.sort(key=lambda r: r["predicted_y24_ppg"], reverse=True)
+    results.sort(key=lambda r: r["dynasty_value_score"], reverse=True)
+    position_counts = {}
+    for overall_rank, result in enumerate(results, start=1):
+        position = result["position"]
+        position_counts[position] = position_counts.get(position, 0) + 1
+        result["class_overall_rank"] = overall_rank
+        result["position_class_rank"] = position_counts[position]
+
     return results
