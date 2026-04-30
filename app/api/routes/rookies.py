@@ -22,10 +22,12 @@ def score_single(prospect: ProspectRequest) -> dict:
             pick=prospect.pick,
             round_num=prospect.round,
             age=prospect.age,
+            name=prospect.name,
         )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     result["name"] = prospect.name
+    result["valuation"]["name"] = prospect.name
     return result
 
 

@@ -4,6 +4,8 @@ from pathlib import Path
 
 import numpy as np
 
+from app.models.valuation import DynastyValuation, ValuationEngine
+
 MODELS_DIR = Path(__file__).resolve().parents[2] / "app" / "data" / "models"
 LATEST_POINTER = MODELS_DIR / "latest.json"
 POSITIONS = ["WR", "RB", "TE", "QB"]
@@ -15,11 +17,10 @@ TIER_THRESHOLDS = [
     (0.0,  "Bust"),
 ]
 
-CONFIDENCE_THRESHOLDS = [
-    (32,  "High"),
-    (96,  "Medium"),
-    (None, "Low"),
-]
+DEFAULT_MODEL_VERSION = "unversioned"
+DISPLAY_PRECISION = 1
+HORIZON_YEARS = 3
+SIGNAL_COMPLETENESS = "draft_capital_only"
 
 
 def _latest_model_dir() -> Path | None:
@@ -32,6 +33,29 @@ def _latest_model_dir() -> Path | None:
         return None
 
     return Path(__file__).resolve().parents[2] / run_dir
+
+
+def _latest_pointer() -> dict:
+    if not LATEST_POINTER.exists():
+        return {}
+    return json.loads(LATEST_POINTER.read_text())
+
+
+def _load_validation_report(pointer: dict) -> dict:
+    report_path = pointer.get("validation_report")
+    if not report_path:
+        return {}
+
+    path = Path(__file__).resolve().parents[2] / report_path
+    if not path.exists():
+        return {}
+
+    report = json.loads(path.read_text())
+    return {
+        item["position"]: item
+        for item in report.get("positions", [])
+        if "position" in item
+    }
 
 
 def _load_models() -> tuple[dict, dict]:
@@ -55,6 +79,8 @@ def _load_models() -> tuple[dict, dict]:
 
 
 _MODELS, _MODEL_METADATA = _load_models()
+_LATEST_POINTER = _latest_pointer()
+_VALIDATION_BY_POSITION = _load_validation_report(_LATEST_POINTER)
 
 
 def _dynasty_tier(ppg: float) -> str:
@@ -64,14 +90,93 @@ def _dynasty_tier(ppg: float) -> str:
     return "Bust"
 
 
-def _confidence(pick: int) -> str:
-    for threshold, label in CONFIDENCE_THRESHOLDS:
-        if threshold is None or pick <= threshold:
-            return label
-    return "Low"
+def _model_version(position: str) -> str:
+    return (
+        _LATEST_POINTER.get("model_version")
+        or _MODEL_METADATA.get(position, {}).get("model_version")
+        or DEFAULT_MODEL_VERSION
+    )
 
 
-def score_prospect(position: str, pick: int, round_num: int, age: float) -> dict:
+def _validation_metadata(position: str) -> dict:
+    report_metrics = _VALIDATION_BY_POSITION.get(position, {})
+    metadata_metrics = _MODEL_METADATA.get(position, {}).get("metrics", {})
+    rmse = report_metrics.get("rmse", metadata_metrics.get("rmse"))
+    r2 = report_metrics.get("r2", metadata_metrics.get("r2"))
+
+    if r2 is None:
+        model_grade = "unvalidated"
+    elif r2 < 0:
+        model_grade = "D"
+    else:
+        # Calibrated coverage is not available yet, so non-negative holdout R2
+        # should be treated as useful but still early-stage model evidence.
+        model_grade = "C"
+
+    return {
+        "model_grade": model_grade,
+        "rmse_position_holdout": rmse,
+        "r2_position_holdout": r2,
+        "holdout_rows": report_metrics.get(
+            "holdout_rows", _MODEL_METADATA.get(position, {}).get("holdout_rows")
+        ),
+        "validation_source": _LATEST_POINTER.get("validation_report"),
+    }
+
+
+def _threshold_flags(position: str, pick: int, age: float) -> dict:
+    age_line = {"RB": 23.0, "WR": 23.0, "TE": 24.0, "QB": 24.0}.get(position)
+    return {
+        "draft_capital_top_32": pick <= 32,
+        "draft_capital_top_64": pick <= 64,
+        "age_below_position_line": None if age_line is None else age <= age_line,
+        "dominator_above_position_line": None,
+        "ras_above_8": None,
+        "yprr_above_position_line": None,
+    }
+
+
+def _counter_argument() -> str:
+    return (
+        "Score is driven by draft capital and age only; RAS, college production, "
+        "and market overlays are not ingested yet."
+    )
+
+
+def _dynasty_valuation(
+    *,
+    position: str,
+    name: str | None,
+    ppg: float,
+    model_version: str,
+) -> dict:
+    projected = round(ppg, DISPLAY_PRECISION)
+    valuation = DynastyValuation(
+        name=name,
+        position=position,
+        engine=ValuationEngine.ROOKIE_FORECAST,
+        model_version=model_version,
+        dynasty_value_score=projected,
+        confidence_band=None,
+        projection_1y=projected,
+        projection_2y=projected,
+        projection_3y=projected,
+        source_projection={"predicted_y24_ppg": ppg},
+        notes=[
+            "Current rookie model predicts aggregate Y2-Y4 PPG, not calibrated year-specific projections.",
+            "Confidence band is deferred until holdout error calibration is implemented.",
+        ],
+    )
+    return valuation.model_dump(mode="json")
+
+
+def score_prospect(
+    position: str,
+    pick: int,
+    round_num: int,
+    age: float,
+    name: str | None = None,
+) -> dict:
     if position not in _MODELS:
         raise ValueError(f"Unsupported position: {position}. Must be one of {POSITIONS}.")
 
@@ -79,17 +184,54 @@ def score_prospect(position: str, pick: int, round_num: int, age: float) -> dict
     X = np.array([[pick, round_num, age]])
     predicted = max(float(model.predict(X)[0]), 0.0)
     ppg = round(predicted, 2)
+    model_version = _model_version(position)
+    validation = _validation_metadata(position)
+    valuation = _dynasty_valuation(
+        position=position,
+        name=name,
+        ppg=ppg,
+        model_version=model_version,
+    )
 
-    return {
+    notes = [
+        *valuation["notes"],
+        "Legacy confidence was pick-bucket logic and is intentionally not emitted.",
+    ]
+
+    result = {
+        "engine":            ValuationEngine.ROOKIE_FORECAST.value,
+        "model_version":     model_version,
+        "model_grade":       validation["model_grade"],
+        "signal_completeness": SIGNAL_COMPLETENESS,
+        "horizon_years":     HORIZON_YEARS,
+        "dynasty_value_score": valuation["dynasty_value_score"],
+        "projection_1y":     valuation["projection_1y"],
+        "projection_2y":     valuation["projection_2y"],
+        "projection_3y":     valuation["projection_3y"],
+        "confidence_band":   None,
+        "display_precision": DISPLAY_PRECISION,
+        "rmse_position_holdout": validation["rmse_position_holdout"],
+        "r2_position_holdout": validation["r2_position_holdout"],
+        "validation":        validation,
+        "valuation":         {**valuation, "notes": notes},
+        "notes":             notes,
         "position":          position,
         "pick":              pick,
         "round":             round_num,
         "age":               age,
+        "age_at_entry":      age,
         "predicted_y24_ppg": ppg,
-        "dynasty_tier":      _dynasty_tier(ppg),
-        "confidence":        _confidence(pick),
-        "model_version":     _MODEL_METADATA.get(position, {}).get("model_version"),
+        "threshold_flags":   _threshold_flags(position, pick, age),
+        "roster_fit_signal": "unknown",
+        "risk_flags":        ["draft_capital_age_only"],
+        "counter_argument":  _counter_argument(),
+        "market_overlay":    None,
     }
+
+    if validation["model_grade"] not in {"D", "unvalidated"}:
+        result["projected_outcome_band"] = _dynasty_tier(ppg)
+
+    return result
 
 
 def score_draft_class(prospects: list[dict]) -> list[dict]:
@@ -100,8 +242,10 @@ def score_draft_class(prospects: list[dict]) -> list[dict]:
             pick=p["pick"],
             round_num=p["round"],
             age=p["age"],
+            name=p.get("name"),
         )
         result["name"] = p["name"]
+        result["valuation"]["name"] = p["name"]
         results.append(result)
 
     results.sort(key=lambda r: r["predicted_y24_ppg"], reverse=True)

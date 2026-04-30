@@ -27,7 +27,7 @@ class DynastyValuation(BaseModel):
         ge=0.0,
         description="Unified comparable dynasty value scale shared by both engines.",
     )
-    confidence_band: ConfidenceBand
+    confidence_band: Optional[ConfidenceBand] = None
     projection_1y: float
     projection_2y: float
     projection_3y: float
