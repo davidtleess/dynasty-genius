@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  python-checks:
+    name: Python checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compile application
+        run: PYTHONPYCACHEPREFIX=.pycache_tmp python -m compileall app
+
+      - name: Validate rookie training split
+        run: |
+          PYTHONPYCACHEPREFIX=.pycache_tmp python - <<'PY'
+          import pandas as pd
+
+          from app.data.pipeline.train_models import CSV_PATH, build_temporal_split
+
+          df = pd.read_csv(CSV_PATH)
+          train_df, holdout_df, split_info = build_temporal_split(df)
+
+          assert not train_df.empty, "training split is empty"
+          assert not holdout_df.empty, "holdout split is empty"
+          assert split_info["training_seasons"], "training seasons are missing"
+          assert split_info["holdout_seasons"], "holdout seasons are missing"
+          assert max(split_info["training_seasons"]) < min(split_info["holdout_seasons"]), split_info
+          PY
+
+      - name: Verify storage policy
+        run: |
+          tracked_artifacts="$(git ls-files app/cache app/data/raw app/data/processed app/data/artifacts)"
+          if [ -n "$tracked_artifacts" ]; then
+            echo "Generated artifacts are tracked unexpectedly:"
+            echo "$tracked_artifacts"
+            exit 1
+          fi

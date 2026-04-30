@@ -7,4 +7,5 @@ python-dotenv
 pydantic
 requests
 nfl_data_py
+pandas
 scikit-learn
