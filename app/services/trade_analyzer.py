@@ -9,11 +9,25 @@ AGE_DISCOUNT = {
     "QB": {"baseline": 28, "rate": 0.07},
 }
 
-VERDICT_THRESHOLDS = [
-    (20.0,  "Strong win"),
-    (8.0,   "Win"),
-    (-8.0,  "Fair"),
-    (-20.0, "Loss"),
+TRADE_NOT_DECISION_GRADE_REASON = (
+    "Trade output is experimental: player scores use a rookie-model proxy plus "
+    "manual age discounts, and pick scores use a static chart. This is not a "
+    "decision-grade trade valuation."
+)
+
+REQUIRED_BEFORE_DECISION_GRADE = [
+    "unified_valuation_layer_for_all_assets",
+    "engine_b_active_player_forecast",
+    "calibrated_uncertainty_by_position",
+    "pick_values_from_slot_weighted_expected_rookie_scores",
+    "market_overlay_available_for_sanity_checks",
+]
+
+TRADE_NOTES = [
+    "trade_engine_internal_only",
+    "no_verdict_until_unified_value_layer",
+    "veteran_values_use_rookie_model_proxy",
+    "pick_values_use_static_chart",
 ]
 
 
@@ -38,10 +52,25 @@ def value_player(position: str, age: int, pick: int, round_num: int) -> float:
     return round(base * age_multiplier, 1)
 
 
+def _asset_label(asset: dict) -> str:
+    if asset["type"] == "pick":
+        return f"{asset['year']} R{asset['round']}"
+    return asset.get("name") or f"{asset.get('position', 'UNKNOWN')} player"
+
+
 def _score_asset(asset: dict) -> dict:
     if asset["type"] == "pick":
         value = value_pick(round_num=asset["round"], year=asset["year"])
-        return {**asset, "value": value}
+        return {
+            **asset,
+            "asset_type": "pick",
+            "label": _asset_label(asset),
+            "internal_score": value,
+            "value": value,
+            "score_status": "heuristic",
+            "scoring_method": "static_pick_chart",
+            "caveats": ["pick_value_from_static_chart"],
+        }
     elif asset["type"] == "player":
         value = value_player(
             position=asset["position"],
@@ -49,7 +78,19 @@ def _score_asset(asset: dict) -> dict:
             pick=asset["pick"],
             round_num=asset["round"],
         )
-        return {**asset, "value": value}
+        return {
+            **asset,
+            "asset_type": "player",
+            "label": _asset_label(asset),
+            "internal_score": value,
+            "value": value,
+            "score_status": "heuristic",
+            "scoring_method": "rookie_model_proxy_with_manual_age_discount",
+            "engine": "rookie_forecast",
+            "model_grade": "unvalidated_for_veteran_trade_value",
+            "signal_completeness": "draft_capital_age_proxy",
+            "caveats": ["veteran_value_uses_rookie_model_proxy"],
+        }
     else:
         raise ValueError(f"Unknown asset type: {asset['type']}")
 
@@ -58,21 +99,31 @@ def analyze_trade(my_assets: list[dict], their_assets: list[dict]) -> dict:
     my_scored = [_score_asset(a) for a in my_assets]
     their_scored = [_score_asset(a) for a in their_assets]
 
-    my_total = round(sum(a["value"] for a in my_scored), 1)
-    their_total = round(sum(a["value"] for a in their_scored), 1)
+    my_total = round(sum(a["internal_score"] for a in my_scored), 1)
+    their_total = round(sum(a["internal_score"] for a in their_scored), 1)
     difference = round(my_total - their_total, 1)
 
-    verdict = "Strong loss"
-    for threshold, label in VERDICT_THRESHOLDS:
-        if difference >= threshold:
-            verdict = label
-            break
-
     return {
-        "my_total":          my_total,
-        "their_total":       their_total,
-        "difference":        difference,
-        "verdict":           verdict,
-        "my_assets_scored":  my_scored,
+        "status": "experimental",
+        "decision_supported": False,
+        "reason": TRADE_NOT_DECISION_GRADE_REASON,
+        "required_before_decision_grade": REQUIRED_BEFORE_DECISION_GRADE,
+        "notes": TRADE_NOTES,
+        "my_assets_breakdown": my_scored,
+        "their_assets_breakdown": their_scored,
+        "experimental_totals": {
+            "my_total": my_total,
+            "their_total": their_total,
+            "difference": difference,
+            "status": "experimental",
+            "caveat": "Totals aggregate heuristic player proxy scores and static pick values; do not use as a trade verdict.",
+        },
+        "deprecated_fields": {
+            "verdict": "removed_until_unified_value_layer",
+            "my_total": "use_experimental_totals.my_total_for_internal_debug_only",
+            "their_total": "use_experimental_totals.their_total_for_internal_debug_only",
+            "difference": "use_experimental_totals.difference_for_internal_debug_only",
+        },
+        "my_assets_scored": my_scored,
         "their_assets_scored": their_scored,
     }
