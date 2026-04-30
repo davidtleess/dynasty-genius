@@ -21,6 +21,16 @@ DEFAULT_MODEL_VERSION = "unversioned"
 DISPLAY_PRECISION = 1
 HORIZON_YEARS = 3
 SIGNAL_COMPLETENESS = "draft_capital_only"
+PROVISIONAL_DYNASTY_VALUE_NOTE = (
+    "dynasty_value_score is provisional pre-normalization Engine A output"
+)
+PROVISIONAL_DRIVERS_NOTE = (
+    "top_drivers and per-prospect risk_flags are provisional this iteration"
+)
+DRIVER_ATTRIBUTION_NOTE = (
+    "top_drivers are Ridge coefficient terms from the current sparse model; "
+    "pick and round are combined as draft_capital because they are collinear."
+)
 
 
 def _latest_model_dir() -> Path | None:
@@ -143,6 +153,45 @@ def _counter_argument() -> str:
     )
 
 
+def _direction(contribution: float) -> str:
+    if contribution > 0:
+        return "positive"
+    if contribution < 0:
+        return "negative"
+    return "neutral"
+
+
+def _top_drivers(position: str, pick: int, round_num: int, age: float) -> list[dict]:
+    metadata = _MODEL_METADATA.get(position, {})
+    coefficients = metadata.get("coefficients", {})
+    intercept = metadata.get("intercept", 0.0)
+
+    draft_capital = (
+        float(coefficients.get("pick", 0.0)) * pick
+        + float(coefficients.get("round", 0.0)) * round_num
+    )
+    age_term = float(coefficients.get("age", 0.0)) * age
+
+    drivers = [
+        {
+            "feature": "draft_capital",
+            "contribution": round(draft_capital, 3),
+            "direction": _direction(draft_capital),
+        },
+        {
+            "feature": "age_at_entry",
+            "contribution": round(age_term, 3),
+            "direction": _direction(age_term),
+        },
+        {
+            "feature": "model_baseline",
+            "contribution": round(float(intercept), 3),
+            "direction": _direction(float(intercept)),
+        },
+    ]
+    return sorted(drivers, key=lambda item: abs(item["contribution"]), reverse=True)
+
+
 def _dynasty_valuation(
     *,
     position: str,
@@ -163,8 +212,11 @@ def _dynasty_valuation(
         projection_3y=projected,
         source_projection={"predicted_y24_ppg": ppg},
         notes=[
+            PROVISIONAL_DYNASTY_VALUE_NOTE,
             "Current rookie model predicts aggregate Y2-Y4 PPG, not calibrated year-specific projections.",
             "Confidence band is deferred until holdout error calibration is implemented.",
+            PROVISIONAL_DRIVERS_NOTE,
+            DRIVER_ATTRIBUTION_NOTE,
         ],
     )
     return valuation.model_dump(mode="json")
@@ -197,6 +249,7 @@ def score_prospect(
         *valuation["notes"],
         "Legacy confidence was pick-bucket logic and is intentionally not emitted.",
     ]
+    top_drivers = _top_drivers(position, pick, round_num, age)
 
     result = {
         "engine":            ValuationEngine.ROOKIE_FORECAST.value,
@@ -223,6 +276,7 @@ def score_prospect(
         "predicted_y24_ppg": ppg,
         "threshold_flags":   _threshold_flags(position, pick, age),
         "roster_fit_signal": "unknown",
+        "top_drivers":       top_drivers,
         "risk_flags":        ["draft_capital_age_only"],
         "counter_argument":  _counter_argument(),
         "market_overlay":    None,
@@ -249,4 +303,11 @@ def score_draft_class(prospects: list[dict]) -> list[dict]:
         results.append(result)
 
     results.sort(key=lambda r: r["predicted_y24_ppg"], reverse=True)
+    position_counts = {}
+    for overall_rank, result in enumerate(results, start=1):
+        position = result["position"]
+        position_counts[position] = position_counts.get(position, 0) + 1
+        result["class_overall_rank"] = overall_rank
+        result["position_class_rank"] = position_counts[position]
+
     return results
