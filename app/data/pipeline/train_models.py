@@ -29,6 +29,16 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _json_default(value):
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    raise TypeError(f"Object of type {value.__class__.__name__} is not JSON serializable")
+
+
 def _mature_seasons(df: pd.DataFrame) -> set[int]:
     """A draft season is mature when at least one player has observed Y4 output."""
     y4_signal = (df["y4_games"].fillna(0) > 0) | (df["y4_points"].fillna(0) > 0)
@@ -135,7 +145,7 @@ def train_position(
     }
 
     metadata_path = run_dir / f"{pos}_metadata.json"
-    metadata_path.write_text(json.dumps(position_metadata, indent=2) + "\n")
+    metadata_path.write_text(json.dumps(position_metadata, indent=2, default=_json_default) + "\n")
 
     return {
         "position": pos,
@@ -179,7 +189,7 @@ def run() -> None:
         "positions": results,
     }
     (run_dir / "validation_report.json").write_text(
-        json.dumps(validation_report, indent=2) + "\n"
+        json.dumps(validation_report, indent=2, default=_json_default) + "\n"
     )
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     LATEST_POINTER.write_text(
