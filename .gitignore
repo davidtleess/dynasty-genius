@@ -21,6 +21,17 @@ Thumbs.db
 *.log
 logs/
 
+# Generated caches and local scratch data
+app/cache/
+app/data/cache/**
+!app/data/cache/
+!app/data/cache/**/
+!app/data/cache/**/.gitkeep
+app/data/raw/
+app/data/processed/
+app/data/artifacts/
+.pycache_tmp/
+
 # Dependencies
 node_modules/
 __pycache__/
