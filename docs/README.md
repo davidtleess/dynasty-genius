@@ -9,4 +9,5 @@
 - `product-strategy-2026-04-30.md` — Session B product strategy review: highest-value decisions, surfaces to retire, deferral list, and the next three product features after validation improves.
 - `decision-output-contracts.md` — canonical David-facing output schemas for rookie, roster, and trade endpoints; companion to the product strategy doc.
 - `review-rookie-evaluator-2026-04-30.md` — Session B review of Session A's rookie-evaluator wiring against the output contract; includes merge recommendation and follow-up list.
+- `review-rookie-drivers-and-ranks-2026-04-30.md` — Session B review of Session A's `top_drivers` and class-ranks additions; recommends NO-MERGE pending centered driver attribution and removal of intercept-as-driver.
 - `storage-strategy.md` — git vs artifact storage policy for data, caches, models, and future GitHub setup.
