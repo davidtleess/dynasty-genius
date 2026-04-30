@@ -1,9 +1,11 @@
+import json
 import pickle
 from pathlib import Path
 
 import numpy as np
 
 MODELS_DIR = Path(__file__).resolve().parents[2] / "app" / "data" / "models"
+LATEST_POINTER = MODELS_DIR / "latest.json"
 POSITIONS = ["WR", "RB", "TE", "QB"]
 
 TIER_THRESHOLDS = [
@@ -20,20 +22,39 @@ CONFIDENCE_THRESHOLDS = [
 ]
 
 
-def _load_models() -> dict:
+def _latest_model_dir() -> Path | None:
+    if not LATEST_POINTER.exists():
+        return None
+
+    pointer = json.loads(LATEST_POINTER.read_text())
+    run_dir = pointer.get("run_dir")
+    if not run_dir:
+        return None
+
+    return Path(__file__).resolve().parents[2] / run_dir
+
+
+def _load_models() -> tuple[dict, dict]:
     models = {}
+    metadata = {}
+    model_dir = _latest_model_dir() or MODELS_DIR
+
     for pos in POSITIONS:
-        path = MODELS_DIR / f"{pos}_model.pkl"
+        path = model_dir / f"{pos}_model.pkl"
         if not path.exists():
             raise FileNotFoundError(
                 f"Model file not found: {path}. Run train_models.py first."
             )
         with open(path, "rb") as f:
             models[pos] = pickle.load(f)
-    return models
+
+        metadata_path = model_dir / f"{pos}_metadata.json"
+        if metadata_path.exists():
+            metadata[pos] = json.loads(metadata_path.read_text())
+    return models, metadata
 
 
-_MODELS = _load_models()
+_MODELS, _MODEL_METADATA = _load_models()
 
 
 def _dynasty_tier(ppg: float) -> str:
@@ -67,6 +88,7 @@ def score_prospect(position: str, pick: int, round_num: int, age: float) -> dict
         "predicted_y24_ppg": ppg,
         "dynasty_tier":      _dynasty_tier(ppg),
         "confidence":        _confidence(pick),
+        "model_version":     _MODEL_METADATA.get(position, {}).get("model_version"),
     }
 
 
