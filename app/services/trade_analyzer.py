@@ -2,19 +2,17 @@ from __future__ import annotations
 
 from app.services.roster_auditor import CLIFF_AGES, ELITE_RB_YAC_PER_ATTEMPT
 
-PICK_BASE_VALUES = {1: 80.0, 2: 45.0, 3: 20.0, 4: 10.0}
+VALUATION_STATUS_OK = "VALUATION_STATUS_OK"
+VALUATION_STATUS_PENDING_ENGINE_B = "VALUATION_STATUS_PENDING_ENGINE_B"
+VALUATION_STATUS_PENDING_GROUND_TRUTH = "VALUATION_STATUS_PENDING_GROUND_TRUTH"
+VALUATION_STATUS_PENDING_MARKET_ANCHOR = "VALUATION_STATUS_PENDING_MARKET_ANCHOR"
 
-AGE_DISCOUNT = {
-    "RB": {"baseline": 23, "rate": 0.12},
-    "WR": {"baseline": 24, "rate": 0.09},
-    "TE": {"baseline": 25, "rate": 0.08},
-    "QB": {"baseline": 28, "rate": 0.07},
-}
+DVU_PER_101_PICK = 100.0
+STATIC_PICK_DVU_VALUES = {1: 100.0, 2: 56.25, 3: 25.0, 4: 12.5}
 
 TRADE_NOT_DECISION_GRADE_REASON = (
-    "Trade output is experimental: player scores use a rookie-model proxy plus "
-    "manual age discounts, and pick scores use a static chart. This is not a "
-    "decision-grade trade valuation."
+    "Trade output is experimental: active-player valuations are blocked until "
+    "Engine B exists, and pick/market math is normalized to DVU for inspection only."
 )
 
 REQUIRED_BEFORE_DECISION_GRADE = [
@@ -29,34 +27,106 @@ REQUIRED_BEFORE_DECISION_GRADE = [
 TRADE_NOTES = [
     "trade_engine_internal_only",
     "no_verdict_until_unified_value_layer",
-    "veteran_values_use_rookie_model_proxy",
-    "pick_values_use_static_chart",
+    "veteran_values_pending_engine_b",
+    "trade_math_uses_dvu_normalization",
 ]
 
 AGE_SELL_THRESHOLDS = {"RB": 26, "WR": 28}
 
 
-def value_pick(round_num: int, year: int, current_year: int = 2025) -> float:
-    base = PICK_BASE_VALUES.get(round_num, 5.0)
+def _round_dvu(value: float | None) -> float | None:
+    if value is None:
+        return None
+    rounded = round(value, 1)
+    return 0.0 if rounded == 0 else rounded
+
+
+def _market_to_dvu(asset: dict) -> tuple[float | None, str | None]:
+    market_value = asset.get("market_value", asset.get("ktc_value"))
+    if market_value is None:
+        return None, None
+
+    scale = asset.get("market_value_scale")
+    if scale == "dvu":
+        return _round_dvu(float(market_value)), "market_value_already_dvu"
+    if scale == "one_oh_one_ratio":
+        return _round_dvu(float(market_value) * DVU_PER_101_PICK), "market_value_101_pick_ratio"
+
+    one_oh_one_value = asset.get("market_101_pick_value")
+    if one_oh_one_value is None:
+        return None, VALUATION_STATUS_PENDING_MARKET_ANCHOR
+    if float(one_oh_one_value) <= 0:
+        return None, VALUATION_STATUS_PENDING_MARKET_ANCHOR
+    return (
+        _round_dvu((float(market_value) / float(one_oh_one_value)) * DVU_PER_101_PICK),
+        "market_value_normalized_to_dvu",
+    )
+
+
+def value_pick_dvu(round_num: int, year: int, current_year: int = 2025) -> float:
+    base = STATIC_PICK_DVU_VALUES.get(round_num, 6.25)
     years_away = year - current_year
     if years_away <= 0:
         return base
     return round(base * (0.85 ** years_away), 1)
 
 
-def value_player(position: str, age: int, pick: int, round_num: int) -> tuple[float, str | None]:
+def value_player(asset: dict, ground_truth_check: dict) -> dict:
+    years_in_nfl = ground_truth_check.get("years_experience")
+    if years_in_nfl is None:
+        years_in_nfl = asset.get("years_in_nfl")
+
+    if years_in_nfl is None:
+        return {
+            "valuation_status": VALUATION_STATUS_PENDING_GROUND_TRUTH,
+            "internal_score": None,
+            "dvu": None,
+            "model_version": None,
+            "error": "ground_truth_years_in_nfl_required_before_player_trade_valuation",
+        }
+    if int(years_in_nfl) > 0:
+        return {
+            "valuation_status": VALUATION_STATUS_PENDING_ENGINE_B,
+            "internal_score": None,
+            "dvu": None,
+            "model_version": None,
+            "error": "active_player_trade_valuation_blocked_until_engine_b",
+        }
+
+    market_dvu, market_source_or_status = _market_to_dvu(asset)
+    if market_source_or_status == VALUATION_STATUS_PENDING_MARKET_ANCHOR:
+        return {
+            "valuation_status": VALUATION_STATUS_PENDING_MARKET_ANCHOR,
+            "internal_score": None,
+            "dvu": None,
+            "model_version": None,
+            "error": "market_value_requires_market_101_pick_value_to_normalize_to_dvu",
+        }
+    if market_dvu is not None:
+        return {
+            "valuation_status": VALUATION_STATUS_OK,
+            "internal_score": market_dvu,
+            "dvu": market_dvu,
+            "model_version": None,
+            "scoring_method": market_source_or_status,
+        }
+
     from app.services.rookie_evaluator import score_prospect
 
-    result = score_prospect(position=position, pick=pick, round_num=round_num, age=float(age))
-    ppg = result["predicted_y24_ppg"]
-    base = ppg * 6.0
-
-    discount = AGE_DISCOUNT.get(position)
-    if discount is None:
-        return round(base, 1), result.get("model_version")
-
-    age_multiplier = max(0.0, 1.0 - (max(0, age - discount["baseline"]) * discount["rate"]))
-    return round(base * age_multiplier, 1), result.get("model_version")
+    result = score_prospect(
+        position=asset["position"],
+        pick=asset["pick"],
+        round_num=asset["round"],
+        age=float(asset["age"]),
+    )
+    dvu = _round_dvu(result["predicted_y24_ppg"])
+    return {
+        "valuation_status": VALUATION_STATUS_OK,
+        "internal_score": dvu,
+        "dvu": dvu,
+        "model_version": result.get("model_version"),
+        "scoring_method": "engine_a_rookie_forecast_dvu_proxy",
+    }
 
 
 def _asset_label(asset: dict) -> str:
@@ -69,7 +139,10 @@ def _ground_truth_check(asset: dict) -> dict:
     ground_truth = asset.get("ground_truth") or {}
     nfl_status = ground_truth.get("nfl_status") or asset.get("nfl_status")
     current_team = ground_truth.get("current_team") or asset.get("current_team") or asset.get("team")
-    years_experience = ground_truth.get("years_experience", asset.get("years_experience"))
+    years_experience = ground_truth.get(
+        "years_experience",
+        asset.get("years_experience", asset.get("years_in_nfl")),
+    )
     source = ground_truth.get("source") or asset.get("ground_truth_source")
 
     verified = any(value is not None for value in (nfl_status, current_team, years_experience))
@@ -143,33 +216,47 @@ def _counter_argument(asset: dict, signal: str | None, ground_truth_check: dict)
 
 def _score_asset(asset: dict) -> dict:
     if asset["type"] == "pick":
-        value = value_pick(round_num=asset["round"], year=asset["year"])
+        market_dvu, market_source_or_status = _market_to_dvu(asset)
+        caveats = ["pick_value_normalized_to_dvu"]
+        if market_source_or_status == VALUATION_STATUS_PENDING_MARKET_ANCHOR:
+            caveats.append("market_value_requires_dvu_anchor")
+            value = None
+            scoring_method = "pending_market_anchor"
+            valuation_status = VALUATION_STATUS_PENDING_MARKET_ANCHOR
+        elif market_dvu is None:
+            value = value_pick_dvu(round_num=asset["round"], year=asset["year"])
+            scoring_method = "static_pick_chart_dvu"
+            valuation_status = VALUATION_STATUS_OK
+        else:
+            value = market_dvu
+            scoring_method = market_source_or_status
+            valuation_status = VALUATION_STATUS_OK
         return {
             **asset,
             "asset_type": "pick",
             "label": _asset_label(asset),
             "internal_score": value,
+            "dvu": value,
+            "valuation_status": valuation_status,
             "score_status": "heuristic",
-            "scoring_method": "static_pick_chart",
-            "caveats": ["pick_value_from_static_chart"],
+            "scoring_method": scoring_method,
+            "caveats": caveats,
         }
     elif asset["type"] == "player":
-        value, model_version = value_player(
-            position=asset["position"],
-            age=asset["age"],
-            pick=asset["pick"],
-            round_num=asset["round"],
-        )
         ground_truth_check = _ground_truth_check(asset)
+        valuation = value_player(asset, ground_truth_check)
         asset_management_signal = _asset_management_signal(asset)
-        caveats = [
-            "veteran_value_uses_rookie_model_proxy",
-            "signal_completeness_not_applicable_to_trade_proxy",
-        ]
+        caveats = ["trade_player_value_requires_ground_truth"]
         if ground_truth_check["status"] != "verified":
             caveats.append("ground_truth_status_unverified")
         if ground_truth_check["classification"] == "active_nfl_veteran":
             caveats.append("active_nfl_veteran_not_rookie_prospect")
+        if valuation["valuation_status"] == VALUATION_STATUS_PENDING_ENGINE_B:
+            caveats.append("active_player_valuation_pending_engine_b")
+        elif valuation["valuation_status"] == VALUATION_STATUS_PENDING_MARKET_ANCHOR:
+            caveats.append("market_value_requires_dvu_anchor")
+        elif valuation.get("scoring_method") == "engine_a_rookie_forecast_dvu_proxy":
+            caveats.append("engine_a_rookie_only")
         if asset_management_signal == "Sell":
             caveats.append("age_curve_sell_signal_only")
         elif asset_management_signal == "Elite Exception: HOLD":
@@ -178,11 +265,14 @@ def _score_asset(asset: dict) -> dict:
             **asset,
             "asset_type": "player",
             "label": _asset_label(asset),
-            "internal_score": value,
+            "internal_score": valuation["internal_score"],
+            "dvu": valuation["dvu"],
+            "valuation_status": valuation["valuation_status"],
+            "valuation_error": valuation.get("error"),
             "score_status": "heuristic",
-            "scoring_method": "rookie_model_proxy_with_manual_age_discount",
-            "engine": "rookie_forecast",
-            "model_version": model_version,
+            "scoring_method": valuation.get("scoring_method", "pending"),
+            "engine": "pending_engine_b" if valuation["valuation_status"] == VALUATION_STATUS_PENDING_ENGINE_B else "rookie_forecast",
+            "model_version": valuation["model_version"],
             "model_grade": "unvalidated",
             "ground_truth_check": ground_truth_check,
             "asset_management_signal": asset_management_signal,
@@ -200,6 +290,12 @@ def _score_asset(asset: dict) -> dict:
 def analyze_trade(my_assets: list[dict], their_assets: list[dict]) -> dict:
     my_scored = [_score_asset(a) for a in my_assets]
     their_scored = [_score_asset(a) for a in their_assets]
+    my_dvu_total = _round_dvu(
+        sum(asset["dvu"] for asset in my_scored if asset.get("dvu") is not None)
+    )
+    their_dvu_total = _round_dvu(
+        sum(asset["dvu"] for asset in their_scored if asset.get("dvu") is not None)
+    )
     model_version = next(
         (
             asset.get("model_version")
@@ -219,6 +315,18 @@ def analyze_trade(my_assets: list[dict], their_assets: list[dict]) -> dict:
         "reason": TRADE_NOT_DECISION_GRADE_REASON,
         "required_before_decision_grade": REQUIRED_BEFORE_DECISION_GRADE,
         "notes": notes,
+        "dvu_normalization": {
+            "unit": "DVU",
+            "one_oh_one_rookie_pick_value": DVU_PER_101_PICK,
+            "aggregation_status": "partial_pending_engine_b",
+            "my_assets_dvu_total": my_dvu_total,
+            "their_assets_dvu_total": their_dvu_total,
+            "excluded_asset_labels": [
+                asset["label"]
+                for asset in [*my_scored, *their_scored]
+                if asset.get("dvu") is None
+            ],
+        },
         "my_assets_breakdown": my_scored,
         "their_assets_breakdown": their_scored,
     }

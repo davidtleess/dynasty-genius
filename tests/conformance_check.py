@@ -1,20 +1,11 @@
 from __future__ import annotations
 
-import pytest
-
 from app.services import trade_analyzer
-from app.services.rookie_evaluator import decision_weights_for_round
+from app.services.rookie_evaluator import (
+    TIER_1_2026_PROSPECT_MAP,
+    decision_weights_for_round,
+)
 from app.services.roster_auditor import audit_player
-
-
-@pytest.fixture(autouse=True)
-def _stub_trade_player_value(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        trade_analyzer,
-        "value_player",
-        lambda position, age, pick, round_num: (42.0, "conformance_fixture"),
-    )
-
 
 def _walk_keys(value: object) -> list[str]:
     if isinstance(value, dict):
@@ -78,6 +69,8 @@ def test_trade_output_flags_age_curve_sells_with_protocol_support() -> None:
         assert asset["ground_truth_check"]["status"] == "verified"
         assert asset["ground_truth_check"]["classification"] == "active_nfl_veteran"
         assert "active_nfl_veteran_not_rookie_prospect" in asset["caveats"]
+        assert asset["valuation_status"] == trade_analyzer.VALUATION_STATUS_PENDING_ENGINE_B
+        assert asset["dvu"] is None
         assert "strongest case against selling" in asset["counter_argument"]
 
 
@@ -107,6 +100,8 @@ def test_rookie_decision_weights_keep_draft_capital_first() -> None:
     r4 = decision_weights_for_round(4)
 
     assert r1["draft_capital"] == 0.70
+    assert r1["draft_capital_locked"] is True
+    assert r1["draft_capital_influence_tier"] == "draft_capital_locked_70_percent_round_1_2"
     assert r2["draft_capital"] == 0.70
     assert r3["draft_capital"] == 0.50
     assert r4["draft_capital"] == 0.30
@@ -114,6 +109,21 @@ def test_rookie_decision_weights_keep_draft_capital_first() -> None:
     for weights in (r1, r2, r3):
         assert weights["landing_spot_context"] <= weights["draft_capital"]
         assert weights["applied_to_model_score"] is False
+
+
+def test_2026_tier_1_prospect_map_is_ground_truth_anchored() -> None:
+    love = TIER_1_2026_PROSPECT_MAP["jeremiyah love"]
+    jeanty = TIER_1_2026_PROSPECT_MAP["ashton jeanty"]
+    sadiq = TIER_1_2026_PROSPECT_MAP["kenyon sadiq"]
+
+    assert love["position"] == "RB"
+    assert love["dominator_rating"] == 0.32
+    assert love["ras"] == 9.8
+    assert jeanty["dominator_rating"] == 0.343
+    assert jeanty["bmi"] == 32.1
+    assert sadiq["position"] == "TE"
+    assert sadiq["ras"] == 9.59
+    assert {love["source"], jeanty["source"], sadiq["source"]} == {"DYNASTY_GENIUS_CORE.rtf"}
 
 
 def test_trade_output_blocks_verdict_until_unified_valuation_layer() -> None:
@@ -140,3 +150,24 @@ def test_trade_output_blocks_verdict_until_unified_valuation_layer() -> None:
     assert response["decision_supported"] is False
     assert "unified_valuation_layer_for_all_assets" in response["required_before_decision_grade"]
     assert "verdict" not in {key.lower() for key in _walk_keys(response)}
+
+
+def test_trade_market_values_normalize_to_dvu_before_aggregation() -> None:
+    response = trade_analyzer.analyze_trade(
+        my_assets=[
+            {
+                "type": "pick",
+                "year": 2026,
+                "round": 1,
+                "market_value": 0.5,
+                "market_value_scale": "one_oh_one_ratio",
+            }
+        ],
+        their_assets=[{"type": "pick", "year": 2026, "round": 1}],
+    )
+
+    mine = response["my_assets_breakdown"][0]
+    assert mine["dvu"] == 50.0
+    assert mine["scoring_method"] == "market_value_101_pick_ratio"
+    assert response["dvu_normalization"]["one_oh_one_rookie_pick_value"] == 100.0
+    assert response["dvu_normalization"]["my_assets_dvu_total"] == 50.0

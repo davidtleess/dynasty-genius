@@ -45,6 +45,28 @@ CLASS_RANK_NOTE = (
 ROUND_1_2_DRAFT_CAPITAL_WEIGHT = 0.70
 ROUND_3_DRAFT_CAPITAL_WEIGHT = 0.50
 ROUND_4_PLUS_DRAFT_CAPITAL_WEIGHT = 0.30
+TIER_1_2026_PROSPECT_MAP = {
+    "jeremiyah love": {
+        "name": "Jeremiyah Love",
+        "position": "RB",
+        "dominator_rating": 0.32,
+        "ras": 9.8,
+        "source": "DYNASTY_GENIUS_CORE.rtf",
+    },
+    "ashton jeanty": {
+        "name": "Ashton Jeanty",
+        "position": "RB",
+        "dominator_rating": 0.343,
+        "bmi": 32.1,
+        "source": "DYNASTY_GENIUS_CORE.rtf",
+    },
+    "kenyon sadiq": {
+        "name": "Kenyon Sadiq",
+        "position": "TE",
+        "ras": 9.59,
+        "source": "DYNASTY_GENIUS_CORE.rtf",
+    },
+}
 
 
 def _latest_model_dir() -> Path | None:
@@ -183,6 +205,44 @@ def _threshold_flags(position: str, pick: int, age: float) -> dict:
     }
 
 
+def _prospect_anchor(name: str | None) -> dict | None:
+    if not name:
+        return None
+    return TIER_1_2026_PROSPECT_MAP.get(name.strip().lower())
+
+
+def _ground_truth_check(name: str | None) -> dict:
+    anchor = _prospect_anchor(name)
+    if anchor is None:
+        return {
+            "status": "missing",
+            "source": None,
+            "classification": "unanchored_rookie_query",
+            "prospect_anchor": None,
+        }
+    return {
+        "status": "verified",
+        "source": anchor["source"],
+        "classification": "tier_1_2026_prospect_anchor",
+        "prospect_anchor": anchor,
+    }
+
+
+def _threshold_flags_with_anchor(position: str, pick: int, age: float, name: str | None) -> dict:
+    flags = _threshold_flags(position, pick, age)
+    anchor = _prospect_anchor(name)
+    if anchor is None:
+        return flags
+
+    if "dominator_rating" in anchor:
+        flags["dominator_above_position_line"] = (
+            anchor["dominator_rating"] >= (0.30 if position == "RB" else 0.25)
+        )
+    if "ras" in anchor:
+        flags["ras_above_8"] = anchor["ras"] >= 8.0
+    return flags
+
+
 def draft_capital_weight_for_round(round_num: int) -> float:
     if round_num in {1, 2}:
         return ROUND_1_2_DRAFT_CAPITAL_WEIGHT
@@ -193,8 +253,16 @@ def draft_capital_weight_for_round(round_num: int) -> float:
 
 def decision_weights_for_round(round_num: int) -> dict:
     draft_capital_weight = draft_capital_weight_for_round(round_num)
+    if round_num in {1, 2}:
+        influence_tier = "draft_capital_locked_70_percent_round_1_2"
+    elif round_num == 3:
+        influence_tier = "draft_capital_locked_50_percent_round_3"
+    else:
+        influence_tier = "draft_capital_locked_30_percent_round_4_plus"
     return {
         "draft_capital": draft_capital_weight,
+        "draft_capital_locked": True,
+        "draft_capital_influence_tier": influence_tier,
         "landing_spot_context": round(1.0 - draft_capital_weight, 2),
         "source": "DYNASTY_GENIUS_CORE.draft_capital_first_protocol",
         "applied_to_model_score": False,
@@ -344,7 +412,8 @@ def score_prospect(
         "age":               age,
         "age_at_entry":      age,
         "predicted_y24_ppg": ppg,
-        "threshold_flags":   _threshold_flags(position, pick, age),
+        "threshold_flags":   _threshold_flags_with_anchor(position, pick, age, name),
+        "ground_truth_check": _ground_truth_check(name),
         "decision_weights":  decision_weights_for_round(round_num),
         "roster_fit_signal": "unknown",
         "top_drivers":       top_drivers,

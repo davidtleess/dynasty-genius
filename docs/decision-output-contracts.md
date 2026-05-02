@@ -100,6 +100,19 @@ Endpoint: `POST /api/rookies/score` and `POST /api/rookies/score-class`.
     "ras_above_8": null,
     "yprr_above_position_line": null
   },
+  "ground_truth_check": {
+    "status": "verified | missing",
+    "source": "DYNASTY_GENIUS_CORE.rtf | null",
+    "classification": "tier_1_2026_prospect_anchor | unanchored_rookie_query",
+    "prospect_anchor": null
+  },
+  "decision_weights": {
+    "draft_capital": 0.70,
+    "draft_capital_locked": true,
+    "draft_capital_influence_tier": "draft_capital_locked_70_percent_round_1_2",
+    "landing_spot_context": 0.30,
+    "applied_to_model_score": false
+  },
   "roster_fit_signal": "fits_need | position_surplus | neutral | unknown",
   "top_drivers": [
     {"feature": "draft_capital", "contribution": 8.4, "direction": "positive"},
@@ -119,6 +132,8 @@ Endpoint: `POST /api/rookies/score` and `POST /api/rookies/score-class`.
 - `confidence` (the old pick-bucket field) is **removed**. Do not emit.
 - `dynasty_tier` is **removed** under that name; use `projected_outcome_band` only after `model_grade ≥ B`. While the model is `unvalidated` or `D`, omit `projected_outcome_band` entirely.
 - `threshold_flags` keys are always present. A `null` value means "input not yet ingested"; the frontend renders this differently from `false`.
+- `ground_truth_check` is always present. Tier-1 2026 prospects from `DYNASTY_GENIUS_CORE.rtf` are anchored to the checked-in prospect map; unanchored ad hoc queries must say so.
+- `decision_weights.draft_capital` is locked to the framework bands: 0.70 for rounds 1-2, 0.50 for round 3, and 0.30 for rounds 4+. `landing_spot_context` is protocol metadata only and MUST NOT enter Engine A scoring while `applied_to_model_score` is `false`.
 - `top_drivers` uses display-safe precision and should not include the model intercept as a prospect-specific driver. With the current Ridge model, contributions are `coef * (feature - feature_mean)` and `pick`/`round` are combined into `draft_capital`. When SHAP-style attributions ship, they replace this without a schema change.
 - `counter_argument` is generated from `risk_flags` via a fixed template, not from a language model.
 - `roster_fit_signal` defaults to `"unknown"` until league/roster config is wired.
@@ -200,7 +215,10 @@ Endpoint: `POST /api/trade/analyze`. Marked experimental until trade reads from 
       "asset_type": "player | pick",
       "label": "Player Name | 2026 R2",
       "internal_score": 0.0,
-      "engine": "rookie_forecast | active_player_forecast",
+      "dvu": 0.0,
+      "valuation_status": "VALUATION_STATUS_OK | VALUATION_STATUS_PENDING_ENGINE_B | VALUATION_STATUS_PENDING_GROUND_TRUTH | VALUATION_STATUS_PENDING_MARKET_ANCHOR",
+      "valuation_error": null,
+      "engine": "rookie_forecast | pending_engine_b",
       "model_grade": "A | B | C | D | unvalidated",
       "ground_truth_check": {
         "status": "verified | missing",
@@ -212,11 +230,19 @@ Endpoint: `POST /api/trade/analyze`. Marked experimental until trade reads from 
       "asset_management_signal": "Sell | Elite Exception: HOLD | null",
       "counter_argument": "The strongest case against...",
       "caveats": [
-        "veteran_value_uses_rookie_model_proxy",
-        "pick_value_from_static_chart"
+        "active_player_valuation_pending_engine_b",
+        "pick_value_normalized_to_dvu"
       ]
     }
   ],
+  "dvu_normalization": {
+    "unit": "DVU",
+    "one_oh_one_rookie_pick_value": 100.0,
+    "aggregation_status": "partial_pending_engine_b",
+    "my_assets_dvu_total": 100.0,
+    "their_assets_dvu_total": 0.0,
+    "excluded_asset_labels": ["Veteran Player"]
+  },
   "their_assets_breakdown": []
 }
 ```
@@ -224,12 +250,12 @@ Endpoint: `POST /api/trade/analyze`. Marked experimental until trade reads from 
 ### Rules
 
 - `verdict` is **removed**. Do not emit `"Strong win" / "Win" / "Fair" / "Loss" / "Strong loss"` in any form. Re-introduce only when both sides can be valued by the unified schema, AND `model_grade` is at least `B` for both engines.
-- Side totals (`my_total`, `their_total`, `difference`) are **removed**. They aggregate apples and oranges (rookie-model proxy + static pick chart).
-- Every player asset MUST carry `"veteran_value_uses_rookie_model_proxy"` in `caveats` until that is no longer true.
+- Side totals (`my_total`, `their_total`, `difference`) and `experimental_totals` are **removed**. The only allowed aggregation before PVO is `dvu_normalization`, where 100 DVU equals the 1.01 rookie pick and any unvalued asset is listed in `excluded_asset_labels`.
+- Active NFL players (`years_experience` / `years_in_nfl` > 0) MUST return `VALUATION_STATUS_PENDING_ENGINE_B`; they must never be valued by the rookie model.
 - Every player asset MUST carry `ground_truth_check`. Active veterans must be marked as active NFL players, not treated as rookie prospects.
 - Every major player signal (`Sell`, `Elite Exception: HOLD`) MUST include a steel-manned `counter_argument`.
-- Every pick asset MUST carry `"pick_value_from_static_chart"` until pick valuation is rewritten to slot-weighted expected rookie scores.
-- `decision_supported` MUST remain `false` while the response uses heuristic player proxies or static pick values.
+- Every KTC/market value MUST be normalized to DVU before aggregation. A raw market value without a `market_101_pick_value` anchor must return `VALUATION_STATUS_PENDING_MARKET_ANCHOR`.
+- `decision_supported` MUST remain `false` while any player valuation is pending Engine B or ground-truth verification.
 - Do not emit legacy duplicate fields such as `my_assets_scored`, `their_assets_scored`, per-asset `value`, `deprecated_fields`, or `experimental_totals`.
 - The route SHOULD be hidden from any UI surface during this period. Internal use only.
 
