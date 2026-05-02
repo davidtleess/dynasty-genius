@@ -240,11 +240,17 @@ Session A is producing a validation report per training run. To make `model_grad
   "row_counts": {"train": 0, "holdout": 0},
   "per_position": {
     "WR": {
+      "train_rows": 0,
+      "holdout_rows": 0,
       "rmse": 0.0,
-      "mae": 0.0,
       "r2": 0.0,
-      "calibration_coverage_80": null,
-      "model_grade": "A | B | C | D | unvalidated"
+      "spearman_rank_correlation": 0.0,
+      "top_12_hit_rate": 0.0,
+      "bust_avoidance_rate": 0.0,
+      "position_ceiling": 0.5,
+      "coverage_80": null,
+      "model_grade": "A | B | C | D | unvalidated",
+      "caveats": []
     },
     "RB": {},
     "TE": {},
@@ -257,15 +263,22 @@ Session A is producing a validation report per training run. To make `model_grad
 }
 ```
 
-`model_grade` thresholds (initial proposal, tune as data accumulates):
+`model_grade` thresholds (football-aware composite grading):
 
 | Grade | Position-level criteria |
 | --- | --- |
-| A | R² ≥ 0.30 on holdout AND coverage_80 within ±5% AND row count ≥ 80 |
-| B | R² ≥ 0.15 OR (R² ≥ 0.0 AND row count ≥ 80 AND coverage usable) |
-| C | R² ≥ 0.0 |
-| D | R² < 0.0 |
+| A | R² ≥ (position_ceiling × 0.7) AND Spearman rank correlation ≥ 0.60 AND top-12 hit rate ≥ 0.50 AND holdout row count ≥ 80 |
+| B | R² ≥ (position_ceiling × 0.5) AND Spearman rank correlation ≥ 0.45 AND holdout row count ≥ 30 |
+| C | R² ≥ 0.0 AND Spearman rank correlation ≥ 0.0 |
+| D | R² < 0.0 OR Spearman rank correlation < 0.0 |
 | unvalidated | no holdout report exists |
+
+Position ceilings reflect realistic NFL prediction ceilings by position:
+
+- WR = 0.50
+- RB = 0.50
+- TE = 0.30
+- QB = 0.20
 
 The API loads the latest validation report at startup and stamps `model_grade` per position.
 
@@ -277,6 +290,9 @@ The API loads the latest validation report at startup and stamps `model_grade` p
 - Updated roster signals to `past_cliff`, `at_cliff`, `approaching_cliff`, and `no_age_signal`.
 - Clarified that roster and trade must not fake model grades, projections, confidence bands, verdicts, or totals before Engine B and unified valuation are ready.
 - Clarified current rookie `top_drivers` attribution: centered Ridge terms, combined `draft_capital`, no intercept-as-driver, display-safe precision.
+- Replaced pure R²/RMSE-only grading with composite football-aware grading because error fit alone does not capture dynasty decision utility.
+- Added rank-ordering and decision metrics (`spearman_rank_correlation`, `top_12_hit_rate`, `bust_avoidance_rate`) so holdout quality reflects draft board usefulness and bust screening.
+- Added position-specific ceilings to grading because QB and TE outcomes have lower achievable predictive ceilings than WR and RB regardless of feature quality.
 
 ## Versioning
 

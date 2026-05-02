@@ -48,6 +48,9 @@ jobs:
           assert max(split_info["training_seasons"]) < min(split_info["holdout_seasons"]), split_info
           PY
 
+      - name: Run pytest
+        run: PYTHONPYCACHEPREFIX=.pycache_tmp pytest -q
+
       - name: Verify storage policy
         run: |
           tracked_artifacts="$(git ls-files app/cache app/data/raw app/data/processed app/data/artifacts)"
