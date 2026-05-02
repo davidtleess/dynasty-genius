@@ -49,7 +49,7 @@ jobs:
           PY
 
       - name: Run pytest
-        run: PYTHONPYCACHEPREFIX=.pycache_tmp pytest -q
+        run: PYTHONPATH=. PYTHONPYCACHEPREFIX=.pycache_tmp pytest -q
 
       - name: Verify storage policy
         run: |
