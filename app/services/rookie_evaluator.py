@@ -42,6 +42,9 @@ DRAFT_CAPITAL_DRIVER_NOTE = (
 CLASS_RANK_NOTE = (
     "class_overall_rank does not yet account for positional scarcity."
 )
+ROUND_1_2_DRAFT_CAPITAL_WEIGHT = 0.70
+ROUND_3_DRAFT_CAPITAL_WEIGHT = 0.50
+ROUND_4_PLUS_DRAFT_CAPITAL_WEIGHT = 0.30
 
 
 def _latest_model_dir() -> Path | None:
@@ -102,9 +105,19 @@ def _load_models() -> tuple[dict, dict]:
     return models, metadata
 
 
-_MODELS, _MODEL_METADATA = _load_models()
-_LATEST_POINTER = _latest_pointer()
-_VALIDATION_BY_POSITION = _load_validation_report(_LATEST_POINTER)
+_MODELS: dict | None = None
+_MODEL_METADATA: dict | None = None
+_LATEST_POINTER: dict | None = None
+_VALIDATION_BY_POSITION: dict | None = None
+
+
+def _ensure_models_loaded() -> None:
+    global _MODELS, _MODEL_METADATA, _LATEST_POINTER, _VALIDATION_BY_POSITION
+    if _MODELS is not None:
+        return
+    _MODELS, _MODEL_METADATA = _load_models()
+    _LATEST_POINTER = _latest_pointer()
+    _VALIDATION_BY_POSITION = _load_validation_report(_LATEST_POINTER)
 
 
 def _dynasty_tier(ppg: float) -> str:
@@ -115,6 +128,9 @@ def _dynasty_tier(ppg: float) -> str:
 
 
 def _model_version(position: str) -> str:
+    _ensure_models_loaded()
+    assert _LATEST_POINTER is not None
+    assert _MODEL_METADATA is not None
     return (
         _LATEST_POINTER.get("model_version")
         or _MODEL_METADATA.get(position, {}).get("model_version")
@@ -123,6 +139,10 @@ def _model_version(position: str) -> str:
 
 
 def _validation_metadata(position: str) -> dict:
+    _ensure_models_loaded()
+    assert _VALIDATION_BY_POSITION is not None
+    assert _MODEL_METADATA is not None
+    assert _LATEST_POINTER is not None
     report_metrics = _VALIDATION_BY_POSITION.get(position, {})
     metadata_metrics = _MODEL_METADATA.get(position, {}).get("metrics", {})
     rmse = report_metrics.get("rmse", metadata_metrics.get("rmse"))
@@ -163,6 +183,24 @@ def _threshold_flags(position: str, pick: int, age: float) -> dict:
     }
 
 
+def draft_capital_weight_for_round(round_num: int) -> float:
+    if round_num in {1, 2}:
+        return ROUND_1_2_DRAFT_CAPITAL_WEIGHT
+    if round_num == 3:
+        return ROUND_3_DRAFT_CAPITAL_WEIGHT
+    return ROUND_4_PLUS_DRAFT_CAPITAL_WEIGHT
+
+
+def decision_weights_for_round(round_num: int) -> dict:
+    draft_capital_weight = draft_capital_weight_for_round(round_num)
+    return {
+        "draft_capital": draft_capital_weight,
+        "landing_spot_context": round(1.0 - draft_capital_weight, 2),
+        "source": "DYNASTY_GENIUS_CORE.draft_capital_first_protocol",
+        "applied_to_model_score": False,
+    }
+
+
 def _counter_argument() -> str:
     return (
         "Score is driven by draft capital and age only; RAS, college production, "
@@ -184,6 +222,8 @@ def _display_contribution(contribution: float) -> float:
 
 
 def _top_drivers(position: str, pick: int, round_num: int, age: float) -> list[dict]:
+    _ensure_models_loaded()
+    assert _MODEL_METADATA is not None
     metadata = _MODEL_METADATA.get(position, {})
     coefficients = metadata.get("coefficients", {})
     feature_means = metadata.get("feature_means", {})
@@ -256,6 +296,8 @@ def score_prospect(
     age: float,
     name: str | None = None,
 ) -> dict:
+    _ensure_models_loaded()
+    assert _MODELS is not None
     if position not in _MODELS:
         raise ValueError(f"Unsupported position: {position}. Must be one of {POSITIONS}.")
 
@@ -303,6 +345,7 @@ def score_prospect(
         "age_at_entry":      age,
         "predicted_y24_ppg": ppg,
         "threshold_flags":   _threshold_flags(position, pick, age),
+        "decision_weights":  decision_weights_for_round(round_num),
         "roster_fit_signal": "unknown",
         "top_drivers":       top_drivers,
         "risk_flags":        ["draft_capital_age_only"],

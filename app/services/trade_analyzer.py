@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.services.rookie_evaluator import score_prospect
+from app.services.roster_auditor import CLIFF_AGES, ELITE_RB_YAC_PER_ATTEMPT
 
 PICK_BASE_VALUES = {1: 80.0, 2: 45.0, 3: 20.0, 4: 10.0}
 
@@ -33,6 +33,8 @@ TRADE_NOTES = [
     "pick_values_use_static_chart",
 ]
 
+AGE_SELL_THRESHOLDS = {"RB": 26, "WR": 28}
+
 
 def value_pick(round_num: int, year: int, current_year: int = 2025) -> float:
     base = PICK_BASE_VALUES.get(round_num, 5.0)
@@ -43,6 +45,8 @@ def value_pick(round_num: int, year: int, current_year: int = 2025) -> float:
 
 
 def value_player(position: str, age: int, pick: int, round_num: int) -> tuple[float, str | None]:
+    from app.services.rookie_evaluator import score_prospect
+
     result = score_prospect(position=position, pick=pick, round_num=round_num, age=float(age))
     ppg = result["predicted_y24_ppg"]
     base = ppg * 6.0
@@ -59,6 +63,82 @@ def _asset_label(asset: dict) -> str:
     if asset["type"] == "pick":
         return f"{asset['year']} R{asset['round']}"
     return asset.get("name") or f"{asset.get('position', 'UNKNOWN')} player"
+
+
+def _ground_truth_check(asset: dict) -> dict:
+    ground_truth = asset.get("ground_truth") or {}
+    nfl_status = ground_truth.get("nfl_status") or asset.get("nfl_status")
+    current_team = ground_truth.get("current_team") or asset.get("current_team") or asset.get("team")
+    years_experience = ground_truth.get("years_experience", asset.get("years_experience"))
+    source = ground_truth.get("source") or asset.get("ground_truth_source")
+
+    verified = any(value is not None for value in (nfl_status, current_team, years_experience))
+    check = {
+        "status": "verified" if verified else "missing",
+        "nfl_status": nfl_status,
+        "current_team": current_team,
+        "years_experience": years_experience,
+        "source": source,
+    }
+    if verified and years_experience is not None and int(years_experience) > 0:
+        check["classification"] = "active_nfl_veteran"
+    elif verified:
+        check["classification"] = "nfl_status_checked"
+    else:
+        check["classification"] = "unverified"
+    return check
+
+
+def _elite_rb_exception(asset: dict) -> bool:
+    yac_per_attempt = asset.get("yards_after_contact_per_attempt")
+    if yac_per_attempt is None:
+        yac_per_attempt = asset.get("yac_per_attempt")
+    return (
+        asset.get("position") == "RB"
+        and int(asset["age"]) >= CLIFF_AGES["RB"]
+        and yac_per_attempt is not None
+        and float(yac_per_attempt) >= ELITE_RB_YAC_PER_ATTEMPT
+    )
+
+
+def _asset_management_signal(asset: dict) -> str | None:
+    position = asset.get("position")
+    age = asset.get("age")
+    if position is None or age is None:
+        return None
+    if _elite_rb_exception(asset):
+        return "Elite Exception: HOLD"
+    threshold = AGE_SELL_THRESHOLDS.get(position)
+    if threshold is not None and int(age) >= threshold:
+        return "Sell"
+    return None
+
+
+def _counter_argument(asset: dict, signal: str | None, ground_truth_check: dict) -> str:
+    label = _asset_label(asset)
+    if signal == "Sell":
+        return (
+            f"The strongest case against selling {label} is that age-curve pressure alone "
+            "does not measure current usage, weekly contender value, injury recovery, or "
+            "trade-market price; a contender may rationally hold if the verified role is elite."
+        )
+    if signal == "Elite Exception: HOLD":
+        return (
+            f"The strongest case against holding {label} is that even elite yards-after-contact "
+            "efficiency can collapse quickly after the RB age cliff; the exception should be "
+            "rechecked against current workload, injury status, and market liquidity."
+        )
+    if ground_truth_check["status"] != "verified":
+        return (
+            f"The strongest case against using {label}'s trade score is that NFL status has "
+            "not been verified against ground truth, so the system may be stale or misclassify "
+            "the player."
+        )
+    return (
+        f"The strongest case against using {label}'s trade score is that this surface still "
+        "uses a rookie-model proxy for active players and lacks Engine B usage, efficiency, "
+        "market, and roster-context inputs."
+    )
 
 
 def _score_asset(asset: dict) -> dict:
@@ -80,6 +160,20 @@ def _score_asset(asset: dict) -> dict:
             pick=asset["pick"],
             round_num=asset["round"],
         )
+        ground_truth_check = _ground_truth_check(asset)
+        asset_management_signal = _asset_management_signal(asset)
+        caveats = [
+            "veteran_value_uses_rookie_model_proxy",
+            "signal_completeness_not_applicable_to_trade_proxy",
+        ]
+        if ground_truth_check["status"] != "verified":
+            caveats.append("ground_truth_status_unverified")
+        if ground_truth_check["classification"] == "active_nfl_veteran":
+            caveats.append("active_nfl_veteran_not_rookie_prospect")
+        if asset_management_signal == "Sell":
+            caveats.append("age_curve_sell_signal_only")
+        elif asset_management_signal == "Elite Exception: HOLD":
+            caveats.append("elite_exception_requires_current_yac_verification")
         return {
             **asset,
             "asset_type": "player",
@@ -90,10 +184,14 @@ def _score_asset(asset: dict) -> dict:
             "engine": "rookie_forecast",
             "model_version": model_version,
             "model_grade": "unvalidated",
-            "caveats": [
-                "veteran_value_uses_rookie_model_proxy",
-                "signal_completeness_not_applicable_to_trade_proxy",
-            ],
+            "ground_truth_check": ground_truth_check,
+            "asset_management_signal": asset_management_signal,
+            "counter_argument": _counter_argument(
+                asset,
+                asset_management_signal,
+                ground_truth_check,
+            ),
+            "caveats": caveats,
         }
     else:
         raise ValueError(f"Unknown asset type: {asset['type']}")

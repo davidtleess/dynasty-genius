@@ -148,8 +148,8 @@ Endpoint: `GET /api/roster/audit`.
       "age": 27,
       "cliff_age": 26,
       "years_to_cliff": -1,
-      "cliff_status": "Past cliff | At cliff | Approaching | No age signal",
-      "signal": "past_cliff | at_cliff | approaching_cliff | no_age_signal",
+      "cliff_status": "Past cliff | At cliff | Approaching | No age signal | Elite Exception: HOLD",
+      "signal": "past_cliff | at_cliff | approaching_cliff | no_age_signal | elite_exception_hold",
       "signal_drivers": [
         "age_past_position_cliff"
       ],
@@ -168,6 +168,7 @@ Endpoint: `GET /api/roster/audit`.
 
 - `action` (`"Sell now"` etc.) is **removed**. Use `signal` only.
 - `signal` values are neutral observed states. The frontend translates them to user-facing strings; the API does not.
+- `elite_exception_hold` is a caveated age-curve exception, not an action. It is allowed only for an RB at/after the age cliff when verified yards after contact per attempt is at least `3.0`.
 - While Engine B is missing, `caveats` MUST include at least `"age_curve_only"` and `"no_usage_signal"`. The roster card is allowed to ship in this caveated form because age curve alone is a real signal — but it must declare its limits.
 - Hardcoded league/user fallback is **removed**. If config is missing or the named league is not found, the endpoint returns 422 with a structured error. Silently auditing the wrong league is worse than failing.
 - The roster response intentionally uses the heuristic surface envelope, not the model valuation envelope. Do not emit fake model grades, projections, or confidence bands.
@@ -201,6 +202,15 @@ Endpoint: `POST /api/trade/analyze`. Marked experimental until trade reads from 
       "internal_score": 0.0,
       "engine": "rookie_forecast | active_player_forecast",
       "model_grade": "A | B | C | D | unvalidated",
+      "ground_truth_check": {
+        "status": "verified | missing",
+        "nfl_status": "active | inactive | null",
+        "current_team": "TEAM | FA | null",
+        "years_experience": 0,
+        "classification": "active_nfl_veteran | nfl_status_checked | unverified"
+      },
+      "asset_management_signal": "Sell | Elite Exception: HOLD | null",
+      "counter_argument": "The strongest case against...",
       "caveats": [
         "veteran_value_uses_rookie_model_proxy",
         "pick_value_from_static_chart"
@@ -216,6 +226,8 @@ Endpoint: `POST /api/trade/analyze`. Marked experimental until trade reads from 
 - `verdict` is **removed**. Do not emit `"Strong win" / "Win" / "Fair" / "Loss" / "Strong loss"` in any form. Re-introduce only when both sides can be valued by the unified schema, AND `model_grade` is at least `B` for both engines.
 - Side totals (`my_total`, `their_total`, `difference`) are **removed**. They aggregate apples and oranges (rookie-model proxy + static pick chart).
 - Every player asset MUST carry `"veteran_value_uses_rookie_model_proxy"` in `caveats` until that is no longer true.
+- Every player asset MUST carry `ground_truth_check`. Active veterans must be marked as active NFL players, not treated as rookie prospects.
+- Every major player signal (`Sell`, `Elite Exception: HOLD`) MUST include a steel-manned `counter_argument`.
 - Every pick asset MUST carry `"pick_value_from_static_chart"` until pick valuation is rewritten to slot-weighted expected rookie scores.
 - `decision_supported` MUST remain `false` while the response uses heuristic player proxies or static pick values.
 - Do not emit legacy duplicate fields such as `my_assets_scored`, `their_assets_scored`, per-asset `value`, `deprecated_fields`, or `experimental_totals`.
