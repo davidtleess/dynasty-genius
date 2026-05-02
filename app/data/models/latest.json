@@ -1,5 +1,5 @@
 {
-  "model_version": "20260430T211956Z",
-  "run_dir": "app/data/models/runs/20260430T211956Z",
-  "validation_report": "app/data/models/runs/20260430T211956Z/validation_report.json"
+  "model_version": "20260502T153931Z",
+  "run_dir": "app/data/models/runs/20260502T153931Z",
+  "validation_report": "app/data/models/runs/20260502T153931Z/validation_report.json"
 }

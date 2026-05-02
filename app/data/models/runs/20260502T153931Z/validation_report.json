@@ -1,0 +1,101 @@
+{
+  "model_version": "20260502T153931Z",
+  "model_family": "rookie_forecast_ridge",
+  "created_at_utc": "2026-05-02T15:39:31.673037+00:00",
+  "features": [
+    "pick",
+    "round",
+    "age"
+  ],
+  "target": "y24_ppg",
+  "data_path": "app/data/training/prospects_with_outcomes.csv",
+  "data_sha256": "1c92ccbc371f55d7b4b8e6941d77cbbb74715c027a74cc2b7ce43d9d426d7401",
+  "split": {
+    "strategy": "latest_mature_season_temporal_holdout",
+    "training_seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020
+    ],
+    "holdout_seasons": [
+      2021
+    ],
+    "excluded_unmatured_seasons": [
+      2022,
+      2023,
+      2024,
+      2025
+    ]
+  },
+  "per_position": {
+    "WR": {
+      "train_rows": 193,
+      "holdout_rows": 35,
+      "rmse": 4.112,
+      "r2": 0.408,
+      "spearman_rank_correlation": 0.729,
+      "top_12_hit_rate": 0.833,
+      "bust_avoidance_rate": 0.5,
+      "position_ceiling": 0.5,
+      "coverage_80": null,
+      "model_grade": "C",
+      "caveats": []
+    },
+    "RB": {
+      "train_rows": 129,
+      "holdout_rows": 19,
+      "rmse": 2.977,
+      "r2": 0.509,
+      "spearman_rank_correlation": 0.719,
+      "top_12_hit_rate": 0.833,
+      "bust_avoidance_rate": 0.75,
+      "position_ceiling": 0.5,
+      "coverage_80": null,
+      "model_grade": "C",
+      "caveats": [
+        "rb_career_arc_capped_by_aging_cliff",
+        "low_sample_holdout"
+      ]
+    },
+    "TE": {
+      "train_rows": 87,
+      "holdout_rows": 11,
+      "rmse": 2.152,
+      "r2": 0.197,
+      "spearman_rank_correlation": 0.545,
+      "top_12_hit_rate": 1.0,
+      "bust_avoidance_rate": 0.5,
+      "position_ceiling": 0.3,
+      "coverage_80": null,
+      "model_grade": "C",
+      "caveats": [
+        "te_population_per_class_small",
+        "low_sample_holdout"
+      ]
+    },
+    "QB": {
+      "train_rows": 68,
+      "holdout_rows": 10,
+      "rmse": 6.672,
+      "r2": -0.208,
+      "spearman_rank_correlation": 0.517,
+      "top_12_hit_rate": 1.0,
+      "bust_avoidance_rate": 0.5,
+      "position_ceiling": 0.2,
+      "coverage_80": null,
+      "model_grade": "D",
+      "caveats": [
+        "qb_rookie_signal_inherently_low_ceiling",
+        "low_sample_holdout",
+        "negative_r2_lower_bound"
+      ]
+    }
+  },
+  "gates": {
+    "te_non_negative_r2": true,
+    "all_positions_validated": true
+  }
+}
