@@ -15,6 +15,7 @@ def test_roster_signal_domain_and_caveats() -> None:
     for item in audited:
         assert item is not None
         assert item["signal"] in allowed_signals
+        assert item["compliance_header"] == "Compliance: 100% / 0% (PASS)"
         assert "action" not in item
         rendered = str(item)
         assert "Sell now" not in rendered

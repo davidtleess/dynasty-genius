@@ -27,8 +27,10 @@ def test_trade_quarantine_contract_fields() -> None:
         assert field not in response
 
     assert response["decision_supported"] is False
+    assert response["compliance_header"].startswith("Compliance: ")
 
     for asset in response["my_assets_breakdown"] + response["their_assets_breakdown"]:
+        assert "compliance_header" in asset
         caveats = asset.get("caveats", [])
         if asset.get("asset_type") == "player":
             assert "trade_player_value_requires_ground_truth" in caveats

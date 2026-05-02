@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 
 from app.models.valuation import DynastyValuation, ValuationEngine
+from app.utils.compliance import RANK_1_GROUND_TRUTH, calculate_compliance_ratio
 
 MODELS_DIR = Path(__file__).resolve().parents[2] / "app" / "data" / "models"
 LATEST_POINTER = MODELS_DIR / "latest.json"
@@ -67,6 +68,23 @@ TIER_1_2026_PROSPECT_MAP = {
         "source": "DYNASTY_GENIUS_CORE.rtf",
     },
 }
+
+
+def _engine_a_compliance_metrics() -> list[dict]:
+    return [
+        {
+            "name": "nfl_draft_capital",
+            "kind": "quantitative",
+            "source_rank": RANK_1_GROUND_TRUTH,
+            "weight": 0.70,
+        },
+        {
+            "name": "age_at_entry",
+            "kind": "quantitative",
+            "source_rank": RANK_1_GROUND_TRUTH,
+            "weight": 0.30,
+        },
+    ]
 
 
 def _latest_model_dir() -> Path | None:
@@ -337,6 +355,7 @@ def _dynasty_valuation(
         position=position,
         engine=ValuationEngine.ROOKIE_FORECAST,
         model_version=model_version,
+        source_rank=RANK_1_GROUND_TRUTH,
         dynasty_value_score=projected,
         confidence_band=None,
         projection_1y=projected,
@@ -387,10 +406,16 @@ def score_prospect(
         "Legacy confidence was pick-bucket logic and is intentionally not emitted.",
     ]
     top_drivers = _top_drivers(position, pick, round_num, age)
+    compliance_header = calculate_compliance_ratio(
+        _engine_a_compliance_metrics(),
+        [],
+    )
 
     result = {
+        "compliance_header": compliance_header,
         "engine":            ValuationEngine.ROOKIE_FORECAST.value,
         "model_version":     model_version,
+        "source_rank":       RANK_1_GROUND_TRUTH,
         "model_grade":       validation["model_grade"],
         "signal_completeness": SIGNAL_COMPLETENESS,
         "horizon_years":     HORIZON_YEARS,
@@ -404,7 +429,7 @@ def score_prospect(
         "r2_position_holdout": validation["r2_position_holdout"],
         "validation":        validation,
         "model_caveats":     validation.get("caveats", []),
-        "valuation":         {**valuation, "notes": notes},
+        "valuation":         {**valuation, "notes": notes, "compliance_header": compliance_header},
         "notes":             notes,
         "position":          position,
         "pick":              pick,

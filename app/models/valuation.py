@@ -9,6 +9,11 @@ class ValuationEngine(str, Enum):
     ACTIVE_PLAYER_FORECAST = "active_player_forecast"
 
 
+SOURCE_RANK_1_GROUND_TRUTH = 1
+SOURCE_RANK_2_VALIDATED_ANALYST = 2
+SOURCE_RANK_3_MARKET_SIGNAL = 3
+
+
 class ConfidenceBand(BaseModel):
     low: float
     median: float
@@ -22,6 +27,15 @@ class DynastyValuation(BaseModel):
     position: str
     engine: ValuationEngine
     model_version: Optional[str] = None
+    source_rank: int = Field(
+        default=SOURCE_RANK_1_GROUND_TRUTH,
+        ge=1,
+        le=3,
+        description=(
+            "Source hierarchy rank: 1=ground truth, 2=validated analyst, "
+            "3=market signal."
+        ),
+    )
 
     dynasty_value_score: float = Field(
         ge=0.0,

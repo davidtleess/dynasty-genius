@@ -28,3 +28,6 @@ test_trade_output_flags_age_curve_sells_with_protocol_support = (
 test_trade_market_values_normalize_to_dvu_before_aggregation = (
     _MODULE.test_trade_market_values_normalize_to_dvu_before_aggregation
 )
+test_2027_first_round_picks_use_generational_anchor_floor = (
+    _MODULE.test_2027_first_round_picks_use_generational_anchor_floor
+)

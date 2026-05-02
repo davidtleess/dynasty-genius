@@ -71,6 +71,7 @@ def test_trade_output_flags_age_curve_sells_with_protocol_support() -> None:
         assert "active_nfl_veteran_not_rookie_prospect" in asset["caveats"]
         assert asset["valuation_status"] == trade_analyzer.VALUATION_STATUS_PENDING_ENGINE_B
         assert asset["dvu"] is None
+        assert asset["compliance_header"] == "Compliance: 100% / 0% (PASS)"
         assert "strongest case against selling" in asset["counter_argument"]
 
 
@@ -89,6 +90,8 @@ def test_roster_auditor_applies_elite_rb_yac_exception() -> None:
     assert result is not None
     assert result["signal"] == "elite_exception_hold"
     assert result["cliff_status"] == "Elite Exception: HOLD"
+    assert result["asset_management_signal"] == "ELITE_HOLD"
+    assert result["compliance_header"] == "Compliance: 100% / 0% (PASS)"
     assert result["decision_supported"] is False
     assert "elite_yards_after_contact_exception" in result["signal_drivers"]
 
@@ -148,6 +151,7 @@ def test_trade_output_blocks_verdict_until_unified_valuation_layer() -> None:
     )
 
     assert response["decision_supported"] is False
+    assert response["compliance_header"] == "Compliance: 100% / 0% (PASS)"
     assert "unified_valuation_layer_for_all_assets" in response["required_before_decision_grade"]
     assert "verdict" not in {key.lower() for key in _walk_keys(response)}
 
@@ -171,3 +175,14 @@ def test_trade_market_values_normalize_to_dvu_before_aggregation() -> None:
     assert mine["scoring_method"] == "market_value_101_pick_ratio"
     assert response["dvu_normalization"]["one_oh_one_rookie_pick_value"] == 100.0
     assert response["dvu_normalization"]["my_assets_dvu_total"] == 50.0
+
+
+def test_2027_first_round_picks_use_generational_anchor_floor() -> None:
+    response = trade_analyzer.analyze_trade(
+        my_assets=[{"type": "pick", "year": 2027, "round": 1}],
+        their_assets=[],
+    )
+
+    pick = response["my_assets_breakdown"][0]
+    assert pick["dvu"] == 120.0
+    assert "generational_anchor_2027_first_floor_120_dvu" in pick["caveats"]

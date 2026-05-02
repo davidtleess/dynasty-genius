@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 from app.services.roster_auditor import CLIFF_AGES, ELITE_RB_YAC_PER_ATTEMPT
+from app.utils.compliance import (
+    RANK_1_GROUND_TRUTH,
+    RANK_3_MARKET_SIGNAL,
+    calculate_compliance_ratio,
+)
 
 VALUATION_STATUS_OK = "VALUATION_STATUS_OK"
 VALUATION_STATUS_PENDING_ENGINE_B = "VALUATION_STATUS_PENDING_ENGINE_B"
@@ -8,6 +13,7 @@ VALUATION_STATUS_PENDING_GROUND_TRUTH = "VALUATION_STATUS_PENDING_GROUND_TRUTH"
 VALUATION_STATUS_PENDING_MARKET_ANCHOR = "VALUATION_STATUS_PENDING_MARKET_ANCHOR"
 
 DVU_PER_101_PICK = 100.0
+GENERATIONAL_2027_FIRST_FLOOR_DVU = 120.0
 STATIC_PICK_DVU_VALUES = {1: 100.0, 2: 56.25, 3: 25.0, 4: 12.5}
 
 TRADE_NOT_DECISION_GRADE_REASON = (
@@ -63,7 +69,43 @@ def _market_to_dvu(asset: dict) -> tuple[float | None, str | None]:
     )
 
 
+def _asset_compliance_header(asset: dict, ground_truth_check: dict | None = None) -> str:
+    metrics: list[dict] = []
+    if asset["type"] == "pick":
+        metrics.append(
+            {
+                "name": "pick_dvu_normalization",
+                "kind": "quantitative",
+                "source_rank": RANK_1_GROUND_TRUTH,
+                "weight": 0.70,
+            }
+        )
+        if asset.get("market_value", asset.get("ktc_value")) is not None:
+            metrics.append(
+                {
+                    "name": "market_price_signal",
+                    "kind": "quantitative",
+                    "source_rank": RANK_3_MARKET_SIGNAL,
+                    "weight": 0.30,
+                }
+            )
+        return calculate_compliance_ratio(metrics, [])
+
+    if ground_truth_check and ground_truth_check.get("status") == "verified":
+        metrics.append(
+            {
+                "name": "nfl_status_ground_truth_check",
+                "kind": "quantitative",
+                "source_rank": RANK_1_GROUND_TRUTH,
+                "weight": 1.0,
+            }
+        )
+    return calculate_compliance_ratio(metrics, [])
+
+
 def value_pick_dvu(round_num: int, year: int, current_year: int = 2025) -> float:
+    if year == 2027 and round_num == 1:
+        return GENERATIONAL_2027_FIRST_FLOOR_DVU
     base = STATIC_PICK_DVU_VALUES.get(round_num, 6.25)
     years_away = year - current_year
     if years_away <= 0:
@@ -218,6 +260,8 @@ def _score_asset(asset: dict) -> dict:
     if asset["type"] == "pick":
         market_dvu, market_source_or_status = _market_to_dvu(asset)
         caveats = ["pick_value_normalized_to_dvu"]
+        if asset["year"] == 2027 and asset["round"] == 1:
+            caveats.append("generational_anchor_2027_first_floor_120_dvu")
         if market_source_or_status == VALUATION_STATUS_PENDING_MARKET_ANCHOR:
             caveats.append("market_value_requires_dvu_anchor")
             value = None
@@ -233,6 +277,7 @@ def _score_asset(asset: dict) -> dict:
             valuation_status = VALUATION_STATUS_OK
         return {
             **asset,
+            "compliance_header": _asset_compliance_header(asset),
             "asset_type": "pick",
             "label": _asset_label(asset),
             "internal_score": value,
@@ -263,6 +308,7 @@ def _score_asset(asset: dict) -> dict:
             caveats.append("elite_exception_requires_current_yac_verification")
         return {
             **asset,
+            "compliance_header": _asset_compliance_header(asset, ground_truth_check),
             "asset_type": "player",
             "label": _asset_label(asset),
             "internal_score": valuation["internal_score"],
@@ -307,8 +353,29 @@ def analyze_trade(my_assets: list[dict], their_assets: list[dict]) -> dict:
     notes = list(TRADE_NOTES)
     if model_version is None:
         notes.append("model_version_unavailable_for_current_trade_assets")
+    compliance_metrics = [
+        {
+            "name": "ground_truth_checked_assets",
+            "kind": "quantitative",
+            "source_rank": RANK_1_GROUND_TRUTH,
+            "weight": 1.0,
+        }
+    ]
+    if any(
+        asset.get("market_value", asset.get("ktc_value")) is not None
+        for asset in [*my_assets, *their_assets]
+    ):
+        compliance_metrics.append(
+            {
+                "name": "market_signal_overlay",
+                "kind": "quantitative",
+                "source_rank": RANK_3_MARKET_SIGNAL,
+                "weight": 0.30,
+            }
+        )
 
     return {
+        "compliance_header": calculate_compliance_ratio(compliance_metrics, []),
         "status": "experimental",
         "decision_supported": False,
         "model_version": model_version,
