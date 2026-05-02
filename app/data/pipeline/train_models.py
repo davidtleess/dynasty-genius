@@ -137,15 +137,20 @@ def _bottom_quartile_rate(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(len(pred_bottom_idx.intersection(actual_bottom_idx)) / q)
 
 
-# B-grade promotion is gated on the composite criteria defined in
+# Promotion above C is gated on the composite criteria defined in
 # docs/validation-gates.md (RMSE stability across rolling holdouts, null
 # coverage, caveat hygiene, bootstrap CI lower bounds). The composite gate
 # measurement script that produces those components ships in Step 0.5
-# (app/data/pipeline/validation/composite.py). Until then, point-estimate R²
-# and Spearman alone cannot promote a position past C — restoring the B
-# branch before Step 0.5 lands would let small-sample noise pass a brittle
-# gate, the exact failure mode validation-gates.md was written to prevent.
-_B_GRADE_GATED_UNTIL_STEP_0_5 = True
+# (app/data/pipeline/validation/composite.py). validation-gates.md is
+# explicit that A is "Production-grade. Lower-bound metrics clearly above
+# floor across all criteria. Currently unattainable; reserved for
+# post-Phase-6 calibration." and B is "Decision-usable. All composite
+# criteria satisfied at lower-bound." Until those lower-bound metrics
+# actually exist, point-estimate R² and Spearman alone must not promote a
+# position past C — restoring either branch before Step 0.5 lands would
+# let small-sample noise pass a brittle gate, the exact failure mode
+# validation-gates.md was written to prevent.
+_PROMOTION_ABOVE_C_GATED_UNTIL_STEP_0_5 = True
 
 
 def _model_grade(
@@ -157,14 +162,14 @@ def _model_grade(
     holdout_rows: int,
 ) -> str:
     ceiling = POSITION_CEILINGS[position]
-    if (
-        r2 >= (ceiling * 0.7)
-        and spearman >= 0.60
-        and top_12_hit_rate >= 0.50
-        and holdout_rows >= 80
-    ):
-        return "A"
-    if not _B_GRADE_GATED_UNTIL_STEP_0_5:
+    if not _PROMOTION_ABOVE_C_GATED_UNTIL_STEP_0_5:
+        if (
+            r2 >= (ceiling * 0.7)
+            and spearman >= 0.60
+            and top_12_hit_rate >= 0.50
+            and holdout_rows >= 80
+        ):
+            return "A"
         if r2 >= (ceiling * 0.5) and spearman >= 0.45 and holdout_rows >= 30:
             return "B"
     if r2 < 0 or spearman < 0:

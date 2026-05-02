@@ -263,17 +263,19 @@ Session A is producing a validation report per training run. To make `model_grad
 }
 ```
 
-`model_grade` thresholds (football-aware composite grading):
+`model_grade` taxonomy is canonically defined in [validation-gates.md](validation-gates.md#model-grade-taxonomy). That doc governs. The current implementation in `app/data/pipeline/train_models.py` reflects an interim state of the football-aware grader and is summarized here for reference only — when this section and `validation-gates.md` disagree, `validation-gates.md` wins.
 
-| Grade | Position-level criteria |
-| --- | --- |
-| A | R² ≥ (position_ceiling × 0.7) AND Spearman rank correlation ≥ 0.60 AND top-12 hit rate ≥ 0.50 AND holdout row count ≥ 80 |
-| B | R² ≥ (position_ceiling × 0.5) AND Spearman rank correlation ≥ 0.45 AND holdout row count ≥ 30 |
-| C | R² ≥ 0.0 AND Spearman rank correlation ≥ 0.0 |
-| D | R² < 0.0 OR Spearman rank correlation < 0.0 |
-| unvalidated | no holdout report exists |
+**A and B are gated until Step 0.5.** Promotion above C requires the composite-gate components defined in `validation-gates.md` (RMSE stability across rolling holdouts, null coverage, caveat hygiene, bootstrap CI lower bounds). Those components ship with the composite-gate measurement script in Step 0.5 (`app/data/pipeline/validation/composite.py`). Until that script lands and the lower-bound metrics actually exist, the grader floors every position at C regardless of how strong its point estimates look. Letting point-estimate R² and Spearman alone promote past C would let small-sample noise pass a brittle gate — the exact failure mode `validation-gates.md` was written to prevent.
 
-Position ceilings reflect realistic NFL prediction ceilings by position:
+| Grade | Status while Step 0.5 is pending | Underlying point-estimate criteria (gated, restored once composite gates ship) |
+| --- | --- | --- |
+| A | Unreachable. Reserved for post-Phase-6 calibration per `validation-gates.md`. | R² ≥ (position_ceiling × 0.7) AND Spearman ≥ 0.60 AND top-12 hit rate ≥ 0.50 AND holdout ≥ 80 |
+| B | Unreachable. Requires all composite criteria satisfied at lower-bound. | R² ≥ (position_ceiling × 0.5) AND Spearman ≥ 0.45 AND holdout ≥ 30 |
+| C | Active grade for any non-negative R² and non-negative Spearman. | R² ≥ 0.0 AND Spearman ≥ 0.0 |
+| D | Active grade when R² or Spearman is negative. Production-gated for QB. | R² < 0.0 OR Spearman < 0.0 |
+| unvalidated | No holdout report exists. | — |
+
+Position ceilings used inside the gated A/B branches (relevant only after Step 0.5 lands):
 
 - WR = 0.50
 - RB = 0.50

@@ -1,6 +1,6 @@
 """Anti-drift guard for the rookie-forecast grader.
 
-Pins two behaviors that protect the grader from out-promoting the planning
+Pins three behaviors that protect the grader from out-promoting the planning
 docs in docs/validation-gates.md before Step 0.5 ships the full composite
 gate measurement script:
 
@@ -8,7 +8,10 @@ gate measurement script:
    alone. The B branch in train_models._model_grade is gated until the
    composite gate components (RMSE stability across rolling holdouts, null
    coverage, caveat hygiene, bootstrap CI lower bounds) actually exist.
-2. While a position's holdout R² is negative, the statistical caveat
+2. No position can be promoted to grade A either. validation-gates.md is
+   explicit that A is "Currently unattainable; reserved for post-Phase-6
+   calibration." A bypass would defeat the entire purpose of the guard.
+3. While a position's holdout R² is negative, the statistical caveat
    `negative_r2_lower_bound` is surfaced additively alongside any
    domain-meaning caveats — never replaced.
 """
@@ -33,9 +36,12 @@ def test_b_grade_blocked_until_composite_gates_land() -> None:
     )
 
 
-def test_a_grade_still_reachable_when_full_criteria_met() -> None:
-    # Synthetic: the A path is intentionally left intact so future runs can
-    # earn it once both holdout size and lower bounds are sufficient.
+def test_a_grade_blocked_until_composite_gates_land() -> None:
+    # Synthetic metrics that would clear the un-guarded A branch
+    # (r2 >= ceiling*0.7, spearman >= 0.60, top12 >= 0.50, holdout >= 80).
+    # validation-gates.md says A is "Currently unattainable; reserved for
+    # post-Phase-6 calibration." — point-estimate metrics, no matter how
+    # strong, must not promote past C until lower-bound criteria exist.
     grade = _model_grade(
         position="WR",
         r2=0.40,
@@ -43,7 +49,11 @@ def test_a_grade_still_reachable_when_full_criteria_met() -> None:
         top_12_hit_rate=0.55,
         holdout_rows=120,
     )
-    assert grade == "A"
+    assert grade == "C", (
+        "WR with point-estimate-only metrics must not earn A until Step 0.5 "
+        "ships the composite gate measurement script (validation-gates.md "
+        "reserves A for post-Phase-6 calibration)."
+    )
 
 
 def test_qb_negative_r2_caveat_surfaces_additively() -> None:
