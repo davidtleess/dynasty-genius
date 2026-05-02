@@ -137,6 +137,17 @@ def _bottom_quartile_rate(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(len(pred_bottom_idx.intersection(actual_bottom_idx)) / q)
 
 
+# B-grade promotion is gated on the composite criteria defined in
+# docs/validation-gates.md (RMSE stability across rolling holdouts, null
+# coverage, caveat hygiene, bootstrap CI lower bounds). The composite gate
+# measurement script that produces those components ships in Step 0.5
+# (app/data/pipeline/validation/composite.py). Until then, point-estimate R²
+# and Spearman alone cannot promote a position past C — restoring the B
+# branch before Step 0.5 lands would let small-sample noise pass a brittle
+# gate, the exact failure mode validation-gates.md was written to prevent.
+_B_GRADE_GATED_UNTIL_STEP_0_5 = True
+
+
 def _model_grade(
     *,
     position: str,
@@ -153,8 +164,9 @@ def _model_grade(
         and holdout_rows >= 80
     ):
         return "A"
-    if r2 >= (ceiling * 0.5) and spearman >= 0.45 and holdout_rows >= 30:
-        return "B"
+    if not _B_GRADE_GATED_UNTIL_STEP_0_5:
+        if r2 >= (ceiling * 0.5) and spearman >= 0.45 and holdout_rows >= 30:
+            return "B"
     if r2 < 0 or spearman < 0:
         return "D"
     if r2 >= 0 and spearman >= 0:
@@ -162,10 +174,12 @@ def _model_grade(
     return "unvalidated"
 
 
-def _position_caveats(position: str, holdout_rows: int) -> list[str]:
+def _position_caveats(position: str, holdout_rows: int, r2: float) -> list[str]:
     caveats = list(POSITION_ALWAYS_CAVEATS.get(position, []))
     if holdout_rows < 30:
         caveats.append(LOW_SAMPLE_CAVEAT)
+    if r2 < 0:
+        caveats.append("negative_r2_lower_bound")
     return caveats
 
 
@@ -201,7 +215,7 @@ def train_position(
         top_12_hit_rate=float(top_12_hit_rate),
         holdout_rows=holdout_rows,
     )
-    caveats = _position_caveats(pos, holdout_rows)
+    caveats = _position_caveats(pos, holdout_rows, float(r2))
 
     metrics = {
         "rmse": round(float(rmse), 3),
