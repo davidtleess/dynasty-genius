@@ -27,11 +27,11 @@ Per Framework Rule 6 (never conflate dynasty/redraft): every threshold below is 
 
 ### 2.1 Verified Liquidation Targets (May 2026)
 
-| Player | Pos | Age (May 2026) | Cliff Status | Strategic Class |
-|---|---|---|---|---|
-| Davante Adams | WR | 33 | Past Age 28 WR Cliff (5 years past) | **Sell — terminal depreciation** |
-| Tyreek Hill | WR | 32 | Past Age 28 WR Cliff (4 years past) | **Sell — terminal depreciation** |
-| Jonathan Taylor | RB | 27 | At Age 26 RB Cliff (final 2025 game: Jan 4, 2026) | **Sell-High — peak market window** |
+| Player | Pos | Age (May 2026) | Cliff Status | 2025 Production | 2026 Status | Strategic Class |
+|---|---|---|---|---|---|---|
+| Davante Adams | WR | 33 | Past Age 28 WR Cliff | **14 rec TD (NFL leader), 60/789** | LA Rams | **Sell — terminal depreciation** |
+| Tyreek Hill | WR | 32 | Past Age 28 WR Cliff | Knee dislocation + ACL tear Week 4 | **Free Agent** (released by Miami Feb 16, 2026); recovering from ACL surgery, agent waiting on medical clearance | **Sell-Now — distressed asset** |
+| Jonathan Taylor | RB | 27 | At Age 26 RB Cliff (final 2025 game: Jan 4, 2026) | _Pending verification_ | _Pending verification_ | **Sell-High — peak market window** |
 
 > *Ages and Adams/Hill cliff status reflect the PM Memo (2026-05-03). Per Rule 1, the dynasty-relevant fact is "past the position cliff," not the precise birthdate; cliff position is what drives the trigger.*
 
@@ -49,7 +49,7 @@ Per Framework Rule 6 (never conflate dynasty/redraft): every threshold below is 
 |---|---|---|
 | Jonathan Taylor | 2027 1st (mid-round, **estimated 1.05–1.08**) + a startable WR3/RB3 | 2027 1st (top-4 protected) + a 2028 2nd |
 | Davante Adams | 2027 2nd OR 2028 1st (mid) | 2027 2nd + 2028 3rd |
-| Tyreek Hill | 2027 2nd OR 2028 1st (mid) | 2027 2nd + 2028 3rd |
+| Tyreek Hill | **2027 2nd (any slot)** — distressed asset; FA + ACL recovery materially compresses ceiling | 2027 2nd + small kicker (only if a contender bites pre-medical-clearance) |
 
 > *Floors must be revisited if KTC live integration ships (currently deferred per `next-sprint.md`). Until then, floors are heuristic anchors, not Engine B outputs.*
 
@@ -76,7 +76,8 @@ Per Rule 1, this section separates **verified** profile data from **consensus pr
 ### 3.2 Arch Manning — QB, Texas
 
 - **Status:** Verified 2027-eligible (returned to Texas in Dec 2025, did not enter 2026 draft).
-- **Verified production (2025):** 3,163 pass yds / 26 TD / 7 INT; led Texas to Cheez-It Citrus Bowl win over Michigan.
+- **Verified production (2025):** 3,163 pass yds / 26 TD / 7 INT; **399 rush yds / 10 rush TD** (one source reports 8; season-review and Citrus Bowl 2-rush-TD performance support 10). Led Texas to Cheez-It Citrus Bowl win over Michigan.
+- **Superflex insurance (Rushing Floor):** the 10 rush TDs are the load-bearing data point for the SF case. A QB with documented dual-threat scoring carries a fantasy floor that hedges the published intermediate-accuracy concern. Per Rule 4 (65/35), this is *quant* support for the co-anchor pricing — not narrative.
 - **Consensus projection:** Betting market favorite for #1 overall (BetMGM +175 to +225 as of May 2026). **Important caveat:** PFF's way-too-early 2027 mock has Julian Sayin #1 and Manning lower. The "Manning #1" thesis is the *betting market consensus*, not the *analyst consensus*. Treat as Top-5 lock; treat as "Top-3 likely, #1 plausible."
 - **Acquisition class:** **Co-anchor in Superflex.** Manning is the QB-tier hedge that makes the whole strategy SF-resilient.
 
