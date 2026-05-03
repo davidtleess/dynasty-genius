@@ -28,6 +28,9 @@ def test_trade_quarantine_contract_fields() -> None:
 
     assert response["decision_supported"] is False
     assert response["compliance_header"].startswith("Compliance: ")
+    assert response["anti_speed_status"] == "VERIFICATION_DELAY_REQUIRED"
+    assert response["source_hierarchy_verified"] is True
+    assert response["lakebase_transaction_verified"] is False
 
     for asset in response["my_assets_breakdown"] + response["their_assets_breakdown"]:
         assert "compliance_header" in asset

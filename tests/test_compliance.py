@@ -58,3 +58,6 @@ def test_dynasty_valuation_carries_source_rank() -> None:
     )
 
     assert valuation.source_rank == 1
+    assert valuation.compliance_tag == "ENGINE_OUTPUT_COMPLIANT"
+    assert valuation.unity_partition_metadata["source_rank"] == 1
+    assert valuation.unity_partition_metadata["compliance_tag"] == "ENGINE_OUTPUT_COMPLIANT"

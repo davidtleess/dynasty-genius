@@ -6,6 +6,7 @@ from app.utils.compliance import (
     RANK_3_MARKET_SIGNAL,
     calculate_compliance_ratio,
 )
+from app.utils.lakehouse_governance import verify_trade_decision_prerequisites
 
 VALUATION_STATUS_OK = "VALUATION_STATUS_OK"
 VALUATION_STATUS_PENDING_ENGINE_B = "VALUATION_STATUS_PENDING_ENGINE_B"
@@ -377,6 +378,9 @@ def analyze_trade(my_assets: list[dict], their_assets: list[dict]) -> dict:
     return {
         "compliance_header": calculate_compliance_ratio(compliance_metrics, []),
         "status": "experimental",
+        "source_hierarchy_verified": True,
+        "lakebase_transaction_verified": False,
+        "anti_speed_status": "VERIFICATION_DELAY_REQUIRED",
         "decision_supported": False,
         "model_version": model_version,
         "reason": TRADE_NOT_DECISION_GRADE_REASON,
@@ -397,3 +401,10 @@ def analyze_trade(my_assets: list[dict], their_assets: list[dict]) -> dict:
         "my_assets_breakdown": my_scored,
         "their_assets_breakdown": their_scored,
     }
+
+
+def deliver_trade_decision(response: dict, requested_signal: str) -> dict:
+    if requested_signal not in {"ACCEPT", "REJECT"}:
+        raise ValueError("Unsupported trade decision signal")
+    verify_trade_decision_prerequisites(response)
+    return {**response, "trade_decision_signal": requested_signal}

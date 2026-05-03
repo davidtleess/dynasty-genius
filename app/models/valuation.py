@@ -12,6 +12,8 @@ class ValuationEngine(str, Enum):
 SOURCE_RANK_1_GROUND_TRUTH = 1
 SOURCE_RANK_2_VALIDATED_ANALYST = 2
 SOURCE_RANK_3_MARKET_SIGNAL = 3
+UNITY_CATALOG_DEFAULT_CATALOG = "gen_alpha"
+UNITY_CATALOG_PARTITION_METADATA_FIELDS = ("source_rank", "compliance_tag")
 
 
 class ConfidenceBand(BaseModel):
@@ -35,6 +37,21 @@ class DynastyValuation(BaseModel):
             "Source hierarchy rank: 1=ground truth, 2=validated analyst, "
             "3=market signal."
         ),
+    )
+    compliance_tag: str = Field(
+        default="ENGINE_OUTPUT_COMPLIANT",
+        description="Unity Catalog partition metadata tag for compliance filtering.",
+    )
+    unity_catalog: str = Field(
+        default=UNITY_CATALOG_DEFAULT_CATALOG,
+        description="Unity Catalog catalog expected to own this valuation row.",
+    )
+    unity_partition_metadata: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "source_rank": SOURCE_RANK_1_GROUND_TRUTH,
+            "compliance_tag": "ENGINE_OUTPUT_COMPLIANT",
+        },
+        description="Partition-level metadata required by Unity Catalog governance.",
     )
 
     dynasty_value_score: float = Field(
