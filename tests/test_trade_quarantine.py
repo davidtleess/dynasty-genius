@@ -27,10 +27,22 @@ def test_trade_quarantine_contract_fields() -> None:
         assert field not in response
 
     assert response["decision_supported"] is False
+    assert response["compliance_header"].startswith("Compliance: ")
+    assert response["anti_speed_status"] == "VERIFICATION_DELAY_REQUIRED"
+    assert response["source_hierarchy_verified"] is True
+    assert response["lakebase_transaction_verified"] is False
 
     for asset in response["my_assets_breakdown"] + response["their_assets_breakdown"]:
+        assert "compliance_header" in asset
         caveats = asset.get("caveats", [])
         if asset.get("asset_type") == "player":
-            assert "veteran_value_uses_rookie_model_proxy" in caveats
+            assert "trade_player_value_requires_ground_truth" in caveats
+            assert asset["valuation_status"] in {
+                "VALUATION_STATUS_PENDING_ENGINE_B",
+                "VALUATION_STATUS_PENDING_GROUND_TRUTH",
+            }
+            if asset["valuation_status"] == "VALUATION_STATUS_PENDING_ENGINE_B":
+                assert asset["dvu"] is None
         elif asset.get("asset_type") == "pick":
-            assert "pick_value_from_static_chart" in caveats
+            assert "pick_value_normalized_to_dvu" in caveats
+            assert asset["dvu"] is not None
