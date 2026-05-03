@@ -1,0 +1,33 @@
+bundle:
+  name: dynasty-genius-sovereign-unity
+
+include:
+  - resources/*.yml
+
+variables:
+  warehouse_id:
+    description: SQL Warehouse ID for query execution
+    default: 5e883b4bfbb1e3f4
+  notification_email:
+    description: Email for job failure notifications
+    default: david.t.leess@gmail.com
+
+# Development environment (runs as current user)
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-228373f7-57ec.cloud.databricks.com
+      profile: dbc-228373f7-57ec
+    # No run_as in dev - jobs run as the deploying user
+
+  # Production environment (runs as service principal)
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-228373f7-57ec.cloud.databricks.com
+      profile: dbc-228373f7-57ec
+      root_path: /Workspace/.bundles/prod/${bundle.name}
+    run_as:
+      service_principal_name: c058228c-6c4a-44ac-9c83-97441099cb97

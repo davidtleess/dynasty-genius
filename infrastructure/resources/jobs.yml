@@ -1,0 +1,47 @@
+resources:
+  jobs:
+    refresh_genius_state:
+      name: ${bundle.name}_refresh_genius_state_${bundle.target}
+      
+      tasks:
+        - task_key: refresh_genius_state_sst
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/sql/refresh_genius_state.sql
+          
+          timeout_seconds: 1800
+          max_retries: 2
+          min_retry_interval_millis: 60000
+          retry_on_timeout: true
+        
+        - task_key: verify_refresh
+          depends_on:
+            - task_key: refresh_genius_state_sst
+          
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/sql/verify_refresh.sql
+          
+          timeout_seconds: 300
+      
+      schedule:
+        quartz_cron_expression: "0 * * * * ?"
+        timezone_id: "America/New_York"
+        pause_status: UNPAUSED
+      
+      email_notifications:
+        on_start: []
+        on_success: []
+        on_failure:
+          - ${var.notification_email}
+        no_alert_for_skipped_runs: true
+      
+      timeout_seconds: 3600
+      max_concurrent_runs: 1
+      
+      tags:
+        environment: ${bundle.target}
+        framework: sovereign-unity
+        managed_by: dabs
