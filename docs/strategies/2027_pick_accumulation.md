@@ -84,7 +84,7 @@ Per Rule 1, this section separates **verified** profile data from **consensus pr
 ### 3.3 Ryan Williams — WR, Alabama
 
 - **Status flag:** **Eligibility not fully settled in public sources.** Majority of mainstream outlets project 2027; Draft Scout lists him as 2028. *Action: Verify eligibility year via Alabama athletics roster page and 247Sports recruiting profile before committing trade capital. Logged as open gap §6.*
-- **Verified production (2025 sophomore):** 573 yds / 4 TD — **a step down from his freshman-year breakout**. Per published evaluation, "consistency of explosive plays that made him appointment viewing as a freshman has changed."
+- **Verified production (2025 sophomore, full season, 14 games):** 49 rec / 689 yds / 4 TD on 77 targets — **a step down from his freshman-year breakout**. Per published evaluation, "consistency of explosive plays that made him appointment viewing as a freshman has changed."
 - **Consensus projection (assuming 2027 eligibility):** Late 1st (Dane Brugler way-too-early mock at #32). **Not a top-tier consensus lock.**
 - **Analyst comparisons (logged to `analyst_notes_2027.md`, NOT a gate):** DeVonta Smith / Jameson Williams hybrid framing.
 - **Acquisition class:** **Conditional Tier-2.** Buy-low thesis on talent rebound, not a generational anchor purchase. **Strategy must not pay anchor-tier prices for Williams** — his 2025 production decline + eligibility ambiguity creates real downside.
