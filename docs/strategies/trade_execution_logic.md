@@ -117,6 +117,38 @@ The recommended ratio produces required-returns that *match or sit just under* t
 
 ---
 
+## 3.5 The Ambush Swap Protocol
+
+When the strategy's required move is to *acquire* a leaguemate's 2027 1st (rather than liquidate one of our veterans for a defined return), and the counterparty is a *suspected tanker* (Roster Fragility ≥ 4.0 per [2027_target_differentiation.md](2027_target_differentiation.md) §3.3), the recommended trade construction is **swap rights** rather than a flat asset-for-pick offer.
+
+### 3.5.1 Why a Flat Offer Fails Against Suspected Tankers
+
+Per the adverse-selection analysis in [2027_target_differentiation.md](2027_target_differentiation.md): a real Tier-1 tanker's reservation price for their 1.01 exceeds 1.50 E27 because they value the asset they engineered. A flat offer of (Adams + 2026 2nd ≈ 0.85 E27) gets rejected by real tankers and only accepted by *fake* tankers whose actual pick lands in Tier 2 (1.00 E27). The trade you think you're making is not the trade you're actually making.
+
+### 3.5.2 The Protocol
+
+Construct the offer as:
+
+> "[Send-side asset] for **the better of your 2027 1st and my 2027 1st** — we swap."
+
+**Information-revealing properties:**
+1. **A real tanker rejects.** Their floor on their own pick is higher than yours; the swap is asymmetric against them. Rejection *confirms* their tanker status — which is intel you didn't have before, at zero cost.
+2. **A fake tanker accepts.** Their actual confidence in finishing bottom-3 is lower than they project publicly. Acceptance *reveals* their type — also intel you didn't have, with positive E27 to boot.
+3. **A mid-pack manager accepts conditionally** (often countering with "swap protected at top-3" or similar). Their counter reveals where they project their finish, which lets you re-tier their 1st in subsequent negotiations.
+
+### 3.5.3 Decision Rule for Swap Acceptance
+
+Accept the swap *if and only if*:
+- Your own projected 2027 1st lands in Tier 2 or better (Fragility-Index-derived), AND
+- The counterparty's reservation-floor signal (their counter language, prior trade history) is consistent with Tier-2-or-worse finish
+
+If your own pick is a Tier-1 lock and theirs is Tier-3, the swap is value-destroying for you. **Run the index on yourself first.**
+
+### 3.5.4 What the Protocol Will Not Do
+
+- It will not extract value from a confirmed Tier-1 tanker. They will not bite. The only way to acquire a confirmed Tier-1 tanker's 1.01 is overpay (2027 1st-equivalent + a Smith-tier WR or QB asset). The Ambush Swap is *not* a workaround for the price — it is a discovery tool.
+- It does not replace the standard E27 Decision Rule (§3.4) for asset-for-pick trades. It is a *companion* protocol for a specific game-theoretic context.
+
 ## 4. Counter-Argument (Rule 5 — Mandatory)
 
 1. **Currency-weight calibration is opinion-driven until backtested.** The E27 weights in §2 are anchored to the parent strategy's floors — which are themselves heuristic. A circular calibration. Until Engine B ingests realized trade outcomes, this layer's precision is illusory. **Mitigation:** flag every executed trade with the E27 calculation used and the realized outcome 12 months later. Codex's `roster_valuation_signals` audit columns enable this.
