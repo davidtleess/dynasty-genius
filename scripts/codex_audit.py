@@ -32,7 +32,7 @@ def execute_query(w, query, test_name):
         response = w.statement_execution.execute_statement(
             warehouse_id=DATABRICKS_WAREHOUSE_ID,
             statement=query,
-            wait_timeout="60s"
+            wait_timeout="50s"
         )
         
         if response.status.state == StatementState.SUCCEEDED:
