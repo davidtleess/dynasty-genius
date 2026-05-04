@@ -1,48 +1,7 @@
-# 🚀 UNIVERSAL SESSION STARTER
+# Dynasty Genius - Agent Briefing
 
-**Copy/paste this at the start of ANY new agent session - no edits needed:**
-
----
-
-I'm working on **Dynasty Genius** - a four-agent fantasy football platform with production-grade Infrastructure as Code.
-
-**Read these three sources to get current state:**
-
-1. **Agent Briefing** (architecture, permissions, capabilities):
-   ```
-   Read: /Workspace/Users/david.t.leess@gmail.com/dynasty-genius-infrastructure/AGENT_BRIEFING.md
-   ```
-
-2. **Current Data State** (SSoT - always up-to-date):
-   ```sql
-   SELECT 
-       'Players: ' || COUNT(*) || ', Avg DVU: ' || ROUND(AVG(dvu_anchor), 2) as current_state,
-       MAX(state_last_refresh) as last_refresh
-   FROM gen_alpha.gold.genius_state;
-   ```
-
-3. **Custom Instructions** (governance rules, framework):
-   ```
-   Read: /Users/david.t.leess@gmail.com/.assistant_instructions.md
-   ```
-
-4. **Git Repository** (latest code):
-   - Repo: `github.com/davidtleess/dynasty-genius`
-   - Branch: `claude/pr-a-storage-governance-pivot`
-   - Check commit history for recent changes
-
-**Your role:** [Gemini = PM | Claude Code = Local Dev | Codex = CI/CD | Genie = Workspace]
-
-**Current task:** [Describe what you need help with]
-
----
-
-**Why this works:**
-- ✅ Never needs manual updates (sources are self-updating)
-- ✅ Works in any session, any time
-- ✅ Agents read current state themselves
-- ✅ Points to single sources of truth
-
+For the universal copy/paste session prompt, use `SESSION_STARTER.md`.
+This file is the deeper reference for architecture, permissions, examples, and operating practices.
 
 ---
 
@@ -89,10 +48,8 @@ You are part of a **four-agent development team** building **Dynasty Genius**, a
 - **Status**: ✅ 5/5 tests passing
 
 ### **Phase 5: Three-Agent Handshake**
-- **Validated**: All agents query same SSoT, see identical DVU values
-- **Jeremiah Smith**: 120.0 DVU (all agents)
-- **Ryan Williams**: 116.0 DVU (all agents)
-- **Ahmad Hardy**: 108.0 DVU (all agents)
+- **Validated**: All agents query the same SSoT and should see identical DVU values
+- **Current values**: Query `gen_alpha.gold.genius_state` or `gen_alpha.gold.anchors`; do not rely on documented snapshots
 - **Status**: ✅ Multi-agent consensus achieved
 
 ### **Phase 6: Write Access Upgrade**
@@ -102,27 +59,19 @@ You are part of a **four-agent development team** building **Dynasty Genius**, a
 - **Functions**: CREATE FUNCTION, CREATE MATERIALIZED VIEW, CREATE SCHEMA
 - **Status**: ✅ Write operations validated
 
-## Current State (as of 2026-05-04)
-
-**Main Branch:** bed1dd4 (PR-A merged) + 621409b (Sprint 0.5 fixes) + [strategy_pr_sha] (Sprint 0.5 complete)
-
-**Status:** Sprint 0.5 100% complete, Sprint 1.0 ready to begin
-
----
-
 ## **🗄️ DATABASE SCHEMA**
 
 ### **Single Source of Truth (SSoT)**
 ```sql
 -- Primary table: gen_alpha.gold.genius_state
--- 7 anchor players after Sprint 0.5 Jeanty removal, hourly refresh
+-- Hourly refreshed SSoT. Query live state instead of trusting documented counts.
 -- Columns: player_name, dvu_anchor, canonical_status, position, 
 --          dominator_rating_target, ras_target, class_year, 
 --          data_source, source_rank, state_last_refresh
 ```
 
 ### **Core Tables (You Have Full CRUD Access)**
-1. `gen_alpha.gold.anchors` - Generational player DVU anchors (7 players)
+1. `gen_alpha.gold.anchors` - Generational player DVU anchors
 2. `gen_alpha.gold.genius_state` - SSoT (hourly refresh)
 3. `gen_alpha.gold.governance_rules` - 65:35 compliance rules (2 rules)
 4. `gen_alpha.gold.trade_evaluations` - Trade audit log
@@ -149,26 +98,23 @@ You are part of a **four-agent development team** building **Dynasty Genius**, a
    - Rank 1-2: PFF, NextGen Stats, Pro Football Reference (quantitative)
    - Rank 3: Market Hype, social media (qualitative, flag if >35%)
 
-### Current Anchors (7 Players - as of 2026-05-04)
+### Anchor Discovery
 
-| Player | Position | Class | DVU | Status | Dominator | RAS | Last Updated |
-|--------|----------|-------|-----|--------|-----------|-----|--------------|
-| Jeremiah Smith | WR | 2027 | 120.0 | GENERATIONAL_WR | 0.38 | 9.9 | 2026-05-02 |
-| Julian Sayin | QB | 2027 | 115.0 | ELITE_QB1_METRIC_DRIVEN | 0.41 | 9.1 | 2026-05-02 |
-| Ahmad Hardy | RB | 2027 | 108.0 | GENERATIONAL_RB_2027_RB1 | 0.38 | 8.9 | 2026-05-02 |
-| Jeremiyah Love | RB | 2026 | 100.0 | ALPHA_ANCHOR | 0.32 | 9.8 | 2026-05-02 |
-| Arch Manning | QB | 2027 | 90.0 | GENERATIONAL_QB_PEDIGREE_ADJUSTED | 0.30 | 9.2 | 2026-05-03 |
-| Ryan Williams | WR | 2027 | 88.0 | CONDITIONAL_TIER_2 | 0.32 | 9.5 | 2026-05-04 |
-| Charlie Becker | WR | 2027 | 85.0 | HIGH_EFFICIENCY_WR_WATCH | 0.28 | 8.2 | 2026-05-02 |
+Do not maintain anchor snapshots in this briefing. Always discover current anchors from Unity Catalog:
 
-**Class Distribution:**
-- 2026: 1 player (Love)
-- 2027: 6 players (Smith, Sayin, Hardy, Manning, Williams, Becker)
+```sql
+SELECT
+    class_year,
+    player_name,
+    status_flag,
+    dvu_anchor,
+    dominator_rating_target,
+    ras_target
+FROM gen_alpha.gold.anchors
+ORDER BY class_year, dvu_anchor DESC;
+```
 
-**Recent Changes:**
-- Williams reconciliation (116.0 → 88.0): Verified 2025 sophomore production data
-- Manning override (120.0 → 90.0): Medical qualitative override
-- **Jeanty removal (95.0 → NULL): 2025 NFL rookie (Raiders), outside scope**
+Recent anchor changes live in `gen_alpha.gold.anchors_change_log`.
 
 ---
 
@@ -204,7 +150,7 @@ python3 scripts/claude_code_connector.py  # Modify script for your needs
 ### **Codex (GitHub Actions CI/CD)**
 ```yaml
 # Repository: github.com/davidtleess/dynasty-genius
-# Branch: claude/pr-a-storage-governance-pivot
+# Branch: current working branch
 # Workflow: .github/workflows/codex_audit.yml
 
 # Triggers:
@@ -273,7 +219,13 @@ WHERE player_name = 'Your Player';
 ### **5. Lock Generational Anchors**
 ```sql
 -- Read generational anchors from:
-SELECT * FROM gen_alpha.gold.anchors WHERE is_generational = TRUE;
+SELECT
+    class_year,
+    player_name,
+    status_flag,
+    dvu_anchor
+FROM gen_alpha.gold.anchors
+ORDER BY class_year, dvu_anchor DESC;
 
 -- Never UPDATE these values (anti-hallucination protection)
 ```
@@ -334,57 +286,14 @@ WHERE dvu_calculated >= 95.0;  -- Elite threshold
 
 ---
 
-## **📋 SUGGESTED NEXT STEPS**
+## **📋 NEXT WORK**
 
-### **Option 1: Automated Trade Evaluation Pipeline** (30 min)
-**Goal**: Validate trades against 65:35 compliance automatically
+Do not maintain sprint-specific next steps in this briefing. Agents should use:
 
-**Steps:**
-1. **Gemini**: Define trade evaluation requirements
-2. **Claude Code**: Prototype compliance query locally
-3. **Genie**: Create `gen_alpha.gold.trade_evaluations_v2` table
-4. **Codex**: Deploy DABs job to run nightly compliance checks
-
-**Deliverable**: Automated trade alerts when 65:35 rule violated
-
----
-
-### **Option 2: DVU Recalculation Engine** (25 min)
-**Goal**: Update DVU anchors when new efficiency metrics arrive
-
-**Steps:**
-1. **Gemini**: Prioritize which players need recalculation
-2. **Claude Code**: Test recalc logic: `DVU = (Dominator * 100) + (RAS * 20)`
-3. **Genie**: Write MERGE statement to update `anchors` table
-4. **Codex**: Validate no generational anchors drifted
-
-**Deliverable**: Automated DVU refresh pipeline
-
----
-
-### **Option 3: Governance Dashboard** (20 min)
-**Goal**: Real-time compliance monitoring
-
-**Steps:**
-1. **Gemini**: Define dashboard KPIs (65:35 ratio, source rank distribution)
-2. **Claude Code**: Prototype queries for each metric
-3. **Genie**: Create Lakeview dashboard with live queries
-4. **Codex**: Embed dashboard link in daily compliance report
-
-**Deliverable**: Executive dashboard for compliance oversight
-
----
-
-### **Option 4: Agent Collaboration Demo** (15 min) ⭐ **RECOMMENDED FIRST**
-**Goal**: Quick win to validate end-to-end workflow
-
-**Steps:**
-1. **Gemini**: Request "Add Travis Hunter (WR, 2027) to anchors: DVU 130"
-2. **Claude Code**: Validate calculation locally, commit to Git
-3. **Genie**: Execute INSERT INTO `gen_alpha.gold.anchors`
-4. **Codex**: Run compliance audit, confirm no violations
-
-**Deliverable**: Proof that all four agents can collaborate successfully
+- `SESSION_STARTER.md` Section 4 for current user intent
+- `docs/backlog.md` for queued work
+- GitHub issues and pull requests for active implementation state
+- Unity Catalog queries in `SESSION_STARTER.md` Section 2 for live data state
 
 ---
 
@@ -397,7 +306,7 @@ WHERE dvu_calculated >= 95.0;  -- Elite threshold
 
 ### **CI/CD (Codex)**
 - GitHub: `github.com/davidtleess/dynasty-genius`
-- Branch: `claude/pr-a-storage-governance-pivot`
+- Branch: current working branch
 - Workflow: `.github/workflows/codex_audit.yml`
 
 ### **Workspace (Genie)**
@@ -456,7 +365,7 @@ After reading this briefing:
          ┌────▼─────┐                  ┌─────▼────┐
          │   SSoT   │                  │Governance│
          │ Tables   │                  │  Rules   │
-         │(11 rows) │                  │ (65:35)  │
+         │(live UC) │                  │ (65:35)  │
          └──────────┘                  └──────────┘
 
               ┌─────────────────────────┐
@@ -468,16 +377,4 @@ After reading this briefing:
 
 ---
 
-**End of Briefing** 🏗️
-
-### Sprint 0.5 Summary
-
-### Data Corrections:
-✅ Smith 4x duplicates eliminated (Cartesian JOIN fix)
-✅ Williams reconciliation (production data beats projections)
-✅ Manning override (medical_qualitative_override)
-✅ **Jeanty removal (2025 NFL rookie, Hunter/Campbell Amendment violation)**
-
-**Status**: ✅ Production Ready - All four agents operational with full CRUD
-**Last Updated**: 2026-05-04
-**Next Step**: Sprint 1.0 Automated Trade Evaluation Pipeline
+**End of Briefing**

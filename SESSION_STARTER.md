@@ -1,122 +1,151 @@
-# 🚀 UNIVERSAL SESSION STARTER
+# DYNASTY GENIUS - UNIVERSAL SESSION STARTER
 
-**Copy/paste this at the start of ANY new agent session - no edits needed:**
-
----
-
-I'm working on **Dynasty Genius** - a four-agent fantasy football platform with production-grade Infrastructure as Code.
-
-**Read these sources to get current state:**
-
-1. **Agent Briefing** (architecture, permissions, capabilities):
-   ```
-   Read: /Workspace/Users/david.t.leess@gmail.com/dynasty-genius-infrastructure/AGENT_BRIEFING.md
-   ```
-
-2. **Current Data State** (SSoT - always up-to-date):
-   ```sql
-   SELECT 
-       'Players: ' || COUNT(*) || ', Avg DVU: ' || ROUND(AVG(dvu_anchor), 2) as current_state,
-       MAX(state_last_refresh) as last_refresh
-   FROM gen_alpha.gold.genius_state;
-   ```
-
-3. **Custom Instructions** (governance rules, framework):
-   ```
-   Read: /Users/david.t.leess@gmail.com/.assistant_instructions.md
-   ```
-
-4. **Git Repository** (latest code):
-   - Repo: `github.com/davidtleess/dynasty-genius`
-   - Branch: `claude/pr-a-storage-governance-pivot`
-   - Check commit history for recent changes
-
-**Your role:** [Gemini = PM | Claude Code = Local Dev | Codex = CI/CD | Genie = Workspace]
-
-**Current task:** [Describe what you need help with]
+**Copy/paste this at the start of ANY agent session. Only update Section 4 (Context) as needed.**
 
 ---
 
-## **Why This Works Forever**
+## 1. PROJECT OVERVIEW (Evergreen)
 
-✅ **Static Prompt**: Never needs manual updates  
-✅ **Dynamic Sources**: Agents read current state themselves  
-✅ **Self-Documenting**: Files are always up-to-date  
-✅ **Role Agnostic**: Works for all four agents  
+**Dynasty Genius** - Four-agent fantasy football platform with production-grade Infrastructure as Code.
 
-## **Sources of Truth**
+**Your Team:**
+- **Gemini** -> PM (strategy, requirements, read-only)
+- **Claude Code** -> Local Dev (Mac, prototyping, Git operations)
+- **Codex** -> CI/CD (GitHub Actions, automated deployments)
+- **Genie** -> Workspace (Databricks native, SQL optimization)
 
-| Source | What It Provides | Update Frequency |
-|--------|-----------------|------------------|
-| `AGENT_BRIEFING.md` | Architecture, permissions, examples | Manual (when features added) |
-| `genius_state` table | Current player data, DVU values | Hourly (automated) |
-| `.assistant_instructions.md` | Governance rules, framework | Manual (when rules change) |
-| Git repo | Latest code, commit history | Every commit |
+**Authentication:** Service Principal `c058228c-6c4a-44ac-9c83-97441099cb97` (OAuth M2M)
+**SQL Warehouse:** `5e883b4bfbb1e3f4`
+**Catalog:** `gen_alpha`
 
-## **Example Usage**
+---
 
-### **Starting a New Session (Any Agent)**
-1. Copy/paste the universal prompt above
-2. Agent reads the 4 sources
-3. Agent knows current state + architecture
-4. You describe your current task
-5. Agent is fully oriented
+## 2. DISCOVER CURRENT STATE (Run These - Always Accurate)
 
-### **Example: Gemini Session**
-```
-[Paste universal prompt]
+### A. Anchor Discovery (SSoT)
 
-Your role: Gemini = PM
-
-Current task: Review the trade evaluation pipeline requirements. 
-We need to validate 65:35 compliance on all trades. What features 
-should the pipeline include?
+```sql
+SELECT
+    class_year,
+    player_name,
+    status_flag,
+    dvu_anchor,
+    dominator_rating_target,
+    ras_target
+FROM gen_alpha.gold.anchors
+ORDER BY class_year, dvu_anchor DESC;
 ```
 
-### **Example: Claude Code Session**
+### B. Recent Changes (Audit Trail)
+
+```sql
+SELECT
+    `timestamp`,
+    player_name,
+    change_type,
+    old_dvu,
+    new_dvu,
+    executing_agent
+FROM gen_alpha.gold.anchors_change_log
+ORDER BY `timestamp` DESC
+LIMIT 10;
 ```
-[Paste universal prompt]
 
-Your role: Claude Code = Local Dev
+### C. Governance State (Compliance Check)
 
-Current task: I want to prototype a DVU recalculation query locally. 
-Help me write a query that pulls from efficiency_metrics and 
-recalculates DVU using the Dominator + RAS formula.
-```
-
-### **Example: Codex Session**
-```
-[Paste universal prompt]
-
-Your role: Codex = CI/CD
-
-Current task: The compliance audit is passing but I want to add a 
-new test that checks for generational anchor drift. Help me extend 
-scripts/codex_audit.py with this test.
+```sql
+SELECT
+    COUNT(*) AS total_players,
+    ROUND(AVG(dvu_anchor), 2) AS avg_dvu,
+    MAX(state_last_refresh) AS last_refresh
+FROM gen_alpha.gold.genius_state;
 ```
 
 ---
 
-## **Quick Reference**
+## 3. CORE FRAMEWORK (Evergreen Principles)
 
-**Full Documentation:**
-- Comprehensive briefing: `AGENT_BRIEFING.md`
-- Phase 6 write access: `PHASE6_README.md`
-- Custom instructions: `.assistant_instructions.md`
+**Governance Rules (ALWAYS ENFORCE):**
+1. **65:35 Compliance** - 65% quantitative (Rank 1-2 sources) minimum
+2. **IaC Enforcement** - All gold table writes via migration scripts (database property: `manual_gold_writes_allowed=false`)
+3. **Hunter/Campbell Amendment** - Verify prospect eligibility (college enrolled, not NFL/transfer portal)
+4. **Anti-Speed Protocol** - Verify unfamiliar work before asserting facts
+5. **DATA-DRIVEN OVERRIDE** - Allow justified modifications with documented rationale (requires PM approval + audit trail)
 
-**Key Resources:**
-- Service Principal: `c058228c-6c4a-44ac-9c83-97441099cb97`
-- SQL Warehouse: `5e883b4bfbb1e3f4`
-- Catalog: `gen_alpha`
-- SSoT Table: `gen_alpha.gold.genius_state`
+**Core Metrics (Definitions):**
+- **DVU (Dynasty Value Unit)** - Primary valuation currency (100 DVU = 1.01 rookie pick)
+- **Dominator Rating** - Team offensive production % (0.32-0.38 = elite)
+- **RAS (Relative Athletic Score)** - 0-10 physical tools scale
 
-**Permissions:**
-- 22 total (CREATE/MODIFY/INSERT/UPDATE/DELETE)
-- Scoped to gen_alpha catalog only
-- All three developer agents have full CRUD
+**Database Schema (Locations):**
+- `gen_alpha.gold.anchors` - Generational player DVU anchors
+- `gen_alpha.gold.anchors_change_log` - Audit trail (10-column schema, CDF enabled)
+- `gen_alpha.gold.genius_state` - SSoT (hourly refresh via DABs)
+- `gen_alpha.gold.governance_rules` - 65:35 compliance rules
+- `gen_alpha.gold.trade_evaluations` - Trade audit log
+- `gen_alpha.silver.efficiency_metrics` - Raw efficiency data
+
+**Key Functions:**
+- `gen_alpha.gold.check_anti_speed_gate_v2(player_name, signal_type, signal_timestamp, source_rank)`
+  - Returns: `gate_status`, `wait_time_hours`, `verification_required`, `user_message`, `override_applied`
+  - Purpose: Enforce 168-hour wait for unverified qualitative signals
 
 ---
 
-**Last Updated:** 2026-05-03  
-**Status:** ✅ Universal - Works in any session, any time  
-**No manual updates needed** - sources are self-updating
+## 4. CURRENT CONTEXT (Update This Section Only)
+
+**Your Role:** [Gemini | Claude Code | Codex | Genie]
+
+**Current Focus:**
+[Example: "Building automated trade evaluation pipeline with aging curve penalties"]
+
+**Recent Milestone:**
+[Example: "Latest governance work merged; confirm current state from Section 2 queries"]
+
+**Git Branch:**
+[Example: "main" or "claude/feature-aging-curve"]
+
+**What You Need Help With:**
+[Example: "Implement position-specific depreciation thresholds (RB=26, WR=28, TE=30, QB=33)"]
+
+---
+
+## 5. BEST PRACTICES (Evergreen)
+
+**Infrastructure as Code:**
+- DON'T: Make changes via Databricks UI
+- DON'T: Write SQL inline in YAML (causes multiline issues)
+- DO: Update `databricks.yml` -> commit to Git -> deploy via DABs CLI
+- DO: Create `.sql` files for queries (better version control)
+
+**Always Validate Against SSoT:**
+
+```sql
+-- Before any DVU calculation
+SELECT player_name, dvu_anchor
+FROM gen_alpha.gold.genius_state
+WHERE player_name = 'Player Name';
+```
+
+**Lock Generational Anchors:**
+- Query `gen_alpha.gold.anchors` for baseline values
+- Never UPDATE anchors without PM approval + DATA-DRIVEN OVERRIDE
+- All modifications logged in `anchors_change_log` (audit trail required)
+
+---
+
+## 6. NEXT ACTIONS
+
+After reading this prompt:
+
+1. Run Section 2 queries to discover current state
+2. Read detailed docs for architecture and examples:
+   - `AGENT_BRIEFING.md` (repo root) - detailed architecture, examples, best practices
+   - `.assistant_instructions.md` (repo root) - concise anchor reference
+3. Confirm your role and current task understanding
+4. Ask clarifying questions before starting work
+
+---
+
+**Status:** Evergreen - Only update Section 4 (Context) as needed
+**Template Version:** 1.0
