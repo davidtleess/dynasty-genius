@@ -39,7 +39,7 @@ ALLOWED_ANCHOR_OVERRIDES = {
     "Ryan Williams": {
         "from_dvu": 116.0,
         "to_dvu": 88.0,
-        "strategy_commit": "c538874",
+        "strategy_commit": "fb5fe6a",
         "rationale_paths": [
             "docs/governance/anchor_overrides.md",
             "docs/strategies/2027_target_differentiation.md",
