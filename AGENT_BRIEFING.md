@@ -151,15 +151,15 @@ You are part of a **four-agent development team** building **Dynasty Genius**, a
 
 ### Current Anchors (7 Players - as of 2026-05-04)
 
-| Player | Class | DVU | Status | Dominator | RAS | Last Updated |
-|--------|-------|-----|--------|-----------|-----|--------------|
-| Jeremiah Smith | 2027 | 120.0 | GENERATIONAL_WR | 0.38 | 9.9 | 2026-05-02 |
-| Julian Sayin | 2027 | 115.0 | ELITE_QB1_METRIC_DRIVEN | 0.41 | 9.1 | 2026-05-02 |
-| Ahmad Hardy | 2027 | 108.0 | GENERATIONAL_RB_2027_RB1 | 0.38 | 8.9 | 2026-05-02 |
-| Jeremiyah Love | 2026 | 100.0 | ALPHA_ANCHOR | 0.32 | 9.8 | 2026-05-02 |
-| Arch Manning | 2027 | 90.0 | GENERATIONAL_QB_PEDIGREE_ADJUSTED | 0.30 | 9.2 | 2026-05-03 |
-| Ryan Williams | 2027 | 88.0 | CONDITIONAL_TIER_2 | 0.32 | 9.5 | 2026-05-04 |
-| Charlie Becker | 2027 | 85.0 | HIGH_EFFICIENCY_WATCH | 0.28 | 8.2 | 2026-05-02 |
+| Player | Position | Class | DVU | Status | Dominator | RAS | Last Updated |
+|--------|----------|-------|-----|--------|-----------|-----|--------------|
+| Jeremiah Smith | WR | 2027 | 120.0 | GENERATIONAL_WR | 0.38 | 9.9 | 2026-05-02 |
+| Julian Sayin | QB | 2027 | 115.0 | ELITE_QB1_METRIC_DRIVEN | 0.41 | 9.1 | 2026-05-02 |
+| Ahmad Hardy | RB | 2027 | 108.0 | GENERATIONAL_RB_2027_RB1 | 0.38 | 8.9 | 2026-05-02 |
+| Jeremiyah Love | RB | 2026 | 100.0 | ALPHA_ANCHOR | 0.32 | 9.8 | 2026-05-02 |
+| Arch Manning | QB | 2027 | 90.0 | GENERATIONAL_QB_PEDIGREE_ADJUSTED | 0.30 | 9.2 | 2026-05-03 |
+| Ryan Williams | WR | 2027 | 88.0 | CONDITIONAL_TIER_2 | 0.32 | 9.5 | 2026-05-04 |
+| Charlie Becker | WR | 2027 | 85.0 | HIGH_EFFICIENCY_WR_WATCH | 0.28 | 8.2 | 2026-05-02 |
 
 **Class Distribution:**
 - 2026: 1 player (Love)
