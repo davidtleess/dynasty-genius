@@ -14,6 +14,7 @@ Tests:
 import os
 import sys
 import json
+import subprocess
 from datetime import datetime
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.sql import StatementState
@@ -23,6 +24,40 @@ DATABRICKS_HOST = os.environ.get("DATABRICKS_HOST")
 DATABRICKS_CLIENT_ID = os.environ.get("DATABRICKS_CLIENT_ID")
 DATABRICKS_CLIENT_SECRET = os.environ.get("DATABRICKS_CLIENT_SECRET")
 DATABRICKS_WAREHOUSE_ID = os.environ.get("DATABRICKS_WAREHOUSE_ID")
+
+ANCHOR_BASELINES = {
+    "Jeremiyah Love": 100.0,
+    "Ashton Jeanty": 95.0,
+    "Jeremiah Smith": 120.0,
+    "Ryan Williams": 116.0,
+    "Ahmad Hardy": 108.0,
+    "Arch Manning": 120.0,
+}
+
+ALLOWED_ANCHOR_OVERRIDES = {
+    "Ryan Williams": {
+        "from_dvu": 116.0,
+        "to_dvu": 88.0,
+        "strategy_commit": "c538874",
+        "rationale_paths": [
+            "docs/governance/anchor_overrides.md",
+            "docs/strategies/2027_target_differentiation.md",
+            "docs/strategies/2027_pick_accumulation.md",
+            "docs/class-trackers/2027.md",
+        ],
+        "required_rationale_terms": [
+            "Ryan Williams",
+            "116.0",
+            "88.0",
+            "49",
+            "689",
+            "4 TD",
+            "Conditional Tier-2",
+        ],
+    },
+}
+
+FLOAT_TOLERANCE = 0.01
 
 def execute_query(w, query, test_name):
     """Execute SQL query via Statement Execution API"""
@@ -68,6 +103,216 @@ def execute_query(w, query, test_name):
             "status": "FAILED",
             "error": str(e)
         }
+
+def _run_git_command(args):
+    try:
+        completed = subprocess.run(
+            ["git", *args],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return completed.stdout
+    except Exception:
+        return ""
+
+def _commit_exists(commit_sha):
+    return bool(_run_git_command(["cat-file", "-e", f"{commit_sha}^{{commit}}"]))
+
+def _commit_is_documented(commit_sha, docs_text):
+    return commit_sha in docs_text
+
+def _read_file(path):
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            return handle.read()
+    except FileNotFoundError:
+        return ""
+
+def _has_documented_rationale(override):
+    combined_docs = "\n".join(_read_file(path) for path in override["rationale_paths"])
+    if not combined_docs and _commit_exists(override["strategy_commit"]):
+        combined_docs = _run_git_command(["show", "--format=fuller", "--stat", override["strategy_commit"]])
+    return all(term in combined_docs for term in override["required_rationale_terms"])
+
+def _has_strategy_commit_reference(override):
+    combined_docs = "\n".join(_read_file(path) for path in override["rationale_paths"])
+    return _commit_exists(override["strategy_commit"]) or _commit_is_documented(
+        override["strategy_commit"],
+        combined_docs,
+    )
+
+def _has_documented_quantitative_evidence(override):
+    combined_docs = "\n".join(_read_file(path) for path in override["rationale_paths"])
+    production_terms = ["49", "689", "4 TD"]
+    return all(term in combined_docs for term in production_terms)
+
+def _as_float(value):
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+def _as_string(value):
+    return "" if value is None else str(value)
+
+def validate_anchor_overrides(anchor_rows):
+    """Validate generational anchor drift with data-driven override exceptions.
+
+    Default rule: generational anchors are locked to ANCHOR_BASELINES.
+    Exception: a named override may pass only when it has:
+      1. the exact approved from/to DVU movement,
+      2. quantitative evidence from rank 1-2 / efficiency fields,
+      3. documented rationale in strategy docs,
+      4. an intentional last_updated timestamp.
+    """
+
+    failures = []
+    warnings = []
+    details = []
+    modified_anchors = []
+    approved_overrides = []
+
+    rows_by_player = {row[0]: row for row in anchor_rows}
+
+    for player_name, baseline_dvu in ANCHOR_BASELINES.items():
+        row = rows_by_player.get(player_name)
+        if row is None:
+            failures.append(f"{player_name}: missing from genius_state/anchors audit query")
+            continue
+
+        _, current_dvu_raw, anchor_last_updated, source_rank_raw, current_dominator_raw, yprr_raw, efficiency_score_raw = row
+        current_dvu = _as_float(current_dvu_raw)
+        source_rank = _as_float(source_rank_raw)
+        current_dominator = _as_float(current_dominator_raw)
+        yprr = _as_float(yprr_raw)
+        efficiency_score = _as_float(efficiency_score_raw)
+        last_updated = _as_string(anchor_last_updated)
+
+        if current_dvu is None:
+            failures.append(f"{player_name}: dvu_anchor is NULL or non-numeric")
+            continue
+
+        if abs(current_dvu - baseline_dvu) <= FLOAT_TOLERANCE:
+            details.append({
+                "player_name": player_name,
+                "status": "LOCKED_BASELINE_OK",
+                "baseline_dvu": baseline_dvu,
+                "current_dvu": current_dvu,
+            })
+            continue
+
+        modified_anchors.append(player_name)
+        override = ALLOWED_ANCHOR_OVERRIDES.get(player_name)
+        if override is None:
+            failures.append(
+                f"{player_name}: unauthorized anchor drift {baseline_dvu} -> {current_dvu}; "
+                "no DATA-DRIVEN OVERRIDE is registered"
+            )
+            continue
+
+        exact_target = abs(current_dvu - override["to_dvu"]) <= FLOAT_TOLERANCE
+        exact_source = abs(baseline_dvu - override["from_dvu"]) <= FLOAT_TOLERANCE
+        has_ranked_db_metrics = (
+            (source_rank is not None and source_rank in (1.0, 2.0))
+            and any(metric is not None for metric in (current_dominator, yprr, efficiency_score))
+        )
+        has_quant_metrics = has_ranked_db_metrics or _has_documented_quantitative_evidence(override)
+        has_rationale = _has_documented_rationale(override)
+        has_commit = _has_strategy_commit_reference(override)
+        has_intentional_timestamp = bool(last_updated)
+
+        override_errors = []
+        if not exact_source or not exact_target:
+            override_errors.append(
+                f"expected {override['from_dvu']} -> {override['to_dvu']}, observed {baseline_dvu} -> {current_dvu}"
+            )
+        if not has_quant_metrics:
+            override_errors.append(
+                "missing verified quantitative efficiency metrics from rank 1-2 source"
+            )
+        if not has_rationale:
+            override_errors.append("missing documented strategy rationale")
+        if not has_commit:
+            override_errors.append(f"strategy commit {override['strategy_commit']} not present in checkout")
+        if not has_intentional_timestamp:
+            override_errors.append("anchor_last_updated is missing")
+
+        if override_errors:
+            failures.append(f"{player_name}: DATA-DRIVEN OVERRIDE failed: {'; '.join(override_errors)}")
+        else:
+            approved_overrides.append(player_name)
+            details.append({
+                "player_name": player_name,
+                "status": "DATA_DRIVEN_OVERRIDE_APPROVED",
+                "baseline_dvu": baseline_dvu,
+                "current_dvu": current_dvu,
+                "strategy_commit": override["strategy_commit"],
+                "anchor_last_updated": last_updated,
+            })
+
+    if len(modified_anchors) > len(approved_overrides):
+        warnings.append(
+            f"Modified anchors observed: {modified_anchors}; approved overrides: {approved_overrides}"
+        )
+
+    if len(modified_anchors) > 1:
+        unauthorized_batch = [name for name in modified_anchors if name not in approved_overrides]
+        if unauthorized_batch:
+            failures.append(
+                f"Multiple anchor modifications detected without clear batch rationale: {modified_anchors}"
+            )
+
+    status = "PASSED" if not failures else "FAILED"
+    return {
+        "test": "Test 3: DVU Anchor Integrity Check",
+        "status": status,
+        "result": details,
+        "approved_overrides": approved_overrides,
+        "modified_anchors": modified_anchors,
+        "warnings": warnings,
+        "failures": failures,
+    }
+
+def run_anchor_integrity_test(w):
+    test_name = "Test 3: DVU Anchor Integrity Check"
+    query = """
+        SELECT
+            gs.player_name,
+            gs.dvu_anchor,
+            gs.anchor_last_updated,
+            gs.source_rank,
+            gs.current_dominator,
+            gs.yprr,
+            gs.efficiency_score
+        FROM gen_alpha.gold.genius_state gs
+        WHERE gs.player_name IN (
+            'Jeremiyah Love',
+            'Ashton Jeanty',
+            'Jeremiah Smith',
+            'Ryan Williams',
+            'Ahmad Hardy',
+            'Arch Manning'
+        )
+        ORDER BY gs.player_name
+    """
+
+    raw_result = execute_query(w, query, test_name)
+    if raw_result.get("status") != "PASSED":
+        return raw_result
+
+    validated = validate_anchor_overrides(raw_result.get("result", []))
+    if validated["status"] == "PASSED":
+        print(f"✅ {test_name}: PASSED")
+        if validated["approved_overrides"]:
+            print(f"   Approved DATA-DRIVEN OVERRIDE(s): {', '.join(validated['approved_overrides'])}")
+    else:
+        print(f"❌ {test_name}: FAILED")
+        for failure in validated["failures"]:
+            print(f"   - {failure}")
+    return validated
 
 def main():
     print("="*70)
@@ -126,20 +371,8 @@ def main():
         "Test 2: Governance Rules Validation"
     ))
     
-    # Test 3: DVU Anchor Integrity (Dynasty Genius Framework)
-    results.append(execute_query(
-        w,
-        """
-        SELECT 
-            player_name,
-            dvu_anchor,
-            class_year
-        FROM gen_alpha.gold.genius_state
-        WHERE player_name IN ('Ryan Williams', 'Ahmad Hardy', 'Jeremiah Smith', 'Jeremiyah Love')
-        ORDER BY dvu_anchor DESC
-        """,
-        "Test 3: DVU Anchor Integrity Check"
-    ))
+    # Test 3: DVU Anchor Integrity (DATA-DRIVEN OVERRIDE aware)
+    results.append(run_anchor_integrity_test(w))
     
     # Test 4: Status Classification Logic
     results.append(execute_query(
