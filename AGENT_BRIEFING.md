@@ -102,6 +102,12 @@ You are part of a **four-agent development team** building **Dynasty Genius**, a
 - **Functions**: CREATE FUNCTION, CREATE MATERIALIZED VIEW, CREATE SCHEMA
 - **Status**: ✅ Write operations validated
 
+## Current State (as of 2026-05-04)
+
+**Main Branch:** bed1dd4 (PR-A merged) + 621409b (Sprint 0.5 fixes) + [strategy_pr_sha] (Sprint 0.5 complete)
+
+**Status:** Sprint 0.5 100% complete, Sprint 1.0 ready to begin
+
 ---
 
 ## **🗄️ DATABASE SCHEMA**
@@ -109,15 +115,15 @@ You are part of a **four-agent development team** building **Dynasty Genius**, a
 ### **Single Source of Truth (SSoT)**
 ```sql
 -- Primary table: gen_alpha.gold.genius_state
--- 11 players, 108.09 avg DVU, hourly refresh
+-- 7 anchor players after Sprint 0.5 Jeanty removal, hourly refresh
 -- Columns: player_name, dvu_anchor, canonical_status, position, 
 --          dominator_rating_target, ras_target, class_year, 
 --          data_source, source_rank, state_last_refresh
 ```
 
 ### **Core Tables (You Have Full CRUD Access)**
-1. `gen_alpha.gold.anchors` - Generational player DVU anchors (8 players)
-2. `gen_alpha.gold.genius_state` - SSoT (11 players, hourly refresh)
+1. `gen_alpha.gold.anchors` - Generational player DVU anchors (7 players)
+2. `gen_alpha.gold.genius_state` - SSoT (hourly refresh)
 3. `gen_alpha.gold.governance_rules` - 65:35 compliance rules (2 rules)
 4. `gen_alpha.gold.trade_evaluations` - Trade audit log
 5. `gen_alpha.silver.efficiency_metrics` - Raw efficiency data
@@ -143,18 +149,26 @@ You are part of a **four-agent development team** building **Dynasty Genius**, a
    - Rank 1-2: PFF, NextGen Stats, Pro Football Reference (quantitative)
    - Rank 3: Market Hype, social media (qualitative, flag if >35%)
 
-### **Generational Anchors (DO NOT MODIFY)**
-```sql
--- 2026 Class
-Jeremiyah Love (RB): 100.0 DVU, 0.32 Dominator, 9.8 RAS
-Ashton Jeanty (RB): 95.0 DVU, 0.34 Dominator, 8.5 RAS
+### Current Anchors (7 Players - as of 2026-05-04)
 
--- 2027 Class  
-Jeremiah Smith (WR): 120.0 DVU, 0.38 Dominator, 9.9 RAS
-Ryan Williams (WR): 116.0 DVU, 0.35 Dominator, 9.5 RAS
-Ahmad Hardy (RB): 108.0 DVU, 0.38 Dominator, 8.9 RAS
-Arch Manning (QB): 120.0 DVU, 0.30 Dominator, 9.2 RAS
-```
+| Player | Position | Class | DVU | Status | Dominator | RAS | Last Updated |
+|--------|----------|-------|-----|--------|-----------|-----|--------------|
+| Jeremiah Smith | WR | 2027 | 120.0 | GENERATIONAL_WR | 0.38 | 9.9 | 2026-05-02 |
+| Julian Sayin | QB | 2027 | 115.0 | ELITE_QB1_METRIC_DRIVEN | 0.41 | 9.1 | 2026-05-02 |
+| Ahmad Hardy | RB | 2027 | 108.0 | GENERATIONAL_RB_2027_RB1 | 0.38 | 8.9 | 2026-05-02 |
+| Jeremiyah Love | RB | 2026 | 100.0 | ALPHA_ANCHOR | 0.32 | 9.8 | 2026-05-02 |
+| Arch Manning | QB | 2027 | 90.0 | GENERATIONAL_QB_PEDIGREE_ADJUSTED | 0.30 | 9.2 | 2026-05-03 |
+| Ryan Williams | WR | 2027 | 88.0 | CONDITIONAL_TIER_2 | 0.32 | 9.5 | 2026-05-04 |
+| Charlie Becker | WR | 2027 | 85.0 | HIGH_EFFICIENCY_WR_WATCH | 0.28 | 8.2 | 2026-05-02 |
+
+**Class Distribution:**
+- 2026: 1 player (Love)
+- 2027: 6 players (Smith, Sayin, Hardy, Manning, Williams, Becker)
+
+**Recent Changes:**
+- Williams reconciliation (116.0 → 88.0): Verified 2025 sophomore production data
+- Manning override (120.0 → 90.0): Medical qualitative override
+- **Jeanty removal (95.0 → NULL): 2025 NFL rookie (Raiders), outside scope**
 
 ---
 
@@ -456,6 +470,14 @@ After reading this briefing:
 
 **End of Briefing** 🏗️
 
-**Status**: ✅ Production Ready - All four agents operational with full CRUD  
-**Last Updated**: 2026-05-03  
-**Next Step**: Option 4 (Agent Collaboration Demo) recommended
+### Sprint 0.5 Summary
+
+### Data Corrections:
+✅ Smith 4x duplicates eliminated (Cartesian JOIN fix)
+✅ Williams reconciliation (production data beats projections)
+✅ Manning override (medical_qualitative_override)
+✅ **Jeanty removal (2025 NFL rookie, Hunter/Campbell Amendment violation)**
+
+**Status**: ✅ Production Ready - All four agents operational with full CRUD
+**Last Updated**: 2026-05-04
+**Next Step**: Sprint 1.0 Automated Trade Evaluation Pipeline

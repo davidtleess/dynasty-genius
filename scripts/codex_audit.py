@@ -27,18 +27,19 @@ DATABRICKS_WAREHOUSE_ID = os.environ.get("DATABRICKS_WAREHOUSE_ID")
 
 ANCHOR_BASELINES = {
     "Jeremiyah Love": 100.0,
-    "Ashton Jeanty": 95.0,
     "Jeremiah Smith": 120.0,
+    "Julian Sayin": 115.0,
     "Ryan Williams": 116.0,
     "Ahmad Hardy": 108.0,
     "Arch Manning": 120.0,
+    "Charlie Becker": 85.0,
 }
 
 ALLOWED_ANCHOR_OVERRIDES = {
     "Ryan Williams": {
         "from_dvu": 116.0,
         "to_dvu": 88.0,
-        "strategy_commit": "c538874",
+        "strategy_commit": "fb5fe6a",
         "rationale_paths": [
             "docs/governance/anchor_overrides.md",
             "docs/strategies/2027_target_differentiation.md",
@@ -326,11 +327,12 @@ def run_anchor_integrity_test(w):
         FROM gen_alpha.gold.genius_state gs
         WHERE gs.player_name IN (
             'Jeremiyah Love',
-            'Ashton Jeanty',
             'Jeremiah Smith',
+            'Julian Sayin',
             'Ryan Williams',
             'Ahmad Hardy',
-            'Arch Manning'
+            'Arch Manning',
+            'Charlie Becker'
         )
         ORDER BY gs.player_name
     """
