@@ -54,6 +54,27 @@ ALLOWED_ANCHOR_OVERRIDES = {
             "4 TD",
             "Conditional Tier-2",
         ],
+        "quantitative_evidence_terms": ["49", "689", "4 TD"],
+    },
+    "Arch Manning": {
+        "from_dvu": 120.0,
+        "to_dvu": 90.0,
+        "governance_rule_id": "medical_qualitative_override",
+        "rationale_paths": [
+            "docs/governance/anchor_overrides.md",
+            "infrastructure/README.md",
+            "AGENT_BRIEFING.md",
+        ],
+        "required_rationale_terms": [
+            "Arch Manning",
+            "120.0",
+            "90.0",
+            "medical_qualitative_override",
+            "0.30 Dominator",
+            "9.2 RAS",
+            "accuracy concerns",
+        ],
+        "quantitative_evidence_terms": ["0.30 Dominator", "9.2 RAS", "90.0"],
     },
 }
 
@@ -131,21 +152,32 @@ def _read_file(path):
 
 def _has_documented_rationale(override):
     combined_docs = "\n".join(_read_file(path) for path in override["rationale_paths"])
-    if not combined_docs and _commit_exists(override["strategy_commit"]):
-        combined_docs = _run_git_command(["show", "--format=fuller", "--stat", override["strategy_commit"]])
+    strategy_commit = override.get("strategy_commit")
+    if not combined_docs and strategy_commit and _commit_exists(strategy_commit):
+        combined_docs = _run_git_command(["show", "--format=fuller", "--stat", strategy_commit])
     return all(term in combined_docs for term in override["required_rationale_terms"])
 
 def _has_strategy_commit_reference(override):
+    strategy_commit = override.get("strategy_commit")
+    if not strategy_commit:
+        return True
     combined_docs = "\n".join(_read_file(path) for path in override["rationale_paths"])
-    return _commit_exists(override["strategy_commit"]) or _commit_is_documented(
-        override["strategy_commit"],
+    return _commit_exists(strategy_commit) or _commit_is_documented(
+        strategy_commit,
         combined_docs,
     )
 
+def _has_governance_rule_reference(override):
+    governance_rule_id = override.get("governance_rule_id")
+    if not governance_rule_id:
+        return True
+    combined_docs = "\n".join(_read_file(path) for path in override["rationale_paths"])
+    return governance_rule_id in combined_docs
+
 def _has_documented_quantitative_evidence(override):
     combined_docs = "\n".join(_read_file(path) for path in override["rationale_paths"])
-    production_terms = ["49", "689", "4 TD"]
-    return all(term in combined_docs for term in production_terms)
+    production_terms = override.get("quantitative_evidence_terms", [])
+    return bool(production_terms) and all(term in combined_docs for term in production_terms)
 
 def _as_float(value):
     if value is None:
@@ -222,6 +254,7 @@ def validate_anchor_overrides(anchor_rows):
         has_quant_metrics = has_ranked_db_metrics or _has_documented_quantitative_evidence(override)
         has_rationale = _has_documented_rationale(override)
         has_commit = _has_strategy_commit_reference(override)
+        has_governance_rule = _has_governance_rule_reference(override)
         has_intentional_timestamp = bool(last_updated)
 
         override_errors = []
@@ -236,7 +269,9 @@ def validate_anchor_overrides(anchor_rows):
         if not has_rationale:
             override_errors.append("missing documented strategy rationale")
         if not has_commit:
-            override_errors.append(f"strategy commit {override['strategy_commit']} not present in checkout")
+            override_errors.append(f"strategy commit {override.get('strategy_commit')} not present in checkout")
+        if not has_governance_rule:
+            override_errors.append(f"governance rule {override.get('governance_rule_id')} is not documented")
         if not has_intentional_timestamp:
             override_errors.append("anchor_last_updated is missing")
 
@@ -249,7 +284,8 @@ def validate_anchor_overrides(anchor_rows):
                 "status": "DATA_DRIVEN_OVERRIDE_APPROVED",
                 "baseline_dvu": baseline_dvu,
                 "current_dvu": current_dvu,
-                "strategy_commit": override["strategy_commit"],
+                "strategy_commit": override.get("strategy_commit"),
+                "governance_rule_id": override.get("governance_rule_id"),
                 "anchor_last_updated": last_updated,
             })
 
