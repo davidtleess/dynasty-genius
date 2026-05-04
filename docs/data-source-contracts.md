@@ -3,10 +3,21 @@
 Adapter interface, identity resolution rules, snapshot layout, per-source schemas, and failure-mode policy.
 
 - Strategy layer: [system-design.md](system-design.md)
+- Storage substrate (Delta Lake / Unity Catalog / MLflow): [storage-strategy.md](storage-strategy.md)
 - Implementation playbook: [agent-execution-plan.md](agent-execution-plan.md)
 - Phase advancement criteria: [validation-gates.md](validation-gates.md)
 
 This doc is the contract between the source adapter layer and everything above it. Agents do not change adapter shapes without updating this doc.
+
+## Storage Substrate
+
+Adapter writes target the medallion layers defined in [storage-strategy.md](storage-strategy.md):
+
+- `fetch_automated()` and `ingest_manual_export()` write the raw bytes to the appropriate bronze table under the `gen_alpha.bronze` schema (e.g., `bronze.sleeper_rosters_raw`, `bronze.pff_grades_raw`). Local file caches under `app/data/cache/raw/` continue to exist as a dev-time and offline fallback through Migration Phase M.4.
+- `parse()` writes normalized rows to the appropriate silver table under `gen_alpha.silver` (e.g., `silver.player_seasons`, `silver.usage_metrics`).
+- Adapters never write to gold. Gold is the output layer for the engines and the API.
+
+The interface below stays unchanged across the local-file → Lakehouse migration. Code reads `DYNASTY_GENIUS_SUBSTRATE` (`local | bronze`) to select the write path; downstream consumers cannot tell which path was taken.
 
 ## Adapter Interface
 
@@ -44,15 +55,40 @@ Cross-cutting requirements:
 
 Snapshots are immutable. They are the audit trail.
 
+### Target layout (Lakehouse mode, post Migration Phase M.1)
+
+Each source has one append-only bronze table:
+
+```
+gen_alpha.bronze.<source_name>_raw
+    columns:
+        bronze_partition_id  string         # composite of source_name + season + fetched_at
+        source_name          string
+        season               int
+        fetched_at           timestamp
+        fetch_method         string         # automated | manual_export | replayed_fixture
+        source_url           string         # url for automated, filename for manual_export
+        schema_version       string
+        parser_version       string
+        snapshot_bytes       binary         # raw bytes (HTML, JSON, CSV, XLSX)
+        snapshot_format      string         # mime hint
+```
+
+A pointer manifest is written to `gen_alpha.gold.snapshot_manifests` so a decision card can name the exact bronze partition it consumed without reading the bronze table itself.
+
+### Transitional layout (local-file mode, current)
+
+Until Migration Phase M.4 retires the local fallback, every adapter also writes to:
+
 ```
 app/data/cache/raw/<source_name>/<season>/<YYYYMMDDTHHMMSSZ>/
     snapshot.<ext>            # the raw bytes (HTML, JSON, CSV, XLSX)
     manifest.json             # source_name, season, fetched_at, fetch_method, url or filename, schema_version, parser_version
 ```
 
-`fetch_method` is `automated`, `manual_export`, or `replayed_fixture`. The `app/data/cache/raw/` tree is gitignored. Tests use `tests/fixtures/<source_name>/` checked into the repo, replayed via the same adapter. Do **not** introduce a root-level `data/` directory — all runtime caches live under `app/data/cache/`.
+`fetch_method` is `automated`, `manual_export`, or `replayed_fixture` in both modes. The `app/data/cache/raw/` tree is gitignored. Tests use `tests/fixtures/<source_name>/` checked into the repo, replayed via the same adapter. Do **not** introduce a root-level `data/` directory — all runtime caches live under `app/data/cache/`.
 
-A snapshot is never deleted in-place. Pruning is a separate, audited operation.
+A snapshot is never deleted in-place. Pruning is a separate, audited operation. In Lakehouse mode, "pruning" is a Delta `VACUUM` on a frozen partition with explicit retention policy; in local mode, it is a manual `app/data/cache/raw/` cleanup script that logs what it removed.
 
 ## Normalized Row Schema (common columns)
 
@@ -78,7 +114,7 @@ Every feature row consumed downstream must carry a canonical `player_id`. The id
 
 ### Canonical mapping table
 
-`app/data/identity/mapping.py` reads a single source-of-truth table at `app/data/identity/canonical_mapping.csv`:
+In Lakehouse mode, the canonical mapping lives at `gen_alpha.silver.identity_canonical_mapping`, written via `app/data/identity/mapping.py`. In local-file mode (current, through Migration Phase M.2), the same table is materialized as `app/data/identity/canonical_mapping.csv`. The schema is identical:
 
 | Column | Notes |
 | --- | --- |
@@ -138,7 +174,7 @@ Every adapter declares its failure modes and how each degrades. Silent substitut
 - Refresh: weekly during the season.
 - Manual export path: CSV downloads from the PFF Premium Stats dashboard. Required columns are documented in `app/data/pff_manual_export_schema.md`.
 - Source ID: PFF `player_id`.
-- Credentials: stored in `~/.config/dynasty-genius/pff.env` (gitignored). Adapter reads via `dotenv`. Never logged.
+- Credentials: in Lakehouse mode, stored as Databricks Secrets in scope `dynasty-genius/pff` and read via the Databricks SDK secrets API. In local-file mode, fall back to `~/.config/dynasty-genius/pff.env` (gitignored) read via `dotenv`. Never logged. Same env-var names in both modes; see [storage-strategy.md](storage-strategy.md#credentials--secrets).
 - Failure modes: PFF block → `SourceAuthError`. Adapter logs the block, alerts via the freshness report, and the operator is expected to drop a manual CSV export within 7 days before downstream gates fail.
 - Tests: `tests/data/test_pff_parser.py` runs against checked-in fixtures, never against the live site.
 
@@ -150,6 +186,7 @@ Every adapter declares its failure modes and how each degrades. Silent substitut
 - Manual export path: PlayerProfiler player-page HTML dump; RAS yearly leaderboard page dump.
 - Source ID: PlayerProfiler internal ID; RAS uses player slug + draft year.
 - Failure modes: PlayerProfiler block → `SourceAuthError`. RAS site unreachable → `is_stale=True`.
+- Credentials: PlayerProfiler subscriber session lives in Databricks Secret scope `dynasty-genius/playerprofiler` (Lakehouse mode) or `~/.config/dynasty-genius/playerprofiler.env` (local mode). RAS is unauthenticated and needs no secret. See [storage-strategy.md](storage-strategy.md#credentials--secrets).
 
 ### KeepTradeCut (KTC)
 
@@ -160,7 +197,8 @@ Every adapter declares its failure modes and how each degrades. Silent substitut
 - Manual export path: KTC does not offer an export. Fallback is a saved HTML page dump from the user's browser.
 - Source ID: KTC slug.
 - Failure modes: KTC block → `SourceAuthError`. Operator drops a saved HTML dump as the manual fallback.
-- Critical rule: **KTC values never enter Engine A or Engine B training data**. They populate `market_overlay` only. A test in `tests/contract/` enforces that no model artifact's feature list contains a KTC column.
+- Critical rule: **KTC values never enter Engine A or Engine B training data**. They populate `gold.market_overlay` only, plus the DVU peg job (see [storage-strategy.md](storage-strategy.md#the-currency-dynasty-value-unit-dvu)). A test in `tests/contract/` enforces that no model artifact's feature list contains a KTC column. In Lakehouse mode, this is enforced a second time at the platform level: `silver.market_signals` (where KTC writes) has no read permission from any feature-pipeline service principal — defense in depth.
+- Credentials: KTC scrape session, when applicable, lives in Databricks Secret scope `dynasty-genius/ktc` (Lakehouse mode) or `~/.config/dynasty-genius/ktc.env` (local mode).
 
 ## Freshness Reporting
 

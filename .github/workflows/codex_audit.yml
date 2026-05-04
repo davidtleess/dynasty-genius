@@ -1,0 +1,48 @@
+name: Codex Compliance Audit
+
+on:
+  push:
+    branches: [ main, claude/** ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 9 AM Eastern
+    - cron: '0 14 * * *'
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  audit:
+    name: Sovereign Unity Compliance Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install databricks-sdk==0.30.0
+      
+      - name: Run Codex Compliance Audit
+        env:
+          DATABRICKS_HOST: https://dbc-228373f7-57ec.cloud.databricks.com
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+          DATABRICKS_WAREHOUSE_ID: 5e883b4bfbb1e3f4
+        run: |
+          python scripts/codex_audit.py
+      
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-audit-results
+          path: audit_results.json
+          retention-days: 30
