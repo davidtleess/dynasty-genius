@@ -102,8 +102,8 @@ def write_demo(cursor):
         
         ("INSERT test data", """
             INSERT INTO gen_alpha.silver.claude_code_staging VALUES
-            ('Will Campbell', 125.0, 'Elite OT prospect - 2027 class', CURRENT_TIMESTAMP(), 'Claude Code'),
-            ('Zachariah Branch', 118.0, 'Dynamic WR with elite speed - 2027 class', CURRENT_TIMESTAMP(), 'Claude Code')
+            ('Test Player A', 125.0, 'Synthetic connector write demo fixture - class 2099', CURRENT_TIMESTAMP(), 'Claude Code'),
+            ('Test Player B', 118.0, 'Synthetic connector write demo fixture - class 2099', CURRENT_TIMESTAMP(), 'Claude Code')
         """),
         
         ("SELECT inserted data", """
@@ -120,7 +120,7 @@ def write_demo(cursor):
             UPDATE gen_alpha.silver.claude_code_staging
             SET dvu_projection = 120.0,
                 analysis_notes = 'Updated projection based on combine results'
-            WHERE player_name = 'Zachariah Branch'
+            WHERE player_name = 'Test Player B'
         """),
         
         ("DELETE example", """
