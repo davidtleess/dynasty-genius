@@ -4,7 +4,42 @@
 -- Frequency: Hourly via Databricks Job
 
 CREATE OR REPLACE TABLE gen_alpha.gold.genius_state AS
-WITH base_state AS (
+WITH anchors_deduped AS (
+    SELECT *
+    FROM gen_alpha.gold.anchors
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY player_name
+        ORDER BY last_updated DESC NULLS LAST, class_year DESC NULLS LAST
+    ) = 1
+),
+
+efficiency_metrics_deduped AS (
+    SELECT *
+    FROM gen_alpha.silver.efficiency_metrics
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY player_name
+        ORDER BY
+            source_rank ASC NULLS LAST,
+            efficiency_score DESC NULLS LAST,
+            dominator_rating DESC NULLS LAST,
+            yprr DESC NULLS LAST,
+            data_source ASC NULLS LAST
+    ) = 1
+),
+
+nfl_production_deduped AS (
+    SELECT *
+    FROM gen_alpha.bronze.nfl_production_2025
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY player_name
+        ORDER BY
+            source_rank ASC NULLS LAST,
+            snap_count DESC NULLS LAST,
+            data_source ASC NULLS LAST
+    ) = 1
+),
+
+base_state AS (
     SELECT 
         -- Player identity
         a.player_name,
@@ -50,12 +85,12 @@ WITH base_state AS (
         a.last_updated AS anchor_last_updated,
         CURRENT_TIMESTAMP() AS state_last_refresh
         
-    FROM gen_alpha.gold.anchors a
+    FROM anchors_deduped a
     
-    LEFT JOIN gen_alpha.silver.efficiency_metrics e
+    LEFT JOIN efficiency_metrics_deduped e
         ON a.player_name = e.player_name
     
-    LEFT JOIN gen_alpha.bronze.nfl_production_2025 n
+    LEFT JOIN nfl_production_deduped n
         ON a.player_name = n.player_name
 ),
 
@@ -100,7 +135,15 @@ SELECT
     nfl_snap_count,
     anchor_last_updated,
     state_last_refresh
-FROM governed_state;
+FROM governed_state
+QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY player_name
+    ORDER BY
+        source_rank ASC NULLS LAST,
+        efficiency_score DESC NULLS LAST,
+        nfl_snap_count DESC NULLS LAST,
+        anchor_last_updated DESC NULLS LAST
+) = 1;
 
 -- Refresh complete message
 SELECT 

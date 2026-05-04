@@ -11,3 +11,17 @@ SELECT
     MAX(state_last_refresh) as last_refresh_timestamp,
     CURRENT_TIMESTAMP() as verification_timestamp
 FROM gen_alpha.gold.genius_state;
+
+-- Hard fail if the SSoT contains duplicate player rows.
+-- This protects aggregate DVU calculations from upstream join fanout.
+SELECT
+    assert_true(
+        COUNT(*) = 0,
+        'gen_alpha.gold.genius_state contains duplicate player_name rows'
+    ) AS duplicate_player_guardrail
+FROM (
+    SELECT player_name
+    FROM gen_alpha.gold.genius_state
+    GROUP BY player_name
+    HAVING COUNT(*) > 1
+);
