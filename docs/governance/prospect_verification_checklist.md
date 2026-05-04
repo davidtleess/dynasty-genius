@@ -57,14 +57,18 @@ If yes: the player is **not** a prospect for the claimed year.
 
 ## How to Document the Check
 
-When the check is run, log the verification source on the same line as the player entry. Acceptable sources:
+When the check is run, log the verification source on the same line as the player entry.
 
-- Official college program roster page (e.g. `ohiostatebuckeyes.com/sports/football/roster/...`)
-- Wikipedia (acceptable as a fast cross-check, never as sole source)
-- 247Sports / Rivals recruiting profile
+**Acceptable as the *logged* source (Primary Data Anchors):**
+
+- Official college program roster page (e.g. `ohiostatebuckeyes.com/sports/football/roster/...`, any `.edu` athletics roster)
+- Pro Football Reference / Sports-Reference college pages
+- 247Sports, On3, or Rivals recruiting profile
 - A prior verified entry in [`class-trackers/`](../class-trackers/) — *transitive trust is allowed once a player has cleared the check*
 
-**Non-acceptable as sole verification:** mock draft sites alone, dynasty content creators, betting-market odds, social media references.
+**Wikipedia is a *background scratchpad tool only* — never the logged citation.** Per PM ruling (2026-05-03 "Hunter/Campbell Amendment"): Wikipedia is permitted for fast disambiguation while running the check (e.g. distinguishing two players with the same name), but the source written into the commit message, the SSoT row, or any audit field must be a Primary Data Anchor from the list above. Wikipedia is a tool, not a ledger.
+
+**Non-acceptable as verification of any kind:** mock draft sites alone, dynasty content creators, betting-market odds, social media references.
 
 ## Failure Recovery
 
