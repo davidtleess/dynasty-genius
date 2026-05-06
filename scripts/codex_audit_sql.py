@@ -13,6 +13,15 @@ TRADE_TABLE_RE = re.compile(
     r"\b(?:gen_alpha\.)?gold\.trade_evaluations_v2\b|\btrade_evaluations_v2\b",
     re.IGNORECASE,
 )
+EXCEPTION_CANDIDATE_RE = re.compile(
+    r"\b(?:gen_alpha\.)?gold\.exception_archetype_candidates\b|\bexception_archetype_candidates\b",
+    re.IGNORECASE,
+)
+EXCEPTION_CANDIDATE_WRITE_RE = re.compile(
+    r"\b(?:insert\s+into|merge\s+into)\s+(?:gen_alpha\.)?gold\.exception_archetype_candidates\b"
+    r"|\bcreate\s+(?:or\s+replace\s+)?(?:view|table)\s+(?:gen_alpha\.)?gold\.exception_archetype_candidates\b",
+    re.IGNORECASE,
+)
 TRADE_DEFINITION_RE = re.compile(
     r"\bcreate\s+(?:or\s+replace\s+)?table\s+(?:if\s+not\s+exists\s+)?"
     r"(?:gen_alpha\.)?gold\.trade_evaluations_v2\b",
@@ -73,6 +82,15 @@ EXCEPTION_TERMS_RE = re.compile(
     r"exception|outlier|buffer|relief|depreciation|aging|age_cliff|adjusted_dvu|value_depreciation",
     re.IGNORECASE,
 )
+PRIMARY_TRACKING_SOURCE_RE = re.compile(
+    r"\bdata_source\b\s+in\s*\([^)]*(?:'PFF'|\"PFF\"|'NGS'|\"NGS\"|'NEXTGENSTATS'|\"NEXTGENSTATS\"|'NEXT_GEN_STATS'|\"NEXT_GEN_STATS\"|'NEXT GEN STATS'|\"NEXT GEN STATS\")[^)]*\)"
+    r"|\bdata_source\b\s*=\s*(?:'PFF'|\"PFF\"|'NGS'|\"NGS\"|'NEXTGENSTATS'|\"NEXTGENSTATS\"|'NEXT_GEN_STATS'|\"NEXT_GEN_STATS\"|'NEXT GEN STATS'|\"NEXT GEN STATS\")",
+    re.IGNORECASE,
+)
+MARKET_HYPE_SOURCE_RE = re.compile(
+    r"\b(?:KTC|KEEPTRADECUT|MARKET_HYPE|SOCIAL|TWITTER|REDDIT|PRICE_DISCOVERY)\b",
+    re.IGNORECASE,
+)
 PICK_ASSET_RE = re.compile(
     r"\b(?:rookie[\s_]+)?(?:draft[\s_]+)?pick\b|\b[0-9]{4}[\s_]+(?:1st|2nd|3rd|4th|first|second|third|fourth)\b",
     re.IGNORECASE,
@@ -123,9 +141,10 @@ def discover_sql_files(paths: list[str]) -> list[Path]:
 def audit_sql_file(path: Path) -> list[str]:
     text = strip_sql_comments(path.read_text(encoding="utf-8"))
     touches_trade_table = bool(TRADE_TABLE_RE.search(text))
+    touches_exception_candidates = bool(EXCEPTION_CANDIDATE_RE.search(text))
     mutates_anchors = bool(ANCHORS_MUTATION_RE.search(text))
     touches_pick_asset = bool(PICK_ASSET_RE.search(text))
-    if not touches_trade_table and not mutates_anchors and not touches_pick_asset:
+    if not touches_trade_table and not touches_exception_candidates and not mutates_anchors and not touches_pick_asset:
         return []
 
     failures: list[str] = []
@@ -143,6 +162,7 @@ def audit_sql_file(path: Path) -> list[str]:
 
     writes_trade_table = bool(TRADE_WRITE_RE.search(text))
     defines_trade_table = bool(TRADE_DEFINITION_RE.search(text))
+    writes_exception_candidates = bool(EXCEPTION_CANDIDATE_WRITE_RE.search(text))
 
     if writes_trade_table and not SSOT_RE.search(text):
         failures.append(
@@ -193,6 +213,29 @@ def audit_sql_file(path: Path) -> list[str]:
         failures.append(
             "reduces DVU for a future rookie draft pick; picks may appreciate or stay flat over time, "
             "but the framework forbids time-based pick depreciation."
+        )
+
+    if writes_exception_candidates and not EFFICIENCY_METRICS_RE.search(text):
+        failures.append(
+            "defines or writes gold.exception_archetype_candidates without sourcing from "
+            "gen_alpha.silver.efficiency_metrics."
+        )
+
+    if writes_exception_candidates and not SOURCE_RANK_ONE_RE.search(text):
+        failures.append(
+            "defines or writes gold.exception_archetype_candidates without requiring source_rank = 1."
+        )
+
+    if writes_exception_candidates and not PRIMARY_TRACKING_SOURCE_RE.search(text):
+        failures.append(
+            "defines or writes gold.exception_archetype_candidates without constraining data_source "
+            "to primary tracking data such as PFF or NGS."
+        )
+
+    if writes_exception_candidates and MARKET_HYPE_SOURCE_RE.search(text):
+        failures.append(
+            "defines or writes gold.exception_archetype_candidates with market/hype sources; "
+            "KTC and social/market feeds cannot trigger exception archetype candidacy."
         )
 
     return failures
