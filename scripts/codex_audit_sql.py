@@ -195,6 +195,13 @@ FORBIDDEN_DEVY_STATUS_RE = re.compile(
     r"|\bstatus_flag\b\s+in\s*\([^)]*'(?:NFL|TRANSFER_PORTAL)'[^)]*\)",
     re.IGNORECASE,
 )
+RAW_DVU_RE = re.compile(r"\braw_dvu\b", re.IGNORECASE)
+ADJUSTED_DVU_RE = re.compile(r"\badjusted_dvu\b", re.IGNORECASE)
+CREATE_TABLE_RE = re.compile(r"\bcreate\s+(?:or\s+replace\s+)?table\b", re.IGNORECASE)
+QUERY_OR_VIEW_RE = re.compile(
+    r"\bselect\b|\bcreate\s+(?:or\s+replace\s+)?view\b|\bcreate\s+(?:or\s+replace\s+)?table\b[\s\S]*?\bas\b",
+    re.IGNORECASE,
+)
 
 
 def strip_sql_comments(text: str) -> str:
@@ -228,6 +235,17 @@ def has_first_round_situation_overweight(text: str) -> bool:
     )
 
 
+def exposes_raw_dvu_without_adjusted(text: str) -> bool:
+    if not RAW_DVU_RE.search(text) or ADJUSTED_DVU_RE.search(text):
+        return False
+
+    is_plain_ddl = bool(CREATE_TABLE_RE.search(text)) and not re.search(r"\bas\s+select\b|\bas\s+with\b", text, re.IGNORECASE)
+    if is_plain_ddl and not re.search(r"\bselect\b", text, re.IGNORECASE):
+        return False
+
+    return bool(QUERY_OR_VIEW_RE.search(text))
+
+
 def audit_sql_file(path: Path) -> list[str]:
     text = strip_sql_comments(path.read_text(encoding="utf-8"))
     touches_trade_table = bool(TRADE_TABLE_RE.search(text))
@@ -236,7 +254,8 @@ def audit_sql_file(path: Path) -> list[str]:
     touches_devy_target = bool(DEVY_TARGET_RE.search(text))
     mutates_anchors = bool(ANCHORS_MUTATION_RE.search(text))
     touches_pick_asset = bool(PICK_ASSET_RE.search(text))
-    if not touches_trade_table and not touches_exception_candidates and not touches_rookie_evaluation and not touches_devy_target and not mutates_anchors and not touches_pick_asset:
+    touches_raw_dvu = bool(RAW_DVU_RE.search(text))
+    if not touches_trade_table and not touches_exception_candidates and not touches_rookie_evaluation and not touches_devy_target and not mutates_anchors and not touches_pick_asset and not touches_raw_dvu:
         return []
 
     failures: list[str] = []
@@ -363,6 +382,12 @@ def audit_sql_file(path: Path) -> list[str]:
         failures.append(
             "defines or writes devy prospect tables while allowing NFL or TRANSFER_PORTAL statuses; "
             "Hunter/Campbell Amendment requires college-enrolled prospects only."
+        )
+
+    if exposes_raw_dvu_without_adjusted(text):
+        failures.append(
+            "exposes raw_dvu without adjusted_dvu; downstream consumers must receive contextualized "
+            "Dynasty value, not raw baseline value alone."
         )
 
     return failures
