@@ -91,6 +91,15 @@ MARKET_HYPE_SOURCE_RE = re.compile(
     r"\b(?:KTC|KEEPTRADECUT|MARKET_HYPE|SOCIAL|TWITTER|REDDIT|PRICE_DISCOVERY)\b",
     re.IGNORECASE,
 )
+SUSTAINED_WINDOW_RE = re.compile(
+    r"\bover\s*\([^)]*(?:rows\s+between\s+3\s+preceding\s+and\s+current\s+row|range\s+between|partition\s+by)[^)]*\)"
+    r"|\brows\s+between\s+3\s+preceding\s+and\s+current\s+row\b"
+    r"|\brolling[_\s-]*(?:4|four)[_\s-]*(?:week|game|window)"
+    r"|\b(?:4|four)[_\s-]*(?:week|game)[_\s-]*(?:rolling|window)"
+    r"|\bweek_window_count\b\s*>=\s*4\b"
+    r"|\bsustained[_\s-]*window\b",
+    re.IGNORECASE,
+)
 PICK_ASSET_RE = re.compile(
     r"\b(?:rookie[\s_]+)?(?:draft[\s_]+)?pick\b|\b[0-9]{4}[\s_]+(?:1st|2nd|3rd|4th|first|second|third|fourth)\b",
     re.IGNORECASE,
@@ -236,6 +245,12 @@ def audit_sql_file(path: Path) -> list[str]:
         failures.append(
             "defines or writes gold.exception_archetype_candidates with market/hype sources; "
             "KTC and social/market feeds cannot trigger exception archetype candidacy."
+        )
+
+    if writes_exception_candidates and not SUSTAINED_WINDOW_RE.search(text):
+        failures.append(
+            "defines or writes gold.exception_archetype_candidates without a sustained rolling/window "
+            "calculation; one-week spikes cannot grant exception archetype candidacy."
         )
 
     return failures
