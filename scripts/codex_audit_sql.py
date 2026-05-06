@@ -22,6 +22,15 @@ EXCEPTION_CANDIDATE_WRITE_RE = re.compile(
     r"|\bcreate\s+(?:or\s+replace\s+)?(?:view|table)\s+(?:gen_alpha\.)?gold\.exception_archetype_candidates\b",
     re.IGNORECASE,
 )
+ROOKIE_EVALUATION_RE = re.compile(
+    r"\b(?:gen_alpha\.)?gold\.rookie_draft_evaluations\b|\brookie_draft_evaluations\b",
+    re.IGNORECASE,
+)
+ROOKIE_EVALUATION_WRITE_RE = re.compile(
+    r"\b(?:insert\s+into|merge\s+into)\s+(?:gen_alpha\.)?gold\.rookie_draft_evaluations\b"
+    r"|\bcreate\s+(?:or\s+replace\s+)?(?:view|table)\s+(?:gen_alpha\.)?gold\.rookie_draft_evaluations\b",
+    re.IGNORECASE,
+)
 TRADE_DEFINITION_RE = re.compile(
     r"\bcreate\s+(?:or\s+replace\s+)?table\s+(?:if\s+not\s+exists\s+)?"
     r"(?:gen_alpha\.)?gold\.trade_evaluations_v2\b",
@@ -127,6 +136,36 @@ PICK_DVU_REDUCTION_RE = re.compile(
     r"[\s\S]{0,200}?\b(?:rookie[\s_]+)?(?:draft[\s_]+)?pick\b",
     re.IGNORECASE,
 )
+FIRST_ROUND_PICK_CONDITION_RE = re.compile(
+    r"\bnfl[_\s]*overall[_\s]*pick\b\s+between\s+1\s+and\s+32\b"
+    r"|\bnfl[_\s]*overall[_\s]*pick\b\s*(?:<=|<)\s*32\b"
+    r"|\bnfl[_\s]*overall[_\s]*pick\b\s*<=\s*32\b"
+    r"|\bnfl[_\s]*overall[_\s]*pick\b\s*<\s*33\b"
+    r"|\bnfl[_\s]*overall[_\s]*pick\b\s*>=\s*1\s+and\s+\bnfl[_\s]*overall[_\s]*pick\b\s*<=\s*32\b",
+    re.IGNORECASE,
+)
+SITUATION_WEIGHT_RE = re.compile(
+    r"\bsituation[_\s]*weight\b|\bsituation[_\s]*score\b|\boffensive[_\s]*line[_\s]*grade\b|\btarget[_\s]*competition\b|\bqb[_\s]*epa\b",
+    re.IGNORECASE,
+)
+SITUATION_OVERWEIGHT_RE = re.compile(
+    r"(?:situation[_\s]*(?:weight|score)|offensive[_\s]*line[_\s]*grade|target[_\s]*competition|qb[_\s]*epa)"
+    r"[\s\S]{0,140}(?:\*\s*(?:0\.(?:3[1-9]|[4-9]\d*)|[1-9](?:\.\d+)?)|(?:0\.(?:3[1-9]|[4-9]\d*)|[1-9](?:\.\d+)?)\s*\*)"
+    r"|(?:then|=)\s*(?:0\.(?:3[1-9]|[4-9]\d*)|[1-9](?:\.\d+)?)\s+as\s+situation[_\s]*weight\b"
+    r"|\bsituation[_\s]*weight\b\s*(?:=|:=)\s*(?:0\.(?:3[1-9]|[4-9]\d*)|[1-9](?:\.\d+)?)",
+    re.IGNORECASE,
+)
+CASE_WHEN_RE = re.compile(
+    r"\bwhen\b(?P<condition>[\s\S]*?)\bthen\b(?P<result>[\s\S]*?)(?=\bwhen\b|\belse\b|\bend\b)",
+    re.IGNORECASE,
+)
+SITUATION_RESULT_OVERWEIGHT_RE = re.compile(
+    r"(?:situation[_\s]*(?:weight|score)|offensive[_\s]*line[_\s]*grade|target[_\s]*competition|qb[_\s]*epa)"
+    r"[\s\S]{0,140}(?:\*\s*(?:0\.(?:3[1-9]|[4-9]\d*)|[1-9](?:\.\d+)?)|(?:0\.(?:3[1-9]|[4-9]\d*)|[1-9](?:\.\d+)?)\s*\*)"
+    r"|(?:0\.(?:3[1-9]|[4-9]\d*)|[1-9](?:\.\d+)?)\s+as\s+situation[_\s]*weight\b"
+    r"|\bsituation[_\s]*weight\b\s*(?:=|:=)\s*(?:0\.(?:3[1-9]|[4-9]\d*)|[1-9](?:\.\d+)?)",
+    re.IGNORECASE,
+)
 
 
 def strip_sql_comments(text: str) -> str:
@@ -147,13 +186,27 @@ def discover_sql_files(paths: list[str]) -> list[Path]:
     return files
 
 
+def has_first_round_situation_overweight(text: str) -> bool:
+    for match in CASE_WHEN_RE.finditer(text):
+        condition = match.group("condition")
+        result = match.group("result")
+        if FIRST_ROUND_PICK_CONDITION_RE.search(condition) and SITUATION_RESULT_OVERWEIGHT_RE.search(result):
+            return True
+    return bool(
+        FIRST_ROUND_PICK_CONDITION_RE.search(text)
+        and SITUATION_OVERWEIGHT_RE.search(text)
+        and not CASE_WHEN_RE.search(text)
+    )
+
+
 def audit_sql_file(path: Path) -> list[str]:
     text = strip_sql_comments(path.read_text(encoding="utf-8"))
     touches_trade_table = bool(TRADE_TABLE_RE.search(text))
     touches_exception_candidates = bool(EXCEPTION_CANDIDATE_RE.search(text))
+    touches_rookie_evaluation = bool(ROOKIE_EVALUATION_RE.search(text))
     mutates_anchors = bool(ANCHORS_MUTATION_RE.search(text))
     touches_pick_asset = bool(PICK_ASSET_RE.search(text))
-    if not touches_trade_table and not touches_exception_candidates and not mutates_anchors and not touches_pick_asset:
+    if not touches_trade_table and not touches_exception_candidates and not touches_rookie_evaluation and not mutates_anchors and not touches_pick_asset:
         return []
 
     failures: list[str] = []
@@ -172,6 +225,7 @@ def audit_sql_file(path: Path) -> list[str]:
     writes_trade_table = bool(TRADE_WRITE_RE.search(text))
     defines_trade_table = bool(TRADE_DEFINITION_RE.search(text))
     writes_exception_candidates = bool(EXCEPTION_CANDIDATE_WRITE_RE.search(text))
+    writes_rookie_evaluation = bool(ROOKIE_EVALUATION_WRITE_RE.search(text))
 
     if writes_trade_table and not SSOT_RE.search(text):
         failures.append(
@@ -251,6 +305,16 @@ def audit_sql_file(path: Path) -> list[str]:
         failures.append(
             "defines or writes gold.exception_archetype_candidates without a sustained rolling/window "
             "calculation; one-week spikes cannot grant exception archetype candidacy."
+        )
+
+    if (
+        writes_rookie_evaluation
+        and SITUATION_WEIGHT_RE.search(text)
+        and has_first_round_situation_overweight(text)
+    ):
+        failures.append(
+            "overweights situation for first-round rookie draft capital; NFL_Overall_Pick 1-32 "
+            "must cap Situation Score weight at 0.30."
         )
 
     return failures
