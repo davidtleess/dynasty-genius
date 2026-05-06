@@ -17,6 +17,15 @@ EXCEPTION_CANDIDATE_RE = re.compile(
     r"\b(?:gen_alpha\.)?gold\.exception_archetype_candidates\b|\bexception_archetype_candidates\b",
     re.IGNORECASE,
 )
+GENIUS_STATE_V2_RE = re.compile(
+    r"\b(?:gen_alpha\.)?gold\.genius_state_v2\b|\bgenius_state_v2\b",
+    re.IGNORECASE,
+)
+GENIUS_STATE_V2_WRITE_RE = re.compile(
+    r"\b(?:insert\s+into|merge\s+into)\s+(?:gen_alpha\.)?gold\.genius_state_v2\b"
+    r"|\bcreate\s+(?:or\s+replace\s+)?(?:view|table)\s+(?:gen_alpha\.)?gold\.genius_state_v2\b",
+    re.IGNORECASE,
+)
 EXCEPTION_CANDIDATE_WRITE_RE = re.compile(
     r"\b(?:insert\s+into|merge\s+into)\s+(?:gen_alpha\.)?gold\.exception_archetype_candidates\b"
     r"|\bcreate\s+(?:or\s+replace\s+)?(?:view|table)\s+(?:gen_alpha\.)?gold\.exception_archetype_candidates\b",
@@ -92,7 +101,7 @@ DATA_DRIVEN_OVERRIDE_LOG_RE = re.compile(
     re.IGNORECASE,
 )
 PLAYER_NAME_CASE_RE = re.compile(
-    r"\bcase\b[\s\S]*?\bplayer_name\b[\s\S]*?['\"][^'\"]+['\"]",
+    r"\bcase\b[\s\S]*?\bplayer_name\b[\s\S]*?(?:=|in\s*\(|like)\s*['\"]",
     re.IGNORECASE,
 )
 SOURCE_RANK_ONE_RE = re.compile(
@@ -202,6 +211,32 @@ QUERY_OR_VIEW_RE = re.compile(
     r"\bselect\b|\bcreate\s+(?:or\s+replace\s+)?view\b|\bcreate\s+(?:or\s+replace\s+)?table\b[\s\S]*?\bas\b",
     re.IGNORECASE,
 )
+AGE_CLIFF_MATH_RE = re.compile(
+    r"age[_\s-]*cliff|annual[_\s-]*depreciation|relief[_\s-]*multiplier|AGE_CLIFF_PENALTY",
+    re.IGNORECASE,
+)
+VETERAN_ASSET_RE = re.compile(r"'VETERAN'|\basset_class\b\s*=\s*'VETERAN'", re.IGNORECASE)
+RB_CLIFF_RE = re.compile(r"(?:position\b[\s\S]{0,80}'RB'|'RB'[\s\S]{0,80})(?:then|=|>=)\s*26(?:\.0)?\b", re.IGNORECASE)
+WR_CLIFF_RE = re.compile(r"(?:position\b[\s\S]{0,80}'WR'|'WR'[\s\S]{0,80})(?:then|=|>=)\s*28(?:\.0)?\b", re.IGNORECASE)
+TE_CLIFF_RE = re.compile(r"(?:position\b[\s\S]{0,80}'TE'|'TE'[\s\S]{0,80})(?:then|=|>=)\s*30(?:\.0)?\b", re.IGNORECASE)
+QB_CLIFF_RE = re.compile(r"(?:position\b[\s\S]{0,80}'QB'|'QB'[\s\S]{0,80})(?:then|=|>=)\s*33(?:\.0)?\b", re.IGNORECASE)
+RB_RATE_RE = re.compile(r"(?:position\b[\s\S]{0,80}'RB'|'RB'[\s\S]{0,80})(?:then|=|\*)\s*0\.15\b", re.IGNORECASE)
+WR_RATE_RE = re.compile(r"(?:position\b[\s\S]{0,80}'WR'|'WR'[\s\S]{0,80})(?:then|=|\*)\s*0\.10\b", re.IGNORECASE)
+TE_RATE_RE = re.compile(r"(?:position\b[\s\S]{0,80}'TE'|'TE'[\s\S]{0,80})(?:then|=|\*)\s*0\.08\b", re.IGNORECASE)
+QB_RATE_RE = re.compile(r"(?:position\b[\s\S]{0,80}'QB'|'QB'[\s\S]{0,80})(?:then|=|\*)\s*0\.05\b", re.IGNORECASE)
+AGE_CLIFF_FORMULA_RE = re.compile(
+    r"\bgreatest\s*\(\s*[\w.]*age[\w.]*\s*-\s*[\w.]*age[_\s]*cliff[\w.]*\s*\+\s*1\s*,\s*0\s*\)",
+    re.IGNORECASE,
+)
+RELIEF_MULTIPLIER_RE = re.compile(
+    r"\brelief[_\s]*multiplier\b[\s\S]{0,240}0\.5|\b0\.5\b[\s\S]{0,240}\brelief[_\s]*multiplier\b"
+    r"|exception_archetype_candidates[\s\S]{0,320}0\.5",
+    re.IGNORECASE,
+)
+RB_BRANCH_RE = re.compile(r"\bposition\b[\s\S]{0,80}'RB'|^'\s*RB\s*'$", re.IGNORECASE)
+WR_BRANCH_RE = re.compile(r"\bposition\b[\s\S]{0,80}'WR'|^'\s*WR\s*'$", re.IGNORECASE)
+RB_BAD_CONSTANT_RE = re.compile(r"\b28(?:\.0)?\b|\b0\.30\b", re.IGNORECASE)
+WR_BAD_CONSTANT_RE = re.compile(r"\b29(?:\.0)?\b|\b0\.20\b", re.IGNORECASE)
 
 
 def strip_sql_comments(text: str) -> str:
@@ -246,16 +281,55 @@ def exposes_raw_dvu_without_adjusted(text: str) -> bool:
     return bool(QUERY_OR_VIEW_RE.search(text))
 
 
+def has_hallucinated_age_cliff_constants(text: str) -> bool:
+    for match in CASE_WHEN_RE.finditer(text):
+        condition = match.group("condition")
+        result = match.group("result")
+        if RB_BRANCH_RE.search(condition) and RB_BAD_CONSTANT_RE.search(result):
+            return True
+        if WR_BRANCH_RE.search(condition) and WR_BAD_CONSTANT_RE.search(result):
+            return True
+    return False
+
+
+def validate_genius_state_v2_age_cliffs(text: str) -> list[str]:
+    if not (GENIUS_STATE_V2_WRITE_RE.search(text) and (VETERAN_ASSET_RE.search(text) or AGE_CLIFF_MATH_RE.search(text))):
+        return []
+
+    failures: list[str] = []
+    required_patterns = [
+        (RB_CLIFF_RE, "RB age cliff must be 26"),
+        (WR_CLIFF_RE, "WR age cliff must be 28"),
+        (TE_CLIFF_RE, "TE age cliff must be 30"),
+        (QB_CLIFF_RE, "QB age cliff must be 33"),
+        (RB_RATE_RE, "RB annual depreciation rate must be 0.15"),
+        (WR_RATE_RE, "WR annual depreciation rate must be 0.10"),
+        (TE_RATE_RE, "TE annual depreciation rate must be 0.08"),
+        (QB_RATE_RE, "QB annual depreciation rate must be 0.05"),
+        (AGE_CLIFF_FORMULA_RE, "age cliff formula must use GREATEST(age - age_cliff + 1, 0)"),
+        (RELIEF_MULTIPLIER_RE, "exception relief must halve depreciation with relief_multiplier 0.5"),
+    ]
+    for pattern, message in required_patterns:
+        if not pattern.search(text):
+            failures.append(message)
+
+    if has_hallucinated_age_cliff_constants(text):
+        failures.append("detected hallucinated RB/WR age cliff or depreciation constants")
+
+    return failures
+
+
 def audit_sql_file(path: Path) -> list[str]:
     text = strip_sql_comments(path.read_text(encoding="utf-8"))
     touches_trade_table = bool(TRADE_TABLE_RE.search(text))
+    touches_genius_state_v2 = bool(GENIUS_STATE_V2_RE.search(text))
     touches_exception_candidates = bool(EXCEPTION_CANDIDATE_RE.search(text))
     touches_rookie_evaluation = bool(ROOKIE_EVALUATION_RE.search(text))
     touches_devy_target = bool(DEVY_TARGET_RE.search(text))
     mutates_anchors = bool(ANCHORS_MUTATION_RE.search(text))
     touches_pick_asset = bool(PICK_ASSET_RE.search(text))
     touches_raw_dvu = bool(RAW_DVU_RE.search(text))
-    if not touches_trade_table and not touches_exception_candidates and not touches_rookie_evaluation and not touches_devy_target and not mutates_anchors and not touches_pick_asset and not touches_raw_dvu:
+    if not touches_trade_table and not touches_genius_state_v2 and not touches_exception_candidates and not touches_rookie_evaluation and not touches_devy_target and not mutates_anchors and not touches_pick_asset and not touches_raw_dvu:
         return []
 
     failures: list[str] = []
@@ -389,6 +463,9 @@ def audit_sql_file(path: Path) -> list[str]:
             "exposes raw_dvu without adjusted_dvu; downstream consumers must receive contextualized "
             "Dynasty value, not raw baseline value alone."
         )
+
+    for failure in validate_genius_state_v2_age_cliffs(text):
+        failures.append(f"invalid genius_state_v2 veteran age cliff math: {failure}.")
 
     return failures
 
