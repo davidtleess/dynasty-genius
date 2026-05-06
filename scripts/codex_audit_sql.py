@@ -73,6 +73,38 @@ EXCEPTION_TERMS_RE = re.compile(
     r"exception|outlier|buffer|relief|depreciation|aging|age_cliff|adjusted_dvu|value_depreciation",
     re.IGNORECASE,
 )
+PICK_ASSET_RE = re.compile(
+    r"\b(?:rookie[\s_]+)?(?:draft[\s_]+)?pick\b|\b[0-9]{4}[\s_]+(?:1st|2nd|3rd|4th|first|second|third|fourth)\b",
+    re.IGNORECASE,
+)
+PICK_DEPRECIATION_RE = re.compile(
+    r"\b(?:rookie[\s_]+)?(?:draft[\s_]+)?pick\b[\s\S]{0,240}?"
+    r"(?:depreciat|discount|decay|haircut|time_penalty|months_until_draft|days_until_draft|draft_proximity)"
+    r"[\s\S]{0,240}?(?:-\s*\d+(?:\.\d+)?\s*(?:%|/)|\*\s*0\.\d+|\*\s*\(\s*1\s*-|<\s*1(?:\.0+)?)"
+    r"|(?:depreciat|discount|decay|haircut|time_penalty|months_until_draft|days_until_draft|draft_proximity)"
+    r"[\s\S]{0,240}?\b(?:rookie[\s_]+)?(?:draft[\s_]+)?pick\b[\s\S]{0,240}?"
+    r"(?:-\s*\d+(?:\.\d+)?\s*(?:%|/)|\*\s*0\.\d+|\*\s*\(\s*1\s*-|<\s*1(?:\.0+)?)",
+    re.IGNORECASE,
+)
+PICK_MULTIPLIER_LT_ONE_RE = re.compile(
+    r"\bpick_appreciation_multiplier\b\s*(?:<|<=|=)\s*0\.\d+"
+    r"|\bpick_appreciation_multiplier\b\s+between\s+0(?:\.0+)?\s+and\s+0\.\d+"
+    r"|(?:then|=)\s*0\.\d+[\s\S]{0,120}\bpick_appreciation_multiplier\b"
+    r"|\bpick_appreciation_multiplier\b[\s\S]{0,120}(?:then|=)\s*0\.\d+",
+    re.IGNORECASE,
+)
+PICK_DVU_REDUCTION_RE = re.compile(
+    r"\b(?:rookie[\s_]+)?(?:draft[\s_]+)?pick\b[\s\S]{0,200}?\b\w*dvu\w*\b[\s\S]{0,120}?"
+    r"(?:-\s*\d+(?:\.\d+)?\s*(?:%|/)|\*\s*0\.\d+|\*\s*\(\s*1\s*-)"
+    r"|\b\w*dvu\w*\b[\s\S]{0,120}?(?:-\s*\d+(?:\.\d+)?\s*(?:%|/)|\*\s*0\.\d+|\*\s*\(\s*1\s*-)"
+    r"[\s\S]{0,200}?\b(?:rookie[\s_]+)?(?:draft[\s_]+)?pick\b",
+    re.IGNORECASE,
+)
+
+
+def strip_sql_comments(text: str) -> str:
+    text = re.sub(r"/\*[\s\S]*?\*/", " ", text)
+    return re.sub(r"--.*", " ", text)
 
 
 def discover_sql_files(paths: list[str]) -> list[Path]:
@@ -89,10 +121,11 @@ def discover_sql_files(paths: list[str]) -> list[Path]:
 
 
 def audit_sql_file(path: Path) -> list[str]:
-    text = path.read_text(encoding="utf-8")
+    text = strip_sql_comments(path.read_text(encoding="utf-8"))
     touches_trade_table = bool(TRADE_TABLE_RE.search(text))
     mutates_anchors = bool(ANCHORS_MUTATION_RE.search(text))
-    if not touches_trade_table and not mutates_anchors:
+    touches_pick_asset = bool(PICK_ASSET_RE.search(text))
+    if not touches_trade_table and not mutates_anchors and not touches_pick_asset:
         return []
 
     failures: list[str] = []
@@ -154,6 +187,12 @@ def audit_sql_file(path: Path) -> list[str]:
     if EXCEPTION_TERMS_RE.search(text) and EFFICIENCY_METRICS_RE.search(text) and not SOURCE_RANK_ONE_RE.search(text):
         failures.append(
             "references exception/depreciation logic with efficiency_metrics but does not require source_rank = 1."
+        )
+
+    if PICK_DEPRECIATION_RE.search(text) or PICK_MULTIPLIER_LT_ONE_RE.search(text) or PICK_DVU_REDUCTION_RE.search(text):
+        failures.append(
+            "reduces DVU for a future rookie draft pick; picks may appreciate or stay flat over time, "
+            "but the framework forbids time-based pick depreciation."
         )
 
     return failures
