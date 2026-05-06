@@ -31,6 +31,18 @@ ROOKIE_EVALUATION_WRITE_RE = re.compile(
     r"|\bcreate\s+(?:or\s+replace\s+)?(?:view|table)\s+(?:gen_alpha\.)?gold\.rookie_draft_evaluations\b",
     re.IGNORECASE,
 )
+DEVY_TARGET_RE = re.compile(
+    r"\b(?:gen_alpha\.)?silver\.college_prospects_2027\b|\bcollege_prospects_2027\b"
+    r"|\b(?:gen_alpha\.)?gold\.devy_anchors\b|\bdevy_anchors\b",
+    re.IGNORECASE,
+)
+DEVY_WRITE_RE = re.compile(
+    r"\b(?:insert\s+into|merge\s+into)\s+(?:gen_alpha\.)?silver\.college_prospects_2027\b"
+    r"|\bcreate\s+(?:or\s+replace\s+)?(?:view|table)\s+(?:gen_alpha\.)?silver\.college_prospects_2027\b"
+    r"|\b(?:insert\s+into|merge\s+into)\s+(?:gen_alpha\.)?gold\.devy_anchors\b"
+    r"|\bcreate\s+(?:or\s+replace\s+)?(?:view|table)\s+(?:gen_alpha\.)?gold\.devy_anchors\b",
+    re.IGNORECASE,
+)
 TRADE_DEFINITION_RE = re.compile(
     r"\bcreate\s+(?:or\s+replace\s+)?table\s+(?:if\s+not\s+exists\s+)?"
     r"(?:gen_alpha\.)?gold\.trade_evaluations_v2\b",
@@ -166,6 +178,23 @@ SITUATION_RESULT_OVERWEIGHT_RE = re.compile(
     r"|\bsituation[_\s]*weight\b\s*(?:=|:=)\s*(?:0\.(?:3[1-9]|[4-9]\d*)|[1-9](?:\.\d+)?)",
     re.IGNORECASE,
 )
+COLLEGE_ENROLLED_FILTER_RE = re.compile(
+    r"\bstatus_flag\b\s*=\s*'COLLEGE_ENROLLED'"
+    r"|\bstatus_flag\b\s+in\s*\([^)]*'COLLEGE_ENROLLED'[^)]*\)",
+    re.IGNORECASE,
+)
+HUNTER_CAMPBELL_EXCLUSION_RE = re.compile(
+    r"\bstatus_flag\b\s+not\s+in\s*\([^)]*'NFL'[^)]*'TRANSFER_PORTAL'[^)]*\)"
+    r"|\bstatus_flag\b\s+not\s+in\s*\([^)]*'TRANSFER_PORTAL'[^)]*'NFL'[^)]*\)"
+    r"|\bstatus_flag\b\s*(?:<>|!=)\s*'NFL'[\s\S]{0,160}\bstatus_flag\b\s*(?:<>|!=)\s*'TRANSFER_PORTAL'"
+    r"|\bstatus_flag\b\s*(?:<>|!=)\s*'TRANSFER_PORTAL'[\s\S]{0,160}\bstatus_flag\b\s*(?:<>|!=)\s*'NFL'",
+    re.IGNORECASE,
+)
+FORBIDDEN_DEVY_STATUS_RE = re.compile(
+    r"\bstatus_flag\b\s*=\s*'(?:NFL|TRANSFER_PORTAL)'"
+    r"|\bstatus_flag\b\s+in\s*\([^)]*'(?:NFL|TRANSFER_PORTAL)'[^)]*\)",
+    re.IGNORECASE,
+)
 
 
 def strip_sql_comments(text: str) -> str:
@@ -204,9 +233,10 @@ def audit_sql_file(path: Path) -> list[str]:
     touches_trade_table = bool(TRADE_TABLE_RE.search(text))
     touches_exception_candidates = bool(EXCEPTION_CANDIDATE_RE.search(text))
     touches_rookie_evaluation = bool(ROOKIE_EVALUATION_RE.search(text))
+    touches_devy_target = bool(DEVY_TARGET_RE.search(text))
     mutates_anchors = bool(ANCHORS_MUTATION_RE.search(text))
     touches_pick_asset = bool(PICK_ASSET_RE.search(text))
-    if not touches_trade_table and not touches_exception_candidates and not touches_rookie_evaluation and not mutates_anchors and not touches_pick_asset:
+    if not touches_trade_table and not touches_exception_candidates and not touches_rookie_evaluation and not touches_devy_target and not mutates_anchors and not touches_pick_asset:
         return []
 
     failures: list[str] = []
@@ -226,6 +256,7 @@ def audit_sql_file(path: Path) -> list[str]:
     defines_trade_table = bool(TRADE_DEFINITION_RE.search(text))
     writes_exception_candidates = bool(EXCEPTION_CANDIDATE_WRITE_RE.search(text))
     writes_rookie_evaluation = bool(ROOKIE_EVALUATION_WRITE_RE.search(text))
+    writes_devy_target = bool(DEVY_WRITE_RE.search(text))
 
     if writes_trade_table and not SSOT_RE.search(text):
         failures.append(
@@ -315,6 +346,23 @@ def audit_sql_file(path: Path) -> list[str]:
         failures.append(
             "overweights situation for first-round rookie draft capital; NFL_Overall_Pick 1-32 "
             "must cap Situation Score weight at 0.30."
+        )
+
+    if writes_devy_target and not COLLEGE_ENROLLED_FILTER_RE.search(text):
+        failures.append(
+            "defines or writes devy prospect tables without filtering status_flag = 'COLLEGE_ENROLLED'."
+        )
+
+    if writes_devy_target and not HUNTER_CAMPBELL_EXCLUSION_RE.search(text):
+        failures.append(
+            "defines or writes devy prospect tables without explicitly excluding status_flag "
+            "'NFL' and 'TRANSFER_PORTAL'."
+        )
+
+    if writes_devy_target and FORBIDDEN_DEVY_STATUS_RE.search(text):
+        failures.append(
+            "defines or writes devy prospect tables while allowing NFL or TRANSFER_PORTAL statuses; "
+            "Hunter/Campbell Amendment requires college-enrolled prospects only."
         )
 
     return failures
