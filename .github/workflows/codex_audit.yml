@@ -2,43 +2,66 @@ name: Codex Compliance Audit
 
 on:
   push:
-    branches: [ main, claude/** ]
+    branches: [main, claude/**]
+    paths:
+      - ".github/workflows/codex_audit.yml"
+      - "resources/**/*.sql"
+      - "scripts/codex_audit.py"
+      - "scripts/codex_audit_sql.py"
   pull_request:
-    branches: [ main ]
+    branches: [main]
+    paths:
+      - ".github/workflows/codex_audit.yml"
+      - "resources/**/*.sql"
+      - "scripts/codex_audit.py"
+      - "scripts/codex_audit_sql.py"
   schedule:
-    # Run daily at 9 AM Eastern
-    - cron: '0 14 * * *'
-  workflow_dispatch:  # Allow manual triggers
+    - cron: "0 14 * * *"
+  workflow_dispatch:
 
 jobs:
-  audit:
-    name: Sovereign Unity Compliance Audit
+  sql-governance:
+    name: SQL governance audit
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout code
+      - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      
+          python-version: "3.11"
+
+      - name: Validate trade evaluation SQL governance
+        run: python scripts/codex_audit_sql.py resources
+
+  catalog-compliance:
+    name: Sovereign Unity compliance audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Install dependencies
-        run: |
-          pip install databricks-sdk==0.30.0
-      
+        run: pip install databricks-sdk==0.30.0
+
       - name: Run Codex Compliance Audit
         env:
           DATABRICKS_HOST: https://dbc-228373f7-57ec.cloud.databricks.com
           DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
           DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
           DATABRICKS_WAREHOUSE_ID: 5e883b4bfbb1e3f4
-        run: |
-          python scripts/codex_audit.py
-      
+        run: python scripts/codex_audit.py
+
       - name: Upload audit results
         if: always()
         uses: actions/upload-artifact@v4
