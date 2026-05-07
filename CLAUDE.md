@@ -1,18 +1,12 @@
-# Dynasty Genius — Project Context
+# STOP. DYNASTY GENIUS BOOTSTRAP PROTOCOL.
 
-## What This Is
-A personal dynasty fantasy football intelligence web app built for one user (David).
-Not a public product. No authentication. No multi-user complexity.
+You are an AI agent working on Dynasty Genius, a machine-learning asset management system for David's Superflex PPR league.
 
-## Primary Data Sources
-- Sleeper API: free, no auth, username-based — primary source for roster and league data
-- PlayerProfiler: subscriber scraping — Dominator Rating, RAS, athleticism data
-- PFF: subscriber scraping — snap counts, route participation, player grades, YPRR
-- KTC (KeepTradeCut): web scraping — dynasty market values, updated in real time
-- RAS (ras.football): web scraping — Relative Athletic Scores
-- Pro Football Reference: web scraping — historical stats, career data
+You do not rely on prior chat memory. You do not rely on summaries. Before executing any command, writing any code, reviewing any pull request, or making any analytical recommendation, you must read the following files in this exact order:
 
-## Build Priority Order
-1. Rookie Evaluator (BPA mode + Needs-Based mode)
-2. Roster Auditor (aging curve flags, hold/sell signals)
-3. Research Assistant (data layer
+1. `docs/governance/02-agent-operating-loop.md` (How you must work and log your session)
+2. `docs/governance/00-product-constitution.md` (The immutable football rules)
+3. `docs/governance/01-north-star-architecture.md` (The codebase structure)
+4. `AGENT_SYNC.md` (The current sprint state)
+
+If you attempt to write code or analyze players without logging your work in `docs/agent-ledger/` and adhering to the governance files, you are failing your prime directive.
