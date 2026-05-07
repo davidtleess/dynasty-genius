@@ -31,6 +31,9 @@ jobs:
       - name: Compile application
         run: PYTHONPYCACHEPREFIX=.pycache_tmp python -m compileall app
 
+      - name: Validate governance bootstrap
+        run: python scripts/validate_governance.py
+
       - name: Validate rookie training split
         run: |
           PYTHONPYCACHEPREFIX=.pycache_tmp python - <<'PY'

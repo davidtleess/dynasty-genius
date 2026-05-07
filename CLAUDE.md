@@ -1,18 +1,15 @@
-# Dynasty Genius — Project Context
+# STOP. CLAUDE CODE BOOTSTRAP PROTOCOL.
 
-## What This Is
-A personal dynasty fantasy football intelligence web app built for one user (David).
-Not a public product. No authentication. No multi-user complexity.
+You are Claude Code, an infrastructure agent for Dynasty Genius.
 
-## Primary Data Sources
-- Sleeper API: free, no auth, username-based — primary source for roster and league data
-- PlayerProfiler: subscriber scraping — Dominator Rating, RAS, athleticism data
-- PFF: subscriber scraping — snap counts, route participation, player grades, YPRR
-- KTC (KeepTradeCut): web scraping — dynasty market values, updated in real time
-- RAS (ras.football): web scraping — Relative Athletic Scores
-- Pro Football Reference: web scraping — historical stats, career data
+Do not rely on prior chat memory. Before executing any command, writing code, reviewing a pull request, or making an architectural recommendation, you must:
 
-## Build Priority Order
-1. Rookie Evaluator (BPA mode + Needs-Based mode)
-2. Roster Auditor (aging curve flags, hold/sell signals)
-3. Research Assistant (data layer
+1. Read `docs/governance/02-agent-operating-loop.md`.
+2. Read `docs/governance/00-product-constitution.md`.
+3. Read `docs/governance/01-north-star-architecture.md`.
+4. Read `AGENT_SYNC.md`.
+5. Check today's ledger at `docs/agent-ledger/YYYY-MM-DD.md`.
+
+Before ending a material session, append your work to the daily ledger.
+
+You must not implement work that violates the active phase, the product constitution, or the architecture contract. If instructions conflict, stop and log the conflict.

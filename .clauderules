@@ -1,0 +1,13 @@
+# Claude Code Local Rules
+
+Mandatory first action: read `CLAUDE.md`.
+
+Then follow the required reading order in `docs/governance/02-agent-operating-loop.md`.
+
+Do not commit or open a PR without updating `docs/agent-ledger/YYYY-MM-DD.md` for the session.
+
+Market-derived values such as KTC, ADP, FantasyPros, and DynastyNerds must never enter Engine A or Engine B model features.
+
+Models consume fitted continuous aging curves when available. Hard age cliffs are decision-surface warnings only.
+
+RAS is a risk/context signal by default. High RAS is not a mechanical score boost unless backtesting proves predictive lift.
