@@ -273,7 +273,7 @@
 </div>
 
 <div class="pre-model-banner">
-  ⚠ PRE-MODEL VIEW: dynasty_value_score, projections, and dynasty_value_score are unavailable.
+  ⚠ PRE-MODEL VIEW: dynasty_value_score and projections are unavailable.
   Signal completeness reflects identity + feature data ingested so far.
   Do not use for dynasty decisions until Engine B is validated and model_grade is DECISION_GRADE.
 </div>
@@ -296,6 +296,12 @@
     <option value="high">≥ 75%</option>
     <option value="mid">50–74%</option>
     <option value="low">&lt; 50%</option>
+  </select>
+  <select id="sortBy">
+    <option value="name">Sort: Name A–Z</option>
+    <option value="completeness_desc">Sort: Completeness ↓</option>
+    <option value="completeness_asc">Sort: Completeness ↑</option>
+    <option value="pos">Sort: Position</option>
   </select>
   <div class="stat-bar" id="statBar"></div>
 </div>
@@ -386,10 +392,13 @@ function renderCard(card) {
 </div>`;
 }
 
+const POS_ORDER = { QB: 0, RB: 1, WR: 2, TE: 3 };
+
 function render() {
   const pos      = document.getElementById("filterPos").value;
   const prospect = document.getElementById("filterProspect").value;
   const signal   = document.getElementById("filterSignal").value;
+  const sortBy   = document.getElementById("sortBy").value;
 
   const filtered = CARDS.filter(c => {
     if (pos && c.position !== pos) return false;
@@ -401,6 +410,14 @@ function render() {
     if (signal === "mid"  && (pct < 0.50 || pct >= 0.75)) return false;
     if (signal === "low"  && pct >= 0.50) return false;
     return true;
+  }).sort((a, b) => {
+    if (sortBy === "completeness_desc") return b.signal_completeness - a.signal_completeness;
+    if (sortBy === "completeness_asc")  return a.signal_completeness - b.signal_completeness;
+    if (sortBy === "pos") {
+      const pd = (POS_ORDER[a.position] ?? 9) - (POS_ORDER[b.position] ?? 9);
+      return pd !== 0 ? pd : a.full_name.localeCompare(b.full_name);
+    }
+    return a.full_name.localeCompare(b.full_name);
   });
 
   document.getElementById("statBar").textContent =
@@ -414,7 +431,7 @@ function render() {
   grid.innerHTML = filtered.map(renderCard).join("");
 }
 
-["filterPos","filterProspect","filterSignal"].forEach(id =>
+["filterPos","filterProspect","filterSignal","sortBy"].forEach(id =>
   document.getElementById(id).addEventListener("change", render)
 );
 
