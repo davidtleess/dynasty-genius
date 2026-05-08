@@ -3,438 +3,374 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dynasty Genius — Roster Audit (Pre-Model Signal View)</title>
+<title>Dynasty Genius — Roster Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Barlow+Condensed:wght@500;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:          #0d1117;
-    --surface:     #161b22;
-    --surface-2:   #1c2128;
-    --border:      #30363d;
-    --text:        #e6edf3;
-    --text-muted:  #7d8590;
-    --green:       #3fb950;
-    --yellow:      #d29922;
-    --red:         #f85149;
-    --blue:        #58a6ff;
-    --purple:      #bc8cff;
-    --accent:      #238636;
-    --pre-model:   #6e40c9;
-  }
+:root {
+  --bg:       #0b0b0b;
+  --bg-2:     #101010;
+  --bg-3:     #171717;
+  --rule:     rgba(210,190,155,0.09);
+  --rule-2:   rgba(210,190,155,0.04);
+  --ink:      #e8dcc8;
+  --ink-2:    #8a7f70;
+  --ink-3:    #443d34;
+  --gold:     #c9a84c;
+  --past:     #e63946;
+  --at:       #f4845f;
+  --approach: #e9c46a;
+  --safe:     #52b788;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  line-height:1.5;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::after{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:9999;
+  opacity:0.5;
+}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+/* MASTHEAD */
+.masthead{
+  position:sticky;top:0;z-index:100;
+  background:rgba(11,11,11,0.97);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--rule);
+}
+.masthead-inner{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  padding:18px 32px 14px;gap:16px;
+}
+.logotype{display:flex;align-items:baseline;gap:12px}
+.logotype-main{
+  font-family:'DM Serif Display',serif;
+  font-size:26px;color:var(--ink);letter-spacing:-0.01em;line-height:1;
+}
+.logotype-slash{color:var(--ink-3);font-size:20px;font-weight:300}
+.logotype-section{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;font-weight:400;letter-spacing:0.22em;
+  text-transform:uppercase;color:var(--ink-2);
+}
+.pre-model-tag{
+  font-size:8px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--ink-3);border:1px solid var(--ink-3);border-radius:2px;padding:3px 8px;
+}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
-    min-height: 100vh;
-  }
+/* ALERT */
+.alert-banner{
+  padding:7px 32px;
+  background:rgba(201,168,76,0.04);
+  border-bottom:1px solid rgba(201,168,76,0.09);
+  display:flex;align-items:center;gap:10px;
+  font-size:9px;color:rgba(201,168,76,0.5);letter-spacing:0.07em;
+}
+.alert-dot{
+  width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;
+  animation:blink 2.4s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
 
-  /* ── Header ── */
-  .header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
+/* TOOLBAR */
+.toolbar{
+  padding:10px 32px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  border-bottom:1px solid var(--rule-2);background:var(--bg);
+}
+.ctrl{display:flex;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+.ctrl select{
+  background:transparent;border:none;color:var(--ink-2);
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.07em;
+  padding:5px 22px 5px 9px;outline:none;cursor:pointer;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23443d34' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 6px center;
+}
+.ctrl select:hover{color:var(--ink)}
+.view-toggle{display:flex;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+.vbtn{
+  padding:5px 11px;border:none;border-right:1px solid var(--rule);
+  background:transparent;color:var(--ink-3);
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;
+  cursor:pointer;transition:all 0.12s;
+}
+.vbtn:last-child{border-right:none}
+.vbtn:hover{color:var(--ink-2)}
+.vbtn.active{background:var(--bg-3);color:var(--ink)}
+.tstat{margin-left:auto;font-size:10px;color:var(--ink-3);letter-spacing:0.08em}
 
-  .header-title { font-size: 18px; font-weight: 600; }
-  .header-subtitle { color: var(--text-muted); font-size: 13px; }
+/* CONTENT */
+.content{padding:0 32px 64px}
 
-  .pre-model-banner {
-    background: rgba(110, 64, 201, 0.15);
-    border: 1px solid var(--pre-model);
-    border-radius: 6px;
-    padding: 10px 16px;
-    margin: 16px 24px 0;
-    font-size: 13px;
-    color: #bc8cff;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+/* LIST */
+.list-col-hdr{
+  display:grid;
+  grid-template-columns:220px 52px 44px 52px 1fr 100px 40px;
+  padding:12px 0 8px 14px;
+  font-size:9px;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--ink-3);border-bottom:1px solid var(--rule);
+}
+.list-row{
+  display:grid;
+  grid-template-columns:220px 52px 44px 52px 1fr 100px 40px;
+  padding:0 0 0 14px;align-items:center;min-height:44px;
+  border-bottom:1px solid var(--rule-2);
+  position:relative;animation:rowIn 0.3s both;transition:background 0.1s;
+}
+.list-row:hover{background:rgba(255,255,255,0.013)}
+@keyframes rowIn{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:none}}
+.row-bar{
+  position:absolute;left:0;top:7px;bottom:7px;
+  width:2px;border-radius:1px;
+}
+.pname{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:18px;font-weight:700;letter-spacing:0.02em;
+  color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  padding-right:10px;
+}
+.ptag{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:0.08em;
+  padding:2px 7px;border-radius:2px;display:inline-block;
+}
+.rb{background:rgba(82,183,136,0.1);color:var(--safe);border:1px solid rgba(82,183,136,0.18)}
+.wr{background:rgba(88,166,255,0.1);color:#58a6ff;border:1px solid rgba(88,166,255,0.18)}
+.te{background:rgba(233,196,106,0.1);color:var(--approach);border:1px solid rgba(233,196,106,0.18)}
+.qb{background:rgba(230,57,70,0.1);color:var(--past);border:1px solid rgba(230,57,70,0.18)}
+.age-c{font-weight:400;color:var(--ink-2);font-size:12px}
+.team-c{font-size:10px;color:var(--ink-3);letter-spacing:0.06em}
+.cliff-c{display:flex;align-items:center;gap:7px}
+.cdot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.ctxt{font-size:10px;letter-spacing:0.07em}
+.comp-c{display:flex;align-items:center;gap:7px;padding-right:12px}
+.ctrack{flex:1;height:2px;background:var(--bg-3);border-radius:1px;overflow:hidden}
+.cfill{height:100%;border-radius:1px}
+.cpct{font-size:10px;color:var(--ink-3);min-width:28px;text-align:right;flex-shrink:0}
+.yrs-c{font-size:11px;font-weight:500}
 
-  /* ── Filters ── */
-  .controls {
-    padding: 16px 24px;
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
+/* ZONE HEADERS */
+.zone-hdr{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 14px 10px;
+}
+.zh-lbl{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+.zh-rule{flex:1;height:1px}
+.zh-danger .zh-lbl{color:rgba(230,57,70,0.6)}
+.zh-danger .zh-rule{background:rgba(230,57,70,0.18)}
+.zh-safe .zh-lbl{color:rgba(82,183,136,0.5);margin-left:auto}
+.zh-safe{flex-direction:row-reverse}
+.zh-safe .zh-rule{background:rgba(82,183,136,0.1)}
 
-  .controls select, .controls input {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    font-size: 13px;
-    padding: 6px 10px;
-    outline: none;
-    cursor: pointer;
-  }
-
-  .controls select:hover, .controls input:hover {
-    border-color: var(--blue);
-  }
-
-  .stat-bar {
-    margin-left: auto;
-    color: var(--text-muted);
-    font-size: 13px;
-  }
-
-  /* ── Grid ── */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 16px;
-    padding: 0 24px 32px;
-  }
-
-  /* ── Card ── */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    transition: border-color 0.15s;
-  }
-
-  .card:hover { border-color: var(--blue); }
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-  }
-
-  .player-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .player-meta {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  /* ── Badges ── */
-  .badge {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 2px 7px;
-    border-radius: 12px;
-    white-space: nowrap;
-  }
-
-  .badge-pre-model   { background: rgba(110,64,201,0.2);  color: #bc8cff; border: 1px solid rgba(110,64,201,0.5); }
-  .badge-verified    { background: rgba(63,185,80,0.15);  color: #3fb950; border: 1px solid rgba(63,185,80,0.4); }
-  .badge-conflict    { background: rgba(248,81,73,0.15);  color: #f85149; border: 1px solid rgba(248,81,73,0.4); }
-  .badge-pending     { background: rgba(210,153,34,0.15); color: #d29922; border: 1px solid rgba(210,153,34,0.4); }
-  .badge-prospect    { background: rgba(88,166,255,0.15); color: #58a6ff; border: 1px solid rgba(88,166,255,0.4); }
-  .badge-pos-rb      { background: rgba(63,185,80,0.1);   color: #3fb950; border: 1px solid rgba(63,185,80,0.3); }
-  .badge-pos-wr      { background: rgba(88,166,255,0.1);  color: #58a6ff; border: 1px solid rgba(88,166,255,0.3); }
-  .badge-pos-te      { background: rgba(210,153,34,0.1);  color: #d29922; border: 1px solid rgba(210,153,34,0.3); }
-  .badge-pos-qb      { background: rgba(248,81,73,0.1);   color: #f85149; border: 1px solid rgba(248,81,73,0.3); }
-
-  /* ── Signal bar ── */
-  .signal-section { margin-bottom: 12px; }
-
-  .signal-label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-bottom: 5px;
-  }
-
-  .signal-pct {
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .signal-track {
-    background: var(--surface-2);
-    border-radius: 4px;
-    height: 6px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-  }
-
-  .signal-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.4s ease;
-  }
-
-  /* ── Score placeholder ── */
-  .score-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    margin-bottom: 12px;
-  }
-
-  .score-label { color: var(--text-muted); font-size: 12px; flex: 1; }
-  .score-value { color: var(--text-muted); font-size: 12px; font-style: italic; }
-
-  /* ── Signal chips ── */
-  .chips-section { margin-bottom: 10px; }
-  .chips-label { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
-
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  .chip {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-family: "SF Mono", "Fira Code", monospace;
-  }
-
-  .chip-present { background: rgba(63,185,80,0.1);  color: #3fb950; border: 1px solid rgba(63,185,80,0.25); }
-  .chip-missing { background: rgba(248,81,73,0.08); color: #f85149; border: 1px solid rgba(248,81,73,0.2);  }
-  .chip-risk    { background: rgba(210,153,34,0.1); color: #d29922; border: 1px solid rgba(210,153,34,0.3); }
-
-  /* ── Caveats ── */
-  .caveat-list {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
-  }
-
-  .caveat {
-    font-size: 12px;
-    color: var(--text-muted);
-    padding: 3px 0;
-    padding-left: 12px;
-    position: relative;
-  }
-
-  .caveat::before {
-    content: "⚠";
-    position: absolute;
-    left: 0;
-    font-size: 11px;
-    color: var(--yellow);
-  }
-
-  /* ── dg_id pill ── */
-  .dg-id {
-    font-size: 11px;
-    font-family: "SF Mono", "Fira Code", monospace;
-    color: var(--text-muted);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 1px 6px;
-    margin-top: 6px;
-    display: inline-block;
-    word-break: break-all;
-  }
-
-  /* ── Empty state ── */
-  .empty {
-    grid-column: 1/-1;
-    text-align: center;
-    padding: 60px;
-    color: var(--text-muted);
-  }
+/* CARD GRID */
+.card-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
+  gap:1px;background:var(--rule-2);
+  margin-top:16px;border:1px solid var(--rule);
+}
+.dcard{
+  background:var(--bg);padding:18px 20px;
+  position:relative;overflow:hidden;
+  transition:background 0.12s;
+  animation:cardIn 0.35s both;
+}
+.dcard:hover{background:var(--bg-2)}
+@keyframes cardIn{from{opacity:0}to{opacity:1}}
+.cstripe{position:absolute;top:0;left:0;right:0;height:2px}
+.chdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.cname{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:21px;font-weight:800;letter-spacing:0.02em;
+  color:var(--ink);line-height:1;margin-bottom:5px;
+}
+.cmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cage{font-size:10px;color:var(--ink-3);letter-spacing:0.05em}
+.cgrade{font-size:8px;letter-spacing:0.14em;color:var(--ink-3);border:1px solid var(--ink-3);border-radius:2px;padding:2px 6px;align-self:flex-start;white-space:nowrap}
+.csig-hdr{display:flex;justify-content:space-between;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+.cbar-track{height:3px;background:var(--bg-3);border-radius:2px;overflow:hidden;margin-bottom:11px}
+.cbar-fill{height:100%;border-radius:2px}
+.ccliff-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 10px;background:var(--bg-2);border-left:2px solid transparent;margin-bottom:10px;
+}
+.ccliff-key{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3)}
+.ccliff-val{display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:0.05em}
+.miss-hdr{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+.chips{display:flex;flex-wrap:wrap;gap:3px}
+.chip{font-size:9px;padding:2px 6px;background:rgba(230,57,70,0.06);color:rgba(230,57,70,0.45);border:1px solid rgba(230,57,70,0.1);border-radius:2px;letter-spacing:0.04em}
+.cid{margin-top:11px;font-size:9px;color:var(--ink-3);letter-spacing:0.04em;border-top:1px solid var(--rule-2);padding-top:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{padding:72px 32px;text-align:center;font-size:10px;letter-spacing:0.14em;color:var(--ink-3);text-transform:uppercase}
+.hidden{display:none!important}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <div class="header-title">Dynasty Genius — Roster Audit</div>
-    <div class="header-subtitle">Pre-Model Signal View · No scored output until Engine B is validated</div>
+<div class="masthead">
+  <div class="masthead-inner">
+    <div class="logotype">
+      <span class="logotype-main">Dynasty Genius</span>
+      <span class="logotype-slash">/</span>
+      <span class="logotype-section">Roster Audit</span>
+    </div>
+    <span class="pre-model-tag">Pre&#x2011;Model</span>
   </div>
 </div>
 
-<div class="pre-model-banner">
-  ⚠ PRE-MODEL VIEW: dynasty_value_score and projections are unavailable.
-  Signal completeness reflects identity + feature data ingested so far.
-  Do not use for dynasty decisions until Engine B is validated and model_grade is DECISION_GRADE.
+<div class="alert-banner">
+  <div class="alert-dot"></div>
+  ENGINE STATUS: PRE_MODEL &mdash; dynasty_value_score and projections unavailable. Cliff signals use age data only. Do not use for dynasty decisions until Engine B is validated.
 </div>
 
-<div class="controls">
-  <select id="filterPos">
-    <option value="">All positions</option>
-    <option value="QB">QB</option>
-    <option value="RB">RB</option>
-    <option value="WR">WR</option>
-    <option value="TE">TE</option>
-  </select>
-  <select id="filterProspect">
-    <option value="">All players</option>
-    <option value="active">Active NFL</option>
-    <option value="prospect">Prospects</option>
-  </select>
-  <select id="filterSignal">
-    <option value="">Any completeness</option>
-    <option value="high">≥ 75%</option>
-    <option value="mid">50–74%</option>
-    <option value="low">&lt; 50%</option>
-  </select>
-  <select id="sortBy">
-    <option value="name">Sort: Name A–Z</option>
-    <option value="completeness_desc">Sort: Completeness ↓</option>
-    <option value="completeness_asc">Sort: Completeness ↑</option>
-    <option value="pos">Sort: Position</option>
-  </select>
-  <div class="stat-bar" id="statBar"></div>
+<div class="toolbar">
+  <div class="ctrl"><select id="filterPos"><option value="">All positions</option><option>QB</option><option>RB</option><option>WR</option><option>TE</option></select></div>
+  <div class="ctrl"><select id="filterRisk"><option value="">All risk levels</option><option value="past">Past cliff</option><option value="at">At cliff</option><option value="approach">Approaching</option><option value="clear">Clear</option></select></div>
+  <div class="ctrl"><select id="sortBy"><option value="cliff">Sort &mdash; cliff proximity</option><option value="name">Sort &mdash; name</option><option value="age">Sort &mdash; age &darr;</option><option value="pos">Sort &mdash; position</option><option value="comp">Sort &mdash; completeness</option></select></div>
+  <div class="view-toggle">
+    <button class="vbtn active" id="btnList" onclick="setView('list')">LIST</button>
+    <button class="vbtn" id="btnCard" onclick="setView('card')">CARDS</button>
+  </div>
+  <span class="tstat" id="tstat"></span>
 </div>
 
-<div class="grid" id="grid"></div>
+<div class="content">
+  <div id="listView">
+    <div class="list-col-hdr"><div>Player</div><div>Pos</div><div>Age</div><div>Team</div><div>Cliff status</div><div>Signal</div><div>Yrs</div></div>
+    <div id="listBody"></div>
+  </div>
+  <div id="cardView" class="card-grid hidden"></div>
+</div>
 
 <script>
-const CARDS = [{"player_id":"christian_mccaffrey_rb_1996","full_name":"Christian McCaffrey","position":"RB","nfl_team":"SF","age":29.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.4286,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","breakaway_run_pct","run_blocking_grade"],"top_drivers":["age_past_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade","Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":26,"years_to_cliff":-3,"age_cliff_risk":1.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"past_cliff","signal_drivers":["age_past_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.349728+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"puka_nacua_wr_2001","full_name":"Puka Nacua","position":"WR","nfl_team":"LAR","age":25.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":3,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.353364+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"anthony_richardson_qb_2002","full_name":"Anthony Richardson","position":"QB","nfl_team":"IND","age":24.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.75,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 75% \u2014 missing: snap_share","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":33,"years_to_cliff":9,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.354180+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"jamarr_chase_wr_2000","full_name":"Ja'Marr Chase","position":"WR","nfl_team":"CIN","age":26.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_within_two_years_of_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":2,"age_cliff_risk":0.3333,"biological_debt_score":null,"liquidity_risk":null,"signal":"approaching_cliff","signal_drivers":["age_within_two_years_of_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.354481+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"justin_jefferson_wr_1999","full_name":"Justin Jefferson","position":"WR","nfl_team":"MIN","age":26.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_within_two_years_of_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":2,"age_cliff_risk":0.3333,"biological_debt_score":null,"liquidity_risk":null,"signal":"approaching_cliff","signal_drivers":["age_within_two_years_of_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.354726+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"breece_hall_rb_2001","full_name":"Breece Hall","position":"RB","nfl_team":"NYJ","age":24.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.4286,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","breakaway_run_pct","run_blocking_grade"],"top_drivers":["age_within_two_years_of_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade","Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":26,"years_to_cliff":2,"age_cliff_risk":0.3333,"biological_debt_score":null,"liquidity_risk":null,"signal":"approaching_cliff","signal_drivers":["age_within_two_years_of_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.354982+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"amon_ra_st_brown_wr_1999","full_name":"Amon-Ra St. Brown","position":"WR","nfl_team":"DET","age":26.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_within_two_years_of_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":2,"age_cliff_risk":0.3333,"biological_debt_score":null,"liquidity_risk":null,"signal":"approaching_cliff","signal_drivers":["age_within_two_years_of_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.359206+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"travis_kelce_te_1989","full_name":"Travis Kelce","position":"TE","nfl_team":"KC","age":36.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_past_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":30,"years_to_cliff":-6,"age_cliff_risk":1.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"past_cliff","signal_drivers":["age_past_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.359503+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"lamar_jackson_qb_1997","full_name":"Lamar Jackson","position":"QB","nfl_team":"BAL","age":29.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.75,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 75% \u2014 missing: snap_share","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":33,"years_to_cliff":4,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.359761+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"ceedee_lamb_wr_1999","full_name":"CeeDee Lamb","position":"WR","nfl_team":"DAL","age":27.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_within_two_years_of_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":1,"age_cliff_risk":0.6667,"biological_debt_score":null,"liquidity_risk":null,"signal":"approaching_cliff","signal_drivers":["age_within_two_years_of_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.360000+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"luther_burden_wr_2003","full_name":"Luther Burden III","position":"WR","nfl_team":"CHI","age":22.0,"is_prospect":true,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["draft_capital","age_at_nfl_entry","college_dominator_rating"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":6,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.360257+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"colston_loveland_te_2002","full_name":"Colston Loveland","position":"TE","nfl_team":"CHI","age":23.0,"is_prospect":true,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["draft_capital","age_at_nfl_entry","college_dominator_rating"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":30,"years_to_cliff":7,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.360502+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"ashton_jeanty_rb_2003","full_name":"Ashton Jeanty","position":"RB","nfl_team":"LV","age":22.0,"is_prospect":true,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["draft_capital","age_at_nfl_entry","college_dominator_rating"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":26,"years_to_cliff":4,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.360732+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"tetairoa_mcmillan_wr_2003","full_name":"Tetairoa McMillan","position":"WR","nfl_team":"CAR","age":22.0,"is_prospect":true,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["draft_capital","age_at_nfl_entry","college_dominator_rating"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":6,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.360943+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"cam_ward_qb_2002","full_name":"Cam Ward","position":"QB","nfl_team":"TEN","age":23.0,"is_prospect":true,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.6,"inputs_present":["player_id","full_name","position"],"inputs_missing":["draft_capital","age_at_nfl_entry"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL","Signal completeness 60% \u2014 missing: draft_capital, age_at_nfl_entry","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":33,"years_to_cliff":10,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.361135+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"mock_prospect_a_wr_2005","full_name":"Mock Prospect A","position":"WR","nfl_team":null,"age":21.0,"is_prospect":true,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["draft_capital","age_at_nfl_entry","college_dominator_rating"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":7,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.361341+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"mock_prospect_b_rb_2005","full_name":"Mock Prospect B","position":"RB","nfl_team":null,"age":20.0,"is_prospect":true,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["draft_capital","age_at_nfl_entry","college_dominator_rating"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":26,"years_to_cliff":6,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.361522+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}},{"player_id":"mock_prospect_c_qb_2004","full_name":"Mock Prospect C Jr.","position":"QB","nfl_team":null,"age":21.0,"is_prospect":true,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.6,"inputs_present":["player_id","full_name","position"],"inputs_missing":["draft_capital","age_at_nfl_entry"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL","Signal completeness 60% \u2014 missing: draft_capital, age_at_nfl_entry","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":33,"years_to_cliff":12,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:38:23.361714+00:00","source_versions":{"identity_source":"mock_playerprofiler","identity_parser_version":"0.1.0","identity_snapshot_date":"2026-05-08"}}];
+const CARDS = [{"player_id":"jj_mccarthy_qb","full_name":"J.J. McCarthy","position":"QB","nfl_team":"MIN","age":23.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.75,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 75% \u2014 missing: snap_share","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":33,"years_to_cliff":10,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.879186+00:00","source_versions":{}},{"player_id":"rasheen_ali_rb","full_name":"Rasheen Ali","position":"RB","nfl_team":"BAL","age":25.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.4286,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","breakaway_run_pct","run_blocking_grade"],"top_drivers":["age_within_two_years_of_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade","Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":26,"years_to_cliff":1,"age_cliff_risk":0.6667,"biological_debt_score":null,"liquidity_risk":null,"signal":"approaching_cliff","signal_drivers":["age_within_two_years_of_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.881109+00:00","source_versions":{}},{"player_id":"braelon_allen_rb","full_name":"Braelon Allen","position":"RB","nfl_team":"NYJ","age":22.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.4286,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","breakaway_run_pct","run_blocking_grade"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade","Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":26,"years_to_cliff":4,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.881285+00:00","source_versions":{}},{"player_id":"theo_johnson_te","full_name":"Theo Johnson","position":"TE","nfl_team":"NYG","age":25.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":30,"years_to_cliff":5,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.881443+00:00","source_versions":{}},{"player_id":"aj_barner_te","full_name":"AJ Barner","position":"TE","nfl_team":"SEA","age":24.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":30,"years_to_cliff":6,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.881577+00:00","source_versions":{}},{"player_id":"rome_odunze_wr","full_name":"Rome Odunze","position":"WR","nfl_team":"CHI","age":23.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":5,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.881705+00:00","source_versions":{}},{"player_id":"adonai_mitchell_wr","full_name":"Adonai Mitchell","position":"WR","nfl_team":"NYJ","age":23.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":5,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.881830+00:00","source_versions":{}},{"player_id":"xavier_legette_wr","full_name":"Xavier Legette","position":"WR","nfl_team":"CAR","age":25.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":3,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.881952+00:00","source_versions":{}},{"player_id":"tyrone_tracy_rb","full_name":"Tyrone Tracy","position":"RB","nfl_team":"NYG","age":26.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.4286,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","breakaway_run_pct","run_blocking_grade"],"top_drivers":["age_at_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade","Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":26,"years_to_cliff":0,"age_cliff_risk":1.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"at_cliff","signal_drivers":["age_at_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.882080+00:00","source_versions":{}},{"player_id":"dillon_gabriel_qb","full_name":"Dillon Gabriel","position":"QB","nfl_team":"CLE","age":25.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.75,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 75% \u2014 missing: snap_share","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":33,"years_to_cliff":8,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.882199+00:00","source_versions":{}},{"player_id":"pat_bryant_wr","full_name":"Pat Bryant","position":"WR","nfl_team":"DEN","age":23.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":5,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.882315+00:00","source_versions":{}},{"player_id":"elic_ayomanor_wr","full_name":"Elic Ayomanor","position":"WR","nfl_team":"TEN","age":22.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":6,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.882429+00:00","source_versions":{}},{"player_id":"jaxson_dart_qb","full_name":"Jaxson Dart","position":"QB","nfl_team":"NYG","age":22.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.75,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 75% \u2014 missing: snap_share","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":33,"years_to_cliff":11,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.882541+00:00","source_versions":{}},{"player_id":"tre_harris_wr","full_name":"Tre' Harris","position":"WR","nfl_team":"LAC","age":24.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":4,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.882690+00:00","source_versions":{}},{"player_id":"luther_burden_wr","full_name":"Luther Burden","position":"WR","nfl_team":"CHI","age":22.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":6,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.882940+00:00","source_versions":{}},{"player_id":"ashton_jeanty_rb","full_name":"Ashton Jeanty","position":"RB","nfl_team":"LV","age":22.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.4286,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","breakaway_run_pct","run_blocking_grade"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade","Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":26,"years_to_cliff":4,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.883305+00:00","source_versions":{}},{"player_id":"treveyon_henderson_rb","full_name":"TreVeyon Henderson","position":"RB","nfl_team":"NE","age":23.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.4286,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","breakaway_run_pct","run_blocking_grade"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade","Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":26,"years_to_cliff":3,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.883623+00:00","source_versions":{}},{"player_id":"chimere_dike_wr","full_name":"Chimere Dike","position":"WR","nfl_team":"TEN","age":24.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":4,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.883803+00:00","source_versions":{}},{"player_id":"kyle_williams_wr","full_name":"Kyle Williams","position":"WR","nfl_team":"NE","age":23.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":5,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.883950+00:00","source_versions":{}},{"player_id":"mac_jones_qb","full_name":"Mac Jones","position":"QB","nfl_team":"SF","age":27.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.75,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 75% \u2014 missing: snap_share","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":33,"years_to_cliff":6,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.884091+00:00","source_versions":{}},{"player_id":"garrett_wilson_wr","full_name":"Garrett Wilson","position":"WR","nfl_team":"NYJ","age":25.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":3,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.884203+00:00","source_versions":{}},{"player_id":"tucker_kraft_te","full_name":"Tucker Kraft","position":"TE","nfl_team":"GB","age":25.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":30,"years_to_cliff":5,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.884296+00:00","source_versions":{}},{"player_id":"parker_washington_wr","full_name":"Parker Washington","position":"WR","nfl_team":"JAX","age":24.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_not_near_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":4,"age_cliff_risk":0.0,"biological_debt_score":null,"liquidity_risk":null,"signal":"no_age_signal","signal_drivers":["age_not_near_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.884388+00:00","source_versions":{}},{"player_id":"tank_dell_wr","full_name":"Tank Dell","position":"WR","nfl_team":"HOU","age":26.0,"is_prospect":false,"engine_used":null,"model_version":null,"model_grade":"PRE_MODEL","dynasty_value_score":null,"projection_1y":null,"projection_2y":null,"projection_3y":null,"signal_completeness":0.5,"inputs_present":["player_id","full_name","position"],"inputs_missing":["snap_share","target_share","yards_per_route_run"],"top_drivers":["age_within_two_years_of_position_cliff"],"risk_flags":["identity_unverified"],"counter_argument":null,"caveats":["dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL","Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run","age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"roster_audit":{"cliff_age":28,"years_to_cliff":2,"age_cliff_risk":0.3333,"biological_debt_score":null,"liquidity_risk":null,"signal":"approaching_cliff","signal_drivers":["age_within_two_years_of_position_cliff"],"caveats":["age_curve_only","no_usage_signal","no_market_overlay","no_internal_value_signal"],"decision_supported":false},"market_overlay":null,"assembled_at":"2026-05-08T22:49:17.884480+00:00","source_versions":{}}];
 
-function posBadgeClass(pos) {
-  return { QB: "badge-pos-qb", RB: "badge-pos-rb", WR: "badge-pos-wr", TE: "badge-pos-te" }[pos] || "";
+const POS_ORDER={QB:0,RB:1,WR:2,TE:3};
+function sig(c){return c.roster_audit?.signal||'no_age_signal'}
+function ytc(c){const v=c.roster_audit?.years_to_cliff;return v===undefined?null:v}
+function riskSort(c){const o={past_cliff:0,at_cliff:1,approaching_cliff:2,no_age_signal:3};const v=ytc(c);return(o[sig(c)]??3)*1000+(v!==null?Math.max(v,-99):99)}
+function riskColor(s){return{past_cliff:'var(--past)',at_cliff:'var(--at)',approaching_cliff:'var(--approach)',no_age_signal:'var(--safe)'}[s]||'var(--safe)'}
+function riskLabel(s){return{past_cliff:'Past cliff',at_cliff:'At cliff',approaching_cliff:'Approaching',no_age_signal:'Clear'}[s]||'—'}
+function sigColor(p){return p>=0.75?'var(--safe)':p>=0.5?'var(--approach)':'var(--past)'}
+function pcls(p){return{RB:'rb',WR:'wr',TE:'te',QB:'qb'}[p]||''}
+function ageStr(c){return c.age!=null?Math.round(c.age):'—'}
+function ytcLabel(c){const v=ytc(c);return v===null?'—':v<0?'+'+Math.abs(v):String(v)}
+function ytcColor(c){const s=sig(c);return{past_cliff:'var(--past)',at_cliff:'var(--at)',approaching_cliff:'var(--approach)'}[s]||'var(--ink-3)'}
+
+function getFiltered(){
+  const pos=document.getElementById('filterPos').value;
+  const risk=document.getElementById('filterRisk').value;
+  const sort=document.getElementById('sortBy').value;
+  const DANGER=new Set(['past_cliff','at_cliff','approaching_cliff']);
+  return CARDS.filter(c=>{
+    if(pos&&c.position!==pos)return false;
+    const s=sig(c);
+    if(risk==='past'&&s!=='past_cliff')return false;
+    if(risk==='at'&&s!=='at_cliff')return false;
+    if(risk==='approach'&&s!=='approaching_cliff')return false;
+    if(risk==='clear'&&s!=='no_age_signal')return false;
+    return true;
+  }).sort((a,b)=>{
+    if(sort==='cliff')return riskSort(a)-riskSort(b);
+    if(sort==='name')return a.full_name.localeCompare(b.full_name);
+    if(sort==='age')return(b.age||0)-(a.age||0);
+    if(sort==='pos')return((POS_ORDER[a.position]??9)-(POS_ORDER[b.position]??9))||a.full_name.localeCompare(b.full_name);
+    if(sort==='comp')return b.signal_completeness-a.signal_completeness;
+    return 0;
+  });
 }
 
-function signalColor(pct) {
-  if (pct >= 0.75) return "#3fb950";
-  if (pct >= 0.50) return "#d29922";
-  return "#f85149";
+const DANGER=new Set(['past_cliff','at_cliff','approaching_cliff']);
+
+function renderList(cards){
+  let html='';
+  let faultDone=false;
+  const hasDanger=cards.some(c=>DANGER.has(sig(c)));
+  const hasSafe=cards.some(c=>!DANGER.has(sig(c)));
+  if(hasDanger){html+=`<div class="zone-hdr zh-danger"><span class="zh-lbl">Cliff zone</span><div class="zh-rule"></div></div>`}
+  cards.forEach((c,i)=>{
+    const s=sig(c);const inDanger=DANGER.has(s);
+    if(!inDanger&&!faultDone&&hasDanger&&hasSafe){
+      faultDone=true;
+      html+=`<div class="zone-hdr zh-safe" style="padding-top:20px"><div class="zh-rule"></div><span class="zh-lbl">Safe zone</span></div>`;
+    } else if(!hasDanger&&!faultDone&&i===0){
+      faultDone=true;
+      html+=`<div class="zone-hdr zh-safe"><div class="zh-rule"></div><span class="zh-lbl">Safe zone</span></div>`;
+    }
+    const col=riskColor(s);const pct=c.signal_completeness;
+    html+=`<div class="list-row" style="animation-delay:${i*16}ms">
+  <div class="row-bar" style="background:${col}"></div>
+  <div class="pname">${c.full_name}</div>
+  <div><span class="ptag ${pcls(c.position)}">${c.position}</span></div>
+  <div class="age-c">${ageStr(c)}</div>
+  <div class="team-c">${c.nfl_team||'FA'}</div>
+  <div class="cliff-c"><span class="cdot" style="background:${col}"></span><span class="ctxt" style="color:${col}">${riskLabel(s)}</span></div>
+  <div class="comp-c"><div class="ctrack"><div class="cfill" style="width:${Math.round(pct*100)}%;background:${sigColor(pct)}"></div></div><span class="cpct">${Math.round(pct*100)}%</span></div>
+  <div class="yrs-c" style="color:${ytcColor(c)}">${ytcLabel(c)}</div>
+</div>`;
+  });
+  document.getElementById('listBody').innerHTML=html||'<div class="empty">No players match the active filters</div>';
 }
 
-function isProspect(card) {
-  return card.is_prospect === true;
-}
-
-function renderCard(card) {
-  const pct = card.signal_completeness;
-  const pctLabel = Math.round(pct * 100) + "%";
-  const color = signalColor(pct);
-  const prospect = isProspect(card);
-
-  const presentChips = (card.inputs_present || [])
-    .map(s => `<span class="chip chip-present">${s}</span>`).join("");
-  const missingChips = (card.inputs_missing || [])
-    .map(s => `<span class="chip chip-missing">${s}</span>`).join("");
-  const riskChips = (card.risk_flags || [])
-    .map(s => `<span class="chip chip-risk">${s}</span>`).join("");
-
-  const caveatsHtml = (card.caveats || [])
-    .map(c => `<div class="caveat">${c}</div>`).join("");
-
-  const idStatus = card.risk_flags.includes("identity_conflict_requires_manual_review")
-    ? '<span class="badge badge-conflict">CONFLICT</span>'
-    : card.risk_flags.includes("identity_unverified")
-    ? '<span class="badge badge-pending">PENDING</span>'
-    : '<span class="badge badge-verified">VERIFIED</span>';
-
-  return `
-<div class="card" data-pos="${card.position}" data-prospect="${prospect}" data-pct="${pct}">
-  <div class="card-header">
+function renderCards(cards){
+  if(!cards.length){document.getElementById('cardView').innerHTML='<div class="empty" style="grid-column:1/-1">No players match the active filters</div>';return}
+  document.getElementById('cardView').innerHTML=cards.map((c,i)=>{
+    const s=sig(c);const col=riskColor(s);const pct=c.signal_completeness;
+    const v=ytc(c);const ytcStr=v===null?null:v<0?`${Math.abs(v)} yrs past cliff`:`${v} yrs to cliff`;
+    const missing=c.inputs_missing||[];
+    return `<div class="dcard" style="animation-delay:${i*22}ms">
+  <div class="cstripe" style="background:${col};opacity:0.75"></div>
+  <div class="chdr">
     <div>
-      <div class="player-name">${card.full_name}</div>
-      <div class="player-meta">
-        <span class="badge ${posBadgeClass(card.position)}">${card.position}</span>
-        ${card.nfl_team ? `<span style="margin-left:6px">${card.nfl_team}</span>` : ""}
-        ${card.age ? `<span style="margin-left:6px">Age ${card.age}</span>` : ""}
-        ${prospect ? '<span class="badge badge-prospect" style="margin-left:6px">PROSPECT</span>' : ""}
+      <div class="cname">${c.full_name}</div>
+      <div class="cmeta">
+        <span class="ptag ${pcls(c.position)}">${c.position}</span>
+        ${c.nfl_team?`<span class="cage">${c.nfl_team}</span>`:''}
+        ${c.age!=null?`<span class="cage">Age ${Math.round(c.age)}</span>`:''}
       </div>
     </div>
-    <span class="badge badge-pre-model">${card.model_grade}</span>
+    <span class="cgrade">PRE_MODEL</span>
   </div>
-
-  <div class="signal-section">
-    <div class="signal-label">
-      <span>Signal Completeness</span>
-      <span class="signal-pct" style="color:${color}">${pctLabel}</span>
-    </div>
-    <div class="signal-track">
-      <div class="signal-fill" style="width:${pctLabel}; background:${color}"></div>
-    </div>
+  <div class="csig-hdr"><span>Signal completeness</span><span style="color:${sigColor(pct)}">${Math.round(pct*100)}%</span></div>
+  <div class="cbar-track"><div class="cbar-fill" style="width:${Math.round(pct*100)}%;background:${sigColor(pct)}"></div></div>
+  <div class="ccliff-row" style="border-left-color:${col}">
+    <span class="ccliff-key">Cliff status</span>
+    <div class="ccliff-val" style="color:${col}"><span class="cdot" style="background:${col}"></span>${riskLabel(s)}${ytcStr?` · ${ytcStr}`:''}</div>
   </div>
-
-  <div class="score-row">
-    <span class="score-label">dynasty_value_score</span>
-    <span class="score-value">Unavailable — engine not validated</span>
-  </div>
-
-  ${presentChips ? `<div class="chips-section"><div class="chips-label">Present</div><div class="chips">${presentChips}</div></div>` : ""}
-  ${missingChips ? `<div class="chips-section"><div class="chips-label">Missing</div><div class="chips">${missingChips}</div></div>` : ""}
-  ${riskChips    ? `<div class="chips-section"><div class="chips-label">Risk flags</div><div class="chips">${riskChips}</div></div>` : ""}
-
-  <div style="margin-top:10px; display:flex; align-items:center; gap:8px">
-    <span style="font-size:12px;color:var(--text-muted)">Identity:</span>
-    ${idStatus}
-  </div>
-
-  <div class="dg-id">${card.player_id}</div>
-
-  ${caveatsHtml ? `<div class="caveat-list">${caveatsHtml}</div>` : ""}
+  ${missing.length?`<div class="miss-hdr">Missing signals</div><div class="chips">${missing.map(m=>`<span class="chip">${m}</span>`).join('')}</div>`:''}
+  <div class="cid">${c.player_id}</div>
 </div>`;
+  }).join('');
 }
 
-const POS_ORDER = { QB: 0, RB: 1, WR: 2, TE: 3 };
-
-function render() {
-  const pos      = document.getElementById("filterPos").value;
-  const prospect = document.getElementById("filterProspect").value;
-  const signal   = document.getElementById("filterSignal").value;
-  const sortBy   = document.getElementById("sortBy").value;
-
-  const filtered = CARDS.filter(c => {
-    if (pos && c.position !== pos) return false;
-    const p = isProspect(c);
-    if (prospect === "active"   && p)  return false;
-    if (prospect === "prospect" && !p) return false;
-    const pct = c.signal_completeness;
-    if (signal === "high" && pct < 0.75) return false;
-    if (signal === "mid"  && (pct < 0.50 || pct >= 0.75)) return false;
-    if (signal === "low"  && pct >= 0.50) return false;
-    return true;
-  }).sort((a, b) => {
-    if (sortBy === "completeness_desc") return b.signal_completeness - a.signal_completeness;
-    if (sortBy === "completeness_asc")  return a.signal_completeness - b.signal_completeness;
-    if (sortBy === "pos") {
-      const pd = (POS_ORDER[a.position] ?? 9) - (POS_ORDER[b.position] ?? 9);
-      return pd !== 0 ? pd : a.full_name.localeCompare(b.full_name);
-    }
-    return a.full_name.localeCompare(b.full_name);
-  });
-
-  document.getElementById("statBar").textContent =
-    `${filtered.length} of ${CARDS.length} players`;
-
-  const grid = document.getElementById("grid");
-  if (filtered.length === 0) {
-    grid.innerHTML = '<div class="empty">No players match the current filters.</div>';
-    return;
-  }
-  grid.innerHTML = filtered.map(renderCard).join("");
+let view='list';
+function setView(v){
+  view=v;
+  document.getElementById('listView').classList.toggle('hidden',v!=='list');
+  document.getElementById('cardView').classList.toggle('hidden',v!=='card');
+  document.getElementById('btnList').classList.toggle('active',v==='list');
+  document.getElementById('btnCard').classList.toggle('active',v==='card');
+  render();
 }
-
-["filterPos","filterProspect","filterSignal","sortBy"].forEach(id =>
-  document.getElementById(id).addEventListener("change", render)
-);
-
+function render(){
+  const cards=getFiltered();
+  document.getElementById('tstat').textContent=cards.length+' / '+CARDS.length;
+  if(view==='list')renderList(cards);else renderCards(cards);
+}
+['filterPos','filterRisk','sortBy'].forEach(id=>document.getElementById(id).addEventListener('change',render));
 render();
 </script>
 </body>
