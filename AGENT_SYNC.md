@@ -26,6 +26,7 @@ Establish the canonical identity and league context:
 - Codex pressure-tested identity governance: added suffix/alias normalization, deterministic collision suffixing, market-column vetoes in the identity pipeline, and focused identity governance tests.
 - Claude implemented fuzzy name confidence, ID resolver lookups, and mock PlayerProfiler identity fixtures; Codex reviewed and removed `ktc_id` from canonical identity fixtures while preserving the 95% conflict rule.
 - Identity resolver now supports context escalation: name-only verification at 95%, team verification for strong near-matches, and team+jersey verification for weaker conflicts such as `Cam Thomas` vs. `Cameron Thomas`.
+- Codex added local-only roster risk math for the Roster Audit Dashboard: age-cliff risk, internal-value biological debt, and second-round-pick liquidity risk.
 
 ## Open Blockers
 
@@ -35,7 +36,7 @@ Establish the canonical identity and league context:
 ## Next Recommended Work
 
 1. Have Genie define `silver.player_identity` SCD Type 2 DDL and Databricks deployment wiring.
-2. Have Claude validate team and jersey fallback matching against real Sleeper/PFF samples when source exports are available.
+2. Have Claude assemble PVO/decision-card JSON using the local roster risk helpers before any UI polish.
 3. Have Gemini review `LeagueContext` pick ownership and scoring propagation before Engine B ignition.
 
 ## Branch / Worktree Notes
@@ -43,5 +44,7 @@ Establish the canonical identity and league context:
 Current branch: `codex/governance-seal`, reconciled with origin.
 
 The shared Git hook at `/Users/davidleess/dynasty-genius/.git/hooks/pre-commit` points to `scripts/git-hooks/pre-commit`.
+
+Databricks hard stop: no remote Databricks compute, warehouse, job, bundle deploy, or lineage sync should run if it risks exceeding $10 per 24 hours without David's manual override. Default to local tests and static review.
 
 This sync file describes the current local repo state. Agents should also check `git status` before editing.

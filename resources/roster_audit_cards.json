@@ -1,0 +1,666 @@
+[
+  {
+    "player_id": "christian_mccaffrey_rb_1996",
+    "full_name": "Christian McCaffrey",
+    "position": "RB",
+    "nfl_team": "SF",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.4286,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "snap_share",
+      "target_share",
+      "breakaway_run_pct",
+      "run_blocking_grade"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade",
+      "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.063482+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "puka_nacua_wr_2001",
+    "full_name": "Puka Nacua",
+    "position": "WR",
+    "nfl_team": "LAR",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "snap_share",
+      "target_share",
+      "yards_per_route_run"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.069140+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "anthony_richardson_qb_2002",
+    "full_name": "Anthony Richardson",
+    "position": "QB",
+    "nfl_team": "IND",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.75,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "snap_share"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 75% \u2014 missing: snap_share"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.069310+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "jamarr_chase_wr_2000",
+    "full_name": "Ja'Marr Chase",
+    "position": "WR",
+    "nfl_team": "CIN",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "snap_share",
+      "target_share",
+      "yards_per_route_run"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.069447+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "justin_jefferson_wr_1999",
+    "full_name": "Justin Jefferson",
+    "position": "WR",
+    "nfl_team": "MIN",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "snap_share",
+      "target_share",
+      "yards_per_route_run"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.069583+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "breece_hall_rb_2001",
+    "full_name": "Breece Hall",
+    "position": "RB",
+    "nfl_team": "NYJ",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.4286,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "snap_share",
+      "target_share",
+      "breakaway_run_pct",
+      "run_blocking_grade"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade",
+      "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.069704+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "amon_ra_st_brown_wr_1999",
+    "full_name": "Amon-Ra St. Brown",
+    "position": "WR",
+    "nfl_team": "DET",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "snap_share",
+      "target_share",
+      "yards_per_route_run"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.069828+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "travis_kelce_te_1989",
+    "full_name": "Travis Kelce",
+    "position": "TE",
+    "nfl_team": "KC",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "snap_share",
+      "target_share",
+      "yards_per_route_run"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.069946+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "lamar_jackson_qb_1997",
+    "full_name": "Lamar Jackson",
+    "position": "QB",
+    "nfl_team": "BAL",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.75,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "snap_share"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 75% \u2014 missing: snap_share"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.070057+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "ceedee_lamb_wr_1999",
+    "full_name": "CeeDee Lamb",
+    "position": "WR",
+    "nfl_team": "DAL",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "snap_share",
+      "target_share",
+      "yards_per_route_run"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.070167+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "luther_burden_wr_2003",
+    "full_name": "Luther Burden III",
+    "position": "WR",
+    "nfl_team": "CHI",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "draft_capital",
+      "age_at_nfl_entry",
+      "college_dominator_rating"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.070278+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "colston_loveland_te_2002",
+    "full_name": "Colston Loveland",
+    "position": "TE",
+    "nfl_team": "CHI",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "draft_capital",
+      "age_at_nfl_entry",
+      "college_dominator_rating"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.070385+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "ashton_jeanty_rb_2003",
+    "full_name": "Ashton Jeanty",
+    "position": "RB",
+    "nfl_team": "LV",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "draft_capital",
+      "age_at_nfl_entry",
+      "college_dominator_rating"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.070491+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "tetairoa_mcmillan_wr_2003",
+    "full_name": "Tetairoa McMillan",
+    "position": "WR",
+    "nfl_team": "CAR",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "draft_capital",
+      "age_at_nfl_entry",
+      "college_dominator_rating"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.070606+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "cam_ward_qb_2002",
+    "full_name": "Cam Ward",
+    "position": "QB",
+    "nfl_team": "TEN",
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.6,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "draft_capital",
+      "age_at_nfl_entry"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 60% \u2014 missing: draft_capital, age_at_nfl_entry"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.070713+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "mock_prospect_a_wr_2005",
+    "full_name": "Mock Prospect A",
+    "position": "WR",
+    "nfl_team": null,
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "draft_capital",
+      "age_at_nfl_entry",
+      "college_dominator_rating"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.070820+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "mock_prospect_b_rb_2005",
+    "full_name": "Mock Prospect B",
+    "position": "RB",
+    "nfl_team": null,
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.5,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "draft_capital",
+      "age_at_nfl_entry",
+      "college_dominator_rating"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.070939+00:00",
+    "source_versions": {}
+  },
+  {
+    "player_id": "mock_prospect_c_qb_2004",
+    "full_name": "Mock Prospect C Jr.",
+    "position": "QB",
+    "nfl_team": null,
+    "age": null,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.6,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position"
+    ],
+    "inputs_missing": [
+      "draft_capital",
+      "age_at_nfl_entry"
+    ],
+    "top_drivers": [],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
+      "Signal completeness 60% \u2014 missing: draft_capital, age_at_nfl_entry"
+    ],
+    "market_overlay": null,
+    "assembled_at": "2026-05-08T22:17:42.071434+00:00",
+    "source_versions": {}
+  }
+]
