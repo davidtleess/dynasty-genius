@@ -1,0 +1,48 @@
+name: dynasty-genius-security-policy
+catalog: gen_alpha
+
+gateway:
+  required_host_environment:
+    - DATABRICKS_HOST
+    - DATABRICKS_TOKEN
+    - ANTHROPIC_DATABRICKS_GATEWAY_URL
+  optional_host_environment:
+    - ANTHROPIC_AUTH_TOKEN
+    - ANTHROPIC_BASE_URL
+    - AWS_REGION
+    - AWS_PROFILE
+    - AZURE_OPENAI_ENDPOINT
+  persistence_policy: never_persist_gateway_or_auth_environment_to_lakehouse
+  prohibited_layers_for_secrets:
+    - gen_alpha.bronze
+    - gen_alpha.silver
+    - gen_alpha.gold
+
+mcp_server:
+  access_model: least_privilege_read_only
+  databricks_principal: dg_agent_gold_readers
+  allowed_objects:
+    - gen_alpha.gold.roster_valuation
+    - gen_alpha.gold.roster_valuation_signals
+    - gen_alpha.gold.great_liquidation_monitor
+    - gen_alpha.gold.model_accuracy_dashboard
+    - gen_alpha.gold.leaguemate_fragility_index
+    - gen_alpha.gold.alpha_divergence_weekly_report
+  denied_operations:
+    - INSERT
+    - UPDATE
+    - DELETE
+    - MERGE
+    - CREATE
+    - ALTER
+    - DROP
+    - TRUNCATE
+  required_grants:
+    - "USE CATALOG ON CATALOG gen_alpha"
+    - "USE SCHEMA ON SCHEMA gen_alpha.gold"
+    - "SELECT ON TABLE gen_alpha.gold.roster_valuation"
+    - "SELECT ON VIEW gen_alpha.gold.roster_valuation_signals"
+    - "SELECT ON VIEW gen_alpha.gold.great_liquidation_monitor"
+    - "SELECT ON VIEW gen_alpha.gold.model_accuracy_dashboard"
+    - "SELECT ON VIEW gen_alpha.gold.leaguemate_fragility_index"
+    - "SELECT ON VIEW gen_alpha.gold.alpha_divergence_weekly_report"

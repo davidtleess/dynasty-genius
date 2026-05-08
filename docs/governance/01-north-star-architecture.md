@@ -365,3 +365,11 @@ Agents must work in bounded scopes.
 This document governs technical architecture.
 
 If this file conflicts with `00-product-constitution.md`, the constitution wins for analytical decisions. For implementation details, pause and log the conflict rather than guessing.
+
+## Databricks Cost Guardrails
+
+- **Hard Limit:** $10 per 24-hour period.
+- **Local-First Rule:** All model, pipeline, and API logic must be verified locally with mock data before deployment to Databricks.
+- **Serverless-First:** Favor Databricks SQL Serverless and Serverless Jobs. Use `new_cluster` with `i3.xlarge` only when serverless is unavailable or significantly slower for the specific task.
+- **No Idle Clusters:** Do not use 'Always-On' clusters. Ensure all jobs use job-scoped compute that terminates immediately.
+- **Manual Override Required:** Any task expected to exceed $2 in a single run requires explicit approval from David.

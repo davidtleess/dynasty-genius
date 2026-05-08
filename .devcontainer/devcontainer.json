@@ -1,0 +1,44 @@
+{
+  "name": "Dynasty Genius Databricks AI Dev Kit",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspaces/dynasty-genius-product",
+  "containerEnv": {
+    "DATABRICKS_CONFIG_PROFILE": "dynasty-genius-dev",
+    "DATABRICKS_BUNDLE_ENV": "dev"
+  },
+  "remoteEnv": {
+    "DATABRICKS_HOST": "${localEnv:DATABRICKS_HOST}",
+    "DATABRICKS_TOKEN": "${localEnv:DATABRICKS_TOKEN}",
+    "DATABRICKS_CLIENT_ID": "${localEnv:DATABRICKS_CLIENT_ID}",
+    "DATABRICKS_CLIENT_SECRET": "${localEnv:DATABRICKS_CLIENT_SECRET}",
+    "DATABRICKS_AUTH_TYPE": "${localEnv:DATABRICKS_AUTH_TYPE}",
+    "ANTHROPIC_DATABRICKS_GATEWAY_URL": "${localEnv:ANTHROPIC_DATABRICKS_GATEWAY_URL}",
+    "ANTHROPIC_BASE_URL": "${localEnv:ANTHROPIC_BASE_URL}",
+    "ANTHROPIC_AUTH_TOKEN": "${localEnv:ANTHROPIC_AUTH_TOKEN}",
+    "ANTHROPIC_MODEL": "${localEnv:ANTHROPIC_MODEL}",
+    "AWS_REGION": "${localEnv:AWS_REGION}",
+    "AWS_PROFILE": "${localEnv:AWS_PROFILE}",
+    "AZURE_OPENAI_ENDPOINT": "${localEnv:AZURE_OPENAI_ENDPOINT}",
+    "AZURE_OPENAI_API_KEY": "${localEnv:AZURE_OPENAI_API_KEY}",
+    "DYNASTY_SLEEPER_USERNAME": "${localEnv:DYNASTY_SLEEPER_USERNAME}",
+    "DYNASTY_SEASON": "${localEnv:DYNASTY_SEASON}",
+    "DYNASTY_SLEEPER_LEAGUE_ID": "${localEnv:DYNASTY_SLEEPER_LEAGUE_ID}",
+    "DYNASTY_SLEEPER_LEAGUE_NAME": "${localEnv:DYNASTY_SLEEPER_LEAGUE_NAME}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "databricks.databricks",
+        "ms-python.python",
+        "ms-toolsai.jupyter"
+      ]
+    }
+  },
+  "postCreateCommand": "python -m pip install --upgrade pip && python -m pip install -r requirements.txt -r requirements-databricks.txt && databricks --version || true",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  }
+}

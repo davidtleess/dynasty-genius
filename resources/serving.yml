@@ -1,0 +1,15 @@
+resources:
+  model_serving_endpoints:
+    dynasty_genius_agent_endpoint:
+      name: dynasty-genius-agent-${bundle.target}
+      config:
+        served_entities:
+          - name: dynasty_genius_agent
+            entity_name: ${var.agent_model_name}
+            entity_version: "1"
+            workload_size: Small
+            scale_to_zero_enabled: true
+        traffic_config:
+          routes:
+            - served_model_name: dynasty_genius_agent
+              traffic_percentage: 100

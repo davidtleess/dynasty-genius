@@ -1,0 +1,37 @@
+bundle:
+  name: dynasty-genius
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog for the Dynasty Genius medallion architecture.
+    default: gen_alpha
+  bronze_schema:
+    description: Bronze schema for raw/source-aligned tables.
+    default: bronze
+  silver_schema:
+    description: Silver schema for cleaned feature-store tables.
+    default: silver
+  raw_volume_path:
+    description: Landing path for raw mock feeds.
+    default: /Volumes/gen_alpha/bronze/raw
+  agent_model_name:
+    description: Registered Mosaic AI Agent model name.
+    default: gen_alpha.silver.dynasty_genius_agent
+
+workspace:
+  root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+targets:
+  dev:
+    mode: development
+    default: true
+    variables:
+      raw_volume_path: /Volumes/gen_alpha/bronze/raw/dev
+
+  prod:
+    mode: production
+    variables:
+      raw_volume_path: /Volumes/gen_alpha/bronze/raw/prod

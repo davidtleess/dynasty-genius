@@ -5,42 +5,42 @@ Last updated: 2026-05-08
 
 ## Active Phase
 
-Phase 1: governance foundation and closed-loop agent operating system.
+Phase 2: League Context Foundation and Identity Resolution.
 
 ## Current Sprint Objective
 
-Install the canonical governance doctrine:
+Establish the canonical identity and league context:
 
-- `docs/governance/00-product-constitution.md`
-- `docs/governance/01-north-star-architecture.md`
-- `docs/governance/02-agent-operating-loop.md`
-- `docs/agent-ledger/`
-- root bootstrap locks
-
-After this refactor, agents should resume product work only through the operating loop.
+- `src/dynasty_genius/models/player_identity.py`
+- `src/dynasty_genius/models/league_context.py`
+- `src/dynasty_genius/identity.py`
+- `silver.player_identity` mapping table
 
 ## Latest Activity
 
-- Successfully configured the Antigravity CLI environment and performed a surgical installation of the Databricks AI Dev Kit, bypassing C++ compilation issues on Intel Mac.
-- Installed Databricks "Skills" (markdown playbooks) for Gemini and Claude Code.
-- Established a CLI-first workflow with `dg-bootstrap` aliases linking the Session Starter and Governance Doctrine.
-- Codex added Gemini PM signoff, Genie Databricks lineage plan, Codex governance-seal checklist, PR template, governance validator, and CI governance validation.
-- Codex reconciled `codex/governance-seal` with `origin/codex/governance-seal`, installed a repo-tracked local pre-commit hook, and mapped the current market-overlay surface under `resources/`.
+- Successfully verified the Governance Seal (Phase 1) and active pre-commit hooks.
+- Transitioned to Phase 2: Identity & Context Foundation.
+- Defined `PlayerIdentity` and `LeagueContext` models for cross-source unification.
+- Implemented `dg_id` generation utility and Identity Resolution pipeline stub.
+- Mapped market-overlay surface under `resources/` for post-scoring joins.
+- Codex pressure-tested identity governance: added suffix/alias normalization, deterministic collision suffixing, market-column vetoes in the identity pipeline, and focused identity governance tests.
+- Claude implemented fuzzy name confidence, ID resolver lookups, and mock PlayerProfiler identity fixtures; Codex reviewed and removed `ktc_id` from canonical identity fixtures while preserving the 95% conflict rule.
+- Identity resolver now supports context escalation: name-only verification at 95%, team verification for strong near-matches, and team+jersey verification for weaker conflicts such as `Cam Thomas` vs. `Cameron Thomas`.
 
 ## Open Blockers
 
 - Formal Gemini CLI bootstrap lock is not yet implemented; current enforcement is markdown bootstrap, CI validation, and local Git pre-commit.
-- Databricks lineage tables are future Phase 2 work.
+- Databricks lineage tables and SCD Type 2 identity DDL are pending Genie architecture work.
 
 ## Next Recommended Work
 
-1. Review the reconciled `codex/governance-seal` branch and decide whether to push the local merge commit.
-2. Decide whether to formalize Gemini CLI bootstrap enforcement through hooks, extension policy, or user/admin policy.
-3. Resume model/product implementation according to the phase sequence in `01-north-star-architecture.md`.
+1. Have Genie define `silver.player_identity` SCD Type 2 DDL and Databricks deployment wiring.
+2. Have Claude validate team and jersey fallback matching against real Sleeper/PFF samples when source exports are available.
+3. Have Gemini review `LeagueContext` pick ownership and scoring propagation before Engine B ignition.
 
 ## Branch / Worktree Notes
 
-Current governance branch: `codex/governance-seal`, locally reconciled with origin and ahead by a merge commit.
+Current branch: `codex/governance-seal`, reconciled with origin.
 
 The shared Git hook at `/Users/davidleess/dynasty-genius/.git/hooks/pre-commit` points to `scripts/git-hooks/pre-commit`.
 
