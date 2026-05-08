@@ -1,0 +1,55 @@
+{
+  "model_version": "20260501T014544Z",
+  "model_family": "rookie_forecast_ridge",
+  "created_at_utc": "2026-05-01T01:45:44.478193+00:00",
+  "features": [
+    "pick",
+    "round",
+    "age"
+  ],
+  "target": "y24_ppg",
+  "data_path": "app/data/training/prospects_with_outcomes.csv",
+  "data_sha256": "1c92ccbc371f55d7b4b8e6941d77cbbb74715c027a74cc2b7ce43d9d426d7401",
+  "split": {
+    "strategy": "latest_mature_season_temporal_holdout",
+    "training_seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020
+    ],
+    "holdout_seasons": [
+      2021
+    ],
+    "excluded_unmatured_seasons": [
+      2022,
+      2023,
+      2024,
+      2025
+    ]
+  },
+  "position": "TE",
+  "artifact_path": "app/data/models/runs/20260501T014544Z/TE_model.pkl",
+  "train_rows": 87,
+  "holdout_rows": 11,
+  "metrics": {
+    "rmse": 2.152,
+    "r2": 0.197,
+    "spearman_rank_correlation": 0.545,
+    "top_12_hit_rate": 1.0,
+    "bust_avoidance_rate": 0.5
+  },
+  "coefficients": {
+    "pick": -0.027136,
+    "round": -0.13898,
+    "age": -0.196825
+  },
+  "feature_means": {
+    "pick": 136.793103,
+    "round": 4.333333,
+    "age": 22.425287
+  },
+  "intercept": 13.186003
+}

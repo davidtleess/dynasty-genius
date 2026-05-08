@@ -1,4 +1,4 @@
-# Dynasty Genius AI Context
+# STOP. DYNASTY GENIUS BOOTSTRAP PROTOCOL.
 
 This file is a bootstrap pointer, not the governing doctrine.
 
@@ -9,7 +9,7 @@ Before using this context, every agent must read:
 3. `docs/governance/01-north-star-architecture.md`
 4. `AGENT_SYNC.md`
 
-## Project Identity
+You do not rely on prior chat memory. You do not rely on summaries. Before executing any command, writing any code, reviewing any pull request, or making any analytical recommendation, you must read the following files in this exact order:
 
 Dynasty Genius is a personal dynasty fantasy football intelligence system for David's primary Superflex PPR league. It is not a public SaaS product.
 

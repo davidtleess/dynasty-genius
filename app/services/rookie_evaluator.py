@@ -72,6 +72,9 @@ def _load_validation_report(pointer: dict) -> dict:
         return {}
 
     report = json.loads(path.read_text())
+    per_position = report.get("per_position")
+    if isinstance(per_position, dict):
+        return per_position
     return {
         item["position"]: item
         for item in report.get("positions", [])
@@ -124,23 +127,26 @@ def _validation_metadata(position: str) -> dict:
     metadata_metrics = _MODEL_METADATA.get(position, {}).get("metrics", {})
     rmse = report_metrics.get("rmse", metadata_metrics.get("rmse"))
     r2 = report_metrics.get("r2", metadata_metrics.get("r2"))
-
-    if r2 is None:
-        model_grade = "unvalidated"
-    elif r2 < 0:
-        model_grade = "D"
-    else:
-        # Calibrated coverage is not available yet, so non-negative holdout R2
-        # should be treated as useful but still early-stage model evidence.
-        model_grade = "C"
+    spearman = report_metrics.get("spearman_rank_correlation")
+    top_12_hit_rate = report_metrics.get("top_12_hit_rate")
+    bust_avoidance_rate = report_metrics.get("bust_avoidance_rate")
+    holdout_rows = report_metrics.get(
+        "holdout_rows", _MODEL_METADATA.get(position, {}).get("holdout_rows")
+    )
+    model_grade = report_metrics.get("model_grade", "unvalidated")
+    caveats = report_metrics.get("caveats", [])
 
     return {
         "model_grade": model_grade,
         "rmse_position_holdout": rmse,
         "r2_position_holdout": r2,
-        "holdout_rows": report_metrics.get(
-            "holdout_rows", _MODEL_METADATA.get(position, {}).get("holdout_rows")
-        ),
+        "spearman_rank_correlation": spearman,
+        "top_12_hit_rate": top_12_hit_rate,
+        "bust_avoidance_rate": bust_avoidance_rate,
+        "holdout_rows": holdout_rows,
+        "position_ceiling": report_metrics.get("position_ceiling"),
+        "coverage_80": report_metrics.get("coverage_80"),
+        "caveats": caveats,
         "validation_source": _LATEST_POINTER.get("validation_report"),
     }
 
@@ -287,6 +293,7 @@ def score_prospect(
         "rmse_position_holdout": validation["rmse_position_holdout"],
         "r2_position_holdout": validation["r2_position_holdout"],
         "validation":        validation,
+        "model_caveats":     validation.get("caveats", []),
         "valuation":         {**valuation, "notes": notes},
         "notes":             notes,
         "position":          position,
