@@ -7,12 +7,13 @@ Scores and projections are left None until the relevant engine is validated.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from app.services.roster_auditor import audit_player, roster_risk_summary
 from src.dynasty_genius.models.player_identity import PlayerIdentity
-from src.dynasty_genius.models.player_value_object import PlayerValueObject
+from src.dynasty_genius.models.player_value_object import PlayerValueObject, RosterAuditSignals
 
 
 # ── Position-specific required signal sets ────────────────────────────────────
@@ -117,11 +118,67 @@ def _build_caveats(
     return caveats
 
 
+def _parse_date(value: Optional[str]) -> Optional[date]:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _age_at_snapshot(birth_date: Optional[str], snapshot_date: Optional[str]) -> Optional[float]:
+    born = _parse_date(birth_date)
+    snapshot = _parse_date(snapshot_date)
+    if not born or not snapshot:
+        return None
+    years = snapshot.year - born.year
+    if (snapshot.month, snapshot.day) < (born.month, born.day):
+        years -= 1
+    return float(years)
+
+
+def _build_roster_audit_signals(
+    identity: PlayerIdentity,
+    features: dict[str, Any],
+    roster_context: Optional[dict[str, Any]],
+) -> Optional[RosterAuditSignals]:
+    player = {
+        "player_id": identity.dg_id,
+        "full_name": identity.full_name,
+        "position": identity.position,
+        "team": identity.nfl_team,
+        **features,
+    }
+    audited = audit_player(player)
+    if audited is None:
+        return None
+
+    liquidity = None
+    if roster_context:
+        has_2026_2nd = bool(roster_context.get("has_2026_2nd", True))
+        has_2027_2nd = bool(roster_context.get("has_2027_2nd", True))
+        liquidity = roster_risk_summary([player], has_2026_2nd, has_2027_2nd)["liquidity_risk"]
+
+    return RosterAuditSignals(
+        cliff_age=audited.get("cliff_age"),
+        years_to_cliff=audited.get("years_to_cliff"),
+        age_cliff_risk=audited.get("age_cliff_risk"),
+        biological_debt_score=audited.get("biological_debt_score"),
+        liquidity_risk=liquidity,
+        signal=audited.get("signal"),
+        signal_drivers=audited.get("signal_drivers", []),
+        caveats=audited.get("caveats", []),
+        decision_supported=False,
+    )
+
+
 def assemble_pvo(
     identity: PlayerIdentity,
     features: Optional[dict[str, Any]] = None,
     is_prospect: bool = False,
     source_versions: Optional[dict[str, str]] = None,
+    roster_context: Optional[dict[str, Any]] = None,
 ) -> PlayerValueObject:
     """Assemble a PlayerValueObject from identity + available feature signals.
 
@@ -142,6 +199,16 @@ def assemble_pvo(
     completeness, present, missing = _compute_completeness(required, features, identity)
     risk_flags = _build_risk_flags(identity, features, is_prospect)
     caveats = _build_caveats(completeness, is_prospect, missing)
+    roster_audit = _build_roster_audit_signals(identity, features, roster_context)
+    top_drivers: list[str] = []
+
+    if roster_audit:
+        for driver in roster_audit.signal_drivers:
+            if driver not in top_drivers:
+                top_drivers.append(driver)
+        for caveat in roster_audit.caveats:
+            if caveat not in caveats:
+                caveats.append(caveat)
 
     return PlayerValueObject(
         player_id=identity.dg_id,
@@ -149,6 +216,7 @@ def assemble_pvo(
         position=identity.position,
         nfl_team=identity.nfl_team,
         age=features.get("age"),
+        is_prospect=is_prospect,
         engine_used=None,
         model_version=None,
         model_grade="PRE_MODEL",
@@ -159,10 +227,11 @@ def assemble_pvo(
         signal_completeness=completeness,
         inputs_present=present,
         inputs_missing=missing,
-        top_drivers=[],
+        top_drivers=top_drivers,
         risk_flags=risk_flags,
         counter_argument=None,
         caveats=caveats,
+        roster_audit=roster_audit,
         market_overlay=None,
         assembled_at=datetime.now(timezone.utc).isoformat(),
         source_versions=source_versions or {},
@@ -172,6 +241,7 @@ def assemble_pvo(
 def assemble_roster_audit(
     mock_identity_path: Path,
     features_by_dg_id: Optional[dict[str, dict[str, Any]]] = None,
+    roster_context: Optional[dict[str, Any]] = None,
 ) -> list[dict[str, Any]]:
     """Build a Decision Card JSON list for all players in the mock identity fixture.
 
@@ -180,6 +250,7 @@ def assemble_roster_audit(
     """
     raw = json.loads(mock_identity_path.read_text())
     features_by_dg_id = features_by_dg_id or {}
+    snapshot_date = raw.get("snapshot_date")
 
     from src.dynasty_genius.identity import generate_dg_id
 
@@ -198,8 +269,21 @@ def assemble_roster_audit(
             playerprofiler_id=p.get("playerprofiler_id"),
         )
         is_prospect = bool(p.get("is_prospect", False))
-        features = features_by_dg_id.get(identity.dg_id, {})
-        pvo = assemble_pvo(identity, features, is_prospect=is_prospect)
+        fixture_features = {
+            "age": _age_at_snapshot(p.get("birth_date"), snapshot_date),
+        }
+        features = {**fixture_features, **features_by_dg_id.get(identity.dg_id, {})}
+        pvo = assemble_pvo(
+            identity,
+            features,
+            is_prospect=is_prospect,
+            roster_context=roster_context,
+            source_versions={
+                "identity_source": raw.get("source", "unknown"),
+                "identity_parser_version": raw.get("parser_version", "unknown"),
+                "identity_snapshot_date": snapshot_date or "unknown",
+            },
+        )
         cards.append(pvo.model_dump())
 
     return cards

@@ -23,6 +23,24 @@ class MarketOverlay(BaseModel):
     caveats: list[str] = Field(default_factory=list)
 
 
+class RosterAuditSignals(BaseModel):
+    """Local roster-dashboard risk signals.
+
+    These are decision-surface warnings assembled after identity and internal
+    value are known. They are not Engine A or Engine B model features.
+    """
+
+    cliff_age: Optional[int] = None
+    years_to_cliff: Optional[int] = None
+    age_cliff_risk: Optional[float] = None
+    biological_debt_score: Optional[float] = None
+    liquidity_risk: Optional[str] = None
+    signal: Optional[str] = None
+    signal_drivers: list[str] = Field(default_factory=list)
+    caveats: list[str] = Field(default_factory=list)
+    decision_supported: bool = False
+
+
 class PlayerValueObject(BaseModel):
     """Unified dynasty valuation row.
 
@@ -39,6 +57,7 @@ class PlayerValueObject(BaseModel):
     position: str
     nfl_team: Optional[str] = None
     age: Optional[float] = None
+    is_prospect: bool = False
 
     # ── Model metadata ────────────────────────────────────────────────────────
     engine_used: Optional[str] = None        # "engine_a" | "engine_b" | None
@@ -63,6 +82,7 @@ class PlayerValueObject(BaseModel):
     risk_flags: list[str] = Field(default_factory=list)
     counter_argument: Optional[str] = None
     caveats: list[str] = Field(default_factory=list)
+    roster_audit: Optional[RosterAuditSignals] = None
 
     # ── Market overlay — post-scoring only ───────────────────────────────────
     market_overlay: Optional[MarketOverlay] = None

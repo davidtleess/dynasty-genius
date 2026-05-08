@@ -4,7 +4,8 @@
     "full_name": "Christian McCaffrey",
     "position": "RB",
     "nfl_team": "SF",
-    "age": null,
+    "age": 29.0,
+    "is_prospect": false,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -24,7 +25,9 @@
       "breakaway_run_pct",
       "run_blocking_grade"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_past_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
@@ -32,18 +35,45 @@
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
       "Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade",
-      "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed"
+      "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 26,
+      "years_to_cliff": -3,
+      "age_cliff_risk": 1.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "past_cliff",
+      "signal_drivers": [
+        "age_past_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.063482+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.349728+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "puka_nacua_wr_2001",
     "full_name": "Puka Nacua",
     "position": "WR",
     "nfl_team": "LAR",
-    "age": null,
+    "age": 25.0,
+    "is_prospect": false,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -62,25 +92,54 @@
       "target_share",
       "yards_per_route_run"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 3,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.069140+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.353364+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "anthony_richardson_qb_2002",
     "full_name": "Anthony Richardson",
     "position": "QB",
     "nfl_team": "IND",
-    "age": null,
+    "age": 24.0,
+    "is_prospect": false,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -97,25 +156,54 @@
     "inputs_missing": [
       "snap_share"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 75% \u2014 missing: snap_share"
+      "Signal completeness 75% \u2014 missing: snap_share",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 33,
+      "years_to_cliff": 9,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.069310+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.354180+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "jamarr_chase_wr_2000",
     "full_name": "Ja'Marr Chase",
     "position": "WR",
     "nfl_team": "CIN",
-    "age": null,
+    "age": 26.0,
+    "is_prospect": false,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -134,25 +222,54 @@
       "target_share",
       "yards_per_route_run"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_within_two_years_of_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 2,
+      "age_cliff_risk": 0.3333,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "approaching_cliff",
+      "signal_drivers": [
+        "age_within_two_years_of_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.069447+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.354481+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "justin_jefferson_wr_1999",
     "full_name": "Justin Jefferson",
     "position": "WR",
     "nfl_team": "MIN",
-    "age": null,
+    "age": 26.0,
+    "is_prospect": false,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -171,25 +288,54 @@
       "target_share",
       "yards_per_route_run"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_within_two_years_of_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 2,
+      "age_cliff_risk": 0.3333,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "approaching_cliff",
+      "signal_drivers": [
+        "age_within_two_years_of_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.069583+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.354726+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "breece_hall_rb_2001",
     "full_name": "Breece Hall",
     "position": "RB",
     "nfl_team": "NYJ",
-    "age": null,
+    "age": 24.0,
+    "is_prospect": false,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -209,7 +355,9 @@
       "breakaway_run_pct",
       "run_blocking_grade"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_within_two_years_of_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
@@ -217,18 +365,45 @@
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
       "Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade",
-      "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed"
+      "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 26,
+      "years_to_cliff": 2,
+      "age_cliff_risk": 0.3333,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "approaching_cliff",
+      "signal_drivers": [
+        "age_within_two_years_of_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.069704+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.354982+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "amon_ra_st_brown_wr_1999",
     "full_name": "Amon-Ra St. Brown",
     "position": "WR",
     "nfl_team": "DET",
-    "age": null,
+    "age": 26.0,
+    "is_prospect": false,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -247,25 +422,54 @@
       "target_share",
       "yards_per_route_run"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_within_two_years_of_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 2,
+      "age_cliff_risk": 0.3333,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "approaching_cliff",
+      "signal_drivers": [
+        "age_within_two_years_of_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.069828+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.359206+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "travis_kelce_te_1989",
     "full_name": "Travis Kelce",
     "position": "TE",
     "nfl_team": "KC",
-    "age": null,
+    "age": 36.0,
+    "is_prospect": false,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -284,25 +488,54 @@
       "target_share",
       "yards_per_route_run"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_past_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 30,
+      "years_to_cliff": -6,
+      "age_cliff_risk": 1.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "past_cliff",
+      "signal_drivers": [
+        "age_past_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.069946+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.359503+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "lamar_jackson_qb_1997",
     "full_name": "Lamar Jackson",
     "position": "QB",
     "nfl_team": "BAL",
-    "age": null,
+    "age": 29.0,
+    "is_prospect": false,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -319,25 +552,54 @@
     "inputs_missing": [
       "snap_share"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 75% \u2014 missing: snap_share"
+      "Signal completeness 75% \u2014 missing: snap_share",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 33,
+      "years_to_cliff": 4,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.070057+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.359761+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "ceedee_lamb_wr_1999",
     "full_name": "CeeDee Lamb",
     "position": "WR",
     "nfl_team": "DAL",
-    "age": null,
+    "age": 27.0,
+    "is_prospect": false,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -356,25 +618,54 @@
       "target_share",
       "yards_per_route_run"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_within_two_years_of_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run"
+      "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 1,
+      "age_cliff_risk": 0.6667,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "approaching_cliff",
+      "signal_drivers": [
+        "age_within_two_years_of_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.070167+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.360000+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "luther_burden_wr_2003",
     "full_name": "Luther Burden III",
     "position": "WR",
     "nfl_team": "CHI",
-    "age": null,
+    "age": 22.0,
+    "is_prospect": true,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -393,25 +684,54 @@
       "age_at_nfl_entry",
       "college_dominator_rating"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 6,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.070278+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.360257+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "colston_loveland_te_2002",
     "full_name": "Colston Loveland",
     "position": "TE",
     "nfl_team": "CHI",
-    "age": null,
+    "age": 23.0,
+    "is_prospect": true,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -430,25 +750,54 @@
       "age_at_nfl_entry",
       "college_dominator_rating"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 30,
+      "years_to_cliff": 7,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.070385+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.360502+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "ashton_jeanty_rb_2003",
     "full_name": "Ashton Jeanty",
     "position": "RB",
     "nfl_team": "LV",
-    "age": null,
+    "age": 22.0,
+    "is_prospect": true,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -467,25 +816,54 @@
       "age_at_nfl_entry",
       "college_dominator_rating"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 26,
+      "years_to_cliff": 4,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.070491+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.360732+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "tetairoa_mcmillan_wr_2003",
     "full_name": "Tetairoa McMillan",
     "position": "WR",
     "nfl_team": "CAR",
-    "age": null,
+    "age": 22.0,
+    "is_prospect": true,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -504,25 +882,54 @@
       "age_at_nfl_entry",
       "college_dominator_rating"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 6,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.070606+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.360943+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "cam_ward_qb_2002",
     "full_name": "Cam Ward",
     "position": "QB",
     "nfl_team": "TEN",
-    "age": null,
+    "age": 23.0,
+    "is_prospect": true,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -540,25 +947,54 @@
       "draft_capital",
       "age_at_nfl_entry"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 60% \u2014 missing: draft_capital, age_at_nfl_entry"
+      "Signal completeness 60% \u2014 missing: draft_capital, age_at_nfl_entry",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 33,
+      "years_to_cliff": 10,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.070713+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.361135+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "mock_prospect_a_wr_2005",
     "full_name": "Mock Prospect A",
     "position": "WR",
     "nfl_team": null,
-    "age": null,
+    "age": 21.0,
+    "is_prospect": true,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -577,25 +1013,54 @@
       "age_at_nfl_entry",
       "college_dominator_rating"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 7,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.070820+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.361341+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "mock_prospect_b_rb_2005",
     "full_name": "Mock Prospect B",
     "position": "RB",
     "nfl_team": null,
-    "age": null,
+    "age": 20.0,
+    "is_prospect": true,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -614,25 +1079,54 @@
       "age_at_nfl_entry",
       "college_dominator_rating"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating"
+      "Signal completeness 50% \u2014 missing: draft_capital, age_at_nfl_entry, college_dominator_rating",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 26,
+      "years_to_cliff": 6,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.070939+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.361522+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   },
   {
     "player_id": "mock_prospect_c_qb_2004",
     "full_name": "Mock Prospect C Jr.",
     "position": "QB",
     "nfl_team": null,
-    "age": null,
+    "age": 21.0,
+    "is_prospect": true,
     "engine_used": null,
     "model_version": null,
     "model_grade": "PRE_MODEL",
@@ -650,17 +1144,45 @@
       "draft_capital",
       "age_at_nfl_entry"
     ],
-    "top_drivers": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
     "risk_flags": [
       "identity_unverified"
     ],
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
-      "Signal completeness 60% \u2014 missing: draft_capital, age_at_nfl_entry"
+      "Signal completeness 60% \u2014 missing: draft_capital, age_at_nfl_entry",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
     ],
+    "roster_audit": {
+      "cliff_age": 33,
+      "years_to_cliff": 12,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": null,
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
     "market_overlay": null,
-    "assembled_at": "2026-05-08T22:17:42.071434+00:00",
-    "source_versions": {}
+    "assembled_at": "2026-05-08T22:38:23.361714+00:00",
+    "source_versions": {
+      "identity_source": "mock_playerprofiler",
+      "identity_parser_version": "0.1.0",
+      "identity_snapshot_date": "2026-05-08"
+    }
   }
 ]
