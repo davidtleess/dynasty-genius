@@ -1,0 +1,30 @@
+resources:
+  jobs:
+    identity_resolution_pipeline:
+      name: dynasty-genius-identity-resolution-${bundle.target}
+      environments:
+        - environment_key: default_serverless
+          spec:
+            client: "4"
+      tasks:
+        - task_key: create_identity_table
+          spark_python_task:
+            python_file: ${workspace.file_path}/src/dynasty_genius/pipelines/gold.py
+            parameters:
+              - --sql-file
+              - ${workspace.file_path}/resources/sql/create_player_identity.sql
+          environment_key: default_serverless
+
+        - task_key: resolve_identities
+          depends_on:
+            - task_key: create_identity_table
+          spark_python_task:
+            python_file: ${workspace.file_path}/src/dynasty_genius/pipelines/identity.py
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --bronze-schema
+              - ${var.bronze_schema}
+              - --silver-schema
+              - ${var.silver_schema}
+          environment_key: default_serverless

@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS gen_alpha.gold.roster_valuation (
   ) COMMENT 'Calculated 0.0-1.0 risk based on proximity to positional age cliff. Risk reaches 1.0 at the cliff.',
 
   dynasty_trajectory STRING NOT NULL COMMENT 'APPRECIATING, DEPRECIATING, PEAK, or CLIFF.',
-  asset_tier_status STRING COMMENT 'Strategic tier such as ANCHOR, CO_ANCHOR, CONDITIONAL_TIER_2, LIQUIDATION_TARGET, or UNASSIGNED.',
+  asset_tier_status STRING COMMENT 'Strategic tier such as ANCHOR, CO_ANCHOR, CONDITIONAL_TIER_2, DEPRECIATION_WATCH, or UNASSIGNED.',
   asset_tier_basis STRING COMMENT 'Short explanation for strategic tier status. Must be evidence-backed; never narrative-only.',
   qual_dominant_override BOOLEAN NOT NULL DEFAULT false COMMENT 'True when human qualitative judgment intentionally overrides or re-tiers the model baseline.',
   qual_rationale STRING COMMENT 'Required rationale for qual_dominant_override; used for retrospective alpha/noise audits.',
@@ -95,7 +95,7 @@ ALTER TABLE gen_alpha.gold.roster_valuation
       'ANCHOR',
       'CO_ANCHOR',
       'CONDITIONAL_TIER_2',
-      'LIQUIDATION_TARGET',
+      'DEPRECIATION_WATCH',
       'UNASSIGNED'
     )
   );
@@ -135,7 +135,7 @@ SELECT
   age_cliff_risk,
   CASE
     WHEN feature_quality_status = 'INCOMPLETE_REQUIRED_FEATURES' THEN 'ANTI_SPEED_ABORT'
-    WHEN age_cliff_risk >= 1.0 THEN 'HIGH_LIQUIDATE'
+    WHEN age_cliff_risk >= 1.0 THEN 'AGE_CLIFF_HIGH'
     WHEN age_cliff_risk >= 0.67 THEN 'HIGH'
     WHEN age_cliff_risk >= 0.34 THEN 'MEDIUM'
     WHEN age_cliff_risk IS NULL THEN 'UNKNOWN'
@@ -157,7 +157,7 @@ SELECT
     WHEN age_cliff_risk >= 1.0
       AND dynasty_trajectory IN ('DEPRECIATING', 'CLIFF')
       AND market_delta < 0
-      THEN 'PRIORITY_EXPLOIT'
+      THEN 'MARKET_NOT_PRICED_DEPRECIATION'
     ELSE 'NO_MARKET_LAG'
   END AS market_lag_signal,
   CASE
@@ -166,13 +166,13 @@ SELECT
     WHEN age_cliff_risk >= 1.0
       AND dynasty_trajectory IN ('DEPRECIATING', 'CLIFF')
       AND market_delta < 0
-      THEN 'PRIORITY_EXPLOIT'
-    WHEN age_cliff_risk >= 1.0 AND market_delta < 0 THEN 'SELL_HIGH_LIQUIDATE'
-    WHEN age_cliff_risk >= 0.67 AND dynasty_trajectory IN ('DEPRECIATING', 'CLIFF') THEN 'SHOP_FOR_2027_1ST'
-    WHEN market_delta > 0 THEN 'BUY_OR_HOLD'
+      THEN 'AGE_AND_MARKET_DIVERGENCE_SIGNAL'
+    WHEN age_cliff_risk >= 1.0 AND market_delta < 0 THEN 'AGE_CLIFF_MARKET_DELTA_SIGNAL'
+    WHEN age_cliff_risk >= 0.67 AND dynasty_trajectory IN ('DEPRECIATING', 'CLIFF') THEN 'AGING_ASSET_CONCENTRATION_SIGNAL'
+    WHEN market_delta > 0 THEN 'MARKET_ABOVE_INTERNAL_SIGNAL'
     WHEN market_delta < 0 THEN 'MARKET_OVERVALUED'
-    ELSE 'HOLD_MONITOR'
-  END AS trade_seeker_signal,
+    ELSE 'NO_CURRENT_SIGNAL'
+  END AS market_context_signal,
   feature_quality_status,
   framework_flags,
   evidence_json,

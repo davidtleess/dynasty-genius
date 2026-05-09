@@ -3,7 +3,7 @@
 -- Schema: gold
 --
 -- Tracks pick assets owned by opponents, joined with prospect identity.
--- Part of the "Liquidation Monitor" track.
+-- Part of the opponent fragility lens track.
 
 CREATE SCHEMA IF NOT EXISTS gen_alpha.gold;
 

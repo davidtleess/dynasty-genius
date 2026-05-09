@@ -1,0 +1,4 @@
+[
+  {"season": 2025, "week": 1, "player_id": "mock_pff_10703", "player_name": "Christian McCaffrey", "position": "RB", "team": "SF", "rush_attempts": 18, "breakaway_runs": 2, "targets": 6, "team_targets": 30},
+  {"season": 2025, "week": 2, "player_id": "mock_pff_10703", "player_name": "Christian McCaffrey", "position": "RB", "team": "SF", "rush_attempts": 22, "breakaway_runs": 1, "targets": 8, "team_targets": 32}
+]

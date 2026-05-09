@@ -56,6 +56,7 @@ def test_identity_layer_has_no_market_join_anchors():
     identity_files = [
         ROOT / "src/dynasty_genius/identity.py",
         ROOT / "src/dynasty_genius/models/player_identity.py",
+        ROOT / "resources/sql/create_player_identity.sql",
     ]
 
     offenders = []

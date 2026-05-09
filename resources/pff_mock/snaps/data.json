@@ -1,0 +1,6 @@
+[
+  {"season": 2025, "week": 1, "player_id": "mock_pff_10222", "player_name": "Puka Nacua", "position": "WR", "team": "LAR", "offensive_snaps": 60, "team_offensive_snaps": 65, "rookie_season": 2023},
+  {"season": 2025, "week": 2, "player_id": "mock_pff_10222", "player_name": "Puka Nacua", "position": "WR", "team": "LAR", "offensive_snaps": 62, "team_offensive_snaps": 68, "rookie_season": 2023},
+  {"season": 2025, "week": 1, "player_id": "mock_pff_10703", "player_name": "Christian McCaffrey", "position": "RB", "team": "SF", "offensive_snaps": 55, "team_offensive_snaps": 60, "rookie_season": 2017},
+  {"season": 2025, "week": 2, "player_id": "mock_pff_10703", "player_name": "Christian McCaffrey", "position": "RB", "team": "SF", "offensive_snaps": 58, "team_offensive_snaps": 62, "rookie_season": 2017}
+]

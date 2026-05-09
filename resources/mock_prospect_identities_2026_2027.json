@@ -1,0 +1,97 @@
+{
+  "source": "mock_prospect_identity",
+  "snapshot_date": "2026-05-08",
+  "note": "Expanded mock prospects for 2026/2027 classes. Used for identity resolution testing.",
+  "players": [
+    {
+      "dg_id": "ryan_williams_wr_2007",
+      "full_name": "Ryan Williams",
+      "position": "WR",
+      "draft_class": 2027,
+      "birth_year": 2007,
+      "school": "Alabama",
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "arch_manning_qb_2005",
+      "full_name": "Arch Manning",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2005,
+      "school": "Texas",
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "jeremiah_smith_wr_2005",
+      "full_name": "Jeremiah Smith",
+      "position": "WR",
+      "draft_class": 2027,
+      "birth_year": 2005,
+      "school": "Ohio State",
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "nico_iamaleava_qb_2004",
+      "full_name": "Nico Iamaleava",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2004,
+      "school": "Tennessee",
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "zachariah_branch_wr_2004",
+      "full_name": "Zachariah Branch",
+      "position": "WR",
+      "draft_class": 2026,
+      "birth_year": 2004,
+      "school": "USC",
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "jackson_arnold_qb_2004",
+      "full_name": "Jackson Arnold",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2004,
+      "school": "Oklahoma",
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "malachi_nelson_qb_2004",
+      "full_name": "Malachi Nelson",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2004,
+      "school": "Boise State",
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "dante_moore_qb_2005",
+      "full_name": "Dante Moore",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2005,
+      "school": "Oregon",
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "carnell_tate_wr_2005",
+      "full_name": "Carnell Tate",
+      "position": "WR",
+      "draft_class": 2026,
+      "birth_year": 2005,
+      "school": "Ohio State",
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "jaden_rashada_qb_2003",
+      "full_name": "Jaden Rashada",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2003,
+      "school": "Georgia",
+      "verification_status": "PENDING"
+    }
+  ]
+}

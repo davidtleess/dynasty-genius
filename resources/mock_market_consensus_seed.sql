@@ -27,4 +27,43 @@ VALUES (
   current_timestamp(),
   'READY_FOR_MODELING',
   '{"source":"mock_step_0_8","purpose":"Model Accuracy Dashboard test row; replace with KTC/DynastyNerds consensus"}'
+),
+(
+  'mock-arch-manning',
+  'Arch Manning',
+  'QB',
+  2026,
+  'mock_market_consensus',
+  9500.0,
+  1,
+  'ANCHOR',
+  current_timestamp(),
+  'READY_FOR_MODELING',
+  '{"source":"mock_step_0_8","dg_id":"arch_manning_qb_2005"}'
+),
+(
+  'mock-jeremiah-smith',
+  'Jeremiah Smith',
+  'WR',
+  2027,
+  'mock_market_consensus',
+  9200.0,
+  2,
+  'ANCHOR',
+  current_timestamp(),
+  'READY_FOR_MODELING',
+  '{"source":"mock_step_0_8","dg_id":"jeremiah_smith_wr_2005"}'
+),
+(
+  'mock-nico-iamaleava',
+  'Nico Iamaleava',
+  'QB',
+  2026,
+  'mock_market_consensus',
+  8500.0,
+  4,
+  'READY',
+  current_timestamp(),
+  'READY_FOR_MODELING',
+  '{"source":"mock_step_0_8","dg_id":"nico_iamaleava_qb_2004"}'
 );

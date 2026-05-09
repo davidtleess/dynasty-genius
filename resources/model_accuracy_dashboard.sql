@@ -79,10 +79,10 @@ joined AS (
       WHEN m.market_feature_quality_status = 'INCOMPLETE_REQUIRED_FEATURES' THEN 'ANTI_SPEED_ABORT_MARKET_INCOMPLETE'
       WHEN m.silver_market_value IS NULL THEN 'MARKET_CONSENSUS_MISSING'
       WHEN g.internal_valuation < m.silver_market_value
-        AND g.asset_tier_status IN ('CONDITIONAL_TIER_2', 'LIQUIDATION_TARGET')
-        THEN 'ALPHA_DIVERGENCE_PRIORITY_SHORT'
+        AND g.asset_tier_status IN ('CONDITIONAL_TIER_2', 'DEPRECIATION_WATCH')
+        THEN 'INTERNAL_BELOW_MARKET_DEPRECIATION_SIGNAL'
       WHEN g.internal_valuation > m.silver_market_value
-        THEN 'ALPHA_DIVERGENCE_BUY_OR_HOLD'
+        THEN 'INTERNAL_ABOVE_MARKET_SIGNAL'
       ELSE 'NO_ALPHA_DIVERGENCE'
     END AS alpha_divergence_signal,
     CASE
@@ -110,7 +110,7 @@ SELECT *
 FROM joined
 WHERE qual_dominant_override = true
    OR lower(player_name) = 'ryan williams'
-   OR alpha_divergence_signal IN ('ALPHA_DIVERGENCE_PRIORITY_SHORT', 'ALPHA_DIVERGENCE_BUY_OR_HOLD')
+   OR alpha_divergence_signal IN ('INTERNAL_BELOW_MARKET_DEPRECIATION_SIGNAL', 'INTERNAL_ABOVE_MARKET_SIGNAL')
    OR audit_signal IN ('QUAL_OVERRIDE_ACTIVE', 'TIER_DISAGREEMENT', 'MARKET_CONSENSUS_MISSING');
 
 GRANT SELECT ON VIEW gen_alpha.gold.model_accuracy_dashboard TO `dg_agent_gold_readers`;

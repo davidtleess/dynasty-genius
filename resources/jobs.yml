@@ -2,6 +2,10 @@ resources:
   jobs:
     pipeline_a_prospect_feature_store:
       name: dynasty-genius-pipeline-a-prospects-${bundle.target}
+      environments:
+        - environment_key: default_serverless
+          spec:
+            client: "4"
       tasks:
         - task_key: build_prospect_features
           spark_python_task:
@@ -15,14 +19,14 @@ resources:
               - ${var.silver_schema}
               - --raw-base-path
               - ${var.raw_volume_path}/prospects
-          new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: i3.xlarge
-            num_workers: 1
-            data_security_mode: SINGLE_USER
+          environment_key: default_serverless
 
     pipeline_b_pff_feature_store:
       name: dynasty-genius-pipeline-b-pff-${bundle.target}
+      environments:
+        - environment_key: default_serverless
+          spec:
+            client: "4"
       tasks:
         - task_key: build_pff_features
           spark_python_task:
@@ -36,14 +40,14 @@ resources:
               - ${var.silver_schema}
               - --raw-base-path
               - ${var.raw_volume_path}/pff_mock
-          new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: i3.xlarge
-            num_workers: 1
-            data_security_mode: SINGLE_USER
+          environment_key: default_serverless
 
     gold_layer_initialization:
       name: dynasty-genius-gold-layer-init-${bundle.target}
+      environments:
+        - environment_key: default_serverless
+          spec:
+            client: "4"
       tasks:
         - task_key: apply_gold_roster_valuation
           spark_python_task:
@@ -52,21 +56,21 @@ resources:
               - --sql-file
               - ${workspace.file_path}/resources/gold_roster_valuation.sql
               - --sql-file
-              - ${workspace.file_path}/resources/great_liquidation_monitor.sql
+              - ${workspace.file_path}/resources/opponent_fragility_lens.sql
               - --sql-file
               - ${workspace.file_path}/resources/model_accuracy_dashboard.sql
               - --sql-file
               - ${workspace.file_path}/resources/leaguemate_fragility_index.sql
               - --sql-file
               - ${workspace.file_path}/resources/alpha_divergence_weekly_report.sql
-          new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: i3.xlarge
-            num_workers: 1
-            data_security_mode: SINGLE_USER
+          environment_key: default_serverless
 
     sleeper_live_roster_ingestion:
       name: dynasty-genius-sleeper-live-ingestion-${bundle.target}
+      environments:
+        - environment_key: default_serverless
+          spec:
+            client: "4"
       tasks:
         - task_key: ingest_sleeper_roster
           spark_python_task:
@@ -78,14 +82,14 @@ resources:
               - ${var.bronze_schema}
               - --silver-schema
               - ${var.silver_schema}
-          new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: i3.xlarge
-            num_workers: 1
-            data_security_mode: SINGLE_USER
+          environment_key: default_serverless
 
     mock_gold_roster_seed:
       name: dynasty-genius-mock-gold-roster-seed-${bundle.target}
+      environments:
+        - environment_key: default_serverless
+          spec:
+            client: "4"
       tasks:
         - task_key: seed_mock_roster_valuation
           spark_python_task:
@@ -97,18 +101,18 @@ resources:
               - ${workspace.file_path}/resources/mock_market_consensus_seed.sql
               - --sql-file
               - ${workspace.file_path}/resources/mock_leaguemate_fragility_seed.sql
-          new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: i3.xlarge
-            num_workers: 1
-            data_security_mode: SINGLE_USER
+          environment_key: default_serverless
 
     alpha_divergence_weekly_report:
       name: dynasty-genius-alpha-divergence-weekly-${bundle.target}
       schedule:
         quartz_cron_expression: "0 0 9 ? * MON *"
         timezone_id: America/New_York
-        pause_status: UNPAUSED
+        pause_status: PAUSED
+      environments:
+        - environment_key: default_serverless
+          spec:
+            client: "4"
       tasks:
         - task_key: refresh_alpha_divergence_report
           spark_python_task:
@@ -118,8 +122,4 @@ resources:
               - ${workspace.file_path}/resources/model_accuracy_dashboard.sql
               - --sql-file
               - ${workspace.file_path}/resources/alpha_divergence_weekly_report.sql
-          new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: i3.xlarge
-            num_workers: 1
-            data_security_mode: SINGLE_USER
+          environment_key: default_serverless

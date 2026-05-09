@@ -100,6 +100,10 @@ Purpose:
 Initial Gold targets:
 * `gen_alpha.gold.agent_activity_log`
 * `gen_alpha.gold.artifact_registry`
+* `gen_alpha.gold.roster`
+* `gen_alpha.gold.draft_picks`
+* `gen_alpha.gold.backtest_history`
+* `gen_alpha.gold.opponent_picks`
 
 Gold tables are governed outputs. Writes should be constrained to approved jobs and deployment paths.
 
@@ -187,6 +191,38 @@ Primary uses:
 * promotion tracking across environments
 * validation visibility for bootstrap files and key controls
 * future dependency mapping between repo assets and platform assets
+
+### `gen_alpha.gold.backtest_history`
+
+Purpose:
+Track historical model predictions vs actual realized fantasy performance to calibrate the "Trust Flywheel".
+
+Recommended columns:
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `dg_id` | string | Canonical player identifier |
+| `prediction_date` | date | Date of the model prediction |
+| `predicted_value` | double | The predicted DVU or rank |
+| `actual_points_next_12m` | double | Realized points in subsequent 12m |
+| `error_delta` | double | Prediction error (predicted - actual) |
+| `ingest_ts` | timestamp | Record ingestion time |
+
+### `gen_alpha.gold.opponent_picks`
+
+Purpose:
+Track pick assets owned by league opponents for liquidation monitoring.
+
+Recommended columns:
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `league_id` | string | Unique league identifier |
+| `owner_id` | string | Opponent manager identifier |
+| `pick_year` | integer | Year of the draft pick |
+| `pick_round` | integer | Round of the pick |
+| `dg_id` | string | Projected prospect identity if assigned |
+| `ingest_ts` | timestamp | Record ingestion time |
 
 ## Source-Rank Enforcement Policy
 

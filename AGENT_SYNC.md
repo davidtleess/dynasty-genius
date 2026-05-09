@@ -29,7 +29,8 @@ Establish the canonical identity and league context:
 - Claude connected Engine A trained models to PVO assembler (`src/dynasty_genius/scoring/engine_a.py`). Prospects with pick+round+age now receive a 0-100 `dynasty_value_score`, `model_grade=PROSPECT_C` (or PROSPECT_D for QB), and Engine A caveats. Veterans remain PRE_MODEL.
 - `fuzzy_match.py` dead code deleted; `verify_conflicts.py` migrated to assertion-based checks against `identity.py`; team/team+jersey conflict escalation verified.
 - Codex removed `ktc_id` from the local `silver.player_identity` DDL and Spark identity pipeline output. `ktc_id` remains only in `MARKET_DERIVED_COLUMNS` as a blocked source column, not as a canonical identity field or join anchor.
-- Current local verification: 53 tests pass; governance validation passes; no Databricks commands run.
+- Codex review fixes closed the identity Spark optional-column bug, added an Engine B missing-feed regression, neutralized the dashboard design spec, and changed mock prospect identity rows from `VERIFIED` to `PENDING`.
+- Current local verification: 54 tests pass; governance validation passes; no Databricks commands run.
 
 ## Open Blockers
 

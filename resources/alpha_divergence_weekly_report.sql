@@ -2,7 +2,7 @@
 -- Purpose: Gold-facing report for players where internal value is more than
 -- 15% below Silver market consensus.
 --
--- These are Priority Shorts: the market still pays more than our model.
+-- These are context signals: the market remains above the internal model.
 
 CREATE OR REPLACE VIEW gen_alpha.gold.alpha_divergence_weekly_report AS
 SELECT
@@ -30,7 +30,7 @@ SELECT
   market_evidence_json,
   calculated_at
 FROM gen_alpha.gold.model_accuracy_dashboard
-WHERE alpha_divergence_signal = 'ALPHA_DIVERGENCE_PRIORITY_SHORT'
+WHERE alpha_divergence_signal = 'INTERNAL_BELOW_MARKET_DEPRECIATION_SIGNAL'
   AND silver_market_value IS NOT NULL
   AND silver_market_value > 0
   AND (silver_market_value - gold_internal_valuation) / silver_market_value >= 0.15;

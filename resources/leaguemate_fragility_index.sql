@@ -1,6 +1,6 @@
 -- Leaguemate Fragility Index
 -- Purpose: rank opposing rosters by probability of their 2027 1st landing in
--- Tier 1/2 target zones.
+-- Tier 1/2 opponent fragility zones.
 --
 -- Anti-Speed posture:
 -- - Uses only Gold valuation rows.
@@ -215,20 +215,20 @@ SELECT
   fragility_score,
   CASE
     WHEN incomplete_asset_count > 0 OR incomplete_pick_rows > 0 THEN 'ANTI_SPEED_ABORT_INCOMPLETE_ROSTER_OR_PICKS'
-    WHEN has_own_2027_1st = 0 THEN 'NO_OWN_2027_1ST_TO_ACQUIRE'
+    WHEN has_own_2027_1st = 0 THEN 'NO_OWN_2027_1ST_AVAILABLE'
     WHEN fragility_score >= 0.75 AND has_unprotected_own_2027_1st = 1 THEN 'TIER_1_SMITH_SAYIN_ELIGIBLE_TOP_3'
     WHEN fragility_score >= 0.55 AND has_own_2027_1st = 1 THEN 'TIER_2_MANNING_MOORE_ELIGIBLE_TOP_6'
     WHEN fragility_score >= 0.35 THEN 'TIER_3_LATE_2027_1ST'
     ELSE 'LOW_FRAGILITY_CONTENDER_PICK'
   END AS projected_2027_pick_tier,
   CASE
-    WHEN incomplete_asset_count > 0 OR incomplete_pick_rows > 0 THEN 'NO_ACTION'
-    WHEN has_own_2027_1st = 0 THEN 'NO_TARGET_PICK'
-    WHEN fragility_score >= 0.75 AND has_unprotected_own_2027_1st = 1 THEN 'ACQUIRE_UNPROTECTED_2027_1ST_AGGRESSIVELY'
-    WHEN fragility_score >= 0.55 AND has_own_2027_1st = 1 THEN 'ACQUIRE_2027_1ST_SELECTIVELY'
-    WHEN fragility_score >= 0.35 THEN 'REQUIRE_KICKER_FOR_LATE_1ST'
-    ELSE 'DO_NOT_OVERPAY_FOR_CONTENDER_1ST'
-  END AS acquisition_action,
+    WHEN incomplete_asset_count > 0 OR incomplete_pick_rows > 0 THEN 'INCOMPLETE_CONTEXT'
+    WHEN has_own_2027_1st = 0 THEN 'NO_OWN_2027_1ST_AVAILABLE'
+    WHEN fragility_score >= 0.75 AND has_unprotected_own_2027_1st = 1 THEN 'UNPROTECTED_2027_1ST_CONTEXT'
+    WHEN fragility_score >= 0.55 AND has_own_2027_1st = 1 THEN 'OWN_2027_1ST_CONTEXT'
+    WHEN fragility_score >= 0.35 THEN 'LATE_2027_1ST_CONTEXT'
+    ELSE 'LOW_FRAGILITY_PICK_CONTEXT'
+  END AS pick_context_signal,
   filter(biological_debt_players, player -> player IS NOT NULL) AS biological_debt_players
 FROM scored;
 

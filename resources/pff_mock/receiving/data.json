@@ -1,0 +1,4 @@
+[
+  {"season": 2025, "week": 1, "player_id": "mock_pff_10222", "player_name": "Puka Nacua", "position": "WR", "team": "LAR", "routes_run": 35, "receiving_yards": 110, "targets": 12, "team_targets": 40},
+  {"season": 2025, "week": 2, "player_id": "mock_pff_10222", "player_name": "Puka Nacua", "position": "WR", "team": "LAR", "routes_run": 38, "receiving_yards": 95, "targets": 10, "team_targets": 42}
+]

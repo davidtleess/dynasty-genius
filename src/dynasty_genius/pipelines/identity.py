@@ -69,8 +69,18 @@ def build_identity_table(spark: SparkSession, catalog: str, bronze_schema: str, 
 
     birth_date_col = _optional_column(source_df.columns, "birth_date")
     birth_year_col = _optional_column(source_df.columns, "birth_year")
+    nfl_team_col = _optional_column(source_df.columns, "nfl_team")
+    jersey_number_col = _optional_column(source_df.columns, "jersey_number")
     sleeper_df = source_df \
-        .select("player_id", "player_name", "position", birth_date_col, birth_year_col) \
+        .select(
+            "player_id",
+            "player_name",
+            "position",
+            birth_date_col,
+            birth_year_col,
+            nfl_team_col,
+            jersey_number_col,
+        ) \
         .distinct()
         
     # 2. Generate initial dg_id. Birth year is required for VERIFIED canonical rows.
@@ -108,21 +118,37 @@ def build_identity_table(spark: SparkSession, catalog: str, bronze_schema: str, 
         F.col("dg_id"),
         F.col("player_name").alias("full_name"),
         F.col("position"),
-        F.col("birth_date"),
-        F.col("resolved_birth_year").alias("birth_year"),
+        F.to_date(F.col("birth_date")).alias("birth_date"),
+        F.col("nfl_team"),
+        F.col("jersey_number"),
         F.col("player_id").alias("sleeper_id"),
-        F.current_timestamp().alias("last_updated_ts"),
+        F.lit(None).cast("string").alias("pff_id"),
+        F.lit(None).cast("string").alias("pfr_id"),
+        F.lit(None).cast("string").alias("playerprofiler_id"),
         F.when(F.col("resolved_birth_year").isNull(), "CONFLICT")
         .otherwise("PENDING")
-        .alias("verification_status")
+        .alias("verification_status"),
+        F.current_timestamp().alias("last_updated_ts"),
+        F.current_timestamp().alias("effective_from"),
+        F.lit(None).cast("timestamp").alias("effective_to"),
+        F.lit(True).alias("is_current")
     )
     
     # 3. Write to Silver
+    # Using overwrite for the initial draft; in production this would be a MERGE
     identity_df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(
         f"{silver}.player_identity"
     )
 
+def parse_args():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--catalog", required=True)
+    parser.add_argument("--bronze-schema", required=True)
+    parser.add_argument("--silver-schema", required=True)
+    return parser.parse_args()
+
 if __name__ == "__main__":
+    args = parse_args()
     spark = SparkSession.builder.getOrCreate()
-    # Mocking for local check
-    # build_identity_table(spark, "gen_alpha", "bronze", "silver")
+    build_identity_table(spark, args.catalog, args.bronze_schema, args.silver_schema)

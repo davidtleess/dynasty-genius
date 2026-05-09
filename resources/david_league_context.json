@@ -1,0 +1,36 @@
+{
+  "league_id": "mock-productive-struggle-league",
+  "league_name": "Mock Productive Struggle",
+  "season": "2026",
+  "david_user_id": "mock-david",
+  "david_display_name": "David",
+  "david_roster_id": 1,
+  "is_superflex": true,
+  "is_ppr": true,
+  "te_premium": 0.5,
+  "my_players": [
+    "mock-jonathan-taylor",
+    "mock-davante-adams",
+    "mock-tyreek-hill"
+  ],
+  "my_future_picks": [
+    {
+      "year": 2026,
+      "round": 1,
+      "is_acquired": false
+    },
+    {
+      "year": 2026,
+      "round": 2,
+      "is_acquired": false
+    },
+    {
+      "year": 2027,
+      "round": 1,
+      "is_acquired": true,
+      "original_owner": "LeagueMate_A"
+    }
+  ],
+  "last_sync": "2026-05-08T21:51:10.017340+00:00",
+  "status": "MOCK_DATA"
+}
