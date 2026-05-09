@@ -15,6 +15,7 @@ from app.services.roster_auditor import audit_player, roster_risk_summary
 from src.dynasty_genius.decision_logic.counter_arguments import generate_counter_argument
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.models.player_value_object import PlayerValueObject, RosterAuditSignals
+from src.dynasty_genius.scoring.engine_a import score_prospect
 
 
 # ── Position-specific required signal sets ────────────────────────────────────
@@ -214,6 +215,30 @@ def assemble_pvo(
             if caveat not in caveats:
                 caveats.append(caveat)
 
+    # Engine A: score prospect if pick + round + age are all supplied.
+    # Veterans stay PRE_MODEL until Engine B is trained.
+    engine_a_result = None
+    if is_prospect:
+        pick = features.get("pick")
+        round_ = features.get("round")
+        age = features.get("age")
+        if pick is not None and round_ is not None and age is not None:
+            engine_a_result = score_prospect(identity.position, float(pick), float(round_), float(age))
+
+    engine_used = None
+    model_version = None
+    model_grade = "PRE_MODEL"
+    dynasty_value_score = features.get("dynasty_value_score")
+
+    if engine_a_result:
+        engine_used = engine_a_result["engine_used"]
+        model_version = engine_a_result["model_version"]
+        model_grade = engine_a_result["model_grade"]
+        dynasty_value_score = engine_a_result["dynasty_value_score"]
+        for caveat in engine_a_result["caveats"]:
+            if caveat not in caveats:
+                caveats.append(caveat)
+
     pvo = PlayerValueObject(
         player_id=identity.dg_id,
         full_name=identity.full_name,
@@ -221,10 +246,10 @@ def assemble_pvo(
         nfl_team=identity.nfl_team,
         age=features.get("age"),
         is_prospect=is_prospect,
-        engine_used=None,
-        model_version=None,
-        model_grade="PRE_MODEL",
-        dynasty_value_score=features.get("dynasty_value_score"),
+        engine_used=engine_used,
+        model_version=model_version,
+        model_grade=model_grade,
+        dynasty_value_score=dynasty_value_score,
         projection_1y=None,
         projection_2y=None,
         projection_3y=None,
