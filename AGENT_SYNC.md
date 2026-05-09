@@ -22,24 +22,25 @@ Establish the canonical identity and league context:
 - Transitioned to Phase 2: Identity & Context Foundation.
 - Defined `PlayerIdentity` and `LeagueContext` models for cross-source unification.
 - Implemented `dg_id` generation utility and Identity Resolution pipeline stub.
-- Mapped market-overlay surface under `resources/` for post-scoring joins.
-- Codex pressure-tested identity governance: added suffix/alias normalization, deterministic collision suffixing, market-column vetoes in the identity pipeline, and focused identity governance tests.
-- Claude implemented fuzzy name confidence, ID resolver lookups, and mock PlayerProfiler identity fixtures; Codex reviewed and removed `ktc_id` from canonical identity fixtures while preserving the 95% conflict rule.
-- Identity resolver now supports context escalation: name-only verification at 95%, team verification for strong near-matches, and team+jersey verification for weaker conflicts such as `Cam Thomas` vs. `Cameron Thomas`.
-- Codex added local-only roster risk math for the Roster Audit Dashboard: age-cliff risk, internal-value biological debt, and second-round-pick liquidity risk.
-- Claude delivered `PlayerValueObject` + `RosterAuditSignals` models, `pvo_assembler.py` (18-card Decision Card JSON from mock fixture), and a self-contained dark-theme Roster Audit HTML dashboard. Biological debt and age-cliff signals now populate the `roster_audit` field on each PVO card. `is_prospect` field added to PVO and dashboard prospect detection fixed to read the field instead of caveat text. 29 tests pass.
+- Identity resolver supports context escalation: name-only (95%), team, and team+jersey verification for conflicts.
+- Codex added local-only roster risk math: age-cliff risk, biological debt, and liquidity risk in `app/services/roster_auditor.py`.
+- Claude delivered `PlayerValueObject` + `RosterAuditSignals` models, `pvo_assembler.py`, live Sleeper roster ingestion (24 players), and dark-theme Roster Audit HTML dashboard. Dashboard loads from external JS artifact; position groups QB→RB→WR→TE; full `RosterAuditSignals` contract in expandable rows.
+- Gemini added opponent fragility lens (`scripts/generate_league_audit.py`, `resources/league_fragility_report.json`) and counter-argument engine (`src/dynasty_genius/decision_logic/counter_arguments.py`), wired into PVO. Governance violation (verdict language) was caught and corrected.
+- Claude connected Engine A trained models to PVO assembler (`src/dynasty_genius/scoring/engine_a.py`). Prospects with pick+round+age now receive a 0-100 `dynasty_value_score`, `model_grade=PROSPECT_C` (or PROSPECT_D for QB), and Engine A caveats. Veterans remain PRE_MODEL.
+- `fuzzy_match.py` dead code deleted; `verify_conflicts.py` migrated to `identity.py`. 53 tests pass.
 
 ## Open Blockers
 
 - Formal Gemini CLI bootstrap lock is not yet implemented; current enforcement is markdown bootstrap, CI validation, and local Git pre-commit.
 - Databricks lineage tables and SCD Type 2 identity DDL are pending Genie architecture work.
-- `fuzzy_match.py` overlaps with confidence logic in `identity.py`; redundancy not yet reconciled.
+- Opponent fragility lens uses mock league rosters — must be replaced with live Sleeper snapshot before surfacing in dashboard.
 
 ## Next Recommended Work
 
-1. Have Genie define `silver.player_identity` SCD Type 2 DDL and Databricks deployment wiring (dry-run only, no cluster spin-up).
-2. Have Gemini review `LeagueContext` pick ownership and scoring propagation before Engine B ignition.
-3. Wire David's real Sleeper roster into the PVO assembler so Roster Audit shows live players with real ages and biological debt scores.
+1. Gemini PM: review `LeagueContext` pick ownership and scoring propagation before Engine B ignition.
+2. Genie: define `silver.player_identity` SCD Type 2 DDL — dry-run only, no cluster spin-up.
+3. Wire Engine A scores into 2026 draft prospect cards: rebuild mock prospect identity fixture with pick + round + age fields, run `scripts/build_live_roster.py` with `is_prospect=True` for devy/rookie entries.
+4. Replace mock league rosters with live Sleeper snapshot to activate the opponent fragility lens.
 
 ## Branch / Worktree Notes
 
