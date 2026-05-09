@@ -24,7 +24,7 @@ mcp_server:
   allowed_objects:
     - gen_alpha.gold.roster_valuation
     - gen_alpha.gold.roster_valuation_signals
-    - gen_alpha.gold.great_liquidation_monitor
+    - gen_alpha.gold.opponent_fragility_lens
     - gen_alpha.gold.model_accuracy_dashboard
     - gen_alpha.gold.leaguemate_fragility_index
     - gen_alpha.gold.alpha_divergence_weekly_report
@@ -42,7 +42,7 @@ mcp_server:
     - "USE SCHEMA ON SCHEMA gen_alpha.gold"
     - "SELECT ON TABLE gen_alpha.gold.roster_valuation"
     - "SELECT ON VIEW gen_alpha.gold.roster_valuation_signals"
-    - "SELECT ON VIEW gen_alpha.gold.great_liquidation_monitor"
+    - "SELECT ON VIEW gen_alpha.gold.opponent_fragility_lens"
     - "SELECT ON VIEW gen_alpha.gold.model_accuracy_dashboard"
     - "SELECT ON VIEW gen_alpha.gold.leaguemate_fragility_index"
     - "SELECT ON VIEW gen_alpha.gold.alpha_divergence_weekly_report"
