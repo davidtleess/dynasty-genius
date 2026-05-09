@@ -60,16 +60,35 @@ def test_no_banned_words(cards):
     assert not hits, f"Banned words found: {hits}"
 
 
-# ── 4. Card count matches JS artifact ────────────────────────────────────────
+# ── 4. JS artifact matches JSON artifact (content parity, not just count) ────
 
-def test_js_artifact_count_matches_json(cards):
+def test_js_artifact_matches_json(cards):
     js_text = CARDS_JS.read_text()
-    # Extract the array literal from window.ROSTER_AUDIT_CARDS = [...];
     match = re.search(r"window\.ROSTER_AUDIT_CARDS\s*=\s*(\[.*\]);", js_text, re.DOTALL)
     assert match, "Could not parse ROSTER_AUDIT_CARDS from JS artifact"
     js_cards = json.loads(match.group(1))
+
     assert len(js_cards) == len(cards), (
         f"JS artifact has {len(js_cards)} cards, JSON has {len(cards)}"
+    )
+
+    # Index both by player_id so order differences don't mask stale content.
+    json_by_id = {c["player_id"]: c for c in cards}
+    js_by_id   = {c["player_id"]: c for c in js_cards}
+
+    extra   = set(js_by_id) - set(json_by_id)
+    missing = set(json_by_id) - set(js_by_id)
+    assert not extra,   f"Players in JS but not JSON: {extra}"
+    assert not missing, f"Players in JSON but not JS: {missing}"
+
+    drift = []
+    for pid, json_card in json_by_id.items():
+        js_card = js_by_id[pid]
+        if json_card != js_card:
+            drift.append(json_card.get("full_name", pid))
+    assert not drift, (
+        f"JS artifact content diverges from JSON for: {drift}. "
+        "Re-run scripts/build_live_roster.py to regenerate both artifacts."
     )
 
 
