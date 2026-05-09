@@ -1,0 +1,39 @@
+[
+  {
+    "owner": "Win-Now-Wilfred",
+    "debt_ratio": 1.0,
+    "total_value": 23500.0,
+    "liquidity": "NONE",
+    "fragility_status": "FRAGILE",
+    "opportunity_type": "aging_asset_liquidity_pressure",
+    "why_flagged": [
+      "biological_debt_ratio_above_40pct",
+      "limited_first_round_pick_liquidity"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "replace_mock_rosters_with_live_sleeper_snapshot",
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "Rebuild-Rick",
+    "debt_ratio": 0.0,
+    "total_value": 18700.0,
+    "liquidity": "HIGH",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "no_current_fragility_signal"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "replace_mock_rosters_with_live_sleeper_snapshot",
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  }
+]

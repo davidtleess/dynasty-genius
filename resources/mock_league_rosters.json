@@ -1,0 +1,23 @@
+[
+  {
+    "owner_id": "opponent_1",
+    "display_name": "Win-Now-Wilfred",
+    "players": [
+      "tyreek_hill_wr_1994",
+      "davante_adams_wr_1992",
+      "travis_kelce_te_1989"
+    ],
+    "has_2026_1st": false,
+    "has_2027_1st": false
+  },
+  {
+    "owner_id": "opponent_2",
+    "display_name": "Rebuild-Rick",
+    "players": [
+      "jeremiah_smith_wr_2005",
+      "arch_manning_qb_2005"
+    ],
+    "has_2026_1st": true,
+    "has_2027_1st": true
+  }
+]

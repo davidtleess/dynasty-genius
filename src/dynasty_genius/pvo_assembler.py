@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from app.services.roster_auditor import audit_player, roster_risk_summary
+from src.dynasty_genius.decision_logic.counter_arguments import generate_counter_argument
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.models.player_value_object import PlayerValueObject, RosterAuditSignals
 
@@ -206,11 +207,14 @@ def assemble_pvo(
         for driver in roster_audit.signal_drivers:
             if driver not in top_drivers:
                 top_drivers.append(driver)
+            # Mandatory steel-manned counter-argument logic requires this flag in risk_flags
+            if driver == "age_past_position_cliff" and driver not in risk_flags:
+                risk_flags.append(driver)
         for caveat in roster_audit.caveats:
             if caveat not in caveats:
                 caveats.append(caveat)
 
-    return PlayerValueObject(
+    pvo = PlayerValueObject(
         player_id=identity.dg_id,
         full_name=identity.full_name,
         position=identity.position,
@@ -220,7 +224,7 @@ def assemble_pvo(
         engine_used=None,
         model_version=None,
         model_grade="PRE_MODEL",
-        dynasty_value_score=None,
+        dynasty_value_score=features.get("dynasty_value_score"),
         projection_1y=None,
         projection_2y=None,
         projection_3y=None,
@@ -236,6 +240,11 @@ def assemble_pvo(
         assembled_at=datetime.now(timezone.utc).isoformat(),
         source_versions=source_versions or {},
     )
+
+    # Apply mandatory steel-manned counter-argument
+    pvo.counter_argument = generate_counter_argument(pvo)
+
+    return pvo
 
 
 def assemble_roster_audit(
