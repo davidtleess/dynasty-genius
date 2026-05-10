@@ -20,15 +20,11 @@
 
     /* ── Refresh button ── */
     .refresh-wrap { position: relative; }
-    .refresh-btn { background: #1d4ed8; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
-    .refresh-btn:hover { background: #1e40af; }
-    .refresh-tooltip {
-      display: none; position: absolute; right: 0; top: calc(100% + 6px);
-      background: #0f172a; border: 1px solid #334155; border-radius: 6px;
-      padding: 10px 14px; font-size: 11px; color: #94a3b8;
-      white-space: nowrap; z-index: 100; font-family: monospace; line-height: 1.8;
-    }
-    .refresh-tooltip.open { display: block; }
+    .refresh-btn { background: #1d4ed8; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.15s; }
+    .refresh-btn:hover:not(:disabled) { background: #1e40af; }
+    .refresh-btn:disabled { opacity: 0.6; cursor: default; }
+    .refresh-btn.success { background: #166534; }
+    .refresh-btn.error   { background: #7f1d1d; }
 
     /* ── Roster need banner ── */
     .need-banner {
@@ -128,12 +124,7 @@
     <div class="header-right">
       <div class="league-pills" id="leaguePills"></div>
       <div class="refresh-wrap">
-        <button class="refresh-btn" onclick="toggleRefreshTip()">&#8635; Refresh Draft</button>
-        <div class="refresh-tooltip" id="refreshTip">
-          1. Run in terminal:<br>
-          <strong>.venv/bin/python scripts/refresh_draft_state.py</strong><br>
-          2. Reload this page
-        </div>
+        <button class="refresh-btn" id="refreshBtn" onclick="refreshDraft()">&#8635; Refresh Draft</button>
       </div>
     </div>
   </div>
@@ -309,15 +300,34 @@ function renderCards() {
   }).join('');
 }
 
-// Refresh tooltip
-function toggleRefreshTip() {
-  document.getElementById('refreshTip').classList.toggle('open');
+// Refresh draft state via local server (/refresh endpoint)
+function refreshDraft() {
+  var btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.textContent = '↻ Refreshing…';
+  btn.className = 'refresh-btn';
+
+  fetch('/refresh', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        btn.textContent = '✓ Updated — reloading';
+        btn.className = 'refresh-btn success';
+        setTimeout(function() { window.location.reload(); }, 800);
+      } else {
+        btn.textContent = '✗ ' + (data.error || 'Refresh failed');
+        btn.className = 'refresh-btn error';
+        btn.disabled = false;
+        setTimeout(function() { btn.textContent = '↻ Refresh Draft'; btn.className = 'refresh-btn'; }, 4000);
+      }
+    })
+    .catch(function() {
+      btn.textContent = '✗ Server not running';
+      btn.className = 'refresh-btn error';
+      btn.disabled = false;
+      setTimeout(function() { btn.textContent = '↻ Refresh Draft'; btn.className = 'refresh-btn'; }, 4000);
+    });
 }
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.refresh-wrap')) {
-    document.getElementById('refreshTip').classList.remove('open');
-  }
-});
 
 // Boot
 renderTabs();
