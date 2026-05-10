@@ -9,32 +9,27 @@ Phase 2: League Context Foundation and Identity Resolution.
 
 ## Current Sprint Objective
 
-Establish the canonical identity and league context:
+Finalize the canonical identity and live league context:
 
 - `src/dynasty_genius/models/player_identity.py`
 - `src/dynasty_genius/models/league_context.py`
-- `src/dynasty_genius/identity.py`
 - `silver.player_identity` mapping table
+- Verified 2026 Rookie Board for May 11th draft
 
 ## Latest Activity
 
 - Successfully verified the Governance Seal (Phase 1) and active pre-commit hooks.
 - Transitioned to Phase 2: Identity & Context Foundation.
 - Defined `PlayerIdentity` and `LeagueContext` models for cross-source unification.
+- **Verified Live League Context:** Fetched real settings for "Redzone Champions League". Confirmed Superflex, PPR (1.0), and 0.0 TE Premium.
+- **Reconstructed Real Pick Inventory:** Confirmed David owns multiple 2026 and 2027 1st-round picks via `traded_picks` reconstruction.
+- **Aligned 2026 Rookie Draft:** Set context for May 11th slow draft. 2026 rookies are now "Prospects with NFL Draft Capital".
 - Implemented `dg_id` generation utility and Identity Resolution pipeline stub.
 - Identity resolver supports context escalation: name-only (95%), team, and team+jersey verification for conflicts.
 - Codex added local-only roster risk math: age-cliff risk, biological debt, and liquidity risk in `app/services/roster_auditor.py`.
-- Claude delivered `PlayerValueObject` + `RosterAuditSignals` models, `pvo_assembler.py`, live Sleeper roster ingestion (24 players), and dark-theme Roster Audit HTML dashboard. Dashboard loads from external JS artifact; position groups QB→RB→WR→TE; full `RosterAuditSignals` contract in expandable rows.
-- Gemini added opponent fragility lens (`scripts/generate_league_audit.py`, `resources/league_fragility_report.json`) and counter-argument engine (`src/dynasty_genius/decision_logic/counter_arguments.py`), wired into PVO. Governance violation (verdict language) was caught and corrected.
-- Claude connected Engine A trained models to PVO assembler (`src/dynasty_genius/scoring/engine_a.py`). Prospects with pick+round+age now receive a 0-100 `dynasty_value_score`, `model_grade=PROSPECT_C` (or PROSPECT_D for QB), and Engine A caveats. Veterans remain PRE_MODEL.
-- `fuzzy_match.py` dead code deleted; `verify_conflicts.py` migrated to assertion-based checks against `identity.py`; team/team+jersey conflict escalation verified.
-- Codex removed `ktc_id` from the local `silver.player_identity` DDL and Spark identity pipeline output. `ktc_id` remains only in `MARKET_DERIVED_COLUMNS` as a blocked source column, not as a canonical identity field or join anchor.
-- Codex review fixes closed the identity Spark optional-column bug, added an Engine B missing-feed regression, neutralized the dashboard design spec, and changed mock prospect identity rows from `VERIFIED` to `PENDING`.
-- Claude wired Engine A into 2026 prospect cards, added `scripts/build_prospect_cards.py`, and replaced the opponent fragility lens mock roster input with live Sleeper roster fetch plus traded-picks ownership reconstruction.
-- Gemini reviewed `LeagueContext` pick/scoring propagation and added typed `DraftPick`/`LeagueMate` context flow into PVO assembly and live roster card building.
-- Codex disabled the Maestro Gemini extension at workspace scope and added a `LeagueContext` path through `roster_auditor.get_my_roster()` so governed live roster builds no longer require the legacy Sleeper username lookup.
-- Codex review pass fixed prospect-card contract drift: scored Engine A cards no longer claim scores are unavailable, pick/age aliases now satisfy `draft_capital` and `age_at_nfl_entry` completeness, mock pick/round inputs carry `mock_draft_capital_unverified`, and non-QBs no longer receive the QB-specific Superflex caveat.
-- Codex review pass also replaced misleading live pick fields like `has_2026_1st` for future seasons with explicit `future_first_round_picks` / `has_future_1st_liquidity` in live roster fetch output.
+- Claude delivered `PlayerValueObject` + `RosterAuditSignals` models, `pvo_assembler.py`, live Sleeper roster ingestion (24 players), and dark-theme Roster Audit HTML dashboard.
+- Gemini added opponent fragility lens (`scripts/generate_league_audit.py`, `resources/league_fragility_report.json`) and counter-argument engine.
+- Claude connected Engine A trained models to PVO assembler. Prospects with pick+round+age now receive scores.
 - Current local verification: 61 tests pass; governance validation passes; `git diff --check` passes; no Databricks commands run.
 
 ## Open Blockers

@@ -21,4 +21,6 @@ class PlayerIdentity(BaseModel):
     
     # Metadata
     last_updated_ts: Optional[str] = None
-    verification_status: str = "PENDING"  # PENDING, VERIFIED, CONFLICT
+    verification_status: str = "PENDING"  # PENDING, VERIFIED, CONFLICT, VERIFIED_NFL_DRAFT
+    age_verified: bool = False
+    identity_verified: bool = False

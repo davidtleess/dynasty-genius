@@ -107,15 +107,25 @@ def _build_caveats(
     inputs_missing: list[str],
     league_context: Optional[LeagueContext] = None,
     position: str = "",
+    verification_status: str = "PENDING",
+    age_verified: bool = False,
+    identity_verified: bool = False,
 ) -> list[str]:
     caveats: list[str] = []
 
     engine = "Engine A (prospect)" if is_prospect else "Engine B (active player)"
-    caveats.append(
-        f"dynasty_value_score unavailable: {engine} not yet validated; "
-        "model_grade is PRE_MODEL"
-    )
 
+    if verification_status == "VERIFIED_NFL_DRAFT":
+        caveats.append("NFL draft capital verified")
+        if not age_verified:
+            caveats.append("Birth date missing: Engine A signal inhibited")
+        if not identity_verified:
+            caveats.append("Sleeper identity unverified: local matching only")
+    else:
+        caveats.append(
+            f"dynasty_value_score unavailable: {engine} not yet validated; "
+            "model_grade is PRE_MODEL"
+        )
     if league_context:
         if league_context.is_superflex:
             if position.upper() == "QB":
@@ -223,7 +233,16 @@ def assemble_pvo(
     required = _required_signals(identity.position, is_prospect)
     completeness, present, missing = _compute_completeness(required, features, identity)
     risk_flags = _build_risk_flags(identity, features, is_prospect)
-    caveats = _build_caveats(completeness, is_prospect, missing, league_context, identity.position)
+    caveats = _build_caveats(
+        completeness, 
+        is_prospect, 
+        missing, 
+        league_context, 
+        identity.position, 
+        identity.verification_status,
+        identity.age_verified,
+        identity.identity_verified
+    )
     roster_audit = _build_roster_audit_signals(identity, features, league_context)
     top_drivers: list[str] = []
 
@@ -328,16 +347,22 @@ def assemble_roster_audit(
             pff_id=p.get("pff_id"),
             pfr_id=p.get("pfr_id"),
             playerprofiler_id=p.get("playerprofiler_id"),
+            verification_status=p.get("verification_status", "PENDING"),
+            age_verified=p.get("age_verified", False),
+            identity_verified=p.get("identity_verified", False),
         )
         is_prospect = bool(p.get("is_prospect", False))
         fixture_features: dict[str, Any] = {
             "age": _age_at_snapshot(p.get("birth_date"), snapshot_date),
+            "draft_class": p.get("draft_class"),
         }
         if p.get("pick") is not None:
             fixture_features["pick"] = float(p["pick"])
         if p.get("round") is not None:
             fixture_features["round"] = float(p["round"])
-        if is_prospect and (p.get("pick") is not None or p.get("round") is not None):
+            
+        is_verified_draft = identity.verification_status == "VERIFIED_NFL_DRAFT"
+        if is_prospect and not is_verified_draft and (p.get("pick") is not None or p.get("round") is not None):
             fixture_features["feature_warnings"] = ["mock_draft_capital_unverified"]
         features = {**fixture_features, **features_by_dg_id.get(identity.dg_id, {})}
         pvo = assemble_pvo(
