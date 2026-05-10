@@ -165,16 +165,28 @@ def test_enriched_csv_has_provenance_columns():
 @_skip_if_not_enriched()
 def test_enriched_csv_provenance_values_are_known_sources():
     """source_ columns must name a known, governed data source."""
-    ALLOWED_SOURCES = {"playerprofiler", "cfbd", "nfl_data_py", "imputed_median", "manual"}
+    # "manual" is not allowed as a bare provenance value — too easy to abuse.
+    # Manual overrides must be explicit: e.g. "manual_verified_birth_date".
+    # PFF college data must be prefixed "college_pff_<field>" — generic "pff_grade" stays prohibited.
+    ALLOWED_SOURCES = {"playerprofiler", "cfbd", "nfl_data_py", "imputed_median"}
+    ALLOWED_PREFIXES = ("manual_", "college_pff_")
+
     rows = _read_csv_rows(ENRICHED_CSV)
     source_cols = [c for c in rows[0] if c.startswith("source_")]
     violations = []
     for row in rows:
         for col in source_cols:
             val = row.get(col, "").strip().lower()
-            if val and val not in ALLOWED_SOURCES:
-                violations.append(f"{row['pfr_player_name']}: {col}={val!r}")
-    assert not violations, f"Unknown provenance sources: {violations[:10]}"
+            if not val:
+                continue
+            if val in ALLOWED_SOURCES:
+                continue
+            if any(val.startswith(p) for p in ALLOWED_PREFIXES):
+                continue
+            violations.append(f"{row['pfr_player_name']}: {col}={val!r}")
+    assert not violations, (
+        f"Unknown or bare provenance sources (use explicit names, not 'manual'): {violations[:10]}"
+    )
 
 
 # ── Enriched CSV completeness (skipped until enrichment runs) ─────────────────
