@@ -116,10 +116,11 @@ def test_biological_debt_non_null_with_internal_value():
     assert pvo.roster_audit.biological_debt_score == pytest.approx(66.67, abs=0.01)
 
 
-# ── 6. Liquidity risk non-null when roster_context is provided ────────────────
+# ── 6. Liquidity risk non-null when league_context is provided ────────────────
 
-def test_liquidity_risk_non_null_with_roster_context():
+def test_liquidity_risk_non_null_with_league_context():
     from src.dynasty_genius.identity import generate_dg_id
+    from src.dynasty_genius.models.league_context import LeagueContext, DraftPick
     from src.dynasty_genius.models.player_identity import PlayerIdentity
     from src.dynasty_genius.pvo_assembler import assemble_pvo
 
@@ -130,11 +131,15 @@ def test_liquidity_risk_non_null_with_roster_context():
         nfl_team="KC",
     )
     features = {"age": 24.0}
-    roster_context = {"has_2026_2nd": True, "has_2027_2nd": False}
-    pvo = assemble_pvo(identity, features, is_prospect=False, roster_context=roster_context)
+    league_context = LeagueContext(
+        league_id="1", league_name="N", season="2026",
+        david_user_id="u", david_display_name="D", david_roster_id=1,
+        my_future_picks=[DraftPick(year=2026, round=2)]
+    )
+    pvo = assemble_pvo(identity, features, is_prospect=False, league_context=league_context)
 
     assert pvo.roster_audit is not None
     assert pvo.roster_audit.liquidity_risk is not None, (
-        "liquidity_risk should be non-null when roster_context is provided"
+        "liquidity_risk should be non-null when league_context is provided"
     )
     assert pvo.roster_audit.liquidity_risk == "MEDIUM_LIMITED_ESCAPE_HATCH"

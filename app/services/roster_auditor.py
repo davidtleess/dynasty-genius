@@ -4,6 +4,7 @@ from typing import Optional, Union
 import httpx
 
 from app.data.sleeper import get_user, get_leagues, get_rosters, get_all_players
+from src.dynasty_genius.models.league_context import LeagueContext
 
 USERNAME_ENV = "DYNASTY_SLEEPER_USERNAME"
 LEAGUE_ID_ENV = "DYNASTY_SLEEPER_LEAGUE_ID"
@@ -144,7 +145,16 @@ def _required_env(name: str) -> str:
     return value
 
 
-def _roster_config() -> dict:
+def _roster_config(league_context: Optional[LeagueContext] = None) -> dict:
+    if league_context is not None:
+        return {
+            "username": None,
+            "user_id": league_context.david_user_id,
+            "season": league_context.season,
+            "league_id": league_context.league_id,
+            "league_name": league_context.league_name,
+        }
+
     username = _required_env(USERNAME_ENV)
     season = _required_env(SEASON_ENV)
     league_id = os.getenv(LEAGUE_ID_ENV)
@@ -157,6 +167,7 @@ def _roster_config() -> dict:
 
     return {
         "username": username,
+        "user_id": None,
         "season": season,
         "league_id": league_id,
         "league_name": league_name,
@@ -174,13 +185,16 @@ async def _sleeper_config_lookup(description: str, lookup) -> object:
         ) from e
 
 
-async def get_my_roster() -> list[dict]:
-    config = _roster_config()
-    user = await _sleeper_config_lookup(
-        "Sleeper username lookup",
-        get_user(config["username"]),
-    )
-    user_id = user["user_id"]
+async def get_my_roster(league_context: Optional[LeagueContext] = None) -> list[dict]:
+    config = _roster_config(league_context)
+    if config["user_id"]:
+        user_id = config["user_id"]
+    else:
+        user = await _sleeper_config_lookup(
+            "Sleeper username lookup",
+            get_user(config["username"]),
+        )
+        user_id = user["user_id"]
 
     if config["league_id"]:
         league_id = config["league_id"]

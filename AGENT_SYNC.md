@@ -30,20 +30,25 @@ Establish the canonical identity and league context:
 - `fuzzy_match.py` dead code deleted; `verify_conflicts.py` migrated to assertion-based checks against `identity.py`; team/team+jersey conflict escalation verified.
 - Codex removed `ktc_id` from the local `silver.player_identity` DDL and Spark identity pipeline output. `ktc_id` remains only in `MARKET_DERIVED_COLUMNS` as a blocked source column, not as a canonical identity field or join anchor.
 - Codex review fixes closed the identity Spark optional-column bug, added an Engine B missing-feed regression, neutralized the dashboard design spec, and changed mock prospect identity rows from `VERIFIED` to `PENDING`.
-- Current local verification: 54 tests pass; governance validation passes; no Databricks commands run.
+- Claude wired Engine A into 2026 prospect cards, added `scripts/build_prospect_cards.py`, and replaced the opponent fragility lens mock roster input with live Sleeper roster fetch plus traded-picks ownership reconstruction.
+- Gemini reviewed `LeagueContext` pick/scoring propagation and added typed `DraftPick`/`LeagueMate` context flow into PVO assembly and live roster card building.
+- Codex disabled the Maestro Gemini extension at workspace scope and added a `LeagueContext` path through `roster_auditor.get_my_roster()` so governed live roster builds no longer require the legacy Sleeper username lookup.
+- Codex review pass fixed prospect-card contract drift: scored Engine A cards no longer claim scores are unavailable, pick/age aliases now satisfy `draft_capital` and `age_at_nfl_entry` completeness, mock pick/round inputs carry `mock_draft_capital_unverified`, and non-QBs no longer receive the QB-specific Superflex caveat.
+- Codex review pass also replaced misleading live pick fields like `has_2026_1st` for future seasons with explicit `future_first_round_picks` / `has_future_1st_liquidity` in live roster fetch output.
+- Current local verification: 61 tests pass; governance validation passes; `git diff --check` passes; no Databricks commands run.
 
 ## Open Blockers
 
 - Formal Gemini CLI bootstrap lock is not yet implemented; current enforcement is markdown bootstrap, CI validation, and local Git pre-commit.
 - Databricks lineage tables remain pending Genie architecture work. The SCD Type 2 `silver.player_identity` DDL is drafted locally, but no Databricks dry-run, deploy, warehouse, or cluster execution has been run under the $10/24h hard stop.
-- Opponent fragility lens uses mock league rosters — must be replaced with live Sleeper snapshot before surfacing in dashboard.
+- Opponent fragility lens now uses live Sleeper roster snapshots locally, but pick inventory depends on Sleeper `traded_picks` completeness and should be manually verified before surfacing pick liquidity signals to David.
 
 ## Next Recommended Work
 
-1. Gemini PM: review `LeagueContext` pick ownership and scoring propagation before Engine B ignition.
-2. Genie: review the local `silver.player_identity` SCD Type 2 DDL and lineage plan — dry-run only, no cluster spin-up.
-3. Wire Engine A scores into 2026 draft prospect cards: rebuild mock prospect identity fixture with pick + round + age fields, run `scripts/build_live_roster.py` with `is_prospect=True` for devy/rookie entries.
-4. Replace mock league rosters with live Sleeper snapshot to activate the opponent fragility lens.
+1. Genie: review the local `silver.player_identity` SCD Type 2 DDL and lineage plan — dry-run only, no cluster spin-up.
+2. Connect `resources/prospect_cards.js` to a dashboard surface separate from `roster_audit_cards.js`.
+3. Manually verify Sleeper traded-pick reconstruction before surfacing pick liquidity signals to David.
+4. Prepare Engine B ignition only after confirming LeagueContext context flow, identity mapping, and no market-derived features in training inputs.
 
 ## Branch / Worktree Notes
 

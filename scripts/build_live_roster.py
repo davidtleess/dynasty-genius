@@ -6,7 +6,7 @@ roster-context data), writes:
   - resources/roster_audit_cards.js    (window.ROSTER_AUDIT_CARDS for dashboard)
 
 Usage:
-    python3 scripts/build_live_roster.py
+    .venv/bin/python scripts/build_live_roster.py
 """
 
 from __future__ import annotations
@@ -16,35 +16,38 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from dotenv import load_dotenv
-load_dotenv(ROOT / ".env")
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
+if load_dotenv:
+    load_dotenv(ROOT / ".env")
 
 from app.services.roster_auditor import get_my_roster, RosterConfigError
 from src.dynasty_genius.identity import generate_dg_id
+from src.dynasty_genius.models.league_context import LeagueContext
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import assemble_pvo
 
 CARDS_JSON = ROOT / "resources" / "live_roster_cards.json"
 CARDS_JS   = ROOT / "resources" / "roster_audit_cards.js"
-LEAGUE_CTX = ROOT / "resources" / "david_league_context.json"
+LEAGUE_CTX_PATH = ROOT / "resources" / "david_league_context.json"
 
 
-def _derive_roster_context() -> dict:
-    """Read pick inventory from league context to enable liquidity_risk."""
-    if not LEAGUE_CTX.exists():
-        return {}
-    ctx = json.loads(LEAGUE_CTX.read_text())
-    picks = ctx.get("my_future_picks", [])
-    has_2026_2nd = any(p["year"] == 2026 and p["round"] == 2 for p in picks)
-    has_2027_2nd = any(p["year"] == 2027 and p["round"] == 2 for p in picks)
-    return {"has_2026_2nd": has_2026_2nd, "has_2027_2nd": has_2027_2nd}
+def _load_league_context() -> Optional[LeagueContext]:
+    """Load David's league context from JSON."""
+    if not LEAGUE_CTX_PATH.exists():
+        return None
+    return LeagueContext.load_from_json(LEAGUE_CTX_PATH)
 
 
-def _build_cards(players: list[dict], roster_context: dict) -> list[dict]:
+def _build_cards(players: list[dict], league_context: Optional[LeagueContext]) -> list[dict]:
     cards = []
     for p in players:
         identity = PlayerIdentity(
@@ -56,7 +59,7 @@ def _build_cards(players: list[dict], roster_context: dict) -> list[dict]:
         )
         features = {"age": float(p["age"]) if p.get("age") is not None else None}
         pvo = assemble_pvo(
-            identity, features, is_prospect=False, roster_context=roster_context
+            identity, features, is_prospect=False, league_context=league_context
         )
         cards.append(pvo.model_dump())
     return cards
@@ -75,18 +78,19 @@ def _write_js(cards: list[dict]) -> None:
 
 
 async def main() -> None:
+    league_context = _load_league_context()
+    if league_context:
+        print(f"Loaded league context for: {league_context.league_name}")
+
     print("Fetching roster from Sleeper…")
     try:
-        players = await get_my_roster()
+        players = await get_my_roster(league_context)
     except RosterConfigError as e:
         print(f"Config error: {e}")
         sys.exit(1)
 
-    roster_context = _derive_roster_context()
-    print(f"Roster context: {roster_context}")
-
     print(f"Fetched {len(players)} players. Assembling PVOs…")
-    cards = _build_cards(players, roster_context)
+    cards = _build_cards(players, league_context)
 
     CARDS_JSON.write_text(json.dumps(cards, indent=2))
     print(f"Wrote {len(cards)} cards  → {CARDS_JSON.relative_to(ROOT)}")

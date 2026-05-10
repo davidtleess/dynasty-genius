@@ -28,7 +28,28 @@
       "year": 2027,
       "round": 1,
       "is_acquired": true,
-      "original_owner": "LeagueMate_A"
+      "original_owner_id": 2,
+      "original_owner_name": "LeagueMate_A"
+    }
+  ],
+  "league_mates": [
+    {
+      "roster_id": 1,
+      "user_id": "mock-david",
+      "display_name": "David",
+      "is_opponent": false
+    },
+    {
+      "roster_id": 2,
+      "user_id": "user-a",
+      "display_name": "LeagueMate_A",
+      "is_opponent": true
+    },
+    {
+      "roster_id": 3,
+      "user_id": "user-b",
+      "display_name": "LeagueMate_B",
+      "is_opponent": true
     }
   ],
   "last_sync": "2026-05-08T21:51:10.017340+00:00",

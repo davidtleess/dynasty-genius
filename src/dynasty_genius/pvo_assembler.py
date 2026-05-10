@@ -13,6 +13,7 @@ from typing import Any, Optional
 
 from app.services.roster_auditor import audit_player, roster_risk_summary
 from src.dynasty_genius.decision_logic.counter_arguments import generate_counter_argument
+from src.dynasty_genius.models.league_context import LeagueContext
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.models.player_value_object import PlayerValueObject, RosterAuditSignals
 from src.dynasty_genius.scoring.engine_a import score_prospect
@@ -51,6 +52,10 @@ def _compute_completeness(
     identity: PlayerIdentity,
 ) -> tuple[float, list[str], list[str]]:
     """Return (completeness_ratio, present_list, missing_list)."""
+    feature_aliases = {
+        "draft_capital": ("draft_capital", "pick"),
+        "age_at_nfl_entry": ("age_at_nfl_entry", "age"),
+    }
     identity_vals = {
         "player_id": identity.dg_id,
         "full_name": identity.full_name,
@@ -61,8 +66,12 @@ def _compute_completeness(
     }
     all_vals = {**identity_vals, **features}
 
-    present = [s for s in required if all_vals.get(s) is not None]
-    missing = [s for s in required if all_vals.get(s) is None]
+    def has_signal(signal: str) -> bool:
+        aliases = feature_aliases.get(signal, (signal,))
+        return any(all_vals.get(alias) is not None for alias in aliases)
+
+    present = [s for s in required if has_signal(s)]
+    missing = [s for s in required if not has_signal(s)]
     ratio = len(present) / len(required) if required else 1.0
     return round(ratio, 4), present, missing
 
@@ -96,6 +105,8 @@ def _build_caveats(
     signal_completeness: float,
     is_prospect: bool,
     inputs_missing: list[str],
+    league_context: Optional[LeagueContext] = None,
+    position: str = "",
 ) -> list[str]:
     caveats: list[str] = []
 
@@ -104,6 +115,15 @@ def _build_caveats(
         f"dynasty_value_score unavailable: {engine} not yet validated; "
         "model_grade is PRE_MODEL"
     )
+
+    if league_context:
+        if league_context.is_superflex:
+            if position.upper() == "QB":
+                caveats.append("Superflex scoring active: QB value is elevated")
+            else:
+                caveats.append("Superflex scoring active")
+        if league_context.te_premium > 0 and position.upper() == "TE":
+            caveats.append(f"TE Premium ({league_context.te_premium}) active: TE scarcity is elevated")
 
     if signal_completeness < 1.0:
         caveats.append(
@@ -143,7 +163,7 @@ def _age_at_snapshot(birth_date: Optional[str], snapshot_date: Optional[str]) ->
 def _build_roster_audit_signals(
     identity: PlayerIdentity,
     features: dict[str, Any],
-    roster_context: Optional[dict[str, Any]],
+    league_context: Optional[LeagueContext] = None,
 ) -> Optional[RosterAuditSignals]:
     player = {
         "player_id": identity.dg_id,
@@ -157,9 +177,10 @@ def _build_roster_audit_signals(
         return None
 
     liquidity = None
-    if roster_context:
-        has_2026_2nd = bool(roster_context.get("has_2026_2nd", True))
-        has_2027_2nd = bool(roster_context.get("has_2027_2nd", True))
+    if league_context:
+        picks = league_context.my_future_picks
+        has_2026_2nd = any(p.year == 2026 and p.round == 2 for p in picks)
+        has_2027_2nd = any(p.year == 2027 and p.round == 2 for p in picks)
         liquidity = roster_risk_summary([player], has_2026_2nd, has_2027_2nd)["liquidity_risk"]
 
     return RosterAuditSignals(
@@ -180,7 +201,7 @@ def assemble_pvo(
     features: Optional[dict[str, Any]] = None,
     is_prospect: bool = False,
     source_versions: Optional[dict[str, str]] = None,
-    roster_context: Optional[dict[str, Any]] = None,
+    league_context: Optional[LeagueContext] = None,
 ) -> PlayerValueObject:
     """Assemble a PlayerValueObject from identity + available feature signals.
 
@@ -195,13 +216,15 @@ def assemble_pvo(
         True → use Engine A signal contract. False → use Engine B.
     source_versions:
         Optional provenance metadata (parser version, snapshot date, etc.)
+    league_context:
+        The "David's Context" model for scoring and roster fit.
     """
     features = features or {}
     required = _required_signals(identity.position, is_prospect)
     completeness, present, missing = _compute_completeness(required, features, identity)
     risk_flags = _build_risk_flags(identity, features, is_prospect)
-    caveats = _build_caveats(completeness, is_prospect, missing)
-    roster_audit = _build_roster_audit_signals(identity, features, roster_context)
+    caveats = _build_caveats(completeness, is_prospect, missing, league_context, identity.position)
+    roster_audit = _build_roster_audit_signals(identity, features, league_context)
     top_drivers: list[str] = []
 
     if roster_audit:
@@ -235,6 +258,10 @@ def assemble_pvo(
         model_version = engine_a_result["model_version"]
         model_grade = engine_a_result["model_grade"]
         dynasty_value_score = engine_a_result["dynasty_value_score"]
+        caveats = [
+            c for c in caveats
+            if not c.startswith("dynasty_value_score unavailable:")
+        ]
         for caveat in engine_a_result["caveats"]:
             if caveat not in caveats:
                 caveats.append(caveat)
@@ -275,7 +302,7 @@ def assemble_pvo(
 def assemble_roster_audit(
     mock_identity_path: Path,
     features_by_dg_id: Optional[dict[str, dict[str, Any]]] = None,
-    roster_context: Optional[dict[str, Any]] = None,
+    league_context: Optional[LeagueContext] = None,
 ) -> list[dict[str, Any]]:
     """Build a Decision Card JSON list for all players in the mock identity fixture.
 
@@ -303,15 +330,21 @@ def assemble_roster_audit(
             playerprofiler_id=p.get("playerprofiler_id"),
         )
         is_prospect = bool(p.get("is_prospect", False))
-        fixture_features = {
+        fixture_features: dict[str, Any] = {
             "age": _age_at_snapshot(p.get("birth_date"), snapshot_date),
         }
+        if p.get("pick") is not None:
+            fixture_features["pick"] = float(p["pick"])
+        if p.get("round") is not None:
+            fixture_features["round"] = float(p["round"])
+        if is_prospect and (p.get("pick") is not None or p.get("round") is not None):
+            fixture_features["feature_warnings"] = ["mock_draft_capital_unverified"]
         features = {**fixture_features, **features_by_dg_id.get(identity.dg_id, {})}
         pvo = assemble_pvo(
             identity,
             features,
             is_prospect=is_prospect,
-            roster_context=roster_context,
+            league_context=league_context,
             source_versions={
                 "identity_source": raw.get("source", "unknown"),
                 "identity_parser_version": raw.get("parser_version", "unknown"),

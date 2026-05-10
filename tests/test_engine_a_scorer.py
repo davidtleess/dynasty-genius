@@ -125,6 +125,16 @@ def test_engine_a_caveats_in_pvo(wr_identity):
     assert "no_usage_efficiency_signal" in pvo.caveats
 
 
+def test_scored_engine_a_pvo_does_not_claim_score_unavailable(wr_identity):
+    from src.dynasty_genius.pvo_assembler import assemble_pvo
+    pvo = assemble_pvo(wr_identity, {"pick": 10, "round": 1, "age": 22.0}, is_prospect=True)
+
+    assert pvo.dynasty_value_score is not None
+    assert "draft_capital" not in pvo.inputs_missing
+    assert "age_at_nfl_entry" not in pvo.inputs_missing
+    assert not any("dynasty_value_score unavailable" in caveat for caveat in pvo.caveats)
+
+
 # ── 7. model_version matches latest.json ─────────────────────────────────────
 
 def test_model_version_matches_latest_pointer(wr_identity):

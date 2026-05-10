@@ -1,27 +1,8 @@
 [
   {
-    "owner": "Win-Now-Wilfred",
-    "debt_ratio": 1.0,
-    "total_value": 23500.0,
-    "liquidity": "NONE",
-    "fragility_status": "FRAGILE",
-    "opportunity_type": "aging_asset_liquidity_pressure",
-    "why_flagged": [
-      "biological_debt_ratio_above_40pct",
-      "limited_first_round_pick_liquidity"
-    ],
-    "decision_supported": false,
-    "required_before_action": [
-      "replace_mock_rosters_with_live_sleeper_snapshot",
-      "verify_opponent_pick_inventory",
-      "review_counter_argument",
-      "confirm_market_overlay_remains_post_model_only"
-    ]
-  },
-  {
-    "owner": "Rebuild-Rick",
-    "debt_ratio": 0.0,
-    "total_value": 18700.0,
+    "owner": "Dleess",
+    "debt_ratio": null,
+    "total_value": 0.0,
     "liquidity": "HIGH",
     "fragility_status": "HEALTHY",
     "opportunity_type": "no_fragility_signal",
@@ -30,7 +11,193 @@
     ],
     "decision_supported": false,
     "required_before_action": [
-      "replace_mock_rosters_with_live_sleeper_snapshot",
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "jgil96",
+    "debt_ratio": null,
+    "total_value": 0.0,
+    "liquidity": "HIGH",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "no_current_fragility_signal"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "MDEF",
+    "debt_ratio": null,
+    "total_value": 0.0,
+    "liquidity": "NONE",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "limited_first_round_pick_liquidity"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "MJLeess318",
+    "debt_ratio": null,
+    "total_value": 0.0,
+    "liquidity": "HIGH",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "no_current_fragility_signal"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "rzalika",
+    "debt_ratio": null,
+    "total_value": 0.0,
+    "liquidity": "HIGH",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "no_current_fragility_signal"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "kgelardi",
+    "debt_ratio": null,
+    "total_value": 0.0,
+    "liquidity": "NONE",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "limited_first_round_pick_liquidity"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "jspagnola",
+    "debt_ratio": null,
+    "total_value": 0.0,
+    "liquidity": "HIGH",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "no_current_fragility_signal"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "jspringe88",
+    "debt_ratio": null,
+    "total_value": 0.0,
+    "liquidity": "HIGH",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "no_current_fragility_signal"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "Dseidman",
+    "debt_ratio": null,
+    "total_value": 0.0,
+    "liquidity": "HIGH",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "no_current_fragility_signal"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "rkissane",
+    "debt_ratio": null,
+    "total_value": 0.0,
+    "liquidity": "HIGH",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "no_current_fragility_signal"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "jkazzz",
+    "debt_ratio": null,
+    "total_value": 0.0,
+    "liquidity": "HIGH",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "no_current_fragility_signal"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
+      "verify_opponent_pick_inventory",
+      "review_counter_argument",
+      "confirm_market_overlay_remains_post_model_only"
+    ]
+  },
+  {
+    "owner": "jlillian80",
+    "debt_ratio": null,
+    "total_value": 0.0,
+    "liquidity": "HIGH",
+    "fragility_status": "HEALTHY",
+    "opportunity_type": "no_fragility_signal",
+    "why_flagged": [
+      "no_current_fragility_signal"
+    ],
+    "decision_supported": false,
+    "required_before_action": [
       "verify_opponent_pick_inventory",
       "review_counter_argument",
       "confirm_market_overlay_remains_post_model_only"

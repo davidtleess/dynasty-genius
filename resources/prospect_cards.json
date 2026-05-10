@@ -1,0 +1,696 @@
+[
+  {
+    "player_id": "arch_manning_qb_2005",
+    "full_name": "Arch Manning",
+    "position": "QB",
+    "nfl_team": null,
+    "age": 20.0,
+    "is_prospect": true,
+    "engine_used": "engine_a_rookie_forecast_ridge",
+    "model_version": "20260502T153931Z",
+    "model_grade": "PROSPECT_D",
+    "dynasty_value_score": 91.56,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 1.0,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position",
+      "draft_capital",
+      "age_at_nfl_entry"
+    ],
+    "inputs_missing": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
+    "risk_flags": [
+      "identity_unverified",
+      "mock_draft_capital_unverified"
+    ],
+    "counter_argument": "Elite valuation assumes continued high-level rushing or outlier passing efficiency; any dip in mobility or supporting cast could lead to a rapid value correction.",
+    "caveats": [
+      "Superflex scoring active: QB value is elevated",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal",
+      "engine_a_rookie_forecast_only",
+      "veteran_scoring_requires_engine_b",
+      "no_usage_efficiency_signal",
+      "qb_rookie_signal_inherently_low_ceiling",
+      "low_sample_holdout",
+      "negative_r2_lower_bound"
+    ],
+    "roster_audit": {
+      "cliff_age": 33,
+      "years_to_cliff": 13,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
+    "market_overlay": null,
+    "assembled_at": "2026-05-10T00:54:51.542366+00:00",
+    "source_versions": {
+      "identity_source": "mock_prospect_identity",
+      "identity_parser_version": "unknown",
+      "identity_snapshot_date": "2026-05-08"
+    }
+  },
+  {
+    "player_id": "nico_iamaleava_qb_2004",
+    "full_name": "Nico Iamaleava",
+    "position": "QB",
+    "nfl_team": null,
+    "age": 22.0,
+    "is_prospect": true,
+    "engine_used": "engine_a_rookie_forecast_ridge",
+    "model_version": "20260502T153931Z",
+    "model_grade": "PROSPECT_D",
+    "dynasty_value_score": 82.45,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 1.0,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position",
+      "draft_capital",
+      "age_at_nfl_entry"
+    ],
+    "inputs_missing": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
+    "risk_flags": [
+      "identity_unverified",
+      "mock_draft_capital_unverified"
+    ],
+    "counter_argument": "Elite valuation assumes continued high-level rushing or outlier passing efficiency; any dip in mobility or supporting cast could lead to a rapid value correction.",
+    "caveats": [
+      "Superflex scoring active: QB value is elevated",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal",
+      "engine_a_rookie_forecast_only",
+      "veteran_scoring_requires_engine_b",
+      "no_usage_efficiency_signal",
+      "qb_rookie_signal_inherently_low_ceiling",
+      "low_sample_holdout",
+      "negative_r2_lower_bound"
+    ],
+    "roster_audit": {
+      "cliff_age": 33,
+      "years_to_cliff": 11,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
+    "market_overlay": null,
+    "assembled_at": "2026-05-10T00:54:51.543091+00:00",
+    "source_versions": {
+      "identity_source": "mock_prospect_identity",
+      "identity_parser_version": "unknown",
+      "identity_snapshot_date": "2026-05-08"
+    }
+  },
+  {
+    "player_id": "dante_moore_qb_2005",
+    "full_name": "Dante Moore",
+    "position": "QB",
+    "nfl_team": null,
+    "age": 21.0,
+    "is_prospect": true,
+    "engine_used": "engine_a_rookie_forecast_ridge",
+    "model_version": "20260502T153931Z",
+    "model_grade": "PROSPECT_D",
+    "dynasty_value_score": 82.01,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 1.0,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position",
+      "draft_capital",
+      "age_at_nfl_entry"
+    ],
+    "inputs_missing": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
+    "risk_flags": [
+      "identity_unverified",
+      "mock_draft_capital_unverified"
+    ],
+    "counter_argument": "Elite valuation assumes continued high-level rushing or outlier passing efficiency; any dip in mobility or supporting cast could lead to a rapid value correction.",
+    "caveats": [
+      "Superflex scoring active: QB value is elevated",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal",
+      "engine_a_rookie_forecast_only",
+      "veteran_scoring_requires_engine_b",
+      "no_usage_efficiency_signal",
+      "qb_rookie_signal_inherently_low_ceiling",
+      "low_sample_holdout",
+      "negative_r2_lower_bound"
+    ],
+    "roster_audit": {
+      "cliff_age": 33,
+      "years_to_cliff": 12,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
+    "market_overlay": null,
+    "assembled_at": "2026-05-10T00:54:51.545104+00:00",
+    "source_versions": {
+      "identity_source": "mock_prospect_identity",
+      "identity_parser_version": "unknown",
+      "identity_snapshot_date": "2026-05-08"
+    }
+  },
+  {
+    "player_id": "zachariah_branch_wr_2004",
+    "full_name": "Zachariah Branch",
+    "position": "WR",
+    "nfl_team": null,
+    "age": 22.0,
+    "is_prospect": true,
+    "engine_used": "engine_a_rookie_forecast_ridge",
+    "model_version": "20260502T153931Z",
+    "model_grade": "PROSPECT_C",
+    "dynasty_value_score": 70.41,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.8333,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position",
+      "draft_capital",
+      "age_at_nfl_entry"
+    ],
+    "inputs_missing": [
+      "college_dominator_rating"
+    ],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
+    "risk_flags": [
+      "identity_unverified",
+      "mock_draft_capital_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "Superflex scoring active",
+      "Signal completeness 83% \u2014 missing: college_dominator_rating",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal",
+      "engine_a_rookie_forecast_only",
+      "veteran_scoring_requires_engine_b",
+      "no_usage_efficiency_signal"
+    ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 6,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
+    "market_overlay": null,
+    "assembled_at": "2026-05-10T00:54:51.545716+00:00",
+    "source_versions": {
+      "identity_source": "mock_prospect_identity",
+      "identity_parser_version": "unknown",
+      "identity_snapshot_date": "2026-05-08"
+    }
+  },
+  {
+    "player_id": "carnell_tate_wr_2005",
+    "full_name": "Carnell Tate",
+    "position": "WR",
+    "nfl_team": null,
+    "age": 21.0,
+    "is_prospect": true,
+    "engine_used": "engine_a_rookie_forecast_ridge",
+    "model_version": "20260502T153931Z",
+    "model_grade": "PROSPECT_C",
+    "dynasty_value_score": 72.33,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.8333,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position",
+      "draft_capital",
+      "age_at_nfl_entry"
+    ],
+    "inputs_missing": [
+      "college_dominator_rating"
+    ],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
+    "risk_flags": [
+      "identity_unverified",
+      "mock_draft_capital_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "Superflex scoring active",
+      "Signal completeness 83% \u2014 missing: college_dominator_rating",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal",
+      "engine_a_rookie_forecast_only",
+      "veteran_scoring_requires_engine_b",
+      "no_usage_efficiency_signal"
+    ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 7,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
+    "market_overlay": null,
+    "assembled_at": "2026-05-10T00:54:51.546196+00:00",
+    "source_versions": {
+      "identity_source": "mock_prospect_identity",
+      "identity_parser_version": "unknown",
+      "identity_snapshot_date": "2026-05-08"
+    }
+  },
+  {
+    "player_id": "jackson_arnold_qb_2004",
+    "full_name": "Jackson Arnold",
+    "position": "QB",
+    "nfl_team": null,
+    "age": 22.0,
+    "is_prospect": true,
+    "engine_used": "engine_a_rookie_forecast_ridge",
+    "model_version": "20260502T153931Z",
+    "model_grade": "PROSPECT_D",
+    "dynasty_value_score": 58.92,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 1.0,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position",
+      "draft_capital",
+      "age_at_nfl_entry"
+    ],
+    "inputs_missing": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
+    "risk_flags": [
+      "identity_unverified",
+      "mock_draft_capital_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "Superflex scoring active: QB value is elevated",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal",
+      "engine_a_rookie_forecast_only",
+      "veteran_scoring_requires_engine_b",
+      "no_usage_efficiency_signal",
+      "qb_rookie_signal_inherently_low_ceiling",
+      "low_sample_holdout",
+      "negative_r2_lower_bound"
+    ],
+    "roster_audit": {
+      "cliff_age": 33,
+      "years_to_cliff": 11,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
+    "market_overlay": null,
+    "assembled_at": "2026-05-10T00:54:51.548857+00:00",
+    "source_versions": {
+      "identity_source": "mock_prospect_identity",
+      "identity_parser_version": "unknown",
+      "identity_snapshot_date": "2026-05-08"
+    }
+  },
+  {
+    "player_id": "malachi_nelson_qb_2004",
+    "full_name": "Malachi Nelson",
+    "position": "QB",
+    "nfl_team": null,
+    "age": 22.0,
+    "is_prospect": true,
+    "engine_used": "engine_a_rookie_forecast_ridge",
+    "model_version": "20260502T153931Z",
+    "model_grade": "PROSPECT_D",
+    "dynasty_value_score": 56.0,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 1.0,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position",
+      "draft_capital",
+      "age_at_nfl_entry"
+    ],
+    "inputs_missing": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
+    "risk_flags": [
+      "identity_unverified",
+      "mock_draft_capital_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "Superflex scoring active: QB value is elevated",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal",
+      "engine_a_rookie_forecast_only",
+      "veteran_scoring_requires_engine_b",
+      "no_usage_efficiency_signal",
+      "qb_rookie_signal_inherently_low_ceiling",
+      "low_sample_holdout",
+      "negative_r2_lower_bound"
+    ],
+    "roster_audit": {
+      "cliff_age": 33,
+      "years_to_cliff": 11,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
+    "market_overlay": null,
+    "assembled_at": "2026-05-10T00:54:51.550722+00:00",
+    "source_versions": {
+      "identity_source": "mock_prospect_identity",
+      "identity_parser_version": "unknown",
+      "identity_snapshot_date": "2026-05-08"
+    }
+  },
+  {
+    "player_id": "jaden_rashada_qb_2003",
+    "full_name": "Jaden Rashada",
+    "position": "QB",
+    "nfl_team": null,
+    "age": 23.0,
+    "is_prospect": true,
+    "engine_used": "engine_a_rookie_forecast_ridge",
+    "model_version": "20260502T153931Z",
+    "model_grade": "PROSPECT_D",
+    "dynasty_value_score": 43.7,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 1.0,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position",
+      "draft_capital",
+      "age_at_nfl_entry"
+    ],
+    "inputs_missing": [],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
+    "risk_flags": [
+      "identity_unverified",
+      "mock_draft_capital_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "Superflex scoring active: QB value is elevated",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal",
+      "engine_a_rookie_forecast_only",
+      "veteran_scoring_requires_engine_b",
+      "no_usage_efficiency_signal",
+      "qb_rookie_signal_inherently_low_ceiling",
+      "low_sample_holdout",
+      "negative_r2_lower_bound"
+    ],
+    "roster_audit": {
+      "cliff_age": 33,
+      "years_to_cliff": 10,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
+    "market_overlay": null,
+    "assembled_at": "2026-05-10T00:54:51.551263+00:00",
+    "source_versions": {
+      "identity_source": "mock_prospect_identity",
+      "identity_parser_version": "unknown",
+      "identity_snapshot_date": "2026-05-08"
+    }
+  },
+  {
+    "player_id": "ryan_williams_wr_2007",
+    "full_name": "Ryan Williams",
+    "position": "WR",
+    "nfl_team": null,
+    "age": 19.0,
+    "is_prospect": true,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.6667,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position",
+      "age_at_nfl_entry"
+    ],
+    "inputs_missing": [
+      "draft_capital",
+      "college_dominator_rating"
+    ],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
+      "Signal completeness 67% \u2014 missing: draft_capital, college_dominator_rating",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
+    ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 9,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
+    "market_overlay": null,
+    "assembled_at": "2026-05-10T00:54:51.551720+00:00",
+    "source_versions": {
+      "identity_source": "mock_prospect_identity",
+      "identity_parser_version": "unknown",
+      "identity_snapshot_date": "2026-05-08"
+    }
+  },
+  {
+    "player_id": "jeremiah_smith_wr_2005",
+    "full_name": "Jeremiah Smith",
+    "position": "WR",
+    "nfl_team": null,
+    "age": 21.0,
+    "is_prospect": true,
+    "engine_used": null,
+    "model_version": null,
+    "model_grade": "PRE_MODEL",
+    "dynasty_value_score": null,
+    "projection_1y": null,
+    "projection_2y": null,
+    "projection_3y": null,
+    "signal_completeness": 0.6667,
+    "inputs_present": [
+      "player_id",
+      "full_name",
+      "position",
+      "age_at_nfl_entry"
+    ],
+    "inputs_missing": [
+      "draft_capital",
+      "college_dominator_rating"
+    ],
+    "top_drivers": [
+      "age_not_near_position_cliff"
+    ],
+    "risk_flags": [
+      "identity_unverified"
+    ],
+    "counter_argument": null,
+    "caveats": [
+      "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
+      "Signal completeness 67% \u2014 missing: draft_capital, college_dominator_rating",
+      "age_curve_only",
+      "no_usage_signal",
+      "no_market_overlay",
+      "no_internal_value_signal"
+    ],
+    "roster_audit": {
+      "cliff_age": 28,
+      "years_to_cliff": 7,
+      "age_cliff_risk": 0.0,
+      "biological_debt_score": null,
+      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "signal": "no_age_signal",
+      "signal_drivers": [
+        "age_not_near_position_cliff"
+      ],
+      "caveats": [
+        "age_curve_only",
+        "no_usage_signal",
+        "no_market_overlay",
+        "no_internal_value_signal"
+      ],
+      "decision_supported": false
+    },
+    "market_overlay": null,
+    "assembled_at": "2026-05-10T00:54:51.551976+00:00",
+    "source_versions": {
+      "identity_source": "mock_prospect_identity",
+      "identity_parser_version": "unknown",
+      "identity_snapshot_date": "2026-05-08"
+    }
+  }
+]
