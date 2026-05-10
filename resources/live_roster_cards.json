@@ -31,6 +31,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active: QB value is elevated",
       "Signal completeness 75% \u2014 missing: snap_share",
       "age_curve_only",
       "no_usage_signal",
@@ -42,7 +43,7 @@
       "years_to_cliff": 10,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -56,7 +57,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.058270+00:00",
+    "assembled_at": "2026-05-10T02:41:52.556681+00:00",
     "source_versions": {}
   },
   {
@@ -94,6 +95,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade",
       "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
       "age_curve_only",
@@ -106,7 +108,7 @@
       "years_to_cliff": 1,
       "age_cliff_risk": 0.6667,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "approaching_cliff",
       "signal_drivers": [
         "age_within_two_years_of_position_cliff"
@@ -120,7 +122,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.060102+00:00",
+    "assembled_at": "2026-05-10T02:41:52.557173+00:00",
     "source_versions": {}
   },
   {
@@ -158,6 +160,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade",
       "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
       "age_curve_only",
@@ -170,7 +173,7 @@
       "years_to_cliff": 4,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -184,7 +187,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.060260+00:00",
+    "assembled_at": "2026-05-10T02:41:52.557331+00:00",
     "source_versions": {}
   },
   {
@@ -221,6 +224,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -232,7 +236,7 @@
       "years_to_cliff": 5,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -246,7 +250,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.060379+00:00",
+    "assembled_at": "2026-05-10T02:41:52.557474+00:00",
     "source_versions": {}
   },
   {
@@ -283,6 +287,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -294,7 +299,7 @@
       "years_to_cliff": 6,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -308,7 +313,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.060489+00:00",
+    "assembled_at": "2026-05-10T02:41:52.557617+00:00",
     "source_versions": {}
   },
   {
@@ -345,6 +350,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -356,7 +362,7 @@
       "years_to_cliff": 5,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -370,7 +376,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.060594+00:00",
+    "assembled_at": "2026-05-10T02:41:52.557740+00:00",
     "source_versions": {}
   },
   {
@@ -407,6 +413,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -418,7 +425,7 @@
       "years_to_cliff": 5,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -432,7 +439,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.060697+00:00",
+    "assembled_at": "2026-05-10T02:41:52.557861+00:00",
     "source_versions": {}
   },
   {
@@ -469,6 +476,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -480,7 +488,7 @@
       "years_to_cliff": 3,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -494,7 +502,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.060799+00:00",
+    "assembled_at": "2026-05-10T02:41:52.557981+00:00",
     "source_versions": {}
   },
   {
@@ -532,6 +540,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade",
       "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
       "age_curve_only",
@@ -544,7 +553,7 @@
       "years_to_cliff": 0,
       "age_cliff_risk": 1.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "at_cliff",
       "signal_drivers": [
         "age_at_position_cliff"
@@ -558,7 +567,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.060971+00:00",
+    "assembled_at": "2026-05-10T02:41:52.558103+00:00",
     "source_versions": {}
   },
   {
@@ -593,6 +602,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active: QB value is elevated",
       "Signal completeness 75% \u2014 missing: snap_share",
       "age_curve_only",
       "no_usage_signal",
@@ -604,7 +614,7 @@
       "years_to_cliff": 8,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -618,7 +628,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.061184+00:00",
+    "assembled_at": "2026-05-10T02:41:52.558219+00:00",
     "source_versions": {}
   },
   {
@@ -655,6 +665,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -666,7 +677,7 @@
       "years_to_cliff": 5,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -680,7 +691,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.061380+00:00",
+    "assembled_at": "2026-05-10T02:41:52.558338+00:00",
     "source_versions": {}
   },
   {
@@ -717,6 +728,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -728,7 +740,7 @@
       "years_to_cliff": 6,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -742,7 +754,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.062932+00:00",
+    "assembled_at": "2026-05-10T02:41:52.558457+00:00",
     "source_versions": {}
   },
   {
@@ -777,6 +789,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active: QB value is elevated",
       "Signal completeness 75% \u2014 missing: snap_share",
       "age_curve_only",
       "no_usage_signal",
@@ -788,7 +801,7 @@
       "years_to_cliff": 11,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -802,7 +815,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.063241+00:00",
+    "assembled_at": "2026-05-10T02:41:52.558573+00:00",
     "source_versions": {}
   },
   {
@@ -839,6 +852,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -850,7 +864,7 @@
       "years_to_cliff": 4,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -864,7 +878,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.064701+00:00",
+    "assembled_at": "2026-05-10T02:41:52.558693+00:00",
     "source_versions": {}
   },
   {
@@ -901,6 +915,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -912,7 +927,7 @@
       "years_to_cliff": 6,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -926,7 +941,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.064849+00:00",
+    "assembled_at": "2026-05-10T02:41:52.558811+00:00",
     "source_versions": {}
   },
   {
@@ -964,6 +979,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade",
       "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
       "age_curve_only",
@@ -976,7 +992,7 @@
       "years_to_cliff": 4,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -990,7 +1006,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.064966+00:00",
+    "assembled_at": "2026-05-10T02:41:52.558933+00:00",
     "source_versions": {}
   },
   {
@@ -1028,6 +1044,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 43% \u2014 missing: snap_share, target_share, breakaway_run_pct, run_blocking_grade",
       "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
       "age_curve_only",
@@ -1040,7 +1057,7 @@
       "years_to_cliff": 3,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -1054,7 +1071,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.065126+00:00",
+    "assembled_at": "2026-05-10T02:41:52.559054+00:00",
     "source_versions": {}
   },
   {
@@ -1091,6 +1108,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -1102,7 +1120,7 @@
       "years_to_cliff": 4,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -1116,7 +1134,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.065241+00:00",
+    "assembled_at": "2026-05-10T02:41:52.559172+00:00",
     "source_versions": {}
   },
   {
@@ -1153,6 +1171,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -1164,7 +1183,7 @@
       "years_to_cliff": 5,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -1178,7 +1197,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.065345+00:00",
+    "assembled_at": "2026-05-10T02:41:52.559290+00:00",
     "source_versions": {}
   },
   {
@@ -1213,6 +1232,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active: QB value is elevated",
       "Signal completeness 75% \u2014 missing: snap_share",
       "age_curve_only",
       "no_usage_signal",
@@ -1224,7 +1244,7 @@
       "years_to_cliff": 6,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -1238,7 +1258,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.065447+00:00",
+    "assembled_at": "2026-05-10T02:41:52.559403+00:00",
     "source_versions": {}
   },
   {
@@ -1275,6 +1295,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -1286,7 +1307,7 @@
       "years_to_cliff": 3,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -1300,7 +1321,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.065547+00:00",
+    "assembled_at": "2026-05-10T02:41:52.559520+00:00",
     "source_versions": {}
   },
   {
@@ -1337,6 +1358,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -1348,7 +1370,7 @@
       "years_to_cliff": 5,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -1362,7 +1384,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.065647+00:00",
+    "assembled_at": "2026-05-10T02:41:52.559637+00:00",
     "source_versions": {}
   },
   {
@@ -1399,6 +1421,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -1410,7 +1433,7 @@
       "years_to_cliff": 4,
       "age_cliff_risk": 0.0,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "no_age_signal",
       "signal_drivers": [
         "age_not_near_position_cliff"
@@ -1424,7 +1447,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.065747+00:00",
+    "assembled_at": "2026-05-10T02:41:52.559754+00:00",
     "source_versions": {}
   },
   {
@@ -1461,6 +1484,7 @@
     "counter_argument": null,
     "caveats": [
       "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+      "Superflex scoring active",
       "Signal completeness 50% \u2014 missing: snap_share, target_share, yards_per_route_run",
       "age_curve_only",
       "no_usage_signal",
@@ -1472,7 +1496,7 @@
       "years_to_cliff": 2,
       "age_cliff_risk": 0.3333,
       "biological_debt_score": null,
-      "liquidity_risk": "MEDIUM_LIMITED_ESCAPE_HATCH",
+      "liquidity_risk": "LOW",
       "signal": "approaching_cliff",
       "signal_drivers": [
         "age_within_two_years_of_position_cliff"
@@ -1486,7 +1510,7 @@
       "decision_supported": false
     },
     "market_overlay": null,
-    "assembled_at": "2026-05-09T17:48:18.065847+00:00",
+    "assembled_at": "2026-05-10T02:41:52.559872+00:00",
     "source_versions": {}
   }
 ]
