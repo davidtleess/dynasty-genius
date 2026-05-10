@@ -105,7 +105,7 @@ The `mock_draft_capital_unverified` risk chip ("⚠ pick data unverified") must 
 **Context badges (inline, next to name):**
 
 - `⚡ SUPERFLEX` — on every QB card when `is_superflex = True`
-- `AGE RISK` — on cards whose position is HIGH or MEDIUM in the roster need banner (age-curve signal only; renamed from `▲ NEED` to avoid directive read)
+- `AGING STACK` — on cards whose position is HIGH or MEDIUM in the roster need banner (age-curve signal only; renamed from `▲ NEED` to avoid directive read)
 - `TAKEN` — on cards whose `sleeper_id` is in `DRAFT_STATE.taken`
 - `2027 Class` — on devy prospects with `draft_class = 2027`
 
@@ -180,7 +180,7 @@ Dependency: Gemini's task 3 (data verification) ensures `sleeper_id` values in t
   - `draft_state.js` shape: `taken` is a list, `draft_id` and `refreshed_at` are strings
   - `roster_need_signals.js` shape: all four skill positions present, values in `{HIGH, MEDIUM, LOW}`
   - `prospect_cards.js` count matches `prospect_identity_2026.json` player count (parity check)
-- Manual browser check: BPA view sorts correctly, position tab filters work, TAKEN state renders correctly, counter-argument strip present on scored cards, `AGE RISK` badge shows for HIGH/MEDIUM positions
+- Manual browser check: BPA view sorts correctly, position tab filters work, TAKEN state renders correctly, counter-argument strip present on scored cards, `AGING STACK` badge shows for HIGH/MEDIUM positions
 - Run `.venv/bin/python scripts/build_prospect_cards.py` with verified manifest before May 11 to confirm Engine A fires for all 2026 class players with pick + round + age
 
 ## Dependencies
