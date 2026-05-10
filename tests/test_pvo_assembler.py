@@ -89,3 +89,76 @@ def test_mock_prospect_pick_round_inputs_are_flagged():
 
     assert scored_cards
     assert all("mock_draft_capital_unverified" in card["risk_flags"] for card in scored_cards)
+
+
+# ── Task 2: PVO identity field tests ──────────────────────────────────────────
+import json
+import tempfile
+
+
+def _make_prospect_fixture(extra=None) -> dict:
+    return {
+        "source": "test",
+        "snapshot_date": "2026-05-09",
+        "players": [{
+            "full_name": "Test Receiver",
+            "position": "WR",
+            "birth_date": "2003-01-01",
+            "nfl_team": "DAL",
+            "is_prospect": True,
+            "draft_class": 2026,
+            "pick": 15,
+            "round": 1,
+            "sleeper_id": "99999",
+            "verification_status": "VERIFIED_NFL_DRAFT",
+            "identity_verified": True,
+            "age_verified": True,
+            **(extra or {}),
+        }]
+    }
+
+
+def _cards_from_fixture(fixture: dict) -> list[dict]:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(fixture, f)
+        tmp = Path(f.name)
+    try:
+        return assemble_roster_audit(tmp)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def test_pvo_has_sleeper_id():
+    cards = _cards_from_fixture(_make_prospect_fixture())
+    assert cards[0]["sleeper_id"] == "99999"
+
+
+def test_pvo_has_draft_class():
+    cards = _cards_from_fixture(_make_prospect_fixture())
+    assert cards[0]["draft_class"] == 2026
+
+
+def test_pvo_has_nfl_draft_pick():
+    cards = _cards_from_fixture(_make_prospect_fixture())
+    assert cards[0]["nfl_draft_pick"] == 15
+
+
+def test_pvo_has_nfl_draft_round():
+    cards = _cards_from_fixture(_make_prospect_fixture())
+    assert cards[0]["nfl_draft_round"] == 1
+
+
+def test_pvo_decision_supported_is_false():
+    cards = _cards_from_fixture(_make_prospect_fixture())
+    assert cards[0]["decision_supported"] is False
+
+
+def test_verified_prospect_no_unverified_flag():
+    cards = _cards_from_fixture(_make_prospect_fixture())
+    assert "mock_draft_capital_unverified" not in cards[0]["risk_flags"]
+
+
+def test_unverified_prospect_carries_unverified_flag():
+    fixture = _make_prospect_fixture({"verification_status": "PENDING", "identity_verified": False, "age_verified": False})
+    cards = _cards_from_fixture(fixture)
+    assert "mock_draft_capital_unverified" in cards[0]["risk_flags"]

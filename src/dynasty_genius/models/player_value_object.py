@@ -58,6 +58,10 @@ class PlayerValueObject(BaseModel):
     nfl_team: Optional[str] = None
     age: Optional[float] = None
     is_prospect: bool = False
+    sleeper_id: Optional[str] = None
+    draft_class: Optional[int] = None
+    nfl_draft_pick: Optional[int] = None
+    nfl_draft_round: Optional[int] = None
 
     # ── Model metadata ────────────────────────────────────────────────────────
     engine_used: Optional[str] = None        # "engine_a" | "engine_b" | None
@@ -86,6 +90,9 @@ class PlayerValueObject(BaseModel):
 
     # ── Market overlay — post-scoring only ───────────────────────────────────
     market_overlay: Optional[MarketOverlay] = None
+
+    # ── Governance ────────────────────────────────────────────────────────────
+    decision_supported: bool = False
 
     # ── Provenance ────────────────────────────────────────────────────────────
     assembled_at: Optional[str] = None
