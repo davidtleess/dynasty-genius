@@ -43,12 +43,14 @@ BASELINE_COLUMNS = {
 ALLOWED_ENRICHMENT_COLUMNS = {
     # College production (position-aware — some will be NaN for irrelevant positions)
     "dominator_rating",
+    "receiving_yards_share",
     "breakout_age",
     "target_share",      # WR / TE
     "speed_score",       # WR / RB
     "yprr",              # WR / TE (median-imputed for pre-2019 coverage gaps)
     # Provenance metadata (one per enrichment column)
     "source_dominator_rating",
+    "source_receiving_yards_share",
     "source_breakout_age",
     "source_target_share",
     "source_speed_score",
