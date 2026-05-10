@@ -22,6 +22,8 @@ Thumbs.db
 logs/
 
 # Generated caches and local scratch data
+leakage_violation_report.json
+join_ambiguity_report.json
 app/cache/
 app/data/cache/**
 !app/data/cache/
