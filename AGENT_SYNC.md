@@ -30,7 +30,14 @@ Finalize the canonical identity and live league context:
 - Claude delivered `PlayerValueObject` + `RosterAuditSignals` models, `pvo_assembler.py`, live Sleeper roster ingestion (24 players), and dark-theme Roster Audit HTML dashboard.
 - Gemini added opponent fragility lens (`scripts/generate_league_audit.py`, `resources/league_fragility_report.json`) and counter-argument engine.
 - Claude connected Engine A trained models to PVO assembler. Prospects with pick+round+age now receive scores.
+- **Strategic Pivot:** Approved "Do it right, not fast" roadmap for QB valuation. QBs will remain at `PROSPECT_D` (Pick/Round/Age only) for the May 11th draft. Phase 3 will involve historical enrichment (874 players) and transition to Quantile Regression for high-fidelity ceiling/floor signals.
 - Current local verification: 61 tests pass; governance validation passes; `git diff --check` passes; no Databricks commands run.
+
+## Phase 3 Roadmap (Post-Draft)
+
+- **Historical Enrichment:** Fetch AY/A, Rushing Share, and Breakout Age for all 874 training prospects.
+- **Model Upgrade:** Move QB position to Quantile Regression to capture bi-modal "Konami Code" outcomes.
+- **Active Player Ignition:** Complete Engine B feature mapping and score your entire roster.
 
 ## Open Blockers
 

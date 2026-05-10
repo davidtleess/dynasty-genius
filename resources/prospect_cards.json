@@ -65,7 +65,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.726722+00:00",
+    "assembled_at": "2026-05-10T04:02:23.215890+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -140,7 +140,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.727328+00:00",
+    "assembled_at": "2026-05-10T04:02:23.216659+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -213,7 +213,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.727761+00:00",
+    "assembled_at": "2026-05-10T04:02:23.217261+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -286,7 +286,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.728191+00:00",
+    "assembled_at": "2026-05-10T04:02:23.217735+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -359,7 +359,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.728617+00:00",
+    "assembled_at": "2026-05-10T04:02:23.218298+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -434,7 +434,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.729039+00:00",
+    "assembled_at": "2026-05-10T04:02:23.218800+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -507,7 +507,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.729465+00:00",
+    "assembled_at": "2026-05-10T04:02:23.219673+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -580,7 +580,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.729875+00:00",
+    "assembled_at": "2026-05-10T04:02:23.224450+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -629,7 +629,7 @@
     "roster_audit": null,
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.730020+00:00",
+    "assembled_at": "2026-05-10T04:02:23.225079+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -704,7 +704,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.730430+00:00",
+    "assembled_at": "2026-05-10T04:02:23.225694+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -777,7 +777,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.730981+00:00",
+    "assembled_at": "2026-05-10T04:02:23.226255+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -850,7 +850,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.731410+00:00",
+    "assembled_at": "2026-05-10T04:02:23.226687+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -923,7 +923,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.731829+00:00",
+    "assembled_at": "2026-05-10T04:02:23.227095+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -998,7 +998,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.732298+00:00",
+    "assembled_at": "2026-05-10T04:02:23.227512+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1073,7 +1073,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.732767+00:00",
+    "assembled_at": "2026-05-10T04:02:23.228035+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1148,7 +1148,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.733241+00:00",
+    "assembled_at": "2026-05-10T04:02:23.228608+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1223,7 +1223,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.733854+00:00",
+    "assembled_at": "2026-05-10T04:02:23.229153+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1296,7 +1296,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.734615+00:00",
+    "assembled_at": "2026-05-10T04:02:23.229658+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1371,7 +1371,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.735515+00:00",
+    "assembled_at": "2026-05-10T04:02:23.230174+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1444,7 +1444,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.736078+00:00",
+    "assembled_at": "2026-05-10T04:02:23.230691+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1519,7 +1519,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.737039+00:00",
+    "assembled_at": "2026-05-10T04:02:23.231219+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1592,7 +1592,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.738050+00:00",
+    "assembled_at": "2026-05-10T04:02:23.231652+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1665,7 +1665,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.739219+00:00",
+    "assembled_at": "2026-05-10T04:02:23.232069+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1738,7 +1738,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.740141+00:00",
+    "assembled_at": "2026-05-10T04:02:23.232470+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1811,7 +1811,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.740634+00:00",
+    "assembled_at": "2026-05-10T04:02:23.232872+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1884,7 +1884,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.741394+00:00",
+    "assembled_at": "2026-05-10T04:02:23.233551+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -1933,7 +1933,7 @@
     "roster_audit": null,
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.741573+00:00",
+    "assembled_at": "2026-05-10T04:02:23.233806+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2006,7 +2006,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.742057+00:00",
+    "assembled_at": "2026-05-10T04:02:23.234349+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2081,7 +2081,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.742568+00:00",
+    "assembled_at": "2026-05-10T04:02:23.234913+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2154,7 +2154,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.743015+00:00",
+    "assembled_at": "2026-05-10T04:02:23.235458+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2229,7 +2229,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.743584+00:00",
+    "assembled_at": "2026-05-10T04:02:23.236325+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2302,7 +2302,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.744354+00:00",
+    "assembled_at": "2026-05-10T04:02:23.237090+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2377,7 +2377,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.744977+00:00",
+    "assembled_at": "2026-05-10T04:02:23.237533+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2450,7 +2450,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.745586+00:00",
+    "assembled_at": "2026-05-10T04:02:23.237954+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2525,7 +2525,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.746325+00:00",
+    "assembled_at": "2026-05-10T04:02:23.238371+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2598,7 +2598,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.747068+00:00",
+    "assembled_at": "2026-05-10T04:02:23.238780+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2671,7 +2671,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.747649+00:00",
+    "assembled_at": "2026-05-10T04:02:23.239186+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2744,7 +2744,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.748093+00:00",
+    "assembled_at": "2026-05-10T04:02:23.239639+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2793,7 +2793,7 @@
     "roster_audit": null,
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.748237+00:00",
+    "assembled_at": "2026-05-10T04:02:23.239970+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2866,7 +2866,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.748737+00:00",
+    "assembled_at": "2026-05-10T04:02:23.240844+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -2941,7 +2941,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.749491+00:00",
+    "assembled_at": "2026-05-10T04:02:23.242369+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3014,7 +3014,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.750026+00:00",
+    "assembled_at": "2026-05-10T04:02:23.243223+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3087,7 +3087,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.750454+00:00",
+    "assembled_at": "2026-05-10T04:02:23.243899+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3160,7 +3160,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.751027+00:00",
+    "assembled_at": "2026-05-10T04:02:23.244370+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3235,7 +3235,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.751686+00:00",
+    "assembled_at": "2026-05-10T04:02:23.244800+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3310,7 +3310,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.752174+00:00",
+    "assembled_at": "2026-05-10T04:02:23.245207+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3385,7 +3385,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.752586+00:00",
+    "assembled_at": "2026-05-10T04:02:23.245639+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3460,7 +3460,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.753330+00:00",
+    "assembled_at": "2026-05-10T04:02:23.246063+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3535,7 +3535,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.754089+00:00",
+    "assembled_at": "2026-05-10T04:02:23.246478+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3608,7 +3608,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.754911+00:00",
+    "assembled_at": "2026-05-10T04:02:23.247095+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3683,7 +3683,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.755493+00:00",
+    "assembled_at": "2026-05-10T04:02:23.247643+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3758,7 +3758,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.755992+00:00",
+    "assembled_at": "2026-05-10T04:02:23.248180+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3833,7 +3833,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.757660+00:00",
+    "assembled_at": "2026-05-10T04:02:23.248667+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3908,7 +3908,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.758844+00:00",
+    "assembled_at": "2026-05-10T04:02:23.249197+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -3981,7 +3981,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.759937+00:00",
+    "assembled_at": "2026-05-10T04:02:23.249727+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4030,7 +4030,7 @@
     "roster_audit": null,
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.760271+00:00",
+    "assembled_at": "2026-05-10T04:02:23.249890+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4103,7 +4103,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.761216+00:00",
+    "assembled_at": "2026-05-10T04:02:23.250364+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4178,7 +4178,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.762802+00:00",
+    "assembled_at": "2026-05-10T04:02:23.251165+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4251,7 +4251,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.763903+00:00",
+    "assembled_at": "2026-05-10T04:02:23.251810+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4326,7 +4326,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.764622+00:00",
+    "assembled_at": "2026-05-10T04:02:23.252439+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4401,7 +4401,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.765135+00:00",
+    "assembled_at": "2026-05-10T04:02:23.253696+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4474,7 +4474,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.765650+00:00",
+    "assembled_at": "2026-05-10T04:02:23.254807+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4547,7 +4547,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.766344+00:00",
+    "assembled_at": "2026-05-10T04:02:23.255496+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4620,7 +4620,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.766845+00:00",
+    "assembled_at": "2026-05-10T04:02:23.256366+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4693,7 +4693,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.767281+00:00",
+    "assembled_at": "2026-05-10T04:02:23.257516+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4768,7 +4768,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.767755+00:00",
+    "assembled_at": "2026-05-10T04:02:23.259315+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4817,7 +4817,7 @@
     "roster_audit": null,
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.767941+00:00",
+    "assembled_at": "2026-05-10T04:02:23.259615+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4890,7 +4890,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.768871+00:00",
+    "assembled_at": "2026-05-10T04:02:23.260161+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -4963,7 +4963,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.770673+00:00",
+    "assembled_at": "2026-05-10T04:02:23.260732+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5036,7 +5036,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.774499+00:00",
+    "assembled_at": "2026-05-10T04:02:23.261559+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5111,7 +5111,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.775591+00:00",
+    "assembled_at": "2026-05-10T04:02:23.262429+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5184,7 +5184,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.776542+00:00",
+    "assembled_at": "2026-05-10T04:02:23.263039+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5259,7 +5259,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.777495+00:00",
+    "assembled_at": "2026-05-10T04:02:23.263508+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5332,7 +5332,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.778311+00:00",
+    "assembled_at": "2026-05-10T04:02:23.263949+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5407,7 +5407,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.778794+00:00",
+    "assembled_at": "2026-05-10T04:02:23.264541+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5455,7 +5455,7 @@
     "roster_audit": null,
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.778927+00:00",
+    "assembled_at": "2026-05-10T04:02:23.264697+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5530,7 +5530,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.779959+00:00",
+    "assembled_at": "2026-05-10T04:02:23.265610+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5603,7 +5603,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.780634+00:00",
+    "assembled_at": "2026-05-10T04:02:23.267297+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5676,7 +5676,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.781383+00:00",
+    "assembled_at": "2026-05-10T04:02:23.268810+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5751,7 +5751,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.782392+00:00",
+    "assembled_at": "2026-05-10T04:02:23.269810+00:00",
     "source_versions": {
       "identity_source": "nfl_data_py_verified_nfl_draft",
       "identity_parser_version": "unknown",
@@ -5823,7 +5823,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.791176+00:00",
+    "assembled_at": "2026-05-10T04:02:23.278469+00:00",
     "source_versions": {
       "identity_source": "mock_prospect_identity",
       "identity_parser_version": "unknown",
@@ -5895,7 +5895,7 @@
     },
     "market_overlay": null,
     "decision_supported": false,
-    "assembled_at": "2026-05-10T02:57:12.791376+00:00",
+    "assembled_at": "2026-05-10T04:02:23.278617+00:00",
     "source_versions": {
       "identity_source": "mock_prospect_identity",
       "identity_parser_version": "unknown",
