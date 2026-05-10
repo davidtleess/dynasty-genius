@@ -1,6 +1,6 @@
 # Design Spec: Rookie Board UI
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Status:** Approved
 **Date:** 2026-05-09
 **Target:** May 11th Dynasty Rookie Draft
@@ -19,7 +19,7 @@ This is a slow draft (8 hours per pick). The board serves both pre-draft researc
 - No market-derived inputs in any scoring logic
 - `decision_supported: false` on all surfaces
 - Engine A grades: PROSPECT_C (WR/RB/TE), PROSPECT_D (QB — negative R², directional only)
-- Banned output language: confidence, verdict, draft target, trade candidate, buy, sell, action
+- Banned directive phrases in HTML and JS output: "draft target", "draft this", "take", "buy", "sell", "trade candidate", "action", "verdict", "confidence". The words "draft" and "slow draft" as context labels are permitted.
 
 ## Architecture
 
@@ -55,8 +55,8 @@ No fetch, no CORS — pure local JS variable reads.
 
 The board is a static `file://` page — it cannot execute scripts directly. The refresh button is a UX affordance only.
 
-1. David clicks **↻ Refresh Draft** in the browser — a visible tooltip appears: `run: python3 scripts/refresh_draft_state.py`
-2. David runs the script in terminal (or types `! python3 scripts/refresh_draft_state.py` in Claude Code)
+1. David clicks **↻ Refresh Draft** in the browser — a visible tooltip appears: `run: .venv/bin/python scripts/refresh_draft_state.py`
+2. David runs the script in terminal (or types `! .venv/bin/python scripts/refresh_draft_state.py` in Claude Code)
 3. Script fetches `/draft/{draft_id}/picks` from Sleeper, writes `draft_state.js`
 4. David reloads the page — taken players appear grayed with TAKEN badge
 
@@ -91,6 +91,7 @@ One card per prospect, ranked by `dynasty_value_score` descending. PRE_MODEL pro
 [rank]  [name]  [pos badge]  [context badges]
         [school · pick · round · age]
         [caveat chip — QB: PROSPECT_D warning]
+        [risk chip — if mock_draft_capital_unverified in risk_flags]
                                          [Engine A label]
                                          [score: 0-100]
                                          [score bar]
@@ -99,10 +100,12 @@ One card per prospect, ranked by `dynasty_value_score` descending. PRE_MODEL pro
 ⚑ Counter  [counter_argument text from PVO]
 ```
 
+The `mock_draft_capital_unverified` risk chip ("⚠ pick data unverified") must render whenever that flag appears in the PVO `risk_flags` list. It is a governance requirement until Gemini's verified manifest replaces mock pick/round inputs. The chip is removed automatically once `verification_status: VERIFIED_NFL_DRAFT` propagates through the manifest.
+
 **Context badges (inline, next to name):**
 
 - `⚡ SUPERFLEX` — on every QB card when `is_superflex = True`
-- `▲ NEED` — on cards whose position is HIGH or MEDIUM in roster need
+- `AGE RISK` — on cards whose position is HIGH or MEDIUM in the roster need banner (age-curve signal only; renamed from `▲ NEED` to avoid directive read)
 - `TAKEN` — on cards whose `sleeper_id` is in `DRAFT_STATE.taken`
 - `2027 Class` — on devy prospects with `draft_class = 2027`
 
@@ -119,7 +122,7 @@ One card per prospect, ranked by `dynasty_value_score` descending. PRE_MODEL pro
 
 ### Counter-argument strip
 
-Appears on every card with a `dynasty_value_score` (scored prospects only). Red-tinted band below the card body. Always visible — not collapsible. The constitution mandates a counter-argument for every strong recommendation; the 8-hour slow draft window makes tunnel vision a real risk.
+Appears on every scored card (any card with a `dynasty_value_score`). Red-tinted band below the card body. Always visible — not collapsible. The constitution mandates a counter-argument for every strong signal; the 8-hour slow draft window makes tunnel vision a real risk.
 
 ```
 ⚑ Counter  [counter_argument from PVO — max ~150 chars displayed]
@@ -131,12 +134,13 @@ If `counter_argument` is null, the strip is omitted rather than showing a placeh
 
 ### `scripts/refresh_draft_state.py`
 
-- Reads `DYNASTY_SLEEPER_LEAGUE_ID` from `.env`
-- Fetches active dynasty draft ID from `/league/{league_id}/drafts`
+- Reads env vars: `DYNASTY_SLEEPER_DRAFT_ID` (preferred, direct override), `DYNASTY_SLEEPER_LEAGUE_ID` (fallback)
+- If `DYNASTY_SLEEPER_DRAFT_ID` is set, uses it directly — no discovery call needed
+- If not set, fetches active dynasty draft ID from `/league/{league_id}/drafts`; if multiple drafts are returned, logs all IDs and selects the most recent active one; logs the selection for auditability
 - Fetches all picks from `/draft/{draft_id}/picks`
 - Extracts `player_id` (Sleeper ID) for each taken pick
-- Writes `resources/draft_state.js`: `window.DRAFT_STATE = { taken: [...], refreshed_at: "..." };`
-- Falls back gracefully if no draft is active (writes empty taken list with caveat)
+- Writes `resources/draft_state.js`: `window.DRAFT_STATE = { taken: [...], draft_id: "...", refreshed_at: "..." };`
+- Falls back gracefully if no draft is active (writes empty taken list with a `no_active_draft` caveat)
 
 ### `scripts/build_roster_need_signals.py`
 
@@ -159,7 +163,7 @@ Dependency: Gemini's task 3 (data verification) ensures `sleeper_id` values in t
 - Engine A grades propagated verbatim from PVO: PROSPECT_C or PROSPECT_D
 - QB caveat chip always rendered: "QB model PROSPECT_D · negative R² · directional signal only"
 - Board reads `LeagueContext.is_superflex` and `LeagueContext.te_premium` to conditionally render league context badges — never hardcoded
-- No buy/sell/draft/action language anywhere in the HTML or JS
+- No directive phrases in HTML or generated JS: "draft target", "draft this", "take", "buy", "sell", "trade candidate", "action", "verdict", "confidence". Context labels like "Refresh Draft" and "slow draft" are permitted.
 
 ## Phase 2 (non-blocking, post May 11)
 
@@ -169,9 +173,15 @@ Dependency: Gemini's task 3 (data verification) ensures `sleeper_id` values in t
 
 ## Testing
 
-- `tests/test_rookie_board_contract.py` — verify board HTML loads all three JS artifacts, no banned language in rendered output, `decision_supported: false` present in data
-- Manual browser check: BPA view sorts correctly, position tab filters work, TAKEN state renders correctly, counter-argument strip present on scored cards
-- Run `build_prospect_cards.py` with verified manifest before May 11 to confirm Engine A fires for all 2026 class players with pick + round + age
+- `tests/test_rookie_board_contract.py` — covers:
+  - Board HTML contains `<script src>` tags for all three JS artifacts
+  - No banned directive phrases in board HTML or any generated JS (`prospect_cards.js`, `draft_state.js`, `roster_need_signals.js`)
+  - `decision_supported: false` present in every `PROSPECT_CARDS` entry
+  - `draft_state.js` shape: `taken` is a list, `draft_id` and `refreshed_at` are strings
+  - `roster_need_signals.js` shape: all four skill positions present, values in `{HIGH, MEDIUM, LOW}`
+  - `prospect_cards.js` count matches `prospect_identity_2026.json` player count (parity check)
+- Manual browser check: BPA view sorts correctly, position tab filters work, TAKEN state renders correctly, counter-argument strip present on scored cards, `AGE RISK` badge shows for HIGH/MEDIUM positions
+- Run `.venv/bin/python scripts/build_prospect_cards.py` with verified manifest before May 11 to confirm Engine A fires for all 2026 class players with pick + round + age
 
 ## Dependencies
 
@@ -180,4 +190,4 @@ Dependency: Gemini's task 3 (data verification) ensures `sleeper_id` values in t
 | `prospect_identity_2026.json` (verified NFL draft data) | Gemini | build_prospect_cards.py |
 | `sleeper_id` accuracy in manifest | Gemini | availability sync |
 | `live_roster_cards.json` (live Sleeper roster) | Already built | roster need signals |
-| `LeagueContext` pick/scoring review | Gemini (in progress) | is_superflex / te_premium rendering |
+| `LeagueContext` pick/scoring review | Gemini — completed | is_superflex / te_premium rendering — caveat: artifacts need regeneration after te_premium corrected to 0.0 |

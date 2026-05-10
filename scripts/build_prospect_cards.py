@@ -32,7 +32,8 @@ if load_dotenv:
 
 from src.dynasty_genius.pvo_assembler import assemble_roster_audit
 
-FIXTURE_PATH = ROOT / "resources" / "mock_prospect_identities_2026_2027.json"
+FIXTURE_2026 = ROOT / "resources" / "prospect_identity_2026.json"
+FIXTURE_2027 = ROOT / "resources" / "mock_prospect_identities_2026_2027.json"
 CARDS_JSON   = ROOT / "resources" / "prospect_cards.json"
 CARDS_JS     = ROOT / "resources" / "prospect_cards.js"
 LEAGUE_CTX_PATH = ROOT / "resources" / "david_league_context.json"
@@ -58,25 +59,37 @@ def _write_js(cards: list[dict]) -> None:
 
 
 def main() -> None:
-    if not FIXTURE_PATH.exists():
-        print(f"Fixture not found: {FIXTURE_PATH}")
-        sys.exit(1)
-
     league_context = _load_league_context()
     if league_context:
         print(f"Loaded league context: {league_context.league_name}")
 
-    cards = assemble_roster_audit(FIXTURE_PATH, league_context=league_context)
+    all_cards = []
+    
+    # 1. 2026 Class (Verified)
+    if FIXTURE_2026.exists():
+        print(f"Assembling 2026 cards (verified)...")
+        all_cards.extend(assemble_roster_audit(FIXTURE_2026, league_context=league_context))
 
-    CARDS_JSON.write_text(json.dumps(cards, indent=2))
-    print(f"Wrote {len(cards)} prospect cards → {CARDS_JSON.relative_to(ROOT)}")
+    # 2. 2027 Class (Mock) - Filtered from combined mock file
+    if FIXTURE_2027.exists():
+        print(f"Assembling 2027 cards (mock)...")
+        mock_cards = assemble_roster_audit(FIXTURE_2027, league_context=league_context)
+        # Only keep 2027+ prospects from mock file to avoid duplicates/stale 2026 mocks
+        all_cards.extend([c for c in mock_cards if c.get("draft_class", 0) >= 2027])
 
-    _write_js(cards)
+    if not all_cards:
+        print("No prospects found to assemble.")
+        sys.exit(0)
+
+    CARDS_JSON.write_text(json.dumps(all_cards, indent=2))
+    print(f"Wrote {len(all_cards)} prospect cards → {CARDS_JSON.relative_to(ROOT)}")
+
+    _write_js(all_cards)
     print(f"Wrote JS artifact         → {CARDS_JS.relative_to(ROOT)}")
 
     print(f"\n{'Player':<28} {'Pos':<4} {'Age':>4}  {'DVS':>6}  {'Engine':<36}  Grade")
     print("-" * 92)
-    for c in sorted(cards, key=lambda x: (
+    for c in sorted(all_cards, key=lambda x: (
         0 if x.get("dynasty_value_score") is not None else 1,
         -(x.get("dynasty_value_score") or 0),
     )):
