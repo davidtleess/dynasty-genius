@@ -21,57 +21,16 @@ from pathlib import Path
 
 import pytest
 
+from src.dynasty_genius.models.engine_a_contract import (
+    ALLOWED_ENRICHMENT_COLUMNS,
+    BASELINE_COLUMNS,
+    PROHIBITED_COLUMNS,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 TRAINING_CSV = ROOT / "app" / "data" / "training" / "prospects_with_outcomes.csv"
 ENRICHED_CSV = ROOT / "app" / "data" / "training" / "prospects_with_outcomes_v2.csv"
 FEATURE_MEDIANS = ROOT / "resources" / "engine_a_feature_medians.json"
-
-# ── Schema: columns present in the baseline training CSV ─────────────────────
-
-BASELINE_COLUMNS = {
-    "gsis_id", "pfr_player_name", "position", "season",
-    "pick", "round", "team", "college", "age",
-    "y2_games", "y2_points", "y3_games", "y3_points",
-    "y4_games", "y4_points", "total_games", "total_points",
-    "y24_ppg", "low_sample_flag", "is_training",
-}
-
-# ── Schema: allowed Engine A v2 feature additions per position ────────────────
-
-# Columns allowed to appear in the enriched CSV (beyond baseline).
-# All others trigger a leakage failure.
-ALLOWED_ENRICHMENT_COLUMNS = {
-    # College production (position-aware — some will be NaN for irrelevant positions)
-    "dominator_rating",
-    "receiving_yards_share",
-    "breakout_age",
-    "target_share",      # WR / TE
-    "speed_score",       # WR / RB
-    "yprr",              # WR / TE (median-imputed for pre-2019 coverage gaps)
-    # Provenance metadata (one per enrichment column)
-    "source_dominator_rating",
-    "source_receiving_yards_share",
-    "source_breakout_age",
-    "source_target_share",
-    "source_speed_score",
-    "source_yprr",
-    # Imputation flag (set to 1 when value was median-imputed, not observed)
-    "imputed_yprr",
-}
-
-# ── Leakage: columns that must NEVER appear in the enriched training data ─────
-
-PROHIBITED_COLUMNS = {
-    # Market / consensus data
-    "ktc_value", "ktc_rank", "adp", "fantasycalc_value",
-    "dynastynerds_rank", "dynastydatalab_adp",
-    # Post-NFL production (look-ahead bias when scoring incoming prospects)
-    "nfl_yards", "nfl_tds", "nfl_targets", "nfl_carries",
-    "nfl_receptions", "nfl_air_yards", "nfl_yprr",
-    "pff_grade", "pff_route_grade",
-    # Narrative / qualitative free text
-    "scout_note", "analyst_note", "narrative",
-}
 
 # ── Provenance: every enrichment column needs a source_ sibling ──────────────
 
