@@ -5,51 +5,85 @@ Last updated: 2026-05-11
 
 ## Active Phase
 
-Infrastructure hygiene complete (PRs #13, #14 pending merge). QB strategy research done. Stage 1 infrastructure in progress (Pydantic v2 upgrade + nflreadpy migration). Stage 2 QB feature pipeline begins after Stage 1 lands.
+Stage 1 infrastructure PRs open (#14, #15). After both merge, Stage 2 QB college feature pipeline begins.
 
 ## Current Sprint Objective
 
-Complete Stage 1 infrastructure upgrades, then implement QB college feature pipeline (Engine A v2 Phase 2).
+Land PRs #14 and #15, then implement QB Engine A college features (CFBD Tier 3).
 
-- PR #13 (`hygiene/pydantic-compat`): MERGED → main `16e3567`. Pydantic v1/v2 shims. 84 pass.
-- PR #14 (`hygiene/pydantic-v2-upgrade`): OPEN — removes all shims, pins pydantic>=2.0,<3.0, removes cfbd package. Codex commit `7896e7c`. 84 pass.
-- PR #15 (`hygiene/nflreadpy-migration`): DELIVERED — Gemini commit `6b5eabd`. nfl_data_py → nflreadpy. 84 pass.
-- Engine A v2 PP remediation: committed `4afb1c7` on `engine-a/v2-enrichment-pipeline`.
+- PR #13 (`hygiene/pydantic-compat`): MERGED → main `16e3567`.
+- PR #14 (`hygiene/pydantic-v2-upgrade`): OPEN — CI GREEN. Merge immediately. Removes all v1/v2 shims, pins pydantic>=2.0,<3.0, removes cfbd package.
+- PR #15 (`hygiene/nflreadpy-migration`): OPEN — needs one fix before merge (see below), then retarget onto main after #14 merges.
+- Engine A v2 PP remediation: committed on `engine-a/v2-enrichment-pipeline` (not yet PRed to main).
+
+## PR #15 Required Fix (Before Merge)
+
+Scope confirmed by David: keep SOURCE_REGISTRY key `"nfl_data_py"` unchanged, do not rename provenance labels.
+
+One file needs a change on branch `hygiene/nflreadpy-migration`:
+- `scripts/ingest_2026_draft.py` line 35: change `"source": "nflreadpy_verified_nfl_draft"` back to `"source": "nfl_data_py_verified_nfl_draft"`
+
+Everything else in PR #15 is correct:
+- Import swap (`import nflreadpy as nfl`) ✓
+- API call replacements (load_draft_picks, load_player_stats) ✓
+- Test renamed to `test_nflreadpy_2026_results` ✓ (reflects implementation, not registry key)
+- SOURCE_REGISTRY key left as `"nfl_data_py"` ✓
+
+Sequence: fix provenance string → commit → retarget PR #15 onto main (after #14 merges) → CI → merge.
 
 ## Latest Activity
 
-- Claude Code (2026-05-11, Session 5): Opened PR #14 (Pydantic v2 upgrade, Codex commit 7896e7c). Reviewed and verified clean. Wrote Stage 1 agent delegation prompts for Codex (PR #14) and Gemini (nflreadpy migration). Wrote Stage 0 investigation prompts for Gemini (3 parallel tracks: nflreadpy, cfbd-python, CFBD QB endpoint spec). Delivered QB strategy reconciliation against constitution.
-- Claude Code (2026-05-11, Session 4): PR #13 merged (16e3567). Gemini confirmed CI green + review clean. Adapter test gate stubs (4 files, 28 governance tests). cfbd package identified as unused and pydantic<2 root cause. CFBD QB data confirmed available.
-- Claude Code (2026-05-11, Session 3): Fixed PR #11 CI failure (PlayerValueObject.model_dump recursion). Pushed fbedfca. CI passed. PR #11 and PR #12 subsequently merged.
+- Claude Code (2026-05-11, Session 6): Opened PR #14 (Pydantic v2 upgrade, Codex `7896e7c`, CI green). Opened PR #15 (nflreadpy migration, Gemini). Identified PR #15 provenance string issue (`ingest_2026_draft.py:35`). Restored AGENT_SYNC after stale Codex overwrite. Confirmed CI uses Python 3.11 (nflreadpy works; local 3.9 venv is broken/mismatched). Wrote Stage 0 Gemini prompts for QB strategy investigation.
+- Claude Code (2026-05-11, Session 5): PR #13 merged (16e3567). Opened adapter test gate stubs (4 files). Merged PR via gh CLI. Wrote Stage 1 delegation prompts.
+- Claude Code (2026-05-11, Session 4): PR #13 Pydantic compat — 84/0. Wrote QB strategy reconciliation. Delivered source map (connected vs. planned sources).
 
 ## Open Blockers
 
-1. **PR #14 awaiting CI + merge** — Pydantic v2 upgrade. 84 pass locally. Must land before QB feature work starts.
-2. **PR #15 (nflreadpy migration)** — Gemini implementing. Source registry rename decision (nfl_data_py → nflreadpy key) deferred to David.
-3. **QB feature pipeline (Stage 2)** — blocked on Stage 1 (PRs #14, #15). CFBD Tier 3 endpoint spec finalized (Track C). PPA/WEPA available via httpx (no SDK). David has Tier 3 Patreon.
-4. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds. Do not promote PP without explicit instruction.
-5. **PR C** — governance reconciliation is human-reviewed only, not agent-delegatable.
+1. **PR #14 — merge now** (CI green, no issues).
+2. **PR #15 — fix provenance string first**, then merge after #14 lands.
+3. **Local venv mismatch** — `.venv/bin/pip` points to Python 3.14, `.venv/bin/python` is 3.9. nflreadpy requires 3.10+. To run tests locally, rebuild venv: `python3.11 -m venv .venv && pip install -r requirements.txt`. Not blocking CI.
+4. **SOURCE_REGISTRY rename decision** — David confirmed: keep `"nfl_data_py"` as registry key. No rename needed.
+5. **QB feature pipeline (Stage 2)** — blocked on PRs #14/#15. CFBD Tier 3 spec finalized. David has Tier 3 Patreon. cfbd Python SDK is NO-GO (still pins pydantic<2). Use httpx.
+6. **PP below 80% gate** — Path B holds. Do not promote PP without explicit instruction.
+7. **PR C** — human-reviewed only, not agent-delegatable.
 
-## Next Recommended Work
+## Next Recommended Work (in order)
 
-1. Merge PR #14 (CI + review).
-2. Merge PR #15 (Gemini delivered, 84 pass). David needs to decide on "nfl_data_py" registry key rename.
-3. Stage 2: QB college feature pipeline — CFBD adapter expansion, TDD gate, backtest validation.
-4. Stage 4 (later): nflverse EPA/CPOE integration for professional QB tracking (Engine B territory).
+1. Merge PR #14 (immediate — CI already green).
+2. Fix PR #15 provenance string → retarget → CI → merge.
+3. Stage 2: QB college feature pipeline.
+   - Claude writes TDD gate tests first (failing).
+   - Codex or Gemini implements CFBD adapter expansion.
+   - Backtest gate validates lift before any QB feature becomes model_input.
+4. Stage 4 (later): nflverse EPA/CPOE for professional QB tracking (Engine B).
 
-## QB Strategy Summary (approved 2026-05-11)
+## QB Strategy (approved 2026-05-11)
 
 - Draft capital: 70% weight R1/R2, 50% R3, 30% R4-7
-- College features (via CFBD Tier 3 httpx): completion %, YPA, TD/INT ratio, sack rate, all-purpose yards, passing yards share, PPA, WEPA
-- Bifurcated aging curve: pocket passer cliff 33, dual-threat cliff 29 (display warnings only — not model law)
-- Konami Code (rushing) valued explicitly — rushing is stickiest QB stat (R²=0.5674)
-- cfbd Python SDK is NO-GO (still pins pydantic<2); keep httpx
+- College features (CFBD Tier 3 via httpx): completion %, YPA, TD/INT ratio, sack rate, all-purpose yards, passing yards share, passing TD share, PPA, WEPA
+- Bifurcated aging curve: pocket passer cliff 33, dual-threat cliff 29 (display warnings only — not model law per constitution)
+- Konami Code (rushing) valued explicitly — stickiest QB stat (R²=0.5674)
+- cfbd Python SDK: NO-GO — still pins pydantic<2. Keep httpx.
+
+## CFBD Tier 3 QB Endpoint Spec (finalized, ready for Stage 2)
+
+| Feature | Endpoint | Field |
+|---|---|---|
+| Completion % | /stats/player/season (passing) | PCT |
+| Yards Per Attempt | /stats/player/season (passing) | YPA |
+| PPA | /ppa/players/season | averagePPA.all |
+| WEPA | /wepa/players/passing | wepa |
+| Pass Yards Share | player YDS / team netPassingYards | derived |
+| Sack Rate | team sacksOpponent / (passAttempts + sacksOpponent) | derived proxy |
+| Rushing | /stats/player/season (rushing) | CAR, YDS, TD |
+
+All-purpose yards = passing YDS + rushing YDS (derived). Garbage-time filter in WEPA is automatic.
 
 ## Branch / Worktree Notes
 
-- `main`: current at `16e3567` — 84 pass, 0 fail.
-- `hygiene/pydantic-v2-upgrade`: Codex `7896e7c` — PR #14 open.
-- `hygiene/nflreadpy-migration`: Gemini in progress — PR #15 pending.
-- `engine-a/v2-enrichment-pipeline`: PP remediation committed, adapter test stubs added. Not yet merged to main.
-- Main worktree: `/Users/davidleess/dynasty-genius` (main, at 16e3567).
+- `main`: at `16e3567` — 84 pass, 0 fail.
+- `hygiene/pydantic-v2-upgrade`: PR #14 open, CI green — merge immediately.
+- `hygiene/nflreadpy-migration`: PR #15 open — fix provenance string first.
+- `engine-a/v2-enrichment-pipeline`: adapter test stubs + PP remediation committed, not yet PRed to main.
+- Main worktree: `/Users/davidleess/dynasty-genius` (main).
 - Engine A worktree: `/Users/davidleess/dynasty-genius-product` (engine-a/v2-enrichment-pipeline).
