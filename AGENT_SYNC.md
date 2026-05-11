@@ -19,6 +19,11 @@ Engine A v2: validate which enrichment sources deserve model-input status before
 
 ## Latest Activity
 
+- Codex (2026-05-11): Executed post-draft PR cleanup sequence.
+  - Closed PR #10 without merge because it mixed Data Foundation, Rookie Board, governance reconciliation, and Engine A v2 scaffolding.
+  - Opened PR #11: PR A — Data Foundation + Identity (`cleanup/pr-a-data-foundation` -> `main`).
+  - Opened PR #12: PR B — Rookie Board v1 (`cleanup/pr-b-rookie-board` -> `cleanup/pr-a-data-foundation`, stacked after PR A).
+  - PR C remains human-reviewed/deferred for governance reconciliation only.
 - Codex (2026-05-11): Completed PP remediation takeover.
   - Removed `yprr`/`imputed_yprr` from the regenerated enriched CSV; no `imputed_median` provenance remains.
   - Fixed hidden `year_stats` typo in `scripts/enrich_training_data.py` and kept PP `Yards Per Team Targets` out of the training artifact.
@@ -33,17 +38,19 @@ Engine A v2: validate which enrichment sources deserve model-input status before
 ## Open Blockers
 
 - PP remains below the 80% promotion gate after clean remediation. Do not run a PP-inclusive backtest or promote PP unless David explicitly requests another identity-matching pass or accepts a revised gate.
-- Post-draft PR cleanup (PRs A/B/C) can resume once this remediation patch is reviewed/committed.
-- PR #10 (engine-a/historical-enrichment): open, marked non-mergeable. Deferred.
+- PR #11 should be reviewed/merged before PR #12 because PR #12 is stacked on PR #11.
+- PR C (Governance Reconciliation) is not agent-delegatable; it requires human line-by-line review.
 
 ## Next Recommended Work
 
-1. Review and commit PP remediation patch if accepted.
-2. Replan Phase 2 around context/risk layers and validation, not automatic source promotion.
-3. Post-draft: execute PR A (Data Foundation) and PR B (Rookie Board) after the remediation patch lands.
+1. Review PR #11 (Data Foundation + Identity), then merge if acceptable.
+2. Review PR #12 (Rookie Board v1) after PR #11, then retarget/merge as appropriate.
+3. Replan Phase 2 around context/risk layers and validation, not automatic source promotion.
 
 ## Branch / Worktree Notes
 
-Active branch: engine-a/v2-enrichment-pipeline (up to date with origin).
-PR #10 (engine-a/historical-enrichment): open, non-mergeable, deferred.
+Active branch: engine-a/v2-enrichment-pipeline (local was ahead by PP remediation commit during cleanup session).
+PR #10 (engine-a/historical-enrichment): closed without merge.
+PR #11 (cleanup/pr-a-data-foundation): open against main.
+PR #12 (cleanup/pr-b-rookie-board): open against cleanup/pr-a-data-foundation.
 Governance branch codex/governance-seal: superseded by main's sealed governance (6d378d0).
