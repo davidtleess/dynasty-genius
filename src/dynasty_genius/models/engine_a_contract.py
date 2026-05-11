@@ -14,13 +14,25 @@ BASELINE_COLUMNS = {
 }
 
 # ── Allowed Enrichment Features ─────────────────────────────────────────────
-ALLOWED_ENRICHMENT_COLUMNS = {
+CFBD_MODEL_INPUT_COLUMNS = {
     "dominator_rating",
     "receiving_yards_share",
-    # Provenance Siblings
     "source_dominator_rating",
     "source_receiving_yards_share",
 }
+
+PLAYERPROFILER_CONTEXT_COLUMNS = {
+    "target_share",
+    "breakout_age",
+    "speed_score",
+    "source_target_share",
+    "source_breakout_age",
+    "source_speed_score",
+}
+
+# Allowed in the enriched artifact. Model feature use is controlled by
+# POSITION_FEATURE_MATRIX and source registry roles, not by artifact presence.
+ALLOWED_ENRICHMENT_COLUMNS = CFBD_MODEL_INPUT_COLUMNS | PLAYERPROFILER_CONTEXT_COLUMNS
 
 # ── Leakage: Prohibited Columns (Fail-Closed) ───────────────────────────────
 PROHIBITED_COLUMNS = {

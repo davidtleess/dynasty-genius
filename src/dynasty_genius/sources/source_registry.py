@@ -23,7 +23,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
-from src.dynasty_genius.models.engine_a_contract import ALLOWED_ENRICHMENT_COLUMNS, PROHIBITED_COLUMNS
+from src.dynasty_genius.models.engine_a_contract import (
+    CFBD_MODEL_INPUT_COLUMNS,
+    PLAYERPROFILER_CONTEXT_COLUMNS,
+    PROHIBITED_COLUMNS,
+)
 
 SourceRole = Literal[
     "model_input",
@@ -97,7 +101,7 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
         _make(
             name="cfbd",
             roles=["model_input"],
-            allowed_fields=list(ALLOWED_ENRICHMENT_COLUMNS),
+            allowed_fields=list(CFBD_MODEL_INPUT_COLUMNS),
             prohibited_fields=list(PROHIBITED_COLUMNS),
             provenance_required=True,
             cache_policy="json_cache",
@@ -113,7 +117,7 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
         _make(
             name="playerprofiler",
             roles=["context_signal"],
-            allowed_fields=[],
+            allowed_fields=list(PLAYERPROFILER_CONTEXT_COLUMNS),
             prohibited_fields=list(PROHIBITED_COLUMNS),
             provenance_required=True,
             cache_policy="json_cache",
@@ -121,10 +125,12 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
             failure_behavior="skip_enrichment",
             test_gate="tests/test_playerprofiler_decision_gate.py",
             notes=(
-                "Task 3 gate failed on 2026-05-10: probe returned 0% non-null coverage "
-                "for target_share, breakout_age, and speed_score across 874 rows. "
-                "PlayerProfiler remains context_signal; PP-only fields are deferred "
-                "context signals and are not imputed as model evidence. "
+                "Task 3 is under corrected gate review as of 2026-05-11. "
+                "The original 0% probe was superseded by a two-step retrieval path, "
+                "but clean target_share coverage remains below the 80% promotion gate. "
+                "PlayerProfiler remains context_signal; PP-only fields may appear in "
+                "artifacts for coverage review but are not model inputs and are not "
+                "imputed as model evidence. "
                 "Shadow API: POST wp-admin/admin-ajax.php."
             ),
         ),

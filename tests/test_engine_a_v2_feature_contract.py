@@ -162,7 +162,7 @@ def test_enriched_csv_provenance_values_are_known_sources():
     # "manual" is not allowed as a bare provenance value — too easy to abuse.
     # Manual overrides must be explicit: e.g. "manual_verified_birth_date".
     # PFF college data must be prefixed "college_pff_<field>" — generic "pff_grade" stays prohibited.
-    ALLOWED_SOURCES = {"playerprofiler", "cfbd", "nfl_data_py", "imputed_median"}
+    ALLOWED_SOURCES = {"playerprofiler", "cfbd", "nfl_data_py"}
     ALLOWED_PREFIXES = ("manual_", "college_pff_")
 
     rows = _read_csv_rows(ENRICHED_CSV)
@@ -180,6 +180,58 @@ def test_enriched_csv_provenance_values_are_known_sources():
             violations.append(f"{row['pfr_player_name']}: {col}={val!r}")
     assert not violations, (
         f"Unknown or bare provenance sources (use explicit names, not 'manual'): {violations[:10]}"
+    )
+
+
+@_skip_if_not_enriched()
+def test_enriched_csv_no_imputed_median_provenance():
+    """No source_ column may carry the value 'imputed_median'.
+
+    Imputed values are fabricated evidence. They must never appear in a
+    model-training artifact. If PP coverage is insufficient, leave the field
+    null — do not fill it with a position median.
+    """
+    rows = _read_csv_rows(ENRICHED_CSV)
+    source_cols = [c for c in rows[0] if c.startswith("source_")]
+    violations = []
+    for row in rows:
+        for col in source_cols:
+            if row.get(col, "").strip().lower() == "imputed_median":
+                violations.append(f"{row.get('pfr_player_name', '?')}: {col}='imputed_median'")
+    assert not violations, (
+        f"Enriched CSV contains imputed provenance — fabricated values in model artifact: "
+        f"{violations[:5]} ... ({len(violations)} total)"
+    )
+
+
+@_skip_if_not_enriched()
+def test_enriched_csv_no_imputed_yprr_column():
+    """The enriched CSV must not contain an 'imputed_yprr' column.
+
+    This column flags rows where yprr was filled with a positional median.
+    If we've removed imputation, this column has no purpose and must be absent.
+    Its presence indicates the imputation pathway is still active.
+    """
+    cols = _read_csv_columns(ENRICHED_CSV)
+    assert "imputed_yprr" not in cols, (
+        "Enriched CSV contains 'imputed_yprr' column — imputation pathway is still active. "
+        "Remove the WR/TE yprr median fill from enrich_training_data.py."
+    )
+
+
+@_skip_if_not_enriched()
+def test_enriched_csv_no_yprr_column():
+    """The enriched CSV must not contain a column named 'yprr'.
+
+    PlayerProfiler's 'Yards Per Team Targets' is not YPRR (yards per route run).
+    The field was mislabeled. It must not appear in the training artifact under
+    the 'yprr' name until a verified YPRR source clears the coverage gate.
+    """
+    cols = _read_csv_columns(ENRICHED_CSV)
+    assert "yprr" not in cols, (
+        "Enriched CSV contains a 'yprr' column. "
+        "PlayerProfiler 'Yards Per Team Targets' is not verified YPRR. "
+        "Remove or rename in enrich_training_data.py — do not add to contract until gate clears."
     )
 
 

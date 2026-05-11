@@ -24,6 +24,14 @@ ENRICHMENT_REPORT_PATH = ROOT / "app" / "data" / "cache" / "enrichment_report.js
 for p in [CFBD_CACHE_PATH, PP_CACHE_PATH, PP_STATS_CACHE_PATH]:
     p.parent.mkdir(parents=True, exist_ok=True)
 
+def _normalize_name(name: str) -> str:
+    """Lowercase, strip punctuation, remove common name suffixes for PP ID lookup."""
+    n = re.sub(r'[.,]', '', name.lower().strip())
+    for suffix in (' jr', ' sr', ' ii', ' iii', ' iv', ' v'):
+        if n.endswith(suffix):
+            n = n[:-len(suffix)].strip()
+    return n
+
 def check_leakage(df: pd.DataFrame):
     prohibited_regex = re.compile(LEAKAGE_REGEX, re.IGNORECASE)
     offending = [c for c in df.columns if c.lower() in [p.lower() for p in PROHIBITED_COLUMNS] or prohibited_regex.match(c.lower())]
@@ -113,6 +121,7 @@ class PPClient:
         self.ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         self.id_map = json.loads(PP_CACHE_PATH.read_text()) if PP_CACHE_PATH.exists() else {}
         self.stats_cache = json.loads(PP_STATS_CACHE_PATH.read_text()) if PP_STATS_CACHE_PATH.exists() else {}
+        self._normalized_id_map = {_normalize_name(k): v for k, v in self.id_map.items()}
 
     def save_caches(self):
         PP_CACHE_PATH.write_text(json.dumps(self.id_map, indent=2))
@@ -153,7 +162,7 @@ class PPClient:
                             if v is None or v == '-': return None
                             return float(str(v).replace('%','')) / 100 if '%' in str(v) else float(v)
                         except: return None
-                    res = {"target_share": _pf(perf.get('College Target Share')) or _pf(year_stats.get('Target Share')), "breakout_age": _pf(perf.get('Breakout Age')), "speed_score": _pf(workout.get('Speed Score')), "yprr": _pf(y_stats.get('Yards Per Team Targets'))}
+                    res = {"target_share": _pf(perf.get('College Target Share')) or _pf(y_stats.get('Target Share')), "breakout_age": _pf(perf.get('Breakout Age')), "speed_score": _pf(workout.get('Speed Score')), "yptt": _pf(y_stats.get('Yards Per Team Targets'))}
                     if any(v is not None for v in res.values()):
                         self.stats_cache[key] = res
                         return res
@@ -168,19 +177,27 @@ async def enrich_with_pp(df: pd.DataFrame, client: PPClient) -> pd.DataFrame:
         for i, row in df.iterrows():
             p = row.to_dict()
             name, pos, season = p['pfr_player_name'], p['position'], int(p['season'])
-            p.update({'target_share': None, 'breakout_age': None, 'speed_score': None, 'yprr': None, 'source_target_share': None, 'source_breakout_age': None, 'source_speed_score': None, 'source_yprr': None, 'imputed_yprr': 0})
+            p.update({'target_share': None, 'breakout_age': None, 'speed_score': None, 'source_target_share': None, 'source_breakout_age': None, 'source_speed_score': None})
             if pos != "QB":
-                pp_id = client.id_map.get(name)
+                pp_id = client.id_map.get(name) or client._normalized_id_map.get(_normalize_name(name))
                 if pp_id:
                     s = await client.get_stats(http_client, pp_id, season)
-                    if s: p.update({'target_share': s.get('target_share'), 'breakout_age': s.get('breakout_age'), 'speed_score': s.get('speed_score'), 'yprr': s.get('yprr'), 'source_target_share': 'playerprofiler' if s.get('target_share') is not None else None, 'source_breakout_age': 'playerprofiler' if s.get('breakout_age') is not None else None, 'source_speed_score': 'playerprofiler' if s.get('speed_score') is not None else None, 'source_yprr': 'playerprofiler' if s.get('yprr') is not None else None})
+                    if s: p.update({'target_share': s.get('target_share'), 'breakout_age': s.get('breakout_age'), 'speed_score': s.get('speed_score'), 'source_target_share': 'playerprofiler' if s.get('target_share') is not None else None, 'source_breakout_age': 'playerprofiler' if s.get('breakout_age') is not None else None, 'source_speed_score': 'playerprofiler' if s.get('speed_score') is not None else None})
                     else: failures.append({"name": name, "id": pp_id, "reason": "No data"})
                 else: failures.append({"name": name, "reason": "ID missing"})
-            if pos in ["WR", "TE"] and p['yprr'] is None: p.update({'yprr': 1.85, 'source_yprr': 'imputed_median', 'imputed_yprr': 1})
             results.append(p)
             if (i + 1) % 50 == 0: print(f"  Processed {i+1}/{len(df)} players..."); client.save_caches()
     client.save_caches()
-    if failures: ENRICHMENT_REPORT_PATH.write_text(json.dumps(failures, indent=2))
+    total = len(results)
+    coverage = {
+        "target_share": sum(1 for r in results if r.get("target_share") is not None),
+        "breakout_age": sum(1 for r in results if r.get("breakout_age") is not None),
+        "speed_score": sum(1 for r in results if r.get("speed_score") is not None),
+        # Cache entries pre-rename have "yprr" key; new fetches use "yptt"
+        "yptt_from_cache": sum(1 for k, v in client.stats_cache.items() if v.get("yptt") is not None or v.get("yprr") is not None),
+    }
+    report = {"total": total, "pp_unresolved": len(failures), "coverage": coverage, "failures": failures}
+    ENRICHMENT_REPORT_PATH.write_text(json.dumps(report, indent=2))
     return pd.DataFrame(results)
 
 async def main():
