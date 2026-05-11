@@ -3,7 +3,7 @@ import json
 import os
 import sys
 from pathlib import Path
-import nfl_data_py as nfl
+import nflreadpy as nfl
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -25,7 +25,7 @@ def _map_to_sleeper(name, pos, sleeper_map):
 
 async def ingest_2026():
     print("Fetching 2026 NFL Draft results...")
-    df = nfl.import_draft_picks([2026])
+    df = nfl.load_draft_picks([2026]).to_pandas()
     df = df[df["position"].isin(SKILL_POSITIONS)]
     
     print("Fetching Sleeper player map...")
