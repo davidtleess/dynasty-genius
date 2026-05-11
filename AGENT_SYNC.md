@@ -21,8 +21,8 @@ Engine A v2: validate which enrichment sources deserve model-input status before
 
 - Codex (2026-05-11): Executed post-draft PR cleanup sequence.
   - Closed PR #10 without merge because it mixed Data Foundation, Rookie Board, governance reconciliation, and Engine A v2 scaffolding.
-  - Opened PR #11: PR A — Data Foundation + Identity (`cleanup/pr-a-data-foundation` -> `main`).
-  - Opened PR #12: PR B — Rookie Board v1 (`cleanup/pr-b-rookie-board` -> `cleanup/pr-a-data-foundation`, stacked after PR A).
+  - PR #11 merged: PR A — Data Foundation + Identity (`cleanup/pr-a-data-foundation` -> `main`), merge commit `423979e`.
+  - PR #12 retargeted to `main` and merged: PR B — Rookie Board v1, merge commit `7f6f590`.
   - PR C remains human-reviewed/deferred for governance reconciliation only.
 - Codex (2026-05-11): Completed PP remediation takeover.
   - Removed `yprr`/`imputed_yprr` from the regenerated enriched CSV; no `imputed_median` provenance remains.
@@ -38,19 +38,19 @@ Engine A v2: validate which enrichment sources deserve model-input status before
 ## Open Blockers
 
 - PP remains below the 80% promotion gate after clean remediation. Do not run a PP-inclusive backtest or promote PP unless David explicitly requests another identity-matching pass or accepts a revised gate.
-- PR #11 should be reviewed/merged before PR #12 because PR #12 is stacked on PR #11.
+- Pydantic/FastAPI dependency hygiene remains separate from PR #11/#12. Gemini confirmed its compatibility fix was local environment remediation only.
 - PR C (Governance Reconciliation) is not agent-delegatable; it requires human line-by-line review.
 
 ## Next Recommended Work
 
-1. Review PR #11 (Data Foundation + Identity), then merge if acceptable.
-2. Review PR #12 (Rookie Board v1) after PR #11, then retarget/merge as appropriate.
-3. Replan Phase 2 around context/risk layers and validation, not automatic source promotion.
+1. Replan Phase 2 around context/risk layers and validation, not automatic source promotion.
+2. Consider a separate dependency hygiene PR for Pydantic/FastAPI pinning if CI/local environments drift.
+3. PR C governance reconciliation remains human-reviewed/deferred.
 
 ## Branch / Worktree Notes
 
-Active branch: engine-a/v2-enrichment-pipeline (local was ahead by PP remediation commit during cleanup session).
+Active branch: engine-a/v2-enrichment-pipeline.
 PR #10 (engine-a/historical-enrichment): closed without merge.
-PR #11 (cleanup/pr-a-data-foundation): open against main.
-PR #12 (cleanup/pr-b-rookie-board): open against cleanup/pr-a-data-foundation.
+PR #11 (cleanup/pr-a-data-foundation): merged to main.
+PR #12 (cleanup/pr-b-rookie-board): retargeted and merged to main.
 Governance branch codex/governance-seal: superseded by main's sealed governance (6d378d0).
