@@ -1,8 +1,8 @@
 import pytest
-import nfl_data_py as nfl
+import nflreadpy as nfl
 
-def test_nfl_data_py_2026_results():
-    picks = nfl.import_draft_picks([2026])
+def test_nflreadpy_2026_results():
+    picks = nfl.load_draft_picks([2026]).to_pandas()
     assert not picks.empty
     assert "pfr_player_name" in picks.columns
     # Verify top pick

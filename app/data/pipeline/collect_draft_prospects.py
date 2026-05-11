@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
-import nfl_data_py as nfl
+import nflreadpy as nfl
 
 POSITIONS = {"WR", "RB", "TE", "QB"}
 DRAFT_YEARS = list(range(2015, 2026))
@@ -41,12 +41,12 @@ def is_training_season(draft_year: int) -> int:
 def run() -> None:
     # --- Load data ---
     print("Loading draft picks...")
-    draft_df = nfl.import_draft_picks(DRAFT_YEARS)
+    draft_df = nfl.load_draft_picks(DRAFT_YEARS).to_pandas()
     draft_df = draft_df[draft_df["position"].isin(POSITIONS)].copy()
     print(f"  {len(draft_df)} rows after position filter")
 
     print("Loading seasonal data...")
-    seasonal_df = nfl.import_seasonal_data(SEASONAL_YEARS, s_type="REG")
+    seasonal_df = nfl.load_player_stats(SEASONAL_YEARS, summary_level="reg").to_pandas()
     seasonal_df = seasonal_df[seasonal_df["season_type"] == "REG"].copy()
     print(f"  {len(seasonal_df)} seasonal rows")
 
