@@ -121,7 +121,12 @@ def _sum_present(*values: float | None) -> float | None:
     return float(sum(present))
 
 
-def fetch_qb_college_stats(player_name: str, year: int, api_key: str) -> dict[str, Any]:
+def fetch_qb_college_stats(
+    player_name: str,
+    year: int,
+    api_key: str,
+    college_team: str | None = None,
+) -> dict[str, Any]:
     """Fetch QB college stats from CFBD and normalize them into the contract shape."""
     key = _auth_key(api_key)
     if not key:
@@ -148,7 +153,7 @@ def fetch_qb_college_stats(player_name: str, year: int, api_key: str) -> dict[st
         key,
     )
 
-    team_name = _first_non_empty(
+    team_name = college_team or _first_non_empty(
         [
             _first_non_empty([row.get("team") for row in passing_records]),
             _first_non_empty([row.get("team") for row in rushing_records]),

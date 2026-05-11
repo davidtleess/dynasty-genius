@@ -108,8 +108,14 @@ def fetch_all_qb_stats(df: pd.DataFrame, id_map: dict, api_key: str) -> pd.DataF
         if coverage in ("FULL", "PARTIAL"):
             cfbd_name = entry.get("cfbd_name", name)
             year      = entry.get("college_season_year")
+            college   = entry.get("cfbd_college")
             print(f"  [{i:3d}/{total}] fetching {cfbd_name} ({year}) ...", end=" ", flush=True)
-            stats_row = fetch_qb_college_stats(cfbd_name, year, api_key=api_key)
+            stats_row = fetch_qb_college_stats(
+                cfbd_name,
+                year,
+                api_key=api_key,
+                college_team=college,
+            )
             fetched = sum(1 for v in stats_row.values() if v is not None)
             print(f"{fetched}/{len(QB_CFBD_FEATURES)} features")
             time.sleep(RATE_LIMIT_SLEEP)
