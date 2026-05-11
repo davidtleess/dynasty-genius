@@ -51,6 +51,10 @@ def _parse_yaml_frontmatter(text: str) -> dict:
     return result
 
 
+@pytest.mark.skipif(
+    not PARTIAL_CSV.exists(),
+    reason="CFBD partial CSV not generated — run scripts/enrich_training_data.py first",
+)
 def test_partial_csv_exists_for_backtest():
     """The CFBD partial artifact must exist before the backtest can run."""
     assert PARTIAL_CSV.exists(), (

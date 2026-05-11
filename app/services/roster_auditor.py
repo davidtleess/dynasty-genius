@@ -1,10 +1,26 @@
+import json
 import os
+from pathlib import Path
 from typing import Optional, Union
 
 import httpx
 
 from app.data.sleeper import get_user, get_leagues, get_rosters, get_all_players
+from src.dynasty_genius.adapters.nflreadpy_qb_adapter import fetch_qb_nfl_stats
+from src.dynasty_genius.models.engine_a_contract import QB_CONTEXT_COLUMNS
 from src.dynasty_genius.models.league_context import LeagueContext
+
+_ROOT = Path(__file__).resolve().parents[2]
+_QB_BRIDGE_PATH = _ROOT / "resources" / "nflreadpy_qb_id_map.json"
+
+QB_CONTEXT_SEASONS = [2024, 2023]
+
+
+def load_qb_identity_bridge() -> dict:
+    if not _QB_BRIDGE_PATH.exists():
+        return {"players": {}}
+    with open(_QB_BRIDGE_PATH) as f:
+        return json.load(f)
 
 USERNAME_ENV = "DYNASTY_SLEEPER_USERNAME"
 LEAGUE_ID_ENV = "DYNASTY_SLEEPER_LEAGUE_ID"
@@ -287,11 +303,54 @@ def audit_player(player: dict) -> Optional[dict]:
     return audited
 
 
+def _build_qb_context_card(player: dict, bridge_entry: dict, telemetry: dict | None) -> dict:
+    pid = player.get("player_id", "")
+    full_name = player.get("full_name", "")
+    coverage = bridge_entry.get("coverage", "NONE")
+
+    if telemetry is not None:
+        fields = {field: telemetry.get(field) for field in QB_CONTEXT_COLUMNS}
+        provenance = {f"source_{field}": "nflreadpy_qb_context" for field in QB_CONTEXT_COLUMNS}
+    else:
+        fields = {field: None for field in QB_CONTEXT_COLUMNS}
+        provenance = {
+            f"source_{field}": "nflreadpy_qb_context:unresolved_identity"
+            for field in QB_CONTEXT_COLUMNS
+        }
+
+    return {
+        "player_id": pid,
+        "full_name": full_name,
+        "identity_coverage": coverage,
+        "context_role": "context_signal",
+        "decision_supported": False,
+        **fields,
+        **provenance,
+    }
+
+
 async def run_audit() -> dict:
     players = await get_my_roster()
     audited = [audit_player(p) for p in players]
     audited = [a for a in audited if a is not None]
     audited.sort(key=lambda p: p["years_to_cliff"])
+
+    bridge = load_qb_identity_bridge()
+    bridge_players = bridge.get("players", {})
+    qb_context_cards = []
+    for player in players:
+        if player.get("position") != "QB":
+            continue
+        pid = player.get("player_id", "")
+        entry = bridge_players.get(pid, {})
+        coverage = entry.get("coverage", "NONE")
+        if coverage in ("FULL", "PARTIAL"):
+            gsis_id = entry.get("gsis_id")
+            telemetry = fetch_qb_nfl_stats(gsis_id, QB_CONTEXT_SEASONS)
+        else:
+            telemetry = None
+        qb_context_cards.append(_build_qb_context_card(player, entry, telemetry))
+
     return {
         "status": "experimental",
         "engine": ENGINE,
@@ -299,4 +358,5 @@ async def run_audit() -> dict:
         "reason": NOT_DECISION_GRADE_REASON,
         "caveats": ROSTER_CAVEATS,
         "players": audited,
+        "qb_context_cards": qb_context_cards,
     }
