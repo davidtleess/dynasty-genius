@@ -27,6 +27,7 @@ from src.dynasty_genius.models.engine_a_contract import (
     CFBD_MODEL_INPUT_COLUMNS,
     PLAYERPROFILER_CONTEXT_COLUMNS,
     PROHIBITED_COLUMNS,
+    QB_CONTEXT_COLUMNS,
 )
 
 SourceRole = Literal[
@@ -316,6 +317,23 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
             notes=(
                 "DataFeeds NFL API: $4200/year post-game, $7200/year live. "
                 "Blocked for cost/licensing. Requires David's explicit approval."
+            ),
+        ),
+        _make(
+            name="nflreadpy_qb_context",
+            roles=["context_signal"],
+            allowed_fields=list(QB_CONTEXT_COLUMNS),
+            prohibited_fields=list(PROHIBITED_COLUMNS),
+            provenance_required=True,
+            cache_policy="parquet_snapshot",
+            freshness_hours=168,
+            failure_behavior="skip_enrichment",
+            test_gate="tests/test_nflreadpy_qb_adapter.py",
+            notes=(
+                "Active-QB NFL telemetry: EPA/dropback, CPOE, DAKOTA, dropback count. "
+                "context_signal only — never Engine A or Engine B model inputs. "
+                "DAKOTA = (EPA/dropback × 0.7) + (CPOE/100 × 0.3). "
+                "Requires Python >=3.10 (nflreadpy 0.1.5 constraint)."
             ),
         ),
     ]

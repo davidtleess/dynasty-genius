@@ -1,0 +1,1024 @@
+{
+  "coverage": {
+    "coverage_pct": 1.0,
+    "resolved": 126,
+    "threshold_met": true,
+    "total": 126,
+    "unresolved": 0
+  },
+  "metadata": {
+    "coverage_threshold": 0.8,
+    "generated_at": "2026-05-11T23:04:47.926743+00:00",
+    "source": "nflreadpy_rosters"
+  },
+  "players": {
+    "aidan_oconnell_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038579",
+      "normalized_name": "aidan_oconnell",
+      "pfr_player_name": "Aidan O'Connell",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "alex_mcgough_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034732",
+      "normalized_name": "alex_mcgough",
+      "pfr_player_name": "Alex McGough",
+      "season": 2018,
+      "unresolved_reason": null
+    },
+    "anthony_richardson_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039164",
+      "normalized_name": "anthony_richardson",
+      "pfr_player_name": "Anthony Richardson",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "bailey_zappe_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038108",
+      "normalized_name": "bailey_zappe",
+      "pfr_player_name": "Bailey Zappe",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "baker_mayfield_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034855",
+      "normalized_name": "baker_mayfield",
+      "pfr_player_name": "Baker Mayfield",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "ben_dinucci_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036384",
+      "normalized_name": "ben_dinucci",
+      "pfr_player_name": "Ben DiNucci",
+      "season": 2025,
+      "unresolved_reason": null
+    },
+    "bo_nix_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039732",
+      "normalized_name": "bo_nix",
+      "pfr_player_name": "Bo Nix",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "brad_kaaya_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033585",
+      "normalized_name": "brad_kaaya",
+      "pfr_player_name": "Brad Kaaya",
+      "season": 2017,
+      "unresolved_reason": null
+    },
+    "brandon_allen_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032434",
+      "normalized_name": "brandon_allen",
+      "pfr_player_name": "Brandon Allen",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "brandon_doughty_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032446",
+      "normalized_name": "brandon_doughty",
+      "pfr_player_name": "Brandon Doughty",
+      "season": 2016,
+      "unresolved_reason": null
+    },
+    "brett_hundley_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0031589",
+      "normalized_name": "brett_hundley",
+      "pfr_player_name": "Brett Hundley",
+      "season": 2015,
+      "unresolved_reason": null
+    },
+    "brock_purdy_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0037834",
+      "normalized_name": "brock_purdy",
+      "pfr_player_name": "Brock Purdy",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "bryce_petty_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0031568",
+      "normalized_name": "bryce_petty",
+      "pfr_player_name": "Bryce Petty",
+      "season": 2015,
+      "unresolved_reason": null
+    },
+    "bryce_young_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039150",
+      "normalized_name": "bryce_young",
+      "pfr_player_name": "Bryce Young",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "caleb_williams_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039918",
+      "normalized_name": "caleb_williams",
+      "pfr_player_name": "Caleb Williams",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "cam_miller_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040222",
+      "normalized_name": "cam_miller",
+      "pfr_player_name": "Cam Miller",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "cam_ward_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040676",
+      "normalized_name": "cam_ward",
+      "pfr_player_name": "Cam Ward",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "cardale_jones_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033098",
+      "normalized_name": "cardale_jones",
+      "pfr_player_name": "Cardale Jones",
+      "season": 2016,
+      "unresolved_reason": null
+    },
+    "carson_wentz_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032950",
+      "normalized_name": "carson_wentz",
+      "pfr_player_name": "Carson Wentz",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "chad_kelly_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033597",
+      "normalized_name": "chad_kelly",
+      "pfr_player_name": "Chad Kelly",
+      "season": 2017,
+      "unresolved_reason": null
+    },
+    "christian_hackenberg_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032953",
+      "normalized_name": "christian_hackenberg",
+      "pfr_player_name": "Christian Hackenberg",
+      "season": 2016,
+      "unresolved_reason": null
+    },
+    "christopher_oladokun_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0037324",
+      "normalized_name": "christopher_oladokun",
+      "pfr_player_name": "Chris Oladokun",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "cj_beathard_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033936",
+      "normalized_name": "cj_beathard",
+      "pfr_player_name": "C.J. Beathard",
+      "season": 2025,
+      "unresolved_reason": null
+    },
+    "cj_stroud_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039163",
+      "normalized_name": "cj_stroud",
+      "pfr_player_name": "C.J. Stroud",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "clayton_thorson_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0035283",
+      "normalized_name": "clayton_thorson",
+      "pfr_player_name": "Clayton Thorson",
+      "season": 2019,
+      "unresolved_reason": null
+    },
+    "clayton_tune_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038582",
+      "normalized_name": "clayton_tune",
+      "pfr_player_name": "Clayton Tune",
+      "season": 2025,
+      "unresolved_reason": null
+    },
+    "cody_kessler_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033104",
+      "normalized_name": "cody_kessler",
+      "pfr_player_name": "Cody Kessler",
+      "season": 2016,
+      "unresolved_reason": null
+    },
+    "connor_cook_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032893",
+      "normalized_name": "connor_cook",
+      "pfr_player_name": "Connor Cook",
+      "season": 2016,
+      "unresolved_reason": null
+    },
+    "dak_prescott_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033077",
+      "normalized_name": "dak_prescott",
+      "pfr_player_name": "Dak Prescott",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "daniel_jones_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0035710",
+      "normalized_name": "daniel_jones",
+      "pfr_player_name": "Daniel Jones",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "danny_etling_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034423",
+      "normalized_name": "danny_etling",
+      "pfr_player_name": "Danny Etling",
+      "season": 2018,
+      "unresolved_reason": null
+    },
+    "davis_mills_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036898",
+      "normalized_name": "davis_mills",
+      "pfr_player_name": "Davis Mills",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "davis_webb_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033550",
+      "normalized_name": "davis_webb",
+      "pfr_player_name": "Davis Webb",
+      "season": 2017,
+      "unresolved_reason": null
+    },
+    "deshaun_watson_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033537",
+      "normalized_name": "deshaun_watson",
+      "pfr_player_name": "Deshaun Watson",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "deshone_kizer_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033899",
+      "normalized_name": "deshone_kizer",
+      "pfr_player_name": "DeShone Kizer",
+      "season": 2017,
+      "unresolved_reason": null
+    },
+    "desmond_ridder_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038122",
+      "normalized_name": "desmond_ridder",
+      "pfr_player_name": "Desmond Ridder",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "devin_leary_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039801",
+      "normalized_name": "devin_leary",
+      "pfr_player_name": "Devin Leary",
+      "season": 2025,
+      "unresolved_reason": null
+    },
+    "dillon_gabriel_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040704",
+      "normalized_name": "dillon_gabriel",
+      "pfr_player_name": "Dillon Gabriel",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "dorian_thompson_robinson_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038583",
+      "normalized_name": "dorian_thompson_robinson",
+      "pfr_player_name": "Dorian Thompson-Robinson",
+      "season": 2025,
+      "unresolved_reason": null
+    },
+    "drake_maye_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039851",
+      "normalized_name": "drake_maye",
+      "pfr_player_name": "Drake Maye",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "drew_lock_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0035704",
+      "normalized_name": "drew_lock",
+      "pfr_player_name": "Drew Lock",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "dwayne_haskins_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0035232",
+      "normalized_name": "dwayne_haskins",
+      "pfr_player_name": "Dwayne Haskins",
+      "season": 2019,
+      "unresolved_reason": null
+    },
+    "easton_stick_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0035282",
+      "normalized_name": "easton_stick",
+      "pfr_player_name": "Easton Stick",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "gardner_minshew_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0035289",
+      "normalized_name": "gardner_minshew",
+      "pfr_player_name": "Gardner Minshew II",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "garrett_grayson_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032148",
+      "normalized_name": "garrett_grayson",
+      "pfr_player_name": "Garrett Grayson",
+      "season": 2015,
+      "unresolved_reason": null
+    },
+    "graham_mertz_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040211",
+      "normalized_name": "graham_mertz",
+      "pfr_player_name": "Graham Mertz",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "hendon_hooker_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038550",
+      "normalized_name": "hendon_hooker",
+      "pfr_player_name": "Hendon Hooker",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "ian_book_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036929",
+      "normalized_name": "ian_book",
+      "pfr_player_name": "Ian Book",
+      "season": 2024,
+      "unresolved_reason": null
+    },
+    "jacob_eason_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036226",
+      "normalized_name": "jacob_eason",
+      "pfr_player_name": "Jacob Eason",
+      "season": 2020,
+      "unresolved_reason": null
+    },
+    "jacoby_brissett_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033119",
+      "normalized_name": "jacoby_brissett",
+      "pfr_player_name": "Jacoby Brissett",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "jake_fromm_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036197",
+      "normalized_name": "jake_fromm",
+      "pfr_player_name": "Jake Fromm",
+      "season": 2024,
+      "unresolved_reason": null
+    },
+    "jake_haener_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038998",
+      "normalized_name": "jake_haener",
+      "pfr_player_name": "Jake Haener",
+      "season": 2025,
+      "unresolved_reason": null
+    },
+    "jake_luton_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036312",
+      "normalized_name": "jake_luton",
+      "pfr_player_name": "Jake Luton",
+      "season": 2024,
+      "unresolved_reason": null
+    },
+    "jake_rudock_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032431",
+      "normalized_name": "jake_rudock",
+      "pfr_player_name": "Jake Rudock",
+      "season": 2016,
+      "unresolved_reason": null
+    },
+    "jalen_hurts_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036389",
+      "normalized_name": "jalen_hurts",
+      "pfr_player_name": "Jalen Hurts",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "jalen_milroe_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040673",
+      "normalized_name": "jalen_milroe",
+      "pfr_player_name": "Jalen Milroe",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "jameis_winston_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0031503",
+      "normalized_name": "jameis_winston",
+      "pfr_player_name": "Jameis Winston",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "james_morgan_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036301",
+      "normalized_name": "james_morgan",
+      "pfr_player_name": "James Morgan",
+      "season": 2020,
+      "unresolved_reason": null
+    },
+    "jared_goff_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033106",
+      "normalized_name": "jared_goff",
+      "pfr_player_name": "Jared Goff",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "jaren_hall_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038598",
+      "normalized_name": "jaren_hall",
+      "pfr_player_name": "Jaren Hall",
+      "season": 2024,
+      "unresolved_reason": null
+    },
+    "jarrett_stidham_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0035264",
+      "normalized_name": "jarrett_stidham",
+      "pfr_player_name": "Jarrett Stidham",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "jaxson_dart_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040691",
+      "normalized_name": "jaxson_dart",
+      "pfr_player_name": "Jaxson Dart",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "jayden_daniels_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039910",
+      "normalized_name": "jayden_daniels",
+      "pfr_player_name": "Jayden Daniels",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "jeff_driskel_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032436",
+      "normalized_name": "jeff_driskel",
+      "pfr_player_name": "Jeff Driskel",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "jj_mccarthy_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039923",
+      "normalized_name": "jj_mccarthy",
+      "pfr_player_name": "J.J. McCarthy",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "joe_burrow_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036442",
+      "normalized_name": "joe_burrow",
+      "pfr_player_name": "Joe Burrow",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "joe_milton_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039398",
+      "normalized_name": "joe_milton",
+      "pfr_player_name": "Joe Milton",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "jordan_love_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036264",
+      "normalized_name": "jordan_love",
+      "pfr_player_name": "Jordan Love",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "jordan_travis_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039797",
+      "normalized_name": "jordan_travis",
+      "pfr_player_name": "Jordan Travis",
+      "season": 2025,
+      "unresolved_reason": null
+    },
+    "joshua_allen_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034857",
+      "normalized_name": "joshua_allen",
+      "pfr_player_name": "Josh Allen",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "joshua_dobbs_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033949",
+      "normalized_name": "joshua_dobbs",
+      "pfr_player_name": "Joshua Dobbs",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "joshua_rosen_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034343",
+      "normalized_name": "joshua_rosen",
+      "pfr_player_name": "Josh Rosen",
+      "season": 2018,
+      "unresolved_reason": null
+    },
+    "justin_fields_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036945",
+      "normalized_name": "justin_fields",
+      "pfr_player_name": "Justin Fields",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "justin_herbert_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036355",
+      "normalized_name": "justin_herbert",
+      "pfr_player_name": "Justin Herbert",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "kellen_mond_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036946",
+      "normalized_name": "kellen_mond",
+      "pfr_player_name": "Kellen Mond",
+      "season": 2021,
+      "unresolved_reason": null
+    },
+    "kenny_pickett_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038102",
+      "normalized_name": "kenny_pickett",
+      "pfr_player_name": "Kenny Pickett",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "kevin_hogan_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032784",
+      "normalized_name": "kevin_hogan",
+      "pfr_player_name": "Kevin Hogan",
+      "season": 2016,
+      "unresolved_reason": null
+    },
+    "kurtis_rourke_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040589",
+      "normalized_name": "kurtis_rourke",
+      "pfr_player_name": "Kurtis Rourke",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "kyle_lauletta_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034369",
+      "normalized_name": "kyle_lauletta",
+      "pfr_player_name": "Kyle Lauletta",
+      "season": 2018,
+      "unresolved_reason": null
+    },
+    "kyle_mccord_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040014",
+      "normalized_name": "kyle_mccord",
+      "pfr_player_name": "Kyle McCord",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "kyle_trask_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036928",
+      "normalized_name": "kyle_trask",
+      "pfr_player_name": "Kyle Trask",
+      "season": 2025,
+      "unresolved_reason": null
+    },
+    "kyler_murray_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0035228",
+      "normalized_name": "kyler_murray",
+      "pfr_player_name": "Kyler Murray",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "lamar_jackson_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034796",
+      "normalized_name": "lamar_jackson",
+      "pfr_player_name": "Lamar Jackson",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "logan_woodside_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034438",
+      "normalized_name": "logan_woodside",
+      "pfr_player_name": "Logan Woodside",
+      "season": 2025,
+      "unresolved_reason": null
+    },
+    "luke_falk_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034412",
+      "normalized_name": "luke_falk",
+      "pfr_player_name": "Luke Falk",
+      "season": 2018,
+      "unresolved_reason": null
+    },
+    "mac_jones_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036972",
+      "normalized_name": "mac_jones",
+      "pfr_player_name": "Mac Jones",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "malik_willis_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038128",
+      "normalized_name": "malik_willis",
+      "pfr_player_name": "Malik Willis",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "marcus_mariota_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032268",
+      "normalized_name": "marcus_mariota",
+      "pfr_player_name": "Marcus Mariota",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "mason_rudolph_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034771",
+      "normalized_name": "mason_rudolph",
+      "pfr_player_name": "Mason Rudolph",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "matthew_corral_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038132",
+      "normalized_name": "matthew_corral",
+      "pfr_player_name": "Matt Corral",
+      "season": 2024,
+      "unresolved_reason": null
+    },
+    "max_duggan_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038637",
+      "normalized_name": "max_duggan",
+      "pfr_player_name": "Max Duggan",
+      "season": 2024,
+      "unresolved_reason": null
+    },
+    "michael_penix_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039917",
+      "normalized_name": "michael_penix",
+      "pfr_player_name": "Michael Penix",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "michael_pratt_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039238",
+      "normalized_name": "michael_pratt",
+      "pfr_player_name": "Michael Pratt",
+      "season": 2024,
+      "unresolved_reason": null
+    },
+    "michael_white_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034401",
+      "normalized_name": "michael_white",
+      "pfr_player_name": "Mike White",
+      "season": 2025,
+      "unresolved_reason": null
+    },
+    "mitchell_trubisky_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033869",
+      "normalized_name": "mitchell_trubisky",
+      "pfr_player_name": "Mitchell Trubisky",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "nate_stanley_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036279",
+      "normalized_name": "nate_stanley",
+      "pfr_player_name": "Nate Stanley",
+      "season": 2020,
+      "unresolved_reason": null
+    },
+    "nate_sudfeld_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032792",
+      "normalized_name": "nate_sudfeld",
+      "pfr_player_name": "Nate Sudfeld",
+      "season": 2024,
+      "unresolved_reason": null
+    },
+    "nathan_peterman_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033958",
+      "normalized_name": "nathan_peterman",
+      "pfr_player_name": "Nathan Peterman",
+      "season": 2024,
+      "unresolved_reason": null
+    },
+    "patrick_mahomes_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033873",
+      "normalized_name": "patrick_mahomes",
+      "pfr_player_name": "Patrick Mahomes",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "paxton_lynch_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0033108",
+      "normalized_name": "paxton_lynch",
+      "pfr_player_name": "Paxton Lynch",
+      "season": 2016,
+      "unresolved_reason": null
+    },
+    "quinn_ewers_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040234",
+      "normalized_name": "quinn_ewers",
+      "pfr_player_name": "Quinn Ewers",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "riley_leonard_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040206",
+      "normalized_name": "riley_leonard",
+      "pfr_player_name": "Riley Leonard",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "ryan_finley_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0035652",
+      "normalized_name": "ryan_finley",
+      "pfr_player_name": "Ryan Finley",
+      "season": 2019,
+      "unresolved_reason": null
+    },
+    "sam_darnold_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034869",
+      "normalized_name": "sam_darnold",
+      "pfr_player_name": "Sam Darnold",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "sam_ehlinger_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036879",
+      "normalized_name": "sam_ehlinger",
+      "pfr_player_name": "Sam Ehlinger",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "sam_howell_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0037077",
+      "normalized_name": "sam_howell",
+      "pfr_player_name": "Sam Howell",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "sean_clifford_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038391",
+      "normalized_name": "sean_clifford",
+      "pfr_player_name": "Sean Clifford",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "sean_mannion_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032245",
+      "normalized_name": "sean_mannion",
+      "pfr_player_name": "Sean Mannion",
+      "season": 2015,
+      "unresolved_reason": null
+    },
+    "shedeur_sanders_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040668",
+      "normalized_name": "shedeur_sanders",
+      "pfr_player_name": "Shedeur Sanders",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "skylar_thompson_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0037327",
+      "normalized_name": "skylar_thompson",
+      "pfr_player_name": "Skylar Thompson",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "spencer_rattler_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039376",
+      "normalized_name": "spencer_rattler",
+      "pfr_player_name": "Spencer Rattler",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "stetson_bennett_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039107",
+      "normalized_name": "stetson_bennett",
+      "pfr_player_name": "Stetson Bennett",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "tanner_lee_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0034416",
+      "normalized_name": "tanner_lee",
+      "pfr_player_name": "Tanner Lee",
+      "season": 2018,
+      "unresolved_reason": null
+    },
+    "tanner_mckee_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0038400",
+      "normalized_name": "tanner_mckee",
+      "pfr_player_name": "Tanner McKee",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "tommy_mellott_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040220",
+      "normalized_name": "tommy_mellott",
+      "pfr_player_name": "Tommy Mellott",
+      "season": 2025,
+      "unresolved_reason": null
+    },
+    "tommy_stevens_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036433",
+      "normalized_name": "tommy_stevens",
+      "pfr_player_name": "Tommy Stevens",
+      "season": 2020,
+      "unresolved_reason": null
+    },
+    "trace_mcsorley_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0035146",
+      "normalized_name": "trace_mcsorley",
+      "pfr_player_name": "Trace McSorley",
+      "season": 2024,
+      "unresolved_reason": null
+    },
+    "trevor_lawrence_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036971",
+      "normalized_name": "trevor_lawrence",
+      "pfr_player_name": "Trevor Lawrence",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "trevor_siemian_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0032156",
+      "normalized_name": "trevor_siemian",
+      "pfr_player_name": "Trevor Siemian",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "trey_lance_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0037012",
+      "normalized_name": "trey_lance",
+      "pfr_player_name": "Trey Lance",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "tua_tagovailoa_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0036212",
+      "normalized_name": "tua_tagovailoa",
+      "pfr_player_name": "Tua Tagovailoa",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "tyler_shough_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040743",
+      "normalized_name": "tyler_shough",
+      "pfr_player_name": "Tyler Shough",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "will_grier_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0035251",
+      "normalized_name": "will_grier",
+      "pfr_player_name": "Will Grier",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "will_howard_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0040203",
+      "normalized_name": "will_howard",
+      "pfr_player_name": "Will Howard",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "will_levis_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0039152",
+      "normalized_name": "will_levis",
+      "pfr_player_name": "Will Levis",
+      "season": 2026,
+      "unresolved_reason": null
+    },
+    "zach_wilson_qb": {
+      "coverage": "FULL",
+      "gsis_id": "00-0037013",
+      "normalized_name": "zach_wilson",
+      "pfr_player_name": "Zach Wilson",
+      "season": 2026,
+      "unresolved_reason": null
+    }
+  }
+}

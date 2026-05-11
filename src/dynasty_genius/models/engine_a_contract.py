@@ -50,6 +50,15 @@ PLAYERPROFILER_CONTEXT_COLUMNS = {
     "source_speed_score",
 }
 
+# ── QB Professional Context (context_signal only — never model inputs) ────────
+QB_CONTEXT_COLUMNS = {
+    "epa_per_dropback",
+    "cpoe",
+    "dakota",
+    "dropback_count",
+    "pass_attempts",
+}
+
 # Allowed in the enriched artifact. Model feature use is controlled by
 # POSITION_FEATURE_MATRIX and source registry roles, not by artifact presence.
 ALLOWED_ENRICHMENT_COLUMNS = CFBD_MODEL_INPUT_COLUMNS | PLAYERPROFILER_CONTEXT_COLUMNS
