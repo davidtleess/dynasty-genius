@@ -1,0 +1,133 @@
+{
+  "source": "mock_prospect_identity",
+  "snapshot_date": "2026-05-08",
+  "note": "Mock 2026/2027 prospect classes. 2026 class picks are illustrative mock values — not verified draft results. 2027 class players have no pick/round (undrafted). All verification statuses are PENDING.",
+  "players": [
+    {
+      "dg_id": "arch_manning_qb_2005",
+      "full_name": "Arch Manning",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2005,
+      "birth_date": "2005-05-27",
+      "school": "Texas",
+      "is_prospect": true,
+      "pick": 1,
+      "round": 1,
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "nico_iamaleava_qb_2004",
+      "full_name": "Nico Iamaleava",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2004,
+      "birth_date": "2004-03-11",
+      "school": "Tennessee",
+      "is_prospect": true,
+      "pick": 12,
+      "round": 1,
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "dante_moore_qb_2005",
+      "full_name": "Dante Moore",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2005,
+      "birth_date": "2005-01-01",
+      "school": "Oregon",
+      "is_prospect": true,
+      "pick": 27,
+      "round": 1,
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "zachariah_branch_wr_2004",
+      "full_name": "Zachariah Branch",
+      "position": "WR",
+      "draft_class": 2026,
+      "birth_year": 2004,
+      "birth_date": "2004-01-01",
+      "school": "USC",
+      "is_prospect": true,
+      "pick": 42,
+      "round": 2,
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "carnell_tate_wr_2005",
+      "full_name": "Carnell Tate",
+      "position": "WR",
+      "draft_class": 2026,
+      "birth_year": 2005,
+      "birth_date": "2005-01-01",
+      "school": "Ohio State",
+      "is_prospect": true,
+      "pick": 58,
+      "round": 2,
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "jackson_arnold_qb_2004",
+      "full_name": "Jackson Arnold",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2004,
+      "birth_date": "2004-01-01",
+      "school": "Oklahoma",
+      "is_prospect": true,
+      "pick": 78,
+      "round": 3,
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "malachi_nelson_qb_2004",
+      "full_name": "Malachi Nelson",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2004,
+      "birth_date": "2004-01-01",
+      "school": "Boise State",
+      "is_prospect": true,
+      "pick": 90,
+      "round": 3,
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "jaden_rashada_qb_2003",
+      "full_name": "Jaden Rashada",
+      "position": "QB",
+      "draft_class": 2026,
+      "birth_year": 2003,
+      "birth_date": "2003-01-01",
+      "school": "Georgia",
+      "is_prospect": true,
+      "pick": 112,
+      "round": 4,
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "ryan_williams_wr_2007",
+      "full_name": "Ryan Williams",
+      "position": "WR",
+      "draft_class": 2027,
+      "birth_year": 2007,
+      "birth_date": "2007-01-01",
+      "school": "Alabama",
+      "is_prospect": true,
+      "verification_status": "PENDING"
+    },
+    {
+      "dg_id": "jeremiah_smith_wr_2005",
+      "full_name": "Jeremiah Smith",
+      "position": "WR",
+      "draft_class": 2027,
+      "birth_year": 2005,
+      "birth_date": "2005-01-01",
+      "school": "Ohio State",
+      "is_prospect": true,
+      "verification_status": "PENDING"
+    }
+  ]
+}

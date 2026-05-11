@@ -5,47 +5,62 @@ Last updated: 2026-05-11
 
 ## Active Phase
 
-PR #13 merged. Main is clean (84 pass, 0 fail). David researching QB strategy. Phase 2 replan pending QB decision.
+Stage 2 QB college feature pipeline complete. PR #17 merged to main. QB features are context-signal only (backtest FAIL 0/3). Next: Stage 4 EPA/CPOE via nflreadpy, 4 missing adapter test gates.
 
 ## Current Sprint Objective
 
-Stabilize `main` CI before resuming Engine A v2 Phase 2.
+Engine A v2 Phase 2 complete as infrastructure. No QB features promoted to model_input.
 
-- PR #11 (Data Foundation + Identity): MERGED → main `423979e`.
-- PR #12 (Rookie Board v1): MERGED → main `7f6f590`.
-- PR C (Governance Reconciliation): deferred, human-reviewed only.
-- Engine A v2 PP remediation: committed `4afb1c7` on `engine-a/v2-enrichment-pipeline`.
+- PR #13 (`hygiene/pydantic-compat`): MERGED → main `16e3567`.
+- PR #14 (`hygiene/pydantic-v2-upgrade`): MERGED → main `f54ba11`. Pydantic>=2.0, removes cfbd package.
+- PR #15 (`hygiene/nflreadpy-migration`): MERGED → main `fa995624`. Registry key and provenance string unchanged.
+- PR #17 (`engine-a/v2-enrichment-pipeline`): MERGED → main. QB CFBD adapter, ID map (95.2%), TDD tests, backtest gate (FAIL 0/3). POSITION_FEATURE_MATRIX["QB"] populated but context-only.
 
 ## Latest Activity
 
-- Claude Code (2026-05-11, Session 5): PR #13 merged (`16e3567`). Gemini confirmed CI green + review clean. `cfbd` package identified as unused but pinning pydantic<2 — follow-up upgrade PR queued. Adapter test gate audit: all 4 files missing. CFBD QB data confirmed available (passing/rushing stats). AGENT_SYNC updated.
-- Claude Code (2026-05-11, Session 4): `hygiene/pydantic-compat` — added `model_dump` shim to `DynastyValuation` (pops `mode=`), `ProspectRequest` (defensive), guarded `computed_field` import in `Player`. 84 pass, 0 fail. PR #13 open.
-- Claude Code (2026-05-11, Session 3): Fixed PR #11 CI failure (`PlayerValueObject.model_dump` recursion on Pydantic v2). Pushed `fbedfca`. CI passed. PR #11 and PR #12 subsequently merged.
-- Claude Code (2026-05-11, Session 2): PP remediation complete — removed imputation (258 fabricated rows), fixed `year_stats` typo, renamed `yprr` → `yptt` internally, added name normalization. Gate rewritten as clean-artifact promotion tripwire. Coverage: target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds. 40 targeted tests pass.
+- Claude Code (2026-05-11, Session 8): Stage 2 QB pipeline shipped. Codex: CFBD adapter (19 pass), college_team param fix (sack_rate/passing_yards_share nulls). Gemini: QB ID map 95.2% coverage. Backtest FAIL 0/3 — QB stays context-only. PR #17 merged (105 pass, 11 skip, 0 fail).
+- Claude Code (2026-05-11, Session 7): Resolved PR #15 rebase conflict, fixed provenance string (ingest_2026_draft.py:35), merged PR #15 at fa995624. Stage 1 complete.
+- Claude Code (2026-05-11, Session 6): Merged PR #14 (f54ba11). Identified PR #15 provenance issue. Wrote QB Stage 0 investigation prompts.
+- Claude Code (2026-05-11, Session 5): PR #13 merged (16e3567). Adapter test gate stubs (4 files, 28 governance tests). QB strategy approved.
 
 ## Open Blockers
 
-1. **`cfbd` package removal** — `cfbd` PyPI package is not imported anywhere but pins `pydantic<2`. Removing it from `requirements.txt` enables Pydantic v2 natively and makes all shims unnecessary. Separate hygiene PR needed (`hygiene/pydantic-v2-upgrade`).
-2. **4 missing adapter test gates** — `test_ras_adapter.py`, `test_manual_export_adapter.py`, `test_market_overlay.py`, `test_market_leakage_gate.py` all missing. SOURCE_REGISTRY stubs unvalidated. Phase 2 work.
-3. **QB feature gap** — `POSITION_FEATURE_MATRIX["QB"] = []`. 126 QB rows scored on pick/round/age only. David researching strategy. CFBD has passing/rushing data (ATT, PCT, YDS, YPA, rushing) — Passing Yards Share and Passing TD Share are calculable. Hold implementation until David approves feature design.
-4. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds. Do not promote PP without explicit instruction.
-5. **PR C** — governance reconciliation is human-reviewed only, not agent-delegatable.
+1. **4 missing adapter test gates** — `test_ras_adapter.py`, `test_manual_export_adapter.py`, `test_market_overlay.py`, `test_market_leakage_gate.py` stubs exist, implementations empty. Phase 2 work.
+2. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds. Do not promote PP without explicit instruction.
+3. **PR C** — governance reconciliation is human-reviewed only, not agent-delegatable.
 
-## Next Recommended Work
+## Next Recommended Work (in order)
 
-1. **`hygiene/pydantic-v2-upgrade`** — remove `cfbd` from `requirements.txt`, upgrade to Pydantic v2, remove shims. Clean, targeted, no scope creep.
-2. **QB strategy decision** — David to approve feature design (CFBD passing/rushing stats). Then Phase 2 replan with QB track.
-3. **Phase 2 replan** — after QB decision: Engine A v2 tasks 5–8, adapter test gates (4 missing), context/risk layer design.
+1. **Stage 4** — nflreadpy EPA/CPOE/DAKOTA integration for professional QB tracking. Fresh session.
+2. **4 adapter test gates** — implement stubs for RAS, manual export, market overlay, market leakage. Can delegate to Codex.
+3. **Categorical QB bust filters** — P2S%, TD/INT threshold (<0.7 bust), AP yards flag (>3,700) as display-only context annotations. Not model inputs.
+
+## QB Strategy (approved 2026-05-11)
+
+- Draft capital: 70% weight R1/R2, 50% R3, 30% R4-7
+- College features: CFBD Tier 3 via httpx — completion_pct, yards_per_attempt, td_int_ratio, sack_rate, all_purpose_yards, passing_yards_share, ppa, wepa, rushing_yards, rushing_tds
+- Backtest verdict: FAIL (0/3) — features registered in contract, NOT promoted to model_input
+- Bifurcated aging curve: pocket passer cliff 33, dual-threat cliff 29 (display warnings only)
+- Konami Code (rushing): R²=0.5674 — stickiest QB stat, valued explicitly
+- cfbd Python SDK: NO-GO — pins pydantic<2. Use httpx only.
+
+## CFBD Tier 3 QB Endpoint Spec
+
+| Feature | Endpoint | Field |
+|---|---|---|
+| Completion % | /stats/player/season (passing) | PCT |
+| Yards Per Attempt | /stats/player/season (passing) | YPA |
+| PPA | /ppa/players/season | averagePPA.all |
+| WEPA | /wepa/players/passing | wepa |
+| Pass Yards Share | player YDS / team netPassingYards | derived |
+| Sack Rate | team sacksAllowed / (passAttempts + sacksAllowed) | derived |
+| Rushing | /stats/player/season (rushing) | CAR, YDS, TD |
 
 ## Branch / Worktree Notes
 
-- `main`: current at `16e3567` — 84 pass, 0 fail.
-- `hygiene/pydantic-compat`: merged to main as `16e3567`.
-- `engine-a/v2-enrichment-pipeline`: PP remediation committed, not merged to main yet.
-- `cleanup/pr-a-data-foundation`: merged to main.
-- `cleanup/pr-b-rookie-board`: merged to main.
-- `engine-a/historical-enrichment` (PR #10): closed without merge.
-- `codex/governance-seal`: superseded.
-- Main worktree: `/Users/davidleess/dynasty-genius` (up to date at `7f6f590`).
-- Engine A worktree: `/Users/davidleess/dynasty-genius-product` (on `engine-a/v2-enrichment-pipeline`).
-- PR A worktree: `/private/tmp/dg-pr-a` (cleanup/pr-a-data-foundation, merged).
+- `main`: at `e66e992` — 105 pass, 11 skip, 0 fail.
+- `engine-a/v2-enrichment-pipeline`: MERGED (PR #17).
+- `hygiene/pydantic-v2-upgrade`: MERGED (f54ba11).
+- `hygiene/nflreadpy-migration`: MERGED (fa995624).
+- Main worktree: `/Users/davidleess/dynasty-genius` (main).
+- Engine A worktree: `/Users/davidleess/dynasty-genius-product` (engine-a/v2-enrichment-pipeline).

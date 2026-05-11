@@ -46,6 +46,27 @@ async def get_users(league_id: str) -> list[dict]:
     return data
 
 
+async def get_traded_picks(league_id: str) -> list[dict]:
+    data = await _get(f"/league/{league_id}/traded_picks")
+    if data is None:
+        raise ValueError(f"No traded picks found for league_id: {league_id}")
+    return data
+
+
+async def get_league_drafts(league_id: str) -> list[dict]:
+    data = await _get(f"/league/{league_id}/drafts")
+    if data is None:
+        raise ValueError(f"No drafts found for league_id: {league_id}")
+    return data
+
+
+async def get_draft_picks(draft_id: str) -> list[dict]:
+    data = await _get(f"/draft/{draft_id}/picks")
+    if data is None:
+        return []
+    return data
+
+
 async def get_all_players() -> dict[str, dict]:
     data = await _get("/players/nfl")
     if not data:

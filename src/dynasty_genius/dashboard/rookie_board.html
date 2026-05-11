@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynasty Genius &#8212; 2026 Rookie Board</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; font-size: 14px; }
+
+    /* ── Header ── */
+    .header { background: #1e293b; border-bottom: 1px solid #334155; padding: 16px 24px; }
+    .header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .title { font-size: 20px; font-weight: 700; color: #f1f5f9; }
+    .subtitle { font-size: 11px; color: #475569; margin-top: 4px; }
+    .header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; margin-left: 24px; }
+    .league-pills { display: flex; gap: 8px; }
+    .pill { padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+    .pill-superflex { background: #3b0764; color: #c4b5fd; border: 1px solid #7c3aed; }
+
+    /* ── Refresh button ── */
+    .refresh-wrap { position: relative; }
+    .refresh-btn { background: #1d4ed8; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.15s; }
+    .refresh-btn:hover:not(:disabled) { background: #1e40af; }
+    .refresh-btn:disabled { opacity: 0.6; cursor: default; }
+    .refresh-btn.success { background: #166534; }
+    .refresh-btn.error   { background: #7f1d1d; }
+
+    /* ── Roster need banner ── */
+    .need-banner {
+      background: #1e293b; border-bottom: 1px solid #334155;
+      padding: 10px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .need-label { font-size: 10px; color: #475569; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+    .need-badges { display: flex; gap: 8px; }
+    .need-badge { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .need-HIGH   { background: #450a0a; color: #fca5a5; border: 1px solid #991b1b; }
+    .need-MEDIUM { background: #431407; color: #fdba74; border: 1px solid #c2410c; }
+    .need-LOW    { background: #052e16; color: #86efac; border: 1px solid #166534; }
+    .need-caveat { font-size: 10px; color: #475569; }
+
+    /* ── Tabs ── */
+    .tabs { background: #1e293b; border-bottom: 1px solid #334155; padding: 0 24px; display: flex; gap: 2px; }
+    .tab { padding: 10px 16px; border: none; background: none; color: #64748b; cursor: pointer; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .tab.active { color: #f1f5f9; border-bottom-color: #3b82f6; }
+    .tab:hover:not(.active) { color: #94a3b8; }
+
+    /* ── Cards ── */
+    .cards-wrap { padding: 16px 24px; max-width: 960px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+    .card.taken { opacity: 0.35; }
+    .card-QB { border-left: 3px solid #7c3aed; }
+    .card-WR { border-left: 3px solid #2563eb; }
+    .card-RB { border-left: 3px solid #16a34a; }
+    .card-body { padding: 12px 16px; display: flex; align-items: flex-start; gap: 16px; }
+    .card-rank { font-size: 22px; font-weight: 700; color: #334155; min-width: 36px; text-align: right; line-height: 1; padding-top: 4px; }
+    .card-main { flex: 1; min-width: 0; }
+
+    /* name row */
+    .name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .card-name { font-size: 16px; font-weight: 600; color: #f1f5f9; }
+    .card-name.taken-name { text-decoration: line-through; color: #475569; }
+
+    /* badges */
+    .badge { padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .b-WR { background: #1e3a8a; color: #93c5fd; }
+    .b-RB { background: #14532d; color: #86efac; }
+    .b-QB { background: #2e1065; color: #c4b5fd; }
+    .b-TE { background: #1c1917; color: #d6d3d1; border: 1px solid #44403c; }
+    .b-sf      { background: #2e1065; color: #c4b5fd; border: 1px solid #7c3aed; font-size: 9px; }
+    .b-age     { background: #431407; color: #fdba74; border: 1px solid #c2410c; }
+    .b-taken   { background: #1e293b; color: #475569; border: 1px solid #334155; }
+    .b-2027    { background: #172554; color: #93c5fd; border: 1px solid #1d4ed8; font-size: 9px; }
+    .b-unverified { background: #3b2f00; color: #fcd34d; border: 1px solid #92400e; font-size: 9px; }
+    .b-prospect-d { background: #300; color: #fca5a5; border: 1px solid #7f1d1d; font-size: 9px; }
+
+    /* meta + chips */
+    .card-meta { font-size: 11px; color: #64748b; margin-top: 3px; }
+    .chips { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+
+    /* score side */
+    .card-right { text-align: right; min-width: 110px; flex-shrink: 0; }
+    .engine-label { font-size: 9px; color: #475569; text-transform: uppercase; letter-spacing: 0.06em; }
+    .score-num { font-size: 26px; font-weight: 700; color: #f1f5f9; line-height: 1.1; }
+    .score-num.pre-model { font-size: 12px; color: #475569; font-weight: 400; margin-top: 6px; }
+    .score-bar-bg { background: #0f172a; border-radius: 4px; height: 6px; margin-top: 6px; overflow: hidden; }
+    .score-bar-fill { height: 100%; border-radius: 4px; }
+    .model-grade { font-size: 10px; color: #475569; margin-top: 5px; }
+
+    /* counter strip */
+    .counter-strip { background: #1a0a0a; border-top: 1px solid #3b1515; padding: 8px 16px 8px 68px; display: flex; align-items: flex-start; gap: 8px; }
+    .counter-icon { font-size: 11px; color: #ef4444; flex-shrink: 0; padding-top: 1px; }
+    .counter-lbl  { font-size: 10px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 0.06em; min-width: 48px; flex-shrink: 0; padding-top: 1px; }
+    .counter-text { font-size: 12px; color: #fca5a5; line-height: 1.4; }
+
+    /* empty */
+    .empty { padding: 48px 24px; text-align: center; color: #475569; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<!-- JS artifacts — loaded as script src for file:// compatibility -->
+<script src="../../../resources/prospect_cards.js"></script>
+<script>if(typeof window.DRAFT_STATE==='undefined')window.DRAFT_STATE={taken:[],draft_id:null,refreshed_at:null};</script>
+<script src="../../../resources/draft_state.js" onerror="void 0"></script>
+<script>if(typeof window.ROSTER_NEED==='undefined')window.ROSTER_NEED={WR:'LOW',RB:'LOW',QB:'LOW',TE:'LOW'};</script>
+<script src="../../../resources/roster_need_signals.js" onerror="void 0"></script>
+
+<!-- Infer league context from first PVO's caveats -->
+<script>
+  var _sample = (window.PROSPECT_CARDS || [])[0] || {};
+  var _cavs = (_sample.caveats || []).join(' ').toLowerCase();
+  var IS_SUPERFLEX = _cavs.indexOf('superflex') !== -1;
+  var TE_PREMIUM   = _cavs.indexOf('te premium') !== -1;
+</script>
+
+<!-- Page -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="title">Dynasty Genius &#8212; 2026 Rookie Board</div>
+      <div class="subtitle">Engine A &middot; PROSPECT_C/D &middot; market overlay excluded &middot; decision_supported: false</div>
+    </div>
+    <div class="header-right">
+      <div class="league-pills" id="leaguePills"></div>
+      <div class="refresh-wrap">
+        <button class="refresh-btn" id="refreshBtn" onclick="refreshDraft()">&#8635; Refresh Draft</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="need-banner" id="needBanner"></div>
+<div class="tabs" id="tabs"></div>
+<div class="cards-wrap" id="cardsWrap"></div>
+
+<script>
+// Data
+var CARDS = window.PROSPECT_CARDS || [];
+var DRAFT = window.DRAFT_STATE    || { taken: [] };
+var NEED  = window.ROSTER_NEED    || { WR:'LOW', RB:'LOW', QB:'LOW', TE:'LOW' };
+var activeTab = 'All';
+
+// Helpers
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function isTaken(card) {
+  var sid = String(card.sleeper_id || '');
+  var pid = String(card.player_id  || '');
+  return DRAFT.taken.indexOf(sid) !== -1 || (sid === '' && DRAFT.taken.indexOf(pid) !== -1);
+}
+
+function scoreColor(n) {
+  if (n >= 75) return '#22c55e';
+  if (n >= 50) return '#eab308';
+  if (n >= 25) return '#f97316';
+  return '#ef4444';
+}
+
+// League pills
+(function() {
+  var el = document.getElementById('leaguePills');
+  if (IS_SUPERFLEX) el.innerHTML += '<span class="pill pill-superflex">&#9889; SUPERFLEX</span>';
+  if (TE_PREMIUM)   el.innerHTML += '<span class="pill" style="background:#0c3b2e;color:#86efac;border:1px solid #16a34a">TE PREMIUM</span>';
+})();
+
+// Roster need banner
+(function() {
+  var el = document.getElementById('needBanner');
+  var positions = ['WR','RB','QB','TE'];
+  var badges = positions.map(function(pos) {
+    var lvl = NEED[pos] || 'LOW';
+    return '<span class="need-badge need-' + lvl + '">' + pos + ': ' + lvl + '</span>';
+  }).join('');
+  el.innerHTML =
+    '<span class="need-label">Roster Need</span>' +
+    '<span class="need-badges">' + badges + '</span>' +
+    '<span class="need-caveat">age-curve only &middot; no Engine B &middot; verify before acting</span>';
+})();
+
+// Sort: scored cards by DVS desc, PRE_MODEL to bottom
+function sortCards(arr) {
+  return arr.slice().sort(function(a, b) {
+    var as = a.dynasty_value_score, bs = b.dynasty_value_score;
+    if (as == null && bs != null) return 1;
+    if (bs == null && as != null) return -1;
+    if (as == null && bs == null) return 0;
+    return bs - as;
+  });
+}
+
+// Tabs
+function renderTabs() {
+  var positions = ['All','QB','WR','RB','TE'];
+  var el = document.getElementById('tabs');
+  el.innerHTML = positions.map(function(pos) {
+    var count = pos === 'All' ? CARDS.length : CARDS.filter(function(c){ return c.position === pos; }).length;
+    return '<button class="tab' + (activeTab === pos ? ' active' : '') + '" onclick="setTab(\'' + pos + '\')">' +
+      pos + ' <span style="color:#475569;font-weight:400">(' + count + ')</span></button>';
+  }).join('');
+}
+
+function setTab(pos) {
+  activeTab = pos;
+  renderTabs();
+  renderCards();
+}
+
+// Card HTML
+function cardHtml(card, rank) {
+  var taken    = isTaken(card);
+  var hasScore = card.dynasty_value_score != null;
+  var pos      = card.position || '';
+  var lvl      = NEED[pos] || 'LOW';
+  var isQB     = pos === 'QB';
+  var is2027   = card.draft_class === 2027;
+  var flags    = card.risk_flags || [];
+  var hasUnverified = flags.indexOf('mock_draft_capital_unverified') !== -1;
+
+  // Badges
+  var posBadge   = '<span class="badge b-' + pos + '">' + esc(pos) + '</span>';
+  var sfBadge    = (IS_SUPERFLEX && isQB) ? '<span class="badge b-sf">&#9889; SUPERFLEX</span>' : '';
+  var ageBadge   = (lvl === 'HIGH' || lvl === 'MEDIUM') ? '<span class="badge b-age">AGING STACK</span>' : '';
+  var takenBadge = taken  ? '<span class="badge b-taken">TAKEN</span>' : '';
+  var cls2027    = is2027 ? '<span class="badge b-2027">2027 Class</span>' : '';
+
+  // Risk chips
+  var uvChip = hasUnverified ? '<span class="badge b-unverified">&#9888; pick data unverified</span>' : '';
+  var pdChip = (isQB && hasScore) ? '<span class="badge b-prospect-d">PROSPECT_D &middot; negative R&sup2;</span>' : '';
+
+  // Meta line
+  var meta = [];
+  if (card.nfl_team)      meta.push(esc(card.nfl_team));
+  if (card.nfl_draft_pick)  meta.push('Pick ' + card.nfl_draft_pick);
+  if (card.nfl_draft_round) meta.push('Rd '   + card.nfl_draft_round);
+  if (card.age != null)   meta.push('Age ' + Math.round(card.age));
+  var metaStr = meta.join(' &middot; ');
+
+  // Score side
+  var scoreHtml = hasScore
+    ? ('<div class="score-num">' + Math.round(card.dynasty_value_score) + '</div>' +
+       '<div class="score-bar-bg"><div class="score-bar-fill" style="width:' +
+       card.dynasty_value_score + '%;background:' +
+       (taken ? '#334155' : scoreColor(card.dynasty_value_score)) + '"></div></div>')
+    : '<div class="score-num pre-model">PRE-MODEL</div>';
+
+  // Counter strip
+  var counterHtml = '';
+  if (hasScore && card.counter_argument) {
+    var txt = String(card.counter_argument).substring(0, 160);
+    counterHtml =
+      '<div class="counter-strip">' +
+        '<span class="counter-icon">&#9873;</span>' +
+        '<span class="counter-lbl">Counter</span>' +
+        '<span class="counter-text">' + esc(txt) + '</span>' +
+      '</div>';
+  }
+
+  return (
+    '<div class="card' + (taken ? ' taken' : '') + ' card-' + pos + '" id="c-' + esc(card.player_id) + '">' +
+      '<div class="card-body">' +
+        '<div class="card-rank">' + rank + '</div>' +
+        '<div class="card-main">' +
+          '<div class="name-row">' +
+            '<span class="card-name' + (taken ? ' taken-name' : '') + '">' + esc(card.full_name) + '</span>' +
+            posBadge + sfBadge + ageBadge + takenBadge + cls2027 +
+          '</div>' +
+          '<div class="card-meta">' + metaStr + '</div>' +
+          (uvChip || pdChip ? '<div class="chips">' + uvChip + pdChip + '</div>' : '') +
+        '</div>' +
+        '<div class="card-right">' +
+          '<div class="engine-label">Engine A</div>' +
+          scoreHtml +
+          '<div class="model-grade">' + esc(card.model_grade || 'PRE_MODEL') + '</div>' +
+        '</div>' +
+      '</div>' +
+      counterHtml +
+    '</div>'
+  );
+}
+
+// Main render
+function renderCards() {
+  var el = document.getElementById('cardsWrap');
+  var filtered = activeTab === 'All' ? CARDS : CARDS.filter(function(c){ return c.position === activeTab; });
+  var sorted   = sortCards(filtered);
+
+  if (sorted.length === 0) {
+    el.innerHTML = '<div class="empty">No prospects found. Run build_prospect_cards.py to generate data.</div>';
+    return;
+  }
+
+  var rank = 1;
+  el.innerHTML = sorted.map(function(card) {
+    var r = card.dynasty_value_score != null ? rank++ : '&mdash;';
+    return cardHtml(card, r);
+  }).join('');
+}
+
+// Refresh draft state via local server (/refresh endpoint)
+function refreshDraft() {
+  var btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.textContent = '↻ Refreshing…';
+  btn.className = 'refresh-btn';
+
+  fetch('/refresh', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        btn.textContent = '✓ Updated — reloading';
+        btn.className = 'refresh-btn success';
+        setTimeout(function() { window.location.reload(); }, 800);
+      } else {
+        btn.textContent = '✗ ' + (data.error || 'Refresh failed');
+        btn.className = 'refresh-btn error';
+        btn.disabled = false;
+        setTimeout(function() { btn.textContent = '↻ Refresh Draft'; btn.className = 'refresh-btn'; }, 4000);
+      }
+    })
+    .catch(function() {
+      btn.textContent = '✗ Server not running';
+      btn.className = 'refresh-btn error';
+      btn.disabled = false;
+      setTimeout(function() { btn.textContent = '↻ Refresh Draft'; btn.className = 'refresh-btn'; }, 4000);
+    });
+}
+
+// Boot
+renderTabs();
+renderCards();
+</script>
+</body>
+</html>

@@ -1,5 +1,6 @@
-from pydantic import BaseModel, computed_field
 from typing import Optional
+
+from pydantic import BaseModel, computed_field
 
 AGING_CLIFF = {"RB": 25, "WR": 27, "TE": 29, "QB": 32}
 
