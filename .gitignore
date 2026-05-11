@@ -22,6 +22,8 @@ Thumbs.db
 logs/
 
 # Generated caches and local scratch data
+leakage_violation_report.json
+join_ambiguity_report.json
 app/cache/
 app/data/cache/**
 !app/data/cache/
@@ -31,6 +33,10 @@ app/data/raw/
 app/data/processed/
 app/data/artifacts/
 .pycache_tmp/
+
+# Generated enriched training artifacts (committed only after all tasks complete)
+app/data/training/prospects_with_outcomes_*partial*.csv
+app/data/training/prospects_with_outcomes_v2.csv
 
 # Dependencies
 node_modules/

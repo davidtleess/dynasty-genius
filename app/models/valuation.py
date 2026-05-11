@@ -34,3 +34,10 @@ class DynastyValuation(BaseModel):
 
     source_projection: Optional[dict[str, Any]] = None
     notes: list[str] = Field(default_factory=list)
+
+    def model_dump(self, *args, **kwargs):
+        try:
+            return super().model_dump(*args, **kwargs)
+        except AttributeError:
+            kwargs.pop("mode", None)
+            return self.dict(*args, **kwargs)
