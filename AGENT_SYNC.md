@@ -5,7 +5,7 @@ Last updated: 2026-05-11
 
 ## Active Phase
 
-Stage 4 QB professional context layer verified and ready to land via PR #19. QB college features remain context-signal only (final corrected backtest FAIL 0/3). EPA/CPOE/DAKOTA/dropbacks/attempts are roster-facing `context_signal` only, not Engine B training inputs.
+Stage 4 QB professional context layer merged via PR #19. QB college features remain context-signal only (final corrected backtest FAIL 0/3). EPA/CPOE/DAKOTA/dropbacks/attempts are roster-facing `context_signal` only, not Engine B training inputs.
 
 ## Current Sprint Objective
 
@@ -18,8 +18,8 @@ Engine A v2 Phase 2 infrastructure complete. Stage 4 adds roster-facing QB profe
 
 ## Latest Activity
 
-- Codex (2026-05-11): Reviewed PR #19 boundary gates. Confirmed `QB_CONTEXT_COLUMNS` is not in `ALLOWED_ENRICHMENT_COLUMNS` or `POSITION_FEATURE_MATRIX`; `nflreadpy_qb_context` is `context_signal` only. Fixed CI-only optional CFBD partial artifact gate. Local full suite with Python 3.14: 184 passed, 11 skipped.
-- Stage 4 PR #19: Adds `fetch_qb_nfl_stats()` for EPA/dropback, CPOE, DAKOTA, dropbacks/attempts; QB GSIS identity bridge; and roster `qb_context_cards`. Context-only by registry and contract.
+- Codex (2026-05-11): Reviewed and merged PR #19. Confirmed `QB_CONTEXT_COLUMNS` is not in `ALLOWED_ENRICHMENT_COLUMNS` or `POSITION_FEATURE_MATRIX`; `nflreadpy_qb_context` is `context_signal` only. Fixed CI-only optional CFBD partial artifact gate. CI passed and PR #19 merged at `da5c0f7`. Local full suite with Python 3.14: 184 passed, 11 skipped.
+- Stage 4 PR #19: MERGED. Adds `fetch_qb_nfl_stats()` for EPA/dropback, CPOE, DAKOTA, dropbacks/attempts; QB GSIS identity bridge; and roster `qb_context_cards`. Context-only by registry and contract.
 - Adapter gates PR #18: Implemented and merged separately before Stage 4. Four adapter gate stubs closed.
 - Claude Code (2026-05-11, Session 8): Stage 2 QB pipeline shipped. Codex: CFBD adapter (19 pass), college_team param fix (sack_rate/passing_yards_share nulls). Gemini: QB ID map 95.2% coverage. Backtest FAIL 0/3 — QB stays context-only. PR #17 merged (105 pass, 11 skip, 0 fail).
 - Claude Code (2026-05-11, Session 7): Resolved PR #15 rebase conflict, fixed provenance string (ingest_2026_draft.py:35), merged PR #15 at fa995624. Stage 1 complete.
@@ -34,9 +34,9 @@ Engine A v2 Phase 2 infrastructure complete. Stage 4 adds roster-facing QB profe
 
 ## Next Recommended Work (in order)
 
-1. **Merge PR #19** once GitHub Actions rerun is green.
-2. **Categorical QB bust filters** — P2S%, TD/INT threshold (<0.7 bust), AP yards flag (>3,700) as display-only context annotations. Not model inputs.
-3. **Phase 5 planning** — fitted aging-curve/outcome-variable decisions before any Engine B training.
+1. **Categorical QB bust filters** — P2S%, TD/INT threshold (<0.7 bust), AP yards flag (>3,700) as display-only context annotations. Not model inputs.
+2. **Phase 5 planning** — fitted aging-curve/outcome-variable decisions before any Engine B training.
+3. **Clean branch/worktree state** — remove stale Stage 4 local branch after confirming no untracked debug artifacts are needed.
 
 ## QB Strategy (approved 2026-05-11)
 
@@ -61,9 +61,9 @@ Engine A v2 Phase 2 infrastructure complete. Stage 4 adds roster-facing QB profe
 
 ## Branch / Worktree Notes
 
-- `main`: at `e66e992` — 105 pass, 11 skip, 0 fail.
+- `main`: at `da5c0f7` — PR #19 merged; CI passed.
 - `engine-a/v2-enrichment-pipeline`: MERGED (PR #17).
 - `hygiene/pydantic-v2-upgrade`: MERGED (f54ba11).
 - `hygiene/nflreadpy-migration`: MERGED (fa995624).
 - Main worktree: `/Users/davidleess/dynasty-genius` (main).
-- Product worktree: `/Users/davidleess/dynasty-genius-product` currently on `stage4/qb-professional-context` for PR #19.
+- Product worktree: `/Users/davidleess/dynasty-genius-product` still on local `stage4/qb-professional-context`; remote PR branch deleted after merge.
