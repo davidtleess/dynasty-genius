@@ -13,6 +13,12 @@ class ProspectRequest(BaseModel):
     round: int
     age: float
 
+    def model_dump(self, *args, **kwargs):
+        try:
+            return super().model_dump(*args, **kwargs)
+        except AttributeError:
+            return self.dict(*args, **kwargs)
+
 
 @router.post("/score")
 def score_single(prospect: ProspectRequest) -> dict:

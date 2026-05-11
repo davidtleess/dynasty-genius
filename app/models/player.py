@@ -1,4 +1,8 @@
-from pydantic import BaseModel, computed_field
+try:
+    from pydantic import BaseModel, computed_field
+except ImportError:
+    from pydantic import BaseModel  # type: ignore[assignment]
+    computed_field = lambda f: f  # noqa: E731  # Pydantic v1 fallback — property still works, omitted from .dict()
 from typing import Optional
 
 AGING_CLIFF = {"RB": 25, "WR": 27, "TE": 29, "QB": 32}
