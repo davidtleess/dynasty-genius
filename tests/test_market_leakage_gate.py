@@ -17,6 +17,7 @@ import csv
 import re
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from src.dynasty_genius.models.engine_a_contract import LEAKAGE_REGEX, PROHIBITED_COLUMNS
@@ -103,3 +104,23 @@ def test_enriched_csv_has_no_leakage_regex_columns():
     assert not flagged, (
         f"Enriched CSV contains columns matching leakage regex: {flagged}"
     )
+
+
+def test_simulated_leakage_gate_failure():
+    """Verify that the leakage gate correctly identifies injected market columns."""
+    # Dummy DataFrame with prohibited field
+    bad_df_1 = pd.DataFrame({"player_name": ["A"], "fantasycalc_value": [5000]})
+    violations = set(bad_df_1.columns) & PROHIBITED_COLUMNS
+    assert "fantasycalc_value" in violations
+    
+    # Dummy DataFrame with regex-match field
+    bad_df_2 = pd.DataFrame({"player_name": ["A"], "adp_sleeper": [1.5]})
+    flagged = [c for c in bad_df_2.columns if re.search(LEAKAGE_REGEX, c)]
+    assert "adp_sleeper" in flagged
+    
+    # Clean DataFrame
+    good_df = pd.DataFrame({"player_name": ["A"], "dominator_rating": [0.3]})
+    v_clean = set(good_df.columns) & PROHIBITED_COLUMNS
+    f_clean = [c for c in good_df.columns if re.search(LEAKAGE_REGEX, c)]
+    assert not v_clean
+    assert not f_clean

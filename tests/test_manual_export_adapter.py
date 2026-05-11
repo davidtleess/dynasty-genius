@@ -8,9 +8,6 @@ Enforces:
 - Campus2Canton fields are for CFBD secondary validation only, not model features.
 - All three use csv_fixture cache policy (no automated ingestion this phase).
 - Provenance required on any emitted field.
-
-Adapter integration tests (CSV schema validation, fixture loading) are skipped
-until CSV fixtures and adapter implementations are built in Phase 2.
 """
 from __future__ import annotations
 
@@ -18,6 +15,7 @@ import pytest
 
 from src.dynasty_genius.models.engine_a_contract import ALLOWED_ENRICHMENT_COLUMNS, PROHIBITED_COLUMNS
 from src.dynasty_genius.sources.source_registry import SOURCE_REGISTRY
+from src.dynasty_genius.adapters.manual_export_adapter import load_manual_export
 
 MANUAL_EXPORT_SOURCES = {"pff", "rotoviz", "campus2canton"}
 
@@ -79,16 +77,23 @@ def test_manual_export_sources_have_no_allowed_fields_in_enrichment_columns():
         )
 
 
-@pytest.mark.skip(reason="CSV fixture not yet provided — Phase 2 adapter implementation needed")
-def test_pff_csv_fixture_loads_without_grade_columns():
-    pass
+def test_pff_adapter_enforces_prohibited_column_drop():
+    """Verify that the PFF loader actively identifies and drops grade columns."""
+    df, dropped = load_manual_export("pff")
+    assert "pff_grade" in dropped
+    assert "pff_route_grade" in dropped
+    assert "pff_grade" not in df.columns
+    assert "pff_route_grade" not in df.columns
+    assert "player_name" in df.columns # Allowed field
 
 
-@pytest.mark.skip(reason="CSV fixture not yet provided — Phase 2 adapter implementation needed")
-def test_rotoviz_csv_fixture_loads_and_has_expected_columns():
-    pass
+def test_rotoviz_adapter_loads_schema():
+    df, dropped = load_manual_export("rotoviz")
+    assert "player_name" in df.columns
+    assert "targets" in df.columns
 
 
-@pytest.mark.skip(reason="CSV fixture not yet provided — Phase 2 adapter implementation needed")
-def test_campus2canton_csv_fixture_loads_and_maps_ryptpa():
-    pass
+def test_campus2canton_adapter_loads_schema():
+    df, dropped = load_manual_export("campus2canton")
+    assert "player_name" in df.columns
+    assert "ryptpa" in df.columns
