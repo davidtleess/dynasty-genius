@@ -99,5 +99,11 @@ class PlayerValueObject(BaseModel):
     source_versions: dict[str, str] = Field(default_factory=dict)
 
     def model_dump(self, *args, **kwargs):
-        """Pydantic v2-compatible dump method for the current v1 runtime."""
-        return self.dict(*args, **kwargs)
+        try:
+            # Pydantic v2: model_dump is native on BaseModel; calling super()
+            # avoids the v2 compat shim on .dict() which would cause recursion.
+            return super().model_dump(*args, **kwargs)
+        except AttributeError:
+            # Pydantic v1: model_dump doesn't exist; .dict() is the real method.
+            return self.dict(*args, **kwargs)
+
