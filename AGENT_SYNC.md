@@ -1,42 +1,43 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-05-07
+Last updated: 2026-05-10
 
 ## Active Phase
 
-Phase 1: governance foundation and closed-loop agent operating system.
+Engine A v2 enrichment pipeline — Task 2 (CFBD) hygiene complete, awaiting Codex review before Task 3 (PlayerProfiler).
 
 ## Current Sprint Objective
 
-Install the canonical governance doctrine:
+Engine A v2: enrich historical training data with college stats (CFBD) and PlayerProfiler metrics to enable dominator_rating, YPRR, and RAS signal for post-2026 draft rookie scoring.
 
-- `docs/governance/00-product-constitution.md`
-- `docs/governance/01-north-star-architecture.md`
-- `docs/governance/02-agent-operating-loop.md`
-- `docs/agent-ledger/`
-- root bootstrap locks
-
-After this refactor, agents should resume product work only through the operating loop.
+- Task 1 (scaffold): complete — ported to engine-a/v2-enrichment-pipeline.
+- Task 2 (CFBD enrichment): hygiene patch committed (e14dfd7). Awaiting Codex review.
+- Task 3 (PlayerProfiler): blocked on Codex sign-off of Task 2 diff.
 
 ## Latest Activity
 
-- Codex created the initial governance document structure, archived the three founding documents, initialized `AGENT_SYNC.md`, and prepared the bootstrap lock pattern.
-- Codex added Gemini PM signoff, Genie Databricks lineage plan, Codex governance-seal checklist, PR template, governance validator, and CI governance validation.
+- Claude Code (2026-05-10, Session 2): Task 2 hygiene patch committed on engine-a/v2-enrichment-pipeline.
+  - CFBD async implementation staged; fail-fast key validation; row-count + leakage guard before write.
+  - Output artifact: prospects_with_outcomes_cfbd_partial.csv (874 rows, 85.6% dominator_rating completeness).
+  - v2.csv removed (stale); generated artifacts gitignored.
+  - Tests: leakage 3/3 passed; feature contract 6 passed 9 skipped (enriched tests deferred to Task 3).
 
 ## Open Blockers
 
-- Optional local pre-commit enforcement is not yet implemented.
+- Codex must review e14dfd7 before Gemini starts Task 3.
+- Optional local pre-commit enforcement not yet implemented.
 - Databricks lineage tables are future Phase 2 work.
+- PR #10 (engine-a/historical-enrichment): open, marked non-mergeable. Post-draft PR cleanup (PRs A/B/C) approved but not yet executed.
 
 ## Next Recommended Work
 
-1. Review and commit the governance refactor on `codex/governance-seal`.
-2. Add optional local pre-commit checks for ledger updates and banned model leakage.
-3. Resume model/product implementation according to the phase sequence in `01-north-star-architecture.md`.
+1. Codex reviews Task 2 hygiene patch (e14dfd7) on engine-a/v2-enrichment-pipeline.
+2. After Codex sign-off: Gemini leads Task 3 (PlayerProfiler — YPRR, route participation, RAS).
+3. Post-draft: execute PR A (Data Foundation) and PR B (Rookie Board) per cleanup plan in docs/agent-ledger/2026-05-10.md.
 
 ## Branch / Worktree Notes
 
-Current governance branch: `codex/governance-seal`.
-
-This sync file describes the current local repo state. Agents should also check `git status` before editing.
+Active branch: engine-a/v2-enrichment-pipeline (up to date with origin).
+PR #10 (engine-a/historical-enrichment): open, non-mergeable, deferred.
+Governance branch codex/governance-seal: superseded by main's sealed governance (6d378d0).
