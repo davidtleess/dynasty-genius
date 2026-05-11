@@ -17,8 +17,28 @@ BASELINE_COLUMNS = {
 CFBD_MODEL_INPUT_COLUMNS = {
     "dominator_rating",
     "receiving_yards_share",
+    "completion_pct",
+    "yards_per_attempt",
+    "td_int_ratio",
+    "sack_rate",
+    "all_purpose_yards",
+    "passing_yards_share",
+    "ppa",
+    "wepa",
+    "rushing_yards",
+    "rushing_tds",
     "source_dominator_rating",
     "source_receiving_yards_share",
+    "source_completion_pct",
+    "source_yards_per_attempt",
+    "source_td_int_ratio",
+    "source_sack_rate",
+    "source_all_purpose_yards",
+    "source_passing_yards_share",
+    "source_ppa",
+    "source_wepa",
+    "source_rushing_yards",
+    "source_rushing_tds",
 }
 
 PLAYERPROFILER_CONTEXT_COLUMNS = {
@@ -52,5 +72,16 @@ POSITION_FEATURE_MATRIX = {
     "WR": ["dominator_rating", "receiving_yards_share"],
     "RB": ["dominator_rating"],
     "TE": ["dominator_rating", "receiving_yards_share"],
-    "QB": [], # Reserved for Phase B / Mobility signals
+    "QB": [
+        "completion_pct",
+        "yards_per_attempt",
+        "td_int_ratio",
+        "sack_rate",
+        "all_purpose_yards",
+        "passing_yards_share",
+        "ppa",
+        "wepa",
+        "rushing_yards",
+        "rushing_tds",
+    ],
 }
