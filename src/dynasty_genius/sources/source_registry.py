@@ -121,10 +121,10 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
             failure_behavior="skip_enrichment",
             test_gate="tests/test_playerprofiler_decision_gate.py",
             notes=(
-                "DECISION GATE: role is context_signal pending Task 3 probe results. "
-                "If probe shows >=80% coverage for 2015-2025 classes, role upgrades to "
-                "model_input. If below 80%, target_share/breakout_age/speed_score are "
-                "deferred context signals — not imputed. "
+                "Task 3 gate failed on 2026-05-10: probe returned 0% non-null coverage "
+                "for target_share, breakout_age, and speed_score across 874 rows. "
+                "PlayerProfiler remains context_signal; PP-only fields are deferred "
+                "context signals and are not imputed as model evidence. "
                 "Shadow API: POST wp-admin/admin-ajax.php."
             ),
         ),

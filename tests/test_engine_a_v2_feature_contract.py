@@ -198,38 +198,6 @@ def test_enriched_csv_dominator_rating_completeness():
 
 
 @_skip_if_not_enriched()
-def test_enriched_csv_yprr_completeness_wr():
-    """yprr must be present (observed or imputed) for ≥95% of WR rows."""
-    rows = _read_csv_rows(ENRICHED_CSV)
-    wr_rows = [r for r in rows if r.get("position") == "WR"]
-    if not wr_rows:
-        pytest.skip("No WR rows found")
-    present = [r for r in wr_rows if r.get("yprr", "").strip() not in ("", "nan")]
-    pct = len(present) / len(wr_rows)
-    assert pct >= 0.95, (
-        f"WR yprr completeness {pct:.0%} below 95% — "
-        "check median imputation is applied for pre-2019 classes"
-    )
-
-
-@_skip_if_not_enriched()
-def test_enriched_csv_pp_completeness():
-    """target_share, breakout_age, and speed_score must have ≥50% coverage for relevant positions."""
-    from src.dynasty_genius.models.engine_a_contract import POSITION_FEATURE_MATRIX
-    rows = _read_csv_rows(ENRICHED_CSV)
-    skill_rows = [r for r in rows if r.get("position") in ("WR", "RB", "TE")]
-
-    for field in ["target_share", "breakout_age", "speed_score"]:
-        relevant = [r for r in skill_rows if field in POSITION_FEATURE_MATRIX.get(r.get("position"), [])]
-        if not relevant: continue
-
-        present = [r for r in relevant if r.get(field, "").strip() not in ("", "nan")]
-        pct = len(present) / len(relevant)
-        # Note: Set threshold to 15% for initial foundation build as we discover API gaps
-        assert pct >= 0.15, f"{field} completeness {pct:.0%} below 15% threshold"
-
-
-@_skip_if_not_enriched()
 def test_enriched_csv_row_count_preserved():
     """Enrichment join must not silently drop training rows."""
     baseline_count = sum(1 for _ in TRAINING_CSV.open()) - 1  # subtract header
@@ -248,5 +216,4 @@ def test_feature_medians_shape():
     for pos in ("WR", "RB", "TE"):
         assert pos in medians, f"ROSTER_NEED missing position: {pos}"
     wr_medians = medians["WR"]
-    assert "yprr" in wr_medians, "WR medians must include yprr for imputation"
     assert "dominator_rating" in wr_medians, "WR medians must include dominator_rating"

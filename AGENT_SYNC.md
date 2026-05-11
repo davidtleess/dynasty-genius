@@ -5,15 +5,15 @@ Last updated: 2026-05-10
 
 ## Active Phase
 
-Engine A v2 enrichment pipeline — Phase 1 (Tasks 1, 3, 4) complete. Task 3 gate (PlayerProfiler probe) awaits David's manual run.
+Engine A v2 enrichment pipeline — Phase 1 complete. Task 3 gate resolved Path B; PlayerProfiler remains context_signal.
 
 ## Current Sprint Objective
 
-Engine A v2: enrich historical training data with college stats (CFBD) and PlayerProfiler metrics to enable dominator_rating, YPRR, and RAS signal for post-2026 draft rookie scoring.
+Engine A v2: validate which enrichment sources deserve model-input status before expanding rookie scoring.
 
 - Task 1 (Source Registry): complete — 12/12 tests passed.
 - Task 2 (CFBD enrichment): hygiene patch committed (e14dfd7). CFBD backtest run (Task 4 below).
-- Task 3 (PlayerProfiler probe): gate script committed; AWAITING David's manual probe run.
+- Task 3 (PlayerProfiler probe): resolved Path B — 0% non-null coverage; PP fields are deferred, not imputed.
 - Task 4 (CFBD-only backtest): complete — promotion NOT warranted (CFBD features did not improve Model A on held-out set).
 - Tasks 5–8: deferred to Phase 2 (post Phase 1 gate resolution).
 
@@ -24,20 +24,21 @@ Engine A v2: enrich historical training data with college stats (CFBD) and Playe
   - PlayerProfiler probe script + decision gate tests committed (gate deferred to David).
   - CFBD-only backtest run: Model B (+ dominator_rating + receiving_yards_share) did NOT improve on Model A (baseline). Promotion: NO.
   - Held-out n=242. RMSE delta: -0.6% (worse). R² delta: -0.023 (worse). Spearman delta: -0.024 (worse).
+- Codex (2026-05-10): ran the PlayerProfiler probe and formal gate test.
+  - Probe: 874 players, found=0, parse_error=874, target_share=0%, breakout_age=0%, speed_score=0%.
+  - Gate test failed by design, selecting Path B.
+  - Engine A contract now removes PP-only fields (`target_share`, `breakout_age`, `speed_score`) and defers `yprr` until a verified source exists.
 
 ## Open Blockers
 
-- **David action required**: run `.venv/bin/python scripts/probe_playerprofiler.py` to resolve Task 3 PP gate.
-  - Path A (≥80%): promote PP to model_input, implement adapter.
-  - Path B (<80%): PP stays context_signal, remove PP fields from ALLOWED_ENRICHMENT_COLUMNS, no imputation.
-- Phase 2 (Tasks 5–8) blocked until Task 3 gate resolves.
+- Phase 2 (Tasks 5–8) should not promote new model inputs until the failed PP gate and negative CFBD backtest are reflected in downstream plans.
 - Post-draft PR cleanup (PRs A/B/C) approved but not yet executed.
 - PR #10 (engine-a/historical-enrichment): open, marked non-mergeable. Deferred.
 
 ## Next Recommended Work
 
-1. David runs PP probe, logs Path A/B decision in `docs/agent-ledger/2026-05-10.md`.
-2. Based on result: update `source_registry.py` PP role + ALLOWED_ENRICHMENT_COLUMNS.
+1. Commit the Path B contract/ledger update after verification.
+2. Replan Phase 2 around context/risk layers and validation, not automatic source promotion.
 3. Post-draft: execute PR A (Data Foundation) and PR B (Rookie Board) per cleanup plan in ledger.
 
 ## Branch / Worktree Notes

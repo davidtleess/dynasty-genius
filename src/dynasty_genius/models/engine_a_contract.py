@@ -17,18 +17,9 @@ BASELINE_COLUMNS = {
 ALLOWED_ENRICHMENT_COLUMNS = {
     "dominator_rating",
     "receiving_yards_share",
-    "breakout_age",
-    "target_share",
-    "speed_score",
-    "yprr",
     # Provenance Siblings
     "source_dominator_rating",
     "source_receiving_yards_share",
-    "source_breakout_age",
-    "source_target_share",
-    "source_speed_score",
-    "source_yprr",
-    "imputed_yprr",
 }
 
 # ── Leakage: Prohibited Columns (Fail-Closed) ───────────────────────────────
@@ -45,11 +36,9 @@ PROHIBITED_COLUMNS = {
 LEAKAGE_REGEX = r"^ktc_|^adp|_rank$|^expert|^market_|^value_|^consensus"
 
 # ── Position Mapping ────────────────────────────────────────────────────────
-# Defines which features are valid inputs for each position model.
-# Non-mapped positions/features should be NaN.
 POSITION_FEATURE_MATRIX = {
-    "WR": ["dominator_rating", "receiving_yards_share", "target_share", "breakout_age", "speed_score", "yprr"],
-    "RB": ["dominator_rating", "receiving_yards_share", "breakout_age", "speed_score"],
-    "TE": ["dominator_rating", "receiving_yards_share", "target_share", "breakout_age", "yprr"],
+    "WR": ["dominator_rating", "receiving_yards_share"],
+    "RB": ["dominator_rating"],
+    "TE": ["dominator_rating", "receiving_yards_share"],
     "QB": [], # Reserved for Phase B / Mobility signals
 }
