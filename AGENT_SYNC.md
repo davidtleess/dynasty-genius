@@ -5,7 +5,7 @@ Last updated: 2026-05-11
 
 ## Active Phase
 
-Pydantic hygiene PR open (#13). Awaiting CI + merge.
+PR #13 merged. Main is clean (84 pass, 0 fail). David researching QB strategy. Phase 2 replan pending QB decision.
 
 ## Current Sprint Objective
 
@@ -18,25 +18,29 @@ Stabilize `main` CI before resuming Engine A v2 Phase 2.
 
 ## Latest Activity
 
+- Claude Code (2026-05-11, Session 5): PR #13 merged (`16e3567`). Gemini confirmed CI green + review clean. `cfbd` package identified as unused but pinning pydantic<2 — follow-up upgrade PR queued. Adapter test gate audit: all 4 files missing. CFBD QB data confirmed available (passing/rushing stats). AGENT_SYNC updated.
 - Claude Code (2026-05-11, Session 4): `hygiene/pydantic-compat` — added `model_dump` shim to `DynastyValuation` (pops `mode=`), `ProspectRequest` (defensive), guarded `computed_field` import in `Player`. 84 pass, 0 fail. PR #13 open.
 - Claude Code (2026-05-11, Session 3): Fixed PR #11 CI failure (`PlayerValueObject.model_dump` recursion on Pydantic v2). Pushed `fbedfca`. CI passed. PR #11 and PR #12 subsequently merged.
 - Claude Code (2026-05-11, Session 2): PP remediation complete — removed imputation (258 fabricated rows), fixed `year_stats` typo, renamed `yprr` → `yptt` internally, added name normalization. Gate rewritten as clean-artifact promotion tripwire. Coverage: target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds. 40 targeted tests pass.
 
 ## Open Blockers
 
-1. **PR #13 awaiting CI + merge** — `hygiene/pydantic-compat` → `main`. 84 pass locally. `cfbd` pins `pydantic<2` (root cause) — not solved here.
-2. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds. Do not run PP-inclusive backtest or promote PP without explicit instruction.
-3. **PR C** — governance reconciliation is human-reviewed only, not agent-delegatable.
+1. **`cfbd` package removal** — `cfbd` PyPI package is not imported anywhere but pins `pydantic<2`. Removing it from `requirements.txt` enables Pydantic v2 natively and makes all shims unnecessary. Separate hygiene PR needed (`hygiene/pydantic-v2-upgrade`).
+2. **4 missing adapter test gates** — `test_ras_adapter.py`, `test_manual_export_adapter.py`, `test_market_overlay.py`, `test_market_leakage_gate.py` all missing. SOURCE_REGISTRY stubs unvalidated. Phase 2 work.
+3. **QB feature gap** — `POSITION_FEATURE_MATRIX["QB"] = []`. 126 QB rows scored on pick/round/age only. David researching strategy. CFBD has passing/rushing data (ATT, PCT, YDS, YPA, rushing) — Passing Yards Share and Passing TD Share are calculable. Hold implementation until David approves feature design.
+4. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds. Do not promote PP without explicit instruction.
+5. **PR C** — governance reconciliation is human-reviewed only, not agent-delegatable.
 
 ## Next Recommended Work
 
-1. Review and merge PR #13 (`hygiene/pydantic-compat`). CI gate must pass.
-2. After PR #13 lands on main: replan Engine A v2 Phase 2 around context/risk layers.
+1. **`hygiene/pydantic-v2-upgrade`** — remove `cfbd` from `requirements.txt`, upgrade to Pydantic v2, remove shims. Clean, targeted, no scope creep.
+2. **QB strategy decision** — David to approve feature design (CFBD passing/rushing stats). Then Phase 2 replan with QB track.
+3. **Phase 2 replan** — after QB decision: Engine A v2 tasks 5–8, adapter test gates (4 missing), context/risk layer design.
 
 ## Branch / Worktree Notes
 
-- `main`: current at `7f6f590` — 84 pass, 0 fail after hygiene fixes (PR #13 pending merge).
-- `hygiene/pydantic-compat`: `1f477d6` — Pydantic compat fixes, PR #13 open.
+- `main`: current at `16e3567` — 84 pass, 0 fail.
+- `hygiene/pydantic-compat`: merged to main as `16e3567`.
 - `engine-a/v2-enrichment-pipeline`: PP remediation committed, not merged to main yet.
 - `cleanup/pr-a-data-foundation`: merged to main.
 - `cleanup/pr-b-rookie-board`: merged to main.
