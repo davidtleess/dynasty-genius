@@ -45,9 +45,6 @@ def _headers(api_key: str) -> dict[str, str]:
 
 def _request_json(endpoint: str, params: dict[str, Any], api_key: str) -> list[dict[str, Any]]:
     url = f"{BASE_URL}{endpoint}"
-    if "category" in params and endpoint == "/stats/player/season":
-        url = f"{url}?category={params['category']}"
-
     try:
         response = httpx.get(url, headers=_headers(api_key), params=params)
         response.raise_for_status()

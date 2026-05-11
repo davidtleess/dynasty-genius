@@ -179,18 +179,32 @@ def _team_stats(pass_att=430, sacks=18, net_pass_yds=3200, team="Clemson"):
     ]
 
 
+def _route(url: str, params: dict) -> str:
+    """Determine which endpoint a call is for using params, not URL query strings."""
+    if "/stats/player/season" in url:
+        return params.get("category", "")
+    if "/ppa/players/season" in url:
+        return "ppa"
+    if "/wepa/players/passing" in url:
+        return "wepa"
+    if "/stats/team/season" in url:
+        return "team"
+    return ""
+
+
 def _full_mock(url, **kwargs):
     resp = MagicMock()
     resp.raise_for_status = MagicMock()
-    if "category=passing" in url:
+    route = _route(url, kwargs.get("params", {}))
+    if route == "passing":
         resp.json.return_value = _passing_stats()
-    elif "category=rushing" in url:
+    elif route == "rushing":
         resp.json.return_value = _rushing_stats()
-    elif "/ppa/players/season" in url:
+    elif route == "ppa":
         resp.json.return_value = _ppa_stats()
-    elif "/wepa/players/passing" in url:
+    elif route == "wepa":
         resp.json.return_value = _wepa_stats()
-    elif "/stats/team/season" in url:
+    elif route == "team":
         resp.json.return_value = _team_stats()
     else:
         resp.json.return_value = []
@@ -200,15 +214,16 @@ def _full_mock(url, **kwargs):
 def _no_ppa_mock(url, **kwargs):
     resp = MagicMock()
     resp.raise_for_status = MagicMock()
-    if "category=passing" in url:
+    route = _route(url, kwargs.get("params", {}))
+    if route == "passing":
         resp.json.return_value = _passing_stats()
-    elif "category=rushing" in url:
+    elif route == "rushing":
         resp.json.return_value = _rushing_stats()
-    elif "/ppa/players/season" in url:
-        resp.json.return_value = []          # PPA unavailable
-    elif "/wepa/players/passing" in url:
+    elif route == "ppa":
+        resp.json.return_value = []           # PPA unavailable
+    elif route == "wepa":
         resp.json.return_value = _wepa_stats()
-    elif "/stats/team/season" in url:
+    elif route == "team":
         resp.json.return_value = _team_stats()
     else:
         resp.json.return_value = []
@@ -270,15 +285,16 @@ def test_td_int_ratio_caps_denominator_at_one_for_zero_ints(_):
     def zero_int_mock(url, **kwargs):
         resp = MagicMock()
         resp.raise_for_status = MagicMock()
-        if "category=passing" in url:
+        route = _route(url, kwargs.get("params", {}))
+        if route == "passing":
             resp.json.return_value = _passing_stats(int_=0)
-        elif "category=rushing" in url:
+        elif route == "rushing":
             resp.json.return_value = _rushing_stats()
-        elif "/ppa/players/season" in url:
+        elif route == "ppa":
             resp.json.return_value = _ppa_stats()
-        elif "/wepa/players/passing" in url:
+        elif route == "wepa":
             resp.json.return_value = _wepa_stats()
-        elif "/stats/team/season" in url:
+        elif route == "team":
             resp.json.return_value = _team_stats()
         else:
             resp.json.return_value = []
