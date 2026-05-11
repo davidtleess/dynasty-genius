@@ -29,6 +29,7 @@ from src.dynasty_genius.models.engine_a_contract import (
 
 ROOT = Path(__file__).resolve().parents[1]
 TRAINING_CSV = ROOT / "app" / "data" / "training" / "prospects_with_outcomes.csv"
+CFBD_PARTIAL_CSV = ROOT / "app" / "data" / "training" / "prospects_with_outcomes_cfbd_partial.csv"
 ENRICHED_CSV = ROOT / "app" / "data" / "training" / "prospects_with_outcomes_v2.csv"
 FEATURE_MEDIANS = ROOT / "resources" / "engine_a_feature_medians.json"
 
@@ -48,6 +49,13 @@ def _read_csv_columns(path: Path) -> set[str]:
 def _read_csv_rows(path: Path) -> list[dict]:
     with path.open() as f:
         return list(csv.DictReader(f))
+
+
+def _skip_if_not_partial():
+    return pytest.mark.skipif(
+        not CFBD_PARTIAL_CSV.exists(),
+        reason="CFBD partial CSV not yet generated — run scripts/enrich_training_data.py first",
+    )
 
 
 def _skip_if_not_enriched():
@@ -79,6 +87,31 @@ def test_baseline_csv_no_prohibited_columns():
     cols = _read_csv_columns(TRAINING_CSV)
     violations = cols & PROHIBITED_COLUMNS
     assert not violations, f"Baseline CSV contains prohibited columns: {violations}"
+
+
+# ── CFBD partial CSV (Task 2 artifact, skipped until partial runs) ────────────
+
+@_skip_if_not_partial()
+def test_partial_csv_row_count_preserved():
+    """CFBD enrichment join must not silently drop training rows."""
+    baseline_count = sum(1 for _ in TRAINING_CSV.open()) - 1
+    partial_count = sum(1 for _ in CFBD_PARTIAL_CSV.open()) - 1
+    assert partial_count == baseline_count, (
+        f"Row count changed: baseline={baseline_count}, partial={partial_count}\n"
+        "Enrichment join must be a left join — no prospect rows may be dropped."
+    )
+
+
+@_skip_if_not_partial()
+def test_partial_csv_dominator_rating_completeness():
+    """dominator_rating must be present for ≥80% of WR, RB, TE rows in the CFBD partial artifact."""
+    rows = _read_csv_rows(CFBD_PARTIAL_CSV)
+    skill_rows = [r for r in rows if r.get("position") in ("WR", "RB", "TE")]
+    if not skill_rows:
+        pytest.skip("No WR/RB/TE rows found")
+    present = [r for r in skill_rows if r.get("dominator_rating", "").strip() not in ("", "nan")]
+    pct = len(present) / len(skill_rows)
+    assert pct >= 0.80, f"dominator_rating completeness {pct:.0%} below 80% threshold"
 
 
 # ── Enriched CSV schema (skipped until enrichment runs) ──────────────────────

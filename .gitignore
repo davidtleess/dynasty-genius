@@ -34,6 +34,10 @@ app/data/processed/
 app/data/artifacts/
 .pycache_tmp/
 
+# Generated enriched training artifacts (committed only after all tasks complete)
+app/data/training/prospects_with_outcomes_*partial*.csv
+app/data/training/prospects_with_outcomes_v2.csv
+
 # Dependencies
 node_modules/
 __pycache__/
