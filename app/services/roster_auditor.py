@@ -14,6 +14,13 @@ _ROOT = Path(__file__).resolve().parents[2]
 _QB_BRIDGE_PATH = _ROOT / "resources" / "nflreadpy_qb_id_map.json"
 
 QB_CONTEXT_SEASONS = [2024, 2023]
+QB_LOW_TD_INT_RATIO_THRESHOLD = 0.7
+QB_ALL_PURPOSE_YARDS_MOBILITY_THRESHOLD = 3700
+QB_CONTEXT_ANNOTATION_FIELDS = {
+    "qb_context_annotations",
+    "qb_context_caveats",
+    "source_qb_context_annotations",
+}
 
 
 def load_qb_identity_bridge() -> dict:
@@ -303,6 +310,44 @@ def audit_player(player: dict) -> Optional[dict]:
     return audited
 
 
+def _optional_float(player: dict, field: str) -> Optional[float]:
+    value = player.get(field)
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _qb_context_annotations(player: dict) -> dict:
+    annotations = []
+    caveats = []
+
+    td_int_ratio = _optional_float(player, "td_int_ratio")
+    all_purpose_yards = _optional_float(player, "all_purpose_yards")
+
+    if td_int_ratio is not None and td_int_ratio < QB_LOW_TD_INT_RATIO_THRESHOLD:
+        annotations.append("low_td_int_ratio_bust_context")
+    if (
+        all_purpose_yards is not None
+        and all_purpose_yards > QB_ALL_PURPOSE_YARDS_MOBILITY_THRESHOLD
+    ):
+        annotations.append("all_purpose_yards_mobility_context")
+
+    if td_int_ratio is None and all_purpose_yards is None:
+        caveats.append("missing_qb_college_context")
+
+    # Pressure-to-sack is not currently present in the roster context lane.
+    caveats.append("p2s_context_unavailable")
+
+    return {
+        "qb_context_annotations": annotations,
+        "qb_context_caveats": caveats,
+        "source_qb_context_annotations": "cfbd_qb_context_annotations",
+    }
+
+
 def _build_qb_context_card(player: dict, bridge_entry: dict, telemetry: dict | None) -> dict:
     pid = player.get("player_id", "")
     full_name = player.get("full_name", "")
@@ -326,6 +371,7 @@ def _build_qb_context_card(player: dict, bridge_entry: dict, telemetry: dict | N
         "decision_supported": False,
         **fields,
         **provenance,
+        **_qb_context_annotations(player),
     }
 
 
