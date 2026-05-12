@@ -113,3 +113,34 @@ def test_score_inference_partition_is_sorted(mock_read, mock_load, mock_bundle):
     vals = [s["predicted_avg_ppg_t1_t2"] for s in scores]
     assert vals == sorted(vals, reverse=True)
     assert scores[0]["player_id"] == "P1" # Highest ppg_t should have highest pred in this simple model
+
+@patch("app.services.engine_b_service.EngineBService._load_model")
+def test_predict_player_season_fails_gracefully_on_missing_model(mock_load):
+    mock_load.return_value = {}
+    
+    res = predict_player_season({"position": "WR"})
+    assert res == {"error": "model_not_found"}
+
+def test_engine_b_service_validates_contract_on_load(mock_bundle):
+    # Create a bundle with a prohibited feature
+    bad_bundle = mock_bundle.copy()
+    bad_bundle["features"] = ["age", "ktc_value"] # Prohibited
+    
+    # We'll mock the inner logic of _load_model by patching the dependencies of the method
+    # and using a helper to bypass the read-only Path attributes.
+    with patch("app.services.engine_b_service.pickle.load", return_value=bad_bundle):
+        with patch("app.services.engine_b_service._MODELS_DIR") as mock_dir:
+            # Setup mock directory structure
+            mock_run = MagicMock()
+            mock_run.is_dir.return_value = True
+            mock_run.__truediv__.return_value = MagicMock()
+            mock_run.__truediv__.return_value.exists.return_value = True
+            
+            mock_dir.exists.return_value = True
+            mock_dir.iterdir.return_value = [mock_run]
+                
+            service = EngineBService()
+            service._model_bundle = None # Force reload
+            bundle = service._load_model()
+            
+            assert bundle == {} # Should return empty dict on validation failure

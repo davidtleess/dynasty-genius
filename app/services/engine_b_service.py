@@ -16,8 +16,8 @@ from sklearn.linear_model import Ridge
 
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_EXPERIMENTAL_POSITIONS,
-    validate_no_prohibited_features,
     validate_no_temporal_leakage,
+    validate_no_prohibited_features
 )
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -34,7 +34,7 @@ class EngineBService:
         return cls._instance
 
     def _load_model(self) -> dict[str, Any]:
-        """Lazy-load the latest Engine B artifact."""
+        """Lazy-load the latest Engine B artifact and validate its contract."""
         if self._model_bundle is not None:
             return self._model_bundle
 
@@ -54,11 +54,16 @@ class EngineBService:
 
         with open(model_path, "rb") as f:
             bundle = pickle.load(f)
-
+            
         # Fail-closed: reject any artifact whose feature list violates the
         # current contract. Guards against loading a stale pre-fix artifact.
-        validate_no_prohibited_features(bundle["features"])
-        validate_no_temporal_leakage(bundle["features"])
+        features = bundle.get("features", [])
+        try:
+            validate_no_prohibited_features(features)
+            validate_no_temporal_leakage(features)
+        except ValueError as e:
+            print(f"CRITICAL: Engine B model contract violation in {model_path}: {e}")
+            return {}
 
         self._model_bundle = bundle
         return self._model_bundle
@@ -113,6 +118,8 @@ class EngineBService:
             # Convert row to dict
             player_features = row.to_dict()
             pred = self.predict_player_season(player_features)
+            if "error" in pred:
+                continue
             
             # Enrich with identity for display
             pred["player_id"] = player_features.get("player_id")
