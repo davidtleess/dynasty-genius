@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "fit_date": "2026-05-11",
+  "governance_version": "03-engine-b-decision-record.md v1.0",
+  "methodology": "piecewise_linear_ascent_peak_decline",
+  "data_source": "historical_nfl_positional_ppg_consensus",
+  "curve_form": {
+    "description": "Relative value in [0.0, 1.0] — fraction of positional peak PPG. Ascent phase: linear from base_value at entry_age to 1.0 at peak_age. Decline phase: linear from 1.0 at onset_of_decline_age, decreasing at decline_slope_per_year, floored at 0.0.",
+    "output_range": [0.0, 1.0],
+    "plateau": "peak_age to onset_of_decline_age holds at 1.0"
+  },
+  "positions": {
+    "RB": {
+      "peak_age": 23,
+      "onset_of_decline_age": 26,
+      "entry_age": 21,
+      "base_value": 0.65,
+      "ascent_slope_per_year": 0.175,
+      "decline_slope_per_year": 0.22,
+      "hard_floor_age": 30,
+      "cliff_warning_age": 26,
+      "notes": "Steepest decline in the position group. Physical demands drive the earliest peak and sharpest cliff. Aligns with CLIFF_AGES[RB]=26 in roster auditor."
+    },
+    "WR": {
+      "peak_age": 26,
+      "onset_of_decline_age": 28,
+      "entry_age": 22,
+      "base_value": 0.60,
+      "ascent_slope_per_year": 0.10,
+      "decline_slope_per_year": 0.12,
+      "hard_floor_age": 34,
+      "cliff_warning_age": 28,
+      "notes": "Route running development drives gradual ascent. Moderate physical decline after 28. Aligns with CLIFF_AGES[WR]=28."
+    },
+    "TE": {
+      "peak_age": 27,
+      "onset_of_decline_age": 30,
+      "entry_age": 22,
+      "base_value": 0.50,
+      "ascent_slope_per_year": 0.10,
+      "decline_slope_per_year": 0.10,
+      "hard_floor_age": 36,
+      "cliff_warning_age": 30,
+      "notes": "Blocking skill development and role complexity produce the slowest ascent. Durability extends careers past most skill positions. Aligns with CLIFF_AGES[TE]=30."
+    },
+    "QB_pocket": {
+      "peak_age": 30,
+      "onset_of_decline_age": 33,
+      "entry_age": 23,
+      "base_value": 0.60,
+      "ascent_slope_per_year": 0.057,
+      "decline_slope_per_year": 0.08,
+      "hard_floor_age": 40,
+      "cliff_warning_age": 33,
+      "is_dual_threat": false,
+      "notes": "Cognitive mastery and pocket processing drive the latest peak. Gradual decline. Aligns with Q3/Q4 decision record: pocket passer cliff ~33."
+    },
+    "QB_dual_threat": {
+      "peak_age": 27,
+      "onset_of_decline_age": 29,
+      "entry_age": 22,
+      "base_value": 0.60,
+      "ascent_slope_per_year": 0.10,
+      "decline_slope_per_year": 0.12,
+      "hard_floor_age": 34,
+      "cliff_warning_age": 29,
+      "is_dual_threat": true,
+      "dual_threat_rushing_threshold_yards": 400,
+      "notes": "Mobile QB physical decay resembles WR pattern; rushing value degrades faster than pocket processing. Classification: rushing yards > 400/season in any T-2 to T. Aligns with Q3/Q4: dual-threat onset ~29."
+    }
+  }
+}
