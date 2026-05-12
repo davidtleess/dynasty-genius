@@ -20,14 +20,17 @@ COMPOSITE_GATE_MIN_PASSING = 2  # beat baseline on ≥2 of RMSE / R² / Spearman
 HOLDOUT_FRACTION = 0.20
 
 # ── Allowed Engine B Features ─────────────────────────────────────────────────
+# weighted_opportunity is the WOPR composite (target_share × air_yards_share).
+# target_share_nfl and air_yards_share are intentionally excluded: keeping all
+# three creates r=0.95–0.98 collinearity that inverts Ridge coefficients.
 ENGINE_B_ALLOWED_FEATURES = frozenset({
     # Identity / metadata
     "player_id", "position", "age", "feature_season", "team",
     "depth_chart_position", "is_dual_threat",
     # NFL production — season T
     "ppg_t", "games_t", "total_points_t",
-    "snap_share", "route_participation", "target_share_nfl",
-    "air_yards_share", "yprr", "tprr", "weighted_opportunity",
+    "snap_share", "route_participation",
+    "yprr", "tprr", "weighted_opportunity",
     # QB efficiency (context_signal promoted to Engine B)
     "epa_per_dropback", "cpoe", "dakota", "dropback_count", "pass_attempts",
     # Multi-year trends (T-1, T-2 — historical, not future)
@@ -35,6 +38,11 @@ ENGINE_B_ALLOWED_FEATURES = frozenset({
     # Aging-curve state (fitted, continuous)
     "aging_curve_value", "aging_curve_position",
 })
+
+# ── Positions with experimental Engine B signal ───────────────────────────────
+# Engine B v1 does not outperform the naive baseline for these positions.
+# The service layer must surface a caveat on any prediction for these positions.
+ENGINE_B_EXPERIMENTAL_POSITIONS = frozenset({"TE"})
 
 # ── Engine A pre-NFL features (prohibited in Engine B training) ───────────────
 ENGINE_A_PROHIBITED_IN_B = frozenset({

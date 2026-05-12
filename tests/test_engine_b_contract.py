@@ -14,6 +14,7 @@ import pytest
 from src.dynasty_genius.models.engine_b_contract import (
     DUAL_THREAT_RUSHING_THRESHOLD,
     ENGINE_B_ALLOWED_FEATURES,
+    ENGINE_B_EXPERIMENTAL_POSITIONS,
     ENGINE_B_PROHIBITED_FEATURES,
     OUTCOME_COLUMN,
     OUTCOME_SEASON_COLUMNS,
@@ -140,3 +141,41 @@ def test_prohibited_check_reports_all_violations():
     msg = str(exc_info.value)
     assert "ktc_value" in msg
     assert "dominator_rating" in msg
+
+
+# ── Multicollinearity guard ───────────────────────────────────────────────────
+
+def test_target_share_nfl_not_in_allowed_features():
+    """weighted_opportunity subsumes target_share_nfl — sub-component must not
+    appear alongside the composite to prevent r=0.978 collinearity."""
+    assert "target_share_nfl" not in ENGINE_B_ALLOWED_FEATURES
+
+
+def test_air_yards_share_not_in_allowed_features():
+    """weighted_opportunity subsumes air_yards_share — sub-component must not
+    appear alongside the composite to prevent r=0.949 collinearity."""
+    assert "air_yards_share" not in ENGINE_B_ALLOWED_FEATURES
+
+
+def test_weighted_opportunity_is_in_allowed_features():
+    """The composite (WOPR) must remain; the sub-components are removed."""
+    assert "weighted_opportunity" in ENGINE_B_ALLOWED_FEATURES
+
+
+# ── Experimental positions ────────────────────────────────────────────────────
+
+def test_engine_b_experimental_positions_defined():
+    assert isinstance(ENGINE_B_EXPERIMENTAL_POSITIONS, frozenset)
+
+
+def test_te_is_experimental_position():
+    """Engine B v1 does not outperform the naive baseline for TEs.
+    TE must be flagged experimental so the service layer adds the caveat."""
+    assert "TE" in ENGINE_B_EXPERIMENTAL_POSITIONS
+
+
+def test_qb_rb_wr_are_not_experimental():
+    for pos in ("QB", "RB", "WR"):
+        assert pos not in ENGINE_B_EXPERIMENTAL_POSITIONS, (
+            f"{pos} passes the v1 holdout gate and must not be marked experimental"
+        )
