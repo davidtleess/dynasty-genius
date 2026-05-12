@@ -81,7 +81,9 @@ def train_and_validate(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]:
     X_train = imputer.fit_transform(X_train_raw)
     X_test = imputer.transform(X_test_raw)
     
-    model = Ridge(alpha=1.0)
+    # alpha=100: features are collinear (snap_share/route_participation/ppg_t r≈0.7+);
+    # stronger regularization stabilises predictions without harming gate metrics.
+    model = Ridge(alpha=100.0)
     model.fit(X_train, y_train)
     
     # 3. Predict and Score

@@ -16,6 +16,8 @@ from sklearn.linear_model import Ridge
 
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_EXPERIMENTAL_POSITIONS,
+    validate_no_prohibited_features,
+    validate_no_temporal_leakage,
 )
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -51,8 +53,14 @@ class EngineBService:
             return {}
 
         with open(model_path, "rb") as f:
-            self._model_bundle = pickle.load(f)
-            
+            bundle = pickle.load(f)
+
+        # Fail-closed: reject any artifact whose feature list violates the
+        # current contract. Guards against loading a stale pre-fix artifact.
+        validate_no_prohibited_features(bundle["features"])
+        validate_no_temporal_leakage(bundle["features"])
+
+        self._model_bundle = bundle
         return self._model_bundle
 
     def predict_player_season(self, player_features: dict[str, Any]) -> dict[str, Any]:
