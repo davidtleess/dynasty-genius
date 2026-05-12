@@ -5,13 +5,13 @@ Last updated: 2026-05-11
 
 ## Active Phase
 
-Phase 5 (Engine B) in progress. Task 5.4b (Retraining) COMPLETE: Corrected 19-feature model trained (3/3 metrics beat baseline). Task 5.6 (Service Layer) COMPLETE: Integrated `EngineBService` and `/api/engine-b/scores` route.
+Phase 5 (Engine B) COMPLETE. Task 5.5 (Validation) and Task 5.6 (Service Layer) are CLOSED. Engine B v1 (alpha=100, 19 features) is production-ready for experimental display.
 
-Next: Task 5.5 (Claude Validation).
+Next: Phase 6 (Refining Engine B / v2).
 
 ## Current Sprint Objective
 
-Phase 5 / Engine B MVP. Ridge model integrated into service layer. Surfacing active-player forecasts with experimental caveats (TE).
+Phase 5 / Engine B MVP. Ridge model integrated with fail-closed contract guards. Surfacing active-player forecasts with experimental caveats (TE). All audit blockers resolved.
 
 - PR #22 (Claude): Aging Curves and Engine B Contract. 65 tests pass.
 - PR #21: Engine B Decision Record merged.
