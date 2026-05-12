@@ -5,67 +5,49 @@ Last updated: 2026-05-11
 
 ## Active Phase
 
-Stage 4 QB professional context layer merged via PR #19. QB college features remain context-signal only (final corrected backtest FAIL 0/3). EPA/CPOE/DAKOTA/dropbacks/attempts are roster-facing `context_signal` only, not Engine B training inputs.
+QB professional context layer and display annotations complete (PRs #18–#20 merged). Phase 5 / Engine B planning drafted — awaiting David's decisions on outcome variable, horizon, and validation gates before any training code begins.
 
 ## Current Sprint Objective
 
-Engine A v2 Phase 2 infrastructure complete. Stage 4 adds roster-facing QB professional telemetry context only. No QB pro fields promoted to Engine A or Engine B model inputs.
+Phase 5 planning. No model code, no training, no feature contract changes until Q1–Q6 in the Phase 5 plan are approved.
 
-- PR #13 (`hygiene/pydantic-compat`): MERGED → main `16e3567`.
-- PR #14 (`hygiene/pydantic-v2-upgrade`): MERGED → main `f54ba11`. Pydantic>=2.0, removes cfbd package.
-- PR #15 (`hygiene/nflreadpy-migration`): MERGED → main `fa995624`. Registry key and provenance string unchanged.
-- PR #17 (`engine-a/v2-enrichment-pipeline`): MERGED → main. QB CFBD adapter, ID map (95.2%), TDD tests, backtest gate (FAIL 0/3). POSITION_FEATURE_MATRIX["QB"] populated but context-only.
+- PR #18 (`infra/adapter-test-gates`): MERGED. 4 adapter gates (RAS, manual export, FantasyCalc, leakage).
+- PR #19 (`stage4/qb-professional-context`): MERGED. EPA/CPOE/DAKOTA context layer, QB identity bridge, roster qb_context_cards.
+- PR #20 (`feature/qb-context-annotations`): MERGED. Display-only bust flags (TD/INT <0.7), mobility signal (APY >3,700), P2S/college caveats.
 
 ## Latest Activity
 
-- Codex (2026-05-11): Started `feature/qb-context-annotations`. Added roster-facing QB display annotations for low TD/INT context and all-purpose-yard mobility context when college QB context is already present; otherwise cards emit explicit missing-context/P2S caveats. Boundary tests keep annotation fields out of `ALLOWED_ENRICHMENT_COLUMNS` and `POSITION_FEATURE_MATRIX`.
-- Codex (2026-05-11): Reviewed and merged PR #19. Confirmed `QB_CONTEXT_COLUMNS` is not in `ALLOWED_ENRICHMENT_COLUMNS` or `POSITION_FEATURE_MATRIX`; `nflreadpy_qb_context` is `context_signal` only. Fixed CI-only optional CFBD partial artifact gate. CI passed and PR #19 merged at `da5c0f7`. Local full suite with Python 3.14: 184 passed, 11 skipped.
-- Stage 4 PR #19: MERGED. Adds `fetch_qb_nfl_stats()` for EPA/dropback, CPOE, DAKOTA, dropbacks/attempts; QB GSIS identity bridge; and roster `qb_context_cards`. Context-only by registry and contract.
-- Adapter gates PR #18: Implemented and merged separately before Stage 4. Four adapter gate stubs closed.
-- Claude Code (2026-05-11, Session 8): Stage 2 QB pipeline shipped. Codex: CFBD adapter (19 pass), college_team param fix (sack_rate/passing_yards_share nulls). Gemini: QB ID map 95.2% coverage. Backtest FAIL 0/3 — QB stays context-only. PR #17 merged (105 pass, 11 skip, 0 fail).
-- Claude Code (2026-05-11, Session 7): Resolved PR #15 rebase conflict, fixed provenance string (ingest_2026_draft.py:35), merged PR #15 at fa995624. Stage 1 complete.
-- Claude Code (2026-05-11, Session 6): Merged PR #14 (f54ba11). Identified PR #15 provenance issue. Wrote QB Stage 0 investigation prompts.
-- Claude Code (2026-05-11, Session 5): PR #13 merged (16e3567). Adapter test gate stubs (4 files, 28 governance tests). QB strategy approved.
+- Claude Code (2026-05-11, Session 9): Merged PRs #20. Created Phase 5 / Engine B planning doc (`docs/superpowers/plans/2026-05-11-phase5-engine-b-plan.md`). Updated AGENT_SYNC.
+- Codex (2026-05-11): PR #20 — QB display-only context annotations. Bust flags, mobility signals, explicit caveats for missing college context and P2S. Annotation fields kept out of ALLOWED_ENRICHMENT_COLUMNS and POSITION_FEATURE_MATRIX.
+- Claude Code (2026-05-11, Session 9): Stage 4 complete. PR #19 merged (EPA/CPOE/DAKOTA context layer). PR #18 merged (4 adapter gates). 184 pass, 11 skip, 0 fail on full suite.
+- Claude Code (2026-05-11, Session 8): Stage 2 QB pipeline shipped (PR #17). Backtest FAIL 0/3 — QB stays context-only.
 
 ## Open Blockers
 
-1. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds. Do not promote PP without explicit instruction.
-2. **PR C** — governance reconciliation is human-reviewed only, not agent-delegatable.
-3. **Local Python mismatch** — `.venv/bin/python` may point to Python 3.9, but `nflreadpy` 0.1.5 requires Python >=3.10. Use CI Python 3.11+ or `.venv/bin/python3.14` for full-suite/live nflreadpy work.
+1. **Phase 5 decisions pending** — Q1–Q6 in `docs/superpowers/plans/2026-05-11-phase5-engine-b-plan.md` need David's approval before any Engine B work begins. Key decisions: outcome variable (1y/2y/3y PPG), aging curve representation, QB archetype split, validation gates.
+2. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds. Do not promote PP without explicit instruction.
+3. **PR C** — governance reconciliation is human-reviewed only, not agent-delegatable.
 
 ## Next Recommended Work (in order)
 
-1. **Finish/merge QB context annotations** — `feature/qb-context-annotations`; display-only, not model inputs.
-2. **Phase 5 planning** — fitted aging-curve/outcome-variable decisions before any Engine B training.
-3. **Clean branch/worktree state** — remove stale Stage 4 local branch after confirming no untracked debug artifacts are needed.
+1. **David approves Phase 5 Q1–Q6** — decisions recorded as locked doc; no code until locked.
+2. **Engine B dataset assembly (Task 5.1)** — player-season rows with T+1 outcome, only after Q1 approved.
+3. **Fitted aging curves (Task 5.2)** — piecewise linear by position, only after Q3 approved.
 
 ## QB Strategy (approved 2026-05-11)
 
 - Draft capital: 70% weight R1/R2, 50% R3, 30% R4-7
-- College features: CFBD Tier 3 via httpx — completion_pct, yards_per_attempt, td_int_ratio, sack_rate, all_purpose_yards, passing_yards_share, ppa, wepa, rushing_yards, rushing_tds
-- Backtest verdict: FAIL (0/3) — features registered in contract, NOT promoted to model_input
+- College features: CFBD Tier 3 via httpx — registered in contract, NOT promoted (backtest FAIL 0/3)
+- Professional context: EPA/dropback, CPOE, DAKOTA — context_signal only, not model inputs
+- Display annotations: bust flag TD/INT <0.7, mobility signal APY >3,700, P2S caveats
 - Bifurcated aging curve: pocket passer cliff 33, dual-threat cliff 29 (display warnings only)
-- Konami Code (rushing): R²=0.5674 — stickiest QB stat, valued explicitly
-- cfbd Python SDK: NO-GO — pins pydantic<2. Use httpx only.
-
-## CFBD Tier 3 QB Endpoint Spec
-
-| Feature | Endpoint | Field |
-|---|---|---|
-| Completion % | /stats/player/season (passing) | PCT |
-| Yards Per Attempt | /stats/player/season (passing) | YPA |
-| PPA | /ppa/players/season | averagePPA.all |
-| WEPA | /wepa/players/passing | wepa |
-| Pass Yards Share | player YDS / team netPassingYards | derived |
-| Sack Rate | team sacksAllowed / (passAttempts + sacksAllowed) | derived |
-| Rushing | /stats/player/season (rushing) | CAR, YDS, TD |
+- Konami Code (rushing): R²=0.5674 — stickiest QB stat
+- cfbd Python SDK: NO-GO. Use httpx only.
 
 ## Branch / Worktree Notes
 
-- `main`: at `da5c0f7` — PR #19 merged; CI passed.
-- `feature/qb-context-annotations`: active Codex branch for QB display-only risk/context flags.
-- `engine-a/v2-enrichment-pipeline`: MERGED (PR #17).
-- `hygiene/pydantic-v2-upgrade`: MERGED (f54ba11).
-- `hygiene/nflreadpy-migration`: MERGED (fa995624).
+- `main`: at `162f033` — all PRs #18–#20 merged; 184 pass, 11 skip, 0 fail.
+- `docs/phase5-engine-b-plan`: active Claude branch, docs-only Phase 5 plan.
+- All feature branches from Stage 2–4: merged and deleted.
 - Main worktree: `/Users/davidleess/dynasty-genius` (main).
-- Product worktree: `/Users/davidleess/dynasty-genius-product` still on local `stage4/qb-professional-context`; remote PR branch deleted after merge.
+- Product worktree: `/Users/davidleess/dynasty-genius-product` (on `docs/phase5-engine-b-plan`).
