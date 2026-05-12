@@ -1,0 +1,17 @@
+{
+  "metrics_model": {
+    "rmse": 3.3464214346973264,
+    "r2": 0.6206856676232347,
+    "spearman": 0.7752692396053678
+  },
+  "metrics_baseline": {
+    "rmse": 3.732217591408858,
+    "r2": 0.5281848334685981,
+    "spearman": 0.7597435013554064
+  },
+  "improvements": 3,
+  "promotion_warranted": true,
+  "train_rows": 1752,
+  "test_rows": 752,
+  "artifact_path": "app/data/models/engine_b/runs/20260512T032635Z/engine_b_v1.pkl"
+}
