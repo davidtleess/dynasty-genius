@@ -18,6 +18,7 @@ Engine A v2 Phase 2 infrastructure complete. Stage 4 adds roster-facing QB profe
 
 ## Latest Activity
 
+- Codex (2026-05-11): Started `feature/qb-context-annotations`. Added roster-facing QB display annotations for low TD/INT context and all-purpose-yard mobility context when college QB context is already present; otherwise cards emit explicit missing-context/P2S caveats. Boundary tests keep annotation fields out of `ALLOWED_ENRICHMENT_COLUMNS` and `POSITION_FEATURE_MATRIX`.
 - Codex (2026-05-11): Reviewed and merged PR #19. Confirmed `QB_CONTEXT_COLUMNS` is not in `ALLOWED_ENRICHMENT_COLUMNS` or `POSITION_FEATURE_MATRIX`; `nflreadpy_qb_context` is `context_signal` only. Fixed CI-only optional CFBD partial artifact gate. CI passed and PR #19 merged at `da5c0f7`. Local full suite with Python 3.14: 184 passed, 11 skipped.
 - Stage 4 PR #19: MERGED. Adds `fetch_qb_nfl_stats()` for EPA/dropback, CPOE, DAKOTA, dropbacks/attempts; QB GSIS identity bridge; and roster `qb_context_cards`. Context-only by registry and contract.
 - Adapter gates PR #18: Implemented and merged separately before Stage 4. Four adapter gate stubs closed.
@@ -34,7 +35,7 @@ Engine A v2 Phase 2 infrastructure complete. Stage 4 adds roster-facing QB profe
 
 ## Next Recommended Work (in order)
 
-1. **Categorical QB bust filters** — P2S%, TD/INT threshold (<0.7 bust), AP yards flag (>3,700) as display-only context annotations. Not model inputs.
+1. **Finish/merge QB context annotations** — `feature/qb-context-annotations`; display-only, not model inputs.
 2. **Phase 5 planning** — fitted aging-curve/outcome-variable decisions before any Engine B training.
 3. **Clean branch/worktree state** — remove stale Stage 4 local branch after confirming no untracked debug artifacts are needed.
 
@@ -62,6 +63,7 @@ Engine A v2 Phase 2 infrastructure complete. Stage 4 adds roster-facing QB profe
 ## Branch / Worktree Notes
 
 - `main`: at `da5c0f7` — PR #19 merged; CI passed.
+- `feature/qb-context-annotations`: active Codex branch for QB display-only risk/context flags.
 - `engine-a/v2-enrichment-pipeline`: MERGED (PR #17).
 - `hygiene/pydantic-v2-upgrade`: MERGED (f54ba11).
 - `hygiene/nflreadpy-migration`: MERGED (fa995624).
