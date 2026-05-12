@@ -71,6 +71,24 @@ def test_historical_indicators_present(df):
     """WARNING 1: Verify historical ppg indicators exist."""
     assert "ppg_t_minus_1_available" in df.columns
     assert "ppg_t_minus_2_available" in df.columns
-    
+
     # Check that they match the data
     assert (df["ppg_t_minus_1_available"] == df["ppg_t_minus_1"].notna()).all()
+
+
+def test_qb_efficiency_internal_consistency(df):
+    """No QB row may have epa_per_dropback present but cpoe or dakota null.
+
+    EPA and CPOE come from the same PBP source join. If EPA resolved,
+    CPOE must also resolve; if it didn't, the row is internally inconsistent
+    and must be dropped rather than carried as partial signal.
+    """
+    qbs = df[df["position"] == "QB"]
+    has_epa = qbs["epa_per_dropback"].notna()
+    cpoe_null = qbs["cpoe"].isna()
+    dakota_null = qbs["dakota"].isna()
+    inconsistent = qbs[has_epa & (cpoe_null | dakota_null)]
+    assert inconsistent.empty, (
+        f"{len(inconsistent)} QB row(s) have EPA but missing CPOE/DAKOTA:\n"
+        + inconsistent[["player_id", "feature_season", "epa_per_dropback", "cpoe", "dakota"]].to_string()
+    )
