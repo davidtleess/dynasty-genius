@@ -13,6 +13,7 @@ secrets.*
 
 # macOS system files
 .DS_Store
+.tmp.driveupload/
 .AppleDouble
 .LSOverride
 Thumbs.db
@@ -41,6 +42,11 @@ app/data/training/prospects_with_outcomes_v2.csv
 # Engine B model artifacts — manifest and run outputs are local-only
 # v1 run dirs already committed remain tracked; new runs are not committed
 app/data/models/engine_b/v2_manifest.json
+app/data/models/engine_b/runs/20260513T012309Z/
+app/data/models/engine_b/runs/v1_1_control/
+
+# Agent planning artifacts — internal coordination files, not repo documentation
+conductor/
 
 # Dependencies
 node_modules/
