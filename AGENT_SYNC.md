@@ -5,16 +5,16 @@ Last updated: 2026-05-12
 
 ## Active Phase
 
-Phase 6 — Engine B v2 (MERGED — post-merge hardening in progress)
+Phase 6 — Engine B v2 (Section 5 Hardening COMPLETE)
 
 ## Current Sprint Objective
 
-Phase 6 core implementation merged to main (`762e50c`). Section 5 (Roster Auditor hardening) is the active work item — unblocked for Gemini.
+Phase 6 implementation and hardening complete. Engine B v2 is fully wired into the roster auditor and verified with 309 passing tests.
 
-- Stage 6.1 (v1.1 hygiene control): COMPLETE — artifact at `runs/v1_1_control/` — Ridge(alpha=100.0) fixed after Codex review (was RidgeCV); clean result: RMSE 3.397 / R² 0.609 / Spearman 0.767, 3/3 informational PASS
+- Stage 6.1 (v1.1 hygiene control): COMPLETE — artifact at `runs/v1_1_control/`
 - Stage 6.2 (v2.0 stratified models): COMPLETE — QB/RB/WR promoted, TE not promoted
-- Active branch: `phase6/engine-b-v2` — open PR, 4 Codex blocking issues resolved
-- Design spec: `docs/superpowers/plans/2026-05-12-engine-b-v2-stratification.md`
+- Section 5 (Roster Auditor Hardening): COMPLETE — TE caveat propagation, cliff_trade_signal overlay, market isolation; 16 new tests; 309 pass total
+- Production artifacts: `qb_v2.pkl`, `rb_v2.pkl`, `wr_v2.pkl` promoted; `engine_b_v1.pkl` fallback for TE
 
 ## Merged PRs (complete history)
 
@@ -70,11 +70,9 @@ Phase 6 core implementation merged to main (`762e50c`). Section 5 (Roster Audito
 
 ## Next Recommended Work
 
-1. **Roster Auditor hardening (Section 5)** — UNBLOCKED. Gemini to wire Engine B v2 predictions into roster auditor output, verify TE caveat propagates, confirm market overlay remains separated. Must run with `.venv/bin/python3.14` (artifacts pickled with 3.14; standard `.venv/bin/python` cannot unpickle).
-2. **Untracked model run disposal** — David to decide on `runs/20260512T025445Z/` and `runs/20260512T032005Z/` (archive or delete)
-3. **RB follow-on (Phase 6.1)** — evaluate `red_zone_touches` and `targets_per_game` as RB-specific features once stratified baseline is established
-4. **TE diagnosis** — investigate alpha=1.0 overfitting; evaluate training sample quality before adding features
-5. **Untracked model run disposal** — David to decide on `runs/20260512T025445Z/` and `runs/20260512T032005Z/` (archive or delete)
+1. **Untracked model run disposal** — David to decide on `runs/20260512T025445Z/` and `runs/20260512T032005Z/` (archive or delete)
+2. **RB follow-on (Phase 6.1)** — evaluate `red_zone_touches` and `targets_per_game` as RB-specific features once stratified baseline is established
+3. **TE diagnosis** — investigate alpha=1.0 overfitting; evaluate training sample quality before adding features
 
 ## QB Strategy (unchanged)
 
