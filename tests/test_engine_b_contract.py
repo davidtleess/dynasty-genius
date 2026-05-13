@@ -15,11 +15,17 @@ from src.dynasty_genius.models.engine_b_contract import (
     DUAL_THREAT_RUSHING_THRESHOLD,
     ENGINE_B_ALLOWED_FEATURES,
     ENGINE_B_EXPERIMENTAL_POSITIONS,
+    ENGINE_B_FEATURES_BY_POSITION,
+    ENGINE_B_FEATURES_QB,
+    ENGINE_B_FEATURES_RB,
+    ENGINE_B_FEATURES_WR,
+    ENGINE_B_FEATURES_TE,
     ENGINE_B_PROHIBITED_FEATURES,
     OUTCOME_COLUMN,
     OUTCOME_SEASON_COLUMNS,
     validate_no_prohibited_features,
     validate_no_temporal_leakage,
+    validate_position_feature_contract,
 )
 
 
@@ -162,6 +168,104 @@ def test_weighted_opportunity_is_in_allowed_features():
     assert "weighted_opportunity" in ENGINE_B_ALLOWED_FEATURES
 
 
+# ── Phase 6 explicit exclusions ──────────────────────────────────────────────
+
+def test_route_participation_excluded_from_all_models():
+    """r=0.785 collinear with snap_share — removed in Phase 6."""
+    assert "route_participation" not in ENGINE_B_ALLOWED_FEATURES
+
+
+def test_total_points_t_excluded_from_all_models():
+    """Redundant with ppg_t × games_t — removed in Phase 6."""
+    assert "total_points_t" not in ENGINE_B_ALLOWED_FEATURES
+
+
+def test_dropback_count_excluded_from_all_models():
+    """Redundant with snap_share + games_t — removed in Phase 6."""
+    assert "dropback_count" not in ENGINE_B_ALLOWED_FEATURES
+
+
+def test_pass_attempts_excluded_from_all_models():
+    """Redundant with snap_share + games_t — removed in Phase 6."""
+    assert "pass_attempts" not in ENGINE_B_ALLOWED_FEATURES
+
+
+# ── Phase 6 per-position feature contracts ───────────────────────────────────
+
+_BASE = {"age", "ppg_t", "games_t", "snap_share", "aging_curve_value",
+         "ppg_t_minus_1", "ppg_t_minus_2", "snap_share_t_minus_1",
+         "ppg_t_minus_1_available", "ppg_t_minus_2_available",
+         "snap_share_t_minus_1_available"}
+
+def test_all_positions_have_base_features():
+    for pos, feature_set in ENGINE_B_FEATURES_BY_POSITION.items():
+        missing = _BASE - feature_set
+        assert not missing, f"{pos} missing base features: {missing}"
+
+
+def test_qb_features_include_efficiency_metrics():
+    for col in ("epa_per_dropback", "cpoe", "dakota", "is_dual_threat"):
+        assert col in ENGINE_B_FEATURES_QB, f"QB contract missing {col}"
+
+
+def test_rb_features_exclude_receiver_and_qb_metrics():
+    receiver = {"weighted_opportunity", "yprr", "tprr"}
+    qb_only  = {"epa_per_dropback", "cpoe", "dakota", "is_dual_threat"}
+    assert not (receiver & ENGINE_B_FEATURES_RB), "RB contract must not include receiver metrics"
+    assert not (qb_only  & ENGINE_B_FEATURES_RB), "RB contract must not include QB-only metrics"
+
+
+def test_wr_features_include_receiver_metrics():
+    for col in ("weighted_opportunity", "yprr", "tprr"):
+        assert col in ENGINE_B_FEATURES_WR, f"WR contract missing {col}"
+
+
+def test_te_features_include_receiver_metrics():
+    for col in ("weighted_opportunity", "yprr", "tprr"):
+        assert col in ENGINE_B_FEATURES_TE, f"TE contract missing {col}"
+
+
+def test_qb_efficiency_excluded_from_rb_wr_te():
+    qb_only = {"epa_per_dropback", "cpoe", "dakota", "is_dual_threat"}
+    for pos in ("RB", "WR", "TE"):
+        leaked = qb_only & ENGINE_B_FEATURES_BY_POSITION[pos]
+        assert not leaked, f"{pos} contract contains QB-only features: {leaked}"
+
+
+def test_receiver_metrics_excluded_from_qb_rb():
+    receiver = {"weighted_opportunity", "yprr", "tprr"}
+    for pos in ("QB", "RB"):
+        leaked = receiver & ENGINE_B_FEATURES_BY_POSITION[pos]
+        assert not leaked, f"{pos} contract contains receiver-only features: {leaked}"
+
+
+def test_all_position_features_subset_of_allowed():
+    meta = {"player_id", "position", "feature_season", "team",
+            "depth_chart_position", "aging_curve_position"}
+    for pos, feature_set in ENGINE_B_FEATURES_BY_POSITION.items():
+        outside = feature_set - ENGINE_B_ALLOWED_FEATURES - meta
+        assert not outside, f"{pos} contract has features outside ALLOWED set: {outside}"
+
+
+def test_position_contract_validator_accepts_valid_features():
+    valid_wr = sorted(ENGINE_B_FEATURES_WR)
+    validate_position_feature_contract("WR", valid_wr)  # must not raise
+
+
+def test_position_contract_validator_rejects_cross_position_leak():
+    with pytest.raises(ValueError, match="contract violation"):
+        validate_position_feature_contract("RB", ["age", "ppg_t", "epa_per_dropback"])
+
+
+def test_position_contract_validator_rejects_unknown_position():
+    with pytest.raises(ValueError, match="Unknown position"):
+        validate_position_feature_contract("K", ["age", "ppg_t"])
+
+
+def test_features_by_position_covers_all_four_positions():
+    assert set(ENGINE_B_FEATURES_BY_POSITION.keys()) == {"QB", "RB", "WR", "TE"}
+
+
 # ── Experimental positions ────────────────────────────────────────────────────
 
 def test_engine_b_experimental_positions_defined():
@@ -169,13 +273,13 @@ def test_engine_b_experimental_positions_defined():
 
 
 def test_te_is_experimental_position():
-    """Engine B v1 does not outperform the naive baseline for TEs.
-    TE must be flagged experimental so the service layer adds the caveat."""
+    """Engine B v1 and v2 do not outperform the naive baseline for TEs.
+    TE must be flagged experimental until a promoted te_v2.pkl passes the gate."""
     assert "TE" in ENGINE_B_EXPERIMENTAL_POSITIONS
 
 
 def test_qb_rb_wr_are_not_experimental():
     for pos in ("QB", "RB", "WR"):
         assert pos not in ENGINE_B_EXPERIMENTAL_POSITIONS, (
-            f"{pos} passes the v1 holdout gate and must not be marked experimental"
+            f"{pos} passes the holdout gate and must not be marked experimental"
         )

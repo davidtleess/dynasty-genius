@@ -5,13 +5,16 @@ Last updated: 2026-05-12
 
 ## Active Phase
 
-Phase 5 (Engine B) COMPLETE. All tasks 5.1–5.6 closed and audited.
-
-Next: Phase 6 — Engine B v2 (feature refinement, TE improvement, position-stratified models).
+Phase 6 — Engine B v2 (implementation in progress)
 
 ## Current Sprint Objective
 
-Phase 6 planning. Engine B v1 is in production as an experimental signal layer. No active implementation sprint.
+Phase 6 implementation complete. PR open on `phase6/engine-b-v2` pending Codex review and merge.
+
+- Stage 6.1 (v1.1 hygiene control): COMPLETE — validation artifact at `runs/v1_1_control/`
+- Stage 6.2 (v2.0 stratified models): COMPLETE — QB/RB/WR promoted, TE not promoted
+- Active branch: `phase6/engine-b-v2` — open PR, awaiting Codex review
+- Design spec: `docs/superpowers/plans/2026-05-12-engine-b-v2-stratification.md`
 
 ## Merged PRs (complete history)
 
@@ -23,13 +26,13 @@ Phase 6 planning. Engine B v1 is in production as an experimental signal layer. 
 - PR #19 (`stage4/qb-professional-context`): MERGED. EPA/CPOE/DAKOTA context layer, QB identity bridge, qb_context_cards.
 - PR #20 (`feature/qb-context-annotations`): MERGED. Display-only bust flags, mobility signal, P2S caveats.
 - PR #21 (`docs/phase5-engine-b-plan`): MERGED. Phase 5 planning doc.
-- PR #22 (`phase5/engine-b-contracts`): OPEN. Aging curves + Engine B contract (65 tests). Pending merge.
+- PR #22 (`phase5/engine-b-contracts`): CLOSED, superseded by PR #23.
+- PR #23 (`engine-b/service-integration`): MERGED → main `55f1351`. Engine B v1 dataset, training, service/API integration, roster auditor wiring, and governance decision record.
 
 ## Open PRs / Branches
 
-- `engine-b/service-integration`: Engine B v1 complete — dataset (v2, 2,877 rows), training (alpha=100, 19 features), service layer, API route, 261 tests. Pending PR and merge.
-- `governance/engine-b-decision-record`: Engine B Q1–Q6 decision record. Pending PR and merge.
-- `phase5/engine-b-contracts`: PR #22 — aging curves + Engine B contract. Pending merge.
+- `phase6/engine-b-v2`: Phase 6 Engine B v2 — open PR, pending Codex review
+- Older open hygiene/governance PRs: PR #2, PR #3, PR #9 — do not close without David's instruction
 
 ## Engine B v1 Final State
 
@@ -41,19 +44,30 @@ Phase 6 planning. Engine B v1 is in production as an experimental signal layer. 
 - **TE**: `ENGINE_B_EXPERIMENTAL_POSITIONS = {"TE"}` — does not beat baseline, caveat enforced
 - **Suite**: 261 passed, 11 skipped, 0 failed
 
+## Engine B v2 Final State (Phase 6)
+
+- **Run**: `app/data/models/engine_b/runs/20260513T012309Z/`
+- **Manifest**: `app/data/models/engine_b/v2_manifest.json`
+- **QB**: PROMOTED — `qb_v2.pkl` — RMSE 4.508, R² 0.439, Spearman 0.695, alpha=1000.0
+- **RB**: PROMOTED — `rb_v2.pkl` — RMSE 3.582, R² 0.591, Spearman 0.783, alpha=500.0
+- **WR**: PROMOTED — `wr_v2.pkl` — RMSE 2.887, R² 0.683, Spearman 0.809, alpha=200.0
+- **TE**: NOT PROMOTED — `te_v2.pkl` fails gate (0/3) — alpha=1.0 — `ENGINE_B_EXPERIMENTAL_POSITIONS = {"TE"}` retained
+- **v1.1 control**: `runs/v1_1_control/` — validation artifact only, not promoted
+- **Suite**: 291 passed, 11 skipped, 0 failed
+
 ## Open Blockers
 
-1. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds.
-2. **PR C** — governance reconciliation is human-reviewed only.
+1. **TE model** — fails gate at both v1 and v2. alpha=1.0 suggests overfitting. Fundamental signal problem; defer to Phase 6 follow-on.
+2. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds.
 3. **Local Python mismatch** — use `.venv/bin/python3.14` for nflreadpy work.
 
-## Next Recommended Work (Phase 6)
+## Next Recommended Work
 
-1. **Merge open PRs** — governance/engine-b-decision-record, phase5/engine-b-contracts, engine-b/service-integration (in that order).
-2. **Engine B v2 feature fix** — drop `route_participation` (r=0.785 with `snap_share`); re-evaluate TE sub-gate.
-3. **Position-stratified models** — separate Ridge per position eliminates cross-position imputation noise for QB-specific metrics (EPA/CPOE/DAKOTA).
-4. **Hyperparameter search** — validate alpha=100 via cross-validation rather than single holdout inspection.
-5. **Roster Auditor integration** — surface Engine B predictions alongside the existing age-curve audit output.
+1. **Merge `phase6/engine-b-v2` PR** after Codex review
+2. **Roster Auditor hardening (Section 5)** — Gemini to verify v2 predictions surface correctly, TE caveat propagates, market overlay remains separated (post-merge)
+3. **Untracked model run disposal** — David to decide on `runs/20260512T025445Z/` and `runs/20260512T032005Z/` (archive or delete)
+4. **RB follow-on (Phase 6.1)** — evaluate `red_zone_touches` and `targets_per_game` as RB-specific features once stratified baseline is established
+5. **TE diagnosis** — investigate alpha=1.0 overfitting; evaluate training sample quality before adding features
 
 ## QB Strategy (unchanged)
 

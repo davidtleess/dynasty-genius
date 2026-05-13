@@ -2,6 +2,10 @@
 
 Enforces the Q6 Leakage Contract: features must be strictly Season T.
 Outcome is 2-year average PPG (T+1, T+2). See 03-engine-b-decision-record.md.
+
+Phase 6 (v2): per-position feature contracts enforce hard exclusion — excluded
+features are dropped from the X matrix entirely, never zero-filled.
+See docs/superpowers/plans/2026-05-12-engine-b-v2-stratification.md.
 """
 from __future__ import annotations
 
@@ -23,25 +27,68 @@ HOLDOUT_FRACTION = 0.20
 # weighted_opportunity is the WOPR composite (target_share × air_yards_share).
 # target_share_nfl and air_yards_share are intentionally excluded: keeping all
 # three creates r=0.95–0.98 collinearity that inverts Ridge coefficients.
+#
+# Phase 6 exclusions (explicit, not implicit):
+#   route_participation  — r=0.785 collinear with snap_share
+#   total_points_t       — redundant with ppg_t × games_t
+#   dropback_count       — redundant with snap_share + games_t for QBs
+#   pass_attempts        — redundant with snap_share + games_t for QBs
 ENGINE_B_ALLOWED_FEATURES = frozenset({
     # Identity / metadata
     "player_id", "position", "age", "feature_season", "team",
     "depth_chart_position", "is_dual_threat",
     # NFL production — season T
-    "ppg_t", "games_t", "total_points_t",
-    "snap_share", "route_participation",
+    "ppg_t", "games_t",
+    "snap_share",
     "yprr", "tprr", "weighted_opportunity",
     # QB efficiency (context_signal promoted to Engine B)
-    "epa_per_dropback", "cpoe", "dakota", "dropback_count", "pass_attempts",
+    "epa_per_dropback", "cpoe", "dakota",
     # Multi-year trends (T-1, T-2 — historical, not future)
     "ppg_t_minus_1", "ppg_t_minus_2", "snap_share_t_minus_1",
+    # Historical availability flags (Year 1 players lack T-1/T-2 data)
+    "ppg_t_minus_1_available", "ppg_t_minus_2_available", "snap_share_t_minus_1_available",
     # Aging-curve state (fitted, continuous)
     "aging_curve_value", "aging_curve_position",
 })
 
+# ── Phase 6 Per-Position Feature Contracts ───────────────────────────────────
+# Each set defines the exact columns passed to that position's Ridge model.
+# Metadata columns (player_id, position, feature_season, team, etc.) are
+# excluded from these sets — they are used for filtering, not model input.
+# Hard rule: columns absent from a position's set must not appear in its X
+# matrix at all — not as zeros, not as NaN, not as imputed values.
+
+_BASE_FEATURES: frozenset[str] = frozenset({
+    "age", "ppg_t", "games_t", "snap_share", "aging_curve_value",
+    "ppg_t_minus_1", "ppg_t_minus_2", "snap_share_t_minus_1",
+    "ppg_t_minus_1_available", "ppg_t_minus_2_available", "snap_share_t_minus_1_available",
+})
+
+ENGINE_B_FEATURES_QB: frozenset[str] = _BASE_FEATURES | frozenset({
+    "epa_per_dropback", "cpoe", "dakota", "is_dual_threat",
+})
+
+ENGINE_B_FEATURES_RB: frozenset[str] = _BASE_FEATURES
+
+ENGINE_B_FEATURES_WR: frozenset[str] = _BASE_FEATURES | frozenset({
+    "weighted_opportunity", "yprr", "tprr",
+})
+
+ENGINE_B_FEATURES_TE: frozenset[str] = _BASE_FEATURES | frozenset({
+    "weighted_opportunity", "yprr", "tprr",
+})
+
+ENGINE_B_FEATURES_BY_POSITION: dict[str, frozenset[str]] = {
+    "QB": ENGINE_B_FEATURES_QB,
+    "RB": ENGINE_B_FEATURES_RB,
+    "WR": ENGINE_B_FEATURES_WR,
+    "TE": ENGINE_B_FEATURES_TE,
+}
+
 # ── Positions with experimental Engine B signal ───────────────────────────────
 # Engine B v1 does not outperform the naive baseline for these positions.
-# The service layer must surface a caveat on any prediction for these positions.
+# Cleared only when a promoted v2 artifact passes the ≥2/3 gate for that
+# position. No agent may remove a position without a passing validation report.
 ENGINE_B_EXPERIMENTAL_POSITIONS = frozenset({"TE"})
 
 # ── Engine A pre-NFL features (prohibited in Engine B training) ───────────────
@@ -101,4 +148,30 @@ def validate_no_prohibited_features(feature_columns: list[str]) -> None:
     if prohibited_found:
         raise ValueError(
             f"Prohibited Engine B feature columns detected: {sorted(prohibited_found)}"
+        )
+
+
+def validate_position_feature_contract(position: str, feature_columns: list[str]) -> None:
+    """Raise ValueError if feature_columns violates the per-position v2 contract.
+
+    Checks two things:
+    1. No feature from another position's exclusive set leaked in.
+    2. All required base features are present.
+    """
+    if position not in ENGINE_B_FEATURES_BY_POSITION:
+        raise ValueError(f"Unknown position for Engine B v2 contract: {position!r}")
+
+    allowed = ENGINE_B_FEATURES_BY_POSITION[position]
+    col_set = set(feature_columns)
+
+    # Any column that is not in this position's allowed set is a contract violation
+    violations = col_set - allowed
+    # Remove metadata/identity columns that are legitimately present but not model features
+    _meta = {"player_id", "position", "feature_season", "team", "depth_chart_position",
+             "aging_curve_position", OUTCOME_COLUMN, "training_eligible"}
+    violations -= _meta
+    if violations:
+        raise ValueError(
+            f"Engine B v2 position contract violation for {position}: "
+            f"columns not in allowed set: {sorted(violations)}"
         )
