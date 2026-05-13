@@ -94,13 +94,13 @@ PVO.projection_3y -> None
 For active-player PVOs with an Engine B score:
 
 ```text
-engine_b_score.engine -> PVO.engine_used
-engine_b_score.engine -> PVO.model_version
-engine_b_score.feature_season -> PVO.source_season
-engine_b_score.predicted_avg_ppg_t1_t2 -> PVO.projection_2y
-engine_b_score.caveats -> PVO.caveats
-engine_b_score.decision_supported -> PVO.decision_supported
-engine_b_score.experimental -> model grade/caveat logic
+"engine_b"                                -> PVO.engine_used   (constant — identifies the engine family)
+engine_b_score.engine                     -> PVO.model_version (e.g. "engine_b_v2_wr", "engine_b_v1")
+engine_b_score.feature_season             -> PVO.source_season
+engine_b_score.predicted_avg_ppg_t1_t2   -> PVO.projection_2y
+engine_b_score.caveats                    -> PVO.caveats
+engine_b_score.decision_supported         -> PVO.decision_supported
+engine_b_score.experimental               -> model grade/caveat logic
 ```
 
 Model grade mapping should stay conservative:
