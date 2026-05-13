@@ -13,7 +13,7 @@ Phase 6 implementation and hardening complete. Engine B v2 is fully wired into t
 
 - Stage 6.1 (v1.1 hygiene control): COMPLETE — artifact at `runs/v1_1_control/`
 - Stage 6.2 (v2.0 stratified models): COMPLETE — QB/RB/WR promoted, TE not promoted
-- Section 5 (Roster Auditor Hardening): COMPLETE — TE caveat propagation, cliff_trade_signal overlay, market isolation; 16 new tests; 309 pass total
+- Section 5 (Roster Auditor Hardening): COMPLETE — TE caveat propagation, governance-safe `age_value_context` overlay, market isolation; 16 new tests; 309 pass total
 - Production artifacts: `qb_v2.pkl`, `rb_v2.pkl`, `wr_v2.pkl` promoted; `engine_b_v1.pkl` fallback for TE
 
 ## Merged PRs (complete history)

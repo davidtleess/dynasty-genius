@@ -47,7 +47,7 @@ SIGNAL_DRIVERS = {
     "no_age_signal": "age_not_near_position_cliff",
 }
 
-# Superflex PPR per-season PPG anchors for trade-signal classification.
+# Superflex PPR per-season PPG anchors for display-context classification.
 # A player projecting at or above this threshold is "above average" for their position.
 # Display-only constants — never model features.
 _ABOVE_AVG_PPG_THRESHOLD = {"QB": 18.0, "RB": 12.0, "WR": 12.0, "TE": 8.0}
@@ -87,30 +87,30 @@ def _internal_value(player: dict) -> Optional[float]:
     return None
 
 
-def _cliff_trade_signal(signal: str, predicted_ppg: Optional[float], position: str) -> str:
-    """Cliff-contextualized trade signal from cliff proximity + Engine B projection.
+def _age_value_context(signal: str, predicted_ppg: Optional[float], position: str) -> str:
+    """Cliff-contextualized display context from age proximity + Engine B projection.
 
     Display-only annotation. Not a model output. Not market-derived.
-    Signal guide:
-      SELL_OFF                    — past cliff; value will deteriorate regardless of projection
-      SELL_HIGH_APPROACHING_CLIFF — above-average proj AND ≤2yr from cliff; sell to rebuilders
-      CHAMPIONSHIP_WINDOW         — above-average proj AND safely below cliff age
-      MONITOR_APPROACHING_CLIFF   — below-average proj AND ≤2yr from cliff; reassess
-      HOLD                        — below-average proj AND safely below cliff age
-      NO_PROJECTION               — no Engine B score; age-curve signal only
+    Context guide:
+      past_cliff_depreciation_risk      — past cliff regardless of projection
+      approaching_cliff_high_projection — above-average projection and near cliff
+      approaching_cliff_low_projection  — below-average projection and near cliff
+      prime_window_high_projection      — above-average projection and away from cliff
+      stable_age_low_projection         — below-average projection and away from cliff
+      no_engine_b_projection            — no Engine B score; age-curve signal only
     """
     if signal == "past_cliff":
-        return "SELL_OFF"
+        return "past_cliff_depreciation_risk"
 
     if predicted_ppg is None:
-        return "NO_PROJECTION"
+        return "no_engine_b_projection"
 
     above_avg = predicted_ppg >= _ABOVE_AVG_PPG_THRESHOLD.get(position, 12.0)
 
     if signal in ("at_cliff", "approaching_cliff"):
-        return "SELL_HIGH_APPROACHING_CLIFF" if above_avg else "MONITOR_APPROACHING_CLIFF"
+        return "approaching_cliff_high_projection" if above_avg else "approaching_cliff_low_projection"
 
-    return "CHAMPIONSHIP_WINDOW" if above_avg else "HOLD"
+    return "prime_window_high_projection" if above_avg else "stable_age_low_projection"
 
 
 def biological_debt_score(player: dict) -> Optional[float]:
@@ -337,7 +337,7 @@ def audit_player(player: dict, engine_b_score: Optional[dict] = None) -> Optiona
     predicted_ppg: Optional[float] = (
         engine_b_score.get("predicted_avg_ppg_t1_t2") if engine_b_score else None
     )
-    cliff_trade_signal = _cliff_trade_signal(signal, predicted_ppg, position)
+    age_value_context = _age_value_context(signal, predicted_ppg, position)
 
     audited = {
         **player,
@@ -348,7 +348,7 @@ def audit_player(player: dict, engine_b_score: Optional[dict] = None) -> Optiona
         "cliff_status":       cliff_status,
         "signal":             signal,
         "signal_drivers":     [SIGNAL_DRIVERS[signal]],
-        "cliff_trade_signal": cliff_trade_signal,
+        "age_value_context": age_value_context,
         "caveats":            caveats,
         "engine_b_prediction": engine_b_score,
         "decision_supported": False,

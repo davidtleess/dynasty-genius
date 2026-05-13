@@ -1,9 +1,9 @@
 """Section 5 — Roster Auditor Engine B integration tests.
 
 Covers:
-  - Cliff-contextualized trade signal (_cliff_trade_signal)
+  - Cliff-contextualized age value context (_age_value_context)
   - TE experimental caveat propagation from Engine B score
-  - cliff_trade_signal field present on audit output
+  - age_value_context field present on audit output
   - Market isolation: Engine B prediction dict contains no prohibited features
   - Engine B prediction attached to audit output when score provided
 """
@@ -13,79 +13,80 @@ import pytest
 
 from app.services.roster_auditor import (
     _ABOVE_AVG_PPG_THRESHOLD,
-    _cliff_trade_signal,
+    _age_value_context,
     audit_player,
 )
 from src.dynasty_genius.models.engine_b_contract import ENGINE_B_PROHIBITED_FEATURES
 
 
-# ── _cliff_trade_signal ────────────────────────────────────────────────────────
+# ── _age_value_context ─────────────────────────────────────────────────────────
 
-def test_past_cliff_always_sell_off():
-    assert _cliff_trade_signal("past_cliff", 25.0, "QB") == "SELL_OFF"
-    assert _cliff_trade_signal("past_cliff", None, "RB") == "SELL_OFF"
-    assert _cliff_trade_signal("past_cliff", 0.0, "WR") == "SELL_OFF"
+def test_past_cliff_returns_depreciation_risk_context():
+    assert _age_value_context("past_cliff", 25.0, "QB") == "past_cliff_depreciation_risk"
+    assert _age_value_context("past_cliff", None, "RB") == "past_cliff_depreciation_risk"
+    assert _age_value_context("past_cliff", 0.0, "WR") == "past_cliff_depreciation_risk"
 
 
 def test_no_projection_when_predicted_ppg_is_none():
-    assert _cliff_trade_signal("no_age_signal", None, "WR") == "NO_PROJECTION"
-    assert _cliff_trade_signal("approaching_cliff", None, "RB") == "NO_PROJECTION"
-    assert _cliff_trade_signal("at_cliff", None, "TE") == "NO_PROJECTION"
+    assert _age_value_context("no_age_signal", None, "WR") == "no_engine_b_projection"
+    assert _age_value_context("approaching_cliff", None, "RB") == "no_engine_b_projection"
+    assert _age_value_context("at_cliff", None, "TE") == "no_engine_b_projection"
 
 
-def test_sell_high_when_approaching_cliff_and_above_avg():
+def test_high_projection_when_approaching_cliff_and_above_avg():
     threshold = _ABOVE_AVG_PPG_THRESHOLD["RB"]
-    assert _cliff_trade_signal("approaching_cliff", threshold + 1.0, "RB") == "SELL_HIGH_APPROACHING_CLIFF"
-    assert _cliff_trade_signal("at_cliff", threshold + 1.0, "RB") == "SELL_HIGH_APPROACHING_CLIFF"
+    assert _age_value_context("approaching_cliff", threshold + 1.0, "RB") == "approaching_cliff_high_projection"
+    assert _age_value_context("at_cliff", threshold + 1.0, "RB") == "approaching_cliff_high_projection"
 
 
 def test_monitor_when_approaching_cliff_and_below_avg():
     threshold = _ABOVE_AVG_PPG_THRESHOLD["WR"]
-    assert _cliff_trade_signal("approaching_cliff", threshold - 1.0, "WR") == "MONITOR_APPROACHING_CLIFF"
-    assert _cliff_trade_signal("at_cliff", threshold - 1.0, "WR") == "MONITOR_APPROACHING_CLIFF"
+    assert _age_value_context("approaching_cliff", threshold - 1.0, "WR") == "approaching_cliff_low_projection"
+    assert _age_value_context("at_cliff", threshold - 1.0, "WR") == "approaching_cliff_low_projection"
 
 
-def test_championship_window_when_away_from_cliff_and_above_avg():
+def test_prime_window_context_when_away_from_cliff_and_above_avg():
     threshold = _ABOVE_AVG_PPG_THRESHOLD["QB"]
-    assert _cliff_trade_signal("no_age_signal", threshold + 2.0, "QB") == "CHAMPIONSHIP_WINDOW"
+    assert _age_value_context("no_age_signal", threshold + 2.0, "QB") == "prime_window_high_projection"
 
 
-def test_hold_when_away_from_cliff_and_below_avg():
+def test_stable_age_context_when_away_from_cliff_and_below_avg():
     threshold = _ABOVE_AVG_PPG_THRESHOLD["WR"]
-    assert _cliff_trade_signal("no_age_signal", threshold - 2.0, "WR") == "HOLD"
+    assert _age_value_context("no_age_signal", threshold - 2.0, "WR") == "stable_age_low_projection"
 
 
 def test_pm_example_rb_approaching_cliff_with_high_projection():
-    """RB at 25 (age 25.5→int 25, cliff 26 → approaching) projected 16.5 PPG → SELL HIGH."""
+    """RB at 25 (age 25.5→int 25, cliff 26) stays contextual, not action-coded."""
     # 16.5 > 12.0 (RB threshold) and signal = approaching_cliff
-    result = _cliff_trade_signal("approaching_cliff", 16.5, "RB")
-    assert result == "SELL_HIGH_APPROACHING_CLIFF"
+    result = _age_value_context("approaching_cliff", 16.5, "RB")
+    assert result == "approaching_cliff_high_projection"
 
 
 def test_threshold_boundary_is_inclusive():
     """Exactly at threshold is considered above average."""
     for pos, threshold in _ABOVE_AVG_PPG_THRESHOLD.items():
-        result = _cliff_trade_signal("no_age_signal", threshold, pos)
-        assert result == "CHAMPIONSHIP_WINDOW", f"{pos} at exact threshold should be CHAMPIONSHIP_WINDOW"
+        result = _age_value_context("no_age_signal", threshold, pos)
+        assert result == "prime_window_high_projection", f"{pos} at exact threshold should be high projection context"
 
 
 # ── audit_player integration ───────────────────────────────────────────────────
 
-def test_audit_player_includes_cliff_trade_signal():
+def test_audit_player_includes_age_value_context():
     player = {"player_id": "rb1", "full_name": "Young RB", "position": "RB", "team": "KC", "age": 23}
     result = audit_player(player)
     assert result is not None
-    assert "cliff_trade_signal" in result
+    assert "age_value_context" in result
+    assert "cliff_trade_signal" not in result
 
 
 def test_audit_player_no_projection_when_no_engine_b_score():
     player = {"player_id": "wr1", "full_name": "WR Young", "position": "WR", "team": "SF", "age": 22}
     result = audit_player(player)
-    assert result["cliff_trade_signal"] == "NO_PROJECTION"
+    assert result["age_value_context"] == "no_engine_b_projection"
 
 
-def test_audit_player_trade_signal_uses_engine_b_ppg():
-    """When Engine B score is provided, trade signal reflects the predicted PPG."""
+def test_audit_player_age_value_context_uses_engine_b_ppg():
+    """When Engine B score is provided, context reflects the predicted PPG."""
     player = {"player_id": "rb1", "full_name": "Prime RB", "position": "RB", "team": "PHI", "age": 25}
     engine_b_score = {
         "predicted_avg_ppg_t1_t2": 17.5,
@@ -96,8 +97,8 @@ def test_audit_player_trade_signal_uses_engine_b_ppg():
     }
     result = audit_player(player, engine_b_score=engine_b_score)
     # age 25, RB cliff 26 → years_to_cliff = 1 → approaching_cliff
-    # 17.5 > 12.0 (RB threshold) → SELL_HIGH_APPROACHING_CLIFF
-    assert result["cliff_trade_signal"] == "SELL_HIGH_APPROACHING_CLIFF"
+    # 17.5 > 12.0 (RB threshold) → high projection context near cliff
+    assert result["age_value_context"] == "approaching_cliff_high_projection"
 
 
 def test_audit_player_engine_b_prediction_attached():
