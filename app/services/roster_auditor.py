@@ -10,6 +10,7 @@ from app.services.engine_b_service import score_inference_partition
 from src.dynasty_genius.adapters.nflreadpy_qb_adapter import fetch_qb_nfl_stats
 from src.dynasty_genius.models.engine_a_contract import QB_CONTEXT_COLUMNS
 from src.dynasty_genius.models.league_context import LeagueContext
+from src.dynasty_genius.models.player_identity import PlayerIdentity
 
 _ROOT = Path(__file__).resolve().parents[2]
 _QB_BRIDGE_PATH = _ROOT / "resources" / "nflreadpy_qb_id_map.json"
@@ -55,6 +56,12 @@ NOT_DECISION_GRADE_REASON = (
     "Roster audit includes age-curve and active-player forecasting (Engine B), "
     "but market signals are currently excluded."
 )
+_PVO_ENGINE = "pvo_assembler_v1"
+_PVO_REASON = (
+    "Roster audit uses Engine B active-player projections and age curve signals. "
+    "Market overlay is excluded."
+)
+_PVO_CAVEATS = ["no_market_overlay"]
 
 
 class RosterConfigError(ValueError):
@@ -421,6 +428,76 @@ def _build_qb_context_card(player: dict, bridge_entry: dict, telemetry: dict | N
     }
 
 
+def _build_qb_context_cards(players: list[dict]) -> list[dict]:
+    bridge = load_qb_identity_bridge()
+    bridge_players = bridge.get("players", {})
+    cards = []
+    for player in players:
+        if player.get("position") != "QB":
+            continue
+        pid = player.get("player_id", "")
+        entry = bridge_players.get(pid, {})
+        coverage = entry.get("coverage", "NONE")
+        if coverage in ("FULL", "PARTIAL"):
+            gsis_id = entry.get("gsis_id")
+            telemetry = fetch_qb_nfl_stats(gsis_id, QB_CONTEXT_SEASONS)
+        else:
+            telemetry = None
+        cards.append(_build_qb_context_card(player, entry, telemetry))
+    return cards
+
+
+async def run_audit_pvo() -> dict:
+    # Lazy import breaks the circular dependency:
+    # pvo_assembler imports audit_player from this module at module level,
+    # so we cannot import pvo_assembler at the top of this file.
+    from src.dynasty_genius.pvo_assembler import assemble_pvo  # noqa: PLC0415
+
+    players = await get_my_roster()
+
+    # Engine B scores generated before any market data — architecture gate.
+    engine_b_scores = {s["player_id"]: s for s in score_inference_partition()}
+
+    pvos = []
+    for p in players:
+        if p.get("position") not in SKILL_POSITIONS:
+            continue
+
+        identity = PlayerIdentity(
+            dg_id=p["player_id"],
+            full_name=p["full_name"],
+            position=p["position"],
+            nfl_team=p.get("team"),
+            sleeper_id=p["player_id"],
+            verification_status="VERIFIED",
+        )
+
+        gsis_id = p.get("gsis_id")
+        score = engine_b_scores.get(gsis_id) if gsis_id else None
+        features: dict = {"age": p.get("age")}
+        if score is not None:
+            features["engine_b_score"] = score
+
+        pvos.append(assemble_pvo(identity, features))
+
+    pvos.sort(
+        key=lambda pvo: (
+            pvo.roster_audit is None,
+            pvo.roster_audit.years_to_cliff if pvo.roster_audit else 0,
+        )
+    )
+
+    return {
+        "status": "active",
+        "engine": _PVO_ENGINE,
+        "decision_supported": False,
+        "reason": _PVO_REASON,
+        "caveats": _PVO_CAVEATS,
+        "players": [pvo.model_dump() for pvo in pvos],
+        "qb_context_cards": _build_qb_context_cards(players),
+    }
+
+
 async def run_audit() -> dict:
     players = await get_my_roster()
 
@@ -445,22 +522,7 @@ async def run_audit() -> dict:
     # KTC/FantasyCalc values are fetched here and appended side-by-side with
     # Engine B predictions in the final payload. Market data does not re-enter
     # the Engine B service layer. Source registry enforces market_overlay role.
-
-    bridge = load_qb_identity_bridge()
-    bridge_players = bridge.get("players", {})
-    qb_context_cards = []
-    for player in players:
-        if player.get("position") != "QB":
-            continue
-        pid = player.get("player_id", "")
-        entry = bridge_players.get(pid, {})
-        coverage = entry.get("coverage", "NONE")
-        if coverage in ("FULL", "PARTIAL"):
-            gsis_id = entry.get("gsis_id")
-            telemetry = fetch_qb_nfl_stats(gsis_id, QB_CONTEXT_SEASONS)
-        else:
-            telemetry = None
-        qb_context_cards.append(_build_qb_context_card(player, entry, telemetry))
+    qb_context_cards = _build_qb_context_cards(players)
 
     return {
         "status": "experimental",
