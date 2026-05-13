@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Engine B v2 — Phase 6 Design Spec</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #181c27;
+      --border:    #2a2f3e;
+      --muted:     #6b7280;
+      --text:      #e2e8f0;
+      --text-dim:  #94a3b8;
+      --accent:    #6366f1;
+      --accent-dim:#3730a3;
+
+      --qb:        #f59e0b;
+      --rb:        #10b981;
+      --wr:        #3b82f6;
+      --te:        #a855f7;
+
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --yellow:    #eab308;
+      --slate:     #475569;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── Layout ── */
+    .page { max-width: 960px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .doc-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 28px;
+      margin-bottom: 40px;
+    }
+    .doc-header .label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .doc-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 10px;
+    }
+    .doc-header .subtitle { color: var(--text-dim); font-size: 15px; }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .meta-item { font-size: 12px; color: var(--muted); }
+    .meta-item span { color: var(--text-dim); font-weight: 500; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .badge-locked    { background: #1a2e1a; color: var(--green);  border: 1px solid #166534; }
+    .badge-pending   { background: #292310; color: var(--yellow); border: 1px solid #854d0e; }
+    .badge-control   { background: #1e1b4b; color: #a5b4fc;       border: 1px solid #3730a3; }
+    .badge-target    { background: #2d1b4e; color: #c084fc;       border: 1px solid #7e22ce; }
+    .badge-excluded  { background: #2a1515; color: #f87171;       border: 1px solid #7f1d1d; }
+    .badge-required  { background: #0f2318; color: #6ee7b7;       border: 1px solid #065f46; }
+    .badge-optional  { background: #1c2533; color: #93c5fd;       border: 1px solid #1e40af; }
+    .badge-qb        { background: #2d1f02; color: var(--qb);    border: 1px solid #78350f; }
+    .badge-rb        { background: #022713; color: var(--rb);    border: 1px solid #064e3b; }
+    .badge-wr        { background: #011a3d; color: var(--wr);    border: 1px solid #1e3a8a; }
+    .badge-te        { background: #2a1040; color: var(--te);    border: 1px solid #581c87; }
+
+    /* ── Sections ── */
+    .section {
+      margin-bottom: 48px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-number {
+      width: 28px;
+      height: 28px;
+      background: var(--accent-dim);
+      color: #c7d2fe;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .section-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    /* ── Stage cards ── */
+    .stage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .stage-grid { grid-template-columns: 1fr; } }
+
+    .stage-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .stage-card.control { border-top: 3px solid #6366f1; }
+    .stage-card.target  { border-top: 3px solid #a855f7; }
+
+    .stage-card .stage-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .stage-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 14px;
+    }
+    .stage-card .field { margin-bottom: 10px; }
+    .stage-card .field-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    .stage-card .field-value { color: var(--text-dim); font-size: 13px; }
+    .stage-card code {
+      background: #1e2230;
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #93c5fd;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    .rule-box {
+      background: #0f1e10;
+      border: 1px solid #166534;
+      border-left: 3px solid var(--green);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 13px;
+      color: #bbf7d0;
+    }
+    .rule-box strong { color: #86efac; }
+
+    /* ── Feature matrix ── */
+    .feature-table-wrap { overflow-x: auto; margin-bottom: 20px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead tr { background: #1a1f2e; }
+    thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    thead th.pos-qb { color: var(--qb); }
+    thead th.pos-rb { color: var(--rb); }
+    thead th.pos-wr { color: var(--wr); }
+    thead th.pos-te { color: var(--te); }
+
+    tbody tr { border-bottom: 1px solid #1e2332; }
+    tbody tr:hover { background: #13172200; }
+    tbody tr.group-row td {
+      background: #141824;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      padding: 6px 14px;
+    }
+    td {
+      padding: 9px 14px;
+      color: var(--text-dim);
+      vertical-align: middle;
+    }
+    td.feature-name {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: #93c5fd;
+      white-space: nowrap;
+    }
+    td.check-yes { text-align: center; font-size: 15px; }
+    td.check-no  { text-align: center; color: #374151; font-size: 15px; }
+
+    /* ── Rules list ── */
+    .rules-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .rules-list li {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .rules-list .rule-num {
+      background: var(--accent-dim);
+      color: #c7d2fe;
+      font-size: 11px;
+      font-weight: 700;
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .rules-list code {
+      background: #1e2230;
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #93c5fd;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Artifacts grid ── */
+    .artifact-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 600px) { .artifact-grid { grid-template-columns: 1fr 1fr; } }
+
+    .artifact-card {
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+    .artifact-card.qb { border-color: #78350f; background: #1a1002; }
+    .artifact-card.rb { border-color: #065f46; background: #011a10; }
+    .artifact-card.wr { border-color: #1e3a8a; background: #010d26; }
+    .artifact-card.te { border-color: #581c87; background: #1a0930; }
+
+    .artifact-card .artifact-pos {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .artifact-card.qb .artifact-pos { color: var(--qb); }
+    .artifact-card.rb .artifact-pos { color: var(--rb); }
+    .artifact-card.wr .artifact-pos { color: var(--wr); }
+    .artifact-card.te .artifact-pos { color: var(--te); }
+
+    .artifact-card code {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      margin-top: 2px;
+    }
+
+    /* ── Hyperparameter section ── */
+    .hyper-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 640px) { .hyper-grid { grid-template-columns: 1fr; } }
+
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .info-card h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 10px;
+    }
+    .info-card p { font-size: 13px; color: var(--text-dim); }
+    .info-card ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .info-card ul li {
+      font-size: 13px;
+      color: var(--text-dim);
+      padding-left: 14px;
+      position: relative;
+    }
+    .info-card ul li::before {
+      content: '–';
+      position: absolute;
+      left: 0;
+      color: var(--muted);
+    }
+    .info-card code {
+      background: #1e2230;
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #93c5fd;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Validation report ── */
+    .report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .report-table th {
+      background: #1a1f2e;
+      padding: 8px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .report-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid #1e2332;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+    .report-table td.col-target { font-weight: 600; color: #c084fc; }
+
+    /* ── Gate box ── */
+    .gate-box {
+      background: #0d1f2d;
+      border: 1px solid #1e3a5f;
+      border-left: 3px solid #3b82f6;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-top: 16px;
+    }
+    .gate-box .gate-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: #60a5fa;
+      margin-bottom: 6px;
+    }
+    .gate-box p { font-size: 13px; color: var(--text-dim); }
+    .gate-box code {
+      background: #1e2230;
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #93c5fd;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ── TE section ── */
+    .te-decision-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .te-decision-grid { grid-template-columns: 1fr; } }
+
+    .decision-card {
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid var(--border);
+    }
+    .decision-card.pass { background: #0a1f10; border-color: #166534; }
+    .decision-card.fail { background: #1f0a0a; border-color: #7f1d1d; }
+    .decision-card .decision-header {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 10px;
+    }
+    .decision-card.pass .decision-header { color: var(--green); }
+    .decision-card.fail .decision-header { color: #f87171; }
+    .decision-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .decision-card ul li {
+      font-size: 13px;
+      color: var(--text-dim);
+      padding-left: 16px;
+      position: relative;
+    }
+    .decision-card.pass ul li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+    .decision-card.fail ul li::before { content: '✗'; position: absolute; left: 0; color: #f87171; font-weight: 700; }
+    .decision-card code {
+      background: #1e2230;
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #93c5fd;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    .warning-box {
+      background: #1c1409;
+      border: 1px solid #92400e;
+      border-left: 3px solid var(--yellow);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 13px;
+      color: #fde68a;
+    }
+    .warning-box strong { color: #fbbf24; }
+
+    /* ── Roster auditor ── */
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .checklist li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 13px;
+      color: var(--text-dim);
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+    }
+    .checklist .check-icon {
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .checklist code {
+      background: #1e2230;
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #93c5fd;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ── RB follow-on ── */
+    .followon-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .followon-box h4 { font-size: 13px; font-weight: 600; color: var(--rb); margin-bottom: 10px; }
+    .followon-box p  { font-size: 13px; color: var(--text-dim); margin-bottom: 10px; }
+    .candidate-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: #1e2230;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 3px 10px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      color: #93c5fd;
+    }
+
+    /* ── Governance ── */
+    .gov-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .gov-table th {
+      background: #1a1f2e;
+      padding: 8px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .gov-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid #1e2332;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+    .gov-table code {
+      background: #1e2230;
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #93c5fd;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Agent directives ── */
+    .agent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .agent-grid { grid-template-columns: 1fr; } }
+
+    .agent-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .agent-card .agent-name {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .agent-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .agent-card ul li {
+      font-size: 13px;
+      color: var(--text-dim);
+      padding-left: 14px;
+      position: relative;
+    }
+    .agent-card ul li::before { content: '→'; position: absolute; left: 0; color: var(--muted); }
+    .agent-card code {
+      background: #1e2230;
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #93c5fd;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Footer ── */
+    .doc-footer {
+      margin-top: 56px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .doc-footer p { font-size: 12px; color: var(--muted); }
+
+    p { margin-bottom: 0; }
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+    .mb-16 { margin-bottom: 16px; }
+    strong { color: var(--text); }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ── -->
+  <header class="doc-header">
+    <div class="label">Phase 6 Design Spec · Engine B v2</div>
+    <h1>Engine B v2 — Position-Stratified Model</h1>
+    <p class="subtitle">Full design, feature contracts, validation sequence, and agent directives for the Engine B v2.0 stratification sprint.</p>
+    <div class="meta-row">
+      <div class="meta-item">Date <span>2026-05-12</span></div>
+      <div class="meta-item">Status <span class="badge badge-pending">Pending Approval</span></div>
+      <div class="meta-item">Base <span>main @ 55f1351</span></div>
+      <div class="meta-item">Authors <span>Claude Code · Codex · Gemini (PM)</span></div>
+      <div class="meta-item">Doctrine <span>v1.0.0</span></div>
+    </div>
+  </header>
+
+  <!-- ── Section 1: Refinement Sequence ── -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <h2>Hybrid Refinement Sequence</h2>
+    </div>
+
+    <div class="stage-grid">
+      <div class="stage-card control">
+        <div class="stage-label">Stage 6.1</div>
+        <h3>Engine B v1.1 — Hygiene Control <span class="badge badge-control">Validation Only</span></h3>
+        <div class="field">
+          <div class="field-label">Goal</div>
+          <div class="field-value">Isolate the impact of removing <code>route_participation</code> from the unified model. Establish a clean pre-stratification baseline.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Architecture</div>
+          <div class="field-value">Unified Ridge model (unchanged). Single artifact.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Change</div>
+          <div class="field-value">Remove <code>route_participation</code> from <code>ENGINE_B_ALLOWED_FEATURES</code>. No other modifications.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Artifact disposition</div>
+          <div class="field-value">Stored under <code>runs/v1_1_control/</code>. <strong>Not promoted to production.</strong> Does not replace <code>engine_b_v1.pkl</code>.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Result usage</div>
+          <div class="field-value">Validation report retained as the Stage 6.2 comparison baseline. Informs but does not gate Stage 6.2.</div>
+        </div>
+      </div>
+
+      <div class="stage-card target">
+        <div class="stage-label">Stage 6.2</div>
+        <h3>Engine B v2.0 — Stratification Target <span class="badge badge-target">Production Candidate</span></h3>
+        <div class="field">
+          <div class="field-label">Goal</div>
+          <div class="field-value">Transition to 4 independent, position-stratified Ridge models with explicit feature contracts per position.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Architecture</div>
+          <div class="field-value">4 independent Ridge artifacts. Each trained only on its own position's rows.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Artifacts</div>
+          <div class="field-value"><code>qb_v2.pkl</code> &nbsp;·&nbsp; <code>rb_v2.pkl</code> &nbsp;·&nbsp; <code>wr_v2.pkl</code> &nbsp;·&nbsp; <code>te_v2.pkl</code></div>
+        </div>
+        <div class="field">
+          <div class="field-label">Constraint</div>
+          <div class="field-value">Proceeds regardless of v1.1 TE result. Informed by v1.1 baseline, never gated by it.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Production target</div>
+          <div class="field-value">Engine B v1 remains active in production until v2.0 passes its promotion gate. v2.0 is the only Phase 6 production promotion candidate.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rule-box mt-16">
+      <strong>Sequencing rule:</strong> Stage 6.1 results answer "Was collinearity a primary TE blocker?" A positive result confirms the hypothesis. A negative result means the TE problem is more fundamental. Both outcomes are informational — neither stops Stage 6.2.
+    </div>
+  </section>
+
+  <!-- ── Section 2: Feature Contracts ── -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <h2>Explicit Feature Contracts &amp; Artifacts</h2>
+    </div>
+
+    <div class="artifact-grid mb-16">
+      <div class="artifact-card qb">
+        <div class="artifact-pos">QB</div>
+        <code>qb_v2.pkl</code>
+      </div>
+      <div class="artifact-card rb">
+        <div class="artifact-pos">RB</div>
+        <code>rb_v2.pkl</code>
+      </div>
+      <div class="artifact-card wr">
+        <div class="artifact-pos">WR</div>
+        <code>wr_v2.pkl</code>
+      </div>
+      <div class="artifact-card te">
+        <div class="artifact-pos">TE</div>
+        <code>te_v2.pkl</code>
+      </div>
+    </div>
+
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">WR and TE share the same eligible receiver-usage feature list but are trained strictly on their own position-specific data subsets and receive independent alpha search, validation reports, and promotion decisions.</p>
+
+    <div class="feature-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature Class</th>
+            <th>Feature</th>
+            <th class="pos-qb">QB</th>
+            <th class="pos-rb">RB</th>
+            <th class="pos-wr">WR</th>
+            <th class="pos-te">TE</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="group-row"><td colspan="7">Foundational — Required for all positions</td></tr>
+          <tr>
+            <td>Foundational</td>
+            <td class="feature-name">age</td>
+            <td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+          <tr>
+            <td>Foundational</td>
+            <td class="feature-name">ppg_t</td>
+            <td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+          <tr>
+            <td>Foundational</td>
+            <td class="feature-name">games_t</td>
+            <td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+          <tr>
+            <td>Foundational</td>
+            <td class="feature-name">snap_share</td>
+            <td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+          <tr>
+            <td>Aging</td>
+            <td class="feature-name">aging_curve_value</td>
+            <td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+
+          <tr class="group-row"><td colspan="7">Historical — Required when available; median imputation for Year 1 players</td></tr>
+          <tr>
+            <td>Historical</td>
+            <td class="feature-name">ppg_t_minus_1</td>
+            <td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td>
+            <td><span class="badge badge-optional">Avail. flag</span></td>
+          </tr>
+          <tr>
+            <td>Historical</td>
+            <td class="feature-name">ppg_t_minus_2</td>
+            <td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td>
+            <td><span class="badge badge-optional">Avail. flag</span></td>
+          </tr>
+          <tr>
+            <td>Historical</td>
+            <td class="feature-name">snap_share_t_minus_1</td>
+            <td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td>
+            <td><span class="badge badge-optional">Avail. flag</span></td>
+          </tr>
+
+          <tr class="group-row"><td colspan="7">QB-Specific — Excluded from RB / WR / TE</td></tr>
+          <tr>
+            <td>Efficiency</td>
+            <td class="feature-name">epa_per_dropback</td>
+            <td class="check-yes">✓</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+          <tr>
+            <td>Efficiency</td>
+            <td class="feature-name">cpoe</td>
+            <td class="check-yes">✓</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+          <tr>
+            <td>Efficiency</td>
+            <td class="feature-name">dakota</td>
+            <td class="check-yes">✓</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+          <tr>
+            <td>Archetype</td>
+            <td class="feature-name">is_dual_threat</td>
+            <td class="check-yes">✓</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+
+          <tr class="group-row"><td colspan="7">Receiver-Specific — WR and TE only; excluded from QB / RB</td></tr>
+          <tr>
+            <td>Usage</td>
+            <td class="feature-name">weighted_opportunity</td>
+            <td class="check-no">—</td><td class="check-no">—</td><td class="check-yes">✓</td><td class="check-yes">✓</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+          <tr>
+            <td>Usage</td>
+            <td class="feature-name">yprr</td>
+            <td class="check-no">—</td><td class="check-no">—</td><td class="check-yes">✓</td><td class="check-yes">✓</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+          <tr>
+            <td>Usage</td>
+            <td class="feature-name">tprr</td>
+            <td class="check-no">—</td><td class="check-no">—</td><td class="check-yes">✓</td><td class="check-yes">✓</td>
+            <td><span class="badge badge-required">Required</span></td>
+          </tr>
+
+          <tr class="group-row"><td colspan="7">Removed — Explicitly excluded from all models in Phase 6</td></tr>
+          <tr>
+            <td>Collinear</td>
+            <td class="feature-name">route_participation</td>
+            <td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td>
+            <td><span class="badge badge-excluded">Excluded all</span></td>
+          </tr>
+          <tr>
+            <td>Redundant</td>
+            <td class="feature-name">total_points_t</td>
+            <td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td>
+            <td><span class="badge badge-excluded">Excluded all</span></td>
+          </tr>
+          <tr>
+            <td>Redundant</td>
+            <td class="feature-name">dropback_count</td>
+            <td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td>
+            <td><span class="badge badge-excluded">Excluded all</span></td>
+          </tr>
+          <tr>
+            <td>Redundant</td>
+            <td class="feature-name">pass_attempts</td>
+            <td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-no">—</td>
+            <td><span class="badge badge-excluded">Excluded all</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ul class="rules-list">
+      <li>
+        <div class="rule-num">1</div>
+        <div><strong>Hard exclusion.</strong> Features marked — must be <em>mathematically dropped</em> from the X matrix before fitting. They must not be passed as zero-filled columns. A WR model must not contain EPA columns at all.</div>
+      </li>
+      <li>
+        <div class="rule-num">2</div>
+        <div><strong>Missing required features.</strong> If a <code>Required</code> feature is absent for a specific row (e.g., YPRR missing for a 2018 WR), apply position-group median imputation within that stratified model only.</div>
+      </li>
+      <li>
+        <div class="rule-num">3</div>
+        <div><strong>Historical availability flags.</strong> Columns <code>ppg_t_minus_1_available</code>, <code>ppg_t_minus_2_available</code>, <code>snap_share_t_minus_1_available</code> must be included so the model can differentiate consistent multi-year producers from Year 1 profiles.</div>
+      </li>
+      <li>
+        <div class="rule-num">4</div>
+        <div><strong>Market data stays out.</strong> KTC, ADP, FantasyPros, DynastyNerds, and all market-derived values are excluded from every model training matrix. Any market-derived feature in a training row is a leakage defect.</div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── Section 3: Hyperparameter & Validation ── -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <h2>Hyperparameter Optimization &amp; Validation</h2>
+    </div>
+
+    <div class="hyper-grid">
+      <div class="info-card">
+        <h4>Alpha Search — RidgeCV per Position</h4>
+        <p>Replace the static <code>alpha=100.0</code> with per-position <code>RidgeCV</code>. Each of the 4 models searches independently for the alpha that balances fit and generalization against its own position's sample size and noise profile.</p>
+        <p class="mt-12" style="font-size:13px;color:var(--muted);">QBs may favor higher regularization (smaller N). WRs have the largest dataset and may tolerate lower alpha. TE alpha is fully independent of WR despite shared features.</p>
+      </div>
+      <div class="info-card">
+        <h4>Stratified Validation Report</h4>
+        <p>Each training run produces a per-position <code>validation_report.json</code> containing a three-way comparison:</p>
+        <ul class="mt-12">
+          <li><strong>v1.0 Baseline</strong> — original unified model (historical reference)</li>
+          <li><strong>v1.1 Control</strong> — unified model minus <code>route_participation</code></li>
+          <li><strong>v2.0 Target</strong> — stratified position-specific model</li>
+        </ul>
+        <p class="mt-12" style="font-size:13px;color:var(--muted);">All three rows reported per position for clean attribution.</p>
+      </div>
+    </div>
+
+    <div class="feature-table-wrap mt-16">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Architecture</th>
+            <th>Route Participation</th>
+            <th>Stratified</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>v1.0 Baseline</td>
+            <td>Unified Ridge</td>
+            <td>Included</td>
+            <td>No</td>
+            <td>Historical reference</td>
+          </tr>
+          <tr>
+            <td>v1.1 Control</td>
+            <td>Unified Ridge</td>
+            <td>Removed</td>
+            <td>No</td>
+            <td>Collinearity isolation</td>
+          </tr>
+          <tr>
+            <td class="col-target">v2.0 Target</td>
+            <td>4× Position Ridge</td>
+            <td>Removed</td>
+            <td>Yes</td>
+            <td>Production candidate</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="gate-box">
+      <div class="gate-title">Promotion Gate — per position</div>
+      <p>A v2.0 artifact is promoted only if it beats the naive baseline (prior-year PPG) on <strong>≥ 2 of 3 metrics: RMSE, R², Spearman rank correlation</strong> — the same gate used for Engine B v1.0. Per-position decisions are independent. A failing position is not promoted; its v1.0 counterpart remains active with appropriate caveats.</p>
+    </div>
+  </section>
+
+  <!-- ── Section 4: TE Promotion Rules ── -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <h2>TE Promotion Rules &amp; Experimental Caveat</h2>
+    </div>
+
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">TE is currently marked <code>ENGINE_B_EXPERIMENTAL_POSITIONS = {"TE"}</code> because v1.0 does not beat the naive baseline. This status is evidence-gated. It is not cleared by design decision, architectural change alone, or assumption.</p>
+
+    <div class="te-decision-grid">
+      <div class="decision-card pass">
+        <div class="decision-header">If te_v2.pkl passes gate (≥ 2/3 metrics)</div>
+        <ul>
+          <li>Promote <code>te_v2.pkl</code> to production</li>
+          <li>Remove TE from <code>ENGINE_B_EXPERIMENTAL_POSITIONS</code></li>
+          <li>Update service layer and roster auditor display</li>
+          <li>Log promotion evidence in validation report and ledger</li>
+        </ul>
+      </div>
+      <div class="decision-card fail">
+        <div class="decision-header">If te_v2.pkl fails gate (&lt; 2/3 metrics)</div>
+        <ul>
+          <li><code>te_v2.pkl</code> is not promoted</li>
+          <li>TE remains in <code>ENGINE_B_EXPERIMENTAL_POSITIONS</code></li>
+          <li>v1.0 TE artifact remains active with existing caveat</li>
+          <li>Failure is logged as Phase 6.2 evidence for future TE diagnosis</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="warning-box mt-16">
+      <strong>Hard rule:</strong> No agent may remove TE from <code>ENGINE_B_EXPERIMENTAL_POSITIONS</code> without a passing validation report in the ledger. The TE experimental caveat propagates through the service layer, API response, and all roster auditor display surfaces until cleared by evidence.
+    </div>
+  </section>
+
+  <!-- ── Section 5: Roster Auditor Hardening ── -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">5</div>
+      <h2>Roster Auditor Hardening</h2>
+    </div>
+
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">This section is verification work, not new feature development. It executes after v2.0 models are validated and promoted.</p>
+
+    <ul class="checklist">
+      <li>
+        <div class="check-icon"></div>
+        <div>Verify Engine B v2.0 predictions surface correctly in roster auditor output for all promoted positions.</div>
+      </li>
+      <li>
+        <div class="check-icon"></div>
+        <div>Confirm <code>ENGINE_B_EXPERIMENTAL_POSITIONS</code> caveats propagate to the roster auditor display layer. Any TE still marked experimental must show the caveat visibly.</div>
+      </li>
+      <li>
+        <div class="check-icon"></div>
+        <div>Confirm market overlay (<code>ktc_value</code>, etc.) remains physically and semantically separated from model scores in all output rows.</div>
+      </li>
+      <li>
+        <div class="check-icon"></div>
+        <div>Confirm banned David-facing output fields (<code>dynasty_tier</code>, <code>verdict</code>, <code>action</code>, <code>confidence</code>) are not present in any new output surface introduced by v2.0 integration.</div>
+      </li>
+      <li>
+        <div class="check-icon"></div>
+        <div>Run the full test suite (≥ 261 pass, 0 fail) after integration. Any new integration tests for stratified model routing must be added before this section is marked complete.</div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── Section 6: RB Follow-On ── -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">6</div>
+      <h2>RB Feature Enrichment — Phase 6 Follow-On</h2>
+    </div>
+
+    <div class="followon-box">
+      <h4>Deferred: RB Usage Signal Expansion</h4>
+      <p>RBs in Phase 6 run on the Foundational + Historical + Aging feature set only. No new RB-specific usage metrics are added in the first stratification pass. This keeps the experiment clean: Phase 6 answers "Does stratification improve Engine B on the current validated feature universe?" It does not simultaneously answer "What RB features are missing?"</p>
+      <p>After the stratified RB model benchmarks, if R² or Spearman underperforms relative to the WR model, the following are the prioritized Phase 6 follow-on candidates. All require a source coverage check, leakage check, and validation gate before promotion.</p>
+      <div class="candidate-chips mt-12">
+        <span class="chip">red_zone_touches</span>
+        <span class="chip">targets_per_game</span>
+        <span class="chip">weighted_opportunity_rb</span>
+        <span class="chip">carries_per_game</span>
+        <span class="chip">goal_line_touches</span>
+      </div>
+      <p class="mt-12" style="font-size:12px;color:var(--muted);">Note: <code>carries_per_game</code> is likely highly correlated with <code>snap_share</code> for RBs and may not add independent signal. <code>red_zone_touches</code> is the highest-priority candidate for PPR dynasty value.</p>
+    </div>
+  </section>
+
+  <!-- ── Governance ── -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">—</div>
+      <h2>Governance &amp; Agent Directives</h2>
+    </div>
+
+    <table class="gov-table mb-16">
+      <thead>
+        <tr>
+          <th>Document</th>
+          <th>Version</th>
+          <th>Authority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>00-product-constitution.md</code></td>
+          <td>1.0.0</td>
+          <td>Analytical decisions — supersedes all others</td>
+        </tr>
+        <tr>
+          <td><code>01-north-star-architecture.md</code></td>
+          <td>1.0.0</td>
+          <td>Technical architecture</td>
+        </tr>
+        <tr>
+          <td><code>02-agent-operating-loop.md</code></td>
+          <td>1.0.0</td>
+          <td>Session workflow and ledger protocol</td>
+        </tr>
+        <tr>
+          <td><code>AGENT_SYNC.md</code></td>
+          <td>Current</td>
+          <td>Sprint state board — update at session end</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="agent-grid">
+      <div class="agent-card">
+        <div class="agent-name">Claude Code</div>
+        <ul>
+          <li>Own implementation of Stage 6.1 and Stage 6.2</li>
+          <li>Update <code>assemble_engine_b_dataset.py</code> and <code>train_engine_b.py</code> only after this spec is approved</li>
+          <li>Update ledger and <code>AGENT_SYNC.md</code> at session end</li>
+          <li>Branch: <code>phase6/engine-b-v2</code> from <code>main</code></li>
+        </ul>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Codex</div>
+        <ul>
+          <li>Audit new stratified artifacts after training</li>
+          <li>Verify <code>model_grade</code> guard respects per-position results</li>
+          <li>Review PR — confirm no market-derived features entered training</li>
+          <li>Do not modify implementation files before design gate clears</li>
+        </ul>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">Gemini</div>
+        <ul>
+          <li>Monitor storage for new stratified <code>.pkl</code> artifacts</li>
+          <li>Flag any artifact size anomalies or missing validation reports</li>
+          <li>Confirm per-position validation reports land in correct run directories</li>
+        </ul>
+      </div>
+      <div class="agent-card">
+        <div class="agent-name">All Agents</div>
+        <ul>
+          <li>Do not modify <code>engine_b_v1.pkl</code> or its run directory</li>
+          <li>Do not remove TE from <code>ENGINE_B_EXPERIMENTAL_POSITIONS</code> without passing gate evidence</li>
+          <li>Do not introduce market-derived features into any training matrix</li>
+          <li>Log all material work in <code>docs/agent-ledger/YYYY-MM-DD.md</code></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ── -->
+  <footer class="doc-footer">
+    <p>Dynasty Genius · Phase 6 Design Spec · 2026-05-12</p>
+    <p>Doctrine v1.0.0 · Approved by David before implementation</p>
+  </footer>
+
+</div>
+</body>
+</html>

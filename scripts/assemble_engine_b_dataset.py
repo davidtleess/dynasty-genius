@@ -205,6 +205,7 @@ def main():
     
     df["ppg_t_minus_1_available"] = df["ppg_t_minus_1"].notna()
     df["ppg_t_minus_2_available"] = df["ppg_t_minus_2"].notna()
+    df["snap_share_t_minus_1_available"] = df["snap_share_t_minus_1"].notna()
 
     # 8. QB Archetype
     print("Classifying QB archetypes...")
