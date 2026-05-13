@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats as scipy_stats
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import RidgeCV
+from sklearn.linear_model import Ridge, RidgeCV
 from sklearn.metrics import mean_squared_error, r2_score
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,7 +115,7 @@ def train_v1_1_control(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]:
     X_train = imputer.fit_transform(X_train_raw)
     X_test  = imputer.transform(X_test_raw)
 
-    model = RidgeCV(alphas=ALPHA_CANDIDATES, cv=5)
+    model = Ridge(alpha=100.0)
     model.fit(X_train, y_train)
 
     y_pred          = model.predict(X_test)
@@ -136,7 +136,7 @@ def train_v1_1_control(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]:
     return {
         "mode": "v1_1_control",
         "is_validation_only": True,
-        "alpha_selected": float(model.alpha_),
+        "alpha_fixed": 100.0,
         "features": available_features,
         "metrics_model": metrics_model,
         "metrics_baseline": metrics_baseline,
@@ -333,7 +333,7 @@ def main() -> None:
 
         print(f"\n{'─'*54}")
         print(f"  Mode: v1.1 unified control  [VALIDATION ONLY — not promoted]")
-        print(f"  Alpha selected: {results['alpha_selected']}")
+        print(f"  Alpha: {results['alpha_fixed']} (fixed — same as v1.0)")
         print(f"  Features: {len(results['features'])}")
         print(f"  Baseline  — RMSE {results['metrics_baseline']['rmse']:.3f}  R² {results['metrics_baseline']['r2']:.3f}  Spearman {results['metrics_baseline']['spearman']:.3f}")
         print(f"  v1.1      — RMSE {results['metrics_model']['rmse']:.3f}  R² {results['metrics_model']['r2']:.3f}  Spearman {results['metrics_model']['spearman']:.3f}")

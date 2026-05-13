@@ -11,9 +11,9 @@ Phase 6 — Engine B v2 (implementation in progress)
 
 Phase 6 implementation complete. PR open on `phase6/engine-b-v2` pending Codex review and merge.
 
-- Stage 6.1 (v1.1 hygiene control): COMPLETE — validation artifact at `runs/v1_1_control/`
+- Stage 6.1 (v1.1 hygiene control): COMPLETE — artifact at `runs/v1_1_control/` — Ridge(alpha=100.0) fixed after Codex review (was RidgeCV); clean result: RMSE 3.397 / R² 0.609 / Spearman 0.767, 3/3 informational PASS
 - Stage 6.2 (v2.0 stratified models): COMPLETE — QB/RB/WR promoted, TE not promoted
-- Active branch: `phase6/engine-b-v2` — open PR, awaiting Codex review
+- Active branch: `phase6/engine-b-v2` — open PR, 4 Codex blocking issues resolved
 - Design spec: `docs/superpowers/plans/2026-05-12-engine-b-v2-stratification.md`
 
 ## Merged PRs (complete history)
@@ -53,7 +53,7 @@ Phase 6 implementation complete. PR open on `phase6/engine-b-v2` pending Codex r
 - **WR**: PROMOTED — `wr_v2.pkl` — RMSE 2.887, R² 0.683, Spearman 0.809, alpha=200.0
 - **TE**: NOT PROMOTED — `te_v2.pkl` fails gate (0/3) — alpha=1.0 — `ENGINE_B_EXPERIMENTAL_POSITIONS = {"TE"}` retained
 - **v1.1 control**: `runs/v1_1_control/` — validation artifact only, not promoted
-- **Suite**: 291 passed, 11 skipped, 0 failed
+- **Suite**: 293 passed, 11 skipped, 0 failed
 
 ## Open Blockers
 
@@ -61,9 +61,16 @@ Phase 6 implementation complete. PR open on `phase6/engine-b-v2` pending Codex r
 2. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds.
 3. **Local Python mismatch** — use `.venv/bin/python3.14` for nflreadpy work.
 
+## Codex PR #24 Blocking Issues — RESOLVED
+
+1. **Issue 1 (v2_manifest.json tracked)** — FIXED: `git rm --cached`; `v2_manifest.json` added to `.gitignore`
+2. **Issue 2 (TE fallback broken)** — FIXED: `_load_v1_bundle()` now searches for dirs containing `engine_b_v1.pkl`
+3. **Issue 3 (missing-required check absent)** — FIXED: `validate_position_feature_contract()` now checks for missing required features; `_BASE_FEATURES` → `ENGINE_B_BASE_FEATURES` (public); 2 new tests added
+4. **Issue 4 (v1.1 used RidgeCV not Ridge)** — FIXED: `train_v1_1_control()` now uses `Ridge(alpha=100.0)`; Stage 6.1 re-run; clean result logged above
+
 ## Next Recommended Work
 
-1. **Merge `phase6/engine-b-v2` PR** after Codex review
+1. **Merge `phase6/engine-b-v2` PR** — all blocking issues resolved; ready for final Codex pass
 2. **Roster Auditor hardening (Section 5)** — Gemini to verify v2 predictions surface correctly, TE caveat propagates, market overlay remains separated (post-merge)
 3. **Untracked model run disposal** — David to decide on `runs/20260512T025445Z/` and `runs/20260512T032005Z/` (archive or delete)
 4. **RB follow-on (Phase 6.1)** — evaluate `red_zone_touches` and `targets_per_game` as RB-specific features once stratified baseline is established

@@ -14,6 +14,7 @@ import pytest
 from src.dynasty_genius.models.engine_b_contract import (
     DUAL_THREAT_RUSHING_THRESHOLD,
     ENGINE_B_ALLOWED_FEATURES,
+    ENGINE_B_BASE_FEATURES,
     ENGINE_B_EXPERIMENTAL_POSITIONS,
     ENGINE_B_FEATURES_BY_POSITION,
     ENGINE_B_FEATURES_QB,
@@ -260,6 +261,20 @@ def test_position_contract_validator_rejects_cross_position_leak():
 def test_position_contract_validator_rejects_unknown_position():
     with pytest.raises(ValueError, match="Unknown position"):
         validate_position_feature_contract("K", ["age", "ppg_t"])
+
+
+def test_position_contract_validator_rejects_missing_required():
+    """Passing a subset of required features must raise — partial feature lists are invalid."""
+    with pytest.raises(ValueError, match="contract violation"):
+        validate_position_feature_contract("WR", ["age", "ppg_t"])
+
+
+def test_engine_b_base_features_is_public():
+    """_BASE_FEATURES renamed ENGINE_B_BASE_FEATURES — must be importable and a frozenset."""
+    assert isinstance(ENGINE_B_BASE_FEATURES, frozenset)
+    assert "age" in ENGINE_B_BASE_FEATURES
+    assert "ppg_t" in ENGINE_B_BASE_FEATURES
+    assert "snap_share" in ENGINE_B_BASE_FEATURES
 
 
 def test_features_by_position_covers_all_four_positions():

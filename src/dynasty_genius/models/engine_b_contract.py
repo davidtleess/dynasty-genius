@@ -58,23 +58,23 @@ ENGINE_B_ALLOWED_FEATURES = frozenset({
 # Hard rule: columns absent from a position's set must not appear in its X
 # matrix at all — not as zeros, not as NaN, not as imputed values.
 
-_BASE_FEATURES: frozenset[str] = frozenset({
+ENGINE_B_BASE_FEATURES: frozenset[str] = frozenset({
     "age", "ppg_t", "games_t", "snap_share", "aging_curve_value",
     "ppg_t_minus_1", "ppg_t_minus_2", "snap_share_t_minus_1",
     "ppg_t_minus_1_available", "ppg_t_minus_2_available", "snap_share_t_minus_1_available",
 })
 
-ENGINE_B_FEATURES_QB: frozenset[str] = _BASE_FEATURES | frozenset({
+ENGINE_B_FEATURES_QB: frozenset[str] = ENGINE_B_BASE_FEATURES | frozenset({
     "epa_per_dropback", "cpoe", "dakota", "is_dual_threat",
 })
 
-ENGINE_B_FEATURES_RB: frozenset[str] = _BASE_FEATURES
+ENGINE_B_FEATURES_RB: frozenset[str] = ENGINE_B_BASE_FEATURES
 
-ENGINE_B_FEATURES_WR: frozenset[str] = _BASE_FEATURES | frozenset({
+ENGINE_B_FEATURES_WR: frozenset[str] = ENGINE_B_BASE_FEATURES | frozenset({
     "weighted_opportunity", "yprr", "tprr",
 })
 
-ENGINE_B_FEATURES_TE: frozenset[str] = _BASE_FEATURES | frozenset({
+ENGINE_B_FEATURES_TE: frozenset[str] = ENGINE_B_BASE_FEATURES | frozenset({
     "weighted_opportunity", "yprr", "tprr",
 })
 
@@ -156,7 +156,7 @@ def validate_position_feature_contract(position: str, feature_columns: list[str]
 
     Checks two things:
     1. No feature from another position's exclusive set leaked in.
-    2. All required base features are present.
+    2. All required features for this position are present.
     """
     if position not in ENGINE_B_FEATURES_BY_POSITION:
         raise ValueError(f"Unknown position for Engine B v2 contract: {position!r}")
@@ -164,14 +164,21 @@ def validate_position_feature_contract(position: str, feature_columns: list[str]
     allowed = ENGINE_B_FEATURES_BY_POSITION[position]
     col_set = set(feature_columns)
 
-    # Any column that is not in this position's allowed set is a contract violation
-    violations = col_set - allowed
-    # Remove metadata/identity columns that are legitimately present but not model features
     _meta = {"player_id", "position", "feature_season", "team", "depth_chart_position",
              "aging_curve_position", OUTCOME_COLUMN, "training_eligible"}
-    violations -= _meta
-    if violations:
+
+    # Extra columns not in this position's contract
+    extra = col_set - allowed - _meta
+    if extra:
         raise ValueError(
             f"Engine B v2 position contract violation for {position}: "
-            f"columns not in allowed set: {sorted(violations)}"
+            f"columns not in allowed set: {sorted(extra)}"
+        )
+
+    # Missing required features
+    missing = allowed - col_set
+    if missing:
+        raise ValueError(
+            f"Engine B v2 position contract violation for {position}: "
+            f"missing required features: {sorted(missing)}"
         )

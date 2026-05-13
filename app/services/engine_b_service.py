@@ -93,7 +93,10 @@ class EngineBService:
     def _load_v1_bundle(self) -> dict[str, Any]:
         if not _RUNS_DIR.exists():
             return {}
-        runs = sorted([d for d in _RUNS_DIR.iterdir() if d.is_dir() and d.name != "v1_1_control"])
+        runs = sorted([
+            d for d in _RUNS_DIR.iterdir()
+            if d.is_dir() and (d / "engine_b_v1.pkl").exists()
+        ])
         if not runs:
             return {}
         model_path = runs[-1] / "engine_b_v1.pkl"
