@@ -5,11 +5,11 @@ Last updated: 2026-05-12
 
 ## Active Phase
 
-Phase 6 — Engine B v2 (implementation in progress)
+Phase 6 — Engine B v2 (MERGED — post-merge hardening in progress)
 
 ## Current Sprint Objective
 
-Phase 6 implementation complete. PR open on `phase6/engine-b-v2` pending Codex review and merge.
+Phase 6 core implementation merged to main (`762e50c`). Section 5 (Roster Auditor hardening) is the active work item — unblocked for Gemini.
 
 - Stage 6.1 (v1.1 hygiene control): COMPLETE — artifact at `runs/v1_1_control/` — Ridge(alpha=100.0) fixed after Codex review (was RidgeCV); clean result: RMSE 3.397 / R² 0.609 / Spearman 0.767, 3/3 informational PASS
 - Stage 6.2 (v2.0 stratified models): COMPLETE — QB/RB/WR promoted, TE not promoted
@@ -28,10 +28,10 @@ Phase 6 implementation complete. PR open on `phase6/engine-b-v2` pending Codex r
 - PR #21 (`docs/phase5-engine-b-plan`): MERGED. Phase 5 planning doc.
 - PR #22 (`phase5/engine-b-contracts`): CLOSED, superseded by PR #23.
 - PR #23 (`engine-b/service-integration`): MERGED → main `55f1351`. Engine B v1 dataset, training, service/API integration, roster auditor wiring, and governance decision record.
+- PR #24 (`phase6/engine-b-v2`): MERGED → main `762e50c`. Engine B v2 position-stratified models (QB/RB/WR promoted, TE experimental), v2 manifest routing, per-position feature contracts, Stage 6.1 control, 4 Codex blockers resolved.
 
 ## Open PRs / Branches
 
-- `phase6/engine-b-v2`: Phase 6 Engine B v2 — open PR, pending Codex review
 - Older open hygiene/governance PRs: PR #2, PR #3, PR #9 — do not close without David's instruction
 
 ## Engine B v1 Final State
@@ -70,11 +70,11 @@ Phase 6 implementation complete. PR open on `phase6/engine-b-v2` pending Codex r
 
 ## Next Recommended Work
 
-1. **Merge `phase6/engine-b-v2` PR** — all blocking issues resolved; ready for final Codex pass
-2. **Roster Auditor hardening (Section 5)** — Gemini to verify v2 predictions surface correctly, TE caveat propagates, market overlay remains separated (post-merge)
-3. **Untracked model run disposal** — David to decide on `runs/20260512T025445Z/` and `runs/20260512T032005Z/` (archive or delete)
-4. **RB follow-on (Phase 6.1)** — evaluate `red_zone_touches` and `targets_per_game` as RB-specific features once stratified baseline is established
-5. **TE diagnosis** — investigate alpha=1.0 overfitting; evaluate training sample quality before adding features
+1. **Roster Auditor hardening (Section 5)** — UNBLOCKED. Gemini to wire Engine B v2 predictions into roster auditor output, verify TE caveat propagates, confirm market overlay remains separated. Must run with `.venv/bin/python3.14` (artifacts pickled with 3.14; standard `.venv/bin/python` cannot unpickle).
+2. **Untracked model run disposal** — David to decide on `runs/20260512T025445Z/` and `runs/20260512T032005Z/` (archive or delete)
+3. **RB follow-on (Phase 6.1)** — evaluate `red_zone_touches` and `targets_per_game` as RB-specific features once stratified baseline is established
+4. **TE diagnosis** — investigate alpha=1.0 overfitting; evaluate training sample quality before adding features
+5. **Untracked model run disposal** — David to decide on `runs/20260512T025445Z/` and `runs/20260512T032005Z/` (archive or delete)
 
 ## QB Strategy (unchanged)
 
