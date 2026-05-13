@@ -11,6 +11,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from app.services.engine_b_service import predict_player_season as predict_player_season_b
 from app.services.roster_auditor import audit_player, roster_risk_summary
 from src.dynasty_genius.decision_logic.counter_arguments import generate_counter_argument
 from src.dynasty_genius.models.league_context import LeagueContext
@@ -174,6 +175,7 @@ def _build_roster_audit_signals(
     identity: PlayerIdentity,
     features: dict[str, Any],
     league_context: Optional[LeagueContext] = None,
+    engine_b_score: Optional[dict] = None,
 ) -> Optional[RosterAuditSignals]:
     player = {
         "player_id": identity.dg_id,
@@ -182,7 +184,7 @@ def _build_roster_audit_signals(
         "team": identity.nfl_team,
         **features,
     }
-    audited = audit_player(player)
+    audited = audit_player(player, engine_b_score=engine_b_score)
     if audited is None:
         return None
 
@@ -201,6 +203,7 @@ def _build_roster_audit_signals(
         liquidity_risk=liquidity,
         signal=audited.get("signal"),
         signal_drivers=audited.get("signal_drivers", []),
+        age_value_context=audited.get("age_value_context"),
         caveats=audited.get("caveats", []),
         decision_supported=False,
     )
@@ -234,16 +237,38 @@ def assemble_pvo(
     completeness, present, missing = _compute_completeness(required, features, identity)
     risk_flags = _build_risk_flags(identity, features, is_prospect)
     caveats = _build_caveats(
-        completeness, 
-        is_prospect, 
-        missing, 
-        league_context, 
-        identity.position, 
+        completeness,
+        is_prospect,
+        missing,
+        league_context,
+        identity.position,
         identity.verification_status,
         identity.age_verified,
         identity.identity_verified
     )
-    roster_audit = _build_roster_audit_signals(identity, features, league_context)
+
+    # Resolve Engine B score for active players before building roster audit so the
+    # audit context (age_value_context, experimental caveats) reflects the projection.
+    engine_b_resolved: Optional[dict] = None
+    if not is_prospect:
+        engine_b_resolved = features.get("engine_b_score")
+        if engine_b_resolved is None:
+            # Single-player scoring path: only trigger when feature_season is present,
+            # indicating a real NFL season row (not a partial test fixture).
+            pos_contract = ENGINE_B_FEATURES_BY_POSITION.get(identity.position.upper(), frozenset())
+            if (pos_contract
+                    and pos_contract.issubset(set(features.keys()))
+                    and "feature_season" in features):
+                try:
+                    engine_b_resolved = predict_player_season_b(
+                        {**features, "position": identity.position}
+                    )
+                except Exception:
+                    engine_b_resolved = None
+        if engine_b_resolved and "error" in engine_b_resolved:
+            engine_b_resolved = None
+
+    roster_audit = _build_roster_audit_signals(identity, features, league_context, engine_b_score=engine_b_resolved)
     top_drivers: list[str] = []
 
     if roster_audit:
@@ -271,6 +296,8 @@ def assemble_pvo(
     model_version = None
     model_grade = "PRE_MODEL"
     dynasty_value_score = features.get("dynasty_value_score")
+    source_season: Optional[int] = None
+    projection_2y: Optional[float] = None
 
     if engine_a_result:
         engine_used = engine_a_result["engine_used"]
@@ -282,6 +309,19 @@ def assemble_pvo(
             if not c.startswith("dynasty_value_score unavailable:")
         ]
         for caveat in engine_a_result["caveats"]:
+            if caveat not in caveats:
+                caveats.append(caveat)
+
+    # Engine B: populate active-player metadata from resolved score.
+    # dynasty_value_score stays None — no calibrated A/B normalization exists yet.
+    if engine_b_resolved:
+        engine_used = "engine_b"
+        model_version = engine_b_resolved["engine"]
+        source_season = engine_b_resolved.get("feature_season")
+        projection_2y = engine_b_resolved.get("predicted_avg_ppg_t1_t2")
+        model_grade = "EXPERIMENTAL" if engine_b_resolved.get("experimental") else "ACTIVE_B"
+        caveats = [c for c in caveats if not c.startswith("dynasty_value_score unavailable:")]
+        for caveat in engine_b_resolved.get("caveats", []):
             if caveat not in caveats:
                 caveats.append(caveat)
 
@@ -302,7 +342,7 @@ def assemble_pvo(
         model_grade=model_grade,
         dynasty_value_score=dynasty_value_score,
         projection_1y=None,
-        projection_2y=None,
+        projection_2y=projection_2y,
         projection_3y=None,
         signal_completeness=completeness,
         inputs_present=present,
@@ -314,6 +354,7 @@ def assemble_pvo(
         roster_audit=roster_audit,
         market_overlay=None,
         assembled_at=datetime.now(timezone.utc).isoformat(),
+        source_season=source_season,
         source_versions=source_versions or {},
     )
 

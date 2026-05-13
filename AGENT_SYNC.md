@@ -5,16 +5,16 @@ Last updated: 2026-05-12
 
 ## Active Phase
 
-Phase 6 — Engine B v2 (Section 5 Hardening COMPLETE)
+Phase 7 — PVO Alignment (COMPLETE)
 
 ## Current Sprint Objective
 
-Phase 6 implementation and hardening complete. Engine B v2 is fully wired into the roster auditor and verified with 309 passing tests.
+Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value Object pipeline. 318 passing tests.
 
 - Stage 6.1 (v1.1 hygiene control): COMPLETE — artifact at `runs/v1_1_control/`
 - Stage 6.2 (v2.0 stratified models): COMPLETE — QB/RB/WR promoted, TE not promoted
-- Section 5 (Roster Auditor Hardening): COMPLETE — TE caveat propagation, governance-safe `age_value_context` overlay, market isolation; 16 new tests; 309 pass total
-- Phase 7 PVO alignment design: DRAFTED — `docs/superpowers/specs/2026-05-13-pvo-alignment-design.md`
+- Section 5 (Roster Auditor Hardening): COMPLETE — TE caveat propagation, governance-safe `age_value_context` overlay, market isolation; 309 tests
+- Phase 7 PVO alignment: COMPLETE — Engine B scoring path, roster audit threading, `age_value_context` in `RosterAuditSignals`, `source_season` in PVO, 9 new contract tests; 318 tests total
 - Production artifacts: `qb_v2.pkl`, `rb_v2.pkl`, `wr_v2.pkl` promoted; `engine_b_v1.pkl` fallback for TE
 
 ## Merged PRs (complete history)
@@ -71,9 +71,10 @@ Phase 6 implementation and hardening complete. Engine B v2 is fully wired into t
 
 ## Next Recommended Work
 
-1. **Review / approve Phase 7 PVO alignment spec** — `docs/superpowers/specs/2026-05-13-pvo-alignment-design.md`
-2. **Implement Phase 7 PVO alignment after approval** — map Engine B `predicted_avg_ppg_t1_t2` to `projection_2y`, replace stale active feature requirements with `ENGINE_B_FEATURES_BY_POSITION`, and propagate `age_value_context` through `RosterAuditSignals`
-3. **RB / TE research tracks remain deferred** — RB feature expansion and TE diagnosis should wait until the PVO output contract is aligned
+1. **Phase 8 — Decision surfaces reading from PVO** — Rookie Board and Roster Audit consume PVO directly; no surface invents its own scoring logic
+2. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate before implementation
+3. **TE diagnosis** — alpha=1.0 overfitting, training sample quality, role heterogeneity investigation (separate exploratory track)
+4. **Market overlay (Phase 9)** — KTC/FantasyCalc join post-scoring via `PVO.market_overlay`
 
 ## QB Strategy (unchanged)
 
