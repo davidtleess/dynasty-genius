@@ -5,11 +5,17 @@ Last updated: 2026-05-12
 
 ## Active Phase
 
-Phase 7 — PVO Alignment (COMPLETE)
+Phase 8 — Decision Surfaces (COMPLETE: 8.1 + 8.2 + 8.3)
 
 ## Current Sprint Objective
 
-Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value Object pipeline. 318 passing tests.
+Phase 8 decision surfaces (Roster Audit, Rookie Board, Trade Lab) are wired as read-only over PVO. No surface invents its own scoring logic. 339 passing tests.
+
+- Phase 8.1 (Roster Audit): COMPLETE — wired to PVO, sorted by years_to_cliff, 10 contract tests.
+- Phase 8.2 (Rookie Board): COMPLETE — wired to PVO, sorted by score, 5 contract tests.
+- Phase 8.3 (Trade Lab): COMPLETE — wired to PVO, RMSE-proxied `delta_status` implemented, 6 contract tests.
+
+Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value Object pipeline.
 
 - Stage 6.1 (v1.1 hygiene control): COMPLETE — artifact at `runs/v1_1_control/`
 - Stage 6.2 (v2.0 stratified models): COMPLETE — QB/RB/WR promoted, TE not promoted
@@ -34,6 +40,7 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 ## Open PRs / Branches
 
 - Older open hygiene/governance PRs: PR #2, PR #3, PR #9 — do not close without David's instruction
+- Phase 8 PRs pending merge (8.1, 8.2, 8.3)
 
 ## Engine B v1 Final State
 
@@ -71,13 +78,7 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 
 ## Next Recommended Work
 
-1. **Phase 8 — Decision surfaces reading from PVO** — Rookie Board and Roster Audit consume PVO directly; no surface invents its own scoring logic
-2. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate before implementation
-3. **TE diagnosis** — alpha=1.0 overfitting, training sample quality, role heterogeneity investigation (separate exploratory track)
-4. **Market overlay (Phase 9)** — KTC/FantasyCalc join post-scoring via `PVO.market_overlay`
-
-## QB Strategy (unchanged)
-
-- CFBD Tier 3 via httpx — registered in contract, NOT promoted to model_input (backtest FAIL 0/3)
-- Bifurcated aging curve: pocket passer cliff 33, dual-threat cliff 29 (display warnings only)
-- `is_dual_threat = True` if rushing yards > 400/season in any T-2 to T
+1. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate before implementation
+2. **TE diagnosis** — alpha=1.0 overfitting, training sample quality, role heterogeneity investigation (separate exploratory track). TE slot alignment adapter spec.
+3. **Composite validation gates (Step 0.5)** — Implement `app/data/pipeline/validation/composite.py` as defined in `validation-gates.md`.
+4. **Market overlay (Phase 9)** — KTC/FantasyCalc join post-scoring via `PVO.market_overlay`.
