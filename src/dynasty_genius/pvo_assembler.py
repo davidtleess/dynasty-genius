@@ -16,18 +16,17 @@ from src.dynasty_genius.decision_logic.counter_arguments import generate_counter
 from src.dynasty_genius.models.league_context import LeagueContext
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.models.player_value_object import PlayerValueObject, RosterAuditSignals
+from src.dynasty_genius.models.engine_b_contract import ENGINE_B_FEATURES_BY_POSITION
 from src.dynasty_genius.scoring.engine_a import score_prospect
 
 
 # ── Position-specific required signal sets ────────────────────────────────────
 # These match the feature contracts defined in the North Star Architecture.
 
-_ENGINE_B_REQUIRED: dict[str, list[str]] = {
-    "RB": ["snap_share", "target_share", "breakaway_run_pct", "run_blocking_grade"],
-    "WR": ["snap_share", "target_share", "yards_per_route_run"],
-    "TE": ["snap_share", "target_share", "yards_per_route_run"],
-    "QB": ["snap_share"],
-}
+def _engine_b_required(position: str) -> list[str]:
+    pos = position.upper()
+    contract = ENGINE_B_FEATURES_BY_POSITION.get(pos, frozenset())
+    return sorted(contract)
 
 _ENGINE_A_REQUIRED: dict[str, list[str]] = {
     "RB": ["draft_capital", "age_at_nfl_entry", "college_dominator_rating"],
@@ -42,8 +41,9 @@ _IDENTITY_SIGNALS = ["player_id", "full_name", "position"]
 
 def _required_signals(position: str, is_prospect: bool) -> list[str]:
     pos = position.upper()
-    source = _ENGINE_A_REQUIRED if is_prospect else _ENGINE_B_REQUIRED
-    return _IDENTITY_SIGNALS + source.get(pos, [])
+    if is_prospect:
+        return _IDENTITY_SIGNALS + _ENGINE_A_REQUIRED.get(pos, [])
+    return _IDENTITY_SIGNALS + _engine_b_required(pos)
 
 
 def _compute_completeness(

@@ -20,10 +20,16 @@ def test_assemble_pvo_includes_local_roster_audit_without_market_overlay():
         "age": 29,
         "internal_value": 72.5,
         "ktc_market_value": 9999,
+        "ppg_t": 15.0,
+        "games_t": 16,
         "snap_share": 0.62,
-        "target_share": 0.14,
-        "breakaway_run_pct": 0.08,
-        "run_blocking_grade": 71.0,
+        "aging_curve_value": 1.0,
+        "ppg_t_minus_1": 14.0,
+        "ppg_t_minus_2": 13.0,
+        "snap_share_t_minus_1": 0.65,
+        "ppg_t_minus_1_available": True,
+        "ppg_t_minus_2_available": True,
+        "snap_share_t_minus_1_available": True,
     }
 
     # Liquidity risk: MEDIUM_LIMITED_ESCAPE_HATCH (has 2027 2nd, missing 2026 2nd)

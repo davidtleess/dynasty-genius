@@ -37,6 +37,7 @@ class RosterAuditSignals(BaseModel):
     liquidity_risk: Optional[str] = None
     signal: Optional[str] = None
     signal_drivers: list[str] = Field(default_factory=list)
+    age_value_context: Optional[str] = None
     caveats: list[str] = Field(default_factory=list)
     decision_supported: bool = False
 
@@ -96,4 +97,5 @@ class PlayerValueObject(BaseModel):
 
     # ── Provenance ────────────────────────────────────────────────────────────
     assembled_at: Optional[str] = None
+    source_season: Optional[int] = None
     source_versions: dict[str, str] = Field(default_factory=dict)
