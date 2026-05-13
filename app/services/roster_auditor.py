@@ -6,6 +6,7 @@ from typing import Optional, Union
 import httpx
 
 from app.data.sleeper import get_user, get_leagues, get_rosters, get_all_players
+from app.services.engine_b_service import score_inference_partition
 from src.dynasty_genius.adapters.nflreadpy_qb_adapter import fetch_qb_nfl_stats
 from src.dynasty_genius.models.engine_a_contract import QB_CONTEXT_COLUMNS
 from src.dynasty_genius.models.league_context import LeagueContext
@@ -36,8 +37,8 @@ SEASON_ENV = "DYNASTY_SEASON"
 
 CLIFF_AGES = {"RB": 26, "WR": 28, "TE": 30, "QB": 33}
 SKILL_POSITIONS = set(CLIFF_AGES.keys())
-ENGINE = "roster_age_curve_auditor"
-ROSTER_CAVEATS = ["age_curve_only", "no_usage_signal", "no_market_overlay"]
+ENGINE = "roster_auditor_v2"
+ROSTER_CAVEATS = ["no_market_overlay"]
 INTERNAL_VALUE_KEYS = ("internal_valuation", "internal_value", "dynasty_value_score")
 SIGNAL_DRIVERS = {
     "past_cliff": "age_past_position_cliff",
@@ -45,9 +46,14 @@ SIGNAL_DRIVERS = {
     "approaching_cliff": "age_within_two_years_of_position_cliff",
     "no_age_signal": "age_not_near_position_cliff",
 }
+
+# Superflex PPR per-season PPG anchors for trade-signal classification.
+# A player projecting at or above this threshold is "above average" for their position.
+# Display-only constants — never model features.
+_ABOVE_AVG_PPG_THRESHOLD = {"QB": 18.0, "RB": 12.0, "WR": 12.0, "TE": 8.0}
 NOT_DECISION_GRADE_REASON = (
-    "Roster audit is age-curve-only until Engine B usage, efficiency, and market "
-    "signals are available."
+    "Roster audit includes age-curve and active-player forecasting (Engine B), "
+    "but market signals are currently excluded."
 )
 
 
@@ -79,6 +85,32 @@ def _internal_value(player: dict) -> Optional[float]:
         if value is not None:
             return float(value)
     return None
+
+
+def _cliff_trade_signal(signal: str, predicted_ppg: Optional[float], position: str) -> str:
+    """Cliff-contextualized trade signal from cliff proximity + Engine B projection.
+
+    Display-only annotation. Not a model output. Not market-derived.
+    Signal guide:
+      SELL_OFF                    — past cliff; value will deteriorate regardless of projection
+      SELL_HIGH_APPROACHING_CLIFF — above-average proj AND ≤2yr from cliff; sell to rebuilders
+      CHAMPIONSHIP_WINDOW         — above-average proj AND safely below cliff age
+      MONITOR_APPROACHING_CLIFF   — below-average proj AND ≤2yr from cliff; reassess
+      HOLD                        — below-average proj AND safely below cliff age
+      NO_PROJECTION               — no Engine B score; age-curve signal only
+    """
+    if signal == "past_cliff":
+        return "SELL_OFF"
+
+    if predicted_ppg is None:
+        return "NO_PROJECTION"
+
+    above_avg = predicted_ppg >= _ABOVE_AVG_PPG_THRESHOLD.get(position, 12.0)
+
+    if signal in ("at_cliff", "approaching_cliff"):
+        return "SELL_HIGH_APPROACHING_CLIFF" if above_avg else "MONITOR_APPROACHING_CLIFF"
+
+    return "CHAMPIONSHIP_WINDOW" if above_avg else "HOLD"
 
 
 def biological_debt_score(player: dict) -> Optional[float]:
@@ -259,12 +291,13 @@ async def get_my_roster(league_context: Optional[LeagueContext] = None) -> list[
             "position":  p.get("position", ""),
             "team":      p.get("team") or "FA",
             "age":       p.get("age"),
+            "gsis_id":   p.get("gsis_id"),
         })
 
     return players
 
 
-def audit_player(player: dict) -> Optional[dict]:
+def audit_player(player: dict, engine_b_score: Optional[dict] = None) -> Optional[dict]:
     position = player.get("position", "")
     if position not in SKILL_POSITIONS:
         return None
@@ -295,16 +328,29 @@ def audit_player(player: dict) -> Optional[dict]:
     if biological_debt is None:
         caveats.append("no_internal_value_signal")
 
+    if engine_b_score is None:
+        caveats.append("no_usage_signal")
+        caveats.append("age_curve_only")
+    elif engine_b_score.get("experimental"):
+        caveats.append("engine_b_experimental_v1_fallback")
+
+    predicted_ppg: Optional[float] = (
+        engine_b_score.get("predicted_avg_ppg_t1_t2") if engine_b_score else None
+    )
+    cliff_trade_signal = _cliff_trade_signal(signal, predicted_ppg, position)
+
     audited = {
         **player,
-        "cliff_age":      cliff_age,
-        "years_to_cliff": years_to_cliff,
-        "age_cliff_risk": cliff_risk,
+        "cliff_age":          cliff_age,
+        "years_to_cliff":     years_to_cliff,
+        "age_cliff_risk":     cliff_risk,
         "biological_debt_score": biological_debt,
-        "cliff_status":   cliff_status,
-        "signal":         signal,
-        "signal_drivers": [SIGNAL_DRIVERS[signal]],
-        "caveats":        caveats,
+        "cliff_status":       cliff_status,
+        "signal":             signal,
+        "signal_drivers":     [SIGNAL_DRIVERS[signal]],
+        "cliff_trade_signal": cliff_trade_signal,
+        "caveats":            caveats,
+        "engine_b_prediction": engine_b_score,
         "decision_supported": False,
     }
     return audited
@@ -377,9 +423,28 @@ def _build_qb_context_card(player: dict, bridge_entry: dict, telemetry: dict | N
 
 async def run_audit() -> dict:
     players = await get_my_roster()
-    audited = [audit_player(p) for p in players]
-    audited = [a for a in audited if a is not None]
+
+    # ── Engine B scoring ─────────────────────────────────────────────────────
+    # Engine B scores are generated BEFORE any market data is fetched.
+    # Market values (KTC, ADP, FantasyCalc) must only be appended AFTER this
+    # block and must never be passed into score_inference_partition() or
+    # predict_player_season(). Architecture gate enforced by test_market_overlay.py.
+    engine_b_scores = {s["player_id"]: s for s in score_inference_partition()}
+
+    audited = []
+    for p in players:
+        gsis_id = p.get("gsis_id")
+        score = engine_b_scores.get(gsis_id) if gsis_id else None
+        res = audit_player(p, engine_b_score=score)
+        if res:
+            audited.append(res)
+
     audited.sort(key=lambda p: p["years_to_cliff"])
+
+    # ── Market overlay attachment point (Phase 7+) ───────────────────────────
+    # KTC/FantasyCalc values are fetched here and appended side-by-side with
+    # Engine B predictions in the final payload. Market data does not re-enter
+    # the Engine B service layer. Source registry enforces market_overlay role.
 
     bridge = load_qb_identity_bridge()
     bridge_players = bridge.get("players", {})
