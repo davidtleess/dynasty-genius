@@ -1,0 +1,442 @@
+---
+spec: Phase 8 — Decision Surfaces over PVO
+version: 1.0.0
+date: 2026-05-13
+phase: 8
+status: draft
+governance_read:
+  - docs/governance/00-product-constitution.md v1.0.0
+  - docs/governance/01-north-star-architecture.md v1.0.0
+  - docs/governance/02-agent-operating-loop.md v1.0.0
+  - AGENT_SYNC.md 2026-05-12
+research_source: docs/Dynasty Genius Phase 8 Research Brief.md
+---
+
+# Phase 8 — Decision Surfaces over PVO
+
+## Context
+
+Phase 7 delivered a fully assembled Player Value Object. The `pvo_assembler.py` wires Engine A
+(rookie forecast) and Engine B v2 (QB/RB/WR) into a single canonical row. All 18 required PVO
+fields are present in `src/dynasty_genius/models/player_value_object.py`.
+
+The three existing decision-surface routes (`/roster/audit`, `/rookies/score`,
+`/trade/analyze`) currently bypass the PVO assembler and return ad-hoc service output. Phase 8
+corrects this: every surface reads from PVO and invents nothing of its own.
+
+This is the single governing rule for Phase 8:
+
+> Decision surfaces are read-only over the Player Value Object and league context.
+> No surface invents its own scoring logic.
+
+---
+
+## Non-Goals
+
+- No frontend polish. Cards are JSON API responses only.
+- No market overlay ingestion. `market_overlay` remains `None`.
+- No TE model diagnosis or retraining. TE stays experimental with explicit caveats.
+- No RB red zone feature expansion. That is a separate gated mini-spec.
+- No TE slot alignment ingestion. That is a separate gated mini-spec.
+- No Waiver Radar or League Pulse. Both require signals not yet available.
+- No composite validation gates (Step 0.5). That is a prerequisite for `model_grade` promotion.
+- No Trade Lab decision-grade output. The Trade Lab ships in experimental form only.
+
+---
+
+## Current State
+
+| Route | Current behavior | Phase 8 target |
+|---|---|---|
+| `GET /roster/audit` | Calls `roster_auditor.py` directly; returns heuristic envelope | Calls `pvo_assembler` per player; wraps PVO array |
+| `POST /rookies/score` | Calls `rookie_evaluator.score_prospect`; returns ad-hoc dict | Calls `pvo_assembler.assemble_pvo`; returns PVO |
+| `POST /rookies/score-class` | Calls `rookie_evaluator.score_draft_class`; returns list of dicts | Calls assembler per prospect; returns list of PVOs |
+| `POST /trade/analyze` | Calls trade analyzer; returns heuristic envelope | Calls assembler per asset; returns delta-status envelope |
+
+---
+
+## Surface Build Order and Gate Criteria
+
+Build in this sequence. Do not advance a surface until its gate is met.
+
+### 8.1 — Roster Audit (first)
+
+**Gate:** Engine B v2 is promoted for QB/RB/WR. Age cliff signals exist in `RosterAuditSignals`.
+Both conditions are true. This surface ships now.
+
+**What it delivers:** For each player on David's roster, a PVO-backed card carrying
+`projection_2y`, `age_value_context`, cliff risk flags, and explicit caveats. No action
+labels. No market values.
+
+### 8.2 — Rookie Board (second)
+
+**Gate:** Engine A scores every prospect through `pvo_assembler`. Gate is met once
+`POST /rookies/score` returns a full PVO shape rather than the ad-hoc dict.
+
+**What it delivers:** Per-prospect PVO cards ranked by `dynasty_value_score` with
+draft capital primacy, `age_at_nfl_entry` context, `threshold_flags`, `top_drivers`,
+and `counter_argument`. Replaces the current ad-hoc rookie dict.
+
+### 8.3 — Trade Lab (third, experimental only)
+
+**Gate:** Both sides of a trade can be scored by PVO assembler. This requires that
+active players resolve through Engine B and prospects resolve through Engine A.
+
+**What it delivers:** Per-asset PVO breakdown for each side of a trade, plus a
+`delta_status` field derived from confidence interval overlap. No win/loss verdict.
+No side totals. `decision_supported = False` until calibrated uncertainty bands exist.
+
+### 8.4 — Waiver Radar (deferred)
+
+**Gate:** Year-1 snap percentage, route participation, and target share are ingested.
+Do not implement until those source adapters are contracted.
+
+### 8.5 — League Pulse (deferred)
+
+**Gate:** Sleeper transaction history is ingested and opponent rosters are scored.
+Do not implement until transaction log adapter ships.
+
+---
+
+## Shared Design Rules
+
+These rules apply to every Phase 8 surface.
+
+### Rule 1: PVO is the only source of scores
+
+Routes call `pvo_assembler.assemble_pvo()`. They do not call model inference directly,
+do not recompute age curves, and do not re-derive `top_drivers`. If a field is not in
+the PVO, the surface does not emit it.
+
+### Rule 2: Decompose the score
+
+`dynasty_value_score` never stands alone. Every card must couple the score with at
+least `top_drivers` (top 2) and the most critical `risk_flags` entry. If both are
+empty, the card must explain why via `caveats`.
+
+### Rule 3: Mandate the counter-argument
+
+Every card with a non-null `dynasty_value_score` must expose `counter_argument`. The
+field is already generated by `pvo_assembler` via `generate_counter_argument()`. Routes
+must not strip it.
+
+### Rule 4: No banned output fields
+
+The following fields must never appear in Phase 8 API responses:
+
+| Banned field | Banned values |
+|---|---|
+| `action` | "Sell now", "Shop actively", "Hold", "Cut" |
+| `dynasty_tier` | "Elite", "Starter", "Depth", "Bust" |
+| `verdict` | "Strong win", "Win", "Fair", "Loss" |
+| `confidence` (legacy pick-bucket) | any value |
+| `my_total` / `their_total` | any value |
+
+These are governance violations. Contract tests must reject them.
+
+### Rule 5: TE caveats are mandatory
+
+Any PVO with `position = "TE"` must carry `"engine_b_experimental_v1_fallback"` in
+`caveats` and `model_grade = "EXPERIMENTAL"`. Routes must not suppress this.
+`decision_supported` for TEs must be `False`.
+
+### Rule 6: Age cliff warnings are risk flags, not instructions
+
+Age cliff context lives in `roster_audit.age_value_context` (e.g.,
+`"approaching_cliff_high_projection"`) and in `risk_flags` (e.g.,
+`"age_26_cliff_rb"`). These are display warnings. They must never be paired with
+action verbs in the API response.
+
+### Rule 7: Uncertainty widens over time
+
+Where projections are shown, surface-level documentation must state that
+`projection_1y` confidence is tighter than `projection_2y` and `projection_3y`.
+Until calibrated quantile errors exist, `confidence_band` remains `None` and the
+API must say so explicitly in `caveats` via `"no_calibrated_confidence_band"`.
+
+---
+
+## Surface 8.1: Roster Audit
+
+### API contract
+
+`GET /roster/audit` must return:
+
+```json
+{
+  "status": "active",
+  "engine": "pvo_assembler_v1",
+  "decision_supported": false,
+  "reason": "Roster audit uses Engine B active-player projections and age curve signals. Market overlay is excluded.",
+  "caveats": ["no_market_overlay"],
+  "players": [
+    {
+      "player_id": "...",
+      "full_name": "...",
+      "position": "RB",
+      "nfl_team": "KC",
+      "age": 27.2,
+      "model_grade": "ACTIVE_B",
+      "signal_completeness": 0.83,
+      "dynasty_value_score": null,
+      "projection_2y": 11.4,
+      "top_drivers": ["weighted_opportunity", "route_participation"],
+      "risk_flags": ["age_26_cliff_rb"],
+      "counter_argument": "...",
+      "caveats": ["no_calibrated_confidence_band", "no_market_overlay"],
+      "roster_audit": {
+        "cliff_age": 26,
+        "years_to_cliff": -1,
+        "age_cliff_risk": 0.72,
+        "biological_debt_score": 1.4,
+        "liquidity_risk": "high",
+        "signal": "past_cliff",
+        "signal_drivers": ["age_past_position_cliff"],
+        "age_value_context": "past_cliff_high_projection",
+        "caveats": ["no_market_overlay"],
+        "decision_supported": false
+      },
+      "decision_supported": false
+    }
+  ]
+}
+```
+
+### What changes in the route
+
+The `/roster/audit` route currently calls `roster_auditor.py` and returns a raw
+heuristic envelope. Phase 8 replaces this with:
+
+1. Fetch David's roster from Sleeper via `LeagueContext`.
+2. For each player, call `pvo_assembler.assemble_pvo(identity, features)`.
+3. Return the array of PVO objects wrapped in the envelope above.
+4. TE players must carry `engine_b_experimental_v1_fallback` in their `caveats`.
+
+The `roster_auditor.py` service is not deleted. It remains the `audit_player()`
+call inside `pvo_assembler._build_roster_audit_signals()`. The route simply stops
+calling it directly and delegates to the assembler.
+
+### Value Above Replacement display field (optional in 8.1)
+
+If `LeagueContext.league_size` and `LeagueContext.starters` are available, the route
+may compute a display-only `value_above_replacement` field per player:
+
+```
+replacement_dynasty_value = sorted(roster_pvo_list, key=dynasty_value_score)[N]
+where N = league_size × starters_per_position[position]
+
+value_above_replacement = player.dynasty_value_score - replacement_dynasty_value
+```
+
+This field is display context only. It is derived from PVO scores, not a separate
+model. If `dynasty_value_score` is `None` for a position, `value_above_replacement`
+is also `None`.
+
+---
+
+## Surface 8.2: Rookie Board
+
+### API contract
+
+`POST /rookies/score` must return the full PVO shape. The current ad-hoc dict is
+retired.
+
+```json
+{
+  "player_id": "dg_...",
+  "full_name": "...",
+  "position": "WR",
+  "age": 21.4,
+  "is_prospect": true,
+  "nfl_draft_pick": 18,
+  "nfl_draft_round": 1,
+  "engine_used": "engine_a",
+  "model_version": "...",
+  "model_grade": "PRE_MODEL",
+  "dynasty_value_score": 72.3,
+  "projection_1y": null,
+  "projection_2y": null,
+  "projection_3y": null,
+  "signal_completeness": 0.67,
+  "inputs_present": ["draft_capital", "age_at_nfl_entry"],
+  "inputs_missing": ["college_dominator_rating", "yprr"],
+  "top_drivers": [
+    {"feature": "draft_capital", "contribution": 8.4, "direction": "positive"},
+    {"feature": "age_at_nfl_entry", "contribution": 1.6, "direction": "positive"}
+  ],
+  "risk_flags": ["low_sample_dominator_missing"],
+  "counter_argument": "Score is dominated by draft capital; college production and athleticism context are not yet ingested.",
+  "caveats": ["no_calibrated_confidence_band", "college_production_missing"],
+  "roster_audit": null,
+  "market_overlay": null,
+  "decision_supported": false,
+  "assembled_at": "2026-05-13T...",
+  "source_season": null,
+  "source_versions": {}
+}
+```
+
+### What changes in the route
+
+`POST /rookies/score` currently calls `rookie_evaluator.score_prospect()` and
+returns a raw dict that wraps a `DynastyValuation`. Phase 8 replaces this with
+a direct call to `pvo_assembler.assemble_pvo()` with `is_prospect=True`.
+
+The `ProspectRequest` model maps to the `features` dict consumed by the assembler:
+
+```python
+features = {
+    "pick": prospect.pick,
+    "round": prospect.round,
+    "age": prospect.age,
+    "draft_capital": prospect.pick,       # assembler alias
+    "age_at_nfl_entry": prospect.age,     # assembler alias
+}
+```
+
+The `name` field routes to `PlayerIdentity.full_name`.
+
+`POST /rookies/score-class` iterates the same path per prospect and returns a
+list of PVOs sorted by `dynasty_value_score` descending.
+
+### Retired fields
+
+The following fields from the current rookie dict must not appear in Phase 8 output:
+
+- `projected_outcome_band` — banned until `model_grade ≥ B` (unreachable until
+  composite gates ship)
+- `confidence` — permanently removed (legacy pick-bucket field)
+- `valuation` nested sub-dict — PVO is the envelope; no sub-envelope
+
+---
+
+## Surface 8.3: Trade Lab (experimental)
+
+### Delta status formula
+
+The Trade Lab may not emit win/loss verdicts. It emits `delta_status`, derived from
+the overlap of the PVO projection confidence ranges on both sides.
+
+Until calibrated quantile errors exist, the RMSE from the Engine B validation report
+serves as the uncertainty proxy per position:
+
+```
+side_uncertainty(assets) = sqrt(sum(rmse_position[asset.position]^2 for asset in assets))
+
+left_interval  = (sum_projection_2y_left  - side_uncertainty_left,
+                  sum_projection_2y_left  + side_uncertainty_left)
+right_interval = (sum_projection_2y_right - side_uncertainty_right,
+                  sum_projection_2y_right + side_uncertainty_right)
+
+if intervals overlap significantly (>50% of the narrower interval):
+    delta_status = "Within_Model_Error"
+elif left > right (no overlap):
+    delta_status = "Likely_Favors_You"
+else:
+    delta_status = "Likely_Favors_Opponent"
+```
+
+This replaces side totals and verdicts. The status communicates whether the trade
+has a statistically meaningful edge given current model precision.
+
+### API contract
+
+`POST /trade/analyze` must return:
+
+```json
+{
+  "status": "experimental",
+  "decision_supported": false,
+  "reason": "Trade output is experimental. Confidence bands are RMSE-proxied, not calibrated.",
+  "caveats": [
+    "no_calibrated_confidence_band",
+    "no_market_overlay",
+    "rmse_proxy_uncertainty"
+  ],
+  "delta_status": "Within_Model_Error | Likely_Favors_You | Likely_Favors_Opponent",
+  "my_assets": [ /* array of PVO objects */ ],
+  "their_assets": [ /* array of PVO objects */ ],
+  "uncertainty_note": "RMSE QB=4.51, RB=3.58, WR=2.89. TE model is experimental."
+}
+```
+
+Banned fields in Trade Lab responses:
+- `verdict`
+- `my_total` / `their_total`
+- `difference`
+- Any field mapping to "Win", "Loss", "Fair"
+
+---
+
+## TE Caveat Pattern
+
+Every TE card — in any surface — must conform to this pattern:
+
+```json
+{
+  "model_grade": "EXPERIMENTAL",
+  "caveats": ["engine_b_experimental_v1_fallback", "no_calibrated_confidence_band"],
+  "decision_supported": false,
+  "roster_audit": {
+    "caveats": ["engine_b_experimental_v1_fallback"],
+    "decision_supported": false
+  }
+}
+```
+
+The UI (when it ships) must render TE cards with a visible experimental indicator.
+Until it does, the caveats field carries this signal for any API consumer.
+
+---
+
+## Testing Requirements
+
+Add or update tests to prove:
+
+1. `GET /roster/audit` returns an array of PVO-shaped objects, not the old heuristic
+   dict.
+2. `POST /rookies/score` returns a PVO-shaped object, not the old ad-hoc dict with
+   a nested `valuation` key.
+3. `POST /rookies/score-class` returns a list of PVOs sorted by
+   `dynasty_value_score` descending.
+4. `POST /trade/analyze` returns `delta_status` and not `verdict`, `my_total`, or
+   `their_total`.
+5. No Phase 8 route response contains any banned field (action, verdict, dynasty_tier,
+   confidence, my_total, their_total).
+6. TE players in any surface carry `"engine_b_experimental_v1_fallback"` in `caveats`
+   and `model_grade = "EXPERIMENTAL"`.
+7. `counter_argument` is non-null for any card with a non-null `dynasty_value_score`.
+8. `market_overlay` is `None` on all Phase 8 responses.
+9. `decision_supported` is `False` on all Phase 8 responses.
+10. `value_above_replacement`, when present, is `None` for players with
+    `dynasty_value_score = None`.
+
+Use `.venv/bin/python3.14 -m pytest -q` for all verification.
+
+---
+
+## Acceptance Criteria
+
+- `GET /roster/audit` serves PVO objects assembled by `pvo_assembler`.
+- `POST /rookies/score` and `/score-class` serve PVO objects.
+- `POST /trade/analyze` emits `delta_status`; never emits `verdict` or side totals.
+- All banned fields are absent from responses; contract tests enforce this.
+- TE experimental caveats propagate to all three surfaces.
+- Counter-argument is present on all scored cards.
+- Full suite passes: `.venv/bin/python3.14 -m pytest -q`.
+- `AGENT_SYNC.md` and daily ledger updated before any PR is opened.
+
+---
+
+## Open Follow-On Work (Not Phase 8)
+
+| Item | Track |
+|---|---|
+| RB red zone feature expansion (`red_zone_touches`, `targets_per_game`) | Separate mini-spec + backtest gate |
+| TE slot alignment from Next Gen Stats (`slot_snap_pct`, `route_participation`) | Separate data adapter spec |
+| Calibrated confidence bands (quantile error, not RMSE proxy) | Step 0.5 composite gates prerequisite |
+| `model_grade` promotion to B (composite gates) | Step 0.5 |
+| Market overlay ingestion (KTC/FantasyCalc) | Phase 9 |
+| Waiver Radar | Gated on snap/route/target ingestion |
+| League Pulse (opponent archetypes, VAR distribution) | Gated on Sleeper transaction log adapter |
+| Frontend card rendering | Phase 12 (last) |
