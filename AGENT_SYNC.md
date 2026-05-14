@@ -1,15 +1,15 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-05-13
+Last updated: 2026-05-14
 
 ## Active Phase
 
-Phase 9 — Market Overlay (IMPLEMENTATION COMPLETE — PR pending review)
+Phase 9 — Market Overlay (MERGED → main)
 
 ## Current Sprint Objective
 
-Phase 9 Market Overlay: COMPLETE on `feature/phase9-market-overlay`. PR open for Codex review.
+Phase 9 Market Overlay: MERGED → main (PR #25, merged 2026-05-14). 376 tests passed.
 Spec at `docs/superpowers/specs/2026-05-13-phase9-market-overlay.md`.
 
 Phase 8 COMPLETE (8.1 + 8.2 + 8.3): decision surfaces wired read-only over PVO. 339 tests.
@@ -41,11 +41,11 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 - PR #22 (`phase5/engine-b-contracts`): CLOSED, superseded by PR #23.
 - PR #23 (`engine-b/service-integration`): MERGED → main `55f1351`. Engine B v1 dataset, training, service/API integration, roster auditor wiring, and governance decision record.
 - PR #24 (`phase6/engine-b-v2`): MERGED → main `762e50c`. Engine B v2 position-stratified models (QB/RB/WR promoted, TE experimental), v2 manifest routing, per-position feature contracts, Stage 6.1 control, 4 Codex blockers resolved.
+- PR #25 (`feature/phase9-market-overlay`): MERGED → main `c04d9bf`. FC adapter (numQbs=2 fix, 3-stage cache, banned-field sanitization), divergence engine (percentile-rank, 5 flags, position caveats), VAR computation, surface wiring (Roster Audit, Rookie Board, Trade Lab), 14 contract tests + 25 unit tests; 376 tests total.
 
 ## Open PRs / Branches
 
 - Older open hygiene/governance PRs: PR #2, PR #3, PR #9 — do not close without David's instruction
-- Phase 8 PRs pending merge (8.1, 8.2, 8.3)
 
 ## Engine B v1 Final State
 
@@ -83,11 +83,8 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 
 ## Next Recommended Work
 
-1. **Merge Phase 9 PR** — Codex review + merge `feature/phase9-market-overlay` → main.
-2. **NOISE_BAND calibration** — Review after 1–2 months. If >80% of flags are `aligned`, tighten to 0.08.
-3. **Prospect sleeper_id join** — Rookie Board overlay currently null for pre-draft prospects (no sleeper_id). Phase 9.5: name-based or draft-pick-based FC lookup.
-4. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate (separate track).
-5. **TE diagnosis** — role heterogeneity, slot alignment adapter (separate track).
-5. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate (separate track).
-6. **TE diagnosis** — role heterogeneity, slot alignment adapter (separate track).
-7. **Composite validation gates (Step 0.5)** — prerequisite for model_grade promotion.
+1. **NOISE_BAND calibration** — Review after 1–2 months. If >80% of flags are `aligned`, tighten to 0.08.
+2. **Prospect sleeper_id join** — Rookie Board overlay currently null for pre-draft prospects (no sleeper_id). Phase 9.5: name-based or draft-pick-based FC lookup.
+3. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate (separate track).
+4. **TE diagnosis** — role heterogeneity, slot alignment adapter (separate track).
+5. **Composite validation gates (Step 0.5)** — prerequisite for model_grade promotion.
