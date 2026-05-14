@@ -26,6 +26,8 @@ logs/
 leakage_violation_report.json
 join_ambiguity_report.json
 app/cache/
+# Prospect identity review log — operational state, append-only, not source code
+app/data/prospect_identity_review.jsonl
 app/data/cache/**
 !app/data/cache/
 !app/data/cache/**/
