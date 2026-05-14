@@ -121,3 +121,15 @@ def test_market_overlay_schema_has_divergence_fields():
 def test_market_overlay_default_source_is_fantasycalc():
     overlay = MarketOverlay()
     assert overlay.source == "fantasycalc"
+
+
+def test_ktc_market_source_raises_not_implemented():
+    from src.dynasty_genius.adapters.market_source import KTCMarketSource
+    source = KTCMarketSource()
+    with pytest.raises(NotImplementedError, match="KTC"):
+        source.fetch()
+
+
+def test_fantasycalc_market_source_is_subclass_of_market_source():
+    from src.dynasty_genius.adapters.market_source import MarketSource, FantasyCalcMarketSource
+    assert issubclass(FantasyCalcMarketSource, MarketSource)
