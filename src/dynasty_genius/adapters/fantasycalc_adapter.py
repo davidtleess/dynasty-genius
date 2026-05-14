@@ -11,7 +11,7 @@ Market values are post-scoring overlays only — never Engine A/B features.
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +24,15 @@ API_URL = (
 
 CACHE_DIR = Path("app/cache/fantasycalc")
 CACHE_FILE = CACHE_DIR / "market_values.json"
+
+_BANNED_CACHE_FIELDS = frozenset({
+    "combinedValue", "redraftValue", "redraftDynastyValueDifference"
+})
+
+
+def _sanitize_entries_for_cache(entries: list[dict]) -> list[dict]:
+    """Strip banned fields from raw FC entries before disk write."""
+    return [{k: v for k, v in entry.items() if k not in _BANNED_CACHE_FIELDS} for entry in entries]
 
 
 def _current_ttl_hours() -> int:
@@ -51,7 +60,7 @@ def _save_cache(data: list[dict], ttl_hours: int) -> None:
     try:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         CACHE_FILE.write_text(json.dumps({
-            "fetched_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "ttl_hours": ttl_hours,
             "data": data,
         }))
@@ -66,8 +75,8 @@ def fetch_with_cache() -> tuple[list[dict], list[str]]:
 
     if cached:
         try:
-            fetched_at = datetime.strptime(cached["fetched_at"], "%Y-%m-%dT%H:%M:%SZ")
-            age_hours = (datetime.utcnow() - fetched_at).total_seconds() / 3600
+            fetched_at = datetime.strptime(cached["fetched_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            age_hours = (datetime.now(timezone.utc) - fetched_at).total_seconds() / 3600
             if age_hours < ttl_hours:
                 # Stage 1: fresh
                 return cached["data"], ["source_timestamp_is_fetch_time_not_publish_time"]
@@ -83,7 +92,7 @@ def fetch_with_cache() -> tuple[list[dict], list[str]]:
             data = data["players"]
         if not isinstance(data, list):
             data = []
-        _save_cache(data, ttl_hours)
+        _save_cache(_sanitize_entries_for_cache(data), ttl_hours)
         return data, ["source_timestamp_is_fetch_time_not_publish_time"]
     except Exception:
         pass
@@ -92,8 +101,8 @@ def fetch_with_cache() -> tuple[list[dict], list[str]]:
         # Stage 2: stale serve
         fetched_at_str = cached.get("fetched_at", "unknown")
         try:
-            fetched_at = datetime.strptime(fetched_at_str, "%Y-%m-%dT%H:%M:%SZ")
-            stale_h = int((datetime.utcnow() - fetched_at).total_seconds() / 3600)
+            fetched_at = datetime.strptime(fetched_at_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            stale_h = int((datetime.now(timezone.utc) - fetched_at).total_seconds() / 3600)
         except Exception:
             stale_h = -1
         return cached["data"], [

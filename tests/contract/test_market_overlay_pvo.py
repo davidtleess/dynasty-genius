@@ -82,9 +82,17 @@ def test_normalized_entry_excludes_combined_and_redraft_values():
 
 # ── Test 3: divergence_flag is always a valid value ───────────────────────────
 
+def _rb_cohort(pvo: PlayerValueObject) -> list[PlayerValueObject]:
+    """Pad to MIN_COHORT_SIZE so percentile math fires."""
+    return [pvo] + [
+        _pvo(f"NOFCMATCH_{i}", "RB", float(10 + i))
+        for i in range(4)
+    ]
+
+
 def test_divergence_flag_is_valid_for_scored_player():
     pvo = _pvo("9509", "RB", 15.0, age=24.2)
-    compute_divergence([pvo], FIXTURE)
+    compute_divergence(_rb_cohort(pvo), FIXTURE)
     assert pvo.market_overlay is not None
     assert pvo.market_overlay.divergence_flag in VALID_FLAGS
 
@@ -112,7 +120,12 @@ def test_rookie_no_projection_gets_model_uninformative_flag():
 def test_rb_cliff_watch_caveat_when_model_above_market_at_27():
     veteran = _pvo("6543", "RB", 20.0, age=27.5)
     younger = _pvo("9509", "RB", 10.0, age=24.2)
-    compute_divergence([veteran, younger], FIXTURE)
+    # Pad to MIN_COHORT_SIZE
+    cohort = [veteran, younger] + [
+        _pvo(f"NOFCMATCH_{i}", "RB", float(8 + i))
+        for i in range(3)
+    ]
+    compute_divergence(cohort, FIXTURE)
     assert veteran.market_overlay is not None
     if veteran.market_overlay.divergence_flag == "model_higher_than_market":
         assert "rb_cliff_watch" in veteran.market_overlay.caveats
@@ -166,7 +179,7 @@ def test_no_banned_fields_in_overlay_model_dump():
 
 def test_both_percentiles_present_for_scored_player():
     pvo = _pvo("9509", "RB", 15.0, age=24.2)
-    compute_divergence([pvo], FIXTURE)
+    compute_divergence(_rb_cohort(pvo), FIXTURE)
     assert pvo.market_overlay.model_percentile is not None
     assert pvo.market_overlay.market_percentile is not None
 

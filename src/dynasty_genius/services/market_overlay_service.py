@@ -10,7 +10,7 @@ training or inference. This module only writes to PVO.market_overlay.
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -18,6 +18,10 @@ if TYPE_CHECKING:
 
 # 10 percentile points ≈ one dynasty tier. Configurable — review after 2 months.
 NOISE_BAND: float = 0.10
+
+# Minimum number of same-position PVOs required to produce a reliable model percentile.
+# Trade Lab (2 assets) and single-player lookups always fall below this — correct behavior.
+MIN_COHORT_SIZE: int = 5
 
 # 12-team Superflex PPR replacement baselines (from Phase 9 spec)
 _VAR_REPLACEMENT_LEVEL: dict[str, int] = {
@@ -49,9 +53,8 @@ def pct_rank(values: list[float], x: float) -> float:
     return (less + 0.5 * equal) / n
 
 
-def _classify_flag(delta: float, pvo: "PlayerValueObject") -> str:
-    if pvo.model_grade == "EXPERIMENTAL" or pvo.position == "TE":
-        return "model_unreliable"
+def _classify_flag(delta: float) -> str:
+    """Classify divergence for non-TE, non-EXPERIMENTAL, adequately-cohorted players."""
     if abs(delta) < NOISE_BAND:
         return "aligned"
     return "model_higher_than_market" if delta > 0 else "model_lower_than_market"
@@ -101,7 +104,7 @@ def compute_divergence(pvo_list: list["PlayerValueObject"], fc_response: list[di
     """
     from src.dynasty_genius.models.player_value_object import MarketOverlay
 
-    fetch_ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    fetch_ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Build FC lookup and per-position market cohort from full response
     fc_by_sleeper: dict[str, dict] = {}
@@ -150,10 +153,22 @@ def compute_divergence(pvo_list: list["PlayerValueObject"], fc_response: list[di
             continue
 
         position = pvo.position or ""
+
+        # TE and EXPERIMENTAL: always model_unreliable — no percentile math needed
+        if pvo.model_grade == "EXPERIMENTAL" or position == "TE":
+            overlay.divergence_flag = "model_unreliable"
+            overlay.caveats += _attach_position_caveats(pvo, "model_unreliable", 0.0)
+            continue
+
         market_cohort = fc_market_by_position.get(position, [])
         model_cohort = model_vals_by_position.get(position, [])
 
         if not market_cohort or not model_cohort:
+            continue
+
+        # Guard: model percentile is unreliable on small surface subsets (e.g. Trade Lab)
+        if len(model_cohort) < MIN_COHORT_SIZE:
+            overlay.caveats.append("model_cohort_too_small")
             continue
 
         m_pct = pct_rank(model_cohort, pvo.projection_2y)
@@ -163,17 +178,24 @@ def compute_divergence(pvo_list: list["PlayerValueObject"], fc_response: list[di
         overlay.model_percentile = round(m_pct, 3)
         overlay.market_percentile = round(k_pct, 3)
         overlay.model_minus_market_delta = delta
-        flag = _classify_flag(delta, pvo)
+        flag = _classify_flag(delta)
         overlay.divergence_flag = flag
         overlay.caveats += _attach_position_caveats(pvo, flag, delta)
 
 
 def enrich_pvo_list_with_market_overlay(pvo_list: list["PlayerValueObject"]) -> None:
-    """Fetch FC data (cached) and compute divergence. Mutates each PVO in place."""
+    """Fetch FC data (cached), compute divergence, and compute VAR. Mutates each PVO in place."""
     from src.dynasty_genius.adapters.fantasycalc_adapter import fetch_with_cache
-    fc_data, _caveats = fetch_with_cache()
+    fc_data, fetch_caveats = fetch_with_cache()
     if fc_data:
         compute_divergence(pvo_list, fc_data)
+        # Propagate freshness caveats (stale_market_data, etc.) to matched overlays
+        for pvo in pvo_list:
+            if pvo.market_overlay is not None:
+                for caveat in fetch_caveats:
+                    if caveat not in pvo.market_overlay.caveats:
+                        pvo.market_overlay.caveats.append(caveat)
+    compute_value_above_replacement(pvo_list)
 
 
 def compute_value_above_replacement(

@@ -193,9 +193,9 @@ def test_fetch_with_cache_stage3_cold_fail(tmp_path, monkeypatch):
 
 def test_fetch_with_cache_stage2_stale_serve(tmp_path, monkeypatch):
     """Stage 2: expired cache + API failure → stale data + stale_market_data caveat."""
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
-    old_ts = (datetime.utcnow() - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    old_ts = (datetime.now(timezone.utc) - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
     cache_file = tmp_path / "market_values.json"
     cache_file.write_text(json.dumps({
         "fetched_at": old_ts,
@@ -259,7 +259,12 @@ def test_compute_divergence_sets_divergence_flag_aligned():
     from src.dynasty_genius.services.market_overlay_service import compute_divergence
     fixture = _load_fixture()
     pvo = _make_pvo("p1", "9509", "RB", projection_2y=15.0, age=24.2)
-    compute_divergence([pvo], fixture)
+    # Pad to meet MIN_COHORT_SIZE (5) — only pvo matches FC
+    cohort = [pvo] + [
+        _make_pvo(f"pad{i}", f"NOFCMATCH_{i}", "RB", projection_2y=float(10 + i))
+        for i in range(4)
+    ]
+    compute_divergence(cohort, fixture)
     assert pvo.market_overlay is not None
     assert pvo.market_overlay.market_value == 10503
     assert pvo.market_overlay.divergence_flag in (
@@ -296,7 +301,12 @@ def test_compute_divergence_rb_cliff_watch():
     fixture = _load_fixture()
     pvo = _make_pvo("p4", "6543", "RB", projection_2y=20.0, age=27.5)
     younger = _make_pvo("p5", "9509", "RB", projection_2y=15.0, age=24.2)
-    compute_divergence([pvo, younger], fixture)
+    # Pad to meet MIN_COHORT_SIZE (5)
+    cohort = [pvo, younger] + [
+        _make_pvo(f"pad{i}", f"NOFCMATCH_{i}", "RB", projection_2y=float(10 + i))
+        for i in range(3)
+    ]
+    compute_divergence(cohort, fixture)
     assert pvo.market_overlay is not None
     if pvo.market_overlay.divergence_flag == "model_higher_than_market":
         assert "rb_cliff_watch" in pvo.market_overlay.caveats
@@ -316,6 +326,56 @@ def test_compute_divergence_source_timestamp_caveat():
     pvo = _make_pvo("p7", "9509", "RB", projection_2y=15.0, age=24.2)
     compute_divergence([pvo], fixture)
     assert "source_timestamp_is_fetch_time_not_publish_time" in pvo.market_overlay.caveats
+
+
+def test_compute_divergence_small_cohort_skips_percentile():
+    """Single player surface: market_value still populated, but no percentile or flag."""
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p1", "9509", "RB", projection_2y=15.0, age=24.2)
+    compute_divergence([pvo], fixture)  # cohort size = 1 < MIN_COHORT_SIZE
+    assert pvo.market_overlay is not None
+    assert pvo.market_overlay.market_value == 10503   # FC display fields still set
+    assert "model_cohort_too_small" in pvo.market_overlay.caveats
+    assert pvo.market_overlay.divergence_flag is None
+    assert pvo.market_overlay.model_percentile is None
+
+
+def test_enrich_propagates_stale_caveat_to_overlays(tmp_path, monkeypatch):
+    """Stage 2 stale cache: stale_market_data reaches PVO overlay."""
+    from datetime import datetime, timedelta, timezone
+    from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
+
+    old_ts = (datetime.now(timezone.utc) - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cache_file = tmp_path / "market_values.json"
+    cache_file.write_text(json.dumps({
+        "fetched_at": old_ts,
+        "ttl_hours": 24,
+        "data": _load_fixture(),
+    }))
+    monkeypatch.setattr("src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_FILE", cache_file)
+
+    with patch("httpx.get", side_effect=Exception("network error")):
+        pvos = [_make_pvo("p1", "9509", "RB", projection_2y=15.0, age=24.2)]
+        enrich_pvo_list_with_market_overlay(pvos)
+
+    assert pvos[0].market_overlay is not None
+    assert "stale_market_data" in pvos[0].market_overlay.caveats
+
+
+def test_enrich_computes_var():
+    """enrich_pvo_list_with_market_overlay wires VAR even when FC is unavailable."""
+    from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
+
+    with patch(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.fetch_with_cache",
+        return_value=([], ["market_data_unavailable"]),
+    ):
+        pvos = [_make_pvo("p1", "s1", "RB", projection_2y=15.0)]
+        pvos[0].dynasty_value_score = 80.0
+        enrich_pvo_list_with_market_overlay(pvos)
+
+    assert pvos[0].value_above_replacement is not None
 
 
 # ── Phase 9.3 VAR + seasonal tests ───────────────────────────────────────────
