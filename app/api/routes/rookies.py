@@ -1,3 +1,6 @@
+from datetime import date
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -13,14 +16,25 @@ class ProspectRequest(BaseModel):
     pick: int
     round: int
     age: float
+    sleeper_id: Optional[str] = None
+    draft_class: Optional[int] = None
 
 
 def _map_prospect_to_pvo(prospect: ProspectRequest):
+    from src.dynasty_genius.adapters.prospect_identity_resolver import resolve_prospect_sleeper_id
+    draft_class = prospect.draft_class or date.today().year
+    resolved_sid, _ = resolve_prospect_sleeper_id(
+        prospect.name,
+        prospect.position,
+        draft_class,
+        explicit_sleeper_id=prospect.sleeper_id,
+    )
     identity = PlayerIdentity(
         dg_id=f"prospect_{prospect.position}_{prospect.pick}",
         full_name=prospect.name,
         position=prospect.position,
         nfl_team=None,
+        sleeper_id=resolved_sid,
         verification_status="UNVERIFIED"
     )
     features = {

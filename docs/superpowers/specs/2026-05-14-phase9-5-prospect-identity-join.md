@@ -3,7 +3,7 @@ document: Phase 9.5 — Prospect Identity Join
 version: 1.0.0
 last_updated: 2026-05-14
 author: Claude Code
-status: APPROVED FOR IMPLEMENTATION
+status: APPROVED FOR IMPLEMENTATION (patched 2026-05-14 — examples corrected to true 2026 class)
 phase: 9.5
 depends_on: Phase 9 (Market Overlay, PR #25 merged)
 ---
@@ -48,16 +48,26 @@ If Stage 2 fails, the prospect joins the review log. A human curates the bridge.
 ```json
 {
   "bridge_version": "2026-05-14",
-  "notes": "Human-curated. Update before each rookie draft. Verify sleeper_id against Sleeper API before committing.",
+  "notes": "Human-curated. Seeded from resources/prospect_identity_2026.json (nfl_data_py verified, snapshot 2026-05-09) plus Sleeper API confirmation for Jr./II suffix entries. Update before each rookie draft.",
   "entries": [
     {
-      "dg_name": "Ashton Jeanty",
-      "normalized_name": "ashton jeanty",
-      "position": "RB",
+      "dg_name": "Fernando Mendoza",
+      "normalized_name": "fernando mendoza",
+      "position": "QB",
       "draft_class": 2026,
-      "sleeper_id": "11638",
-      "nfl_team": "LV",
+      "sleeper_id": "13269",
+      "nfl_team": "LVR",
       "verification": "sleeper_api_confirmed"
+    },
+    {
+      "dg_name": "Omar Cooper Jr.",
+      "normalized_name": "omar cooper jr",
+      "position": "WR",
+      "draft_class": 2026,
+      "sleeper_id": "13276",
+      "nfl_team": "NYJ",
+      "verification": "sleeper_api_confirmed",
+      "notes": "Sleeper stores as 'Omar Cooper' (no suffix) — normalized forms differ; bridge is the source of truth"
     }
   ]
 }
@@ -166,10 +176,10 @@ def _map_prospect_to_pvo(prospect: ProspectRequest):
 | # | Test | Expected |
 |---|------|----------|
 | 1 | `normalize_name` strips punctuation and lowercases | `"Tetairoa McMillan"` → `"tetairoa mcmillan"` |
-| 2 | `normalize_name` collapses apostrophes (e.g. O'Cyrus Torrence) | `"o'cyrus torrence"` → `"ocyrus torrence"` — no apostrophe |
+| 2 | `normalize_name` collapses apostrophes (e.g. De'Zhaun Stribling) | `"De'Zhaun Stribling"` → `"dezhaun stribling"` — apostrophe and case removed |
 | 3 | Stage 1: explicit sleeper_id short-circuits bridge lookup | returns `("9999", "explicit")` |
 | 4 | Stage 2: alias bridge hit returns correct sleeper_id | returns `(expected_sid, "alias_bridge")` for seeded fixture entry |
-| 5 | Stage 2: name mismatch (different spelling) returns unresolved | returns `(None, "unresolved_logged")` |
+| 5 | Stage 2: misspelled name ("Carnel Tate" vs "Carnell Tate") returns unresolved — no fuzzy match | returns `(None, "unresolved_logged")` |
 | 6 | Stage 3: unresolved miss writes entry to review log | review log file exists and contains one matching JSON line |
 | 7 | Resolver is idempotent — calling twice for same miss appends two lines, not one | review log has two entries |
 | 8 | Integration: `_map_prospect_to_pvo` sets `pvo.sleeper_id` when alias bridge matches | `pvo.sleeper_id == expected_sid` |
@@ -209,9 +219,11 @@ Task 9.5.2 — .gitignore + full suite
 
 ## Open Questions (do not resolve without David input)
 
-1. **Sleeper ID sourcing.** The initial bridge entries should be confirmed against the Sleeper
-   API. This is a one-time manual task before the first draft. Which prospects does David want
-   seeded in the initial commit?
+1. **Sleeper ID sourcing.** Initial bridge is seeded from `resources/prospect_identity_2026.json`
+   (nfl_data_py verified, 2026-05-09 snapshot) — 75 entries with confirmed IDs. Five Jr./II
+   suffix entries (Omar Cooper Jr., Chris Brazzell II, Mike Washington Jr., Kevin Coleman Jr.,
+   Emmanuel Henderson Jr.) confirmed by David via Sleeper API lookup and included at bridge
+   version 2026-05-14.
 
 2. **Bridge update cadence.** The alias bridge will need updates after the 2026 draft clears
    (players get assigned to teams, IDs may be recycled or reassigned). Who is responsible?
