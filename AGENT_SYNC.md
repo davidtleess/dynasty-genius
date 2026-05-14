@@ -9,11 +9,11 @@ Phase 9 — Market Overlay (MERGED → main)
 
 ## Current Sprint Objective
 
-Phase 9 Market Overlay: MERGED → main (PR #25, merged 2026-05-14). 376 tests passed.
+Phase 9 Market Overlay: MERGED → main (PR #25 merge commit c04d9bf; main now at 113662a). 376 tests passed.
 Spec at `docs/superpowers/specs/2026-05-13-phase9-market-overlay.md`.
 
 Phase 8 COMPLETE (8.1 + 8.2 + 8.3): decision surfaces wired read-only over PVO. 339 tests.
-Phase 9 COMPLETE (9.0 + 9.1 + 9.2 + 9.3): market overlay divergence engine + surface wiring. 373 tests.
+Phase 9 COMPLETE (9.0 + 9.1 + 9.2 + 9.3): market overlay divergence engine + surface wiring. 376 tests.
 
 - Phase 9.0 (Adapter Foundation): Fix fantasycalc_adapter.py URL params, rewrite field capture, MarketSource abstraction, 3-stage cache, test fixture.
 - Phase 9.1 (Divergence Engine): compute_divergence(), percentile-rank formula, position-specific flags and caveats.
@@ -83,8 +83,8 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 
 ## Next Recommended Work
 
-1. **NOISE_BAND calibration** — Review after 1–2 months. If >80% of flags are `aligned`, tighten to 0.08.
-2. **Prospect sleeper_id join** — Rookie Board overlay currently null for pre-draft prospects (no sleeper_id). Phase 9.5: name-based or draft-pick-based FC lookup.
-3. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate (separate track).
-4. **TE diagnosis** — role heterogeneity, slot alignment adapter (separate track).
+1. **Phase 9.5 — Prospect Identity Join** — Rookie Board overlay is null for pre-draft prospects with no sleeper_id. Implementation path: (a) use sleeper_id when present, (b) controlled alias/identity bridge for known 2026 prospects, (c) name+position+draft-class matching with unresolved-review logging as last resort. Do not use fuzzy name matching without the review gate.
+2. **NOISE_BAND calibration** — Deferred to mid-July 2026. Needs real usage data. Do not change `NOISE_BAND=0.10` before then. If >80% of flags are `aligned` after real traffic, tighten to 0.08.
+3. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate (separate research track — touches model inputs).
+4. **TE diagnosis** — role heterogeneity, slot alignment adapter (separate research track — touches model inputs).
 5. **Composite validation gates (Step 0.5)** — prerequisite for model_grade promotion.
