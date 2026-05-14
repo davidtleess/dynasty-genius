@@ -212,3 +212,107 @@ def test_fetch_with_cache_stage2_stale_serve(tmp_path, monkeypatch):
     assert len(data) == 6
     assert "stale_market_data" in caveats
     assert any("fetched_at=" in c for c in caveats)
+
+
+# ── Phase 9 divergence engine tests ──────────────────────────────────────────
+
+from src.dynasty_genius.models.player_value_object import (
+    MarketOverlay, PlayerValueObject, RosterAuditSignals,
+)
+
+
+def _make_pvo(
+    player_id: str,
+    sleeper_id: str,
+    position: str,
+    projection_2y: float | None,
+    model_grade: str = "ACTIVE_B",
+    age: float = 25.0,
+    is_prospect: bool = False,
+) -> PlayerValueObject:
+    return PlayerValueObject(
+        player_id=player_id,
+        full_name=f"Player {player_id}",
+        position=position,
+        sleeper_id=sleeper_id,
+        signal_completeness=0.8,
+        projection_2y=projection_2y,
+        model_grade=model_grade,
+        age=age,
+        is_prospect=is_prospect,
+    )
+
+
+def test_pct_rank_mid_rank_for_ties():
+    from src.dynasty_genius.services.market_overlay_service import pct_rank
+    values = [5.0, 5.0, 10.0]
+    assert pct_rank(values, 5.0) == pytest.approx(1 / 3, abs=0.001)
+    assert pct_rank(values, 10.0) == pytest.approx(5 / 6, abs=0.001)
+
+
+def test_pct_rank_single_value():
+    from src.dynasty_genius.services.market_overlay_service import pct_rank
+    assert pct_rank([7.0], 7.0) == 0.5
+
+
+def test_compute_divergence_sets_divergence_flag_aligned():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p1", "9509", "RB", projection_2y=15.0, age=24.2)
+    compute_divergence([pvo], fixture)
+    assert pvo.market_overlay is not None
+    assert pvo.market_overlay.market_value == 10503
+    assert pvo.market_overlay.divergence_flag in (
+        "aligned", "model_higher_than_market", "model_lower_than_market"
+    )
+    assert pvo.market_overlay.model_percentile is not None
+    assert pvo.market_overlay.market_percentile is not None
+    assert pvo.market_overlay.model_minus_market_delta is not None
+
+
+def test_compute_divergence_te_forced_model_unreliable():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p2", "8888", "TE", projection_2y=8.0, model_grade="EXPERIMENTAL")
+    compute_divergence([pvo], fixture)
+    assert pvo.market_overlay is not None
+    assert pvo.market_overlay.divergence_flag == "model_unreliable"
+    assert "te_model_experimental_do_not_trade_on" in pvo.market_overlay.caveats
+    assert "te_market_high_variance" in pvo.market_overlay.caveats
+
+
+def test_compute_divergence_rookie_no_projection():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p3", "11111", "WR", projection_2y=None, is_prospect=True)
+    compute_divergence([pvo], fixture)
+    assert pvo.market_overlay is not None
+    assert pvo.market_overlay.divergence_flag == "model_uninformative_rookie"
+    assert "model_uninformative_rookie" in pvo.market_overlay.caveats
+
+
+def test_compute_divergence_rb_cliff_watch():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p4", "6543", "RB", projection_2y=20.0, age=27.5)
+    younger = _make_pvo("p5", "9509", "RB", projection_2y=15.0, age=24.2)
+    compute_divergence([pvo, younger], fixture)
+    assert pvo.market_overlay is not None
+    if pvo.market_overlay.divergence_flag == "model_higher_than_market":
+        assert "rb_cliff_watch" in pvo.market_overlay.caveats
+
+
+def test_compute_divergence_no_match_leaves_overlay_none():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p6", "UNKNOWN_ID_99999", "WR", projection_2y=12.0)
+    compute_divergence([pvo], fixture)
+    assert pvo.market_overlay is None
+
+
+def test_compute_divergence_source_timestamp_caveat():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p7", "9509", "RB", projection_2y=15.0, age=24.2)
+    compute_divergence([pvo], fixture)
+    assert "source_timestamp_is_fetch_time_not_publish_time" in pvo.market_overlay.caveats
