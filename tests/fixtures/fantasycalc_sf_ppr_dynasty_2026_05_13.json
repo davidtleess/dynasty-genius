@@ -1,0 +1,110 @@
+[
+  {
+    "player": {
+      "id": 9833,
+      "name": "Bijan Robinson",
+      "mflId": "16161",
+      "sleeperId": "9509",
+      "espnId": "4430807",
+      "position": "RB",
+      "maybeAge": 24.2,
+      "maybeTeam": "ATL"
+    },
+    "value": 10503,
+    "overallRank": 1,
+    "positionRank": 1,
+    "trend30Day": -39,
+    "maybeMovingStandardDeviation": 0.0,
+    "maybeTier": 1
+  },
+  {
+    "player": {
+      "id": 1001,
+      "name": "Veteran Back",
+      "mflId": "10011",
+      "sleeperId": "6543",
+      "espnId": "1001001",
+      "position": "RB",
+      "maybeAge": 27.5,
+      "maybeTeam": "DAL"
+    },
+    "value": 3500,
+    "overallRank": 48,
+    "positionRank": 16,
+    "trend30Day": -120,
+    "maybeMovingStandardDeviation": 45.0,
+    "maybeTier": 5
+  },
+  {
+    "player": {
+      "id": 2001,
+      "name": "Elite WR",
+      "mflId": "20011",
+      "sleeperId": "7777",
+      "espnId": "2001001",
+      "position": "WR",
+      "maybeAge": 26.0,
+      "maybeTeam": "SF"
+    },
+    "value": 8000,
+    "overallRank": 5,
+    "positionRank": 3,
+    "trend30Day": 200,
+    "maybeMovingStandardDeviation": 12.0,
+    "maybeTier": 2
+  },
+  {
+    "player": {
+      "id": 3001,
+      "name": "Top TE",
+      "mflId": "30011",
+      "sleeperId": "8888",
+      "espnId": "3001001",
+      "position": "TE",
+      "maybeAge": 27.0,
+      "maybeTeam": "KC"
+    },
+    "value": 7500,
+    "overallRank": 8,
+    "positionRank": 1,
+    "trend30Day": 491,
+    "maybeMovingStandardDeviation": 150.0,
+    "maybeTier": 1
+  },
+  {
+    "player": {
+      "id": 4001,
+      "name": "SF QB",
+      "mflId": "40011",
+      "sleeperId": "9999",
+      "espnId": "4001001",
+      "position": "QB",
+      "maybeAge": 28.0,
+      "maybeTeam": "BUF"
+    },
+    "value": 6232,
+    "overallRank": 19,
+    "positionRank": 2,
+    "trend30Day": 50,
+    "maybeMovingStandardDeviation": 5.0,
+    "maybeTier": 2
+  },
+  {
+    "player": {
+      "id": 5001,
+      "name": "Carnell Tate",
+      "mflId": "UNK",
+      "sleeperId": "11111",
+      "espnId": null,
+      "position": "WR",
+      "maybeAge": 21.0,
+      "maybeTeam": null
+    },
+    "value": 2439,
+    "overallRank": 75,
+    "positionRank": 25,
+    "trend30Day": 300,
+    "maybeMovingStandardDeviation": 89.0,
+    "maybeTier": 8
+  }
+]

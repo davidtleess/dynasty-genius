@@ -91,3 +91,33 @@ def test_fantasycalc_api_returns_expected_schema():
 @pytest.mark.skip(reason="Market overlay join not yet implemented — Phase 2")
 def test_market_overlay_values_do_not_appear_in_engine_a_feature_rows():
     pass
+
+
+# ── Phase 9 schema tests ──────────────────────────────────────────────────────
+
+from src.dynasty_genius.models.player_value_object import MarketOverlay
+
+
+def test_market_overlay_schema_has_divergence_fields():
+    overlay = MarketOverlay(
+        market_value=10503.0,
+        trend_delta=-39.0,
+        model_percentile=0.90,
+        market_percentile=0.95,
+        model_minus_market_delta=-0.05,
+        divergence_flag="aligned",
+        market_volatility=0.0,
+        position_rank=1,
+        overall_rank=1,
+        source_timestamp="2026-05-13T18:30:00Z",
+    )
+    assert overlay.source == "fantasycalc"
+    assert overlay.divergence_flag == "aligned"
+    assert overlay.model_percentile == 0.90
+    assert overlay.market_volatility == 0.0
+    assert "source_timestamp_is_fetch_time_not_publish_time" not in overlay.caveats
+
+
+def test_market_overlay_default_source_is_fantasycalc():
+    overlay = MarketOverlay()
+    assert overlay.source == "fantasycalc"
