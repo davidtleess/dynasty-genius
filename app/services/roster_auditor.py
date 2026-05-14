@@ -487,6 +487,9 @@ async def run_audit_pvo() -> dict:
         )
     )
 
+    from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
+    enrich_pvo_list_with_market_overlay(pvos)
+
     return {
         "status": "active",
         "engine": _PVO_ENGINE,

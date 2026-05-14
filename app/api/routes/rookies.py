@@ -36,21 +36,24 @@ def _map_prospect_to_pvo(prospect: ProspectRequest):
 @router.post("/score")
 def score_single(prospect: ProspectRequest) -> dict:
     try:
+        from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
         pvo = _map_prospect_to_pvo(prospect)
+        enrich_pvo_list_with_market_overlay([pvo])
         return pvo.model_dump()
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         raise HTTPException(status_code=422, detail=str(e))
 
 
 @router.post("/score-class")
 def score_class(prospects: list[ProspectRequest]) -> list[dict]:
     try:
+        from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
         pvos = [_map_prospect_to_pvo(p) for p in prospects]
-        # Sort by dynasty_value_score descending (None values last)
         pvos.sort(
             key=lambda x: (x.dynasty_value_score is not None, x.dynasty_value_score or -1.0),
-            reverse=True
+            reverse=True,
         )
+        enrich_pvo_list_with_market_overlay(pvos)
         return [p.model_dump() for p in pvos]
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         raise HTTPException(status_code=422, detail=str(e))
