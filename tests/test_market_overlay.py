@@ -133,3 +133,82 @@ def test_ktc_market_source_raises_not_implemented():
 def test_fantasycalc_market_source_is_subclass_of_market_source():
     from src.dynasty_genius.adapters.market_source import MarketSource, FantasyCalcMarketSource
     assert issubclass(FantasyCalcMarketSource, MarketSource)
+
+
+# ── Phase 9 adapter tests ─────────────────────────────────────────────────────
+
+import json
+from pathlib import Path
+from unittest.mock import patch, MagicMock
+
+FIXTURE_PATH = Path("tests/fixtures/fantasycalc_sf_ppr_dynasty_2026_05_13.json")
+
+
+def _load_fixture() -> list[dict]:
+    return json.loads(FIXTURE_PATH.read_text())
+
+
+def test_adapter_url_includes_sf_params():
+    from src.dynasty_genius.adapters.fantasycalc_adapter import API_URL
+    assert "numQbs=2" in API_URL, "Missing numQbs=2 — QB values will be wrong in Superflex"
+    assert "numTeams=12" in API_URL
+    assert "ppr=1" in API_URL
+    assert "isDynasty=true" in API_URL
+
+
+def test_normalize_entry_captures_sleeper_id():
+    from src.dynasty_genius.adapters.fantasycalc_adapter import normalize_fantasycalc_entry
+    raw = _load_fixture()[0]  # Bijan Robinson
+    result = normalize_fantasycalc_entry(raw)
+    assert result["sleeper_id"] == "9509"
+    assert result["market_value"] == 10503
+    assert result["trend_delta"] == -39
+    assert result["position"] == "RB"
+    assert result["overall_rank"] == 1
+    assert result["position_rank"] == 1
+    assert result["market_volatility"] == 0.0
+
+
+def test_normalize_entry_excludes_banned_fields():
+    from src.dynasty_genius.adapters.fantasycalc_adapter import normalize_fantasycalc_entry
+    raw = _load_fixture()[0]
+    result = normalize_fantasycalc_entry(raw)
+    assert "combinedValue" not in result
+    assert "redraftValue" not in result
+    assert "redraftDynastyValueDifference" not in result
+
+
+def test_fetch_with_cache_stage3_cold_fail(tmp_path, monkeypatch):
+    """Stage 3: no cache + API failure → empty list + market_data_unavailable caveat."""
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_FILE",
+        tmp_path / "nonexistent.json",
+    )
+    with patch("httpx.get", side_effect=Exception("network error")):
+        from src.dynasty_genius.adapters import fantasycalc_adapter
+        data, caveats = fantasycalc_adapter.fetch_with_cache()
+    assert data == []
+    assert "market_data_unavailable" in caveats
+
+
+def test_fetch_with_cache_stage2_stale_serve(tmp_path, monkeypatch):
+    """Stage 2: expired cache + API failure → stale data + stale_market_data caveat."""
+    from datetime import datetime, timedelta
+
+    old_ts = (datetime.utcnow() - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cache_file = tmp_path / "market_values.json"
+    cache_file.write_text(json.dumps({
+        "fetched_at": old_ts,
+        "ttl_hours": 24,
+        "data": _load_fixture(),
+    }))
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_FILE",
+        cache_file,
+    )
+    with patch("httpx.get", side_effect=Exception("network error")):
+        from src.dynasty_genius.adapters import fantasycalc_adapter
+        data, caveats = fantasycalc_adapter.fetch_with_cache()
+    assert len(data) == 6
+    assert "stale_market_data" in caveats
+    assert any("fetched_at=" in c for c in caveats)
