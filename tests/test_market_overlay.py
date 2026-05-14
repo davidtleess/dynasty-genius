@@ -316,3 +316,41 @@ def test_compute_divergence_source_timestamp_caveat():
     pvo = _make_pvo("p7", "9509", "RB", projection_2y=15.0, age=24.2)
     compute_divergence([pvo], fixture)
     assert "source_timestamp_is_fetch_time_not_publish_time" in pvo.market_overlay.caveats
+
+
+# ── Phase 9.3 VAR + seasonal tests ───────────────────────────────────────────
+
+def test_compute_var_uses_model_score_not_market():
+    from src.dynasty_genius.services.market_overlay_service import compute_value_above_replacement
+    pvos = [
+        _make_pvo("p1", "s1", "RB", projection_2y=15.0),
+        _make_pvo("p2", "s2", "RB", projection_2y=12.0),
+        _make_pvo("p3", "s3", "RB", projection_2y=9.0),
+    ]
+    pvos[0].dynasty_value_score = 80.0
+    pvos[1].dynasty_value_score = 60.0
+    pvos[2].dynasty_value_score = 40.0
+    compute_value_above_replacement(pvos)
+    assert pvos[0].value_above_replacement is not None
+    assert pvos[2].value_above_replacement is not None
+
+
+def test_compute_var_is_none_when_no_dynasty_value_score():
+    from src.dynasty_genius.services.market_overlay_service import compute_value_above_replacement
+    pvos = [_make_pvo("p1", "s1", "RB", projection_2y=15.0)]
+    pvos[0].dynasty_value_score = None
+    compute_value_above_replacement(pvos)
+    assert pvos[0].value_above_replacement is None
+
+
+def test_rookie_peak_value_window_caveat_fires_in_may():
+    from unittest.mock import patch
+    from datetime import date
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p_tate", "11111", "WR", projection_2y=None, is_prospect=True)
+    with patch("src.dynasty_genius.services.market_overlay_service.date") as mock_date:
+        mock_date.today.return_value = date(2026, 5, 13)
+        compute_divergence([pvo], fixture)
+    assert pvo.market_overlay is not None
+    assert "rookie_peak_value_window" in pvo.market_overlay.caveats

@@ -10,7 +10,7 @@ training or inference. This module only writes to PVO.market_overlay.
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -18,6 +18,17 @@ if TYPE_CHECKING:
 
 # 10 percentile points ≈ one dynasty tier. Configurable — review after 2 months.
 NOISE_BAND: float = 0.10
+
+# 12-team Superflex PPR replacement baselines (from Phase 9 spec)
+_VAR_REPLACEMENT_LEVEL: dict[str, int] = {
+    "QB": 25,
+    "RB": 33,
+    "WR": 53,
+    "TE": 13,
+}
+
+_ROOKIE_PEAK_WINDOW_START = (4, 1)   # April 1
+_ROOKIE_PEAK_WINDOW_END   = (7, 1)   # July 1
 
 _DIVERGENCE_FLAGS = frozenset({
     "aligned",
@@ -46,6 +57,16 @@ def _classify_flag(delta: float, pvo: "PlayerValueObject") -> str:
     return "model_higher_than_market" if delta > 0 else "model_lower_than_market"
 
 
+def _is_rookie_peak_window() -> bool:
+    today = date.today()
+    start = _ROOKIE_PEAK_WINDOW_START
+    end = _ROOKIE_PEAK_WINDOW_END
+    m, d = today.month, today.day
+    after_start = (m, d) >= start
+    before_end  = (m, d) < end
+    return after_start and before_end
+
+
 def _attach_position_caveats(
     pvo: "PlayerValueObject",
     flag: str,
@@ -65,6 +86,8 @@ def _attach_position_caveats(
 
     if pvo.is_prospect:
         caveats.append("model_uninformative_rookie")
+        if _is_rookie_peak_window():
+            caveats.append("rookie_peak_value_window")
 
     return caveats
 
@@ -151,3 +174,24 @@ def enrich_pvo_list_with_market_overlay(pvo_list: list["PlayerValueObject"]) -> 
     fc_data, _caveats = fetch_with_cache()
     if fc_data:
         compute_divergence(pvo_list, fc_data)
+
+
+def compute_value_above_replacement(
+    pvo_list: list["PlayerValueObject"],
+) -> None:
+    """Mutates pvo.value_above_replacement. Uses dynasty_value_score only — never market_value."""
+    by_position: dict[str, list["PlayerValueObject"]] = defaultdict(list)
+    for pvo in pvo_list:
+        if pvo.position and pvo.dynasty_value_score is not None:
+            by_position[pvo.position].append(pvo)
+
+    for pos, pvos_at_pos in by_position.items():
+        sorted_pvos = sorted(pvos_at_pos, key=lambda p: p.dynasty_value_score or 0, reverse=True)
+        n = _VAR_REPLACEMENT_LEVEL.get(pos, len(sorted_pvos))
+        # Replacement player is the Nth (0-indexed: n-1), or last if fewer than N
+        idx = min(n - 1, len(sorted_pvos) - 1)
+        replacement_score = sorted_pvos[idx].dynasty_value_score or 0.0
+        for pvo in pvos_at_pos:
+            pvo.value_above_replacement = round((pvo.dynasty_value_score or 0.0) - replacement_score, 3)
+
+    # Players with no dynasty_value_score stay None (already default)
