@@ -132,9 +132,9 @@
       "pick": 30,
       "round": 1,
       "birth_date": null,
-      "sleeper_id": null,
+      "sleeper_id": "13276",
       "verification_status": "VERIFIED_NFL_DRAFT",
-      "identity_verified": false,
+      "identity_verified": true,
       "age_verified": false
     },
     {
@@ -402,9 +402,9 @@
       "pick": 83,
       "round": 3,
       "birth_date": null,
-      "sleeper_id": null,
+      "sleeper_id": "13353",
       "verification_status": "VERIFIED_NFL_DRAFT",
-      "identity_verified": false,
+      "identity_verified": true,
       "age_verified": false
     },
     {
@@ -582,9 +582,9 @@
       "pick": 122,
       "round": 4,
       "birth_date": null,
-      "sleeper_id": null,
+      "sleeper_id": "13305",
       "verification_status": "VERIFIED_NFL_DRAFT",
-      "identity_verified": false,
+      "identity_verified": true,
       "age_verified": false
     },
     {
@@ -837,9 +837,9 @@
       "pick": 177,
       "round": 5,
       "birth_date": null,
-      "sleeper_id": null,
+      "sleeper_id": "13338",
       "verification_status": "VERIFIED_NFL_DRAFT",
-      "identity_verified": false,
+      "identity_verified": true,
       "age_verified": false
     },
     {
@@ -1002,9 +1002,9 @@
       "pick": 199,
       "round": 6,
       "birth_date": null,
-      "sleeper_id": null,
+      "sleeper_id": "13313",
       "verification_status": "VERIFIED_NFL_DRAFT",
-      "identity_verified": false,
+      "identity_verified": true,
       "age_verified": false
     },
     {
