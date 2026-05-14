@@ -8,18 +8,23 @@ from pydantic import BaseModel, Field
 
 
 class MarketOverlay(BaseModel):
-    """KTC and market-signal data joined after model scoring.
+    """FantasyCalc market data joined after model scoring.
 
     Market values never enter Engine A or Engine B as predictive features.
     This overlay is display-only context for David's decision surfaces.
     """
 
-    source: str = "KTC"
+    source: str = "fantasycalc"
     market_value: Optional[float] = None
-    trend_delta: Optional[float] = None
-    model_minus_market_delta: Optional[float] = None
-    market_percentile: Optional[float] = None
-    source_timestamp: Optional[str] = None
+    trend_delta: Optional[float] = None           # FC field: trend30Day
+    model_percentile: Optional[float] = None      # model pct rank within position
+    market_percentile: Optional[float] = None     # market pct rank within position
+    model_minus_market_delta: Optional[float] = None  # model_pct - market_pct
+    divergence_flag: Optional[str] = None         # see DIVERGENCE_FLAG_VALUES
+    market_volatility: Optional[float] = None     # FC maybeMovingStandardDeviation
+    position_rank: Optional[int] = None           # FC positionRank (display)
+    overall_rank: Optional[int] = None            # FC overallRank (display)
+    source_timestamp: Optional[str] = None        # HTTP fetch time (UTC)
     caveats: list[str] = Field(default_factory=list)
 
 
@@ -91,6 +96,7 @@ class PlayerValueObject(BaseModel):
 
     # ── Market overlay — post-scoring only ───────────────────────────────────
     market_overlay: Optional[MarketOverlay] = None
+    value_above_replacement: Optional[float] = None
 
     # ── Governance ────────────────────────────────────────────────────────────
     decision_supported: bool = False

@@ -91,3 +91,326 @@ def test_fantasycalc_api_returns_expected_schema():
 @pytest.mark.skip(reason="Market overlay join not yet implemented — Phase 2")
 def test_market_overlay_values_do_not_appear_in_engine_a_feature_rows():
     pass
+
+
+# ── Phase 9 schema tests ──────────────────────────────────────────────────────
+
+from src.dynasty_genius.models.player_value_object import MarketOverlay
+
+
+def test_market_overlay_schema_has_divergence_fields():
+    overlay = MarketOverlay(
+        market_value=10503.0,
+        trend_delta=-39.0,
+        model_percentile=0.90,
+        market_percentile=0.95,
+        model_minus_market_delta=-0.05,
+        divergence_flag="aligned",
+        market_volatility=0.0,
+        position_rank=1,
+        overall_rank=1,
+        source_timestamp="2026-05-13T18:30:00Z",
+    )
+    assert overlay.source == "fantasycalc"
+    assert overlay.divergence_flag == "aligned"
+    assert overlay.model_percentile == 0.90
+    assert overlay.market_volatility == 0.0
+    assert "source_timestamp_is_fetch_time_not_publish_time" not in overlay.caveats
+
+
+def test_market_overlay_default_source_is_fantasycalc():
+    overlay = MarketOverlay()
+    assert overlay.source == "fantasycalc"
+
+
+def test_ktc_market_source_raises_not_implemented():
+    from src.dynasty_genius.adapters.market_source import KTCMarketSource
+    source = KTCMarketSource()
+    with pytest.raises(NotImplementedError, match="KTC"):
+        source.fetch()
+
+
+def test_fantasycalc_market_source_is_subclass_of_market_source():
+    from src.dynasty_genius.adapters.market_source import MarketSource, FantasyCalcMarketSource
+    assert issubclass(FantasyCalcMarketSource, MarketSource)
+
+
+# ── Phase 9 adapter tests ─────────────────────────────────────────────────────
+
+import json
+from pathlib import Path
+from unittest.mock import patch, MagicMock
+
+FIXTURE_PATH = Path("tests/fixtures/fantasycalc_sf_ppr_dynasty_2026_05_13.json")
+
+
+def _load_fixture() -> list[dict]:
+    return json.loads(FIXTURE_PATH.read_text())
+
+
+def test_adapter_url_includes_sf_params():
+    from src.dynasty_genius.adapters.fantasycalc_adapter import API_URL
+    assert "numQbs=2" in API_URL, "Missing numQbs=2 — QB values will be wrong in Superflex"
+    assert "numTeams=12" in API_URL
+    assert "ppr=1" in API_URL
+    assert "isDynasty=true" in API_URL
+
+
+def test_normalize_entry_captures_sleeper_id():
+    from src.dynasty_genius.adapters.fantasycalc_adapter import normalize_fantasycalc_entry
+    raw = _load_fixture()[0]  # Bijan Robinson
+    result = normalize_fantasycalc_entry(raw)
+    assert result["sleeper_id"] == "9509"
+    assert result["market_value"] == 10503
+    assert result["trend_delta"] == -39
+    assert result["position"] == "RB"
+    assert result["overall_rank"] == 1
+    assert result["position_rank"] == 1
+    assert result["market_volatility"] == 0.0
+
+
+def test_normalize_entry_excludes_banned_fields():
+    from src.dynasty_genius.adapters.fantasycalc_adapter import normalize_fantasycalc_entry
+    raw = _load_fixture()[0]
+    result = normalize_fantasycalc_entry(raw)
+    assert "combinedValue" not in result
+    assert "redraftValue" not in result
+    assert "redraftDynastyValueDifference" not in result
+
+
+def test_fetch_with_cache_stage3_cold_fail(tmp_path, monkeypatch):
+    """Stage 3: no cache + API failure → empty list + market_data_unavailable caveat."""
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_FILE",
+        tmp_path / "nonexistent.json",
+    )
+    with patch("httpx.get", side_effect=Exception("network error")):
+        from src.dynasty_genius.adapters import fantasycalc_adapter
+        data, caveats = fantasycalc_adapter.fetch_with_cache()
+    assert data == []
+    assert "market_data_unavailable" in caveats
+
+
+def test_fetch_with_cache_stage2_stale_serve(tmp_path, monkeypatch):
+    """Stage 2: expired cache + API failure → stale data + stale_market_data caveat."""
+    from datetime import datetime, timedelta, timezone
+
+    old_ts = (datetime.now(timezone.utc) - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cache_file = tmp_path / "market_values.json"
+    cache_file.write_text(json.dumps({
+        "fetched_at": old_ts,
+        "ttl_hours": 24,
+        "data": _load_fixture(),
+    }))
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_FILE",
+        cache_file,
+    )
+    with patch("httpx.get", side_effect=Exception("network error")):
+        from src.dynasty_genius.adapters import fantasycalc_adapter
+        data, caveats = fantasycalc_adapter.fetch_with_cache()
+    assert len(data) == 6
+    assert "stale_market_data" in caveats
+    assert any("fetched_at=" in c for c in caveats)
+
+
+# ── Phase 9 divergence engine tests ──────────────────────────────────────────
+
+from src.dynasty_genius.models.player_value_object import (
+    MarketOverlay, PlayerValueObject, RosterAuditSignals,
+)
+
+
+def _make_pvo(
+    player_id: str,
+    sleeper_id: str,
+    position: str,
+    projection_2y: float | None,
+    model_grade: str = "ACTIVE_B",
+    age: float = 25.0,
+    is_prospect: bool = False,
+) -> PlayerValueObject:
+    return PlayerValueObject(
+        player_id=player_id,
+        full_name=f"Player {player_id}",
+        position=position,
+        sleeper_id=sleeper_id,
+        signal_completeness=0.8,
+        projection_2y=projection_2y,
+        model_grade=model_grade,
+        age=age,
+        is_prospect=is_prospect,
+    )
+
+
+def test_pct_rank_mid_rank_for_ties():
+    from src.dynasty_genius.services.market_overlay_service import pct_rank
+    values = [5.0, 5.0, 10.0]
+    assert pct_rank(values, 5.0) == pytest.approx(1 / 3, abs=0.001)
+    assert pct_rank(values, 10.0) == pytest.approx(5 / 6, abs=0.001)
+
+
+def test_pct_rank_single_value():
+    from src.dynasty_genius.services.market_overlay_service import pct_rank
+    assert pct_rank([7.0], 7.0) == 0.5
+
+
+def test_compute_divergence_sets_divergence_flag_aligned():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p1", "9509", "RB", projection_2y=15.0, age=24.2)
+    # Pad to meet MIN_COHORT_SIZE (5) — only pvo matches FC
+    cohort = [pvo] + [
+        _make_pvo(f"pad{i}", f"NOFCMATCH_{i}", "RB", projection_2y=float(10 + i))
+        for i in range(4)
+    ]
+    compute_divergence(cohort, fixture)
+    assert pvo.market_overlay is not None
+    assert pvo.market_overlay.market_value == 10503
+    assert pvo.market_overlay.divergence_flag in (
+        "aligned", "model_higher_than_market", "model_lower_than_market"
+    )
+    assert pvo.market_overlay.model_percentile is not None
+    assert pvo.market_overlay.market_percentile is not None
+    assert pvo.market_overlay.model_minus_market_delta is not None
+
+
+def test_compute_divergence_te_forced_model_unreliable():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p2", "8888", "TE", projection_2y=8.0, model_grade="EXPERIMENTAL")
+    compute_divergence([pvo], fixture)
+    assert pvo.market_overlay is not None
+    assert pvo.market_overlay.divergence_flag == "model_unreliable"
+    assert "te_model_experimental_do_not_trade_on" in pvo.market_overlay.caveats
+    assert "te_market_high_variance" in pvo.market_overlay.caveats
+
+
+def test_compute_divergence_rookie_no_projection():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p3", "11111", "WR", projection_2y=None, is_prospect=True)
+    compute_divergence([pvo], fixture)
+    assert pvo.market_overlay is not None
+    assert pvo.market_overlay.divergence_flag == "model_uninformative_rookie"
+    assert "model_uninformative_rookie" in pvo.market_overlay.caveats
+
+
+def test_compute_divergence_rb_cliff_watch():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p4", "6543", "RB", projection_2y=20.0, age=27.5)
+    younger = _make_pvo("p5", "9509", "RB", projection_2y=15.0, age=24.2)
+    # Pad to meet MIN_COHORT_SIZE (5)
+    cohort = [pvo, younger] + [
+        _make_pvo(f"pad{i}", f"NOFCMATCH_{i}", "RB", projection_2y=float(10 + i))
+        for i in range(3)
+    ]
+    compute_divergence(cohort, fixture)
+    assert pvo.market_overlay is not None
+    if pvo.market_overlay.divergence_flag == "model_higher_than_market":
+        assert "rb_cliff_watch" in pvo.market_overlay.caveats
+
+
+def test_compute_divergence_no_match_leaves_overlay_none():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p6", "UNKNOWN_ID_99999", "WR", projection_2y=12.0)
+    compute_divergence([pvo], fixture)
+    assert pvo.market_overlay is None
+
+
+def test_compute_divergence_source_timestamp_caveat():
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p7", "9509", "RB", projection_2y=15.0, age=24.2)
+    compute_divergence([pvo], fixture)
+    assert "source_timestamp_is_fetch_time_not_publish_time" in pvo.market_overlay.caveats
+
+
+def test_compute_divergence_small_cohort_skips_percentile():
+    """Single player surface: market_value still populated, but no percentile or flag."""
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p1", "9509", "RB", projection_2y=15.0, age=24.2)
+    compute_divergence([pvo], fixture)  # cohort size = 1 < MIN_COHORT_SIZE
+    assert pvo.market_overlay is not None
+    assert pvo.market_overlay.market_value == 10503   # FC display fields still set
+    assert "model_cohort_too_small" in pvo.market_overlay.caveats
+    assert pvo.market_overlay.divergence_flag is None
+    assert pvo.market_overlay.model_percentile is None
+
+
+def test_enrich_propagates_stale_caveat_to_overlays(tmp_path, monkeypatch):
+    """Stage 2 stale cache: stale_market_data reaches PVO overlay."""
+    from datetime import datetime, timedelta, timezone
+    from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
+
+    old_ts = (datetime.now(timezone.utc) - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cache_file = tmp_path / "market_values.json"
+    cache_file.write_text(json.dumps({
+        "fetched_at": old_ts,
+        "ttl_hours": 24,
+        "data": _load_fixture(),
+    }))
+    monkeypatch.setattr("src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_FILE", cache_file)
+
+    with patch("httpx.get", side_effect=Exception("network error")):
+        pvos = [_make_pvo("p1", "9509", "RB", projection_2y=15.0, age=24.2)]
+        enrich_pvo_list_with_market_overlay(pvos)
+
+    assert pvos[0].market_overlay is not None
+    assert "stale_market_data" in pvos[0].market_overlay.caveats
+
+
+def test_enrich_computes_var():
+    """enrich_pvo_list_with_market_overlay wires VAR even when FC is unavailable."""
+    from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
+
+    with patch(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.fetch_with_cache",
+        return_value=([], ["market_data_unavailable"]),
+    ):
+        pvos = [_make_pvo("p1", "s1", "RB", projection_2y=15.0)]
+        pvos[0].dynasty_value_score = 80.0
+        enrich_pvo_list_with_market_overlay(pvos)
+
+    assert pvos[0].value_above_replacement is not None
+
+
+# ── Phase 9.3 VAR + seasonal tests ───────────────────────────────────────────
+
+def test_compute_var_uses_model_score_not_market():
+    from src.dynasty_genius.services.market_overlay_service import compute_value_above_replacement
+    pvos = [
+        _make_pvo("p1", "s1", "RB", projection_2y=15.0),
+        _make_pvo("p2", "s2", "RB", projection_2y=12.0),
+        _make_pvo("p3", "s3", "RB", projection_2y=9.0),
+    ]
+    pvos[0].dynasty_value_score = 80.0
+    pvos[1].dynasty_value_score = 60.0
+    pvos[2].dynasty_value_score = 40.0
+    compute_value_above_replacement(pvos)
+    assert pvos[0].value_above_replacement is not None
+    assert pvos[2].value_above_replacement is not None
+
+
+def test_compute_var_is_none_when_no_dynasty_value_score():
+    from src.dynasty_genius.services.market_overlay_service import compute_value_above_replacement
+    pvos = [_make_pvo("p1", "s1", "RB", projection_2y=15.0)]
+    pvos[0].dynasty_value_score = None
+    compute_value_above_replacement(pvos)
+    assert pvos[0].value_above_replacement is None
+
+
+def test_rookie_peak_value_window_caveat_fires_in_may():
+    from unittest.mock import patch
+    from datetime import date
+    from src.dynasty_genius.services.market_overlay_service import compute_divergence
+    fixture = _load_fixture()
+    pvo = _make_pvo("p_tate", "11111", "WR", projection_2y=None, is_prospect=True)
+    with patch("src.dynasty_genius.services.market_overlay_service.date") as mock_date:
+        mock_date.today.return_value = date(2026, 5, 13)
+        compute_divergence([pvo], fixture)
+    assert pvo.market_overlay is not None
+    assert "rookie_peak_value_window" in pvo.market_overlay.caveats

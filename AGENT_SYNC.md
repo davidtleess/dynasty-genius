@@ -1,19 +1,24 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-05-12
+Last updated: 2026-05-13
 
 ## Active Phase
 
-Phase 8 — Decision Surfaces (COMPLETE: 8.1 + 8.2 + 8.3)
+Phase 9 — Market Overlay (IMPLEMENTATION COMPLETE — PR pending review)
 
 ## Current Sprint Objective
 
-Phase 8 decision surfaces (Roster Audit, Rookie Board, Trade Lab) are wired as read-only over PVO. No surface invents its own scoring logic. 339 passing tests.
+Phase 9 Market Overlay: COMPLETE on `feature/phase9-market-overlay`. PR open for Codex review.
+Spec at `docs/superpowers/specs/2026-05-13-phase9-market-overlay.md`.
 
-- Phase 8.1 (Roster Audit): COMPLETE — wired to PVO, sorted by years_to_cliff, 10 contract tests.
-- Phase 8.2 (Rookie Board): COMPLETE — wired to PVO, sorted by score, 5 contract tests.
-- Phase 8.3 (Trade Lab): COMPLETE — wired to PVO, RMSE-proxied `delta_status` implemented, 6 contract tests.
+Phase 8 COMPLETE (8.1 + 8.2 + 8.3): decision surfaces wired read-only over PVO. 339 tests.
+Phase 9 COMPLETE (9.0 + 9.1 + 9.2 + 9.3): market overlay divergence engine + surface wiring. 373 tests.
+
+- Phase 9.0 (Adapter Foundation): Fix fantasycalc_adapter.py URL params, rewrite field capture, MarketSource abstraction, 3-stage cache, test fixture.
+- Phase 9.1 (Divergence Engine): compute_divergence(), percentile-rank formula, position-specific flags and caveats.
+- Phase 9.2 (PVO Integration): wire into pvo_assembler and all three surfaces; contract tests.
+- Phase 9.3 (Seasonal Signals + VAR): VAR from model scores, rookie_peak_value_window, market_recency_swing.
 
 Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value Object pipeline.
 
@@ -78,7 +83,11 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 
 ## Next Recommended Work
 
-1. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate before implementation
-2. **TE diagnosis** — alpha=1.0 overfitting, training sample quality, role heterogeneity investigation (separate exploratory track). TE slot alignment adapter spec.
-3. **Composite validation gates (Step 0.5)** — Implement `app/data/pipeline/validation/composite.py` as defined in `validation-gates.md`.
-4. **Market overlay (Phase 9)** — KTC/FantasyCalc join post-scoring via `PVO.market_overlay`.
+1. **Merge Phase 9 PR** — Codex review + merge `feature/phase9-market-overlay` → main.
+2. **NOISE_BAND calibration** — Review after 1–2 months. If >80% of flags are `aligned`, tighten to 0.08.
+3. **Prospect sleeper_id join** — Rookie Board overlay currently null for pre-draft prospects (no sleeper_id). Phase 9.5: name-based or draft-pick-based FC lookup.
+4. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate (separate track).
+5. **TE diagnosis** — role heterogeneity, slot alignment adapter (separate track).
+5. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate (separate track).
+6. **TE diagnosis** — role heterogeneity, slot alignment adapter (separate track).
+7. **Composite validation gates (Step 0.5)** — prerequisite for model_grade promotion.
