@@ -344,6 +344,8 @@ class WalkForwardDriver:
         self,
         market_store: Optional["MarketSnapshotStore"] = None,
         id_map: Optional[dict[str, str]] = None,
+        emit_prediction_log: bool = False,
+        emit_market_comparison: bool = False,
     ) -> BacktestResult:
         """Execute the full walk-forward backtest. Returns an immutable BacktestResult.
 
@@ -357,6 +359,10 @@ class WalkForwardDriver:
             id_map: Optional GSIS → sleeper_id mapping dict. When market_store is
                 provided and id_map is None, loads from nflreadpy automatically.
                 Pass {} to skip market comparison without network call.
+            emit_prediction_log: When True, accumulates per-player test-fold rows
+                in self.prediction_rows after run() completes.
+            emit_market_comparison: When True, accumulates per-player market
+                comparison rows in self.market_comparison_rows after run() completes.
         """
         df = pd.read_csv(CSV_PATH)
         position = self.position
@@ -370,6 +376,8 @@ class WalkForwardDriver:
         fold_results: list[FoldResult] = []
         market_snapshot_dates_by_fold: dict[int, str] = {}
         market_sources_found: list[str] = []
+        _prediction_rows: list[dict] = []
+        _market_comparison_rows: list[dict] = []
 
         for fold_def in self.FOLD_DEFINITIONS:
             fold_index = fold_def["fold_index"]
@@ -402,6 +410,24 @@ class WalkForwardDriver:
             residuals = y_pred - y_test
             rmse = float(np.sqrt(np.mean(residuals ** 2)))
             mae = float(np.mean(np.abs(residuals)))
+
+            # Accumulate prediction log rows — test fold only
+            if emit_prediction_log:
+                model_ranks = _compute_ranks_desc(y_pred.tolist())
+                age_values = df.loc[test_mask, "age"].tolist() if "age" in df.columns else [None] * len(y_pred)
+                for i, pid in enumerate(player_ids_test):
+                    _prediction_rows.append({
+                        "player_id": pid,
+                        "position": position,
+                        "fold_index": fold_index,
+                        "feature_season": test_year,
+                        "predicted_ppg": float(y_pred[i]),
+                        "realized_ppg": float(y_test[i]),
+                        "model_rank": model_ranks[i],
+                        "residual": float(y_test[i]) - float(y_pred[i]),
+                        "age_at_feature_season": age_values[i] if age_values[i] is not None else None,
+                        "draft_round": None,
+                    })
 
             tau, tau_ci, rho, rho_ci = compute_rank_correlation(
                 y_pred.tolist(), y_test.tolist()
@@ -450,6 +476,10 @@ class WalkForwardDriver:
                 ndcg_at_24_model=ndcg_fields["ndcg_at_24_model"],
                 ndcg_at_24_market=ndcg_fields["ndcg_at_24_market"],
             ))
+
+        # Expose accumulated rows as instance attributes
+        self.prediction_rows: list[dict] = _prediction_rows
+        self.market_comparison_rows: list[dict] = _market_comparison_rows
 
         rmse_vals = [f.rmse for f in fold_results]
         rmse_mean = float(np.mean(rmse_vals))
