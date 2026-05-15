@@ -5,7 +5,7 @@ Last updated: 2026-05-15
 
 ## Active Phase
 
-Phase 10/11 — Backtest Harness (MERGED → main, PR #27 merge commit 91c91d1; 479 tests)
+Phase 12 — Operational Artifacts + Trust Surface v2 + Model Cards + TE Diagnosis (spec approved 2026-05-15)
 
 ## Current Sprint Objective
 
@@ -101,11 +101,28 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 3. **Issue 3 (missing-required check absent)** — FIXED: `validate_position_feature_contract()` now checks for missing required features; `_BASE_FEATURES` → `ENGINE_B_BASE_FEATURES` (public); 2 new tests added
 4. **Issue 4 (v1.1 used RidgeCV not Ridge)** — FIXED: `train_v1_1_control()` now uses `Ridge(alpha=100.0)`; Stage 6.1 re-run; clean result logged above
 
+## Phase 12 Spec
+
+Spec APPROVED (David, 2026-05-15). Committed at `docs/superpowers/specs/2026-05-15-phase12-operational-artifacts.md`.
+Research brief at `docs/strategies/Phase 12 Research Brief - Merged.md`.
+
+- Task 12.0: Operational first run — `.venv/bin/python3.14 scripts/run_backtest.py --all`; verify `app/data/backtest/runs/{run_id}/backtest_result_{POS}.json` exists for all 4 positions
+- Task 12.1: ModelCard + CalibrationReport schemas + 7 contract tests
+- Task 12.2: ECE + subgroup metric functions + 5 tests
+- Task 12.3: Per-fold prediction log (CSV artifact) + 5 tests
+- Task 12.4: Market-comparison ledger (JSON artifact) + 5 tests
+- Task 12.5: Model card generation script + 6 tests
+- Task 12.6: Trust Surface v2 — new `GET /trust-surface/{position}/model-card` endpoint + 8 tests
+- Task 12.7: Divergence ledger v0 + build script + 5 tests
+- Task 12.8: ARTIFACTS.md + AGENT_SYNC.md update + ledger entry (no tests)
+
+**Governance**: `dynasty_value_score` stays `None`; TE remains EXPERIMENTAL; no model retraining; all artifacts immutable once written. Act 2 (DVS) is conditional — requires Act 1 artifact review and David's explicit spec approval.
+
 ## Next Recommended Work
 
-1. **Operational backtest artifacts** — run `.venv/bin/python3.14 scripts/run_backtest.py --all` to populate `app/data/backtest/runs/` for Trust Surface reads.
-2. **Phase 12 planning/spec** — do not implement until a written spec is approved.
+1. **Task 12.0** — run `.venv/bin/python3.14 scripts/run_backtest.py --all` to generate first operational artifacts; confirm `backtest_result_{POS}.json` written for all 4 positions before any code work.
+2. **Tasks 12.1–12.8** — execute in strict sequence per the Phase 12 spec.
 3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
 4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 5. **RB feature expansion research** — separate track; touches model inputs, requires backtest gate.
-6. **TE diagnosis** — separate track; role heterogeneity + slot alignment adapter.
+6. **TE diagnosis** — covered in Phase 12 Task 12.5 model card; deeper remodel is Phase 13.
