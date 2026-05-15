@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import pytest
 
+from pathlib import Path
 from src.dynasty_genius.eval.market_snapshot_store import MarketSnapshotStore
+from scripts.ingest_market_archive import ingest_csv
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -118,3 +120,91 @@ def test_get_ranked_sorted_by_overall_rank(tmp_path):
     ranks = [r["overall_rank"] for r in ranked]
     assert ranks == sorted(ranks)
     assert ranks[0] == 1
+
+# ── Ingest Script Tests ───────────────────────────────────────────────────────
+
+def test_ingest_writes_rows_correctly(tmp_path):
+    store = MarketSnapshotStore(db_path=tmp_path / "test.db")
+    csv_path = tmp_path / "archive.csv"
+    csv_path.write_text(
+        "sleeper_id,value,overall_rank,position_rank,position\n"
+        "123,5000,10,1,QB\n"
+        "456,4000,20,5,RB\n"
+    )
+
+    stats = ingest_csv(
+        csv_path=csv_path,
+        source="ktc_community_csv",
+        snapshot_date="2022-09-07",
+        store=store
+    )
+
+    assert stats["rows_read"] == 2
+    assert stats["rows_written"] == 2
+    assert stats["rows_skipped"] == 0
+
+    snapshot = store.get_snapshot("2022-09-07")
+    assert len(snapshot) == 2
+    ids = {r["sleeper_id"] for r in snapshot}
+    assert ids == {"123", "456"}
+    vals = {r["value"] for r in snapshot}
+    assert vals == {5000, 4000}
+
+
+def test_ingest_is_idempotent(tmp_path):
+    store = MarketSnapshotStore(db_path=tmp_path / "test.db")
+    csv_path = tmp_path / "archive.csv"
+    csv_path.write_text(
+        "sleeper_id,value,rank\n"
+        "123,5000,1\n"
+    )
+
+    # Run 1
+    ingest_csv(csv_path, "ktc_community_csv", "2022-09-07", store)
+    # Run 2
+    stats = ingest_csv(csv_path, "ktc_community_csv", "2022-09-07", store)
+
+    assert stats["rows_written"] == 1
+    snapshot = store.get_snapshot("2022-09-07")
+    assert len(snapshot) == 1
+
+
+def test_ingest_skips_missing_sleeper_id(tmp_path):
+    store = MarketSnapshotStore(db_path=tmp_path / "test.db")
+    csv_path = tmp_path / "archive.csv"
+    # Row 2 is missing sleeper_id, Row 3 has non-numeric value
+    csv_path.write_text(
+        "sleeper_id,value\n"
+        "123,5000\n"
+        ",4000\n"
+        "789,not_a_number\n"
+    )
+
+    stats = ingest_csv(csv_path, "ktc_community_csv", "2022-09-07", store)
+
+    assert stats["rows_read"] == 3
+    assert stats["rows_written"] == 1
+    assert stats["rows_skipped"] == 2
+    snapshot = store.get_snapshot("2022-09-07")
+    assert len(snapshot) == 1
+    assert snapshot[0]["sleeper_id"] == "123"
+
+
+def test_ingest_maps_column_name_variants(tmp_path):
+    store = MarketSnapshotStore(db_path=tmp_path / "test.db")
+    csv_path = tmp_path / "archive.csv"
+    # Non-standard but accepted names: sleeperId, sf_value, pos_rank
+    csv_path.write_text(
+        "sleeperId,sf_value,overall,pos_rank,pos\n"
+        "123,5000,1,1,QB\n"
+    )
+
+    stats = ingest_csv(csv_path, "ktc_community_csv", "2022-09-07", store)
+
+    assert stats["rows_written"] == 1
+    row = store.get_snapshot("2022-09-07")[0]
+    assert row["sleeper_id"] == "123"
+    assert row["value"] == 5000
+    assert row["overall_rank"] == 1
+    assert row["position_rank"] == 1
+    assert row["position"] == "QB"
