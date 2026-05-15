@@ -14,6 +14,7 @@ Output:
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 from typing import Sequence
@@ -28,6 +29,20 @@ VALID_POSITIONS = {"QB", "RB", "WR", "TE"}
 ACTIVE_POSITIONS = ("QB", "RB", "WR")
 
 
+def _current_git_sha() -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    sha = result.stdout.strip()
+    return sha if len(sha) == 40 else None
+
+
 def _run_position(
     position: str,
     model_version: str,
@@ -36,6 +51,7 @@ def _run_position(
 ) -> tuple[str, str, Path]:
     driver = WalkForwardDriver(position=position, model_version=model_version)
     result = driver.run(market_store=market_store)
+    result.git_sha = _current_git_sha()
     artifact_path = result.save(output_dir / str(result.run_id))
     return position, result.promotion_gate.overall_grade, artifact_path
 
