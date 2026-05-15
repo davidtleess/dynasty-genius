@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-05-15T21:35:52.812629Z",
+  "position": "RB",
+  "backtest_run_id": "210c46fe-b227-46a6-8eaf-f34bf8b27ad5",
+  "git_sha": "79c0142b2445d0089b4e7a0c526f337492e67257",
+  "model_version": "engine_b_v2",
+  "model_artifact_hash": "5507e37feda9ba9d8f2bda7f1f259df5a59edcb2880e7ff7af6938d34401c4f9",
+  "ridge_alpha": 500.0,
+  "training_window": "2018–2022 (expanding; 4 folds)",
+  "feature_list": [
+    "see_engine_b_features_v2.csv"
+  ],
+  "retrain_mode": "refit_per_fold_fixed_alpha",
+  "intended_use": "Forecast 2-year average PPG for active NFL running backs. Dynasty trade decision support in Superflex PPR (12-team, 2QB) leagues.",
+  "out_of_scope_uses": [
+    "Single-season redraft start/sit decisions",
+    "Keeper cap valuations without manager review"
+  ],
+  "relevant_factors": [
+    "position",
+    "age",
+    "sample_size",
+    "draft_capital"
+  ],
+  "evaluation_factors": [
+    "age_bucket",
+    "draft_round_bucket"
+  ],
+  "metrics": {
+    "rmse_mean": 3.7222716740992032,
+    "rmse_per_fold": [
+      3.74320367292616,
+      3.4655470521645766,
+      3.8217292551717676,
+      3.8586067161343083
+    ],
+    "kendall_tau_mean": 0.5768748076265334,
+    "kendall_tau_per_fold": [
+      0.5294055789425349,
+      0.6106259897023992,
+      0.5559820189148823,
+      0.6114856429463171
+    ],
+    "spearman_rho_mean": 0.7687912499115179,
+    "spearman_rho_per_fold": [
+      0.7120501630590504,
+      0.8043812978807005,
+      0.7505926159586566,
+      0.8081409227476641
+    ],
+    "ece": 1.4679999963525827,
+    "ndcg_at_24_model_mean": null,
+    "ndcg_at_24_market_mean": null,
+    "g1_pass": true,
+    "g2_pass": true,
+    "g3_pass": "deferred",
+    "g4_pass": "deferred",
+    "overall_grade": "ACTIVE_B"
+  },
+  "evaluation_data": "  Fold 1: test_year=2020, n_train=191, n_test=98, tau=0.529\n  Fold 2: test_year=2021, n_train=289, n_test=98, tau=0.611\n  Fold 3: test_year=2022, n_train=387, n_test=96, tau=0.556\n  Fold 4: test_year=2023, n_train=483, n_test=90, tau=0.611",
+  "training_data": "app/data/training/engine_b_features_v2.csv",
+  "subgroup_results": [
+    {
+      "label": "age_under_26",
+      "n": 236,
+      "rmse": 3.8910049185931523,
+      "kendall_tau": 0.5643651846618969,
+      "note": null
+    },
+    {
+      "label": "age_26_to_28",
+      "n": 115,
+      "rmse": 3.4618805581826932,
+      "kendall_tau": 0.6258295845503262,
+      "note": null
+    },
+    {
+      "label": "age_29_plus",
+      "n": 31,
+      "rmse": 3.316620119216109,
+      "kendall_tau": 0.2755652834369186,
+      "note": null
+    }
+  ],
+  "ethical_considerations": "Decision aid only. Market overlay (FantasyCalc) is a post-scoring reference — it is not a training input and must not be treated as ground truth. Model outputs carry uncertainty bands that must be exposed to end users.",
+  "caveats": [
+    "RB age cliff begins ~26. The model encodes age as a continuous feature; users should interpret high-confidence predictions for players ≥26 with increased skepticism.",
+    "Role volatility (committee backfields, mid-season usage shifts) creates floor risk not captured in PPG-based training labels.",
+    "Weighted Opportunity and High-Value Touches are not yet in the feature set. See Phase 13 research brief."
+  ],
+  "known_failure_modes": [
+    "Low-snap, high-efficiency backs on poor offenses may be undervalued by a PPG-trained label.",
+    "Committee backs show high variance that PPG smooths over."
+  ],
+  "is_experimental": false
+}

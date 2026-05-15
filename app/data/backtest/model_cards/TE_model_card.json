@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-05-15T21:35:52.898803Z",
+  "position": "TE",
+  "backtest_run_id": "25f9697d-f155-49e2-a6c7-384b7cec51c1",
+  "git_sha": "79c0142b2445d0089b4e7a0c526f337492e67257",
+  "model_version": "engine_b_v2",
+  "model_artifact_hash": "unavailable",
+  "ridge_alpha": 1.0,
+  "training_window": "2018–2022 (expanding; 4 folds)",
+  "feature_list": [
+    "see_engine_b_features_v2.csv"
+  ],
+  "retrain_mode": "refit_per_fold_fixed_alpha",
+  "intended_use": "EXPERIMENTAL — not for trade decisions. Diagnostic only.",
+  "out_of_scope_uses": [
+    "Any trade decision",
+    "Dynasty value ranking",
+    "Trust Surface display without explicit EXPERIMENTAL label"
+  ],
+  "relevant_factors": [
+    "position",
+    "age",
+    "sample_size",
+    "draft_capital"
+  ],
+  "evaluation_factors": [
+    "age_bucket",
+    "draft_round_bucket"
+  ],
+  "metrics": {
+    "rmse_mean": 2.4269411570798725,
+    "rmse_per_fold": [
+      2.260619359816884,
+      2.2681712458689205,
+      2.754967392052603,
+      2.424006630581083
+    ],
+    "kendall_tau_mean": 0.47710351040593335,
+    "kendall_tau_per_fold": [
+      0.3780498208814279,
+      0.5868822373122663,
+      0.4553683681166708,
+      0.4881136153133684
+    ],
+    "spearman_rho_mean": 0.6387932857675286,
+    "spearman_rho_per_fold": [
+      0.4549535403691953,
+      0.7619878244270256,
+      0.6474493620316142,
+      0.6907824162422792
+    ],
+    "ece": 1.0315276389905683,
+    "ndcg_at_24_model_mean": null,
+    "ndcg_at_24_market_mean": null,
+    "g1_pass": true,
+    "g2_pass": true,
+    "g3_pass": "deferred",
+    "g4_pass": "deferred",
+    "overall_grade": "EXPERIMENTAL"
+  },
+  "evaluation_data": "  Fold 1: test_year=2020, n_train=237, n_test=206, tau=0.378\n  Fold 2: test_year=2021, n_train=443, n_test=146, tau=0.587\n  Fold 3: test_year=2022, n_train=589, n_test=90, tau=0.455\n  Fold 4: test_year=2023, n_train=679, n_test=81, tau=0.488",
+  "training_data": "app/data/training/engine_b_features_v2.csv",
+  "subgroup_results": [
+    {
+      "label": "age_under_26",
+      "n": 276,
+      "rmse": 2.352419373787596,
+      "kendall_tau": 0.40319340796931774,
+      "note": null
+    },
+    {
+      "label": "age_26_to_28",
+      "n": 179,
+      "rmse": 2.3220801384240217,
+      "kendall_tau": 0.5433357281706545,
+      "note": null
+    },
+    {
+      "label": "age_29_plus",
+      "n": 68,
+      "rmse": 2.630009372281629,
+      "kendall_tau": 0.5548726953467954,
+      "note": null
+    }
+  ],
+  "ethical_considerations": "TE model failed Phase 10/11 promotion gates (0/3). This card documents failure modes. Do not use outputs for decisions.",
+  "caveats": [
+    "TE model failed Phase 10/11 promotion gates (0/3). Alpha=1.0 indicates severe overfitting; model cannot beat a naive prior-PPG baseline.",
+    "Role heterogeneity (inline blocker vs. receiving specialist) is not segmented. A single model trained on mixed archetypes cannot capture either reliably.",
+    "Sample size is the tightest of any position: ~30–35 TE starters per fold."
+  ],
+  "known_failure_modes": [
+    "TD variance dominates short-window PPG, making calibration unstable. The model's calibration_by_decile will show large residuals.",
+    "Draft capital selects for inline blockers who have zero fantasy utility. Model trained on overall_rank overweights pick number for non-fantasy TEs."
+  ],
+  "is_experimental": true
+}

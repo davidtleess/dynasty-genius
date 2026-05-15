@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-05-15T21:35:52.859476Z",
+  "position": "WR",
+  "backtest_run_id": "eb26f907-cae5-46ef-a8b2-a127594c0fef",
+  "git_sha": "79c0142b2445d0089b4e7a0c526f337492e67257",
+  "model_version": "engine_b_v2",
+  "model_artifact_hash": "3b83bbf98118d272196a0942a4190cc539b08409cbb3b23da570ed42b4ec873e",
+  "ridge_alpha": 200.0,
+  "training_window": "2018–2022 (expanding; 4 folds)",
+  "feature_list": [
+    "see_engine_b_features_v2.csv"
+  ],
+  "retrain_mode": "refit_per_fold_fixed_alpha",
+  "intended_use": "Forecast 2-year average PPG for active NFL wide receivers. Dynasty trade decision support in Superflex PPR (12-team, 2QB) leagues.",
+  "out_of_scope_uses": [
+    "Single-season redraft start/sit decisions",
+    "Keeper cap valuations without manager review"
+  ],
+  "relevant_factors": [
+    "position",
+    "age",
+    "sample_size",
+    "draft_capital"
+  ],
+  "evaluation_factors": [
+    "age_bucket",
+    "draft_round_bucket"
+  ],
+  "metrics": {
+    "rmse_mean": 2.9786200449511004,
+    "rmse_per_fold": [
+      3.2016869830485493,
+      2.9045966527937743,
+      2.8654923610588643,
+      2.942704182903214
+    ],
+    "kendall_tau_mean": 0.5954565756567494,
+    "kendall_tau_per_fold": [
+      0.56378002323523,
+      0.5966028816524366,
+      0.6319027043436973,
+      0.5895406933956333
+    ],
+    "spearman_rho_mean": 0.7894605111842778,
+    "spearman_rho_per_fold": [
+      0.7633794997215073,
+      0.7848488072195327,
+      0.8161293856807657,
+      0.7934843521153058
+    ],
+    "ece": 0.8090958999728287,
+    "ndcg_at_24_model_mean": null,
+    "ndcg_at_24_market_mean": null,
+    "g1_pass": true,
+    "g2_pass": true,
+    "g3_pass": "deferred",
+    "g4_pass": "deferred",
+    "overall_grade": "ACTIVE_B"
+  },
+  "evaluation_data": "  Fold 1: test_year=2020, n_train=294, n_test=160, tau=0.564\n  Fold 2: test_year=2021, n_train=454, n_test=153, tau=0.597\n  Fold 3: test_year=2022, n_train=607, n_test=147, tau=0.632\n  Fold 4: test_year=2023, n_train=754, n_test=153, tau=0.590",
+  "training_data": "app/data/training/engine_b_features_v2.csv",
+  "subgroup_results": [
+    {
+      "label": "age_under_26",
+      "n": 328,
+      "rmse": 3.0696802418849427,
+      "kendall_tau": 0.5871010464817162,
+      "note": null
+    },
+    {
+      "label": "age_26_to_28",
+      "n": 197,
+      "rmse": 2.882955719635686,
+      "kendall_tau": 0.6026730243700902,
+      "note": null
+    },
+    {
+      "label": "age_29_plus",
+      "n": 88,
+      "rmse": 2.889623025422411,
+      "kendall_tau": 0.652554603907643,
+      "note": null
+    }
+  ],
+  "ethical_considerations": "Decision aid only. Market overlay (FantasyCalc) is a post-scoring reference — it is not a training input and must not be treated as ground truth. Model outputs carry uncertainty bands that must be exposed to end users.",
+  "caveats": [
+    "Age cliff begins ~29. WR prime window is broad (25–29), making mid-career predictions most reliable.",
+    "Quarterback volatility (team changes, QB injuries) creates landing-spot risk that YPRR-adjacent features cannot capture in a pure efficiency model."
+  ],
+  "known_failure_modes": [
+    "Slot vs. outside receiver distinctions are not explicitly modeled. A slot receiver moving to a vertical role will be mispredicted until the new role PPG accumulates."
+  ],
+  "is_experimental": false
+}

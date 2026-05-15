@@ -1,0 +1,78 @@
+{
+  "position": "RB",
+  "backtest_run_id": "210c46fe-b227-46a6-8eaf-f34bf8b27ad5",
+  "ece": 1.4679999963525827,
+  "deciles": [
+    {
+      "decile": 1,
+      "predicted_mean": 3.3218645896714665,
+      "observed_mean": 1.6210403841173073,
+      "n": 39,
+      "residual_mean": -1.7008242055541591
+    },
+    {
+      "decile": 2,
+      "predicted_mean": 5.0043759670542025,
+      "observed_mean": 3.08969172426007,
+      "n": 38,
+      "residual_mean": -1.9146842427941326
+    },
+    {
+      "decile": 3,
+      "predicted_mean": 5.703549666186381,
+      "observed_mean": 3.7031508708304166,
+      "n": 38,
+      "residual_mean": -2.0003987953559648
+    },
+    {
+      "decile": 4,
+      "predicted_mean": 6.357081812894621,
+      "observed_mean": 5.437571963510074,
+      "n": 38,
+      "residual_mean": -0.9195098493845473
+    },
+    {
+      "decile": 5,
+      "predicted_mean": 7.10912267099992,
+      "observed_mean": 5.937630419331272,
+      "n": 38,
+      "residual_mean": -1.1714922516686475
+    },
+    {
+      "decile": 6,
+      "predicted_mean": 7.767058459551325,
+      "observed_mean": 6.499544028970867,
+      "n": 38,
+      "residual_mean": -1.2675144305804578
+    },
+    {
+      "decile": 7,
+      "predicted_mean": 8.487747679459773,
+      "observed_mean": 8.056667363565634,
+      "n": 38,
+      "residual_mean": -0.431080315894139
+    },
+    {
+      "decile": 8,
+      "predicted_mean": 9.587215974200465,
+      "observed_mean": 9.840782945860965,
+      "n": 38,
+      "residual_mean": 0.2535669716605007
+    },
+    {
+      "decile": 9,
+      "predicted_mean": 10.732032674057464,
+      "observed_mean": 13.280639932916422,
+      "n": 38,
+      "residual_mean": 2.548607258858958
+    },
+    {
+      "decile": 10,
+      "predicted_mean": 12.42593417136317,
+      "observed_mean": 14.866534124557406,
+      "n": 39,
+      "residual_mean": 2.4405999531942353
+    }
+  ],
+  "note": null
+}

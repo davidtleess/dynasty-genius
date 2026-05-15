@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-05-15T21:35:52.778535Z",
+  "position": "QB",
+  "backtest_run_id": "bf5e0cc3-c8eb-43fa-b903-b592f18a85c7",
+  "git_sha": "79c0142b2445d0089b4e7a0c526f337492e67257",
+  "model_version": "engine_b_v2",
+  "model_artifact_hash": "d7acb6808e4a6caf412ec05b41aa90324e04f90ef219bbf78f680f66ea7d304f",
+  "ridge_alpha": 1000.0,
+  "training_window": "2018–2022 (expanding; 4 folds)",
+  "feature_list": [
+    "see_engine_b_features_v2.csv"
+  ],
+  "retrain_mode": "refit_per_fold_fixed_alpha",
+  "intended_use": "Forecast 2-year average PPG for active NFL quarterbacks. Dynasty trade decision support in Superflex PPR (12-team, 2QB) leagues.",
+  "out_of_scope_uses": [
+    "Single-season redraft start/sit decisions",
+    "Keeper cap valuations without manager review"
+  ],
+  "relevant_factors": [
+    "position",
+    "age",
+    "sample_size",
+    "draft_capital"
+  ],
+  "evaluation_factors": [
+    "age_bucket",
+    "draft_round_bucket"
+  ],
+  "metrics": {
+    "rmse_mean": 5.161870629523021,
+    "rmse_per_fold": [
+      6.120634829185418,
+      4.4497736759138995,
+      4.728883256352058,
+      5.348190756640708
+    ],
+    "kendall_tau_mean": 0.526965354729691,
+    "kendall_tau_per_fold": [
+      0.4928017718715393,
+      0.5130434782608696,
+      0.5458937198067633,
+      0.5561224489795917
+    ],
+    "spearman_rho_mean": 0.7127950872670601,
+    "spearman_rho_per_fold": [
+      0.6792509815765629,
+      0.7179155103299415,
+      0.6976873265494912,
+      0.7563265306122448
+    ],
+    "ece": 2.4655068835285965,
+    "ndcg_at_24_model_mean": null,
+    "ndcg_at_24_market_mean": null,
+    "g1_pass": true,
+    "g2_pass": true,
+    "g3_pass": "deferred",
+    "g4_pass": "deferred",
+    "overall_grade": "ACTIVE_B"
+  },
+  "evaluation_data": "  Fold 1: test_year=2020, n_train=80, n_test=43, tau=0.493\n  Fold 2: test_year=2021, n_train=123, n_test=46, tau=0.513\n  Fold 3: test_year=2022, n_train=169, n_test=46, tau=0.546\n  Fold 4: test_year=2023, n_train=215, n_test=49, tau=0.556",
+  "training_data": "app/data/training/engine_b_features_v2.csv",
+  "subgroup_results": [
+    {
+      "label": "age_under_26",
+      "n": 74,
+      "rmse": 5.452269100694593,
+      "kendall_tau": 0.5391594241645855,
+      "note": null
+    },
+    {
+      "label": "age_26_to_28",
+      "n": 46,
+      "rmse": 5.897868899021197,
+      "kendall_tau": 0.5007250464023892,
+      "note": null
+    },
+    {
+      "label": "age_29_plus",
+      "n": 64,
+      "rmse": 4.242637317809126,
+      "kendall_tau": 0.5148809523809523,
+      "note": null
+    }
+  ],
+  "ethical_considerations": "Decision aid only. Market overlay (FantasyCalc) is a post-scoring reference — it is not a training input and must not be treated as ground truth. Model outputs carry uncertainty bands that must be exposed to end users.",
+  "caveats": [
+    "Sample size: ~43–49 QB rows per fold. Folds involving roster turnover years carry elevated noise.",
+    "Mobile QB rushing floors depreciate sharply after age 33. Model does not encode a hard cliff — age is a continuous feature — but predictions near this threshold carry higher uncertainty.",
+    "Superflex format premiums are not modeled directly. Value-above-replacement comparisons across positions require a separate normalization layer (deferred to DVS spec)."
+  ],
+  "known_failure_modes": [
+    "Injury-year outliers distort PPG labels for players who missed significant games. The model has no games-played filter in v2.",
+    "Historical regime shifts (2020 COVID, rules changes) can widen fold-to-fold RMSE."
+  ],
+  "is_experimental": false
+}
