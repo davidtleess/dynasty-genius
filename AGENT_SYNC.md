@@ -5,7 +5,7 @@ Last updated: 2026-05-15
 
 ## Active Phase
 
-Phase 12 — Operational Artifacts + Trust Surface v2 + Model Cards + TE Diagnosis (spec approved 2026-05-15)
+Phase 12 — COMPLETE: Operational Artifacts + Trust Surface v2 + Model Cards + TE Diagnosis (implementation complete 2026-05-15; 521 tests)
 
 ## Current Sprint Objective
 
@@ -114,9 +114,11 @@ Research brief at `docs/strategies/Phase 12 Research Brief - Merged.md`.
 - Task 12.5: Model card generation script + 6 tests ✓ COMPLETE
 - Task 12.6: Trust Surface v2 — new `GET /trust-surface/{position}/model-card` endpoint + 8 tests ✓ COMPLETE
 - Task 12.7: Divergence ledger v0 + build script + 5 tests ✓ COMPLETE
-- Task 12.8: ARTIFACTS.md + AGENT_SYNC.md update + ledger entry (no tests)
+- Task 12.8: ARTIFACTS.md + AGENT_SYNC.md update + ledger entry (no tests) ✓ COMPLETE
 
 **Governance**: `dynasty_value_score` stays `None`; TE remains EXPERIMENTAL; no production model artifact is retrained or replaced (harness in-fold Ridge refits are expected evaluation behavior); all artifacts immutable once written. Act 2 (DVS) is conditional — requires Act 1 artifact review and David's explicit spec approval.
+
+Phase 12 implementation COMPLETE (Codex/Claude, 2026-05-15): operational-artifact pipeline, model-card schemas and generator, Trust Surface v2 model-card route, passive divergence ledger, and artifact index are in place. Latest verification reported by Task 12.7: 521 passed, 11 skipped. Artifact index: `docs/ARTIFACTS.md`.
 
 Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 - QB: `app/data/backtest/runs/401e7e86-e34a-43d7-a72e-82f18466ab7a/backtest_result_QB.json` — ACTIVE_B
@@ -128,9 +130,9 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 12.7** — implement divergence ledger v0 using TDD.
-2. **Tasks 12.7–12.8** — execute in strict sequence per the Phase 12 spec.
+1. **Operational artifact refresh** — run current pipeline end to end: `run_backtest.py --all`, `run_backtest.py --position TE`, `generate_model_cards.py --all`, and `build_divergence_ledger.py --all`.
+2. **Artifact review gate** — review calibration reports, model cards, Trust Surface responses, and TE failure diagnosis before approving any DVS or Phase 13 spec.
 3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
 4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 5. **RB feature expansion research** — separate track; touches model inputs, requires backtest gate.
-6. **TE diagnosis** — covered in Phase 12 Task 12.5 model card; deeper remodel is Phase 13.
+6. **TE remodel / RB feature expansion / DVS** — separate specs only after artifact review and David approval.
