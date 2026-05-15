@@ -112,7 +112,7 @@ Research brief at `docs/strategies/Phase 12 Research Brief - Merged.md`.
 - Task 12.3: Per-fold prediction log (CSV artifact) + 5 tests ✓ COMPLETE
 - Task 12.4: Market-comparison ledger (JSON artifact) + 5 tests ✓ COMPLETE
 - Task 12.5: Model card generation script + 6 tests ✓ COMPLETE
-- Task 12.6: Trust Surface v2 — new `GET /trust-surface/{position}/model-card` endpoint + 8 tests
+- Task 12.6: Trust Surface v2 — new `GET /trust-surface/{position}/model-card` endpoint + 8 tests ✓ COMPLETE
 - Task 12.7: Divergence ledger v0 + build script + 5 tests
 - Task 12.8: ARTIFACTS.md + AGENT_SYNC.md update + ledger entry (no tests)
 
@@ -128,8 +128,8 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 12.5** — implement model card generation script using TDD.
-2. **Tasks 12.5–12.8** — execute in strict sequence per the Phase 12 spec.
+1. **Task 12.7** — implement divergence ledger v0 using TDD.
+2. **Tasks 12.7–12.8** — execute in strict sequence per the Phase 12 spec.
 3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
 4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 5. **RB feature expansion research** — separate track; touches model inputs, requires backtest gate.
