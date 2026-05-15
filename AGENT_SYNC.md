@@ -5,7 +5,7 @@ Last updated: 2026-05-15
 
 ## Active Phase
 
-Phase 10/11 — Backtest Harness (IN PROGRESS — Tasks 10.0, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, and 10.10 complete; 460 tests)
+Phase 10/11 — Backtest Harness (IN PROGRESS — Tasks 10.0, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, and 10.10 complete; 466 tests)
 
 ## Current Sprint Objective
 
@@ -21,8 +21,9 @@ Phase 10/11 Backtest Harness: IN PROGRESS. Spec APPROVED (David, 2026-05-14). 44
 - Task 10.4 COMPLETE: statistical metric functions (Kendall τ-b, Spearman ρ, NDCG, Precision@k, Wilson CI, HLN-DM) + 17 unit tests.
 - Task 10.5 COMPLETE: WalkForwardDriver.run() — 4-fold loop, Ridge refit at fixed alpha, BCa CIs, BacktestResult returned; market fields all None + 15 contract tests.
 - Task 10.6 COMPLETE: BacktestResult artifact persistence contract tests.
+- Task 10.7 COMPLETE: market comparison integration — run() market_store/id_map params; _compute_market_ndcg helper; NDCG@12/24 model vs market; empty store returns valid result with None fields; GSIS→Sleeper via nflreadpy; Sep 8 snapshot date + 6 unit tests.
 - Task 10.10 COMPLETE: community CSV ingest script + 4 unit tests.
-- Next: Task 10.7 (market comparison integration — join snapshots, populate NDCG).
+- Next: Task 10.8 (gate evaluator — evaluate_promotion_gates, GateResult, ACTIVE_B_VALIDATED logic).
 Spec at `docs/superpowers/specs/2026-05-14-phase10-11-backtest-harness.md`.
 Research brief at `docs/strategies/Phase 10-11 Backtest Harness Research - Merged.md`.
 

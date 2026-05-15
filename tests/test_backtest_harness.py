@@ -18,7 +18,12 @@ import pandas as pd
 import pytest
 
 from src.dynasty_genius.eval.backtest_artifact import BacktestResult
-from src.dynasty_genius.eval.backtest_harness import WalkForwardDriver
+from src.dynasty_genius.eval.backtest_harness import (
+    WalkForwardDriver,
+    _compute_market_ndcg,
+    _market_snapshot_date,
+)
+from src.dynasty_genius.eval.market_snapshot_store import MarketSnapshotStore
 from src.dynasty_genius.models.engine_b_contract import OUTCOME_COLUMN
 
 CSV_PATH = "app/data/training/engine_b_features_v2.csv"
@@ -228,3 +233,149 @@ def test_run_no_fitted_model_state_after_run(wr_run):
     assert not hasattr(driver, "_ridge")
     assert not hasattr(driver, "_fitted_model")
     assert not hasattr(driver, "_fitted_ridge")
+
+
+# ── Task 10.7: Market comparison integration ──────────────────────────────────
+#
+# RED tests — run() market_store parameter and _compute_market_ndcg do not exist yet.
+# empty_store tests use module scope (one fold loop per fixture run).
+# _compute_market_ndcg tests are fast pure-function unit tests.
+
+
+def _make_market_rows(n: int, position: str, snapshot_date: str) -> list[dict]:
+    """n synthetic market rows with sleeper_id slp_0..slp_{n-1}."""
+    return [
+        {
+            "snapshot_date": snapshot_date,
+            "league_settings_hash": "test0000",
+            "sleeper_id": f"slp_{i}",
+            "value": float(n - i),   # slp_0 = highest value
+            "overall_rank": i + 1,
+            "position_rank": i + 1,
+            "position": position,
+            "trend_30day": 0.0,
+            "source": "ktc_community_csv",
+            "inserted_at": "2026-01-01T00:00:00Z",
+        }
+        for i in range(n)
+    ]
+
+
+@pytest.fixture(scope="module")
+def empty_store(tmp_path_factory):
+    db = tmp_path_factory.mktemp("mkt") / "empty.db"
+    return MarketSnapshotStore(db_path=db)
+
+
+@pytest.fixture(scope="module")
+def wr_run_empty_market(empty_store):
+    return WalkForwardDriver(position="WR").run(market_store=empty_store, id_map={})
+
+
+# Test 1: empty store → valid result, no crash
+def test_empty_store_returns_valid_backtest_result(wr_run_empty_market):
+    assert isinstance(wr_run_empty_market, BacktestResult)
+
+
+# Test 2: empty store → all market fields remain None
+def test_empty_store_market_fields_all_none(wr_run_empty_market):
+    result = wr_run_empty_market
+    assert result.market_source == "unavailable"
+    assert result.market_snapshot_dates is None
+    for fold in result.folds:
+        assert fold.ndcg_at_12_model is None
+        assert fold.ndcg_at_12_market is None
+        assert fold.ndcg_at_24_model is None
+        assert fold.ndcg_at_24_market is None
+
+
+# Test 3: pool ≥ 25 → NDCG@12 and @24 both populated and in [0, 1]
+def test_compute_market_ndcg_sufficient_pool(tmp_path):
+    n = 25
+    rows = _make_market_rows(n, "WR", "2021-09-08")
+    store = MarketSnapshotStore(db_path=tmp_path / "s25.db")
+    store.upsert_snapshots(rows)
+    market_rows = store.get_ranked("2021-09-08", "WR")
+
+    rng = np.random.default_rng(7)
+    y_pred = rng.random(n)
+    y_realized = rng.random(n)
+    id_map = {f"gsis_{i}": f"slp_{i}" for i in range(n)}
+    player_ids = [f"gsis_{i}" for i in range(n)]
+
+    result = _compute_market_ndcg(
+        y_pred=y_pred,
+        player_ids=player_ids,
+        y_realized=y_realized,
+        market_rows=market_rows,
+        id_map=id_map,
+    )
+
+    for key in ["ndcg_at_12_model", "ndcg_at_12_market", "ndcg_at_24_model", "ndcg_at_24_market"]:
+        assert result[key] is not None, f"{key} should be set for pool=25"
+        assert 0.0 <= result[key] <= 1.0, f"{key}={result[key]} out of [0, 1]"
+
+
+# Test 4: pool = 15 → @12 set, @24 None (15 < 24)
+def test_compute_market_ndcg_pool_below_24_sets_ndcg12_only(tmp_path):
+    n = 15
+    rows = _make_market_rows(n, "WR", "2021-09-08")
+    store = MarketSnapshotStore(db_path=tmp_path / "s15.db")
+    store.upsert_snapshots(rows)
+    market_rows = store.get_ranked("2021-09-08", "WR")
+
+    rng = np.random.default_rng(3)
+    y_pred = rng.random(n)
+    y_realized = rng.random(n)
+    id_map = {f"gsis_{i}": f"slp_{i}" for i in range(n)}
+    player_ids = [f"gsis_{i}" for i in range(n)]
+
+    result = _compute_market_ndcg(
+        y_pred=y_pred,
+        player_ids=player_ids,
+        y_realized=y_realized,
+        market_rows=market_rows,
+        id_map=id_map,
+    )
+
+    assert result["ndcg_at_12_model"] is not None
+    assert result["ndcg_at_12_market"] is not None
+    assert result["ndcg_at_24_model"] is None
+    assert result["ndcg_at_24_market"] is None
+
+
+# Test 5: 20 players, 5 without sleeper map → pool=15; unmatched excluded from market only
+def test_compute_market_ndcg_excludes_unmatched_gsis(tmp_path):
+    n_matched = 15
+    n_total = 20
+    rows = _make_market_rows(n_matched, "WR", "2021-09-08")
+    store = MarketSnapshotStore(db_path=tmp_path / "s_exc.db")
+    store.upsert_snapshots(rows)
+    market_rows = store.get_ranked("2021-09-08", "WR")
+
+    rng = np.random.default_rng(5)
+    y_pred = rng.random(n_total)
+    y_realized = rng.random(n_total)
+    # Only first 15 gsis IDs have a sleeper mapping — last 5 are unmapped
+    id_map = {f"gsis_{i}": f"slp_{i}" for i in range(n_matched)}
+    player_ids = [f"gsis_{i}" for i in range(n_total)]
+
+    result = _compute_market_ndcg(
+        y_pred=y_pred,
+        player_ids=player_ids,
+        y_realized=y_realized,
+        market_rows=market_rows,
+        id_map=id_map,
+    )
+
+    # Pool = 15 (n_matched), so @12 is set but @24 is None
+    assert result["ndcg_at_12_model"] is not None   # pool=15 ≥ 12
+    assert result["ndcg_at_24_model"] is None        # pool=15 < 24
+
+
+# Test 6: snapshot date formula — Sep 8 of test_year + 1 for all 4 folds
+def test_snapshot_date_formula():
+    assert _market_snapshot_date(2020) == "2021-09-08"
+    assert _market_snapshot_date(2021) == "2022-09-08"
+    assert _market_snapshot_date(2022) == "2023-09-08"
+    assert _market_snapshot_date(2023) == "2024-09-08"
