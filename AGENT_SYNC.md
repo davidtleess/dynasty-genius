@@ -1,17 +1,35 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-05-14
+Last updated: 2026-05-15
 
 ## Active Phase
 
-Phase 9.5 — Prospect Identity Join (PR #26 open, awaiting review)
+Phase 10/11 — Backtest Harness (COMPLETE — Tasks 10.0-10.9 and 10.10 complete; 479 tests — PR #27 open)
 
 ## Current Sprint Objective
 
-Phase 9 Market Overlay: MERGED → main (PR #25 merge commit c04d9bf; main now at 113662a). 376 tests.
-Phase 9.5 Prospect Identity Join: PR #26 open on `feature/phase9-5-prospect-identity-join`. 384 tests.
+Phase 9 Market Overlay: MERGED → main (PR #25 merge commit c04d9bf). 376 tests.
+Phase 9.5 Prospect Identity Join: MERGED → main (PR #26, merge commit 845de98). 384 tests. Back-fill complete.
 Spec at `docs/superpowers/specs/2026-05-14-phase9-5-prospect-identity-join.md`.
+
+Phase 10/11 Backtest Harness: COMPLETE. Spec APPROVED (David, 2026-05-14). 479 tests.
+- Task 10.0 COMPLETE: BacktestResult Pydantic schema + 17 contract tests.
+- Task 10.1 COMPLETE: MarketSnapshotStore (SQLite) + 6 unit tests. fc_snapshots.db gitignored.
+- Task 10.2 COMPLETE: daily FantasyCalc snapshot script + 5 unit tests.
+- Task 10.3 COMPLETE: WalkForwardDriver feature fold builder with temporal isolation + 7 unit tests.
+- Task 10.4 COMPLETE: statistical metric functions (Kendall τ-b, Spearman ρ, NDCG, Precision@k, Wilson CI, HLN-DM) + 17 unit tests.
+- Task 10.5 COMPLETE: WalkForwardDriver.run() — 4-fold loop, Ridge refit at fixed alpha, BCa CIs, BacktestResult returned; market fields all None + 15 contract tests.
+- Task 10.6 COMPLETE: BacktestResult artifact persistence contract tests.
+- Task 10.7 COMPLETE: market comparison integration (join snapshots, populate NDCG) + 6 unit tests.
+- Task 10.8 COMPLETE: gate evaluator (evaluate_promotion_gates, ACTIVE_B_VALIDATED logic, G3 deferred state) + 6 unit tests.
+- Task 10.9 COMPLETE: Trust Surface route (GET /trust-surface/{position}, overall_grade at top level) + scripts/run_backtest.py CLI (--position, --all, --model, --market-store) + 5 contract tests + 2 CLI unit tests.
+- Task 10.10 COMPLETE: community CSV ingest script + 4 unit tests.
+- PR #27 open: https://github.com/davidtleess/dynasty-genius/pull/27
+- Next: monitor CI / review feedback, then merge when green.
+Spec at `docs/superpowers/specs/2026-05-14-phase10-11-backtest-harness.md`.
+
+Research brief at `docs/strategies/Phase 10-11 Backtest Harness Research - Merged.md`.
 
 Phase 8 COMPLETE (8.1 + 8.2 + 8.3): decision surfaces wired read-only over PVO. 339 tests.
 Phase 9 COMPLETE (9.0 + 9.1 + 9.2 + 9.3): market overlay divergence engine + surface wiring. 376 tests.
@@ -84,9 +102,9 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 
 ## Next Recommended Work
 
-1. **Merge Phase 9.5 PR #26** — Codex review + merge `feature/phase9-5-prospect-identity-join` → main.
-2. **Back-fill 5 null sleeper_ids in `resources/prospect_identity_2026.json`** — Omar Cooper Jr., Chris Brazzell II, Mike Washington Jr., Kevin Coleman Jr., Emmanuel Henderson Jr. IDs confirmed in alias bridge; back-fill removes test warning. Low-risk follow-up.
-3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Needs real usage data. Do not change `NOISE_BAND=0.10` before then. If >80% of flags are `aligned` after real traffic, tighten to 0.08.
-3. **RB feature expansion research** — `red_zone_touches`, `targets_per_game` mini-spec and backtest gate (separate research track — touches model inputs).
-4. **TE diagnosis** — role heterogeneity, slot alignment adapter (separate research track — touches model inputs).
-5. **Composite validation gates (Step 0.5)** — prerequisite for model_grade promotion.
+1. **PR #27 CI/review** — monitor checks and address review feedback.
+2. **Operational backtest artifacts** — run `.venv/bin/python3.14 scripts/run_backtest.py --all` after PR review to populate `app/data/backtest/runs/` for Trust Surface reads.
+3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
+4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
+5. **RB feature expansion research** — separate track; touches model inputs, requires backtest gate.
+6. **TE diagnosis** — separate track; role heterogeneity + slot alignment adapter.
