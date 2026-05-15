@@ -141,6 +141,13 @@ def rb_run():
     return driver, result
 
 
+@pytest.fixture(scope="module")
+def te_run():
+    driver = WalkForwardDriver(position="TE")
+    result = driver.run()
+    return driver, result
+
+
 def test_run_returns_backtest_result(wr_run):
     _, result = wr_run
     assert isinstance(result, BacktestResult)
@@ -185,6 +192,12 @@ def test_run_fixed_alpha_wr(wr_run):
 def test_run_fixed_alpha_qb(qb_run):
     _, result = qb_run
     assert result.ridge_alpha == 1000.0
+
+
+def test_run_fixed_alpha_te_and_experimental_grade(te_run):
+    _, result = te_run
+    assert result.ridge_alpha == 1.0
+    assert result.promotion_gate.overall_grade == "EXPERIMENTAL"
 
 
 def test_run_retrain_mode(wr_run):

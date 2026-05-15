@@ -267,7 +267,12 @@ class WalkForwardDriver:
         {"fold_index": 4, "test_year": 2023, "outcome_seasons": [2024, 2025]},
     ]
 
-    FIXED_ALPHA: dict[str, float] = {"QB": 1000.0, "RB": 500.0, "WR": 200.0}
+    FIXED_ALPHA: dict[str, float] = {
+        "QB": 1000.0,
+        "RB": 500.0,
+        "WR": 200.0,
+        "TE": 1.0,
+    }
 
     def __init__(self, position: str, model_version: str = "engine_b_v2") -> None:
         self.position = position

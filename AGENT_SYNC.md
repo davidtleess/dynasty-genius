@@ -118,10 +118,18 @@ Research brief at `docs/strategies/Phase 12 Research Brief - Merged.md`.
 
 **Governance**: `dynasty_value_score` stays `None`; TE remains EXPERIMENTAL; no production model artifact is retrained or replaced (harness in-fold Ridge refits are expected evaluation behavior); all artifacts immutable once written. Act 2 (DVS) is conditional — requires Act 1 artifact review and David's explicit spec approval.
 
+Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
+- QB: `app/data/backtest/runs/401e7e86-e34a-43d7-a72e-82f18466ab7a/backtest_result_QB.json` — ACTIVE_B
+- RB: `app/data/backtest/runs/5fc06017-67cd-486d-80e2-90fd029d4314/backtest_result_RB.json` — ACTIVE_B
+- WR: `app/data/backtest/runs/b3a338a3-ec42-4af8-a046-2ca0672e9390/backtest_result_WR.json` — ACTIVE_B
+- TE: `app/data/backtest/runs/db90b0cf-04c8-44e2-9c80-b63da685342f/backtest_result_TE.json` — EXPERIMENTAL
+- Market source: `unavailable` for all positions (expected; no archive store passed).
+- TE precondition fix: `WalkForwardDriver.FIXED_ALPHA["TE"] = 1.0` added with regression test; no TE promotion logic changed.
+
 ## Next Recommended Work
 
-1. **Task 12.0** — run `run_backtest.py --all` (QB/RB/WR) then `run_backtest.py --position TE`; `--all` does not include TE because `ACTIVE_POSITIONS = ("QB", "RB", "WR")`; confirm all four artifacts on disk before any code work.
-2. **Tasks 12.1–12.8** — execute in strict sequence per the Phase 12 spec.
+1. **Task 12.1** — implement ModelCard + CalibrationReport schemas using TDD.
+2. **Tasks 12.2–12.8** — execute in strict sequence per the Phase 12 spec.
 3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
 4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 5. **RB feature expansion research** — separate track; touches model inputs, requires backtest gate.
