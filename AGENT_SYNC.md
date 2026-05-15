@@ -5,7 +5,7 @@ Last updated: 2026-05-14
 
 ## Active Phase
 
-Phase 10/11 — Backtest Harness (IN PROGRESS — Tasks 10.0, 10.1, 10.2, 10.3, 10.6, and 10.10 complete; 428 tests)
+Phase 10/11 — Backtest Harness (IN PROGRESS — Tasks 10.0, 10.1, 10.2, 10.3, 10.4, 10.6, and 10.10 complete; 445 tests)
 
 ## Current Sprint Objective
 
@@ -13,14 +13,15 @@ Phase 9 Market Overlay: MERGED → main (PR #25 merge commit c04d9bf). 376 tests
 Phase 9.5 Prospect Identity Join: MERGED → main (PR #26, merge commit 845de98). 384 tests. Back-fill complete.
 Spec at `docs/superpowers/specs/2026-05-14-phase9-5-prospect-identity-join.md`.
 
-Phase 10/11 Backtest Harness: IN PROGRESS. Spec APPROVED (David, 2026-05-14). 428 tests.
+Phase 10/11 Backtest Harness: IN PROGRESS. Spec APPROVED (David, 2026-05-14). 445 tests.
 - Task 10.0 COMPLETE: BacktestResult Pydantic schema + 17 contract tests.
 - Task 10.1 COMPLETE: MarketSnapshotStore (SQLite) + 6 unit tests. fc_snapshots.db gitignored.
 - Task 10.2 COMPLETE: daily FantasyCalc snapshot script + 5 unit tests.
 - Task 10.3 COMPLETE: WalkForwardDriver feature fold builder with temporal isolation + 7 unit tests.
+- Task 10.4 COMPLETE: statistical metric functions (Kendall τ-b, Spearman ρ, NDCG, Precision@k, Wilson CI, HLN-DM) + 17 unit tests.
 - Task 10.6 COMPLETE: BacktestResult artifact persistence contract tests.
 - Task 10.10 COMPLETE: community CSV ingest script + 4 unit tests.
-- Next: Task 10.4 (statistical metric functions) or Task 10.5 (full WalkForwardDriver).
+- Next: Task 10.5 (full WalkForwardDriver).
 Spec at `docs/superpowers/specs/2026-05-14-phase10-11-backtest-harness.md`.
 Research brief at `docs/strategies/Phase 10-11 Backtest Harness Research - Merged.md`.
 
@@ -95,8 +96,8 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 
 ## Next Recommended Work
 
-1. **Task 10.4 statistical metric functions** — Kendall τ-b, Spearman ρ, NDCG, Precision@k, Wilson CI, HLN-DM.
-2. **Task 10.5 full WalkForwardDriver** — refit per fold with fixed alpha and emit BacktestResult.
+1. **Task 10.5 full WalkForwardDriver** — refit per fold with fixed alpha and emit BacktestResult.
+2. **Task 10.7 market comparison integration** — join fold rows to MarketSnapshotStore and populate NDCG model-vs-market fields.
 3. **Source community CSV archives** — KTC + FantasyCalc dynasty (SF format) 2021–2024. Required for G3 market comparison in v1. r/DynastyFF has confirmed downloads.
 4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
 5. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
