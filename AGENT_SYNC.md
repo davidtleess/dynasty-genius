@@ -5,7 +5,7 @@ Last updated: 2026-05-14
 
 ## Active Phase
 
-Phase 10/11 — Backtest Harness (spec written; pending David approval before implementation)
+Phase 10/11 — Backtest Harness (IN PROGRESS — Tasks 10.0 and 10.1 complete; 407 tests)
 
 ## Current Sprint Objective
 
@@ -13,7 +13,11 @@ Phase 9 Market Overlay: MERGED → main (PR #25 merge commit c04d9bf). 376 tests
 Phase 9.5 Prospect Identity Join: MERGED → main (PR #26, merge commit 845de98). 384 tests. Back-fill complete.
 Spec at `docs/superpowers/specs/2026-05-14-phase9-5-prospect-identity-join.md`.
 
-Phase 10/11 Backtest Harness: SPEC WRITTEN. Pending David approval.
+Phase 10/11 Backtest Harness: IN PROGRESS. Spec APPROVED (David, 2026-05-14). 407 tests.
+- Task 10.0 COMPLETE: BacktestResult Pydantic schema + 17 contract tests.
+- Task 10.1 COMPLETE: MarketSnapshotStore (SQLite) + 6 unit tests. fc_snapshots.db gitignored.
+- Task 10.10 DISPATCHED TO GEMINI (unblocked — market_snapshot_store.py now exists).
+- Next: Task 10.2 (daily snapshot script) or Task 10.3 (feature fold builder).
 Spec at `docs/superpowers/specs/2026-05-14-phase10-11-backtest-harness.md`.
 Research brief at `docs/strategies/Phase 10-11 Backtest Harness Research - Merged.md`.
 

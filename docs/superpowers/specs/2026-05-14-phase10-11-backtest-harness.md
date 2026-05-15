@@ -1,7 +1,7 @@
 ---
 document: Phase 10/11 — Backtest Harness Specification
 version: 1.0.0
-status: PENDING_DAVID_APPROVAL
+status: APPROVED
 date: 2026-05-14
 author: Claude Code
 governance_read:

@@ -50,6 +50,13 @@ app/data/models/engine_b/runs/v1_1_control/
 # Agent planning artifacts — internal coordination files, not repo documentation
 conductor/
 
+# Backtest market snapshot store — operational data, not source code
+app/data/fc_snapshots.db
+app/data/fc_snapshots.db-journal
+
+# Backtest run artifacts — large JSON, versioned by run_id
+app/data/backtest/runs/
+
 # Dependencies
 node_modules/
 __pycache__/
