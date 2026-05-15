@@ -30,9 +30,29 @@ class _FakeDriver:
     def __init__(self, position: str, model_version: str) -> None:
         self.position = position
         self.model_version = model_version
+        self.prediction_rows = [
+            {
+                "player_id": "p1",
+                "position": position,
+                "fold_index": 1,
+                "feature_season": 2020,
+                "predicted_ppg": 10.0,
+                "realized_ppg": 11.0,
+                "model_rank": 1,
+                "residual": 1.0,
+                "age_at_feature_season": 24,
+                "draft_round": None,
+            }
+        ]
+        self.market_comparison_rows = []
         self.calls.append((position, model_version))
 
-    def run(self, market_store=None):
+    def run(
+        self,
+        market_store=None,
+        emit_prediction_log=False,
+        emit_market_comparison=False,
+    ):
         return _FakeArtifact(self.position)
 
 
@@ -55,6 +75,8 @@ def test_cli_runs_single_position_with_model_version(monkeypatch, tmp_path):
     assert _FakeDriver.calls == [("WR", "engine_b_v2_test")]
     assert _FakeArtifact.saved[0].git_sha == "a" * 40
     assert list(tmp_path.glob("*/backtest_result_WR.json"))
+    assert list(tmp_path.glob("*/predictions_WR.csv"))
+    assert list(tmp_path.glob("*/market_comparison_WR.json"))
 
 
 def test_cli_all_runs_qb_rb_wr_with_default_model(monkeypatch, tmp_path):
@@ -74,3 +96,5 @@ def test_cli_all_runs_qb_rb_wr_with_default_model(monkeypatch, tmp_path):
     assert [artifact.git_sha for artifact in _FakeArtifact.saved] == ["b" * 40] * 3
     for position in ["QB", "RB", "WR"]:
         assert list(tmp_path.glob(f"*/backtest_result_{position}.json"))
+        assert list(tmp_path.glob(f"*/predictions_{position}.csv"))
+        assert list(tmp_path.glob(f"*/market_comparison_{position}.json"))

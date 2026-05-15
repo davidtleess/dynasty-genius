@@ -22,6 +22,11 @@ from typing import Sequence
 sys.path.append(str(Path(__file__).parent.parent))
 
 from src.dynasty_genius.eval.backtest_harness import WalkForwardDriver
+from src.dynasty_genius.eval.backtest_report import (
+    MarketComparisonEntry,
+    write_market_comparison_json,
+    write_prediction_log_csv,
+)
 from src.dynasty_genius.eval.market_snapshot_store import MarketSnapshotStore
 
 DEFAULT_OUTPUT_DIR = Path("app/data/backtest/runs")
@@ -50,9 +55,26 @@ def _run_position(
     market_store: MarketSnapshotStore | None,
 ) -> tuple[str, str, Path]:
     driver = WalkForwardDriver(position=position, model_version=model_version)
-    result = driver.run(market_store=market_store)
+    result = driver.run(
+        market_store=market_store,
+        emit_prediction_log=True,
+        emit_market_comparison=True,
+    )
     result.git_sha = _current_git_sha()
-    artifact_path = result.save(output_dir / str(result.run_id))
+    run_dir = output_dir / str(result.run_id)
+    artifact_path = result.save(run_dir)
+    write_prediction_log_csv(
+        getattr(driver, "prediction_rows", []),
+        run_dir / f"predictions_{position}.csv",
+    )
+    market_entries = [
+        MarketComparisonEntry.model_validate(row)
+        for row in getattr(driver, "market_comparison_rows", [])
+    ]
+    write_market_comparison_json(
+        market_entries,
+        run_dir / f"market_comparison_{position}.json",
+    )
     return position, result.promotion_gate.overall_grade, artifact_path
 
 

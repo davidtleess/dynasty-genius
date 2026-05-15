@@ -6,6 +6,7 @@ scripts consume those rows to produce CSV and JSON artifacts.
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -52,7 +53,17 @@ class MarketComparisonEntry(BaseModel):
     fc_rank: Optional[int] = None
     realized_ppg: Optional[float] = None
     realized_rank: Optional[int] = None
-    rank_delta: Optional[int] = None   # model_rank - fc_rank; positive = model ranked higher
+    rank_delta: Optional[int] = None   # fc_rank - model_rank; positive = model ranked higher
+
+
+def write_market_comparison_json(
+    entries: list[MarketComparisonEntry],
+    path: Path,
+) -> None:
+    """Write market-comparison entries to a JSON array."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = [entry.model_dump(mode="json") for entry in entries]
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 # ── Divergence ledger ─────────────────────────────────────────────────────────

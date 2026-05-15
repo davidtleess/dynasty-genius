@@ -449,6 +449,50 @@ class WalkForwardDriver:
                     actual_date = market_rows[0]["snapshot_date"]
                     market_snapshot_dates_by_fold[test_year] = actual_date
                     market_sources_found.append(market_rows[0].get("source", ""))
+                    if emit_market_comparison:
+                        model_ranks = _compute_ranks_desc(y_pred.tolist())
+                        realized_ranks = _compute_ranks_desc(y_test.tolist())
+                        market_by_sleeper = {
+                            str(row["sleeper_id"]): row for row in market_rows
+                        }
+                        for i, pid in enumerate(player_ids_test):
+                            sleeper_id = _id_map.get(str(pid))
+                            market_row = (
+                                market_by_sleeper.get(sleeper_id)
+                                if sleeper_id is not None
+                                else None
+                            )
+                            fc_rank = (
+                                int(market_row["position_rank"])
+                                if market_row is not None and market_row.get("position_rank") is not None
+                                else (
+                                    int(market_row["overall_rank"])
+                                    if market_row is not None and market_row.get("overall_rank") is not None
+                                    else None
+                                )
+                            )
+                            model_rank = model_ranks[i]
+                            _market_comparison_rows.append({
+                                "player_id": pid,
+                                "sleeper_id": sleeper_id,
+                                "position": position,
+                                "fold_index": fold_index,
+                                "feature_season": test_year,
+                                "snapshot_date": actual_date,
+                                "predicted_ppg": float(y_pred[i]),
+                                "model_rank": model_rank,
+                                "fc_value": (
+                                    int(market_row["value"])
+                                    if market_row is not None and market_row.get("value") is not None
+                                    else None
+                                ),
+                                "fc_rank": fc_rank,
+                                "realized_ppg": float(y_test[i]),
+                                "realized_rank": realized_ranks[i],
+                                "rank_delta": (
+                                    fc_rank - model_rank if fc_rank is not None else None
+                                ),
+                            })
                 ndcg_fields = _compute_market_ndcg(
                     y_pred=y_pred,
                     player_ids=player_ids_test,
