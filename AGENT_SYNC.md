@@ -106,7 +106,7 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 Spec APPROVED (David, 2026-05-15). Committed at `docs/superpowers/specs/2026-05-15-phase12-operational-artifacts.md`.
 Research brief at `docs/strategies/Phase 12 Research Brief - Merged.md`.
 
-- Task 12.0: Operational first run — `.venv/bin/python3.14 scripts/run_backtest.py --all`; verify `app/data/backtest/runs/{run_id}/backtest_result_{POS}.json` exists for all 4 positions
+- Task 12.0: Operational first run — `run_backtest.py --all` (QB/RB/WR; `ACTIVE_POSITIONS` excludes TE) + `run_backtest.py --position TE` separately; verify `backtest_result_{QB,RB,WR}.json` and `backtest_result_TE.json` exist before proceeding
 - Task 12.1: ModelCard + CalibrationReport schemas + 7 contract tests
 - Task 12.2: ECE + subgroup metric functions + 5 tests
 - Task 12.3: Per-fold prediction log (CSV artifact) + 5 tests
@@ -116,11 +116,11 @@ Research brief at `docs/strategies/Phase 12 Research Brief - Merged.md`.
 - Task 12.7: Divergence ledger v0 + build script + 5 tests
 - Task 12.8: ARTIFACTS.md + AGENT_SYNC.md update + ledger entry (no tests)
 
-**Governance**: `dynasty_value_score` stays `None`; TE remains EXPERIMENTAL; no model retraining; all artifacts immutable once written. Act 2 (DVS) is conditional — requires Act 1 artifact review and David's explicit spec approval.
+**Governance**: `dynasty_value_score` stays `None`; TE remains EXPERIMENTAL; no production model artifact is retrained or replaced (harness in-fold Ridge refits are expected evaluation behavior); all artifacts immutable once written. Act 2 (DVS) is conditional — requires Act 1 artifact review and David's explicit spec approval.
 
 ## Next Recommended Work
 
-1. **Task 12.0** — run `.venv/bin/python3.14 scripts/run_backtest.py --all` to generate first operational artifacts; confirm `backtest_result_{POS}.json` written for all 4 positions before any code work.
+1. **Task 12.0** — run `run_backtest.py --all` (QB/RB/WR) then `run_backtest.py --position TE`; `--all` does not include TE because `ACTIVE_POSITIONS = ("QB", "RB", "WR")`; confirm all four artifacts on disk before any code work.
 2. **Tasks 12.1–12.8** — execute in strict sequence per the Phase 12 spec.
 3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
 4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.

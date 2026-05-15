@@ -68,7 +68,7 @@ Phase 12 closes that gap in strict sequence:
 ### 1.3 Hard Constraints
 
 - No market data enters Engine B training, imputation, scaling, or feature columns at any point.
-- No model is retrained or re-fitted in this phase.
+- No production model artifact is retrained, replaced, or modified in this phase. The harness refits Ridge within each fold by design — that is the intended backtest evaluation behavior, not a constraint violation.
 - All artifacts are immutable once written. The Trust Surface route reads files only — no recomputation on the read path.
 - `dynasty_value_score` stays `None` on all PVO objects. Do not populate it.
 - TE remains `EXPERIMENTAL` regardless of what Phase 12 artifacts show. Only a re-run through the promotion gate after TE remodeling can change that.
@@ -502,8 +502,11 @@ All tasks: write RED test → implement GREEN → full suite passes → commit. 
 
 **No new code.** This is an operational verification task.
 
+`scripts/run_backtest.py` defines `ACTIVE_POSITIONS = ("QB", "RB", "WR")`. `--all` runs those three only. Run TE separately in EXPERIMENTAL mode:
+
 ```bash
 .venv/bin/python3.14 scripts/run_backtest.py --all
+.venv/bin/python3.14 scripts/run_backtest.py --position TE
 ```
 
 **Verification checklist (manual, before proceeding to Task 12.1):**
@@ -513,10 +516,10 @@ All tasks: write RED test → implement GREEN → full suite passes → commit. 
 4. `GET /trust-surface/QB` returns 200
 5. `GET /trust-surface/RB` returns 200
 6. `result.promotion_gate.overall_grade` is `"ACTIVE_B"` or better for QB/RB/WR (not `"PRE_MODEL"`)
-7. TE: either not run (acceptable) or `backtest_result_TE.json` exists with `overall_grade == "EXPERIMENTAL"`
+7. TE: `backtest_result_TE.json` exists with `overall_grade == "EXPERIMENTAL"` — required for Phase 12 failure diagnosis
 8. `market_source` is `"unavailable"` (expected — no archive ingested yet)
 
-**If 2024 fold extension is viable:** check whether `feature_season == 2024` rows in `engine_b_features_v2.csv` have `training_eligible = True` and non-null `avg_ppg_t1_t2`. If yes, the 2024 fold can be added to the harness driver as fold 5. If no, document the blocker and proceed without it.
+**2024 fold:** Check whether `feature_season == 2024` rows in `engine_b_features_v2.csv` have `training_eligible = True` and non-null `avg_ppg_t1_t2`. Document the finding in the commit message. Adding a 2024 fold requires harness code changes — document and defer to a separate approved task; do not add code in Task 12.0.
 
 **Commit message:** `ops(phase12): first operational backtest run — artifacts on disk, Trust Surface unblocked`
 
