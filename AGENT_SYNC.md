@@ -5,7 +5,7 @@ Last updated: 2026-05-15
 
 ## Active Phase
 
-Phase 10/11 — Backtest Harness (COMPLETE — Tasks 10.0-10.9 and 10.10 complete; 479 tests — PR #27 open)
+Phase 10/11 — Backtest Harness (MERGED → main, PR #27 merge commit 91c91d1; 479 tests)
 
 ## Current Sprint Objective
 
@@ -25,8 +25,8 @@ Phase 10/11 Backtest Harness: COMPLETE. Spec APPROVED (David, 2026-05-14). 479 t
 - Task 10.8 COMPLETE: gate evaluator (evaluate_promotion_gates, ACTIVE_B_VALIDATED logic, G3 deferred state) + 6 unit tests.
 - Task 10.9 COMPLETE: Trust Surface route (GET /trust-surface/{position}, overall_grade at top level) + scripts/run_backtest.py CLI (--position, --all, --model, --market-store) + 5 contract tests + 2 CLI unit tests.
 - Task 10.10 COMPLETE: community CSV ingest script + 4 unit tests.
-- PR #27 open: https://github.com/davidtleess/dynasty-genius/pull/27
-- Next: monitor CI / review feedback, then merge when green.
+- PR #27 MERGED → main `91c91d1`: https://github.com/davidtleess/dynasty-genius/pull/27
+- Next: generate operational backtest artifacts, then start Phase 12 planning/spec.
 Spec at `docs/superpowers/specs/2026-05-14-phase10-11-backtest-harness.md`.
 
 Research brief at `docs/strategies/Phase 10-11 Backtest Harness Research - Merged.md`.
@@ -61,6 +61,7 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 - PR #23 (`engine-b/service-integration`): MERGED → main `55f1351`. Engine B v1 dataset, training, service/API integration, roster auditor wiring, and governance decision record.
 - PR #24 (`phase6/engine-b-v2`): MERGED → main `762e50c`. Engine B v2 position-stratified models (QB/RB/WR promoted, TE experimental), v2 manifest routing, per-position feature contracts, Stage 6.1 control, 4 Codex blockers resolved.
 - PR #25 (`feature/phase9-market-overlay`): MERGED → main `c04d9bf`. FC adapter (numQbs=2 fix, 3-stage cache, banned-field sanitization), divergence engine (percentile-rank, 5 flags, position caveats), VAR computation, surface wiring (Roster Audit, Rookie Board, Trade Lab), 14 contract tests + 25 unit tests; 376 tests total.
+- PR #27 (`feature/phase10-11-backtest-harness`): MERGED → main `91c91d1`. Walk-forward backtest harness, statistical metrics, market snapshot store/archive ingest, market NDCG comparison, promotion gates, Trust Surface route, and run_backtest CLI; 479 tests total.
 
 ## Open PRs / Branches
 
@@ -102,8 +103,8 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 
 ## Next Recommended Work
 
-1. **PR #27 CI/review** — monitor checks and address review feedback.
-2. **Operational backtest artifacts** — run `.venv/bin/python3.14 scripts/run_backtest.py --all` after PR review to populate `app/data/backtest/runs/` for Trust Surface reads.
+1. **Operational backtest artifacts** — run `.venv/bin/python3.14 scripts/run_backtest.py --all` to populate `app/data/backtest/runs/` for Trust Surface reads.
+2. **Phase 12 planning/spec** — do not implement until a written spec is approved.
 3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
 4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 5. **RB feature expansion research** — separate track; touches model inputs, requires backtest gate.
