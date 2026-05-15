@@ -111,7 +111,7 @@ Research brief at `docs/strategies/Phase 12 Research Brief - Merged.md`.
 - Task 12.2: ECE + subgroup metric functions + 5 tests ✓ COMPLETE
 - Task 12.3: Per-fold prediction log (CSV artifact) + 5 tests ✓ COMPLETE
 - Task 12.4: Market-comparison ledger (JSON artifact) + 5 tests ✓ COMPLETE
-- Task 12.5: Model card generation script + 6 tests
+- Task 12.5: Model card generation script + 6 tests ✓ COMPLETE
 - Task 12.6: Trust Surface v2 — new `GET /trust-surface/{position}/model-card` endpoint + 8 tests
 - Task 12.7: Divergence ledger v0 + build script + 5 tests
 - Task 12.8: ARTIFACTS.md + AGENT_SYNC.md update + ledger entry (no tests)

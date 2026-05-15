@@ -1,15 +1,26 @@
-"""Task 12.1 unit tests: ModelCard + CalibrationReport schemas.
+"""Task 12.1 + 12.5 unit tests: ModelCard + CalibrationReport schemas and generator.
 
-7 tests covering schema validation, round-trip persistence, experimental flag,
-and CalibrationReport ECE field.
-All tests are pure — no network, no model calls.
+Task 12.1 (7 tests): schema validation, round-trip persistence, experimental flag,
+    CalibrationReport ECE field.
+Task 12.5 (6 tests): generate_card_for_position() reads BacktestResult, populates
+    all 9 sections, handles missing predictions CSV gracefully, writes CalibrationReport.
+All tests are pure — no network, no harness run.
 """
 from __future__ import annotations
 
+import math
 from datetime import datetime, timezone
+from uuid import uuid4
 
 import pytest
 
+from src.dynasty_genius.eval.backtest_artifact import (
+    BacktestResult,
+    FoldResult,
+    GateResult,
+    StabilityResult,
+)
+from src.dynasty_genius.eval.backtest_report import write_prediction_log_csv
 from src.dynasty_genius.eval.model_card import (
     CalibrationDecile,
     CalibrationReport,
@@ -17,6 +28,7 @@ from src.dynasty_genius.eval.model_card import (
     ModelCardMetrics,
     ModelCardSubgroup,
 )
+from scripts.generate_model_cards import generate_card_for_position
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -149,3 +161,171 @@ def test_model_card_subgroup_results_allow_empty_list():
     # round-trip preserves empty list
     data = card_no_subgroups.model_dump()
     assert data["subgroup_results"] == []
+
+
+# ── Task 12.5 helpers ──────────────────────────────────────────────────────────
+
+def _make_fold(fold_index: int, test_year: int, tau: float = 0.45) -> FoldResult:
+    return FoldResult(
+        fold_index=fold_index,
+        train_years=list(range(2018, test_year)),
+        test_year=test_year,
+        outcome_seasons=[test_year + 1, test_year + 2],
+        n_train=200,
+        n_test=50,
+        kendall_tau=tau,
+        kendall_tau_bca_ci95=(tau - 0.10, tau + 0.10),
+        spearman_rho=tau + 0.05,
+        spearman_rho_bca_ci95=(tau - 0.05, tau + 0.15),
+        rank_ic=tau + 0.05,
+        rmse=3.0,
+        mae=2.0,
+    )
+
+
+def _make_result(position: str = "WR") -> BacktestResult:
+    folds = [
+        _make_fold(1, 2020),
+        _make_fold(2, 2021),
+        _make_fold(3, 2022),
+        _make_fold(4, 2023),
+    ]
+    rmse_vals = [f.rmse for f in folds]
+    grade = "EXPERIMENTAL" if position == "TE" else "ACTIVE_B"
+    return BacktestResult(
+        run_id=uuid4(),
+        run_date=datetime(2026, 5, 15, 12, 0, 0, tzinfo=timezone.utc),
+        model_version="engine_b_v2",
+        model_artifact_hash="deadbeef" * 8,
+        position=position,  # type: ignore[arg-type]
+        ridge_alpha=200.0,
+        retrain_mode="refit_per_fold_fixed_alpha",
+        folds=folds,
+        rmse_stability=StabilityResult(
+            rmse_per_fold=rmse_vals,
+            rmse_mean=3.0,
+            rmse_cv=0.0,
+            rmse_max_deviation_pct=0.0,
+        ),
+        market_source="unavailable",
+        promotion_gate=GateResult(
+            g1_rank_correlation_pass=(position != "TE"),
+            g2_rmse_stability_pass=True,
+            g3_market_superiority_pass="deferred",
+            g4_divergence_validity_pass="deferred",
+            overall_grade=grade,
+            promotion_justification="test fixture",
+        ),
+    )
+
+
+def _write_fake_run(
+    position: str,
+    runs_dir: "Path",
+    include_predictions: bool = True,
+    n_rows: int = 50,
+) -> "Path":
+    from pathlib import Path
+    result = _make_result(position)
+    run_dir = runs_dir / str(result.run_id)
+    result.save(run_dir)
+    if include_predictions:
+        rows = [
+            {
+                "player_id": f"p{i}",
+                "position": position,
+                "fold_index": (i % 4) + 1,
+                "feature_season": 2020 + (i % 4),
+                "predicted_ppg": float(i % 20) * 0.5 + 2.0,
+                "realized_ppg": float(i % 20) * 0.5 + 2.5,
+                "model_rank": (i % 20) + 1,
+                "residual": 0.5,
+                "age_at_feature_season": 24 + (i % 8),
+                "draft_round": None,
+            }
+            for i in range(n_rows)
+        ]
+        write_prediction_log_csv(rows, run_dir / f"predictions_{position}.csv")
+    return run_dir
+
+
+# ── Task 12.5 tests ───────────────────────────────────────────────────────────
+
+def test_generate_model_card_reads_backtest_result(tmp_path):
+    """generate_card_for_position() reads a BacktestResult and returns a ModelCard."""
+    from pathlib import Path
+    runs_dir = tmp_path / "runs"
+    output_dir = tmp_path / "cards"
+    _write_fake_run("WR", runs_dir)
+
+    card, report = generate_card_for_position("WR", runs_dir=runs_dir, output_dir=output_dir)
+
+    assert isinstance(card, ModelCard)
+    assert card.position == "WR"
+
+
+def test_generate_model_card_populates_metrics_from_result(tmp_path):
+    """ModelCard.metrics.kendall_tau_mean matches mean of FoldResult.kendall_tau."""
+    from pathlib import Path
+    runs_dir = tmp_path / "runs"
+    output_dir = tmp_path / "cards"
+    _write_fake_run("WR", runs_dir)
+
+    card, _ = generate_card_for_position("WR", runs_dir=runs_dir, output_dir=output_dir)
+
+    assert card.metrics.kendall_tau_mean == pytest.approx(0.45, abs=1e-9)
+    assert len(card.metrics.kendall_tau_per_fold) == 4
+
+
+def test_generate_model_card_te_sets_is_experimental_true(tmp_path):
+    """TE card always has is_experimental=True regardless of gate result."""
+    from pathlib import Path
+    runs_dir = tmp_path / "runs"
+    output_dir = tmp_path / "cards"
+    _write_fake_run("TE", runs_dir)
+
+    card, _ = generate_card_for_position("TE", runs_dir=runs_dir, output_dir=output_dir)
+
+    assert card.is_experimental is True
+    assert card.position == "TE"
+
+
+def test_generate_model_card_ece_requires_prediction_log(tmp_path):
+    """If predictions CSV is missing, card.metrics.ece is None — no crash."""
+    from pathlib import Path
+    runs_dir = tmp_path / "runs"
+    output_dir = tmp_path / "cards"
+    _write_fake_run("WR", runs_dir, include_predictions=False)
+
+    card, report = generate_card_for_position("WR", runs_dir=runs_dir, output_dir=output_dir)
+
+    assert card.metrics.ece is None
+
+
+def test_generate_model_card_writes_calibration_report(tmp_path):
+    """CalibrationReport JSON is written alongside ModelCard JSON."""
+    from pathlib import Path
+    runs_dir = tmp_path / "runs"
+    output_dir = tmp_path / "cards"
+    _write_fake_run("WR", runs_dir)
+
+    generate_card_for_position("WR", runs_dir=runs_dir, output_dir=output_dir)
+
+    assert (output_dir / "WR_model_card.json").exists()
+    assert (output_dir / "WR_calibration_report.json").exists()
+
+
+def test_generate_all_writes_four_cards(tmp_path):
+    """generate_card_for_position called for all 4 positions writes 4 cards."""
+    from pathlib import Path
+    from scripts.generate_model_cards import VALID_POSITIONS
+    runs_dir = tmp_path / "runs"
+    output_dir = tmp_path / "cards"
+    for pos in VALID_POSITIONS:
+        _write_fake_run(pos, runs_dir)
+
+    for pos in VALID_POSITIONS:
+        generate_card_for_position(pos, runs_dir=runs_dir, output_dir=output_dir)
+
+    for pos in VALID_POSITIONS:
+        assert (output_dir / f"{pos}_model_card.json").exists(), f"Missing card for {pos}"
