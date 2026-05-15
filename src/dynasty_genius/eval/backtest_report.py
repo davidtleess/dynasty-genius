@@ -80,5 +80,5 @@ class DivergenceLedgerEntry(BaseModel):
     snapshot_date: Optional[str] = None
     realized_avg_ppg_t1_t2: Optional[float] = None
     realized_rank: Optional[int] = None
-    rank_delta: Optional[int] = None          # engine_b_rank - fc_rank
+    rank_delta: Optional[int] = None          # fc_rank - engine_b_rank; positive = model ranked higher
     flagged_direction: Optional[str] = None   # "model_higher" | "model_lower" | None

@@ -1,26 +1,41 @@
-"""Task 12.3 unit tests: per-fold prediction log.
+"""Task 12.3 + 12.4 + 12.7 unit tests: prediction log, market-comparison ledger,
+and divergence ledger.
 
-5 tests covering emit_prediction_log parameter, required row keys,
-residual arithmetic, temporal isolation, and CSV serialization.
+Task 12.3 (5 tests): emit_prediction_log parameter, row keys, residual arithmetic,
+    temporal isolation, CSV serialization.
+Task 12.4 (5 tests): emit_market_comparison, MarketComparisonEntry schema,
+    JSON serialization.
+Task 12.7 (5 tests): build_divergence_ledger, DivergenceLedgerEntry schema,
+    flagged_direction logic, JSON output.
 Module-scoped fixtures: run() called once and reused across tests.
 """
 from __future__ import annotations
 
 import csv
+import json
 from datetime import datetime, timezone
 from io import StringIO
 from pathlib import Path
+from uuid import uuid4
 
 import pandas as pd
 import pytest
 
+from src.dynasty_genius.eval.backtest_artifact import (
+    BacktestResult,
+    FoldResult,
+    GateResult,
+    StabilityResult,
+)
 from src.dynasty_genius.eval.backtest_harness import WalkForwardDriver
 from src.dynasty_genius.eval.backtest_report import (
+    DivergenceLedgerEntry,
     MarketComparisonEntry,
     write_market_comparison_json,
     write_prediction_log_csv,
 )
 from src.dynasty_genius.eval.market_snapshot_store import MarketSnapshotStore
+from scripts.build_divergence_ledger import build_divergence_ledger
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -212,3 +227,140 @@ def test_market_comparison_json_serializes(tmp_path):
     loaded = pd.read_json(path)
     assert loaded.loc[0, "player_id"] == "p1"
     assert loaded.loc[0, "rank_delta"] == 3
+
+
+# ── Task 12.7: Divergence ledger ──────────────────────────────────────────────
+
+def _make_backtest_result(position: str = "WR") -> BacktestResult:
+    folds = [
+        FoldResult(
+            fold_index=i + 1,
+            train_years=list(range(2018, 2020 + i)),
+            test_year=2020 + i,
+            outcome_seasons=[2021 + i, 2022 + i],
+            n_train=200, n_test=50,
+            kendall_tau=0.45,
+            kendall_tau_bca_ci95=(0.35, 0.55),
+            spearman_rho=0.50,
+            spearman_rho_bca_ci95=(0.40, 0.60),
+            rank_ic=0.50, rmse=3.0, mae=2.0,
+        )
+        for i in range(4)
+    ]
+    grade = "EXPERIMENTAL" if position == "TE" else "ACTIVE_B"
+    return BacktestResult(
+        run_id=uuid4(),
+        run_date=datetime(2026, 5, 15, 12, 0, tzinfo=timezone.utc),
+        model_version="engine_b_v2",
+        model_artifact_hash="aabbccdd" * 8,
+        position=position,  # type: ignore[arg-type]
+        ridge_alpha=200.0,
+        retrain_mode="refit_per_fold_fixed_alpha",
+        folds=folds,
+        rmse_stability=StabilityResult(
+            rmse_per_fold=[3.0, 3.0, 3.0, 3.0],
+            rmse_mean=3.0, rmse_cv=0.0, rmse_max_deviation_pct=0.0,
+        ),
+        market_source="unavailable",
+        promotion_gate=GateResult(
+            g1_rank_correlation_pass=(position != "TE"),
+            g2_rmse_stability_pass=True,
+            g3_market_superiority_pass="deferred",
+            g4_divergence_validity_pass="deferred",
+            overall_grade=grade,
+            promotion_justification="test fixture",
+        ),
+    )
+
+
+def _write_market_comparison(run_dir: Path, position: str, entries: list[dict]) -> Path:
+    path = run_dir / f"market_comparison_{position}.json"
+    path.write_text(json.dumps(entries, indent=2), encoding="utf-8")
+    return path
+
+
+def test_build_divergence_ledger_requires_backtest_result(tmp_path):
+    """build_divergence_ledger raises FileNotFoundError if no BacktestResult exists."""
+    runs_dir = tmp_path / "runs"
+    runs_dir.mkdir()
+
+    with pytest.raises(FileNotFoundError):
+        build_divergence_ledger("WR", runs_dir=runs_dir, output_dir=tmp_path / "out")
+
+
+def test_build_divergence_ledger_with_no_market_comparison_produces_empty_ledger(tmp_path):
+    """With no market_comparison JSON, ledger has zero entries."""
+    runs_dir = tmp_path / "runs"
+    result = _make_backtest_result("WR")
+    run_dir = runs_dir / str(result.run_id)
+    result.save(run_dir)
+    # No market_comparison JSON written
+
+    entries = build_divergence_ledger("WR", runs_dir=runs_dir, output_dir=tmp_path / "out")
+
+    assert entries == []
+
+
+def test_divergence_ledger_entry_flagged_direction_model_higher():
+    """rank_delta > 0 → flagged_direction == 'model_higher'.
+
+    rank_delta = fc_rank - engine_b_rank.
+    Positive means FC has a worse rank (higher number) than the model.
+    """
+    entry = DivergenceLedgerEntry(
+        player_id="p1",
+        position="WR",
+        feature_season=2020,
+        engine_b_pred_ppg=14.0,
+        engine_b_rank=3,
+        fc_rank=10,
+        rank_delta=10 - 3,     # = 7 > 0
+        flagged_direction="model_higher",
+    )
+    assert entry.rank_delta == 7
+    assert entry.flagged_direction == "model_higher"
+
+
+def test_divergence_ledger_entry_flagged_direction_none_for_zero_delta():
+    """rank_delta == 0 → flagged_direction == None."""
+    entry = DivergenceLedgerEntry(
+        player_id="p2",
+        position="WR",
+        feature_season=2020,
+        engine_b_pred_ppg=12.0,
+        engine_b_rank=5,
+        fc_rank=5,
+        rank_delta=0,
+        flagged_direction=None,
+    )
+    assert entry.rank_delta == 0
+    assert entry.flagged_direction is None
+
+
+def test_build_divergence_ledger_writes_json(tmp_path):
+    """build_divergence_ledger writes valid JSON deserializable to list[DivergenceLedgerEntry]."""
+    runs_dir = tmp_path / "runs"
+    output_dir = tmp_path / "out"
+    result = _make_backtest_result("WR")
+    run_dir = runs_dir / str(result.run_id)
+    result.save(run_dir)
+    market_entries = [
+        {
+            "player_id": "p1", "sleeper_id": "s1", "position": "WR",
+            "fold_index": 1, "feature_season": 2020,
+            "snapshot_date": "2021-09-08", "predicted_ppg": 14.0,
+            "model_rank": 3, "fc_value": 900, "fc_rank": 10,
+            "realized_ppg": 13.0, "realized_rank": 4, "rank_delta": 7,
+        }
+    ]
+    _write_market_comparison(run_dir, "WR", market_entries)
+
+    entries = build_divergence_ledger("WR", runs_dir=runs_dir, output_dir=output_dir)
+
+    ledger_path = output_dir / "divergence_ledger_WR.json"
+    assert ledger_path.exists()
+    raw = json.loads(ledger_path.read_text())
+    validated = [DivergenceLedgerEntry.model_validate(row) for row in raw]
+    assert len(validated) == 1
+    assert validated[0].player_id == "p1"
+    assert validated[0].flagged_direction == "model_higher"

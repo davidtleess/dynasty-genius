@@ -113,7 +113,7 @@ Research brief at `docs/strategies/Phase 12 Research Brief - Merged.md`.
 - Task 12.4: Market-comparison ledger (JSON artifact) + 5 tests ✓ COMPLETE
 - Task 12.5: Model card generation script + 6 tests ✓ COMPLETE
 - Task 12.6: Trust Surface v2 — new `GET /trust-surface/{position}/model-card` endpoint + 8 tests ✓ COMPLETE
-- Task 12.7: Divergence ledger v0 + build script + 5 tests
+- Task 12.7: Divergence ledger v0 + build script + 5 tests ✓ COMPLETE
 - Task 12.8: ARTIFACTS.md + AGENT_SYNC.md update + ledger entry (no tests)
 
 **Governance**: `dynasty_value_score` stays `None`; TE remains EXPERIMENTAL; no production model artifact is retrained or replaced (harness in-fold Ridge refits are expected evaluation behavior); all artifacts immutable once written. Act 2 (DVS) is conditional — requires Act 1 artifact review and David's explicit spec approval.
