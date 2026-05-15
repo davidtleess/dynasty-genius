@@ -12,9 +12,11 @@ import pytest
 from scipy import stats as scipy_stats
 
 from src.dynasty_genius.eval.backtest_metrics import (
+    compute_ece,
     compute_ndcg,
     compute_precision_at_k,
     compute_rank_correlation,
+    compute_subgroup_metrics,
     diebold_mariano_hln,
 )
 from src.dynasty_genius.eval.backtest_artifact import TopKResult
@@ -203,3 +205,56 @@ def test_dm_hln_returns_nan_when_n_lt_4():
     stat, p = diebold_mariano_hln([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
     assert math.isnan(stat)
     assert math.isnan(p)
+
+
+# ── Phase 12 Task 12.2: Calibration + Subgroup Metrics ───────────────────────
+
+def test_compute_ece_perfect_calibration():
+    deciles = [
+        (4.0, 4.0, 10),
+        (8.0, 8.0, 10),
+        (12.0, 12.0, 10),
+    ]
+
+    assert compute_ece(deciles) == 0.0
+
+
+def test_compute_ece_known_case():
+    deciles = [
+        (10.0, 12.0, 10),  # |diff| = 2.0
+        (15.0, 14.0, 10),  # |diff| = 1.0
+        (20.0, 23.0, 10),  # |diff| = 3.0
+    ]
+
+    assert compute_ece(deciles) == pytest.approx(2.0)
+
+
+def test_compute_ece_returns_nan_on_empty_input():
+    assert math.isnan(compute_ece([]))
+
+
+def test_compute_subgroup_metrics_returns_all_keys():
+    result = compute_subgroup_metrics(
+        predicted=[1.0, 2.0, 3.0, 4.0, 5.0],
+        realized=[1.2, 1.9, 3.4, 3.8, 5.1],
+    )
+
+    assert set(result) == {"kendall_tau", "spearman_rho", "rmse", "n"}
+    assert result["n"] == 5
+    assert result["rmse"] > 0.0
+    assert -1.0 <= result["kendall_tau"] <= 1.0
+    assert -1.0 <= result["spearman_rho"] <= 1.0
+
+
+def test_compute_subgroup_metrics_returns_nones_below_min_n():
+    result = compute_subgroup_metrics(
+        predicted=[1.0, 2.0, 3.0, 4.0],
+        realized=[1.0, 2.0, 3.0, 4.0],
+    )
+
+    assert result == {
+        "kendall_tau": None,
+        "spearman_rho": None,
+        "rmse": None,
+        "n": 4,
+    }

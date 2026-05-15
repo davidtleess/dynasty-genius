@@ -164,6 +164,57 @@ def _wilson_ci(successes: int, n: int, alpha: float = 0.05) -> tuple[float, floa
     return (max(0.0, centre - margin), min(1.0, centre + margin))
 
 
+# ── Calibration + Subgroup Metrics ───────────────────────────────────────────
+
+def compute_ece(
+    calibration_deciles: list[tuple[float, float, int]],
+) -> float:
+    """Expected Calibration Error across prediction deciles.
+
+    Each tuple is (predicted_mean, observed_mean, n). Returns nan when there
+    are no deciles or the total row count is zero.
+    """
+    total_n = sum(n for _, _, n in calibration_deciles)
+    if total_n == 0:
+        return float("nan")
+
+    weighted_abs_error = sum(
+        n * abs(float(predicted_mean) - float(observed_mean))
+        for predicted_mean, observed_mean, n in calibration_deciles
+    )
+    return float(weighted_abs_error / total_n)
+
+
+def compute_subgroup_metrics(
+    predicted: list[float],
+    realized: list[float],
+) -> dict[str, Optional[float] | int]:
+    """Rank and error metrics for a subgroup slice.
+
+    Returns all metric values as None when n < 5 because correlations are too
+    unstable for Trust Surface diagnostics at that cohort size.
+    """
+    n = len(predicted)
+    if n < 5:
+        return {
+            "kendall_tau": None,
+            "spearman_rho": None,
+            "rmse": None,
+            "n": n,
+        }
+
+    x = np.array(predicted, dtype=float)
+    y = np.array(realized, dtype=float)
+    residuals = x - y
+
+    return {
+        "kendall_tau": float(scipy_stats.kendalltau(x, y, variant="b").statistic),
+        "spearman_rho": float(scipy_stats.spearmanr(x, y).statistic),
+        "rmse": float(np.sqrt(np.mean(residuals ** 2))),
+        "n": n,
+    }
+
+
 # ── HLN-Corrected Diebold-Mariano ─────────────────────────────────────────────
 
 def diebold_mariano_hln(

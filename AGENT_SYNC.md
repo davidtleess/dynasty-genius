@@ -108,7 +108,7 @@ Research brief at `docs/strategies/Phase 12 Research Brief - Merged.md`.
 
 - Task 12.0: Operational first run — `run_backtest.py --all` (QB/RB/WR; `ACTIVE_POSITIONS` excludes TE) + `run_backtest.py --position TE` separately; verify `backtest_result_{QB,RB,WR}.json` and `backtest_result_TE.json` exist before proceeding
 - Task 12.1: ModelCard + CalibrationReport schemas + 7 contract tests ✓ COMPLETE
-- Task 12.2: ECE + subgroup metric functions + 5 tests
+- Task 12.2: ECE + subgroup metric functions + 5 tests ✓ COMPLETE
 - Task 12.3: Per-fold prediction log (CSV artifact) + 5 tests
 - Task 12.4: Market-comparison ledger (JSON artifact) + 5 tests
 - Task 12.5: Model card generation script + 6 tests
@@ -128,8 +128,8 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 12.1** — implement ModelCard + CalibrationReport schemas using TDD.
-2. **Tasks 12.2–12.8** — execute in strict sequence per the Phase 12 spec.
+1. **Task 12.3** — implement per-fold prediction log CSV artifact using TDD.
+2. **Tasks 12.4–12.8** — execute in strict sequence per the Phase 12 spec.
 3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
 4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 5. **RB feature expansion research** — separate track; touches model inputs, requires backtest gate.
