@@ -101,8 +101,8 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 
 ## Next Recommended Work
 
-1. **Task 10.9 Trust Surface route** — GET `/trust-surface/{position}` reads saved BacktestResult JSON only; no recomputation.
-2. **Task 10.11 PR + CI** — run final verification, push branch, and open PR once local GitHub auth/connector is available.
+1. **Task 10.11 PR + CI** — push branch and open PR once local GitHub auth/connector is available.
+2. **Operational backtest artifacts** — run `.venv/bin/python3.14 scripts/run_backtest.py --all` after PR review to populate `app/data/backtest/runs/` for Trust Surface reads.
 3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
 4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 5. **RB feature expansion research** — separate track; touches model inputs, requires backtest gate.
