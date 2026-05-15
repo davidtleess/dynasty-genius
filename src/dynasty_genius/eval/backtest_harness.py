@@ -20,6 +20,7 @@ from sklearn.preprocessing import StandardScaler
 
 from src.dynasty_genius.eval.backtest_artifact import (
     BacktestResult,
+    DivergenceResult,
     FoldResult,
     GateResult,
     StabilityResult,
@@ -133,6 +134,121 @@ _METADATA_COLS: frozenset[str] = frozenset({
     # Component outcome columns — must never enter X
     "ppg_t1", "ppg_t2", "games_t1", "games_t2",
 })
+
+
+def evaluate_promotion_gates(
+    folds: list[FoldResult],
+    stability: StabilityResult,
+    position: str,
+    divergence: Optional[DivergenceResult] = None,
+) -> GateResult:
+    """Evaluate G1–G3 (v1) and G4 (v2) promotion gates.
+
+    G1 — Kendall Rank Correlation:
+      Pass if: mean kendall_tau >= THRESHOLD[position]
+               AND BCa CI lower bound >= 0.20 in >= 3 of 4 folds.
+      Thresholds: QB >= 0.30, RB >= 0.40, WR >= 0.40.
+
+    G2 — RMSE Stability:
+      Pass if: rmse_max_deviation_pct <= 25.0%
+               AND stability.dm_hln_pvalue <= 0.10 (if computed).
+
+    G3 — Market Superiority:
+      Pass if: ndcg_at_24_model >= ndcg_at_24_market in >= 3 of 4 folds
+               where market data is available.
+
+    G4 — Divergence Validity (Deferred to v2):
+      Pass if: MW p <= 0.10, diff CI > 0, and hit-rate CI > 0.50 on n >= 30.
+    """
+    # G1 — Rank Correlation
+    threshold = 0.30 if position == "QB" else 0.40
+    mean_tau = (
+        sum(f.kendall_tau for f in folds) / len(folds) if folds else 0.0
+    )
+    # Count folds where the 95% BCa CI lower bound is at least 0.20
+    ci_pass_count = sum(
+        1 for f in folds if f.kendall_tau_bca_ci95[0] >= 0.20
+    )
+    g1_pass = mean_tau >= threshold and ci_pass_count >= 3
+
+    # G2 — RMSE Stability
+    g2_pass = stability.rmse_max_deviation_pct <= 25.0
+    if stability.dm_hln_pvalue is not None:
+        g2_pass = g2_pass and stability.dm_hln_pvalue <= 0.10
+
+    # G3 — Market Superiority
+    market_available_folds = [
+        f for f in folds if f.ndcg_at_24_market is not None
+    ]
+    if not market_available_folds:
+        g3_result: bool | str = "deferred"
+        g3_status = "deferred"
+    else:
+        wins = sum(
+            1 for f in market_available_folds
+            if (f.ndcg_at_24_model or 0) >= (f.ndcg_at_24_market or 0)
+        )
+        g3_result = wins >= 3
+        g3_status = "passed" if g3_result else "failed"
+
+    # G4 — Divergence Validity
+    if divergence is None:
+        g4_status = "deferred"
+    elif divergence.n_flagged < 30:
+        g4_status = "insufficient_data"
+    else:
+        g4_pass = (
+            divergence.mann_whitney_p <= 0.10
+            and divergence.diff_bca_ci95[0] > 0.0
+            and divergence.hit_rate_wilson_ci95[0] > 0.50
+        )
+        g4_status = g4_pass
+
+    # Overall Grade Assignment
+    # TE position is parked at EXPERIMENTAL until Phase 12.
+    if position == "TE":
+        grade = "EXPERIMENTAL"
+    elif not g1_pass or not g2_pass:
+        grade = "ACTIVE_B"
+    elif g3_status == "deferred":
+        grade = "ACTIVE_B"
+    elif g3_result is not True:
+        grade = "ACTIVE_B"
+    elif g4_status is True:
+        grade = "DECISION_GRADE"
+    else:
+        grade = "ACTIVE_B_VALIDATED"
+
+    # Justification text
+    just_parts = []
+    if g1_pass:
+        just_parts.append(f"G1 rank-corr pass ({mean_tau:.2f} tau)")
+    if g2_pass:
+        just_parts.append(
+            f"G2 stability pass ({stability.rmse_max_deviation_pct:.1f}% dev)"
+        )
+    if g3_result is True:
+        just_parts.append("G3 market superiority pass")
+
+    if position == "TE":
+        justification = "TE position experimental fallback."
+    elif grade == "ACTIVE_B":
+        failed = []
+        if not g1_pass: failed.append("G1")
+        if not g2_pass: failed.append("G2")
+        if g3_status != "passed": failed.append("G3")
+        justification = f"Promotion blocked by {', '.join(failed)}."
+    else:
+        justification = ", ".join(just_parts) + "."
+
+    return GateResult(
+        g1_rank_correlation_pass=g1_pass,
+        g2_rmse_stability_pass=g2_pass,
+        g3_market_superiority_pass=g3_result,
+        g4_divergence_validity_pass=g4_status,
+        overall_grade=grade,
+        promotion_justification=justification,
+    )
 
 
 class WalkForwardDriver:
@@ -367,13 +483,10 @@ class WalkForwardDriver:
             else "unavailable"
         )
 
-        gate = GateResult(
-            g1_rank_correlation_pass=False,
-            g2_rmse_stability_pass=False,
-            g3_market_superiority_pass=False,
-            g4_divergence_validity_pass="deferred",
-            overall_grade="EXPERIMENTAL",
-            promotion_justification="Gate evaluation deferred to Task 10.8.",
+        gate = evaluate_promotion_gates(
+            folds=fold_results,
+            stability=stability,
+            position=position,
         )
 
         return BacktestResult(

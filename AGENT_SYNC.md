@@ -5,7 +5,7 @@ Last updated: 2026-05-15
 
 ## Active Phase
 
-Phase 10/11 — Backtest Harness (IN PROGRESS — Tasks 10.0, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, and 10.10 complete; 466 tests)
+Phase 10/11 — Backtest Harness (IN PROGRESS — Tasks 10.0, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8, and 10.10 complete; 472 tests)
 
 ## Current Sprint Objective
 
@@ -13,7 +13,7 @@ Phase 9 Market Overlay: MERGED → main (PR #25 merge commit c04d9bf). 376 tests
 Phase 9.5 Prospect Identity Join: MERGED → main (PR #26, merge commit 845de98). 384 tests. Back-fill complete.
 Spec at `docs/superpowers/specs/2026-05-14-phase9-5-prospect-identity-join.md`.
 
-Phase 10/11 Backtest Harness: IN PROGRESS. Spec APPROVED (David, 2026-05-14). 445 tests.
+Phase 10/11 Backtest Harness: IN PROGRESS. Spec APPROVED (David, 2026-05-14). 472 tests.
 - Task 10.0 COMPLETE: BacktestResult Pydantic schema + 17 contract tests.
 - Task 10.1 COMPLETE: MarketSnapshotStore (SQLite) + 6 unit tests. fc_snapshots.db gitignored.
 - Task 10.2 COMPLETE: daily FantasyCalc snapshot script + 5 unit tests.
@@ -21,9 +21,10 @@ Phase 10/11 Backtest Harness: IN PROGRESS. Spec APPROVED (David, 2026-05-14). 44
 - Task 10.4 COMPLETE: statistical metric functions (Kendall τ-b, Spearman ρ, NDCG, Precision@k, Wilson CI, HLN-DM) + 17 unit tests.
 - Task 10.5 COMPLETE: WalkForwardDriver.run() — 4-fold loop, Ridge refit at fixed alpha, BCa CIs, BacktestResult returned; market fields all None + 15 contract tests.
 - Task 10.6 COMPLETE: BacktestResult artifact persistence contract tests.
-- Task 10.7 COMPLETE: market comparison integration — run() market_store/id_map params; _compute_market_ndcg helper; NDCG@12/24 model vs market; empty store returns valid result with None fields; GSIS→Sleeper via nflreadpy; Sep 8 snapshot date + 6 unit tests.
+- Task 10.7 COMPLETE: market comparison integration (join snapshots, populate NDCG) + 6 unit tests.
+- Task 10.8 COMPLETE: gate evaluator (evaluate_promotion_gates, ACTIVE_B_VALIDATED logic, explicit G3 deferred status) + 6 unit tests.
 - Task 10.10 COMPLETE: community CSV ingest script + 4 unit tests.
-- Next: Task 10.8 (gate evaluator — evaluate_promotion_gates, GateResult, ACTIVE_B_VALIDATED logic).
+- Next: Task 10.9 (Trust Surface route — GET /trust-surface/{position}).
 Spec at `docs/superpowers/specs/2026-05-14-phase10-11-backtest-harness.md`.
 Research brief at `docs/strategies/Phase 10-11 Backtest Harness Research - Merged.md`.
 
@@ -98,10 +99,9 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 
 ## Next Recommended Work
 
-1. **Task 10.5 full WalkForwardDriver** — refit per fold with fixed alpha and emit BacktestResult.
-2. **Task 10.7 market comparison integration** — join fold rows to MarketSnapshotStore and populate NDCG model-vs-market fields.
-3. **Source community CSV archives** — KTC + FantasyCalc dynasty (SF format) 2021–2024. Required for G3 market comparison in v1. r/DynastyFF has confirmed downloads.
-4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
-5. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
-6. **RB feature expansion research** — separate track; touches model inputs, requires backtest gate.
-7. **TE diagnosis** — separate track; role heterogeneity + slot alignment adapter.
+1. **Task 10.9 Trust Surface route** — GET `/trust-surface/{position}` reads saved BacktestResult JSON only; no recomputation.
+2. **Task 10.11 PR + CI** — run final verification, push branch, and open PR once local GitHub auth/connector is available.
+3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
+4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
+5. **RB feature expansion research** — separate track; touches model inputs, requires backtest gate.
+6. **TE diagnosis** — separate track; role heterogeneity + slot alignment adapter.

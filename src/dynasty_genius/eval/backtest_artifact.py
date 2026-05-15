@@ -86,7 +86,7 @@ class DivergenceResult(BaseModel):
 class GateResult(BaseModel):
     g1_rank_correlation_pass: bool
     g2_rmse_stability_pass: bool
-    g3_market_superiority_pass: bool
+    g3_market_superiority_pass: Literal[True, False, "deferred"]
     g4_divergence_validity_pass: Literal[True, False, "deferred", "insufficient_data"]
     overall_grade: Literal[
         "PRE_MODEL", "EXPERIMENTAL", "ACTIVE_B",
