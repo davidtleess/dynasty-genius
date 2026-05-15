@@ -107,7 +107,7 @@ Spec APPROVED (David, 2026-05-15). Committed at `docs/superpowers/specs/2026-05-
 Research brief at `docs/strategies/Phase 12 Research Brief - Merged.md`.
 
 - Task 12.0: Operational first run — `run_backtest.py --all` (QB/RB/WR; `ACTIVE_POSITIONS` excludes TE) + `run_backtest.py --position TE` separately; verify `backtest_result_{QB,RB,WR}.json` and `backtest_result_TE.json` exist before proceeding
-- Task 12.1: ModelCard + CalibrationReport schemas + 7 contract tests
+- Task 12.1: ModelCard + CalibrationReport schemas + 7 contract tests ✓ COMPLETE
 - Task 12.2: ECE + subgroup metric functions + 5 tests
 - Task 12.3: Per-fold prediction log (CSV artifact) + 5 tests
 - Task 12.4: Market-comparison ledger (JSON artifact) + 5 tests
