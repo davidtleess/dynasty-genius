@@ -207,3 +207,69 @@ def test_fold_result_validates_with_only_required_fields():
     assert fold.ndcg_at_24_model is None
     assert fold.precision_at_k is None
     assert fold.n_excluded_injury == 0
+
+
+# ── Task 10.6 Persistence Contract Tests ──────────────────────────────────────
+
+# Test 9: save() writes JSON that round-trips back to a valid BacktestResult
+
+def test_save_and_load_round_trips(tmp_path):
+    result = _minimal_result()
+    saved_path = result.save(tmp_path)
+    assert saved_path.exists()
+    loaded = BacktestResult.load(saved_path)
+    assert isinstance(loaded, BacktestResult)
+    assert len(loaded.folds) == 4
+
+
+# Test 10: run_id, model_version, position are identical after round-trip
+
+def test_round_trip_preserves_identity_fields(tmp_path):
+    result = _minimal_result()
+    loaded = BacktestResult.load(result.save(tmp_path))
+    assert loaded.run_id == result.run_id
+    assert loaded.model_version == result.model_version
+    assert loaded.position == result.position
+
+
+# Test 11: artifact_hash returns a 64-char SHA-256 hex string for a real file
+
+def test_artifact_hash_is_sha256_hex(tmp_path):
+    import hashlib
+    content = b"fake engine_b pkl bytes"
+    pkl = tmp_path / "model.pkl"
+    pkl.write_bytes(content)
+    digest = BacktestResult.artifact_hash(pkl)
+    assert len(digest) == 64
+    assert digest == hashlib.sha256(content).hexdigest()
+
+
+# Test 12: git_sha round-trips as 40-char hex string or None
+
+def test_git_sha_round_trips(tmp_path):
+    sha = "a" * 40
+    result = BacktestResult(
+        run_date=datetime(2026, 5, 14, 12, 0, tzinfo=timezone.utc),
+        git_sha=sha,
+        model_version="engine_b_v2",
+        model_artifact_hash="abc123",
+        position="QB",
+        ridge_alpha=1000.0,
+        retrain_mode="refit_per_fold_fixed_alpha",
+        folds=[_fold(i) for i in range(1, 5)],
+        rmse_stability=_stability(),
+        market_source="unavailable",
+        promotion_gate=_gate(True, True, True, "deferred", "ACTIVE_B_VALIDATED"),
+    )
+    loaded = BacktestResult.load(result.save(tmp_path))
+    assert loaded.git_sha == sha
+    assert len(loaded.git_sha) == 40
+
+
+# Test 13: run_date timezone survives JSON serialization
+
+def test_run_date_timezone_survives_round_trip(tmp_path):
+    result = _minimal_result()
+    loaded = BacktestResult.load(result.save(tmp_path))
+    assert loaded.run_date.tzinfo is not None
+    assert loaded.run_date == result.run_date
