@@ -325,6 +325,17 @@ def assemble_pvo(
             if caveat not in caveats:
                 caveats.append(caveat)
 
+        # QB low-volume flag: Engine B was trained exclusively on QBs with ≥3 games
+        # in the feature season. A prediction for a QB with games_t < 3 is an
+        # extrapolation outside the training distribution — flag it at the
+        # presentation layer rather than suppressing the prediction.
+        if identity.position.upper() == "QB":
+            games_t = features.get("games_t")
+            if games_t is not None and float(games_t) < 3:
+                backup_caveat = "High-Efficiency / Low-Volume Anomaly (Backup Profile)"
+                if backup_caveat not in caveats:
+                    caveats.append(backup_caveat)
+
     pvo = PlayerValueObject(
         player_id=identity.dg_id,
         full_name=identity.full_name,

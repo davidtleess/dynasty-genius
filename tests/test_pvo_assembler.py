@@ -168,3 +168,56 @@ def test_unverified_prospect_carries_unverified_flag():
     fixture = _make_prospect_fixture({"verification_status": "PENDING", "identity_verified": False, "age_verified": False})
     cards = _cards_from_fixture(fixture)
     assert "mock_draft_capital_unverified" in cards[0]["risk_flags"]
+
+
+# ── Task 2B: QB Low-Volume Anomaly Caveat ─────────────────────────────────────
+
+_QB_ENGINE_B_SCORE = {
+    "engine": "engine_b_v2",
+    "predicted_avg_ppg_t1_t2": 18.5,
+    "feature_season": 2023,
+    "experimental": False,
+    "caveats": [],
+}
+
+
+def _qb_identity(**kwargs) -> PlayerIdentity:
+    defaults = dict(
+        dg_id="test_qb_001",
+        full_name="Test QB",
+        position="QB",
+        nfl_team="NYG",
+        verification_status="VERIFIED",
+    )
+    return PlayerIdentity(**{**defaults, **kwargs})
+
+
+def test_qb_backup_profile_caveat_fires_when_games_t_below_threshold():
+    """QB with games_t < 3 and an Engine B prediction gets the backup-profile caveat."""
+    identity = _qb_identity()
+    features = {"games_t": 2.0, "engine_b_score": _QB_ENGINE_B_SCORE}
+    pvo = assemble_pvo(identity, features)
+    assert "High-Efficiency / Low-Volume Anomaly (Backup Profile)" in pvo.caveats
+
+
+def test_qb_backup_profile_caveat_absent_when_games_t_sufficient():
+    """QB with games_t >= 3 does not receive the backup-profile caveat."""
+    identity = _qb_identity()
+    features = {"games_t": 14.0, "engine_b_score": _QB_ENGINE_B_SCORE}
+    pvo = assemble_pvo(identity, features)
+    assert "High-Efficiency / Low-Volume Anomaly (Backup Profile)" not in pvo.caveats
+
+
+def test_non_qb_low_games_t_does_not_get_qb_backup_caveat():
+    """The backup-profile caveat is QB-only; WRs with low games_t are unaffected."""
+    identity = PlayerIdentity(
+        dg_id="test_wr_001",
+        full_name="Test WR",
+        position="WR",
+        nfl_team="KC",
+        verification_status="VERIFIED",
+    )
+    wr_score = {**_QB_ENGINE_B_SCORE, "engine": "engine_b_v2"}
+    features = {"games_t": 1.0, "engine_b_score": wr_score}
+    pvo = assemble_pvo(identity, features)
+    assert "High-Efficiency / Low-Volume Anomaly (Backup Profile)" not in pvo.caveats

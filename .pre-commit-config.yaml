@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: training-csv-market-leakage
+        name: Training CSV market-leakage guard
+        language: python
+        entry: .venv/bin/python3.14 scripts/validate_training_csv.py
+        files: ^app/data/training/.*\.csv$
+        types: [file]
+        pass_filenames: true
