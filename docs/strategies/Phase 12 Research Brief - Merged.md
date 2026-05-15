@@ -5,17 +5,17 @@
 
 ## 1. Executive Recommendation
 
-**Phase 12 theme: "Dynasty Value Score v1 — Operational Foundation."**
+**Phase 12 committed scope: Operational Artifacts + Trust Surface v2.**
 
-Phase 12 has a natural two-act structure that should not be separated:
+Phase 12 has a natural two-act structure, but only Act 1 is committed scope. Act 2 is a conditional candidate pending Act 1 review.
 
-**Act 1 — Operational Artifact Generation (prerequisite, ~1 week):** Execute the first operational backtest run end-to-end on the Phase 10/11 harness, generating versioned, auditable artifacts per position (QB, RB, WR as active; TE as experimental). This converts Phase 10/11 from "harness exists" to "harness has spoken." The Trust Surface is currently a route without a payload; Act 1 gives it one.
+**Act 1 — Committed (prerequisite):** Execute the first operational backtest run end-to-end on the Phase 10/11 harness, generating versioned, auditable artifacts per position (QB, RB, WR as active; TE as experimental). This converts Phase 10/11 from "harness exists" to "harness has spoken." The Trust Surface is currently a route without a payload; Act 1 gives it one. This is the highest-confidence, lowest-risk Phase 12 work: no new modeling, no governance edges, pure productionization of validated infrastructure.
 
-**Act 2 — DVS Pipeline Design and Calibration (~3 weeks):** Operationalize the `dynasty_value_score` field using isotonic regression calibration and exponential decay transformation. This is the highest-impact architectural deliverable because it unifies Engine A's 0–100 prospect composite and Engine B's PPG forecast into a single cross-positional cardinal currency that powers the Roster Auditor, Trade Lab, and Rookie Board surfaces.
+**Act 2 — Conditional (DVS design + implementation):** Operationalize the `dynasty_value_score` field using isotonic regression calibration and exponential decay transformation. This is architecturally important — it unifies Engine A's 0–100 prospect composite and Engine B's PPG forecast into a single cross-positional currency — but it is **not approved Phase 12 scope** until: (a) Act 1 artifacts are generated and reviewed, (b) calibration diagnostics confirm the fold outputs are a valid calibration surface, and (c) a written spec is approved. Until those gates pass, DVS implementation belongs to Phase 13.
 
-**Why this ordering is mandatory:** DVS is not a normalization problem — it is a calibration problem. The backtest fold outputs are required as the calibration surface (predicted-decile mean vs. realized-decile mean). Performing DVS before artifacts exist would launder unverified model uncertainty into a single number that appears authoritative. The artifacts are not overhead before DVS; they are the mathematical substrate DVS is trained on.
+The research in Sections 5–6 documents the DVS design so the spec can be written immediately after Act 1. It is design-ready, not implementation-approved.
 
-**Secondary option — TE Diagnosis (Phase 13):** Once DVS artifacts document *quantitatively* where TE failed (calibration? rank correlation? archetype heterogeneity?), a targeted remodel is possible. This should not begin until the diagnosis is in artifact form.
+**Deferred — TE Diagnosis (Phase 13):** Once Phase 12 artifacts document *quantitatively* where TE failed (calibration? rank correlation? archetype heterogeneity?), a targeted remodel is possible.
 
 **Deferred — RB feature expansion:** RYOE has near-zero year-over-year stability (nfeloapp analysis: effectively a coin flip after one season). Weighted Opportunity has strong evidence (0.95–0.97 PPR point correlation) but adding it before baseline validation introduces noise. Defer until Phase 13 baseline metrics exist.
 
@@ -50,7 +50,7 @@ DVS design notes from the research should be retained as a **Phase 12 appendix**
 
 The Phase 10/11 harness creates capability; Phase 12 creates evidence. The harness (walk-forward 2018–2023, 4 folds, market comparison, G1–G4 gates, artifact persistence, CLI, Trust Surface route) builds the infrastructure. The operational first run populates it.
 
-### 2.1 What the First Run Must Produce (per active position and experimental TE)
+### 3.1 What the First Run Must Produce (per active position and experimental TE)
 
 1. **Per-fold prediction logs** — predicted vs. actual `avg_ppg_t1_t2`, with player_id, age at prediction, fold boundary year.
 2. **Calibration plot data** — predicted-decile mean vs. observed mean PPG (reliability diagram inputs), residual histograms. This is the DVS calibration substrate.
@@ -60,23 +60,23 @@ The Phase 10/11 harness creates capability; Phase 12 creates evidence. The harne
 6. **Subgroup slices** — age buckets, draft capital buckets, sample-size buckets — surfaces where calibration breaks down (tells you *why* TE failed).
 7. **A Model Card per position** (Mitchell et al., 2018 schema — see Section 6).
 
-### 2.2 The Expanding Window and Temporal Validity
+### 3.2 The Expanding Window and Temporal Validity
 
 Traditional static train-test splits are inadequate for sports analytics due to constant tactical evolutions (e.g., the league-wide shift to two-high safety shells suppressing deep passing efficiency). The walk-forward strategy ensures the model adapts to regime shifts without introducing look-ahead bias. The protocol retrains from scratch at each fold — evaluating frozen models is scientifically invalid.
 
 **One high-value cheap upgrade:** Extend the walk-forward window to include the 2024 fold (2018–2024 training, 2025 holdout) if 2025 PPG outcomes are settled. This is among the highest-value additions at low engineering cost.
 
-### 2.3 Market Outperformance and the NDCG Paradigm
+### 3.3 Market Outperformance and the NDCG Paradigm
 
 The transition from Spearman's ρ to Kendall τ-b is a critical statistical correction. In small datasets with heavy tails (e.g., ~30–50 starting QBs), Spearman is disproportionately skewed by injury-driven outliers. Kendall τ-b evaluates pairwise directional agreement and is robust in restricted sample sizes with tied market values.
 
 NDCG addresses the economic reality of Superflex dynasty: accurately ranking the 50th WR matters exponentially less than identifying the top-12 elite assets. The logarithmic discount heavily penalizes the model for missing on championship-leverage players while forgiving variance at replacement level. Passing the NDCG benchmark at depths of 12 and 24 proves the model optimizes for the decisions that actually determine dynasty outcomes.
 
-### 2.4 Divergence Flag Validity
+### 3.4 Divergence Flag Validity
 
 When algorithmic valuation significantly deviates from the market consensus, the system flags the asset as undervalued or overvalued. The Mann-Whitney U test validates these flags non-parametrically (distribution of year-over-year value changes violates normality assumptions). Crucially, hit rates must be adjusted against positional market beta — a flagged RB who depreciates 2% when the RB market depreciates 15% generated alpha, even though the absolute direction is negative. Bootstrap confidence intervals (10,000 resamples) wrap these rates to confirm the signal is not a statistical anomaly.
 
-### 2.5 Risks to Mitigate
+### 3.5 Risks to Mitigate
 
 - **Phantom trust:** Trust Surface route exists but renders nothing decision-grade. If exposed externally before artifacts populate it, users overweight the model.
 - **Silent overlay leakage:** Code review during artifact generation should confirm no path lets KTC/FC values into training labels or features.
@@ -190,9 +190,13 @@ A key governance rule: the unified valuation score must ingest biological aging 
 | **Z-score** | Statistically clean | Opaque to non-technical users |
 | **Positional rank + cardinal annotation (e.g., "WR4 — DVS 8,940")** | Combines ordinal interpretability with cardinal trade utility | Requires both surfaces |
 
-**Recommendation:** 0–10,000 cardinal with positional rank and percentile annotations in the Trust Surface. This matches the market mental model players already have from KTC/FC. Internally, normalize via isotonic regression to realized positional percentile (4.3), then linearly scale to 0–10,000.
+**Recommendation:** 0–10,000 cardinal with positional rank and percentile annotations in the Trust Surface. This matches the market mental model players already have from KTC/FC. Internally, normalize via isotonic regression to realized positional percentile (5.3), then linearly scale to 0–10,000.
 
-**DVS v0 guarding:** If the full cross-position DVS pipeline is not completeable in Phase 12, ship a guarded v0 that expresses *within-position percentile only* behind a feature flag, explicitly labeled "v0 — within-position percentile, not cross-position comparable." This is better than keeping the field `None` indefinitely.
+**Two-tier DVS design:** The DVS should expose two distinct fields rather than collapsing to a single number prematurely:
+- `within_position_percentile` — calibrated percentile rank within position (e.g., 89th percentile WR). Achievable once backtest calibration data exists. Easier, safer, and interpretable.
+- `cross_position_value_score` — 0–10,000 cardinal cross-positional score. Requires validated VORP anchoring and the prospect bridge. Phase 13 target.
+
+The first field closes the `dynasty_value_score` `None` time-bomb without overclaiming. The second should not be shipped until artifact evidence supports it.
 
 ---
 
@@ -226,22 +230,25 @@ Direct per-player slot/inline alignment data is NOT freely available at scale �
 
 **TE status in Phase 12:** Remains EXPERIMENTAL. The Phase 12 Model Card for TE must explicitly state the failure mode(s) with quantitative evidence from the first operational run.
 
-### 5.2 RB Feature Expansion
+### 6.2 RB Feature Expansion
 
 **Predictive validity ranking (from PFF/Sharp Football/nfeloapp):**
 
 | Metric | Y2Y Correlation | Source | Phase 12 verdict |
 |---|---|---|---|
 | Weighted Opportunity | **0.95–0.97** | Scott Barrett / PFF 2019 | High priority for Phase 13 |
+| High-Value Touches (HVT) | Strong (PPR-specific) | PFF | Phase 13 candidate |
 | Targets / route participation | Strong (PPR-specific) | PFR advanced stats | Phase 13 candidate |
 | RYOE (Rushing Yards Over Expected) | ~0 (coin flip) | nfeloapp analysis | **Reject** |
 | Yards Before Contact / Evaded Tackles | Modest | PFR advanced stats | Phase 13 secondary |
 
+**High-Value Touches defined:** receptions and carries inside the 10-yard line — the highest-leverage PPG drivers in PPR. The same players who dominate red-zone touches also dominate target share in passing situations, making HVT a natural complement to Weighted Opportunity.
+
 **RYOE rejection is firm:** Year-over-year correlation is essentially zero per nfeloapp. RYOE reflects offensive line blocking scheme and situational box counts, not isolated runner talent. Do not add it as a primary predictor. May be appropriate as a context flag (risk/upside) only after seeing backtest evidence.
 
-**Recommended action for Phase 12:** None — defer all RB feature changes until Phase 13 baseline metrics exist. Document RYOE rejection in the Phase 12 Model Card so it is not relitigated.
+**Recommended action for Phase 12:** Publish RB model's current calibration and subgroup weaknesses in the Model Card, making the later feature-expansion test measurable. Any feature change waits for Phase 13 baseline gates. Document RYOE rejection explicitly so it is not relitigated.
 
-### 5.3 WR and QB
+### 6.3 WR and QB
 
 **WR:** Passed gates. Non-feature improvements appropriate in Phase 12 or 13: calibration plot publication, subgroup analysis by age/target share/aDOT, documentation of earmarked features (YPRR Y2Y stability, target share growth) for future backtest consideration.
 
@@ -249,9 +256,9 @@ Direct per-player slot/inline alignment data is NOT freely available at scale �
 
 ---
 
-## 6. Trust Surface and Model Reporting
+## 7. Trust Surface and Model Reporting
 
-### 6.1 Model Cards (Mitchell et al., 2018 Schema)
+### 7.1 Model Cards (Mitchell et al., 2018 Schema)
 
 Each active position should receive a Model Card with all 9 sections. TE gets a card too, explicitly documenting its failure. The 9 sections:
 
@@ -265,7 +272,7 @@ Each active position should receive a Model Card with all 9 sections. TE gets a 
 8. **Ethical Considerations** — Decision aid only; market-overlay separation; TE outputs are not decision-grade.
 9. **Caveats and Recommendations** — TE EXPERIMENTAL until promotion; rookie-year DVS provisional; do not extrapolate beyond t+2 without continuous-age decay layer.
 
-### 6.2 What the Trust Surface Should Expose After Artifacts Exist
+### 7.2 What the Trust Surface Should Expose After Artifacts Exist
 
 - Gate pass/fail by position with raw metrics (not just booleans)
 - Calibration plot (JSON data or embedded HTML)
@@ -274,7 +281,18 @@ Each active position should receive a Model Card with all 9 sections. TE gets a 
 - Confidence bands on each prediction (bootstrap CIs from the harness)
 - **TE:** explicit "EXPERIMENTAL — do not use for trade decisions" banner with documented failure mode
 
-### 6.3 The Counter-Argument Protocol
+### 7.3 What the Trust Surface Must Not Imply
+
+The Trust Surface should expose evidence, not manufacture confidence. It must never imply:
+
+- TE is decision-grade or comparable to QB/RB/WR outputs.
+- `dynasty_value_score` is trustworthy before calibration and bridge validation.
+- Market data is ground truth (KTC/FC are overlays, not labels).
+- A model disagreement with market is alpha before G4 evidence.
+- Promotion gates are guarantees rather than statistical thresholds.
+- A hard age cliff is encoded as a model input.
+
+### 7.4 The Counter-Argument Protocol
 
 The system architecture prohibits emitting vague deterministic verdicts ("Bust," "Sell Now"). Every strong valuation recommendation must be accompanied by a Red Team case — a steel-manned, data-driven argument against the model's own conclusion. If the algorithm generates a high valuation for an incoming RB based on elite draft capital and collegiate production, the Counter-Argument field must automatically surface opposing contextual data: the drafting team's run-blocking grade, or the mathematical probability of a committee backfield.
 
@@ -282,7 +300,7 @@ This protocol preserves the mandated 65:35 Quantitative-to-Qualitative disciplin
 
 ---
 
-## 7. nflverse / nfl_data_py Data Access Reference
+## 8. nflverse / nfl_data_py Data Access Reference
 
 | Endpoint | What it gives | Coverage | Relevant to |
 |---|---|---|---|
@@ -305,7 +323,7 @@ This protocol preserves the mandated 65:35 Quantitative-to-Qualitative disciplin
 
 ---
 
-## 8. Recommended Phase 12 Scope
+## 9. Recommended Phase 12 Scope
 
 ### In-Scope
 
@@ -318,12 +336,15 @@ This protocol preserves the mandated 65:35 Quantitative-to-Qualitative disciplin
 6. Divergence ledger v0: for each player, store `(engine_b_pred, ktc_value, fc_value, realized_t1_t2_when_known)` — passive storage only, not yet a signal
 7. `ARTIFACTS.md`: every artifact, location, schema, and which gate it informs
 
-**Act 2 — DVS Pipeline:**
-8. Isotonic calibration pipeline: map Engine A and Engine B outputs to calibrated empirical CDF percentile per position, using walk-forward fold outputs as calibration surface
-9. Exponential scaling function: convert calibrated percentiles to 0–10,000 cardinal scale anchored against QB24/RB36/WR48/TE12 replacement baselines
-10. Prospect bridge v1 (Approach 1): regression from Engine A composite to realized avg_ppg_t1_t2 for historical rookie classes; flag in Trust Surface as provisional
-11. PVO integration: `dynasty_value_score` populated for 100% of active QB/RB/WR players; TE stays null or within-position only under EXPERIMENTAL flag
-12. DVS validation gate: unified valuation board passes NDCG@24 against pre-season market consensus snapshot
+**Act 2 — DVS Pipeline (conditional — requires Act 1 artifact review and spec approval):**
+
+The following tasks are ready to spec but are NOT committed Phase 12 scope. They become in-scope only after David reviews Act 1 artifacts and approves the DVS spec. The design detail is in Section 5.
+
+- Isotonic calibration pipeline: map Engine A and Engine B outputs to calibrated positional percentile using walk-forward fold calibration surface
+- Exponential scaling function: convert calibrated percentiles to 0–10,000 cardinal scale, VORP-anchored against QB24/RB36/WR48/TE12 baselines
+- Prospect bridge v0 (Approach 1): regression from Engine A composite to realized avg_ppg_t1_t2 for historical rookie classes; provisional flag in Trust Surface
+- PVO integration: `dynasty_value_score` → `within_position_percentile` for QB/RB/WR; TE stays null
+- DVS gate: unified valuation board passes NDCG@24 against pre-season market consensus snapshot
 
 ### Out of Scope (Defer)
 
@@ -334,25 +355,26 @@ This protocol preserves the mandated 65:35 Quantitative-to-Qualitative disciplin
 - Live external API calls in the backtest/calibration environment
 - Market feature leakage of any kind (KTC, DP, ADP into training labels or features)
 
-### Acceptance Criteria
+### Acceptance Criteria (Act 1 — Committed)
 
 - ≥1 operational backtest run with complete artifact set for all 4 positions on disk
 - All 4 positions have populated Model Cards with all 9 Mitchell sections
 - TE Model Card explicitly states failure mode(s) with quantitative evidence
 - Trust Surface route returns model cards + gate status with no 500s; integration test passes
 - Spearman ρ, RMSE, ECE, market-comparison metrics persisted per-fold and pooled
-- `dynasty_value_score` non-null for 100% of active QB/RB/WR in production
-- DVS value distribution right-skewed (no unnatural clustering at boundaries)
 - Divergence ledger schema designed and ≥1 season populated
 - Code review confirms zero market data path into training labels or features
-- Counter-argument strings generated for top 100 assets by unified score
+- `ARTIFACTS.md` documents every artifact, its location, and which gate it informs
+
+*Act 2 acceptance criteria (DVS) will be defined in the approved DVS spec.*
 
 ### Test Strategy
 
-- **Unit:** Schema validation for every artifact; isotonic calibration utility; exponential scaling function; model card serializer
+- **Unit:** Schema validation for every artifact; model card serializer; calibration report transforms
 - **Integration:** End-to-end CLI invocation produces all artifacts deterministically (fixed seed)
 - **Golden tests:** Lock 2018–2023 baseline metrics so future regressions are detected
-- **Property tests:** Percentile ranks in [0,1]; gate booleans match raw threshold comparisons; DVS values in [0,10000]
+- **Property tests:** Percentile ranks in [0,1]; gate booleans match raw threshold comparisons
+- **Contract tests:** Trust Surface v2 route shape; missing-artifact and stale-artifact states
 
 ### Data Dependencies
 
@@ -362,9 +384,9 @@ This protocol preserves the mandated 65:35 Quantitative-to-Qualitative disciplin
 
 ---
 
-## 9. Open Questions for Domain Governance
+## 10. Open Questions for Domain Governance
 
-1. **Artifacts or DVS first within Phase 12?** The recommended bundled approach means Act 1 must complete before Act 2 begins. If timeline forces a split, artifacts ship in Phase 12 and DVS becomes Phase 13. Which is acceptable?
+1. **DVS scope gate:** Act 1 (artifacts) is committed. Act 2 (DVS implementation) requires David's explicit approval after reviewing Act 1 artifacts. Should the Phase 12 spec include a formal review checkpoint, or should Act 2 be scoped as a separate Phase 13 from the start?
 2. **Trust Surface visibility:** Should it be externally visible (shared with leaguemates) or owner-only? Affects model card phrasing and TE "experimental" banner severity.
 3. **Walk-forward extension to 2024 fold:** In-scope for Phase 12 or its own mini-step?
 4. **DVS v0 feature flag:** Ship within-position percentile only under a flag, or hold entirely until full cross-position DVS is ready?
@@ -373,11 +395,12 @@ This protocol preserves the mandated 65:35 Quantitative-to-Qualitative disciplin
 7. **Market snapshot policy:** Daily, weekly, or at fold boundaries only? Versioned?
 8. **TE remodel scope gate:** If Phase 12 diagnosis surfaces archetype heterogeneity as the primary failure, is a multi-model approach within Engine B acceptable, or is a single model per position non-negotiable?
 9. **Exponential decay coefficient:** Dynamically tuned per validation fold from League Pulse transaction data, or hardcoded to a 12-team Superflex baseline? Should be resolved before implementing the scaling function.
-10. **Draft pick valuation:** The 80% present-value discount is industry standard (DP). Does this adequately capture the projected historical strength of highly touted future classes, or should it be a tunable parameter?
+10. **DVS target scale preference:** When cross-position DVS ships, which format is preferred — 0–100 (percentile-flavored), 0–10,000 (KTC-familiar), or positional rank + percentile annotation with no cardinal score yet?
+11. **Draft pick valuation:** The 80% present-value discount is industry standard (DP). Does this adequately capture the projected historical strength of highly touted future classes, or should it be a tunable parameter? Should pick valuation be included in DVS design or held for a dedicated Trade Lab phase?
 
 ---
 
-## 10. Source Appendix
+## 11. Source Appendix
 
 - **KeepTradeCut** — keeptradecut.com, keeptradecut.com/frequently-asked-questions, keeptradecut.com/about/tight-end-premium. K/T/C crowdsourcing; 0–9999 integer; separate SF/1QB databases; algorithmic TEP overlay.
 - **FantasyCalc** — fantasycalc.com/about, fantasycalc.com/dynasty-research. Convex optimization on ~2M trades; 14-day half-life; MSTD volatility metric; SF QB adjustment.
@@ -398,3 +421,13 @@ This protocol preserves the mandated 65:35 Quantitative-to-Qualitative disciplin
 - **nflverse FTN charting** — nflreadr.nflverse.com/reference/load_ftn_charting.html. Charting 2022+; CC-BY-SA 4.0.
 
 *All sources accessed or verified May 2026. Where evidence is weak or contested (RYOE Y2Y stability, college breakout age), this is flagged in-line.*
+
+---
+
+## 12. Bottom Line
+
+Both research reports agree on the long-term destination: Dynasty Genius needs a trustworthy valuation layer that can explain itself. They disagree on the immediate next move.
+
+The correct Phase 12 is not the unified score yet. The correct Phase 12 is the evidence layer that makes the unified score safe to build. The governance-safe sequence is fixed: generate evidence → expose evidence → diagnose weak points → then calibrate into a unified value score.
+
+Phase 12 committed scope is clear: generate operational backtest artifacts, expose them through Trust Surface v2 with model cards, and publish the TE failure diagnosis. DVS implementation is design-ready (see Section 5) but requires a formal review gate after Act 1 artifacts exist before any implementation begins. Whether DVS lands in Phase 12 Act 2 or Phase 13 is a decision for David after seeing the artifact diagnostics — not a decision this research brief makes. The TE remodel and RB feature expansion belong to Phase 13 in either case.
