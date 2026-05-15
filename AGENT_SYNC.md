@@ -1,11 +1,11 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-05-14
+Last updated: 2026-05-15
 
 ## Active Phase
 
-Phase 10/11 — Backtest Harness (IN PROGRESS — Tasks 10.0, 10.1, 10.2, 10.3, 10.4, 10.6, and 10.10 complete; 445 tests)
+Phase 10/11 — Backtest Harness (IN PROGRESS — Tasks 10.0, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, and 10.10 complete; 460 tests)
 
 ## Current Sprint Objective
 
@@ -19,9 +19,10 @@ Phase 10/11 Backtest Harness: IN PROGRESS. Spec APPROVED (David, 2026-05-14). 44
 - Task 10.2 COMPLETE: daily FantasyCalc snapshot script + 5 unit tests.
 - Task 10.3 COMPLETE: WalkForwardDriver feature fold builder with temporal isolation + 7 unit tests.
 - Task 10.4 COMPLETE: statistical metric functions (Kendall τ-b, Spearman ρ, NDCG, Precision@k, Wilson CI, HLN-DM) + 17 unit tests.
+- Task 10.5 COMPLETE: WalkForwardDriver.run() — 4-fold loop, Ridge refit at fixed alpha, BCa CIs, BacktestResult returned; market fields all None + 15 contract tests.
 - Task 10.6 COMPLETE: BacktestResult artifact persistence contract tests.
 - Task 10.10 COMPLETE: community CSV ingest script + 4 unit tests.
-- Next: Task 10.5 (full WalkForwardDriver).
+- Next: Task 10.7 (market comparison integration — join snapshots, populate NDCG).
 Spec at `docs/superpowers/specs/2026-05-14-phase10-11-backtest-harness.md`.
 Research brief at `docs/strategies/Phase 10-11 Backtest Harness Research - Merged.md`.
 

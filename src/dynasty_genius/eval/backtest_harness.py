@@ -1,18 +1,29 @@
 """WalkForwardDriver — expanding-window walk-forward evaluation of Engine B v2.
 
-Task 10.3 (partial): _build_fold_data + _get_feature_columns.
-Full driver (run(), metrics, gates) added in Tasks 10.5, 10.7, 10.8.
+Task 10.3: _build_fold_data + _get_feature_columns.
+Task 10.5: run() — full fold loop, Ridge refit, metrics, BacktestResult.
+Market comparison (10.7) and gate evaluation (10.8) added later.
 """
 from __future__ import annotations
 
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
+from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
+from src.dynasty_genius.eval.backtest_artifact import (
+    BacktestResult,
+    FoldResult,
+    GateResult,
+    StabilityResult,
+)
+from src.dynasty_genius.eval.backtest_metrics import compute_rank_correlation
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_FEATURES_BY_POSITION,
     OUTCOME_COLUMN,
@@ -114,3 +125,127 @@ class WalkForwardDriver:
             pd.DataFrame(X_train_arr, columns=feature_cols),
             pd.DataFrame(X_test_arr, columns=feature_cols),
         )
+
+    def run(self) -> BacktestResult:
+        """Execute the full walk-forward backtest. Returns an immutable BacktestResult.
+
+        For each fold: refit Ridge at fixed alpha on train, predict on test,
+        compute Kendall τ-b / Spearman ρ / RMSE / MAE.
+        Market comparison fields are populated in Task 10.7.
+        Gate evaluation is performed in Task 10.8.
+        """
+        df = pd.read_csv(CSV_PATH)
+        position = self.position
+        alpha = self.FIXED_ALPHA[position]
+
+        fold_results: list[FoldResult] = []
+
+        for fold_def in self.FOLD_DEFINITIONS:
+            fold_index = fold_def["fold_index"]
+            test_year = fold_def["test_year"]
+            outcome_seasons = fold_def["outcome_seasons"]
+
+            X_train, X_test = self._build_fold_data(df, test_year, position)
+
+            # Same masks used by _build_fold_data — extract outcomes here
+            train_mask = (
+                (df["feature_season"] < test_year)
+                & df["training_eligible"].astype(bool)
+                & (df["position"] == position)
+            )
+            test_mask = (
+                (df["feature_season"] == test_year)
+                & df["training_eligible"].astype(bool)
+                & (df["position"] == position)
+            )
+            y_train = df.loc[train_mask, OUTCOME_COLUMN].to_numpy(dtype=float)
+            y_test = df.loc[test_mask, OUTCOME_COLUMN].to_numpy(dtype=float)
+
+            # Refit with fixed alpha — local variable only; never stored on self
+            ridge = Ridge(alpha=alpha)
+            ridge.fit(X_train.to_numpy(), y_train)
+            y_pred = ridge.predict(X_test.to_numpy())
+            del ridge
+
+            residuals = y_pred - y_test
+            rmse = float(np.sqrt(np.mean(residuals ** 2)))
+            mae = float(np.mean(np.abs(residuals)))
+
+            tau, tau_ci, rho, rho_ci = compute_rank_correlation(
+                y_pred.tolist(), y_test.tolist()
+            )
+
+            train_years = sorted(
+                int(s) for s in df.loc[train_mask, "feature_season"].unique()
+            )
+
+            fold_results.append(FoldResult(
+                fold_index=fold_index,
+                train_years=train_years,
+                test_year=test_year,
+                outcome_seasons=outcome_seasons,
+                n_train=X_train.shape[0],
+                n_test=X_test.shape[0],
+                kendall_tau=tau,
+                kendall_tau_bca_ci95=tau_ci,
+                spearman_rho=rho,
+                spearman_rho_bca_ci95=rho_ci,
+                rank_ic=rho,
+                rmse=rmse,
+                mae=mae,
+            ))
+
+        rmse_vals = [f.rmse for f in fold_results]
+        rmse_mean = float(np.mean(rmse_vals))
+        rmse_cv = (
+            float(np.std(rmse_vals, ddof=1) / rmse_mean) if rmse_mean > 0 else 0.0
+        )
+        rmse_max_dev_pct = (
+            float(max(abs(r - rmse_mean) / rmse_mean for r in rmse_vals))
+            if rmse_mean > 0 else 0.0
+        )
+
+        stability = StabilityResult(
+            rmse_per_fold=rmse_vals,
+            rmse_mean=rmse_mean,
+            rmse_cv=rmse_cv,
+            rmse_max_deviation_pct=rmse_max_dev_pct,
+        )
+
+        pkl_path = self._find_model_pkl(position)
+        artifact_hash = (
+            BacktestResult.artifact_hash(pkl_path)
+            if pkl_path is not None and pkl_path.exists()
+            else "unavailable"
+        )
+
+        gate = GateResult(
+            g1_rank_correlation_pass=False,
+            g2_rmse_stability_pass=False,
+            g3_market_superiority_pass=False,
+            g4_divergence_validity_pass="deferred",
+            overall_grade="EXPERIMENTAL",
+            promotion_justification="Gate evaluation deferred to Task 10.8.",
+        )
+
+        return BacktestResult(
+            run_date=datetime.now(timezone.utc),
+            model_version=self.model_version,
+            model_artifact_hash=artifact_hash,
+            position=position,
+            ridge_alpha=alpha,
+            retrain_mode="refit_per_fold_fixed_alpha",
+            folds=fold_results,
+            rmse_stability=stability,
+            market_source="unavailable",
+            promotion_gate=gate,
+        )
+
+    def _find_model_pkl(self, position: str) -> Optional[Path]:
+        """Return pkl Path from v2_manifest.json, or None if missing/null."""
+        manifest = Path("app/data/models/engine_b/v2_manifest.json")
+        if not manifest.exists():
+            return None
+        data = json.loads(manifest.read_text())
+        rel = data.get(position.upper())
+        return Path(rel) if rel else None
