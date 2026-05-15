@@ -5,7 +5,7 @@ Last updated: 2026-05-15
 
 ## Active Phase
 
-Phase 10/11 — Backtest Harness (COMPLETE — Tasks 10.0-10.9 and 10.10 complete; 479 tests — ready for PR)
+Phase 10/11 — Backtest Harness (COMPLETE — Tasks 10.0-10.9 and 10.10 complete; 479 tests — PR #27 open)
 
 ## Current Sprint Objective
 
@@ -25,7 +25,8 @@ Phase 10/11 Backtest Harness: COMPLETE. Spec APPROVED (David, 2026-05-14). 479 t
 - Task 10.8 COMPLETE: gate evaluator (evaluate_promotion_gates, ACTIVE_B_VALIDATED logic, G3 deferred state) + 6 unit tests.
 - Task 10.9 COMPLETE: Trust Surface route (GET /trust-surface/{position}, overall_grade at top level) + scripts/run_backtest.py CLI (--position, --all, --model, --market-store) + 5 contract tests + 2 CLI unit tests.
 - Task 10.10 COMPLETE: community CSV ingest script + 4 unit tests.
-- Next: Codex final PR review pass — push feature/phase10-11-backtest-harness and open PR.
+- PR #27 open: https://github.com/davidtleess/dynasty-genius/pull/27
+- Next: monitor CI / review feedback, then merge when green.
 Spec at `docs/superpowers/specs/2026-05-14-phase10-11-backtest-harness.md`.
 
 Research brief at `docs/strategies/Phase 10-11 Backtest Harness Research - Merged.md`.
@@ -101,7 +102,7 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 
 ## Next Recommended Work
 
-1. **Task 10.11 PR + CI** — push branch and open PR once local GitHub auth/connector is available.
+1. **PR #27 CI/review** — monitor checks and address review feedback.
 2. **Operational backtest artifacts** — run `.venv/bin/python3.14 scripts/run_backtest.py --all` after PR review to populate `app/data/backtest/runs/` for Trust Surface reads.
 3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
 4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
