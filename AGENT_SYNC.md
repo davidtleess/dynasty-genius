@@ -5,7 +5,7 @@ Last updated: 2026-05-15
 
 ## Active Phase
 
-Phase 10/11 — Backtest Harness (IN PROGRESS — Tasks 10.0, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8, and 10.10 complete; 472 tests)
+Phase 10/11 — Backtest Harness (COMPLETE — Tasks 10.0-10.9 and 10.10 complete; 479 tests — ready for PR)
 
 ## Current Sprint Objective
 
@@ -13,7 +13,7 @@ Phase 9 Market Overlay: MERGED → main (PR #25 merge commit c04d9bf). 376 tests
 Phase 9.5 Prospect Identity Join: MERGED → main (PR #26, merge commit 845de98). 384 tests. Back-fill complete.
 Spec at `docs/superpowers/specs/2026-05-14-phase9-5-prospect-identity-join.md`.
 
-Phase 10/11 Backtest Harness: IN PROGRESS. Spec APPROVED (David, 2026-05-14). 472 tests.
+Phase 10/11 Backtest Harness: COMPLETE. Spec APPROVED (David, 2026-05-14). 479 tests.
 - Task 10.0 COMPLETE: BacktestResult Pydantic schema + 17 contract tests.
 - Task 10.1 COMPLETE: MarketSnapshotStore (SQLite) + 6 unit tests. fc_snapshots.db gitignored.
 - Task 10.2 COMPLETE: daily FantasyCalc snapshot script + 5 unit tests.
@@ -22,10 +22,12 @@ Phase 10/11 Backtest Harness: IN PROGRESS. Spec APPROVED (David, 2026-05-14). 47
 - Task 10.5 COMPLETE: WalkForwardDriver.run() — 4-fold loop, Ridge refit at fixed alpha, BCa CIs, BacktestResult returned; market fields all None + 15 contract tests.
 - Task 10.6 COMPLETE: BacktestResult artifact persistence contract tests.
 - Task 10.7 COMPLETE: market comparison integration (join snapshots, populate NDCG) + 6 unit tests.
-- Task 10.8 COMPLETE: gate evaluator (evaluate_promotion_gates, ACTIVE_B_VALIDATED logic, explicit G3 deferred status) + 6 unit tests.
+- Task 10.8 COMPLETE: gate evaluator (evaluate_promotion_gates, ACTIVE_B_VALIDATED logic, G3 deferred state) + 6 unit tests.
+- Task 10.9 COMPLETE: Trust Surface route (GET /trust-surface/{position}, overall_grade at top level) + scripts/run_backtest.py CLI (--position, --all, --model, --market-store) + 5 contract tests + 2 CLI unit tests.
 - Task 10.10 COMPLETE: community CSV ingest script + 4 unit tests.
-- Next: Task 10.9 (Trust Surface route — GET /trust-surface/{position}).
+- Next: Codex final PR review pass — push feature/phase10-11-backtest-harness and open PR.
 Spec at `docs/superpowers/specs/2026-05-14-phase10-11-backtest-harness.md`.
+
 Research brief at `docs/strategies/Phase 10-11 Backtest Harness Research - Merged.md`.
 
 Phase 8 COMPLETE (8.1 + 8.2 + 8.3): decision surfaces wired read-only over PVO. 339 tests.
