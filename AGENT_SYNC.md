@@ -5,11 +5,23 @@ Last updated: 2026-05-15
 
 ## Active Phase
 
-Phase 12 — COMPLETE: Operational Artifacts + Trust Surface v2 + Model Cards + TE Diagnosis (implementation complete 2026-05-15; 521 tests)
+Phase 12.5 — COMPLETE: Market-leakage guard + QB Backup caveat + pre-commit hooks (merged 2026-05-15; 530 tests)
+Phase 13 Research — IN PROGRESS: Engine A Draft Capital + TE Remodel + Identity Audit
 
 ## Current Sprint Objective
 
-Phase 9 Market Overlay: MERGED → main (PR #25 merge commit c04d9bf). 376 tests.
+Phase 12.5 Hygiene & UI: MERGED → main. 530 tests.
+- Task 2A COMPLETE: Market-leakage guard `validate_training_csv.py` + pre-commit hook.
+- Task 2B COMPLETE: QB backup-profile caveat logic in `pvo_assembler.py`.
+- Task 2C COMPLETE: CI green and branch merged.
+
+Phase 13 Research initiation:
+- Lane 3A: Engine A draft-capital step function research.
+- Lane 3B: TE remodel (PFF collegiate data + role heterogeneity).
+- Lane 3C: Identity resolution audit (GATED priority for 3B).
+Research brief at `docs/strategies/Phase-13-Research-Brief.md`.
+
+Phase 10/11 Backtest Harness: COMPLETE.
 Phase 9.5 Prospect Identity Join: MERGED → main (PR #26, merge commit 845de98). 384 tests. Back-fill complete.
 Spec at `docs/superpowers/specs/2026-05-14-phase9-5-prospect-identity-join.md`.
 
