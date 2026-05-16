@@ -6,7 +6,7 @@ Last updated: 2026-05-15
 ## Active Phase
 
 Phase 12.5 — COMPLETE: Market-leakage guard + QB Backup caveat + pre-commit hooks (merged 2026-05-15; 530 tests)
-Phase 13 Research — IN PROGRESS: Engine A Draft Capital + TE Remodel + Identity Audit
+Phase 13 — SPEC APPROVED: Identity Audit + Engine A Draft-Capital Bake-Off + TE Remodel Step 0
 
 ## Current Sprint Objective
 
@@ -15,11 +15,23 @@ Phase 12.5 Hygiene & UI: MERGED → main. 530 tests.
 - Task 2B COMPLETE: QB backup-profile caveat logic in `pvo_assembler.py`.
 - Task 2C COMPLETE: CI green and branch merged.
 
-Phase 13 Research initiation:
-- Lane 3A: Engine A draft-capital step function research.
-- Lane 3B: TE remodel (PFF collegiate data + role heterogeneity).
-- Lane 3C: Identity resolution audit (GATED priority for 3B).
-Research brief at `docs/strategies/Phase-13-Research-Brief.md`.
+Phase 13 implementation handoff:
+- Spec APPROVED by David: `docs/superpowers/specs/2026-05-15-phase13-final-spec.md`.
+- Task 13.1.0 COMPLETE: Identity Contract (`docs/identity/identity_contract.md`).
+- Task 13.1.1 COMPLETE: Identity Coverage Matrix audit runner (`src/dynasty_genius/audit/identity_coverage_matrix.py`).
+- Task 13.1.2 COMPLETE: Review Queue + Override Registry validation (`identity_review_queue.py`, `identity_override_registry.py`).
+- Task 13.1.3 COMPLETE: Identity materialization gate blocks unresolved PFF/college rows (`identity_materialization_gate.py`).
+- Task 13.2.0 NEXT: Draft-Capital Candidate Manifest.
+- 13.1 Identity Audit is the first hard gate.
+- 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
+- 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
+- TE remains EXPERIMENTAL; DVS remains out of scope; market-derived data remains overlay-only.
+Research inputs:
+- `docs/strategies/Phase13-round2-research.md`
+- `docs/strategies/Phase13-Round2-Dynasty Genius Framework Review.md`
+- `docs/strategies/phase13-agent-merge-gemini.md`
+- `docs/strategies/phase13-agent-merge-claude.md`
+- `docs/strategies/phase13-agent-merge-codex.md`
 
 Phase 10/11 Backtest Harness: COMPLETE.
 Phase 9.5 Prospect Identity Join: MERGED → main (PR #26, merge commit 845de98). 384 tests. Back-fill complete.
@@ -142,9 +154,9 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Operational artifact refresh** — run current pipeline end to end: `run_backtest.py --all`, `run_backtest.py --position TE`, `generate_model_cards.py --all`, and `build_divergence_ledger.py --all`.
-2. **Artifact review gate** — review calibration reports, model cards, Trust Surface responses, and TE failure diagnosis before approving any DVS or Phase 13 spec.
-3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
-4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
-5. **RB feature expansion research** — separate track; touches model inputs, requires backtest gate.
-6. **TE remodel / RB feature expansion / DVS** — separate specs only after artifact review and David approval.
+1. **Task 13.2.0 Draft-Capital Candidate Manifest** — define candidate transforms and validation artifact schema.
+2. **Task 13.2.1 Draft-Class LOOCV Harness** — build/extend validation for leave-one-draft-class-out evaluation.
+3. **Task 13.2.2 Draft-Capital Bake-Off** — evaluate baseline, log-decay, bucketed, and isotonic candidates.
+4. **Task 13.2.3 Draft-Capital Promotion Decision** — David decides whether a passing candidate is implemented or recorded as validation-only.
+5. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
+6. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
