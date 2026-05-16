@@ -42,6 +42,10 @@ Gemini's statistical review adds four binding safeguards to this plan:
 4. Add a jitter/sensitivity report for role-risk thresholds. Because the committed taxonomy
    artifact is already materialized, the first implementation records threshold sensitivity as an
    aggregate robustness check rather than rewriting production labels.
+5. Apply Claude's replay/audit safeguards: use positional scipy result indexing for portability,
+   run unit tests on the same four folds as the CLI, expose the rank degradation threshold in the
+   artifact, record the eligible manifest/baseline feature list/Ridge alpha, and add a negative
+   rank-gate test.
 
 One suggested test is intentionally revised:
 
@@ -171,7 +175,7 @@ def _synthetic_frame() -> pd.DataFrame:
 def test_evaluate_te_role_risk_experiment_is_validation_only():
     result = evaluate_te_role_risk_experiment(
         _synthetic_frame(),
-        test_years=[2021, 2022, 2023],
+        test_years=[2020, 2021, 2022, 2023],
     )
 
     assert result["experiment_name"] == "te_role_risk_detector"
@@ -190,7 +194,7 @@ def test_evaluate_te_role_risk_experiment_is_validation_only():
 def test_acceptance_requires_error_improvement_rank_preservation_and_negative_coefficients():
     result = evaluate_te_role_risk_experiment(
         _synthetic_frame(),
-        test_years=[2021, 2022, 2023],
+        test_years=[2020, 2021, 2022, 2023],
     )
     unified = result["candidates"]["unified_penalty"]
 
@@ -209,7 +213,7 @@ def test_all_zero_candidate_columns_match_baseline_predictions():
     frame["te_role_role_risk"] = 0
     frame["te_role_blocking_specialist"] = 0
 
-    result = evaluate_te_role_risk_experiment(frame, test_years=[2021, 2022, 2023])
+    result = evaluate_te_role_risk_experiment(frame, test_years=[2020, 2021, 2022, 2023])
 
     for fold in result["candidates"]["unified_penalty"]["folds"]:
         assert fold["rmse_delta"] == 0.0
@@ -230,6 +234,25 @@ def test_risk_features_are_not_perfectly_collinear_with_existing_features():
     for column in numeric_columns:
         corr = frame[column].corr(frame["te_role_role_risk"])
         assert pd.isna(corr) or abs(corr) < 0.98
+
+
+def test_rank_degradation_gate_fails_when_candidate_hurts_rank_order(monkeypatch):
+    import src.dynasty_genius.eval.te_role_risk_experiment as module
+
+    frame = _synthetic_frame()
+
+    def fake_rank_metrics(y_true, y_pred):
+        if y_pred[0] > y_pred[-1]:
+            return {"spearman_rho": 0.60, "kendall_tau": 0.45}
+        return {"spearman_rho": 0.40, "kendall_tau": 0.20}
+
+    monkeypatch.setattr(module, "_rank_metrics", fake_rank_metrics)
+    result = evaluate_te_role_risk_experiment(frame, test_years=[2020, 2021, 2022, 2023])
+    unified = result["candidates"]["unified_penalty"]
+
+    assert unified["acceptance"]["rank_degradation_threshold"] == -0.02
+    assert unified["acceptance"]["rank_degradation_gate"] is False
+    assert unified["summary"]["passes_acceptance"] is False
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -266,6 +289,7 @@ from src.dynasty_genius.eval.te_archetype_bakeoff import BASELINE_TE_FEATURES
 OUTCOME_COLUMN = "avg_ppg_t1_t2"
 PRIMARY_ALPHA = 1.0
 SENSITIVITY_ALPHA = 100.0
+RANK_DEGRADATION_THRESHOLD = -0.02
 ROLE_RISK_CANDIDATE_COLUMNS = (
     "te_role_role_risk",
     "te_role_blocking_specialist",
@@ -302,8 +326,8 @@ def _rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 
 def _rank_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
-    spearman = spearmanr(y_pred, y_true).statistic
-    kendall = kendalltau(y_pred, y_true).statistic
+    spearman = float(spearmanr(y_true, y_pred)[0])
+    kendall = float(kendalltau(y_true, y_pred)[0])
     return {
         "spearman_rho": 0.0 if np.isnan(spearman) else round(float(spearman), 4),
         "kendall_tau": 0.0 if np.isnan(kendall) else round(float(kendall), 4),
@@ -378,7 +402,10 @@ def _evaluate_candidate(
     mean_rmse_gate = float(np.mean(rmse_deltas)) < 0
     mean_mae_gate = float(np.mean(mae_deltas)) < 0
     rmse_win_gate = rmse_win_folds >= 3
-    rank_degradation_gate = min(spearman_deltas) >= -0.02 and min(kendall_deltas) >= -0.02
+    rank_degradation_gate = (
+        min(spearman_deltas) >= RANK_DEGRADATION_THRESHOLD
+        and min(kendall_deltas) >= RANK_DEGRADATION_THRESHOLD
+    )
     candidate_coefficients: dict[str, float] = {}
     for fold in folds:
         for column, coefficient in fold["candidate_coefficients"].items():
@@ -394,6 +421,7 @@ def _evaluate_candidate(
         "mean_rmse_gate": mean_rmse_gate,
         "mean_mae_gate": mean_mae_gate,
         "rank_degradation_gate": rank_degradation_gate,
+        "rank_degradation_threshold": RANK_DEGRADATION_THRESHOLD,
         "negative_coefficient_gate": negative_coefficient_gate,
     }
     return {
@@ -512,6 +540,9 @@ def test_real_role_risk_report_is_aggregate_redacted_and_governed(tmp_path: Path
 
     assert out.exists()
     assert report["metadata"]["position"] == "TE"
+    assert report["metadata"]["source_eligible_manifest"].endswith("pff_te_eligible_te_2018_2025_20260516_canonical.json")
+    assert "weighted_opportunity" in report["metadata"]["baseline_features"]
+    assert report["metadata"]["ridge_alpha"] == 1.0
     assert report["result"]["experiment_name"] == "te_role_risk_detector"
     assert set(report["result"]["candidates"]) == {"sparse_duo", "unified_penalty"}
     assert "alpha_sensitivity" in report["result"]
@@ -527,6 +558,8 @@ def test_real_role_risk_report_is_aggregate_redacted_and_governed(tmp_path: Path
     assert "/users/" not in rendered
     assert "downloads" not in rendered
     assert "overall_grade" not in rendered
+    assert "grades_offense" not in rendered
+    assert "grades_pass_route" not in rendered
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -561,7 +594,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.dynasty_genius.eval.te_archetype_bakeoff import build_te_bakeoff_frame  # noqa: E402
+from src.dynasty_genius.eval.te_archetype_bakeoff import BASELINE_TE_FEATURES  # noqa: E402
 from src.dynasty_genius.eval.te_role_risk_experiment import (  # noqa: E402
+    PRIMARY_ALPHA,
     evaluate_te_role_risk_experiment,
 )
 
@@ -601,6 +636,9 @@ def build_role_risk_report(
             "position": "TE",
             "source_training": training_path.as_posix(),
             "source_archetype_artifact": archetype_path.as_posix(),
+            "source_eligible_manifest": eligible_path.as_posix(),
+            "baseline_features": list(BASELINE_TE_FEATURES),
+            "ridge_alpha": PRIMARY_ALPHA,
             "eligible_count": int(archetype_artifact["metadata"]["eligible_count"]),
             "te_training_rows": int(len(te_training)),
             "test_years": [2020, 2021, 2022, 2023],
@@ -676,7 +714,7 @@ Expected: report writes and prints `accepted=true` or `accepted=False`.
 Run:
 
 ```bash
-rg -n "pff_id|sleeper_id|gsis_id|/Users|Downloads|overall_grade|receiving_grade|run_block_grade|pass_block_grade" app/data/backtest/phase13/te_role_risk_experiment_20260516.json
+rg -n "pff_id|sleeper_id|gsis_id|/Users|Downloads|overall_grade|receiving_grade|run_block_grade|pass_block_grade|grades_offense|grades_pass_route" app/data/backtest/phase13/te_role_risk_experiment_20260516.json
 ```
 
 Expected: no output and exit code 1.
@@ -779,8 +817,9 @@ Task 13.3.3 is complete only if:
   - fold-level Spearman/Kendall deltas;
   - candidate coefficient summaries;
   - alpha sensitivity at `100.0`;
+  - `source_eligible_manifest`, `baseline_features`, and `ridge_alpha` provenance;
   - aggregate acceptance gates;
-  - negative coefficient gate;
+  - negative coefficient gate and visible rank degradation threshold;
   - `production_change_approved: false`;
   - TE status remains `EXPERIMENTAL`.
 - Redaction scan finds no source-native IDs, private paths, PFF grade fields, raw PFF content, or player-level rows.

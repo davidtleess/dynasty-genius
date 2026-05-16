@@ -64,6 +64,7 @@ Phase 13 implementation handoff:
 - Task 13.3.3 PLAN READY: `docs/superpowers/plans/2026-05-16-phase13-3-3-te-role-risk-experiment.md`.
     - Plan runs a controlled experiment with RMSE/MAE plus Spearman/Kendall deltas and explicit no-promotion gates.
     - Gemini review incorporated: sparse-duo vs unified-penalty candidates, negative coefficient gate, per-fold rank floor, alpha sensitivity at 100.0, and all-zero candidate drift test.
+    - Claude review incorporated: four-fold unit tests, portable scipy rank calls, visible rank threshold, eligible-manifest/baseline-feature/alpha provenance, rank-gate failure test, and expanded PFF grade redaction terms.
     - Output remains aggregate-only and validation-only.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
