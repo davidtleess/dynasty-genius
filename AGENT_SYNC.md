@@ -54,6 +54,9 @@ Phase 13 implementation handoff:
 - Task 13.3 HUMAN CALIBRATION NOTE COMPLETE: `docs/validation/phase13-te-human-archetype-review.md`.
     - David labeled clear receiving specialists, blocking specialists, and complete TEs.
     - Key implication: split snap-alignment archetype from fantasy-role archetype before any model feature bake-off.
+- Task 13.3.2 PLAN READY: `docs/superpowers/plans/2026-05-16-phase13-3-2-te-archetype-feature-bakeoff.md`.
+    - Plan tests snap-alignment, two-axis fantasy-role taxonomy, complete-TE detector, and role-risk detector candidates.
+    - Validation-only: no Engine A/B production feature changes, promoted artifacts, TE promotion, market data, PFF grades, raw PFF rows, or player-level committed rows.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
