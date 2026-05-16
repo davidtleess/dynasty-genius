@@ -54,9 +54,10 @@ Phase 13 implementation handoff:
 - Task 13.3 HUMAN CALIBRATION NOTE COMPLETE: `docs/validation/phase13-te-human-archetype-review.md`.
     - David labeled clear receiving specialists, blocking specialists, and complete TEs.
     - Key implication: split snap-alignment archetype from fantasy-role archetype before any model feature bake-off.
-- Task 13.3.2 PLAN READY: `docs/superpowers/plans/2026-05-16-phase13-3-2-te-archetype-feature-bakeoff.md`.
-    - Plan tests snap-alignment, two-axis fantasy-role taxonomy, complete-TE detector, and role-risk detector candidates.
-    - Validation-only: no Engine A/B production feature changes, promoted artifacts, TE promotion, market data, PFF grades, raw PFF rows, or player-level committed rows.
+- Task 13.3.2 COMPLETE: TE Archetype Feature Bake-Off validation artifact at `app/data/backtest/phase13/te_archetype_bakeoff_20260516.json`.
+    - Tested snap-alignment, two-axis fantasy-role taxonomy, complete-TE detector, and role-risk detector candidates.
+    - Result: `role_risk_detector` is the only candidate that passes the conservative acceptance rule (mean RMSE/MAE improvement and RMSE improvement in 4/4 folds). Full fantasy-role one-hot improves mean error but only 2/4 RMSE folds.
+    - Validation-only: no Engine A/B production feature changes, promoted artifacts, TE promotion, market data, PFF grades, raw PFF rows, source-native IDs, local paths, or player-level committed rows.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
@@ -189,7 +190,7 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 13.3.2 decision** — decide whether to spec a true TE archetype feature bake-off. Current validation is promising, but artifact-only; no model-input use is approved yet. The spec should test a two-axis taxonomy rather than directly consuming the current single snap-alignment label.
+1. **Task 13.3.3 decision** — decide whether to write a David-approved TE model-change spec around the `role_risk_detector`; do not promote or productionize from 13.3.2 directly.
 2. **PFF parser follow-up** — if alternate route-alignment exports become available, add them to the ignored local manifest and regenerate the redacted report; raw export stays private/untracked.
 3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.

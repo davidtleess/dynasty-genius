@@ -1,0 +1,287 @@
+{
+  "candidates": {
+    "complete_te_detector": {
+      "candidate_columns": [
+        "te_role_complete_te"
+      ],
+      "candidate_name": "complete_te_detector",
+      "folds": [
+        {
+          "baseline_mae": 2.7577,
+          "baseline_rmse": 2.9384,
+          "candidate_mae": 2.7706,
+          "candidate_rmse": 2.9514,
+          "mae_delta": 0.0129,
+          "n_test": 206,
+          "n_train": 237,
+          "rmse_delta": 0.013,
+          "test_year": 2020
+        },
+        {
+          "baseline_mae": 1.816,
+          "baseline_rmse": 2.2376,
+          "candidate_mae": 1.8133,
+          "candidate_rmse": 2.2367,
+          "mae_delta": -0.0027,
+          "n_test": 146,
+          "n_train": 443,
+          "rmse_delta": -0.0009,
+          "test_year": 2021
+        },
+        {
+          "baseline_mae": 2.1863,
+          "baseline_rmse": 2.6735,
+          "candidate_mae": 2.1868,
+          "candidate_rmse": 2.6739,
+          "mae_delta": 0.0005,
+          "n_test": 90,
+          "n_train": 589,
+          "rmse_delta": 0.0004,
+          "test_year": 2022
+        },
+        {
+          "baseline_mae": 2.0249,
+          "baseline_rmse": 2.4867,
+          "candidate_mae": 2.0251,
+          "candidate_rmse": 2.486,
+          "mae_delta": 0.0003,
+          "n_test": 81,
+          "n_train": 679,
+          "rmse_delta": -0.0007,
+          "test_year": 2023
+        }
+      ],
+      "market_data_used": false,
+      "model_features_changed": false,
+      "summary": {
+        "fold_count": 4,
+        "improved_rmse_folds": 2,
+        "mae_delta_mean": 0.0028,
+        "passes_acceptance": false,
+        "rmse_delta_mean": 0.0029
+      },
+      "te_promotion_changed": false
+    },
+    "fantasy_role_one_hot": {
+      "candidate_columns": [
+        "te_role_receiving_specialist",
+        "te_role_complete_te",
+        "te_role_blocking_specialist",
+        "te_role_role_risk",
+        "te_role_unclear_role"
+      ],
+      "candidate_name": "fantasy_role_one_hot",
+      "folds": [
+        {
+          "baseline_mae": 2.7577,
+          "baseline_rmse": 2.9384,
+          "candidate_mae": 1.5586,
+          "candidate_rmse": 1.8602,
+          "mae_delta": -1.1991,
+          "n_test": 206,
+          "n_train": 237,
+          "rmse_delta": -1.0782,
+          "test_year": 2020
+        },
+        {
+          "baseline_mae": 1.816,
+          "baseline_rmse": 2.2376,
+          "candidate_mae": 2.3899,
+          "candidate_rmse": 2.6786,
+          "mae_delta": 0.5739,
+          "n_test": 146,
+          "n_train": 443,
+          "rmse_delta": 0.441,
+          "test_year": 2021
+        },
+        {
+          "baseline_mae": 2.1863,
+          "baseline_rmse": 2.6735,
+          "candidate_mae": 2.0894,
+          "candidate_rmse": 2.546,
+          "mae_delta": -0.0969,
+          "n_test": 90,
+          "n_train": 589,
+          "rmse_delta": -0.1275,
+          "test_year": 2022
+        },
+        {
+          "baseline_mae": 2.0249,
+          "baseline_rmse": 2.4867,
+          "candidate_mae": 1.9871,
+          "candidate_rmse": 2.5173,
+          "mae_delta": -0.0377,
+          "n_test": 81,
+          "n_train": 679,
+          "rmse_delta": 0.0306,
+          "test_year": 2023
+        }
+      ],
+      "market_data_used": false,
+      "model_features_changed": false,
+      "summary": {
+        "fold_count": 4,
+        "improved_rmse_folds": 2,
+        "mae_delta_mean": -0.19,
+        "passes_acceptance": false,
+        "rmse_delta_mean": -0.1835
+      },
+      "te_promotion_changed": false
+    },
+    "role_risk_detector": {
+      "candidate_columns": [
+        "te_role_role_risk",
+        "te_role_blocking_specialist"
+      ],
+      "candidate_name": "role_risk_detector",
+      "folds": [
+        {
+          "baseline_mae": 2.7577,
+          "baseline_rmse": 2.9384,
+          "candidate_mae": 2.738,
+          "candidate_rmse": 2.92,
+          "mae_delta": -0.0198,
+          "n_test": 206,
+          "n_train": 237,
+          "rmse_delta": -0.0184,
+          "test_year": 2020
+        },
+        {
+          "baseline_mae": 1.816,
+          "baseline_rmse": 2.2376,
+          "candidate_mae": 1.7598,
+          "candidate_rmse": 2.1869,
+          "mae_delta": -0.0562,
+          "n_test": 146,
+          "n_train": 443,
+          "rmse_delta": -0.0507,
+          "test_year": 2021
+        },
+        {
+          "baseline_mae": 2.1863,
+          "baseline_rmse": 2.6735,
+          "candidate_mae": 2.0869,
+          "candidate_rmse": 2.6187,
+          "mae_delta": -0.0993,
+          "n_test": 90,
+          "n_train": 589,
+          "rmse_delta": -0.0549,
+          "test_year": 2022
+        },
+        {
+          "baseline_mae": 2.0249,
+          "baseline_rmse": 2.4867,
+          "candidate_mae": 1.9945,
+          "candidate_rmse": 2.4538,
+          "mae_delta": -0.0304,
+          "n_test": 81,
+          "n_train": 679,
+          "rmse_delta": -0.0329,
+          "test_year": 2023
+        }
+      ],
+      "market_data_used": false,
+      "model_features_changed": false,
+      "summary": {
+        "fold_count": 4,
+        "improved_rmse_folds": 4,
+        "mae_delta_mean": -0.0514,
+        "passes_acceptance": true,
+        "rmse_delta_mean": -0.0392
+      },
+      "te_promotion_changed": false
+    },
+    "snap_alignment_one_hot": {
+      "candidate_columns": [
+        "te_align_detached",
+        "te_align_balanced",
+        "te_align_inline"
+      ],
+      "candidate_name": "snap_alignment_one_hot",
+      "folds": [
+        {
+          "baseline_mae": 2.7577,
+          "baseline_rmse": 2.9384,
+          "candidate_mae": 1.7767,
+          "candidate_rmse": 2.042,
+          "mae_delta": -0.9811,
+          "n_test": 206,
+          "n_train": 237,
+          "rmse_delta": -0.8965,
+          "test_year": 2020
+        },
+        {
+          "baseline_mae": 1.816,
+          "baseline_rmse": 2.2376,
+          "candidate_mae": 2.2493,
+          "candidate_rmse": 2.5531,
+          "mae_delta": 0.4333,
+          "n_test": 146,
+          "n_train": 443,
+          "rmse_delta": 0.3155,
+          "test_year": 2021
+        },
+        {
+          "baseline_mae": 2.1863,
+          "baseline_rmse": 2.6735,
+          "candidate_mae": 2.3433,
+          "candidate_rmse": 2.8327,
+          "mae_delta": 0.1571,
+          "n_test": 90,
+          "n_train": 589,
+          "rmse_delta": 0.1592,
+          "test_year": 2022
+        },
+        {
+          "baseline_mae": 2.0249,
+          "baseline_rmse": 2.4867,
+          "candidate_mae": 2.1253,
+          "candidate_rmse": 2.6461,
+          "mae_delta": 0.1005,
+          "n_test": 81,
+          "n_train": 679,
+          "rmse_delta": 0.1594,
+          "test_year": 2023
+        }
+      ],
+      "market_data_used": false,
+      "model_features_changed": false,
+      "summary": {
+        "fold_count": 4,
+        "improved_rmse_folds": 1,
+        "mae_delta_mean": -0.0725,
+        "passes_acceptance": false,
+        "rmse_delta_mean": -0.0656
+      },
+      "te_promotion_changed": false
+    }
+  },
+  "decision_policy": {
+    "acceptance": "Candidate must improve mean RMSE and MAE, improve RMSE in at least 3 of 4 folds, and pass redaction/governance checks before a later David-approved model-change spec.",
+    "te_status": "TE remains EXPERIMENTAL regardless of this bake-off result."
+  },
+  "governance": {
+    "diagnostic_only": true,
+    "market_data_used": false,
+    "model_features_changed": false,
+    "pff_grades_used": false,
+    "player_level_rows_emitted": false,
+    "te_promotion_changed": false
+  },
+  "metadata": {
+    "eligible_count": 116,
+    "generated_at": "2026-05-16T13:55:47Z",
+    "position": "TE",
+    "run_id": "te_archetype_bakeoff_20260516",
+    "schema_version": "0.1.0",
+    "source_archetype_artifact": "app/data/identity/te_archetype_rubric_20260516.json",
+    "source_training": "app/data/training/engine_b_features_v2.csv",
+    "te_training_rows": 849,
+    "test_years": [
+      2020,
+      2021,
+      2022,
+      2023
+    ]
+  }
+}
