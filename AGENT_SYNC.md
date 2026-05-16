@@ -25,7 +25,8 @@ Phase 13 implementation handoff:
 - Task 13.2.0 COMPLETE: Draft-Capital Candidate Manifest (`src/dynasty_genius/eval/draft_capital_manifest.py`).
 - Task 13.2.1 COMPLETE: Draft-Class LOOCV Harness (`src/dynasty_genius/eval/draft_class_loocv.py`).
 - Task 13.2.2 COMPLETE: Draft-Capital Bake-Off evaluator (`src/dynasty_genius/eval/draft_capital_bakeoff.py`).
-- Task 13.2.3 NEXT: Draft-Capital Promotion Decision.
+- Task 13.2.3 COMPLETE: Draft-Capital Promotion Decision recorded as VALIDATION_ONLY / NO PRODUCTION CHANGE (`docs/validation/phase13-draft-capital-promotion-decision.md`).
+- Task 13.3.0 NEXT: PFF Feasibility Memo.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
@@ -158,7 +159,7 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 13.2.3 Draft-Capital Promotion Decision** — David decides whether a passing candidate is implemented or recorded as validation-only.
-2. **Task 13.3.0 PFF Feasibility Memo** — inventory fields, CSV workflow, license constraints, and TE cohort coverage if 13.2.3 records validation-only outcome.
+1. **Task 13.3.0 PFF Feasibility Memo** — inventory fields, CSV workflow, license constraints, and TE cohort coverage.
+2. **Task 13.3.1 TE Archetype Rubric** — only after 13.3.0 confirms feasible fields and identity coverage.
 3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
