@@ -118,6 +118,7 @@ class EngineBService:
         self._load()
 
         position = player_features.get("position", "UNKNOWN")
+        uses_v2_bundle = position in self._v2_bundles
         bundle = self._v2_bundles.get(position) or self._v1_bundle
 
         if not bundle:
@@ -134,7 +135,10 @@ class EngineBService:
         X = imputer.transform(df_row)
         prediction = float(model.predict(X)[0])
 
-        is_experimental = position in ENGINE_B_EXPERIMENTAL_POSITIONS
+        is_experimental = (
+            position in ENGINE_B_EXPERIMENTAL_POSITIONS
+            or not uses_v2_bundle
+        )
         caveats = ["engine_b_not_decision_grade"]
         if is_experimental:
             caveats.append("engine_b_does_not_beat_baseline_for_this_position")

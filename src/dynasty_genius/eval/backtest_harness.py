@@ -205,8 +205,7 @@ def evaluate_promotion_gates(
         g4_status = g4_pass
 
     # Overall Grade Assignment
-    # TE position is parked at EXPERIMENTAL until Phase 12.
-    if position == "TE":
+    if position == "TE" and (not g1_pass or not g2_pass):
         grade = "EXPERIMENTAL"
     elif not g1_pass or not g2_pass:
         grade = "ACTIVE_B"
@@ -230,7 +229,7 @@ def evaluate_promotion_gates(
     if g3_result is True:
         just_parts.append("G3 market superiority pass")
 
-    if position == "TE":
+    if position == "TE" and grade == "EXPERIMENTAL":
         justification = "TE position experimental fallback."
     elif grade == "ACTIVE_B":
         failed = []
@@ -271,7 +270,7 @@ class WalkForwardDriver:
         "QB": 1000.0,
         "RB": 500.0,
         "WR": 200.0,
-        "TE": 1.0,
+        "TE": 100.0,
     }
 
     def __init__(self, position: str, model_version: str = "engine_b_v2") -> None:
@@ -326,7 +325,7 @@ class WalkForwardDriver:
         # ppg_t_minus_2 in fold 1 where train only covers 2018-2019 and T-2 data
         # would require 2016-2017 history not present in the CSV), impute to 0.0
         # and keep the column. The _available flag encodes absence for the model.
-        imputer = SimpleImputer(strategy="mean", keep_empty_features=True)
+        imputer = SimpleImputer(strategy="median", keep_empty_features=True)
         X_train_arr = imputer.fit_transform(X_train)
         X_test_arr = imputer.transform(X_test)
 
@@ -404,6 +403,10 @@ class WalkForwardDriver:
             # Refit with fixed alpha — local variable only; never stored on self
             ridge = Ridge(alpha=alpha)
             ridge.fit(X_train.to_numpy(), y_train)
+            feature_coefficients = {
+                feature: float(coef)
+                for feature, coef in zip(X_train.columns, ridge.coef_)
+            }
             y_pred = ridge.predict(X_test.to_numpy())
             del ridge
 
@@ -519,6 +522,7 @@ class WalkForwardDriver:
                 ndcg_at_12_market=ndcg_fields["ndcg_at_12_market"],
                 ndcg_at_24_model=ndcg_fields["ndcg_at_24_model"],
                 ndcg_at_24_market=ndcg_fields["ndcg_at_24_market"],
+                feature_coefficients=feature_coefficients,
             ))
 
         # Expose accumulated rows as instance attributes

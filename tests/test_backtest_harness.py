@@ -194,10 +194,10 @@ def test_run_fixed_alpha_qb(qb_run):
     assert result.ridge_alpha == 1000.0
 
 
-def test_run_fixed_alpha_te_and_experimental_grade(te_run):
+def test_run_fixed_alpha_te_model_change_and_active_grade(te_run):
     _, result = te_run
-    assert result.ridge_alpha == 1.0
-    assert result.promotion_gate.overall_grade == "EXPERIMENTAL"
+    assert result.ridge_alpha == 100.0
+    assert result.promotion_gate.overall_grade == "ACTIVE_B"
 
 
 def test_run_retrain_mode(wr_run):

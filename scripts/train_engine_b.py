@@ -56,13 +56,14 @@ _META_COLS = {
 # ── Unified feature list for v1.1 control (same logic as v1, minus 4 exclusions)
 FEATURES_UNIFIED = sorted([
     f for f in ENGINE_B_ALLOWED_FEATURES
-    if f not in _META_COLS
+    if f not in _META_COLS and f != "te_role_is_risk_profile"
 ])
 
 HOLDOUT_SEASONS = [2022, 2023]
 
 # Alpha candidates for RidgeCV search
 ALPHA_CANDIDATES = [0.1, 1.0, 10.0, 50.0, 100.0, 200.0, 500.0, 1000.0]
+TE_MODEL_CHANGE_ALPHA = 100.0
 
 
 def _safe_spearman(y_true: np.ndarray, y_pred: np.ndarray) -> float:
@@ -94,6 +95,78 @@ def _ensure_availability_flags(df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         df["snap_share_t_minus_1_available"] = df["snap_share_t_minus_1"].notna()
     return df
+
+
+def _fit_position_ridge(
+    pos_df: pd.DataFrame,
+    features: list[str],
+    alpha: float,
+) -> tuple[Ridge, SimpleImputer, np.ndarray, np.ndarray]:
+    X_raw = pos_df[features]
+    y = pos_df[OUTCOME_COLUMN].values
+    imputer = SimpleImputer(strategy="median")
+    X = imputer.fit_transform(X_raw)
+    model = Ridge(alpha=alpha)
+    model.fit(X, y)
+    return model, imputer, X, y
+
+
+def train_te_deployment_model(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]:
+    """Train only the deployable TE v3 artifact. Does not touch manifest or other positions."""
+    train_df = df[(df["training_eligible"] == True) & (df["position"] == "TE")].copy()
+    if len(train_df) < 10:
+        return {"position": "TE", "skipped": True, "reason": "insufficient_rows"}
+
+    features = sorted(ENGINE_B_FEATURES_BY_POSITION["TE"])
+    validate_position_feature_contract("TE", features)
+    validate_no_temporal_leakage(features)
+    validate_no_prohibited_features(features)
+    missing = [feature for feature in features if feature not in train_df.columns]
+    if missing:
+        raise ValueError(f"TE deployment training missing required columns: {missing}")
+
+    run_dir.mkdir(parents=True, exist_ok=True)
+    artifact_path = run_dir / "te_v3.pkl"
+    report_path = run_dir / "validation_report_te.json"
+    if artifact_path.exists() or report_path.exists():
+        raise FileExistsError(f"TE deployment artifact already exists in {run_dir}")
+    model, imputer, X, y = _fit_position_ridge(
+        train_df,
+        features,
+        alpha=TE_MODEL_CHANGE_ALPHA,
+    )
+    y_pred = model.predict(X)
+    metrics_model = _score(y, y_pred)
+    metrics_baseline = _score(y, train_df["ppg_t"].values)
+
+    with open(artifact_path, "wb") as f:
+        pickle.dump({
+            "model": model,
+            "imputer": imputer,
+            "features": features,
+            "version": "engine_b_v3_te",
+            "position": "TE",
+            "is_validation_only": False,
+            "alpha": TE_MODEL_CHANGE_ALPHA,
+        }, f)
+
+    feature_index = features.index("te_role_is_risk_profile")
+    result = {
+        "position": "TE",
+        "skipped": False,
+        "alpha_selected": TE_MODEL_CHANGE_ALPHA,
+        "features": features,
+        "n_features": len(features),
+        "train_rows": len(X),
+        "metrics_model": metrics_model,
+        "metrics_baseline": metrics_baseline,
+        "promotion_warranted": None,
+        "te_role_is_risk_profile_coefficient": float(model.coef_[feature_index]),
+        "artifact_path": str(artifact_path),
+    }
+    with open(report_path, "w") as f:
+        json.dump(result, f, indent=2)
+    return result
 
 
 # ── Stage 6.1: v1.1 Unified Control ──────────────────────────────────────────
@@ -312,6 +385,12 @@ def main() -> None:
         help="v1_1_control: Stage 6.1 hygiene control (validation only). "
              "v2_stratified: Stage 6.2 position-stratified production candidate.",
     )
+    parser.add_argument(
+        "--position",
+        choices=["TE"],
+        default=None,
+        help="Train one guarded deployment artifact. Currently supported only for TE.",
+    )
     args = parser.parse_args()
 
     if not DATASET_PATH.exists():
@@ -352,7 +431,17 @@ def main() -> None:
         run_dir = RUNS_DIR / run_id
         run_dir.mkdir(parents=True, exist_ok=False)
 
-        results = train_v2_stratified(df, run_dir)
+        if args.position == "TE":
+            results = {
+                "mode": "v2_stratified_te_only",
+                "positions": {"TE": train_te_deployment_model(df, run_dir)},
+                "manifest": None,
+                "promoted": [],
+                "not_promoted": [],
+                "manifest_path": None,
+            }
+        else:
+            results = train_v2_stratified(df, run_dir)
 
         print(f"\n{'─'*54}")
         print(f"  Mode: v2.0 stratified  [run: {run_id}]")
@@ -360,8 +449,17 @@ def main() -> None:
             if r.get("skipped"):
                 print(f"  {pos}: SKIPPED — {r.get('reason')}")
                 continue
-            verdict = "PASS ✓ promoted" if r["promotion_warranted"] else "FAIL — not promoted"
-            print(f"  {pos}: {verdict}  RMSE {r['metrics_v2']['rmse']:.3f}  R² {r['metrics_v2']['r2']:.3f}  Spearman {r['metrics_v2']['spearman']:.3f}  alpha={r['alpha_selected']}")
+            if args.position == "TE":
+                print(
+                    f"  {pos}: deployment artifact written  "
+                    f"RMSE {r['metrics_model']['rmse']:.3f}  "
+                    f"R² {r['metrics_model']['r2']:.3f}  "
+                    f"Spearman {r['metrics_model']['spearman']:.3f}  "
+                    f"alpha={r['alpha_selected']}"
+                )
+            else:
+                verdict = "PASS ✓ promoted" if r["promotion_warranted"] else "FAIL — not promoted"
+                print(f"  {pos}: {verdict}  RMSE {r['metrics_v2']['rmse']:.3f}  R² {r['metrics_v2']['r2']:.3f}  Spearman {r['metrics_v2']['spearman']:.3f}  alpha={r['alpha_selected']}")
         print(f"\n  Promoted: {results['promoted']}")
         print(f"  Not promoted: {results['not_promoted']}")
         print(f"  Manifest: {results['manifest_path']}")

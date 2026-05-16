@@ -53,6 +53,7 @@ class FoldResult(BaseModel):
 
     calibration_by_decile: Optional[List[float]] = None  # mean residual per predicted-rank decile
     regime_notes: Optional[str] = None
+    feature_coefficients: Optional[Dict[str, float]] = None  # fold-local Ridge coefficients
 
 
 class StabilityResult(BaseModel):

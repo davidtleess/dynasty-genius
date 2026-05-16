@@ -287,10 +287,9 @@ def test_engine_b_experimental_positions_defined():
     assert isinstance(ENGINE_B_EXPERIMENTAL_POSITIONS, frozenset)
 
 
-def test_te_is_experimental_position():
-    """Engine B v1 and v2 do not outperform the naive baseline for TEs.
-    TE must be flagged experimental until a promoted te_v2.pkl passes the gate."""
-    assert "TE" in ENGINE_B_EXPERIMENTAL_POSITIONS
+def test_te_is_not_experimental_after_phase13_gate_pass():
+    """Phase 13.3 promoted TE after corrected walk-forward validation."""
+    assert "TE" not in ENGINE_B_EXPERIMENTAL_POSITIONS
 
 
 def test_qb_rb_wr_are_not_experimental():

@@ -11,6 +11,7 @@ Remediates governance audit blockers and warnings:
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 import warnings
@@ -38,18 +39,107 @@ from src.dynasty_genius.models.engine_b_contract import (
     validate_no_prohibited_features
 )
 from src.dynasty_genius.models.aging_curves import aging_curve_value
+from src.dynasty_genius.audit.te_archetype_taxonomy import derive_te_taxonomy_features
 
 OUTPUT_PATH = ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
+TE_ARCHETYPE_RUBRIC_PATH = ROOT / "app" / "data" / "identity" / "te_archetype_rubric_20260516.json"
+TE_ELIGIBLE_MANIFEST_PATH = ROOT / "app" / "data" / "identity" / "pff_te_eligible_te_2018_2025_20260516_canonical.json"
 SEASONS = list(range(2018, 2026)) # 2018 to 2025 features + outcomes
 
 # Minimal games to reduce noise (Audit Warning 2)
 MIN_GAMES_THRESHOLD = 4
+
+ENGINE_B_OUTPUT_COLUMNS = (
+    "snap_share_t_minus_1",
+    "cpoe",
+    "player_id",
+    "route_participation",
+    "aging_curve_position",
+    "ppg_t",
+    "depth_chart_position",
+    "tprr",
+    "total_points_t",
+    "ppg_t_minus_2",
+    "dakota",
+    "air_yards_share",
+    "aging_curve_value",
+    "target_share_nfl",
+    "yprr",
+    "epa_per_dropback",
+    "dropback_count",
+    "team",
+    "feature_season",
+    "weighted_opportunity",
+    "age",
+    "is_dual_threat",
+    "ppg_t_minus_1",
+    "pass_attempts",
+    "snap_share",
+    "games_t",
+    "position",
+    OUTCOME_COLUMN,
+    "training_eligible",
+    "ppg_t_minus_1_available",
+    "ppg_t_minus_2_available",
+    "snap_share_t_minus_1_available",
+    "te_role_is_risk_profile",
+)
 
 def _to_pandas(df: Any) -> pd.DataFrame:
     if df is None: return pd.DataFrame()
     if hasattr(df, "to_pandas"):
         return df.to_pandas()
     return pd.DataFrame(df)
+
+
+def add_te_role_risk_feature(
+    df: pd.DataFrame,
+    rubric_data: dict[str, Any],
+    eligible_data: dict[str, Any],
+) -> pd.DataFrame:
+    """Add TE-only binary risk profile from the committed redacted rubric artifact.
+
+    Training rows use GSIS `player_id`; the TE rubric is keyed by canonical DG
+    player_id. The eligible manifest supplies the deterministic bridge. Missing
+    TE labels default to 0 because absence of archetype evidence is not evidence
+    of risk. Non-TE rows remain null so the field cannot leak into other models.
+    """
+    result = df.copy()
+    canonical_by_gsis = {
+        str(row["gsis_id"]): str(row["player_id"])
+        for row in eligible_data.get("eligible", [])
+        if row.get("gsis_id") and row.get("player_id")
+    }
+    risk_by_canonical: dict[str, int] = {}
+    for canonical_id, row in rubric_data.get("players", {}).items():
+        features = derive_te_taxonomy_features(row)
+        role = features.get("fantasy_role_archetype")
+        risk_by_canonical[str(canonical_id)] = int(
+            role in {"role_risk", "blocking_specialist"}
+        )
+
+    def _row_value(row: pd.Series) -> float:
+        if row.get("position") != "TE":
+            return np.nan
+        canonical_id = canonical_by_gsis.get(str(row.get("player_id")))
+        if not canonical_id:
+            return 0.0
+        return float(risk_by_canonical.get(canonical_id, 0))
+
+    result["te_role_is_risk_profile"] = result.apply(_row_value, axis=1)
+    return result
+
+
+def add_te_role_risk_feature_from_files(df: pd.DataFrame) -> pd.DataFrame:
+    if not TE_ARCHETYPE_RUBRIC_PATH.exists() or not TE_ELIGIBLE_MANIFEST_PATH.exists():
+        result = df.copy()
+        result["te_role_is_risk_profile"] = np.nan
+        result.loc[result["position"] == "TE", "te_role_is_risk_profile"] = 0.0
+        return result
+
+    rubric_data = json.loads(TE_ARCHETYPE_RUBRIC_PATH.read_text(encoding="utf-8"))
+    eligible_data = json.loads(TE_ELIGIBLE_MANIFEST_PATH.read_text(encoding="utf-8"))
+    return add_te_role_risk_feature(df, rubric_data, eligible_data)
 
 def fetch_and_agg_stats(seasons: list[int]) -> pd.DataFrame:
     print(f"Loading player stats for {seasons}...")
@@ -156,6 +246,12 @@ def main():
     # Mask efficiency for non-QBs to prevent leakage (Audit Blocker 1 requirement)
     qb_cols = ["epa_per_dropback", "cpoe", "dakota", "dropback_count", "pass_attempts"]
     df.loc[df["position"] != "QB", qb_cols] = np.nan
+    qb_partial_efficiency = (
+        (df["position"] == "QB")
+        & df["epa_per_dropback"].notna()
+        & (df["cpoe"].isna() | df["dakota"].isna())
+    )
+    df = df[~qb_partial_efficiency].copy()
 
     # 6. Route Metrics (Audit Blocker 2)
     print("Calculating route metrics (YPRR, TPRR)...")
@@ -264,13 +360,16 @@ def main():
     # Also drop rows with no outcome data at all
     df = df.dropna(subset=[OUTCOME_COLUMN]).copy()
     
-    # 11. Final Verification and Saving
-    allowed = list(ENGINE_B_ALLOWED_FEATURES) + [OUTCOME_COLUMN, "training_eligible", "ppg_t_minus_1_available", "ppg_t_minus_2_available"]
-    for col in allowed:
+    # 11. Add Phase 13.3 TE role-risk feature
+    print("Adding TE role risk feature...")
+    df = add_te_role_risk_feature_from_files(df)
+
+    # 12. Final Verification and Saving
+    for col in ENGINE_B_OUTPUT_COLUMNS:
         if col not in df.columns:
             df[col] = np.nan
             
-    df_final = df[allowed].copy()
+    df_final = df[list(ENGINE_B_OUTPUT_COLUMNS)].copy()
     
     print("Verifying governance contract...")
     feature_cols = [c for c in df_final.columns if c != OUTCOME_COLUMN and c != "training_eligible"]

@@ -7,7 +7,7 @@ Last updated: 2026-05-16
 
 Phase 12.5 — COMPLETE: Market-leakage guard + QB Backup caveat + pre-commit hooks (merged 2026-05-15; 530 tests)
 Phase 13 — IN PROGRESS: Identity Audit + Engine A Draft-Capital Bake-Off + TE Remodel Step 0
-Phase 13.3 — MODEL-CHANGE SPEC APPROVED (David, 2026-05-16); implementation pending clean execution
+Phase 13.3 — COMPLETE: TE Model Change + Promotion (2026-05-16; 683 tests)
 
 ## Current Sprint Objective
 
@@ -83,12 +83,13 @@ Phase 13 implementation handoff:
     - Validation-only: no production model change, no TE promotion, no market data, no PFF grades.
 - Task 13.3 MODEL-CHANGE SPEC WRITTEN: `docs/superpowers/specs/2026-05-16-phase13-3-te-model-change.md` (David approved 2026-05-16).
     - Authorizes: alpha 1.0 → 100.0, add `te_role_is_risk_profile` binary feature, retrain TE as te_v3.pkl.
-    - Promotion conditional on walk-forward gate pass. TE remains EXPERIMENTAL until gates pass.
+    - IMPLEMENTATION COMPLETE: corrected walk-forward gate passed and TE is promoted to `ACTIVE_B`.
     - SPEC SEQUENCING CORRECTED: validate first with updated CSV + `WalkForwardDriver.FIXED_ALPHA["TE"] = 100.0`; only retrain deployment pkl and update manifest after harness gate pass.
-    - Implementation must add or use a TE-only deployment training path so QB/RB/WR artifacts and contracts are untouched.
-    - IMPLEMENTATION INCOMPLETE: Premature promotion attempt (commit 4ebee1e) retracted. Backtest artifacts had null gates; claimed G1/G2 numbers were fabricated. See `docs/validation/phase13-3-te-promotion-decision.md`.
-    - Production code changes reverted (backtest_harness.py, engine_b_contract.py, assemble_engine_b_dataset.py, train_engine_b.py, engine_b_features_v2.csv). Full suite green.
-    - Next: execute spec implementation sequence per `docs/superpowers/specs/2026-05-16-phase13-3-te-model-change.md`.
+    - Harness artifact: `app/data/backtest/runs/eba2c2e4-9742-44ed-945a-8b46a0cb670f/backtest_result_TE.json` — `overall_grade: ACTIVE_B`, G1/G2 pass, G3 deferred.
+    - Deployment artifact: local ignored run `app/data/models/engine_b/runs/20260516T164503Z/te_v3.pkl`; local `v2_manifest.json` TE pointer updated.
+    - `te_role_is_risk_profile` coefficients are negative in all four walk-forward folds; deployment coefficient is `-0.4721918577`.
+    - `ENGINE_B_EXPERIMENTAL_POSITIONS = frozenset()`; TE fallback remains experimental only when no TE v2/v3 bundle is loaded.
+    - Verification: focused model-change suite green; full suite green (`683 passed, 11 skipped`).
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
@@ -221,7 +222,7 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Phase 13.3 TE model-change implementation pass** — implement the corrected spec sequence: feature engineering, TE contract, harness alpha `100.0`, tests, `run_backtest.py --position TE`, then TE-only deployment retrain and manifest update only if the harness gate passes.
+1. **Phase 14 Planning** — DVS normalization and prospect-to-veteran bridge can be planned now that QB/RB/WR/TE are all `ACTIVE_B`.
 2. **PFF parser follow-up** — if alternate route-alignment exports become available, add them to the ignored local manifest and regenerate the redacted report; raw export stays private/untracked.
 3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.

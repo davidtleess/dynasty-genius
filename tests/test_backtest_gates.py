@@ -201,8 +201,14 @@ def test_grade_hierarchy():
     gate = evaluate_promotion_gates(folds, stability, "WR")
     assert gate.overall_grade == "ACTIVE_B"
 
-    # TE position -> EXPERIMENTAL
+    # TE position can now clear EXPERIMENTAL when G1/G2 pass.
     folds = [build_mock_fold()] * 4
+    stability = build_mock_stability()
+    gate = evaluate_promotion_gates(folds, stability, "TE")
+    assert gate.overall_grade == "ACTIVE_B_VALIDATED"
+
+    # TE remains EXPERIMENTAL when a core gate fails.
+    folds = [build_mock_fold(tau=0.1)] * 4
     stability = build_mock_stability()
     gate = evaluate_promotion_gates(folds, stability, "TE")
     assert gate.overall_grade == "EXPERIMENTAL"
