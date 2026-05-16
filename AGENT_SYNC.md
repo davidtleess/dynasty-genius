@@ -58,6 +58,9 @@ Phase 13 implementation handoff:
     - Tested snap-alignment, two-axis fantasy-role taxonomy, complete-TE detector, and role-risk detector candidates.
     - Result: `role_risk_detector` is the only candidate that passes the conservative acceptance rule (mean RMSE/MAE improvement and RMSE improvement in 4/4 folds). Full fantasy-role one-hot improves mean error but only 2/4 RMSE folds.
     - Validation-only: no Engine A/B production feature changes, promoted artifacts, TE promotion, market data, PFF grades, raw PFF rows, source-native IDs, local paths, or player-level committed rows.
+- Task 13.3.3 DECISION APPROVED: `docs/validation/phase13-3-3-te-role-risk-decision.md`.
+    - Advance only the `role_risk_detector` family to a controlled TE-only model-change experiment.
+    - Not production adoption: no Engine B production contract change, promoted artifact, TE promotion, PVO scoring change, market data, PFF grades, or raw/player-level PFF output.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
@@ -190,7 +193,7 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 13.3.3 decision** — decide whether to write a David-approved TE model-change spec around the `role_risk_detector`; do not promote or productionize from 13.3.2 directly.
+1. **Task 13.3.3 implementation plan** — write the controlled TE-only model-change experiment plan around `role_risk_detector`; do not promote or productionize from 13.3.2 directly.
 2. **PFF parser follow-up** — if alternate route-alignment exports become available, add them to the ignored local manifest and regenerate the redacted report; raw export stays private/untracked.
 3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
