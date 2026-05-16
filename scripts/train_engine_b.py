@@ -182,24 +182,15 @@ def _train_position(
     X_train = imputer.fit_transform(X_train_raw)
     X_test  = imputer.transform(X_test_raw)
 
-    if pos == "TE":
-        # Phase 13.3: Fixed alpha for TE
-        model = Ridge(alpha=100.0)
-        alpha_selected = 100.0
-    else:
-        model = RidgeCV(alphas=ALPHA_CANDIDATES, cv=5)
-        
+    model = RidgeCV(alphas=ALPHA_CANDIDATES, cv=5)
     model.fit(X_train, y_train)
-    
-    if hasattr(model, "alpha_"):
-        alpha_selected = float(model.alpha_)
 
     y_pred           = model.predict(X_test)
     metrics_v2       = _score(y_test, y_pred)
     metrics_baseline = _score(y_test, baseline)
     improvements, promotion_warranted = _gate(metrics_v2, metrics_baseline)
 
-    artifact_name = f"{pos.lower()}_v3.pkl" if pos == "TE" else f"{pos.lower()}_v2.pkl"
+    artifact_name = f"{pos.lower()}_v2.pkl"
     artifact_path = run_dir / artifact_name
     with open(artifact_path, "wb") as f:
         pickle.dump({
@@ -214,7 +205,7 @@ def _train_position(
     return {
         "position": pos,
         "skipped": False,
-        "alpha_selected": float(alpha_selected),
+        "alpha_selected": float(model.alpha_),
         "features": available,
         "n_features": len(available),
         "train_rows": len(X_train),
@@ -275,29 +266,16 @@ def train_v2_stratified(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]:
         except Exception:
             pass
 
-    # Load current manifest to preserve other positions (Audit Blocker Phase 13.3)
-    manifest_path = MODELS_DIR / "v2_manifest.json"
-    if manifest_path.exists():
-        with open(manifest_path) as f:
-            manifest = json.load(f)
-    else:
-        manifest = {"QB": None, "RB": None, "WR": None, "TE": None}
-
     position_results: dict[str, Any] = {}
+    manifest: dict[str, str | None] = {}
+
     for pos in ("QB", "RB", "WR", "TE"):
         result = _train_position(pos, train_df, run_dir, v1_0_metrics, v1_1_metrics)
         position_results[pos] = result
-        
-        # Only update manifest for positions other than TE if we want (but spec says no change to them)
-        # So we only update manifest for TE IF and ONLY IF it passes the backtest (handled elsewhere)
-        # Here we only update QB/RB/WR if we are NOT in Phase 13.3? 
-        # Actually, let's just make it so TE never updates here.
-        if pos == "TE":
-            pass # Manual update after backtest
-        elif not result.get("skipped") and result.get("promotion_warranted"):
-            # For now, let's only update if the manifest entry is currently None
-            if manifest.get(pos) is None:
-                manifest[pos] = result["artifact_path"]
+        if not result.get("skipped") and result.get("promotion_warranted"):
+            manifest[pos] = result["artifact_path"]
+        else:
+            manifest[pos] = None
 
     # Write per-position validation reports
     for pos, result in position_results.items():

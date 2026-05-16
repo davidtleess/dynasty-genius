@@ -205,7 +205,10 @@ def evaluate_promotion_gates(
         g4_status = g4_pass
 
     # Overall Grade Assignment
-    if not g1_pass or not g2_pass:
+    # TE position is parked at EXPERIMENTAL until Phase 12.
+    if position == "TE":
+        grade = "EXPERIMENTAL"
+    elif not g1_pass or not g2_pass:
         grade = "ACTIVE_B"
     elif g3_status == "deferred":
         grade = "ACTIVE_B"
@@ -227,7 +230,9 @@ def evaluate_promotion_gates(
     if g3_result is True:
         just_parts.append("G3 market superiority pass")
 
-    if grade == "ACTIVE_B":
+    if position == "TE":
+        justification = "TE position experimental fallback."
+    elif grade == "ACTIVE_B":
         failed = []
         if not g1_pass: failed.append("G1")
         if not g2_pass: failed.append("G2")
