@@ -151,6 +151,24 @@ def test_duplicate_sleeper_id_is_detected():
     assert sleeper_conflicts[0].value == "9000"
 
 
+def test_duplicate_player_id_with_different_names_is_detected():
+    rows = [
+        _row("Veteran Name", player_id="shared_pid"),
+        _row("College Export Name", player_id="shared_pid"),
+    ]
+    _, matrix = run_audit(rows)
+
+    player_id_conflicts = [
+        d for d in matrix.duplicate_conflicts if d.field == "player_id"
+    ]
+    assert player_id_conflicts
+    assert player_id_conflicts[0].value == "shared_pid"
+    assert set(player_id_conflicts[0].player_names) == {
+        "Veteran Name",
+        "College Export Name",
+    }
+
+
 def test_no_false_positive_duplicates_for_null_ids():
     """Null IDs must not be flagged as duplicates across rows."""
     rows = [
@@ -316,6 +334,7 @@ def test_coverage_matrix_serializes_to_json():
     restored = json.loads(serialized)
 
     assert restored["run_id"] == "test_run_001"
+    assert restored["timestamp"] == restored["run_timestamp"]
     assert restored["total_input_rows"] == 2
     assert restored["total_output_rows"] == 2
     assert restored["row_count_preserved"] is True

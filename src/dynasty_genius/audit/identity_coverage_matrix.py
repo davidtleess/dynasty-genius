@@ -170,6 +170,7 @@ class CoverageMatrix:
         return {
             "run_id": self.run_id,
             "run_timestamp": self.run_timestamp,
+            "timestamp": self.run_timestamp,
             "row_count_preserved": self.row_count_preserved,
             "total_input_rows": self.total_input_rows,
             "total_output_rows": self.total_output_rows,
