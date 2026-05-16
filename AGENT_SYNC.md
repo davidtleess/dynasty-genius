@@ -220,9 +220,41 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 - Market source: `unavailable` for all positions (expected; no archive store passed).
 - TE precondition fix: `WalkForwardDriver.FIXED_ALPHA["TE"] = 1.0` added with regression test; no TE promotion logic changed.
 
+## Phase 14 — IN PLANNING
+
+Phase 14 spec APPROVED by David: `docs/superpowers/specs/2026-05-16-phase14-dvs-normalization.md`.
+Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md`.
+
+**Architecture decisions locked:**
+- DVS normalization: Option C (Engine B P90 constants — QB 20.1, RB 15.7, WR 14.5, TE 9.4).
+- Scale: 0–100 float, one decimal place. 0–1000 deferred to Phase 15.
+- Bridge: Option B — explicit caveat, no Bayesian blending. `ENGINE_B_MIN_GAMES_T = 8`.
+- VAR: within-position only in Phase 14. Cross-position is Phase 15.
+- NOISE_BAND: veteran divergence flags stay dark until mid-July 2026.
+- TE caveat: "TE market superiority gate deferred — projection-quality score only" (NOT experimental fallback).
+
+**Subphase 14.1 — Constants and Identity Gate (NEXT)**
+1. Add `ENGINE_B_P90_PPG`, `ENGINE_B_VAR_THRESHOLDS`, `ENGINE_B_MIN_GAMES_T` to `engine_b_contract.py`.
+2. Run 2024–2025 identity reconciliation report → `docs/validation/phase14-identity-reconciliation-2024-2025.md`. **Hard gate: 100% ID continuity required before 14.2.**
+3. Write failing tests (spec sections 5.1–5.11).
+
+**Subphase 14.2 — DVS Assembly and Bridge (blocked on 14.1 identity gate)**
+- Add `dvs_engine`, `dvs_p90_ref`, `dvs_clamped` to `PlayerValueObject`.
+- Remove blocking comment at `pvo_assembler.py` line 316.
+- Implement Engine B DVS formula, Dead Window bridge, TE G3-deferred caveat.
+
+**Subphase 14.3 — VAR and Calibration Audit (blocked on 14.2)**
+- Implement `scripts/compute_var_batch.py` (population-level VAR, veterans dark).
+- Implement `scripts/audit_dvs_calibration.py` (isotonic regression vs. market, static artifact only).
+
+## Open Blockers
+
+1. **Phase 14 identity gate** — 2024–2025 cohort reconciliation report must pass before 14.2 code changes.
+2. **NOISE_BAND calibration** — Locked at 0.10 until mid-July 2026. Do not activate veteran divergence flags before then.
+3. **TE G3 deferred** — Market superiority gate still deferred; TE `decision_supported` remains False.
+
 ## Next Recommended Work
 
-1. **Phase 14 Planning** — DVS normalization and prospect-to-veteran bridge can be planned now that QB/RB/WR/TE are all `ACTIVE_B`.
+1. **Phase 14 Subphase 14.1** — Implement constants and run identity reconciliation gate.
 2. **PFF parser follow-up** — if alternate route-alignment exports become available, add them to the ignored local manifest and regenerate the redacted report; raw export stays private/untracked.
-3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
-4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
+3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
