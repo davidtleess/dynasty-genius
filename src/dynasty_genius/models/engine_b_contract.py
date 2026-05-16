@@ -76,6 +76,7 @@ ENGINE_B_FEATURES_WR: frozenset[str] = ENGINE_B_BASE_FEATURES | frozenset({
 
 ENGINE_B_FEATURES_TE: frozenset[str] = ENGINE_B_BASE_FEATURES | frozenset({
     "weighted_opportunity", "yprr", "tprr",
+    "te_role_is_risk_profile",  # binary penalty: 1 if role_risk or blocking_specialist label (from app/data/identity/te_archetype_rubric_20260516.json)
 })
 
 ENGINE_B_FEATURES_BY_POSITION: dict[str, frozenset[str]] = {
@@ -89,7 +90,7 @@ ENGINE_B_FEATURES_BY_POSITION: dict[str, frozenset[str]] = {
 # Engine B v1 does not outperform the naive baseline for these positions.
 # Cleared only when a promoted v2 artifact passes the ≥2/3 gate for that
 # position. No agent may remove a position without a passing validation report.
-ENGINE_B_EXPERIMENTAL_POSITIONS = frozenset({"TE"})
+ENGINE_B_EXPERIMENTAL_POSITIONS = frozenset()
 
 # ── Engine A pre-NFL features (prohibited in Engine B training) ───────────────
 ENGINE_A_PROHIBITED_IN_B = frozenset({

@@ -264,8 +264,52 @@ def main():
     # Also drop rows with no outcome data at all
     df = df.dropna(subset=[OUTCOME_COLUMN]).copy()
     
-    # 11. Final Verification and Saving
-    allowed = list(ENGINE_B_ALLOWED_FEATURES) + [OUTCOME_COLUMN, "training_eligible", "ppg_t_minus_1_available", "ppg_t_minus_2_available"]
+    # 11. Add Phase 13.3 TE role risk feature
+    print("Adding TE role risk feature...")
+    import json
+    from src.dynasty_genius.audit.te_archetype_taxonomy import derive_te_taxonomy_features
+
+    rubric_path = ROOT / "app" / "data" / "identity" / "te_archetype_rubric_20260516.json"
+    eligible_path = ROOT / "app" / "data" / "identity" / "pff_te_eligible_te_2018_2025_20260516_canonical.json"
+    
+    if rubric_path.exists() and eligible_path.exists():
+        rubric_data = json.loads(rubric_path.read_text(encoding="utf-8"))
+        eligible_data = json.loads(eligible_path.read_text(encoding="utf-8"))
+        
+        # Build map from gsis_id -> canonical_player_id
+        canonical_by_gsis = {
+            str(row["gsis_id"]): str(row["player_id"])
+            for row in eligible_data["eligible"]
+            if row.get("gsis_id") and row.get("player_id")
+        }
+        
+        # Build map from canonical_player_id -> is_risk_profile (1 or 0)
+        risk_profiles = {}
+        for canonical_id, player_row in rubric_data["players"].items():
+            features = derive_te_taxonomy_features(player_row)
+            role = features.get("fantasy_role_archetype")
+            # 1 if role_risk or blocking_specialist, 0 otherwise (including null/low_volume)
+            is_risk = 1 if role in ("role_risk", "blocking_specialist") else 0
+            risk_profiles[canonical_id] = is_risk
+            
+        def get_te_risk(row):
+            if row["position"] != "TE":
+                return np.nan
+            # Training data 'player_id' is the GSIS ID
+            gsis_id = str(row["player_id"])
+            canonical_id = canonical_by_gsis.get(gsis_id)
+            if not canonical_id:
+                return 0
+            return risk_profiles.get(canonical_id, 0)
+            
+        df["te_role_is_risk_profile"] = df.apply(get_te_risk, axis=1)
+    else:
+        print("  Warning: Rubric or eligible manifest missing. Defaulting TE risk to 0.")
+        df["te_role_is_risk_profile"] = np.nan
+        df.loc[df["position"] == "TE", "te_role_is_risk_profile"] = 0
+
+    # 12. Final Verification and Saving
+    allowed = list(ENGINE_B_ALLOWED_FEATURES) + [OUTCOME_COLUMN, "training_eligible", "ppg_t_minus_1_available", "ppg_t_minus_2_available", "te_role_is_risk_profile"]
     for col in allowed:
         if col not in df.columns:
             df[col] = np.nan
