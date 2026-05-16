@@ -52,7 +52,7 @@ def test_engine_b_dvs_formula_wr():
     assert pvo.dynasty_value_score == 0.0
 
 def test_dvs_ceiling_fraction():
-    """5.2 DVS Ceiling Fraction: طراحی شده برای 10%. (Verified via logic in 5.1)."""
+    """5.2 DVS Ceiling Fraction: Designed for 10%. (Verified via logic in 5.1)."""
     # This test is primarily an inference-time check, but we verify provenance here.
     identity = _mock_identity("QB")
     features = {

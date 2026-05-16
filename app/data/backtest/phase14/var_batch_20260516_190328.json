@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "feature_season": 2024,
+    "calculated_at": "2026-05-16T19:03:28.497543+00:00",
+    "prediction_column": "avg_ppg_t1_t2"
+  },
+  "position_stats": {
+    "QB": {
+      "count": 45,
+      "threshold": 25,
+      "replacement_ppg": 13.47,
+      "status": "CALCULATED"
+    },
+    "RB": {
+      "count": 87,
+      "threshold": 33,
+      "replacement_ppg": 8.59,
+      "status": "CALCULATED"
+    },
+    "WR": {
+      "count": 152,
+      "threshold": 53,
+      "replacement_ppg": 8.65,
+      "status": "CALCULATED"
+    },
+    "TE": {
+      "count": 89,
+      "threshold": 13,
+      "replacement_ppg": 9.76,
+      "status": "CALCULATED"
+    }
+  },
+  "governance": {
+    "veteran_divergence_flags_active": false,
+    "var_type": "within_position_only"
+  }
+}

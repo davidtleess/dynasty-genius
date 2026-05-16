@@ -370,17 +370,12 @@ def assemble_pvo(
             _dw_caveat = (
                 "Insufficient professional season data — Engine A prospect score used as prior"
             )
-            # Try Engine A fallback
-            pick = features.get("pick")
-            round_ = features.get("round")
-            age = features.get("age")
-            if pick is not None and round_ is not None and age is not None:
-                _a_result = score_prospect(identity.position, float(pick), float(round_), float(age))
-                if _a_result:
-                    dynasty_value_score = _a_result["dynasty_value_score"]
-                    dvs_engine = "A"
-                    dvs_p90_ref_val = _P90_PPG.get(pos_upper)
-                    dvs_clamped_val = _a_result["dynasty_value_score"] >= 100.0
+            # Try Engine A fallback (reuse engine_a_result computed above)
+            if engine_a_result:
+                dynasty_value_score = engine_a_result["dynasty_value_score"]
+                dvs_engine = "A"
+                dvs_p90_ref_val = _P90_PPG.get(pos_upper)
+                dvs_clamped_val = engine_a_result["dynasty_value_score"] >= 100.0
             # Caveat is appended regardless of whether Engine A data was available.
             if _dw_caveat not in caveats:
                 caveats.append(_dw_caveat)

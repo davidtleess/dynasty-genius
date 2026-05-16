@@ -6,15 +6,18 @@ Last updated: 2026-05-16
 ## Active Phase
 
 Phase 12.5 — COMPLETE: Market-leakage guard + QB Backup caveat + pre-commit hooks (merged 2026-05-15; 530 tests)
-Phase 13 — IN PROGRESS: Identity Audit + Engine A Draft-Capital Bake-Off + TE Remodel Step 0
+Phase 13 — SPEC APPROVED: Identity Audit + Engine A Draft-Capital Bake-Off + TE Remodel Step 0
 Phase 13.3 — COMPLETE: TE Model Change + Promotion (2026-05-16; 683 tests)
+Phase 14 — COMPLETE: DVS Normalization + Bridge + VAR Activation (2026-05-16; 694 tests)
 
 ## Current Sprint Objective
 
-Phase 12.5 Hygiene & UI: MERGED → main. 530 tests.
-- Task 2A COMPLETE: Market-leakage guard `validate_training_csv.py` + pre-commit hook.
-- Task 2B COMPLETE: QB backup-profile caveat logic in `pvo_assembler.py`.
-- Task 2C COMPLETE: CI green and branch merged.
+Phase 14 DVS Normalization: COMPLETE. 694 tests.
+- Task 14.1 COMPLETE: Constants injected and identity gate passed.
+- Task 14.2 COMPLETE: DVS formula, Dead Window bridge, and provenance fields implemented.
+- Task 14.3 COMPLETE: VAR batch calculation and calibration audit finished.
+- Artifacts: `var_batch_20260516_190328.json`, `dvs_calibration_audit_20260516_190356.json`.
+
 
 Phase 13 implementation handoff:
 - Spec APPROVED by David: `docs/superpowers/specs/2026-05-15-phase13-final-spec.md`.
@@ -245,20 +248,19 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 - All 11 contract tests (5.1-5.11) implemented and passing.
 - Regression fixed: non-prospects with draft capital no longer promoted to PROSPECT_C model grade.
 
-**Subphase 14.3 — VAR and Calibration Audit (NEXT)**
-- Implement `scripts/compute_var_batch.py` (population-level VAR, veterans dark).
-- Implement `scripts/audit_dvs_calibration.py` (isotonic regression vs. market, static artifact only).
-- Implement `scripts/compute_var_batch.py` (population-level VAR, veterans dark).
-- Implement `scripts/audit_dvs_calibration.py` (isotonic regression vs. market, static artifact only).
+**Subphase 14.3 — VAR and Calibration Audit (COMPLETE)**
+- Implemented `scripts/compute_var_batch.py`. Generated `app/data/backtest/phase14/var_batch_20260516_190328.json`.
+- Implemented `scripts/audit_dvs_calibration.py`. Generated `app/data/backtest/phase14/dvs_calibration_audit_20260516_190356.json`.
+- Replacement baselines established (QB25: 13.47, RB33: 8.59, WR53: 8.65, TE13: 9.76 PPG).
+- Calibration audit confirms DVS magnitude validity (WR ECE: 0.046).
 
 ## Open Blockers
 
-1. **Phase 14 identity gate** — 2024–2025 cohort reconciliation report must pass before 14.2 code changes.
-2. **NOISE_BAND calibration** — Locked at 0.10 until mid-July 2026. Do not activate veteran divergence flags before then.
+1. **NOISE_BAND calibration** — Locked at 0.10 until mid-July 2026. Do not activate veteran divergence flags before then.
 3. **TE G3 deferred** — Market superiority gate still deferred; TE `decision_supported` remains False.
 
 ## Next Recommended Work
 
-1. **Phase 14 Subphase 14.1** — Implement constants and run identity reconciliation gate.
-2. **PFF parser follow-up** — if alternate route-alignment exports become available, add them to the ignored local manifest and regenerate the redacted report; raw export stays private/untracked.
-3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
+1. **Phase 15 Planning** — With DVS and VAR established, the next step is Trade Lab integration and cross-positional valuation scaling.
+2. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
+3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control.
