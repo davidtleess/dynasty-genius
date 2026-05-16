@@ -1,0 +1,94 @@
+{
+  "comparisons": {
+    "receiving_leaning_minus_ambiguous": {
+      "absolute_error_mean_diff": -0.4159,
+      "positive_residual_rate_diff": 0.0767,
+      "predicted_ppg_mean_diff": -0.5264,
+      "realized_ppg_mean_diff": -1.098,
+      "residual_mean_diff": -0.5715
+    },
+    "receiving_leaning_minus_blocking_leaning": {
+      "absolute_error_mean_diff": -0.1554,
+      "positive_residual_rate_diff": 0.3662,
+      "predicted_ppg_mean_diff": 2.0532,
+      "realized_ppg_mean_diff": 3.6453,
+      "residual_mean_diff": 1.5922
+    }
+  },
+  "governance": {
+    "diagnostic_only": true,
+    "market_data_used": false,
+    "model_features_changed": false,
+    "pff_grades_used": false,
+    "player_level_rows_emitted": false,
+    "te_promotion_changed": false
+  },
+  "group_metrics": {
+    "ambiguous": {
+      "absolute_error_mean": 2.2388,
+      "positive_residual_rate": 0.48,
+      "predicted_ppg_mean": 7.4393,
+      "predicted_ppg_median": 6.8457,
+      "prediction_rows": 25,
+      "realized_ppg_mean": 8.0122,
+      "realized_ppg_median": 8.4827,
+      "residual_mean": 0.5729,
+      "residual_median": -0.1778,
+      "sample_status": "usable_for_diagnostic",
+      "unique_players": 10
+    },
+    "blocking_leaning": {
+      "absolute_error_mean": 1.9783,
+      "positive_residual_rate": 0.1905,
+      "predicted_ppg_mean": 4.8597,
+      "predicted_ppg_median": 4.4272,
+      "prediction_rows": 21,
+      "realized_ppg_mean": 3.2689,
+      "realized_ppg_median": 3.2179,
+      "residual_mean": -1.5908,
+      "residual_median": -1.4358,
+      "sample_status": "usable_for_diagnostic",
+      "unique_players": 9
+    },
+    "receiving_leaning": {
+      "absolute_error_mean": 1.8229,
+      "positive_residual_rate": 0.5567,
+      "predicted_ppg_mean": 6.9129,
+      "predicted_ppg_median": 6.4561,
+      "prediction_rows": 291,
+      "realized_ppg_mean": 6.9142,
+      "realized_ppg_median": 7.8971,
+      "residual_mean": 0.0014,
+      "residual_median": 1.0663,
+      "sample_status": "usable_for_diagnostic",
+      "unique_players": 41
+    }
+  },
+  "interpretation": {
+    "answer_policy": "Treat group deltas as evidence for future feature bake-off design, not as production model lift.",
+    "current_status": "exploratory_validation",
+    "primary_question": "Do snap-based collegiate TE archetype labels explain future TE outcome or model residual patterns?"
+  },
+  "limitations": [
+    "Prediction rows are repeated player-seasons from the existing TE backtest log, not independent prospect observations.",
+    "The rubric uses snap-alignment fallback, not route-alignment.",
+    "The artifact does not retrain Engine A or Engine B, so it cannot prove incremental model lift by itself.",
+    "TE remains EXPERIMENTAL regardless of this diagnostic result."
+  ],
+  "metadata": {
+    "eligible_count": 116,
+    "generated_at": "2026-05-16T13:01:01Z",
+    "matched_labeled_prediction_rows": 337,
+    "matched_labeled_unique_players": 60,
+    "matched_prediction_rows": 352,
+    "min_unique_players_per_group": 8,
+    "position": "TE",
+    "prediction_rows": 523,
+    "prediction_source": "app/data/backtest/runs/25f9697d-f155-49e2-a6c7-384b7cec51c1/predictions_TE.csv",
+    "rubric_run_id": "te_archetype_20260516",
+    "rubric_version": "0.1.0",
+    "run_id": "te_archetype_validation_20260516",
+    "schema_version": "0.1.0",
+    "validation_type": "te_archetype_backtest_residual_lens"
+  }
+}

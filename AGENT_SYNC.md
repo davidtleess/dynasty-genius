@@ -46,6 +46,11 @@ Phase 13 implementation handoff:
     - Sensitivity result: 14 players move from receiving_leaning to ambiguous when detached threshold changes from 0.40 to 0.45.
     - Labels are snap-alignment based (`snaps_fallback`), not route-alignment. PFF remains context_signal only.
     - No raw PFF IDs, names, local paths, PFF grades, Engine A/B feature changes, model training, TE promotion, DVS, or market data.
+- Task 13.3.1 DIAGNOSTIC VALIDATION COMPLETE: aggregate residual lens at `app/data/identity/te_archetype_validation_20260516.json`.
+    - Joined the committed archetype artifact to the existing TE backtest prediction log: 337 labeled prediction rows, 60 unique drafted TEs.
+    - Receiving vs blocking signal: realized PPG mean +3.6453, residual mean +1.5922, positive residual rate +0.3662 for receiving_leaning over blocking_leaning.
+    - Output is aggregate-only and redacted; no player-level rows, source-native IDs, PFF IDs, local paths, PFF grades, model feature changes, TE promotion, DVS, or market data.
+    - Interpretation: useful evidence that TE archetype labels explain outcome/residual patterns; not proof of incremental model lift until a later explicit feature bake-off.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
@@ -178,7 +183,7 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 13.3.1 TE Archetype Rubric review** — start Step 0 artifact-only rubric work from `pff_te_export_schema_report_20260516.json`; decide whether to accept 110/116 PFF coverage or chase alternate exports/manual checks for the 6 missing TEs.
+1. **Task 13.3.2 decision** — decide whether to spec a true TE archetype feature bake-off. Current validation is promising, but artifact-only; no model-input use is approved yet.
 2. **PFF parser follow-up** — if alternate route-alignment exports become available, add them to the ignored local manifest and regenerate the redacted report; raw export stays private/untracked.
 3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
