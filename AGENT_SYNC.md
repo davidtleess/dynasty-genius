@@ -32,9 +32,9 @@ Phase 13 implementation handoff:
     - BLOCKER: Actual real CSV schema/sample still needed.
 - Task 13.3 TE SOURCE-ID COVERAGE GATE: PASSED — run_id te_2018_2025_20260516; 116/116 resolved (0.0% loss rate); 0 duplicate conflicts; artifacts promoted to app/data/identity/.
     - Source-ID coverage is complete for gsis_id + sleeper_id + pff_id; all 116 rows resolved via ff_playerids_crosswalk.
-    - Identity snapshot intentionally empty (no DG canonical player_ids assigned yet for historical TEs; gate passes on source-ID coverage matrix).
-    - pff_te_eligible manifest has 116 source-ID rows with player_id null; usable for Step 0 rubric review after PFF CSV sample/schema, not for feature-store materialization.
-- Task 13.3.1 BLOCKED: TE Archetype Rubric review waits for real PFF CSV sample/schema (Blocker 1 from feasibility memo). PFF feature materialization remains separately blocked until canonical DG player_ids are assigned/backfilled for the 116 TE cohort.
+    - Initial identity snapshot intentionally empty (no DG canonical player_ids assigned in ff_playerids). Canonical backfill now complete in `identity_snapshot_te_2018_2025_20260516_canonical.json`.
+    - Canonical DG player_ids assigned for all 116 TEs via `scripts/backfill_te_canonical_ids.py`; `pff_te_eligible_te_2018_2025_20260516_canonical.json` has 0 null player_ids.
+- Task 13.3.1 BLOCKED: TE Archetype Rubric review waits for real PFF CSV sample/schema (Blocker 1 from feasibility memo). Canonical source-ID substrate is ready; PFF fields remain context_signal until a later approved spec changes that.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
@@ -168,7 +168,6 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 ## Next Recommended Work
 
 1. **Acquire/lock PFF collegiate TE CSV sample schema** — synthetic/redacted fixture ready in checklist; raw export stays private/untracked.
-2. **Task 13.3.1 TE Archetype Rubric review** — may start after real PFF sample/schema; keep it Step 0 artifact-only, not materialization.
-3. **Backfill canonical DG player_ids for the 116 TE cohort** — required before PFF feature-store materialization or any training path.
-4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
-5. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
+2. **Task 13.3.1 TE Archetype Rubric review** — may start after real PFF sample/schema; keep it Step 0 artifact-only, not model promotion.
+3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
+4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
