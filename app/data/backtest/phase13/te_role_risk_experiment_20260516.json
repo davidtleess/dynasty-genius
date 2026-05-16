@@ -1,0 +1,314 @@
+{
+  "audit_caveats": [
+    "Repo-relative source paths are provenance references and may become stale if files move.",
+    "No production model artifact was written by this experiment."
+  ],
+  "decision": {
+    "next_step": "If accepted, write a separate production model-change spec for David approval.",
+    "production_change_approved": false,
+    "te_status": "EXPERIMENTAL"
+  },
+  "governance": {
+    "diagnostic_only": true,
+    "market_data_used": false,
+    "model_features_changed": false,
+    "pff_grades_used": false,
+    "player_level_rows_emitted": false,
+    "te_promotion_changed": false
+  },
+  "metadata": {
+    "baseline_features": [
+      "ppg_t",
+      "games_t",
+      "age",
+      "route_participation",
+      "target_share_nfl",
+      "yprr",
+      "tprr",
+      "weighted_opportunity",
+      "snap_share"
+    ],
+    "eligible_count": 116,
+    "generated_at": "2026-05-16T14:39:03Z",
+    "position": "TE",
+    "ridge_alpha": 1.0,
+    "run_id": "te_role_risk_experiment_20260516",
+    "schema_version": "0.1.0",
+    "source_archetype_artifact": "app/data/identity/te_archetype_rubric_20260516.json",
+    "source_eligible_manifest": "app/data/identity/pff_te_eligible_te_2018_2025_20260516_canonical.json",
+    "source_training": "app/data/training/engine_b_features_v2.csv",
+    "te_training_rows": 849,
+    "test_years": [
+      2020,
+      2021,
+      2022,
+      2023
+    ]
+  },
+  "result": {
+    "alpha_sensitivity": {
+      "candidate_summaries": {
+        "sparse_duo": {
+          "candidate_coefficients": {
+            "te_role_blocking_specialist": -0.191941,
+            "te_role_role_risk": -0.054059
+          },
+          "fold_count": 4,
+          "kendall_delta_mean": -0.009,
+          "mae_delta_mean": -0.0442,
+          "passes_acceptance": false,
+          "rmse_delta_mean": -0.0355,
+          "rmse_win_folds": 4,
+          "spearman_delta_mean": -0.007
+        },
+        "unified_penalty": {
+          "candidate_coefficients": {
+            "te_role_is_risk_profile": -0.199378
+          },
+          "fold_count": 4,
+          "kendall_delta_mean": -0.0047,
+          "mae_delta_mean": -0.0459,
+          "passes_acceptance": true,
+          "rmse_delta_mean": -0.0404,
+          "rmse_win_folds": 4,
+          "spearman_delta_mean": -0.0039
+        }
+      },
+      "sensitivity_alpha": 100.0
+    },
+    "candidates": {
+      "sparse_duo": {
+        "acceptance": {
+          "mean_mae_gate": true,
+          "mean_rmse_gate": true,
+          "negative_coefficient_gate": true,
+          "rank_degradation_gate": false,
+          "rank_degradation_threshold": -0.02,
+          "rmse_win_gate": true
+        },
+        "candidate_columns": [
+          "te_role_role_risk",
+          "te_role_blocking_specialist"
+        ],
+        "candidate_name": "sparse_duo",
+        "folds": [
+          {
+            "baseline_kendall_tau": 0.159,
+            "baseline_mae": 2.7577,
+            "baseline_rmse": 2.9384,
+            "baseline_spearman_rho": 0.2159,
+            "candidate_coefficients": {
+              "te_role_blocking_specialist": -0.093316,
+              "te_role_role_risk": 0.077609
+            },
+            "candidate_kendall_tau": 0.1603,
+            "candidate_mae": 2.738,
+            "candidate_rmse": 2.92,
+            "candidate_spearman_rho": 0.2082,
+            "kendall_delta": 0.0013,
+            "mae_delta": -0.0197,
+            "n_test": 206,
+            "n_train": 237,
+            "rmse_delta": -0.0184,
+            "spearman_delta": -0.0077,
+            "test_year": 2020
+          },
+          {
+            "baseline_kendall_tau": 0.6478,
+            "baseline_mae": 1.816,
+            "baseline_rmse": 2.2376,
+            "baseline_spearman_rho": 0.8071,
+            "candidate_coefficients": {
+              "te_role_blocking_specialist": -0.274931,
+              "te_role_role_risk": -0.011264
+            },
+            "candidate_kendall_tau": 0.6436,
+            "candidate_mae": 1.7598,
+            "candidate_rmse": 2.1869,
+            "candidate_spearman_rho": 0.8067,
+            "kendall_delta": -0.0042,
+            "mae_delta": -0.0562,
+            "n_test": 146,
+            "n_train": 443,
+            "rmse_delta": -0.0507,
+            "spearman_delta": -0.0004,
+            "test_year": 2021
+          },
+          {
+            "baseline_kendall_tau": 0.5932,
+            "baseline_mae": 2.1863,
+            "baseline_rmse": 2.6735,
+            "baseline_spearman_rho": 0.7753,
+            "candidate_coefficients": {
+              "te_role_blocking_specialist": -0.317939,
+              "te_role_role_risk": -0.153494
+            },
+            "candidate_kendall_tau": 0.5715,
+            "candidate_mae": 2.0869,
+            "candidate_rmse": 2.6187,
+            "candidate_spearman_rho": 0.7587,
+            "kendall_delta": -0.0217,
+            "mae_delta": -0.0994,
+            "n_test": 90,
+            "n_train": 589,
+            "rmse_delta": -0.0548,
+            "spearman_delta": -0.0166,
+            "test_year": 2022
+          },
+          {
+            "baseline_kendall_tau": 0.5536,
+            "baseline_mae": 2.0249,
+            "baseline_rmse": 2.4867,
+            "baseline_spearman_rho": 0.7459,
+            "candidate_coefficients": {
+              "te_role_blocking_specialist": -0.318121,
+              "te_role_role_risk": -0.208357
+            },
+            "candidate_kendall_tau": 0.5221,
+            "candidate_mae": 1.9945,
+            "candidate_rmse": 2.4538,
+            "candidate_spearman_rho": 0.7268,
+            "kendall_delta": -0.0315,
+            "mae_delta": -0.0304,
+            "n_test": 81,
+            "n_train": 679,
+            "rmse_delta": -0.0329,
+            "spearman_delta": -0.0191,
+            "test_year": 2023
+          }
+        ],
+        "summary": {
+          "candidate_coefficients": {
+            "te_role_blocking_specialist": -0.251077,
+            "te_role_role_risk": -0.073876
+          },
+          "fold_count": 4,
+          "kendall_delta_mean": -0.014,
+          "mae_delta_mean": -0.0514,
+          "passes_acceptance": false,
+          "rmse_delta_mean": -0.0392,
+          "rmse_win_folds": 4,
+          "spearman_delta_mean": -0.0109
+        }
+      },
+      "unified_penalty": {
+        "acceptance": {
+          "mean_mae_gate": true,
+          "mean_rmse_gate": true,
+          "negative_coefficient_gate": true,
+          "rank_degradation_gate": false,
+          "rank_degradation_threshold": -0.02,
+          "rmse_win_gate": true
+        },
+        "candidate_columns": [
+          "te_role_is_risk_profile"
+        ],
+        "candidate_name": "unified_penalty",
+        "folds": [
+          {
+            "baseline_kendall_tau": 0.159,
+            "baseline_mae": 2.7577,
+            "baseline_rmse": 2.9384,
+            "baseline_spearman_rho": 0.2159,
+            "candidate_coefficients": {
+              "te_role_is_risk_profile": -0.064537
+            },
+            "candidate_kendall_tau": 0.1599,
+            "candidate_mae": 2.7372,
+            "candidate_rmse": 2.9158,
+            "candidate_spearman_rho": 0.2155,
+            "kendall_delta": 0.0009,
+            "mae_delta": -0.0205,
+            "n_test": 206,
+            "n_train": 237,
+            "rmse_delta": -0.0226,
+            "spearman_delta": -0.0004,
+            "test_year": 2020
+          },
+          {
+            "baseline_kendall_tau": 0.6478,
+            "baseline_mae": 1.816,
+            "baseline_rmse": 2.2376,
+            "baseline_spearman_rho": 0.8071,
+            "candidate_coefficients": {
+              "te_role_is_risk_profile": -0.255246
+            },
+            "candidate_kendall_tau": 0.6553,
+            "candidate_mae": 1.7549,
+            "candidate_rmse": 2.1688,
+            "candidate_spearman_rho": 0.8141,
+            "kendall_delta": 0.0075,
+            "mae_delta": -0.0611,
+            "n_test": 146,
+            "n_train": 443,
+            "rmse_delta": -0.0688,
+            "spearman_delta": 0.007,
+            "test_year": 2021
+          },
+          {
+            "baseline_kendall_tau": 0.5932,
+            "baseline_mae": 2.1863,
+            "baseline_rmse": 2.6735,
+            "baseline_spearman_rho": 0.7753,
+            "candidate_coefficients": {
+              "te_role_is_risk_profile": -0.3501
+            },
+            "candidate_kendall_tau": 0.572,
+            "candidate_mae": 2.0858,
+            "candidate_rmse": 2.618,
+            "candidate_spearman_rho": 0.7587,
+            "kendall_delta": -0.0212,
+            "mae_delta": -0.1005,
+            "n_test": 90,
+            "n_train": 589,
+            "rmse_delta": -0.0555,
+            "spearman_delta": -0.0166,
+            "test_year": 2022
+          },
+          {
+            "baseline_kendall_tau": 0.5536,
+            "baseline_mae": 2.0249,
+            "baseline_rmse": 2.4867,
+            "baseline_spearman_rho": 0.7459,
+            "candidate_coefficients": {
+              "te_role_is_risk_profile": -0.373698
+            },
+            "candidate_kendall_tau": 0.5295,
+            "candidate_mae": 1.9961,
+            "candidate_rmse": 2.453,
+            "candidate_spearman_rho": 0.7339,
+            "kendall_delta": -0.0241,
+            "mae_delta": -0.0288,
+            "n_test": 81,
+            "n_train": 679,
+            "rmse_delta": -0.0337,
+            "spearman_delta": -0.012,
+            "test_year": 2023
+          }
+        ],
+        "summary": {
+          "candidate_coefficients": {
+            "te_role_is_risk_profile": -0.260895
+          },
+          "fold_count": 4,
+          "kendall_delta_mean": -0.0092,
+          "mae_delta_mean": -0.0527,
+          "passes_acceptance": false,
+          "rmse_delta_mean": -0.0452,
+          "rmse_win_folds": 4,
+          "spearman_delta_mean": -0.0055
+        }
+      }
+    },
+    "experiment_name": "te_role_risk_detector",
+    "governance": {
+      "diagnostic_only": true,
+      "market_data_used": false,
+      "model_features_changed": false,
+      "pff_grades_used": false,
+      "player_level_rows_emitted": false,
+      "te_promotion_changed": false
+    },
+    "primary_alpha": 1.0
+  }
+}

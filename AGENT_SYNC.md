@@ -66,6 +66,11 @@ Phase 13 implementation handoff:
     - Gemini review incorporated: sparse-duo vs unified-penalty candidates, negative coefficient gate, per-fold rank floor, alpha sensitivity at 100.0, and all-zero candidate drift test.
     - Claude review incorporated: four-fold unit tests, portable scipy rank calls, visible rank threshold, eligible-manifest/baseline-feature/alpha provenance, rank-gate failure test, and expanded PFF grade redaction terms.
     - Output remains aggregate-only and validation-only.
+- Task 13.3.3 COMPLETE: TE role-risk controlled experiment artifact at `app/data/backtest/phase13/te_role_risk_experiment_20260516.json`.
+    - Tested `sparse_duo` and `unified_penalty` candidates with fold-level RMSE/MAE plus Spearman/Kendall deltas, negative coefficient gate, and alpha sensitivity.
+    - Primary alpha 1.0 result: both candidates improve RMSE/MAE in 4/4 folds and have negative coefficients, but both fail the rank-degradation gate; no production model-change spec is approved from this artifact.
+    - Sensitivity alpha 100.0: `unified_penalty` passes all gates, suggesting stronger TE regularization is worth a separate research/spec decision.
+    - Validation-only: no production Engine B contract changes, model artifact promotion, TE promotion, PVO scoring change, market data, PFF grades, raw PFF rows, source-native IDs, local paths, or player-level committed rows.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
@@ -198,7 +203,7 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 13.3.3 execution** — implement the controlled TE-only role-risk experiment plan; do not promote or productionize from the experiment directly.
+1. **TE regularization decision** — decide whether to research/spec TE alpha regularization (`alpha=100.0`) before any production model-change spec; primary-alpha role-risk experiment failed rank gate.
 2. **PFF parser follow-up** — if alternate route-alignment exports become available, add them to the ignored local manifest and regenerate the redacted report; raw export stays private/untracked.
 3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
