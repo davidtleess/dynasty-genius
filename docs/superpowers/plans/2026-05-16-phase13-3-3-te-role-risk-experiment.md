@@ -28,6 +28,28 @@ This plan uses existing generated columns from `build_te_bakeoff_frame()`:
 
 Do not add broad role one-hot features to this experiment.
 
+## Review-Driven Updates
+
+Gemini's statistical review adds four binding safeguards to this plan:
+
+1. Evaluate both the sparse two-column signal and a unified one-column penalty:
+   - `sparse_duo`: `te_role_role_risk`, `te_role_blocking_specialist`
+   - `unified_penalty`: `te_role_is_risk_profile`
+2. Keep primary Ridge alpha at `1.0` because that is the current TE fixed-alpha convention in
+   the walk-forward harness, but add an alpha sensitivity pass at `100.0`.
+3. Require negative candidate coefficients. A risk feature with a positive Ridge coefficient is
+   treated as a mathematical artifact and fails acceptance.
+4. Add a jitter/sensitivity report for role-risk thresholds. Because the committed taxonomy
+   artifact is already materialized, the first implementation records threshold sensitivity as an
+   aggregate robustness check rather than rewriting production labels.
+
+One suggested test is intentionally revised:
+
+- Do not assert that individual rows with `risk=0` get exactly the same prediction after a model
+  refit. A refit can legitimately shift intercepts and baseline coefficients. Instead, test that
+  when all candidate risk columns are zero across the entire frame, candidate predictions match
+  baseline predictions.
+
 ## Hard Constraints
 
 The implementation must preserve all constraints below:
@@ -49,8 +71,8 @@ Create:
 - `src/dynasty_genius/eval/te_role_risk_experiment.py`
   - Experiment-only evaluator.
   - Reuses `build_te_bakeoff_frame`.
-  - Evaluates baseline vs role-risk candidate.
-  - Computes RMSE, MAE, Spearman, Kendall, acceptance gates.
+  - Evaluates baseline vs sparse-duo and unified-penalty role-risk candidates.
+  - Computes RMSE, MAE, Spearman, Kendall, candidate coefficients, alpha sensitivity, and acceptance gates.
 
 - `scripts/run_te_role_risk_experiment.py`
   - CLI/report builder.
@@ -93,7 +115,9 @@ from __future__ import annotations
 import pandas as pd
 
 from src.dynasty_genius.eval.te_role_risk_experiment import (
+    PRIMARY_ALPHA,
     ROLE_RISK_CANDIDATE_COLUMNS,
+    UNIFIED_PENALTY_COLUMN,
     evaluate_te_role_risk_experiment,
 )
 
@@ -151,27 +175,61 @@ def test_evaluate_te_role_risk_experiment_is_validation_only():
     )
 
     assert result["experiment_name"] == "te_role_risk_detector"
-    assert result["candidate_columns"] == list(ROLE_RISK_CANDIDATE_COLUMNS)
+    assert result["primary_alpha"] == PRIMARY_ALPHA
+    assert set(result["candidates"]) == {"sparse_duo", "unified_penalty"}
+    assert result["candidates"]["sparse_duo"]["candidate_columns"] == list(ROLE_RISK_CANDIDATE_COLUMNS)
+    assert result["candidates"]["unified_penalty"]["candidate_columns"] == [UNIFIED_PENALTY_COLUMN]
     assert result["governance"]["model_features_changed"] is False
     assert result["governance"]["te_promotion_changed"] is False
     assert result["governance"]["market_data_used"] is False
     assert result["governance"]["pff_grades_used"] is False
-    assert result["summary"]["rmse_delta_mean"] < 0
-    assert result["summary"]["mae_delta_mean"] < 0
+    assert result["candidates"]["unified_penalty"]["summary"]["rmse_delta_mean"] < 0
+    assert result["candidates"]["unified_penalty"]["summary"]["mae_delta_mean"] < 0
 
 
-def test_acceptance_requires_error_improvement_and_no_rank_degradation():
+def test_acceptance_requires_error_improvement_rank_preservation_and_negative_coefficients():
     result = evaluate_te_role_risk_experiment(
         _synthetic_frame(),
         test_years=[2021, 2022, 2023],
     )
+    unified = result["candidates"]["unified_penalty"]
 
-    assert result["summary"]["rmse_win_folds"] >= 3
-    assert result["summary"]["passes_acceptance"] is True
-    assert result["acceptance"]["rmse_win_gate"] is True
-    assert result["acceptance"]["mean_rmse_gate"] is True
-    assert result["acceptance"]["mean_mae_gate"] is True
-    assert result["acceptance"]["rank_degradation_gate"] is True
+    assert unified["summary"]["rmse_win_folds"] >= 3
+    assert unified["summary"]["passes_acceptance"] is True
+    assert unified["acceptance"]["rmse_win_gate"] is True
+    assert unified["acceptance"]["mean_rmse_gate"] is True
+    assert unified["acceptance"]["mean_mae_gate"] is True
+    assert unified["acceptance"]["rank_degradation_gate"] is True
+    assert unified["acceptance"]["negative_coefficient_gate"] is True
+    assert max(unified["summary"]["candidate_coefficients"].values()) < 0.0
+
+
+def test_all_zero_candidate_columns_match_baseline_predictions():
+    frame = _synthetic_frame()
+    frame["te_role_role_risk"] = 0
+    frame["te_role_blocking_specialist"] = 0
+
+    result = evaluate_te_role_risk_experiment(frame, test_years=[2021, 2022, 2023])
+
+    for fold in result["candidates"]["unified_penalty"]["folds"]:
+        assert fold["rmse_delta"] == 0.0
+        assert fold["mae_delta"] == 0.0
+
+
+def test_risk_features_are_not_perfectly_collinear_with_existing_features():
+    frame = _synthetic_frame()
+    numeric_columns = [
+        "ppg_t",
+        "route_participation",
+        "target_share_nfl",
+        "yprr",
+        "tprr",
+        "weighted_opportunity",
+        "snap_share",
+    ]
+    for column in numeric_columns:
+        corr = frame[column].corr(frame["te_role_role_risk"])
+        assert pd.isna(corr) or abs(corr) < 0.98
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -206,10 +264,17 @@ from sklearn.preprocessing import StandardScaler
 from src.dynasty_genius.eval.te_archetype_bakeoff import BASELINE_TE_FEATURES
 
 OUTCOME_COLUMN = "avg_ppg_t1_t2"
+PRIMARY_ALPHA = 1.0
+SENSITIVITY_ALPHA = 100.0
 ROLE_RISK_CANDIDATE_COLUMNS = (
     "te_role_role_risk",
     "te_role_blocking_specialist",
 )
+UNIFIED_PENALTY_COLUMN = "te_role_is_risk_profile"
+ROLE_RISK_CANDIDATES = {
+    "sparse_duo": ROLE_RISK_CANDIDATE_COLUMNS,
+    "unified_penalty": (UNIFIED_PENALTY_COLUMN,),
+}
 
 
 def _prepare_matrix(train: pd.DataFrame, test: pd.DataFrame, columns: list[str]) -> tuple[np.ndarray, np.ndarray]:
@@ -220,12 +285,16 @@ def _prepare_matrix(train: pd.DataFrame, test: pd.DataFrame, columns: list[str])
     return scaler.fit_transform(x_train), scaler.transform(x_test)
 
 
-def _fit_predict(train: pd.DataFrame, test: pd.DataFrame, columns: list[str]) -> np.ndarray:
+def _fit_predict(train: pd.DataFrame, test: pd.DataFrame, columns: list[str], alpha: float) -> tuple[np.ndarray, dict[str, float]]:
     x_train, x_test = _prepare_matrix(train, test, columns)
     y_train = train[OUTCOME_COLUMN].to_numpy(dtype=float)
-    model = Ridge(alpha=1.0)
+    model = Ridge(alpha=alpha)
     model.fit(x_train, y_train)
-    return model.predict(x_test)
+    coefficients = {
+        column: round(float(coef), 6)
+        for column, coef in zip(columns, model.coef_)
+    }
+    return model.predict(x_test), coefficients
 
 
 def _rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
@@ -241,12 +310,18 @@ def _rank_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
     }
 
 
-def _evaluate_fold(frame: pd.DataFrame, test_year: int, baseline_columns: list[str], candidate_columns: list[str]) -> dict[str, Any]:
+def _evaluate_fold(
+    frame: pd.DataFrame,
+    test_year: int,
+    baseline_columns: list[str],
+    candidate_columns: list[str],
+    alpha: float,
+) -> dict[str, Any]:
     train = frame[(frame["feature_season"] < test_year) & (frame["training_eligible"] == True)]
     test = frame[(frame["feature_season"] == test_year) & (frame["training_eligible"] == True)]
     y_test = test[OUTCOME_COLUMN].to_numpy(dtype=float)
-    baseline_pred = _fit_predict(train, test, baseline_columns)
-    candidate_pred = _fit_predict(train, test, baseline_columns + candidate_columns)
+    baseline_pred, _ = _fit_predict(train, test, baseline_columns, alpha)
+    candidate_pred, coefficients = _fit_predict(train, test, baseline_columns + candidate_columns, alpha)
     baseline_rank = _rank_metrics(y_test, baseline_pred)
     candidate_rank = _rank_metrics(y_test, candidate_pred)
     return {
@@ -261,19 +336,34 @@ def _evaluate_fold(frame: pd.DataFrame, test_year: int, baseline_columns: list[s
         "candidate_spearman_rho": candidate_rank["spearman_rho"],
         "baseline_kendall_tau": baseline_rank["kendall_tau"],
         "candidate_kendall_tau": candidate_rank["kendall_tau"],
+        "candidate_coefficients": {
+            column: coefficients[column]
+            for column in candidate_columns
+        },
     }
 
 
-def evaluate_te_role_risk_experiment(
+def _with_unified_penalty(frame: pd.DataFrame) -> pd.DataFrame:
+    out = frame.copy()
+    out[UNIFIED_PENALTY_COLUMN] = (
+        (out["te_role_role_risk"] == 1) | (out["te_role_blocking_specialist"] == 1)
+    ).astype(int)
+    return out
+
+
+def _evaluate_candidate(
     frame: pd.DataFrame,
     *,
+    candidate_name: str,
+    candidate_columns: list[str],
     test_years: list[int],
+    alpha: float,
 ) -> dict[str, Any]:
     baseline_columns = [column for column in BASELINE_TE_FEATURES if column in frame.columns]
-    candidate_columns = [column for column in ROLE_RISK_CANDIDATE_COLUMNS if column in frame.columns]
+    candidate_columns = [column for column in candidate_columns if column in frame.columns]
     folds = []
     for test_year in test_years:
-        fold = _evaluate_fold(frame, test_year, baseline_columns, candidate_columns)
+        fold = _evaluate_fold(frame, test_year, baseline_columns, candidate_columns, alpha)
         fold["rmse_delta"] = round(fold["candidate_rmse"] - fold["baseline_rmse"], 4)
         fold["mae_delta"] = round(fold["candidate_mae"] - fold["baseline_mae"], 4)
         fold["spearman_delta"] = round(fold["candidate_spearman_rho"] - fold["baseline_spearman_rho"], 4)
@@ -289,14 +379,25 @@ def evaluate_te_role_risk_experiment(
     mean_mae_gate = float(np.mean(mae_deltas)) < 0
     rmse_win_gate = rmse_win_folds >= 3
     rank_degradation_gate = min(spearman_deltas) >= -0.02 and min(kendall_deltas) >= -0.02
+    candidate_coefficients: dict[str, float] = {}
+    for fold in folds:
+        for column, coefficient in fold["candidate_coefficients"].items():
+            candidate_coefficients.setdefault(column, 0.0)
+            candidate_coefficients[column] += coefficient
+    candidate_coefficients = {
+        column: round(value / len(folds), 6)
+        for column, value in candidate_coefficients.items()
+    }
+    negative_coefficient_gate = all(value < 0.0 for value in candidate_coefficients.values())
     acceptance = {
         "rmse_win_gate": rmse_win_gate,
         "mean_rmse_gate": mean_rmse_gate,
         "mean_mae_gate": mean_mae_gate,
         "rank_degradation_gate": rank_degradation_gate,
+        "negative_coefficient_gate": negative_coefficient_gate,
     }
     return {
-        "experiment_name": "te_role_risk_detector",
+        "candidate_name": candidate_name,
         "candidate_columns": candidate_columns,
         "folds": folds,
         "summary": {
@@ -306,9 +407,47 @@ def evaluate_te_role_risk_experiment(
             "mae_delta_mean": round(float(np.mean(mae_deltas)), 4),
             "spearman_delta_mean": round(float(np.mean(spearman_deltas)), 4),
             "kendall_delta_mean": round(float(np.mean(kendall_deltas)), 4),
+            "candidate_coefficients": candidate_coefficients,
             "passes_acceptance": all(acceptance.values()),
         },
         "acceptance": acceptance,
+    }
+
+
+def evaluate_te_role_risk_experiment(
+    frame: pd.DataFrame,
+    *,
+    test_years: list[int],
+) -> dict[str, Any]:
+    experiment_frame = _with_unified_penalty(frame)
+    candidates = {
+        name: _evaluate_candidate(
+            experiment_frame,
+            candidate_name=name,
+            candidate_columns=list(columns),
+            test_years=test_years,
+            alpha=PRIMARY_ALPHA,
+        )
+        for name, columns in ROLE_RISK_CANDIDATES.items()
+    }
+    alpha_sensitivity = {
+        name: _evaluate_candidate(
+            experiment_frame,
+            candidate_name=name,
+            candidate_columns=list(columns),
+            test_years=test_years,
+            alpha=SENSITIVITY_ALPHA,
+        )["summary"]
+        for name, columns in ROLE_RISK_CANDIDATES.items()
+    }
+    return {
+        "experiment_name": "te_role_risk_detector",
+        "primary_alpha": PRIMARY_ALPHA,
+        "alpha_sensitivity": {
+            "sensitivity_alpha": SENSITIVITY_ALPHA,
+            "candidate_summaries": alpha_sensitivity,
+        },
+        "candidates": candidates,
         "governance": {
             "diagnostic_only": True,
             "model_features_changed": False,
@@ -374,6 +513,8 @@ def test_real_role_risk_report_is_aggregate_redacted_and_governed(tmp_path: Path
     assert out.exists()
     assert report["metadata"]["position"] == "TE"
     assert report["result"]["experiment_name"] == "te_role_risk_detector"
+    assert set(report["result"]["candidates"]) == {"sparse_duo", "unified_penalty"}
+    assert "alpha_sensitivity" in report["result"]
     assert report["governance"]["model_features_changed"] is False
     assert report["governance"]["te_promotion_changed"] is False
     assert report["governance"]["market_data_used"] is False
@@ -496,7 +637,7 @@ def main(argv: list[str] | None = None) -> int:
         out_path=args.out,
         run_id=args.run_id,
     )
-    accepted = report["result"]["summary"]["passes_acceptance"]
+    accepted = report["result"]["candidates"]["unified_penalty"]["summary"]["passes_acceptance"]
     print(f"TE role-risk experiment written: {args.out} accepted={accepted}")
     return 0
 
@@ -633,9 +774,13 @@ Task 13.3.3 is complete only if:
 
 - `app/data/backtest/phase13/te_role_risk_experiment_20260516.json` exists.
 - The artifact reports:
+  - both `sparse_duo` and `unified_penalty` candidates;
   - fold-level RMSE/MAE deltas;
   - fold-level Spearman/Kendall deltas;
+  - candidate coefficient summaries;
+  - alpha sensitivity at `100.0`;
   - aggregate acceptance gates;
+  - negative coefficient gate;
   - `production_change_approved: false`;
   - TE status remains `EXPERIMENTAL`.
 - Redaction scan finds no source-native IDs, private paths, PFF grade fields, raw PFF content, or player-level rows.
