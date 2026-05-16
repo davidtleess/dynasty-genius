@@ -16,6 +16,36 @@ OUTCOME_COLUMN = "avg_ppg_t1_t2"
 OUTCOME_SEASON_COLUMNS = frozenset({"ppg_t1", "ppg_t2", "games_t1", "games_t2"})
 FEATURE_SEASON_COL = "feature_season"
 
+# ── Engine B DVS Normalization Constants ──────────────────────────────────────
+# P90 of avg_ppg_t1_t2 from engine_b_features_v2.csv, May 2026 diagnostic.
+# Used as position-specific ceiling for dynasty_value_score normalization.
+# Frozen at May 2026 values. Recompute only when Engine B training distribution
+# materially changes — requires a new diagnostic run and David approval.
+ENGINE_B_P90_PPG: dict[str, float] = {
+    "QB": 20.1,
+    "RB": 15.7,
+    "WR": 14.5,
+    "TE": 9.4,
+}
+
+# ── VAR Replacement Baselines (12-team Superflex Full PPR) ────────────────────
+# Rank N such that the Nth active player by predicted PPG defines replacement level.
+# QB: 12 × 2 slots = 24 starters + 1 = QB25 (Superflex-native; NOT 1QB-derived).
+# RB: 12 × 2 = 24 + ~9 flex (40% RB in Full PPR) = RB33.
+# WR: 12 × 3 = 36 + ~7 flex (60% WR in Full PPR) + buffer = WR53.
+# TE: 12 × 1 = 12 + 1 buffer = TE13.
+ENGINE_B_VAR_THRESHOLDS: dict[str, int] = {
+    "QB": 25,
+    "RB": 33,
+    "WR": 53,
+    "TE": 13,
+}
+
+# Minimum games in feature season required for Engine B DVS eligibility.
+# Below this threshold, a player is in the Dead Window: retain Engine A DVS
+# with explicit caveat, or stay PRE_MODEL if Engine A data is also absent.
+ENGINE_B_MIN_GAMES_T: int = 8
+
 # ── QB Archetype (Q4) ────────────────────────────────────────────────────────
 DUAL_THREAT_RUSHING_THRESHOLD = 400  # rushing yards/season in any T-2 to T
 

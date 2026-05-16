@@ -233,12 +233,12 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 - NOISE_BAND: veteran divergence flags stay dark until mid-July 2026.
 - TE caveat: "TE market superiority gate deferred — projection-quality score only" (NOT experimental fallback).
 
-**Subphase 14.1 — Constants and Identity Gate (NEXT)**
-1. Add `ENGINE_B_P90_PPG`, `ENGINE_B_VAR_THRESHOLDS`, `ENGINE_B_MIN_GAMES_T` to `engine_b_contract.py`.
-2. Run 2024–2025 identity reconciliation report → `docs/validation/phase14-identity-reconciliation-2024-2025.md`. **Hard gate: 100% ID continuity required before 14.2.**
-3. Write failing tests (spec sections 5.1–5.11).
+**Subphase 14.1 — Constants and Identity Gate (COMPLETE)**
+1. Added `ENGINE_B_P90_PPG`, `ENGINE_B_VAR_THRESHOLDS`, `ENGINE_B_MIN_GAMES_T` to `engine_b_contract.py`.
+2. Ran 2024–2025 identity reconciliation report → `docs/validation/phase14-identity-reconciliation-2024-2025.md`. **Hard gate PASSED.**
+3. Wrote 11 failing tests (spec sections 5.1–5.11).
 
-**Subphase 14.2 — DVS Assembly and Bridge (blocked on 14.1 identity gate)**
+**Subphase 14.2 — DVS Assembly and Bridge (NEXT)**
 - Add `dvs_engine`, `dvs_p90_ref`, `dvs_clamped` to `PlayerValueObject`.
 - Remove blocking comment at `pvo_assembler.py` line 316.
 - Implement Engine B DVS formula, Dead Window bridge, TE G3-deferred caveat.
