@@ -36,7 +36,8 @@ Phase 13 implementation handoff:
     - Canonical DG player_ids assigned for all 116 TEs via `scripts/backfill_te_canonical_ids.py`; `pff_te_eligible_te_2018_2025_20260516_canonical.json` has 0 null player_ids.
 - Task 13.3 PFF EXPORT REPORT: COMPLETE — `scripts/build_pff_te_export_report.py` + strict parser `src/dynasty_genius/adapters/pff_te_export.py`; redacted report at `app/data/identity/pff_te_export_schema_report_20260516.json`.
     - v10+ local manifest is ignored under `app/data/pff_exports/`; raw PFF CSVs and absolute local paths are not committed.
-    - Report covers 96/116 drafted TEs; missing 20 = 2018 (15), 2020 (2), 2021 (1), 2022 (1), 2023 (1). The full 2018 draft gap is expected because those players' final collegiate season is 2017, outside the v10+ 2018-2025 season export set.
+    - Report covers 110/116 drafted TEs after adding David's local `receiving_summary (18).csv` as the 2017 final-season export; missing 6 = 2018 (1), 2020 (2), 2021 (1), 2022 (1), 2023 (1).
+    - David's local `receiving_summary (19).csv` was inspected and is a duplicate of an already represented export, so it adds no new 2020 coverage.
     - All files use snap-alignment fallback (`inline_snaps`, `slot_snaps`, `wide_snaps`), not route-alignment fields; grade columns are detected and stripped from parser output.
 - Task 13.3.1 READY_WITH_CAVEATS: TE Archetype Rubric review may begin as Step 0 artifact-only work using the redacted report. Caveat: decide whether 96/116 coverage is sufficient or whether to pursue alternate PFF exports for the 20 missing drafted TEs. PFF fields remain context_signal until a later approved spec changes that.
 - 13.1 Identity Audit is the first hard gate.
@@ -171,7 +172,7 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 13.3.1 TE Archetype Rubric review** — start Step 0 artifact-only rubric work from `pff_te_export_schema_report_20260516.json`; decide whether to accept 96/116 PFF coverage or chase alternate exports for the 20 missing TEs.
+1. **Task 13.3.1 TE Archetype Rubric review** — start Step 0 artifact-only rubric work from `pff_te_export_schema_report_20260516.json`; decide whether to accept 110/116 PFF coverage or chase alternate exports/manual checks for the 6 missing TEs.
 2. **PFF parser follow-up** — if alternate route-alignment exports become available, add them to the ignored local manifest and regenerate the redacted report; raw export stays private/untracked.
 3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.

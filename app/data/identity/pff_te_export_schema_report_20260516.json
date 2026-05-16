@@ -1,5 +1,8 @@
 {
   "content_groups": {
+    "29e3b1718f0c": [
+      "download_suffix_18"
+    ],
     "2c402a3d6472": [
       "download_suffix_12"
     ],
@@ -26,6 +29,27 @@
     ]
   },
   "files": [
+    {
+      "alignment_source": "snaps_fallback",
+      "content_hash": "29e3b1718f0c",
+      "file_name": "receiving_summary (18).csv",
+      "header_hash": "a513f4e030fa",
+      "matched_drafted_te_ids": 41,
+      "prohibited_columns": [
+        "grades_hands_drop",
+        "grades_hands_fumble",
+        "grades_offense",
+        "grades_pass_block",
+        "grades_pass_route"
+      ],
+      "required_missing": [],
+      "row_count": 2079,
+      "season": 2017,
+      "source_label": "download_suffix_18",
+      "te_rows": 376,
+      "unique_te_ids": 376,
+      "unmatched_te_ids": 335
+    },
     {
       "alignment_source": "snaps_fallback",
       "content_hash": "f1f8b161da1a",
@@ -195,9 +219,9 @@
       "unmatched_te_ids": 500
     }
   ],
-  "generated_at": "2026-05-16T11:45:00Z",
+  "generated_at": "2026-05-16T12:15:00Z",
   "missing_by_draft_year": {
-    "2018": 15,
+    "2018": 1,
     "2020": 2,
     "2021": 1,
     "2022": 1,
@@ -212,12 +236,12 @@
   "source": "pff_premium_stats_manual_csv",
   "summary": {
     "eligible_count": 116,
-    "file_count": 8,
+    "file_count": 9,
     "market_data_used": false,
-    "missing_drafted_te_ids": 20,
+    "missing_drafted_te_ids": 6,
     "model_features_changed": false,
     "raw_rows_materialized": 0,
     "te_promotion_changed": false,
-    "unique_matched_drafted_te_ids": 96
+    "unique_matched_drafted_te_ids": 110
   }
 }
