@@ -1,7 +1,7 @@
 ---
 document: TE Role-Risk and Regularization Model-Change Spec
 version: 1.0.0
-status: DRAFT — PENDING DAVID APPROVAL
+status: APPROVED — SEQUENCING CORRECTED
 date: 2026-05-16
 owner: David
 prepared_by: Claude
@@ -30,7 +30,7 @@ Two changes to the TE Ridge model are jointly authorized:
 1. **Regularization correction:** increase alpha from 1.0 to 100.0.
 2. **Role-risk feature:** add `te_role_is_risk_profile` as a single binary penalty feature.
 
-TE remains `EXPERIMENTAL` until the retrained model passes the walk-forward promotion gates defined in Section 4. Updating the manifest and removing the EXPERIMENTAL flag are conditional on gate pass — they are not part of the initial implementation.
+TE remains `EXPERIMENTAL` until the updated training CSV and harness alpha pass the walk-forward promotion gates defined in Section 4. Updating the manifest and removing the EXPERIMENTAL flag are conditional on gate pass — they are not part of the initial implementation.
 
 ## 2. Evidence Basis
 
@@ -91,14 +91,24 @@ Add to the TE position feature contract in `src/dynasty_genius/models/engine_b_c
 
 This field is TE-only. It must not appear in the QB, RB, or WR feature contracts. The contract must include a comment identifying the source rubric artifact so the field is traceable without reading training code.
 
-### 3.3 Model Retraining
+### 3.3 Harness Validation and Model Retraining
 
-Retrain the TE model with:
+The walk-forward harness does not load a deployment `.pkl` for validation. It refits Ridge
+inside each fold from the current training CSV and the module-level fixed alpha. Therefore
+validation must happen before deployment retraining.
+
+Update the harness validation path to use:
+
+- **Harness alpha:** `WalkForwardDriver.FIXED_ALPHA["TE"] = 100.0`
+- **Feature set:** existing TE baseline features + `te_role_is_risk_profile`
+
+Only if the harness passes the promotion gate in Section 4, retrain the deployable TE model with:
 
 - **Alpha:** 100.0
-- **Feature set:** existing nine baseline TE features + `te_role_is_risk_profile`
+- **Feature set:** existing TE baseline features + `te_role_is_risk_profile`
 - **Artifact path:** a new versioned directory, e.g., `app/data/models/engine_b/runs/YYYYMMDDTHHMMSSZ/te_v3.pkl`
 - **Do not overwrite** `te_v2.pkl` or any prior artifact
+- **Training scope:** TE-only, or an equivalent guarded path that does not rewrite QB/RB/WR artifacts or feature contracts
 
 The manifest (`app/data/models/engine_b/v2_manifest.json`) is updated only if the model passes the promotion gate in Section 4. If the gate fails, the manifest is unchanged and TE continues to route through the existing EXPERIMENTAL fallback.
 
@@ -113,13 +123,20 @@ The manifest (`app/data/models/engine_b/v2_manifest.json`) is updated only if th
 
 ## 4. Promotion Gate
 
-After retraining, run the existing walk-forward backtest harness:
+After feature engineering, feature-contract update, and harness alpha update, run the existing
+walk-forward backtest harness:
 
 ```bash
-.venv/bin/python3.14 scripts/run_backtest.py --position TE --model <path_to_te_v3_pkl>
+.venv/bin/python3.14 scripts/run_backtest.py --position TE
 ```
 
-Apply the existing `ACTIVE_B_VALIDATED` promotion logic (pass ≥ 2 of 3 gates: RMSE, R², Spearman).
+Do not pass a deployment `.pkl` path as evidence of validation. The current CLI `--model` value is
+a metadata label; it does not load the model. The harness evidence is valid only if it uses the
+updated training CSV, updated TE feature contract, and `FIXED_ALPHA["TE"] = 100.0`.
+
+Apply the existing walk-forward promotion logic. With market data unavailable, G3 remains
+deferred; TE may be promoted from `EXPERIMENTAL` to `ACTIVE_B` only if G1 and G2 pass under the
+updated harness path.
 
 **If gates pass:**
 
@@ -139,8 +156,10 @@ Apply the existing `ACTIVE_B_VALIDATED` promotion logic (pass ≥ 2 of 3 gates: 
 
 1. **TE feature contract:** assert `te_role_is_risk_profile` is present in the TE required feature set and absent from QB, RB, and WR feature sets.
 2. **Coverage imputation:** assert that TEs with no archetype record receive `te_role_is_risk_profile = 0` (not NaN, not dropped, not 1).
-3. **Coefficient sign:** assert the trained TE model's coefficient for `te_role_is_risk_profile` is negative.
+3. **Coefficient sign:** assert the fold-local harness fit or deployment TE model coefficient for `te_role_is_risk_profile` is negative.
 4. **Training CSV redaction:** assert that the training CSV emitted by `assemble_engine_b_dataset.py` contains no `pff_id`, `gsis_id`, `sleeper_id`, `/Users/`, `Downloads`, `grades_offense`, or `grades_pass_route` values.
+5. **Harness alpha:** assert `WalkForwardDriver.FIXED_ALPHA["TE"] == 100.0` for the model-change validation path.
+6. **TE-only deployment training:** assert deployment retraining does not rewrite QB/RB/WR artifacts or contracts.
 
 Existing TE contract tests must remain green. No test may be removed or weakened.
 
@@ -156,11 +175,12 @@ Existing TE contract tests must remain green. No test may be removed or weakened
 
 1. **Feature engineering:** update `assemble_engine_b_dataset.py` to join the archetype rubric and emit `te_role_is_risk_profile`.
 2. **Feature contract:** add `te_role_is_risk_profile` to the TE contract in `engine_b_contract.py`.
-3. **Tests (failing):** write the four contract tests listed in Section 5.
-4. **Retrain:** run `scripts/train_engine_b.py` for TE with alpha=100.0.
-5. **Validate:** run the backtest harness on the new artifact.
-6. **Promote or record:** update manifest if gates pass; write a decision note regardless.
-7. **Governance sync:** full test suite, AGENT_SYNC, daily ledger entry.
+3. **Harness alpha:** update `WalkForwardDriver.FIXED_ALPHA["TE"] = 100.0`.
+4. **Tests (failing):** write the contract tests listed in Section 5.
+5. **Validate:** run `scripts/run_backtest.py --position TE`; the harness refits Ridge from the updated CSV and alpha.
+6. **Retrain for deployment only if gates pass:** create a TE-only `te_v3.pkl` artifact at alpha=100.0. If `train_engine_b.py` is used, first add a TE-only mode or equivalent guard so QB/RB/WR artifacts and contracts are untouched.
+7. **Promote or record:** update manifest and remove TE from EXPERIMENTAL only if the harness gate passes; write a decision note regardless.
+8. **Governance sync:** full test suite, AGENT_SYNC, daily ledger entry.
 
 ## 8. Out of Scope
 

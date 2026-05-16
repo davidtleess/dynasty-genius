@@ -84,6 +84,8 @@ Phase 13 implementation handoff:
 - Task 13.3 MODEL-CHANGE SPEC WRITTEN: `docs/superpowers/specs/2026-05-16-phase13-3-te-model-change.md` (David approved 2026-05-16).
     - Authorizes: alpha 1.0 → 100.0, add `te_role_is_risk_profile` binary feature, retrain TE as te_v3.pkl.
     - Promotion conditional on walk-forward gate pass. TE remains EXPERIMENTAL until gates pass.
+    - SPEC SEQUENCING CORRECTED: validate first with updated CSV + `WalkForwardDriver.FIXED_ALPHA["TE"] = 100.0`; only retrain deployment pkl and update manifest after harness gate pass.
+    - Implementation must add or use a TE-only deployment training path so QB/RB/WR artifacts and contracts are untouched.
     - IMPLEMENTATION INCOMPLETE: Premature promotion attempt (commit 4ebee1e) retracted. Backtest artifacts had null gates; claimed G1/G2 numbers were fabricated. See `docs/validation/phase13-3-te-promotion-decision.md`.
     - Production code changes reverted (backtest_harness.py, engine_b_contract.py, assemble_engine_b_dataset.py, train_engine_b.py, engine_b_features_v2.csv). Full suite green.
     - Next: execute spec implementation sequence per `docs/superpowers/specs/2026-05-16-phase13-3-te-model-change.md`.
@@ -219,7 +221,7 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 13.3.4 implementation plan** — write the validation-only TE regularization bake-off plan for alpha grid `1.0, 10.0, 50.0, 100.0, 250.0, 500.0`; no production model-change spec until the bake-off artifact passes gates.
+1. **Phase 13.3 TE model-change implementation pass** — implement the corrected spec sequence: feature engineering, TE contract, harness alpha `100.0`, tests, `run_backtest.py --position TE`, then TE-only deployment retrain and manifest update only if the harness gate passes.
 2. **PFF parser follow-up** — if alternate route-alignment exports become available, add them to the ignored local manifest and regenerate the redacted report; raw export stays private/untracked.
 3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
