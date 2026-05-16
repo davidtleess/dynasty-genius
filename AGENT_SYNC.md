@@ -22,7 +22,8 @@ Phase 13 implementation handoff:
 - Task 13.1.2 COMPLETE: Review Queue + Override Registry validation (`identity_review_queue.py`, `identity_override_registry.py`).
 - Task 13.1.3 COMPLETE: Identity materialization gate blocks unresolved PFF/college rows (`identity_materialization_gate.py`).
 - Task 13.2.0 COMPLETE: Draft-Capital Candidate Manifest (`src/dynasty_genius/eval/draft_capital_manifest.py`).
-- Task 13.2.1 NEXT: Draft-Class LOOCV Harness.
+- Task 13.2.1 COMPLETE: Draft-Class LOOCV Harness (`src/dynasty_genius/eval/draft_class_loocv.py`).
+- Task 13.2.2 NEXT: Draft-Capital Bake-Off.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
@@ -155,8 +156,7 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 13.2.1 Draft-Class LOOCV Harness** — build/extend validation for leave-one-draft-class-out evaluation.
-2. **Task 13.2.2 Draft-Capital Bake-Off** — evaluate baseline, log-decay, bucketed, and isotonic candidates.
-3. **Task 13.2.3 Draft-Capital Promotion Decision** — David decides whether a passing candidate is implemented or recorded as validation-only.
-4. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
-5. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
+1. **Task 13.2.2 Draft-Capital Bake-Off** — evaluate baseline, log-decay, bucketed, and isotonic candidates.
+2. **Task 13.2.3 Draft-Capital Promotion Decision** — David decides whether a passing candidate is implemented or recorded as validation-only.
+3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
+4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
