@@ -27,6 +27,9 @@ Phase 13 implementation handoff:
 - Task 13.2.2 COMPLETE: Draft-Capital Bake-Off evaluator (`src/dynasty_genius/eval/draft_capital_bakeoff.py`).
 - Task 13.2.3 COMPLETE: Draft-Capital Promotion Decision recorded as VALIDATION_ONLY / NO PRODUCTION CHANGE (`docs/validation/phase13-draft-capital-promotion-decision.md`).
 - Task 13.3.0 COMPLETE_WITH_BLOCKERS: PFF Feasibility Memo (`docs/validation/phase13-pff-feasibility-memo.md`).
+    - Export Checklist READY: `docs/validation/phase13-pff-csv-export-checklist.md`.
+    - TE Identity Coverage Run Plan READY: `docs/superpowers/plans/2026-05-15-phase13-te-identity-run-plan.md`.
+    - BLOCKER: Actual real CSV schema/sample still needed.
 - Task 13.3.1 BLOCKED: TE Archetype Rubric waits for real PFF CSV sample/schema and passing 2018-2025 drafted TE identity coverage artifact.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
@@ -160,8 +163,9 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Acquire/lock PFF collegiate TE CSV sample schema** — synthetic/redacted fixture only in repo; raw export stays private/untracked.
+1. **Acquire/lock PFF collegiate TE CSV sample schema** — synthetic/redacted fixture ready in checklist; raw export stays private/untracked.
 2. **Run 2018-2025 drafted TE identity coverage artifact** — must pass >=98% resolved before Task 13.3.1.
-3. **Task 13.3.1 TE Archetype Rubric** — blocked until both items above are done.
-3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
-4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
+3. **Resolve TE identity CLI gaps before execution** — wire existing snapshot generator, add composite/prospect registry flags, failure report, and PFF eligibility manifest.
+4. **Task 13.3.1 TE Archetype Rubric** — blocked until both PFF sample/schema and identity gate are done.
+5. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
+6. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
