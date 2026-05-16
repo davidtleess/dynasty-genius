@@ -40,7 +40,12 @@ Phase 13 implementation handoff:
     - David's local `receiving_summary (19).csv` was inspected and is a duplicate of an already represented export, so it adds no new 2020 coverage.
     - Remaining missing rows are treated as likely PFF collegiate coverage gaps (often FCS/small-school). They are excluded from archetype labeling; no imputation, fuzzy fill, or model materialization.
     - All files use snap-alignment fallback (`inline_snaps`, `slot_snaps`, `wide_snaps`), not route-alignment fields; grade columns are detected and stripped from parser output.
-- Task 13.3.1 READY_WITH_CAVEATS: TE Archetype Rubric review may begin as Step 0 artifact-only work using the redacted report. Caveat: decide whether 96/116 coverage is sufficient or whether to pursue alternate PFF exports for the 20 missing drafted TEs. PFF fields remain context_signal until a later approved spec changes that.
+- Task 13.3.1 COMPLETE: TE Archetype Rubric Step 0 artifact generated at `app/data/identity/te_archetype_rubric_20260516.json`.
+    - Artifact accounts for all 116 drafted TEs: 110 with PFF alignment coverage, 6 excluded as PFF coverage gaps.
+    - Labeling result: 105 labeled, 5 low_volume, 6 excluded; archetypes among all rows: 69 receiving_leaning, 22 ambiguous, 14 blocking_leaning, 11 null.
+    - Sensitivity result: 14 players move from receiving_leaning to ambiguous when detached threshold changes from 0.40 to 0.45.
+    - Labels are snap-alignment based (`snaps_fallback`), not route-alignment. PFF remains context_signal only.
+    - No raw PFF IDs, names, local paths, PFF grades, Engine A/B feature changes, model training, TE promotion, DVS, or market data.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
