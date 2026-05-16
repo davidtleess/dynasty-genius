@@ -17,8 +17,12 @@ from src.dynasty_genius.decision_logic.counter_arguments import generate_counter
 from src.dynasty_genius.models.league_context import LeagueContext
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.models.player_value_object import PlayerValueObject, RosterAuditSignals
-from src.dynasty_genius.models.engine_b_contract import ENGINE_B_FEATURES_BY_POSITION
-from src.dynasty_genius.scoring.engine_a import score_prospect
+from src.dynasty_genius.models.engine_b_contract import (
+    ENGINE_B_FEATURES_BY_POSITION,
+    ENGINE_B_P90_PPG,
+    ENGINE_B_MIN_GAMES_T,
+)
+from src.dynasty_genius.scoring.engine_a import score_prospect, _P90_PPG
 
 
 # ── Position-specific required signal sets ────────────────────────────────────
@@ -283,37 +287,46 @@ def assemble_pvo(
                 caveats.append(caveat)
 
     # Engine A: score prospect if pick + round + age are all supplied.
-    # Veterans stay PRE_MODEL until Engine B is trained.
+    # Veterans stay PRE_MODEL until Engine B is trained or are scored via Dead Window bridge.
     engine_a_result = None
-    if is_prospect:
-        pick = features.get("pick")
-        round_ = features.get("round")
-        age = features.get("age")
-        if pick is not None and round_ is not None and age is not None:
-            engine_a_result = score_prospect(identity.position, float(pick), float(round_), float(age))
+    pick = features.get("pick")
+    round_ = features.get("round")
+    age = features.get("age")
+    if pick is not None and round_ is not None and age is not None:
+        engine_a_result = score_prospect(identity.position, float(pick), float(round_), float(age))
 
     engine_used = None
     model_version = None
     model_grade = "PRE_MODEL"
     dynasty_value_score = features.get("dynasty_value_score")
+    dvs_engine: Optional[str] = None
+    dvs_p90_ref_val: Optional[float] = None
+    dvs_clamped_val: Optional[bool] = None
     source_season: Optional[int] = None
     projection_2y: Optional[float] = None
 
     if engine_a_result:
-        engine_used = engine_a_result["engine_used"]
-        model_version = engine_a_result["model_version"]
-        model_grade = engine_a_result["model_grade"]
+        # DVS engine A always populates provenance if score is present
         dynasty_value_score = engine_a_result["dynasty_value_score"]
-        caveats = [
-            c for c in caveats
-            if not c.startswith("dynasty_value_score unavailable:")
-        ]
-        for caveat in engine_a_result["caveats"]:
-            if caveat not in caveats:
-                caveats.append(caveat)
+        dvs_engine = "A"
+        dvs_p90_ref_val = _P90_PPG.get(identity.position.upper())
+        dvs_clamped_val = engine_a_result["dynasty_value_score"] >= 100.0
+        
+        # BUT: Engine A model metadata only overrides PRE_MODEL if is_prospect is True.
+        # This prevents veterans with draft capital from appearing as PROSPECT_C.
+        if is_prospect:
+            engine_used = engine_a_result["engine_used"]
+            model_version = engine_a_result["model_version"]
+            model_grade = engine_a_result["model_grade"]
+            caveats = [
+                c for c in caveats
+                if not c.startswith("dynasty_value_score unavailable:")
+            ]
+            for caveat in engine_a_result["caveats"]:
+                if caveat not in caveats:
+                    caveats.append(caveat)
 
     # Engine B: populate active-player metadata from resolved score.
-    # dynasty_value_score stays None — no calibrated A/B normalization exists yet.
     if engine_b_resolved:
         engine_used = "engine_b"
         model_version = engine_b_resolved["engine"]
@@ -325,12 +338,61 @@ def assemble_pvo(
             if caveat not in caveats:
                 caveats.append(caveat)
 
-        # QB low-volume flag: Engine B was trained exclusively on QBs with ≥3 games
-        # in the feature season. A prediction for a QB with games_t < 3 is an
-        # extrapolation outside the training distribution — flag it at the
-        # presentation layer rather than suppressing the prediction.
-        if identity.position.upper() == "QB":
-            games_t = features.get("games_t")
+        # DVS normalization — Engine B path.
+        # Formula: clamp(predicted_avg_ppg_t1_t2 / POSITION_P90_PPG_B * 100, 0, 100)
+        # P90 constants are Engine B-native (May 2026 diagnostic from engine_b_features_v2.csv).
+        # Veterans with games_t below ENGINE_B_MIN_GAMES_T are routed to the Dead Window
+        # fallback below; this block runs only for Engine B-eligible players.
+        games_t = features.get("games_t")
+        pos_upper = identity.position.upper()
+        _b_p90 = ENGINE_B_P90_PPG.get(pos_upper)
+        _below_games_gate = (
+            games_t is not None
+            and float(games_t) < ENGINE_B_MIN_GAMES_T
+        )
+
+        if (projection_2y is not None
+                and _b_p90 is not None
+                and not _below_games_gate):
+            dvs_raw = projection_2y / _b_p90 * 100.0
+            dvs_clamped_flag = dvs_raw > 100.0
+            dynasty_value_score = round(min(100.0, max(0.0, dvs_raw)), 1)
+            dvs_engine = "B"
+            dvs_p90_ref_val = _b_p90
+            dvs_clamped_val = dvs_clamped_flag
+
+        # Dead Window bridge: player has exited prospect status and Engine B feature data
+        # exists, but games_t is below the reliability threshold. Retain Engine A DVS as
+        # a prior if draft capital is present; otherwise stay PRE_MODEL.
+        # The caveat is mandatory — the user must know the score rests on draft capital,
+        # not verified professional efficiency.
+        if engine_b_resolved and _below_games_gate:
+            _dw_caveat = (
+                "Insufficient professional season data — Engine A prospect score used as prior"
+            )
+            # Try Engine A fallback
+            pick = features.get("pick")
+            round_ = features.get("round")
+            age = features.get("age")
+            if pick is not None and round_ is not None and age is not None:
+                _a_result = score_prospect(identity.position, float(pick), float(round_), float(age))
+                if _a_result:
+                    dynasty_value_score = _a_result["dynasty_value_score"]
+                    dvs_engine = "A"
+                    dvs_p90_ref_val = _P90_PPG.get(pos_upper)
+                    dvs_clamped_val = _a_result["dynasty_value_score"] >= 100.0
+            # Caveat is appended regardless of whether Engine A data was available.
+            if _dw_caveat not in caveats:
+                caveats.append(_dw_caveat)
+
+        # TE-specific caveat: G3 (market superiority) deferred; decision_supported = False.
+        if pos_upper == "TE" and model_grade == "ACTIVE_B":
+            _te_caveat = "TE market superiority gate deferred — projection-quality score only"
+            if _te_caveat not in caveats:
+                caveats.append(_te_caveat)
+
+        # QB low-volume flag (unchanged from Phase 12.5).
+        if pos_upper == "QB":
             if games_t is not None and float(games_t) < 3:
                 backup_caveat = "High-Efficiency / Low-Volume Anomaly (Backup Profile)"
                 if backup_caveat not in caveats:
@@ -352,6 +414,9 @@ def assemble_pvo(
         model_version=model_version,
         model_grade=model_grade,
         dynasty_value_score=dynasty_value_score,
+        dvs_engine=dvs_engine,
+        dvs_p90_ref=dvs_p90_ref_val,
+        dvs_clamped=dvs_clamped_val,
         projection_1y=None,
         projection_2y=projection_2y,
         projection_3y=None,
@@ -364,6 +429,7 @@ def assemble_pvo(
         caveats=caveats,
         roster_audit=roster_audit,
         market_overlay=None,
+        value_above_replacement=features.get("value_above_replacement"),
         assembled_at=datetime.now(timezone.utc).isoformat(),
         source_season=source_season,
         source_versions=source_versions or {},

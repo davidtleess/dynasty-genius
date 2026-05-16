@@ -80,6 +80,11 @@ class PlayerValueObject(BaseModel):
     projection_2y: Optional[float] = None
     projection_3y: Optional[float] = None
 
+    # ── DVS provenance — populated when dynasty_value_score is non-null ──────
+    dvs_engine: Optional[str] = None      # "A" | "B" — which engine produced DVS
+    dvs_p90_ref: Optional[float] = None   # P90 constant used at scoring time
+    dvs_clamped: Optional[bool] = None    # True if raw DVS exceeded 100 before clamping
+
     # ── Signal completeness ───────────────────────────────────────────────────
     signal_completeness: float = Field(
         ..., ge=0.0, le=1.0, description="Fraction of required signals present"

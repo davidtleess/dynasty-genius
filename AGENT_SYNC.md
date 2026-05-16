@@ -238,12 +238,16 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 2. Ran 2024–2025 identity reconciliation report → `docs/validation/phase14-identity-reconciliation-2024-2025.md`. **Hard gate PASSED.**
 3. Wrote 11 failing tests (spec sections 5.1–5.11).
 
-**Subphase 14.2 — DVS Assembly and Bridge (NEXT)**
-- Add `dvs_engine`, `dvs_p90_ref`, `dvs_clamped` to `PlayerValueObject`.
-- Remove blocking comment at `pvo_assembler.py` line 316.
-- Implement Engine B DVS formula, Dead Window bridge, TE G3-deferred caveat.
+**Subphase 14.2 — DVS Assembly and Bridge (COMPLETE)**
+- Added `dvs_engine`, `dvs_p90_ref`, `dvs_clamped` to `PlayerValueObject`.
+- Removed blocking comment at `pvo_assembler.py` line 316.
+- Implemented Engine B DVS formula (clamped 0-100 float), Dead Window bridge (Year 1-3 vet fallback to Engine A), and TE G3-deferred caveat.
+- All 11 contract tests (5.1-5.11) implemented and passing.
+- Regression fixed: non-prospects with draft capital no longer promoted to PROSPECT_C model grade.
 
-**Subphase 14.3 — VAR and Calibration Audit (blocked on 14.2)**
+**Subphase 14.3 — VAR and Calibration Audit (NEXT)**
+- Implement `scripts/compute_var_batch.py` (population-level VAR, veterans dark).
+- Implement `scripts/audit_dvs_calibration.py` (isotonic regression vs. market, static artifact only).
 - Implement `scripts/compute_var_batch.py` (population-level VAR, veterans dark).
 - Implement `scripts/audit_dvs_calibration.py` (isotonic regression vs. market, static artifact only).
 
