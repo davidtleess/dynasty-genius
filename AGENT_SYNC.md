@@ -38,6 +38,7 @@ Phase 13 implementation handoff:
     - v10+ local manifest is ignored under `app/data/pff_exports/`; raw PFF CSVs and absolute local paths are not committed.
     - Report covers 110/116 drafted TEs after adding David's local `receiving_summary (18).csv` as the 2017 final-season export; missing 6 = 2018 (1), 2020 (2), 2021 (1), 2022 (1), 2023 (1).
     - David's local `receiving_summary (19).csv` was inspected and is a duplicate of an already represented export, so it adds no new 2020 coverage.
+    - Remaining missing rows are treated as likely PFF collegiate coverage gaps (often FCS/small-school). They are excluded from archetype labeling; no imputation, fuzzy fill, or model materialization.
     - All files use snap-alignment fallback (`inline_snaps`, `slot_snaps`, `wide_snaps`), not route-alignment fields; grade columns are detected and stripped from parser output.
 - Task 13.3.1 READY_WITH_CAVEATS: TE Archetype Rubric review may begin as Step 0 artifact-only work using the redacted report. Caveat: decide whether 96/116 coverage is sufficient or whether to pursue alternate PFF exports for the 20 missing drafted TEs. PFF fields remain context_signal until a later approved spec changes that.
 - 13.1 Identity Audit is the first hard gate.

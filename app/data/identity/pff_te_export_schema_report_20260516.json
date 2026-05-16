@@ -28,6 +28,15 @@
       "download_suffix_13"
     ]
   },
+  "coverage_caveat": {
+    "archetype_labeling_policy": "Missing PFF alignment rows are excluded from archetype assignment; do not impute or fuzzy-fill.",
+    "eligible_count": 116,
+    "likely_missing_reason": "PFF collegiate coverage limitation, commonly FCS or small-school gaps.",
+    "matched_drafted_te_ids": 110,
+    "missing_drafted_te_ids": 6,
+    "model_materialization_policy": "PFF fields remain context_signal only and cannot enter Engine A/B training materialization in Phase 13.",
+    "status": "partial_pff_coverage"
+  },
   "files": [
     {
       "alignment_source": "snaps_fallback",
@@ -219,7 +228,7 @@
       "unmatched_te_ids": 500
     }
   ],
-  "generated_at": "2026-05-16T12:15:00Z",
+  "generated_at": "2026-05-16T12:20:00Z",
   "missing_by_draft_year": {
     "2018": 1,
     "2020": 2,

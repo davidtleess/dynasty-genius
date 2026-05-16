@@ -154,6 +154,15 @@ def test_summarize_pff_te_exports_redacts_local_paths_and_player_names(tmp_path:
     assert "TE Beta" not in rendered
     assert report["files"][0]["file_name"] == "receiving_summary (9).csv"
     assert report["missing_by_draft_year"] == {"2025": 1}
+    assert report["coverage_caveat"] == {
+        "status": "partial_pff_coverage",
+        "matched_drafted_te_ids": 2,
+        "eligible_count": 3,
+        "missing_drafted_te_ids": 1,
+        "likely_missing_reason": "PFF collegiate coverage limitation, commonly FCS or small-school gaps.",
+        "archetype_labeling_policy": "Missing PFF alignment rows are excluded from archetype assignment; do not impute or fuzzy-fill.",
+        "model_materialization_policy": "PFF fields remain context_signal only and cannot enter Engine A/B training materialization in Phase 13.",
+    }
 
 
 def test_summarize_pff_te_exports_rejects_unresolved_eligible_rows(tmp_path: Path) -> None:

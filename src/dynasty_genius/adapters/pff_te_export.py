@@ -327,6 +327,21 @@ def summarize_pff_te_exports(
             "te_promotion_changed": False,
             "market_data_used": False,
         },
+        "coverage_caveat": {
+            "status": "partial_pff_coverage" if missing_ids else "complete_pff_coverage",
+            "matched_drafted_te_ids": len(matched_ids),
+            "eligible_count": len(eligible_ids),
+            "missing_drafted_te_ids": len(missing_ids),
+            "likely_missing_reason": "PFF collegiate coverage limitation, commonly FCS or small-school gaps.",
+            "archetype_labeling_policy": (
+                "Missing PFF alignment rows are excluded from archetype assignment; "
+                "do not impute or fuzzy-fill."
+            ),
+            "model_materialization_policy": (
+                "PFF fields remain context_signal only and cannot enter Engine A/B "
+                "training materialization in Phase 13."
+            ),
+        },
         "files": file_summaries,
         "content_groups": content_groups,
         "missing_by_draft_year": dict(sorted(missing_by_draft_year.items())),
