@@ -61,6 +61,9 @@ Phase 13 implementation handoff:
 - Task 13.3.3 DECISION APPROVED: `docs/validation/phase13-3-3-te-role-risk-decision.md`.
     - Advance only the `role_risk_detector` family to a controlled TE-only model-change experiment.
     - Not production adoption: no Engine B production contract change, promoted artifact, TE promotion, PVO scoring change, market data, PFF grades, or raw/player-level PFF output.
+- Task 13.3.3 PLAN READY: `docs/superpowers/plans/2026-05-16-phase13-3-3-te-role-risk-experiment.md`.
+    - Plan runs a controlled experiment with RMSE/MAE plus Spearman/Kendall deltas and explicit no-promotion gates.
+    - Output remains aggregate-only and validation-only.
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.
@@ -193,7 +196,7 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 
 ## Next Recommended Work
 
-1. **Task 13.3.3 implementation plan** — write the controlled TE-only model-change experiment plan around `role_risk_detector`; do not promote or productionize from 13.3.2 directly.
+1. **Task 13.3.3 execution** — implement the controlled TE-only role-risk experiment plan; do not promote or productionize from the experiment directly.
 2. **PFF parser follow-up** — if alternate route-alignment exports become available, add them to the ignored local manifest and regenerate the redacted report; raw export stays private/untracked.
 3. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
 4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control. Native snapshots needed for G4 by ~Q4 2026.
