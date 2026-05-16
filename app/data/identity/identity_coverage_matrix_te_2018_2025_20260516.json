@@ -1,0 +1,19 @@
+{
+  "run_id": "te_2018_2025_20260516",
+  "run_timestamp": "2026-05-16T03:28:32Z",
+  "timestamp": "2026-05-16T03:28:32Z",
+  "row_count_preserved": true,
+  "total_input_rows": 116,
+  "total_output_rows": 116,
+  "cohort_summary": [
+    {
+      "cohort": "historical_te",
+      "total": 116,
+      "resolved": 116,
+      "review_queue": 0,
+      "resolved_pct": 1.0,
+      "loss_rate": 0.0
+    }
+  ],
+  "duplicate_conflicts": []
+}

@@ -30,7 +30,10 @@ Phase 13 implementation handoff:
     - Export Checklist READY: `docs/validation/phase13-pff-csv-export-checklist.md`.
     - TE Identity Coverage Run Plan READY: `docs/superpowers/plans/2026-05-15-phase13-te-identity-run-plan.md`.
     - BLOCKER: Actual real CSV schema/sample still needed.
-- Task 13.3.1 BLOCKED: TE Archetype Rubric waits for real PFF CSV sample/schema and passing 2018-2025 drafted TE identity coverage artifact.
+- Task 13.3 TE IDENTITY GATE: PASSED — run_id te_2018_2025_20260516; 116/116 resolved (0.0% loss rate); 0 duplicate conflicts; artifacts promoted to app/data/identity/.
+    - Identity snapshot intentionally empty (no DG canonical player_ids assigned yet for historical TEs; gate passes on coverage matrix).
+    - pff_te_eligible manifest: 116 rows, all resolved via ff_playerids_crosswalk with gsis_id + sleeper_id + pff_id.
+- Task 13.3.1 BLOCKED (one remaining blocker): TE Archetype Rubric — identity gate PASSED; waiting only for real PFF CSV sample/schema (Blocker 1 from feasibility memo).
 - 13.1 Identity Audit is the first hard gate.
 - 13.2 Engine A Draft-Capital Bake-Off may research candidates, but promotion waits on locked historical identity coverage.
 - 13.3 TE Remodel is Step 0 only and is gated by 13.1 TE cohort coverage.

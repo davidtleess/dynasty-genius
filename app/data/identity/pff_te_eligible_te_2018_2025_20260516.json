@@ -1,0 +1,936 @@
+{
+  "run_id": "te_2018_2025_20260516",
+  "generated_at": "2026-05-16T03:28:32Z",
+  "eligible_count": 116,
+  "note": "Rows with r.resolved=True (deterministic Stages 1-6). Override registry APPROVED entries should be merged in separately.",
+  "eligible": [
+    {
+      "player_id": null,
+      "sleeper_id": "4973",
+      "gsis_id": "00-0034830",
+      "name": "Hayden Hurst",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47294"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "4993",
+      "gsis_id": "00-0034829",
+      "name": "Mike Gesicki",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47153"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5022",
+      "gsis_id": "00-0034351",
+      "name": "Dallas Goedert",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47272"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5012",
+      "gsis_id": "00-0034753",
+      "name": "Mark Andrews",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47436"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5032",
+      "gsis_id": "00-0034364",
+      "name": "Jordan Akins",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47050"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "4995",
+      "gsis_id": "00-0034365",
+      "name": "Ian Thomas",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "42130"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5009",
+      "gsis_id": "00-0034766",
+      "name": "Chris Herndon",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47164"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5010",
+      "gsis_id": "00-0034159",
+      "name": "Will Dissly",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "30762"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5008",
+      "gsis_id": "00-0034798",
+      "name": "Durham Smythe",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47257"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5001",
+      "gsis_id": "00-0034383",
+      "name": "Dalton Schultz",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47304"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5092",
+      "gsis_id": "00-0034393",
+      "name": "Troy Fumagalli",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47333"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5133",
+      "gsis_id": "00-0034270",
+      "name": "Tyler Conklin",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47124"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5107",
+      "gsis_id": "00-0034331",
+      "name": "Jaylen Samuels",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47297"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5117",
+      "gsis_id": "00-0034420",
+      "name": "Jordan Thomas",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "42062"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5094",
+      "gsis_id": "00-0034439",
+      "name": "Ryan Izzo",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47327"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5844",
+      "gsis_id": "00-0035229",
+      "name": "T.J. Hockenson",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "40912"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5857",
+      "gsis_id": "00-0035644",
+      "name": "Noah Fant",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "42388"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6126",
+      "gsis_id": "00-0034970",
+      "name": "Irv Smith",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "42060"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6001",
+      "gsis_id": "00-0035631",
+      "name": "Drew Sample",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47259"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5973",
+      "gsis_id": "00-0035249",
+      "name": "Josh Oliver",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47083"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6139",
+      "gsis_id": "00-0035671",
+      "name": "Jace Sternberger",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47081"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6164",
+      "gsis_id": "00-0035660",
+      "name": "Kahale Warring",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "37213"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5906",
+      "gsis_id": "00-0035689",
+      "name": "Dawson Knox",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "35883"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6181",
+      "gsis_id": "00-0035259",
+      "name": "Trevon Wesco",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "42018"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5985",
+      "gsis_id": "00-0034981",
+      "name": "Foster Moreau",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47043"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6018",
+      "gsis_id": "00-0035222",
+      "name": "Zach Gentry",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "36049"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6146",
+      "gsis_id": "00-0034988",
+      "name": "Kaden Smith",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "40973"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5957",
+      "gsis_id": "00-0035539",
+      "name": "Isaac Nauta",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47119"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6137",
+      "gsis_id": "00-0035308",
+      "name": "Tommy Sweeney",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47216"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "5975",
+      "gsis_id": "00-0035309",
+      "name": "Alize Mack",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "39770"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6142",
+      "gsis_id": "00-0035320",
+      "name": "Caleb Wilson",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "38305"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6826",
+      "gsis_id": "00-0036290",
+      "name": "Cole Kmet",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "60995"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6956",
+      "gsis_id": "00-0036194",
+      "name": "Devin Asiasi",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "40294"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7050",
+      "gsis_id": "00-0036332",
+      "name": "Josiah Deguara",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47034"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7082",
+      "gsis_id": "00-0036225",
+      "name": "Dalton Keene",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "61068"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6869",
+      "gsis_id": "00-0036422",
+      "name": "Adam Trautman",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "109795"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6850",
+      "gsis_id": "00-0036232",
+      "name": "Harrison Bryant",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "26394"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6843",
+      "gsis_id": "00-0036423",
+      "name": "Albert Okwuegbunam",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "41933"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6865",
+      "gsis_id": "00-0036244",
+      "name": "Colby Parkinson",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "52266"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6926",
+      "gsis_id": "00-0036424",
+      "name": "Brycen Hopkins",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47338"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7075",
+      "gsis_id": "00-0036429",
+      "name": "Charlie Woerner",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "42257"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7131",
+      "gsis_id": "00-0036250",
+      "name": "Tyler Davis",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "47743"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "6970",
+      "gsis_id": "00-0036438",
+      "name": "Stephen Sullivan",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "40411"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7553",
+      "gsis_id": "00-0036970",
+      "name": "Kyle Pitts",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "83964"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7600",
+      "gsis_id": "00-0036894",
+      "name": "Pat Freiermuth",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84085"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7535",
+      "gsis_id": "00-0037004",
+      "name": "Hunter Long",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "60859"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7694",
+      "gsis_id": "00-0037005",
+      "name": "Tommy Tremble",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84025"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7554",
+      "gsis_id": "00-0037011",
+      "name": "Tre' McKitty",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "60896"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7716",
+      "gsis_id": "00-0036628",
+      "name": "John Bates",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "42275"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7602",
+      "gsis_id": "00-0036876",
+      "name": "Kylen Granson",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "40630"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7842",
+      "gsis_id": "00-0036887",
+      "name": "Luke Farrell",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "42353"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7568",
+      "gsis_id": "00-0036556",
+      "name": "Brevin Jordan",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "77887"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7828",
+      "gsis_id": "00-0036637",
+      "name": "Noah Gray",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "60878"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "7943",
+      "gsis_id": "00-0036640",
+      "name": "Zach Davidson",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "143780"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8130",
+      "gsis_id": "00-0037744",
+      "name": "Trey McBride",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "75916"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8219",
+      "gsis_id": "00-0037755",
+      "name": "Jelani Woods",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "60509"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8172",
+      "gsis_id": "00-0037252",
+      "name": "Greg Dulcich",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84068"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8145",
+      "gsis_id": "00-0037805",
+      "name": "Jeremy Ruckert",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84029"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8111",
+      "gsis_id": "00-0038129",
+      "name": "Cade Otton",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "61071"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8225",
+      "gsis_id": "00-0038115",
+      "name": "Daniel Bellinger",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84041"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8127",
+      "gsis_id": "00-0038046",
+      "name": "Charlie Kolar",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "60917"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8110",
+      "gsis_id": "00-0038041",
+      "name": "Jake Ferguson",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "61081"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8131",
+      "gsis_id": "00-0037838",
+      "name": "Isaiah Likely",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "83955"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8210",
+      "gsis_id": "00-0037809",
+      "name": "Chigoziem Okonkwo",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84000"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8214",
+      "gsis_id": "00-0037078",
+      "name": "Cole Turner",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84330"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8227",
+      "gsis_id": "00-0037277",
+      "name": "Teagan Quitoriano",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84036"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8170",
+      "gsis_id": "00-0037282",
+      "name": "James Mitchell",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "77885"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8489",
+      "gsis_id": "00-0037292",
+      "name": "Drew Ogletree",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "138351"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8177",
+      "gsis_id": "00-0037086",
+      "name": "Grant Calcaterra",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "60997"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8181",
+      "gsis_id": "00-0037304",
+      "name": "Connor Heyward",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "57301"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8500",
+      "gsis_id": "00-0037306",
+      "name": "John FitzPatrick",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "83974"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8484",
+      "gsis_id": "00-0037311",
+      "name": "Ko Kieft",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "41372"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "8523",
+      "gsis_id": "00-0037317",
+      "name": "Nick Muse",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "61079"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "10236",
+      "gsis_id": "00-0038933",
+      "name": "Dalton Kincaid",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "91791"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "10859",
+      "gsis_id": "00-0039065",
+      "name": "Sam LaPorta",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "101690"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "9482",
+      "gsis_id": "00-0039066",
+      "name": "Michael Mayer",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "122906"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "9481",
+      "gsis_id": "00-0039144",
+      "name": "Luke Musgrave",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "98499"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "10871",
+      "gsis_id": "00-0038547",
+      "name": "Luke Schoonmaker",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84005"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "9480",
+      "gsis_id": "00-0038935",
+      "name": "Brenton Strange",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "101694"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "9484",
+      "gsis_id": "00-0038996",
+      "name": "Tucker Kraft",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "104034"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "9479",
+      "gsis_id": "00-0038558",
+      "name": "Darnell Washington",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "124044"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "10210",
+      "gsis_id": "00-0038564",
+      "name": "Cameron Latu",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "82647"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "10212",
+      "gsis_id": "00-0038589",
+      "name": "Josh Whyle",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "54037"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "10220",
+      "gsis_id": "00-0038394",
+      "name": "Will Mallory",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "77888"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "10227",
+      "gsis_id": "00-0039050",
+      "name": "Payne Durham",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84037"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "10214",
+      "gsis_id": "00-0039074",
+      "name": "Davis Allen",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "99697"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "9483",
+      "gsis_id": "00-0038406",
+      "name": "Zack Kuntz",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84084"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "10224",
+      "gsis_id": "00-0038643",
+      "name": "Brayden Willis",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "77917"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11604",
+      "gsis_id": "00-0039338",
+      "name": "Brock Bowers",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "146715"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11596",
+      "gsis_id": "00-0039912",
+      "name": "Ben Sinnott",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "122616"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11716",
+      "gsis_id": "00-0039737",
+      "name": "Tip Reiman",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "129423"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11600",
+      "gsis_id": "00-0039356",
+      "name": "Ja'Tavion Sanders",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "144717"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11597",
+      "gsis_id": "00-0039847",
+      "name": "Theo Johnson",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "129787"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11592",
+      "gsis_id": "00-0039814",
+      "name": "Erick All",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "52595"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11603",
+      "gsis_id": "00-0039793",
+      "name": "AJ Barner",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "129433"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11599",
+      "gsis_id": "00-0039359",
+      "name": "Cade Stover",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "101486"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11595",
+      "gsis_id": "00-0039824",
+      "name": "Jared Wiley",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "98508"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11598",
+      "gsis_id": "00-0039399",
+      "name": "Tanner McLachlan",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "87645"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11605",
+      "gsis_id": "00-0039420",
+      "name": "Jaheim Bell",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "124225"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "11820",
+      "gsis_id": "00-0039754",
+      "name": "Devin Culp",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "84080"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12517",
+      "gsis_id": "00-0040126",
+      "name": "Colston Loveland",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "158540"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12518",
+      "gsis_id": "00-0040128",
+      "name": "Tyler Warren",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "129798"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12498",
+      "gsis_id": "00-0040736",
+      "name": "Mason Taylor",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "157122"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12487",
+      "gsis_id": "00-0040737",
+      "name": "Terrance Ferguson",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "146563"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12521",
+      "gsis_id": "00-0040739",
+      "name": "Elijah Arroyo",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "143933"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12506",
+      "gsis_id": "00-0040663",
+      "name": "Harold Fannin",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "163104"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12502",
+      "gsis_id": "00-0040584",
+      "name": "Gunnar Helm",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "144726"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12473",
+      "gsis_id": "00-0040187",
+      "name": "Mitchell Evans",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "147486"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12493",
+      "gsis_id": "00-0040189",
+      "name": "Oronde Gadsden",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "144046"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12658",
+      "gsis_id": "00-0040194",
+      "name": "Jackson Hawes",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "109374"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12656",
+      "gsis_id": "00-0040649",
+      "name": "Robbie Ouzts",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "146594"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12700",
+      "gsis_id": "00-0040215",
+      "name": "Gavin Bartholomew",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "144013"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12715",
+      "gsis_id": "00-0040225",
+      "name": "Thomas Fidone",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "144997"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12735",
+      "gsis_id": "00-0040240",
+      "name": "Caleb Lohner",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "188299"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12480",
+      "gsis_id": "00-0040244",
+      "name": "Moliki Matavao",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "146561"
+    },
+    {
+      "player_id": null,
+      "sleeper_id": "12725",
+      "gsis_id": "00-0040250",
+      "name": "Luke Lachey",
+      "resolution_stage": "ff_playerids_crosswalk",
+      "pff_id": "129475"
+    }
+  ]
+}
