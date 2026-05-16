@@ -61,6 +61,9 @@ app/data/backtest/runs/
 # Promoted governance artifacts in app/data/identity/ are committed only after David approval
 app/data/identity/_runs/
 
+# PFF manual exports and local manifests are private subscriber data / local paths
+app/data/pff_exports/
+
 # Dependencies
 node_modules/
 __pycache__/

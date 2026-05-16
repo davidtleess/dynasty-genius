@@ -1,0 +1,223 @@
+{
+  "content_groups": {
+    "2c402a3d6472": [
+      "download_suffix_12"
+    ],
+    "3af6ec13e8bf": [
+      "download_suffix_15"
+    ],
+    "8b4d4c12617f": [
+      "download_suffix_17"
+    ],
+    "951db6a1bd6f": [
+      "download_suffix_11"
+    ],
+    "a8da0319b61e": [
+      "download_suffix_14"
+    ],
+    "e31b654d89c1": [
+      "download_suffix_16"
+    ],
+    "f1f8b161da1a": [
+      "download_suffix_10"
+    ],
+    "f6a730add184": [
+      "download_suffix_13"
+    ]
+  },
+  "files": [
+    {
+      "alignment_source": "snaps_fallback",
+      "content_hash": "f1f8b161da1a",
+      "file_name": "receiving_summary (10).csv",
+      "header_hash": "a513f4e030fa",
+      "matched_drafted_te_ids": 51,
+      "prohibited_columns": [
+        "grades_hands_drop",
+        "grades_hands_fumble",
+        "grades_offense",
+        "grades_pass_block",
+        "grades_pass_route"
+      ],
+      "required_missing": [],
+      "row_count": 2128,
+      "season": 2018,
+      "source_label": "download_suffix_10",
+      "te_rows": 402,
+      "unique_te_ids": 402,
+      "unmatched_te_ids": 351
+    },
+    {
+      "alignment_source": "snaps_fallback",
+      "content_hash": "951db6a1bd6f",
+      "file_name": "receiving_summary (11).csv",
+      "header_hash": "a513f4e030fa",
+      "matched_drafted_te_ids": 45,
+      "prohibited_columns": [
+        "grades_hands_drop",
+        "grades_hands_fumble",
+        "grades_offense",
+        "grades_pass_block",
+        "grades_pass_route"
+      ],
+      "required_missing": [],
+      "row_count": 2080,
+      "season": 2019,
+      "source_label": "download_suffix_11",
+      "te_rows": 398,
+      "unique_te_ids": 398,
+      "unmatched_te_ids": 353
+    },
+    {
+      "alignment_source": "snaps_fallback",
+      "content_hash": "2c402a3d6472",
+      "file_name": "receiving_summary (12).csv",
+      "header_hash": "a513f4e030fa",
+      "matched_drafted_te_ids": 41,
+      "prohibited_columns": [
+        "grades_hands_drop",
+        "grades_hands_fumble",
+        "grades_offense",
+        "grades_pass_block",
+        "grades_pass_route"
+      ],
+      "required_missing": [],
+      "row_count": 1869,
+      "season": 2020,
+      "source_label": "download_suffix_12",
+      "te_rows": 360,
+      "unique_te_ids": 360,
+      "unmatched_te_ids": 319
+    },
+    {
+      "alignment_source": "snaps_fallback",
+      "content_hash": "f6a730add184",
+      "file_name": "receiving_summary (13).csv",
+      "header_hash": "a513f4e030fa",
+      "matched_drafted_te_ids": 50,
+      "prohibited_columns": [
+        "grades_hands_drop",
+        "grades_hands_fumble",
+        "grades_offense",
+        "grades_pass_block",
+        "grades_pass_route"
+      ],
+      "required_missing": [],
+      "row_count": 2151,
+      "season": 2021,
+      "source_label": "download_suffix_13",
+      "te_rows": 429,
+      "unique_te_ids": 429,
+      "unmatched_te_ids": 379
+    },
+    {
+      "alignment_source": "snaps_fallback",
+      "content_hash": "a8da0319b61e",
+      "file_name": "receiving_summary (14).csv",
+      "header_hash": "a513f4e030fa",
+      "matched_drafted_te_ids": 38,
+      "prohibited_columns": [
+        "grades_hands_drop",
+        "grades_hands_fumble",
+        "grades_offense",
+        "grades_pass_block",
+        "grades_pass_route"
+      ],
+      "required_missing": [],
+      "row_count": 2184,
+      "season": 2022,
+      "source_label": "download_suffix_14",
+      "te_rows": 443,
+      "unique_te_ids": 443,
+      "unmatched_te_ids": 405
+    },
+    {
+      "alignment_source": "snaps_fallback",
+      "content_hash": "3af6ec13e8bf",
+      "file_name": "receiving_summary (15).csv",
+      "header_hash": "a513f4e030fa",
+      "matched_drafted_te_ids": 25,
+      "prohibited_columns": [
+        "grades_hands_drop",
+        "grades_hands_fumble",
+        "grades_offense",
+        "grades_pass_block",
+        "grades_pass_route"
+      ],
+      "required_missing": [],
+      "row_count": 2237,
+      "season": 2023,
+      "source_label": "download_suffix_15",
+      "te_rows": 460,
+      "unique_te_ids": 460,
+      "unmatched_te_ids": 435
+    },
+    {
+      "alignment_source": "snaps_fallback",
+      "content_hash": "e31b654d89c1",
+      "file_name": "receiving_summary (16).csv",
+      "header_hash": "a513f4e030fa",
+      "matched_drafted_te_ids": 16,
+      "prohibited_columns": [
+        "grades_hands_drop",
+        "grades_hands_fumble",
+        "grades_offense",
+        "grades_pass_block",
+        "grades_pass_route"
+      ],
+      "required_missing": [],
+      "row_count": 2252,
+      "season": 2024,
+      "source_label": "download_suffix_16",
+      "te_rows": 479,
+      "unique_te_ids": 479,
+      "unmatched_te_ids": 463
+    },
+    {
+      "alignment_source": "snaps_fallback",
+      "content_hash": "8b4d4c12617f",
+      "file_name": "receiving_summary (17).csv",
+      "header_hash": "a513f4e030fa",
+      "matched_drafted_te_ids": 0,
+      "prohibited_columns": [
+        "grades_hands_drop",
+        "grades_hands_fumble",
+        "grades_offense",
+        "grades_pass_block",
+        "grades_pass_route"
+      ],
+      "required_missing": [],
+      "row_count": 2344,
+      "season": 2025,
+      "source_label": "download_suffix_17",
+      "te_rows": 500,
+      "unique_te_ids": 500,
+      "unmatched_te_ids": 500
+    }
+  ],
+  "generated_at": "2026-05-16T11:45:00Z",
+  "missing_by_draft_year": {
+    "2018": 15,
+    "2020": 2,
+    "2021": 1,
+    "2022": 1,
+    "2023": 1
+  },
+  "notes": [
+    "Raw PFF CSV rows remain private and uncommitted.",
+    "Report intentionally excludes player names and local absolute paths.",
+    "PFF fields remain context_signal only; no Engine A/B training materialization."
+  ],
+  "scope": "Phase 13.3 Step 0 schema and drafted-TE coverage report",
+  "source": "pff_premium_stats_manual_csv",
+  "summary": {
+    "eligible_count": 116,
+    "file_count": 8,
+    "market_data_used": false,
+    "missing_drafted_te_ids": 20,
+    "model_features_changed": false,
+    "raw_rows_materialized": 0,
+    "te_promotion_changed": false,
+    "unique_matched_drafted_te_ids": 96
+  }
+}
