@@ -57,6 +57,20 @@
     .tab.active { color: #f1f5f9; border-bottom-color: #3b82f6; }
     .tab:hover:not(.active) { color: #94a3b8; }
 
+    /* ── Available panel ── */
+    .avail-wrap { padding: 12px 24px 0; max-width: 960px; border-bottom: 1px solid #1e293b; margin-bottom: 4px; }
+    .avail-label { font-size: 10px; color: #475569; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .avail-cards { display: flex; gap: 10px; }
+    .avail-card { flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 10px 12px; min-width: 0; }
+    .avail-card-QB { border-left: 3px solid #7c3aed; }
+    .avail-card-WR { border-left: 3px solid #2563eb; }
+    .avail-card-RB { border-left: 3px solid #16a34a; }
+    .avail-card-TE { border-left: 3px solid #d97706; }
+    .avail-rank { font-size: 11px; color: #64748b; margin-bottom: 2px; }
+    .avail-name { font-size: 14px; font-weight: 600; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .avail-meta { font-size: 11px; color: #64748b; margin-top: 4px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .avail-te-caveat { font-size: 9px; color: #78716c; margin-top: 8px; padding-top: 8px; border-top: 1px solid #1e293b; }
+
     /* ── Cards ── */
     .cards-wrap { padding: 16px 24px; max-width: 960px; }
     .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
@@ -153,6 +167,7 @@
 <div id="draftStatusBanner"></div>
 <div class="need-banner" id="needBanner"></div>
 <div class="tabs" id="tabs"></div>
+<div id="availablePanel"></div>
 <div class="cards-wrap" id="cardsWrap"></div>
 
 <script>
@@ -358,8 +373,56 @@ function cardHtml(card, rank) {
   );
 }
 
+// Available-now panel: top 3 non-taken scored picks by xvar_class_rank
+function renderAvailablePanel() {
+  var el = document.getElementById('availablePanel');
+  if (!el) return;
+
+  var pool = activeTab === 'All' ? CARDS : CARDS.filter(function(c){ return c.position === activeTab; });
+  var available = pool.filter(function(c) {
+    return !isTaken(c) && c.xvar_class_rank != null;
+  }).slice().sort(function(a, b) { return a.xvar_class_rank - b.xvar_class_rank; });
+  var top3 = available.slice(0, 3);
+
+  if (top3.length === 0) { el.innerHTML = ''; return; }
+
+  var hasTE = top3.some(function(c) { return c.position === 'TE'; });
+  var posLabel = activeTab === 'All' ? '' : activeTab + ' ';
+
+  var cardHtmls = top3.map(function(c) {
+    var dvsStr = c.dvs_class_rank != null ? 'DVS #' + c.dvs_class_rank : '';
+    var delta = c.rank_delta;
+    var deltaStr = delta == null ? '' :
+      delta < 0 ? '<span class="rank-rose">&#8593;' + Math.abs(delta) + '</span>' :
+      delta > 0 ? '<span class="rank-fell">&#8595;' + delta + '</span>' : '';
+    return (
+      '<div class="avail-card avail-card-' + c.position + '">' +
+        '<div class="avail-rank">xVAR #' + c.xvar_class_rank + '</div>' +
+        '<div class="avail-name">' + esc(c.full_name) + '</div>' +
+        '<div class="avail-meta">' +
+          '<span class="badge b-' + c.position + '">' + esc(c.position) + '</span>' +
+          (dvsStr ? '<span>' + dvsStr + '</span>' : '') +
+          (deltaStr ? deltaStr : '') +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+
+  var teCaveat = hasTE
+    ? '<div class="avail-te-caveat">TE xVAR is WR-equivalent Superflex replacement-adjusted; high TE DVS can still be below replacement.</div>'
+    : '';
+
+  el.innerHTML =
+    '<div class="avail-wrap">' +
+      '<div class="avail-label">Available ' + posLabel + '&mdash; top ' + top3.length + '</div>' +
+      '<div class="avail-cards">' + cardHtmls + '</div>' +
+      teCaveat +
+    '</div>';
+}
+
 // Main render
 function renderCards() {
+  renderAvailablePanel();
   var el = document.getElementById('cardsWrap');
   var filtered = activeTab === 'All' ? CARDS : CARDS.filter(function(c){ return c.position === activeTab; });
   var sorted   = sortCards(filtered);
