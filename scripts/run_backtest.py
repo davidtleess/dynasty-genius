@@ -68,7 +68,7 @@ def _run_position(
         run_dir / f"predictions_{position}.csv",
     )
     market_entries = [
-        MarketComparisonEntry.model_validate(row)
+        MarketComparisonEntry.parse_obj(row)
         for row in getattr(driver, "market_comparison_rows", [])
     ]
     write_market_comparison_json(

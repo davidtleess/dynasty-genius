@@ -550,7 +550,7 @@ def assemble_roster_audit(
                 "identity_snapshot_date": snapshot_date or "unknown",
             },
         )
-        cards.append(pvo.model_dump())
+        cards.append(pvo.dict())
 
     return cards
 
