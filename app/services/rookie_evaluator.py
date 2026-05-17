@@ -246,7 +246,7 @@ def _dynasty_valuation(
             CLASS_RANK_NOTE,
         ],
     )
-    return valuation.model_dump(mode="json")
+    return json.loads(valuation.json())
 
 
 def score_prospect(

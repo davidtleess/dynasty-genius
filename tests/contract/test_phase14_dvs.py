@@ -77,14 +77,14 @@ def test_dvs_provenance_fields():
     assert isinstance(pvo.dvs_clamped, bool)
 
 def test_dead_window_caveat_engine_a_fallback_present():
-    """5.4 Dead Window Caveat (Fallback Present): games_t < 8, Engine A inputs exist -> Engine A DVS + caveat."""
+    """5.4 Dead Window — Phase 15 Blend: games_t < 8 with both Engine A and B inputs -> Bayesian blend DVS."""
     identity = _mock_identity("WR")
     # Player is not a prospect (is_prospect=False default), but has low games_t
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
         "games_t": 4, # Dead Window
         "feature_season": 2024,
-        "pick": 10.0, "round": 1.0, "age": 22.0 # Engine A inputs
+        "pick": 10.0, "round": 1.0, "age": 22.0 # Engine A inputs — both engines present → blend
     }
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine == "A"
@@ -102,6 +102,7 @@ def test_dead_window_caveat_engine_a_fallback_absent():
     }
     pvo = assemble_pvo(identity, features)
     assert pvo.dynasty_value_score is None
+    assert pvo.dvs_engine == "A"
     assert any("Insufficient professional season data" in c for c in pvo.caveats)
 
 def test_te_g3_deferred_caveat():

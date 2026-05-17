@@ -41,6 +41,60 @@ ENGINE_B_VAR_THRESHOLDS: dict[str, int] = {
     "TE": 13,
 }
 
+# ── Cross-Positional Scarcity Multipliers (Λ_pos) ─────────────────────────────
+# Derived from P90 ratios relative to the WR anchor (WR = 1.000).
+# Allows comparing DVS points above replacement across positions.
+XVAR_LAMBDA_ENGINE_B: dict[str, float] = {
+    "QB": 1.386,
+    "RB": 1.083,
+    "WR": 1.000,
+    "TE": 0.648,
+}
+
+XVAR_LAMBDA_ENGINE_A: dict[str, float] = {
+    "QB": 1.315,
+    "RB": 1.150,
+    "WR": 1.000,
+    "TE": 0.717,
+}
+
+XVAR_ANCHOR_POSITION: str = "WR"
+
+# ── Trade Evaluation Constants ───────────────────────────────────────────────
+TRADE_PARITY_BAND: float = 0.10
+CONSOLIDATION_KAPPA: float = 0.04
+CONSOLIDATION_FLOOR: float = 0.80
+
+# ── Refreshed Replacement DVS Baselines (Season 2024 Inference) ───────────────
+# Derived via scripts/refresh_var_baselines_15.py on 2026-05-16.
+# Formula: Replacement_PPG / POSITION_P90_PPG * 100
+ENGINE_B_REPLACEMENT_DVS: dict[str, float] = {
+    "QB": 64.2,  # 12.91 / 20.1
+    "RB": 46.4,  # 7.29 / 15.7
+    "WR": 60.6,  # 8.79 / 14.5
+    "TE": 95.6,  # 8.99 / 9.4
+}
+
+# Derived from inference-time baselines normalized by Engine A P90 constants.
+# Ensures xVAR calculation is consistent for prospects.
+ENGINE_A_REPLACEMENT_DVS: dict[str, float] = {
+    "QB": 77.3,  # 12.91 / 16.7
+    "RB": 49.9,  # 7.29 / 14.6
+    "WR": 69.2,  # 8.79 / 12.7
+    "TE": 98.8,  # 8.99 / 9.1
+}
+
+# ── Bayesian Blending Constants ──────────────────────────────────────────────
+
+# k_pos: the effective number of games at which the likelihood (Engine B)
+# is equal-weighted to the prior (Engine A).
+DVS_BLEND_K: dict[str, int] = {
+    "QB": 6,
+    "RB": 5,
+    "WR": 5,
+    "TE": 7,
+}
+
 # Minimum games in feature season required for Engine B DVS eligibility.
 # Below this threshold, a player is in the Dead Window: retain Engine A DVS
 # with explicit caveat, or stay PRE_MODEL if Engine A data is also absent.

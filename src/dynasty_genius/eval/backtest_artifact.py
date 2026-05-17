@@ -125,7 +125,7 @@ class BacktestResult(BaseModel):
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"backtest_result_{self.position}.json"
         path.write_text(
-            self.model_dump_json(indent=2),
+            self.json(indent=2),
             encoding="utf-8",
         )
         return path
@@ -133,7 +133,7 @@ class BacktestResult(BaseModel):
     @classmethod
     def load(cls, path: Path) -> BacktestResult:
         """Load artifact from JSON file."""
-        return cls.model_validate_json(path.read_text(encoding="utf-8"))
+        return cls.parse_raw(path.read_text(encoding="utf-8"))
 
     @staticmethod
     def artifact_hash(pkl_path: Path) -> str:

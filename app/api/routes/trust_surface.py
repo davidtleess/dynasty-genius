@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, HTTPException
 from pathlib import Path
 from typing import Any
@@ -56,7 +58,7 @@ async def get_trust_surface(position: str) -> dict[str, Any]:
     result = artifacts[0]
 
     # Serialize to JSON-safe dict; hoist overall_grade for top-level access
-    data = result.model_dump(mode="json")
+    data = json.loads(result.json())
     data["overall_grade"] = result.promotion_gate.overall_grade
     data["experimental"] = result.promotion_gate.overall_grade == "EXPERIMENTAL"
     data["model_card_available"] = (
@@ -89,4 +91,4 @@ async def get_model_card(position: str) -> dict[str, Any]:
             ),
         )
 
-    return ModelCard.load(card_path).model_dump(mode="json")
+    return json.loads(ModelCard.load(card_path).json())

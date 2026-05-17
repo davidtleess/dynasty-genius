@@ -120,7 +120,7 @@ def test_model_card_save_and_load_round_trips(tmp_path):
     path = tmp_path / "WR_model_card.json"
     card.save(path)
     loaded = ModelCard.load(path)
-    assert loaded.model_dump() == card.model_dump()
+    assert loaded.dict() == card.dict()
 
 
 def test_model_card_is_experimental_flag_true_for_te():
@@ -149,17 +149,17 @@ def test_calibration_report_save_and_load_round_trips(tmp_path):
     report = _calibration_report()
     path = tmp_path / "WR_calibration_report.json"
     report.save(path)
-    loaded = CalibrationReport.model_validate_json(path.read_text())
-    assert loaded.model_dump() == report.model_dump()
+    loaded = CalibrationReport.parse_raw(path.read_text())
+    assert loaded.dict() == report.dict()
 
 
 def test_model_card_subgroup_results_allow_empty_list():
     """subgroup_results may be an empty list (e.g., missing age column in CSV)."""
     card = _model_card()
-    card_no_subgroups = card.model_copy(update={"subgroup_results": []})
+    card_no_subgroups = card.copy(update={"subgroup_results": []})
     assert card_no_subgroups.subgroup_results == []
     # round-trip preserves empty list
-    data = card_no_subgroups.model_dump()
+    data = card_no_subgroups.dict()
     assert data["subgroup_results"] == []
 
 

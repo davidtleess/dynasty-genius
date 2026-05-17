@@ -170,7 +170,7 @@ def test_overlay_source_is_fantasycalc():
 def test_no_banned_fields_in_overlay_model_dump():
     pvo = _pvo("9509", "RB", 15.0, age=24.2)
     compute_divergence([pvo], FIXTURE)
-    dumped = pvo.model_dump()
+    dumped = pvo.dict()
     found = BANNED_FIELDS & set(dumped.keys())
     assert not found, f"Banned fields found: {found}"
 
@@ -197,6 +197,6 @@ def test_market_value_matches_fixture_for_known_player():
 def test_combined_value_not_stored_on_overlay():
     pvo = _pvo("9509", "RB", 15.0, age=24.2)
     compute_divergence([pvo], FIXTURE)
-    dumped = pvo.market_overlay.model_dump()
+    dumped = pvo.market_overlay.dict()
     assert "combinedValue" not in dumped
     assert "redraftValue" not in dumped

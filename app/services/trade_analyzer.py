@@ -255,6 +255,6 @@ def analyze_trade_pvo(my_assets: list[dict], their_assets: list[dict]) -> dict:
         ],
         "delta_status": delta_status,
         "uncertainty_note": "RMSE: QB=4.51, RB=3.58, WR=2.89. TE model is experimental.",
-        "my_assets": [pvo.model_dump() for pvo in my_pvos],
-        "their_assets": [pvo.model_dump() for pvo in their_pvos]
+        "my_assets": [pvo.dict() for pvo in my_pvos],
+        "their_assets": [pvo.dict() for pvo in their_pvos]
     }

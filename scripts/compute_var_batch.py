@@ -21,23 +21,14 @@ def compute_var_batch(
     feature_season: int
 ) -> dict[str, Any]:
     """Compute within-position VAR for Engine B active players."""
+    # Use model predictions if available; fall back to realized outcomes from training CSV.
+    pred_col = "predicted_avg_ppg_t1_t2" if "predicted_avg_ppg_t1_t2" in df.columns else "avg_ppg_t1_t2"
+    
     # Filter to active Engine B population for the given season
-    # (Requirement: non-null predicted_avg_ppg_t1_t2)
     active = df[
         (df["feature_season"] == feature_season) &
-        (df["avg_ppg_t1_t2"].notna()) # Wait, is it avg_ppg_t1_t2 (outcome) or prediction?
-        # Instruction says: "Sort all active Engine B players by predicted_avg_ppg_t1_t2"
+        (df[pred_col].notna())
     ].copy()
-    
-    # Actually, the CSV has 'avg_ppg_t1_t2' as the target.
-    # In a real inference run, we'd have a 'predicted_ppg' column.
-    # For the audit script, I'll look for a prediction column or assume one exists.
-    # If not, I'll use avg_ppg_t1_t2 as a proxy for the 'ideal' model.
-    # Let me check the column names in engine_b_features_v2.csv again.
-    
-    pred_col = "avg_ppg_t1_t2" # Proxy for prediction in this audit script
-    if "predicted_avg_ppg_t1_t2" in df.columns:
-        pred_col = "predicted_avg_ppg_t1_t2"
 
     results = {}
     position_stats = {}

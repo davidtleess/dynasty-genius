@@ -53,7 +53,7 @@ def score_single(prospect: ProspectRequest) -> dict:
         from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
         pvo = _map_prospect_to_pvo(prospect)
         enrich_pvo_list_with_market_overlay([pvo])
-        return pvo.model_dump()
+        return pvo.dict()
     except (ValueError, KeyError) as e:
         raise HTTPException(status_code=422, detail=str(e))
 
@@ -68,6 +68,6 @@ def score_class(prospects: list[ProspectRequest]) -> list[dict]:
             reverse=True,
         )
         enrich_pvo_list_with_market_overlay(pvos)
-        return [p.model_dump() for p in pvos]
+        return [p.dict() for p in pvos]
     except (ValueError, KeyError) as e:
         raise HTTPException(status_code=422, detail=str(e))

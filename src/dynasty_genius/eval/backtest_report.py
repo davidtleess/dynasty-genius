@@ -62,7 +62,7 @@ def write_market_comparison_json(
 ) -> None:
     """Write market-comparison entries to a JSON array."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = [entry.model_dump(mode="json") for entry in entries]
+    payload = [json.loads(entry.json()) for entry in entries]
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 

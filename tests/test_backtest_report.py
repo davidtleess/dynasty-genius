@@ -360,7 +360,7 @@ def test_build_divergence_ledger_writes_json(tmp_path):
     ledger_path = output_dir / "divergence_ledger_WR.json"
     assert ledger_path.exists()
     raw = json.loads(ledger_path.read_text())
-    validated = [DivergenceLedgerEntry.model_validate(row) for row in raw]
+    validated = [DivergenceLedgerEntry.parse_obj(row) for row in raw]
     assert len(validated) == 1
     assert validated[0].player_id == "p1"
     assert validated[0].flagged_direction == "model_higher"

@@ -21,6 +21,12 @@ from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_FEATURES_BY_POSITION,
     ENGINE_B_P90_PPG,
     ENGINE_B_MIN_GAMES_T,
+    XVAR_ANCHOR_POSITION,
+    ENGINE_B_REPLACEMENT_DVS,
+    ENGINE_A_REPLACEMENT_DVS,
+    DVS_BLEND_K,
+    XVAR_LAMBDA_ENGINE_B,
+    XVAR_LAMBDA_ENGINE_A,
 )
 from src.dynasty_genius.scoring.engine_a import score_prospect, _P90_PPG
 
@@ -304,6 +310,9 @@ def assemble_pvo(
     dvs_clamped_val: Optional[bool] = None
     source_season: Optional[int] = None
     projection_2y: Optional[float] = None
+    xvar: Optional[float] = None
+    xvar_anchor: Optional[str] = None
+    dvs_blend_weight_b: Optional[float] = None
 
     if engine_a_result:
         # DVS engine A always populates provenance if score is present
@@ -326,7 +335,6 @@ def assemble_pvo(
                 if caveat not in caveats:
                     caveats.append(caveat)
 
-    # Engine B: populate active-player metadata from resolved score.
     if engine_b_resolved:
         engine_used = "engine_b"
         model_version = engine_b_resolved["engine"]
@@ -362,23 +370,53 @@ def assemble_pvo(
             dvs_clamped_val = dvs_clamped_flag
 
         # Dead Window bridge: player has exited prospect status and Engine B feature data
-        # exists, but games_t is below the reliability threshold. Retain Engine A DVS as
-        # a prior if draft capital is present; otherwise stay PRE_MODEL.
-        # The caveat is mandatory — the user must know the score rests on draft capital,
-        # not verified professional efficiency.
+        # exists, but games_t is below the reliability threshold. 
+        # Phase 15: Implement precision-weighted Bayesian blend for games_t [1, 7].
+        # Discontinuity fix: w_B = n / (n + k_pos).
         if engine_b_resolved and _below_games_gate:
             _dw_caveat = (
                 "Insufficient professional season data — Engine A prospect score used as prior"
             )
-            # Try Engine A fallback (reuse engine_a_result computed above)
-            if engine_a_result:
+            # Bayesian Blend (requires both A and B inputs)
+            _n = float(games_t) if games_t is not None else 0.0
+            _k = DVS_BLEND_K.get(pos_upper, 5)
+            
+            # Components
+            _dvs_a = engine_a_result["dynasty_value_score"] if engine_a_result else None
+            _dvs_b = (projection_2y / _b_p90 * 100.0) if (projection_2y is not None and _b_p90) else None
+            
+            if _dvs_a is not None and _dvs_b is not None and 1 <= _n < ENGINE_B_MIN_GAMES_T:
+                # Precision-weighted blend
+                _w_b = _n / (_n + _k)
+                dynasty_value_score = round((1 - _w_b) * _dvs_a + _w_b * _dvs_b, 1)
+                dvs_engine = "blend"
+                dvs_blend_weight_b = round(_w_b, 3)
+            elif engine_a_result:
+                # Fallback to pure Engine A prior (retains Phase 14 behavior for n=0 or missing B)
+                # DVS engine is "A" because only Engine A is contributing
                 dynasty_value_score = engine_a_result["dynasty_value_score"]
                 dvs_engine = "A"
                 dvs_p90_ref_val = _P90_PPG.get(pos_upper)
                 dvs_clamped_val = engine_a_result["dynasty_value_score"] >= 100.0
+            else:
+                # Spec 3.4: DVS = None. dvs_engine = 'A' (provenance of fallback shell).
+                dynasty_value_score = None
+                dvs_engine = "A"
+            
             # Caveat is appended regardless of whether Engine A data was available.
             if _dw_caveat not in caveats:
                 caveats.append(_dw_caveat)
+
+        # Cross-Positional Architecture (xVAR) — Phase 15.
+        # Translates DVS into a unified unit (WR-equivalent points above replacement).
+        if dynasty_value_score is not None:
+            # Engine A Λ applies for both pure Engine A and blend (prior dominates blend window).
+            _repl_map = ENGINE_A_REPLACEMENT_DVS if dvs_engine in ("A", "blend") else ENGINE_B_REPLACEMENT_DVS
+            _repl = _repl_map.get(pos_upper, 0.0)
+            _lambda_map = XVAR_LAMBDA_ENGINE_A if dvs_engine in ("A", "blend") else XVAR_LAMBDA_ENGINE_B
+            _multiplier = _lambda_map.get(pos_upper, 1.0)
+            xvar = round((dynasty_value_score - _repl) * _multiplier, 2)
+            xvar_anchor = XVAR_ANCHOR_POSITION
 
         # TE-specific caveat: G3 (market superiority) deferred; decision_supported = False.
         if pos_upper == "TE" and model_grade == "ACTIVE_B":
@@ -412,6 +450,9 @@ def assemble_pvo(
         dvs_engine=dvs_engine,
         dvs_p90_ref=dvs_p90_ref_val,
         dvs_clamped=dvs_clamped_val,
+        xvar=xvar,
+        xvar_anchor=xvar_anchor,
+        dvs_blend_weight_b=dvs_blend_weight_b,
         projection_1y=None,
         projection_2y=projection_2y,
         projection_3y=None,

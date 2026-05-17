@@ -44,7 +44,7 @@ def test_assemble_pvo_includes_local_roster_audit_without_market_overlay():
         features,
         league_context=league_context,
     )
-    card = pvo.model_dump()
+    card = pvo.dict()
 
     assert card["model_grade"] == "PRE_MODEL"
     assert card["dynasty_value_score"] is None

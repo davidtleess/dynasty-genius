@@ -402,7 +402,7 @@ def _qb_context_annotations(player: dict) -> dict:
     }
 
 
-def _build_qb_context_card(player: dict, bridge_entry: dict, telemetry: dict | None) -> dict:
+def _build_qb_context_card(player: dict, bridge_entry: dict, telemetry: Optional[dict]) -> dict:
     pid = player.get("player_id", "")
     full_name = player.get("full_name", "")
     coverage = bridge_entry.get("coverage", "NONE")
@@ -497,7 +497,7 @@ async def run_audit_pvo() -> dict:
         "decision_supported": False,
         "reason": _PVO_REASON,
         "caveats": _PVO_CAVEATS,
-        "players": [pvo.model_dump() for pvo in pvos],
+        "players": [pvo.dict() for pvo in pvos],
         "qb_context_cards": _build_qb_context_cards(players),
     }
 

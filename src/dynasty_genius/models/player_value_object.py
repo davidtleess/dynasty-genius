@@ -73,7 +73,6 @@ class PlayerValueObject(BaseModel):
     engine_used: Optional[str] = None        # "engine_a" | "engine_b" | None
     model_version: Optional[str] = None
     model_grade: str = "PRE_MODEL"           # PRE_MODEL | EXPERIMENTAL | DECISION_GRADE
-
     # ── Scores — None until model_grade is DECISION_GRADE ────────────────────
     dynasty_value_score: Optional[float] = None
     projection_1y: Optional[float] = None
@@ -81,9 +80,22 @@ class PlayerValueObject(BaseModel):
     projection_3y: Optional[float] = None
 
     # ── DVS provenance — populated when dynasty_value_score is non-null ──────
-    dvs_engine: Optional[str] = None      # "A" | "B" — which engine produced DVS
+    dvs_engine: Optional[str] = None      # "A" | "B" | "blend" — which engine produced DVS
     dvs_p90_ref: Optional[float] = None   # P90 constant used at scoring time
     dvs_clamped: Optional[bool] = None    # True if raw DVS exceeded 100 before clamping
+
+    # ── Cross-Positional VAR — Phase 15 ──────────────────────────────────────
+    xvar: Optional[float] = None               # WR-equivalent VAR points
+    xvar_lambda: Optional[float] = None        # Λ_pos applied at scoring time
+    xvar_anchor: Optional[str] = None          # anchor position ("WR")
+    xvar_ceiling_bound: Optional[bool] = None  # True if DVS was clamped before xVAR
+
+    # ── Within-position percentile — Phase 15 ────────────────────────────────
+    dvs_pct: Optional[float] = None          # 0–100 vs Engine B active population
+    dvs_pct_as_of: Optional[str] = None      # UTC ISO timestamp of last batch run
+
+    # ── Bayesian Blend Metadata — Phase 15 ────────────────────────────────────
+    dvs_blend_weight_b: Optional[float] = None  # w_B when in blend window; null outside
 
     # ── Signal completeness ───────────────────────────────────────────────────
     signal_completeness: float = Field(

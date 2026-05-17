@@ -9,8 +9,18 @@ Phase 12.5 — COMPLETE: Market-leakage guard + QB Backup caveat + pre-commit ho
 Phase 13 — SPEC APPROVED: Identity Audit + Engine A Draft-Capital Bake-Off + TE Remodel Step 0
 Phase 13.3 — COMPLETE: TE Model Change + Promotion (2026-05-16; 683 tests)
 Phase 14 — COMPLETE: DVS Normalization + Bridge + VAR Activation (2026-05-16; 694 tests)
+Phase 15 — IN PROGRESS: xVAR Cross-Positional Valuation + Bayesian Dead Window Blend + Trade Lab (Workstreams 1–2 structural; 690 tests)
 
 ## Current Sprint Objective
+
+Phase 15 — xVAR + Bayesian Blend + Trade Lab. Suite: 690 passed, 11 skipped, 0 failed.
+- Workstream 15.1 (xVAR) — STRUCTURAL COMPLETE: xVAR, xvar_lambda, xvar_anchor, xvar_ceiling_bound, dvs_pct, dvs_pct_as_of, dvs_blend_weight_b fields in PVO; xVAR assembled in pvo_assembler for Engine B paths.
+- Workstream 15.2 (Bayesian Blend) — STRUCTURAL COMPLETE: dvs_engine="blend" when both Engine A and B inputs present; w_B = n / (n + k_pos) shrinkage; Dead Window caveat appended. **blend-k validation gate PENDING David review** (Task 1 in plan).
+- Task 2 PENDING: Trade Lab evaluator (src/dynasty_genius/trade_lab/).
+- Task 3 PENDING: POST /trade/evaluate route.
+- Task 4 PENDING: dvs_pct batch (scripts/compute_dvs_pct_batch.py).
+- Task 5 PENDING: xVAR/blend contract tests (tests/contract/test_phase15_xvar.py, test_phase15_blend.py).
+- Task 6 PENDING: ledger/AGENT_SYNC final cleanup.
 
 Phase 14 DVS Normalization: COMPLETE. 694 tests.
 - Task 14.1 COMPLETE: Constants injected and identity gate passed.
@@ -223,6 +233,38 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 - Market source: `unavailable` for all positions (expected; no archive store passed).
 - TE precondition fix: `WalkForwardDriver.FIXED_ALPHA["TE"] = 1.0` added with regression test; no TE promotion logic changed.
 
+## Phase 15 — IN PROGRESS
+
+Phase 15 spec/plan: `docs/superpowers/plans/2026-05-16-phase15-trade-lab.md`.
+
+**Architecture decisions locked:**
+- xVAR formula: `(DVS - replacement_DVS) × Λ_pos` — WR-equivalent points above replacement.
+- Engine A Λ applies when `dvs_engine in ("A", "blend")`. Engine B Λ only for `dvs_engine == "B"`.
+- `XVAR_LAMBDA_ENGINE_B`: QB=1.386, RB=1.083, WR=1.000, TE=0.648 (P90-ratio derived).
+- `XVAR_LAMBDA_ENGINE_A`: QB=1.315, RB=1.150, WR=1.000, TE=0.717.
+- `ENGINE_B_REPLACEMENT_DVS`: QB=64.2, RB=46.4, WR=60.6, TE=95.6.
+- `ENGINE_A_REPLACEMENT_DVS`: QB=77.3, RB=49.9, WR=69.2, TE=98.8.
+- Bayesian blend: `w_B = n / (n + k_pos)`. `DVS_BLEND_K`: QB=6, RB=5, WR=5, TE=7. Fires only when both Engine A and B inputs present; produces `dvs_engine = "blend"`. Single-engine fallback produces `dvs_engine = "A"`.
+- `TRADE_PARITY_BAND = 0.10` — governs trade math. `NOISE_BAND = 0.10` — governs veteran divergence flag suppression. **Never aliased.**
+- `dvs_pct`: 0–100 within-position percentile vs Engine B active population. Populated by batch script.
+- `decision_supported = False` on all surfaces, always.
+
+**Workstream 15.1 — xVAR Cross-Positional Valuation (STRUCTURAL COMPLETE)**
+- PVO fields added: `xvar`, `xvar_lambda`, `xvar_anchor`, `xvar_ceiling_bound`, `dvs_pct`, `dvs_pct_as_of`, `dvs_blend_weight_b`.
+- xVAR assembled in pvo_assembler.py inside `if engine_b_resolved:` block.
+- Known gap: `xvar_ceiling_bound` not yet populated for pure Engine A (prospect) paths — fix is Task 5.
+- 3 passing contract tests in `tests/contract/test_phase15_valuation.py` (xvar_rank_preservation, xvar_scarcity_multiplier, bayesian_bridge_monotonicity).
+
+**Workstream 15.2 — Bayesian Dead Window Blend (STRUCTURAL COMPLETE)**
+- `dvs_engine = "blend"` when games_t < ENGINE_B_MIN_GAMES_T (8) and both Engine A and B inputs present.
+- Dead Window caveat appended to blend output.
+- blend-k defaults (QB=6, RB=5, WR=5, TE=7) in place but not yet validated against per-position residual variance.
+- **Gate: `docs/validation/phase15-blend-k-validation.md` stub required — PENDING David review (Task 1).**
+
+**Suite state (post-cleanup):** 690 passed, 11 skipped, 0 failed.
+- Note: 4 fewer than Phase 14 peak (694) due to deletion of Gemini's broken `tests/test_trade_lab.py` artifact.
+- 2 pre-existing nflreadpy collection errors excluded via `--ignore` (not regressions).
+
 ## Phase 14 — IN PLANNING
 
 Phase 14 spec APPROVED by David: `docs/superpowers/specs/2026-05-16-phase14-dvs-normalization.md`.
@@ -261,6 +303,7 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-1. **Phase 15 Planning** — With DVS and VAR established, the next step is Trade Lab integration and cross-positional valuation scaling.
-2. **NOISE_BAND calibration** — Deferred to mid-July 2026. Do not change `NOISE_BAND=0.10` before then.
-3. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control.
+1. **Phase 15 Task 1 (gate)** — David reviews blend-k defaults and approves/adjusts `docs/validation/phase15-blend-k-validation.md` stub before Task 2 proceeds.
+2. **Phase 15 Tasks 2–6 (Codex)** — Trade Lab evaluator, POST /trade/evaluate, dvs_pct batch, xVAR/blend contract tests, final ledger/AGENT_SYNC cleanup. Plan: `docs/superpowers/plans/2026-05-16-phase15-trade-lab.md`.
+3. **NOISE_BAND calibration** — Locked at `NOISE_BAND=0.10` until mid-July 2026. Do not change before then.
+4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control.
