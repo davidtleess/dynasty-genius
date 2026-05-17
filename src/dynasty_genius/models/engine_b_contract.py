@@ -61,13 +61,17 @@ XVAR_LAMBDA_ENGINE_A: dict[str, float] = {
 XVAR_ANCHOR_POSITION: str = "WR"
 
 # ── Trade Evaluation Constants ───────────────────────────────────────────────
+# TRADE_PARITY_BAND governs trade fairness math only.
+# NOISE_BAND (market_overlay_service.py) governs veteran divergence flag suppression.
+# These are separate constants with separate governance. Do NOT alias one to the other.
 TRADE_PARITY_BAND: float = 0.10
 CONSOLIDATION_KAPPA: float = 0.04
 CONSOLIDATION_FLOOR: float = 0.80
 
-# ── Refreshed Replacement DVS Baselines (Season 2024 Inference) ───────────────
-# Derived via scripts/refresh_var_baselines_15.py on 2026-05-16.
-# Formula: Replacement_PPG / POSITION_P90_PPG * 100
+# ── Replacement DVS Baselines — Phase 14 Calibration Audit ──────────────────
+# Hardcoded from Phase 14 calibration audit (var_batch_20260516_190328.json).
+# Formula: Replacement_PPG / POSITION_P90_PPG * 100. Frozen at May 2026 values.
+# Do NOT refresh dynamically from inference-time predictions.
 ENGINE_B_REPLACEMENT_DVS: dict[str, float] = {
     "QB": 64.2,  # 12.91 / 20.1
     "RB": 46.4,  # 7.29 / 15.7
@@ -88,6 +92,8 @@ ENGINE_A_REPLACEMENT_DVS: dict[str, float] = {
 
 # k_pos: the effective number of games at which the likelihood (Engine B)
 # is equal-weighted to the prior (Engine A).
+# REQUIRED: fit these from Engine B per-position residual variance before changing.
+# Do not adjust k_pos without a validated residual analysis artifact.
 DVS_BLEND_K: dict[str, int] = {
     "QB": 6,
     "RB": 5,

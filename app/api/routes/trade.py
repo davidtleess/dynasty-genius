@@ -38,6 +38,4 @@ def evaluate_trade_endpoint(request: TradeEvaluateRequest) -> dict:
     side_a = [TradeAsset(**asset) for asset in request.side_a]
     side_b = [TradeAsset(**asset) for asset in request.side_b]
     result = evaluate_trade(side_a, side_b)
-    if hasattr(result, "model_dump"):
-        return result.model_dump()
     return result.dict()

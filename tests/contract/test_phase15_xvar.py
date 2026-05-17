@@ -62,6 +62,27 @@ def test_xvar_formula_qb_higher_than_wr_at_same_dvs():
     assert qb_pvo.xvar > wr_pvo.xvar
 
 
+def test_engine_a_lambda_applied_for_qb_prospect():
+    """5.2: QB prospect uses Engine A lambda (1.315), not Engine B lambda (1.386)."""
+    identity = _mock_identity("QB", is_prospect=True)
+    pvo = assemble_pvo(identity, {"pick": 10.0, "round": 1.0, "age": 21.0})
+    assert pvo.dvs_engine == "A"
+    assert pvo.xvar is not None and pvo.dynasty_value_score is not None
+    expected = round(
+        (pvo.dynasty_value_score - ENGINE_A_REPLACEMENT_DVS["QB"])
+        * XVAR_LAMBDA_ENGINE_A["QB"],
+        2,
+    )
+    assert pvo.xvar == pytest.approx(expected, abs=0.1)
+    # Confirm Engine B QB lambda was NOT applied.
+    wrong = round(
+        (pvo.dynasty_value_score - ENGINE_B_REPLACEMENT_DVS["QB"])
+        * XVAR_LAMBDA_ENGINE_B["QB"],
+        2,
+    )
+    assert pvo.xvar != pytest.approx(wrong, abs=0.01)
+
+
 def test_engine_a_lambda_applied_for_prospect():
     """5.2: WR prospect uses Engine A replacement and lambda."""
     identity = _mock_identity("WR", is_prospect=True)

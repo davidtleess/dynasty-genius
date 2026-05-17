@@ -47,8 +47,26 @@ def test_blend_dvs_engine_when_both_present():
     assert pvo.dvs_blend_weight_b == pytest.approx(expected_w, rel=1e-3)
 
 
+def test_blend_caveat_present_when_blend_fires():
+    """5.9: Blend-specific caveat is in pvo.caveats when dvs_engine='blend'."""
+    identity = _mock_identity("WR")
+    features = {
+        "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
+        "games_t": 4,
+        "feature_season": 2024,
+        "pick": 10.0,
+        "round": 1.0,
+        "age": 22.0,
+    }
+    pvo = assemble_pvo(identity, features)
+    assert pvo.dvs_engine == "blend"
+    assert any("Engine A/B blend active" in c for c in pvo.caveats), (
+        f"Expected blend caveat in caveats, got: {pvo.caveats}"
+    )
+
+
 def test_blend_single_engine_fallback():
-    """5.10: Dead Window with no Engine A inputs -> dvs_engine != 'blend'."""
+    """5.10: Dead Window with no Engine A inputs -> dvs_engine != 'blend', DW caveat present."""
     identity = _mock_identity("WR")
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
@@ -58,3 +76,6 @@ def test_blend_single_engine_fallback():
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine != "blend"
     assert pvo.dynasty_value_score is None
+    assert any("Engine A prospect score used as prior" in c for c in pvo.caveats), (
+        f"Expected DW caveat in caveats, got: {pvo.caveats}"
+    )

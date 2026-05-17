@@ -87,10 +87,18 @@ def test_draft_pick_uses_engine_a():
 
 
 def test_trade_parity_band_not_noise_band():
-    """5.13: TRADE_PARITY_BAND and NOISE_BAND are separate constants."""
+    """5.13: TRADE_PARITY_BAND and NOISE_BAND are separate constants, never aliased."""
     assert TRADE_PARITY_BAND == 0.10
     assert NOISE_BAND == 0.10
     assert CONSOLIDATION_KAPPA == 0.04
+    # Distinct objects from distinct modules — not aliases of each other.
+    assert TRADE_PARITY_BAND is not NOISE_BAND
+    import src.dynasty_genius.models.engine_b_contract as _contract
+    import src.dynasty_genius.services.market_overlay_service as _overlay
+    assert hasattr(_contract, "TRADE_PARITY_BAND")
+    assert not hasattr(_contract, "NOISE_BAND")
+    assert hasattr(_overlay, "NOISE_BAND")
+    assert not hasattr(_overlay, "TRADE_PARITY_BAND")
 
 
 def test_decision_supported_false_on_evaluation():

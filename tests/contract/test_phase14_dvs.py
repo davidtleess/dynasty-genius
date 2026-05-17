@@ -89,7 +89,7 @@ def test_dead_window_caveat_engine_a_fallback_present():
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine == "blend"
     assert pvo.dvs_blend_weight_b is not None
-    assert any("Insufficient professional season data" in c for c in pvo.caveats)
+    assert any("Engine A/B blend active" in c for c in pvo.caveats)
     assert pvo.dynasty_value_score is not None
 
 def test_dead_window_caveat_engine_a_fallback_absent():

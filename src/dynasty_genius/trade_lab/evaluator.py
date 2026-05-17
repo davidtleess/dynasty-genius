@@ -85,7 +85,7 @@ def evaluate_trade(
         if asset.caveat and asset.caveat not in caveats:
             caveats.append(asset.caveat)
         if asset.xvar is None:
-            caveat = f"{asset.player_id}: unscored (PRE_MODEL) - excluded from trade math"
+            caveat = f"{asset.player_id}: unscored (PRE_MODEL) — excluded from trade math"
             if caveat not in caveats:
                 caveats.append(caveat)
 

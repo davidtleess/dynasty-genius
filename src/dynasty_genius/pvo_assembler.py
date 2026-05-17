@@ -372,42 +372,50 @@ def assemble_pvo(
             dvs_clamped_val = dvs_clamped_flag
 
         # Dead Window bridge: player has exited prospect status and Engine B feature data
-        # exists, but games_t is below the reliability threshold. 
-        # Phase 15: Implement precision-weighted Bayesian blend for games_t [1, 7].
-        # Discontinuity fix: w_B = n / (n + k_pos).
+        # exists, but games_t is below the reliability threshold.
+        # Phase 15: Precision-weighted Bayesian blend for games_t [1, 7]: w_B = n / (n + k_pos).
         if engine_b_resolved and _below_games_gate:
-            _dw_caveat = (
-                "Insufficient professional season data — Engine A prospect score used as prior"
-            )
-            # Bayesian Blend (requires both A and B inputs)
             _n = float(games_t) if games_t is not None else 0.0
             _k = DVS_BLEND_K.get(pos_upper, 5)
-            
-            # Components
+
             _dvs_a = engine_a_result["dynasty_value_score"] if engine_a_result else None
-            _dvs_b = (projection_2y / _b_p90 * 100.0) if (projection_2y is not None and _b_p90) else None
-            
+            # Clamp Engine B component to 0–100 before entering the blend formula.
+            _dvs_b_raw = (projection_2y / _b_p90 * 100.0) if (projection_2y is not None and _b_p90) else None
+            _dvs_b = round(min(100.0, max(0.0, _dvs_b_raw)), 1) if _dvs_b_raw is not None else None
+
             if _dvs_a is not None and _dvs_b is not None and 1 <= _n < ENGINE_B_MIN_GAMES_T:
-                # Precision-weighted blend
                 _w_b = _n / (_n + _k)
                 dynasty_value_score = round((1 - _w_b) * _dvs_a + _w_b * _dvs_b, 1)
                 dvs_engine = "blend"
                 dvs_blend_weight_b = round(_w_b, 3)
+                dvs_clamped_val = dynasty_value_score >= 100.0
+                dvs_p90_ref_val = _P90_PPG.get(pos_upper)  # Engine A prior dominates blend window
+                _blend_caveat = (
+                    f"Low professional sample (games={int(_n)}) — Engine A/B blend active "
+                    f"(w_B={dvs_blend_weight_b:.2f}); interpret with caution"
+                )
+                if _blend_caveat not in caveats:
+                    caveats.append(_blend_caveat)
             elif engine_a_result:
-                # Fallback to pure Engine A prior (retains Phase 14 behavior for n=0 or missing B)
-                # DVS engine is "A" because only Engine A is contributing
+                # Single-engine fallback: Engine A prior only (n=0 or B inputs absent).
                 dynasty_value_score = engine_a_result["dynasty_value_score"]
                 dvs_engine = "A"
                 dvs_p90_ref_val = _P90_PPG.get(pos_upper)
                 dvs_clamped_val = engine_a_result["dynasty_value_score"] >= 100.0
+                _dw_caveat = (
+                    "Insufficient professional season data — Engine A prospect score used as prior"
+                )
+                if _dw_caveat not in caveats:
+                    caveats.append(_dw_caveat)
             else:
-                # Spec 3.4: DVS = None. dvs_engine = 'A' (provenance of fallback shell).
+                # Spec 3.4: no A or B — DVS = None; dvs_engine = 'A' as provenance marker.
                 dynasty_value_score = None
                 dvs_engine = "A"
-            
-            # Caveat is appended regardless of whether Engine A data was available.
-            if _dw_caveat not in caveats:
-                caveats.append(_dw_caveat)
+                _dw_caveat = (
+                    "Insufficient professional season data — Engine A prospect score used as prior"
+                )
+                if _dw_caveat not in caveats:
+                    caveats.append(_dw_caveat)
 
         # TE-specific caveat: G3 (market superiority) deferred; decision_supported = False.
         if pos_upper == "TE" and model_grade == "ACTIVE_B":
