@@ -10,6 +10,7 @@ Phase 13 — SPEC APPROVED: Identity Audit + Engine A Draft-Capital Bake-Off + T
 Phase 13.3 — COMPLETE: TE Model Change + Promotion (2026-05-16; 683 tests)
 Phase 14 — COMPLETE: DVS Normalization + Bridge + VAR Activation (2026-05-16; 694 tests)
 Phase 15 — IMPLEMENTATION COMPLETE: xVAR Cross-Positional Valuation + Bayesian Dead Window Blend + Trade Lab v0 (711 tests; 11 skipped)
+Phase 15.1 — COMPLETE: 2026 Rookie Rank Refresh — prospect_cards enriched with Phase 15 xVAR + rank fields; rank movement report at docs/validation/phase15-2026-rookie-rank-refresh.md (2026-05-17; 730 tests)
 
 ## Current Sprint Objective
 
