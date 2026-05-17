@@ -60,6 +60,13 @@ async def get_league_drafts(league_id: str) -> list[dict]:
     return data
 
 
+async def get_draft(draft_id: str) -> dict:
+    data = await _get(f"/draft/{draft_id}")
+    if not data:
+        raise ValueError(f"No draft found for draft_id: {draft_id}")
+    return data
+
+
 async def get_draft_picks(draft_id: str) -> list[dict]:
     data = await _get(f"/draft/{draft_id}/picks")
     if data is None:

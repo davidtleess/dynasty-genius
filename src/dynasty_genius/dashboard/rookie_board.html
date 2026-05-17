@@ -26,6 +26,18 @@
     .refresh-btn.success { background: #166534; }
     .refresh-btn.error   { background: #7f1d1d; }
 
+    /* ── Draft status banner ── */
+    .draft-status-banner { padding: 6px 24px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid transparent; }
+    .ds-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .ds-live     { background: #052e16; border-color: #166534; color: #86efac; }
+    .ds-live .ds-dot     { background: #22c55e; }
+    .ds-complete { background: #172554; border-color: #1d4ed8; color: #93c5fd; }
+    .ds-complete .ds-dot { background: #3b82f6; }
+    .ds-paused   { background: #431407; border-color: #c2410c; color: #fdba74; }
+    .ds-paused .ds-dot   { background: #f97316; }
+    .ds-predraft { background: #1e293b; border-color: #334155; color: #64748b; }
+    .ds-predraft .ds-dot { background: #475569; }
+
     /* ── Roster need banner ── */
     .need-banner {
       background: #1e293b; border-bottom: 1px solid #334155;
@@ -138,6 +150,7 @@
   </div>
 </div>
 
+<div id="draftStatusBanner"></div>
 <div class="need-banner" id="needBanner"></div>
 <div class="tabs" id="tabs"></div>
 <div class="cards-wrap" id="cardsWrap"></div>
@@ -173,6 +186,37 @@ function scoreColor(n) {
   var el = document.getElementById('leaguePills');
   if (IS_SUPERFLEX) el.innerHTML += '<span class="pill pill-superflex">&#9889; SUPERFLEX</span>';
   if (TE_PREMIUM)   el.innerHTML += '<span class="pill" style="background:#0c3b2e;color:#86efac;border:1px solid #16a34a">TE PREMIUM</span>';
+})();
+
+// Draft status banner
+(function() {
+  var el = document.getElementById('draftStatusBanner');
+  var status = DRAFT.draft_status;
+  if (!status) { el.style.display = 'none'; return; }
+
+  var labels = { pre_draft: 'Pre-draft', drafting: 'Draft live', paused: 'Draft paused', complete: 'Draft complete' };
+  var classes = { pre_draft: 'ds-predraft', drafting: 'ds-live', paused: 'ds-paused', complete: 'ds-complete' };
+  var label = labels[status] || status;
+  var cls   = classes[status] || 'ds-predraft';
+
+  var pickInfo = '';
+  if (DRAFT.current_pick_no != null && DRAFT.total_picks != null) {
+    pickInfo = ' &middot; ' + DRAFT.current_pick_no + ' of ' + DRAFT.total_picks + ' picks made';
+  } else if (DRAFT.current_pick_no != null) {
+    pickInfo = ' &middot; ' + DRAFT.current_pick_no + ' picks made';
+  }
+
+  var lastInfo = '';
+  var lp = DRAFT.last_picked;
+  if (lp && lp.full_name) {
+    lastInfo = ' &middot; Last: ' + esc(lp.full_name) + ' (' + esc(lp.position) + ')';
+  }
+
+  el.innerHTML =
+    '<div class="draft-status-banner ' + cls + '">' +
+      '<span class="ds-dot"></span>' +
+      '<span>' + label + pickInfo + lastInfo + '</span>' +
+    '</div>';
 })();
 
 // Roster need banner
