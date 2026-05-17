@@ -1,7 +1,7 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-05-16
+Last updated: 2026-05-17
 
 ## Active Phase
 
@@ -9,13 +9,13 @@ Phase 12.5 — COMPLETE: Market-leakage guard + QB Backup caveat + pre-commit ho
 Phase 13 — SPEC APPROVED: Identity Audit + Engine A Draft-Capital Bake-Off + TE Remodel Step 0
 Phase 13.3 — COMPLETE: TE Model Change + Promotion (2026-05-16; 683 tests)
 Phase 14 — COMPLETE: DVS Normalization + Bridge + VAR Activation (2026-05-16; 694 tests)
-Phase 15 — IN PROGRESS: xVAR Cross-Positional Valuation + Bayesian Dead Window Blend + Trade Lab (Workstreams 1–2 structural; 690 tests)
+Phase 15 — IN PROGRESS: xVAR Cross-Positional Valuation + Bayesian Dead Window Blend + Trade Lab (Workstreams 1–2 structural; 690 tests; blend-k gate stub added)
 
 ## Current Sprint Objective
 
 Phase 15 — xVAR + Bayesian Blend + Trade Lab. Suite: 690 passed, 11 skipped, 0 failed.
 - Workstream 15.1 (xVAR) — STRUCTURAL COMPLETE: xVAR, xvar_lambda, xvar_anchor, xvar_ceiling_bound, dvs_pct, dvs_pct_as_of, dvs_blend_weight_b fields in PVO; xVAR assembled in pvo_assembler for Engine B paths.
-- Workstream 15.2 (Bayesian Blend) — STRUCTURAL COMPLETE: dvs_engine="blend" when both Engine A and B inputs present; w_B = n / (n + k_pos) shrinkage; Dead Window caveat appended. **blend-k validation gate PENDING David review** (Task 1 in plan).
+- Workstream 15.2 (Bayesian Blend) — STRUCTURAL COMPLETE: dvs_engine="blend" when both Engine A and B inputs present; w_B = n / (n + k_pos) shrinkage; Dead Window caveat appended. **blend-k validation gate PENDING David review** via `docs/validation/phase15-blend-k-validation.md`.
 - Task 2 PENDING: Trade Lab evaluator (src/dynasty_genius/trade_lab/).
 - Task 3 PENDING: POST /trade/evaluate route.
 - Task 4 PENDING: dvs_pct batch (scripts/compute_dvs_pct_batch.py).
