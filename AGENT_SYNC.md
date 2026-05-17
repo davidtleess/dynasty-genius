@@ -11,10 +11,12 @@ Phase 13.3 — COMPLETE: TE Model Change + Promotion (2026-05-16; 683 tests)
 Phase 14 — COMPLETE: DVS Normalization + Bridge + VAR Activation (2026-05-16; 694 tests)
 Phase 15 — IMPLEMENTATION COMPLETE: xVAR Cross-Positional Valuation + Bayesian Dead Window Blend + Trade Lab v0 (711 tests; 11 skipped)
 Phase 15.1 — COMPLETE: 2026 Rookie Rank Refresh — prospect_cards enriched with Phase 15 xVAR + rank fields; rank movement report at docs/validation/phase15-2026-rookie-rank-refresh.md (2026-05-17; 730 tests)
+Phase 15.2 — COMPLETE: Draft-status banner — refresh_draft_state.py fetches GET /draft/{id} in parallel with picks; draft_status, last_picked, total_picks, current_pick_no written to draft_state.js; color-coded strip on board (2026-05-17)
+Phase 15.3 — COMPLETE: Available-now panel — top 3 non-taken xVAR-ranked picks above card list; tab-aware; TE caveat fires; board fully live-ready for 2026 rookie draft (2026-05-17)
 
 ## Current Sprint Objective
 
-Phase 15 — xVAR + Bayesian Blend + Trade Lab. Suite: 711 passed, 11 skipped, 0 failed.
+Phase 15 — COMPLETE. Suite: 730 passed, 11 skipped, 0 failed. Board is live-ready.
 - Workstream 15.1 (xVAR) — COMPLETE: xVAR, xvar_lambda, xvar_anchor, xvar_ceiling_bound, dvs_pct, dvs_pct_as_of, dvs_blend_weight_b fields in PVO; xVAR assembled in pvo_assembler for Engine A, Engine B, and blend paths.
 - Workstream 15.2 (Bayesian Blend) — COMPLETE FOR V0: dvs_engine="blend" when both Engine A and B inputs present; w_B = n / (n + k_pos) shrinkage; Dead Window caveat appended. Blend-k defaults approved for Phase 15 V0 in `docs/validation/phase15-blend-k-validation.md`; residual-variance fitting remains a follow-up before changing k_pos.
 - Task 2 COMPLETE: Trade Lab evaluator (`src/dynasty_genius/trade_lab/`) — xVAR-sum parity, sub-replacement exclusion, consolidation penalty, draft-pick valuation through Engine A.
@@ -234,7 +236,23 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 - Market source: `unavailable` for all positions (expected; no archive store passed).
 - TE precondition fix: `WalkForwardDriver.FIXED_ALPHA["TE"] = 1.0` added with regression test; no TE promotion logic changed.
 
-## Phase 15 — IN PROGRESS
+## Phase 16 — PLANNING
+
+**Theme:** Engine A Rookie Signal Upgrade.
+
+**Scope (David, 2026-05-17):**
+- Fix 6 age-data blockers: collect `birth_date` from PFR/Sports Reference for Omar Cooper Jr. (pick 30), Chris Brazzell II (83), Mike Washington Jr. (122), Kevin Coleman Jr. (177), Emmanuel Henderson Jr. (199), Jam Miller (245). Update `prospect_identity_2026.json`, re-run `scripts/refresh_prospect_cards.py`. DVS invariance check will confirm no drift on scored players.
+- Add/validate college production signals as Engine A feature candidates (draft exposed within-tier WR/RB separation weakness; draft capital + age alone is insufficient).
+- Decide whether Phase 13 draft-capital transform (VALIDATION_ONLY since Phase 13.2.3) gets promoted to production.
+- Market remains overlay-only. xVAR remains display/decision currency, not model input.
+
+**Prerequisites before spec:**
+- Post-draft closeout: re-run `refresh_draft_state.py` when `draft_status == "complete"`; save validation note.
+- Roster audit with Black on Sleeper roster: re-run roster audit, check RB room and taxi fit.
+
+---
+
+## Phase 15 — COMPLETE
 
 Phase 15 spec/plan: `docs/superpowers/plans/2026-05-16-phase15-trade-lab.md`.
 
@@ -304,7 +322,7 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-1. **Phase 15 Task 1 (gate)** — David reviews blend-k defaults and approves/adjusts `docs/validation/phase15-blend-k-validation.md` stub before Task 2 proceeds.
-2. **Phase 15 Tasks 2–6 (Codex)** — Trade Lab evaluator, POST /trade/evaluate, dvs_pct batch, xVAR/blend contract tests, final ledger/AGENT_SYNC cleanup. Plan: `docs/superpowers/plans/2026-05-16-phase15-trade-lab.md`.
+1. **Post-draft closeout** — When draft is complete: run `scripts/refresh_draft_state.py`, confirm `draft_status: "complete"` in `resources/draft_state.js`, save a short validation note (picks made, Black pick #26, board recommendation matched). Re-run roster audit (`GET /api/roster/audit`) after Black appears on Sleeper roster.
+2. **Phase 16 spec** — After closeout: write Phase 16 research brief and spec. Priorities: (a) 6 age-data blockers (birth_date collection from PFR), (b) college production signal candidates for Engine A, (c) Phase 13 draft-capital transform promotion decision.
 3. **NOISE_BAND calibration** — Locked at `NOISE_BAND=0.10` until mid-July 2026. Do not change before then.
-4. **Start daily FC snapshot cron operationally** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control.
+4. **Daily FC snapshot cron** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control.
