@@ -4,6 +4,9 @@ from __future__ import annotations
 from typing import Optional
 
 import pytest
+from fastapi.testclient import TestClient
+
+from app.main import app
 
 from src.dynasty_genius.models.engine_b_contract import (
     CONSOLIDATION_FLOOR,
@@ -17,6 +20,9 @@ from src.dynasty_genius.trade_lab.evaluator import (
     evaluate_trade,
     value_draft_pick,
 )
+
+
+client = TestClient(app)
 
 
 def _asset(pos: str, xvar: Optional[float], dvs_engine: str = "B") -> TradeAsset:
@@ -91,3 +97,18 @@ def test_decision_supported_false_on_evaluation():
     """TradeEvaluation.decision_supported must always be False."""
     result = evaluate_trade([_asset("WR", 20.0)], [_asset("QB", 25.0)])
     assert result.decision_supported is False
+
+
+def test_evaluate_trade_endpoint_returns_evaluation():
+    """POST /api/trade/evaluate returns TradeEvaluation with decision_supported=False."""
+    payload = {
+        "side_a": [{"player_id": "p1", "xvar": 20.0, "position": "WR", "dvs_engine": "B"}],
+        "side_b": [{"player_id": "p2", "xvar": 25.0, "position": "QB", "dvs_engine": "B"}],
+    }
+    resp = client.post("/api/trade/evaluate", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["decision_supported"] is False
+    assert "side_a" in data
+    assert "side_b" in data
+    assert "within_parity_band" in data
