@@ -9,18 +9,18 @@ Phase 12.5 — COMPLETE: Market-leakage guard + QB Backup caveat + pre-commit ho
 Phase 13 — SPEC APPROVED: Identity Audit + Engine A Draft-Capital Bake-Off + TE Remodel Step 0
 Phase 13.3 — COMPLETE: TE Model Change + Promotion (2026-05-16; 683 tests)
 Phase 14 — COMPLETE: DVS Normalization + Bridge + VAR Activation (2026-05-16; 694 tests)
-Phase 15 — IN PROGRESS: xVAR Cross-Positional Valuation + Bayesian Dead Window Blend + Trade Lab (Workstreams 1–2 structural; 690 tests; blend-k gate stub added)
+Phase 15 — IMPLEMENTATION COMPLETE: xVAR Cross-Positional Valuation + Bayesian Dead Window Blend + Trade Lab v0 (711 tests; 11 skipped)
 
 ## Current Sprint Objective
 
-Phase 15 — xVAR + Bayesian Blend + Trade Lab. Suite: 690 passed, 11 skipped, 0 failed.
-- Workstream 15.1 (xVAR) — STRUCTURAL COMPLETE: xVAR, xvar_lambda, xvar_anchor, xvar_ceiling_bound, dvs_pct, dvs_pct_as_of, dvs_blend_weight_b fields in PVO; xVAR assembled in pvo_assembler for Engine B paths.
-- Workstream 15.2 (Bayesian Blend) — STRUCTURAL COMPLETE: dvs_engine="blend" when both Engine A and B inputs present; w_B = n / (n + k_pos) shrinkage; Dead Window caveat appended. **blend-k validation gate PENDING David review** via `docs/validation/phase15-blend-k-validation.md`.
-- Task 2 PENDING: Trade Lab evaluator (src/dynasty_genius/trade_lab/).
-- Task 3 PENDING: POST /trade/evaluate route.
-- Task 4 PENDING: dvs_pct batch (scripts/compute_dvs_pct_batch.py).
-- Task 5 PENDING: xVAR/blend contract tests (tests/contract/test_phase15_xvar.py, test_phase15_blend.py).
-- Task 6 PENDING: ledger/AGENT_SYNC final cleanup.
+Phase 15 — xVAR + Bayesian Blend + Trade Lab. Suite: 711 passed, 11 skipped, 0 failed.
+- Workstream 15.1 (xVAR) — COMPLETE: xVAR, xvar_lambda, xvar_anchor, xvar_ceiling_bound, dvs_pct, dvs_pct_as_of, dvs_blend_weight_b fields in PVO; xVAR assembled in pvo_assembler for Engine A, Engine B, and blend paths.
+- Workstream 15.2 (Bayesian Blend) — COMPLETE FOR V0: dvs_engine="blend" when both Engine A and B inputs present; w_B = n / (n + k_pos) shrinkage; Dead Window caveat appended. Blend-k defaults approved for Phase 15 V0 in `docs/validation/phase15-blend-k-validation.md`; residual-variance fitting remains a follow-up before changing k_pos.
+- Task 2 COMPLETE: Trade Lab evaluator (`src/dynasty_genius/trade_lab/`) — xVAR-sum parity, sub-replacement exclusion, consolidation penalty, draft-pick valuation through Engine A.
+- Task 3 COMPLETE: `POST /api/trade/evaluate` route added while preserving existing `/api/trade/analyze`.
+- Task 4 COMPLETE: `dvs_pct` batch (`scripts/compute_dvs_pct_batch.py`) computes within-position percentiles against ACTIVE_B population only.
+- Task 5 COMPLETE: xVAR/blend contract tests (`tests/contract/test_phase15_xvar.py`, `tests/contract/test_phase15_blend.py`) plus Trade Lab and dvs_pct contract tests.
+- Task 6 COMPLETE: ledger/AGENT_SYNC cleanup.
 
 Phase 14 DVS Normalization: COMPLETE. 694 tests.
 - Task 14.1 COMPLETE: Constants injected and identity gate passed.
