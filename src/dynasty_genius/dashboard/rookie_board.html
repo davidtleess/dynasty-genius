@@ -52,8 +52,12 @@
     .card-QB { border-left: 3px solid #7c3aed; }
     .card-WR { border-left: 3px solid #2563eb; }
     .card-RB { border-left: 3px solid #16a34a; }
+    .card-TE { border-left: 3px solid #d97706; }
     .card-body { padding: 12px 16px; display: flex; align-items: flex-start; gap: 16px; }
-    .card-rank { font-size: 22px; font-weight: 700; color: #334155; min-width: 36px; text-align: right; line-height: 1; padding-top: 4px; }
+    .card-rank { font-size: 22px; font-weight: 700; color: #334155; min-width: 44px; text-align: right; line-height: 1; padding-top: 4px; }
+    .card-rank-meta { font-size: 9px; color: #475569; text-align: right; line-height: 1.6; margin-top: 5px; }
+    .rank-rose { color: #22c55e; }
+    .rank-fell { color: #f97316; }
     .card-main { flex: 1; min-width: 0; }
 
     /* name row */
@@ -87,6 +91,10 @@
     .score-bar-fill { height: 100%; border-radius: 4px; }
     .model-grade { font-size: 10px; color: #475569; margin-top: 5px; }
 
+    /* TE caveat strip */
+    .te-caveat-strip { background: #1c1407; border-top: 1px solid #44403c; padding: 6px 16px 6px 76px; }
+    .te-caveat-text { font-size: 10px; color: #a8a29e; line-height: 1.4; }
+
     /* counter strip */
     .counter-strip { background: #1a0a0a; border-top: 1px solid #3b1515; padding: 8px 16px 8px 68px; display: flex; align-items: flex-start; gap: 8px; }
     .counter-icon { font-size: 11px; color: #ef4444; flex-shrink: 0; padding-top: 1px; }
@@ -119,7 +127,7 @@
   <div class="header-top">
     <div>
       <div class="title">Dynasty Genius &#8212; 2026 Rookie Board</div>
-      <div class="subtitle">Engine A &middot; PROSPECT_C/D &middot; market overlay excluded &middot; decision_supported: false</div>
+      <div class="subtitle">Engine A &middot; Sorted by xVAR (replacement-adjusted) &middot; DVS shown for context &middot; decision_supported: false</div>
     </div>
     <div class="header-right">
       <div class="league-pills" id="leaguePills"></div>
@@ -181,14 +189,14 @@ function scoreColor(n) {
     '<span class="need-caveat">age-curve only &middot; no Engine B &middot; verify before acting</span>';
 })();
 
-// Sort: scored cards by DVS desc, PRE_MODEL to bottom
+// Sort: scored cards by xvar_class_rank asc, PRE_MODEL (null) to bottom
 function sortCards(arr) {
   return arr.slice().sort(function(a, b) {
-    var as = a.dynasty_value_score, bs = b.dynasty_value_score;
-    if (as == null && bs != null) return 1;
-    if (bs == null && as != null) return -1;
-    if (as == null && bs == null) return 0;
-    return bs - as;
+    var ar = a.xvar_class_rank, br = b.xvar_class_rank;
+    if (ar == null && br != null) return 1;
+    if (br == null && ar != null) return -1;
+    if (ar == null && br == null) return 0;
+    return ar - br;
   });
 }
 
@@ -207,6 +215,14 @@ function setTab(pos) {
   activeTab = pos;
   renderTabs();
   renderCards();
+}
+
+// rank_delta display: negative = rose (green ↑), positive = fell (orange ↓)
+function deltaHtml(delta) {
+  if (delta == null) return '';
+  if (delta < 0) return '<span class="rank-rose">&#8593;' + Math.abs(delta) + '</span>';
+  if (delta > 0) return '<span class="rank-fell">&#8595;' + delta + '</span>';
+  return '<span style="color:#475569">=</span>';
 }
 
 // Card HTML
@@ -247,6 +263,21 @@ function cardHtml(card, rank) {
        (taken ? '#334155' : scoreColor(card.dynasty_value_score)) + '"></div></div>')
     : '<div class="score-num pre-model">PRE-MODEL</div>';
 
+  // Rank meta: DVS rank + delta below the xVAR rank number
+  var dvsRank = card.dvs_class_rank != null ? '#' + card.dvs_class_rank : '&mdash;';
+  var rankMetaHtml = (card.xvar_class_rank != null || card.dvs_class_rank != null)
+    ? '<div class="card-rank-meta">DVS ' + dvsRank + '<br>' + deltaHtml(card.rank_delta) + '</div>'
+    : '';
+
+  // TE caveat strip
+  var teCaveatHtml = '';
+  if (pos === 'TE' && hasScore) {
+    teCaveatHtml =
+      '<div class="te-caveat-strip">' +
+        '<span class="te-caveat-text">TE xVAR is WR-equivalent Superflex replacement-adjusted; high TE DVS can still be below replacement.</span>' +
+      '</div>';
+  }
+
   // Counter strip
   var counterHtml = '';
   if (hasScore && card.counter_argument) {
@@ -262,7 +293,7 @@ function cardHtml(card, rank) {
   return (
     '<div class="card' + (taken ? ' taken' : '') + ' card-' + pos + '" id="c-' + esc(card.player_id) + '">' +
       '<div class="card-body">' +
-        '<div class="card-rank">' + rank + '</div>' +
+        '<div class="card-rank">' + rank + rankMetaHtml + '</div>' +
         '<div class="card-main">' +
           '<div class="name-row">' +
             '<span class="card-name' + (taken ? ' taken-name' : '') + '">' + esc(card.full_name) + '</span>' +
@@ -278,6 +309,7 @@ function cardHtml(card, rank) {
         '</div>' +
       '</div>' +
       counterHtml +
+      teCaveatHtml +
     '</div>'
   );
 }
@@ -293,9 +325,8 @@ function renderCards() {
     return;
   }
 
-  var rank = 1;
   el.innerHTML = sorted.map(function(card) {
-    var r = card.dynasty_value_score != null ? rank++ : '&mdash;';
+    var r = card.xvar_class_rank != null ? card.xvar_class_rank : '&mdash;';
     return cardHtml(card, r);
   }).join('');
 }
