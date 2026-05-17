@@ -311,7 +311,9 @@ def assemble_pvo(
     source_season: Optional[int] = None
     projection_2y: Optional[float] = None
     xvar: Optional[float] = None
+    xvar_lambda: Optional[float] = None
     xvar_anchor: Optional[str] = None
+    xvar_ceiling_bound: Optional[bool] = None
     dvs_blend_weight_b: Optional[float] = None
 
     if engine_a_result:
@@ -407,17 +409,6 @@ def assemble_pvo(
             if _dw_caveat not in caveats:
                 caveats.append(_dw_caveat)
 
-        # Cross-Positional Architecture (xVAR) — Phase 15.
-        # Translates DVS into a unified unit (WR-equivalent points above replacement).
-        if dynasty_value_score is not None:
-            # Engine A Λ applies for both pure Engine A and blend (prior dominates blend window).
-            _repl_map = ENGINE_A_REPLACEMENT_DVS if dvs_engine in ("A", "blend") else ENGINE_B_REPLACEMENT_DVS
-            _repl = _repl_map.get(pos_upper, 0.0)
-            _lambda_map = XVAR_LAMBDA_ENGINE_A if dvs_engine in ("A", "blend") else XVAR_LAMBDA_ENGINE_B
-            _multiplier = _lambda_map.get(pos_upper, 1.0)
-            xvar = round((dynasty_value_score - _repl) * _multiplier, 2)
-            xvar_anchor = XVAR_ANCHOR_POSITION
-
         # TE-specific caveat: G3 (market superiority) deferred; decision_supported = False.
         if pos_upper == "TE" and model_grade == "ACTIVE_B":
             _te_caveat = "TE market superiority gate deferred — projection-quality score only"
@@ -430,6 +421,28 @@ def assemble_pvo(
                 backup_caveat = "High-Efficiency / Low-Volume Anomaly (Backup Profile)"
                 if backup_caveat not in caveats:
                     caveats.append(backup_caveat)
+
+    # Cross-Positional Architecture (xVAR) — Phase 15.
+    # Translates DVS into a unified unit (WR-equivalent points above replacement).
+    if dynasty_value_score is not None:
+        _xvar_pos = identity.position.upper()
+        _repl_map = (
+            ENGINE_A_REPLACEMENT_DVS
+            if dvs_engine in ("A", "blend")
+            else ENGINE_B_REPLACEMENT_DVS
+        )
+        _lambda_map = (
+            XVAR_LAMBDA_ENGINE_A
+            if dvs_engine in ("A", "blend")
+            else XVAR_LAMBDA_ENGINE_B
+        )
+        _repl = _repl_map.get(_xvar_pos, 0.0)
+        xvar_lambda = _lambda_map.get(_xvar_pos, 1.0)
+        xvar = round((dynasty_value_score - _repl) * xvar_lambda, 2)
+        xvar_anchor = XVAR_ANCHOR_POSITION
+        xvar_ceiling_bound = (
+            bool(dvs_clamped_val) if dvs_clamped_val is not None else None
+        )
 
     pvo = PlayerValueObject(
         player_id=identity.dg_id,
@@ -451,7 +464,9 @@ def assemble_pvo(
         dvs_p90_ref=dvs_p90_ref_val,
         dvs_clamped=dvs_clamped_val,
         xvar=xvar,
+        xvar_lambda=xvar_lambda,
         xvar_anchor=xvar_anchor,
+        xvar_ceiling_bound=xvar_ceiling_bound,
         dvs_blend_weight_b=dvs_blend_weight_b,
         projection_1y=None,
         projection_2y=projection_2y,
