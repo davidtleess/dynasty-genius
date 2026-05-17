@@ -87,7 +87,8 @@ def test_dead_window_caveat_engine_a_fallback_present():
         "pick": 10.0, "round": 1.0, "age": 22.0 # Engine A inputs — both engines present → blend
     }
     pvo = assemble_pvo(identity, features)
-    assert pvo.dvs_engine == "A"
+    assert pvo.dvs_engine == "blend"
+    assert pvo.dvs_blend_weight_b is not None
     assert any("Insufficient professional season data" in c for c in pvo.caveats)
     assert pvo.dynasty_value_score is not None
 

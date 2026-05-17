@@ -110,8 +110,12 @@ def build_divergence_ledger(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     ledger_path = output_dir / f"divergence_ledger_{position}.json"
+    payload = [
+        e.model_dump(mode="json") if hasattr(e, "model_dump") else json.loads(e.json())
+        for e in entries
+    ]
     ledger_path.write_text(
-        json.dumps([json.loads(e.json()) for e in entries], indent=2) + "\n",
+        json.dumps(payload, indent=2) + "\n",
         encoding="utf-8",
     )
 

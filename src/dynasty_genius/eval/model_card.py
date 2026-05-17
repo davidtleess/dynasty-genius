@@ -13,6 +13,19 @@ from typing import Any, List, Literal, Optional
 from pydantic import BaseModel
 
 
+def _model_json(model: BaseModel) -> str:
+    if hasattr(model, "model_dump_json"):
+        return model.model_dump_json(indent=2)
+    return model.json(indent=2)
+
+
+def _load_model(cls: type[BaseModel], path: Path):
+    raw = path.read_text(encoding="utf-8")
+    if hasattr(cls, "model_validate_json"):
+        return cls.model_validate_json(raw)
+    return cls.parse_raw(raw)
+
+
 class ModelCardMetrics(BaseModel):
     rmse_mean: float
     rmse_per_fold: List[float]
@@ -84,11 +97,11 @@ class ModelCard(BaseModel):
 
     def save(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(self.json(indent=2), encoding="utf-8")
+        path.write_text(_model_json(self), encoding="utf-8")
 
     @classmethod
     def load(cls, path: Path) -> "ModelCard":
-        return cls.parse_raw(path.read_text(encoding="utf-8"))
+        return _load_model(cls, path)
 
 
 class CalibrationDecile(BaseModel):
@@ -109,4 +122,4 @@ class CalibrationReport(BaseModel):
 
     def save(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(self.json(indent=2), encoding="utf-8")
+        path.write_text(_model_json(self), encoding="utf-8")
