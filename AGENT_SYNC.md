@@ -201,6 +201,7 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 1. **TE model** — fails gate at both v1 and v2. alpha=1.0 suggests overfitting. Fundamental signal problem; defer to Phase 6 follow-on.
 2. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds.
 3. **Local Python mismatch** — use `.venv/bin/python3.14` for nflreadpy work.
+4. **TE divergence gate stale**: `market_overlay_service.py` still forces `position == "TE"` to `model_unreliable` even though TE was promoted to ACTIVE_B in Phase 13.3. Do not activate TE buy/sell divergence until this is reviewed and G4 divergence validity has sufficient data. Fix belongs in a later market-overlay cleanup phase, not Phase 16.
 
 ## Codex PR #24 Blocking Issues — RESOLVED
 
@@ -236,19 +237,27 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 - Market source: `unavailable` for all positions (expected; no archive store passed).
 - TE precondition fix: `WalkForwardDriver.FIXED_ALPHA["TE"] = 1.0` added with regression test; no TE promotion logic changed.
 
-## Phase 16 — PLANNING
+## Phase 16 — PLANNING → SPEC INPUT READY
 
 **Theme:** Engine A Rookie Signal Upgrade.
 
-**Scope (David, 2026-05-17):**
-- Fix 6 age-data blockers: collect `birth_date` from PFR/Sports Reference for Omar Cooper Jr. (pick 30), Chris Brazzell II (83), Mike Washington Jr. (122), Kevin Coleman Jr. (177), Emmanuel Henderson Jr. (199), Jam Miller (245). Update `prospect_identity_2026.json`, re-run `scripts/refresh_prospect_cards.py`. DVS invariance check will confirm no drift on scored players.
-- Add/validate college production signals as Engine A feature candidates (draft exposed within-tier WR/RB separation weakness; draft capital + age alone is insufficient).
-- Decide whether Phase 13 draft-capital transform (VALIDATION_ONLY since Phase 13.2.3) gets promoted to production.
-- Market remains overlay-only. xVAR remains display/decision currency, not model input.
+**Spec input:** `docs/strategies/Phase 16 Rookie Signal Upgrade Research - Merged.md` (FINAL — Compass spine, Dynasty Rookie supporting, Codex synthesis reviewed; updated 2026-05-17 with fold-consistency gate, RYPTPA-primary WR framing, RB age de-emphasis governance elevation).
 
-**Prerequisites before spec:**
-- Post-draft closeout: re-run `refresh_draft_state.py` when `draft_status == "complete"`; save validation note.
-- Roster audit with Black on Sleeper roster: re-run roster audit, check RB room and taxi fit.
+**Sub-phase sequencing (David, 2026-05-17):**
+- **Phase 16.1**: Age blockers only — no model semantics change. Ingest verified `birth_date` for 6 PRE_MODEL players into `prospect_identity_2026.json`, re-run `scripts/refresh_prospect_cards.py`. **Plan ready:** `docs/superpowers/plans/2026-05-17-phase16-1-age-blockers.md`.
+- **Phase 16.2**: Validation harness / bake-off infrastructure (CFBD client wrapper, identity join pipeline, immutable snapshot tooling).
+- **Phase 16.3**: WR feature candidates — RYPTPA first (primary automated candidate, CFBD-computable), YPRR conditional (only if governed PFF/Fantasy Points route data exists). Breakout age separate timing/dominance candidate.
+- **Phase 16.4**: Draft-capital transform bake-off — current linear vs. position-bucketed log-decay vs. position-isotonic-step. Promotion gate: ≥3% aggregate MAE lift AND ≥3 of 4 LOOCV folds passing AND TE MAE not regressing >1%.
+- **Phase 16.5**: RB age de-emphasis as a named governance decision (must precede any RB feature bake-off). Requires acceptance/rejection artifact before W5 begins.
+
+**Key governance locks for all of Phase 16:**
+- Market data overlay-only; xVAR display/decision only; no production model change without passing bake-off artifact.
+- Every promotion requires fold-consistency (≥3 of 4 LOOCV folds) AND aggregate MAE gate.
+- All six age-data blockers remain PRE_MODEL until Tier-1 source audit confirms each birth date.
+
+**Prerequisites still pending:**
+- Post-draft closeout: re-run `refresh_draft_state.py` when `draft_status == "complete"`; commit `resources/draft_state.js`.
+- Roster audit with Black on Sleeper roster: re-run after draft completes.
 
 ---
 
