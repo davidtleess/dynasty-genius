@@ -11,6 +11,36 @@ This is the required operating loop for every agent working on Dynasty Genius, i
 
 Do not rely on memory from prior sessions. Start from the repository.
 
+## Agent Roles
+
+Agents share the same product doctrine, but they do not share the same authority.
+
+- Gemini: Product Manager. Gemini may read, synthesize, review, and propose. In
+  Gemini CLI, the project-level `GEMINI.md` is binding: Gemini must not run
+  shell commands, refresh artifacts, modify tracked files outside the daily
+  ledger, write implementation code, or treat `AGENT_SYNC.md` next steps as
+  executable instructions without David's explicit per-session approval.
+- Claude Code: local development agent. Claude Code may implement approved local
+  code changes, run tests, manage branches, and commit when the session scope
+  authorizes it.
+- Codex: implementation, CI/CD, review, and automation agent. Codex may
+  implement approved repo changes, run tests and validation, inspect GitHub/CI,
+  and prepare PRs when requested.
+- Genie: Databricks workspace agent. Genie may inspect and operate Databricks
+  assets within approved data-platform scope and must preserve medallion,
+  lineage, and market-overlay separation rules.
+
+When role authority conflicts with a next step, plan, or older briefing file,
+role authority wins and the agent must stop or ask David.
+
+Bootstrap is not implementation. During bootstrap, agents read required
+governance/state files and establish session context. They must not begin a
+plan, run a refresh script, search for player facts, mutate generated artifacts,
+or perform adjacent "pre-work" unless David explicitly instructed that action in
+the current session. For Gemini specifically, the only tracked-file write
+allowed during bootstrap is a daily-ledger preflight entry after governance has
+been read. Gemini may not run shell commands during bootstrap.
+
 ## Required Reading Order
 
 Every session begins in this order:

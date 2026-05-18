@@ -21,6 +21,7 @@ REQUIRED_FILES = [
     "docs/governance/platform/databricks-lineage-plan.md",
     "AGENT_SYNC.md",
     "AGENTS.md",
+    "GEMINI.md",
     "CLAUDE.md",
     ".clauderules",
     "# DYNASTY GENIUS — SESSION STARTER.md",
@@ -32,6 +33,7 @@ REQUIRED_FILES = [
 
 BOOTSTRAP_FILES = [
     "AGENTS.md",
+    "GEMINI.md",
     "CLAUDE.md",
     ".clauderules",
     "# DYNASTY GENIUS — SESSION STARTER.md",
@@ -61,6 +63,12 @@ REQUIRED_GOVERNANCE_PHRASES = {
         "Execution: During Work",
         "Postflight: Session End",
         "It does not have permission to bypass failing tests",
+    ],
+    "GEMINI.md": [
+        "Gemini is the Product Manager",
+        "must not run shell commands",
+        "must not modify tracked files",
+        "Bootstrap is read-only",
     ],
 }
 

@@ -257,7 +257,7 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 - All six age-data blockers remain PRE_MODEL until Tier-1 source audit confirms each birth date.
 
 **Prerequisites still pending:**
-- Post-draft closeout: re-run `refresh_draft_state.py` when `draft_status == "complete"`; commit `resources/draft_state.js`.
+- **BLOCKED — Post-draft closeout:** do not run `refresh_draft_state.py` until `draft_status == "complete"` AND `current_pick_no == total_picks == 36`; after that authorized closeout run, commit `resources/draft_state.js`.
 - Roster audit with Black on Sleeper roster: re-run after draft completes.
 
 ## Phase 17 — RESEARCH BRIEF READY
@@ -354,7 +354,7 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-1. **Post-draft closeout** — When draft is complete: run `scripts/refresh_draft_state.py`, confirm `draft_status: "complete"` in `resources/draft_state.js`, save a short validation note (picks made, Black pick #26, board recommendation matched). Re-run roster audit (`GET /api/roster/audit`) after Black appears on Sleeper roster.
+1. **Post-draft closeout — BLOCKED until draft complete**: do not run `scripts/refresh_draft_state.py` until `draft_status == "complete"` AND `current_pick_no == total_picks == 36`. After that authorized run, confirm complete state in `resources/draft_state.js`, save a short validation note (picks made, Black pick #26, board recommendation matched), and re-run roster audit (`GET /api/roster/audit`) after Black appears on Sleeper roster.
 2. **Phase 16 spec** — After closeout: write Phase 16 research brief and spec. Priorities: (a) 6 age-data blockers (birth_date collection from PFR), (b) college production signal candidates for Engine A, (c) Phase 13 draft-capital transform promotion decision.
 3. **NOISE_BAND calibration** — Locked at `NOISE_BAND=0.10` until mid-July 2026. Do not change before then.
 4. **Daily FC snapshot cron** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control.
