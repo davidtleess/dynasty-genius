@@ -13,6 +13,7 @@ Phase 15 — IMPLEMENTATION COMPLETE: xVAR Cross-Positional Valuation + Bayesian
 Phase 15.1 — COMPLETE: 2026 Rookie Rank Refresh — prospect_cards enriched with Phase 15 xVAR + rank fields; rank movement report at docs/validation/phase15-2026-rookie-rank-refresh.md (2026-05-17; 730 tests)
 Phase 15.2 — COMPLETE: Draft-status banner — refresh_draft_state.py fetches GET /draft/{id} in parallel with picks; draft_status, last_picked, total_picks, current_pick_no written to draft_state.js; color-coded strip on board (2026-05-17)
 Phase 15.3 — COMPLETE: Available-now panel — top 3 non-taken xVAR-ranked picks above card list; tab-aware; TE caveat fires; board fully live-ready for 2026 rookie draft (2026-05-17)
+Phase 17 — RESEARCH BRIEF READY: Sleeper Universe Valuation & League Opportunity Map; spec input at `docs/strategies/Phase 17 Sleeper Universe Valuation Research - Merged.md`
 
 ## Current Sprint Objective
 
@@ -258,6 +259,28 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 **Prerequisites still pending:**
 - Post-draft closeout: re-run `refresh_draft_state.py` when `draft_status == "complete"`; commit `resources/draft_state.js`.
 - Roster audit with Black on Sleeper roster: re-run after draft completes.
+
+## Phase 17 — RESEARCH BRIEF READY
+
+**Theme:** Sleeper Universe Valuation & League Opportunity Map.
+
+**Spec input:** `docs/strategies/Phase 17 Sleeper Universe Valuation Research - Merged.md` (Codex merge of Phase 17 research reports with Claude/Gemini review feedback incorporated).
+
+**Recommended gated sub-phases:**
+- **17.1 Universe Snapshot & Coverage** — Sleeper player universe, league rosters, users, traded picks, draft state, source hashes, identity coverage, and top-300 unresolved gate.
+- **17.2 Full PVO Batch** — full-universe PVO artifact with explicit engine routing (`ENGINE_A`, `ENGINE_B`, `BLEND_AB`, `PRE_MODEL`, `MARKET_ONLY`, `INACTIVE`, `UNRESOLVED_IDENTITY`, `CONTEXT_ONLY`).
+- **17.3 Team Value Matrix** — starter-weighted xVAR, capped xVAR, positional surplus/deficit, taxi/IR handling, and future-pick ownership context with numeric pick values deferred.
+- **17.4 Market Divergence v2** — FantasyCalc overlay only; percentile divergence; `signal_status` gates; stale TE hardcode cleanup with temporary `TE_REVIEW=true`; no NOISE_BAND tuning before mid-July.
+- **17.5 League Opportunity Map** — neutral evidence cards and partner fit; `decision_supported=false` throughout Phase 17.
+
+**Key governance locks for Phase 17:**
+- Sleeper `player_id` is the Phase 17 universe key, but DG canonical identity remains the long-term mapping layer.
+- Market data is overlay-only and never enters Engine A/B feature inputs.
+- Future picks are reconstructed for ownership, but no numeric xVAR/DVS/market value is assigned in Phase 17.
+- Opportunity language must stay neutral: no imperative buy/sell/target/fade labels.
+- Divergence gates populate `signal_status`; they do not flip `decision_supported`.
+- Top-300 identity gate: top-300 by FantasyCalc dynasty Superflex market value when available, falling back to DG xVAR when market data is unavailable.
+- FantasyCalc parameter set is an open decision before implementation: confirm `isDynasty=true&numQbs=2&numTeams=12&ppr=1` matches Redzone Champions.
 
 ---
 

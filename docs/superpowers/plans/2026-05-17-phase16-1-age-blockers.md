@@ -214,6 +214,11 @@ class TestProspectCards:
 
 Expected: FAIL on identity tests (birth_date null) and all cards tests.
 
+Note: `test_sleeper_ids_preserved` and `test_dvs_invariance_existing_scored_players`
+may already pass in the red state because they assert continuity, not blocker
+resolution. The required red failures are birth-date verification, scored status,
+DVS/xVAR/rank population, fractional age, and model-grade upgrade.
+
 ---
 
 ## Task 2: Update prospect_identity_2026.json
@@ -395,10 +400,10 @@ And update the closing tag to close the list properly:
 .venv/bin/python scripts/refresh_prospect_cards.py
 ```
 
-Expected output:
+Expected output after Task 3 updates:
 ```
 DVS invariance: OK — all 74 scored players match baseline exactly
-Written: 80 2026 prospects (80 scored, 0 PRE_MODEL age-blockers remaining) + 2 watchlist
+Written: 80 2026 prospects (80 scored, 0 PRE_MODEL) + 2 watchlist
 Report: docs/validation/phase15-2026-rookie-rank-refresh.md
 ```
 
@@ -421,7 +426,7 @@ Expected: all tests PASS.
 - [ ] **Step 2: Quick spot-check of the 6 in the artifact**
 
 ```bash
-python3 -c "
+.venv/bin/python -c "
 import json
 with open('resources/prospect_cards.json') as f:
     cards = json.load(f)
