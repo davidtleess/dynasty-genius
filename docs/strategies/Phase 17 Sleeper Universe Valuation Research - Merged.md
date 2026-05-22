@@ -739,3 +739,53 @@ Build last:
 5. **17.5 League Opportunity Map** — useful only when valuation and divergence are trustworthy.
 
 Defer future-pick valuation, UI polish, KTC, and automated trade language until Phase 17 artifacts pass acceptance criteria.
+
+---
+
+## 19. Phase 17 Decision Memo: League Intelligence & Opportunity Mapping
+
+**Status:** PM Review / Proposed Defaults for David Approval
+**Scope:** Phase 17 Structural Logic
+**Constraints:** Read-only; Repo-resident evidence only.
+
+### 1. Bench Depth Decay Coefficient
+**Question:** How much credit should a team receive for bench strength (xVAR above replacement) vs. starting lineup concentration?
+
+*   **Status:** Recommended default pending David approval.
+*   **Default:** **0.5** (`bench rank weight = 0.5 ** bench_rank_index`). Every rank on the bench provides 50% less xVAR utility than the rank above it. Note: This is a surface display parameter, not a model constant, and can be tuned after the first matrix run without a formal governance review cycle.
+*   **Counter-Argument:** A higher coefficient (e.g., 0.7) better reflects the "dynasty insulation" value of depth in leagues with deep benches and IR slots.
+*   **Governance Risk:** A coefficient that is too high rewards "bench stuffing" and hides a weak starting core.
+*   **Revisit Trigger:** If the first matrix run places a depth-heavy team above a top-heavy team.
+
+### 2. Pick Reconstruction Overrides
+**Question:** Should we rely purely on Sleeper logic or implement a manual override file?
+
+*   **Status:** Recommended default pending David approval.
+*   **Recommended Default:** **Automated Reconstruction Only**. Add manual override capability as a named follow-up *if and only if* a confirmed discrepancy surfaces during Phase 17.1.
+*   **Counter-Argument:** A manual override file provides a critical safety net for known Sleeper inconsistencies. Without it, a known pick-inventory mismatch would block Phase 17 outputs until code changes are made.
+*   **Governance Risk:** Silent errors in pick ownership can lead to "League Opportunity" cards suggesting trades with assets that David does not actually own.
+*   **Revisit Trigger:** Any instance where the `team_value_matrix` disagrees with the Sleeper UI.
+
+### 3. Divergence Noise Band
+**Question:** What threshold should we use to suppress "noise" in the model-vs-market percentile delta?
+
+*   **Status:** Recommended default pending David approval.
+*   **Default:** **0.10** (Global).
+*   **Counter-Argument:** A wider band (0.15) for rookies would prevent "False Positives" in the high-volatility window post-draft.
+*   **Governance Risk:** Reducing the band increases the risk of "Market Leakage" or reacting to temporary hype cycles.
+*   **Revisit Trigger:** If the first full-universe run surfaces more than 20% of the league as "Divergent." (Note: The rookie-exception argument belongs in a later bake-off, not a Phase 17 spec. It should be added to the Phase 17 follow-up list.)
+
+### 4. FantasyCalc Parameter Confirmation
+**Question:** Which specific FantasyCalc API parameters should define our market overlay reference?
+
+*   **Status:** Recommended default pending David approval.
+*   **Recommended Default:** `isDynasty=true & numQbs=2 & numTeams=12 & ppr=1`.
+*   **Verified Context:** Repo-resident `david_league_context.json` confirms `te_premium: 0.0`. `ppr=1` is correct.
+*   **Counter-Argument:** Using a generic "PPR" parameter may mismatch market valuation if league-specific bonuses (like TEP) were present.
+*   **Governance Risk:** Using the wrong market reference (e.g., 1QB vs. 2QB) will generate massive, false "Divergence" signals.
+*   **Validation Dependency:** Claude/Codex should confirm Sleeper league settings during Phase 17.1 implementation before locking market-overlay params.
+*   **Revisit Trigger:** Any discovered scoring mismatch, league setting change, or FantasyCalc API parameter change.
+
+---
+
+**These are proposed Phase 17 defaults for David approval.** They remain research/spec guidance only until David approves implementation and Claude/Codex execute the governed closeout and Phase 17.1 work.
