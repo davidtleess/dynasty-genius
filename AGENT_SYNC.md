@@ -16,23 +16,25 @@ Phase 15.3 — COMPLETE: Available-now panel — top 3 non-taken xVAR-ranked pic
 Phase 15.4 — COMPLETE: Post-draft closeout — Sleeper draft complete, 36/36 picks written to `resources/draft_state.js`, Black pick #26 validated, roster audit rerun with Black present (2026-05-21)
 Phase 16.1 — COMPLETE: Age blockers resolved — 6 verified DOBs ingested, all 80 2026 prospects now scored, DVS invariance held, full suite green (737 passed, 11 skipped; 2026-05-21)
 Phase 16 — CLOSED FOR PHASE 17 ENTRY: Remaining signal-upgrade workstreams are validation/research gates and deferred; no production model change approved.
-Phase 17 — IMPLEMENTATION STARTED: 17.1 Sleeper Universe Snapshot & Coverage complete; 17.2 Full PVO Batch complete; 17.3 Team Value Matrix complete; 17.4 Market Divergence v2 complete (latest artifacts in `app/data/league_snapshots/` and `app/data/valuation/`)
+Phase 17 — IMPLEMENTATION COMPLETE THROUGH 17.5: Sleeper universe, full PVO batch, team matrix, market divergence, and league opportunity map artifacts complete (latest artifacts in `app/data/league_snapshots/` and `app/data/valuation/`)
 Phase 18 — GOVERNANCE HARDENED: Gemini PM skill `dynasty-genius-pm` installed (2026-05-18)
 
 ## Current Sprint Objective
 
-Phase 17 — 17.1, 17.2, 17.3, AND 17.4 COMPLETE; READY FOR 17.5 OPPORTUNITY CARDS.
+Phase 17 — 17.1 THROUGH 17.5 COMPLETE; READY FOR REVIEW / CHECKPOINT.
 - Workstream 17.0 (Planning) — COMPLETE: Merged research brief finalized with Section 19 Decision Memo.
 - Workstream 17.1 (Universe Snapshot & Coverage) — COMPLETE: `scripts/build_sleeper_universe_snapshot.py` fetches Sleeper league, rosters, users, traded picks, latest draft, NFL state, and `/players/nfl`; writes `sleeper_universe_snapshot_latest.json` and `sleeper_universe_coverage_latest.json`.
 - Workstream 17.2 (Full PVO Batch) — COMPLETE: `scripts/build_universe_pvo_batch.py` builds `universe_pvo_latest.json` from the 17.1 snapshot, `resources/prospect_cards.json`, Engine B inference scoring, and the governed ff_playerids crosswalk.
 - Workstream 17.3 (Team Value Matrix) — COMPLETE: `scripts/build_team_value_matrix.py` builds `team_value_matrix_latest.json` from the 17.2 PVO artifact and 17.1 Sleeper snapshot.
 - Workstream 17.4 (Market Divergence v2) — COMPLETE: `scripts/build_universe_market_divergence.py` builds `universe_market_divergence_latest.json` from the 17.2 full-universe PVO artifact plus FantasyCalc overlay data.
+- Workstream 17.5 (League Opportunity Map) — COMPLETE: `scripts/build_league_opportunity_map.py` builds `league_opportunity_latest.json` and `league_opportunity_latest.md` from 17.3 team matrix plus 17.4 market divergence.
 - Approved Defaults: Automated-only pick reconstruction with validation/caveat gates; Global Noise band 0.10 as diagnostic/provisional; FantasyCalc ppr=1/no TEP.
 - Bench-weighting guardrail: no player-level value decay. Any depth weighting may apply only to team-strength aggregation after computing the best legal starting lineup from player xVAR/PVO values; actual manager lineup choices must not determine who is decayed.
 - Latest 17.1 coverage: 12,189 Sleeper universe rows classified; 280/280 rostered players present; David roster 28/28 present; 1 unresolved Sleeper pseudo-player ID (`0`); PVO scoring not required in 17.1.
 - Latest 17.2 coverage (`phase17-2-20260522T030627Z`): 12,189 rows; route counts `ENGINE_A=80`, `ENGINE_B=373`, `PRE_MODEL=9,605`, `INACTIVE=2,130`, `UNRESOLVED_IDENTITY=1`; no market overlay rows; `decision_supported_true_count=0`; all rostered skill players have explicit routes. `xvar_percentile_overall` remains null until cross-position percentile ranking is explicitly implemented.
 - Latest 17.3 coverage (`phase17-3-20260522T110534Z`): all 12 teams emitted; future picks present but unvalued; taxi activation cost represented; guardrail embedded (`player_level_value_decay_allowed=false`, lineup selection from raw player xVAR, depth weighting only for non-starters after lineup selection).
 - Latest 17.4 coverage (`phase17-4-20260522T115250Z`): 12,189 rows; 398 FantasyCalc market overlays; signals `MODEL_HIGH_MARKET_LOW=107`, `MODEL_LOW_MARKET_HIGH=56`, `INSIDE_BAND=107`, `UNAVAILABLE=11,918`, `UNRESOLVED_IDENTITY=1`; `decision_supported_true_count=0`; market data remains overlay-only; no imperative schema language; TE position-only suppression count is 0.
+- Latest 17.5 coverage (`phase17-5-20260522T121830Z`): 20 opportunity cards capped for the run; card types `WAIVER_CANDIDATE=16`, `ROSTER_SURPLUS_DEFICIT_MATCH=3`, `DIVERGENCE_MODEL_HIGH=1`; 11 partner rankings; all cards evidence-backed; `decision_supported_true_count=0`; automated trade execution disabled; banned language absent.
 - Current caveat: Automated pick reconstruction defers numeric values and publishes caveats for 2026 traded picks outside the future-pick reconstruction window after draft closeout.
 
 Phase 15 — COMPLETE. Suite: 730 passed, 11 skipped, 0 failed. Board is live-ready.
