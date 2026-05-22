@@ -383,12 +383,13 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Open Blockers
 
-1. **NOISE_BAND calibration** — Locked at 0.10 until mid-July 2026. Do not activate veteran divergence flags before then.
-3. **TE G3 deferred** — Market superiority gate still deferred; TE `decision_supported` remains False.
+1. **NOISE_BAND calibration** — Locked at 0.10 until mid-July 2026. Do not tune the divergence band before then.
+2. **TE divergence review period** — Phase 17.4 removed position-only suppression, but no exit criteria are defined yet; TE divergence must remain non-decision-supported.
+3. **Phase 16.2-16.5 deferred gates** — Validation harness, WR/RB/QB feature candidates, draft-capital bake-off, and RB age de-emphasis remain explicitly deferred until David reopens them.
 
 ## Next Recommended Work
 
-1. **Phase 17.1 Universe Snapshot & Coverage**: ready. Build Sleeper universe, league rosters/users, traded picks, draft state, source hashes, identity coverage, and top-300 unresolved gate. Preserve bench-weighting guardrail for later team-strength work.
-2. **Phase 16 deferred research**: keep CFBD ingestion, draft-capital transform bake-off, WR/RB/QB feature candidates, and RB age de-emphasis out of the Phase 17 critical path unless David explicitly reopens them.
-3. **NOISE_BAND calibration** — Locked at `NOISE_BAND=0.10` until mid-July 2026. Do not change before then.
-4. **Daily FC snapshot cron** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control.
+1. **Phase 18.2 daily batch orchestration** — Add a lightweight `scripts/refresh_league_intelligence.py` entry point that runs the Phase 17 pipeline in order: Sleeper universe snapshot, full PVO batch, team value matrix, market divergence, and league opportunity map. This is the highest-value usability gap because the current pipeline is five manual scripts.
+2. **Phase 18.3 team posture classification** — Replace `posture.label="UNCLASSIFIED"` and hardcoded `posture_alignment_score=0.0` with a governed posture artifact. Keep opportunity cards non-decision-supported until posture rules are validated.
+3. **Phase 18.4 cross-position xVAR percentile pass** — Populate `xvar_percentile_overall` in the universe PVO batch with a post-scoring ranking pass. This must remain derived from internal xVAR only; no market data enters valuation.
+4. **Housekeeping: publish checkpoint** — Branch is well ahead of `origin/main`; decide whether to push and open a PR before starting more Phase 18 implementation.
