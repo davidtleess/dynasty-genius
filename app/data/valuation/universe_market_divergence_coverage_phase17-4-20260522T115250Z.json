@@ -1,0 +1,25 @@
+{
+  "banned_language_present": [],
+  "decision_supported_true_count": 0,
+  "market_overlay_present_count": 398,
+  "phase17_4_exit_criteria": {
+    "decision_supported_false": true,
+    "market_data_overlay_only": true,
+    "no_imperative_language": true,
+    "te_not_suppressed_by_position_alone": true
+  },
+  "signal_status_counts": {
+    "gates_passed": 163,
+    "inside_band": 107,
+    "unavailable": 11919
+  },
+  "signals_by_type": {
+    "INSIDE_BAND": 107,
+    "MODEL_HIGH_MARKET_LOW": 107,
+    "MODEL_LOW_MARKET_HIGH": 56,
+    "UNAVAILABLE": 11918,
+    "UNRESOLVED_IDENTITY": 1
+  },
+  "te_position_suppressed_count": 0,
+  "total_players": 12189
+}

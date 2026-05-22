@@ -275,14 +275,19 @@ def test_compute_divergence_sets_divergence_flag_aligned():
     assert pvo.market_overlay.model_minus_market_delta is not None
 
 
-def test_compute_divergence_te_forced_model_unreliable():
+def test_compute_divergence_te_active_b_not_forced_model_unreliable():
     from src.dynasty_genius.services.market_overlay_service import compute_divergence
     fixture = _load_fixture()
-    pvo = _make_pvo("p2", "8888", "TE", projection_2y=8.0, model_grade="EXPERIMENTAL")
-    compute_divergence([pvo], fixture)
+    pvo = _make_pvo("p2", "8888", "TE", projection_2y=8.0, model_grade="ACTIVE_B")
+    cohort = [pvo] + [
+        _make_pvo(f"pad{i}", f"NOFCMATCH_TE_{i}", "TE", projection_2y=float(4 + i))
+        for i in range(4)
+    ]
+    compute_divergence(cohort, fixture)
     assert pvo.market_overlay is not None
-    assert pvo.market_overlay.divergence_flag == "model_unreliable"
-    assert "te_model_experimental_do_not_trade_on" in pvo.market_overlay.caveats
+    assert pvo.market_overlay.divergence_flag != "model_unreliable"
+    assert "te_review_period" in pvo.market_overlay.caveats
+    assert "te_model_experimental_do_not_trade_on" not in pvo.market_overlay.caveats
     assert "te_market_high_variance" in pvo.market_overlay.caveats
 
 

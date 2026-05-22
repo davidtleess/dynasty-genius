@@ -80,7 +80,11 @@ def _attach_position_caveats(
     age = pvo.age or 0.0
 
     if pos == "TE":
-        caveats += ["te_model_experimental_do_not_trade_on", "te_market_high_variance"]
+        caveats.append("te_market_high_variance")
+        if pvo.model_grade == "EXPERIMENTAL":
+            caveats.append("te_model_experimental_do_not_trade_on")
+        else:
+            caveats.append("te_review_period")
     elif pos == "RB":
         if flag == "model_higher_than_market" and age >= 26:
             caveats.append("rb_cliff_watch")
@@ -154,8 +158,8 @@ def compute_divergence(pvo_list: list["PlayerValueObject"], fc_response: list[di
 
         position = pvo.position or ""
 
-        # TE and EXPERIMENTAL: always model_unreliable — no percentile math needed
-        if pvo.model_grade == "EXPERIMENTAL" or position == "TE":
+        # EXPERIMENTAL models are unreliable. TE ACTIVE_B rows use normal gates.
+        if pvo.model_grade == "EXPERIMENTAL":
             overlay.divergence_flag = "model_unreliable"
             overlay.caveats += _attach_position_caveats(pvo, "model_unreliable", 0.0)
             continue

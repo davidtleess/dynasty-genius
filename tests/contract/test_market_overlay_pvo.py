@@ -4,7 +4,7 @@ Verifies:
 1.  FC adapter returns correct shape with sleeper_id present.
 2.  combinedValue and redraftValue absent from overlay.
 3.  divergence_flag is one of the five valid values.
-4.  TE always receives divergence_flag == "model_unreliable".
+4.  ACTIVE_B TE is not suppressed solely by position.
 5.  Rookie with no projection receives divergence_flag == "model_uninformative_rookie".
 6.  RB age 26+ with model_higher_than_market receives rb_cliff_watch caveat.
 7.  market_overlay is None when FC response is empty.
@@ -97,13 +97,15 @@ def test_divergence_flag_is_valid_for_scored_player():
     assert pvo.market_overlay.divergence_flag in VALID_FLAGS
 
 
-# ── Test 4: TE forced to model_unreliable ────────────────────────────────────
+# ── Test 4: ACTIVE_B TE not suppressed solely by position ─────────────────────
 
-def test_te_divergence_flag_is_model_unreliable():
-    pvo = _pvo("8888", "TE", 9.0, model_grade="EXPERIMENTAL")
-    compute_divergence([pvo], FIXTURE)
+def test_active_b_te_divergence_is_not_position_suppressed():
+    pvo = _pvo("8888", "TE", 9.0, model_grade="ACTIVE_B")
+    cohort = [pvo] + [_pvo(f"NOFCMATCH_TE_{i}", "TE", float(4 + i)) for i in range(4)]
+    compute_divergence(cohort, FIXTURE)
     assert pvo.market_overlay is not None
-    assert pvo.market_overlay.divergence_flag == "model_unreliable"
+    assert pvo.market_overlay.divergence_flag != "model_unreliable"
+    assert "te_review_period" in pvo.market_overlay.caveats
 
 
 # ── Test 5: Rookie with no projection ────────────────────────────────────────
