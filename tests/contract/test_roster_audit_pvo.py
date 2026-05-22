@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 from unittest.mock import AsyncMock, patch
+import json
 
 from app.services.roster_auditor import run_audit_pvo
 
@@ -70,6 +71,15 @@ _NON_SKILL_PLAYER = {
     "gsis_id": "gsis_k_001",
 }
 
+_ROOKIE_PLAYER = {
+    "player_id": "13414",
+    "full_name": "Kaelon Black",
+    "position": "RB",
+    "team": "SF",
+    "age": 24,
+    "gsis_id": None,
+}
+
 _RB_ENGINE_B_SCORE = {
     "player_id": "gsis_rb_001",
     "predicted_avg_ppg_t1_t2": 15.5,
@@ -120,6 +130,69 @@ def _run(roster=None, scores=None):
         patch(
             "app.services.roster_auditor.load_qb_identity_bridge",
             return_value={"players": {}},
+        ),
+    ):
+        return asyncio.run(run_audit_pvo())
+
+
+def _universe_row_for_rookie() -> dict:
+    return {
+        "sleeper_player_id": "13414",
+        "dg_player_id": "kaelon_black_rb",
+        "identity_status": "resolved",
+        "identity_ids": {"sleeper_id": "13414"},
+        "player": {
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "team": "SFO",
+            "age": 24.0,
+            "dg_status": "ENGINE_A",
+        },
+        "league_context": {
+            "rostered": True,
+            "roster_id": 1,
+            "in_current_draft": True,
+            "on_taxi": False,
+        },
+        "valuation": {
+            "engine_path": "ENGINE_A",
+            "valuation_status": "MODEL_SUPPORTED",
+            "dynasty_value_score": 61.55,
+            "xvar": 13.4,
+            "model_grade": "PROSPECT_C",
+            "feature_completeness": 0.2857,
+            "decision_supported": False,
+        },
+    }
+
+
+def _run_with_universe(tmp_path, universe_rows, roster=None, scores=None):
+    path = tmp_path / "universe_pvo_latest.json"
+    path.write_text(json.dumps({"players": universe_rows}))
+    roster = roster if roster is not None else [_ROOKIE_PLAYER, _RB_PLAYER]
+    scores = scores if scores is not None else [_RB_ENGINE_B_SCORE]
+    with (
+        patch(
+            "app.services.roster_auditor.get_my_roster",
+            new_callable=AsyncMock,
+            return_value=roster,
+        ),
+        patch(
+            "app.services.roster_auditor.score_inference_partition",
+            return_value=scores,
+        ),
+        patch(
+            "app.services.roster_auditor.load_qb_identity_bridge",
+            return_value={"players": {}},
+        ),
+        patch(
+            "app.services.roster_auditor.UNIVERSE_PVO_LATEST_PATH",
+            path,
+            create=True,
+        ),
+        patch(
+            "src.dynasty_genius.services.market_overlay_service.enrich_pvo_list_with_market_overlay",
+            return_value=None,
         ),
     ):
         return asyncio.run(run_audit_pvo())
@@ -232,3 +305,44 @@ def test_empty_roster_returns_empty_players():
     result = _run(roster=[], scores=[])
     assert result["players"] == []
     assert result["status"] == "active"
+
+
+def test_current_draft_rookie_uses_engine_a_universe_pvo(tmp_path):
+    result = _run_with_universe(tmp_path, [_universe_row_for_rookie()])
+    rookie = next(p for p in result["players"] if p["sleeper_id"] == "13414")
+    assert rookie["player_id"] == "kaelon_black_rb"
+    assert rookie["model_grade"] == "PROSPECT_C"
+    assert rookie["engine_used"] == "engine_a"
+    assert rookie["dynasty_value_score"] == 61.55
+    assert rookie["xvar"] == 13.4
+    assert rookie["decision_supported"] is False
+
+
+def test_engine_a_rookie_reconciliation_preserves_veteran_engine_b_path(tmp_path):
+    result = _run_with_universe(tmp_path, [_universe_row_for_rookie()])
+    veteran = next(p for p in result["players"] if p["sleeper_id"] == "sleeper_rb_001")
+    assert veteran["model_grade"] == "ACTIVE_B"
+    assert veteran["engine_used"] == "engine_b"
+    assert veteran["dynasty_value_score"] is not None
+
+
+def test_roster_audit_degrades_when_universe_artifact_absent(tmp_path):
+    missing_path = tmp_path / "missing.json"
+    with (
+        patch(
+            "app.services.roster_auditor.get_my_roster",
+            new_callable=AsyncMock,
+            return_value=[_ROOKIE_PLAYER],
+        ),
+        patch("app.services.roster_auditor.score_inference_partition", return_value=[]),
+        patch("app.services.roster_auditor.load_qb_identity_bridge", return_value={"players": {}}),
+        patch("app.services.roster_auditor.UNIVERSE_PVO_LATEST_PATH", missing_path, create=True),
+        patch(
+            "src.dynasty_genius.services.market_overlay_service.enrich_pvo_list_with_market_overlay",
+            return_value=None,
+        ),
+    ):
+        result = asyncio.run(run_audit_pvo())
+    rookie = result["players"][0]
+    assert rookie["sleeper_id"] == "13414"
+    assert rookie["model_grade"] == "PRE_MODEL"

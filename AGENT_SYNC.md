@@ -17,11 +17,16 @@ Phase 15.4 — COMPLETE: Post-draft closeout — Sleeper draft complete, 36/36 p
 Phase 16.1 — COMPLETE: Age blockers resolved — 6 verified DOBs ingested, all 80 2026 prospects now scored, DVS invariance held, full suite green (737 passed, 11 skipped; 2026-05-21)
 Phase 16 — CLOSED FOR PHASE 17 ENTRY: Remaining signal-upgrade workstreams are validation/research gates and deferred; no production model change approved.
 Phase 17 — IMPLEMENTATION COMPLETE THROUGH 17.5: Sleeper universe, full PVO batch, team matrix, market divergence, and league opportunity map artifacts complete (latest artifacts in `app/data/league_snapshots/` and `app/data/valuation/`)
-Phase 18 — GOVERNANCE HARDENED: Gemini PM skill `dynasty-genius-pm` installed (2026-05-18)
+Phase 18 — IMPLEMENTATION STARTED: 18.1 roster-audit rookie PVO reconciliation complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-18)
 
 ## Current Sprint Objective
 
-Phase 17 — 17.1 THROUGH 17.5 COMPLETE; READY FOR REVIEW / CHECKPOINT.
+Phase 18 — 18.1 ROSTER-AUDIT ROOKIE PVO RECONCILIATION COMPLETE; READY FOR REVIEW / CHECKPOINT.
+- Workstream 18.1 (Roster Audit Rookie Reconciliation) — COMPLETE: `/roster/audit` preserves Phase 17 full-universe Engine A PVO values for rostered current-draft rookies instead of degrading them to active-player `PRE_MODEL`; veterans remain on the existing audit path.
+- Latest live Woodbury rerun: 28 players, 5 QB context cards, `decision_supported=false`; current-draft rookies now surface Engine A values in `/roster/audit`: Fernando Mendoza (`DVS=85.14`, `xVAR=10.31`), Omar Cooper Jr. (`DVS=70.99`, `xVAR=1.79`), Chris Bell (`DVS=62.46`, `xVAR=-6.74`), Kaelon Black (`DVS=61.55`, `xVAR=13.4`).
+- Phase 18.1 verification: roster audit/PVO focused suite passed (`35 passed`); full suite passed (`768 passed, 11 skipped`).
+
+Phase 17 — 17.1 THROUGH 17.5 COMPLETE; REVIEWED / CHECKPOINTED.
 - Workstream 17.0 (Planning) — COMPLETE: Merged research brief finalized with Section 19 Decision Memo.
 - Workstream 17.1 (Universe Snapshot & Coverage) — COMPLETE: `scripts/build_sleeper_universe_snapshot.py` fetches Sleeper league, rosters, users, traded picks, latest draft, NFL state, and `/players/nfl`; writes `sleeper_universe_snapshot_latest.json` and `sleeper_universe_coverage_latest.json`.
 - Workstream 17.2 (Full PVO Batch) — COMPLETE: `scripts/build_universe_pvo_batch.py` builds `universe_pvo_latest.json` from the 17.1 snapshot, `resources/prospect_cards.json`, Engine B inference scoring, and the governed ff_playerids crosswalk.

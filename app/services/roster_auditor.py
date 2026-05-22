@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -12,9 +12,11 @@ from src.dynasty_genius.adapters.nflreadpy_qb_adapter import fetch_qb_nfl_stats
 from src.dynasty_genius.models.engine_a_contract import QB_CONTEXT_COLUMNS
 from src.dynasty_genius.models.league_context import LeagueContext
 from src.dynasty_genius.models.player_identity import PlayerIdentity
+from src.dynasty_genius.models.player_value_object import PlayerValueObject, RosterAuditSignals
 
 _ROOT = Path(__file__).resolve().parents[2]
 _QB_BRIDGE_PATH = _ROOT / "resources" / "nflreadpy_qb_id_map.json"
+UNIVERSE_PVO_LATEST_PATH = _ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
 
 QB_CONTEXT_SEASONS = [2024, 2023]
 QB_LOW_TD_INT_RATIO_THRESHOLD = 0.7
@@ -67,6 +69,105 @@ _PVO_CAVEATS = ["no_market_overlay"]
 
 class RosterConfigError(ValueError):
     pass
+
+
+def _load_rostered_engine_a_universe_pvos(path: Path | None = None) -> dict[str, dict[str, Any]]:
+    """Return rostered current-draft Engine A universe rows by Sleeper id.
+
+    Missing artifacts degrade to the existing live roster-audit path.
+    """
+    path = path or UNIVERSE_PVO_LATEST_PATH
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    indexed: dict[str, dict[str, Any]] = {}
+    for row in payload.get("players") or []:
+        valuation = row.get("valuation") or {}
+        context = row.get("league_context") or {}
+        sleeper_id = row.get("sleeper_player_id")
+        if (
+            sleeper_id is not None
+            and valuation.get("engine_path") == "ENGINE_A"
+            and context.get("rostered") is True
+            and context.get("in_current_draft") is True
+        ):
+            indexed[str(sleeper_id)] = row
+    return indexed
+
+
+def _roster_audit_signals_from_player(player: dict) -> RosterAuditSignals | None:
+    audited = audit_player(player)
+    if audited is None:
+        return None
+    return RosterAuditSignals(
+        cliff_age=audited.get("cliff_age"),
+        years_to_cliff=audited.get("years_to_cliff"),
+        age_cliff_risk=audited.get("age_cliff_risk"),
+        biological_debt_score=audited.get("biological_debt_score"),
+        liquidity_risk=audited.get("liquidity_risk"),
+        signal=audited.get("signal"),
+        signal_drivers=audited.get("signal_drivers", []),
+        age_value_context=audited.get("age_value_context"),
+        caveats=audited.get("caveats", []),
+        decision_supported=False,
+    )
+
+
+def _pvo_from_universe_engine_a_row(row: dict[str, Any], live_player: dict) -> PlayerValueObject:
+    player = row.get("player") or {}
+    valuation = row.get("valuation") or {}
+    identity_ids = row.get("identity_ids") or {}
+    lineage = row.get("lineage") or {}
+    roster_audit = _roster_audit_signals_from_player(live_player)
+    caveats = [
+        "roster_audit_reconciled_from_universe_pvo",
+        "current_draft_rookie_engine_a_value_preserved",
+    ]
+    if roster_audit:
+        for caveat in roster_audit.caveats:
+            if caveat not in caveats:
+                caveats.append(caveat)
+    top_drivers = list(roster_audit.signal_drivers) if roster_audit else []
+
+    try:
+        universe_path = str(UNIVERSE_PVO_LATEST_PATH.relative_to(_ROOT))
+    except ValueError:
+        universe_path = str(UNIVERSE_PVO_LATEST_PATH)
+
+    return PlayerValueObject(
+        player_id=str(row.get("dg_player_id") or row.get("sleeper_player_id")),
+        full_name=str(player.get("full_name") or live_player.get("full_name")),
+        position=str(player.get("position") or live_player.get("position")),
+        nfl_team=player.get("team") or live_player.get("team"),
+        age=player.get("age") or live_player.get("age"),
+        is_prospect=True,
+        sleeper_id=str(identity_ids.get("sleeper_id") or row.get("sleeper_player_id")),
+        engine_used="engine_a",
+        model_version=valuation.get("model_version"),
+        model_grade=str(valuation.get("model_grade") or "PRE_MODEL"),
+        dynasty_value_score=valuation.get("dynasty_value_score"),
+        projection_1y=None,
+        projection_2y=None,
+        projection_3y=None,
+        dvs_engine="A" if valuation.get("dynasty_value_score") is not None else None,
+        xvar=valuation.get("xvar"),
+        signal_completeness=float(valuation.get("feature_completeness") or 0.0),
+        inputs_present=[],
+        inputs_missing=[],
+        top_drivers=top_drivers,
+        risk_flags=[],
+        caveats=caveats,
+        roster_audit=roster_audit,
+        decision_supported=False,
+        source_versions={
+            "universe_pvo_batch": universe_path,
+            "sleeper_snapshot_hash": str(lineage.get("sleeper_snapshot_hash") or ""),
+        },
+    )
 
 
 def _clamp(value: float, lower: float = 0.0, upper: float = 1.0) -> float:
@@ -458,10 +559,16 @@ async def run_audit_pvo() -> dict:
 
     # Engine B scores generated before any market data — architecture gate.
     engine_b_scores = {s["player_id"]: s for s in score_inference_partition()}
+    engine_a_rookie_pvos = _load_rostered_engine_a_universe_pvos()
 
     pvos = []
     for p in players:
         if p.get("position") not in SKILL_POSITIONS:
+            continue
+
+        universe_engine_a_row = engine_a_rookie_pvos.get(str(p.get("player_id")))
+        if universe_engine_a_row is not None:
+            pvos.append(_pvo_from_universe_engine_a_row(universe_engine_a_row, p))
             continue
 
         identity = PlayerIdentity(
