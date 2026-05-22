@@ -79,3 +79,10 @@ async def get_all_players() -> dict[str, dict]:
     if not data:
         raise ValueError("Failed to retrieve NFL player map")
     return data
+
+
+async def get_nfl_state() -> dict:
+    data = await _get("/state/nfl")
+    if not data:
+        raise ValueError("Failed to retrieve NFL state")
+    return data

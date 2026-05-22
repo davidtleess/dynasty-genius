@@ -1,0 +1,5545 @@
+{
+  "bench_weighting_guardrail": {
+    "bench_depth_decay": 0.5,
+    "depth_weighting_scope": "non_starters_after_lineup_selection",
+    "lineup_selection": "best_legal_lineup_from_raw_player_xvar",
+    "player_level_value_decay_allowed": false
+  },
+  "captured_at": "2026-05-22T11:05:34.549355+00:00",
+  "coverage": {
+    "all_teams_emitted": true,
+    "future_picks_present_unvalued": true,
+    "taxi_activation_cost_represented": true,
+    "team_count": 12
+  },
+  "league_id": "1314363401744416768",
+  "schema_version": "team_value_matrix.v1",
+  "teams": [
+    {
+      "age_profile": {
+        "median_age": 23.0,
+        "pct_value_over_28": 0.0,
+        "value_weighted_age": 23.77
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [],
+        "owned": [
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 1,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 3,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 10,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 1,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 3,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 6,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 1,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 7,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 1,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 1,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 1,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 1,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 1,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 1,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 10.75,
+        "starters": [
+          {
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "sleeper_player_id": "11565",
+            "slot": "QB",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "sleeper_player_id": "13414",
+            "slot": "RB",
+            "xvar": 13.4
+          },
+          {
+            "full_name": "Tyrone Tracy",
+            "position": "RB",
+            "sleeper_player_id": "11655",
+            "slot": "RB",
+            "xvar": 11.8
+          },
+          {
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "sleeper_player_id": "11620",
+            "slot": "WR",
+            "xvar": 2.4
+          },
+          {
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "sleeper_player_id": "12492",
+            "slot": "WR",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "sleeper_player_id": "11597",
+            "slot": "TE",
+            "xvar": -16.85
+          },
+          {
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "sleeper_player_id": "11570",
+            "slot": "FLEX",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "sleeper_player_id": "12499",
+            "slot": "FLEX",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "sleeper_player_id": "12486",
+            "slot": "SUPER_FLEX",
+            "xvar": 0.0
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "Dleess",
+        "team_name": "Woodbury Riders",
+        "user_id": "827345221493850112"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Garrett Wilson",
+          "lineup_role": "ir",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 29.2,
+          "sleeper_player_id": "8146",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kaelon Black",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 13.4,
+          "sleeper_player_id": "13414",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tyrone Tracy",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 11.8,
+          "sleeper_player_id": "11655",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Fernando Mendoza",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 10.31,
+          "sleeper_player_id": "13269",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Rome Odunze",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 2.4,
+          "sleeper_player_id": "11620",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Omar Cooper Jr.",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 1.79,
+          "sleeper_player_id": "13276",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tucker Kraft",
+          "lineup_role": "ir",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 1.62,
+          "sleeper_player_id": "9484",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "J.J. McCarthy",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "11565",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Rasheen Ali",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "11570",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Dillon Gabriel",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12486",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Pat Bryant",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12492",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Elic Ayomanor",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12499",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jaxson Dart",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12508",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tre' Harris",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12509",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Luther Burden",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12519",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Ashton Jeanty",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12527",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "TreVeyon Henderson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12529",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Chimere Dike",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12540",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kyle Williams",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12547",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tank Dell",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "9502",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Xavier Legette",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -2.1,
+          "sleeper_player_id": "11626",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Braelon Allen",
+          "lineup_role": "ir",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -3.9,
+          "sleeper_player_id": "11576",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Chris Bell",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -6.74,
+          "sleeper_player_id": "13311",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Parker Washington",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -13.5,
+          "sleeper_player_id": "9487",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Theo Johnson",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -16.85,
+          "sleeper_player_id": "11597",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Mac Jones",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": -19.13,
+          "sleeper_player_id": "7527",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Adonai Mitchell",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -20.2,
+          "sleeper_player_id": "11625",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "AJ Barner",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -22.81,
+          "sleeper_player_id": "11603",
+          "starter_weight_multiplier_current_year": 0.0
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 5,
+          "starter_xvar": 0.0,
+          "surplus_label": "deficit",
+          "z_score": -1.727
+        },
+        "RB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 6,
+          "starter_xvar": 25.2,
+          "surplus_label": "deficit",
+          "z_score": -1.255
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 3,
+          "starter_xvar": -16.85,
+          "surplus_label": "deficit",
+          "z_score": -2.731
+        },
+        "WR": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 14,
+          "starter_xvar": 2.4,
+          "surplus_label": "deficit",
+          "z_score": -1.807
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 1,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 0.0,
+        "lineup_xvar": 10.75,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 10.75,
+        "top_n_xvar": 70.52,
+        "total_xvar_capped": 70.52
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 26.0,
+        "pct_value_over_28": 0.2621,
+        "value_weighted_age": 25.84
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [],
+        "owned": [
+          {
+            "current_roster_id": 2,
+            "original_roster_id": 2,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 2,
+            "original_roster_id": 2,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 2,
+            "original_roster_id": 2,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 2,
+            "original_roster_id": 2,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 2,
+            "original_roster_id": 2,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 2,
+            "original_roster_id": 2,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 2,
+            "original_roster_id": 2,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 2,
+            "original_roster_id": 2,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 2,
+            "original_roster_id": 2,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 256.48,
+        "starters": [
+          {
+            "full_name": "Bo Nix",
+            "position": "QB",
+            "sleeper_player_id": "11563",
+            "slot": "QB",
+            "xvar": 30.08
+          },
+          {
+            "full_name": "Bijan Robinson",
+            "position": "RB",
+            "sleeper_player_id": "9509",
+            "slot": "RB",
+            "xvar": 56.32
+          },
+          {
+            "full_name": "Bucky Irving",
+            "position": "RB",
+            "sleeper_player_id": "11584",
+            "slot": "RB",
+            "xvar": 31.95
+          },
+          {
+            "full_name": "Nico Collins",
+            "position": "WR",
+            "sleeper_player_id": "7569",
+            "slot": "WR",
+            "xvar": 39.4
+          },
+          {
+            "full_name": "Mike Evans",
+            "position": "WR",
+            "sleeper_player_id": "2216",
+            "slot": "WR",
+            "xvar": 33.8
+          },
+          {
+            "full_name": "George Kittle",
+            "position": "TE",
+            "sleeper_player_id": "4217",
+            "slot": "TE",
+            "xvar": 2.85
+          },
+          {
+            "full_name": "David Montgomery",
+            "position": "RB",
+            "sleeper_player_id": "5892",
+            "slot": "FLEX",
+            "xvar": 30.43
+          },
+          {
+            "full_name": "Stefon Diggs",
+            "position": "WR",
+            "sleeper_player_id": "2449",
+            "slot": "FLEX",
+            "xvar": 14.6
+          },
+          {
+            "full_name": "Geno Smith",
+            "position": "QB",
+            "sleeper_player_id": "1373",
+            "slot": "SUPER_FLEX",
+            "xvar": 17.05
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "jgil96",
+        "team_name": null,
+        "user_id": "1124744818174812160"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Bijan Robinson",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 56.32,
+          "sleeper_player_id": "9509",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Nico Collins",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 39.4,
+          "sleeper_player_id": "7569",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Mike Evans",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 33.8,
+          "sleeper_player_id": "2216",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Bucky Irving",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 31.95,
+          "sleeper_player_id": "11584",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "David Montgomery",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 30.43,
+          "sleeper_player_id": "5892",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Bo Nix",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 30.08,
+          "sleeper_player_id": "11563",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Geno Smith",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 17.05,
+          "sleeper_player_id": "1373",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Stefon Diggs",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 14.6,
+          "sleeper_player_id": "2449",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "George Kittle",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 2.85,
+          "sleeper_player_id": "4217",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 1.11,
+          "full_name": "Ty Simpson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 2.22,
+          "sleeper_player_id": "13275",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.477,
+          "full_name": "Mike Washington Jr.",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 1.91,
+          "sleeper_player_id": "13305",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jaydon Blue",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12457",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Dylan Sampson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12469",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Emeka Egbuka",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12514",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Philip Rivers",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "331",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Christian McCaffrey",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "4034",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Taysom Hill",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -0.65,
+          "sleeper_player_id": "4381",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Evan Engram",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -7.91,
+          "sleeper_player_id": "4066",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Cedric Tillman",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -14.2,
+          "sleeper_player_id": "10444",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Darius Slayton",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -16.4,
+          "sleeper_player_id": "6149",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Gardner Minshew",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": -18.43,
+          "sleeper_player_id": "6011",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Elijah Sarratt",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -18.8,
+          "sleeper_player_id": "13268",
+          "starter_weight_multiplier_current_year": 0.0
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 1.11,
+          "n_rostered": 5,
+          "starter_xvar": 47.13,
+          "surplus_label": "neutral",
+          "z_score": 0.175
+        },
+        "RB": {
+          "depth_xvar_adj": 0.477,
+          "n_rostered": 7,
+          "starter_xvar": 118.7,
+          "surplus_label": "neutral",
+          "z_score": 0.656
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 3,
+          "starter_xvar": 2.85,
+          "surplus_label": "neutral",
+          "z_score": 0.514
+        },
+        "WR": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 7,
+          "starter_xvar": 87.8,
+          "surplus_label": "neutral",
+          "z_score": 0.207
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 2,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 1.587,
+        "lineup_xvar": 256.48,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 258.067,
+        "top_n_xvar": 256.48,
+        "total_xvar_capped": 260.61
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 24.5,
+        "pct_value_over_28": 0.05,
+        "value_weighted_age": 25.49
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 3,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 3,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          }
+        ],
+        "owned": [
+          {
+            "current_roster_id": 3,
+            "original_roster_id": 3,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 3,
+            "original_roster_id": 3,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 3,
+            "original_roster_id": 3,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 3,
+            "original_roster_id": 3,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 3,
+            "original_roster_id": 3,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 3,
+            "original_roster_id": 3,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 3,
+            "original_roster_id": 3,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 210.69,
+        "starters": [
+          {
+            "full_name": "Sam Darnold",
+            "position": "QB",
+            "sleeper_player_id": "4943",
+            "slot": "QB",
+            "xvar": 13.31
+          },
+          {
+            "full_name": "Jonathan Taylor",
+            "position": "RB",
+            "sleeper_player_id": "6813",
+            "slot": "RB",
+            "xvar": 45.81
+          },
+          {
+            "full_name": "Kyren Williams",
+            "position": "RB",
+            "sleeper_player_id": "8150",
+            "slot": "RB",
+            "xvar": 36.93
+          },
+          {
+            "full_name": "Jaxon Smith-Njigba",
+            "position": "WR",
+            "sleeper_player_id": "9488",
+            "slot": "WR",
+            "xvar": 29.3
+          },
+          {
+            "full_name": "D.J. Moore",
+            "position": "WR",
+            "sleeper_player_id": "4983",
+            "slot": "WR",
+            "xvar": 25.2
+          },
+          {
+            "full_name": "Sam LaPorta",
+            "position": "TE",
+            "sleeper_player_id": "10859",
+            "slot": "TE",
+            "xvar": 2.85
+          },
+          {
+            "full_name": "J.K. Dobbins",
+            "position": "RB",
+            "sleeper_player_id": "6806",
+            "slot": "FLEX",
+            "xvar": 25.23
+          },
+          {
+            "full_name": "Jayden Reed",
+            "position": "WR",
+            "sleeper_player_id": "10222",
+            "slot": "FLEX",
+            "xvar": 16.9
+          },
+          {
+            "full_name": "Rico Dowdle",
+            "position": "RB",
+            "sleeper_player_id": "7021",
+            "slot": "SUPER_FLEX",
+            "xvar": 15.16
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "MDEF",
+        "team_name": "MDEF",
+        "user_id": "1049829521757237248"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jonathan Taylor",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 45.81,
+          "sleeper_player_id": "6813",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kyren Williams",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 36.93,
+          "sleeper_player_id": "8150",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jaxon Smith-Njigba",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 29.3,
+          "sleeper_player_id": "9488",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "J.K. Dobbins",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 25.23,
+          "sleeper_player_id": "6806",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "D.J. Moore",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 25.2,
+          "sleeper_player_id": "4983",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jayden Reed",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 16.9,
+          "sleeper_player_id": "10222",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Rico Dowdle",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 15.16,
+          "sleeper_player_id": "7021",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Sam Darnold",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 13.31,
+          "sleeper_player_id": "4943",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 5.75,
+          "full_name": "Matthew Stafford",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 11.5,
+          "sleeper_player_id": "421",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 1.95,
+          "full_name": "Michael Pittman",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 7.8,
+          "sleeper_player_id": "6819",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Sam LaPorta",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 2.85,
+          "sleeper_player_id": "10859",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jonathon Brooks",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "11583",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Mason Taylor",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12498",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Chris Godwin",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "4037",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Justin Fields",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": -1.94,
+          "sleeper_player_id": "7591",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jaylen Warren",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -2.49,
+          "sleeper_player_id": "8228",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Isiah Pacheco",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -5.09,
+          "sleeper_player_id": "8205",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Michael Wilson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -6.7,
+          "sleeper_player_id": "10232",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Hunter Henry",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -10.37,
+          "sleeper_player_id": "3214",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Chris Brazzell II",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -14.09,
+          "sleeper_player_id": "13353",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Drew Allar",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": -23.53,
+          "sleeper_player_id": "13289",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Skyler Bell",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -28.0,
+          "sleeper_player_id": "13402",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Demond Claiborne",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -28.4,
+          "sleeper_player_id": "13347",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kaytron Allen",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -28.8,
+          "sleeper_player_id": "13405",
+          "starter_weight_multiplier_current_year": 0.0
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 5.75,
+          "n_rostered": 4,
+          "starter_xvar": 13.31,
+          "surplus_label": "deficit",
+          "z_score": -0.976
+        },
+        "RB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 9,
+          "starter_xvar": 123.13,
+          "surplus_label": "neutral",
+          "z_score": 0.736
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 3,
+          "starter_xvar": 2.85,
+          "surplus_label": "neutral",
+          "z_score": 0.514
+        },
+        "WR": {
+          "depth_xvar_adj": 1.95,
+          "n_rostered": 8,
+          "starter_xvar": 71.4,
+          "surplus_label": "neutral",
+          "z_score": -0.134
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 3,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 7.7,
+        "lineup_xvar": 210.69,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 218.39,
+        "top_n_xvar": 219.34,
+        "total_xvar_capped": 229.99
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 25.0,
+        "pct_value_over_28": 0.0382,
+        "value_weighted_age": 24.82
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [],
+        "owned": [
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 4,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 6,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 4,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 4,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 4,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 10,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 4,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 4,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 4,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 4,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 4,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 197.24,
+        "starters": [
+          {
+            "full_name": "Aaron Rodgers",
+            "position": "QB",
+            "sleeper_player_id": "96",
+            "slot": "QB",
+            "xvar": 7.76
+          },
+          {
+            "full_name": "Kenneth Walker III",
+            "position": "RB",
+            "sleeper_player_id": "8151",
+            "slot": "RB",
+            "xvar": 41.48
+          },
+          {
+            "full_name": "James Cook",
+            "position": "RB",
+            "sleeper_player_id": "8138",
+            "slot": "RB",
+            "xvar": 37.8
+          },
+          {
+            "full_name": "CeeDee Lamb",
+            "position": "WR",
+            "sleeper_player_id": "6786",
+            "slot": "WR",
+            "xvar": 39.4
+          },
+          {
+            "full_name": "Xavier Worthy",
+            "position": "WR",
+            "sleeper_player_id": "11624",
+            "slot": "WR",
+            "xvar": 27.4
+          },
+          {
+            "full_name": "Trey McBride",
+            "position": "TE",
+            "sleeper_player_id": "8130",
+            "slot": "TE",
+            "xvar": 2.85
+          },
+          {
+            "full_name": "Zay Flowers",
+            "position": "WR",
+            "sleeper_player_id": "9997",
+            "slot": "FLEX",
+            "xvar": 20.3
+          },
+          {
+            "full_name": "Jauan Jennings",
+            "position": "WR",
+            "sleeper_player_id": "7049",
+            "slot": "FLEX",
+            "xvar": 10.5
+          },
+          {
+            "full_name": "Travis Etienne",
+            "position": "RB",
+            "sleeper_player_id": "7543",
+            "slot": "SUPER_FLEX",
+            "xvar": 9.75
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "MJLeess318",
+        "team_name": "Free Kelly",
+        "user_id": "913546847858470912"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kenneth Walker III",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 41.48,
+          "sleeper_player_id": "8151",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "CeeDee Lamb",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 39.4,
+          "sleeper_player_id": "6786",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "James Cook",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 37.8,
+          "sleeper_player_id": "8138",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Xavier Worthy",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 27.4,
+          "sleeper_player_id": "11624",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Zay Flowers",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 20.3,
+          "sleeper_player_id": "9997",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jauan Jennings",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 10.5,
+          "sleeper_player_id": "7049",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Travis Etienne",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 9.75,
+          "sleeper_player_id": "7543",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Aaron Rodgers",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 7.76,
+          "sleeper_player_id": "96",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 2.8,
+          "full_name": "Quentin Johnston",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 5.6,
+          "sleeper_player_id": "9754",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Trey McBride",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 2.85,
+          "sleeper_player_id": "8130",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.035,
+          "full_name": "Trevor Lawrence",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.14,
+          "sleeper_player_id": "7523",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Rashee Rice",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "10229",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Oronde Gadsden",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12493",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jalen Milroe",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12510",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "James Conner",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "4137",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Antonio Williams",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -0.3,
+          "sleeper_player_id": "13301",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Dak Prescott",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": -3.88,
+          "sleeper_player_id": "3294",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Ted Hurst",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -3.94,
+          "sleeper_player_id": "13317",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Ray Davis",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -5.2,
+          "sleeper_player_id": "11575",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Juwan Johnson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -7.97,
+          "sleeper_player_id": "7002",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Trey Benson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -13.1,
+          "sleeper_player_id": "11589",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kenneth Gainwell",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -20.04,
+          "sleeper_player_id": "7567",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Blake Corum",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -21.88,
+          "sleeper_player_id": "11586",
+          "starter_weight_multiplier_current_year": 0.0
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 0.035,
+          "n_rostered": 4,
+          "starter_xvar": 7.76,
+          "surplus_label": "deficit",
+          "z_score": -1.42
+        },
+        "RB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 8,
+          "starter_xvar": 89.03,
+          "surplus_label": "neutral",
+          "z_score": 0.043
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 3,
+          "starter_xvar": 2.85,
+          "surplus_label": "neutral",
+          "z_score": 0.514
+        },
+        "WR": {
+          "depth_xvar_adj": 2.8,
+          "n_rostered": 8,
+          "starter_xvar": 97.6,
+          "surplus_label": "neutral",
+          "z_score": 0.504
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 4,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 2.835,
+        "lineup_xvar": 197.24,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 200.075,
+        "top_n_xvar": 199.99,
+        "total_xvar_capped": 202.98
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 23.0,
+        "pct_value_over_28": 0.1965,
+        "value_weighted_age": 24.36
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [],
+        "owned": [
+          {
+            "current_roster_id": 5,
+            "original_roster_id": 5,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 5,
+            "original_roster_id": 5,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 5,
+            "original_roster_id": 5,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 5,
+            "original_roster_id": 5,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 5,
+            "original_roster_id": 5,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 5,
+            "original_roster_id": 11,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 5,
+            "original_roster_id": 5,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 5,
+            "original_roster_id": 5,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 5,
+            "original_roster_id": 5,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 5,
+            "original_roster_id": 5,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 87.29,
+        "starters": [
+          {
+            "full_name": "C.J. Stroud",
+            "position": "QB",
+            "sleeper_player_id": "9758",
+            "slot": "QB",
+            "xvar": 22.59
+          },
+          {
+            "full_name": "Woody Marks",
+            "position": "RB",
+            "sleeper_player_id": "12474",
+            "slot": "RB",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Quinshon Judkins",
+            "position": "RB",
+            "sleeper_player_id": "12512",
+            "slot": "RB",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Ja'Marr Chase",
+            "position": "WR",
+            "sleeper_player_id": "7564",
+            "slot": "WR",
+            "xvar": 39.4
+          },
+          {
+            "full_name": "Keenan Allen",
+            "position": "WR",
+            "sleeper_player_id": "1479",
+            "slot": "WR",
+            "xvar": 13.5
+          },
+          {
+            "full_name": "Terrance Ferguson",
+            "position": "TE",
+            "sleeper_player_id": "12487",
+            "slot": "TE",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Cooper Kupp",
+            "position": "WR",
+            "sleeper_player_id": "4039",
+            "slot": "FLEX",
+            "xvar": 11.8
+          },
+          {
+            "full_name": "Jack Bech",
+            "position": "WR",
+            "sleeper_player_id": "12483",
+            "slot": "FLEX",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Harold Fannin",
+            "position": "TE",
+            "sleeper_player_id": "12506",
+            "slot": "SUPER_FLEX",
+            "xvar": 0.0
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "rzalika",
+        "team_name": null,
+        "user_id": "913634756779212800"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Malik Nabers",
+          "lineup_role": "ir",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 39.4,
+          "sleeper_player_id": "11632",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Ja'Marr Chase",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 39.4,
+          "sleeper_player_id": "7564",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "C.J. Stroud",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 22.59,
+          "sleeper_player_id": "9758",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Keenan Allen",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 13.5,
+          "sleeper_player_id": "1479",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Cooper Kupp",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 11.8,
+          "sleeper_player_id": "4039",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Denzel Boston",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 2.05,
+          "sleeper_player_id": "13346",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Woody Marks",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12474",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jack Bech",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12483",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Terrance Ferguson",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12487",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Harold Fannin",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12506",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Quinshon Judkins",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12512",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Travis Hunter",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12530",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kyle Monangai",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12534",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Isaac TeSlaa",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12535",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Darren Waller",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "2505",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Keaton Mitchell",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "9511",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Zach Ertz",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -1.75,
+          "sleeper_player_id": "1339",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kenyon Sadiq",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -4.03,
+          "sleeper_player_id": "13330",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jalen Coker",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -5.4,
+          "sleeper_player_id": "11646",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Isaac Guerendo",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -6.17,
+          "sleeper_player_id": "11651",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Dontayvion Wicks",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -9.3,
+          "sleeper_player_id": "9486",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Nicholas Singleton",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -13.17,
+          "sleeper_player_id": "13288",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Isaiah Davis",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -14.3,
+          "sleeper_player_id": "11571",
+          "starter_weight_multiplier_current_year": 0.0
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 1,
+          "starter_xvar": 22.59,
+          "surplus_label": "deficit",
+          "z_score": -0.836
+        },
+        "RB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 7,
+          "starter_xvar": 0.0,
+          "surplus_label": "deficit",
+          "z_score": -1.768
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 5,
+          "starter_xvar": 0.0,
+          "surplus_label": "neutral",
+          "z_score": 0.044
+        },
+        "WR": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 10,
+          "starter_xvar": 64.7,
+          "surplus_label": "neutral",
+          "z_score": -0.338
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 5,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 0.0,
+        "lineup_xvar": 87.29,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 87.29,
+        "top_n_xvar": 128.74,
+        "total_xvar_capped": 128.74
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 25.0,
+        "pct_value_over_28": 0.2904,
+        "value_weighted_age": 27.27
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 6,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 6,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          }
+        ],
+        "owned": [
+          {
+            "current_roster_id": 6,
+            "original_roster_id": 6,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 6,
+            "original_roster_id": 6,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 6,
+            "original_roster_id": 6,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 6,
+            "original_roster_id": 6,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 6,
+            "original_roster_id": 6,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 6,
+            "original_roster_id": 6,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 6,
+            "original_roster_id": 6,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 263.62,
+        "starters": [
+          {
+            "full_name": "Josh Allen",
+            "position": "QB",
+            "sleeper_player_id": "4984",
+            "slot": "QB",
+            "xvar": 49.62
+          },
+          {
+            "full_name": "Josh Jacobs",
+            "position": "RB",
+            "sleeper_player_id": "5850",
+            "slot": "RB",
+            "xvar": 51.33
+          },
+          {
+            "full_name": "Alvin Kamara",
+            "position": "RB",
+            "sleeper_player_id": "4035",
+            "slot": "RB",
+            "xvar": 47.54
+          },
+          {
+            "full_name": "Davante Adams",
+            "position": "WR",
+            "sleeper_player_id": "2133",
+            "slot": "WR",
+            "xvar": 28.6
+          },
+          {
+            "full_name": "Jerry Jeudy",
+            "position": "WR",
+            "sleeper_player_id": "6783",
+            "slot": "WR",
+            "xvar": 20.9
+          },
+          {
+            "full_name": "Travis Kelce",
+            "position": "TE",
+            "sleeper_player_id": "1466",
+            "slot": "TE",
+            "xvar": 2.85
+          },
+          {
+            "full_name": "Chase Brown",
+            "position": "RB",
+            "sleeper_player_id": "9224",
+            "slot": "FLEX",
+            "xvar": 32.17
+          },
+          {
+            "full_name": "DK Metcalf",
+            "position": "WR",
+            "sleeper_player_id": "5846",
+            "slot": "FLEX",
+            "xvar": 15.5
+          },
+          {
+            "full_name": "Jordan Love",
+            "position": "QB",
+            "sleeper_player_id": "6804",
+            "slot": "SUPER_FLEX",
+            "xvar": 15.11
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "kgelardi",
+        "team_name": "Drew P. Bauls",
+        "user_id": "919611510605852672"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Josh Jacobs",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 51.33,
+          "sleeper_player_id": "5850",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Josh Allen",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 49.62,
+          "sleeper_player_id": "4984",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Alvin Kamara",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 47.54,
+          "sleeper_player_id": "4035",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Chase Brown",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 32.17,
+          "sleeper_player_id": "9224",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Davante Adams",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 28.6,
+          "sleeper_player_id": "2133",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jerry Jeudy",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 20.9,
+          "sleeper_player_id": "6783",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "DK Metcalf",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 15.5,
+          "sleeper_player_id": "5846",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jordan Love",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 15.11,
+          "sleeper_player_id": "6804",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 4.0,
+          "full_name": "Wan'Dale Robinson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 8.0,
+          "sleeper_player_id": "8126",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Travis Kelce",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 2.85,
+          "sleeper_player_id": "1466",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.098,
+          "full_name": "Isaiah Likely",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 0.39,
+          "sleeper_player_id": "8131",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tyrell Shavers",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "11377",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Shedeur Sanders",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12524",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Alexander Mattison",
+          "lineup_role": "ir",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "5987",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Patrick Taylor",
+          "lineup_role": "ir",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "6963",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Anthony Richardson",
+          "lineup_role": "ir",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "9229",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kendre Miller",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "9757",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Germie Bernard",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -0.19,
+          "sleeper_player_id": "13274",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Keon Coleman",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -1.4,
+          "sleeper_player_id": "11637",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "DeAndre Hopkins",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -7.6,
+          "sleeper_player_id": "1426",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Noah Gray",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -10.5,
+          "sleeper_player_id": "7828",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Troy Franklin",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -12.3,
+          "sleeper_player_id": "11627",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Raheem Mostert",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -16.35,
+          "sleeper_player_id": "2749",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Luke McCaffrey",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -28.8,
+          "sleeper_player_id": "11650",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Cade Klubnik",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": -39.32,
+          "sleeper_player_id": "13303",
+          "starter_weight_multiplier_current_year": 0.0
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 5,
+          "starter_xvar": 64.73,
+          "surplus_label": "surplus",
+          "z_score": 0.825
+        },
+        "RB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 7,
+          "starter_xvar": 131.04,
+          "surplus_label": "surplus",
+          "z_score": 0.897
+        },
+        "TE": {
+          "depth_xvar_adj": 0.098,
+          "n_rostered": 3,
+          "starter_xvar": 2.85,
+          "surplus_label": "neutral",
+          "z_score": 0.53
+        },
+        "WR": {
+          "depth_xvar_adj": 4.0,
+          "n_rostered": 10,
+          "starter_xvar": 65.0,
+          "surplus_label": "neutral",
+          "z_score": -0.236
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 6,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 4.098,
+        "lineup_xvar": 263.62,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 267.718,
+        "top_n_xvar": 268.77,
+        "total_xvar_capped": 272.01
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 24.0,
+        "pct_value_over_28": 0.2529,
+        "value_weighted_age": 25.18
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 7,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          }
+        ],
+        "owned": [
+          {
+            "current_roster_id": 7,
+            "original_roster_id": 7,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 7,
+            "original_roster_id": 7,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 7,
+            "original_roster_id": 7,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 7,
+            "original_roster_id": 7,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 7,
+            "original_roster_id": 7,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 7,
+            "original_roster_id": 7,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 7,
+            "original_roster_id": 7,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 7,
+            "original_roster_id": 7,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 341.77,
+        "starters": [
+          {
+            "full_name": "Jayden Daniels",
+            "position": "QB",
+            "sleeper_player_id": "11566",
+            "slot": "QB",
+            "xvar": 43.24
+          },
+          {
+            "full_name": "Jahmyr Gibbs",
+            "position": "RB",
+            "sleeper_player_id": "9221",
+            "slot": "RB",
+            "xvar": 58.05
+          },
+          {
+            "full_name": "Derrick Henry",
+            "position": "RB",
+            "sleeper_player_id": "3198",
+            "slot": "RB",
+            "xvar": 56.1
+          },
+          {
+            "full_name": "Puka Nacua",
+            "position": "WR",
+            "sleeper_player_id": "9493",
+            "slot": "WR",
+            "xvar": 39.4
+          },
+          {
+            "full_name": "Drake London",
+            "position": "WR",
+            "sleeper_player_id": "8112",
+            "slot": "WR",
+            "xvar": 36.8
+          },
+          {
+            "full_name": "Brock Bowers",
+            "position": "TE",
+            "sleeper_player_id": "11604",
+            "slot": "TE",
+            "xvar": 2.85
+          },
+          {
+            "full_name": "De'Von Achane",
+            "position": "RB",
+            "sleeper_player_id": "9226",
+            "slot": "FLEX",
+            "xvar": 45.59
+          },
+          {
+            "full_name": "DeVonta Smith",
+            "position": "WR",
+            "sleeper_player_id": "7525",
+            "slot": "FLEX",
+            "xvar": 26.2
+          },
+          {
+            "full_name": "Patrick Mahomes",
+            "position": "QB",
+            "sleeper_player_id": "4046",
+            "slot": "SUPER_FLEX",
+            "xvar": 33.54
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "jspagnola",
+        "team_name": "YippeKiYay MarshalFaulker",
+        "user_id": "923413316708466688"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jahmyr Gibbs",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 58.05,
+          "sleeper_player_id": "9221",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Derrick Henry",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 56.1,
+          "sleeper_player_id": "3198",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "De'Von Achane",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 45.59,
+          "sleeper_player_id": "9226",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jayden Daniels",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 43.24,
+          "sleeper_player_id": "11566",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Puka Nacua",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 39.4,
+          "sleeper_player_id": "9493",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Drake London",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 36.8,
+          "sleeper_player_id": "8112",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Patrick Mahomes",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 33.54,
+          "sleeper_player_id": "4046",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "DeVonta Smith",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 26.2,
+          "sleeper_player_id": "7525",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 10.4,
+          "full_name": "Jakobi Meyers",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 20.8,
+          "sleeper_player_id": "5947",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Brock Bowers",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 2.85,
+          "sleeper_player_id": "11604",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.693,
+          "full_name": "Kirk Cousins",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 2.77,
+          "sleeper_player_id": "1166",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.013,
+          "full_name": "Chris Olave",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.1,
+          "sleeper_player_id": "8144",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Michael Penix Jr.",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "11559",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tetairoa McMillan",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12526",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jacory Croskey-Merritt",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12533",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jaylin Noel",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12536",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Malik Willis",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "8161",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tre Tucker",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -8.6,
+          "sleeper_player_id": "10213",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Daniel Jones",
+          "lineup_role": "ir",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": -8.73,
+          "sleeper_player_id": "5870",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Christian Watson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -9.7,
+          "sleeper_player_id": "8167",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Adam Randall",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -12.29,
+          "sleeper_player_id": "13302",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Dalton Kincaid",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -14.77,
+          "sleeper_player_id": "10236",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jaylen Wright",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -18.84,
+          "sleeper_player_id": "11643",
+          "starter_weight_multiplier_current_year": 0.0
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 0.693,
+          "n_rostered": 6,
+          "starter_xvar": 76.78,
+          "surplus_label": "surplus",
+          "z_score": 1.328
+        },
+        "RB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 6,
+          "starter_xvar": 159.74,
+          "surplus_label": "surplus",
+          "z_score": 1.481
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 2,
+          "starter_xvar": 2.85,
+          "surplus_label": "neutral",
+          "z_score": 0.514
+        },
+        "WR": {
+          "depth_xvar_adj": 10.413,
+          "n_rostered": 9,
+          "starter_xvar": 102.4,
+          "surplus_label": "surplus",
+          "z_score": 0.797
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 7,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 11.106,
+        "lineup_xvar": 341.77,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 352.876,
+        "top_n_xvar": 359.72,
+        "total_xvar_capped": 365.44
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 25.0,
+        "pct_value_over_28": 0.0,
+        "value_weighted_age": 25.48
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [],
+        "owned": [
+          {
+            "current_roster_id": 8,
+            "original_roster_id": 8,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 8,
+            "original_roster_id": 8,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 8,
+            "original_roster_id": 8,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 8,
+            "original_roster_id": 8,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 8,
+            "original_roster_id": 8,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 8,
+            "original_roster_id": 8,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 8,
+            "original_roster_id": 8,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 8,
+            "original_roster_id": 8,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 8,
+            "original_roster_id": 8,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 232.86,
+        "starters": [
+          {
+            "full_name": "Joe Burrow",
+            "position": "QB",
+            "sleeper_player_id": "6770",
+            "slot": "QB",
+            "xvar": 35.34
+          },
+          {
+            "full_name": "Javonte Williams",
+            "position": "RB",
+            "sleeper_player_id": "7588",
+            "slot": "RB",
+            "xvar": 10.07
+          },
+          {
+            "full_name": "Tyjae Spears",
+            "position": "RB",
+            "sleeper_player_id": "9508",
+            "slot": "RB",
+            "xvar": 7.8
+          },
+          {
+            "full_name": "Justin Jefferson",
+            "position": "WR",
+            "sleeper_player_id": "6794",
+            "slot": "WR",
+            "xvar": 39.4
+          },
+          {
+            "full_name": "Amon-Ra St. Brown",
+            "position": "WR",
+            "sleeper_player_id": "7547",
+            "slot": "WR",
+            "xvar": 39.4
+          },
+          {
+            "full_name": "David Njoku",
+            "position": "TE",
+            "sleeper_player_id": "4033",
+            "slot": "TE",
+            "xvar": 2.85
+          },
+          {
+            "full_name": "Tee Higgins",
+            "position": "WR",
+            "sleeper_player_id": "6801",
+            "slot": "FLEX",
+            "xvar": 38.0
+          },
+          {
+            "full_name": "A.J. Brown",
+            "position": "WR",
+            "sleeper_player_id": "5859",
+            "slot": "FLEX",
+            "xvar": 32.6
+          },
+          {
+            "full_name": "Jordan Addison",
+            "position": "WR",
+            "sleeper_player_id": "9756",
+            "slot": "SUPER_FLEX",
+            "xvar": 27.4
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "jspringe88",
+        "team_name": null,
+        "user_id": "924053611846397952"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Justin Jefferson",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 39.4,
+          "sleeper_player_id": "6794",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Amon-Ra St. Brown",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 39.4,
+          "sleeper_player_id": "7547",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tee Higgins",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 38.0,
+          "sleeper_player_id": "6801",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Joe Burrow",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 35.34,
+          "sleeper_player_id": "6770",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "A.J. Brown",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 32.6,
+          "sleeper_player_id": "5859",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jordan Addison",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 27.4,
+          "sleeper_player_id": "9756",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 13.445,
+          "full_name": "Kyler Murray",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 26.89,
+          "sleeper_player_id": "5849",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Javonte Williams",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 10.07,
+          "sleeper_player_id": "7588",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tyjae Spears",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 7.8,
+          "sleeper_player_id": "9508",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "David Njoku",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 2.85,
+          "sleeper_player_id": "4033",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "DJ Giddens",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12471",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Devin Neal",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12476",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tez Johnson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12485",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Gunnar Helm",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12502",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tyler Shough",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12545",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jacoby Brissett",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "3257",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Joe Mixon",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "4018",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "T.J. Hockenson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -3.24,
+          "sleeper_player_id": "5844",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jordan Mason",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -3.57,
+          "sleeper_player_id": "8408",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Ricky Pearsall",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -7.1,
+          "sleeper_player_id": "11638",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Emmett Johnson",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -12.19,
+          "sleeper_player_id": "13337",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Max Klare",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -16.3,
+          "sleeper_player_id": "13278",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 13.445,
+          "n_rostered": 4,
+          "starter_xvar": 35.34,
+          "surplus_label": "neutral",
+          "z_score": 0.197
+        },
+        "RB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 7,
+          "starter_xvar": 17.87,
+          "surplus_label": "deficit",
+          "z_score": -1.404
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 4,
+          "starter_xvar": 2.85,
+          "surplus_label": "neutral",
+          "z_score": 0.514
+        },
+        "WR": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 7,
+          "starter_xvar": 176.8,
+          "surplus_label": "surplus",
+          "z_score": 2.306
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 8,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 13.445,
+        "lineup_xvar": 232.86,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 246.305,
+        "top_n_xvar": 256.9,
+        "total_xvar_capped": 259.75
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 25.0,
+        "pct_value_over_28": 0.1276,
+        "value_weighted_age": 25.39
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [],
+        "owned": [
+          {
+            "current_roster_id": 9,
+            "original_roster_id": 9,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 9,
+            "original_roster_id": 9,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 9,
+            "original_roster_id": 9,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 9,
+            "original_roster_id": 9,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 9,
+            "original_roster_id": 9,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 9,
+            "original_roster_id": 9,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 9,
+            "original_roster_id": 9,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 9,
+            "original_roster_id": 9,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 9,
+            "original_roster_id": 9,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 205.99,
+        "starters": [
+          {
+            "full_name": "Jalen Hurts",
+            "position": "QB",
+            "sleeper_player_id": "6904",
+            "slot": "QB",
+            "xvar": 48.51
+          },
+          {
+            "full_name": "Chuba Hubbard",
+            "position": "RB",
+            "sleeper_player_id": "7594",
+            "slot": "RB",
+            "xvar": 31.3
+          },
+          {
+            "full_name": "Tony Pollard",
+            "position": "RB",
+            "sleeper_player_id": "5967",
+            "slot": "RB",
+            "xvar": 24.26
+          },
+          {
+            "full_name": "Tyreek Hill",
+            "position": "WR",
+            "sleeper_player_id": "3321",
+            "slot": "WR",
+            "xvar": 24.4
+          },
+          {
+            "full_name": "Carnell Tate",
+            "position": "WR",
+            "sleeper_player_id": "13279",
+            "slot": "WR",
+            "xvar": 18.03
+          },
+          {
+            "full_name": "Jonnu Smith",
+            "position": "TE",
+            "sleeper_player_id": "4144",
+            "slot": "TE",
+            "xvar": 2.85
+          },
+          {
+            "full_name": "Rhamondre Stevenson",
+            "position": "RB",
+            "sleeper_player_id": "7611",
+            "slot": "FLEX",
+            "xvar": 21.34
+          },
+          {
+            "full_name": "Josh Downs",
+            "position": "WR",
+            "sleeper_player_id": "9500",
+            "slot": "FLEX",
+            "xvar": 17.9
+          },
+          {
+            "full_name": "George Pickens",
+            "position": "WR",
+            "sleeper_player_id": "8137",
+            "slot": "SUPER_FLEX",
+            "xvar": 17.4
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "Dseidman",
+        "team_name": "Seidmans Sasquatches",
+        "user_id": "924757837283254272"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jalen Hurts",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 48.51,
+          "sleeper_player_id": "6904",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Chuba Hubbard",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 31.3,
+          "sleeper_player_id": "7594",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tyreek Hill",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 24.4,
+          "sleeper_player_id": "3321",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tony Pollard",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 24.26,
+          "sleeper_player_id": "5967",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Rhamondre Stevenson",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 21.34,
+          "sleeper_player_id": "7611",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Carnell Tate",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 18.03,
+          "sleeper_player_id": "13279",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Josh Downs",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 17.9,
+          "sleeper_player_id": "9500",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "George Pickens",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 17.4,
+          "sleeper_player_id": "8137",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Zach Charbonnet",
+          "lineup_role": "ir",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 14.84,
+          "sleeper_player_id": "9753",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jonnu Smith",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 2.85,
+          "sleeper_player_id": "4144",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 1.425,
+          "full_name": "Pat Freiermuth",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 2.85,
+          "sleeper_player_id": "7600",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.372,
+          "full_name": "Mark Andrews",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 1.49,
+          "sleeper_player_id": "5012",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": null,
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "0",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Ollie Gordon",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12495",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Matthew Golden",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12501",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Cam Ward",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12522",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Deshaun Watson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "4017",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Austin Ekeler",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "4663",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tyquan Thornton",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "8188",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Rashid Shaheed",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "8676",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Devin Singletary",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -6.5,
+          "sleeper_player_id": "6130",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Ja'Kobi Lane",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -9.21,
+          "sleeper_player_id": "13293",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Carson Beck",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": -24.22,
+          "sleeper_player_id": "13272",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Ben Sinnott",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -33.63,
+          "sleeper_player_id": "11596",
+          "starter_weight_multiplier_current_year": 0.0
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 4,
+          "starter_xvar": 48.51,
+          "surplus_label": "neutral",
+          "z_score": 0.186
+        },
+        "RB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 7,
+          "starter_xvar": 76.9,
+          "surplus_label": "neutral",
+          "z_score": -0.204
+        },
+        "TE": {
+          "depth_xvar_adj": 1.797,
+          "n_rostered": 4,
+          "starter_xvar": 2.85,
+          "surplus_label": "surplus",
+          "z_score": 0.81
+        },
+        "WR": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 8,
+          "starter_xvar": 77.73,
+          "surplus_label": "neutral",
+          "z_score": -0.03
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 9,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 1.797,
+        "lineup_xvar": 205.99,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 207.787,
+        "top_n_xvar": 217.98,
+        "total_xvar_capped": 225.17
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 24.0,
+        "pct_value_over_28": 0.2991,
+        "value_weighted_age": 26.28
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [
+          {
+            "current_roster_id": 1,
+            "original_roster_id": 10,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 4,
+            "original_roster_id": 10,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          }
+        ],
+        "owned": [
+          {
+            "current_roster_id": 10,
+            "original_roster_id": 10,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 10,
+            "original_roster_id": 10,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 10,
+            "original_roster_id": 10,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 10,
+            "original_roster_id": 10,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 10,
+            "original_roster_id": 10,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 10,
+            "original_roster_id": 10,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 10,
+            "original_roster_id": 10,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 270.6,
+        "starters": [
+          {
+            "full_name": "Lamar Jackson",
+            "position": "QB",
+            "sleeper_player_id": "4881",
+            "slot": "QB",
+            "xvar": 49.62
+          },
+          {
+            "full_name": "Saquon Barkley",
+            "position": "RB",
+            "sleeper_player_id": "4866",
+            "slot": "RB",
+            "xvar": 58.05
+          },
+          {
+            "full_name": "D'Andre Swift",
+            "position": "RB",
+            "sleeper_player_id": "6790",
+            "slot": "RB",
+            "xvar": 26.21
+          },
+          {
+            "full_name": "Ladd McConkey",
+            "position": "WR",
+            "sleeper_player_id": "11635",
+            "slot": "WR",
+            "xvar": 35.8
+          },
+          {
+            "full_name": "Terry McLaurin",
+            "position": "WR",
+            "sleeper_player_id": "5927",
+            "slot": "WR",
+            "xvar": 29.8
+          },
+          {
+            "full_name": "Brenton Strange",
+            "position": "TE",
+            "sleeper_player_id": "9480",
+            "slot": "TE",
+            "xvar": -9.33
+          },
+          {
+            "full_name": "Aaron Jones",
+            "position": "RB",
+            "sleeper_player_id": "4199",
+            "slot": "FLEX",
+            "xvar": 26.1
+          },
+          {
+            "full_name": "Jameson Williams",
+            "position": "WR",
+            "sleeper_player_id": "8148",
+            "slot": "FLEX",
+            "xvar": 19.7
+          },
+          {
+            "full_name": "Baker Mayfield",
+            "position": "QB",
+            "sleeper_player_id": "4892",
+            "slot": "SUPER_FLEX",
+            "xvar": 34.65
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "rkissane",
+        "team_name": "Kissane\u2019s Team",
+        "user_id": "925054003463999488"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Saquon Barkley",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 58.05,
+          "sleeper_player_id": "4866",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Lamar Jackson",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 49.62,
+          "sleeper_player_id": "4881",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Ladd McConkey",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 35.8,
+          "sleeper_player_id": "11635",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Baker Mayfield",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 34.65,
+          "sleeper_player_id": "4892",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Terry McLaurin",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 29.8,
+          "sleeper_player_id": "5927",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "D'Andre Swift",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 26.21,
+          "sleeper_player_id": "6790",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Aaron Jones",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 26.1,
+          "sleeper_player_id": "4199",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jameson Williams",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 19.7,
+          "sleeper_player_id": "8148",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jordyn Tyson",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 16.91,
+          "sleeper_player_id": "13281",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 6.45,
+          "full_name": "Khalil Shakir",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 12.9,
+          "sleeper_player_id": "8134",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 2.025,
+          "full_name": "Calvin Ridley",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 8.1,
+          "sleeper_player_id": "4981",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.99,
+          "full_name": "Jonah Coleman",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 7.92,
+          "sleeper_player_id": "13345",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.251,
+          "full_name": "Bryce Young",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 4.02,
+          "sleeper_player_id": "9228",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "RJ Harvey",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12489",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Bhayshul Tuten",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12490",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tory Horton",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12497",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jalen Royals",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12505",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kayshon Boutte",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -1.3,
+          "sleeper_player_id": "9504",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Zachariah Branch",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -8.93,
+          "sleeper_player_id": "13320",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Brenton Strange",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -9.33,
+          "sleeper_player_id": "9480",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Emanuel Wilson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -11.37,
+          "sleeper_player_id": "11435",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jake Ferguson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -13.28,
+          "sleeper_player_id": "8110",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Colby Parkinson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -18.27,
+          "sleeper_player_id": "6865",
+          "starter_weight_multiplier_current_year": 0.0
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 0.251,
+          "n_rostered": 3,
+          "starter_xvar": 84.27,
+          "surplus_label": "surplus",
+          "z_score": 1.606
+        },
+        "RB": {
+          "depth_xvar_adj": 0.99,
+          "n_rostered": 7,
+          "starter_xvar": 110.36,
+          "surplus_label": "neutral",
+          "z_score": 0.497
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 3,
+          "starter_xvar": -9.33,
+          "surplus_label": "deficit",
+          "z_score": -1.493
+        },
+        "WR": {
+          "depth_xvar_adj": 8.475,
+          "n_rostered": 10,
+          "starter_xvar": 85.3,
+          "surplus_label": "neutral",
+          "z_score": 0.348
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 10,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 9.716,
+        "lineup_xvar": 270.6,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 280.316,
+        "top_n_xvar": 296.84,
+        "total_xvar_capped": 329.78
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 24.0,
+        "pct_value_over_28": 0.0,
+        "value_weighted_age": 22.66
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [
+          {
+            "current_roster_id": 5,
+            "original_roster_id": 11,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          }
+        ],
+        "owned": [
+          {
+            "current_roster_id": 11,
+            "original_roster_id": 11,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 11,
+            "original_roster_id": 11,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 11,
+            "original_roster_id": 11,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 11,
+            "original_roster_id": 11,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 11,
+            "original_roster_id": 11,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 11,
+            "original_roster_id": 11,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 11,
+            "original_roster_id": 11,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 11,
+            "original_roster_id": 11,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 125.11,
+        "starters": [
+          {
+            "full_name": "Justin Herbert",
+            "position": "QB",
+            "sleeper_player_id": "6797",
+            "slot": "QB",
+            "xvar": 25.36
+          },
+          {
+            "full_name": "Jeremiyah Love",
+            "position": "RB",
+            "sleeper_player_id": "13287",
+            "slot": "RB",
+            "xvar": 57.61
+          },
+          {
+            "full_name": "Tank Bigsby",
+            "position": "RB",
+            "sleeper_player_id": "9225",
+            "slot": "RB",
+            "xvar": 2.17
+          },
+          {
+            "full_name": "KC Concepcion",
+            "position": "WR",
+            "sleeper_player_id": "13298",
+            "slot": "WR",
+            "xvar": 12.43
+          },
+          {
+            "full_name": "Jaylen Waddle",
+            "position": "WR",
+            "sleeper_player_id": "7526",
+            "slot": "WR",
+            "xvar": 4.4
+          },
+          {
+            "full_name": "Cade Otton",
+            "position": "TE",
+            "sleeper_player_id": "8111",
+            "slot": "TE",
+            "xvar": 1.1
+          },
+          {
+            "full_name": "MarShawn Lloyd",
+            "position": "RB",
+            "sleeper_player_id": "11581",
+            "slot": "FLEX",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Jayden Higgins",
+            "position": "WR",
+            "sleeper_player_id": "12484",
+            "slot": "FLEX",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Brock Purdy",
+            "position": "QB",
+            "sleeper_player_id": "8183",
+            "slot": "SUPER_FLEX",
+            "xvar": 22.04
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "jkazzz",
+        "team_name": null,
+        "user_id": "1005290797896036352"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jeremiyah Love",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 57.61,
+          "sleeper_player_id": "13287",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Justin Herbert",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 25.36,
+          "sleeper_player_id": "6797",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Brock Purdy",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 22.04,
+          "sleeper_player_id": "8183",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "KC Concepcion",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 12.43,
+          "sleeper_player_id": "13298",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 4.71,
+          "full_name": "Drake Maye",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 9.42,
+          "sleeper_player_id": "11564",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 2.045,
+          "full_name": "Tua Tagovailoa",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 8.18,
+          "sleeper_player_id": "6768",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jaylen Waddle",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 4.4,
+          "sleeper_player_id": "7526",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tank Bigsby",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 2.17,
+          "sleeper_player_id": "9225",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Cade Otton",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 1.1,
+          "sleeper_player_id": "8111",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "MarShawn Lloyd",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "11581",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jayden Higgins",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12484",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Omarion Hampton",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12507",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tyler Warren",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12518",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Dallas Goedert",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "5022",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Brandon Aiyuk",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "6803",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Alec Pierce",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -0.9,
+          "sleeper_player_id": "8142",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "De'Zhaun Stribling",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -2.67,
+          "sleeper_player_id": "13417",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tyler Allgeier",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -3.79,
+          "sleeper_player_id": "8132",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Malachi Fields",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -7.53,
+          "sleeper_player_id": "13285",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Tutu Atwell",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -15.1,
+          "sleeper_player_id": "7562",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Eli Stowers",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -16.35,
+          "sleeper_player_id": "13349",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Samaje Perine",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": -20.04,
+          "sleeper_player_id": "4147",
+          "starter_weight_multiplier_current_year": 0.0
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 6.755,
+          "n_rostered": 4,
+          "starter_xvar": 47.4,
+          "surplus_label": "neutral",
+          "z_score": 0.408
+        },
+        "RB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 6,
+          "starter_xvar": 59.78,
+          "surplus_label": "neutral",
+          "z_score": -0.552
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 4,
+          "starter_xvar": 1.1,
+          "surplus_label": "neutral",
+          "z_score": 0.226
+        },
+        "WR": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 8,
+          "starter_xvar": 16.83,
+          "surplus_label": "deficit",
+          "z_score": -1.467
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 11,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 6.755,
+        "lineup_xvar": 125.11,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 131.865,
+        "top_n_xvar": 142.71,
+        "total_xvar_capped": 142.71
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 24.0,
+        "pct_value_over_28": 0.1772,
+        "value_weighted_age": 24.11
+      },
+      "captured_at": "2026-05-22T11:05:34.549355+00:00",
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [],
+        "owned": [
+          {
+            "current_roster_id": 12,
+            "original_roster_id": 12,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 12,
+            "original_roster_id": 12,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 12,
+            "original_roster_id": 12,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027
+          },
+          {
+            "current_roster_id": 12,
+            "original_roster_id": 12,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 12,
+            "original_roster_id": 12,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 12,
+            "original_roster_id": 12,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028
+          },
+          {
+            "current_roster_id": 12,
+            "original_roster_id": 12,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 12,
+            "original_roster_id": 12,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029
+          },
+          {
+            "current_roster_id": 12,
+            "original_roster_id": 12,
+            "pick_value_status": "deferred",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029
+          }
+        ]
+      },
+      "league_id": "1314363401744416768",
+      "lineup": {
+        "starter_slots": [
+          "QB",
+          "RB",
+          "RB",
+          "WR",
+          "WR",
+          "TE",
+          "FLEX",
+          "FLEX",
+          "SUPER_FLEX"
+        ],
+        "starter_xvar": 239.69,
+        "starters": [
+          {
+            "full_name": "Jared Goff",
+            "position": "QB",
+            "sleeper_player_id": "3163",
+            "slot": "QB",
+            "xvar": 29.52
+          },
+          {
+            "full_name": "Jadarian Price",
+            "position": "RB",
+            "sleeper_player_id": "13286",
+            "slot": "RB",
+            "xvar": 48.06
+          },
+          {
+            "full_name": "Breece Hall",
+            "position": "RB",
+            "sleeper_player_id": "8155",
+            "slot": "RB",
+            "xvar": 43.54
+          },
+          {
+            "full_name": "Brian Thomas Jr.",
+            "position": "WR",
+            "sleeper_player_id": "11631",
+            "slot": "WR",
+            "xvar": 39.4
+          },
+          {
+            "full_name": "Courtland Sutton",
+            "position": "WR",
+            "sleeper_player_id": "5045",
+            "slot": "WR",
+            "xvar": 20.7
+          },
+          {
+            "full_name": "Colston Loveland",
+            "position": "TE",
+            "sleeper_player_id": "12517",
+            "slot": "TE",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Rachaad White",
+            "position": "RB",
+            "sleeper_player_id": "8136",
+            "slot": "FLEX",
+            "xvar": 21.88
+          },
+          {
+            "full_name": "Brian Robinson",
+            "position": "RB",
+            "sleeper_player_id": "8154",
+            "slot": "FLEX",
+            "xvar": 16.35
+          },
+          {
+            "full_name": "Caleb Williams",
+            "position": "QB",
+            "sleeper_player_id": "11560",
+            "slot": "SUPER_FLEX",
+            "xvar": 20.24
+          }
+        ],
+        "unfilled_slots": 0
+      },
+      "owner": {
+        "display_name": "jlillian80",
+        "team_name": "Florida Man",
+        "user_id": "930700626709893120"
+      },
+      "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jadarian Price",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 48.06,
+          "sleeper_player_id": "13286",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Breece Hall",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 43.54,
+          "sleeper_player_id": "8155",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Brian Thomas Jr.",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 39.4,
+          "sleeper_player_id": "11631",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jared Goff",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 29.52,
+          "sleeper_player_id": "3163",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Rachaad White",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 21.88,
+          "sleeper_player_id": "8136",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Courtland Sutton",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 20.7,
+          "sleeper_player_id": "5045",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Caleb Williams",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 20.24,
+          "sleeper_player_id": "11560",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Brian Robinson",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 16.35,
+          "sleeper_player_id": "8154",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 8.1,
+          "full_name": "Marvin Harrison Jr.",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 16.2,
+          "sleeper_player_id": "11628",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 3.388,
+          "full_name": "Makai Lemon",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 13.55,
+          "sleeper_player_id": "13294",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.562,
+          "full_name": "Jalen McMillan",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 4.5,
+          "sleeper_player_id": "11618",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.281,
+          "full_name": "Deebo Samuel",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 4.5,
+          "sleeper_player_id": "5872",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.106,
+          "full_name": "Darnell Mooney",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 3.4,
+          "sleeper_player_id": "7090",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.025,
+          "full_name": "Romeo Doubs",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 1.6,
+          "sleeper_player_id": "8121",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Chris Rodriguez",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "10219",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jordan James",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12467",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Cam Skattebo",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12481",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kaleb Johnson",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12504",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Colston Loveland",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12517",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kyle Pitts",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -3.56,
+          "sleeper_player_id": "7553",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Dalton Schultz",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -14.0,
+          "sleeper_player_id": "5001",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Nate Boerkircher",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -18.33,
+          "sleeper_player_id": "13299",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        }
+      ],
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 2,
+          "starter_xvar": 49.76,
+          "surplus_label": "neutral",
+          "z_score": 0.235
+        },
+        "RB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 8,
+          "starter_xvar": 129.83,
+          "surplus_label": "surplus",
+          "z_score": 0.873
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 4,
+          "starter_xvar": 0.0,
+          "surplus_label": "neutral",
+          "z_score": 0.044
+        },
+        "WR": {
+          "depth_xvar_adj": 12.462,
+          "n_rostered": 8,
+          "starter_xvar": 60.1,
+          "surplus_label": "neutral",
+          "z_score": -0.152
+        }
+      },
+      "posture": {
+        "label": "UNCLASSIFIED",
+        "manual_override_allowed": true,
+        "score": null
+      },
+      "roster_id": 12,
+      "schema_version": "team_value.v1",
+      "team_value_views": {
+        "depth_credit_xvar": 12.462,
+        "lineup_xvar": 239.69,
+        "market_overlay_total": null,
+        "starter_weighted_xvar": 252.152,
+        "top_n_xvar": 255.89,
+        "total_xvar_capped": 283.44
+      }
+    }
+  ]
+}

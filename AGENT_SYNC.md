@@ -1,7 +1,7 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-05-17
+Last updated: 2026-05-22
 
 ## Active Phase
 
@@ -13,9 +13,25 @@ Phase 15 — IMPLEMENTATION COMPLETE: xVAR Cross-Positional Valuation + Bayesian
 Phase 15.1 — COMPLETE: 2026 Rookie Rank Refresh — prospect_cards enriched with Phase 15 xVAR + rank fields; rank movement report at docs/validation/phase15-2026-rookie-rank-refresh.md (2026-05-17; 730 tests)
 Phase 15.2 — COMPLETE: Draft-status banner — refresh_draft_state.py fetches GET /draft/{id} in parallel with picks; draft_status, last_picked, total_picks, current_pick_no written to draft_state.js; color-coded strip on board (2026-05-17)
 Phase 15.3 — COMPLETE: Available-now panel — top 3 non-taken xVAR-ranked picks above card list; tab-aware; TE caveat fires; board fully live-ready for 2026 rookie draft (2026-05-17)
-Phase 17 — RESEARCH BRIEF READY: Sleeper Universe Valuation & League Opportunity Map; spec input at `docs/strategies/Phase 17 Sleeper Universe Valuation Research - Merged.md`
+Phase 15.4 — COMPLETE: Post-draft closeout — Sleeper draft complete, 36/36 picks written to `resources/draft_state.js`, Black pick #26 validated, roster audit rerun with Black present (2026-05-21)
+Phase 16.1 — COMPLETE: Age blockers resolved — 6 verified DOBs ingested, all 80 2026 prospects now scored, DVS invariance held, full suite green (737 passed, 11 skipped; 2026-05-21)
+Phase 16 — CLOSED FOR PHASE 17 ENTRY: Remaining signal-upgrade workstreams are validation/research gates and deferred; no production model change approved.
+Phase 17 — IMPLEMENTATION STARTED: 17.1 Sleeper Universe Snapshot & Coverage complete; 17.2 Full PVO Batch complete; 17.3 Team Value Matrix complete (latest artifacts in `app/data/league_snapshots/` and `app/data/valuation/`)
+Phase 18 — GOVERNANCE HARDENED: Gemini PM skill `dynasty-genius-pm` installed (2026-05-18)
 
 ## Current Sprint Objective
+
+Phase 17 — 17.1, 17.2, AND 17.3 COMPLETE; READY FOR 17.4 MARKET DIVERGENCE V2.
+- Workstream 17.0 (Planning) — COMPLETE: Merged research brief finalized with Section 19 Decision Memo.
+- Workstream 17.1 (Universe Snapshot & Coverage) — COMPLETE: `scripts/build_sleeper_universe_snapshot.py` fetches Sleeper league, rosters, users, traded picks, latest draft, NFL state, and `/players/nfl`; writes `sleeper_universe_snapshot_latest.json` and `sleeper_universe_coverage_latest.json`.
+- Workstream 17.2 (Full PVO Batch) — COMPLETE: `scripts/build_universe_pvo_batch.py` builds `universe_pvo_latest.json` from the 17.1 snapshot, `resources/prospect_cards.json`, Engine B inference scoring, and the governed ff_playerids crosswalk.
+- Workstream 17.3 (Team Value Matrix) — COMPLETE: `scripts/build_team_value_matrix.py` builds `team_value_matrix_latest.json` from the 17.2 PVO artifact and 17.1 Sleeper snapshot.
+- Approved Defaults: Automated-only pick reconstruction with validation/caveat gates; Global Noise band 0.10 as diagnostic/provisional; FantasyCalc ppr=1/no TEP.
+- Bench-weighting guardrail: no player-level value decay. Any depth weighting may apply only to team-strength aggregation after computing the best legal starting lineup from player xVAR/PVO values; actual manager lineup choices must not determine who is decayed.
+- Latest 17.1 coverage: 12,189 Sleeper universe rows classified; 280/280 rostered players present; David roster 28/28 present; 1 unresolved Sleeper pseudo-player ID (`0`); PVO scoring not required in 17.1.
+- Latest 17.2 coverage (`phase17-2-20260522T030627Z`): 12,189 rows; route counts `ENGINE_A=80`, `ENGINE_B=373`, `PRE_MODEL=9,605`, `INACTIVE=2,130`, `UNRESOLVED_IDENTITY=1`; no market overlay rows; `decision_supported_true_count=0`; all rostered skill players have explicit routes. `xvar_percentile_overall` remains null until cross-position percentile ranking is explicitly implemented.
+- Latest 17.3 coverage (`phase17-3-20260522T110534Z`): all 12 teams emitted; future picks present but unvalued; taxi activation cost represented; guardrail embedded (`player_level_value_decay_allowed=false`, lineup selection from raw player xVAR, depth weighting only for non-starters after lineup selection).
+- Current caveat: Automated pick reconstruction defers numeric values and publishes caveats for 2026 traded picks outside the future-pick reconstruction window after draft closeout.
 
 Phase 15 — COMPLETE. Suite: 730 passed, 11 skipped, 0 failed. Board is live-ready.
 - Workstream 15.1 (xVAR) — COMPLETE: xVAR, xvar_lambda, xvar_anchor, xvar_ceiling_bound, dvs_pct, dvs_pct_as_of, dvs_blend_weight_b fields in PVO; xVAR assembled in pvo_assembler for Engine A, Engine B, and blend paths.
@@ -238,18 +254,20 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 - Market source: `unavailable` for all positions (expected; no archive store passed).
 - TE precondition fix: `WalkForwardDriver.FIXED_ALPHA["TE"] = 1.0` added with regression test; no TE promotion logic changed.
 
-## Phase 16 — PLANNING → SPEC INPUT READY
+## Phase 16 — CLOSED FOR PHASE 17 ENTRY
 
 **Theme:** Engine A Rookie Signal Upgrade.
 
 **Spec input:** `docs/strategies/Phase 16 Rookie Signal Upgrade Research - Merged.md` (FINAL — Compass spine, Dynasty Rookie supporting, Codex synthesis reviewed; updated 2026-05-17 with fold-consistency gate, RYPTPA-primary WR framing, RB age de-emphasis governance elevation).
 
+**Phase 16.1 implementation:** COMPLETE (2026-05-21). Six PRE_MODEL age blockers now have verified DOBs and all 80 2026 prospects are scored. Validation note: `docs/validation/phase16-closeout-2026-05-21.md`; refreshed rank report: `docs/validation/phase15-2026-rookie-rank-refresh.md`.
+
 **Sub-phase sequencing (David, 2026-05-17):**
-- **Phase 16.1**: Age blockers only — no model semantics change. Ingest verified `birth_date` for 6 PRE_MODEL players into `prospect_identity_2026.json`, re-run `scripts/refresh_prospect_cards.py`. **Plan ready:** `docs/superpowers/plans/2026-05-17-phase16-1-age-blockers.md`.
-- **Phase 16.2**: Validation harness / bake-off infrastructure (CFBD client wrapper, identity join pipeline, immutable snapshot tooling).
-- **Phase 16.3**: WR feature candidates — RYPTPA first (primary automated candidate, CFBD-computable), YPRR conditional (only if governed PFF/Fantasy Points route data exists). Breakout age separate timing/dominance candidate.
-- **Phase 16.4**: Draft-capital transform bake-off — current linear vs. position-bucketed log-decay vs. position-isotonic-step. Promotion gate: ≥3% aggregate MAE lift AND ≥3 of 4 LOOCV folds passing AND TE MAE not regressing >1%.
-- **Phase 16.5**: RB age de-emphasis as a named governance decision (must precede any RB feature bake-off). Requires acceptance/rejection artifact before W5 begins.
+- **Phase 16.1**: COMPLETE — age blockers only; no model semantics change.
+- **Phase 16.2**: DEFERRED — validation harness / bake-off infrastructure (CFBD client wrapper, identity join pipeline, immutable snapshot tooling).
+- **Phase 16.3**: DEFERRED — WR feature candidates; RYPTPA first, YPRR conditional on governed route data.
+- **Phase 16.4**: DEFERRED — draft-capital transform bake-off. Promotion gate remains ≥3% aggregate MAE lift AND ≥3 of 4 LOOCV folds passing AND TE MAE not regressing >1%.
+- **Phase 16.5**: DEFERRED — RB age de-emphasis governance decision before any RB feature bake-off.
 
 **Key governance locks for all of Phase 16:**
 - Market data overlay-only; xVAR display/decision only; no production model change without passing bake-off artifact.
@@ -257,8 +275,9 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 - All six age-data blockers remain PRE_MODEL until Tier-1 source audit confirms each birth date.
 
 **Prerequisites still pending:**
-- **BLOCKED — Post-draft closeout:** do not run `refresh_draft_state.py` until `draft_status == "complete"` AND `current_pick_no == total_picks == 36`; after that authorized closeout run, commit `resources/draft_state.js`.
-- Roster audit with Black on Sleeper roster: re-run after draft completes.
+- **CLEARED — Post-draft closeout (2026-05-21):** `refresh_draft_state.py` confirmed `draft_status == "complete"` and `current_pick_no == total_picks == 36`; `resources/draft_state.js` refreshed; validation note written at `docs/validation/post-draft-closeout-2026-05-21.md`.
+- Roster audit with Black on Sleeper roster: COMPLETE — `GET /api/roster/audit` returned HTTP 200 with Kaelon Black (`13414`) present; `decision_supported` remains false.
+- **CLEARED — Age blockers (2026-05-21):** all six formerly PRE_MODEL 2026 rookies now have verified DOBs; `resources/prospect_cards.json` has 80 scored and 0 PRE_MODEL.
 
 ## Phase 17 — RESEARCH BRIEF READY
 
@@ -280,7 +299,13 @@ Task 12.0 COMPLETE (Codex, 2026-05-15): first operational artifacts generated.
 - Opportunity language must stay neutral: no imperative buy/sell/target/fade labels.
 - Divergence gates populate `signal_status`; they do not flip `decision_supported`.
 - Top-300 identity gate: top-300 by FantasyCalc dynasty Superflex market value when available, falling back to DG xVAR when market data is unavailable.
-- FantasyCalc parameter set is an open decision before implementation: confirm `isDynasty=true&numQbs=2&numTeams=12&ppr=1` matches Redzone Champions.
+- FantasyCalc parameter set **CONFIRMED**: `isDynasty=true&numQbs=2&numTeams=12&ppr=1`. Verified from `resources/david_league_context.json` (`te_premium: 0.0`). Sleeper league-settings check remains a Phase 17.1 validation dependency.
+
+**Phase 17 Structural Defaults — David ruling (2026-05-21):**
+- Bench/depth weighting: do not decay player value. Build best possible legal starting lineup first; apply any depth weighting only to non-starters in team-strength aggregation. Actual manager lineup choices must not drive decay. Coefficient can start at `0.5` only under that guardrail.
+- Pick reconstruction: automated Sleeper delta only; trust but verify with validation/caveat gates. No manual override in v1.
+- Divergence noise band: `0.10` global as diagnostic/provisional; revisit after first full-universe flag distribution.
+- FantasyCalc params: confirmed `isDynasty=true&numQbs=2&numTeams=12&ppr=1`; no TEP.
 
 ---
 
@@ -354,7 +379,7 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-1. **Post-draft closeout — BLOCKED until draft complete**: do not run `scripts/refresh_draft_state.py` until `draft_status == "complete"` AND `current_pick_no == total_picks == 36`. After that authorized run, confirm complete state in `resources/draft_state.js`, save a short validation note (picks made, Black pick #26, board recommendation matched), and re-run roster audit (`GET /api/roster/audit`) after Black appears on Sleeper roster.
-2. **Phase 16 spec** — After closeout: write Phase 16 research brief and spec. Priorities: (a) 6 age-data blockers (birth_date collection from PFR), (b) college production signal candidates for Engine A, (c) Phase 13 draft-capital transform promotion decision.
+1. **Phase 17.1 Universe Snapshot & Coverage**: ready. Build Sleeper universe, league rosters/users, traded picks, draft state, source hashes, identity coverage, and top-300 unresolved gate. Preserve bench-weighting guardrail for later team-strength work.
+2. **Phase 16 deferred research**: keep CFBD ingestion, draft-capital transform bake-off, WR/RB/QB feature candidates, and RB age de-emphasis out of the Phase 17 critical path unless David explicitly reopens them.
 3. **NOISE_BAND calibration** — Locked at `NOISE_BAND=0.10` until mid-July 2026. Do not change before then.
 4. **Daily FC snapshot cron** — `scripts/snapshot_fantasycalc.py` exists; schedule daily run outside source control.

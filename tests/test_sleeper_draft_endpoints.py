@@ -35,3 +35,12 @@ def test_get_draft_picks_returns_empty_list_on_none():
     with patch("app.data.sleeper._get", new=AsyncMock(return_value=None)):
         result = asyncio.run(get_draft_picks("draft_abc"))
     assert result == []
+
+
+def test_get_nfl_state_returns_dict():
+    from app.data.sleeper import get_nfl_state
+
+    mock_data = {"season": "2026", "week": 1, "season_type": "regular"}
+    with patch("app.data.sleeper._get", new=AsyncMock(return_value=mock_data)):
+        result = asyncio.run(get_nfl_state())
+    assert result == mock_data

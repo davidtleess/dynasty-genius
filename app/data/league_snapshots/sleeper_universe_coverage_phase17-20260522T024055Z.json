@@ -1,0 +1,36 @@
+{
+  "counts_by_cohort": {
+    "EXCLUDED": 6032,
+    "FANTASY_RELEVANT": 4026,
+    "INACTIVE": 2130,
+    "UNRESOLVED_IDENTITY": 1
+  },
+  "david_roster_player_count": 28,
+  "david_roster_players_missing_from_snapshot": [],
+  "phase17_1_exit_criteria": {
+    "every_rostered_player_present": true,
+    "every_sleeper_player_classified": true,
+    "pvo_scoring_required": false,
+    "unresolved_identity_list_exists": true
+  },
+  "rostered_player_count": 280,
+  "rostered_players_missing_from_snapshot": [],
+  "section19_defaults": {
+    "bench_depth_decay": 0.5,
+    "bench_weighting_scope": "team_strength_after_best_legal_lineup",
+    "divergence_noise_band": 0.1,
+    "fantasycalc_params": {
+      "isDynasty": "true",
+      "numQbs": "2",
+      "numTeams": "12",
+      "ppr": "1"
+    },
+    "pick_reconstruction_mode": "automated_only",
+    "player_level_value_decay_allowed": false
+  },
+  "total_players": 12189,
+  "unresolved_identity_count": 1,
+  "unresolved_sleeper_player_ids": [
+    "0"
+  ]
+}
