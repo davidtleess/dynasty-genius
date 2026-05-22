@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import sys
 from collections import defaultdict
+from datetime import date
 from pathlib import Path
 from typing import Optional
 
@@ -71,6 +72,7 @@ def _compute_ranks(pvos: list[dict]) -> list[dict]:
 def _build_pvo_dicts(
     identity_players: list[dict],
     cards_by_name_pos: dict[tuple[str, str], dict],
+    identity_data: dict,
 ) -> tuple[list[dict], list[str]]:
     """Assemble PVOs for 80 verified 2026 players. Returns (pvo_dicts, dvs_warnings)."""
     from src.dynasty_genius.models.player_identity import PlayerIdentity
@@ -84,6 +86,11 @@ def _build_pvo_dicts(
         existing = cards_by_name_pos.get(key, {})
 
         age: Optional[float] = existing.get("age")
+        if age is None and p.get("birth_date"):
+            ref = date.fromisoformat(identity_data.get("snapshot_date", "2026-05-09"))
+            birth = date.fromisoformat(p["birth_date"])
+            age = round((ref - birth).days / 365.25, 2)
+
         baseline_dvs: Optional[float] = existing.get("dynasty_value_score")
         # Preserve existing player_id for Rookie Board taken-state continuity.
         # Store identity dg_id separately for traceability.
@@ -117,8 +124,10 @@ def _build_pvo_dicts(
         # model_grade was set by pick-bucket logic in the original build script.
         if existing_player_id:
             d["player_id"] = existing_player_id
-        if "model_grade" in existing:
+        if "model_grade" in existing and existing["model_grade"] != "PRE_MODEL":
             d["model_grade"] = existing["model_grade"]
+        elif d.get("dynasty_value_score") is not None:
+            d["model_grade"] = "PROSPECT_D" if p["position"] == "QB" else "PROSPECT_C"
         d["identity_dg_id"] = p["dg_id"]
 
         # Preserve display fields not in PVO schema
@@ -203,16 +212,17 @@ def _write_report(
     lines: list[str] = [
         "# Phase 15.1 — 2026 Rookie Rank Refresh",
         "",
-        f"Generated: {now}  ",
-        f"Identity source: `resources/prospect_identity_2026.json` (snapshot: {identity_snapshot_date})  ",
-        f"2026 cohort: {len(pvos_2026)} total · {len(scored)} scored · {len(unscored)} PRE_MODEL (age-data blockers)  ",
-        f"2027 watchlist: {len(watchlist)} entries, excluded from 2026 rankings  ",
+        f"Generated: {now}",
+        f"Identity source: `resources/prospect_identity_2026.json` (snapshot: {identity_snapshot_date})",
+        f"2026 cohort: {len(pvos_2026)} total · {len(scored)} scored · {len(unscored)} PRE_MODEL (age-data blockers)",
+        f"2027 watchlist: {len(watchlist)} entries, excluded from 2026 rankings",
         "",
         "## Identity Stability Check",
         "",
         f"- Source: `nfl_data_py_verified_nfl_draft`, snapshot `{identity_snapshot_date}`",
         "- 80 verified 2026 draft picks; pick/round confirmed against existing artifact",
-        "- Age source: preserved from `prospect_cards.json` (exact DVS invariance)",
+        "- Age source: preserved from `prospect_cards.json` where present; "
+        "computed from `birth_date` in identity file for newly unblocked players",
         "- `player_id` values preserved from existing cards for Rookie Board continuity",
         f"- DVS drift warnings (>{_DVS_INVARIANCE_TOLERANCE}): {len(dvs_warnings)}",
     ]
@@ -268,12 +278,22 @@ def _write_report(
             f"| {_delta_str(p)} |"
         )
 
+    blocker_label = (
+        f"## Age-Data Blockers — {len(unscored)} Remaining"
+        if unscored
+        else "## Age-Data Blockers — All Resolved"
+    )
+    blocker_note = (
+        "These players have verified draft capital but `birth_date=None` in the identity file. "
+        "Engine A requires `pick + round + age`; without age they remain PRE_MODEL."
+        if unscored
+        else "All 6 age-data blockers resolved. All 80 2026 prospects are now scored."
+    )
     lines += [
         "",
-        "## Age-Data Blockers — 6 Unscored 2026 Picks",
+        blocker_label,
         "",
-        "These players have verified draft capital but `birth_date=None` in the identity file. "
-        "Engine A requires `pick + round + age`; without age they remain PRE_MODEL.",
+        blocker_note,
         "",
         "| Name | Position | Pick | Round |",
         "|---|---|---|---|",
@@ -283,11 +303,12 @@ def _write_report(
             f"| {p['full_name']} | {p['position']} "
             f"| {p.get('nfl_draft_pick', '—')} | {p.get('nfl_draft_round', '—')} |"
         )
-    lines += [
-        "",
-        "_Resolution: collect birth_date from Pro Football Reference or Sports Reference, "
-        "update `prospect_identity_2026.json`, re-run this script._",
-    ]
+    if unscored:
+        lines += [
+            "",
+            "_Resolution: collect birth_date from Pro Football Reference or Sports Reference, "
+            "update `prospect_identity_2026.json`, re-run this script._",
+        ]
 
     lines += [
         "",
@@ -324,7 +345,11 @@ def main() -> None:
     # 2027 watchlist — not in identity file, carry forward unchanged
     watchlist = [c for c in baseline_cards if c.get("draft_class") == 2027]
 
-    pvos_2026, dvs_warnings = _build_pvo_dicts(identity_players, cards_by_name_pos)
+    pvos_2026, dvs_warnings = _build_pvo_dicts(
+        identity_players,
+        cards_by_name_pos,
+        identity_data,
+    )
     pvos_2026 = _compute_ranks(pvos_2026)
 
     if dvs_warnings:
@@ -337,7 +362,10 @@ def main() -> None:
 
     scored_count = sum(1 for p in pvos_2026 if p.get("dynasty_value_score") is not None)
     pre_model_count = sum(1 for p in pvos_2026 if p.get("model_grade") == "PRE_MODEL")
-    assert pre_model_count == 6, f"Expected 6 PRE_MODEL 2026 players, got {pre_model_count}"
+    assert pre_model_count == 0, (
+        f"Expected 0 PRE_MODEL 2026 players after age blocker resolution, got {pre_model_count}. "
+        f"Check birth_date fields in prospect_identity_2026.json."
+    )
 
     all_cards = pvos_2026 + watchlist
 

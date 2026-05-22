@@ -131,11 +131,11 @@
       "is_prospect": true,
       "pick": 30,
       "round": 1,
-      "birth_date": null,
+      "birth_date": "2003-12-14",
       "sleeper_id": "13276",
       "verification_status": "VERIFIED_NFL_DRAFT",
       "identity_verified": true,
-      "age_verified": false
+      "age_verified": true
     },
     {
       "dg_id": "jadarian_price_rb_2003",
@@ -401,11 +401,11 @@
       "is_prospect": true,
       "pick": 83,
       "round": 3,
-      "birth_date": null,
+      "birth_date": "2003-09-22",
       "sleeper_id": "13353",
       "verification_status": "VERIFIED_NFL_DRAFT",
       "identity_verified": true,
-      "age_verified": false
+      "age_verified": true
     },
     {
       "dg_id": "ted_hurst_wr_2004",
@@ -581,11 +581,12 @@
       "is_prospect": true,
       "pick": 122,
       "round": 4,
-      "birth_date": null,
+      "birth_date": "2003-07-03",
       "sleeper_id": "13305",
       "verification_status": "VERIFIED_NFL_DRAFT",
       "identity_verified": true,
-      "age_verified": false
+      "age_verified": true,
+      "dob_conflict_source": "lines.com, March 15 2002, rejected - primary LV Raiders roster and family-verified sources confirm Jul 3 2003"
     },
     {
       "dg_id": "skyler_bell_wr_2002",
@@ -836,11 +837,12 @@
       "is_prospect": true,
       "pick": 177,
       "round": 5,
-      "birth_date": null,
+      "birth_date": "2003-09-10",
       "sleeper_id": "13338",
       "verification_status": "VERIFIED_NFL_DRAFT",
       "identity_verified": true,
-      "age_verified": false
+      "age_verified": true,
+      "dob_conflict_source": "nfldraftbuzz, February 2004, rejected - Missouri official bio and Wikipedia agree Sep 10 2003; school bio takes precedence"
     },
     {
       "dg_id": "cole_payton_qb_2002",
@@ -1001,11 +1003,11 @@
       "is_prospect": true,
       "pick": 199,
       "round": 6,
-      "birth_date": null,
+      "birth_date": "2003-03-21",
       "sleeper_id": "13313",
       "verification_status": "VERIFIED_NFL_DRAFT",
       "identity_verified": true,
-      "age_verified": false
+      "age_verified": true
     },
     {
       "dg_id": "cj_williams_wr_2003",
@@ -1130,17 +1132,18 @@
     {
       "dg_id": "jam_miller_rb",
       "full_name": "Jam Miller",
+      "legal_name": "Jamarion Miller",
       "position": "RB",
       "nfl_team": "NWE",
       "draft_class": 2026,
       "is_prospect": true,
       "pick": 245,
       "round": 7,
-      "birth_date": null,
+      "birth_date": "2004-04-29",
       "sleeper_id": "13403",
       "verification_status": "VERIFIED_NFL_DRAFT",
       "identity_verified": true,
-      "age_verified": false
+      "age_verified": true
     },
     {
       "dg_id": "carsen_ryan_te_2003",
