@@ -326,6 +326,42 @@ def test_engine_a_rookie_reconciliation_preserves_veteran_engine_b_path(tmp_path
     assert veteran["dynasty_value_score"] is not None
 
 
+def test_engine_a_rookie_carries_counter_argument_when_dvs_above_80(tmp_path):
+    high_dvs_row = {
+        **_universe_row_for_rookie(),
+        "sleeper_player_id": "99999",
+        "dg_player_id": "mendoza_wr",
+        "identity_ids": {"sleeper_id": "99999"},
+        "player": {"full_name": "Fernando Mendoza", "position": "WR", "team": "MIA", "age": 22.0},
+        "valuation": {
+            "engine_path": "ENGINE_A",
+            "valuation_status": "MODEL_SUPPORTED",
+            "dynasty_value_score": 85.14,
+            "xvar": 10.31,
+            "model_grade": "PROSPECT_B",
+            "feature_completeness": 0.28,
+            "decision_supported": False,
+        },
+    }
+    high_dvs_player = {
+        "player_id": "99999",
+        "full_name": "Fernando Mendoza",
+        "position": "WR",
+        "team": "MIA",
+        "age": 22,
+        "gsis_id": None,
+    }
+    result = _run_with_universe(
+        tmp_path,
+        [_universe_row_for_rookie(), high_dvs_row],
+        roster=[_ROOKIE_PLAYER, high_dvs_player, _RB_PLAYER],
+        scores=[_RB_ENGINE_B_SCORE],
+    )
+    mendoza = next(p for p in result["players"] if p["sleeper_id"] == "99999")
+    assert mendoza["dynasty_value_score"] == 85.14
+    assert mendoza["counter_argument"] is not None, "Product Constitution Rule 4: counter_argument required for DVS > 80"
+
+
 def test_roster_audit_degrades_when_universe_artifact_absent(tmp_path):
     missing_path = tmp_path / "missing.json"
     with (

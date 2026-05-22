@@ -12,6 +12,7 @@ from src.dynasty_genius.adapters.nflreadpy_qb_adapter import fetch_qb_nfl_stats
 from src.dynasty_genius.models.engine_a_contract import QB_CONTEXT_COLUMNS
 from src.dynasty_genius.models.league_context import LeagueContext
 from src.dynasty_genius.models.player_identity import PlayerIdentity
+from src.dynasty_genius.decision_logic.counter_arguments import generate_counter_argument
 from src.dynasty_genius.models.player_value_object import PlayerValueObject, RosterAuditSignals
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -138,7 +139,7 @@ def _pvo_from_universe_engine_a_row(row: dict[str, Any], live_player: dict) -> P
     except ValueError:
         universe_path = str(UNIVERSE_PVO_LATEST_PATH)
 
-    return PlayerValueObject(
+    pvo = PlayerValueObject(
         player_id=str(row.get("dg_player_id") or row.get("sleeper_player_id")),
         full_name=str(player.get("full_name") or live_player.get("full_name")),
         position=str(player.get("position") or live_player.get("position")),
@@ -168,6 +169,8 @@ def _pvo_from_universe_engine_a_row(row: dict[str, Any], live_player: dict) -> P
             "sleeper_snapshot_hash": str(lineage.get("sleeper_snapshot_hash") or ""),
         },
     )
+    pvo.counter_argument = generate_counter_argument(pvo)
+    return pvo
 
 
 def _clamp(value: float, lower: float = 0.0, upper: float = 1.0) -> float:
