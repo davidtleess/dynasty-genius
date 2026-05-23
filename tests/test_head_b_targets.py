@@ -26,6 +26,7 @@ from scripts.build_head_b_targets import (
     TRAINING_MAX_SEASON,
     compute_best3of4_ppg,
     compute_censoring_flag,
+    compute_row_targets,
     expected_ppg_at_pick,
     fit_isotonic_curve,
     fit_te_pooled_curve,
@@ -203,3 +204,73 @@ def test_output_path_is_not_source_csv():
     assert SOURCE_CSV != OUTPUT_CSV, "Pipeline would overwrite the source CSV"
     assert "v3" in OUTPUT_CSV.name, "Output file name must contain 'v3'"
     assert "v3" not in SOURCE_CSV.name, "Source CSV must not contain 'v3'"
+
+
+# ── compute_row_targets censoring / eligibility tests ─────────────────────────
+
+def _make_wr_curve() -> IsotonicRegression:
+    rng = np.random.default_rng(77)
+    picks = list(range(1, 100, 2))
+    ppg = [max(0.5, 14.0 - p * 0.04 + rng.normal(0, 0.5)) for p in picks]
+    return fit_isotonic_curve([float(p) for p in picks], ppg)
+
+
+def test_censored_2022_row_has_blank_residual():
+    """Draft class 2022 (>TRAINING_MAX_SEASON) must produce blank residual_ppg.
+
+    expected_ppg_at_pick must still be populated to support inference scoring.
+    """
+    curves = {"WR": _make_wr_curve()}
+    row = {
+        "season": "2022",
+        "position": "WR",
+        "pick": "30",
+        "total_points": "200",
+        "total_games": "48",
+    }
+    result = compute_row_targets(row, curves)
+    assert result["censored_incomplete_arc"] == "1"
+    assert result["best3of4_ppg"] == ""
+    assert result["residual_ppg"] == ""
+    assert result["head_b_training_eligible"] == "0"
+    assert result["expected_ppg_at_pick"] != "", "expected_ppg_at_pick must be populated for inference"
+
+
+def test_low_game_row_has_blank_residual():
+    """Training-era class below MIN_GAMES_THRESHOLD must produce blank residual_ppg."""
+    curves = {"WR": _make_wr_curve()}
+    row = {
+        "season": "2019",
+        "position": "WR",
+        "pick": "30",
+        "total_points": "40",
+        "total_games": str(MIN_GAMES_THRESHOLD - 1),
+    }
+    result = compute_row_targets(row, curves)
+    assert result["censored_incomplete_arc"] == "1"
+    assert result["best3of4_ppg"] == ""
+    assert result["residual_ppg"] == ""
+    assert result["head_b_training_eligible"] == "0"
+
+
+def test_eligible_row_produces_correct_residual():
+    """Non-censored row with valid pick and curve must have correct residual arithmetic."""
+    curves = {"WR": _make_wr_curve()}
+    row = {
+        "season": "2018",
+        "position": "WR",
+        "pick": "32",
+        "total_points": "320.0",
+        "total_games": "32",
+    }
+    result = compute_row_targets(row, curves)
+    assert result["censored_incomplete_arc"] == "0"
+    assert result["best3of4_ppg"] != ""
+    assert result["expected_ppg_at_pick"] != ""
+    assert result["residual_ppg"] != ""
+    assert result["head_b_training_eligible"] == "1"
+
+    actual = float(result["best3of4_ppg"])
+    expected = float(result["expected_ppg_at_pick"])
+    residual = float(result["residual_ppg"])
+    assert residual == pytest.approx(actual - expected, abs=1e-3)
