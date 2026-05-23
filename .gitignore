@@ -51,6 +51,11 @@ app/data/models/engine_b/runs/v1_1_control/
 # Agent planning artifacts — internal coordination files, not repo documentation
 conductor/
 
+# Run-id stamped valuation artifacts — redundant with *_latest.json canonical files
+app/data/valuation/*_phase[0-9]*.json
+app/data/valuation/*_phase[0-9]*.md
+app/data/league_snapshots/*_phase[0-9]*.json
+
 # Backtest market snapshot store — operational data, not source code
 app/data/fc_snapshots.db
 app/data/fc_snapshots.db-journal
