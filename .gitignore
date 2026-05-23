@@ -70,6 +70,10 @@ app/data/identity/_runs/
 # PFF manual exports and local manifests are private subscriber data / local paths
 app/data/pff_exports/
 
+# Agent tool runtime state — Antigravity CLI / Gemini session files
+.agents/
+.antigravitycli/
+
 # Dependencies
 node_modules/
 __pycache__/
