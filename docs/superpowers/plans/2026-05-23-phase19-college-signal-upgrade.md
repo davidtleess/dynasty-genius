@@ -787,12 +787,14 @@ def test_find_pff_match_returns_none_for_no_match():
 
 
 def test_build_college_season_year_standard():
+    # Most players: final college season = draft_year - 1
     assert build_college_season_year(draft_year=2019, position="WR") == 2018
 
 
-def test_build_college_season_year_covid_class():
-    # 2021 draft class — season year is 2020 (COVID-shortened)
-    assert build_college_season_year(draft_year=2021, position="WR") == 2020
+def test_build_college_season_year_opt_out_returns_none():
+    # Opt-outs / non-standard cases return None — caller must handle via fallback
+    # e.g. Ja'Marr Chase (2021 draft) sat out 2020; his file is in 2019 season
+    assert build_college_season_year(draft_year=2021, position="WR", opt_out=True) is None
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -896,8 +898,23 @@ def find_pff_match(
     return None
 
 
-def build_college_season_year(draft_year: int, position: str) -> int:
-    """College season year = draft_year - 1 for all positions/classes."""
+def build_college_season_year(
+    draft_year: int,
+    position: str,
+    opt_out: bool = False,
+) -> int | None:
+    """College season year for the default (non-opt-out) case.
+
+    Returns draft_year - 1 for standard entries. Returns None for opt-outs
+    or other non-standard final-season cases — the feature builder treats
+    None as a fallback signal to check adjacent season files.
+
+    These files are full season snapshots, not draft-class-filtered exports.
+    A player appears in whichever season(s) they actually played. The caller
+    is responsible for resolving the correct file per player.
+    """
+    if opt_out:
+        return None
     return draft_year - 1
 
 
