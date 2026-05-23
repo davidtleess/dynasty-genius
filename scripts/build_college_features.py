@@ -2,7 +2,8 @@
 
 Joins PFF WR/RB export rows to Engine A training data, fetches CFBD team
 pass attempts, computes RYPTPA, and extracts YPRR. Writes an enriched
-training CSV and a manual_review CSV for unresolved rows.
+training CSV and a manual_review CSV for all unresolved or partially-resolved
+rows (PFF identity misses, CFBD denominator gaps, non-standard final seasons).
 
 Usage:
     .venv/bin/python3.14 scripts/build_college_features.py
@@ -33,9 +34,20 @@ TRAINING_CSV = ROOT / "app/data/training/prospects_with_outcomes.csv"
 OUTPUT_CSV = ROOT / "app/data/training/prospects_with_outcomes_phase16.csv"
 REVIEW_CSV = ROOT / "app/data/pff_exports/phase16_wr_manual_review.csv"
 
+# Draft classes covered by the manifest (college seasons 2017-2023).
+# Coverage gate (≥80%) applies only to these in-scope years.
+MANIFEST_DRAFT_YEARS: frozenset[int] = frozenset(range(2018, 2025))
+
 _SUFFIX_PATTERN = re.compile(
     r"\b(jr\.?|sr\.?|ii|iii|iv)\s*$", re.IGNORECASE
 )
+
+# Uniform schema for all manual review entries (PFF misses and CFBD gaps).
+_REVIEW_FIELDS = [
+    "gsis_id", "pfr_player_name", "position", "draft_year",
+    "college", "college_season", "reason",
+    "pff_college_found", "cfbd_college", "found_in_season",
+]
 
 
 def normalize_player_name(name: str) -> str:
@@ -66,7 +78,11 @@ def find_pff_match(
     college: str,
     pff_rows: list[dict],
 ) -> dict | None:
-    """Find the best matching PFF row by normalized name + college."""
+    """Return the PFF row matching on both normalized name AND normalized college.
+
+    Name-only matches are NOT resolved here — they indicate a college mismatch
+    that must go to manual review. Use find_pff_name_mismatch() to detect them.
+    """
     norm_name = normalize_player_name(pfr_name)
     norm_college = normalize_college_name(college).lower()
 
@@ -76,11 +92,59 @@ def find_pff_match(
         if row_name == norm_name and row_college == norm_college:
             return row
 
-    # Relaxed: name match only (college name may differ slightly)
+    return None
+
+
+def find_pff_name_mismatch(
+    pfr_name: str,
+    college: str,
+    pff_rows: list[dict],
+) -> dict | None:
+    """Return the PFF row if name matches but college differs — identity risk.
+
+    A non-None return means a same-name player exists in the PFF data under
+    a different college. This must NOT auto-resolve; route to manual review
+    with reason=name_match_college_mismatch.
+    """
+    norm_name = normalize_player_name(pfr_name)
+    norm_college = normalize_college_name(college).lower()
+
     for row in pff_rows:
         row_name = normalize_player_name(row.get("player_name", ""))
-        if row_name == norm_name:
+        row_college = normalize_college_name(row.get("college", "")).lower()
+        if row_name == norm_name and row_college != norm_college:
             return row
+
+    return None
+
+
+def find_pff_match_any_season(
+    pfr_name: str,
+    college: str,
+    pff_by_season: dict[int, list[dict]],
+    *,
+    exclude_season: int | None = None,
+) -> tuple[int, dict] | None:
+    """Search all loaded seasons for a name+college match.
+
+    Returns (season, pff_row) if found in any season other than
+    exclude_season, or None if no match exists anywhere.
+
+    A non-None return with exclude_season set indicates the player played in
+    a non-standard final season — route to manual review rather than
+    auto-resolving.
+    """
+    norm_name = normalize_player_name(pfr_name)
+    norm_college = normalize_college_name(college).lower()
+
+    for season in sorted(pff_by_season):
+        if season == exclude_season:
+            continue
+        for row in pff_by_season[season]:
+            row_name = normalize_player_name(row.get("player_name", ""))
+            row_college = normalize_college_name(row.get("college", "")).lower()
+            if row_name == norm_name and row_college == norm_college:
+                return (season, row)
 
     return None
 
@@ -103,6 +167,30 @@ def build_college_season_year(
     if opt_out:
         return None
     return draft_year - 1
+
+
+def _review_entry(
+    row: dict,
+    *,
+    college_season: int | None,
+    reason: str,
+    pff_college_found: str = "",
+    cfbd_college: str = "",
+    found_in_season: str = "",
+) -> dict:
+    """Build a uniform review entry across all miss/gap types."""
+    return {
+        "gsis_id": row.get("gsis_id", ""),
+        "pfr_player_name": row.get("pfr_player_name", ""),
+        "position": row.get("position", "").upper(),
+        "draft_year": row.get("season", ""),
+        "college": row.get("college", ""),
+        "college_season": college_season if college_season is not None else "",
+        "reason": reason,
+        "pff_college_found": pff_college_found,
+        "cfbd_college": cfbd_college,
+        "found_in_season": found_in_season,
+    }
 
 
 def _load_manifest() -> list[dict]:
@@ -154,7 +242,7 @@ def main(dry_run: bool = False) -> None:
     output_fields = fieldnames + [f for f in new_fields if f not in fieldnames]
 
     enriched: list[dict] = []
-    review: list[dict] = []
+    review: list[dict] = []  # all review entries: PFF misses + CFBD gaps
 
     for row in training_rows:
         position = row.get("position", "").upper()
@@ -164,35 +252,69 @@ def main(dry_run: bool = False) -> None:
 
         draft_year = int(row.get("season", 0))
         college_season = build_college_season_year(draft_year, position)
+        pfr_name = row.get("pfr_player_name", "")
+        college = row.get("college", "")
         pff_rows = pff_by_season.get(college_season, [])
 
-        pff_match = find_pff_match(
-            row.get("pfr_player_name", ""),
-            row.get("college", ""),
-            pff_rows,
-        )
+        pff_match = find_pff_match(pfr_name, college, pff_rows)
 
         if pff_match is None:
-            review.append({
-                "gsis_id": row.get("gsis_id"),
-                "pfr_player_name": row.get("pfr_player_name"),
-                "position": position,
-                "draft_year": draft_year,
-                "college": row.get("college"),
-                "college_season": college_season,
-                "reason": "no_pff_match",
-            })
+            # Check: name matches in primary season but college differs
+            name_miss = find_pff_name_mismatch(pfr_name, college, pff_rows)
+            if name_miss:
+                review.append(_review_entry(
+                    row,
+                    college_season=college_season,
+                    reason="name_match_college_mismatch",
+                    pff_college_found=name_miss.get("college", ""),
+                ))
+                enriched.append({**row, **{f: "" for f in new_fields}})
+                continue
+
+            # Check: player found in a different season (non-standard final season)
+            any_season_result = find_pff_match_any_season(
+                pfr_name, college, pff_by_season,
+                exclude_season=college_season,
+            )
+            if any_season_result:
+                alt_season, _ = any_season_result
+                review.append(_review_entry(
+                    row,
+                    college_season=college_season,
+                    reason="non_standard_final_season_requires_review",
+                    found_in_season=str(alt_season),
+                ))
+                enriched.append({**row, **{f: "" for f in new_fields}})
+                continue
+
+            # No match anywhere
+            review.append(_review_entry(
+                row,
+                college_season=college_season,
+                reason="no_pff_match",
+            ))
             enriched.append({**row, **{f: "" for f in new_fields}})
             continue
 
+        # PFF match found — fetch CFBD denominator
         pff_yards = pff_match.get("yards")
         team_attempts = None
+        cfbd_college = normalize_college_name(pff_match.get("college", ""))
+
         if not dry_run and api_key:
             team_attempts = fetch_team_pass_attempts(
                 pff_match.get("college", ""),
                 college_season,
                 api_key=api_key,
             )
+            if team_attempts is None:
+                review.append(_review_entry(
+                    row,
+                    college_season=college_season,
+                    reason="missing_cfbd_pass_attempts",
+                    pff_college_found=pff_match.get("college", ""),
+                    cfbd_college=cfbd_college,
+                ))
 
         ryptpa = compute_ryptpa(pff_yards, team_attempts)
         yprr_col = pff_match.get("yprr")
@@ -214,19 +336,45 @@ def main(dry_run: bool = False) -> None:
 
         if review:
             with REVIEW_CSV.open("w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=list(review[0].keys()))
+                writer = csv.DictWriter(f, fieldnames=_REVIEW_FIELDS)
                 writer.writeheader()
                 writer.writerows(review)
             print(f"  Manual review: {REVIEW_CSV} ({len(review)} rows)")
 
+    # Coverage reporting — gate applies to in-scope draft years only
     wr_rb = [r for r in training_rows if r.get("position", "").upper() in ("WR", "RB")]
-    resolved = len(wr_rb) - len(review)
-    pct = resolved / len(wr_rb) * 100 if wr_rb else 0
-    print(f"\n  Coverage: {resolved}/{len(wr_rb)} WR/RB rows resolved ({pct:.1f}%)")
-    if pct < 80:
-        print("  [WARN] Coverage below 80% — review manual_review.csv before bake-off")
+    in_scope = [r for r in wr_rb if int(r.get("season", 0)) in MANIFEST_DRAFT_YEARS]
+
+    # PFF identity misses (no enrichment): all review entries except cfbd gaps
+    pff_miss_reasons = {
+        "no_pff_match", "name_match_college_mismatch",
+        "non_standard_final_season_requires_review",
+    }
+    pff_misses = [e for e in review if e["reason"] in pff_miss_reasons]
+    cfbd_gaps = [e for e in review if e["reason"] == "missing_cfbd_pass_attempts"]
+
+    in_scope_misses = sum(
+        1 for e in pff_misses if int(e.get("draft_year", 0)) in MANIFEST_DRAFT_YEARS
+    )
+    in_scope_resolved = len(in_scope) - in_scope_misses
+    in_scope_pct = in_scope_resolved / len(in_scope) * 100 if in_scope else 0
+
+    overall_resolved = len(wr_rb) - len(pff_misses)
+    overall_pct = overall_resolved / len(wr_rb) * 100 if wr_rb else 0
+
+    print(f"\n  Coverage (all WR/RB, {len(wr_rb)} rows): "
+          f"{overall_resolved} resolved ({overall_pct:.1f}%) "
+          f"— includes out-of-scope draft classes")
+    print(f"  Coverage (in-scope draft 2018-2024, {len(in_scope)} rows): "
+          f"{in_scope_resolved} resolved ({in_scope_pct:.1f}%)")
+    if cfbd_gaps:
+        print(f"  CFBD denominator gaps: {len(cfbd_gaps)} matched rows with "
+              f"yprr_college but no ryptpa (school name normalization gaps)")
+
+    if in_scope_pct >= 80:
+        print("  [OK] In-scope coverage ≥ 80% — proceed to bake-off")
     else:
-        print("  [OK] Coverage ≥ 80% — proceed to bake-off")
+        print("  [WARN] In-scope coverage below 80% — review manual_review.csv before bake-off")
 
     if dry_run:
         print("\n  [DRY RUN] No files written.")
