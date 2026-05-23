@@ -1,6 +1,6 @@
 {
   "automated_trade_execution": false,
-  "captured_at": "2026-05-23T00:32:16.473036+00:00",
+  "captured_at": "2026-05-23T02:52:38.149943+00:00",
   "cards": [
     {
       "asset": {
@@ -199,7 +199,6 @@
       "card_id": "opp-0006",
       "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
       "caveats": [
-        "posture_unclassified",
         "future_pick_values_deferred"
       ],
       "counterparty_roster_id": 8,
@@ -386,7 +385,6 @@
       "card_id": "opp-0007",
       "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
       "caveats": [
-        "posture_unclassified",
         "future_pick_values_deferred"
       ],
       "counterparty_roster_id": 9,
@@ -647,7 +645,6 @@
       "card_id": "opp-0008",
       "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
       "caveats": [
-        "posture_unclassified",
         "future_pick_values_deferred"
       ],
       "counterparty_roster_id": 10,

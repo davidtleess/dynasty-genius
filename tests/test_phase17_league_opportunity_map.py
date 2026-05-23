@@ -218,6 +218,45 @@ def test_partner_ranking_uses_posture_alignment_when_posture_artifact_is_availab
     assert result["source_artifacts"]["team_posture_schema_version"] == "team_posture.v1"
 
 
+def test_fit_cards_drop_posture_unclassified_caveat_when_posture_is_known():
+    from src.dynasty_genius.league_opportunity_map import build_league_opportunity_map
+
+    team_matrix, market_divergence = _fixtures()
+    posture_artifact = {
+        "schema_version": "team_posture.v1",
+        "teams": [
+            {"roster_id": 1, "posture": {"label": "REBUILDING", "score": -0.6, "decision_supported": False}},
+            {"roster_id": 2, "posture": {"label": "CONTENDER", "score": 0.8, "decision_supported": False}},
+            {"roster_id": 3, "posture": {"label": "ASCENDING", "score": 0.3, "decision_supported": False}},
+        ],
+        "decision_supported": False,
+    }
+    result = build_league_opportunity_map(
+        team_matrix,
+        market_divergence,
+        team_posture=posture_artifact,
+        perspective_roster_id=1,
+    )
+    fit_cards = [c for c in result["cards"] if c["card_type"] == "ROSTER_SURPLUS_DEFICIT_MATCH"]
+    assert fit_cards, "no fit cards generated"
+    for card in fit_cards:
+        assert "posture_unclassified" not in card["caveats"], (
+            f"fit card {card['card_id']} still carries posture_unclassified after Phase 18.3 posture data wired"
+        )
+        assert "future_pick_values_deferred" in card["caveats"]
+
+
+def test_fit_cards_retain_posture_unclassified_caveat_when_no_posture_artifact():
+    from src.dynasty_genius.league_opportunity_map import build_league_opportunity_map
+
+    team_matrix, market_divergence = _fixtures()
+    result = build_league_opportunity_map(team_matrix, market_divergence, perspective_roster_id=1)
+    fit_cards = [c for c in result["cards"] if c["card_type"] == "ROSTER_SURPLUS_DEFICIT_MATCH"]
+    assert fit_cards, "no fit cards generated"
+    for card in fit_cards:
+        assert "posture_unclassified" in card["caveats"]
+
+
 def test_opportunity_map_does_not_mutate_inputs():
     from src.dynasty_genius.league_opportunity_map import build_league_opportunity_map
 

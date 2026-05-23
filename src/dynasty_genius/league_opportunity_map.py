@@ -216,6 +216,16 @@ def _posture_alignment_score(perspective_posture: str, counterparty_posture: str
     return complementary_pairs.get(frozenset({perspective_posture, counterparty_posture}), 0.0)
 
 
+def _fit_card_caveats(perspective: dict[str, Any], team: dict[str, Any]) -> list[str]:
+    p_label = ((perspective.get("posture") or {}).get("label") or "UNCLASSIFIED")
+    c_label = ((team.get("posture") or {}).get("label") or "UNCLASSIFIED")
+    caveats = []
+    if "UNCLASSIFIED" in {p_label, c_label}:
+        caveats.append("posture_unclassified")
+    caveats.append("future_pick_values_deferred")
+    return caveats
+
+
 def _fit_cards(
     teams: dict[int, dict[str, Any]],
     perspective_roster_id: int,
@@ -256,7 +266,7 @@ def _fit_cards(
                         "feasibility_score": 0.5,
                     },
                     signal_status="gates_blocked",
-                    caveats=["posture_unclassified", "future_pick_values_deferred"],
+                    caveats=_fit_card_caveats(perspective, team),
                 )
             )
             card_no += 1
