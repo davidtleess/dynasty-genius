@@ -1,0 +1,767 @@
+"""Phase 19 W2b — CFBD Player-Level Enrichment Pipeline.
+
+Extends prospects_with_outcomes_v3.csv with position-specific Required
+features that need season-by-season college stats from the CFBD API:
+
+  WR: wr_dominator_final, wr_breakout_age, wr_market_share_yds,
+      wr_rec_tds_per_game_final, wr_yards_per_reception_career
+  RB: rb_final_dominator, rb_scrimmage_ypg, rb_rec_ypg, rb_school_sp_plus
+  TE: te_ryptpa_final, te_yards_per_reception_career
+
+Era proxy features (derived from existing v3 columns — no API calls):
+  final_college_age   = age_at_draft - 1  (labeled proxy_age_at_draft)
+  early_declare       = 1 if age_at_draft <= 21.0
+  wr_early_declare    = same proxy, WR rows only
+  covid_eligibility_flag = 1 if draft_year ∈ {2021, 2022} AND age_at_draft >= 23.0
+
+Permanently stubbed (_missing=1 — not obtainable from local sources):
+  te_deep_yard_share  — requires PFF route data
+  transfer_portal_flag — CFBD portal only covers 2019+; cohort starts 2015
+
+Data strategy:
+  - Player stats fetched year-by-year (one call per year/category), not per-player.
+  - Raw API responses cached as JSON under app/data/cfbd_cache/ (gitignored).
+  - Identity matching: normalize_player_name() + normalize_college_name() from
+    the existing cfbd_receiving_adapter module.
+  - Team pass attempts (TE RYPTPA denominator) fetched via existing
+    fetch_team_pass_attempts() from cfbd_receiving_adapter.
+
+API volume (approximate):
+  14 years × 2 categories (receiving, rushing) + 14 SP+ calls ≈ 42 batch calls.
+  Plus up to ~160 team-pass-attempts calls for TE RYPTPA (cached individually).
+
+References:
+  - Dominator threshold 0.20 per Barnwell/TDN breakout-age convention.
+  - COVID eligibility proxy: draft_year ∈ {2021, 2022} AND age ≥ 23.
+    (NCAA granted blanket extra year for 2020 season; proxy identifies players
+    who appear to have taken the extra year based on draft age.)
+  - SP+ composite rating per Bill Connelly / ESPN SPI methodology.
+
+Does NOT change production model pkl files, latest.json, PVO scoring, or
+market overlays. All generated artifacts remain gitignored.
+
+Usage:
+    .venv/bin/python3.14 scripts/build_w2b_cfbd.py
+    .venv/bin/python3.14 scripts/build_w2b_cfbd.py --force-fetch  # bypass cache
+    .venv/bin/python3.14 scripts/build_w2b_cfbd.py --allow-degraded  # tolerate API errors
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Optional
+
+import httpx
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from src.dynasty_genius.adapters.cfbd_receiving_adapter import (  # noqa: E402
+    fetch_team_pass_attempts,
+    normalize_college_name,
+)
+from src.dynasty_genius.models.head_b_contract import (  # noqa: E402
+    HEAD_B_PROHIBITED_COLUMNS,
+    MARKET_PROHIBITED_COLUMNS,
+    PFF_GRADE_PROHIBITED_COLUMNS,
+)
+
+# ── I/O paths ─────────────────────────────────────────────────────────────────
+
+V3_CSV = ROOT / "app/data/training/prospects_with_outcomes_v3.csv"
+CACHE_DIR = ROOT / "app/data/cfbd_cache"
+
+# ── Constants ─────────────────────────────────────────────────────────────────
+
+CFBD_BASE = "https://api.collegefootballdata.com"
+
+# College years to fetch: covers 2015–2025 draft classes (4-5 year careers)
+COLLEGE_YEARS = list(range(2011, 2025))
+
+# Dominator breakout threshold per Barnwell/TDN convention
+DOMINATOR_BREAKOUT_THRESHOLD = 0.20
+
+# Era proxy thresholds
+EARLY_DECLARE_AGE_THRESHOLD = 21.0      # age_at_draft <= this → early_declare=1
+COVID_DRAFT_YEARS = frozenset({2021, 2022})  # cohorts that could have COVID eligibility
+COVID_MIN_AGE = 23.0                    # age_at_draft >= this in COVID year → flag=1
+
+
+# ── Name normalization ────────────────────────────────────────────────────────
+
+def normalize_player_name(name: str) -> str:
+    """Lowercase and strip all non-alpha characters for fuzzy matching."""
+    return re.sub(r"[^a-z]", "", name.lower())
+
+
+def _norm_school_key(school: str) -> str:
+    """Apply CFBD name map then lowercase for dict key."""
+    return normalize_college_name(school).lower()
+
+
+# ── API load / cache helpers ──────────────────────────────────────────────────
+
+def _cfbd_api_key() -> str:
+    from dotenv import load_dotenv
+    import os
+    load_dotenv()
+    return os.getenv("CFBD_API_KEY", "").strip()
+
+
+def _load_json_cache(path: Path) -> Optional[list]:
+    if path.exists():
+        with path.open(encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+
+def _save_json_cache(path: Path, data: list) -> None:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def load_player_stats(year: int, category: str, api_key: str,
+                      force_fetch: bool = False) -> list[dict]:
+    """Load player season stats from local cache or CFBD API."""
+    cache_path = CACHE_DIR / f"player_{category}_{year}.json"
+    if not force_fetch:
+        cached = _load_json_cache(cache_path)
+        if cached is not None:
+            return cached
+
+    resp = httpx.get(
+        f"{CFBD_BASE}/stats/player/season",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={"year": year, "category": category, "seasonType": "regular"},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    _save_json_cache(cache_path, data)
+    return data
+
+
+def load_sp_ratings(year: int, api_key: str,
+                    force_fetch: bool = False) -> list[dict]:
+    """Load SP+ ratings from local cache or CFBD API."""
+    cache_path = CACHE_DIR / f"sp_ratings_{year}.json"
+    if not force_fetch:
+        cached = _load_json_cache(cache_path)
+        if cached is not None:
+            return cached
+
+    resp = httpx.get(
+        f"{CFBD_BASE}/ratings/sp",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={"year": year},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    _save_json_cache(cache_path, data)
+    return data
+
+
+# ── Pivot functions ───────────────────────────────────────────────────────────
+
+def pivot_receiving_stats(records: list[dict], year: int) -> dict[tuple, dict]:
+    """Pivot CFBD receiving stat records into a keyed lookup.
+
+    Key: (normalize_player_name, lowercase_school, year)
+    Value: {'rec_yds', 'rec', 'rec_td', 'games'} — only keys present in records.
+    """
+    stat_map = {"YDS": "rec_yds", "REC": "rec", "TD": "rec_td", "G": "games"}
+    result: dict[tuple, dict] = {}
+    for rec in records:
+        name_key = normalize_player_name(rec.get("player", ""))
+        school_key = _norm_school_key(rec.get("team", ""))
+        stat_type = rec.get("statType", "")
+        if stat_type not in stat_map:
+            continue
+        try:
+            val = float(rec.get("stat", 0))
+        except (ValueError, TypeError):
+            continue
+        key = (name_key, school_key, year)
+        result.setdefault(key, {})[stat_map[stat_type]] = val
+    return result
+
+
+def pivot_rushing_stats(records: list[dict], year: int) -> dict[tuple, dict]:
+    """Pivot CFBD rushing stat records into a keyed lookup.
+
+    Key: (normalize_player_name, lowercase_school, year)
+    Value: {'rush_yds', 'rush_att', 'rush_td', 'games'} — only keys present.
+    """
+    stat_map = {"YDS": "rush_yds", "CAR": "rush_att", "TD": "rush_td", "G": "games"}
+    result: dict[tuple, dict] = {}
+    for rec in records:
+        name_key = normalize_player_name(rec.get("player", ""))
+        school_key = _norm_school_key(rec.get("team", ""))
+        stat_type = rec.get("statType", "")
+        if stat_type not in stat_map:
+            continue
+        try:
+            val = float(rec.get("stat", 0))
+        except (ValueError, TypeError):
+            continue
+        key = (name_key, school_key, year)
+        result.setdefault(key, {})[stat_map[stat_type]] = val
+    return result
+
+
+# ── Team aggregate lookups ────────────────────────────────────────────────────
+
+def build_team_rec_lookup(rec_pivot: dict[tuple, dict]) -> dict[tuple, float]:
+    """Sum player receiving yards by (lowercase_school, year)."""
+    result: dict[tuple, float] = {}
+    for (name, school, year), stats in rec_pivot.items():
+        key = (school, year)
+        result[key] = result.get(key, 0.0) + stats.get("rec_yds", 0.0)
+    return result
+
+
+def build_team_rush_lookup(rush_pivot: dict[tuple, dict]) -> dict[tuple, float]:
+    """Sum player rushing yards by (lowercase_school, year)."""
+    result: dict[tuple, float] = {}
+    for (name, school, year), stats in rush_pivot.items():
+        key = (school, year)
+        result[key] = result.get(key, 0.0) + stats.get("rush_yds", 0.0)
+    return result
+
+
+def build_sp_lookup(sp_records: list[dict], year: int) -> dict[tuple, float]:
+    """Build (lowercase_school, year) → SP+ overall rating lookup."""
+    result: dict[tuple, float] = {}
+    for rec in sp_records:
+        team = rec.get("team", "")
+        school_key = _norm_school_key(team)
+        try:
+            rating = float(rec.get("rating", 0))
+        except (ValueError, TypeError):
+            continue
+        result[(school_key, year)] = rating
+    return result
+
+
+# ── Shared helpers ────────────────────────────────────────────────────────────
+
+def _str_flag(val: Optional[float | str], source: str) -> tuple[str, str, str]:
+    if val is None or val == "":
+        return "", "1", ""
+    return str(val), "0", source
+
+
+def _get_player_seasons(
+    name: str,
+    college: str,
+    draft_year: int,
+    pivot: dict[tuple, dict],
+) -> list[tuple[int, dict]]:
+    """Return list of (year, stats_dict) for a player across their college years.
+
+    Searches draft_year-5 through draft_year-1. Returns only years where the
+    player has non-zero data in the pivot.
+    """
+    norm_name = normalize_player_name(name)
+    norm_school = _norm_school_key(college)
+    seasons = []
+    for look_year in range(max(2011, draft_year - 5), draft_year):
+        key = (norm_name, norm_school, look_year)
+        stats = pivot.get(key)
+        if stats and any(v > 0 for v in stats.values() if isinstance(v, (int, float))):
+            seasons.append((look_year, stats))
+    return seasons
+
+
+def _age_in_season(age_at_draft: float, draft_year: int, season_year: int) -> float:
+    """Approximate age during a past college season."""
+    return round(age_at_draft - (draft_year - season_year), 1)
+
+
+# ── WR feature computation ────────────────────────────────────────────────────
+
+def compute_wr_cfbd_features(
+    row: dict,
+    rec_pivot: dict[tuple, dict],
+    team_rec_lookup: dict[tuple, float],
+) -> dict[str, str]:
+    """Compute WR CFBD-derived features for a single row."""
+    result: dict[str, str] = {}
+    _wr_cols = (
+        "wr_dominator_final", "wr_breakout_age", "wr_market_share_yds",
+        "wr_rec_tds_per_game_final", "wr_yards_per_reception_career",
+    )
+
+    try:
+        draft_year = int(row.get("season", 0))
+        age_at_draft = float(row.get("age_at_draft", "0") or 0)
+    except (ValueError, TypeError):
+        for col in _wr_cols:
+            result.update({col: "", f"{col}_missing": "1", f"{col}_source": ""})
+        return result
+
+    name = row.get("pfr_player_name", "")
+    college = row.get("college", "")
+    seasons = _get_player_seasons(name, college, draft_year, rec_pivot)
+
+    if not seasons:
+        for col in _wr_cols:
+            result.update({col: "", f"{col}_missing": "1", f"{col}_source": ""})
+        return result
+
+    # Per-season dominator and age
+    annotated = []
+    norm_school = _norm_school_key(college)
+    for year, stats in seasons:
+        rec_yds = stats.get("rec_yds", 0.0)
+        team_total = team_rec_lookup.get((norm_school, year), 0.0)
+        dominator = (rec_yds / team_total) if team_total > 0 else None
+        annotated.append({
+            "year": year,
+            "rec_yds": rec_yds,
+            "rec": stats.get("rec", 0.0),
+            "rec_td": stats.get("rec_td", 0.0),
+            "games": stats.get("games"),
+            "dominator": dominator,
+            "age": _age_in_season(age_at_draft, draft_year, year),
+        })
+
+    final = annotated[-1]
+
+    # wr_dominator_final
+    if final["dominator"] is not None:
+        v, m, s = str(round(final["dominator"], 4)), "0", "cfbd"
+    else:
+        v, m, s = "", "1", ""
+    result.update({"wr_dominator_final": v, "wr_dominator_final_missing": m,
+                   "wr_dominator_final_source": s})
+
+    # wr_market_share_yds — same as dominator for receiving yards
+    result.update({"wr_market_share_yds": v, "wr_market_share_yds_missing": m,
+                   "wr_market_share_yds_source": s})
+
+    # wr_breakout_age — first season ≥ DOMINATOR_BREAKOUT_THRESHOLD
+    breakout_age: Optional[float] = None
+    for s_data in annotated:
+        if (s_data["dominator"] is not None
+                and s_data["dominator"] >= DOMINATOR_BREAKOUT_THRESHOLD):
+            breakout_age = s_data["age"]
+            break
+    if breakout_age is not None:
+        result.update({"wr_breakout_age": str(breakout_age),
+                       "wr_breakout_age_missing": "0",
+                       "wr_breakout_age_source": "cfbd_proxy"})
+    else:
+        result.update({"wr_breakout_age": "", "wr_breakout_age_missing": "1",
+                       "wr_breakout_age_source": ""})
+
+    # wr_rec_tds_per_game_final — requires G in final season
+    if final["games"] and final["games"] > 0:
+        tpg = round(final["rec_td"] / final["games"], 4)
+        result.update({"wr_rec_tds_per_game_final": str(tpg),
+                       "wr_rec_tds_per_game_final_missing": "0",
+                       "wr_rec_tds_per_game_final_source": "cfbd"})
+    else:
+        result.update({"wr_rec_tds_per_game_final": "",
+                       "wr_rec_tds_per_game_final_missing": "1",
+                       "wr_rec_tds_per_game_final_source": ""})
+
+    # wr_yards_per_reception_career
+    total_yds = sum(s["rec_yds"] for s in annotated)
+    total_rec = sum(s["rec"] for s in annotated)
+    if total_rec > 0:
+        ypr = round(total_yds / total_rec, 2)
+        result.update({"wr_yards_per_reception_career": str(ypr),
+                       "wr_yards_per_reception_career_missing": "0",
+                       "wr_yards_per_reception_career_source": "cfbd"})
+    else:
+        result.update({"wr_yards_per_reception_career": "",
+                       "wr_yards_per_reception_career_missing": "1",
+                       "wr_yards_per_reception_career_source": ""})
+
+    return result
+
+
+# ── RB feature computation ────────────────────────────────────────────────────
+
+def compute_rb_cfbd_features(
+    row: dict,
+    rush_pivot: dict[tuple, dict],
+    rec_pivot: dict[tuple, dict],
+    team_rush_lookup: dict[tuple, float],
+    sp_lookup: dict[tuple, float],
+) -> dict[str, str]:
+    """Compute RB CFBD-derived features for a single row."""
+    result: dict[str, str] = {}
+    _rb_cols = ("rb_final_dominator", "rb_scrimmage_ypg", "rb_rec_ypg", "rb_school_sp_plus")
+
+    try:
+        draft_year = int(row.get("season", 0))
+        age_at_draft = float(row.get("age_at_draft", "0") or 0)
+    except (ValueError, TypeError):
+        for col in _rb_cols:
+            result.update({col: "", f"{col}_missing": "1", f"{col}_source": ""})
+        return result
+
+    name = row.get("pfr_player_name", "")
+    college = row.get("college", "")
+    norm_school = _norm_school_key(college)
+    final_year = draft_year - 1
+
+    rush_seasons = _get_player_seasons(name, college, draft_year, rush_pivot)
+    rec_seasons = _get_player_seasons(name, college, draft_year, rec_pivot)
+
+    # ── rb_final_dominator ────────────────────────────────────────────────────
+    final_rush = next((s for y, s in rush_seasons if y == final_year), None)
+    if final_rush:
+        rush_yds = final_rush.get("rush_yds", 0.0)
+        team_rush_yds = team_rush_lookup.get((norm_school, final_year), 0.0)
+        if team_rush_yds > 0:
+            dom = round(rush_yds / team_rush_yds, 4)
+            result.update({"rb_final_dominator": str(dom),
+                           "rb_final_dominator_missing": "0",
+                           "rb_final_dominator_source": "cfbd"})
+        else:
+            result.update({"rb_final_dominator": "", "rb_final_dominator_missing": "1",
+                           "rb_final_dominator_source": ""})
+    else:
+        result.update({"rb_final_dominator": "", "rb_final_dominator_missing": "1",
+                       "rb_final_dominator_source": ""})
+
+    # ── rb_scrimmage_ypg and rb_rec_ypg (need games) ─────────────────────────
+    # Build a games lookup from rush seasons (prefer rush; fall back to receiving)
+    games_by_year: dict[int, float] = {}
+    for year, stats in rush_seasons:
+        if stats.get("games"):
+            games_by_year[year] = stats["games"]
+    for year, stats in rec_seasons:
+        if stats.get("games") and year not in games_by_year:
+            games_by_year[year] = stats["games"]
+
+    total_games = sum(games_by_year.values())
+    total_rush_yds = sum(s.get("rush_yds", 0.0) for _, s in rush_seasons)
+    total_rec_yds = sum(s.get("rec_yds", 0.0) for _, s in rec_seasons)
+    total_scrimmage = total_rush_yds + total_rec_yds
+
+    if total_games > 0:
+        scrimmage_ypg = round(total_scrimmage / total_games, 2)
+        result.update({"rb_scrimmage_ypg": str(scrimmage_ypg),
+                       "rb_scrimmage_ypg_missing": "0",
+                       "rb_scrimmage_ypg_source": "cfbd"})
+        rec_ypg = round(total_rec_yds / total_games, 2)
+        result.update({"rb_rec_ypg": str(rec_ypg),
+                       "rb_rec_ypg_missing": "0",
+                       "rb_rec_ypg_source": "cfbd"})
+    else:
+        result.update({"rb_scrimmage_ypg": "", "rb_scrimmage_ypg_missing": "1",
+                       "rb_scrimmage_ypg_source": ""})
+        result.update({"rb_rec_ypg": "", "rb_rec_ypg_missing": "1",
+                       "rb_rec_ypg_source": ""})
+
+    # ── rb_school_sp_plus ─────────────────────────────────────────────────────
+    sp_rating = sp_lookup.get((norm_school, final_year))
+    if sp_rating is not None:
+        result.update({"rb_school_sp_plus": str(round(sp_rating, 2)),
+                       "rb_school_sp_plus_missing": "0",
+                       "rb_school_sp_plus_source": "cfbd_sp_plus"})
+    else:
+        result.update({"rb_school_sp_plus": "", "rb_school_sp_plus_missing": "1",
+                       "rb_school_sp_plus_source": ""})
+
+    return result
+
+
+# ── TE feature computation ────────────────────────────────────────────────────
+
+def compute_te_cfbd_features(
+    row: dict,
+    rec_pivot: dict[tuple, dict],
+    team_pass_attempts_lookup: dict[tuple, float],
+) -> dict[str, str]:
+    """Compute TE CFBD-derived features for a single row."""
+    result: dict[str, str] = {}
+    _te_cols = ("te_ryptpa_final", "te_yards_per_reception_career")
+
+    try:
+        draft_year = int(row.get("season", 0))
+    except (ValueError, TypeError):
+        for col in _te_cols:
+            result.update({col: "", f"{col}_missing": "1", f"{col}_source": ""})
+        return result
+
+    name = row.get("pfr_player_name", "")
+    college = row.get("college", "")
+    final_year = draft_year - 1
+
+    rec_seasons = _get_player_seasons(name, college, draft_year, rec_pivot)
+
+    # ── te_ryptpa_final ───────────────────────────────────────────────────────
+    final_rec = next((s for y, s in rec_seasons if y == final_year), None)
+    if final_rec:
+        rec_yds = final_rec.get("rec_yds", 0.0)
+        cfbd_college = normalize_college_name(college)
+        tpa = team_pass_attempts_lookup.get((cfbd_college, final_year))
+        if tpa and tpa > 0 and rec_yds > 0:
+            ryptpa = round(rec_yds / tpa, 4)
+            result.update({"te_ryptpa_final": str(ryptpa),
+                           "te_ryptpa_final_missing": "0",
+                           "te_ryptpa_final_source": "cfbd"})
+        else:
+            result.update({"te_ryptpa_final": "", "te_ryptpa_final_missing": "1",
+                           "te_ryptpa_final_source": ""})
+    else:
+        result.update({"te_ryptpa_final": "", "te_ryptpa_final_missing": "1",
+                       "te_ryptpa_final_source": ""})
+
+    # ── te_yards_per_reception_career ─────────────────────────────────────────
+    total_yds = sum(s.get("rec_yds", 0.0) for _, s in rec_seasons)
+    total_rec = sum(s.get("rec", 0.0) for _, s in rec_seasons)
+    if total_rec > 0:
+        ypr = round(total_yds / total_rec, 2)
+        result.update({"te_yards_per_reception_career": str(ypr),
+                       "te_yards_per_reception_career_missing": "0",
+                       "te_yards_per_reception_career_source": "cfbd"})
+    else:
+        result.update({"te_yards_per_reception_career": "",
+                       "te_yards_per_reception_career_missing": "1",
+                       "te_yards_per_reception_career_source": ""})
+
+    return result
+
+
+# ── Era proxy features (no API) ───────────────────────────────────────────────
+
+def compute_era_proxy_features(row: dict) -> dict[str, str]:
+    """Compute era-flag features from existing v3 CSV columns — no API call.
+
+    All values are labeled as proxy sources to distinguish from CFBD-verified data.
+    wr_early_declare is populated for WR rows only; other positions get stubs.
+    """
+    result: dict[str, str] = {}
+
+    age_val = row.get("age_at_draft", "")
+    age_missing = row.get("age_at_draft_missing", "1")
+    position = row.get("position", "")
+
+    try:
+        draft_year = int(row.get("season", 0))
+        age = float(age_val) if age_val and age_missing == "0" else None
+    except (ValueError, TypeError):
+        age = None
+        draft_year = 0
+
+    if age is None:
+        for col in ("final_college_age", "early_declare", "covid_eligibility_flag"):
+            result.update({col: "", f"{col}_missing": "1", f"{col}_source": ""})
+        result.update({"wr_early_declare": "", "wr_early_declare_missing": "1",
+                       "wr_early_declare_source": ""})
+        return result
+
+    # final_college_age
+    fca = round(age - 1.0, 1)
+    result.update({"final_college_age": str(fca), "final_college_age_missing": "0",
+                   "final_college_age_source": "proxy_age_at_draft"})
+
+    # early_declare
+    ed = "1" if age <= EARLY_DECLARE_AGE_THRESHOLD else "0"
+    result.update({"early_declare": ed, "early_declare_missing": "0",
+                   "early_declare_source": "proxy_age_at_draft"})
+
+    # wr_early_declare (WR-specific; stubs for other positions)
+    if position == "WR":
+        result.update({"wr_early_declare": ed, "wr_early_declare_missing": "0",
+                       "wr_early_declare_source": "proxy_age_at_draft"})
+    else:
+        result.update({"wr_early_declare": "", "wr_early_declare_missing": "1",
+                       "wr_early_declare_source": ""})
+
+    # covid_eligibility_flag
+    if draft_year in COVID_DRAFT_YEARS and age >= COVID_MIN_AGE:
+        result.update({"covid_eligibility_flag": "1", "covid_eligibility_flag_missing": "0",
+                       "covid_eligibility_flag_source": "proxy_draft_year_age"})
+    else:
+        result.update({"covid_eligibility_flag": "0", "covid_eligibility_flag_missing": "0",
+                       "covid_eligibility_flag_source": "proxy_draft_year_age"})
+
+    return result
+
+
+# ── Leakage governance guard ──────────────────────────────────────────────────
+
+def _assert_no_leakage() -> None:
+    """Verify at startup that no W2b output column violates leakage contracts."""
+    w2b_output_cols = {
+        "wr_dominator_final", "wr_breakout_age", "wr_market_share_yds",
+        "wr_rec_tds_per_game_final", "wr_yards_per_reception_career", "wr_early_declare",
+        "rb_final_dominator", "rb_scrimmage_ypg", "rb_rec_ypg", "rb_school_sp_plus",
+        "te_ryptpa_final", "te_yards_per_reception_career",
+        "final_college_age", "early_declare", "covid_eligibility_flag",
+    }
+    for col in w2b_output_cols:
+        assert col not in HEAD_B_PROHIBITED_COLUMNS, (
+            f"GOVERNANCE: W2b column '{col}' is in HEAD_B_PROHIBITED_COLUMNS"
+        )
+        assert col not in MARKET_PROHIBITED_COLUMNS, (
+            f"GOVERNANCE: W2b column '{col}' is in MARKET_PROHIBITED_COLUMNS"
+        )
+        assert col not in PFF_GRADE_PROHIBITED_COLUMNS, (
+            f"GOVERNANCE: W2b column '{col}' is in PFF_GRADE_PROHIBITED_COLUMNS"
+        )
+
+
+# ── Main pipeline ─────────────────────────────────────────────────────────────
+
+def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
+    _assert_no_leakage()
+
+    if not V3_CSV.exists():
+        raise FileNotFoundError(
+            f"V3 CSV not found: {V3_CSV}\n"
+            "Run W1 then W2 first (build_head_b_targets.py → build_w2_features.py)."
+        )
+
+    print("Phase 19 W2b — CFBD Player-Level Enrichment")
+    print(f"  Input: {V3_CSV}")
+
+    source_sha256 = hashlib.sha256(V3_CSV.read_bytes()).hexdigest()
+    with V3_CSV.open(newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    print(f"  Loaded {len(rows)} rows  sha256=...{source_sha256[-8:]}")
+
+    api_key = _cfbd_api_key()
+    if not api_key:
+        raise RuntimeError(
+            "CFBD_API_KEY not set. Load .env or set the variable before running W2b."
+        )
+
+    # ── Fetch / cache year-batched player stats ───────────────────────────────
+    print(f"\n  Fetching player stats for years {COLLEGE_YEARS[0]}–{COLLEGE_YEARS[-1]}...")
+    rec_pivot: dict[tuple, dict] = {}
+    rush_pivot: dict[tuple, dict] = {}
+    sp_lookup: dict[tuple, float] = {}
+
+    fetch_errors: list[str] = []
+    for year in COLLEGE_YEARS:
+        try:
+            rec_raw = load_player_stats(year, "receiving", api_key, force_fetch)
+            rec_pivot.update(pivot_receiving_stats(rec_raw, year))
+        except Exception as exc:
+            fetch_errors.append(f"receiving/{year}: {exc}")
+
+        try:
+            rush_raw = load_player_stats(year, "rushing", api_key, force_fetch)
+            rush_pivot.update(pivot_rushing_stats(rush_raw, year))
+        except Exception as exc:
+            fetch_errors.append(f"rushing/{year}: {exc}")
+
+        try:
+            sp_raw = load_sp_ratings(year, api_key, force_fetch)
+            sp_lookup.update(build_sp_lookup(sp_raw, year))
+        except Exception as exc:
+            fetch_errors.append(f"sp/{year}: {exc}")
+
+    if fetch_errors:
+        msg = "\n  ".join(fetch_errors)
+        if allow_degraded:
+            print(f"  [WARN] {len(fetch_errors)} fetch error(s) — degraded output:\n  {msg}")
+        else:
+            raise RuntimeError(
+                f"{len(fetch_errors)} CFBD fetch error(s). Pass --allow-degraded to "
+                f"continue with partial data.\n{msg}"
+            )
+
+    team_rec_lookup = build_team_rec_lookup(rec_pivot)
+    team_rush_lookup = build_team_rush_lookup(rush_pivot)
+    print(f"  Receiving pivot: {len(rec_pivot)} player-year entries")
+    print(f"  Rushing pivot:   {len(rush_pivot)} player-year entries")
+    print(f"  SP+ lookup:      {len(sp_lookup)} team-year entries")
+
+    # ── Pre-fetch TE team pass attempts ──────────────────────────────────────
+    print("\n  Pre-fetching TE team pass attempts...")
+    tpa_lookup: dict[tuple, float] = {}
+    te_rows = [(r.get("pfr_player_name", ""), r.get("college", ""),
+                int(r.get("season", 0)))
+               for r in rows if r.get("position") == "TE"]
+    unique_team_years = {
+        (normalize_college_name(college), max(2011, draft_year - 1))
+        for (_, college, draft_year) in te_rows
+        if draft_year > 2011
+    }
+    for cfbd_college, year in sorted(unique_team_years):
+        tpa = fetch_team_pass_attempts(cfbd_college, year, api_key)
+        if tpa is not None:
+            tpa_lookup[(cfbd_college, year)] = tpa
+    print(f"  Team pass attempts: {len(tpa_lookup)}/{len(unique_team_years)} pairs populated")
+
+    # ── Enrich rows ───────────────────────────────────────────────────────────
+    print("\n  Enriching rows...")
+    n_wr_hit = n_rb_hit = n_te_hit = 0
+    position_counts: dict[str, int] = {}
+
+    for row in rows:
+        position = row.get("position", "")
+        position_counts[position] = position_counts.get(position, 0) + 1
+
+        # Era proxy features (all positions)
+        row.update(compute_era_proxy_features(row))
+
+        if position == "WR":
+            feats = compute_wr_cfbd_features(row, rec_pivot, team_rec_lookup)
+            if feats.get("wr_dominator_final_missing") == "0":
+                n_wr_hit += 1
+            row.update(feats)
+
+        elif position == "RB":
+            feats = compute_rb_cfbd_features(
+                row, rush_pivot, rec_pivot, team_rush_lookup, sp_lookup
+            )
+            if feats.get("rb_final_dominator_missing") == "0":
+                n_rb_hit += 1
+            row.update(feats)
+
+        elif position == "TE":
+            feats = compute_te_cfbd_features(row, rec_pivot, tpa_lookup)
+            if feats.get("te_ryptpa_final_missing") == "0":
+                n_te_hit += 1
+            row.update(feats)
+
+    # ── Coverage summary ──────────────────────────────────────────────────────
+    wr_total = position_counts.get("WR", 0)
+    rb_total = position_counts.get("RB", 0)
+    te_total = position_counts.get("TE", 0)
+    print(f"\n  WR dominator_final populated: {n_wr_hit}/{wr_total} "
+          f"({100 * n_wr_hit / wr_total:.1f}%)" if wr_total else "")
+    print(f"  RB final_dominator populated:  {n_rb_hit}/{rb_total} "
+          f"({100 * n_rb_hit / rb_total:.1f}%)" if rb_total else "")
+    print(f"  TE ryptpa_final populated:     {n_te_hit}/{te_total} "
+          f"({100 * n_te_hit / te_total:.1f}%)" if te_total else "")
+
+    # ── Write enriched CSV ────────────────────────────────────────────────────
+    if rows:
+        fieldnames = list(rows[0].keys())
+        with V3_CSV.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+    new_sha256 = hashlib.sha256(V3_CSV.read_bytes()).hexdigest()
+    print(f"\n  Written: {V3_CSV}")
+    print(f"  Columns: {len(rows[0]) if rows else 0}")
+    print(f"  New sha256=...{new_sha256[-8:]}")
+    print("  promotion_decision: NOT_APPLICABLE (W2b data pipeline only)")
+
+
+if __name__ == "__main__":
+    _parser = argparse.ArgumentParser(description="Phase 19 W2b CFBD Enrichment")
+    _parser.add_argument("--force-fetch", action="store_true",
+                         help="Bypass local JSON cache and re-fetch from CFBD API.")
+    _parser.add_argument("--allow-degraded", action="store_true",
+                         help="Continue with partial data if some API calls fail.")
+    _args = _parser.parse_args()
+    main(force_fetch=_args.force_fetch, allow_degraded=_args.allow_degraded)

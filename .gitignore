@@ -32,6 +32,7 @@ app/data/cache/**
 !app/data/cache/
 !app/data/cache/**/
 !app/data/cache/**/.gitkeep
+app/data/cfbd_cache/
 app/data/raw/
 app/data/processed/
 app/data/artifacts/
