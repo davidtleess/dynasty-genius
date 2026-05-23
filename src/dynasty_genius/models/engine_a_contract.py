@@ -27,6 +27,10 @@ CFBD_MODEL_INPUT_COLUMNS = {
     "wepa",
     "rushing_yards",
     "rushing_tds",
+    "ryptpa",            # WR/RB: receiving yards per team pass attempt (Phase 16 — enrichment only)
+    "yprr_college",     # WR: yards per route run from PFF college export (Phase 16 — enrichment only)
+    "source_ryptpa",
+    "source_yprr_college",
     "source_dominator_rating",
     "source_receiving_yards_share",
     "source_completion_pct",
@@ -78,8 +82,8 @@ LEAKAGE_REGEX = r"^ktc_|^adp|_rank$|^expert|^market_|^value_|^consensus"
 
 # ── Position Mapping ────────────────────────────────────────────────────────
 POSITION_FEATURE_MATRIX = {
-    "WR": ["dominator_rating", "receiving_yards_share"],
-    "RB": ["dominator_rating"],
+    "WR": ["dominator_rating", "receiving_yards_share", "ryptpa", "yprr_college"],
+    "RB": ["dominator_rating", "ryptpa"],
     "TE": ["dominator_rating", "receiving_yards_share"],
     "QB": [
         "completion_pct",
