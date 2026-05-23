@@ -21,7 +21,7 @@ Phase 18 — IMPLEMENTATION STARTED: 18.1 roster-audit rookie PVO reconciliation
 
 ## Current Sprint Objective
 
-Phase 18 — 18.4 CROSS-POSITION XVAR PERCENTILE COMPLETE; READY FOR REVIEW / CHECKPOINT.
+Phase 18 — 18.4 COMPLETE; PUBLISHED TO ORIGIN/MAIN (2026-05-22; 780 tests). No active blockers. Next: Phase 19 scoping or maintenance work.
 - Workstream 18.1 (Roster Audit Rookie Reconciliation) — COMPLETE: `/roster/audit` preserves Phase 17 full-universe Engine A PVO values for rostered current-draft rookies instead of degrading them to active-player `PRE_MODEL`; veterans remain on the existing audit path.
 - Workstream 18.2 (Daily Batch Orchestration) — COMPLETE: `scripts/refresh_league_intelligence.py` runs the existing Phase 17.1 → 17.5 builders in order, supports `--dry-run`, and fails fast without adding new valuation logic.
 - Workstream 18.3 (Team Posture Classification) — COMPLETE: `scripts/build_team_posture.py` builds `team_posture_latest.json` from internal team-matrix signals; opportunity partner rankings now consume posture and populate `posture_alignment_score` when the posture artifact is present.
