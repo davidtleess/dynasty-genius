@@ -27,6 +27,7 @@ from scripts.build_head_b_targets import (
     compute_best3of4_ppg,
     compute_censoring_flag,
     compute_row_targets,
+    compute_v3_universal_features,
     expected_ppg_at_pick,
     fit_isotonic_curve,
     fit_te_pooled_curve,
@@ -251,6 +252,33 @@ def test_low_game_row_has_blank_residual():
     assert result["best3of4_ppg"] == ""
     assert result["residual_ppg"] == ""
     assert result["head_b_training_eligible"] == "0"
+
+
+# ── compute_v3_universal_features tests ──────────────────────────────────────
+
+def test_age_at_draft_populated_when_age_present():
+    """age_at_draft should equal source 'age' column when valid."""
+    result = compute_v3_universal_features({"age": "23"})
+    assert result["age_at_draft"] == "23"
+    assert result["age_at_draft_missing"] == "0"
+    assert result["age_at_draft_source"] == "nfl_data_py"
+
+
+def test_age_at_draft_missing_when_age_absent():
+    """age_at_draft_missing must be '1' when source age is absent."""
+    result = compute_v3_universal_features({"age": ""})
+    assert result["age_at_draft"] == ""
+    assert result["age_at_draft_missing"] == "1"
+
+
+def test_cfbd_stub_columns_have_missing_flag_set():
+    """CFBD-dependent universal feature stubs must carry _missing='1'."""
+    result = compute_v3_universal_features({"age": "22"})
+    for col in ("covid_eligibility_flag", "transfer_portal_flag",
+                "early_declare", "final_college_age"):
+        assert result.get(f"{col}_missing") == "1", (
+            f"Stub column '{col}_missing' should be '1' until CFBD enrichment runs"
+        )
 
 
 def test_eligible_row_produces_correct_residual():

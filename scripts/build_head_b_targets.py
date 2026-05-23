@@ -56,6 +56,11 @@ from sklearn.isotonic import IsotonicRegression
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from src.dynasty_genius.models.head_b_contract import (  # noqa: E402
+    HEAD_B_PROHIBITED_COLUMNS,
+    W1_TARGET_COLUMNS,
+)
+
 # ── I/O paths ─────────────────────────────────────────────────────────────────
 
 SOURCE_CSV = ROOT / "app/data/training/prospects_with_outcomes.csv"
@@ -226,6 +231,41 @@ def compute_row_targets(
     }
 
 
+def compute_v3_universal_features(row: dict) -> dict[str, str]:
+    """Compute universally-derivable Engine A v3 feature columns for a single row.
+
+    Populates columns that can be derived from the existing source training CSV
+    without external API calls. CFBD-dependent columns (early_declare,
+    final_college_age, covid_eligibility_flag, transfer_portal_flag) are added
+    as explicit stubs with _missing="1" until the W2 CFBD enrichment pipeline
+    populates them.
+
+    The _missing and _source naming convention follows head_b_contract.py.
+    """
+    # age_at_draft: directly available from source "age" column
+    age_raw = row.get("age", "")
+    age_valid = _to_float(age_raw) is not None
+    result: dict[str, str] = {
+        "age_at_draft": age_raw if age_valid else "",
+        "age_at_draft_missing": "0" if age_valid else "1",
+        "age_at_draft_source": "nfl_data_py" if age_valid else "",
+    }
+
+    # CFBD-dependent universal features: stubs until enrichment pipeline runs.
+    # _missing="1" signals that values are not yet computed — not silent null-fill.
+    for cfbd_col in (
+        "covid_eligibility_flag",
+        "transfer_portal_flag",
+        "early_declare",
+        "final_college_age",
+    ):
+        result[cfbd_col] = ""
+        result[f"{cfbd_col}_missing"] = "1"
+        result[f"{cfbd_col}_source"] = ""
+
+    return result
+
+
 # ── Data loading ───────────────────────────────────────────────────────────────
 
 def _load_rows(csv_path: Path) -> list[dict]:
@@ -313,6 +353,12 @@ def main() -> None:
             "Run scripts/build_training_data.py first."
         )
 
+    # Governance assertion: W1 target columns must not violate the Head B prohibition.
+    overlap = W1_TARGET_COLUMNS & HEAD_B_PROHIBITED_COLUMNS
+    assert not overlap, (
+        f"GOVERNANCE VIOLATION: W1 target column(s) in HEAD_B_PROHIBITED_COLUMNS: {overlap}"
+    )
+
     run_id = str(uuid.uuid4())[:8]
     generated_at = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
@@ -350,6 +396,7 @@ def main() -> None:
 
         targets = compute_row_targets(row, curves)
         row.update(targets)
+        row.update(compute_v3_universal_features(row))
 
         if targets["head_b_training_eligible"] == "1":
             n_eligible += 1
