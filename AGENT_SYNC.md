@@ -1,7 +1,7 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-05-22
+Last updated: 2026-05-23
 
 ## Active Phase
 
@@ -17,11 +17,15 @@ Phase 15.4 — COMPLETE: Post-draft closeout — Sleeper draft complete, 36/36 p
 Phase 16.1 — COMPLETE: Age blockers resolved — 6 verified DOBs ingested, all 80 2026 prospects now scored, DVS invariance held, full suite green (737 passed, 11 skipped; 2026-05-21)
 Phase 16 — CLOSED FOR PHASE 17 ENTRY: Remaining signal-upgrade workstreams are validation/research gates and deferred; no production model change approved.
 Phase 17 — IMPLEMENTATION COMPLETE THROUGH 17.5: Sleeper universe, full PVO batch, team matrix, market divergence, and league opportunity map artifacts complete (latest artifacts in `app/data/league_snapshots/` and `app/data/valuation/`)
-Phase 18 — IMPLEMENTATION STARTED: 18.1 roster-audit rookie PVO reconciliation complete; 18.2 daily batch orchestration complete; 18.3 team posture classification complete; 18.4 cross-position xVAR percentile complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-18)
+Phase 18 — COMPLETE: 18.1 roster-audit rookie PVO reconciliation complete; 18.2 daily batch orchestration complete; 18.3 team posture classification complete; 18.4 cross-position xVAR percentile complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-22; 780 tests)
+Phase 19 — SPEC APPROVED: Engine A v3 (Bifurcated Rookie Forecast) v0.2 spec approved by David; repo-native execution plan initialized at `docs/superpowers/plans/2026-05-23-phase19-engine-a-v3-bifurcation-execution.md` (2026-05-23)
 
 ## Current Sprint Objective
 
-Phase 18 — 18.4 COMPLETE; PUBLISHED TO ORIGIN/MAIN (2026-05-22; 780 tests). No active blockers. Next: Phase 19 scoping or maintenance work.
+Phase 19 — SPEC APPROVED; TRANSITION TO EXECUTION (2026-05-23). Master execution plan committed at `docs/superpowers/plans/2026-05-23-phase19-engine-a-v3-bifurcation-execution.md`. Handoff to Claude Code / Codex authorized to begin execution on W1 (Head B Target Pipeline).
+- Workstream 19.1 (Planning & Spec) — COMPLETE: v0.2 design spec approved, seven Section 10 decisions locked, and repo-native execution plan initialized.
+- Next recommended work: Execute W1 (isotonic Expected PPG curves per position, hierarchical pooling for TE, target vector population).
+- Phase 18 closeout: 18.4 is fully complete and merged to origin/main. All 780 tests green.
 - Workstream 18.1 (Roster Audit Rookie Reconciliation) — COMPLETE: `/roster/audit` preserves Phase 17 full-universe Engine A PVO values for rostered current-draft rookies instead of degrading them to active-player `PRE_MODEL`; veterans remain on the existing audit path.
 - Workstream 18.2 (Daily Batch Orchestration) — COMPLETE: `scripts/refresh_league_intelligence.py` runs the existing Phase 17.1 → 17.5 builders in order, supports `--dry-run`, and fails fast without adding new valuation logic.
 - Workstream 18.3 (Team Posture Classification) — COMPLETE: `scripts/build_team_posture.py` builds `team_posture_latest.json` from internal team-matrix signals; opportunity partner rankings now consume posture and populate `posture_alignment_score` when the posture artifact is present.
