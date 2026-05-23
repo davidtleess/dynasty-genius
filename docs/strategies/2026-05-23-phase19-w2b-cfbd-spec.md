@@ -41,26 +41,27 @@ To maintain data integrity and prevent false matches:
 
 ### A. WR Features
 1. **`wr_dominator_final`**:
-   - Formula: Average of `(player_rec_yards / team_pass_yards)` and `(player_rec_tds / team_pass_tds)` in their final college season.
-   - Denominators are derived by summing the stats of all players on the same team in that season.
+   - Formula: `(yds_share + td_share) / 2` where `yds_share = player_rec_yds / team_rec_yds` and `td_share = player_rec_tds / team_rec_tds` in their final college season.
+   - Denominators summed from all players on the same team in that season (via `build_team_rec_lookup` and `build_team_td_lookup`).
+   - Falls back to `yds_share` alone if team TD total is zero.
+   - Same averaged formula is used for per-season dominator in breakout-age detection.
 2. **`wr_breakout_age`**:
-   - Age of the player (fitted from draft age) in the earliest season they achieved a $\ge 20\%$ dominator rating.
+   - Age of the player (fitted from draft age) in the earliest season they achieved a ≥20% averaged dominator rating.
 3. **`wr_market_share_yds`**:
-   - `player_rec_yards / team_pass_yards` in their final college season.
-4. **`wr_rec_tds_per_game_final`**:
-   - `player_rec_tds / games_played` in their final college season.
+   - `player_rec_yds / team_rec_yds` in their final college season (yards share only — distinct from `wr_dominator_final`).
+4. **`wr_rec_tds_per_game_final`**: **DARK** — see Section 4.
 5. **`wr_yards_per_reception_career`**:
    - `total_career_rec_yards / total_career_receptions`.
 
 ### B. RB Features
 1. **`rb_final_dominator`**:
-   - Formula: `(player_rush_yds + player_rec_yds) / (team_rush_yds + team_pass_yds)` in their final college season.
-2. **`rb_scrimmage_ypg`**:
-   - `(player_rush_yds + player_rec_yds) / games_played` in their final college season.
-3. **`rb_rec_ypg`**:
-   - `player_rec_yds / games_played` in their final college season.
+   - Formula: `(player_rush_yds + player_rec_yds) / (team_rush_yds + team_rec_yds)` in the player's final college season.
+   - Uses `build_team_rush_lookup` for team rushing total and `build_team_rec_lookup` for team receiving total.
+   - If player has no final-season rush data, feature is `_missing="1"`. Player receiving yds defaults to 0 if no receiving data found.
+2. **`rb_scrimmage_ypg`**: **DARK** — see Section 4.
+3. **`rb_rec_ypg`**: **DARK** — see Section 4.
 4. **`rb_school_sp_plus`**:
-   - The team's overall SP+ rating (`overall` field in `/ratings/sp`) in the player's final college season.
+   - The team's overall SP+ rating (`rating` field in `/ratings/sp`) in the player's final college season.
 
 ### C. TE Features
 1. **`te_ryptpa_final`**:
@@ -70,30 +71,56 @@ To maintain data integrity and prevent false matches:
    - `total_career_rec_yards / total_career_receptions`.
 
 ### D. Proxy Era and Declaration Flags
-Derived mathematically from existing `age_at_draft`, `draft_year`, and `final_college_season` in the v3 CSV—requiring **zero external API calls**:
+Derived from existing `age_at_draft` and `season` (draft year) in the v3 CSV — **zero external API calls**. These are simplified proxies; `final_college_season` is not a column in the v3 CSV and requires CFBD identity matching to compute exactly.
+
 1. **`final_college_age`**:
-   - Formula: `age_at_draft - (draft_year - final_college_season)`.
+   - Formula: `age_at_draft - 1` (proxy; assumes `final_college_season = draft_year - 1`, valid for most players).
+   - Source tag: `proxy_age_at_draft`.
 2. **`early_declare` / `wr_early_declare`**:
-   - Set to `1` if `final_college_age <= 21.4` (capturing declaring juniors/sophomores), else `0`.
+   - Set to `1` if `age_at_draft <= 21.0`, else `0`. Threshold of 21.0 captures sophomores/early juniors.
+   - `wr_early_declare` is the same value for WR rows; `_missing="1"` for RB/TE rows.
+   - Source tag: `proxy_age_at_draft`.
 3. **`covid_eligibility_flag`**:
-   - Set to `1` if the player played in the `2020` college season and had $\ge 5$ years of college play, else `0`.
+   - Set to `1` if `draft_year ∈ {2021, 2022}` AND `age_at_draft >= 23.0`, else `0`.
+   - Proxy rationale: players who appear unusually old in the 2021/2022 draft likely took the NCAA-granted COVID extra year.
+   - Source tag: `proxy_draft_year_age`.
 
 ---
 
 ## 4. Dark Features (Quarantined)
 
-These features cannot be constructed from CFBD and are locked to `_missing="1"` or `None` in `prospects_with_outcomes_v3.csv`:
+These features are locked to `_missing="1"` in `prospects_with_outcomes_v3.csv`. The column stubs exist in the CSV (written by W2) but are never populated by W2b.
+
+**Games-unavailable (CFBD API limitation)**: The CFBD `/stats/player/season` endpoint returns `LONG, REC, TD, YDS, YPR` for receiving and `CAR, LONG, TD, YDS, YPC` for rushing — it does **not** return a `G` (games played) statType. Confirmed by inspection of cached responses for all 2011–2024 seasons. Any feature requiring games played is therefore permanently dark from this data source.
+
+* **`wr_rec_tds_per_game_final`**: `player_rec_tds / games_played` — games unavailable.
+* **`rb_scrimmage_ypg`**: `(rush_yds + rec_yds) / games_played` in final season — games unavailable.
+* **`rb_rec_ypg`**: `rec_yds / games_played` in final season — games unavailable.
+
+**Other dark features**:
 * **`te_deep_yard_share`**: PFF route-alignment dependent. CFBD does not contain targeted depth-of-target shares.
-* **`transfer_portal_flag`**: CFBD portal data only goes back to 2019. Ingesting this would bias the training dataset against 2015–2018 classes. This stays `None` and `transfer_portal_missing="1"` for Phase 19.
-* **`rb_ras_composite` / `wr_ras_composite` / `te_ras_composite`**: Locked to `None` and `ras_missing="1"` (RAS adapter remains mock-only).
+* **`transfer_portal_flag`**: CFBD portal data only goes back to 2019. Ingesting this would bias the training dataset against 2015–2018 classes. Stays `_missing="1"` for Phase 19.
+* **`rb_ras_composite` / `wr_ras_composite` / `te_ras_composite`**: RAS adapter remains mock-only.
+
+## 5. Degraded Provenance Flag
+
+`w2b_cfbd_degraded` is written to every row on every W2b run:
+* `"1"` when `--allow-degraded` is active and at least one CFBD batch call failed.
+* `"0"` on all successful runs (clears any stale `"1"` from a previous degraded run).
+
+This mirrors the W2 `w2_combine_degraded` flag pattern. A `w2b_cfbd_degraded="1"` row must not be used in W3/W4 bake-offs without explicit acknowledgement.
+
+## 6. Caching Architecture
+
+**Year-batched stats** (`load_player_stats`, `load_sp_ratings`): one JSON file per (year, category) in `app/data/cfbd_cache/`. Re-used on subsequent runs unless `--force-fetch` is passed.
+
+**Team pass attempts** (`fetch_team_pass_attempts`): one JSON file per (school, year) in `app/data/cfbd_cache/tpa_<school>_<year>.json`. The W2b pre-fetch loop checks this cache before making an API call. `--force-fetch` bypasses all caches.
+
+All cache files are gitignored (`app/data/cfbd_cache/`).
 
 ---
 
-## 5. Verification Plan
+## 7. Verification Plan
 
-1. **Unit Tests (`tests/test_w2b_cfbd.py`)**:
-   - Pin expected dominator calculations with standard mock statistics.
-   - Pin proxy flag mathematics.
-2. **Feature Contract Tests**:
-   - Verify all new columns exist in `prospects_with_outcomes_v3.csv`.
-   - Verify `HEAD_B_PROHIBITED_COLUMNS` strictly excludes `pick`, `round`, and derived draft capital from Head B training inputs.
+1. **Unit Tests (`tests/test_w2b_cfbd.py`)**: 45 tests covering formula correctness, dark-feature confirmation, degraded flag, TPA cache round-trip, and leakage guard.
+2. **Live artifact audit**: 874 rows × 149 cols; WR dominator 89.0%, RB dominator 88.4%, TE RYPTPA 86.2%; all dark features `_missing="1"`; `w2b_cfbd_degraded="0"`; no market/PFF-grade columns present.

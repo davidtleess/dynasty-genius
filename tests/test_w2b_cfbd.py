@@ -4,24 +4,34 @@ TDD suite covering:
   - pivot_receiving_stats: CFBD API record pivot (YDS, REC, TD, G)
   - pivot_rushing_stats: CFBD API record pivot (YDS, CAR, TD, G)
   - build_team_rec_lookup: sum player receiving yards by (school, year)
+  - build_team_td_lookup: sum player receiving TDs by (school, year)
   - build_team_rush_lookup: sum player rushing yards by (school, year)
   - build_sp_lookup: SP+ rating keyed by (school, year)
-  - compute_wr_cfbd_features: full WR feature set from pivot
-  - compute_rb_cfbd_features: full RB feature set from pivot + SP lookup
+  - compute_wr_cfbd_features: WR features; dominator = avg(yds_share, td_share)
+  - compute_rb_cfbd_features: RB scrimmage dominator + SP+
   - compute_te_cfbd_features: TE RYPTPA + YPR career
   - compute_era_proxy_features: final_college_age, early_declare,
       wr_early_declare, covid_eligibility_flag from existing v3 columns
+  - Dark features: wr_rec_tds_per_game_final, rb_scrimmage_ypg, rb_rec_ypg
+      permanently _missing=1 (CFBD player/season endpoint omits games played)
+  - w2b_cfbd_degraded: always-written provenance flag
+  - TPA caching: _load_tpa_cache / _save_tpa_cache round-trip
   - Leakage guard: no draft-capital columns emitted by W2b functions
 """
 from __future__ import annotations
 
+import csv
+import json
+
 import pytest
 
+import scripts.build_w2b_cfbd as bw2b
 from scripts.build_w2b_cfbd import (
     DOMINATOR_BREAKOUT_THRESHOLD,
     build_sp_lookup,
     build_team_rec_lookup,
     build_team_rush_lookup,
+    build_team_td_lookup,
     compute_era_proxy_features,
     compute_rb_cfbd_features,
     compute_te_cfbd_features,
@@ -47,7 +57,10 @@ RECV_2014 = [
     {"player": "ArDarius Stewart", "team": "Alabama", "statType": "TD", "stat": "3"},
 ]
 # Team total receiving yards 2014 Alabama = 1304 + 462 = 1766
-# Cooper dominator 2014 = 1304 / 1766 ≈ 0.738 (above 0.20 threshold)
+# Team total receiving TDs  2014 Alabama = 11 + 3 = 14
+# Cooper yds_share 2014 = 1304 / 1766 ≈ 0.738
+# Cooper td_share  2014 = 11 / 14 ≈ 0.786
+# Cooper dominator 2014 = (0.738 + 0.786) / 2 ≈ 0.762  (above 0.20 threshold)
 
 RECV_2013 = [
     # Cooper below breakout threshold in 2013
@@ -58,8 +71,9 @@ RECV_2013 = [
     {"player": "Kevin Norwood", "team": "Alabama", "statType": "REC", "stat": "120"},
     {"player": "Kevin Norwood", "team": "Alabama", "statType": "TD", "stat": "15"},
 ]
-# Team total 2013 Alabama = 300 + 1800 = 2100
-# Cooper dominator 2013 = 300 / 2100 ≈ 0.143 (below 0.20 threshold — no breakout yet)
+# Team total 2013 Alabama: yds = 300 + 1800 = 2100, TDs = 4 + 15 = 19
+# Cooper yds_share 2013 = 300/2100 ≈ 0.143; td_share = 4/19 ≈ 0.211
+# Cooper dominator 2013 = (0.143 + 0.211) / 2 ≈ 0.177  (below 0.20 — no breakout yet)
 
 RUSH_2015 = [
     {"player": "Derrick Henry", "team": "Alabama", "statType": "YDS", "stat": "895"},
@@ -71,7 +85,8 @@ RUSH_2015 = [
     {"player": "Kenyan Drake", "team": "Alabama", "statType": "TD", "stat": "4"},
 ]
 # Team rush total 2015 Alabama = 895 + 408 = 1303
-# Henry dominator 2015 rush = 895/1303 ≈ 0.687
+# Henry rush dominator 2015 = 895/1303 ≈ 0.687
+# Scrimmage dominator (no rec data) = (895+0)/(1303+0) ≈ 0.687
 
 SP_2015 = [
     {"team": "Alabama", "rating": 38.4},
@@ -83,6 +98,7 @@ SP_2015 = [
 # ── normalize_player_name ─────────────────────────────────────────────────────
 
 def test_normalize_removes_apostrophes():
+    # "Ja'Marr" has two r's: J-a-M-a-r-r → stripped of apostrophe → "jamarr"
     assert normalize_player_name("Ja'Marr Chase") == "jamarrchase"
 
 
@@ -106,6 +122,7 @@ def test_pivot_receiving_yds_rec_td():
 
 
 def test_pivot_receiving_games_captured():
+    """G stat is mapped when present (not returned by real API but handled correctly)."""
     pivot = pivot_receiving_stats(RECV_2014, 2014)
     key = (normalize_player_name("Amari Cooper"), "alabama", 2014)
     assert pivot[key]["games"] == pytest.approx(13.0)
@@ -136,6 +153,7 @@ def test_pivot_rushing_yds_car_td():
 
 
 def test_pivot_rushing_games_captured():
+    """G stat is mapped when present (not returned by real API but handled correctly)."""
     pivot = pivot_rushing_stats(RUSH_2015, 2015)
     key = (normalize_player_name("Derrick Henry"), "alabama", 2015)
     assert pivot[key]["games"] == pytest.approx(14.0)
@@ -158,6 +176,23 @@ def test_build_team_rec_lookup_multiple_years():
     lookup = build_team_rec_lookup(combined)
     assert ("alabama", 2014) in lookup
     assert ("alabama", 2013) in lookup
+
+
+# ── build_team_td_lookup ──────────────────────────────────────────────────────
+
+def test_build_team_td_lookup_sums_correctly():
+    pivot = pivot_receiving_stats(RECV_2014, 2014)
+    lookup = build_team_td_lookup(pivot)
+    assert ("alabama", 2014) in lookup
+    # 11 (Cooper) + 3 (Stewart) = 14
+    assert lookup[("alabama", 2014)] == pytest.approx(14.0)
+
+
+def test_build_team_td_lookup_2013():
+    pivot = pivot_receiving_stats(RECV_2013, 2013)
+    lookup = build_team_td_lookup(pivot)
+    # 4 (Cooper) + 15 (Norwood) = 19
+    assert lookup[("alabama", 2013)] == pytest.approx(19.0)
 
 
 # ── build_team_rush_lookup ────────────────────────────────────────────────────
@@ -186,73 +221,86 @@ def test_build_sp_lookup_multiple_schools():
 # ── compute_wr_cfbd_features ──────────────────────────────────────────────────
 
 def _make_wr_lookups():
-    """Build rec_pivot and team_rec_lookup from synthetic 2013+2014 data."""
+    """Build rec_pivot, team_rec_lookup, team_td_lookup from synthetic 2013+2014 data."""
     pivot_14 = pivot_receiving_stats(RECV_2014, 2014)
     pivot_13 = pivot_receiving_stats(RECV_2013, 2013)
     pivot = {**pivot_14, **pivot_13}
     team_rec = build_team_rec_lookup(pivot)
-    return pivot, team_rec
+    team_td = build_team_td_lookup(pivot)
+    return pivot, team_rec, team_td
 
 
-def test_wr_dominator_final_populated():
-    """WR final-season dominator computed correctly from synthetic data."""
-    pivot, team_rec = _make_wr_lookups()
-    # Amari Cooper: draft_year=2015, college="Alabama", age_at_draft=21.0
+def test_wr_dominator_final_is_avg_yds_and_td_share():
+    """wr_dominator_final = avg(yds_share, td_share) in final season (spec §3A.1)."""
+    pivot, team_rec, team_td = _make_wr_lookups()
     row = {"pfr_player_name": "Amari Cooper", "college": "Alabama",
            "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0"}
-    result = compute_wr_cfbd_features(row, pivot, team_rec)
+    result = compute_wr_cfbd_features(row, pivot, team_rec, team_td)
     assert result["wr_dominator_final_missing"] == "0"
     val = float(result["wr_dominator_final"])
-    # 1304 / 1766 ≈ 0.738
-    assert 0.70 < val < 0.80
+    # yds_share = 1304/1766 ≈ 0.738; td_share = 11/14 ≈ 0.786; avg ≈ 0.762
+    assert 0.72 < val < 0.80
 
 
-def test_wr_breakout_age_populated_final_season():
-    """WR breakout_age set to first season ≥ 0.20 dominator.
-
-    In 2013 Cooper's dominator ≈ 0.143 (below threshold).
-    In 2014 Cooper's dominator ≈ 0.738 (above threshold).
-    breakout_age should be his age in 2014 = 21.0 - 1 = 20.0.
-    """
-    pivot, team_rec = _make_wr_lookups()
+def test_wr_market_share_yds_is_yds_share_only():
+    """wr_market_share_yds = yds/team_yds only in final season (spec §3A.3)."""
+    pivot, team_rec, team_td = _make_wr_lookups()
     row = {"pfr_player_name": "Amari Cooper", "college": "Alabama",
            "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0"}
-    result = compute_wr_cfbd_features(row, pivot, team_rec)
+    result = compute_wr_cfbd_features(row, pivot, team_rec, team_td)
+    assert result["wr_market_share_yds_missing"] == "0"
+    msy = float(result["wr_market_share_yds"])
+    # 1304/1766 ≈ 0.738 — must differ from dominator_final which is averaged
+    assert 0.70 < msy < 0.76
+    dom = float(result["wr_dominator_final"])
+    assert msy != dom, "market_share_yds should differ from dominator_final (yds-only vs avg)"
+
+
+def test_wr_breakout_age_populated():
+    """WR breakout_age = first season ≥ 0.20 averaged dominator.
+
+    2013: avg(0.143, 0.211) ≈ 0.177 — below threshold.
+    2014: avg(0.738, 0.786) ≈ 0.762 — above threshold.
+    breakout_age = age in 2014 = 21.0 - (2015 - 2014) = 20.0.
+    """
+    pivot, team_rec, team_td = _make_wr_lookups()
+    row = {"pfr_player_name": "Amari Cooper", "college": "Alabama",
+           "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0"}
+    result = compute_wr_cfbd_features(row, pivot, team_rec, team_td)
     assert result["wr_breakout_age_missing"] == "0"
     assert float(result["wr_breakout_age"]) == pytest.approx(20.0)
 
 
 def test_wr_ypr_career_populated():
-    """Career YPR = total_rec_yds / total_rec."""
-    pivot, team_rec = _make_wr_lookups()
+    """Career YPR = total_rec_yds / total_rec across all seasons."""
+    pivot, team_rec, team_td = _make_wr_lookups()
     row = {"pfr_player_name": "Amari Cooper", "college": "Alabama",
            "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0"}
-    result = compute_wr_cfbd_features(row, pivot, team_rec)
+    result = compute_wr_cfbd_features(row, pivot, team_rec, team_td)
     assert result["wr_yards_per_reception_career_missing"] == "0"
     ypr = float(result["wr_yards_per_reception_career"])
     # (1304 + 300) / (101 + 45) = 1604 / 146 ≈ 10.99
     assert 10.0 < ypr < 12.0
 
 
-def test_wr_rec_tds_per_game_final_populated():
-    """TDs per game in final season (requires G stat)."""
-    pivot, team_rec = _make_wr_lookups()
+def test_wr_rec_tds_per_game_final_is_dark():
+    """wr_rec_tds_per_game_final is a dark feature: CFBD omits games from player stats."""
+    pivot, team_rec, team_td = _make_wr_lookups()
     row = {"pfr_player_name": "Amari Cooper", "college": "Alabama",
            "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0"}
-    result = compute_wr_cfbd_features(row, pivot, team_rec)
-    assert result["wr_rec_tds_per_game_final_missing"] == "0"
-    # 11 TD / 13 games ≈ 0.846
-    val = float(result["wr_rec_tds_per_game_final"])
-    assert 0.80 < val < 0.90
+    result = compute_wr_cfbd_features(row, pivot, team_rec, team_td)
+    assert result["wr_rec_tds_per_game_final_missing"] == "1"
+    assert result["wr_rec_tds_per_game_final"] == ""
 
 
 def test_wr_features_missing_when_no_match():
-    """Player not in pivot → all WR features return _missing=1."""
-    pivot, team_rec = _make_wr_lookups()
+    """Player not in pivot → all WR computed features return _missing=1."""
+    pivot, team_rec, team_td = _make_wr_lookups()
     row = {"pfr_player_name": "Unknown Player", "college": "Alabama",
            "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0"}
-    result = compute_wr_cfbd_features(row, pivot, team_rec)
-    for col in ("wr_dominator_final", "wr_breakout_age", "wr_yards_per_reception_career"):
+    result = compute_wr_cfbd_features(row, pivot, team_rec, team_td)
+    for col in ("wr_dominator_final", "wr_breakout_age", "wr_yards_per_reception_career",
+                "wr_market_share_yds"):
         assert result[f"{col}_missing"] == "1", f"{col}_missing should be 1 for unmatched player"
 
 
@@ -261,37 +309,81 @@ def test_wr_features_missing_when_no_match():
 def _make_rb_lookups():
     rush_pivot = pivot_rushing_stats(RUSH_2015, 2015)
     team_rush = build_team_rush_lookup(rush_pivot)
-    rec_pivot = {}  # no receiving for this test
+    rec_pivot: dict = {}
+    team_rec: dict = {}  # empty — Henry has no receiving data in fixture
     sp = build_sp_lookup(SP_2015, 2015)
-    return rush_pivot, rec_pivot, team_rush, sp
+    return rush_pivot, rec_pivot, team_rush, team_rec, sp
 
 
-def test_rb_final_dominator_populated():
-    rush_pivot, rec_pivot, team_rush, sp = _make_rb_lookups()
-    # Derrick Henry: draft_year=2016, college="Alabama"
+def test_rb_final_dominator_scrimmage_formula():
+    """rb_final_dominator uses (rush_yds + rec_yds) / (team_rush + team_rec)."""
+    rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
     row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
            "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
-    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, sp)
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp)
     assert result["rb_final_dominator_missing"] == "0"
     val = float(result["rb_final_dominator"])
-    # 895 / 1303 ≈ 0.687
+    # player: 895 rush + 0 rec = 895; team: 1303 rush + 0 rec = 1303 → 895/1303 ≈ 0.687
     assert 0.65 < val < 0.72
 
 
-def test_rb_school_sp_plus_populated():
-    rush_pivot, rec_pivot, team_rush, sp = _make_rb_lookups()
+def test_rb_scrimmage_ypg_is_dark():
+    """rb_scrimmage_ypg is a dark feature: CFBD omits games from player stats."""
+    rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
     row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
            "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
-    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, sp)
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp)
+    assert result["rb_scrimmage_ypg_missing"] == "1"
+    assert result["rb_scrimmage_ypg"] == ""
+
+
+def test_rb_rec_ypg_is_dark():
+    """rb_rec_ypg is a dark feature: CFBD omits games from player stats."""
+    rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
+    row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
+           "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp)
+    assert result["rb_rec_ypg_missing"] == "1"
+    assert result["rb_rec_ypg"] == ""
+
+
+def test_rb_scrimmage_dominator_includes_receiving_when_available():
+    """When rec data exists, scrimmage formula uses both numerator and denominator."""
+    rush_pivot = pivot_rushing_stats(RUSH_2015, 2015)
+    # Add receiving data for Henry in 2015
+    recv_henry_2015 = [
+        {"player": "Derrick Henry", "team": "Alabama", "statType": "YDS", "stat": "100"},
+        {"player": "Derrick Henry", "team": "Alabama", "statType": "REC", "stat": "8"},
+        {"player": "Other WR", "team": "Alabama", "statType": "YDS", "stat": "600"},
+    ]
+    rec_pivot = pivot_receiving_stats(recv_henry_2015, 2015)
+    team_rush = build_team_rush_lookup(rush_pivot)
+    team_rec = build_team_rec_lookup(rec_pivot)
+    sp = build_sp_lookup(SP_2015, 2015)
+
+    row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
+           "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp)
+    assert result["rb_final_dominator_missing"] == "0"
+    val = float(result["rb_final_dominator"])
+    # player: 895 + 100 = 995; team: 1303 + 700 = 2003 → 995/2003 ≈ 0.497
+    assert 0.45 < val < 0.55
+
+
+def test_rb_school_sp_plus_populated():
+    rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
+    row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
+           "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp)
     assert result["rb_school_sp_plus_missing"] == "0"
     assert float(result["rb_school_sp_plus"]) == pytest.approx(38.4)
 
 
 def test_rb_features_missing_when_no_match():
-    rush_pivot, rec_pivot, team_rush, sp = _make_rb_lookups()
+    rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
     row = {"pfr_player_name": "No One", "college": "Alabama",
            "season": "2016", "age_at_draft": "22.0", "age_at_draft_missing": "0"}
-    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, sp)
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp)
     assert result["rb_final_dominator_missing"] == "1"
 
 
@@ -336,7 +428,7 @@ def test_te_ryptpa_missing_when_no_pass_attempts():
 # ── compute_era_proxy_features ────────────────────────────────────────────────
 
 def test_era_proxy_final_college_age():
-    """final_college_age = age_at_draft - 1 (proxy)."""
+    """final_college_age = age_at_draft - 1 (proxy; assumes final season = draft_year - 1)."""
     row = {"age_at_draft": "22.5", "age_at_draft_missing": "0",
            "season": "2020", "position": "WR"}
     result = compute_era_proxy_features(row)
@@ -417,15 +509,91 @@ def test_era_proxy_missing_age_gives_missing_flags():
     assert result["covid_eligibility_flag_missing"] == "1"
 
 
+# ── TPA cache round-trip ──────────────────────────────────────────────────────
+
+def test_tpa_cache_roundtrip(tmp_path, monkeypatch):
+    """_save_tpa_cache / _load_tpa_cache preserve float value."""
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
+    bw2b._save_tpa_cache("Alabama", 2021, 438.0)
+    loaded = bw2b._load_tpa_cache("Alabama", 2021)
+    assert loaded == pytest.approx(438.0)
+
+
+def test_tpa_cache_returns_none_when_absent(tmp_path, monkeypatch):
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
+    assert bw2b._load_tpa_cache("NoTeam", 2021) is None
+
+
+# ── w2b_cfbd_degraded provenance flag ────────────────────────────────────────
+
+def _minimal_v3_csv(path):
+    """Write a minimal one-row WR v3 CSV for pipeline tests."""
+    path.write_text(
+        "season,position,pfr_player_name,college,age_at_draft,age_at_draft_missing\n"
+        "2023,WR,Test Player,Alabama,21.0,0\n",
+        encoding="utf-8",
+    )
+
+
+def test_w2b_degraded_flag_set_on_fetch_error(monkeypatch, tmp_path):
+    """--allow-degraded writes w2b_cfbd_degraded=1 when API calls fail."""
+    v3_path = tmp_path / "v3.csv"
+    _minimal_v3_csv(v3_path)
+
+    monkeypatch.setattr(bw2b, "V3_CSV", v3_path)
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(bw2b, "_cfbd_api_key", lambda: "test_key")
+
+    def _fail_load(year, category, api_key, force_fetch=False):
+        raise ConnectionError("simulated failure")
+
+    def _fail_sp(year, api_key, force_fetch=False):
+        raise ConnectionError("simulated failure")
+
+    monkeypatch.setattr(bw2b, "load_player_stats", _fail_load)
+    monkeypatch.setattr(bw2b, "load_sp_ratings", _fail_sp)
+    monkeypatch.setattr(bw2b, "fetch_team_pass_attempts", lambda *a, **kw: None)
+
+    bw2b.main(allow_degraded=True)
+
+    with v3_path.open(newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["w2b_cfbd_degraded"] == "1"
+
+
+def test_w2b_degraded_flag_cleared_on_success(monkeypatch, tmp_path):
+    """Successful run writes w2b_cfbd_degraded=0, clearing any stale 1."""
+    v3_path = tmp_path / "v3.csv"
+    # Pre-stamp with stale degraded=1
+    v3_path.write_text(
+        "season,position,pfr_player_name,college,age_at_draft,age_at_draft_missing,w2b_cfbd_degraded\n"
+        "2023,WR,Test Player,Alabama,21.0,0,1\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(bw2b, "V3_CSV", v3_path)
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(bw2b, "_cfbd_api_key", lambda: "test_key")
+    monkeypatch.setattr(bw2b, "load_player_stats", lambda *a, **kw: [])
+    monkeypatch.setattr(bw2b, "load_sp_ratings", lambda *a, **kw: [])
+    monkeypatch.setattr(bw2b, "fetch_team_pass_attempts", lambda *a, **kw: None)
+
+    bw2b.main(allow_degraded=False)
+
+    with v3_path.open(newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["w2b_cfbd_degraded"] == "0"
+
+
 # ── Leakage guard ─────────────────────────────────────────────────────────────
 
 def test_w2b_functions_emit_no_draft_capital_columns():
     """W2b compute functions must not emit any HEAD_B_PROHIBITED_COLUMNS."""
-    pivot, team_rec = _make_wr_lookups()
+    pivot, team_rec, team_td = _make_wr_lookups()
     row = {"pfr_player_name": "Amari Cooper", "college": "Alabama",
            "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0",
            "position": "WR"}
-    wr_result = compute_wr_cfbd_features(row, pivot, team_rec)
+    wr_result = compute_wr_cfbd_features(row, pivot, team_rec, team_td)
     era_result = compute_era_proxy_features(row)
     all_keys = set(wr_result) | set(era_result)
     banned = {k for k in all_keys if k in HEAD_B_PROHIBITED_COLUMNS}
