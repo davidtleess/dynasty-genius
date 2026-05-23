@@ -1,7 +1,7 @@
 # Phase 19 Workstream 2b Spec: CFBD Player-Level Ingestion and Feature Calculation
 
 ## Status
-**PROPOSED SPECIFICATION** — Awaiting David's approval to transition to execution.
+**IMPLEMENTED** — Execution approved. Implementation complete at commit `4c8eeb6` (branch `feature/phase19-w1-head-b-target`). See `docs/agent-ledger/2026-05-23.md` for verified run results.
 
 ## Objective
 Enrich `prospects_with_outcomes_v3.csv` with player-level CFBD college statistics, team SP+ ratings, and proxy era flags for WR, RB, and TE prospect cohorts (classes 2015–2024).
