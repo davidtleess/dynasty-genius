@@ -64,6 +64,9 @@ app/data/fc_snapshots.db-journal
 # Backtest run artifacts — large JSON, versioned by run_id
 app/data/backtest/runs/
 
+# Phase 16 bake-off run artifacts
+app/data/backtest/phase16/
+
 # Identity audit run artifacts — raw cohort fixtures (may contain DOB/source IDs), untracked
 # Promoted governance artifacts in app/data/identity/ are committed only after David approval
 app/data/identity/_runs/
