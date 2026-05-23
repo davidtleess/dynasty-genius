@@ -182,6 +182,19 @@ def _count_folds_improved(baseline_folds: list[dict], candidate_folds: list[dict
     return count
 
 
+def _get_aligned_rows(rows: list[dict], feature_names: list[str]) -> list[dict]:
+    """Return rows that have all feature_names non-None and fall in TRAINING_YEARS.
+
+    Used to build a row-aligned baseline cohort: baseline LOOCV must be evaluated
+    on exactly the same rows as the candidate so MAE comparisons are apples-to-apples.
+    """
+    return [
+        r for r in rows
+        if all(_to_float(r.get(f)) is not None for f in feature_names)
+        and int(r.get("season", 0)) in TRAINING_YEARS
+    ]
+
+
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     run_id = str(uuid.uuid4())[:8]
@@ -264,20 +277,29 @@ def main() -> None:
     print(f"\n  TE baseline MAE: {te_baseline_mae} ({te_baseline.get('n_rows')} rows, {te_baseline.get('n_folds')} folds)")
 
     # Gate evaluation for each non-baseline candidate
+    # Each candidate is compared against a row-ALIGNED baseline: baseline LOOCV
+    # re-run on only the rows that have all candidate features present, so both
+    # MAEs are computed on the same cohort and the comparison is apples-to-apples.
     gate_results: dict[str, dict] = {}
-    baseline_result = candidate_results.get("baseline", {})
-    baseline_mae = baseline_result.get("mean_mae")
-    baseline_folds = baseline_result.get("fold_results", [])
 
     for name, result in candidate_results.items():
         if name == "baseline" or "error" in result:
             continue
         candidate_mae = result.get("mean_mae")
-        if baseline_mae is None or candidate_mae is None:
+        if candidate_mae is None:
             gate_results[name] = {"error": "missing_mae", "passes": False}
             continue
 
-        folds_improved = _count_folds_improved(baseline_folds, result.get("fold_results", []))
+        aligned_rows = _get_aligned_rows(wr_rows, CANDIDATE_SETS[name])
+        aligned_baseline = _run_loocv(aligned_rows, BASELINE_FEATURES)
+        aligned_baseline_mae = aligned_baseline.get("mean_mae")
+        aligned_baseline_folds = aligned_baseline.get("fold_results", [])
+
+        if aligned_baseline_mae is None:
+            gate_results[name] = {"error": "missing_aligned_mae", "passes": False}
+            continue
+
+        folds_improved = _count_folds_improved(aligned_baseline_folds, result.get("fold_results", []))
         total_folds = len(result.get("fold_results", []))
 
         # TE MAE with candidate features that apply to TE (ryptpa only; yprr_college excluded)
@@ -287,16 +309,21 @@ def main() -> None:
         te_delta = max(0.0, te_cand_mae - te_baseline_mae)
 
         gate = evaluate_promotion_gate(
-            baseline_mae=baseline_mae,
+            baseline_mae=aligned_baseline_mae,
             candidate_mae=candidate_mae,
             folds_improved=folds_improved,
             total_folds=total_folds,
             te_mae_delta=te_delta,
         )
-        gate_results[name] = dataclasses.asdict(gate)
+        gate_results[name] = {
+            **dataclasses.asdict(gate),
+            "aligned_baseline_mae": round(aligned_baseline_mae, 4),
+            "aligned_n_rows": aligned_baseline.get("n_rows"),
+        }
         status = "PASS" if gate.passes else "FAIL"
         reasons = gate.fail_reasons or ["all criteria met"]
-        print(f"  Gate [{name}]: {status}  mae_pct={gate.mae_improvement_pct:.2f}%  "
+        print(f"  Gate [{name}]: {status}  aligned_baseline={aligned_baseline_mae:.4f}  "
+              f"candidate={candidate_mae:.4f}  mae_pct={gate.mae_improvement_pct:.2f}%  "
               f"folds={folds_improved}/{total_folds}  te_delta={te_delta:.4f}  {reasons}")
 
     # Summary
@@ -323,7 +350,7 @@ def main() -> None:
         "te_baseline": te_baseline,
         "gate_results": gate_results,
         "passing_candidates": passing,
-        "promotion_decision": "PENDING_DAVID_REVIEW",
+        "promotion_decision": "NOT_PROMOTED",
         "governance": {
             "market_data_used": False,
             "model_pkl_changed": False,
@@ -335,7 +362,7 @@ def main() -> None:
     out_path = OUTPUT_DIR / f"wr_college_bakeoff_{generated_at}_{run_id}.json"
     out_path.write_text(json.dumps(artifact, indent=2))
     print(f"\n  Artifact: {out_path.name}")
-    print("  promotion_decision: PENDING_DAVID_REVIEW")
+    print("  promotion_decision: NOT_PROMOTED")
 
 
 if __name__ == "__main__":

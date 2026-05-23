@@ -19,7 +19,7 @@ BASE_URL = "https://api.collegefootballdata.com"
 #   (a) training CSV spellings (PFR names) → canonical
 #   (b) PFF export ALL-CAPS team names → canonical
 # Both sides of each (training_college, pff_college) pair must resolve to the
-# same string for find_pff_match() to succeed.  Task 4.5: added 95 aliases
+# same string for find_pff_match() to succeed.  Task 4.5: 81 aliases
 # derived from the name_match_college_mismatch review rows.
 _COLLEGE_NAME_MAP: dict[str, str] = {
     # ── Original entries ────────────────────────────────────────────────────

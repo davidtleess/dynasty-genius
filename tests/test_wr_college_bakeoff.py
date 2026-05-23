@@ -5,6 +5,7 @@ from scripts.run_wr_college_bakeoff import (
     evaluate_promotion_gate,
     compute_vif,
     BakeoffGateResult,
+    _get_aligned_rows,
 )
 
 
@@ -106,3 +107,25 @@ def test_compute_vif_collinear():
     X = np.column_stack([base, base + rng.normal(scale=0.1, size=100)])
     vif = compute_vif(X, feature_idx=0)
     assert vif > 5.0
+
+
+def test_get_aligned_rows_excludes_missing_feature():
+    rows = [
+        {"season": "2020", "pick": "10", "round": "1", "age": "21", "ryptpa": "2.5"},
+        {"season": "2020", "pick": "20", "round": "1", "age": "22", "ryptpa": None},
+        {"season": "2020", "pick": "30", "round": "2", "age": "23"},
+    ]
+    aligned = _get_aligned_rows(rows, ["pick", "round", "age", "ryptpa"])
+    assert len(aligned) == 1
+    assert aligned[0]["pick"] == "10"
+
+
+def test_get_aligned_rows_excludes_out_of_training_year():
+    rows = [
+        {"season": "2020", "pick": "10", "round": "1", "age": "21", "ryptpa": "2.5"},
+        {"season": "2015", "pick": "5", "round": "1", "age": "22", "ryptpa": "3.0"},
+        {"season": "2025", "pick": "15", "round": "1", "age": "21", "ryptpa": "2.8"},
+    ]
+    aligned = _get_aligned_rows(rows, ["pick", "round", "age", "ryptpa"])
+    assert len(aligned) == 1
+    assert aligned[0]["season"] == "2020"
