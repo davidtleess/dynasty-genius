@@ -92,7 +92,7 @@ def fetch_team_pass_attempts(
         return None
 
     cfbd_name = normalize_college_name(college_team)
-    url = f"{BASE_URL}/stats/team/season"
+    url = f"{BASE_URL}/stats/season"
     try:
         response = httpx.get(
             url,

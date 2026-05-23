@@ -37,7 +37,8 @@ def test_fetch_returns_none_on_empty_response():
     assert result is None
 
 
-def test_fetch_returns_none_without_api_key():
+def test_fetch_returns_none_without_api_key(monkeypatch):
+    monkeypatch.delenv("CFBD_API_KEY", raising=False)
     result = fetch_team_pass_attempts("Alabama", 2022, api_key="")
     assert result is None
 
@@ -62,3 +63,13 @@ def test_normalize_college_name_common_cases():
 def test_normalize_college_name_passthrough():
     assert normalize_college_name("Alabama") == "Alabama"
     assert normalize_college_name("Oregon") == "Oregon"
+
+
+def test_fetch_hits_correct_endpoint():
+    stat_rows = [{"statName": "passAttempts", "statValue": "400"}]
+    with patch("httpx.get", return_value=_mock_response(stat_rows)) as mock_get:
+        fetch_team_pass_attempts("Alabama", 2022, api_key="test-key")
+    called_url = mock_get.call_args[0][0]
+    assert called_url.endswith("/stats/season"), (
+        f"Expected URL ending in /stats/season, got: {called_url}"
+    )
