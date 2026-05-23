@@ -97,15 +97,69 @@ def test_universe_pvo_batch_routes_existing_pvos_and_unscored_context():
     by_id = {row["sleeper_player_id"]: row for row in batch["players"]}
     assert by_id["101"]["valuation"]["engine_path"] == "ENGINE_A"
     assert by_id["101"]["valuation"]["xvar"] == 12.5
+    assert by_id["101"]["valuation"]["xvar_percentile_overall"] == 100.0
     assert by_id["202"]["valuation"]["engine_path"] == "ENGINE_B"
     assert by_id["202"]["valuation"]["xvar_percentile_position"] == 77.0
-    assert by_id["202"]["valuation"]["xvar_percentile_overall"] is None
+    assert by_id["202"]["valuation"]["xvar_percentile_overall"] == 50.0
     assert by_id["303"]["valuation"]["engine_path"] == "PRE_MODEL"
+    assert by_id["303"]["valuation"]["xvar_percentile_overall"] is None
     assert by_id["404"]["valuation"]["engine_path"] == "CONTEXT_ONLY"
     assert by_id["505"]["valuation"]["engine_path"] == "INACTIVE"
     assert by_id["0"]["valuation"]["engine_path"] == "UNRESOLVED_IDENTITY"
     assert all(row["valuation"]["decision_supported"] is False for row in batch["players"])
     assert all(row["market_overlay"] is None for row in batch["players"])
+
+
+def test_xvar_percentile_overall_ranks_model_backed_rows_across_positions_only():
+    snapshot = _snapshot()
+    pvos = [
+        {
+            "sleeper_id": "101",
+            "player_id": "rookie_wr",
+            "full_name": "Rookie One",
+            "position": "WR",
+            "model_grade": "PROSPECT_C",
+            "dynasty_value_score": 82.0,
+            "xvar": 10.0,
+            "dvs_engine": "A",
+        },
+        {
+            "sleeper_id": "202",
+            "player_id": "active_rb",
+            "full_name": "Active One",
+            "position": "RB",
+            "model_grade": "ACTIVE_B",
+            "dynasty_value_score": 75.0,
+            "xvar": 5.0,
+            "dvs_pct": 70.0,
+            "dvs_engine": "B",
+        },
+        {
+            "sleeper_id": "303",
+            "player_id": "active_te",
+            "full_name": "Unknown One",
+            "position": "TE",
+            "model_grade": "ACTIVE_B",
+            "dynasty_value_score": 60.0,
+            "xvar": -2.0,
+            "dvs_pct": 40.0,
+            "dvs_engine": "B",
+        },
+    ]
+
+    batch = build_universe_pvo_batch(snapshot, prospect_pvos=[pvos[0]], active_pvos=pvos[1:])
+    by_id = {row["sleeper_player_id"]: row for row in batch["players"]}
+
+    assert by_id["101"]["valuation"]["xvar_percentile_overall"] == 100.0
+    assert by_id["202"]["valuation"]["xvar_percentile_overall"] == 66.7
+    assert by_id["303"]["valuation"]["xvar_percentile_overall"] == 33.3
+    assert by_id["404"]["valuation"]["xvar_percentile_overall"] is None
+    assert by_id["505"]["valuation"]["xvar_percentile_overall"] is None
+    assert by_id["202"]["valuation"]["xvar_percentile_position"] == 70.0
+    assert all(row["market_overlay"] is None for row in batch["players"])
+    assert batch["coverage"]["xvar_percentile_overall_populated_count"] == 3
+    assert batch["coverage"]["phase18_4_exit_criteria"]["overall_percentile_internal_xvar_only"] is True
+    assert batch["coverage"]["phase18_4_exit_criteria"]["non_model_rows_overall_percentile_null"] is True
 
 
 def test_universe_pvo_coverage_requires_rostered_skill_players_have_explicit_routes():

@@ -17,18 +17,20 @@ Phase 15.4 — COMPLETE: Post-draft closeout — Sleeper draft complete, 36/36 p
 Phase 16.1 — COMPLETE: Age blockers resolved — 6 verified DOBs ingested, all 80 2026 prospects now scored, DVS invariance held, full suite green (737 passed, 11 skipped; 2026-05-21)
 Phase 16 — CLOSED FOR PHASE 17 ENTRY: Remaining signal-upgrade workstreams are validation/research gates and deferred; no production model change approved.
 Phase 17 — IMPLEMENTATION COMPLETE THROUGH 17.5: Sleeper universe, full PVO batch, team matrix, market divergence, and league opportunity map artifacts complete (latest artifacts in `app/data/league_snapshots/` and `app/data/valuation/`)
-Phase 18 — IMPLEMENTATION STARTED: 18.1 roster-audit rookie PVO reconciliation complete; 18.2 daily batch orchestration complete; 18.3 team posture classification complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-18)
+Phase 18 — IMPLEMENTATION STARTED: 18.1 roster-audit rookie PVO reconciliation complete; 18.2 daily batch orchestration complete; 18.3 team posture classification complete; 18.4 cross-position xVAR percentile complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-18)
 
 ## Current Sprint Objective
 
-Phase 18 — 18.3 TEAM POSTURE CLASSIFICATION COMPLETE; READY FOR REVIEW / CHECKPOINT.
+Phase 18 — 18.4 CROSS-POSITION XVAR PERCENTILE COMPLETE; READY FOR REVIEW / CHECKPOINT.
 - Workstream 18.1 (Roster Audit Rookie Reconciliation) — COMPLETE: `/roster/audit` preserves Phase 17 full-universe Engine A PVO values for rostered current-draft rookies instead of degrading them to active-player `PRE_MODEL`; veterans remain on the existing audit path.
 - Workstream 18.2 (Daily Batch Orchestration) — COMPLETE: `scripts/refresh_league_intelligence.py` runs the existing Phase 17.1 → 17.5 builders in order, supports `--dry-run`, and fails fast without adding new valuation logic.
 - Workstream 18.3 (Team Posture Classification) — COMPLETE: `scripts/build_team_posture.py` builds `team_posture_latest.json` from internal team-matrix signals; opportunity partner rankings now consume posture and populate `posture_alignment_score` when the posture artifact is present.
+- Workstream 18.4 (Cross-Position xVAR Percentile) — COMPLETE: `build_universe_pvo_batch()` now populates `xvar_percentile_overall` from internal xVAR ranking across model-backed rows only; non-model rows remain null and market fields remain absent.
 - Latest live Woodbury rerun: 28 players, 5 QB context cards, `decision_supported=false`; current-draft rookies now surface Engine A values in `/roster/audit`: Fernando Mendoza (`DVS=85.14`, `xVAR=10.31`), Omar Cooper Jr. (`DVS=70.99`, `xVAR=1.79`), Chris Bell (`DVS=62.46`, `xVAR=-6.74`), Kaelon Black (`DVS=61.55`, `xVAR=13.4`).
 - Phase 18.1 verification: roster audit/PVO focused suite passed (`35 passed`); full suite passed (`768 passed, 11 skipped`).
 - Phase 18.2 verification: orchestration/Phase 17 focused suite passed (`23 passed`); dry-run CLI verified planned commands without external network or artifact writes.
 - Phase 18.3 verification: posture/opportunity/refresh focused suite passed (`16 passed`); full suite passed (`777 passed, 11 skipped`). Latest posture coverage: 12/12 teams classified, `decision_supported_true_count=0`, `market_fields_absent=true`; Woodbury Riders currently labels `REBUILDING` under the v1 heuristic.
+- Phase 18.4 verification: universe/downstream focused suite passed (`27 passed`); full suite passed (`780 passed, 11 skipped`). Latest 17.2-derived coverage now has `xvar_percentile_overall_populated_count=399`, no non-model rows populated, and all Phase 18.4 guards true.
 
 Phase 17 — 17.1 THROUGH 17.5 COMPLETE; REVIEWED / CHECKPOINTED.
 - Workstream 17.0 (Planning) — COMPLETE: Merged research brief finalized with Section 19 Decision Memo.
@@ -40,7 +42,7 @@ Phase 17 — 17.1 THROUGH 17.5 COMPLETE; REVIEWED / CHECKPOINTED.
 - Approved Defaults: Automated-only pick reconstruction with validation/caveat gates; Global Noise band 0.10 as diagnostic/provisional; FantasyCalc ppr=1/no TEP.
 - Bench-weighting guardrail: no player-level value decay. Any depth weighting may apply only to team-strength aggregation after computing the best legal starting lineup from player xVAR/PVO values; actual manager lineup choices must not determine who is decayed.
 - Latest 17.1 coverage: 12,189 Sleeper universe rows classified; 280/280 rostered players present; David roster 28/28 present; 1 unresolved Sleeper pseudo-player ID (`0`); PVO scoring not required in 17.1.
-- Latest 17.2 coverage (`phase17-2-20260522T030627Z`): 12,189 rows; route counts `ENGINE_A=80`, `ENGINE_B=373`, `PRE_MODEL=9,605`, `INACTIVE=2,130`, `UNRESOLVED_IDENTITY=1`; no market overlay rows; `decision_supported_true_count=0`; all rostered skill players have explicit routes. `xvar_percentile_overall` remains null until cross-position percentile ranking is explicitly implemented.
+- Latest 17.2 coverage (`phase17-2-20260523T025725Z`): 12,189 rows; route counts `ENGINE_A=80`, `ENGINE_B=373`, `PRE_MODEL=9,605`, `INACTIVE=2,130`, `UNRESOLVED_IDENTITY=1`; no market overlay rows; `decision_supported_true_count=0`; all rostered skill players have explicit routes; `xvar_percentile_overall_populated_count=399`; non-model rows remain null.
 - Latest 17.3 coverage (`phase17-3-20260522T110534Z`): all 12 teams emitted; future picks present but unvalued; taxi activation cost represented; guardrail embedded (`player_level_value_decay_allowed=false`, lineup selection from raw player xVAR, depth weighting only for non-starters after lineup selection).
 - Latest 17.4 coverage (`phase17-4-20260522T115250Z`): 12,189 rows; 398 FantasyCalc market overlays; signals `MODEL_HIGH_MARKET_LOW=107`, `MODEL_LOW_MARKET_HIGH=56`, `INSIDE_BAND=107`, `UNAVAILABLE=11,918`, `UNRESOLVED_IDENTITY=1`; `decision_supported_true_count=0`; market data remains overlay-only; no imperative schema language; TE position-only suppression count is 0.
 - Latest 17.5 coverage (`phase17-5-20260522T121830Z`): 20 opportunity cards capped for the run; card types `WAIVER_CANDIDATE=16`, `ROSTER_SURPLUS_DEFICIT_MATCH=3`, `DIVERGENCE_MODEL_HIGH=1`; 11 partner rankings; all cards evidence-backed; `decision_supported_true_count=0`; automated trade execution disabled; banned language absent.
@@ -393,5 +395,4 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-1. **Phase 18.4 cross-position xVAR percentile pass** — Populate `xvar_percentile_overall` in the universe PVO batch with a post-scoring ranking pass. This must remain derived from internal xVAR only; no market data enters valuation.
-2. **Housekeeping: publish checkpoint** — Branch is well ahead of `origin/main`; decide whether to push and open a PR before starting more Phase 18 implementation.
+1. **Housekeeping: publish checkpoint** — Branch is well ahead of `origin/main`; decide whether to push and open a PR before starting more Phase 18 implementation.

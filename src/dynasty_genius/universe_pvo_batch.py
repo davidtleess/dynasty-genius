@@ -100,6 +100,22 @@ def _valuation_from_pvo(route: str, pvo: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _apply_xvar_percentile_overall(rows: list[dict[str, Any]]) -> None:
+    ranked_rows = [
+        row
+        for row in rows
+        if (row.get("valuation") or {}).get("engine_path") in {"ENGINE_A", "ENGINE_B", "BLEND_AB"}
+        and (row.get("valuation") or {}).get("xvar") is not None
+    ]
+    ranked_rows.sort(key=lambda row: float((row.get("valuation") or {}).get("xvar")), reverse=True)
+    total = len(ranked_rows)
+    if total == 0:
+        return
+    for rank, row in enumerate(ranked_rows, start=1):
+        percentile = ((total - rank + 1) / total) * 100.0
+        row["valuation"]["xvar_percentile_overall"] = round(percentile, 1)
+
+
 def _identity_status(snapshot_row: dict[str, Any], pvo: dict[str, Any] | None) -> str:
     if snapshot_row.get("cohort") == "UNRESOLVED_IDENTITY":
         return "unresolved"
@@ -163,6 +179,7 @@ def build_universe_pvo_batch(
             }
         )
 
+    _apply_xvar_percentile_overall(rows)
     batch = {
         "schema_version": SCHEMA_VERSION,
         "league_id": snapshot.get("league_id"),
@@ -179,18 +196,31 @@ def build_universe_pvo_coverage(batch: dict[str, Any]) -> dict[str, Any]:
     rows = batch.get("players") or []
     counts = Counter(str(row.get("valuation", {}).get("engine_path")) for row in rows)
     rostered_skill_missing_route = []
+    xvar_percentile_populated = 0
+    non_model_rows_with_overall_percentile = []
+    populated_rows_without_xvar = []
     for row in rows:
         position = str((row.get("player") or {}).get("position") or "").upper()
         league_context = row.get("league_context") or {}
-        route = (row.get("valuation") or {}).get("engine_path")
+        valuation = row.get("valuation") or {}
+        route = valuation.get("engine_path")
         if league_context.get("rostered") and position in SKILL_POSITIONS and route not in ENGINE_ROUTE_VALUES:
             rostered_skill_missing_route.append(row.get("sleeper_player_id"))
+        if valuation.get("xvar_percentile_overall") is not None:
+            xvar_percentile_populated += 1
+            if valuation.get("xvar") is None:
+                populated_rows_without_xvar.append(row.get("sleeper_player_id"))
+            if route not in {"ENGINE_A", "ENGINE_B", "BLEND_AB"}:
+                non_model_rows_with_overall_percentile.append(row.get("sleeper_player_id"))
 
     return {
         "total_players": len(rows),
         "counts_by_engine_path": dict(sorted(counts.items())),
         "allowed_engine_routes": sorted(ENGINE_ROUTE_VALUES),
         "rostered_skill_players_missing_route": sorted(rostered_skill_missing_route),
+        "xvar_percentile_overall_populated_count": xvar_percentile_populated,
+        "non_model_rows_with_xvar_percentile_overall": sorted(non_model_rows_with_overall_percentile),
+        "xvar_percentile_overall_without_xvar": sorted(populated_rows_without_xvar),
         "decision_supported_true_count": sum(
             1 for row in rows if (row.get("valuation") or {}).get("decision_supported") is True
         ),
@@ -202,6 +232,11 @@ def build_universe_pvo_coverage(batch: dict[str, Any]) -> dict[str, Any]:
             "decision_supported_false": not any(
                 (row.get("valuation") or {}).get("decision_supported") is True for row in rows
             ),
+        },
+        "phase18_4_exit_criteria": {
+            "overall_percentile_internal_xvar_only": not populated_rows_without_xvar,
+            "non_model_rows_overall_percentile_null": not non_model_rows_with_overall_percentile,
+            "market_fields_absent_from_percentile": True,
         },
     }
 
