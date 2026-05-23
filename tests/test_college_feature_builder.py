@@ -116,6 +116,21 @@ def test_find_pff_match_any_season_not_found():
     assert result is None
 
 
+def test_find_pff_match_any_season_prefers_nearest_prior():
+    # Ja'Marr Chase appears in both 2018 and 2019 files.
+    # exclude_season=2020 (sat out). Should return 2019 (nearest prior), not 2018.
+    pff_by_season = {
+        2018: [{"player_name": "Jamarr Chase", "college": "LSU", "yprr": 3.0, "yards": 900.0}],
+        2019: [{"player_name": "Jamarr Chase", "college": "LSU", "yprr": 4.0, "yards": 1200.0}],
+        2020: [],
+    }
+    result = find_pff_match_any_season("Ja'Marr Chase", "LSU", pff_by_season, exclude_season=2020)
+    assert result is not None
+    found_season, found_row = result
+    assert found_season == 2019
+    assert found_row["yards"] == 1200.0
+
+
 def test_build_college_season_year_standard():
     assert build_college_season_year(draft_year=2019, position="WR") == 2018
 

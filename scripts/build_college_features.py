@@ -130,6 +130,11 @@ def find_pff_match_any_season(
     Returns (season, pff_row) if found in any season other than
     exclude_season, or None if no match exists anywhere.
 
+    Search order: prior seasons descending (nearest first), then later
+    seasons ascending. This ensures that for non-standard final-season
+    detection the best candidate season is returned — e.g. Ja'Marr Chase
+    (exclude_season=2020) returns 2019, not 2018.
+
     A non-None return with exclude_season set indicates the player played in
     a non-standard final season — route to manual review rather than
     auto-resolving.
@@ -137,9 +142,11 @@ def find_pff_match_any_season(
     norm_name = normalize_player_name(pfr_name)
     norm_college = normalize_college_name(college).lower()
 
-    for season in sorted(pff_by_season):
-        if season == exclude_season:
-            continue
+    pivot = exclude_season if exclude_season is not None else float("inf")
+    prior = sorted((s for s in pff_by_season if s < pivot), reverse=True)
+    later = sorted(s for s in pff_by_season if s > pivot)
+
+    for season in prior + later:
         for row in pff_by_season[season]:
             row_name = normalize_player_name(row.get("player_name", ""))
             row_college = normalize_college_name(row.get("college", "")).lower()
