@@ -44,7 +44,7 @@
 - Create: `app/data/pff_exports/phase16_wr_manifest.json`
 - Verify: `.gitignore` suppresses it
 
-The manifest pins each local PFF CSV to its confirmed college season year. Season year is the year the college games were played (draft_year - 1 for most players). This file is the only place season-year knowledge lives — the CSV files have no season column.
+The manifest pins each local PFF CSV to its confirmed college season year. **These files are full season snapshots of all college receivers — not filtered to a specific draft class.** Most players' final college season = `draft_year - 1`, but opt-outs, injuries, redshirts, and non-standard final seasons require per-player lookup. The feature builder must resolve each training row's actual final season individually. This file is the only place season-year knowledge lives — the CSV files have no season column.
 
 - [ ] **Step 1: Verify the gitignore already covers this path**
 
@@ -65,58 +65,80 @@ Write `app/data/pff_exports/phase16_wr_manifest.json`:
 
 ```json
 {
-  "description": "Local-only manifest for PFF Premium Stats receiving_summary WR exports. Gitignored. Season year = college games played year (draft_year - 1 for most classes).",
+  "description": "Local-only manifest for PFF Premium Stats receiving_summary WR/RB exports used in Phase 16.2–16.4. Gitignored — contains local absolute paths to private PFF subscriber data. Each file is a full season snapshot of all college receivers — not filtered to a specific draft class. Most players' final college season = draft_year - 1, but opt-outs, injuries, and redshirts require per-player lookup. The feature builder must resolve each training row's actual final season individually rather than assuming draft_year - 1 universally.",
   "pff_data_version": "local-download-2026-05-16",
-  "warning": "Do not commit this file. It contains local paths to private PFF exports.",
+  "warning": "Do not commit this file. Raw PFF CSVs must remain private and untracked.",
+  "content_hash_algorithm": "sha256-first-12-hex",
   "exports": [
     {
       "label": "2017_season",
       "path": "/Users/davidleess/Downloads/receiving_summary (18).csv",
       "season": 2017,
+      "nfl_draft_class": 2018,
       "source": "pff_premium_stats",
-      "notes": "2018 NFL draft class final college season. Confirmed: Steve Ishmael, DJ Moore, Courtland Sutton present."
+      "row_count": 2079,
+      "content_hash": "29e3b1718f0c",
+      "notes": "2018 NFL draft class final college season. Confirmed: Steve Ishmael, DJ Moore, Courtland Sutton, Deon Cain present."
     },
     {
       "label": "2018_season",
-      "path": "/Users/davidleess/Downloads/receiving_summary (10).csv",
+      "path": "/Users/davidleess/Downloads/receiving_summary (7).csv",
       "season": 2018,
+      "nfl_draft_class": 2019,
       "source": "pff_premium_stats",
-      "notes": "2019 NFL draft class final college season. Confirmed: AJ Brown, Deebo Samuel, Preston Williams present."
+      "row_count": 2128,
+      "content_hash": "f1f8b161da1a",
+      "notes": "2019 NFL draft class final college season. Confirmed: AJ Brown, Deebo Samuel, Preston Williams, Andy Isabella present."
     },
     {
       "label": "2019_season",
-      "path": "/Users/davidleess/Downloads/receiving_summary (11).csv",
+      "path": "/Users/davidleess/Downloads/receiving_summary (6).csv",
       "season": 2019,
+      "nfl_draft_class": 2020,
       "source": "pff_premium_stats",
-      "notes": "2020 NFL draft class final college season. Confirmed: CeeDee Lamb, Jerry Jeudy, Henry Ruggs present."
+      "row_count": 2080,
+      "content_hash": "951db6a1bd6f",
+      "notes": "2020 NFL draft class final college season. Confirmed: CeeDee Lamb, Jerry Jeudy, Henry Ruggs, James Proche II present."
     },
     {
       "label": "2020_season",
-      "path": "/Users/davidleess/Downloads/receiving_summary (12).csv",
+      "path": "/Users/davidleess/Downloads/receiving_summary (5).csv",
       "season": 2020,
+      "nfl_draft_class": 2021,
       "source": "pff_premium_stats",
-      "notes": "2021 NFL draft class final college season (COVID-shortened). Confirmed: Jaylen Waddle, Ja'Marr Chase, DeVonta Smith present."
+      "row_count": 1869,
+      "content_hash": "2c402a3d6472",
+      "notes": "Full 2020 college season snapshot (COVID-shortened, 8-10 games). Contains all receivers who played in 2020 — not filtered to the 2021 draft class. Jaylen Waddle and DeVonta Smith are here as their final season. Garrett Wilson is present as a sophomore (his final season was 2021; he is a 2022 draftee). Ja'Marr Chase is absent — he sat out 2020; his final season is in the 2019 file."
     },
     {
       "label": "2021_season",
-      "path": "/Users/davidleess/Downloads/receiving_summary (13).csv",
+      "path": "/Users/davidleess/Downloads/receiving_summary (4).csv",
       "season": 2021,
+      "nfl_draft_class": 2022,
       "source": "pff_premium_stats",
-      "notes": "2022 NFL draft class final college season. Confirmed: Garrett Wilson, Drake London, Treylon Burks present."
+      "row_count": 2151,
+      "content_hash": "f6a730add184",
+      "notes": "2022 NFL draft class final college season. Confirmed: Garrett Wilson, Drake London, Treylon Burks, Chris Olave present."
     },
     {
       "label": "2022_season",
-      "path": "/Users/davidleess/Downloads/receiving_summary (14).csv",
+      "path": "/Users/davidleess/Downloads/receiving_summary (3).csv",
       "season": 2022,
+      "nfl_draft_class": 2023,
       "source": "pff_premium_stats",
-      "notes": "2023 NFL draft class final college season. Confirmed: Zay Flowers, JSN, Quentin Johnston present."
+      "row_count": 2184,
+      "content_hash": "a8da0319b61e",
+      "notes": "2023 NFL draft class final college season. Confirmed: Zay Flowers, Jaxon Smith-Njigba, Quentin Johnston, Jordan Addison present."
     },
     {
       "label": "2023_season",
-      "path": "/Users/davidleess/Downloads/receiving_summary (15).csv",
+      "path": "/Users/davidleess/Downloads/receiving_summary (2).csv",
       "season": 2023,
+      "nfl_draft_class": 2024,
       "source": "pff_premium_stats",
-      "notes": "2024 NFL draft class final college season. Confirmed: Malik Nabers, Rome Odunze, Marvin Harrison Jr. present."
+      "row_count": 2237,
+      "content_hash": "3af6ec13e8bf",
+      "notes": "2024 NFL draft class final college season. Confirmed: Malik Nabers, Rome Odunze, Marvin Harrison Jr., Brian Thomas Jr. present."
     }
   ]
 }
