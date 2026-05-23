@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from src.dynasty_genius.team_posture import apply_team_postures
+
 SCHEMA_VERSION = "league_opportunity.v1"
 BANNED_LANGUAGE = frozenset({"buy", "sell", "target", "fade"})
 SKILL_POSITIONS = ("QB", "RB", "WR", "TE")
@@ -161,7 +163,9 @@ def build_partner_rankings(
         ]
         divergence_density_score = _safe_score(len(divergence_rows) / 5.0)
         activity_recency_score = 0.0
-        posture_alignment_score = 0.0
+        perspective_posture = ((perspective.get("posture") or {}).get("label") or "UNCLASSIFIED")
+        counterparty_posture = ((team.get("posture") or {}).get("label") or "UNCLASSIFIED")
+        posture_alignment_score = _posture_alignment_score(str(perspective_posture), str(counterparty_posture))
         partner_score = round(
             complementarity_score
             + divergence_density_score
@@ -185,12 +189,31 @@ def build_partner_rankings(
                 "evidence": {
                     "position_scores": position_scores,
                     "divergence_row_count": len(divergence_rows),
+                    "perspective_posture": perspective_posture,
+                    "counterparty_posture": counterparty_posture,
                 },
                 "decision_supported": False,
             }
         )
 
     return sorted(rankings, key=lambda row: row["partner_score"], reverse=True)
+
+
+def _posture_alignment_score(perspective_posture: str, counterparty_posture: str) -> float:
+    if "UNCLASSIFIED" in {perspective_posture, counterparty_posture}:
+        return 0.0
+    if perspective_posture == counterparty_posture:
+        return 0.05
+    complementary_pairs = {
+        frozenset({"CONTENDER", "REBUILDING"}): 0.25,
+        frozenset({"CONTENDER", "ASCENDING"}): 0.15,
+        frozenset({"BALANCED", "CONTENDER"}): 0.10,
+        frozenset({"BALANCED", "REBUILDING"}): 0.10,
+        frozenset({"BALANCED", "ASCENDING"}): 0.10,
+        frozenset({"TRANSITIONAL", "CONTENDER"}): 0.10,
+        frozenset({"TRANSITIONAL", "REBUILDING"}): 0.10,
+    }
+    return complementary_pairs.get(frozenset({perspective_posture, counterparty_posture}), 0.0)
 
 
 def _fit_cards(
@@ -422,11 +445,12 @@ def build_league_opportunity_map(
     team_matrix: dict[str, Any],
     market_divergence: dict[str, Any],
     *,
+    team_posture: dict[str, Any] | None = None,
     perspective_roster_id: int = 1,
     max_cards: int = DEFAULT_MAX_CARDS,
     captured_at: str | None = None,
 ) -> dict[str, Any]:
-    team_source = copy.deepcopy(team_matrix)
+    team_source = apply_team_postures(team_matrix, team_posture)
     divergence_source = copy.deepcopy(market_divergence)
     captured = captured_at or datetime.now(timezone.utc).isoformat()
     teams = _team_by_roster(team_source)
@@ -453,8 +477,10 @@ def build_league_opportunity_map(
         "source_artifacts": {
             "team_matrix_schema_version": team_source.get("schema_version"),
             "market_divergence_schema_version": divergence_source.get("schema_version"),
+            "team_posture_schema_version": (team_posture or {}).get("schema_version"),
             "team_matrix_captured_at": team_source.get("captured_at"),
             "market_divergence_captured_at": divergence_source.get("captured_at"),
+            "team_posture_captured_at": (team_posture or {}).get("captured_at"),
         },
         "perspective_roster_id": perspective_roster_id,
         "partner_rankings": partner_rankings,
@@ -464,7 +490,7 @@ def build_league_opportunity_map(
         "caveats": [
             "phase17_non_decision_grade",
             "future_pick_values_deferred",
-            "posture_unclassified",
+            *([] if team_posture else ["posture_unclassified"]),
         ],
     }
     result["coverage"] = _coverage(cards, partner_rankings)

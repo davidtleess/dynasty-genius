@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 
-def test_refresh_league_intelligence_runs_phase17_scripts_in_order():
+def test_refresh_league_intelligence_runs_pipeline_scripts_in_order():
     from scripts.refresh_league_intelligence import PHASE_STEPS, run_refresh
 
     calls: list[list[str]] = []
@@ -19,15 +19,16 @@ def test_refresh_league_intelligence_runs_phase17_scripts_in_order():
     result = run_refresh(runner=runner)
 
     assert result["status"] == "complete"
-    assert [step.phase for step in PHASE_STEPS] == ["17.1", "17.2", "17.3", "17.4", "17.5"]
+    assert [step.phase for step in PHASE_STEPS] == ["17.1", "17.2", "17.3", "18.3", "17.4", "17.5"]
     assert calls == [
         [sys.executable, "scripts/build_sleeper_universe_snapshot.py"],
         [sys.executable, "scripts/build_universe_pvo_batch.py"],
         [sys.executable, "scripts/build_team_value_matrix.py"],
+        [sys.executable, "scripts/build_team_posture.py"],
         [sys.executable, "scripts/build_universe_market_divergence.py"],
         [sys.executable, "scripts/build_league_opportunity_map.py"],
     ]
-    assert [item["status"] for item in result["steps"]] == ["passed"] * 5
+    assert [item["status"] for item in result["steps"]] == ["passed"] * 6
     assert result["decision_supported"] is False
     assert result["market_data_overlay_only"] is True
 
@@ -62,5 +63,5 @@ def test_refresh_league_intelligence_dry_run_reports_commands_without_execution(
     result = run_refresh(dry_run=True, runner=runner)
 
     assert result["status"] == "dry_run"
-    assert [step["status"] for step in result["steps"]] == ["planned"] * 5
+    assert [step["status"] for step in result["steps"]] == ["planned"] * 6
     assert result["steps"][0]["command"] == [sys.executable, "scripts/build_sleeper_universe_snapshot.py"]

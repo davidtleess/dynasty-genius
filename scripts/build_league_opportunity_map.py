@@ -17,6 +17,7 @@ from src.dynasty_genius.league_opportunity_map import (  # noqa: E402
 
 TEAM_MATRIX_PATH = ROOT / "app" / "data" / "valuation" / "team_value_matrix_latest.json"
 MARKET_DIVERGENCE_PATH = ROOT / "app" / "data" / "valuation" / "universe_market_divergence_latest.json"
+TEAM_POSTURE_PATH = ROOT / "app" / "data" / "valuation" / "team_posture_latest.json"
 OUTPUT_DIR = ROOT / "app" / "data" / "valuation"
 
 
@@ -25,9 +26,11 @@ def _load_json(path: Path) -> dict:
 
 
 def main() -> None:
+    team_posture = _load_json(TEAM_POSTURE_PATH) if TEAM_POSTURE_PATH.exists() else None
     opportunity_map = build_league_opportunity_map(
         _load_json(TEAM_MATRIX_PATH),
         _load_json(MARKET_DIVERGENCE_PATH),
+        team_posture=team_posture,
         perspective_roster_id=1,
         captured_at=datetime.now(timezone.utc).isoformat(),
     )

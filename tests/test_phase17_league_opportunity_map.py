@@ -188,6 +188,36 @@ def test_partner_ranking_prioritizes_counterparty_surplus_matching_david_deficit
     assert all(ranking["counterparty_roster_id"] != 1 for ranking in result["partner_rankings"])
 
 
+def test_partner_ranking_uses_posture_alignment_when_posture_artifact_is_available():
+    from src.dynasty_genius.league_opportunity_map import build_league_opportunity_map
+
+    team_matrix, market_divergence = _fixtures()
+    posture_artifact = {
+        "schema_version": "team_posture.v1",
+        "teams": [
+            {"roster_id": 1, "posture": {"label": "REBUILDING", "score": -0.6, "decision_supported": False}},
+            {"roster_id": 2, "posture": {"label": "CONTENDER", "score": 0.8, "decision_supported": False}},
+            {"roster_id": 3, "posture": {"label": "REBUILDING", "score": -0.5, "decision_supported": False}},
+        ],
+        "decision_supported": False,
+    }
+
+    result = build_league_opportunity_map(
+        team_matrix,
+        market_divergence,
+        team_posture=posture_artifact,
+        perspective_roster_id=1,
+    )
+
+    by_roster = {row["counterparty_roster_id"]: row for row in result["partner_rankings"]}
+    assert by_roster[2]["score_components"]["posture_alignment_score"] > 0
+    assert by_roster[3]["score_components"]["posture_alignment_score"] == 0.05
+    assert by_roster[2]["evidence"]["perspective_posture"] == "REBUILDING"
+    assert by_roster[2]["evidence"]["counterparty_posture"] == "CONTENDER"
+    assert "posture_unclassified" not in result["caveats"]
+    assert result["source_artifacts"]["team_posture_schema_version"] == "team_posture.v1"
+
+
 def test_opportunity_map_does_not_mutate_inputs():
     from src.dynasty_genius.league_opportunity_map import build_league_opportunity_map
 

@@ -24,6 +24,7 @@ PHASE_STEPS: tuple[PhaseStep, ...] = (
     PhaseStep("17.1", "Sleeper universe snapshot", "scripts/build_sleeper_universe_snapshot.py"),
     PhaseStep("17.2", "Full-universe PVO batch", "scripts/build_universe_pvo_batch.py"),
     PhaseStep("17.3", "Team value matrix", "scripts/build_team_value_matrix.py"),
+    PhaseStep("18.3", "Team posture classification", "scripts/build_team_posture.py"),
     PhaseStep("17.4", "Market divergence overlay", "scripts/build_universe_market_divergence.py"),
     PhaseStep("17.5", "League opportunity map", "scripts/build_league_opportunity_map.py"),
 )
