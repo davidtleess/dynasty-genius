@@ -34,7 +34,8 @@ PROHIBITED_COLUMN_PATTERNS = (
     "route_grade",
 )
 
-_ELIGIBLE_POSITIONS = {"WR", "RB"}
+_ELIGIBLE_POSITIONS = {"WR", "RB", "HB"}
+_POSITION_NORMALIZE = {"HB": "RB"}
 
 
 class PFFWRExportError(ValueError):
@@ -124,10 +125,6 @@ def parse_pff_wr_season(
         raw_rows = list(reader)
 
     prohibited = _check_prohibited(headers)
-    if prohibited:
-        raise PFFWRExportError(
-            f"prohibited grade columns in PFF export: {prohibited}"
-        )
 
     col_map: dict[str, str] = {}
     missing: list[str] = []
@@ -151,13 +148,14 @@ def parse_pff_wr_season(
         if pos not in _ELIGIBLE_POSITIONS:
             continue
         wr_rb_count += 1
+        normalized_pos = _POSITION_NORMALIZE.get(pos, pos)
 
         pff_id = _norm_id(raw.get(col_map["pff_id"]))
         rows.append({
             "pff_id": pff_id,
             "player_name": (raw.get(col_map["player_name"]) or "").strip(),
             "college": (raw.get(col_map["college"]) or "").strip(),
-            "position": pos,
+            "position": normalized_pos,
             "season": season,
             "routes": _to_float(raw.get(col_map["routes"])),
             "yprr": _to_float(raw.get(col_map["yprr"])),

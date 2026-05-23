@@ -66,11 +66,23 @@ def test_parse_excludes_te_rows(tmp_path):
     assert result.rows[0]["pff_id"] == "1"
 
 
-def test_parse_rejects_grade_columns(tmp_path):
+def test_parse_tolerates_grade_columns(tmp_path):
+    # Real PFF exports include grades_* columns — parser must tolerate them,
+    # report them in prohibited_columns, and never emit grade keys in rows.
     rows = [_base_row(**{"grades_offense": "88.5"})]
     path = _write_csv(rows, tmp_path)
-    with pytest.raises(PFFWRExportError, match="prohibited"):
-        parse_pff_wr_season(path, season=2022)
+    result = parse_pff_wr_season(path, season=2022)
+    assert len(result.rows) == 1
+    assert "grades_offense" in result.prohibited_columns
+    assert all("grade" not in key.lower() for key in result.rows[0])
+
+
+def test_parse_hb_normalized_to_rb(tmp_path):
+    rows = [_base_row(player_id="3", player="HB Player", position="HB")]
+    path = _write_csv(rows, tmp_path)
+    result = parse_pff_wr_season(path, season=2022)
+    assert len(result.rows) == 1
+    assert result.rows[0]["position"] == "RB"
 
 
 def test_parse_yprr_as_float(tmp_path):
