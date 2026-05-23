@@ -28,11 +28,14 @@ from scripts.build_w2_features import (
     ALL_RB_FEATURE_STUBS,
     ALL_TE_FEATURE_STUBS,
     MEAN_TE_HEIGHT_INCHES,
+    _load_combine_data,
     build_combine_lookup,
     compute_age_position_features,
+    compute_all_stubs,
     compute_bmi,
     compute_combine_features,
     compute_dominator_features,
+    compute_draft_capital_aliases,
     compute_rb_meets_athletic_floor,
     compute_rb_speed_score,
     compute_te_height_adj_speed_score,
@@ -44,6 +47,7 @@ from src.dynasty_genius.models.head_b_contract import (
     HEAD_B_PROHIBITED_COLUMNS,
     MARKET_PROHIBITED_COLUMNS,
     PFF_GRADE_PROHIBITED_COLUMNS,
+    V3_POSITION_HEAD_A_FEATURES,
     V3_POSITION_HEAD_B_FEATURES,
 )
 
@@ -337,3 +341,210 @@ def test_no_draft_capital_in_head_b_stubs():
         assert col not in HEAD_B_PROHIBITED_COLUMNS, (
             f"Stub {col!r} is a prohibited Head B draft-capital column"
         )
+
+
+# ── compute_draft_capital_aliases ─────────────────────────────────────────────
+
+def test_draft_capital_alias_pick_populated():
+    row = {"pick": "25", "round": "1"}
+    result = compute_draft_capital_aliases(row)
+    assert result["nfl_pick"] == "25"
+    assert result["nfl_pick_missing"] == "0"
+    assert result["nfl_pick_source"] == "nfl_data_py"
+
+
+def test_draft_capital_alias_round_populated():
+    row = {"pick": "25", "round": "1"}
+    result = compute_draft_capital_aliases(row)
+    assert result["nfl_round"] == "1"
+    assert result["nfl_round_missing"] == "0"
+    assert result["nfl_round_source"] == "nfl_data_py"
+
+
+def test_draft_capital_alias_missing_pick():
+    result = compute_draft_capital_aliases({"pick": "", "round": "2"})
+    assert result["nfl_pick"] == ""
+    assert result["nfl_pick_missing"] == "1"
+    assert result["nfl_pick_source"] == ""
+
+
+def test_draft_capital_alias_missing_round():
+    result = compute_draft_capital_aliases({"pick": "50", "round": ""})
+    assert result["nfl_round"] == ""
+    assert result["nfl_round_missing"] == "1"
+
+
+def test_draft_capital_alias_both_missing():
+    result = compute_draft_capital_aliases({})
+    assert result["nfl_pick_missing"] == "1"
+    assert result["nfl_round_missing"] == "1"
+
+
+# ── Schema coverage: V3_POSITION_HEAD_A_FEATURES ──────────────────────────────
+
+def _make_full_row(position: str) -> dict[str, str]:
+    """Simulate what W2 main() produces for a single row at a given position."""
+    combine_specs = {
+        "WR": {"pos": "WR", "ht": "6-1", "wt": 200.0, "forty": 4.40,
+               "vertical": 38.0, "broad_jump": 120.0, "cone": 6.69, "shuttle": 4.10},
+        "RB": {"pos": "RB", "ht": "5-10", "wt": 215.0, "forty": 4.45,
+               "vertical": 34.0, "broad_jump": 118.0, "cone": 6.95, "shuttle": 4.25},
+        "TE": {"pos": "TE", "ht": "6-4", "wt": 250.0, "forty": 4.60,
+               "vertical": 33.0, "broad_jump": 112.0, "cone": 7.05, "shuttle": 4.30},
+    }
+    spec = combine_specs.get(position, combine_specs["WR"])
+    df = pd.DataFrame([{
+        "draft_year": 2020.0, "draft_ovr": 25.0, "player_name": "TestPlayer",
+        **spec,
+    }])
+    lookup = build_combine_lookup(df)
+
+    # W1-provided columns (already in v3 CSV before W2 runs)
+    base = {
+        "season": "2020", "pick": "25", "round": "1",
+        "position": position, "age": "22.0",
+        "age_at_draft": "22.0", "age_at_draft_missing": "0",
+        "age_at_draft_source": "nfl_data_py",
+        "gsis_id": "test-gsis-99",
+        # CFBD universal stubs from W1 compute_v3_universal_features
+        "covid_eligibility_flag": "", "covid_eligibility_flag_missing": "1",
+        "covid_eligibility_flag_source": "",
+        "transfer_portal_flag": "", "transfer_portal_flag_missing": "1",
+        "transfer_portal_flag_source": "",
+        "early_declare": "", "early_declare_missing": "1",
+        "early_declare_source": "",
+        "final_college_age": "", "final_college_age_missing": "1",
+        "final_college_age_source": "",
+    }
+    row: dict[str, str] = dict(base)
+    row.update(compute_combine_features(row, lookup))
+    row.update(compute_draft_capital_aliases(row))
+    row.update(compute_age_position_features(row))
+    row.update(compute_dominator_features(row, {}))
+    row.update(compute_all_stubs(position))
+    return row
+
+
+def test_head_a_wr_features_covered_by_w2_output():
+    """All WR V3_POSITION_HEAD_A_FEATURES must be present as keys in W2 output."""
+    row = _make_full_row("WR")
+    for feat in V3_POSITION_HEAD_A_FEATURES["WR"]:
+        assert feat in row, f"WR Head A required feature '{feat}' missing from W2 output"
+
+
+def test_head_a_rb_features_covered_by_w2_output():
+    row = _make_full_row("RB")
+    for feat in V3_POSITION_HEAD_A_FEATURES["RB"]:
+        assert feat in row, f"RB Head A required feature '{feat}' missing from W2 output"
+
+
+def test_head_a_te_features_covered_by_w2_output():
+    row = _make_full_row("TE")
+    for feat in V3_POSITION_HEAD_A_FEATURES["TE"]:
+        assert feat in row, f"TE Head A required feature '{feat}' missing from W2 output"
+
+
+def test_nfl_pick_not_in_head_b_output():
+    """nfl_pick must be in the W2 row but excluded from V3_POSITION_HEAD_B_FEATURES."""
+    row = _make_full_row("WR")
+    assert "nfl_pick" in row, "nfl_pick must appear in W2 output for Head A"
+    assert "nfl_pick" not in V3_POSITION_HEAD_B_FEATURES["WR"], (
+        "nfl_pick must not be in Head B feature set"
+    )
+
+
+def test_nfl_round_not_in_head_b_output():
+    row = _make_full_row("RB")
+    assert "nfl_round" in row
+    assert "nfl_round" not in V3_POSITION_HEAD_B_FEATURES["RB"]
+
+
+# ── Combine load failure behavior ─────────────────────────────────────────────
+
+def test_combine_load_failure_raises_by_default(monkeypatch):
+    """Without allow_degraded, _load_combine_data() failure must propagate."""
+    import scripts.build_w2_features as bwf
+
+    def _raise_on_load():
+        raise ConnectionError("network unavailable")
+
+    monkeypatch.setattr(bwf, "_load_combine_data", _raise_on_load)
+
+    with pytest.raises((RuntimeError, ConnectionError)):
+        bwf.main(allow_degraded=False)
+
+
+def test_combine_load_failure_degraded_writes_missing_stubs(monkeypatch, tmp_path):
+    """With allow_degraded=True, Combine failure writes _missing=1 stubs and
+    stamps w2_combine_degraded=1 on every row."""
+    import scripts.build_w2_features as bwf
+
+    # Minimal v3 CSV with required source columns
+    src_csv = tmp_path / "v3.csv"
+    src_csv.write_text(
+        "season,pick,round,position,age,age_at_draft,age_at_draft_missing,"
+        "age_at_draft_source,gsis_id\n"
+        "2020,25,1,WR,22.0,22.0,0,nfl_data_py,test-01\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(bwf, "V3_CSV", src_csv)
+    monkeypatch.setattr(bwf, "CFBD_PARTIAL_CSV", tmp_path / "no_dom.csv")
+    def _fail_load():
+        raise ConnectionError("no net")
+
+    monkeypatch.setattr(bwf, "_load_combine_data", _fail_load)
+
+    bwf.main(allow_degraded=True)
+
+    import csv as _csv
+    with src_csv.open(newline="", encoding="utf-8") as f:
+        out_rows = list(_csv.DictReader(f))
+
+    assert len(out_rows) == 1
+    assert out_rows[0]["height_missing"] == "1"
+    assert out_rows[0]["w2_combine_degraded"] == "1"
+
+
+def test_degraded_flag_cleared_on_successful_rerun(monkeypatch, tmp_path):
+    """After a degraded run, a successful rerun must stamp w2_combine_degraded=0.
+
+    Regression guard for the stale-flag bug: combine_degraded=1 must not persist
+    when a subsequent normal (non-degraded) run loads Combine data successfully.
+    """
+    import scripts.build_w2_features as bwf
+
+    src_csv = tmp_path / "v3.csv"
+    src_csv.write_text(
+        "season,pick,round,position,age,age_at_draft,age_at_draft_missing,"
+        "age_at_draft_source,gsis_id\n"
+        "2020,25,1,WR,22.0,22.0,0,nfl_data_py,test-01\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(bwf, "V3_CSV", src_csv)
+    monkeypatch.setattr(bwf, "CFBD_PARTIAL_CSV", tmp_path / "no_dom.csv")
+
+    # Step 1: degraded run stamps w2_combine_degraded=1
+    def _fail_load():
+        raise ConnectionError("no net")
+
+    monkeypatch.setattr(bwf, "_load_combine_data", _fail_load)
+    bwf.main(allow_degraded=True)
+
+    import csv as _csv
+    with src_csv.open(newline="", encoding="utf-8") as f:
+        after_degraded = list(_csv.DictReader(f))
+    assert after_degraded[0]["w2_combine_degraded"] == "1"
+
+    # Step 2: successful rerun (load succeeds, returns empty DataFrame — no entries)
+    def _empty_load():
+        return pd.DataFrame()
+
+    monkeypatch.setattr(bwf, "_load_combine_data", _empty_load)
+    bwf.main(allow_degraded=False)
+
+    with src_csv.open(newline="", encoding="utf-8") as f:
+        after_success = list(_csv.DictReader(f))
+    assert after_success[0]["w2_combine_degraded"] == "0", (
+        "Stale w2_combine_degraded=1 was not cleared on successful rerun"
+    )

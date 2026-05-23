@@ -461,6 +461,48 @@ def compute_age_position_features(row: dict) -> dict[str, str]:
     return result
 
 
+def compute_draft_capital_aliases(row: dict) -> dict[str, str]:
+    """Alias source pick/round columns to nfl_pick/nfl_round for Head A contract.
+
+    nfl_pick and nfl_round are required by DRAFT_CAPITAL_HEAD_A_ONLY and
+    prohibited by HEAD_B_PROHIBITED_COLUMNS. These aliases are written to the
+    v3 CSV so Head A models can consume them directly; Head B bake-off filters
+    them out via check_head_b_feature_leakage() before training.
+    """
+    result: dict[str, str] = {}
+
+    pick_val = row.get("pick", "")
+    round_val = row.get("round", "")
+
+    if pick_val and _safe_float(pick_val) is not None:
+        result.update({
+            "nfl_pick": pick_val,
+            "nfl_pick_missing": "0",
+            "nfl_pick_source": "nfl_data_py",
+        })
+    else:
+        result.update({
+            "nfl_pick": "",
+            "nfl_pick_missing": "1",
+            "nfl_pick_source": "",
+        })
+
+    if round_val and _safe_float(round_val) is not None:
+        result.update({
+            "nfl_round": round_val,
+            "nfl_round_missing": "0",
+            "nfl_round_source": "nfl_data_py",
+        })
+    else:
+        result.update({
+            "nfl_round": "",
+            "nfl_round_missing": "1",
+            "nfl_round_source": "",
+        })
+
+    return result
+
+
 def _make_stub(col: str) -> dict[str, str]:
     return {col: "", f"{col}_missing": "1", f"{col}_source": ""}
 
@@ -472,6 +514,15 @@ def compute_all_stubs(position: str) -> dict[str, str]:
     for col in all_stubs:
         result.update(_make_stub(col))
     return result
+
+
+# ── Combine data loader (extracted for testability) ───────────────────────────
+
+def _load_combine_data() -> pd.DataFrame:
+    """Load NFL Combine data via nflreadpy. Raises on failure."""
+    import nflreadpy  # noqa: PLC0415 — deferred import; may not be installed
+    combine_raw = nflreadpy.load_combine(COMBINE_YEARS)
+    return combine_raw.to_pandas() if hasattr(combine_raw, "to_pandas") else pd.DataFrame(combine_raw)
 
 
 # ── Leakage governance guard ──────────────────────────────────────────────────
@@ -493,7 +544,7 @@ def _assert_no_leakage() -> None:
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
 
-def main() -> None:
+def main(allow_degraded: bool = False) -> None:
     _assert_no_leakage()
 
     if not V3_CSV.exists():
@@ -512,16 +563,24 @@ def main() -> None:
         rows = list(csv.DictReader(f))
     print(f"  Loaded {len(rows)} rows  sha256=...{source_sha256[-8:]}")
 
-    # ── Load Combine data ────────────────────────────────────────────────────
+    # ── Load Combine data (fail-fast by default) ─────────────────────────────
     print(f"\n  Loading Combine data for years {COMBINE_YEARS[0]}–{COMBINE_YEARS[-1]}...")
+    combine_degraded = False
     try:
-        import nflreadpy
-        combine_raw = nflreadpy.load_combine(COMBINE_YEARS)
-        combine_df = combine_raw.to_pandas() if hasattr(combine_raw, "to_pandas") else pd.DataFrame(combine_raw)
+        combine_df = _load_combine_data()
     except Exception as exc:
-        print(f"  [WARN] Could not load Combine data: {exc}")
-        print("  Continuing with all Combine features as _missing='1' stubs.")
-        combine_df = pd.DataFrame()
+        if allow_degraded:
+            print(f"  [WARN] Combine load failed (--allow-degraded mode): {exc}")
+            print("  All Combine features will be written as _missing='1' stubs.")
+            print("  DEGRADED OUTPUT — blocked from W3/W4 bake-off and promotion use.")
+            combine_df = pd.DataFrame()
+            combine_degraded = True
+        else:
+            raise RuntimeError(
+                f"Combine data load failed. Re-run with --allow-degraded to continue "
+                f"without Combine data (degraded output is blocked from bake-off use). "
+                f"Original error: {exc}"
+            ) from exc
 
     combine_lookup = build_combine_lookup(combine_df)
     print(f"  Combine lookup: {len(combine_lookup)} entries")
@@ -545,6 +604,9 @@ def main() -> None:
         if combine_feats.get("height_missing") == "0":
             n_combine_hit += 1
         row.update(combine_feats)
+
+        # Draft capital aliases (Head A required; Head B bake-off will strip these)
+        row.update(compute_draft_capital_aliases(row))
 
         # Age position aliases (RB, TE)
         row.update(compute_age_position_features(row))
@@ -575,6 +637,9 @@ def main() -> None:
 
     # ── Write enriched CSV ───────────────────────────────────────────────────
     if rows:
+        degraded_val = "1" if combine_degraded else "0"
+        for row in rows:
+            row["w2_combine_degraded"] = degraded_val
         fieldnames = list(rows[0].keys())
         with V3_CSV.open("w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -582,6 +647,8 @@ def main() -> None:
             writer.writerows(rows)
     print(f"\n  Written: {V3_CSV}")
     print(f"  Columns: {len(rows[0]) if rows else 0}")
+    if combine_degraded:
+        print("  ** DEGRADED: w2_combine_degraded=1 on all rows — blocked from bake-off use **")
 
     # ── Governance count ─────────────────────────────────────────────────────
     new_sha256 = hashlib.sha256(V3_CSV.read_bytes()).hexdigest()
@@ -590,4 +657,16 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    _parser = argparse.ArgumentParser(description="Phase 19 W2 Feature Pipeline")
+    _parser.add_argument(
+        "--allow-degraded",
+        action="store_true",
+        help=(
+            "Continue with all Combine features as _missing='1' stubs if data load fails. "
+            "Degraded output is blocked from W3/W4 bake-off and promotion use "
+            "(w2_combine_degraded=1 written to every row)."
+        ),
+    )
+    _args = _parser.parse_args()
+    main(allow_degraded=_args.allow_degraded)
