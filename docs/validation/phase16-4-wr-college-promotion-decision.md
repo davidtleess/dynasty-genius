@@ -48,28 +48,21 @@ RYPTPA (Receiving Yards Per Team Pass Attempt) and YPRR (Yards Per Route Run fro
 
 The gate failure is not a data quality problem that more normalization can fix. It reflects a structural limitation in what PFF college data can measure.
 
-**PFF covers the same schools NFL scouts cover.** The players in the LOOCV training set who have RYPTPA and YPRR data are predominantly from Power 5 and high-major G5 programs. Draft capital (pick+round) already prices in everything the market knows about these players — and the market has access to the same PFF grades and efficiency metrics. Adding RYPTPA or YPRR to a model trained on this population cannot produce lift because the signal is already embedded in where the player was drafted.
+**Coverage skews toward high-draft programs.** The players in the LOOCV training set who have RYPTPA and YPRR data are predominantly from Power 5 and high-major G5 programs. One inference is that the market has access to the same PFF metrics and those signals are already embedded in draft capital — but the bake-off only demonstrates that no incremental lift was measured in this setup; it does not prove the mechanism.
 
-**True late-round sleepers are invisible to PFF by design.** Players like Puka Nacua (BYU, round 5), DeMario Douglas (Liberty, round 6), and Andrei Iosivas (Princeton, round 6) — exactly the players a dynasty manager wants to identify — come from programs PFF does not cover. Their college efficiency data does not exist in the PFF export. The 11 CFBD denominator gaps in the current dataset (schools with no pass_attempts record) are early evidence of this coverage pattern.
-
-**Spearman rank correlation by pick tier:** Tested at the end of Phase 19 Task 6 analysis. Near-zero correlation in every bucket including R4+ (picks 129+), confirming no monotonic relationship between PFF college efficiency and eventual dynasty PPG within any draft position stratum.
-
-**Mann-Whitney U (late-round sleepers):** R4+ players with ppg≥8 vs ppg<5 — p=0.644. No statistically significant difference in RYPTPA between eventual sleeper hits and busts in the same pick range.
+**Notable late-round players are not present in our governed PFF exports.** Players like Puka Nacua (BYU, round 5), DeMario Douglas (Liberty, round 6), and Andrei Iosivas (Princeton, round 6) — exactly the players a dynasty manager wants to identify — have no rows in the PFF exports used in this analysis. The 11 CFBD denominator gaps in the current dataset (matched schools with no recorded pass_attempts) are early evidence of this coverage pattern.
 
 ---
 
-## Strategic Direction (David-Confirmed)
+## Hypotheses for Next Phase
 
-> *"Yes. It's important we try to be smarter than the market. Anyone can look at draft capital."*  
-> — David, 2026-05-23
+The bake-off result motivates a direction shift, confirmed by David (2026-05-23): the goal is edge over other dynasty managers, not reconstruction of consensus. The following are hypotheses for Phase 20 scoping — they are not validated findings and require their own spec and gate process.
 
-The goal is edge over other dynasty managers, not reconstruction of consensus. PFF college metrics are consensus inputs — available to all managers and already priced into draft capital. Three candidate directions were identified:
+1. **CFBD production for non-PFF schools** — college receiving stats from CFBD cover all FBS programs and many FCS programs. This is the only path to efficiency data for players from programs not present in our governed PFF exports (e.g., BYU, Liberty, Princeton). CFBD quota confirmed available (66,449 requests remaining).
+2. **Dominator rating re-framed as draft-position signal** — school-adjusted production relative to pick expectations, controlling for program strength independently of PFF coverage.
+3. **Beat-rate target variable** — instead of predicting absolute PPG, train Engine A to predict whether a player outperforms his draft slot. A round-6 pick who produces WR2 output is a more valuable dynasty signal than a round-1 pick who produces the same output.
 
-1. **Dominator rating re-framed as draft-position signal** — school-adjusted production relative to pick expectations (beats the market by controlling for program strength separately from PFF coverage)
-2. **CFBD production for non-PFF schools** — college receiving stats from CFBD cover all FBS programs and many FCS programs. This is the only path to data on Puka Nacua's BYU years, DeMario Douglas's Liberty years, etc. CFBD quota confirmed available (66,449 requests remaining).
-3. **Beat-rate target variable** — instead of predicting absolute PPG, train Engine A to predict whether a player outperforms his draft slot. A round-6 pick who becomes a WR2 is a better dynasty asset than a round-1 pick who becomes a WR2.
-
-These directions are not mutually exclusive. They are candidates for Phase 19 strategic planning, subject to David's direction.
+These are candidates for Phase 20 scoping, not commitments. Each requires David's direction before spec or implementation work begins.
 
 ---
 
