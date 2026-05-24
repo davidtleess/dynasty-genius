@@ -1,11 +1,17 @@
 ---
 document: Phase 21 Specification — Roster Cut & Drop Candidate Engine
-version: 0.3
+version: 0.4
 phase: 21
 status: DRAFT — awaiting David approval
 author: Claude Code
 date: 2026-05-24
 changelog:
+  v0.4: Codex v0.3 re-review — two items: (1) reserve_slots == 0 + ir_ids non-empty →
+        INVALID_SNAPSHOT forced path (not COMPLIANT); reserve_unrestricted only meaningful
+        when reserve_slots > 0; third invariant test corrected; new test added. (2) UNKNOWN_STATUS
+        reserve occupants are not silent exemptions; early-return guard blocks on ILLEGAL_RESERVE,
+        UNKNOWN_STATUS, and INVALID_SNAPSHOT; all three surface as cut_priority=0 forced-review
+        candidates; new test added. W1 test count 30 → 32.
   v0.3: Codex re-review — four follow-ups: (1) IR compliance runs before over_limit early
         return; (2) draft_state.nfl_state.week + season_type added to data contract for
         taxi deadline logic; (3) Sleeper status normalization before reserve eligibility
@@ -228,7 +234,11 @@ Runs **unconditionally** before any early return. An `ILLEGAL_RESERVE` player mu
 
 #### Unrestricted-Reserve Invariant
 
-> When all six `reserve_allow_*` flags equal 0, `reserve_unrestricted = True`. This means the league permits **any player regardless of injury designation** to occupy a reserve slot — it is a completely open reserve. This is **not** the same as having zero reserve slots; `reserve_slots = 4` still contributes 4 slots to `total_capacity`. Tests must distinguish three states: (a) no reserve slots (`reserve_slots = 0`), (b) restricted reserve (≥ 1 flag = 1), and (c) unrestricted reserve (all flags = 0 with `reserve_slots > 0`). Only state (c) produces `reserve_unrestricted = True`.
+> `reserve_unrestricted = True` **requires `reserve_slots > 0`**. When all six `reserve_allow_*` flags equal 0 AND `reserve_slots > 0`, the league has a completely open reserve — any player regardless of injury designation may occupy a slot. When `reserve_slots == 0`, the `reserve_unrestricted` flag is computed but meaningless: any player found in `rosters[].reserve` occupies a slot that does not exist in league settings, and must surface as `INVALID_SNAPSHOT` (see below). Tests must distinguish four states:
+> - **(a) No reserve slots, reserve occupied** (`reserve_slots = 0`, `ir_ids` non-empty) → `INVALID_SNAPSHOT` forced path
+> - **(b) No reserve slots, none occupied** (`reserve_slots = 0`, `ir_ids` empty) → no IR compliance step needed
+> - **(c) Restricted reserve** (`reserve_slots > 0`, ≥ 1 flag = 1) → only matching-status players are `COMPLIANT`
+> - **(d) Unrestricted reserve** (`reserve_slots > 0`, all flags = 0) → all occupants `COMPLIANT`; `reserve_unrestricted = True`
 
 #### Status Normalization
 
@@ -273,9 +283,16 @@ An unrecognized string produces `"UNKNOWN_STATUS"` — do not raise; instead cav
 def _ir_compliance_status(
     sleeper_status: str | None,
     reserve_unrestricted: bool,
+    reserve_slots: int,
     settings: dict,
 ) -> tuple[str, list[str]]:
-    """Returns (status, caveats). Normalizes raw Sleeper status before flag lookup."""
+    """Returns (status, caveats). Normalizes raw Sleeper status before flag lookup.
+
+    Call once per player in ir_ids. The reserve_slots guard runs first:
+    if the league has no reserve slots, any ir_ids occupant is an invalid snapshot state.
+    """
+    if reserve_slots == 0:
+        return "INVALID_SNAPSHOT", ["reserve_slot_does_not_exist_in_league_settings"]
     if reserve_unrestricted:
         return "COMPLIANT", []
     canonical = _normalize_sleeper_status(sleeper_status)
@@ -287,15 +304,28 @@ def _ir_compliance_status(
     return "ILLEGAL_RESERVE", []
 ```
 
-Players with `ir_compliance_status = "ILLEGAL_RESERVE"` are **NOT simply exempt**. They are added to `cut_candidates` with `cut_priority = 0` (forced compliance, ahead of all model-ranked candidates) and a `cut_rationale` entry of `"reserve_slot_ineligible_must_comply"`. They also appear in the top-level `forced_compliance_caveats` list on the result.
+**Forced-review surface rules (all three non-compliant statuses):**
+
+| Status | `cut_priority` | `cut_rationale` entry | Notes |
+|--------|---------------|----------------------|-------|
+| `ILLEGAL_RESERVE` | 0 | `"reserve_slot_ineligible_must_comply"` | Status not permitted by league flags |
+| `UNKNOWN_STATUS` | 0 | `"reserve_eligibility_unknown_status_requires_review"` | Cannot determine eligibility — David must verify |
+| `INVALID_SNAPSHOT` | 0 | `"reserve_slot_does_not_exist_in_league_settings"` | Player in reserve list when league has 0 reserve slots |
+
+All three appear in `cut_candidates` and in the top-level `forced_compliance_caveats` list. **None are silently exempt.**
 
 In David's current roster: `reserve_unrestricted = True` → all three IR players are `COMPLIANT` and exempt.
 
 #### Early-Return Guard (runs after Step 4)
 
 ```python
-illegal_reserve_players = [p for p in ir_candidates if p.ir_compliance_status == "ILLEGAL_RESERVE"]
-if over_limit <= 0 and not illegal_reserve_players:
+_FORCED_REVIEW_STATUSES = frozenset({"ILLEGAL_RESERVE", "UNKNOWN_STATUS", "INVALID_SNAPSHOT"})
+
+compliance_blocked_players = [
+    p for p in ir_candidates
+    if p.ir_compliance_status in _FORCED_REVIEW_STATUSES
+]
+if over_limit <= 0 and not compliance_blocked_players:
     return RosterCutResult(
         ...,
         cuts_required=0,
@@ -307,7 +337,7 @@ if over_limit <= 0 and not illegal_reserve_players:
     )
 ```
 
-If `over_limit <= 0` **but** `illegal_reserve_players` is non-empty: continue processing to surface forced-compliance candidates — even though no numeric cut count is required, the compliance violation must be presented to David.
+The guard blocks early return for **all three non-compliant statuses** — `ILLEGAL_RESERVE`, `UNKNOWN_STATUS`, and `INVALID_SNAPSHOT`. An `UNKNOWN_STATUS` occupant cannot be silently treated as clean. David must confirm or dismiss every reserve occupant whose eligibility is ambiguous, even when the roster count itself requires no cuts.
 
 ### Step 5 — Taxi Eligibility Check
 
@@ -416,7 +446,7 @@ class RosterCutCandidate(BaseModel):
     cut_priority: int                # 0 = forced compliance; 1+ = model-ranked
     cut_rationale: list[str]         # neutral evidence strings
     age_cliff_warning: bool
-    ir_compliance_status: str | None # "COMPLIANT", "ILLEGAL_RESERVE", "UNKNOWN_STATUS", None
+    ir_compliance_status: str | None # "COMPLIANT", "ILLEGAL_RESERVE", "UNKNOWN_STATUS", "INVALID_SNAPSHOT", None
     taxi_eligibility: str | None     # "ELIGIBLE", "INELIGIBLE_VET", "UNKNOWN", None
     exempt: bool
     exempt_reason: str | None        # "taxi" | "ir_compliant" | None
@@ -455,7 +485,7 @@ class RosterCutResult(BaseModel):
 - Cliff age is evidence text only — it must not change a player's numeric score.
 - PRE_MODEL players (2026 rookies with no NFL games) are tier D and explicitly caveated — not confirmed low-value.
 - No player is labeled "cut", "drop", or "release". The field is `cut_priority` (an ordinal rank of evidence) and `cut_rationale` (a list of neutral evidence strings).
-- `ILLEGAL_RESERVE` players surface as forced compliance evidence, not as model-ranked cuts.
+- `ILLEGAL_RESERVE`, `UNKNOWN_STATUS`, and `INVALID_SNAPSHOT` reserve occupants all surface as `cut_priority = 0` forced-review candidates — never as silent exemptions.
 
 ---
 
@@ -604,7 +634,14 @@ app/data/valuation/league_opportunity_cut_phase*.json
 |------|-----------------|
 | `test_all_reserve_allow_zero_means_unrestricted` | Settings with all six `reserve_allow_*` = 0 and `reserve_slots = 4` → `reserve_unrestricted = True`; IR players of any status are `COMPLIANT` |
 | `test_partial_reserve_flags_means_restricted` | Settings with `reserve_allow_out = 1` and all others = 0 → `reserve_unrestricted = False`; only `sleeper_status = "Out"` produces `COMPLIANT` |
-| `test_reserve_unrestricted_differs_from_no_reserve_slots` | Settings with all flags = 0 but `reserve_slots = 0` → `reserve_unrestricted = True` but `total_capacity = active_slots + taxi_slots` (0 reserve slots contribute nothing); any player in `ir_ids` is `COMPLIANT` by flag logic but the slot doesn't exist — verifies the invariant is flag-derived, not slot-count-derived |
+| `test_reserve_unrestricted_is_false_when_reserve_slots_zero` | Settings with all flags = 0 but `reserve_slots = 0` → `reserve_unrestricted` computed as True by flags, but `_ir_compliance_status` with `reserve_slots = 0` returns `"INVALID_SNAPSHOT"` regardless; `total_capacity = active_slots + taxi_slots` (no reserve contribution) |
+
+**v0.4 Blocker — Invalid-snapshot and UNKNOWN_STATUS forced-review:**
+
+| Test | What it verifies |
+|------|-----------------|
+| `test_reserve_slots_zero_with_ir_players_surfaces_invalid_snapshot` | Settings with `reserve_slots = 0` and a player in `ir_ids` → `ir_compliance_status = "INVALID_SNAPSHOT"`, player appears in `cut_candidates` with `cut_priority = 0`, rationale includes `"reserve_slot_does_not_exist_in_league_settings"` |
+| `test_unknown_status_reserve_surfaces_even_when_roster_at_capacity` | A synthetic roster exactly at capacity (26/26) with a reserve player whose normalized status is unrecognized → `cuts_required = 0` but result still contains one `cut_priority = 0` candidate with `ir_compliance_status = "UNKNOWN_STATUS"` and rationale `"reserve_eligibility_unknown_status_requires_review"` |
 
 **Scoring and governance:**
 
@@ -642,7 +679,7 @@ app/data/valuation/league_opportunity_cut_phase*.json
 
 | Workstream | Scope | TDD tests | Dependency |
 |-----------|-------|-----------|------------|
-| W1 — RosterCutEngine | New standalone module | 30 | None |
+| W1 — RosterCutEngine | New standalone module | 32 | None |
 | W2 — Waiver-Drop integration | Extend `league_opportunity_map.py` | 7 | W1 complete |
 | W3 — Build script | CLI + artifact writer | Manual smoke test | W1 + W2 complete |
 
@@ -659,7 +696,7 @@ Each workstream follows Red-Green-Refactor. Tests are written first and confirme
 | Cliff age is evidence only, not score modifier | `test_cliff_age_is_evidence_not_score` |
 | Taxi players always exempt | `test_taxi_player_is_exempt_regardless_of_eligibility` |
 | Compliant IR players exempt | `test_ir_players_exempt_when_compliant` |
-| ILLEGAL_RESERVE players surface as forced compliance, not exempt | `test_illegal_reserve_not_simply_exempt` |
+| `ILLEGAL_RESERVE`, `UNKNOWN_STATUS`, `INVALID_SNAPSHOT` all surface as forced-review (cut_priority=0), never silently exempt | `test_illegal_reserve_not_simply_exempt`, `test_unknown_status_reserve_surfaces_even_when_roster_at_capacity`, `test_reserve_slots_zero_with_ir_players_surfaces_invalid_snapshot` |
 | Defensive capacity math (no double-counting) | `test_roster_positions_containing_ir_raises` |
 | No imperative language | `cut_priority` (ordinal rank) + `cut_rationale` (evidence list); banned language list in module |
 | PRE_MODEL rookies ranked last with explicit caveat | Tier D with `"pre_model_no_nfl_games_insufficient_signal"` caveat |
