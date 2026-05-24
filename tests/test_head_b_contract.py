@@ -229,8 +229,18 @@ def test_pff_grade_set_includes_key_subjective_grades():
 # ── W1 target column isolation ────────────────────────────────────────────────
 
 def test_w1_target_columns_not_in_head_b_prohibited():
-    """W1 target columns must not overlap with draft-capital prohibition."""
-    for col in W1_TARGET_COLUMNS:
+    """Non-expectation W1 target columns must not overlap with draft-capital prohibition.
+
+    Columns that derive from the draft slot (expected_ppg_at_pick, curve_expected_ppg)
+    are intentionally in both W1_TARGET_COLUMNS and HEAD_B_PROHIBITED_COLUMNS: they are
+    W1 pipeline outputs that are also banned as Head B training features because they
+    encode draft slot information.
+    """
+    _draft_slot_derived_targets: frozenset[str] = frozenset({
+        "expected_ppg_at_pick",
+        "curve_expected_ppg",
+    })
+    for col in W1_TARGET_COLUMNS - _draft_slot_derived_targets:
         assert col not in HEAD_B_PROHIBITED_COLUMNS, (
             f"W1 target column '{col}' is in HEAD_B_PROHIBITED_COLUMNS"
         )

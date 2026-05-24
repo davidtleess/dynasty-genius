@@ -23,6 +23,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[3]
 MODELS_DIR = ROOT / "app" / "data" / "models"
 LATEST_POINTER = MODELS_DIR / "latest.json"
+V3_MANIFEST_POINTER = MODELS_DIR / "head_a" / "v3_manifest.json"
 
 # p90 of y24_ppg from the full training distribution (prospects_with_outcomes.csv).
 # Used as the soft ceiling for dynasty_value_score normalization.
@@ -131,3 +132,106 @@ def score_prospect(
 ) -> Optional[dict]:
     """Public interface. Returns scoring dict or None if unsupported position."""
     return _scorer.score(position, pick, round_, age)
+
+
+# ── Engine A v3: TE Head A Ridge (Phase 19 W5) ───────────────────────────────
+
+# Features required by the v3 model for each position, in prediction order.
+# Only positions listed here have a v3 contract.
+HEAD_A_V3_FEATURE_CONTRACTS: dict[str, list[str]] = {
+    "TE": [
+        "nfl_pick",
+        "nfl_round",
+        "final_college_age",
+        "te_ryptpa_final",
+        "te_yards_per_reception_career",
+    ],
+}
+
+_ENGINE_A_V3_GRADES: dict[str, str] = {
+    "TE": "PROSPECT_C",
+}
+
+
+class EngineAV3Scorer:
+    """Loads v3 Head A artifacts once per manifest entry and scores on demand.
+
+    Silently returns None on any missing artifact — this allows CI to run
+    without requiring the gitignored pkl to be present.
+    """
+
+    def __init__(self) -> None:
+        self._models: dict[str, object] = {}
+        self._loaded = False
+
+    def _load(self) -> bool:
+        if self._loaded:
+            return True
+        if not V3_MANIFEST_POINTER.exists():
+            return False
+        manifest = json.loads(V3_MANIFEST_POINTER.read_text())
+        for pos, pkl_path_str in manifest.items():
+            pkl_path = Path(pkl_path_str)
+            if not pkl_path.is_absolute():
+                pkl_path = ROOT / pkl_path
+            if not pkl_path.exists():
+                continue
+            with open(pkl_path, "rb") as f:
+                self._models[pos] = pickle.load(f)
+        self._loaded = True
+        return True
+
+    def score(self, position: str, features: dict) -> Optional[dict]:
+        pos = position.upper()
+        contract = HEAD_A_V3_FEATURE_CONTRACTS.get(pos)
+        if contract is None:
+            return None
+
+        # All required features must be present and non-None.
+        for feat in contract:
+            if features.get(feat) is None:
+                return None
+
+        if not self._load():
+            return None
+
+        model = self._models.get(pos)
+        if model is None:
+            return None
+
+        X = np.array([[features[feat] for feat in contract]])
+        y_ppg = float(model.predict(X)[0])
+
+        p90 = _P90_PPG[pos]
+        raw_score = max(0.0, y_ppg) / p90 * 100.0
+        dynasty_value_score = round(min(100.0, raw_score), 2)
+
+        caveats = (
+            ["head_a_v3_college_features_used"]
+            + list(_UNIVERSAL_CAVEATS)
+            + list(_POSITION_CAVEATS.get(pos, []))
+        )
+
+        return {
+            "dynasty_value_score": dynasty_value_score,
+            "engine_used": "engine_a_v3_head_a_ridge",
+            "model_version": "head_a_te_v3_ridge",
+            "model_grade": _ENGINE_A_V3_GRADES[pos],
+            "y24_ppg_raw": round(y_ppg, 4),
+            "caveats": caveats,
+        }
+
+
+_v3_scorer = EngineAV3Scorer()
+
+
+def score_prospect_v3(position: str, features: dict) -> Optional[dict]:
+    """Score a TE prospect using the v3 Head A Ridge model.
+
+    Returns None when:
+    - position has no v3 contract (WR/RB/QB)
+    - any required college feature is absent or None
+    - v3_manifest.json does not exist (CI / pre-promotion environments)
+    - the position pkl is missing from the manifest
+    """
+    return _v3_scorer.score(position, features)

@@ -49,17 +49,29 @@ To maintain data integrity and prevent false matches:
    - Age of the player (fitted from draft age) in the earliest season they achieved a ≥20% averaged dominator rating.
 3. **`wr_market_share_yds`**:
    - `player_rec_yds / team_rec_yds` in their final college season (yards share only — distinct from `wr_dominator_final`).
-4. **`wr_rec_tds_per_game_final`**: **DARK** — see Section 4.
-5. **`wr_yards_per_reception_career`**:
+4. **`ryptpa`**:
+   - `player_rec_yds / team_pass_attempts` in their final college season (same formula as `te_ryptpa_final`).
+   - Uses `team_pass_attempts_lookup` prefetched via `fetch_team_pass_attempts`; dark when TPA unavailable.
+   - TPA prefetch now covers both TE and WR cohorts.
+5. **`wr_rec_tds_per_game_final`**: **DARK** — see Section 4.
+6. **`wr_yards_per_reception_career`**:
    - `total_career_rec_yards / total_career_receptions`.
+7. **`yprr_college`**: **DARK** — see Section 4.
 
 ### B. RB Features
 1. **`rb_final_dominator`**:
    - Formula: `(player_rush_yds + player_rec_yds) / (team_rush_yds + team_rec_yds)` in the player's final college season.
    - Uses `build_team_rush_lookup` for team rushing total and `build_team_rec_lookup` for team receiving total.
    - If player has no final-season rush data, feature is `_missing="1"`. Player receiving yds defaults to 0 if no receiving data found.
-2. **`rb_scrimmage_ypg`**: **DARK** — see Section 4.
-3. **`rb_rec_ypg`**: **DARK** — see Section 4.
+2. **`rb_scrimmage_ypg`**:
+   - `(player_rush_yds + player_rec_yds) / team_games` in the player's final college season.
+   - Team games fetched via CFBD `/games` endpoint (regular season); cached individually per (school, year).
+   - Dark when no games data available (`team_games_lookup` empty or no entry for this team/year).
+   - Source tag: `cfbd_team_games_proxy`.
+3. **`rb_rec_ypg`**:
+   - `player_rec_yds / team_games` in the player's final college season.
+   - Dark when games data or receiving data unavailable.
+   - Source tag: `cfbd_team_games_proxy`.
 4. **`rb_school_sp_plus`**:
    - The team's overall SP+ rating (`rating` field in `/ratings/sp`) in the player's final college season.
 
@@ -91,14 +103,15 @@ Derived from existing `age_at_draft` and `season` (draft year) in the v3 CSV —
 
 These features are locked to `_missing="1"` in `prospects_with_outcomes_v3.csv`. The column stubs exist in the CSV (written by W2) but are never populated by W2b.
 
-**Games-unavailable (CFBD API limitation)**: The CFBD `/stats/player/season` endpoint returns `LONG, REC, TD, YDS, YPR` for receiving and `CAR, LONG, TD, YDS, YPC` for rushing — it does **not** return a `G` (games played) statType. Confirmed by inspection of cached responses for all 2011–2024 seasons. Any feature requiring games played is therefore permanently dark from this data source.
+**Games-unavailable (CFBD `/stats/player/season` limitation)**: The CFBD player-stats endpoint does **not** return a `G` (games played) statType. `rb_scrimmage_ypg` and `rb_rec_ypg` are now computed via the `/games` endpoint team-games proxy (see Section 3B); they are only dark when that proxy is also unavailable.
 
-* **`wr_rec_tds_per_game_final`**: `player_rec_tds / games_played` — games unavailable.
-* **`rb_scrimmage_ypg`**: `(rush_yds + rec_yds) / games_played` in final season — games unavailable.
-* **`rb_rec_ypg`**: `rec_yds / games_played` in final season — games unavailable.
+* **`wr_rec_tds_per_game_final`**: `player_rec_tds / games_played` — games unavailable from player-stats endpoint; no team-games proxy applied for TDs.
+
+**PFF-data-only (permanently dark)**:
+* **`yprr_college`**: Yards per route run — requires PFF premium `yprr` field (routes run per season). Not present in CFBD. W2b does not have PFF coverage for 2014–2016 college seasons (only 2017–2023 exist in the PFF export manifest). Permanently `_missing="1"`.
+* **`te_deep_yard_share`**: PFF route-alignment dependent. CFBD does not contain targeted depth-of-target shares.
 
 **Other dark features**:
-* **`te_deep_yard_share`**: PFF route-alignment dependent. CFBD does not contain targeted depth-of-target shares.
 * **`transfer_portal_flag`**: CFBD portal data only goes back to 2019. Ingesting this would bias the training dataset against 2015–2018 classes. Stays `_missing="1"` for Phase 19.
 * **`rb_ras_composite` / `wr_ras_composite` / `te_ras_composite`**: RAS adapter remains mock-only.
 
@@ -114,7 +127,9 @@ This mirrors the W2 `w2_combine_degraded` flag pattern. A `w2b_cfbd_degraded="1"
 
 **Year-batched stats** (`load_player_stats`, `load_sp_ratings`): one JSON file per (year, category) in `app/data/cfbd_cache/`. Re-used on subsequent runs unless `--force-fetch` is passed.
 
-**Team pass attempts** (`fetch_team_pass_attempts`): one JSON file per (school, year) in `app/data/cfbd_cache/tpa_<school>_<year>.json`. The W2b pre-fetch loop checks this cache before making an API call. `--force-fetch` bypasses all caches.
+**Team pass attempts** (`fetch_team_pass_attempts`): one JSON file per (school, year) in `app/data/cfbd_cache/tpa_<school>_<year>.json`. Pre-fetch loop now covers both TE and WR cohorts. `--force-fetch` bypasses all caches.
+
+**Team games count** (`load_team_games_count`): one JSON file per (school, year) in `app/data/cfbd_cache/games_count_<school>_<year>.json`. Pre-fetch loop covers RB cohort. Mirrors TPA negative-caching pattern (null stored when API returns nothing).
 
 All cache files are gitignored (`app/data/cfbd_cache/`).
 
@@ -122,5 +137,5 @@ All cache files are gitignored (`app/data/cfbd_cache/`).
 
 ## 7. Verification Plan
 
-1. **Unit Tests (`tests/test_w2b_cfbd.py`)**: 45 tests covering formula correctness, dark-feature confirmation, degraded flag, TPA cache round-trip, and leakage guard.
-2. **Live artifact audit**: 874 rows × 149 cols; WR dominator 89.0%, RB dominator 88.4%, TE RYPTPA 86.2%; all dark features `_missing="1"`; `w2b_cfbd_degraded="0"`; no market/PFF-grade columns present.
+1. **Unit Tests (`tests/test_w2b_cfbd.py`)**: 57 tests covering formula correctness, dark-feature confirmation, games-proxy ypg, WR ryptpa contract column name (`ryptpa` not `wr_ryptpa`), yprr_college permanently dark, games-count cache round-trip, mixed-position CSV column union, degraded flag, TPA cache round-trip, and leakage guard.
+2. **Live artifact audit** (post-rebuild 2026-05-24): 874 rows × 155 cols; WR dominator 89.0%, `ryptpa` 85.9% (305/355); `yprr_college` always `_missing="1"`; `rb_scrimmage_ypg`/`rb_rec_ypg` 36.1% (84/233 — games proxy limited by CFBD API cache coverage); TE RYPTPA 86.2%; `w2b_cfbd_degraded="0"`; `wr_ryptpa` absent from headers; no market/PFF-grade columns present.

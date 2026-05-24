@@ -12,8 +12,12 @@ TDD suite covering:
   - compute_te_cfbd_features: TE RYPTPA + YPR career
   - compute_era_proxy_features: final_college_age, early_declare,
       wr_early_declare, covid_eligibility_flag from existing v3 columns
-  - Dark features: wr_rec_tds_per_game_final, rb_scrimmage_ypg, rb_rec_ypg
-      permanently _missing=1 (CFBD player/season endpoint omits games played)
+  - Dark features: wr_rec_tds_per_game_final, yprr_college permanently _missing=1
+      (CFBD player/season endpoint omits games played; yprr_college requires PFF)
+  - Games-proxy features: rb_scrimmage_ypg, rb_rec_ypg populated when team_games_lookup
+      provided (CFBD /games endpoint team-games proxy); dark when lookup absent
+  - wr_ryptpa: populated when team_pass_attempts_lookup provided; dark otherwise
+  - Games-count caching: _load_games_count_cache / _save_games_count_cache round-trip
   - w2b_cfbd_degraded: always-written provenance flag
   - TPA caching: _load_tpa_cache / _save_tpa_cache round-trip
   - Leakage guard: no draft-capital columns emitted by W2b functions
@@ -36,6 +40,7 @@ from scripts.build_w2b_cfbd import (
     compute_rb_cfbd_features,
     compute_te_cfbd_features,
     compute_wr_cfbd_features,
+    load_team_games_count,
     normalize_player_name,
     pivot_receiving_stats,
     pivot_rushing_stats,
@@ -293,6 +298,52 @@ def test_wr_rec_tds_per_game_final_is_dark():
     assert result["wr_rec_tds_per_game_final"] == ""
 
 
+def test_wr_ryptpa_populated_from_cfbd_receiving_and_team_pass_attempts():
+    """ryptpa = final_season_rec_yds / team_pass_attempts (downstream contract column name)."""
+    pivot, team_rec, team_td = _make_wr_lookups()
+    row = {"pfr_player_name": "Amari Cooper", "college": "Alabama",
+           "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0"}
+    tpa_lookup = {("Alabama", 2014): 350.0}
+    result = compute_wr_cfbd_features(row, pivot, team_rec, team_td,
+                                      team_pass_attempts_lookup=tpa_lookup)
+    assert result["ryptpa_missing"] == "0"
+    val = float(result["ryptpa"])
+    # Cooper 2014: rec_yds=1304, Alabama 2014 TPA=350 → 1304/350 ≈ 3.726
+    assert 3.5 < val < 4.0
+
+
+def test_wr_ryptpa_missing_when_no_pass_attempts_available():
+    """ryptpa stays _missing=1 when no TPA lookup entry for player's college/year."""
+    pivot, team_rec, team_td = _make_wr_lookups()
+    row = {"pfr_player_name": "Amari Cooper", "college": "Alabama",
+           "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0"}
+    result = compute_wr_cfbd_features(row, pivot, team_rec, team_td,
+                                      team_pass_attempts_lookup={})
+    assert result["ryptpa_missing"] == "1"
+    assert result["ryptpa"] == ""
+
+
+def test_wr_cfbd_features_does_not_emit_wr_ryptpa():
+    """W2b must write 'ryptpa', not 'wr_ryptpa' — downstream bakeoff contract uses 'ryptpa'."""
+    pivot, team_rec, team_td = _make_wr_lookups()
+    row = {"pfr_player_name": "Amari Cooper", "college": "Alabama",
+           "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0"}
+    result = compute_wr_cfbd_features(row, pivot, team_rec, team_td)
+    assert "wr_ryptpa" not in result, "must not emit 'wr_ryptpa' — contract column is 'ryptpa'"
+    assert "wr_ryptpa_missing" not in result
+    assert "wr_ryptpa_source" not in result
+
+
+def test_wr_yprr_college_is_dark():
+    """yprr_college is permanently dark: requires PFF premium routes-run data absent from CFBD."""
+    pivot, team_rec, team_td = _make_wr_lookups()
+    row = {"pfr_player_name": "Amari Cooper", "college": "Alabama",
+           "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0"}
+    result = compute_wr_cfbd_features(row, pivot, team_rec, team_td)
+    assert result["yprr_college_missing"] == "1"
+    assert result["yprr_college"] == ""
+
+
 def test_wr_features_missing_when_no_match():
     """Player not in pivot → all WR computed features return _missing=1."""
     pivot, team_rec, team_td = _make_wr_lookups()
@@ -327,8 +378,8 @@ def test_rb_final_dominator_scrimmage_formula():
     assert 0.65 < val < 0.72
 
 
-def test_rb_scrimmage_ypg_is_dark():
-    """rb_scrimmage_ypg is a dark feature: CFBD omits games from player stats."""
+def test_rb_scrimmage_ypg_missing_when_no_games_provided():
+    """rb_scrimmage_ypg is dark when team_games_lookup is empty (no games proxy available)."""
     rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
     row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
            "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
@@ -337,14 +388,51 @@ def test_rb_scrimmage_ypg_is_dark():
     assert result["rb_scrimmage_ypg"] == ""
 
 
-def test_rb_rec_ypg_is_dark():
-    """rb_rec_ypg is a dark feature: CFBD omits games from player stats."""
+def test_rb_rec_ypg_missing_when_no_games_provided():
+    """rb_rec_ypg is dark when team_games_lookup is empty (no games proxy available)."""
     rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
     row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
            "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
     result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp)
     assert result["rb_rec_ypg_missing"] == "1"
     assert result["rb_rec_ypg"] == ""
+
+
+def test_rb_scrimmage_ypg_populated_using_team_games_proxy():
+    """rb_scrimmage_ypg = (rush_yds + rec_yds) / team_games when lookup provided."""
+    rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
+    row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
+           "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
+    games_lookup = {("alabama", 2015): 14}
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp,
+                                      team_games_lookup=games_lookup)
+    assert result["rb_scrimmage_ypg_missing"] == "0"
+    val = float(result["rb_scrimmage_ypg"])
+    # Henry 2015: rush_yds=895, rec_yds=0 → scrimmage=895 / 14 games ≈ 63.93
+    assert 60.0 < val < 68.0
+
+
+def test_rb_rec_ypg_populated_using_team_games_proxy():
+    """rb_rec_ypg = rec_yds / team_games when lookup and rec data both provided."""
+    rush_pivot = pivot_rushing_stats(RUSH_2015, 2015)
+    recv_henry_2015 = [
+        {"player": "Derrick Henry", "team": "Alabama", "statType": "YDS", "stat": "100"},
+        {"player": "Derrick Henry", "team": "Alabama", "statType": "REC", "stat": "8"},
+        {"player": "Other WR", "team": "Alabama", "statType": "YDS", "stat": "600"},
+    ]
+    rec_pivot = pivot_receiving_stats(recv_henry_2015, 2015)
+    team_rush = build_team_rush_lookup(rush_pivot)
+    team_rec = build_team_rec_lookup(rec_pivot)
+    sp = build_sp_lookup(SP_2015, 2015)
+    row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
+           "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
+    games_lookup = {("alabama", 2015): 14}
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp,
+                                      team_games_lookup=games_lookup)
+    assert result["rb_rec_ypg_missing"] == "0"
+    val = float(result["rb_rec_ypg"])
+    # Henry 2015: rec_yds=100, team_games=14 → 100/14 ≈ 7.14
+    assert 6.5 < val < 8.0
 
 
 def test_rb_scrimmage_dominator_includes_receiving_when_available():
@@ -537,6 +625,34 @@ def test_tpa_negative_cache_roundtrip(tmp_path, monkeypatch):
     assert value is None
 
 
+# ── Games-count cache round-trip ─────────────────────────────────────────────
+
+def test_games_count_cache_roundtrip_positive(tmp_path, monkeypatch):
+    """Positive games-count cache: (True, int) round-trip."""
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
+    bw2b._save_games_count_cache("Alabama", 2021, 14)
+    hit, value = bw2b._load_games_count_cache("Alabama", 2021)
+    assert hit is True
+    assert value == 14
+
+
+def test_games_count_cache_miss_when_absent(tmp_path, monkeypatch):
+    """No cache file → (False, None); caller must fetch from API."""
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
+    hit, value = bw2b._load_games_count_cache("NoTeam", 2021)
+    assert hit is False
+    assert value is None
+
+
+def test_games_count_negative_cache_roundtrip(tmp_path, monkeypatch):
+    """Negative games-count cache: (True, None) prevents redundant re-fetch."""
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
+    bw2b._save_games_count_cache("FCS School", 2021, None)
+    hit, value = bw2b._load_games_count_cache("FCS School", 2021)
+    assert hit is True
+    assert value is None
+
+
 # ── w2b_cfbd_degraded provenance flag ────────────────────────────────────────
 
 def _minimal_v3_csv(path):
@@ -596,6 +712,73 @@ def test_w2b_degraded_flag_cleared_on_success(monkeypatch, tmp_path):
     with v3_path.open(newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     assert rows[0]["w2b_cfbd_degraded"] == "0"
+
+
+def test_w2b_wr_output_includes_ryptpa_and_yprr_college_stubs(monkeypatch, tmp_path):
+    """W2b main() must write 'ryptpa' and 'yprr_college' columns for all WR rows.
+
+    Verifies the downstream bakeoff contract: run_head_a_bakeoff.py and
+    run_wr_college_bakeoff.py both consume 'ryptpa' and 'yprr_college'.
+    """
+    v3_path = tmp_path / "v3.csv"
+    v3_path.write_text(
+        "season,position,pfr_player_name,college,age_at_draft,age_at_draft_missing\n"
+        "2015,WR,Amari Cooper,Alabama,21.0,0\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(bw2b, "V3_CSV", v3_path)
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(bw2b, "_cfbd_api_key", lambda: "test_key")
+    monkeypatch.setattr(bw2b, "load_player_stats", lambda *a, **kw: [])
+    monkeypatch.setattr(bw2b, "load_sp_ratings", lambda *a, **kw: [])
+    monkeypatch.setattr(bw2b, "fetch_team_pass_attempts", lambda *a, **kw: None)
+
+    bw2b.main(allow_degraded=False)
+
+    with v3_path.open(newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    row = rows[0]
+    assert "ryptpa" in row, "W2b must write 'ryptpa' column (not 'wr_ryptpa') for WR rows"
+    assert "wr_ryptpa" not in row, "W2b must not emit 'wr_ryptpa'"
+    assert "yprr_college" in row, "W2b must write 'yprr_college' stub for WR rows"
+    assert row["yprr_college"] == "", "yprr_college must be empty (permanently dark)"
+    assert row["yprr_college_missing"] == "1", "yprr_college_missing must be 1"
+
+
+def test_w2b_mixed_position_csv_writes_all_columns(monkeypatch, tmp_path):
+    """W2b main() must write all position-specific columns to all rows (restval='').
+
+    WR-enriched columns like ryptpa/yprr_college must appear in CSV headers so
+    non-WR rows can be read by DictReader without KeyError.
+    """
+    v3_path = tmp_path / "v3.csv"
+    v3_path.write_text(
+        "season,position,pfr_player_name,college,age_at_draft,age_at_draft_missing\n"
+        "2015,WR,Amari Cooper,Alabama,21.0,0\n"
+        "2016,RB,Derrick Henry,Alabama,21.9,0\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(bw2b, "V3_CSV", v3_path)
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(bw2b, "_cfbd_api_key", lambda: "test_key")
+    monkeypatch.setattr(bw2b, "load_player_stats", lambda *a, **kw: [])
+    monkeypatch.setattr(bw2b, "load_sp_ratings", lambda *a, **kw: [])
+    monkeypatch.setattr(bw2b, "fetch_team_pass_attempts", lambda *a, **kw: None)
+
+    bw2b.main(allow_degraded=False)
+
+    with v3_path.open(newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    # All rows must be readable (no KeyError) — DictWriter used union fieldnames
+    wr_row = next(r for r in rows if r["position"] == "WR")
+    rb_row = next(r for r in rows if r["position"] == "RB")
+    assert "ryptpa" in wr_row
+    assert "yprr_college" in wr_row
+    # RB row has those columns in the CSV (empty string from restval)
+    assert "ryptpa" in rb_row
+    assert rb_row["ryptpa"] == ""
 
 
 # ── Leakage guard ─────────────────────────────────────────────────────────────

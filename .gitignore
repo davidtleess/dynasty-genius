@@ -52,6 +52,9 @@ app/data/models/engine_b/runs/20260513T012309Z/
 app/data/models/engine_b/runs/20260516T164503Z/
 app/data/models/engine_b/runs/v1_1_control/
 
+# Head A v3 model artifacts — manifest and run outputs are local-only
+app/data/models/head_a/
+
 # Agent planning artifacts — internal coordination files, not repo documentation
 conductor/
 
@@ -87,3 +90,4 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+app/data/backtest/phase19/

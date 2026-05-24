@@ -4,8 +4,8 @@ Extends prospects_with_outcomes_v3.csv with position-specific Required
 features that need season-by-season college stats from the CFBD API:
 
   WR: wr_dominator_final, wr_breakout_age, wr_market_share_yds,
-      wr_yards_per_reception_career
-  RB: rb_final_dominator, rb_school_sp_plus
+      wr_yards_per_reception_career, ryptpa
+  RB: rb_final_dominator, rb_school_sp_plus, rb_scrimmage_ypg, rb_rec_ypg
   TE: te_ryptpa_final, te_yards_per_reception_career
 
 Era proxy features (derived from existing v3 columns — no API calls):
@@ -16,10 +16,12 @@ Era proxy features (derived from existing v3 columns — no API calls):
 
 Permanently stubbed (_missing=1 — not obtainable from CFBD player stats):
   wr_rec_tds_per_game_final — CFBD /stats/player/season never returns G (games)
-  rb_scrimmage_ypg          — same; games stat unavailable
-  rb_rec_ypg                — same; games stat unavailable
+  yprr_college              — requires PFF premium routes-run data absent from CFBD
   te_deep_yard_share        — requires PFF route data
   transfer_portal_flag      — CFBD portal only covers 2019+; cohort starts 2015
+
+Games-proxy features (populated from CFBD /games endpoint team-game counts):
+  rb_scrimmage_ypg, rb_rec_ypg — computed as yds / team_games when available
 
 Data strategy:
   - Player stats fetched year-by-year (one call per year/category), not per-player.
@@ -147,6 +149,63 @@ def _save_tpa_cache(cfbd_college: str, year: int, value: Optional[float]) -> Non
     path = CACHE_DIR / f"tpa_{safe_name}_{year}.json"
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value), encoding="utf-8")
+
+
+def _load_games_count_cache(cfbd_team: str, year: int) -> tuple[bool, Optional[int]]:
+    """Load team games count from local cache.
+
+    Returns (cache_hit, value):
+      (False, None)  — no cache file; caller should fetch from API
+      (True, int)    — positive cache; use the stored value
+      (True, None)   — negative cache; API returned nothing last time; skip re-fetch
+    """
+    safe_name = re.sub(r"[^a-z0-9]", "_", cfbd_team.lower())
+    path = CACHE_DIR / f"games_count_{safe_name}_{year}.json"
+    if not path.exists():
+        return False, None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        value = int(raw) if raw is not None else None
+        return True, value
+    except Exception:
+        return False, None
+
+
+def _save_games_count_cache(cfbd_team: str, year: int, value: Optional[int]) -> None:
+    """Save team games count to local cache. Writes null for negative caching."""
+    safe_name = re.sub(r"[^a-z0-9]", "_", cfbd_team.lower())
+    path = CACHE_DIR / f"games_count_{safe_name}_{year}.json"
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value), encoding="utf-8")
+
+
+def load_team_games_count(cfbd_team: str, year: int, api_key: str,
+                          force_fetch: bool = False) -> Optional[int]:
+    """Return regular-season game count for cfbd_team/year from CFBD /games endpoint.
+
+    Returns an integer count, or None if the team/year has no data or the API fails.
+    Results are cached individually (mirrors TPA cache pattern).
+    """
+    if not force_fetch:
+        hit, cached = _load_games_count_cache(cfbd_team, year)
+        if hit:
+            return cached
+
+    try:
+        resp = httpx.get(
+            f"{CFBD_BASE}/games",
+            headers={"Authorization": f"Bearer {api_key}"},
+            params={"year": year, "team": cfbd_team, "seasonType": "regular"},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        games = resp.json()
+        count = len(games) if games else None
+    except Exception:
+        count = None
+
+    _save_games_count_cache(cfbd_team, year, count)
+    return count
 
 
 def load_player_stats(year: int, category: str, api_key: str,
@@ -324,19 +383,24 @@ def compute_wr_cfbd_features(
     rec_pivot: dict[tuple, dict],
     team_rec_lookup: dict[tuple, float],
     team_td_lookup: dict[tuple, float],
+    team_pass_attempts_lookup: dict[tuple, float] | None = None,
 ) -> dict[str, str]:
     """Compute WR CFBD-derived features for a single row.
 
     wr_dominator_final: average of yard share and TD share in final season (spec §3A.1).
     wr_market_share_yds: yards share only in final season (spec §3A.3).
+    ryptpa: rec_yds_final / team_pass_attempts (same formula as te_ryptpa_final; uses downstream contract name).
     wr_rec_tds_per_game_final: DARK — CFBD does not return games for this endpoint.
+    yprr_college: DARK — requires PFF premium routes-run data absent from CFBD.
     """
+    if team_pass_attempts_lookup is None:
+        team_pass_attempts_lookup = {}
     result: dict[str, str] = {}
     _computed_cols = (
         "wr_dominator_final", "wr_breakout_age", "wr_market_share_yds",
-        "wr_yards_per_reception_career",
+        "wr_yards_per_reception_career", "ryptpa",
     )
-    _dark_cols = ("wr_rec_tds_per_game_final",)
+    _dark_cols = ("wr_rec_tds_per_game_final", "yprr_college")
 
     # Dark features: always _missing=1 — games not available from CFBD player stats
     for col in _dark_cols:
@@ -439,6 +503,19 @@ def compute_wr_cfbd_features(
                        "wr_yards_per_reception_career_missing": "1",
                        "wr_yards_per_reception_career_source": ""})
 
+    # ryptpa: final_season_rec_yds / team_pass_attempts (same formula as te_ryptpa_final)
+    cfbd_college = normalize_college_name(college)
+    final_rec_yds = final["rec_yds"]
+    tpa = team_pass_attempts_lookup.get((cfbd_college, final_year))
+    if tpa and tpa > 0 and final_rec_yds > 0:
+        ryptpa_val = round(final_rec_yds / tpa, 4)
+        result.update({"ryptpa": str(ryptpa_val),
+                       "ryptpa_missing": "0",
+                       "ryptpa_source": "cfbd"})
+    else:
+        result.update({"ryptpa": "", "ryptpa_missing": "1",
+                       "ryptpa_source": ""})
+
     return result
 
 
@@ -451,20 +528,19 @@ def compute_rb_cfbd_features(
     team_rush_lookup: dict[tuple, float],
     team_rec_lookup: dict[tuple, float],
     sp_lookup: dict[tuple, float],
+    team_games_lookup: dict[tuple, int] | None = None,
 ) -> dict[str, str]:
     """Compute RB CFBD-derived features for a single row.
 
     rb_final_dominator: (player_rush_yds + player_rec_yds) / (team_rush_yds + team_rec_yds)
       in the player's final college season (spec §3B.1 scrimmage formula).
-    rb_scrimmage_ypg, rb_rec_ypg: DARK — CFBD does not return games for this endpoint.
+    rb_scrimmage_ypg, rb_rec_ypg: computed from team_games_lookup when provided;
+      dark (_missing=1) when lookup is absent or has no entry for this team/year.
     """
+    if team_games_lookup is None:
+        team_games_lookup = {}
     result: dict[str, str] = {}
     _computed_cols = ("rb_final_dominator", "rb_school_sp_plus")
-    _dark_cols = ("rb_scrimmage_ypg", "rb_rec_ypg")
-
-    # Dark features: always _missing=1 — games not available from CFBD player stats
-    for col in _dark_cols:
-        result.update({col: "", f"{col}_missing": "1", f"{col}_source": ""})
 
     try:
         draft_year = int(row.get("season", 0))
@@ -483,6 +559,9 @@ def compute_rb_cfbd_features(
 
     # ── rb_final_dominator: scrimmage formula (spec §3B.1) ────────────────────
     final_rush = next((s for y, s in rush_seasons if y == final_year), None)
+    player_rush_yds = 0.0
+    player_rec_yds = 0.0
+
     if final_rush is not None:
         player_rush_yds = final_rush.get("rush_yds", 0.0)
         final_rec = next((s for y, s in rec_seasons if y == final_year), None)
@@ -514,6 +593,28 @@ def compute_rb_cfbd_features(
     else:
         result.update({"rb_school_sp_plus": "", "rb_school_sp_plus_missing": "1",
                        "rb_school_sp_plus_source": ""})
+
+    # ── rb_scrimmage_ypg: (rush_yds + rec_yds) / team_games ──────────────────
+    games_count = team_games_lookup.get((norm_school, final_year))
+    scrimmage_yds = player_rush_yds + player_rec_yds
+    if games_count is not None and games_count > 0 and scrimmage_yds > 0:
+        spg = round(scrimmage_yds / games_count, 2)
+        result.update({"rb_scrimmage_ypg": str(spg),
+                       "rb_scrimmage_ypg_missing": "0",
+                       "rb_scrimmage_ypg_source": "cfbd_team_games_proxy"})
+    else:
+        result.update({"rb_scrimmage_ypg": "", "rb_scrimmage_ypg_missing": "1",
+                       "rb_scrimmage_ypg_source": ""})
+
+    # ── rb_rec_ypg: rec_yds / team_games ─────────────────────────────────────
+    if games_count is not None and games_count > 0 and player_rec_yds > 0:
+        rpg = round(player_rec_yds / games_count, 2)
+        result.update({"rb_rec_ypg": str(rpg),
+                       "rb_rec_ypg_missing": "0",
+                       "rb_rec_ypg_source": "cfbd_team_games_proxy"})
+    else:
+        result.update({"rb_rec_ypg": "", "rb_rec_ypg_missing": "1",
+                       "rb_rec_ypg_source": ""})
 
     return result
 
@@ -644,8 +745,8 @@ def _assert_no_leakage() -> None:
     """Verify at startup that no W2b output column violates leakage contracts."""
     w2b_output_cols = {
         "wr_dominator_final", "wr_breakout_age", "wr_market_share_yds",
-        "wr_yards_per_reception_career", "wr_early_declare",
-        "rb_final_dominator", "rb_school_sp_plus",
+        "wr_yards_per_reception_career", "ryptpa", "yprr_college", "wr_early_declare",
+        "rb_final_dominator", "rb_school_sp_plus", "rb_scrimmage_ypg", "rb_rec_ypg",
         "te_ryptpa_final", "te_yards_per_reception_career",
         "final_college_age", "early_declare", "covid_eligibility_flag",
     }
@@ -731,18 +832,18 @@ def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
     print(f"  Rushing pivot:   {len(rush_pivot)} player-year entries")
     print(f"  SP+ lookup:      {len(sp_lookup)} team-year entries")
 
-    # ── Pre-fetch TE team pass attempts (cached individually) ─────────────────
-    print("\n  Pre-fetching TE team pass attempts...")
+    # ── Pre-fetch TE+WR team pass attempts (cached individually) ─────────────
+    print("\n  Pre-fetching TE+WR team pass attempts...")
     tpa_lookup: dict[tuple, float] = {}
-    te_rows = [(r.get("pfr_player_name", ""), r.get("college", ""),
-                int(r.get("season", 0)))
-               for r in rows if r.get("position") == "TE"]
-    unique_team_years = {
+    tpa_position_rows = [(r.get("pfr_player_name", ""), r.get("college", ""),
+                          int(r.get("season", 0)))
+                         for r in rows if r.get("position") in ("TE", "WR")]
+    unique_tpa_team_years = {
         (normalize_college_name(college), max(2011, draft_year - 1))
-        for (_, college, draft_year) in te_rows
+        for (_, college, draft_year) in tpa_position_rows
         if draft_year > 2011
     }
-    for cfbd_college, year in sorted(unique_team_years):
+    for cfbd_college, year in sorted(unique_tpa_team_years):
         if not force_fetch:
             hit, cached_tpa = _load_tpa_cache(cfbd_college, year)
             if hit:
@@ -753,7 +854,30 @@ def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
         _save_tpa_cache(cfbd_college, year, tpa)  # cache None too (negative cache)
         if tpa is not None:
             tpa_lookup[(cfbd_college, year)] = tpa
-    print(f"  Team pass attempts: {len(tpa_lookup)}/{len(unique_team_years)} pairs populated")
+    print(f"  Team pass attempts: {len(tpa_lookup)}/{len(unique_tpa_team_years)} pairs populated")
+
+    # ── Pre-fetch RB team games count (cached individually) ──────────────────
+    print("\n  Pre-fetching RB team games count...")
+    games_lookup: dict[tuple, int] = {}
+    rb_rows = [(r.get("pfr_player_name", ""), r.get("college", ""),
+                int(r.get("season", 0)))
+               for r in rows if r.get("position") == "RB"]
+    unique_rb_team_years = {
+        (_norm_school_key(college), max(2011, draft_year - 1))
+        for (_, college, draft_year) in rb_rows
+        if draft_year > 2011
+    }
+    for team_key, year in sorted(unique_rb_team_years):
+        if not force_fetch:
+            hit, cached_games = _load_games_count_cache(team_key, year)
+            if hit:
+                if cached_games is not None:
+                    games_lookup[(team_key, year)] = cached_games
+                continue
+        games = load_team_games_count(team_key, year, api_key, force_fetch)
+        if games is not None:
+            games_lookup[(team_key, year)] = games
+    print(f"  Team games count:   {len(games_lookup)}/{len(unique_rb_team_years)} pairs populated")
 
     # ── Enrich rows ───────────────────────────────────────────────────────────
     print("\n  Enriching rows...")
@@ -768,14 +892,18 @@ def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
         row.update(compute_era_proxy_features(row))
 
         if position == "WR":
-            feats = compute_wr_cfbd_features(row, rec_pivot, team_rec_lookup, team_td_lookup)
+            feats = compute_wr_cfbd_features(
+                row, rec_pivot, team_rec_lookup, team_td_lookup,
+                team_pass_attempts_lookup=tpa_lookup,
+            )
             if feats.get("wr_dominator_final_missing") == "0":
                 n_wr_hit += 1
             row.update(feats)
 
         elif position == "RB":
             feats = compute_rb_cfbd_features(
-                row, rush_pivot, rec_pivot, team_rush_lookup, team_rec_lookup, sp_lookup
+                row, rush_pivot, rec_pivot, team_rush_lookup, team_rec_lookup, sp_lookup,
+                team_games_lookup=games_lookup,
             )
             if feats.get("rb_final_dominator_missing") == "0":
                 n_rb_hit += 1
@@ -809,14 +937,23 @@ def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
 
     # ── Write enriched CSV ────────────────────────────────────────────────────
     if rows:
-        fieldnames = list(rows[0].keys())
+        # Build fieldnames from union of all row keys (order: original columns first,
+        # then any new columns added by enrichment for a subset of positions).
+        seen: set[str] = set()
+        fieldnames: list[str] = []
+        for row in rows:
+            for k in row.keys():
+                if k not in seen:
+                    fieldnames.append(k)
+                    seen.add(k)
         with V3_CSV.open("w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            # restval="" fills missing keys for rows that lack position-specific columns
+            writer = csv.DictWriter(f, fieldnames=fieldnames, restval="")
             writer.writeheader()
             writer.writerows(rows)
     new_sha256 = hashlib.sha256(V3_CSV.read_bytes()).hexdigest()
     print(f"\n  Written: {V3_CSV}")
-    print(f"  Columns: {len(rows[0]) if rows else 0}")
+    print(f"  Columns: {len(fieldnames) if rows else 0}")
     print(f"  New sha256=...{new_sha256[-8:]}")
     print("  promotion_decision: NOT_APPLICABLE (W2b data pipeline only)")
 
