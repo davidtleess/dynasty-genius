@@ -18,14 +18,17 @@ Phase 16.1 — COMPLETE: Age blockers resolved — 6 verified DOBs ingested, all
 Phase 16 — CLOSED FOR PHASE 17 ENTRY: Remaining signal-upgrade workstreams are validation/research gates and deferred; no production model change approved.
 Phase 17 — IMPLEMENTATION COMPLETE THROUGH 17.5: Sleeper universe, full PVO batch, team matrix, market divergence, and league opportunity map artifacts complete (latest artifacts in `app/data/league_snapshots/` and `app/data/valuation/`)
 Phase 18 — COMPLETE: 18.1 roster-audit rookie PVO reconciliation complete; 18.2 daily batch orchestration complete; 18.3 team posture classification complete; 18.4 cross-position xVAR percentile complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-22; 780 tests)
-Phase 19 — SPEC APPROVED: Engine A v3 (Bifurcated Rookie Forecast) v0.2 spec approved by David; repo-native execution plan initialized at `docs/superpowers/plans/2026-05-23-phase19-engine-a-v3-bifurcation-execution.md` (2026-05-23)
+Phase 19 — IN EXECUTION: Engine A v3 (Bifurcated Rookie Forecast). W1 (Head B target pipeline), W2 (feature contract + Combine/dominator enrichment), and W2b (CFBD player-level enrichment) are COMPLETE on branch `feature/phase19-w1-head-b-target`. W3 (Head A v3 bake-off per position) is next — blocked pending David's explicit approval. (2026-05-23)
 
 ## Current Sprint Objective
 
-Phase 19 — SPEC APPROVED; TRANSITION TO EXECUTION (2026-05-23). Master execution plan committed at `docs/superpowers/plans/2026-05-23-phase19-engine-a-v3-bifurcation-execution.md`. Handoff to Claude Code / Codex authorized to begin execution on W1 (Head B Target Pipeline).
-- Workstream 19.1 (Planning & Spec) — COMPLETE: v0.2 design spec approved, seven Section 10 decisions locked, and repo-native execution plan initialized.
-- Next recommended work: Execute W1 (isotonic Expected PPG curves per position, hierarchical pooling for TE, target vector population).
-- Phase 18 closeout: 18.4 is fully complete and merged to origin/main. All 780 tests green.
+Phase 19 — IN EXECUTION (2026-05-23). Branch: `feature/phase19-w1-head-b-target`. 181 focused tests passing.
+- Workstream 19.1 (Planning & Spec) — COMPLETE: v0.2 design spec approved, seven Section 10 decisions locked, repo-native execution plan at `docs/superpowers/plans/2026-05-23-phase19-engine-a-v3-bifurcation-execution.md`.
+- W1 (Head B Target Pipeline) — COMPLETE: isotonic Expected PPG curves per position, TE hierarchical pooling, target + residual vectors, `head_b_training_eligible` column. Codex review clear.
+- W2 (Feature Contract + Enrichment) — COMPLETE: `head_b_contract.py` with HEAD_B_PROHIBITED_COLUMNS/regex; Combine + career dominator enrichment; `nfl_pick`/`nfl_round` aliases; fail-fast combine load + `w2_combine_degraded` provenance flag. Codex review clear (2 HIGH + 1 Medium resolved).
+- W2b (CFBD Player-Level Enrichment) — COMPLETE: year-batched CFBD fetch; WR dominator avg(yds_share, td_share) 89.0%; RB scrimmage dominator 88.4%; TE RYPTPA 86.2%; era proxy flags; TPA negative-caching; `w2b_cfbd_degraded` provenance flag. Codex review clear (5 findings resolved). v3 CSV: 874 rows × 149 cols.
+- W3 (Head A v3 Bake-Off per position) — **BLOCKED. Awaiting David's explicit approval before execution.**
+- Phase 18 closeout: 18.4 fully complete and merged to origin/main. All 780 tests green.
 - Workstream 18.1 (Roster Audit Rookie Reconciliation) — COMPLETE: `/roster/audit` preserves Phase 17 full-universe Engine A PVO values for rostered current-draft rookies instead of degrading them to active-player `PRE_MODEL`; veterans remain on the existing audit path.
 - Workstream 18.2 (Daily Batch Orchestration) — COMPLETE: `scripts/refresh_league_intelligence.py` runs the existing Phase 17.1 → 17.5 builders in order, supports `--dry-run`, and fails fast without adding new valuation logic.
 - Workstream 18.3 (Team Posture Classification) — COMPLETE: `scripts/build_team_posture.py` builds `team_posture_latest.json` from internal team-matrix signals; opportunity partner rankings now consume posture and populate `posture_alignment_score` when the posture artifact is present.
@@ -399,4 +402,5 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-1. **Housekeeping: publish checkpoint** — Branch is well ahead of `origin/main`; decide whether to push and open a PR before starting more Phase 18 implementation.
+1. **W3 (Head A v3 Bake-Off)** — Awaiting David's explicit approval. Once approved, implement per-position LOOCV bake-off against Engine A v2. Validation gate: beat Engine A v2 on at least 2 of 3 metrics — RMSE, Spearman, NDCG@10.
+2. **Publish checkpoint** — Branch `feature/phase19-w1-head-b-target` is ahead of `origin/main`. Open a PR after W3 completes or at David's direction.

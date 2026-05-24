@@ -32,6 +32,7 @@ app/data/cache/**
 !app/data/cache/
 !app/data/cache/**/
 !app/data/cache/**/.gitkeep
+app/data/cfbd_cache/
 app/data/raw/
 app/data/processed/
 app/data/artifacts/
@@ -41,6 +42,8 @@ app/data/artifacts/
 app/data/training/prospects_with_outcomes_*partial*.csv
 app/data/training/prospects_with_outcomes_v2.csv
 app/data/training/prospects_with_outcomes_phase16.csv
+app/data/training/prospects_with_outcomes_v3.csv
+app/data/training/expected_ppg_curves_v3.json
 
 # Engine B model artifacts — manifest and run outputs are local-only
 # v1 run dirs already committed remain tracked; new runs are not committed

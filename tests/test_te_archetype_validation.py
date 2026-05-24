@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from scripts.build_te_archetype_validation import build_validation_from_files
 from src.dynasty_genius.audit.te_archetype_validation import (
     build_te_archetype_validation_artifact,
@@ -146,11 +148,14 @@ def test_small_unique_player_groups_are_marked_exploratory():
 
 def test_build_validation_from_files_writes_committed_artifact_shape(tmp_path: Path):
     out = tmp_path / "validation.json"
+    predictions_path = Path("app/data/backtest/runs/25f9697d-f155-49e2-a6c7-384b7cec51c1/predictions_TE.csv")
+    if not predictions_path.exists():
+        pytest.skip("TE prediction log artifact is local/gitignored; integration shape check requires local artifact")
 
     artifact = build_validation_from_files(
         archetype_path=Path("app/data/identity/te_archetype_rubric_20260516.json"),
         eligible_path=Path("app/data/identity/pff_te_eligible_te_2018_2025_20260516_canonical.json"),
-        predictions_path=Path("app/data/backtest/runs/25f9697d-f155-49e2-a6c7-384b7cec51c1/predictions_TE.csv"),
+        predictions_path=predictions_path,
         out_path=out,
         run_id="te_archetype_validation_test",
         generated_at="2026-05-16T13:30:00Z",
