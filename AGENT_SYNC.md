@@ -19,11 +19,16 @@ Phase 16 — CLOSED FOR PHASE 17 ENTRY: Remaining signal-upgrade workstreams are
 Phase 17 — IMPLEMENTATION COMPLETE THROUGH 17.5: Sleeper universe, full PVO batch, team matrix, market divergence, and league opportunity map artifacts complete (latest artifacts in `app/data/league_snapshots/` and `app/data/valuation/`)
 Phase 18 — COMPLETE: 18.1 roster-audit rookie PVO reconciliation complete; 18.2 daily batch orchestration complete; 18.3 team posture classification complete; 18.4 cross-position xVAR percentile complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-22; 780 tests)
 Phase 19 — **COMPLETE**: Engine A v3 (Bifurcated Rookie Forecast). W1–W5 all merged to main (`4cce9f2`, 2026-05-24; 1088 tests, 11 skipped). TE Head A v3 Ridge promoted and wired. Head B null result. Feature branch retired.
-Phase 20 — **COMPLETE — NULL RESULT** (2026-05-24; 1101 tests, 11 skipped). W1 WR FAIL (0/3 ridge + gbt; trimmed 5-feature set hurts vs baseline). W2 RB FAIL (ridge +5.6% RMSE below 7% gate, Spearman/NDCG regress; gbt −7.4%: 0/3). W3 QB BLOCKED (25.4% API coverage < 50% threshold — all 4 features dropped). No passing candidates. No promotion. Spec: `docs/strategies/2026-05-24-phase20-prospect-enrichment-spec.md`. Artifact (gitignored): `app/data/backtest/phase20/phase20_bakeoff_20260524T183807Z_db568d44.json`.
+Phase 20 — **COMPLETE — NULL RESULT** (2026-05-24; 1105 tests, 11 skipped). W1 WR FAIL (0/3 ridge + gbt; trimmed 5-feature set hurts vs baseline). W2 RB FAIL (ridge +5.6% RMSE below 7% gate, Spearman/NDCG regress; gbt −7.4%: 0/3). W3 QB BLOCKED (25.4% API coverage < 50% threshold — all 4 features dropped). No passing candidates. No promotion. Codex blockers resolved (commit `067ecd7`): QB 4-feature contract enforced in adapter + engine_a_contract; RB `/games` endpoint gated behind `--include-rb-ypg`. Spec: `docs/strategies/2026-05-24-phase20-prospect-enrichment-spec.md`.
+Phase 21 — **SPEC DRAFT** (2026-05-24). Roster Cut & Drop Candidate Engine. David approved Phase 20 null result and opened Phase 21. Spec at `docs/strategies/2026-05-24-phase21-roster-cut-spec.md` (v0.1, awaiting David approval). Three open questions require ruling before W1 implementation.
 
 ## Current Sprint Objective
 
-**Phase 20 COMPLETE — NULL RESULT (2026-05-24).** All three positions failed Phase 20 gates. No promotion. Engine A v2 + TE v3 remain the active scoring paths. Awaiting David's next phase decision.
+**Phase 21 — Roster Cut & Drop Candidate Engine (SPEC DRAFT, 2026-05-24).**
+David needs to cut 2 players: 28 current roster vs. 26-slot capacity (20 active + 4 IR + 2 Taxi).
+- W1 — RosterCutEngine (pure function): over-limit detection, xVAR-ranked cut candidates, Taxi/IR exemptions — awaiting David approval of open questions
+- W2 — Waiver-Drop integration: `recommended_drop` field on WAIVER_CANDIDATE cards — blocked on W1
+- W3 — Build script + artifacts — blocked on W1+W2
 - Workstream 19.1 (Planning & Spec) — COMPLETE.
 - W1 (Head B Target Pipeline) — COMPLETE.
 - W2 (Feature Contract + Enrichment) — COMPLETE.
@@ -395,11 +400,13 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-**Phase 20 null result (2026-05-24). Next sprint options for David:**
+**Phase 21 Roster Cut Engine — next steps (2026-05-24):**
 
-**Latest state:** All 22 2026 TEs score via `engine_a_v3_head_a_ridge`. QB/RB/WR remain on Engine A v2. 1101 tests green. Phase 20 bakeoff: WR 0/3 (enrichment hurts), RB 0/3 (ridge +5.6% RMSE, below 7% gate), QB blocked (API coverage 25.4%). No promotion.
+David approved Phase 20 null result and directed opening Phase 21. Spec draft complete.
 
-1. **(A) Phase 21 — QB Coverage Gap Remediation** — Investigate why only 32/126 QBs returned passing stats. Options: extend to multi-year final-season fallback (2+ years back), expand CFBD year range, or accept QB as permanently sparse and remove from Engine A v3 scope.
-2. **(B) RB Near-Miss Analysis** — Ridge improved RMSE by 5.6%, just short of 7% gate. Diagnose: lower the gate to 5% with David approval, or add a feature (e.g., `rb_breakout_age`) to close the gap. Requires new spec.
-3. **(C) Head B Feature-Gap Remediation** — Open a new research phase to investigate why all positions failed the mandatory R² > 0 gate on `residual_ppg`. Requires: new feature research brief + bakeoff spec before any code.
-4. **(D) Different Phase Priority** — Open any unrelated phase per David's roadmap priorities.
+**Three open questions require David's ruling before W1 implementation:**
+1. Should PRE_MODEL rookies appear in the cut list (tier D with caveat) or be exempt entirely? **Recommendation: include in tier D.**
+2. Should roster capacity constants come from live Sleeper snapshot (auto-adjusting) or be locked in `david_league_context.json`? **Recommendation: read live.**
+3. Should `recommended_drop` appear on WAIVER_CANDIDATE cards only, or also on trade-type cards (ROSTER_SURPLUS_DEFICIT_MATCH, DIVERGENCE_MODEL_HIGH)? **Recommendation: WAIVER_CANDIDATE only.**
+
+**Current cut situation:** 28 players vs. 26 capacity → 2 cuts required. Lowest xVAR ACTIVE players: AJ Barner (TE, 34.3%), Adonai Mitchell (WR, 37.3%), Mac Jones (QB, 39.3%).
