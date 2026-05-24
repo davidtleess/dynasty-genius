@@ -53,6 +53,11 @@ HEAD_B_PROHIBITED_COLUMNS: frozenset[str] = frozenset({
     "draft_pick_value",
     "pick_value",
     "round_value",
+    # Draft-slot expectation derivatives (W1 target-side columns — banned as features)
+    "expected_ppg_at_pick",
+    "expected_ppg",
+    "expected_ppg_bucket",
+    "curve_expected_ppg",
 })
 
 # Anchored regex for broader draft-capital pattern matching.
@@ -62,6 +67,9 @@ HEAD_B_PROHIBITED_REGEX: str = (
     r"|^round$|^round_"        # "round" exact or "round_*"
     r"|^nfl_pick|^nfl_round"   # "nfl_pick*", "nfl_round*"
     r"|^draft_capital|^draft_slot"  # derived capital composites
+    r"|^expected_"             # expected_ppg_at_pick, expected_anything (slot derivatives)
+    r"|_expected_ppg"          # something_expected_ppg_suffix
+    r"|^curve_"                # curve_expected_ppg, curve_pick_value (expectation curves)
 )
 
 # ── Market Overlay Prohibition (cross-reference; engine_a_contract authoritative) ─

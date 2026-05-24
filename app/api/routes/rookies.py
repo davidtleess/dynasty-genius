@@ -18,6 +18,11 @@ class ProspectRequest(BaseModel):
     age: float
     sleeper_id: Optional[str] = None
     draft_class: Optional[int] = None
+    # TE Head A v3 college features — optional; when supplied, v3 scorer fires.
+    # Absent = graceful fallback to v2 (pick/round/age only).
+    final_college_age: Optional[float] = None
+    te_ryptpa_final: Optional[float] = None
+    te_yards_per_reception_career: Optional[float] = None
 
 
 def _map_prospect_to_pvo(prospect: ProspectRequest):
@@ -43,6 +48,9 @@ def _map_prospect_to_pvo(prospect: ProspectRequest):
         "pick": prospect.pick,
         "round": prospect.round,
         "age": prospect.age,
+        "final_college_age": prospect.final_college_age,
+        "te_ryptpa_final": prospect.te_ryptpa_final,
+        "te_yards_per_reception_career": prospect.te_yards_per_reception_career,
     }
     return assemble_pvo(identity, features, is_prospect=True)
 

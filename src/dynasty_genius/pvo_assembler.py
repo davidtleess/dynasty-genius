@@ -28,7 +28,7 @@ from src.dynasty_genius.models.engine_b_contract import (
     XVAR_LAMBDA_ENGINE_B,
     XVAR_LAMBDA_ENGINE_A,
 )
-from src.dynasty_genius.scoring.engine_a import score_prospect, _P90_PPG
+from src.dynasty_genius.scoring.engine_a import score_prospect, score_prospect_v3, _P90_PPG
 
 
 # ── Position-specific required signal sets ────────────────────────────────────
@@ -292,13 +292,24 @@ def assemble_pvo(
             if caveat not in caveats:
                 caveats.append(caveat)
 
-    # Engine A: score prospect if pick + round + age are all supplied.
-    # Veterans stay PRE_MODEL until Engine B is trained or are scored via Dead Window bridge.
+    # Engine A: try v3 (TE Head A Ridge, requires CFBD college features) first,
+    # then fall back to v2 (pick/round/age only).
+    # v3 returns None when CFBD features are absent — 2026 TEs without enrichment
+    # continue scoring via v2 transparently.
     engine_a_result = None
     pick = features.get("pick")
     round_ = features.get("round")
     age = features.get("age")
-    if pick is not None and round_ is not None and age is not None:
+    if pick is not None and round_ is not None:
+        v3_features = {
+            "nfl_pick": float(pick),
+            "nfl_round": float(round_),
+            "final_college_age": features.get("final_college_age"),
+            "te_ryptpa_final": features.get("te_ryptpa_final"),
+            "te_yards_per_reception_career": features.get("te_yards_per_reception_career"),
+        }
+        engine_a_result = score_prospect_v3(identity.position, v3_features)
+    if engine_a_result is None and pick is not None and round_ is not None and age is not None:
         engine_a_result = score_prospect(identity.position, float(pick), float(round_), float(age))
 
     engine_used = None
