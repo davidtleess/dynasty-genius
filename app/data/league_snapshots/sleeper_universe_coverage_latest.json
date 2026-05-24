@@ -13,7 +13,7 @@
     "pvo_scoring_required": false,
     "unresolved_identity_list_exists": true
   },
-  "rostered_player_count": 280,
+  "rostered_player_count": 279,
   "rostered_players_missing_from_snapshot": [],
   "section19_defaults": {
     "bench_depth_decay": 0.5,

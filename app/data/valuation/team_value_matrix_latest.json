@@ -5,7 +5,7 @@
     "lineup_selection": "best_legal_lineup_from_raw_player_xvar",
     "player_level_value_decay_allowed": false
   },
-  "captured_at": "2026-05-23T02:57:34.645205+00:00",
+  "captured_at": "2026-05-24T17:08:39.075640+00:00",
   "coverage": {
     "all_teams_emitted": true,
     "future_picks_present_unvalued": true,
@@ -21,7 +21,7 @@
         "pct_value_over_28": 0.0,
         "value_weighted_age": 23.77
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -516,7 +516,7 @@
           "n_rostered": 5,
           "starter_xvar": 0.0,
           "surplus_label": "deficit",
-          "z_score": -1.727
+          "z_score": -1.73
         },
         "RB": {
           "depth_xvar_adj": 0.0,
@@ -530,14 +530,14 @@
           "n_rostered": 3,
           "starter_xvar": -16.85,
           "surplus_label": "deficit",
-          "z_score": -2.731
+          "z_score": -2.722
         },
         "WR": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 14,
           "starter_xvar": 2.4,
           "surplus_label": "deficit",
-          "z_score": -1.807
+          "z_score": -1.76
         }
       },
       "posture": {
@@ -562,7 +562,7 @@
         "pct_value_over_28": 0.2621,
         "value_weighted_age": 25.84
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -955,7 +955,7 @@
           "n_rostered": 5,
           "starter_xvar": 47.13,
           "surplus_label": "neutral",
-          "z_score": 0.175
+          "z_score": 0.178
         },
         "RB": {
           "depth_xvar_adj": 0.477,
@@ -969,14 +969,14 @@
           "n_rostered": 3,
           "starter_xvar": 2.85,
           "surplus_label": "neutral",
-          "z_score": 0.514
+          "z_score": 0.53
         },
         "WR": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 7,
           "starter_xvar": 87.8,
           "surplus_label": "neutral",
-          "z_score": 0.207
+          "z_score": 0.224
         }
       },
       "posture": {
@@ -1001,7 +1001,7 @@
         "pct_value_over_28": 0.05,
         "value_weighted_age": 25.49
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
@@ -1431,14 +1431,14 @@
           "n_rostered": 3,
           "starter_xvar": 2.85,
           "surplus_label": "neutral",
-          "z_score": 0.514
+          "z_score": 0.53
         },
         "WR": {
           "depth_xvar_adj": 1.95,
           "n_rostered": 8,
           "starter_xvar": 71.4,
           "surplus_label": "neutral",
-          "z_score": -0.134
+          "z_score": -0.112
         }
       },
       "posture": {
@@ -1463,7 +1463,7 @@
         "pct_value_over_28": 0.0382,
         "value_weighted_age": 24.82
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -1884,7 +1884,7 @@
           "n_rostered": 4,
           "starter_xvar": 7.76,
           "surplus_label": "deficit",
-          "z_score": -1.42
+          "z_score": -1.422
         },
         "RB": {
           "depth_xvar_adj": 0.0,
@@ -1898,14 +1898,14 @@
           "n_rostered": 3,
           "starter_xvar": 2.85,
           "surplus_label": "neutral",
-          "z_score": 0.514
+          "z_score": 0.53
         },
         "WR": {
           "depth_xvar_adj": 2.8,
           "n_rostered": 8,
           "starter_xvar": 97.6,
           "surplus_label": "neutral",
-          "z_score": 0.504
+          "z_score": 0.517
         }
       },
       "posture": {
@@ -1927,10 +1927,10 @@
     {
       "age_profile": {
         "median_age": 23.0,
-        "pct_value_over_28": 0.1965,
-        "value_weighted_age": 24.36
+        "pct_value_over_28": 0.1024,
+        "value_weighted_age": 23.46
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -2030,7 +2030,7 @@
           "FLEX",
           "SUPER_FLEX"
         ],
-        "starter_xvar": 87.29,
+        "starter_xvar": 73.79,
         "starters": [
           {
             "full_name": "C.J. Stroud",
@@ -2061,11 +2061,11 @@
             "xvar": 39.4
           },
           {
-            "full_name": "Keenan Allen",
+            "full_name": "Cooper Kupp",
             "position": "WR",
-            "sleeper_player_id": "1479",
+            "sleeper_player_id": "4039",
             "slot": "WR",
-            "xvar": 13.5
+            "xvar": 11.8
           },
           {
             "full_name": "Terrance Ferguson",
@@ -2073,13 +2073,6 @@
             "sleeper_player_id": "12487",
             "slot": "TE",
             "xvar": 0.0
-          },
-          {
-            "full_name": "Cooper Kupp",
-            "position": "WR",
-            "sleeper_player_id": "4039",
-            "slot": "FLEX",
-            "xvar": 11.8
           },
           {
             "full_name": "Jack Bech",
@@ -2092,6 +2085,13 @@
             "full_name": "Harold Fannin",
             "position": "TE",
             "sleeper_player_id": "12506",
+            "slot": "FLEX",
+            "xvar": 0.0
+          },
+          {
+            "full_name": "Riley Leonard",
+            "position": "QB",
+            "sleeper_player_id": "12470",
             "slot": "SUPER_FLEX",
             "xvar": 0.0
           }
@@ -2136,16 +2136,6 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Keenan Allen",
-          "lineup_role": "starter",
-          "long_term_value_multiplier": 1.0,
-          "position": "WR",
-          "raw_xvar": 13.5,
-          "sleeper_player_id": "1479",
-          "starter_weight_multiplier_current_year": 1.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "Cooper Kupp",
           "lineup_role": "starter",
           "long_term_value_multiplier": 1.0,
@@ -2164,6 +2154,16 @@
           "sleeper_player_id": "13346",
           "starter_weight_multiplier_current_year": 0.0,
           "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Riley Leonard",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12470",
+          "starter_weight_multiplier_current_year": 1.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -2247,42 +2247,12 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Darren Waller",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "TE",
-          "raw_xvar": 0.0,
-          "sleeper_player_id": "2505",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "Keaton Mitchell",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "RB",
           "raw_xvar": 0.0,
           "sleeper_player_id": "9511",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
-          "full_name": "Zach Ertz",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "TE",
-          "raw_xvar": -1.75,
-          "sleeper_player_id": "1339",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
-          "full_name": "Kenyon Sadiq",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "TE",
-          "raw_xvar": -4.03,
-          "sleeper_player_id": "13330",
           "starter_weight_multiplier_current_year": 0.0
         },
         {
@@ -2297,22 +2267,22 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Isaac Guerendo",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "RB",
-          "raw_xvar": -6.17,
-          "sleeper_player_id": "11651",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "Dontayvion Wicks",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "WR",
           "raw_xvar": -9.3,
           "sleeper_player_id": "9486",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Kenyon Sadiq",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -10.4,
+          "sleeper_player_id": "13330",
           "starter_weight_multiplier_current_year": 0.0
         },
         {
@@ -2335,36 +2305,66 @@
           "raw_xvar": -14.3,
           "sleeper_player_id": "11571",
           "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Ja'Tavion Sanders",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -18.92,
+          "sleeper_player_id": "11600",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Bryce Lance",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -31.08,
+          "sleeper_player_id": "13420",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Garrett Nussmeier",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": -101.65,
+          "sleeper_player_id": "13404",
+          "starter_weight_multiplier_current_year": 0.0
         }
       ],
       "positional_summary": {
         "QB": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 1,
+          "n_rostered": 3,
           "starter_xvar": 22.59,
           "surplus_label": "deficit",
-          "z_score": -0.836
+          "z_score": -0.837
         },
         "RB": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 7,
+          "n_rostered": 6,
           "starter_xvar": 0.0,
           "surplus_label": "deficit",
           "z_score": -1.768
         },
         "TE": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 5,
+          "n_rostered": 4,
           "starter_xvar": 0.0,
           "surplus_label": "neutral",
-          "z_score": 0.044
+          "z_score": 0.06
         },
         "WR": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 10,
-          "starter_xvar": 64.7,
+          "starter_xvar": 51.2,
           "surplus_label": "neutral",
-          "z_score": -0.338
+          "z_score": -0.626
         }
       },
       "posture": {
@@ -2376,11 +2376,11 @@
       "schema_version": "team_value.v1",
       "team_value_views": {
         "depth_credit_xvar": 0.0,
-        "lineup_xvar": 87.29,
+        "lineup_xvar": 73.79,
         "market_overlay_total": null,
-        "starter_weighted_xvar": 87.29,
-        "top_n_xvar": 128.74,
-        "total_xvar_capped": 128.74
+        "starter_weighted_xvar": 73.79,
+        "top_n_xvar": 115.24,
+        "total_xvar_capped": 115.24
       }
     },
     {
@@ -2389,7 +2389,7 @@
         "pct_value_over_28": 0.2904,
         "value_weighted_age": 27.27
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
@@ -2814,7 +2814,7 @@
           "n_rostered": 5,
           "starter_xvar": 64.73,
           "surplus_label": "surplus",
-          "z_score": 0.825
+          "z_score": 0.83
         },
         "RB": {
           "depth_xvar_adj": 0.0,
@@ -2828,14 +2828,14 @@
           "n_rostered": 3,
           "starter_xvar": 2.85,
           "surplus_label": "neutral",
-          "z_score": 0.53
+          "z_score": 0.546
         },
         "WR": {
           "depth_xvar_adj": 4.0,
           "n_rostered": 10,
           "starter_xvar": 65.0,
           "surplus_label": "neutral",
-          "z_score": -0.236
+          "z_score": -0.213
         }
       },
       "posture": {
@@ -2857,10 +2857,10 @@
     {
       "age_profile": {
         "median_age": 24.0,
-        "pct_value_over_28": 0.2529,
-        "value_weighted_age": 25.18
+        "pct_value_over_28": 0.2472,
+        "value_weighted_age": 25.09
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
@@ -3128,17 +3128,7 @@
           "starter_weight_multiplier_current_year": 1.0
         },
         {
-          "depth_credit_xvar": 0.693,
-          "full_name": "Kirk Cousins",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "QB",
-          "raw_xvar": 2.77,
-          "sleeper_player_id": "1166",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.013,
+          "depth_credit_xvar": 0.025,
           "full_name": "Chris Olave",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
@@ -3230,6 +3220,16 @@
         },
         {
           "depth_credit_xvar": 0.0,
+          "full_name": "Chigoziem Okonkwo",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -11.86,
+          "sleeper_player_id": "8210",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
           "full_name": "Adam Randall",
           "lineup_role": "taxi",
           "long_term_value_multiplier": 1.0,
@@ -3262,11 +3262,11 @@
       ],
       "positional_summary": {
         "QB": {
-          "depth_xvar_adj": 0.693,
-          "n_rostered": 6,
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 5,
           "starter_xvar": 76.78,
           "surplus_label": "surplus",
-          "z_score": 1.328
+          "z_score": 1.307
         },
         "RB": {
           "depth_xvar_adj": 0.0,
@@ -3277,17 +3277,17 @@
         },
         "TE": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 2,
+          "n_rostered": 3,
           "starter_xvar": 2.85,
           "surplus_label": "neutral",
-          "z_score": 0.514
+          "z_score": 0.53
         },
         "WR": {
-          "depth_xvar_adj": 10.413,
+          "depth_xvar_adj": 10.425,
           "n_rostered": 9,
           "starter_xvar": 102.4,
           "surplus_label": "surplus",
-          "z_score": 0.797
+          "z_score": 0.805
         }
       },
       "posture": {
@@ -3298,12 +3298,12 @@
       "roster_id": 7,
       "schema_version": "team_value.v1",
       "team_value_views": {
-        "depth_credit_xvar": 11.106,
+        "depth_credit_xvar": 10.425,
         "lineup_xvar": 341.77,
         "market_overlay_total": null,
-        "starter_weighted_xvar": 352.876,
+        "starter_weighted_xvar": 352.195,
         "top_n_xvar": 359.72,
-        "total_xvar_capped": 365.44
+        "total_xvar_capped": 362.67
       }
     },
     {
@@ -3312,7 +3312,7 @@
         "pct_value_over_28": 0.0,
         "value_weighted_age": 25.48
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -3600,16 +3600,6 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Tez Johnson",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "WR",
-          "raw_xvar": 0.0,
-          "sleeper_player_id": "12485",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "Gunnar Helm",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
@@ -3695,10 +3685,20 @@
           "lineup_role": "taxi",
           "long_term_value_multiplier": 1.0,
           "position": "TE",
-          "raw_xvar": -16.3,
+          "raw_xvar": -17.96,
           "sleeper_player_id": "13278",
           "starter_weight_multiplier_current_year": 0.0,
           "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Matthew Hibner",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -34.79,
+          "sleeper_player_id": "13324",
+          "starter_weight_multiplier_current_year": 0.0
         }
       ],
       "positional_summary": {
@@ -3707,7 +3707,7 @@
           "n_rostered": 4,
           "starter_xvar": 35.34,
           "surplus_label": "neutral",
-          "z_score": 0.197
+          "z_score": 0.199
         },
         "RB": {
           "depth_xvar_adj": 0.0,
@@ -3718,17 +3718,17 @@
         },
         "TE": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 4,
+          "n_rostered": 5,
           "starter_xvar": 2.85,
           "surplus_label": "neutral",
-          "z_score": 0.514
+          "z_score": 0.53
         },
         "WR": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 7,
+          "n_rostered": 6,
           "starter_xvar": 176.8,
           "surplus_label": "surplus",
-          "z_score": 2.306
+          "z_score": 2.291
         }
       },
       "posture": {
@@ -3753,7 +3753,7 @@
         "pct_value_over_28": 0.1276,
         "value_weighted_age": 25.39
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -4166,7 +4166,7 @@
           "n_rostered": 4,
           "starter_xvar": 48.51,
           "surplus_label": "neutral",
-          "z_score": 0.186
+          "z_score": 0.189
         },
         "RB": {
           "depth_xvar_adj": 0.0,
@@ -4180,14 +4180,14 @@
           "n_rostered": 4,
           "starter_xvar": 2.85,
           "surplus_label": "surplus",
-          "z_score": 0.81
+          "z_score": 0.827
         },
         "WR": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 8,
           "starter_xvar": 77.73,
           "surplus_label": "neutral",
-          "z_score": -0.03
+          "z_score": -0.01
         }
       },
       "posture": {
@@ -4208,11 +4208,11 @@
     },
     {
       "age_profile": {
-        "median_age": 24.0,
-        "pct_value_over_28": 0.2991,
-        "value_weighted_age": 26.28
+        "median_age": 23.5,
+        "pct_value_over_28": 0.2815,
+        "value_weighted_age": 26.18
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
@@ -4460,34 +4460,23 @@
           "starter_weight_multiplier_current_year": 1.0
         },
         {
-          "depth_credit_xvar": 0.0,
+          "depth_credit_xvar": 8.455,
           "full_name": "Jordyn Tyson",
-          "lineup_role": "taxi",
+          "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "WR",
           "raw_xvar": 16.91,
           "sleeper_player_id": "13281",
-          "starter_weight_multiplier_current_year": 0.0,
-          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+          "starter_weight_multiplier_current_year": 0.0
         },
         {
-          "depth_credit_xvar": 6.45,
+          "depth_credit_xvar": 3.225,
           "full_name": "Khalil Shakir",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "WR",
           "raw_xvar": 12.9,
           "sleeper_player_id": "8134",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 2.025,
-          "full_name": "Calvin Ridley",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "WR",
-          "raw_xvar": 8.1,
-          "sleeper_player_id": "4981",
           "starter_weight_multiplier_current_year": 0.0
         },
         {
@@ -4603,13 +4592,14 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Colby Parkinson",
-          "lineup_role": "bench",
+          "full_name": "Justin Joly",
+          "lineup_role": "taxi",
           "long_term_value_multiplier": 1.0,
           "position": "TE",
-          "raw_xvar": -18.27,
-          "sleeper_player_id": "6865",
-          "starter_weight_multiplier_current_year": 0.0
+          "raw_xvar": -28.5,
+          "sleeper_player_id": "13400",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
         }
       ],
       "positional_summary": {
@@ -4618,7 +4608,7 @@
           "n_rostered": 3,
           "starter_xvar": 84.27,
           "surplus_label": "surplus",
-          "z_score": 1.606
+          "z_score": 1.613
         },
         "RB": {
           "depth_xvar_adj": 0.99,
@@ -4632,14 +4622,14 @@
           "n_rostered": 3,
           "starter_xvar": -9.33,
           "surplus_label": "deficit",
-          "z_score": -1.493
+          "z_score": -1.481
         },
         "WR": {
-          "depth_xvar_adj": 8.475,
-          "n_rostered": 10,
+          "depth_xvar_adj": 11.68,
+          "n_rostered": 9,
           "starter_xvar": 85.3,
           "surplus_label": "neutral",
-          "z_score": 0.348
+          "z_score": 0.437
         }
       },
       "posture": {
@@ -4650,21 +4640,21 @@
       "roster_id": 10,
       "schema_version": "team_value.v1",
       "team_value_views": {
-        "depth_credit_xvar": 9.716,
+        "depth_credit_xvar": 12.921,
         "lineup_xvar": 270.6,
         "market_overlay_total": null,
-        "starter_weighted_xvar": 280.316,
+        "starter_weighted_xvar": 283.521,
         "top_n_xvar": 296.84,
-        "total_xvar_capped": 329.78
+        "total_xvar_capped": 321.68
       }
     },
     {
       "age_profile": {
-        "median_age": 24.0,
+        "median_age": 23.5,
         "pct_value_over_28": 0.0,
-        "value_weighted_age": 22.66
+        "value_weighted_age": 22.64
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
@@ -4757,7 +4747,7 @@
           "FLEX",
           "SUPER_FLEX"
         ],
-        "starter_xvar": 125.11,
+        "starter_xvar": 124.01,
         "starters": [
           {
             "full_name": "Justin Herbert",
@@ -4795,11 +4785,11 @@
             "xvar": 4.4
           },
           {
-            "full_name": "Cade Otton",
+            "full_name": "Tyler Warren",
             "position": "TE",
-            "sleeper_player_id": "8111",
+            "sleeper_player_id": "12518",
             "slot": "TE",
-            "xvar": 1.1
+            "xvar": 0.0
           },
           {
             "full_name": "MarShawn Lloyd",
@@ -4913,16 +4903,6 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Cade Otton",
-          "lineup_role": "starter",
-          "long_term_value_multiplier": 1.0,
-          "position": "TE",
-          "raw_xvar": 1.1,
-          "sleeper_player_id": "8111",
-          "starter_weight_multiplier_current_year": 1.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "MarShawn Lloyd",
           "lineup_role": "starter",
           "long_term_value_multiplier": 1.0,
@@ -4954,12 +4934,12 @@
         {
           "depth_credit_xvar": 0.0,
           "full_name": "Tyler Warren",
-          "lineup_role": "bench",
+          "lineup_role": "starter",
           "long_term_value_multiplier": 1.0,
           "position": "TE",
           "raw_xvar": 0.0,
           "sleeper_player_id": "12518",
-          "starter_weight_multiplier_current_year": 0.0
+          "starter_weight_multiplier_current_year": 1.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -5014,22 +4994,11 @@
         {
           "depth_credit_xvar": 0.0,
           "full_name": "Malachi Fields",
-          "lineup_role": "taxi",
+          "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "WR",
           "raw_xvar": -7.53,
           "sleeper_player_id": "13285",
-          "starter_weight_multiplier_current_year": 0.0,
-          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
-        },
-        {
-          "depth_credit_xvar": 0.0,
-          "full_name": "Tutu Atwell",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "WR",
-          "raw_xvar": -15.1,
-          "sleeper_player_id": "7562",
           "starter_weight_multiplier_current_year": 0.0
         },
         {
@@ -5038,19 +5007,40 @@
           "lineup_role": "taxi",
           "long_term_value_multiplier": 1.0,
           "position": "TE",
-          "raw_xvar": -16.35,
+          "raw_xvar": -15.13,
           "sleeper_player_id": "13349",
           "starter_weight_multiplier_current_year": 0.0,
           "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Samaje Perine",
+          "full_name": "Kimani Vidal",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "RB",
-          "raw_xvar": -20.04,
-          "sleeper_player_id": "4147",
+          "raw_xvar": -16.79,
+          "sleeper_player_id": "11647",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Eli Raridon",
+          "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "TE",
+          "raw_xvar": -20.87,
+          "sleeper_player_id": "13421",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Malik Washington",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -23.6,
+          "sleeper_player_id": "11610",
           "starter_weight_multiplier_current_year": 0.0
         }
       ],
@@ -5060,7 +5050,7 @@
           "n_rostered": 4,
           "starter_xvar": 47.4,
           "surplus_label": "neutral",
-          "z_score": 0.408
+          "z_score": 0.412
         },
         "RB": {
           "depth_xvar_adj": 0.0,
@@ -5072,16 +5062,16 @@
         "TE": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 4,
-          "starter_xvar": 1.1,
+          "starter_xvar": 0.0,
           "surplus_label": "neutral",
-          "z_score": 0.226
+          "z_score": 0.06
         },
         "WR": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 8,
           "starter_xvar": 16.83,
           "surplus_label": "deficit",
-          "z_score": -1.467
+          "z_score": -1.425
         }
       },
       "posture": {
@@ -5093,11 +5083,11 @@
       "schema_version": "team_value.v1",
       "team_value_views": {
         "depth_credit_xvar": 6.755,
-        "lineup_xvar": 125.11,
+        "lineup_xvar": 124.01,
         "market_overlay_total": null,
-        "starter_weighted_xvar": 131.865,
-        "top_n_xvar": 142.71,
-        "total_xvar_capped": 142.71
+        "starter_weighted_xvar": 130.765,
+        "top_n_xvar": 141.61,
+        "total_xvar_capped": 141.61
       }
     },
     {
@@ -5106,7 +5096,7 @@
         "pct_value_over_28": 0.1772,
         "value_weighted_age": 24.11
       },
-      "captured_at": "2026-05-23T02:57:34.645205+00:00",
+      "captured_at": "2026-05-24T17:08:39.075640+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -5489,7 +5479,7 @@
           "lineup_role": "taxi",
           "long_term_value_multiplier": 1.0,
           "position": "TE",
-          "raw_xvar": -18.33,
+          "raw_xvar": -26.24,
           "sleeper_player_id": "13299",
           "starter_weight_multiplier_current_year": 0.0,
           "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
@@ -5501,7 +5491,7 @@
           "n_rostered": 2,
           "starter_xvar": 49.76,
           "surplus_label": "neutral",
-          "z_score": 0.235
+          "z_score": 0.238
         },
         "RB": {
           "depth_xvar_adj": 0.0,
@@ -5515,14 +5505,14 @@
           "n_rostered": 4,
           "starter_xvar": 0.0,
           "surplus_label": "neutral",
-          "z_score": 0.044
+          "z_score": 0.06
         },
         "WR": {
           "depth_xvar_adj": 12.462,
           "n_rostered": 8,
           "starter_xvar": 60.1,
           "surplus_label": "neutral",
-          "z_score": -0.152
+          "z_score": -0.13
         }
       },
       "posture": {

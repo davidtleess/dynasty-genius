@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-23T02:57:47.597753+00:00",
+  "captured_at": "2026-05-24T17:08:39.241231+00:00",
   "coverage": {
     "all_teams_classified": true,
     "decision_supported_true_count": 0,
@@ -10,7 +10,7 @@
   "league_id": "1314363401744416768",
   "schema_version": "team_posture.v1",
   "source_artifacts": {
-    "team_matrix_captured_at": "2026-05-23T02:57:34.645205+00:00",
+    "team_matrix_captured_at": "2026-05-24T17:08:39.075640+00:00",
     "team_matrix_schema_version": "team_value_matrix.v1"
   },
   "teams": [
@@ -31,12 +31,12 @@
           "age_window_score": 1.0,
           "development_stash_score": 0.605,
           "early_pick_balance_score": 1.0,
-          "starter_weighted_xvar_z": -2.232
+          "starter_weighted_xvar_z": -2.176
         },
         "decision_supported": false,
         "label": "REBUILDING",
         "manual_override_allowed": true,
-        "score": -0.959
+        "score": -0.925
       },
       "roster_id": 1
     },
@@ -83,12 +83,12 @@
           "age_window_score": 1.0,
           "development_stash_score": 0.0,
           "early_pick_balance_score": 1.0,
-          "starter_weighted_xvar_z": 0.1
+          "starter_weighted_xvar_z": 0.109
         },
         "decision_supported": false,
         "label": "ASCENDING",
         "manual_override_allowed": true,
-        "score": 0.41
+        "score": 0.415
       },
       "roster_id": 3
     },
@@ -109,12 +109,12 @@
           "age_window_score": 1.0,
           "development_stash_score": 0.0,
           "early_pick_balance_score": 1.0,
-          "starter_weighted_xvar_z": -0.105
+          "starter_weighted_xvar_z": -0.092
         },
         "decision_supported": false,
         "label": "ASCENDING",
         "manual_override_allowed": true,
-        "score": 0.287
+        "score": 0.295
       },
       "roster_id": 4
     },
@@ -135,12 +135,12 @@
           "age_window_score": 1.0,
           "development_stash_score": 0.102,
           "early_pick_balance_score": 1.0,
-          "starter_weighted_xvar_z": -1.372
+          "starter_weighted_xvar_z": -1.482
         },
         "decision_supported": false,
         "label": "REBUILDING",
         "manual_override_allowed": true,
-        "score": -0.468
+        "score": -0.534
       },
       "roster_id": 5
     },
@@ -161,12 +161,12 @@
           "age_window_score": -0.2,
           "development_stash_score": 0.0,
           "early_pick_balance_score": 1.0,
-          "starter_weighted_xvar_z": 0.654
+          "starter_weighted_xvar_z": 0.652
         },
         "decision_supported": false,
         "label": "BALANCED",
         "manual_override_allowed": true,
-        "score": 0.502
+        "score": 0.501
       },
       "roster_id": 6
     },
@@ -187,12 +187,12 @@
           "age_window_score": 1.0,
           "development_stash_score": 0.0,
           "early_pick_balance_score": 1.0,
-          "starter_weighted_xvar_z": 1.611
+          "starter_weighted_xvar_z": 1.582
         },
         "decision_supported": false,
         "label": "CONTENDER",
         "manual_override_allowed": true,
-        "score": 1.317
+        "score": 1.299
       },
       "roster_id": 7
     },
@@ -213,12 +213,12 @@
           "age_window_score": 1.0,
           "development_stash_score": 0.0,
           "early_pick_balance_score": 1.0,
-          "starter_weighted_xvar_z": 0.414
+          "starter_weighted_xvar_z": 0.417
         },
         "decision_supported": false,
         "label": "ASCENDING",
         "manual_override_allowed": true,
-        "score": 0.598
+        "score": 0.6
       },
       "roster_id": 8
     },
@@ -239,12 +239,12 @@
           "age_window_score": 1.0,
           "development_stash_score": 0.0,
           "early_pick_balance_score": 1.0,
-          "starter_weighted_xvar_z": -0.019
+          "starter_weighted_xvar_z": -0.007
         },
         "decision_supported": false,
         "label": "ASCENDING",
         "manual_override_allowed": true,
-        "score": 0.339
+        "score": 0.346
       },
       "roster_id": 9
     },
@@ -263,14 +263,14 @@
         "classification_basis": "internal_team_matrix_v1",
         "components": {
           "age_window_score": 0.4,
-          "development_stash_score": 0.846,
+          "development_stash_score": 0.0,
           "early_pick_balance_score": 0.5,
-          "starter_weighted_xvar_z": 0.796
+          "starter_weighted_xvar_z": 0.826
         },
         "decision_supported": false,
         "label": "CONTENDER",
         "manual_override_allowed": true,
-        "score": 0.675
+        "score": 0.651
       },
       "roster_id": 10
     },
@@ -291,12 +291,12 @@
           "age_window_score": 1.0,
           "development_stash_score": 0.0,
           "early_pick_balance_score": 1.0,
-          "starter_weighted_xvar_z": -0.872
+          "starter_weighted_xvar_z": -0.855
         },
         "decision_supported": false,
         "label": "REBUILDING",
         "manual_override_allowed": true,
-        "score": -0.173
+        "score": -0.163
       },
       "roster_id": 11
     },
@@ -317,12 +317,12 @@
           "age_window_score": 1.0,
           "development_stash_score": 0.0,
           "early_pick_balance_score": 1.0,
-          "starter_weighted_xvar_z": 0.479
+          "starter_weighted_xvar_z": 0.481
         },
         "decision_supported": false,
         "label": "ASCENDING",
         "manual_override_allowed": true,
-        "score": 0.637
+        "score": 0.639
       },
       "roster_id": 12
     }
