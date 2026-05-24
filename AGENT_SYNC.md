@@ -30,16 +30,6 @@ Phase 19 — **COMPLETE**: Engine A v3 (Bifurcated Rookie Forecast). W1–W5 all
 - W3 (Head A v3 Bake-Off per position) — **COMPLETE + TE:ridge PROMOTED (David approved 2026-05-24)**. 7 validation-integrity fixes applied (row alignment, pooled OOF RMSE, direct-PPG NDCG, fractional TE safety guard, fold-level rank gates, per-player OOF log). 18 TDD bakeoff tests + 6 TDD promotion tests passing (1044 total). Final results: **TE:ridge PASSES 2/3 gates** (RMSE +7.0% + NDCG; Spearman ✗); WR/RB fail (accepted limitations); QB skipped. TE model artifact: `app/data/models/head_a/runs/20260524T140748Z/te_v3.pkl` (sklearn Pipeline: StandardScaler + Ridge(alpha=50.0); 5 features; 62 train rows; gitignored). Manifest: `app/data/models/head_a/v3_manifest.json` (new Head A v3 routing structure, parallel to engine_b; does NOT update Engine A v2 `latest.json` — W5 will wire scorer). Validation report: `docs/validation/phase19-w3-head-a-promotion-decision.md`.
 - W4 (Head B v3 Bake-Off) — **COMPLETE — NO PROMOTION** (2026-05-24; 1067 total tests, 11 skipped). All positions fail mandatory residual R² > 0 gate. Passing candidates: none. LOOO: all features quarantined (>25% drift) across all positions. Artifacts: `app/data/backtest/phase19/head_b_bakeoff_20260524T145953Z_595f073d.json` + sensitivity report. Validation memo: `docs/validation/phase19-w4-head-b-promotion-decision.md`. No model pkl, manifest, PVO scorer, or decision_supported changes.
 - W5 (Service Layer Integration) — **COMPLETE + all Codex blockers resolved** (2026-05-24; 1088 total tests, 11 skipped). `EngineAV3Scorer` + `score_prospect_v3()` added to `src/dynasty_genius/scoring/engine_a.py`. `pvo_assembler.py` tries v3 before v2. `ProspectRequest` (rookies.py) extended with optional `final_college_age`, `te_ryptpa_final`, `te_yards_per_reception_career` — route `/api/rookies/score` now exercises v3 when fields supplied. Manifest relative paths resolved against ROOT. 21 TDD tests in `tests/test_engine_a_v3.py`. Governance validation: PASS. Head B remains dark.
-- Phase 18 closeout: 18.4 fully complete and merged to origin/main. All 780 tests green.
-- Workstream 18.1 (Roster Audit Rookie Reconciliation) — COMPLETE: `/roster/audit` preserves Phase 17 full-universe Engine A PVO values for rostered current-draft rookies instead of degrading them to active-player `PRE_MODEL`; veterans remain on the existing audit path.
-- Workstream 18.2 (Daily Batch Orchestration) — COMPLETE: `scripts/refresh_league_intelligence.py` runs the existing Phase 17.1 → 17.5 builders in order, supports `--dry-run`, and fails fast without adding new valuation logic.
-- Workstream 18.3 (Team Posture Classification) — COMPLETE: `scripts/build_team_posture.py` builds `team_posture_latest.json` from internal team-matrix signals; opportunity partner rankings now consume posture and populate `posture_alignment_score` when the posture artifact is present.
-- Workstream 18.4 (Cross-Position xVAR Percentile) — COMPLETE: `build_universe_pvo_batch()` now populates `xvar_percentile_overall` from internal xVAR ranking across model-backed rows only; non-model rows remain null and market fields remain absent.
-- Latest live Woodbury rerun: 28 players, 5 QB context cards, `decision_supported=false`; current-draft rookies now surface Engine A values in `/roster/audit`: Fernando Mendoza (`DVS=85.14`, `xVAR=10.31`), Omar Cooper Jr. (`DVS=70.99`, `xVAR=1.79`), Chris Bell (`DVS=62.46`, `xVAR=-6.74`), Kaelon Black (`DVS=61.55`, `xVAR=13.4`).
-- Phase 18.1 verification: roster audit/PVO focused suite passed (`35 passed`); full suite passed (`768 passed, 11 skipped`).
-- Phase 18.2 verification: orchestration/Phase 17 focused suite passed (`23 passed`); dry-run CLI verified planned commands without external network or artifact writes.
-- Phase 18.3 verification: posture/opportunity/refresh focused suite passed (`16 passed`); full suite passed (`777 passed, 11 skipped`). Latest posture coverage: 12/12 teams classified, `decision_supported_true_count=0`, `market_fields_absent=true`; Woodbury Riders currently labels `REBUILDING` under the v1 heuristic.
-- Phase 18.4 verification: universe/downstream focused suite passed (`27 passed`); full suite passed (`780 passed, 11 skipped`). Latest 17.2-derived coverage now has `xvar_percentile_overall_populated_count=399`, no non-model rows populated, and all Phase 18.4 guards true.
 
 Phase 17 — 17.1 THROUGH 17.5 COMPLETE; REVIEWED / CHECKPOINTED.
 - Workstream 17.0 (Planning) — COMPLETE: Merged research brief finalized with Section 19 Decision Memo.
@@ -215,6 +205,9 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 ## Merged PRs (phase 19 checkpoint)
 
 - PR #29 (`feature/phase19-w1-head-b-target` → `main`): MERGED → main `e6ccb58` (2026-05-24). Phase 19 W1/W2/W2b Engine A v3 feature pipeline checkpoint.
+- Commit `2ffbf13` (direct to `main`, 2026-05-24): W3/W4/W5 — TE Head A v3 Ridge promoted; Head B null result accepted; `EngineAV3Scorer` + `score_prospect_v3()` wired in Engine A scorer, `pvo_assembler.py`, and `/api/rookies/score` route; 21 TDD tests; 1088 total tests, 11 skipped.
+- Commit `4cce9f2` (merge to `main`, 2026-05-24): Merge `feature/phase19-w4-head-b-bakeoff` — consolidates W3/W4/W5 into main history.
+- Commit `ab9f085` (direct to `main`, 2026-05-24): AGENT_SYNC closeout — Phase 19 marked COMPLETE, stale sprint text retired, feature branch reference removed.
 
 ## Open PRs / Branches
 
@@ -240,13 +233,6 @@ Phase 7 PVO alignment complete. Engine B v2 is fully wired into the Player Value
 - **TE**: NOT PROMOTED — `te_v2.pkl` fails gate (0/3) — alpha=1.0 — `ENGINE_B_EXPERIMENTAL_POSITIONS = {"TE"}` retained
 - **v1.1 control**: `runs/v1_1_control/` — validation artifact only, not promoted
 - **Suite**: 293 passed, 11 skipped, 0 failed
-
-## Open Blockers
-
-1. **TE model** — fails gate at both v1 and v2. alpha=1.0 suggests overfitting. Fundamental signal problem; defer to Phase 6 follow-on.
-2. **PP below 80% gate** — target_share 69.6%, breakout_age WR/TE 72.8%. Path B holds.
-3. **Local Python mismatch** — use `.venv/bin/python3.14` for nflreadpy work.
-4. **TE divergence review period**: Phase 17.4 removed the position-only TE suppression. TE rows now route through normal gates with `te_review_period` metadata; do not convert TE divergence into decision-supported opportunity language until later validation confirms reliability.
 
 ## Codex PR #24 Blocking Issues — RESOLVED
 
@@ -408,5 +394,8 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-1. **Phase 19 COMPLETE** — W1 through W5 all done. W5 wired `te_v3.pkl` into the scoring path via graceful degradation; 2026 TEs with CFBD enrichment will score via v3, all others fall back to v2 transparently. No Head B model is active (W4 null result).
-2. **Next phase decision (David)** — Phase 19 closeout and merge to main, or open a new phase. Options: (A) Head B feature-gap remediation spec (new phase); (B) CFBD enrichment pipeline for 2026 TE prospect cards so v3 fires on the next rookie board run; (C) move to an unrelated phase priority.
+**Phase 19 closed (2026-05-24). 1088 tests green on main. Next sprint options for David:**
+
+1. **(A) CFBD Enrichment Pass** — Run `scripts/build_w2b_cfbd.py` against the 2026 TE prospect class to populate `te_ryptpa_final`, `te_yards_per_reception_career`, and `final_college_age` in `resources/prospect_cards.json`. Once populated, v3 will fire automatically for all 2026 TEs; all currently fall back to v2 (expected — no data gap in scoring, only in signal quality). Scope: low — pipeline already built, CFBD data already available.
+2. **(B) Head B Feature-Gap Remediation** — Open a new research phase to investigate why all positions failed the mandatory R² > 0 gate. Root causes identified: sparse historical residual signal, small per-position training populations, feature LOOO drift >25% across all candidates. Requires: new feature research brief + bake-off spec before any code.
+3. **(C) Different Phase Priority** — Open any unrelated phase per David's roadmap priorities.
