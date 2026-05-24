@@ -1,11 +1,15 @@
 ---
 document: Phase 21 Specification — Roster Cut & Drop Candidate Engine
-version: 0.2
+version: 0.3
 phase: 21
 status: DRAFT — awaiting David approval
 author: Claude Code
 date: 2026-05-24
 changelog:
+  v0.3: Codex re-review — four follow-ups: (1) IR compliance runs before over_limit early
+        return; (2) draft_state.nfl_state.week + season_type added to data contract for
+        taxi deadline logic; (3) Sleeper status normalization before reserve eligibility
+        lookup; (4) reserve_allow_* == 0 unrestricted-reserve invariant documented and tested.
   v0.2: Codex architecture review — five blockers resolved (IR eligibility, taxi lock rules,
         defensive capacity math, edge-case roster occupancy tests, recursive decision_supported
         guard). Source-path note corrected.
@@ -134,7 +138,7 @@ There is no `src/dynasty_genius/roster_audit/` package; the new `roster_cut_engi
 | Source | Path | Fields consumed |
 |--------|------|-----------------|
 | Universe PVO | `app/data/valuation/universe_pvo_latest.json` | `sleeper_player_id`, `player.full_name`, `player.position`, `player.age`, `player.sleeper_status`, `valuation.xvar`, `valuation.xvar_percentile_overall`, `valuation.dynasty_value_score`, `valuation.engine_path`, `league_context.on_taxi`, `league_context.on_ir`, `league_context.roster_id` |
-| Sleeper universe snapshot | `app/data/league_snapshots/sleeper_universe_snapshot_latest.json` | `league.roster_positions`, `league.settings` (full settings dict), `rosters[].players`, `rosters[].taxi`, `rosters[].reserve`, `rosters[].roster_id` |
+| Sleeper universe snapshot | `app/data/league_snapshots/sleeper_universe_snapshot_latest.json` | `league.roster_positions`, `league.settings` (full settings dict), `rosters[].players`, `rosters[].taxi`, `rosters[].reserve`, `rosters[].roster_id`, `draft_state.nfl_state.week`, `draft_state.nfl_state.season_type` |
 | David's league context | `resources/david_league_context.json` | `david_roster_id` |
 
 ---
@@ -216,43 +220,98 @@ total_players  = len(all_player_ids)
 over_limit = total_players - total_capacity
 ```
 
-If `over_limit <= 0`: return `RosterCutResult` with `cuts_required = 0`, `cut_candidates = []`. No further computation needed.
+Compute `over_limit` only — do **not** early-return here. IR compliance (Step 4) must run unconditionally so that `ILLEGAL_RESERVE` players surface even when the roster is at or below capacity.
 
 ### Step 4 — IR Compliance Check
 
-For each player in `ir_ids`, look up their PVO row and check eligibility:
+Runs **unconditionally** before any early return. An `ILLEGAL_RESERVE` player must surface even if the roster is exactly at or below capacity.
+
+#### Unrestricted-Reserve Invariant
+
+> When all six `reserve_allow_*` flags equal 0, `reserve_unrestricted = True`. This means the league permits **any player regardless of injury designation** to occupy a reserve slot — it is a completely open reserve. This is **not** the same as having zero reserve slots; `reserve_slots = 4` still contributes 4 slots to `total_capacity`. Tests must distinguish three states: (a) no reserve slots (`reserve_slots = 0`), (b) restricted reserve (≥ 1 flag = 1), and (c) unrestricted reserve (all flags = 0 with `reserve_slots > 0`). Only state (c) produces `reserve_unrestricted = True`.
+
+#### Status Normalization
+
+Sleeper returns freeform strings for `injury_status` (and `sleeper_status` on the PVO row). Strip and lowercase before any flag lookup to handle aliases and casing differences:
+
+```python
+_STATUS_CANONICAL: dict[str, str] = {
+    "out":          "Out",
+    "doubtful":     "Doubtful",
+    "suspended":    "Suspended",
+    "sus":          "Suspended",     # Sleeper alias
+    "na":           "NA",
+    "covid-19":     "COVID-19",
+    "covid":        "COVID-19",
+    "cov":          "COVID-19",      # Sleeper alias
+    "dnr":          "DNR",
+    "active":       "Active",
+    "questionable": "Questionable",
+    "probable":     "Probable",
+}
+
+_CANONICAL_TO_FLAG: dict[str, str] = {
+    "Out":       "reserve_allow_out",
+    "Doubtful":  "reserve_allow_doubtful",
+    "Suspended": "reserve_allow_sus",
+    "NA":        "reserve_allow_na",
+    "COVID-19":  "reserve_allow_cov",
+    "DNR":       "reserve_allow_dnr",
+}
+
+def _normalize_sleeper_status(raw: str | None) -> str:
+    if raw is None:
+        return "UNKNOWN_STATUS"
+    return _STATUS_CANONICAL.get(raw.strip().lower(), "UNKNOWN_STATUS")
+```
+
+An unrecognized string produces `"UNKNOWN_STATUS"` — do not raise; instead caveat the player with `"reserve_eligibility_unknown_status"`.
+
+#### IR Compliance Function
 
 ```python
 def _ir_compliance_status(
     sleeper_status: str | None,
     reserve_unrestricted: bool,
-    reserve_allow_flags: dict[str, str],
     settings: dict,
-) -> str:
+) -> tuple[str, list[str]]:
+    """Returns (status, caveats). Normalizes raw Sleeper status before flag lookup."""
     if reserve_unrestricted:
-        return "COMPLIANT"  # off-season unrestricted — any status allowed
-    if sleeper_status is None:
-        return "UNKNOWN_STATUS"
-    # Map Sleeper injury status strings to setting keys
-    STATUS_TO_FLAG = {
-        "Out": "reserve_allow_out",
-        "Doubtful": "reserve_allow_doubtful",
-        "Suspended": "reserve_allow_sus",
-        "NA": "reserve_allow_na",
-        "COVID-19": "reserve_allow_cov",
-        "DNR": "reserve_allow_dnr",
-    }
-    flag_key = STATUS_TO_FLAG.get(sleeper_status)
+        return "COMPLIANT", []
+    canonical = _normalize_sleeper_status(sleeper_status)
+    if canonical == "UNKNOWN_STATUS":
+        return "UNKNOWN_STATUS", ["reserve_eligibility_unknown_status"]
+    flag_key = _CANONICAL_TO_FLAG.get(canonical)
     if flag_key and int(settings.get(flag_key) or 0) == 1:
-        return "COMPLIANT"
-    return "ILLEGAL_RESERVE"
+        return "COMPLIANT", []
+    return "ILLEGAL_RESERVE", []
 ```
 
 Players with `ir_compliance_status = "ILLEGAL_RESERVE"` are **NOT simply exempt**. They are added to `cut_candidates` with `cut_priority = 0` (forced compliance, ahead of all model-ranked candidates) and a `cut_rationale` entry of `"reserve_slot_ineligible_must_comply"`. They also appear in the top-level `forced_compliance_caveats` list on the result.
 
 In David's current roster: `reserve_unrestricted = True` → all three IR players are `COMPLIANT` and exempt.
 
+#### Early-Return Guard (runs after Step 4)
+
+```python
+illegal_reserve_players = [p for p in ir_candidates if p.ir_compliance_status == "ILLEGAL_RESERVE"]
+if over_limit <= 0 and not illegal_reserve_players:
+    return RosterCutResult(
+        ...,
+        cuts_required=0,
+        cut_candidates=[],
+        forced_compliance_caveats=[],
+        exempt_players=exempt_players_so_far,
+        caveats=caveats_so_far,
+        decision_supported=False,
+    )
+```
+
+If `over_limit <= 0` **but** `illegal_reserve_players` is non-empty: continue processing to surface forced-compliance candidates — even though no numeric cut count is required, the compliance violation must be presented to David.
+
 ### Step 5 — Taxi Eligibility Check
+
+#### Taxi Player Eligibility
 
 ```python
 def _taxi_eligibility(
@@ -271,11 +330,36 @@ def _taxi_eligibility(
 
 Currently-on-taxi players are **exempt from cuts regardless of eligibility** — they already occupy a taxi slot. Eligibility governs whether a player *not yet on taxi* could be moved there; it does not retroactively change status for players already assigned.
 
+#### Taxi Deadline Status
+
+Reads `draft_state.nfl_state.week` and `draft_state.nfl_state.season_type` from the Sleeper snapshot to determine where the league is relative to the taxi assignment deadline:
+
+```python
+def _taxi_deadline_status(
+    season_type: str | None,
+    week: int | None,
+    taxi_deadline: int,
+) -> str:
+    """
+    "NOT_REACHED"  — off-season, preseason, or week 0 (assignments still open)
+    "APPROACHING"  — in-season, one week before the lock week
+    "PASSED"       — at or past the lock week (taxi assignments are frozen)
+    """
+    if season_type in ("off", "pre") or week in (None, 0):
+        return "NOT_REACHED"
+    if week >= taxi_deadline:
+        return "PASSED"
+    if week >= taxi_deadline - 1:
+        return "APPROACHING"
+    return "NOT_REACHED"
+```
+
 Add to `RosterCutResult.caveats` when applicable:
-- `"taxi_deadline_approaching"` — if the current NFL week >= `taxi_deadline - 1`
+- `"taxi_deadline_approaching"` — if `_taxi_deadline_status()` returns `"APPROACHING"`
+- `"taxi_deadline_passed"` — if `_taxi_deadline_status()` returns `"PASSED"` (taxi assignments are now locked)
 - `"taxi_player_ineligible_vet"` — if any currently-on-taxi player has `taxi_eligibility = "INELIGIBLE_VET"` (surface for David review, not a forced cut)
 
-In David's current roster: both taxi players are 2026 rookies (`years_exp = 0`), eligible per `taxi_years = 1`. Deadline has not passed (May 2026).
+In David's current roster: both taxi players are 2026 rookies (`years_exp = 0`), eligible per `taxi_years = 1`. `season_type = "off"`, `week = 0` → deadline status `"NOT_REACHED"`.
 
 ### Step 6 — Score Lookup Per Active Player
 
@@ -492,6 +576,36 @@ app/data/valuation/league_opportunity_cut_phase*.json
 | `test_roster_exactly_at_capacity_returns_no_cuts` | 26 total players, 26 capacity → `cuts_required = 0`, `cut_candidates = []` |
 | `test_partial_occupancy_with_taxi_ir_present` | 15 total players (2 taxi, 2 IR), 26 capacity → `cuts_required = 0`, `cut_candidates = []` |
 
+**v0.3 Blocker — IR compliance before early return:**
+
+| Test | What it verifies |
+|------|-----------------|
+| `test_illegal_reserve_surfaces_even_when_roster_at_capacity` | A synthetic roster exactly at capacity (26/26) but with a reserve player whose status is ineligible (`reserve_allow_out = 1`, player `sleeper_status = "Active"`) → `cuts_required = 0` but result still contains one `cut_priority = 0` candidate with `ir_compliance_status = "ILLEGAL_RESERVE"` |
+
+**v0.3 Follow-up — Taxi deadline status:**
+
+| Test | What it verifies |
+|------|-----------------|
+| `test_taxi_deadline_status_offseason_returns_not_reached` | `season_type = "off"`, `week = 0`, `taxi_deadline = 4` → `_taxi_deadline_status()` returns `"NOT_REACHED"` and no `"taxi_deadline_approaching"` caveat |
+| `test_taxi_deadline_status_week_3_approaching` | `season_type = "reg"`, `week = 3`, `taxi_deadline = 4` → returns `"APPROACHING"`, result caveats include `"taxi_deadline_approaching"` |
+| `test_taxi_deadline_status_week_4_passed` | `season_type = "reg"`, `week = 4`, `taxi_deadline = 4` → returns `"PASSED"`, result caveats include `"taxi_deadline_passed"` |
+
+**v0.3 Follow-up — Sleeper status normalization:**
+
+| Test | What it verifies |
+|------|-----------------|
+| `test_normalize_known_alias_sus` | `_normalize_sleeper_status("sus")` → `"Suspended"` |
+| `test_normalize_case_insensitive_out` | `_normalize_sleeper_status("OUT")` → `"Out"` |
+| `test_normalize_unknown_status_produces_unknown` | `_normalize_sleeper_status("Injured Reserve")` (unrecognized string) → `"UNKNOWN_STATUS"`; IR compliance returns `"UNKNOWN_STATUS"` with caveat `"reserve_eligibility_unknown_status"` |
+
+**v0.3 Follow-up — Unrestricted-reserve invariant:**
+
+| Test | What it verifies |
+|------|-----------------|
+| `test_all_reserve_allow_zero_means_unrestricted` | Settings with all six `reserve_allow_*` = 0 and `reserve_slots = 4` → `reserve_unrestricted = True`; IR players of any status are `COMPLIANT` |
+| `test_partial_reserve_flags_means_restricted` | Settings with `reserve_allow_out = 1` and all others = 0 → `reserve_unrestricted = False`; only `sleeper_status = "Out"` produces `COMPLIANT` |
+| `test_reserve_unrestricted_differs_from_no_reserve_slots` | Settings with all flags = 0 but `reserve_slots = 0` → `reserve_unrestricted = True` but `total_capacity = active_slots + taxi_slots` (0 reserve slots contribute nothing); any player in `ir_ids` is `COMPLIANT` by flag logic but the slot doesn't exist — verifies the invariant is flag-derived, not slot-count-derived |
+
 **Scoring and governance:**
 
 | Test | What it verifies |
@@ -528,7 +642,7 @@ app/data/valuation/league_opportunity_cut_phase*.json
 
 | Workstream | Scope | TDD tests | Dependency |
 |-----------|-------|-----------|------------|
-| W1 — RosterCutEngine | New standalone module | 20 | None |
+| W1 — RosterCutEngine | New standalone module | 30 | None |
 | W2 — Waiver-Drop integration | Extend `league_opportunity_map.py` | 7 | W1 complete |
 | W3 — Build script | CLI + artifact writer | Manual smoke test | W1 + W2 complete |
 
