@@ -402,5 +402,5 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-1. **W3 (Head A v3 Bake-Off)** — Awaiting David's explicit approval. Once approved, implement per-position LOOCV bake-off with three-part promotion gate (≥3% MAE lift, ≥3/7 folds, no TE regression) on the W2b-enriched v3 CSV.
+1. **W3 (Head A v3 Bake-Off)** — Awaiting David's explicit approval. Once approved, implement per-position LOOCV bake-off against Engine A v2. Validation gate: beat Engine A v2 on at least 2 of 3 metrics — RMSE, Spearman, NDCG@10.
 2. **Publish checkpoint** — Branch `feature/phase19-w1-head-b-target` is ahead of `origin/main`. Open a PR after W3 completes or at David's direction.
