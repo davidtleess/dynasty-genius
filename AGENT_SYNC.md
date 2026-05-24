@@ -1,7 +1,7 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-05-23
+Last updated: 2026-05-24
 
 ## Active Phase
 
@@ -18,15 +18,15 @@ Phase 16.1 — COMPLETE: Age blockers resolved — 6 verified DOBs ingested, all
 Phase 16 — CLOSED FOR PHASE 17 ENTRY: Remaining signal-upgrade workstreams are validation/research gates and deferred; no production model change approved.
 Phase 17 — IMPLEMENTATION COMPLETE THROUGH 17.5: Sleeper universe, full PVO batch, team matrix, market divergence, and league opportunity map artifacts complete (latest artifacts in `app/data/league_snapshots/` and `app/data/valuation/`)
 Phase 18 — COMPLETE: 18.1 roster-audit rookie PVO reconciliation complete; 18.2 daily batch orchestration complete; 18.3 team posture classification complete; 18.4 cross-position xVAR percentile complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-22; 780 tests)
-Phase 19 — IN EXECUTION: Engine A v3 (Bifurcated Rookie Forecast). W1–W3 + TE:ridge promotion COMPLETE. W4 (Head B v3 Bake-Off) IN PROGRESS on `feature/phase19-w4-head-b-bakeoff`. (2026-05-24)
+Phase 19 — **COMPLETE**: Engine A v3 (Bifurcated Rookie Forecast). W1–W5 all merged to main (`4cce9f2`, 2026-05-24; 1088 tests, 11 skipped). TE Head A v3 Ridge promoted and wired. Head B null result. Feature branch retired.
 
 ## Current Sprint Objective
 
-Phase 19 — IN EXECUTION (2026-05-23). Branch: `feature/phase19-w1-head-b-target`. 181 focused tests passing.
-- Workstream 19.1 (Planning & Spec) — COMPLETE: v0.2 design spec approved, seven Section 10 decisions locked, repo-native execution plan at `docs/superpowers/plans/2026-05-23-phase19-engine-a-v3-bifurcation-execution.md`.
-- W1 (Head B Target Pipeline) — COMPLETE: isotonic Expected PPG curves per position, TE hierarchical pooling, target + residual vectors, `head_b_training_eligible` column. Codex review clear.
-- W2 (Feature Contract + Enrichment) — COMPLETE: `head_b_contract.py` with HEAD_B_PROHIBITED_COLUMNS/regex; Combine + career dominator enrichment; `nfl_pick`/`nfl_round` aliases; fail-fast combine load + `w2_combine_degraded` provenance flag. Codex review clear (2 HIGH + 1 Medium resolved).
-- W2b (CFBD Player-Level Enrichment) — COMPLETE (data gap fix + rebuild 2026-05-24). WR dominator avg(yds_share, td_share) 89.0%; **`ryptpa` 89.2%** (CFBD rec_yds / TPA, downstream contract column name); `yprr_college` permanently dark (PFF-only, 2014-2016 seasons absent; stub present); **`rb_scrimmage_ypg`/`rb_rec_ypg` 34.4%** (CFBD `/games` team-games proxy; below W3 50% threshold — accepted Phase 19 limitation); RB scrimmage dominator 91.7%; TE RYPTPA 81.6%; era proxy flags; TPA+games-count negative-caching; `w2b_cfbd_degraded=0`; 57 TDD tests passing. v3 CSV: 874 rows × 155 cols. Governance validation: PASS. Codex re-review complete.
+**No active sprint.** Phase 19 closed. Awaiting David's next phase decision.
+- Workstream 19.1 (Planning & Spec) — COMPLETE.
+- W1 (Head B Target Pipeline) — COMPLETE.
+- W2 (Feature Contract + Enrichment) — COMPLETE.
+- W2b (CFBD Player-Level Enrichment) — COMPLETE. v3 CSV: 874 rows × 155 cols.
 - W3 (Head A v3 Bake-Off per position) — **COMPLETE + TE:ridge PROMOTED (David approved 2026-05-24)**. 7 validation-integrity fixes applied (row alignment, pooled OOF RMSE, direct-PPG NDCG, fractional TE safety guard, fold-level rank gates, per-player OOF log). 18 TDD bakeoff tests + 6 TDD promotion tests passing (1044 total). Final results: **TE:ridge PASSES 2/3 gates** (RMSE +7.0% + NDCG; Spearman ✗); WR/RB fail (accepted limitations); QB skipped. TE model artifact: `app/data/models/head_a/runs/20260524T140748Z/te_v3.pkl` (sklearn Pipeline: StandardScaler + Ridge(alpha=50.0); 5 features; 62 train rows; gitignored). Manifest: `app/data/models/head_a/v3_manifest.json` (new Head A v3 routing structure, parallel to engine_b; does NOT update Engine A v2 `latest.json` — W5 will wire scorer). Validation report: `docs/validation/phase19-w3-head-a-promotion-decision.md`.
 - W4 (Head B v3 Bake-Off) — **COMPLETE — NO PROMOTION** (2026-05-24; 1067 total tests, 11 skipped). All positions fail mandatory residual R² > 0 gate. Passing candidates: none. LOOO: all features quarantined (>25% drift) across all positions. Artifacts: `app/data/backtest/phase19/head_b_bakeoff_20260524T145953Z_595f073d.json` + sensitivity report. Validation memo: `docs/validation/phase19-w4-head-b-promotion-decision.md`. No model pkl, manifest, PVO scorer, or decision_supported changes.
 - W5 (Service Layer Integration) — **COMPLETE + all Codex blockers resolved** (2026-05-24; 1088 total tests, 11 skipped). `EngineAV3Scorer` + `score_prospect_v3()` added to `src/dynasty_genius/scoring/engine_a.py`. `pvo_assembler.py` tries v3 before v2. `ProspectRequest` (rookies.py) extended with optional `final_college_age`, `te_ryptpa_final`, `te_yards_per_reception_career` — route `/api/rookies/score` now exercises v3 when fields supplied. Manifest relative paths resolved against ROOT. 21 TDD tests in `tests/test_engine_a_v3.py`. Governance validation: PASS. Head B remains dark.
