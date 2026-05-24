@@ -37,6 +37,7 @@ from scripts.build_w2b_cfbd import (
     build_team_rush_lookup,
     build_team_td_lookup,
     compute_era_proxy_features,
+    compute_qb_cfbd_features,
     compute_rb_cfbd_features,
     compute_te_cfbd_features,
     compute_wr_cfbd_features,
@@ -511,6 +512,173 @@ def test_te_ryptpa_missing_when_no_pass_attempts():
            "season": "2015", "age_at_draft": "21.0", "age_at_draft_missing": "0"}
     result = compute_te_cfbd_features(row, pivot_14, team_pass_attempts_lookup={})
     assert result["te_ryptpa_final_missing"] == "1"
+
+
+# ── Phase 20 W2 RB efficiency features ───────────────────────────────────────
+
+RUSH_2014_LOW_ATT = [
+    {"player": "Low Carries RB", "team": "Alabama", "statType": "YDS", "stat": "200"},
+    {"player": "Low Carries RB", "team": "Alabama", "statType": "CAR", "stat": "30"},
+]
+
+RECV_HENRY_MULTI = [
+    # 2015 (final year before 2016 draft)
+    {"player": "Derrick Henry", "team": "Alabama", "statType": "YDS", "stat": "180"},
+    {"player": "Derrick Henry", "team": "Alabama", "statType": "REC", "stat": "18"},
+    # 2014
+    {"player": "Derrick Henry", "team": "Alabama", "statType": "YDS", "stat": "90"},
+    {"player": "Derrick Henry", "team": "Alabama", "statType": "REC", "stat": "9"},
+]
+
+
+def test_rb_yards_per_carry_final_computed_from_rush_att():
+    """rb_yards_per_carry_final = rush_yds / rush_att in final season."""
+    rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
+    row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
+           "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp)
+    assert result["rb_yards_per_carry_final_missing"] == "0", (
+        "Expected rb_yards_per_carry_final to be populated for Henry 2015 (110 CAR ≥ 50)"
+    )
+    ypc = float(result["rb_yards_per_carry_final"])
+    # 895 yds / 110 CAR ≈ 8.136
+    assert 8.0 < ypc < 8.3, f"Got {ypc}, expected ~8.14"
+    assert result["rb_yards_per_carry_final_source"] == "cfbd"
+
+
+def test_rb_yards_per_carry_final_volume_gate_below_50_att():
+    """Below 50 rush attempts → rb_yards_per_carry_final dark (_missing=1)."""
+    rush_pivot = pivot_rushing_stats(RUSH_2014_LOW_ATT, 2014)
+    team_rush = build_team_rush_lookup(rush_pivot)
+    rec_pivot: dict = {}
+    team_rec: dict = {}
+    sp = build_sp_lookup(SP_2015, 2015)
+    row = {"pfr_player_name": "Low Carries RB", "college": "Alabama",
+           "season": "2015", "age_at_draft": "22.0", "age_at_draft_missing": "0"}
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp)
+    assert result["rb_yards_per_carry_final_missing"] == "1", (
+        "30 CAR < 50 volume gate — should be _missing=1"
+    )
+    assert result["rb_yards_per_carry_final"] == ""
+
+
+def test_rb_yards_per_reception_career_computed_from_career_rec():
+    """rb_yards_per_reception_career = career rec_yds / career rec (≥10 threshold)."""
+    rush_pivot = pivot_rushing_stats(RUSH_2015, 2015)
+    team_rush = build_team_rush_lookup(rush_pivot)
+    # Multi-year receiving: 2015 (final) + 2014 = 180+90=270 yds, 18+9=27 rec
+    recv_pivot_15 = pivot_receiving_stats(RECV_HENRY_MULTI[:2], 2015)
+    recv_pivot_14 = pivot_receiving_stats(RECV_HENRY_MULTI[2:], 2014)
+    rec_pivot = {**recv_pivot_15, **recv_pivot_14}
+    team_rec = build_team_rec_lookup(rec_pivot)
+    sp = build_sp_lookup(SP_2015, 2015)
+    row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
+           "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp)
+    assert result["rb_yards_per_reception_career_missing"] == "0", (
+        "Expected rb_yards_per_reception_career populated (27 career rec ≥ 10)"
+    )
+    ypr = float(result["rb_yards_per_reception_career"])
+    # 270 career rec_yds / 27 career rec = 10.0
+    assert 9.5 < ypr < 10.5, f"Got {ypr}, expected ~10.0"
+    assert result["rb_yards_per_reception_career_source"] == "cfbd"
+
+
+def test_rb_yards_per_reception_career_volume_gate_below_10_rec():
+    """Below 10 career receptions → rb_yards_per_reception_career dark."""
+    rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
+    row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
+           "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
+    # _make_rb_lookups() gives empty rec_pivot → career_rec = 0 < 10
+    result = compute_rb_cfbd_features(row, rush_pivot, rec_pivot, team_rush, team_rec, sp)
+    assert result["rb_yards_per_reception_career_missing"] == "1", (
+        "0 career rec < 10 volume gate — should be _missing=1"
+    )
+
+
+# ── Phase 20 W3 QB compute function ─────────────────────────────────────────
+
+def test_compute_qb_cfbd_features_maps_four_features(tmp_path):
+    """compute_qb_cfbd_features returns four QB feature columns when adapter succeeds
+    and pass_attempts >= 100."""
+    from unittest.mock import patch as mock_patch
+
+    mock_stats = {
+        "completion_pct": 0.652,
+        "yards_per_attempt": 8.1,
+        "td_int_ratio": 3.75,
+        "sack_rate": 0.04,
+        "pass_attempts": 400,
+    }
+    row = {"pfr_player_name": "Trevor Lawrence", "college": "Clemson",
+           "season": "2021", "position": "QB"}
+    with mock_patch(
+        "scripts.build_w2b_cfbd.fetch_qb_college_stats",
+        return_value=mock_stats,
+    ):
+        result = compute_qb_cfbd_features(row, api_key="test-key", cache_dir=tmp_path)
+
+    assert result["qb_completion_pct_final_missing"] == "0"
+    assert result["qb_yards_per_attempt_final_missing"] == "0"
+    assert result["qb_td_int_ratio_final_missing"] == "0"
+    assert result["qb_sack_rate_final_missing"] == "0"
+    assert float(result["qb_completion_pct_final"]) == pytest.approx(0.652)
+    assert float(result["qb_yards_per_attempt_final"]) == pytest.approx(8.1)
+    assert float(result["qb_td_int_ratio_final"]) == pytest.approx(3.75)
+    assert float(result["qb_sack_rate_final"]) == pytest.approx(0.04)
+    for col in ("qb_completion_pct_final", "qb_yards_per_attempt_final",
+                "qb_td_int_ratio_final", "qb_sack_rate_final"):
+        assert result[f"{col}_source"] == "cfbd"
+
+
+def test_compute_qb_cfbd_features_volume_gate_below_100(tmp_path):
+    """pass_attempts < 100 → all four QB features set to _missing=1."""
+    from unittest.mock import patch as mock_patch
+
+    mock_stats = {
+        "completion_pct": 0.60,
+        "yards_per_attempt": 7.0,
+        "td_int_ratio": 2.0,
+        "sack_rate": 0.06,
+        "pass_attempts": 45,
+    }
+    row = {"pfr_player_name": "Backup QB", "college": "Small College",
+           "season": "2019", "position": "QB"}
+    with mock_patch(
+        "scripts.build_w2b_cfbd.fetch_qb_college_stats",
+        return_value=mock_stats,
+    ):
+        result = compute_qb_cfbd_features(row, api_key="test-key", cache_dir=tmp_path)
+
+    for col in ("qb_completion_pct_final", "qb_yards_per_attempt_final",
+                "qb_td_int_ratio_final", "qb_sack_rate_final"):
+        assert result[f"{col}_missing"] == "1", f"{col} should be _missing=1 below gate"
+        assert result[col] == ""
+        assert result[f"{col}_source"] == "below_volume_gate"
+
+
+def test_compute_qb_cfbd_features_player_not_found_dark(tmp_path):
+    """Adapter returning all None → all four QB features dark."""
+    from unittest.mock import patch as mock_patch
+
+    mock_stats = {
+        "completion_pct": None,
+        "yards_per_attempt": None,
+        "td_int_ratio": None,
+        "sack_rate": None,
+        "pass_attempts": None,
+    }
+    row = {"pfr_player_name": "Unknown QB", "college": "Unknown",
+           "season": "2018", "position": "QB"}
+    with mock_patch(
+        "scripts.build_w2b_cfbd.fetch_qb_college_stats",
+        return_value=mock_stats,
+    ):
+        result = compute_qb_cfbd_features(row, api_key="test-key", cache_dir=tmp_path)
+
+    for col in ("qb_completion_pct_final", "qb_yards_per_attempt_final",
+                "qb_td_int_ratio_final", "qb_sack_rate_final"):
+        assert result[f"{col}_missing"] == "1"
 
 
 # ── compute_era_proxy_features ────────────────────────────────────────────────

@@ -59,6 +59,9 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from src.dynasty_genius.adapters.cfbd_qb_adapter import (  # noqa: E402
+    fetch_qb_college_stats,
+)
 from src.dynasty_genius.adapters.cfbd_receiving_adapter import (  # noqa: E402
     fetch_team_pass_attempts,
     normalize_college_name,
@@ -594,6 +597,33 @@ def compute_rb_cfbd_features(
         result.update({"rb_school_sp_plus": "", "rb_school_sp_plus_missing": "1",
                        "rb_school_sp_plus_source": ""})
 
+    # ── rb_yards_per_carry_final: rush_yds / rush_att (final season) ─────────
+    rush_att = final_rush.get("rush_att", 0.0) if final_rush is not None else 0.0
+    if final_rush is not None and rush_att >= 50.0:
+        ypc = round(player_rush_yds / rush_att, 4)
+        result.update({"rb_yards_per_carry_final": str(ypc),
+                       "rb_yards_per_carry_final_missing": "0",
+                       "rb_yards_per_carry_final_source": "cfbd"})
+    else:
+        src = "below_volume_gate" if 0 < rush_att < 50.0 else ""
+        result.update({"rb_yards_per_carry_final": "",
+                       "rb_yards_per_carry_final_missing": "1",
+                       "rb_yards_per_carry_final_source": src})
+
+    # ── rb_yards_per_reception_career: career rec_yds / career rec ───────────
+    career_rec_yds = sum(s.get("rec_yds", 0.0) for _, s in rec_seasons)
+    career_rec = sum(s.get("rec", 0.0) for _, s in rec_seasons)
+    if career_rec >= 10.0:
+        ypr = round(career_rec_yds / career_rec, 4)
+        result.update({"rb_yards_per_reception_career": str(ypr),
+                       "rb_yards_per_reception_career_missing": "0",
+                       "rb_yards_per_reception_career_source": "cfbd"})
+    else:
+        src = "below_volume_gate" if 0 < career_rec < 10.0 else ""
+        result.update({"rb_yards_per_reception_career": "",
+                       "rb_yards_per_reception_career_missing": "1",
+                       "rb_yards_per_reception_career_source": src})
+
     # ── rb_scrimmage_ypg: (rush_yds + rec_yds) / team_games ──────────────────
     games_count = team_games_lookup.get((norm_school, final_year))
     scrimmage_yds = player_rush_yds + player_rec_yds
@@ -677,6 +707,69 @@ def compute_te_cfbd_features(
     return result
 
 
+# ── QB feature computation (Phase 20 W3) ─────────────────────────────────────
+
+def compute_qb_cfbd_features(
+    row: dict,
+    api_key: str,
+    cache_dir: Path,
+) -> dict[str, str]:
+    """Compute QB CFBD features by calling fetch_qb_college_stats() per player.
+
+    Caches the adapter result to avoid repeat API calls across rebuild runs.
+    Volume gate: pass_attempts < 100 → all four features dark (_missing=1).
+    """
+    result: dict[str, str] = {}
+    _qb_cols = (
+        "qb_completion_pct_final",
+        "qb_yards_per_attempt_final",
+        "qb_td_int_ratio_final",
+        "qb_sack_rate_final",
+    )
+    _feature_map = {
+        "qb_completion_pct_final": "completion_pct",
+        "qb_yards_per_attempt_final": "yards_per_attempt",
+        "qb_td_int_ratio_final": "td_int_ratio",
+        "qb_sack_rate_final": "sack_rate",
+    }
+
+    try:
+        draft_year = int(row.get("season", 0))
+    except (ValueError, TypeError):
+        for col in _qb_cols:
+            result.update({col: "", f"{col}_missing": "1", f"{col}_source": ""})
+        return result
+
+    name = row.get("pfr_player_name", "")
+    final_year = draft_year - 1
+    cache_key = f"qb_stats_{normalize_player_name(name)}_{final_year}.json"
+    cache_path = cache_dir / cache_key
+
+    if cache_path.exists():
+        stats: dict = json.loads(cache_path.read_text())
+    else:
+        stats = fetch_qb_college_stats(name, final_year, api_key)
+        cache_path.write_text(json.dumps(stats))
+
+    pass_attempts = stats.get("pass_attempts")
+    if pass_attempts is None or pass_attempts < 100:
+        src = "below_volume_gate" if pass_attempts is not None and pass_attempts > 0 else ""
+        for col in _qb_cols:
+            result.update({col: "", f"{col}_missing": "1", f"{col}_source": src})
+        return result
+
+    for col, adapter_key in _feature_map.items():
+        val = stats.get(adapter_key)
+        if val is not None:
+            result.update({col: str(round(float(val), 6)),
+                           f"{col}_missing": "0",
+                           f"{col}_source": "cfbd"})
+        else:
+            result.update({col: "", f"{col}_missing": "1", f"{col}_source": ""})
+
+    return result
+
+
 # ── Era proxy features (no API) ───────────────────────────────────────────────
 
 def compute_era_proxy_features(row: dict) -> dict[str, str]:
@@ -747,7 +840,10 @@ def _assert_no_leakage() -> None:
         "wr_dominator_final", "wr_breakout_age", "wr_market_share_yds",
         "wr_yards_per_reception_career", "ryptpa", "yprr_college", "wr_early_declare",
         "rb_final_dominator", "rb_school_sp_plus", "rb_scrimmage_ypg", "rb_rec_ypg",
+        "rb_yards_per_carry_final", "rb_yards_per_reception_career",
         "te_ryptpa_final", "te_yards_per_reception_career",
+        "qb_completion_pct_final", "qb_yards_per_attempt_final",
+        "qb_td_int_ratio_final", "qb_sack_rate_final",
         "final_college_age", "early_declare", "covid_eligibility_flag",
     }
     for col in w2b_output_cols:
@@ -881,7 +977,7 @@ def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
 
     # ── Enrich rows ───────────────────────────────────────────────────────────
     print("\n  Enriching rows...")
-    n_wr_hit = n_rb_hit = n_te_hit = 0
+    n_wr_hit = n_rb_hit = n_te_hit = n_qb_hit = 0
     position_counts: dict[str, int] = {}
 
     for row in rows:
@@ -915,6 +1011,12 @@ def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
                 n_te_hit += 1
             row.update(feats)
 
+        elif position == "QB":
+            feats = compute_qb_cfbd_features(row, api_key, CACHE_DIR)
+            if feats.get("qb_completion_pct_final_missing") == "0":
+                n_qb_hit += 1
+            row.update(feats)
+
     # ── Degraded provenance flag — always written ─────────────────────────────
     degraded_val = "1" if cfbd_degraded else "0"
     for row in rows:
@@ -924,6 +1026,7 @@ def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
     wr_total = position_counts.get("WR", 0)
     rb_total = position_counts.get("RB", 0)
     te_total = position_counts.get("TE", 0)
+    qb_total = position_counts.get("QB", 0)
     if wr_total:
         print(f"\n  WR dominator_final populated: {n_wr_hit}/{wr_total} "
               f"({100 * n_wr_hit / wr_total:.1f}%)")
@@ -933,6 +1036,9 @@ def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
     if te_total:
         print(f"  TE ryptpa_final populated:     {n_te_hit}/{te_total} "
               f"({100 * n_te_hit / te_total:.1f}%)")
+    if qb_total:
+        print(f"  QB completion_pct populated:   {n_qb_hit}/{qb_total} "
+              f"({100 * n_qb_hit / qb_total:.1f}%)")
     print(f"  w2b_cfbd_degraded: {degraded_val}")
 
     # ── Write enriched CSV ────────────────────────────────────────────────────

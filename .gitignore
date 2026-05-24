@@ -91,3 +91,4 @@ __pycache__/
 .venv/
 venv/
 app/data/backtest/phase19/
+app/data/backtest/phase20/

@@ -172,6 +172,7 @@ def fetch_qb_college_stats(
     yards_per_attempt = _first_stat(passing_records, "statType", "YPA")
     passing_tds = _first_stat(passing_records, "statType", "TD")
     interceptions = _first_stat(passing_records, "statType", "INT")
+    player_pass_attempts_raw = _first_stat(passing_records, "statType", "ATT")
     pass_attempts = _team_stat(team_records, "passAttempts")
     sacks_allowed = _team_stat(team_records, "sacksAllowed")
     net_passing_yards = _team_stat(team_records, "netPassingYards")
@@ -202,4 +203,5 @@ def fetch_qb_college_stats(
         "wepa": _first_wepa_value(wepa_records),
         "rushing_yards": rushing_yards,
         "rushing_tds": rushing_tds,
+        "pass_attempts": int(player_pass_attempts_raw) if player_pass_attempts_raw is not None else None,
     }

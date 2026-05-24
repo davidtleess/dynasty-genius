@@ -245,8 +245,7 @@ PATCH = "src.dynasty_genius.adapters.cfbd_qb_adapter.httpx.get"
 @patch(PATCH, side_effect=_full_mock)
 def test_fetch_returns_all_expected_keys(_):
     result = fetch_qb_college_stats("Trevor Lawrence", 2020, api_key="test-key")
-    assert set(result.keys()) == APPROVED_QB_FEATURES, (
-        f"Unexpected keys: {set(result.keys()) - APPROVED_QB_FEATURES}. "
+    assert APPROVED_QB_FEATURES.issubset(set(result.keys())), (
         f"Missing keys: {APPROVED_QB_FEATURES - set(result.keys())}."
     )
 
@@ -318,11 +317,12 @@ def test_missing_ppa_returns_none_not_zero(_):
 
 @patch(PATCH, side_effect=_empty_mock)
 def test_player_not_found_returns_all_none(_):
-    """All endpoints return [] → every feature is None."""
+    """All endpoints return [] → every QB feature value is None."""
     result = fetch_qb_college_stats("Nobody McUnknown", 2020, api_key="test-key")
-    none_values = {k: v for k, v in result.items() if v is not None}
-    assert not none_values, (
-        f"Expected all-None dict for unknown player. Non-None: {none_values}"
+    non_none_features = {k: v for k, v in result.items()
+                         if k in APPROVED_QB_FEATURES and v is not None}
+    assert not non_none_features, (
+        f"Expected all-None for QB features on unknown player. Non-None: {non_none_features}"
     )
 
 
@@ -356,6 +356,40 @@ def test_fetch_does_not_raise_on_partial_data(_):
         fetch_qb_college_stats("Any QB", 2020, api_key="test-key")
     except Exception as exc:
         pytest.fail(f"fetch_qb_college_stats raised on partial data: {exc}")
+
+
+# ── Phase 20: pass_attempts volume-gate key ───────────────────────────────────
+
+@patch(PATCH, side_effect=_full_mock)
+def test_fetch_includes_pass_attempts_integer_key(_):
+    """Adapter must expose pass_attempts as an integer from ATT statType.
+
+    Phase 20 volume gate: if pass_attempts < 100, compute_qb_cfbd_features()
+    sets all four QB feature columns to _missing=1. The gate requires this
+    key to be present in the adapter return dict.
+    """
+    result = fetch_qb_college_stats("Trevor Lawrence", 2020, api_key="test-key")
+    assert "pass_attempts" in result, (
+        "fetch_qb_college_stats() must return 'pass_attempts' key. "
+        "Extend the adapter to parse ATT statType from passing records."
+    )
+    assert isinstance(result["pass_attempts"], int), (
+        f"pass_attempts must be an int, got {type(result['pass_attempts']).__name__}"
+    )
+    assert result["pass_attempts"] == 400, (
+        f"pass_attempts={result['pass_attempts']}. "
+        "Expected 400 from _passing_stats(att=400)."
+    )
+
+
+@patch(PATCH, side_effect=_empty_mock)
+def test_fetch_pass_attempts_is_none_when_no_passing_records(_):
+    """When passing records are absent, pass_attempts must be None, not 0."""
+    result = fetch_qb_college_stats("Nobody McUnknown", 2020, api_key="test-key")
+    assert "pass_attempts" in result
+    assert result["pass_attempts"] is None, (
+        f"pass_attempts={result['pass_attempts']}. Expected None when no ATT record."
+    )
 
 
 # ── Integration tests (skipped — require live CFBD Tier 3 key) ───────────────

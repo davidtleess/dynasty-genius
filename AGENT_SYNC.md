@@ -19,10 +19,11 @@ Phase 16 — CLOSED FOR PHASE 17 ENTRY: Remaining signal-upgrade workstreams are
 Phase 17 — IMPLEMENTATION COMPLETE THROUGH 17.5: Sleeper universe, full PVO batch, team matrix, market divergence, and league opportunity map artifacts complete (latest artifacts in `app/data/league_snapshots/` and `app/data/valuation/`)
 Phase 18 — COMPLETE: 18.1 roster-audit rookie PVO reconciliation complete; 18.2 daily batch orchestration complete; 18.3 team posture classification complete; 18.4 cross-position xVAR percentile complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-22; 780 tests)
 Phase 19 — **COMPLETE**: Engine A v3 (Bifurcated Rookie Forecast). W1–W5 all merged to main (`4cce9f2`, 2026-05-24; 1088 tests, 11 skipped). TE Head A v3 Ridge promoted and wired. Head B null result. Feature branch retired.
+Phase 20 — **COMPLETE — NULL RESULT** (2026-05-24; 1101 tests, 11 skipped). W1 WR FAIL (0/3 ridge + gbt; trimmed 5-feature set hurts vs baseline). W2 RB FAIL (ridge +5.6% RMSE below 7% gate, Spearman/NDCG regress; gbt −7.4%: 0/3). W3 QB BLOCKED (25.4% API coverage < 50% threshold — all 4 features dropped). No passing candidates. No promotion. Spec: `docs/strategies/2026-05-24-phase20-prospect-enrichment-spec.md`. Artifact (gitignored): `app/data/backtest/phase20/phase20_bakeoff_20260524T183807Z_db568d44.json`.
 
 ## Current Sprint Objective
 
-**No active sprint.** Phase 19 CFBD enrichment complete (2026-05-24). All 22 2026 TEs now score via `engine_a_v3_head_a_ridge`. Awaiting David's next phase decision.
+**Phase 20 COMPLETE — NULL RESULT (2026-05-24).** All three positions failed Phase 20 gates. No promotion. Engine A v2 + TE v3 remain the active scoring paths. Awaiting David's next phase decision.
 - Workstream 19.1 (Planning & Spec) — COMPLETE.
 - W1 (Head B Target Pipeline) — COMPLETE.
 - W2 (Feature Contract + Enrichment) — COMPLETE.
@@ -394,10 +395,11 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-**Phase 19 complete. CFBD enrichment done (2026-05-24). Next sprint options for David:**
+**Phase 20 null result (2026-05-24). Next sprint options for David:**
 
-**Latest state:** All 22 2026 TEs now score via `engine_a_v3_head_a_ridge` (`model_version=head_a_te_v3_ridge`). `decision_supported=False` invariant holds. 1088 tests green. Key DVS changes: Sadiq 84.3, Stowers 77.7, Klare 73.8, Roush 73.0, Raridon 69.7, Klein 67.4, Delp 64.5. v3 reduces inflated draft-capital-only scores; efficiency signal (RYPTPA + YPR) now incorporated.
+**Latest state:** All 22 2026 TEs score via `engine_a_v3_head_a_ridge`. QB/RB/WR remain on Engine A v2. 1101 tests green. Phase 20 bakeoff: WR 0/3 (enrichment hurts), RB 0/3 (ridge +5.6% RMSE, below 7% gate), QB blocked (API coverage 25.4%). No promotion.
 
-1. **(A) Universe PVO Batch Refresh** — Re-run `scripts/build_universe_pvo_batch.py` to propagate v3 TE scores into `universe_pvo_latest.json`, `team_value_matrix_latest.json`, and downstream artifacts. Scope: low — one script run.
-2. **(B) Head B Feature-Gap Remediation** — Open a new research phase to investigate why all positions failed the mandatory R² > 0 gate. Root causes identified: sparse historical residual signal, small per-position training populations, feature LOOO drift >25% across all candidates. Requires: new feature research brief + bake-off spec before any code.
-3. **(C) Different Phase Priority** — Open any unrelated phase per David's roadmap priorities.
+1. **(A) Phase 21 — QB Coverage Gap Remediation** — Investigate why only 32/126 QBs returned passing stats. Options: extend to multi-year final-season fallback (2+ years back), expand CFBD year range, or accept QB as permanently sparse and remove from Engine A v3 scope.
+2. **(B) RB Near-Miss Analysis** — Ridge improved RMSE by 5.6%, just short of 7% gate. Diagnose: lower the gate to 5% with David approval, or add a feature (e.g., `rb_breakout_age`) to close the gap. Requires new spec.
+3. **(C) Head B Feature-Gap Remediation** — Open a new research phase to investigate why all positions failed the mandatory R² > 0 gate on `residual_ppg`. Requires: new feature research brief + bakeoff spec before any code.
+4. **(D) Different Phase Priority** — Open any unrelated phase per David's roadmap priorities.
