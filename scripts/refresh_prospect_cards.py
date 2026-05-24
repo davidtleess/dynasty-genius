@@ -114,9 +114,16 @@ def _build_pvo_dicts(
                 "age": age,
                 "draft_capital": float(p["pick"]),
                 "age_at_nfl_entry": age,
+                # Engine A v3 CFBD features — propagated from existing enriched cards.
+                # None when the CFBD enrichment script has not run for this player.
+                # score_prospect_v3() silently returns None for any missing feature,
+                # so v2 fires as the fallback and DVS is unchanged.
+                "final_college_age": existing.get("final_college_age"),
+                "te_ryptpa_final": existing.get("te_ryptpa_final"),
+                "te_yards_per_reception_career": existing.get("te_yards_per_reception_career"),
             }
 
-        pvo = assemble_pvo(identity, features)
+        pvo = assemble_pvo(identity, features, is_prospect=True)
         d = pvo.dict()
 
         # Restore preserved player_id and model_grade from existing cards.

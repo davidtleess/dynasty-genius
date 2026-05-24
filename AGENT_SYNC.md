@@ -22,7 +22,7 @@ Phase 19 — **COMPLETE**: Engine A v3 (Bifurcated Rookie Forecast). W1–W5 all
 
 ## Current Sprint Objective
 
-**No active sprint.** Phase 19 closed. Awaiting David's next phase decision.
+**No active sprint.** Phase 19 CFBD enrichment complete (2026-05-24). All 22 2026 TEs now score via `engine_a_v3_head_a_ridge`. Awaiting David's next phase decision.
 - Workstream 19.1 (Planning & Spec) — COMPLETE.
 - W1 (Head B Target Pipeline) — COMPLETE.
 - W2 (Feature Contract + Enrichment) — COMPLETE.
@@ -394,8 +394,10 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-**Phase 19 closed (2026-05-24). 1088 tests green on main. Next sprint options for David:**
+**Phase 19 complete. CFBD enrichment done (2026-05-24). Next sprint options for David:**
 
-1. **(A) CFBD Enrichment Pass** — Run `scripts/build_w2b_cfbd.py` against the 2026 TE prospect class to populate `te_ryptpa_final`, `te_yards_per_reception_career`, and `final_college_age` in `resources/prospect_cards.json`. Once populated, v3 will fire automatically for all 2026 TEs; all currently fall back to v2 (expected — no data gap in scoring, only in signal quality). Scope: low — pipeline already built, CFBD data already available.
+**Latest state:** All 22 2026 TEs now score via `engine_a_v3_head_a_ridge` (`model_version=head_a_te_v3_ridge`). `decision_supported=False` invariant holds. 1088 tests green. Key DVS changes: Sadiq 84.3, Stowers 77.7, Klare 73.8, Roush 73.0, Raridon 69.7, Klein 67.4, Delp 64.5. v3 reduces inflated draft-capital-only scores; efficiency signal (RYPTPA + YPR) now incorporated.
+
+1. **(A) Universe PVO Batch Refresh** — Re-run `scripts/build_universe_pvo_batch.py` to propagate v3 TE scores into `universe_pvo_latest.json`, `team_value_matrix_latest.json`, and downstream artifacts. Scope: low — one script run.
 2. **(B) Head B Feature-Gap Remediation** — Open a new research phase to investigate why all positions failed the mandatory R² > 0 gate. Root causes identified: sparse historical residual signal, small per-position training populations, feature LOOO drift >25% across all candidates. Requires: new feature research brief + bake-off spec before any code.
 3. **(C) Different Phase Priority** — Open any unrelated phase per David's roadmap priorities.
