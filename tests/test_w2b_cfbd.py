@@ -511,17 +511,30 @@ def test_era_proxy_missing_age_gives_missing_flags():
 
 # ── TPA cache round-trip ──────────────────────────────────────────────────────
 
-def test_tpa_cache_roundtrip(tmp_path, monkeypatch):
-    """_save_tpa_cache / _load_tpa_cache preserve float value."""
+def test_tpa_cache_roundtrip_positive(tmp_path, monkeypatch):
+    """Positive TPA cache: (True, float) round-trip."""
     monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
     bw2b._save_tpa_cache("Alabama", 2021, 438.0)
-    loaded = bw2b._load_tpa_cache("Alabama", 2021)
-    assert loaded == pytest.approx(438.0)
+    hit, value = bw2b._load_tpa_cache("Alabama", 2021)
+    assert hit is True
+    assert value == pytest.approx(438.0)
 
 
-def test_tpa_cache_returns_none_when_absent(tmp_path, monkeypatch):
+def test_tpa_cache_miss_when_absent(tmp_path, monkeypatch):
+    """No cache file → (False, None); caller must fetch from API."""
     monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
-    assert bw2b._load_tpa_cache("NoTeam", 2021) is None
+    hit, value = bw2b._load_tpa_cache("NoTeam", 2021)
+    assert hit is False
+    assert value is None
+
+
+def test_tpa_negative_cache_roundtrip(tmp_path, monkeypatch):
+    """Negative TPA cache: (True, None) prevents redundant API re-fetch."""
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
+    bw2b._save_tpa_cache("FCS School", 2021, None)
+    hit, value = bw2b._load_tpa_cache("FCS School", 2021)
+    assert hit is True
+    assert value is None
 
 
 # ── w2b_cfbd_degraded provenance flag ────────────────────────────────────────

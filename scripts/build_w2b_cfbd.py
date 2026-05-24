@@ -121,20 +121,28 @@ def _save_json_cache(path: Path, data: list) -> None:
     path.write_text(json.dumps(data), encoding="utf-8")
 
 
-def _load_tpa_cache(cfbd_college: str, year: int) -> Optional[float]:
-    """Load team pass attempts from local cache."""
+def _load_tpa_cache(cfbd_college: str, year: int) -> tuple[bool, Optional[float]]:
+    """Load team pass attempts from local cache.
+
+    Returns (cache_hit, value):
+      (False, None)  — no cache file; caller should fetch from API
+      (True, float)  — positive cache; use the stored value
+      (True, None)   — negative cache; API returned nothing last time; skip re-fetch
+    """
     safe_name = re.sub(r"[^a-z0-9]", "_", cfbd_college.lower())
     path = CACHE_DIR / f"tpa_{safe_name}_{year}.json"
-    if path.exists():
-        try:
-            return float(json.loads(path.read_text(encoding="utf-8")))
-        except Exception:
-            return None
-    return None
+    if not path.exists():
+        return False, None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        value = float(raw) if raw is not None else None
+        return True, value
+    except Exception:
+        return False, None
 
 
-def _save_tpa_cache(cfbd_college: str, year: int, value: float) -> None:
-    """Save team pass attempts to local cache."""
+def _save_tpa_cache(cfbd_college: str, year: int, value: Optional[float]) -> None:
+    """Save team pass attempts to local cache. Writes null for negative caching."""
     safe_name = re.sub(r"[^a-z0-9]", "_", cfbd_college.lower())
     path = CACHE_DIR / f"tpa_{safe_name}_{year}.json"
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -736,14 +744,15 @@ def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
     }
     for cfbd_college, year in sorted(unique_team_years):
         if not force_fetch:
-            cached_tpa = _load_tpa_cache(cfbd_college, year)
-            if cached_tpa is not None:
-                tpa_lookup[(cfbd_college, year)] = cached_tpa
-                continue
+            hit, cached_tpa = _load_tpa_cache(cfbd_college, year)
+            if hit:
+                if cached_tpa is not None:
+                    tpa_lookup[(cfbd_college, year)] = cached_tpa
+                continue  # skip API call for both positive and negative cache hits
         tpa = fetch_team_pass_attempts(cfbd_college, year, api_key)
+        _save_tpa_cache(cfbd_college, year, tpa)  # cache None too (negative cache)
         if tpa is not None:
             tpa_lookup[(cfbd_college, year)] = tpa
-            _save_tpa_cache(cfbd_college, year, tpa)
     print(f"  Team pass attempts: {len(tpa_lookup)}/{len(unique_team_years)} pairs populated")
 
     # ── Enrich rows ───────────────────────────────────────────────────────────
