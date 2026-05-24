@@ -860,7 +860,7 @@ def _assert_no_leakage() -> None:
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
 
-def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
+def main(force_fetch: bool = False, allow_degraded: bool = False, include_rb_ypg: bool = False) -> None:
     _assert_no_leakage()
 
     if not V3_CSV.exists():
@@ -952,28 +952,29 @@ def main(force_fetch: bool = False, allow_degraded: bool = False) -> None:
             tpa_lookup[(cfbd_college, year)] = tpa
     print(f"  Team pass attempts: {len(tpa_lookup)}/{len(unique_tpa_team_years)} pairs populated")
 
-    # ── Pre-fetch RB team games count (cached individually) ──────────────────
-    print("\n  Pre-fetching RB team games count...")
+    # ── Pre-fetch RB team games count (legacy ypg path — gated behind --include-rb-ypg) ──
     games_lookup: dict[tuple, int] = {}
-    rb_rows = [(r.get("pfr_player_name", ""), r.get("college", ""),
-                int(r.get("season", 0)))
-               for r in rows if r.get("position") == "RB"]
-    unique_rb_team_years = {
-        (_norm_school_key(college), max(2011, draft_year - 1))
-        for (_, college, draft_year) in rb_rows
-        if draft_year > 2011
-    }
-    for team_key, year in sorted(unique_rb_team_years):
-        if not force_fetch:
-            hit, cached_games = _load_games_count_cache(team_key, year)
-            if hit:
-                if cached_games is not None:
-                    games_lookup[(team_key, year)] = cached_games
-                continue
-        games = load_team_games_count(team_key, year, api_key, force_fetch)
-        if games is not None:
-            games_lookup[(team_key, year)] = games
-    print(f"  Team games count:   {len(games_lookup)}/{len(unique_rb_team_years)} pairs populated")
+    if include_rb_ypg:
+        print("\n  Pre-fetching RB team games count...")
+        rb_rows = [(r.get("pfr_player_name", ""), r.get("college", ""),
+                    int(r.get("season", 0)))
+                   for r in rows if r.get("position") == "RB"]
+        unique_rb_team_years = {
+            (_norm_school_key(college), max(2011, draft_year - 1))
+            for (_, college, draft_year) in rb_rows
+            if draft_year > 2011
+        }
+        for team_key, year in sorted(unique_rb_team_years):
+            if not force_fetch:
+                hit, cached_games = _load_games_count_cache(team_key, year)
+                if hit:
+                    if cached_games is not None:
+                        games_lookup[(team_key, year)] = cached_games
+                    continue
+            games = load_team_games_count(team_key, year, api_key, force_fetch)
+            if games is not None:
+                games_lookup[(team_key, year)] = games
+        print(f"  Team games count:   {len(games_lookup)}/{len(unique_rb_team_years)} pairs populated")
 
     # ── Enrich rows ───────────────────────────────────────────────────────────
     print("\n  Enriching rows...")
@@ -1070,5 +1071,8 @@ if __name__ == "__main__":
                          help="Bypass local JSON cache and re-fetch from CFBD API.")
     _parser.add_argument("--allow-degraded", action="store_true",
                          help="Continue with partial data if some API calls fail.")
+    _parser.add_argument("--include-rb-ypg", action="store_true",
+                         help="Enable legacy RB scrimmage/rec YPG path (calls CFBD /games endpoint).")
     _args = _parser.parse_args()
-    main(force_fetch=_args.force_fetch, allow_degraded=_args.allow_degraded)
+    main(force_fetch=_args.force_fetch, allow_degraded=_args.allow_degraded,
+         include_rb_ypg=_args.include_rb_ypg)

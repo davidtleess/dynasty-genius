@@ -21,12 +21,6 @@ CFBD_MODEL_INPUT_COLUMNS = {
     "yards_per_attempt",
     "td_int_ratio",
     "sack_rate",
-    "all_purpose_yards",
-    "passing_yards_share",
-    "ppa",
-    "wepa",
-    "rushing_yards",
-    "rushing_tds",
     "ryptpa",            # WR/RB: receiving yards per team pass attempt (Phase 16 — enrichment only)
     "yprr_college",     # WR: yards per route run from PFF college export (Phase 16 — enrichment only)
     "source_ryptpa",
@@ -37,12 +31,6 @@ CFBD_MODEL_INPUT_COLUMNS = {
     "source_yards_per_attempt",
     "source_td_int_ratio",
     "source_sack_rate",
-    "source_all_purpose_yards",
-    "source_passing_yards_share",
-    "source_ppa",
-    "source_wepa",
-    "source_rushing_yards",
-    "source_rushing_tds",
 }
 
 PLAYERPROFILER_CONTEXT_COLUMNS = {
@@ -90,11 +78,5 @@ POSITION_FEATURE_MATRIX = {
         "yards_per_attempt",
         "td_int_ratio",
         "sack_rate",
-        "all_purpose_yards",
-        "passing_yards_share",
-        "ppa",
-        "wepa",
-        "rushing_yards",
-        "rushing_tds",
     ],
 }

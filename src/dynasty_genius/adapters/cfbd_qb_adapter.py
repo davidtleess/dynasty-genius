@@ -21,12 +21,6 @@ QB_CFBD_FEATURES: list[str] = [
     "yards_per_attempt",
     "td_int_ratio",
     "sack_rate",
-    "all_purpose_yards",
-    "passing_yards_share",
-    "ppa",
-    "wepa",
-    "rushing_yards",
-    "rushing_tds",
 ]
 
 

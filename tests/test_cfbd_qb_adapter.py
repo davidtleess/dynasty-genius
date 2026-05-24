@@ -41,19 +41,18 @@ from src.dynasty_genius.adapters.cfbd_qb_adapter import (
 )
 
 
-# ── Approved QB feature set (from QB strategy, 2026-05-11) ───────────────────
+# ── Approved QB feature set — Phase 20 four-feature passing scope ─────────────
+# Only these four features are approved as Engine A model inputs for QB.
+# pass_attempts is a volume-gate denominator (non-model), not a feature.
+# all_purpose_yards, passing_yards_share, ppa, wepa, rushing_yards, rushing_tds
+# are demoted to out-of-scope (adapter may still fetch them internally but they
+# are not model-input contract features).
 
 APPROVED_QB_FEATURES = {
     "completion_pct",
     "yards_per_attempt",
     "td_int_ratio",
     "sack_rate",
-    "all_purpose_yards",
-    "passing_yards_share",
-    "ppa",
-    "wepa",
-    "rushing_yards",
-    "rushing_tds",
 }
 
 
@@ -85,6 +84,43 @@ def test_qb_feature_matrix_matches_adapter_constant():
         "engine_a_contract.py and cfbd_qb_adapter.QB_CFBD_FEATURES are out of sync. "
         f"Matrix: {set(POSITION_FEATURE_MATRIX['QB'])}. "
         f"Adapter constant: {set(QB_CFBD_FEATURES)}."
+    )
+
+
+def test_qb_cfbd_features_is_four_feature_passing_scope():
+    """QB_CFBD_FEATURES must be exactly the four approved passing features.
+
+    Demoted fields (all_purpose_yards, passing_yards_share, ppa, wepa,
+    rushing_yards, rushing_tds) must not appear in the model-input contract.
+    pass_attempts is a volume-gate denominator only — not a model feature.
+    """
+    expected = {"completion_pct", "yards_per_attempt", "td_int_ratio", "sack_rate"}
+    actual = set(QB_CFBD_FEATURES)
+    assert actual == expected, (
+        f"QB_CFBD_FEATURES must be exactly {expected}. "
+        f"Got {actual}. "
+        "Remove demoted fields from QB_CFBD_FEATURES in cfbd_qb_adapter.py."
+    )
+
+
+def test_pass_attempts_not_in_qb_cfbd_features():
+    """pass_attempts is a volume-gate denominator only — must not be a model feature."""
+    assert "pass_attempts" not in QB_CFBD_FEATURES, (
+        "pass_attempts must not be in QB_CFBD_FEATURES. "
+        "It is a denominator for the Phase 20 volume gate only."
+    )
+
+
+def test_demoted_qb_fields_not_in_qb_cfbd_features():
+    """Demoted fields must not appear in the QB model-input feature set."""
+    demoted = {
+        "all_purpose_yards", "passing_yards_share", "ppa", "wepa",
+        "rushing_yards", "rushing_tds",
+    }
+    in_features = demoted & set(QB_CFBD_FEATURES)
+    assert not in_features, (
+        f"Demoted QB fields still in QB_CFBD_FEATURES: {in_features}. "
+        "Remove them from QB_CFBD_FEATURES in cfbd_qb_adapter.py."
     )
 
 
@@ -261,16 +297,6 @@ def test_completion_pct_is_fraction_not_raw_percent(_):
 
 
 @patch(PATCH, side_effect=_full_mock)
-def test_all_purpose_yards_is_passing_plus_rushing(_):
-    """all_purpose_yards = passing YDS (3000) + rushing YDS (400) = 3400."""
-    result = fetch_qb_college_stats("Trevor Lawrence", 2020, api_key="test-key")
-    assert result["all_purpose_yards"] == pytest.approx(3400.0), (
-        f"all_purpose_yards={result['all_purpose_yards']}. Expected 3400.0 "
-        "(passing 3000 + rushing 400)."
-    )
-
-
-@patch(PATCH, side_effect=_full_mock)
 def test_td_int_ratio_uses_actual_int_count(_):
     """TD=30, INT=8 → td_int_ratio = 30 / 8 = 3.75."""
     result = fetch_qb_college_stats("Trevor Lawrence", 2020, api_key="test-key")
@@ -305,15 +331,6 @@ def test_td_int_ratio_caps_denominator_at_one_for_zero_ints(_):
 
 
 # ── Unit: None semantics ──────────────────────────────────────────────────────
-
-@patch(PATCH, side_effect=_no_ppa_mock)
-def test_missing_ppa_returns_none_not_zero(_):
-    """PPA absent from API → None. Zero would fabricate a signal."""
-    result = fetch_qb_college_stats("Any QB", 2020, api_key="test-key")
-    assert result["ppa"] is None, (
-        f"ppa={result['ppa']}. Missing PPA must be None, not a default value."
-    )
-
 
 @patch(PATCH, side_effect=_empty_mock)
 def test_player_not_found_returns_all_none(_):

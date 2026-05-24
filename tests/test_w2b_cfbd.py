@@ -681,6 +681,77 @@ def test_compute_qb_cfbd_features_player_not_found_dark(tmp_path):
         assert result[f"{col}_missing"] == "1"
 
 
+# ── Phase 20 Option B isolation: RB YPC/YPR must not require team games ──────
+
+def test_rb_option_b_ypc_does_not_require_team_games_lookup():
+    """rb_yards_per_carry_final is populated when team_games_lookup=None (Phase 20 Option B).
+
+    Option B derives YPC from CAR statType (individual player rushing attempts),
+    not from team-level game counts. No games-endpoint call is needed.
+    """
+    rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
+    row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
+           "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
+    result = compute_rb_cfbd_features(
+        row, rush_pivot, rec_pivot, team_rush, team_rec, sp,
+        team_games_lookup=None,
+    )
+    assert result["rb_yards_per_carry_final_missing"] == "0", (
+        "YPC must be populated with team_games_lookup=None — Option B uses CAR not games."
+    )
+    ypc = float(result["rb_yards_per_carry_final"])
+    assert 8.0 < ypc < 8.3, f"Expected ~8.14, got {ypc}"
+    # Games-dependent features must be dark (expected for Option B without games lookup)
+    assert result["rb_scrimmage_ypg_missing"] == "1"
+    assert result["rb_rec_ypg_missing"] == "1"
+
+
+def test_rb_option_b_ypr_does_not_require_team_games_lookup():
+    """rb_yards_per_reception_career is populated when team_games_lookup=None (Phase 20 Option B).
+
+    YPR uses career REC counts from the receiving pivot — no team games needed.
+    """
+    rush_pivot = pivot_rushing_stats(RUSH_2015, 2015)
+    team_rush = build_team_rush_lookup(rush_pivot)
+    recv_pivot_15 = pivot_receiving_stats(RECV_HENRY_MULTI[:2], 2015)
+    recv_pivot_14 = pivot_receiving_stats(RECV_HENRY_MULTI[2:], 2014)
+    rec_pivot = {**recv_pivot_15, **recv_pivot_14}
+    team_rec = build_team_rec_lookup(rec_pivot)
+    sp = build_sp_lookup(SP_2015, 2015)
+    row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
+           "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
+    result = compute_rb_cfbd_features(
+        row, rush_pivot, rec_pivot, team_rush, team_rec, sp,
+        team_games_lookup=None,
+    )
+    assert result["rb_yards_per_reception_career_missing"] == "0", (
+        "YPR must be populated with team_games_lookup=None — Option B uses career REC not games."
+    )
+    ypr = float(result["rb_yards_per_reception_career"])
+    assert 9.5 < ypr < 10.5, f"Expected ~10.0, got {ypr}"
+    assert result["rb_scrimmage_ypg_missing"] == "1"
+
+
+def test_rb_option_b_does_not_invoke_load_team_games_count():
+    """compute_rb_cfbd_features must not call load_team_games_count directly.
+
+    The Phase 20 Option B rebuild path passes team_games_lookup=None.
+    The function must compute YPC and YPR from player-level stats only.
+    """
+    from unittest.mock import patch as mock_patch
+
+    rush_pivot, rec_pivot, team_rush, team_rec, sp = _make_rb_lookups()
+    row = {"pfr_player_name": "Derrick Henry", "college": "Alabama",
+           "season": "2016", "age_at_draft": "21.9", "age_at_draft_missing": "0"}
+    with mock_patch("scripts.build_w2b_cfbd.load_team_games_count") as mock_games:
+        result = compute_rb_cfbd_features(
+            row, rush_pivot, rec_pivot, team_rush, team_rec, sp,
+            team_games_lookup=None,
+        )
+        mock_games.assert_not_called()
+    assert result["rb_yards_per_carry_final_missing"] == "0"
+
+
 # ── compute_era_proxy_features ────────────────────────────────────────────────
 
 def test_era_proxy_final_college_age():
