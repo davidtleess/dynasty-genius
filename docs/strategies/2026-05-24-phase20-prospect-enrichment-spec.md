@@ -110,10 +110,11 @@ The enriched model cross-regularized toward the 3-feature baseline and degraded.
 **Result:** 5-feature set at ≥81% coverage on all included features. Target is ≥2 non-null
 features beyond the 3-feature baseline.
 
-**Fallback if 5-feature set fails:** Add `wr_rec_tds_per_game_final` (already in v3 CSV;
-coverage TBD) as a sixth feature — scoring production is a distinct dimension from efficiency.
-This is contingent on `wr_rec_tds_per_game_final` having ≥50% non-null coverage after volume
-gate filtering (see §8).
+**No fallback feature is specified.** `wr_rec_tds_per_game_final` cannot be used —
+`build_w2b_cfbd.py` permanently stubs it because CFBD receiving player-season records do not
+return a games count (same root cause as the RB denominator problem in §5). No other non-game-
+denominator WR feature with validated coverage is available in the v3 CSV beyond those already
+in the proposed set. If the 5-feature set fails W4 gates, WR remains on Engine A v2.
 
 ### CFBD work required
 
@@ -263,12 +264,27 @@ intact is the correct implementation path without adapter surgery.
 
 ### Implementation path for build_w2b_cfbd.py
 
-1. Add `compute_qb_cfbd_features(name, final_year, api_key)` that calls
-   `fetch_qb_college_stats(name, final_year, api_key)` and maps the four contracted features
-2. Apply volume gate: if `pass_attempts_final < 100`, set all four features `_missing=1`
-3. Emit `_missing` and `_source` flags per the existing pattern
-4. Wire into `main()` — same fetch-and-cache pattern as WR/RB/TE
-5. TDD: write failing tests first per the existing `tests/test_w2b_cfbd.py` structure
+1. **Extend `cfbd_qb_adapter.py` to expose `pass_attempts`** (Option A — recommended):
+   The adapter already fetches `/stats/player/season?category=passing` at line 135, which
+   returns `ATT` statType records. Parse the `ATT` row for the player's final season and
+   add `"pass_attempts": <int>` to the return dict of `fetch_qb_college_stats()`. This
+   keeps all QB CFBD parsing inside the adapter boundary; `build_w2b_cfbd.py` never
+   re-parses raw CFBD records directly.
+
+   **Required TDD (must be written before extending the adapter):**
+   Add a test in `tests/test_cfbd_qb_adapter.py` (or the equivalent adapter test file)
+   that asserts `fetch_qb_college_stats()` returns `"pass_attempts"` as an integer key
+   in its result dict when passing records contain an `ATT` statType row.
+   Watch it fail (adapter currently returns no such key). Then add the parse.
+
+2. Add `compute_qb_cfbd_features(name, final_year, api_key)` in `build_w2b_cfbd.py`
+   that calls `fetch_qb_college_stats()` and maps the four contracted features
+3. Apply volume gate: if `result["pass_attempts"] < 100`, set all four features
+   `_missing=1` and `_source="below_volume_gate"` — `pass_attempts` is the `ATT`
+   statType value returned by the extended adapter (step 1 above)
+4. Emit `_missing` and `_source` flags per the existing pattern
+5. Wire into `main()` — same fetch-and-cache pattern as WR/RB/TE
+6. TDD: write failing tests first per the existing `tests/test_w2b_cfbd.py` structure
 
 ### Name matching
 
@@ -313,14 +329,14 @@ Rate and ratio features must not be computed from trivially small samples. The f
 thresholds apply at ingestion time in `build_w2b_cfbd.py`. Rows failing a threshold have
 the feature set to null with `_missing=1` and `_source="below_volume_gate"`.
 
-| Feature | Denominator | Minimum threshold | Rationale |
-|---------|-------------|-------------------|-----------|
-| `qb_completion_pct_final` | pass attempts (final season) | ≥ 100 | Starter-level sample; avoids wildcard/backup seasons |
-| `qb_yards_per_attempt_final` | pass attempts (final season) | ≥ 100 | Same |
-| `qb_td_int_ratio_final` | pass attempts (final season) | ≥ 100 | Same |
-| `qb_sack_rate_final` | pass attempts + sacks (final season) | ≥ 100 combined | Same |
-| `rb_yards_per_carry_final` | rush attempts (final season) | ≥ 50 | Feature back workload |
-| `rb_yards_per_reception_career` | career receptions | ≥ 10 | Minimal receiving involvement |
+| Feature | Denominator | Denominator source | Minimum threshold | Rationale |
+|---------|-------------|-------------------|-------------------|-----------|
+| `qb_completion_pct_final` | pass attempts (final season) | `ATT` statType from `/stats/player/season?category=passing` — returned by extended `fetch_qb_college_stats()` as `pass_attempts` | ≥ 100 | Starter-level sample; avoids wildcard/backup seasons |
+| `qb_yards_per_attempt_final` | pass attempts (final season) | Same as above | ≥ 100 | Same |
+| `qb_td_int_ratio_final` | pass attempts (final season) | Same as above | ≥ 100 | Same |
+| `qb_sack_rate_final` | pass attempts + sacks (final season) | Same `pass_attempts`; sacks already parsed by adapter | ≥ 100 combined | Same |
+| `rb_yards_per_carry_final` | rush attempts (final season) | `CAR` statType from `/stats/player/season?category=rushing` — already parsed by `_pivot_rushing()` in `build_w2b_cfbd.py` | ≥ 50 | Feature back workload |
+| `rb_yards_per_reception_career` | career receptions | `REC` statType from `/stats/player/season?category=receiving` — already parsed by `_pivot_receiving()` in `build_w2b_cfbd.py` | ≥ 10 | Minimal receiving involvement |
 
 Non-null alone does not qualify a row for rate-feature training. A player must meet
 the volume threshold for the feature to be included in that row's training eligibility
