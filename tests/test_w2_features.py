@@ -461,9 +461,18 @@ def test_nfl_round_not_in_head_b_output():
 
 # ── Combine load failure behavior ─────────────────────────────────────────────
 
-def test_combine_load_failure_raises_by_default(monkeypatch):
+def test_combine_load_failure_raises_by_default(monkeypatch, tmp_path):
     """Without allow_degraded, _load_combine_data() failure must propagate."""
     import scripts.build_w2_features as bwf
+
+    src_csv = tmp_path / "v3.csv"
+    src_csv.write_text(
+        "season,pick,round,position,age,age_at_draft,age_at_draft_missing,"
+        "age_at_draft_source,gsis_id\n"
+        "2020,25,1,WR,22.0,22.0,0,nfl_data_py,test-01\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(bwf, "V3_CSV", src_csv)
 
     def _raise_on_load():
         raise ConnectionError("network unavailable")
