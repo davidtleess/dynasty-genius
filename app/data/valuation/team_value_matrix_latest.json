@@ -5,7 +5,7 @@
     "lineup_selection": "best_legal_lineup_from_raw_player_xvar",
     "player_level_value_decay_allowed": false
   },
-  "captured_at": "2026-05-24T17:08:39.075640+00:00",
+  "captured_at": "2026-05-24T17:19:56.801257+00:00",
   "coverage": {
     "all_teams_emitted": true,
     "future_picks_present_unvalued": true,
@@ -21,7 +21,7 @@
         "pct_value_over_28": 0.0,
         "value_weighted_age": 23.77
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -562,7 +562,7 @@
         "pct_value_over_28": 0.2621,
         "value_weighted_age": 25.84
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -1001,7 +1001,7 @@
         "pct_value_over_28": 0.05,
         "value_weighted_age": 25.49
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
@@ -1463,7 +1463,7 @@
         "pct_value_over_28": 0.0382,
         "value_weighted_age": 24.82
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -1930,7 +1930,7 @@
         "pct_value_over_28": 0.1024,
         "value_weighted_age": 23.46
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -2389,7 +2389,7 @@
         "pct_value_over_28": 0.2904,
         "value_weighted_age": 27.27
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
@@ -2860,7 +2860,7 @@
         "pct_value_over_28": 0.2472,
         "value_weighted_age": 25.09
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
@@ -3312,7 +3312,7 @@
         "pct_value_over_28": 0.0,
         "value_weighted_age": 25.48
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -3753,7 +3753,7 @@
         "pct_value_over_28": 0.1276,
         "value_weighted_age": 25.39
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
@@ -4212,7 +4212,7 @@
         "pct_value_over_28": 0.2815,
         "value_weighted_age": 26.18
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
@@ -4654,7 +4654,7 @@
         "pct_value_over_28": 0.0,
         "value_weighted_age": 22.64
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
@@ -5096,7 +5096,7 @@
         "pct_value_over_28": 0.1772,
         "value_weighted_age": 24.11
       },
-      "captured_at": "2026-05-24T17:08:39.075640+00:00",
+      "captured_at": "2026-05-24T17:19:56.801257+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],

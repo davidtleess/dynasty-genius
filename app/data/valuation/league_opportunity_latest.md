@@ -1,6 +1,6 @@
 # League Opportunity Map
 
-captured_at: 2026-05-24T17:08:41.391946+00:00
+captured_at: 2026-05-24T17:19:59.627275+00:00
 decision_supported: false
 card_count: 20
 

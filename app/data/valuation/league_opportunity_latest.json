@@ -1,6 +1,6 @@
 {
   "automated_trade_execution": false,
-  "captured_at": "2026-05-24T17:08:41.391946+00:00",
+  "captured_at": "2026-05-24T17:19:59.627275+00:00",
   "cards": [
     {
       "asset": {
@@ -1016,11 +1016,11 @@
   "perspective_roster_id": 1,
   "schema_version": "league_opportunity.v1",
   "source_artifacts": {
-    "market_divergence_captured_at": "2026-05-24T17:08:39.837748+00:00",
+    "market_divergence_captured_at": "2026-05-24T17:19:57.800228+00:00",
     "market_divergence_schema_version": "universe_market_divergence.v1",
-    "team_matrix_captured_at": "2026-05-24T17:08:39.075640+00:00",
+    "team_matrix_captured_at": "2026-05-24T17:19:56.801257+00:00",
     "team_matrix_schema_version": "team_value_matrix.v1",
-    "team_posture_captured_at": "2026-05-24T17:08:39.241231+00:00",
+    "team_posture_captured_at": "2026-05-24T17:19:56.964769+00:00",
     "team_posture_schema_version": "team_posture.v1"
   }
 }

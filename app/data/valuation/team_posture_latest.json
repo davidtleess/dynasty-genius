@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-24T17:08:39.241231+00:00",
+  "captured_at": "2026-05-24T17:19:56.964769+00:00",
   "coverage": {
     "all_teams_classified": true,
     "decision_supported_true_count": 0,
@@ -10,7 +10,7 @@
   "league_id": "1314363401744416768",
   "schema_version": "team_posture.v1",
   "source_artifacts": {
-    "team_matrix_captured_at": "2026-05-24T17:08:39.075640+00:00",
+    "team_matrix_captured_at": "2026-05-24T17:19:56.801257+00:00",
     "team_matrix_schema_version": "team_value_matrix.v1"
   },
   "teams": [
