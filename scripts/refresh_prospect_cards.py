@@ -143,6 +143,15 @@ def _build_pvo_dicts(
         d["nfl_draft_round"] = p.get("round")
         d["age"] = age
 
+        # Preserve Engine A v3 CFBD input features onto the serialized card.
+        # pvo.dict() only serialises PVO schema fields — these provenance fields
+        # are not in the schema so they are dropped by assemble_pvo.  Copy them
+        # back from the features dict so the artifact retains the scoring inputs
+        # and future refresh runs can propagate them again.
+        d["final_college_age"] = features.get("final_college_age")
+        d["te_ryptpa_final"] = features.get("te_ryptpa_final")
+        d["te_yards_per_reception_career"] = features.get("te_yards_per_reception_career")
+
         # Initialize rank fields (populated later by _compute_ranks)
         d.setdefault("dvs_class_rank", None)
         d.setdefault("xvar_class_rank", None)

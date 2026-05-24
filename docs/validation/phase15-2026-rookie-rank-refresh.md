@@ -1,6 +1,6 @@
 # Phase 15.1 — 2026 Rookie Rank Refresh
 
-Generated: 2026-05-24T16:30:57Z
+Generated: 2026-05-24T16:54:53Z
 Identity source: `resources/prospect_identity_2026.json` (snapshot: 2026-05-09)
 2026 cohort: 80 total · 80 scored · 0 PRE_MODEL (age-data blockers)
 2027 watchlist: 2 entries, excluded from 2026 rankings

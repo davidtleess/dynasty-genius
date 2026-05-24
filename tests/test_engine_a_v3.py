@@ -404,3 +404,111 @@ def test_route_te_without_cfbd_falls_back_to_v2_route():
         f"Expected v2 fallback, got engine_used={data['engine_used']!r}"
     )
     assert data["decision_supported"] is False
+
+
+# ── 15. Prospect-card artifact regression ────────────────────────────────────
+
+_CFBD_FIELDS = ("final_college_age", "te_ryptpa_final", "te_yards_per_reception_career")
+_CARDS_JSON = ROOT / "resources" / "prospect_cards.json"
+_MARKET_BANNED_FIELDS = ("ktc_value", "fc_value", "market_value", "adp", "dynasty_nerds_value")
+
+
+def _load_2026_te_cards() -> list[dict]:
+    cards = json.loads(_CARDS_JSON.read_text())
+    return [c for c in cards if c.get("position") == "TE" and c.get("draft_class") == 2026]
+
+
+@pytest.mark.skipif(
+    not _CARDS_JSON.exists(),
+    reason="prospect_cards.json not present — run scripts/refresh_prospect_cards.py first",
+)
+def test_2026_te_cards_have_cfbd_fields():
+    """All 22 2026 TE cards must carry the three CFBD input features after refresh.
+
+    Regression guard: refresh_prospect_cards.py previously dropped these fields
+    because pvo.dict() only serialises PVO schema fields.  The fix copies them
+    back from the features dict; this test prevents that regression recurring.
+    """
+    tes = _load_2026_te_cards()
+    assert len(tes) == 22, f"Expected 22 2026 TE cards, got {len(tes)}"
+
+    missing: list[str] = []
+    for card in tes:
+        for field in _CFBD_FIELDS:
+            if card.get(field) is None:
+                missing.append(f"{card['full_name']}.{field}")
+
+    assert not missing, (
+        f"CFBD fields missing from {len(missing)} card(s). "
+        f"Re-run enrich_te_prospects_cfbd_2026.py then refresh_prospect_cards.py.\n"
+        + "\n".join(missing)
+    )
+
+
+@pytest.mark.skipif(
+    not _CARDS_JSON.exists(),
+    reason="prospect_cards.json not present",
+)
+def test_2026_te_cards_route_v3_engine_with_governance_invariants():
+    """All 22 2026 TE cards must route engine_a_v3_head_a_ridge with governance invariants.
+
+    Checks:
+      - engine_used == "engine_a_v3_head_a_ridge"
+      - model_version == "head_a_te_v3_ridge"
+      - decision_supported is False
+      - dynasty_value_score in [0, 100]
+      - No banned market fields are populated
+    """
+    tes = _load_2026_te_cards()
+    assert len(tes) == 22, f"Expected 22 2026 TE cards, got {len(tes)}"
+
+    failures: list[str] = []
+    for card in tes:
+        name = card["full_name"]
+
+        if card.get("engine_used") != "engine_a_v3_head_a_ridge":
+            failures.append(f"{name}: engine_used={card.get('engine_used')!r}")
+
+        if card.get("model_version") != "head_a_te_v3_ridge":
+            failures.append(f"{name}: model_version={card.get('model_version')!r}")
+
+        if card.get("decision_supported") is not False:
+            failures.append(f"{name}: decision_supported={card.get('decision_supported')!r}")
+
+        dvs = card.get("dynasty_value_score")
+        if dvs is None or not (0.0 <= dvs <= 100.0):
+            failures.append(f"{name}: dynasty_value_score={dvs!r}")
+
+        for mf in _MARKET_BANNED_FIELDS:
+            if card.get(mf) is not None:
+                failures.append(f"{name}: banned market field {mf}={card[mf]!r}")
+
+    assert not failures, (
+        f"{len(failures)} governance failure(s):\n" + "\n".join(failures)
+    )
+
+
+@pytest.mark.skipif(
+    not _CARDS_JSON.exists(),
+    reason="prospect_cards.json not present",
+)
+def test_kenyon_sadiq_card_v3_spot_check():
+    """Spot-check Kenyon Sadiq (pick 16, Oregon) as the top-drafted 2026 TE.
+
+    Validates specific field values to catch future model or data regressions.
+    """
+    cards = json.loads(_CARDS_JSON.read_text())
+    sadiq = next(
+        (c for c in cards if c["full_name"] == "Kenyon Sadiq" and c.get("draft_class") == 2026),
+        None,
+    )
+    assert sadiq is not None, "Kenyon Sadiq 2026 card not found in prospect_cards.json"
+
+    assert sadiq["engine_used"] == "engine_a_v3_head_a_ridge"
+    assert sadiq["model_version"] == "head_a_te_v3_ridge"
+    assert sadiq["decision_supported"] is False
+    assert sadiq["final_college_age"] is not None
+    assert sadiq["te_ryptpa_final"] is not None
+    assert sadiq["te_yards_per_reception_career"] is not None
+    dvs = sadiq["dynasty_value_score"]
+    assert dvs is not None and 0.0 <= dvs <= 100.0, f"DVS out of range: {dvs}"
