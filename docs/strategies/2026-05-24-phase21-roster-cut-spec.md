@@ -1,11 +1,15 @@
 ---
 document: Phase 21 Specification — Roster Cut & Drop Candidate Engine
-version: 0.4
+version: 0.5
 phase: 21
 status: DRAFT — awaiting David approval
 author: Claude Code
 date: 2026-05-24
 changelog:
+  v0.5: Codex v0.4 review — Step 1 pseudocode now computes reserve_unrestricted as
+        reserve_slots > 0 AND all flags == 0 (was flags-only, inconsistent with invariant).
+        Test row corrected: reserve_unrestricted == False when reserve_slots == 0.
+        INVALID_SNAPSHOT forced-review path unchanged.
   v0.4: Codex v0.3 re-review — two items: (1) reserve_slots == 0 + ir_ids non-empty →
         INVALID_SNAPSHOT forced path (not COMPLIANT); reserve_unrestricted only meaningful
         when reserve_slots > 0; third invariant test corrected; new test added. (2) UNKNOWN_STATUS
@@ -180,10 +184,13 @@ RESERVE_ALLOW_FLAGS = {
     "COV":       "reserve_allow_cov",
     "DNR":       "reserve_allow_dnr",
 }
-reserve_unrestricted = all(int(settings.get(v) or 0) == 0 for v in RESERVE_ALLOW_FLAGS.values())
-# When ALL flags are 0: unrestricted reserve — any player may occupy a reserve slot
-# regardless of injury designation. This is the standard dynasty off-season setting.
-# When one or more flags are 1: only players with matching injury status are eligible.
+reserve_unrestricted = (
+    reserve_slots > 0
+    and all(int(settings.get(v) or 0) == 0 for v in RESERVE_ALLOW_FLAGS.values())
+)
+# True only when the league has reserve slots AND all allow-flags are 0 (open reserve).
+# False when reserve_slots == 0 — flags are meaningless without slots.
+# False when one or more flags are 1 — only matching-status players are eligible.
 
 # Taxi settings
 taxi_slots      = int(settings.get("taxi_slots") or 0)
@@ -634,7 +641,7 @@ app/data/valuation/league_opportunity_cut_phase*.json
 |------|-----------------|
 | `test_all_reserve_allow_zero_means_unrestricted` | Settings with all six `reserve_allow_*` = 0 and `reserve_slots = 4` → `reserve_unrestricted = True`; IR players of any status are `COMPLIANT` |
 | `test_partial_reserve_flags_means_restricted` | Settings with `reserve_allow_out = 1` and all others = 0 → `reserve_unrestricted = False`; only `sleeper_status = "Out"` produces `COMPLIANT` |
-| `test_reserve_unrestricted_is_false_when_reserve_slots_zero` | Settings with all flags = 0 but `reserve_slots = 0` → `reserve_unrestricted` computed as True by flags, but `_ir_compliance_status` with `reserve_slots = 0` returns `"INVALID_SNAPSHOT"` regardless; `total_capacity = active_slots + taxi_slots` (no reserve contribution) |
+| `test_reserve_unrestricted_is_false_when_reserve_slots_zero` | Settings with all flags = 0 but `reserve_slots = 0` → `reserve_unrestricted = False` (Step 1 guard: `reserve_slots > 0` is required); `total_capacity = active_slots + taxi_slots` (no reserve contribution); any player in `ir_ids` returns `"INVALID_SNAPSHOT"` from `_ir_compliance_status` |
 
 **v0.4 Blocker — Invalid-snapshot and UNKNOWN_STATUS forced-review:**
 

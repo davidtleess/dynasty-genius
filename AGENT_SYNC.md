@@ -20,7 +20,7 @@ Phase 17 — IMPLEMENTATION COMPLETE THROUGH 17.5: Sleeper universe, full PVO ba
 Phase 18 — COMPLETE: 18.1 roster-audit rookie PVO reconciliation complete; 18.2 daily batch orchestration complete; 18.3 team posture classification complete; 18.4 cross-position xVAR percentile complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-22; 780 tests)
 Phase 19 — **COMPLETE**: Engine A v3 (Bifurcated Rookie Forecast). W1–W5 all merged to main (`4cce9f2`, 2026-05-24; 1088 tests, 11 skipped). TE Head A v3 Ridge promoted and wired. Head B null result. Feature branch retired.
 Phase 20 — **COMPLETE — NULL RESULT** (2026-05-24; 1105 tests, 11 skipped). W1 WR FAIL (0/3 ridge + gbt; trimmed 5-feature set hurts vs baseline). W2 RB FAIL (ridge +5.6% RMSE below 7% gate, Spearman/NDCG regress; gbt −7.4%: 0/3). W3 QB BLOCKED (25.4% API coverage < 50% threshold — all 4 features dropped). No passing candidates. No promotion. Codex blockers resolved (commit `067ecd7`): QB 4-feature contract enforced in adapter + engine_a_contract; RB `/games` endpoint gated behind `--include-rb-ypg`. Spec: `docs/strategies/2026-05-24-phase20-prospect-enrichment-spec.md`.
-Phase 21 — **SPEC DRAFT v0.4** (2026-05-24). Roster Cut & Drop Candidate Engine. Codex v0.3 re-review resolved 1 blocker + 1 follow-up: (1) `reserve_slots == 0` + `ir_ids` non-empty → `INVALID_SNAPSHOT` forced path (not COMPLIANT); `reserve_unrestricted` only meaningful when `reserve_slots > 0`; third invariant test corrected; (2) `UNKNOWN_STATUS` reserve occupants are forced-review candidates (cut_priority=0), not silent exemptions; early-return guard now blocks on all three non-compliant statuses (ILLEGAL_RESERVE, UNKNOWN_STATUS, INVALID_SNAPSHOT). W1 TDD tests: 32. W2 TDD tests: 7. Spec at `docs/strategies/2026-05-24-phase21-roster-cut-spec.md` (v0.4, awaiting David approval). Three open questions remain before W1 implementation.
+Phase 21 — **SPEC DRAFT v0.5** (2026-05-24). Roster Cut & Drop Candidate Engine. Codex v0.4 review resolved final consistency blocker: Step 1 pseudocode now computes `reserve_unrestricted = reserve_slots > 0 and all(flags == 0)` (was flags-only); test row corrected to expect `reserve_unrestricted == False` when `reserve_slots == 0`; INVALID_SNAPSHOT forced-review path unchanged. W1 TDD tests: 32. W2 TDD tests: 7. Spec at `docs/strategies/2026-05-24-phase21-roster-cut-spec.md` (v0.5, awaiting David approval). Three open questions remain before W1 implementation.
 
 ## Current Sprint Objective
 
@@ -402,7 +402,7 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 **Phase 21 Roster Cut Engine — next steps (2026-05-24):**
 
-David approved Phase 20 null result and directed opening Phase 21. Spec at v0.4 (Codex re-review complete; all blockers resolved).
+David approved Phase 20 null result and directed opening Phase 21. Spec at v0.5 (Codex re-review complete; all blockers resolved).
 
 **Three open questions require David's ruling before W1 implementation:**
 1. Should PRE_MODEL rookies appear in the cut list (tier D with caveat) or be exempt entirely? **Recommendation: include in tier D.**
