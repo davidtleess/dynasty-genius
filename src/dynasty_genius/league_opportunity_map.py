@@ -336,6 +336,7 @@ def _drop_summary(candidate: RosterCutCandidate) -> dict[str, Any]:
         "cut_priority": candidate.cut_priority,
         "ir_compliance_status": candidate.ir_compliance_status,
         "cut_rationale": list(candidate.cut_rationale),
+        "decision_supported": False,
     }
 
 
@@ -465,7 +466,15 @@ def _coverage(cards: list[dict[str, Any]], partner_rankings: list[dict[str, Any]
     banned_terms_present = sorted(term for term in BANNED_LANGUAGE if term in serialized)
     type_counts = Counter(card.get("card_type") for card in cards)
     evidence_count = sum(1 for card in cards if ((card.get("rationale") or {}).get("evidence")))
-    decision_supported_true_count = sum(1 for card in cards if card.get("decision_supported") is True)
+    def _count_ds_true(obj: object) -> int:
+        if isinstance(obj, dict):
+            here = 1 if obj.get("decision_supported") is True else 0
+            return here + sum(_count_ds_true(v) for v in obj.values())
+        if isinstance(obj, list):
+            return sum(_count_ds_true(item) for item in obj)
+        return 0
+
+    decision_supported_true_count = sum(_count_ds_true(card) for card in cards)
     return {
         "card_count": len(cards),
         "partner_count": len(partner_rankings),

@@ -220,3 +220,43 @@ def test_decision_supported_false_preserved_with_recommended_drop():
     assert len(waiver_cards) >= 1
     for card in waiver_cards:
         assert card["decision_supported"] is False
+
+
+# ─── Codex patch: Finding 2 — nested decision_supported in recommended_drop ──
+
+
+def test_recommended_drop_contains_decision_supported_false():
+    """Every non-null recommended_drop must carry its own decision_supported: False."""
+    waiver = [_player("w1", position="WR")]
+    tm, md = _fixtures(waiver_players=waiver)
+    cut_result = _make_cut_result([_make_cut_candidate("c1")])
+    result = build_league_opportunity_map(tm, md, roster_cut_result=cut_result)
+    waiver_cards = [c for c in result["cards"] if c["card_type"] == "WAIVER_CANDIDATE"]
+    assert len(waiver_cards) >= 1
+    for card in waiver_cards:
+        drop = card.get("recommended_drop")
+        if drop is not None:
+            assert "decision_supported" in drop, "recommended_drop missing decision_supported key"
+            assert drop["decision_supported"] is False
+
+
+def test_opportunity_map_recursive_no_decision_supported_true():
+    """Recursive walk of the full opportunity map output finds no decision_supported=True."""
+    waiver = [_player("w1", position="WR")]
+    rostered = [_player("r1", position="RB", roster_id=2)]
+    tm, md = _fixtures(waiver_players=waiver, rostered_players=rostered)
+    cut_result = _make_cut_result([_make_cut_candidate("c1")])
+    result = build_league_opportunity_map(tm, md, roster_cut_result=cut_result)
+
+    def _walk(obj: object) -> None:
+        if isinstance(obj, dict):
+            assert obj.get("decision_supported") is not True, (
+                f"decision_supported=True found in: {obj}"
+            )
+            for v in obj.values():
+                _walk(v)
+        elif isinstance(obj, list):
+            for item in obj:
+                _walk(item)
+
+    _walk(result)

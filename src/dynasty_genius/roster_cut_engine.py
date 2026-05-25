@@ -5,14 +5,14 @@ returns a ranked RosterCutResult. No market data, no model artifacts touched.
 """
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
 CLIFF_AGES: dict[str, float] = {
-    "RB": 27.0,
+    "RB": 26.0,
     "WR": 28.0,
-    "TE": 28.0,
+    "TE": 30.0,
     "QB": 33.0,
 }
 
@@ -84,6 +84,11 @@ class RosterCutCandidate(BaseModel):
     exempt_reason: str | None
     decision_supported: bool = False
 
+    @field_validator("decision_supported", mode="before")
+    @classmethod
+    def _lock_decision_supported(cls, v: object) -> bool:
+        return False
+
 
 class RosterCutResult(BaseModel):
     roster_id: int
@@ -95,6 +100,11 @@ class RosterCutResult(BaseModel):
     cut_candidates: list[RosterCutCandidate]
     exempt_players: list[RosterCutCandidate]
     decision_supported: bool = False
+
+    @field_validator("decision_supported", mode="before")
+    @classmethod
+    def _lock_decision_supported(cls, v: object) -> bool:
+        return False
 
 
 # ── Pure helpers ───────────────────────────────────────────────────────────────
@@ -328,7 +338,9 @@ def compute_roster_cut_candidates(
         })
 
     # Step 5: Early-return guard
-    if over_limit <= 0 and not forced_candidates:
+    # Candidates are needed when active slots overflow OR total capacity is exceeded.
+    should_rank = over_limit > 0 or cuts_required > 0
+    if not should_rank and not forced_candidates:
         return RosterCutResult(
             roster_id=david_roster_id,
             total_players=total_players,
@@ -340,10 +352,10 @@ def compute_roster_cut_candidates(
             exempt_players=exempt_players,
         )
 
-    # Step 6: Score and rank active candidates (only when over_limit > 0)
+    # Step 6: Score and rank active candidates when overflow exists
     cut_candidates: list[RosterCutCandidate] = list(forced_candidates)
 
-    if over_limit > 0:
+    if should_rank:
         active_pool.sort(key=lambda c: _tier_sort_key(c["tier"], c["xvar_pct"], c["dvs"]))
         for rank, ac in enumerate(active_pool, start=1):
             rationale = []

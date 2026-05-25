@@ -11,6 +11,7 @@ import pytest
 from src.dynasty_genius.roster_cut_engine import (
     RosterCutCandidate,
     RosterCutResult,
+    _age_cliff_warning,
     _ir_compliance_status,
     _normalize_sleeper_status,
     _taxi_deadline_status,
@@ -529,3 +530,86 @@ def test_no_nested_decision_supported_true_in_cut_result():
                 _walk(item)
 
     _walk(raw)
+
+
+# ─── Codex patch: Finding 1 — capacity overflow with zero active overflow ─────
+
+def test_cuts_required_nonzero_with_zero_active_overflow_generates_candidates():
+    """27 players: 20 active, 5 on IR (4 reserve_slots in settings), 2 on taxi.
+    active-slot overflow = 0 but total overflow = 1 → cut_candidates must be non-empty."""
+    # Standard settings: reserve_slots=4, taxi_slots=2, active_slots=20 → capacity=26
+    active = [f"a{i}" for i in range(20)]
+    reserve = [f"ir{i}" for i in range(5)]  # 5 players but only 4 reserve slots
+    taxi = [f"t{i}" for i in range(2)]
+    players = active + reserve + taxi  # 27 total, capacity=26 → cuts_required=1
+    pvo_list = (
+        [_make_pvo_player(pid, xvar_pct=float(50 + i)) for i, pid in enumerate(active)]
+        + [_make_pvo_player(pid, sleeper_status="Active") for pid in reserve]
+        + [_make_pvo_player(pid, years_exp=0) for pid in taxi]
+    )
+    snapshot = _make_snapshot(players, taxi_ids=taxi, reserve_ids=reserve)
+    result = compute_roster_cut_candidates(_make_pvo(pvo_list), snapshot)
+    assert result.cuts_required == 1
+    assert len(result.cut_candidates) > 0
+    # Compliant IR players must remain in exempt, not cut_candidates
+    exempt_ids = {c.sleeper_player_id for c in result.exempt_players}
+    for ir_pid in reserve:
+        assert ir_pid in exempt_ids
+
+
+# ─── Codex patch: Finding 3 — decision_supported lock on Pydantic models ──────
+
+def test_decision_supported_coerced_false_on_candidate():
+    """Explicitly passing decision_supported=True to RosterCutCandidate is coerced to False."""
+    candidate = RosterCutCandidate(
+        sleeper_player_id="x",
+        full_name="Test",
+        position="WR",
+        age=25.0,
+        years_exp=2,
+        ir_compliance_status="NOT_ON_IR",
+        taxi_eligibility="INELIGIBLE_VET",
+        scoring_tier="A",
+        xvar_pct=50.0,
+        dvs=50.0,
+        cut_priority=1,
+        age_cliff_warning=False,
+        cut_rationale=[],
+        exempt=False,
+        exempt_reason=None,
+        decision_supported=True,
+    )
+    assert candidate.decision_supported is False
+
+
+def test_decision_supported_coerced_false_on_result():
+    """Explicitly passing decision_supported=True to RosterCutResult is coerced to False."""
+    result = RosterCutResult(
+        roster_id=1,
+        total_players=1,
+        active_slots=20,
+        total_capacity=26,
+        cuts_required=0,
+        reserve_unrestricted=True,
+        cut_candidates=[],
+        exempt_players=[],
+        decision_supported=True,
+    )
+    assert result.decision_supported is False
+
+
+# ─── Codex patch: Finding 4 — age cliff constants (doctrine: RB 26, TE 30) ───
+
+def test_rb_cliff_warning_at_age_26():
+    """RB at exactly age 26.0 triggers the cliff warning (doctrine cliff is 26)."""
+    assert _age_cliff_warning("RB", 26.0) is True
+
+
+def test_te_cliff_not_reached_at_age_29():
+    """TE at age 29.0 is below the TE cliff and must not warn (doctrine cliff is 30)."""
+    assert _age_cliff_warning("TE", 29.0) is False
+
+
+def test_te_cliff_warning_at_age_30():
+    """TE at exactly age 30.0 triggers the cliff warning (doctrine cliff is 30)."""
+    assert _age_cliff_warning("TE", 30.0) is True
