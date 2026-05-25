@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from src.dynasty_genius.models.engine_b_contract import (
     CONSOLIDATION_FLOOR,
@@ -26,6 +26,11 @@ class TradeAsset(BaseModel):
     decision_supported: bool = False
     caveat: Optional[str] = None
 
+    @field_validator("decision_supported", mode="before")
+    @classmethod
+    def _lock_decision_supported(cls, v: object) -> bool:
+        return False
+
 
 class TradeSide(BaseModel):
     assets: List[TradeAsset]
@@ -43,6 +48,11 @@ class TradeEvaluation(BaseModel):
     favors_xvar_margin: Optional[float]
     decision_supported: bool = False
     caveats: List[str]
+
+    @field_validator("decision_supported", mode="before")
+    @classmethod
+    def _lock_decision_supported(cls, v: object) -> bool:
+        return False
 
 
 def _consolidation_factor(n_starter_assets: int) -> float:

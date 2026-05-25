@@ -21,10 +21,11 @@ Phase 18 — COMPLETE: 18.1 roster-audit rookie PVO reconciliation complete; 18.
 Phase 19 — **COMPLETE**: Engine A v3 (Bifurcated Rookie Forecast). W1–W5 all merged to main (`4cce9f2`, 2026-05-24; 1088 tests, 11 skipped). TE Head A v3 Ridge promoted and wired. Head B null result. Feature branch retired.
 Phase 20 — **COMPLETE — NULL RESULT** (2026-05-24; 1105 tests, 11 skipped). W1 WR FAIL (0/3 ridge + gbt; trimmed 5-feature set hurts vs baseline). W2 RB FAIL (ridge +5.6% RMSE below 7% gate, Spearman/NDCG regress; gbt −7.4%: 0/3). W3 QB BLOCKED (25.4% API coverage < 50% threshold — all 4 features dropped). No passing candidates. No promotion. Codex blockers resolved (commit `067ecd7`): QB 4-feature contract enforced in adapter + engine_a_contract; RB `/games` endpoint gated behind `--include-rb-ypg`. Spec: `docs/strategies/2026-05-24-phase20-prospect-enrichment-spec.md`.
 Phase 21 — **IMPLEMENTATION COMPLETE + CODEX PATCH** (2026-05-25; 1153 tests, 11 skipped). Roster Cut & Drop Candidate Engine. Spec v0.5 approved. W1: `src/dynasty_genius/roster_cut_engine.py` (pure function, 39 TDD tests). W2: `recommended_drop` field on WAIVER_CANDIDATE cards (9 TDD tests). W3: `scripts/build_roster_cut_report.py`. Codex patch: (1) capacity overflow fixed — `should_rank = over_limit > 0 or cuts_required > 0`; (2) `recommended_drop` now carries `decision_supported: False`; (3) `_lock_decision_supported` validator on both Pydantic models; (4) CLIFF_AGES corrected to doctrine (RB 26, WR 28, TE 30, QB 33); (5) `_coverage()` now recursively counts nested `decision_supported=True`. Artifacts at `app/data/valuation/roster_cut_report_latest.{json,md}`.
+Phase 22 — **IMPLEMENTATION COMPLETE + CODEX CLEARED** (2026-05-24; 1169 tests, 11 skipped). Trade Lab Roster Reconciler. Spec v0.2 approved. W1 (12 TDD tests): `src/dynasty_genius/trade_lab/reconciler.py` (pure function — `RosterPenaltySummary`, `TradeRosterReconciliation`, `reconcile_trade_roster()`; Forced Cut Penalty = raw xVAR of top-N cut candidates; order-preserving roster mutation); `decision_supported` coercion-lock validators added to `TradeAsset` and `TradeEvaluation` in `src/dynasty_genius/trade_lab/evaluator.py`. W2 (4 TDD tests): `POST /api/trade/reconcile` endpoint in `app/api/routes/trade.py`; monkeypatchable `_load_reconcile_artifacts()`. No market data, no model pkl, no manifest changes. Spec: `docs/strategies/2026-05-24-phase22-roster-reconciler-spec.md`.
 
 ## Current Sprint Objective
 
-**Phase 21 — COMPLETE.** Roster Cut Engine, Waiver-Drop integration, and build script all shipped. 1153 tests, 11 skipped.
+**Phase 22 — IMPLEMENTATION COMPLETE + CODEX CLEARED.** Trade Lab Roster Reconciler shipped. 1169 tests, 11 skipped.
 - Workstream 19.1 (Planning & Spec) — COMPLETE.
 - W1 (Head B Target Pipeline) — COMPLETE.
 - W2 (Feature Contract + Enrichment) — COMPLETE.
@@ -396,13 +397,11 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-**Phase 21 Roster Cut Engine — next steps (2026-05-24):**
+**Phase 22 complete. Awaiting David's direction for Phase 23.**
 
-David approved Phase 20 null result and directed opening Phase 21. Spec at v0.5 (Codex re-review complete; all blockers resolved).
+Phase 22 `POST /api/trade/reconcile` is live. Candidate next phases:
+- **Phase 23**: Trade Lab UI — surface reconcile endpoint output to the draft board or a dedicated trade tool view.
+- **Roster artifact refresh**: Rebuild `universe_pvo_latest.json` + `sleeper_universe_snapshot_latest.json` for the reconciler to operate against live data.
+- **Phase 21 cut execution**: Roster is at 28/26 capacity; `build_roster_cut_report.py` + reconcile endpoint can now jointly inform cut decisions.
 
-**Three open questions require David's ruling before W1 implementation:**
-1. Should PRE_MODEL rookies appear in the cut list (tier D with caveat) or be exempt entirely? **Recommendation: include in tier D.**
-2. Should roster capacity constants come from live Sleeper snapshot (auto-adjusting) or be locked in `david_league_context.json`? **Recommendation: read live.**
-3. Should `recommended_drop` appear on WAIVER_CANDIDATE cards only, or also on trade-type cards (ROSTER_SURPLUS_DEFICIT_MATCH, DIVERGENCE_MODEL_HIGH)? **Recommendation: WAIVER_CANDIDATE only.**
-
-**Current cut situation:** 28 players vs. 26 capacity → 2 cuts required. Lowest xVAR ACTIVE players: AJ Barner (TE, 34.3%), Adonai Mitchell (WR, 37.3%), Mac Jones (QB, 39.3%).
+No next phase is authorized until David issues explicit direction.
