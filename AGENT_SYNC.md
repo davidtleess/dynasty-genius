@@ -421,6 +421,15 @@ Spec: `docs/strategies/2026-05-24-phase23-consolidated-trade-lab-strategy-spec.m
 - Rebuild `universe_pvo_latest.json` + `sleeper_universe_snapshot_latest.json` to reflect current league state.
 - Execute the 2 required roster cuts (28/26 capacity). Candidates: AJ Barner (TE, 34.3%), Adonai Mitchell (WR, 37.3%), Mac Jones (QB, 39.3%) — or execute Jefferson trade to collapse 2 cuts to 1.
 
-**Deferred — repo lint/type hygiene initiative (logged 2026-05-25):**
-- The IDE Problems panel surfaces pre-existing repo-wide Python lint/type diagnostics (ruff: 226 across the repo — F401/E402/E701/F541/F841/E712/…). These are NOT enforced by pre-commit (only the market-leakage CSV guard) or CI (Python checks = pytest), and are unrelated to any uncommitted docs. The real gate (1200-test suite + `validate_governance.py`) is green.
-- When reopened, treat as its own scoped session: add a `ruff`/`mypy` config + agreed ruleset, then fix in small reviewable batches (start with the 130 ruff-autofixable, review the rest). Do NOT bundle into feature work. No production behavior change expected, but it touches code across the repo, so it needs a governance log and a green-suite gate per batch.
+**Active — repo lint/type hygiene initiative (approved 2026-05-25):**
+- **Strategy**: Option A (Pragmatic Ratchet) approved by David. Clean core production (`src/`, `app/`) to zero; set up pre-commit/CI touched-file ratchet; keep legacy `tests/` and `scripts/` clean-on-touch.
+- **Ruleset**: `select = ["E4", "E7", "E9", "F", "I"]` (I001 import-sort isolated into dedicated P1b commit). No `--unsafe-fixes`. Manual `noqa` for `E712` vectorized masks.
+- **Branch**: `hygiene/ruff-lint-ratchet`
+- **Roadmap**:
+  - Phase 0: Add `pyproject.toml` base config; record the pinned Ruff version (0.15.12); capture baseline. Enforcing pre-commit hook DEFERRED to Phase 3 (a whole-file ratchet now would block the P1/P2 cleanup commits). **— DONE 2026-05-25** (branch `hygiene/ruff-lint-ratchet`): 317 findings (src+app=49; tests+scripts=268); validator green; no source/hooks changed; baseline at `docs/validation/phase-lint-baseline-2026-05-25.md`. **Checkpoint with David before P1.**
+  - Phase 1a: Safe autofixes only (`F401`, `F541`, `F811`, `E731`) -> verified with green test suite. (`F841` unused-variable is NOT a safe autofix — handled in Phase 2 manual review.)
+  - Phase 1b: Dedicated mechanical import sorting (`I001`) commit -> verified with green test suite.
+  - Phase 2: Manual clean of remaining production (`src/`, `app/`) files, hand-verifying registration/adapter side effects.
+  - Phase 3: Wire standard pre-commit/CI ratchets (excluding untouched legacy files).
+  - Phase 4: Create new authoritative document `docs/governance/03-code-hygiene-policy.md`, integrate into Required Reading/Authority order in `02-agent-operating-loop.md`, update bootstrap entrypoints and `validate_governance.py` path checks.
+
