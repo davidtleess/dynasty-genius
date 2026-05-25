@@ -421,7 +421,7 @@ Spec: `docs/strategies/2026-05-24-phase23-consolidated-trade-lab-strategy-spec.m
 - Rebuild `universe_pvo_latest.json` + `sleeper_universe_snapshot_latest.json` to reflect current league state.
 - Execute the 2 required roster cuts (28/26 capacity). Candidates: AJ Barner (TE, 34.3%), Adonai Mitchell (WR, 37.3%), Mac Jones (QB, 39.3%) — or execute Jefferson trade to collapse 2 cuts to 1.
 
-**Active — repo lint/type hygiene initiative (approved 2026-05-25):**
+**COMPLETE / MERGED — repo lint/type hygiene initiative (2026-05-25):** PR #31 merged to `main` (merge commit `afbf91b`); CI green (Python checks incl. ruff gate, SQL governance, Sovereign Unity). P0–P4 shipped; production at zero selected findings; CI + local pre-commit ratchet active; policy doctrine at `docs/governance/03-code-hygiene-policy.md`. 55 legacy tests/scripts findings remain → on-touch ratchet. Codex merge-readiness review clear. Details below.
 - **Strategy**: Option A (Pragmatic Ratchet) approved by David. Clean core production (`src/`, `app/`) to zero; set up pre-commit/CI touched-file ratchet; keep legacy `tests/` and `scripts/` clean-on-touch.
 - **Ruleset**: `select = ["E4", "E7", "E9", "F", "I"]` (I001 import-sort isolated into dedicated P1b commit). No `--unsafe-fixes`. Manual `noqa` for `E712` vectorized masks.
 - **Branch**: `hygiene/ruff-lint-ratchet`
