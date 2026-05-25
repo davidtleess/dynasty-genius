@@ -97,8 +97,8 @@ def _rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 
 def _evaluate_columns(frame: pd.DataFrame, columns: list[str], test_year: int) -> dict[str, Any]:
-    train = frame[(frame["feature_season"] < test_year) & (frame["training_eligible"] == True)]
-    test = frame[(frame["feature_season"] == test_year) & (frame["training_eligible"] == True)]
+    train = frame[(frame["feature_season"] < test_year) & (frame["training_eligible"] == True)]  # noqa: E712 - preserve pandas mask semantics (CSV bool/int/object dtype)
+    test = frame[(frame["feature_season"] == test_year) & (frame["training_eligible"] == True)]  # noqa: E712 - preserve pandas mask semantics (CSV bool/int/object dtype)
     x_train, x_test = _prepare_matrix(train, test, columns)
     y_train = train[OUTCOME_COLUMN].to_numpy(dtype=float)
     y_test = test[OUTCOME_COLUMN].to_numpy(dtype=float)

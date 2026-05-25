@@ -158,7 +158,7 @@ class EngineBService:
             return []
 
         df = pd.read_csv(_DATASET_PATH)
-        inference_df = df[df["training_eligible"] == False].copy()
+        inference_df = df[df["training_eligible"] == False].copy()  # noqa: E712 - preserve pandas mask semantics (CSV bool/int/object dtype)
 
         predictions = []
         for _, row in inference_df.iterrows():

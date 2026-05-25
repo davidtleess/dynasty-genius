@@ -236,9 +236,12 @@ def evaluate_promotion_gates(
         justification = "TE position experimental fallback."
     elif grade == "ACTIVE_B":
         failed = []
-        if not g1_pass: failed.append("G1")
-        if not g2_pass: failed.append("G2")
-        if g3_status != "passed": failed.append("G3")
+        if not g1_pass:
+            failed.append("G1")
+        if not g2_pass:
+            failed.append("G2")
+        if g3_status != "passed":
+            failed.append("G3")
         justification = f"Promotion blocked by {', '.join(failed)}."
     else:
         justification = ", ".join(just_parts) + "."
