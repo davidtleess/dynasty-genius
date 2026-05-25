@@ -18,8 +18,9 @@ Usage:
 
 import os
 import sys
-from databricks import sql
 from datetime import datetime
+
+from databricks import sql
 
 # Load credentials from environment
 DATABRICKS_HOST = os.environ.get("DATABRICKS_HOST", "https://dbc-228373f7-57ec.cloud.databricks.com")

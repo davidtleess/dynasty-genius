@@ -1,5 +1,6 @@
 import nflreadpy as nfl
 
+
 def test_nflreadpy_2026_results():
     picks = nfl.load_draft_picks([2026]).to_pandas()
     assert not picks.empty

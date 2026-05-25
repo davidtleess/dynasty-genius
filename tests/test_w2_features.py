@@ -17,14 +17,13 @@ TDD suite covering:
 """
 from __future__ import annotations
 
-
 import pandas as pd
 import pytest
 
 from scripts.build_w2_features import (
-    ALL_WR_FEATURE_STUBS,
     ALL_RB_FEATURE_STUBS,
     ALL_TE_FEATURE_STUBS,
+    ALL_WR_FEATURE_STUBS,
     MEAN_TE_HEIGHT_INCHES,
     build_combine_lookup,
     compute_age_position_features,
@@ -46,7 +45,6 @@ from src.dynasty_genius.models.head_b_contract import (
     V3_POSITION_HEAD_A_FEATURES,
     V3_POSITION_HEAD_B_FEATURES,
 )
-
 
 # ── parse_height_inches ───────────────────────────────────────────────────────
 

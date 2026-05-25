@@ -9,8 +9,10 @@ Enforces:
 """
 from __future__ import annotations
 
-
-from src.dynasty_genius.models.engine_a_contract import ALLOWED_ENRICHMENT_COLUMNS, PROHIBITED_COLUMNS
+from src.dynasty_genius.models.engine_a_contract import (
+    ALLOWED_ENRICHMENT_COLUMNS,
+    PROHIBITED_COLUMNS,
+)
 from src.dynasty_genius.sources.source_registry import SOURCE_REGISTRY
 
 NON_MODEL_ROLES = {"market_overlay", "prohibited_current_phase", "prohibited"}

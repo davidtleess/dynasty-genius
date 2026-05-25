@@ -1,5 +1,6 @@
 from app.services.trade_analyzer import analyze_trade_pvo
 
+
 def test_analyze_trade_pvo_shape():
     """Prove analyze_trade_pvo() returns the correct experimental envelope."""
     my_assets = [{"type": "player", "name": "CeeDee Lamb", "position": "WR", "age": 25}]

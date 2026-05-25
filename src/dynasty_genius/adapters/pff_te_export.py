@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-
 REQUIRED_COLUMN_ALIASES: dict[str, tuple[str, ...]] = {
     "pff_id": ("player_id", "pff_id", "id"),
     "player_name": ("player", "name", "player_name"),

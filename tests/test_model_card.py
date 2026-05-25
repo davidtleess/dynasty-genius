@@ -13,6 +13,7 @@ from uuid import uuid4
 
 import pytest
 
+from scripts.generate_model_cards import generate_card_for_position
 from src.dynasty_genius.eval.backtest_artifact import (
     BacktestResult,
     FoldResult,
@@ -27,8 +28,6 @@ from src.dynasty_genius.eval.model_card import (
     ModelCardMetrics,
     ModelCardSubgroup,
 )
-from scripts.generate_model_cards import generate_card_for_position
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

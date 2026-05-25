@@ -1,5 +1,6 @@
-import httpx
 from typing import Any
+
+import httpx
 
 BASE_URL = "https://api.sleeper.app/v1"
 

@@ -10,13 +10,12 @@ Enforces:
 """
 from __future__ import annotations
 
-
 import pytest
 
 from src.dynasty_genius.models.aging_curves import (
     AGING_CURVES_PATH,
-    load_aging_curves,
     aging_curve_value,
+    load_aging_curves,
 )
 
 REQUIRED_POSITIONS = {"RB", "WR", "TE", "QB_pocket", "QB_dual_threat"}

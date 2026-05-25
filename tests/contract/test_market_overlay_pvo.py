@@ -21,7 +21,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 from src.dynasty_genius.models.player_value_object import PlayerValueObject
 from src.dynasty_genius.services.market_overlay_service import compute_divergence
 
@@ -63,7 +62,9 @@ def _pvo(
 # ── Test 1: FC adapter shape ──────────────────────────────────────────────────
 
 def test_adapter_normalized_entry_has_sleeper_id():
-    from src.dynasty_genius.adapters.fantasycalc_adapter import normalize_fantasycalc_entry
+    from src.dynasty_genius.adapters.fantasycalc_adapter import (
+        normalize_fantasycalc_entry,
+    )
     result = normalize_fantasycalc_entry(FIXTURE[0])
     assert "sleeper_id" in result
     assert result["sleeper_id"] == "9509"
@@ -72,7 +73,9 @@ def test_adapter_normalized_entry_has_sleeper_id():
 # ── Test 2: Banned FC fields absent ──────────────────────────────────────────
 
 def test_normalized_entry_excludes_combined_and_redraft_values():
-    from src.dynasty_genius.adapters.fantasycalc_adapter import normalize_fantasycalc_entry
+    from src.dynasty_genius.adapters.fantasycalc_adapter import (
+        normalize_fantasycalc_entry,
+    )
     result = normalize_fantasycalc_entry(FIXTURE[0])
     assert "combinedValue" not in result
     assert "redraftValue" not in result

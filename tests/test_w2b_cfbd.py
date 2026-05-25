@@ -45,7 +45,6 @@ from scripts.build_w2b_cfbd import (
 )
 from src.dynasty_genius.models.head_b_contract import HEAD_B_PROHIBITED_COLUMNS
 
-
 # ── Synthetic CFBD API fixtures ───────────────────────────────────────────────
 
 # Amari Cooper's 2014 (final year before 2015 draft) and 2013 seasons at Alabama

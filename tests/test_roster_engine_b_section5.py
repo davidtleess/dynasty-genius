@@ -9,14 +9,12 @@ Covers:
 """
 from __future__ import annotations
 
-
 from app.services.roster_auditor import (
     _ABOVE_AVG_PPG_THRESHOLD,
     _age_value_context,
     audit_player,
 )
 from src.dynasty_genius.models.engine_b_contract import ENGINE_B_PROHIBITED_FEATURES
-
 
 # ── _age_value_context ─────────────────────────────────────────────────────────
 

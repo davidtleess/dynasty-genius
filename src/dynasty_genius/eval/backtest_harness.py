@@ -25,12 +25,15 @@ from src.dynasty_genius.eval.backtest_artifact import (
     GateResult,
     StabilityResult,
 )
-from src.dynasty_genius.eval.backtest_metrics import compute_ndcg, compute_rank_correlation
+from src.dynasty_genius.eval.backtest_metrics import (
+    compute_ndcg,
+    compute_rank_correlation,
+)
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_FEATURES_BY_POSITION,
     OUTCOME_COLUMN,
-    validate_no_temporal_leakage,
     validate_no_prohibited_features,
+    validate_no_temporal_leakage,
 )
 
 if TYPE_CHECKING:

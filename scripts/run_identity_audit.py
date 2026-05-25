@@ -58,7 +58,6 @@ from src.dynasty_genius.audit.identity_snapshot_generator import (
     write_identity_snapshot,
 )
 
-
 # ---------------------------------------------------------------------------
 # Loaders
 # ---------------------------------------------------------------------------

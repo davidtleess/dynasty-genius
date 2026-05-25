@@ -5,7 +5,6 @@ from src.dynasty_genius.team_value_matrix import (
     optimize_best_legal_lineup,
 )
 
-
 ROSTER_POSITIONS = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "FLEX", "SUPER_FLEX"]
 
 

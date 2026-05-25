@@ -21,7 +21,6 @@ from scripts.run_head_a_bakeoff import (
     scale_features,
 )
 
-
 # ── 1. Standard Scaling ───────────────────────────────────────────────────────
 
 def test_scale_features_train_zero_mean_unit_variance():

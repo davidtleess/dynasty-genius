@@ -1,8 +1,8 @@
 import json
-
-from fastapi import APIRouter, HTTPException
 from pathlib import Path
 from typing import Any
+
+from fastapi import APIRouter, HTTPException
 
 from src.dynasty_genius.eval.backtest_artifact import BacktestResult
 from src.dynasty_genius.eval.model_card import ModelCard

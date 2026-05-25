@@ -1,6 +1,7 @@
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import assemble_pvo
 
+
 def test_counter_argument_age_cliff():
     identity = PlayerIdentity(
         dg_id="test_player_rb",

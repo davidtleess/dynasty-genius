@@ -246,10 +246,10 @@ def test_pvo_assembler_te_v3_full_path(monkeypatch, te_v3_manifest, reset_v3_sco
     - final_college_age from features (not age) drives scoring
     - decision_supported is False
     """
-    from src.dynasty_genius.scoring import engine_a
     from src.dynasty_genius.identity import generate_dg_id
     from src.dynasty_genius.models.player_identity import PlayerIdentity
     from src.dynasty_genius.pvo_assembler import assemble_pvo
+    from src.dynasty_genius.scoring import engine_a
 
     monkeypatch.setattr(engine_a, "V3_MANIFEST_POINTER", te_v3_manifest)
 
@@ -352,6 +352,7 @@ def test_relative_manifest_path_resolved_against_root(monkeypatch, tmp_path, res
 def test_route_te_v3_full_path_returns_v3_engine(monkeypatch, te_v3_manifest, reset_v3_scorer):
     """POST /api/rookies/score with full TE v3 fields must route through v3 scorer."""
     from fastapi.testclient import TestClient
+
     from app.main import app
     from src.dynasty_genius.scoring import engine_a
 
@@ -386,6 +387,7 @@ def test_route_te_v3_full_path_returns_v3_engine(monkeypatch, te_v3_manifest, re
 def test_route_te_without_cfbd_falls_back_to_v2_route():
     """POST /api/rookies/score with only pick/round/age must use v2 for TE."""
     from fastapi.testclient import TestClient
+
     from app.main import app
 
     client = TestClient(app)

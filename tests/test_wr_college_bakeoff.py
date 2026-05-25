@@ -1,10 +1,11 @@
 """Tests for Phase 16.4 WR college bake-off gate logic."""
-import pytest
 import numpy as np
+import pytest
+
 from scripts.run_wr_college_bakeoff import (
-    evaluate_promotion_gate,
-    compute_vif,
     _get_aligned_rows,
+    compute_vif,
+    evaluate_promotion_gate,
 )
 
 

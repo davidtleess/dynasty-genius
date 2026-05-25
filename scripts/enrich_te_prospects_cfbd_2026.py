@@ -71,8 +71,9 @@ def _norm_school(school: str) -> str:
 # ── Cache helpers (mirror build_w2b_cfbd.py) ─────────────────────────────────
 
 def _cfbd_api_key() -> str:
-    from dotenv import load_dotenv
     import os
+
+    from dotenv import load_dotenv
     load_dotenv()
     return os.getenv("CFBD_API_KEY", "").strip()
 

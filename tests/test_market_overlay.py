@@ -131,7 +131,10 @@ def test_ktc_market_source_raises_not_implemented():
 
 
 def test_fantasycalc_market_source_is_subclass_of_market_source():
-    from src.dynasty_genius.adapters.market_source import MarketSource, FantasyCalcMarketSource
+    from src.dynasty_genius.adapters.market_source import (
+        FantasyCalcMarketSource,
+        MarketSource,
+    )
     assert issubclass(FantasyCalcMarketSource, MarketSource)
 
 
@@ -157,7 +160,9 @@ def test_adapter_url_includes_sf_params():
 
 
 def test_normalize_entry_captures_sleeper_id():
-    from src.dynasty_genius.adapters.fantasycalc_adapter import normalize_fantasycalc_entry
+    from src.dynasty_genius.adapters.fantasycalc_adapter import (
+        normalize_fantasycalc_entry,
+    )
     raw = _load_fixture()[0]  # Bijan Robinson
     result = normalize_fantasycalc_entry(raw)
     assert result["sleeper_id"] == "9509"
@@ -170,7 +175,9 @@ def test_normalize_entry_captures_sleeper_id():
 
 
 def test_normalize_entry_excludes_banned_fields():
-    from src.dynasty_genius.adapters.fantasycalc_adapter import normalize_fantasycalc_entry
+    from src.dynasty_genius.adapters.fantasycalc_adapter import (
+        normalize_fantasycalc_entry,
+    )
     raw = _load_fixture()[0]
     result = normalize_fantasycalc_entry(raw)
     assert "combinedValue" not in result
@@ -349,7 +356,10 @@ def test_compute_divergence_small_cohort_skips_percentile():
 def test_enrich_propagates_stale_caveat_to_overlays(tmp_path, monkeypatch):
     """Stage 2 stale cache: stale_market_data reaches PVO overlay."""
     from datetime import datetime, timedelta, timezone
-    from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
+
+    from src.dynasty_genius.services.market_overlay_service import (
+        enrich_pvo_list_with_market_overlay,
+    )
 
     old_ts = (datetime.now(timezone.utc) - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
     cache_file = tmp_path / "market_values.json"
@@ -370,7 +380,9 @@ def test_enrich_propagates_stale_caveat_to_overlays(tmp_path, monkeypatch):
 
 def test_enrich_computes_var():
     """enrich_pvo_list_with_market_overlay wires VAR even when FC is unavailable."""
-    from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
+    from src.dynasty_genius.services.market_overlay_service import (
+        enrich_pvo_list_with_market_overlay,
+    )
 
     with patch(
         "src.dynasty_genius.adapters.fantasycalc_adapter.fetch_with_cache",
@@ -386,7 +398,9 @@ def test_enrich_computes_var():
 # ── Phase 9.3 VAR + seasonal tests ───────────────────────────────────────────
 
 def test_compute_var_uses_model_score_not_market():
-    from src.dynasty_genius.services.market_overlay_service import compute_value_above_replacement
+    from src.dynasty_genius.services.market_overlay_service import (
+        compute_value_above_replacement,
+    )
     pvos = [
         _make_pvo("p1", "s1", "RB", projection_2y=15.0),
         _make_pvo("p2", "s2", "RB", projection_2y=12.0),
@@ -401,7 +415,9 @@ def test_compute_var_uses_model_score_not_market():
 
 
 def test_compute_var_is_none_when_no_dynasty_value_score():
-    from src.dynasty_genius.services.market_overlay_service import compute_value_above_replacement
+    from src.dynasty_genius.services.market_overlay_service import (
+        compute_value_above_replacement,
+    )
     pvos = [_make_pvo("p1", "s1", "RB", projection_2y=15.0)]
     pvos[0].dynasty_value_score = None
     compute_value_above_replacement(pvos)
@@ -409,8 +425,9 @@ def test_compute_var_is_none_when_no_dynasty_value_score():
 
 
 def test_rookie_peak_value_window_caveat_fires_in_may():
-    from unittest.mock import patch
     from datetime import date
+    from unittest.mock import patch
+
     from src.dynasty_genius.services.market_overlay_service import compute_divergence
     fixture = _load_fixture()
     pvo = _make_pvo("p_tate", "11111", "WR", projection_2y=None, is_prospect=True)

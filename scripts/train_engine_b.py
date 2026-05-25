@@ -28,13 +28,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.dynasty_genius.models.engine_b_contract import (
+    COMPOSITE_GATE_MIN_PASSING,
     ENGINE_B_ALLOWED_FEATURES,
     ENGINE_B_FEATURES_BY_POSITION,
     OUTCOME_COLUMN,
-    validate_no_temporal_leakage,
     validate_no_prohibited_features,
+    validate_no_temporal_leakage,
     validate_position_feature_contract,
-    COMPOSITE_GATE_MIN_PASSING,
 )
 
 # ── Paths ─────────────────────────────────────────────────────────────────────

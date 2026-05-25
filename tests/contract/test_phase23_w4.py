@@ -8,7 +8,6 @@ from src.dynasty_genius.trade_lab.market_reconciler import (
     reconcile_trade_market,
 )
 
-
 BANNED_WARNING_TERMS = {
     "accept",
     "reject",

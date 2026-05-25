@@ -7,6 +7,7 @@ from src.dynasty_genius.eval.backtest_artifact import (
 )
 from src.dynasty_genius.eval.backtest_harness import evaluate_promotion_gates
 
+
 def build_mock_fold(
     tau: float = 0.45,
     tau_ci_low: float = 0.25,

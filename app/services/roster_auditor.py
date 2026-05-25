@@ -6,14 +6,19 @@ from typing import Any, Optional, Union
 
 import httpx
 
-from app.data.sleeper import get_user, get_leagues, get_rosters, get_all_players
+from app.data.sleeper import get_all_players, get_leagues, get_rosters, get_user
 from app.services.engine_b_service import score_inference_partition
 from src.dynasty_genius.adapters.nflreadpy_qb_adapter import fetch_qb_nfl_stats
+from src.dynasty_genius.decision_logic.counter_arguments import (
+    generate_counter_argument,
+)
 from src.dynasty_genius.models.engine_a_contract import QB_CONTEXT_COLUMNS
 from src.dynasty_genius.models.league_context import LeagueContext
 from src.dynasty_genius.models.player_identity import PlayerIdentity
-from src.dynasty_genius.decision_logic.counter_arguments import generate_counter_argument
-from src.dynasty_genius.models.player_value_object import PlayerValueObject, RosterAuditSignals
+from src.dynasty_genius.models.player_value_object import (
+    PlayerValueObject,
+    RosterAuditSignals,
+)
 
 _ROOT = Path(__file__).resolve().parents[2]
 _QB_BRIDGE_PATH = _ROOT / "resources" / "nflreadpy_qb_id_map.json"
@@ -598,7 +603,9 @@ async def run_audit_pvo() -> dict:
         )
     )
 
-    from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
+    from src.dynasty_genius.services.market_overlay_service import (
+        enrich_pvo_list_with_market_overlay,
+    )
     await asyncio.to_thread(enrich_pvo_list_with_market_overlay, pvos)
 
     return {

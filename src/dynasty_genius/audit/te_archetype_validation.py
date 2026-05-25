@@ -9,7 +9,6 @@ import math
 from statistics import median
 from typing import Any
 
-
 ARCHETYPE_ORDER = ("receiving_leaning", "ambiguous", "blocking_leaning")
 VALIDATION_VERSION = "0.1.0"
 

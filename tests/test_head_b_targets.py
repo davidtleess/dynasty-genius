@@ -32,7 +32,6 @@ from scripts.build_head_b_targets import (
     fit_te_pooled_curve,
 )
 
-
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _synthetic_picks_ppg(n: int = 80, seed: int = 42) -> tuple[list[float], list[float]]:

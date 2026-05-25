@@ -4,8 +4,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from src.dynasty_genius.pvo_assembler import assemble_pvo
 from src.dynasty_genius.models.player_identity import PlayerIdentity
+from src.dynasty_genius.pvo_assembler import assemble_pvo
 
 router = APIRouter(prefix="/rookies", tags=["rookies"])
 
@@ -26,7 +26,9 @@ class ProspectRequest(BaseModel):
 
 
 def _map_prospect_to_pvo(prospect: ProspectRequest):
-    from src.dynasty_genius.adapters.prospect_identity_resolver import resolve_prospect_sleeper_id
+    from src.dynasty_genius.adapters.prospect_identity_resolver import (
+        resolve_prospect_sleeper_id,
+    )
     draft_class = prospect.draft_class or date.today().year
     resolved_sid, _ = resolve_prospect_sleeper_id(
         prospect.name,
@@ -58,7 +60,9 @@ def _map_prospect_to_pvo(prospect: ProspectRequest):
 @router.post("/score")
 def score_single(prospect: ProspectRequest) -> dict:
     try:
-        from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
+        from src.dynasty_genius.services.market_overlay_service import (
+            enrich_pvo_list_with_market_overlay,
+        )
         pvo = _map_prospect_to_pvo(prospect)
         enrich_pvo_list_with_market_overlay([pvo])
         return pvo.dict()
@@ -69,7 +73,9 @@ def score_single(prospect: ProspectRequest) -> dict:
 @router.post("/score-class")
 def score_class(prospects: list[ProspectRequest]) -> list[dict]:
     try:
-        from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
+        from src.dynasty_genius.services.market_overlay_service import (
+            enrich_pvo_list_with_market_overlay,
+        )
         pvos = [_map_prospect_to_pvo(p) for p in prospects]
         pvos.sort(
             key=lambda x: (x.dynasty_value_score is not None, x.dynasty_value_score or -1.0),

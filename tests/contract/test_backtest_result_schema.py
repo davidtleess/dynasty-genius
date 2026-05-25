@@ -18,7 +18,6 @@ from src.dynasty_genius.eval.backtest_artifact import (
     StabilityResult,
 )
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _fold(index: int, tau: float = 0.45, ci_lo: float = 0.30) -> FoldResult:

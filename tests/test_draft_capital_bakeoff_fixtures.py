@@ -31,7 +31,6 @@ from tests.fixtures.draft_capital_bakeoff import (
     wr_pick75_viability_rows,
 )
 
-
 # ---------------------------------------------------------------------------
 # Scenario 1: QB top-15 cliff — fixture structure
 # ---------------------------------------------------------------------------

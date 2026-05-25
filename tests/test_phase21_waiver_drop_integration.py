@@ -4,7 +4,6 @@ Written RED-first before league_opportunity_map.py is updated.
 """
 from __future__ import annotations
 
-
 from src.dynasty_genius.league_opportunity_map import build_league_opportunity_map
 from src.dynasty_genius.roster_cut_engine import RosterCutCandidate, RosterCutResult
 

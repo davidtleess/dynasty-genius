@@ -7,7 +7,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-
 from src.dynasty_genius.models.engine_b_contract import (
     CONSOLIDATION_FLOOR,
     CONSOLIDATION_KAPPA,
@@ -20,7 +19,6 @@ from src.dynasty_genius.trade_lab.evaluator import (
     evaluate_trade,
     value_draft_pick,
 )
-
 
 client = TestClient(app)
 

@@ -16,7 +16,6 @@ from src.dynasty_genius.eval.backtest_artifact import (
 )
 from src.dynasty_genius.eval.model_card import ModelCard, ModelCardMetrics
 
-
 client = TestClient(app)
 
 

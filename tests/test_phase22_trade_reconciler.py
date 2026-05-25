@@ -7,7 +7,11 @@ from __future__ import annotations
 
 import pytest
 
-from src.dynasty_genius.trade_lab.evaluator import TradeAsset, TradeEvaluation, TradeSide
+from src.dynasty_genius.trade_lab.evaluator import (
+    TradeAsset,
+    TradeEvaluation,
+    TradeSide,
+)
 from src.dynasty_genius.trade_lab.reconciler import (
     reconcile_trade_roster,
 )

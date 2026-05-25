@@ -28,6 +28,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.dynasty_genius.adapters.cfbd_qb_adapter import (
+    QB_CFBD_FEATURES,
+    fetch_qb_college_stats,
+)
 from src.dynasty_genius.models.engine_a_contract import (
     CFBD_MODEL_INPUT_COLUMNS,
     LEAKAGE_REGEX,
@@ -35,11 +39,6 @@ from src.dynasty_genius.models.engine_a_contract import (
     PROHIBITED_COLUMNS,
 )
 from src.dynasty_genius.sources.source_registry import SOURCE_REGISTRY
-from src.dynasty_genius.adapters.cfbd_qb_adapter import (
-    QB_CFBD_FEATURES,
-    fetch_qb_college_stats,
-)
-
 
 # ── Approved QB feature set — Phase 20 four-feature passing scope ─────────────
 # Only these four features are approved as Engine A model inputs for QB.

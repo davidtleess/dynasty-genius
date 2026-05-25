@@ -4,10 +4,10 @@ import math
 from typing import List
 
 from app.services.rookie_evaluator import score_prospect
-from src.dynasty_genius.models.player_value_object import PlayerValueObject
-from src.dynasty_genius.models.player_identity import PlayerIdentity
-from src.dynasty_genius.pvo_assembler import assemble_pvo
 from src.dynasty_genius.identity import generate_dg_id
+from src.dynasty_genius.models.player_identity import PlayerIdentity
+from src.dynasty_genius.models.player_value_object import PlayerValueObject
+from src.dynasty_genius.pvo_assembler import assemble_pvo
 
 # Validated RMSE values
 POSITION_RMSE = {
@@ -237,7 +237,9 @@ def analyze_trade_pvo(my_assets: list[dict], their_assets: list[dict]) -> dict:
     my_pvos = [assemble_asset_pvo(a) for a in my_assets]
     their_pvos = [assemble_asset_pvo(a) for a in their_assets]
 
-    from src.dynasty_genius.services.market_overlay_service import enrich_pvo_list_with_market_overlay
+    from src.dynasty_genius.services.market_overlay_service import (
+        enrich_pvo_list_with_market_overlay,
+    )
     enrich_pvo_list_with_market_overlay(my_pvos + their_pvos)
 
     delta_status = compute_delta_status(my_pvos, their_pvos)

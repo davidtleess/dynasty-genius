@@ -1,15 +1,16 @@
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from unittest.mock import patch
+from uuid import uuid4
+
 import pytest
 from fastapi.testclient import TestClient
-from pathlib import Path
-from uuid import uuid4
-from datetime import datetime, timezone, timedelta
-from unittest.mock import patch
 
 from app.main import app
 from src.dynasty_genius.eval.backtest_artifact import (
     BacktestResult,
-    StabilityResult,
     GateResult,
+    StabilityResult,
 )
 
 client = TestClient(app)

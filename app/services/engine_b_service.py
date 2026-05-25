@@ -16,8 +16,8 @@ from sklearn.impute import SimpleImputer
 
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_EXPERIMENTAL_POSITIONS,
-    validate_no_temporal_leakage,
     validate_no_prohibited_features,
+    validate_no_temporal_leakage,
 )
 
 _ROOT = Path(__file__).resolve().parents[2]

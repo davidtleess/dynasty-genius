@@ -19,8 +19,8 @@ from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_FEATURES_BY_POSITION,
     ENGINE_B_FEATURES_QB,
     ENGINE_B_FEATURES_RB,
-    ENGINE_B_FEATURES_WR,
     ENGINE_B_FEATURES_TE,
+    ENGINE_B_FEATURES_WR,
     ENGINE_B_PROHIBITED_FEATURES,
     OUTCOME_COLUMN,
     OUTCOME_SEASON_COLUMNS,
@@ -28,7 +28,6 @@ from src.dynasty_genius.models.engine_b_contract import (
     validate_no_temporal_leakage,
     validate_position_feature_contract,
 )
-
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 

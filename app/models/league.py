@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class League(BaseModel):
     league_id: str
     name: str
