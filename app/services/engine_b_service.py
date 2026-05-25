@@ -13,7 +13,6 @@ from typing import Any
 
 import pandas as pd
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import Ridge, RidgeCV
 
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_EXPERIMENTAL_POSITIONS,

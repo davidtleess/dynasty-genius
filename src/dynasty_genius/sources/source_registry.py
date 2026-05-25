@@ -20,7 +20,7 @@ Source roles:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal
 
 from src.dynasty_genius.models.engine_a_contract import (
