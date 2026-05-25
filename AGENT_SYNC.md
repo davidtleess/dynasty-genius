@@ -20,15 +20,11 @@ Phase 17 — IMPLEMENTATION COMPLETE THROUGH 17.5: Sleeper universe, full PVO ba
 Phase 18 — COMPLETE: 18.1 roster-audit rookie PVO reconciliation complete; 18.2 daily batch orchestration complete; 18.3 team posture classification complete; 18.4 cross-position xVAR percentile complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-22; 780 tests)
 Phase 19 — **COMPLETE**: Engine A v3 (Bifurcated Rookie Forecast). W1–W5 all merged to main (`4cce9f2`, 2026-05-24; 1088 tests, 11 skipped). TE Head A v3 Ridge promoted and wired. Head B null result. Feature branch retired.
 Phase 20 — **COMPLETE — NULL RESULT** (2026-05-24; 1105 tests, 11 skipped). W1 WR FAIL (0/3 ridge + gbt; trimmed 5-feature set hurts vs baseline). W2 RB FAIL (ridge +5.6% RMSE below 7% gate, Spearman/NDCG regress; gbt −7.4%: 0/3). W3 QB BLOCKED (25.4% API coverage < 50% threshold — all 4 features dropped). No passing candidates. No promotion. Codex blockers resolved (commit `067ecd7`): QB 4-feature contract enforced in adapter + engine_a_contract; RB `/games` endpoint gated behind `--include-rb-ypg`. Spec: `docs/strategies/2026-05-24-phase20-prospect-enrichment-spec.md`.
-Phase 21 — **SPEC DRAFT v0.5** (2026-05-24). Roster Cut & Drop Candidate Engine. Codex v0.4 review resolved final consistency blocker: Step 1 pseudocode now computes `reserve_unrestricted = reserve_slots > 0 and all(flags == 0)` (was flags-only); test row corrected to expect `reserve_unrestricted == False` when `reserve_slots == 0`; INVALID_SNAPSHOT forced-review path unchanged. W1 TDD tests: 32. W2 TDD tests: 7. Spec at `docs/strategies/2026-05-24-phase21-roster-cut-spec.md` (v0.5, awaiting David approval). Three open questions remain before W1 implementation.
+Phase 21 — **IMPLEMENTATION COMPLETE** (2026-05-25; 1145 tests, 11 skipped). Roster Cut & Drop Candidate Engine. Spec v0.5 approved. W1: `src/dynasty_genius/roster_cut_engine.py` (pure function, 33 TDD tests). W2: `recommended_drop` field on WAIVER_CANDIDATE cards in `league_opportunity_map.py` (7 TDD tests). W3: `scripts/build_roster_cut_report.py` produces JSON + Markdown artifacts. Real run: 28 players / 26 capacity → 2 cuts required; AJ Barner (34.3 xVar%) ranked #1 drop. Artifacts at `app/data/valuation/roster_cut_report_latest.{json,md}`.
 
 ## Current Sprint Objective
 
-**Phase 21 — Roster Cut & Drop Candidate Engine (SPEC DRAFT, 2026-05-24).**
-David needs to cut 2 players: 28 current roster vs. 26-slot capacity (20 active + 4 IR + 2 Taxi).
-- W1 — RosterCutEngine (pure function): over-limit detection, xVAR-ranked cut candidates, Taxi/IR exemptions — awaiting David approval of open questions
-- W2 — Waiver-Drop integration: `recommended_drop` field on WAIVER_CANDIDATE cards — blocked on W1
-- W3 — Build script + artifacts — blocked on W1+W2
+**Phase 21 — COMPLETE.** Roster Cut Engine, Waiver-Drop integration, and build script all shipped. 1145 tests, 11 skipped.
 - Workstream 19.1 (Planning & Spec) — COMPLETE.
 - W1 (Head B Target Pipeline) — COMPLETE.
 - W2 (Feature Contract + Enrichment) — COMPLETE.

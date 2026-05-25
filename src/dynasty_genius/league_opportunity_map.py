@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from src.dynasty_genius.roster_cut_engine import RosterCutCandidate, RosterCutResult
 from src.dynasty_genius.team_posture import apply_team_postures
 
 SCHEMA_VERSION = "league_opportunity.v1"
@@ -327,10 +328,37 @@ def _divergence_cards(
     return cards
 
 
+def _drop_summary(candidate: RosterCutCandidate) -> dict[str, Any]:
+    return {
+        "sleeper_player_id": candidate.sleeper_player_id,
+        "full_name": candidate.full_name,
+        "position": candidate.position,
+        "cut_priority": candidate.cut_priority,
+        "ir_compliance_status": candidate.ir_compliance_status,
+        "cut_rationale": list(candidate.cut_rationale),
+    }
+
+
+def _select_recommended_drop(
+    waiver_position: str,
+    cut_candidates: list[RosterCutCandidate],
+) -> dict[str, Any] | None:
+    if not cut_candidates:
+        return None
+    forced = [c for c in cut_candidates if c.cut_priority == 0]
+    if forced:
+        return _drop_summary(forced[0])
+    same_pos = [c for c in cut_candidates if c.position == waiver_position]
+    if same_pos:
+        return _drop_summary(same_pos[0])
+    return _drop_summary(cut_candidates[0])
+
+
 def _waiver_cards(
     market_divergence: dict[str, Any],
     perspective_roster_id: int,
     card_start: int,
+    roster_cut_result: RosterCutResult | None = None,
 ) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
     card_no = card_start
@@ -340,30 +368,34 @@ def _waiver_cards(
         if context.get("rostered") or divergence.get("signal") != "MODEL_HIGH_MARKET_LOW":
             continue
         delta = float(divergence.get("model_minus_market_delta") or 0.0)
-        cards.append(
-            _base_card(
-                card_id=f"opp-{card_no:04d}",
-                card_type="WAIVER_CANDIDATE",
-                perspective_roster_id=perspective_roster_id,
-                counterparty_team=None,
-                asset=_asset_from_market_row(row),
-                primary="UNROSTERED_MODEL_MARKET_ASYMMETRY",
-                secondary=["FANTASYCALC_PERCENTILE_DIVERGENCE"],
-                evidence={
-                    "signal": divergence.get("signal"),
-                    "signal_status": divergence.get("signal_status"),
-                    "model_minus_market_delta": delta,
-                    "xvar": (row.get("valuation") or {}).get("xvar"),
-                },
-                score_components={
-                    "fit_score": 0.4,
-                    "divergence_score": _safe_score(abs(delta)),
-                    "feasibility_score": 0.9,
-                },
-                signal_status=str(divergence.get("signal_status") or "unavailable"),
-                caveats=["waiver_status_from_sleeper_snapshot"],
-            )
+        card = _base_card(
+            card_id=f"opp-{card_no:04d}",
+            card_type="WAIVER_CANDIDATE",
+            perspective_roster_id=perspective_roster_id,
+            counterparty_team=None,
+            asset=_asset_from_market_row(row),
+            primary="UNROSTERED_MODEL_MARKET_ASYMMETRY",
+            secondary=["FANTASYCALC_PERCENTILE_DIVERGENCE"],
+            evidence={
+                "signal": divergence.get("signal"),
+                "signal_status": divergence.get("signal_status"),
+                "model_minus_market_delta": delta,
+                "xvar": (row.get("valuation") or {}).get("xvar"),
+            },
+            score_components={
+                "fit_score": 0.4,
+                "divergence_score": _safe_score(abs(delta)),
+                "feasibility_score": 0.9,
+            },
+            signal_status=str(divergence.get("signal_status") or "unavailable"),
+            caveats=["waiver_status_from_sleeper_snapshot"],
         )
+        if roster_cut_result is not None:
+            waiver_position = (row.get("player") or {}).get("position") or ""
+            card["recommended_drop"] = _select_recommended_drop(
+                waiver_position, roster_cut_result.cut_candidates
+            )
+        cards.append(card)
         card_no += 1
     return cards
 
@@ -459,6 +491,7 @@ def build_league_opportunity_map(
     perspective_roster_id: int = 1,
     max_cards: int = DEFAULT_MAX_CARDS,
     captured_at: str | None = None,
+    roster_cut_result: RosterCutResult | None = None,
 ) -> dict[str, Any]:
     team_source = apply_team_postures(team_matrix, team_posture)
     divergence_source = copy.deepcopy(market_divergence)
@@ -476,7 +509,7 @@ def build_league_opportunity_map(
     cards: list[dict[str, Any]] = []
     cards.extend(_fit_cards(teams, perspective_roster_id, len(cards) + 1))
     cards.extend(_divergence_cards(divergence_source, teams, perspective_roster_id, len(cards) + 1))
-    cards.extend(_waiver_cards(divergence_source, perspective_roster_id, len(cards) + 1))
+    cards.extend(_waiver_cards(divergence_source, perspective_roster_id, len(cards) + 1, roster_cut_result))
     cards.extend(_taxi_cards(teams, player_index, perspective_roster_id, len(cards) + 1))
     cards = sorted(cards, key=lambda card: card["opportunity_score"], reverse=True)[:max_cards]
 
