@@ -8,7 +8,9 @@ coerces ``decision_supported`` to ``False`` (governance rule 12.5).
 """
 from __future__ import annotations
 
-from typing import Literal, Optional
+import json
+from pathlib import Path
+from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, field_validator
 
@@ -45,6 +47,25 @@ class MarketAssetRef(BaseModel):
         return False
 
 
+class MarketDivergenceContext(BaseModel):
+    signal_label: Literal[
+        "model_higher_than_market",
+        "model_lower_than_market",
+        "inside_band",
+        "unavailable",
+    ]
+    percentile_delta: Optional[float]
+    sigma_threshold: float
+    source_signal_status: Optional[str]
+    caveats: list[str]
+    decision_supported: bool = False
+
+    @field_validator("decision_supported", mode="before")
+    @classmethod
+    def _lock_decision_supported(cls, v: object) -> bool:
+        return False
+
+
 class MarketAssetOverlay(BaseModel):
     asset_ref: MarketAssetRef
     label: str
@@ -62,6 +83,7 @@ class MarketAssetOverlay(BaseModel):
     market_volatility: Optional[float] = None
     source_timestamp: Optional[str] = None
     caveats: list[str]
+    divergence_context: Optional[MarketDivergenceContext] = None
     decision_supported: bool = False
 
     @field_validator("decision_supported", mode="before")
@@ -442,3 +464,124 @@ def reconcile_trade_market(
         coverage_gaps=coverage_gaps,
         caveats=list(_BASE_MARKET_CAVEATS),
     )
+
+
+# ── Arbitrage divergence context (W3) ───────────────────────────────────────
+
+
+def load_market_divergence_artifact(path: Union[str, Path]) -> dict:
+    """Read a `universe_market_divergence_latest.json`-style artifact from disk."""
+    return json.loads(Path(path).read_text())
+
+
+def _divergence_delta(divergence: dict) -> Optional[float]:
+    """Extract the model-minus-market percentile delta.
+
+    The contract test supplies `percentile_delta`; the live artifact stores the
+    same value as `model_minus_market_delta` (model_percentile - market_percentile).
+    """
+    delta = divergence.get("percentile_delta")
+    if delta is None:
+        delta = divergence.get("model_minus_market_delta")
+    return delta
+
+
+_BANNED_STATUS_TOKENS = (
+    "buy", "sell", "target", "block", "approve", "reject", "pass", "fail",
+)
+
+
+def _safe_source_status(status: Optional[str]) -> Optional[str]:
+    """Echo the source signal_status for provenance, but never surface a value
+    carrying a banned-language token (e.g. `gates_passed` contains `pass`).
+    Such values collapse to None so display surfaces stay neutral."""
+    if status is None:
+        return None
+    low = status.lower()
+    if any(token in low for token in _BANNED_STATUS_TOKENS):
+        return None
+    return status
+
+
+def _classify_divergence(
+    divergence: Optional[dict],
+    sigma_threshold: float,
+) -> MarketDivergenceContext:
+    """Map an existing divergence signal to a neutral model-vs-market label.
+
+    No new metric is computed — this overlays the artifact's existing signal.
+    `gates_passed` rows are classified directionally by |delta| vs σ. Rows the
+    artifact already marks `inside_band` surface as `inside_band` (delta within
+    the normal range — David ruling 2026-05-25). Missing rows or any other
+    status surface as `unavailable` rather than being coerced into a signal.
+    """
+    if not divergence:
+        return MarketDivergenceContext(
+            signal_label="unavailable",
+            percentile_delta=None,
+            sigma_threshold=sigma_threshold,
+            source_signal_status=None,
+            caveats=["market_comparison_unavailable"],
+        )
+
+    status = divergence.get("signal_status")
+    delta = _divergence_delta(divergence)
+    safe_status = _safe_source_status(status)
+
+    if status == "gates_passed" and delta is not None:
+        if delta >= sigma_threshold:
+            signal_label = "model_higher_than_market"
+        elif delta <= -sigma_threshold:
+            signal_label = "model_lower_than_market"
+        else:
+            signal_label = "inside_band"
+        return MarketDivergenceContext(
+            signal_label=signal_label,
+            percentile_delta=delta,
+            sigma_threshold=sigma_threshold,
+            source_signal_status=safe_status,
+            caveats=["market_comparison_display_only"],
+        )
+
+    if status == "inside_band":
+        return MarketDivergenceContext(
+            signal_label="inside_band",
+            percentile_delta=delta,
+            sigma_threshold=sigma_threshold,
+            source_signal_status=safe_status,
+            caveats=["market_comparison_display_only"],
+        )
+
+    return MarketDivergenceContext(
+        signal_label="unavailable",
+        percentile_delta=delta,
+        sigma_threshold=sigma_threshold,
+        source_signal_status=safe_status,
+        caveats=["market_comparison_unavailable"],
+    )
+
+
+def attach_market_divergence_context(
+    overlays: list[MarketAssetOverlay],
+    divergence_artifact: dict,
+    sigma_threshold: float = 0.25,
+) -> list[MarketAssetOverlay]:
+    """Enrich market overlays with model-vs-market divergence context by Sleeper ID.
+
+    Read-only overlay of the existing divergence artifact — selection, scoring,
+    and market values are untouched. Pick overlays (no Sleeper ID) and players
+    absent from the artifact are reported as `unavailable`.
+    """
+    by_sleeper: dict[str, dict] = {
+        row.get("sleeper_player_id"): row
+        for row in divergence_artifact.get("players", [])
+        if row.get("sleeper_player_id") is not None
+    }
+
+    enriched: list[MarketAssetOverlay] = []
+    for overlay in overlays:
+        row = by_sleeper.get(overlay.asset_ref.sleeper_id)
+        divergence = row.get("divergence") if row else None
+        context = _classify_divergence(divergence, sigma_threshold)
+        enriched.append(overlay.model_copy(update={"divergence_context": context}))
+    return enriched
