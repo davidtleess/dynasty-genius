@@ -24,7 +24,7 @@ Phase 21 — **IMPLEMENTATION COMPLETE + CODEX PATCH** (2026-05-25; 1153 tests, 
 
 ## Current Sprint Objective
 
-**Phase 21 — COMPLETE.** Roster Cut Engine, Waiver-Drop integration, and build script all shipped. 1145 tests, 11 skipped.
+**Phase 21 — COMPLETE.** Roster Cut Engine, Waiver-Drop integration, and build script all shipped. 1153 tests, 11 skipped.
 - Workstream 19.1 (Planning & Spec) — COMPLETE.
 - W1 (Head B Target Pipeline) — COMPLETE.
 - W2 (Feature Contract + Enrichment) — COMPLETE.
