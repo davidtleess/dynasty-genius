@@ -485,6 +485,121 @@ None. All design decisions resolved in spec:
 
 ---
 
+## Codex Technical Audit Addendum — Draft Picks and Market-Side Cut Penalties
+
+### 1. Current Trade Lab draft-pick parsing
+
+There is no standalone `DraftAsset` model in the active Trade Lab code. The production xVAR evaluator represents every asset as `TradeAsset` in `src/dynasty_genius/trade_lab/evaluator.py`.
+
+Current pick paths:
+
+- `value_draft_pick(round_, pick_bucket, position, age)` returns a `TradeAsset` with:
+  - `player_id = "pick_{round}_{bucket}_{position}"`
+  - `dvs_engine = "A"`
+  - `is_prospect = True`
+  - `decision_supported = False`
+  - `xvar = (Engine A DVS - Engine A replacement DVS) * Engine A lambda`
+- `POST /api/trade/evaluate` and `POST /api/trade/reconcile` accept raw dictionaries and instantiate `TradeAsset(**asset)`. If the caller marks a pick with `is_prospect=True`, the reconciler treats it as non-roster-affecting.
+- `reconcile_trade_roster()` uses `is_prospect` only for capacity math:
+  - `players_out = [a.player_id for a in david_assets if not a.is_prospect]`
+  - `players_in = [a.player_id for a in received_assets if not a.is_prospect]`
+  This means picks do not consume roster slots and cannot directly create forced cuts.
+- The legacy `app/services/trade_analyzer.py` path has a separate dictionary convention: `{"type": "pick"}` creates a `PlayerValueObject` with `position="PICK"`, `model_grade="PRE_MODEL"`, no `sleeper_id`, and a `pick_asset_no_player_model` caveat. That legacy path is explicitly not used by the Phase 22 reconciler.
+
+Market overlay interaction:
+
+- The active xVAR Trade Lab evaluator does not call the market overlay service. `TradeAsset` has no `market_overlay`, `fantasycalc_value`, or KTC field.
+- `market_overlay_service.compute_divergence()` joins FantasyCalc only by `pvo.sleeper_id -> fc_entry["player"]["sleeperId"]`. Synthetic pick IDs such as `pick_1_mid_WR` do not have Sleeper IDs, so they cannot receive a FantasyCalc overlay through the current service.
+- Prospect players with real Sleeper IDs can receive FantasyCalc overlay values after PVO assembly, but the service marks no-projection prospects as `model_uninformative_rookie` and keeps the data inside `pvo.market_overlay`. It does not feed Engine A, Engine B, xVAR, or `evaluate_trade()`.
+- Therefore, `is_prospect=True` currently means two different things depending on surface:
+  - In `TradeAsset`, it is a roster-capacity flag and, for `value_draft_pick()`, a draft-pick estimate marker.
+  - In `PlayerValueObject`, it is a model-routing / caveat flag that can still coexist with a display-only FantasyCalc overlay when a real Sleeper ID exists.
+
+Governance conclusion: the current implementation preserves market isolation. The only ambiguity is semantic: `is_prospect=True` is overloaded for both real prospect players and synthetic pick assets. Any future market-side trade overlay should introduce an explicit `asset_kind: "player" | "prospect_player" | "future_pick"` or equivalent rather than relying only on `is_prospect`.
+
+### 2. Double-sided FantasyCalc forced-cut penalty model
+
+The model-native xVAR evaluation must remain unchanged:
+
+```text
+base_model = evaluate_trade(david_assets, received_assets)
+model_penalty_david = sum(max(0, raw_xvar(c)) for c in david_forced_cuts)
+adjusted_model_received = max(0, base_model.side_b.side_value - model_penalty_david)
+```
+
+FantasyCalc should be added only as a market overlay sibling, not as input to `TradeAsset`, `evaluate_trade()`, `RosterCutEngine`, Engine A, Engine B, or PVO scoring.
+
+Recommended output shape:
+
+```text
+TradeRosterReconciliation
+  base_evaluation              # existing xVAR model-native TradeEvaluation
+  roster_penalty               # existing xVAR forced-cut penalty
+  market_reconciliation        # new optional overlay-only object
+  decision_supported = False
+```
+
+Define `FC(asset)` as the latest FantasyCalc raw market value for a real Sleeper player ID. Missing values stay `None` and generate coverage caveats; do not impute zero except when computing a sum of resolved values.
+
+David-side market math:
+
+```text
+base_market_sent = sum(FC(a) for a in david_assets if FC(a) is not None)
+base_market_received = sum(FC(a) for a in received_assets if FC(a) is not None)
+
+market_penalty_david = sum(FC(c) for c in david_forced_cuts if FC(c) is not None)
+adjusted_market_received = max(0, base_market_received - market_penalty_david)
+```
+
+Double-sided extension when `counterparty_roster_id` is known:
+
+```text
+counterparty_forced_cuts = RosterCutEngine(
+    snapshot_after_counterparty_sends_received_assets_and_receives_david_assets
+)
+
+market_penalty_counterparty = sum(
+    FC(c) for c in counterparty_forced_cuts if FC(c) is not None
+)
+
+adjusted_market_sent_side = max(0, base_market_sent - market_penalty_counterparty)
+
+market_delta_david = adjusted_market_received - adjusted_market_sent_side
+market_abs_delta = abs(market_delta_david)
+market_favors = "david" if market_delta_david > 0 else "counterparty" if market_delta_david < 0 else "neutral"
+```
+
+Interpretation:
+
+- `adjusted_market_received` answers: "What does the market say David receives after paying the market cost of his required cuts?"
+- `adjusted_market_sent_side` answers: "What does the market say the counterparty receives after paying the market cost of their required cuts?"
+- The two adjusted values are comparable to each other because both remain entirely on the FantasyCalc raw scale.
+- They are not comparable to xVAR and must not be blended with xVAR.
+
+Isolation boundaries required for implementation:
+
+1. Market values must be loaded from a market overlay artifact or copied PVO overlay after model scoring, never from model feature rows.
+2. Roster cut selection must continue to use `RosterCutEngine` and model-native PVO/xVAR fields only. FantasyCalc may value the selected cuts after the cut set is identified; it must not influence which players are selected.
+3. `TradeAsset` should remain model-native. If market values are carried in request/response schemas, place them in a separate `MarketTradeAssetOverlay` keyed by `player_id` / Sleeper ID.
+4. Synthetic future picks have no current FantasyCalc join path. They should be `market_value=None` with a `future_pick_market_overlay_unavailable` caveat unless a separately governed pick-market source is approved.
+5. All market-side outputs must carry source, fetch timestamp, coverage counts, and caveats such as `market_overlay_display_only`, `fantasycalc_raw_scale_not_xvar`, and `market_values_not_model_inputs`.
+6. Recursive `decision_supported=False` coercion remains mandatory for the new market overlay object.
+
+Minimum contract tests:
+
+| Test | Requirement |
+|------|-------------|
+| `test_market_cut_penalty_values_selected_cuts_only` | FantasyCalc penalty is computed only for forced cuts emitted by `RosterCutEngine` |
+| `test_market_penalty_does_not_change_model_adjusted_value` | Adding market overlay leaves `adjusted_david_received_value` and `forced_cut_penalty_xvar` unchanged |
+| `test_market_values_not_accepted_on_trade_asset` | Market fields on core `TradeAsset` are rejected or ignored |
+| `test_future_pick_market_overlay_unavailable` | Synthetic pick assets keep market value null with caveat |
+| `test_double_sided_market_penalty_when_counterparty_roster_known` | Both David and counterparty forced-cut FC penalties are subtracted from their respective received-side market totals |
+| `test_market_overlay_decision_supported_false_recursive` | No nested market overlay object can set `decision_supported=True` |
+
+Codex recommendation: implement the double-sided market penalty as an overlay-only reconciliation view after Phase 22, not as a modification to `evaluate_trade()`. The existing xVAR path is the product's model-native answer; FantasyCalc is price-discovery context.
+
+---
+
 ## Governance
 
 - All outputs carry `decision_supported: False` via Pydantic `field_validator` (same pattern as Phase 21)
