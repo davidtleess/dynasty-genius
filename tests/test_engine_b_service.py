@@ -9,7 +9,7 @@ Tests cover:
 """
 from __future__ import annotations
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import pandas as pd
 import pytest
 import numpy as np
@@ -17,7 +17,6 @@ from sklearn.linear_model import Ridge
 from sklearn.impute import SimpleImputer
 
 from app.services.engine_b_service import EngineBService, predict_player_season
-from src.dynasty_genius.models.engine_b_contract import ENGINE_B_EXPERIMENTAL_POSITIONS
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -191,7 +190,6 @@ def test_service_rejects_bundle_with_prohibited_feature():
         patch("app.services.engine_b_service.pickle.load", return_value=bad_bundle_data),
         patch("pathlib.Path.exists", return_value=True),
     ):
-        import json as _json
         mock_mp.exists.return_value = True
         svc = EngineBService.__new__(EngineBService)
         svc._loaded = False

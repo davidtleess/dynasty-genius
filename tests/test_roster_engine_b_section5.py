@@ -9,7 +9,6 @@ Covers:
 """
 from __future__ import annotations
 
-import pytest
 
 from app.services.roster_auditor import (
     _ABOVE_AVG_PPG_THRESHOLD,

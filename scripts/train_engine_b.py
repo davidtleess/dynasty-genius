@@ -31,12 +31,10 @@ from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_ALLOWED_FEATURES,
     ENGINE_B_FEATURES_BY_POSITION,
     OUTCOME_COLUMN,
-    FEATURE_SEASON_COL,
     validate_no_temporal_leakage,
     validate_no_prohibited_features,
     validate_position_feature_contract,
     COMPOSITE_GATE_MIN_PASSING,
-    ENGINE_B_EXPERIMENTAL_POSITIONS,
 )
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -411,7 +409,7 @@ def main() -> None:
         results = train_v1_1_control(df, run_dir)
 
         print(f"\n{'─'*54}")
-        print(f"  Mode: v1.1 unified control  [VALIDATION ONLY — not promoted]")
+        print("  Mode: v1.1 unified control  [VALIDATION ONLY — not promoted]")
         print(f"  Alpha: {results['alpha_fixed']} (fixed — same as v1.0)")
         print(f"  Features: {len(results['features'])}")
         print(f"  Baseline  — RMSE {results['metrics_baseline']['rmse']:.3f}  R² {results['metrics_baseline']['r2']:.3f}  Spearman {results['metrics_baseline']['spearman']:.3f}")

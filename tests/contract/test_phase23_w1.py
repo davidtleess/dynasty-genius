@@ -1,7 +1,6 @@
 """Phase 23 W1 Trade Lab market resolver contract tests."""
 from __future__ import annotations
 
-import pytest
 
 from src.dynasty_genius.trade_lab.market_reconciler import (
     MarketAssetOverlay,

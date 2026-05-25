@@ -25,13 +25,11 @@ TDD suite covering:
 from __future__ import annotations
 
 import csv
-import json
 
 import pytest
 
 import scripts.build_w2b_cfbd as bw2b
 from scripts.build_w2b_cfbd import (
-    DOMINATOR_BREAKOUT_THRESHOLD,
     build_sp_lookup,
     build_team_rec_lookup,
     build_team_rush_lookup,
@@ -41,7 +39,6 @@ from scripts.build_w2b_cfbd import (
     compute_rb_cfbd_features,
     compute_te_cfbd_features,
     compute_wr_cfbd_features,
-    load_team_games_count,
     normalize_player_name,
     pivot_receiving_stats,
     pivot_rushing_stats,

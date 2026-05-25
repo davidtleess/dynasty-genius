@@ -12,7 +12,6 @@ Remediates governance audit blockers and warnings:
 from __future__ import annotations
 
 import json
-import os
 import sys
 import warnings
 from pathlib import Path
@@ -31,9 +30,7 @@ sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
 from src.dynasty_genius.models.engine_b_contract import (
-    ENGINE_B_ALLOWED_FEATURES,
     OUTCOME_COLUMN,
-    FEATURE_SEASON_COL,
     DUAL_THREAT_RUSHING_THRESHOLD,
     validate_no_temporal_leakage,
     validate_no_prohibited_features

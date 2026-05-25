@@ -4,7 +4,6 @@ import numpy as np
 from scripts.run_wr_college_bakeoff import (
     evaluate_promotion_gate,
     compute_vif,
-    BakeoffGateResult,
     _get_aligned_rows,
 )
 

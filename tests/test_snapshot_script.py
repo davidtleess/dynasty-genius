@@ -4,7 +4,6 @@ Verifies script behavior using mocked HTTP responses.
 """
 from __future__ import annotations
 
-import json
 from unittest.mock import patch, MagicMock
 
 import httpx

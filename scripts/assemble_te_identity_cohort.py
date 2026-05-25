@@ -274,7 +274,7 @@ def main(argv: list[str] | None = None) -> int:
     has_gsis = sum(1 for e in entries if e["gsis_id"])
     has_sleeper = sum(1 for e in entries if e["sleeper_id"])
     has_pff = sum(1 for e in entries if e["pff_id"])
-    print(f"\nCohort pre-audit coverage:")
+    print("\nCohort pre-audit coverage:")
     print(f"  Total: {len(entries)}")
     print(f"  Has gsis_id:    {has_gsis} ({has_gsis/len(entries):.1%})")
     print(f"  Has sleeper_id: {has_sleeper} ({has_sleeper/len(entries):.1%})")
@@ -291,15 +291,15 @@ def main(argv: list[str] | None = None) -> int:
     write_composite_registry(entries, composite_path)
     write_prospect_registry(entries, prospect_path)
 
-    print(f"\nNext step — run the identity audit:")
-    print(f"  .venv/bin/python3.14 scripts/run_identity_audit.py \\")
+    print("\nNext step — run the identity audit:")
+    print("  .venv/bin/python3.14 scripts/run_identity_audit.py \\")
     print(f"    --cohort {cohort_path} \\")
     print(f"    --ff-playerids {ff_path} \\")
-    print(f"    --alias-bridge app/data/prospect_alias_bridge.json \\")
+    print("    --alias-bridge app/data/prospect_alias_bridge.json \\")
     print(f"    --composite-registry {composite_path} \\")
     print(f"    --prospect-registry {prospect_path} \\")
     print(f"    --out-dir {args.out_dir} \\")
-    print(f"    --max-loss-rate 0.02 \\")
+    print("    --max-loss-rate 0.02 \\")
     print(f"    --run-id te_2018_2025_{date_str}")
     return 0
 

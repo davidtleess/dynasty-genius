@@ -8,7 +8,6 @@ All tests are pure — no network, no harness run.
 """
 from __future__ import annotations
 
-import math
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -225,7 +224,6 @@ def _write_fake_run(
     include_predictions: bool = True,
     n_rows: int = 50,
 ) -> "Path":
-    from pathlib import Path
     result = _make_result(position)
     run_dir = runs_dir / str(result.run_id)
     result.save(run_dir)
@@ -253,7 +251,6 @@ def _write_fake_run(
 
 def test_generate_model_card_reads_backtest_result(tmp_path):
     """generate_card_for_position() reads a BacktestResult and returns a ModelCard."""
-    from pathlib import Path
     runs_dir = tmp_path / "runs"
     output_dir = tmp_path / "cards"
     _write_fake_run("WR", runs_dir)
@@ -266,7 +263,6 @@ def test_generate_model_card_reads_backtest_result(tmp_path):
 
 def test_generate_model_card_populates_metrics_from_result(tmp_path):
     """ModelCard.metrics.kendall_tau_mean matches mean of FoldResult.kendall_tau."""
-    from pathlib import Path
     runs_dir = tmp_path / "runs"
     output_dir = tmp_path / "cards"
     _write_fake_run("WR", runs_dir)
@@ -279,7 +275,6 @@ def test_generate_model_card_populates_metrics_from_result(tmp_path):
 
 def test_generate_model_card_te_sets_is_experimental_true(tmp_path):
     """TE card always has is_experimental=True regardless of gate result."""
-    from pathlib import Path
     runs_dir = tmp_path / "runs"
     output_dir = tmp_path / "cards"
     _write_fake_run("TE", runs_dir)
@@ -292,7 +287,6 @@ def test_generate_model_card_te_sets_is_experimental_true(tmp_path):
 
 def test_generate_model_card_ece_requires_prediction_log(tmp_path):
     """If predictions CSV is missing, card.metrics.ece is None — no crash."""
-    from pathlib import Path
     runs_dir = tmp_path / "runs"
     output_dir = tmp_path / "cards"
     _write_fake_run("WR", runs_dir, include_predictions=False)
@@ -304,7 +298,6 @@ def test_generate_model_card_ece_requires_prediction_log(tmp_path):
 
 def test_generate_model_card_writes_calibration_report(tmp_path):
     """CalibrationReport JSON is written alongside ModelCard JSON."""
-    from pathlib import Path
     runs_dir = tmp_path / "runs"
     output_dir = tmp_path / "cards"
     _write_fake_run("WR", runs_dir)
@@ -317,7 +310,6 @@ def test_generate_model_card_writes_calibration_report(tmp_path):
 
 def test_generate_all_writes_four_cards(tmp_path):
     """generate_card_for_position called for all 4 positions writes 4 cards."""
-    from pathlib import Path
     from scripts.generate_model_cards import VALID_POSITIONS
     runs_dir = tmp_path / "runs"
     output_dir = tmp_path / "cards"

@@ -8,7 +8,6 @@ from unittest.mock import patch
 from app.main import app
 from src.dynasty_genius.eval.backtest_artifact import (
     BacktestResult,
-    FoldResult,
     StabilityResult,
     GateResult,
 )

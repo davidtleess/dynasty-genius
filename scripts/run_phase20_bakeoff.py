@@ -28,19 +28,10 @@ from scripts.run_head_a_bakeoff import (  # noqa: E402
     BASELINE_FEATURES,
     WALK_FORWARD_FOLDS,
     HeadAGateResult,
-    _aggregate_folds,
-    _build_aligned_fold,
-    _extract_matrix,
     _filter_available_features,
-    _filter_training_rows,
-    _fit_predict,
-    _fold_metrics,
     _load_all_rows,
     _run_aligned_comparison,
     _run_standalone,
-    _write_oof_log,
-    compute_oof_rmse_from_folds,
-    evaluate_head_a_gates,
 )
 
 V3_CSV = ROOT / "app/data/training/prospects_with_outcomes_v3.csv"
@@ -99,7 +90,6 @@ def evaluate_phase20_gates(
 
     passes = metrics_passed >= 2
 
-    import dataclasses
     return HeadAGateResult(
         passes=passes,
         metrics_passed=metrics_passed,
@@ -151,7 +141,7 @@ def _run_position_p20(
           f"Spearman={baseline_standalone.get('oof_spearman')}  NDCG={baseline_standalone.get('oof_ndcg_at_10')}")
 
     if not enriched_differs:
-        print(f"    [SKIP] Enriched features collapsed to baseline — no candidates evaluated")
+        print("    [SKIP] Enriched features collapsed to baseline — no candidates evaluated")
         ridge_result: dict = {"skipped": True, "reason": "enriched_features_equal_baseline"}
         gbt_result: dict = {"skipped": True, "reason": "enriched_features_equal_baseline"}
         candidate_gates: dict[str, dict] = {

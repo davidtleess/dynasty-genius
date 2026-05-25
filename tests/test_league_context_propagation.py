@@ -1,6 +1,4 @@
-import pytest
-from pathlib import Path
-from src.dynasty_genius.models.league_context import LeagueContext, DraftPick, LeagueMate
+from src.dynasty_genius.models.league_context import LeagueContext, DraftPick
 from app.services.roster_auditor import liquidity_risk
 
 def test_league_context_loading(tmp_path):

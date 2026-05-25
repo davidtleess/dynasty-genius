@@ -15,7 +15,6 @@ from src.dynasty_genius.roster_cut_engine import (
     _ir_compliance_status,
     _normalize_sleeper_status,
     _taxi_deadline_status,
-    _taxi_eligibility,
     compute_roster_cut_candidates,
 )
 

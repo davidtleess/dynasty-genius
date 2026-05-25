@@ -139,7 +139,7 @@ def test_fantasycalc_market_source_is_subclass_of_market_source():
 
 import json
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 FIXTURE_PATH = Path("tests/fixtures/fantasycalc_sf_ppr_dynasty_2026_05_13.json")
 
@@ -217,7 +217,7 @@ def test_fetch_with_cache_stage2_stale_serve(tmp_path, monkeypatch):
 # ── Phase 9 divergence engine tests ──────────────────────────────────────────
 
 from src.dynasty_genius.models.player_value_object import (
-    MarketOverlay, PlayerValueObject, RosterAuditSignals,
+    PlayerValueObject,
 )
 
 

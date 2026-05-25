@@ -11,7 +11,6 @@ import numpy as np
 import pytest
 
 from scripts.run_head_a_bakeoff import (
-    HeadAGateResult,
     _aggregate_folds,
     _build_aligned_fold,
     _filter_available_features,

@@ -1,4 +1,3 @@
-import pytest
 import nflreadpy as nfl
 
 def test_nflreadpy_2026_results():

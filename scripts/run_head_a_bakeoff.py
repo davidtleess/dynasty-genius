@@ -491,7 +491,7 @@ def _run_position(
           f"Spearman={baseline_standalone.get('oof_spearman')}  NDCG={baseline_standalone.get('oof_ndcg_at_10')}")
 
     if not enriched_differs:
-        print(f"    [SKIP] Enriched features collapsed to baseline — no candidates evaluated")
+        print("    [SKIP] Enriched features collapsed to baseline — no candidates evaluated")
         ridge_result: dict = {"skipped": True, "reason": "enriched_features_equal_baseline"}
         gbt_result: dict = {"skipped": True, "reason": "enriched_features_equal_baseline"}
         candidate_gates: dict[str, dict] = {

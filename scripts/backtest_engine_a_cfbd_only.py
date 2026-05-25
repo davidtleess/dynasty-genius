@@ -157,8 +157,8 @@ def write_report(
     # YAML frontmatter (machine-readable for tests)
     fm_lines = [
         "---",
-        f"baseline_model: pick + round + age",
-        f"enriched_model: pick + round + age + dominator_rating + receiving_yards_share",
+        "baseline_model: pick + round + age",
+        "enriched_model: pick + round + age + dominator_rating + receiving_yards_share",
         f"held_out_n: {held_out_n}",
         f"imputed_n_cfbd: {imputed_n}",
         f"metric_delta_rmse_combined: {delta_rmse:.4f}",

@@ -21,9 +21,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
-from src.dynasty_genius.models.player_value_object import MarketOverlay, PlayerValueObject
+from src.dynasty_genius.models.player_value_object import PlayerValueObject
 from src.dynasty_genius.services.market_overlay_service import compute_divergence
 
 FIXTURE = json.loads(

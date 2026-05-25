@@ -5,9 +5,7 @@ market_snapshot_store.py is implemented.
 """
 from __future__ import annotations
 
-import pytest
 
-from pathlib import Path
 from src.dynasty_genius.eval.market_snapshot_store import MarketSnapshotStore
 from scripts.ingest_market_archive import ingest_csv
 

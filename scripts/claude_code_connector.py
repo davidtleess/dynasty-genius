@@ -147,7 +147,7 @@ def write_demo(cursor):
                 for row in result:
                     print(f"   {' | '.join(str(v) for v in row)}")
             else:
-                print(f"   ✅ Executed successfully")
+                print("   ✅ Executed successfully")
             
             print()
         

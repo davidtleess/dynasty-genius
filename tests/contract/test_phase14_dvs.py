@@ -1,8 +1,6 @@
 """Tests for Phase 14 DVS Normalization and Prospect-to-Veteran Bridge."""
 from __future__ import annotations
 
-import pytest
-import numpy as np
 from src.dynasty_genius.pvo_assembler import assemble_pvo
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.models.engine_b_contract import (

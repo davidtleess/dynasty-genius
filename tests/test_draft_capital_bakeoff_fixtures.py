@@ -20,7 +20,6 @@ from tests.fixtures.draft_capital_bakeoff import (
     _MARKET_CONTAMINATED_SOURCE_FIELDS,
     _QB_CLIFF_PICKS,
     _QB_CLIFF_YEARS,
-    _WR_VIABILITY_PICKS,
     all_candidates_qb_rows,
     candidate_scores_at_pick,
     market_contaminated_cohort,
