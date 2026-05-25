@@ -48,16 +48,18 @@ Every session begins in this order:
 1. Read this file.
 2. Read `docs/governance/00-product-constitution.md`.
 3. Read `docs/governance/01-north-star-architecture.md` when doing implementation, architecture, model, pipeline, API, or data work.
-4. Read `AGENT_SYNC.md`.
-5. Read today's ledger if it exists: `docs/agent-ledger/YYYY-MM-DD.md`.
-6. Read only the task-relevant code and docs after the governance pass.
+4. Read `docs/governance/03-code-hygiene-policy.md` when doing Python, lint, or code-hygiene work.
+5. Read `AGENT_SYNC.md`.
+6. Read today's ledger if it exists: `docs/agent-ledger/YYYY-MM-DD.md`.
+7. Read only the task-relevant code and docs after the governance pass.
 
 ## Authority Order
 
 1. `00-product-constitution.md` governs analytical decisions.
 2. `01-north-star-architecture.md` governs technical architecture.
 3. `02-agent-operating-loop.md` governs session workflow.
-4. Root bootstrap files point here and must not duplicate the full doctrine.
+4. `03-code-hygiene-policy.md` governs code-hygiene mechanics (subordinate to the above).
+5. Root bootstrap files point here and must not duplicate the full doctrine.
 
 If documents conflict, stop and log the conflict in the daily ledger before implementing.
 

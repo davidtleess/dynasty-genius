@@ -93,7 +93,6 @@ def promotion_env(tmp_path, monkeypatch):
     head_a_dir = tmp_path / "head_a"
     head_a_dir.mkdir()
     # Monkeypatch module-level constants before import
-    import importlib
     if "promote_head_a_te_v3" in sys.modules:
         del sys.modules["promote_head_a_te_v3"]
     # Add scripts/ to path

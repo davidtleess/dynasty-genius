@@ -12,15 +12,14 @@ Remediates governance audit blockers and warnings:
 from __future__ import annotations
 
 import json
-import os
 import sys
 import warnings
 from pathlib import Path
 from typing import Any
 
+import nflreadpy as nfl
 import numpy as np
 import pandas as pd
-import nflreadpy as nfl
 from dotenv import load_dotenv
 
 # Filter warnings for cleaner output
@@ -30,16 +29,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
-from src.dynasty_genius.models.engine_b_contract import (
-    ENGINE_B_ALLOWED_FEATURES,
-    OUTCOME_COLUMN,
-    FEATURE_SEASON_COL,
-    DUAL_THREAT_RUSHING_THRESHOLD,
-    validate_no_temporal_leakage,
-    validate_no_prohibited_features
-)
-from src.dynasty_genius.models.aging_curves import aging_curve_value
 from src.dynasty_genius.audit.te_archetype_taxonomy import derive_te_taxonomy_features
+from src.dynasty_genius.models.aging_curves import aging_curve_value
+from src.dynasty_genius.models.engine_b_contract import (
+    DUAL_THREAT_RUSHING_THRESHOLD,
+    OUTCOME_COLUMN,
+    validate_no_prohibited_features,
+    validate_no_temporal_leakage,
+)
 
 OUTPUT_PATH = ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
 TE_ARCHETYPE_RUBRIC_PATH = ROOT / "app" / "data" / "identity" / "te_archetype_rubric_20260516.json"

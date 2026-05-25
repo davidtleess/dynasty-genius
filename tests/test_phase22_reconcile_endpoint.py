@@ -5,10 +5,9 @@ GREEN → after route is wired in app/api/routes/trade.py.
 """
 from __future__ import annotations
 
-import app.api.routes.trade as trade_route
-import pytest
 from fastapi.testclient import TestClient
 
+import app.api.routes.trade as trade_route
 from app.main import app
 
 client = TestClient(app)

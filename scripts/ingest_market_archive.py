@@ -12,7 +12,7 @@ import hashlib
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 # Add src to path if needed - usually handled by project structure or .venv
 sys.path.append(str(Path(__file__).parent.parent))
@@ -86,7 +86,7 @@ def ingest_csv(
             raise ValueError(f"Could not find value column in CSV. Header: {reader.fieldnames}")
 
         if not dry_run:
-            print(f"Detected columns: " + ", ".join(f"{k}={v}" for k, v in col_mapping.items() if v))
+            print("Detected columns: " + ", ".join(f"{k}={v}" for k, v in col_mapping.items() if v))
 
         for row in reader:
             rows_read += 1

@@ -50,7 +50,6 @@ from src.dynasty_genius.audit.identity_coverage_matrix import (
     AuditResult,
     CoverageMatrix,
     IdentityAuditRow,
-    ResolutionStage,
     run_audit,
 )
 from src.dynasty_genius.audit.identity_snapshot_generator import (
@@ -58,7 +57,6 @@ from src.dynasty_genius.audit.identity_snapshot_generator import (
     generate_identity_snapshot,
     write_identity_snapshot,
 )
-
 
 # ---------------------------------------------------------------------------
 # Loaders
@@ -367,7 +365,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {d.field}={d.value!r}: {', '.join(d.player_names)}")
     else:
         print("\nNo duplicate ID conflicts detected.")
-    print(f"\nArtifacts written:")
+    print("\nArtifacts written:")
     print(f"  {matrix_path}")
     print(f"  {queue_path}")
     print(f"  {failure_report_path}")
@@ -423,7 +421,7 @@ def main(argv: list[str] | None = None) -> int:
 
         print(f"\nGate PASSED (run_id={run_id})")
     else:
-        print(f"\nGate FAILED — snapshot and eligibility manifest not written.")
+        print("\nGate FAILED — snapshot and eligibility manifest not written.")
         print("Triage the review queue and failure report, remediate, then re-run.")
 
     return 1 if gate_fails or matrix.duplicate_conflicts else 0

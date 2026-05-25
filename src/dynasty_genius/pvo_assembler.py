@@ -11,25 +11,35 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from app.services.engine_b_service import predict_player_season as predict_player_season_b
+from app.services.engine_b_service import (
+    predict_player_season as predict_player_season_b,
+)
 from app.services.roster_auditor import audit_player, roster_risk_summary
-from src.dynasty_genius.decision_logic.counter_arguments import generate_counter_argument
+from src.dynasty_genius.decision_logic.counter_arguments import (
+    generate_counter_argument,
+)
+from src.dynasty_genius.models.engine_b_contract import (
+    DVS_BLEND_K,
+    ENGINE_A_REPLACEMENT_DVS,
+    ENGINE_B_FEATURES_BY_POSITION,
+    ENGINE_B_MIN_GAMES_T,
+    ENGINE_B_P90_PPG,
+    ENGINE_B_REPLACEMENT_DVS,
+    XVAR_ANCHOR_POSITION,
+    XVAR_LAMBDA_ENGINE_A,
+    XVAR_LAMBDA_ENGINE_B,
+)
 from src.dynasty_genius.models.league_context import LeagueContext
 from src.dynasty_genius.models.player_identity import PlayerIdentity
-from src.dynasty_genius.models.player_value_object import PlayerValueObject, RosterAuditSignals
-from src.dynasty_genius.models.engine_b_contract import (
-    ENGINE_B_FEATURES_BY_POSITION,
-    ENGINE_B_P90_PPG,
-    ENGINE_B_MIN_GAMES_T,
-    XVAR_ANCHOR_POSITION,
-    ENGINE_B_REPLACEMENT_DVS,
-    ENGINE_A_REPLACEMENT_DVS,
-    DVS_BLEND_K,
-    XVAR_LAMBDA_ENGINE_B,
-    XVAR_LAMBDA_ENGINE_A,
+from src.dynasty_genius.models.player_value_object import (
+    PlayerValueObject,
+    RosterAuditSignals,
 )
-from src.dynasty_genius.scoring.engine_a import score_prospect, score_prospect_v3, _P90_PPG
-
+from src.dynasty_genius.scoring.engine_a import (
+    _P90_PPG,
+    score_prospect,
+    score_prospect_v3,
+)
 
 # ── Position-specific required signal sets ────────────────────────────────────
 # These match the feature contracts defined in the North Star Architecture.

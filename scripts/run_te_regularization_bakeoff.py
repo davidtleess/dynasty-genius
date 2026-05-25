@@ -14,8 +14,10 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.dynasty_genius.eval.te_archetype_bakeoff import build_te_bakeoff_frame  # noqa: E402
-from src.dynasty_genius.eval.te_archetype_bakeoff import BASELINE_TE_FEATURES  # noqa: E402
+from src.dynasty_genius.eval.te_archetype_bakeoff import (
+    BASELINE_TE_FEATURES,  # noqa: E402
+    build_te_bakeoff_frame,  # noqa: E402
+)
 from src.dynasty_genius.eval.te_regularization_bakeoff import (  # noqa: E402
     ALPHA_GRID,
     evaluate_te_regularization_bakeoff,

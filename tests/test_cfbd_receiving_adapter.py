@@ -1,6 +1,8 @@
 """Tests for Phase 16.2 CFBD receiving adapter."""
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
+
 from src.dynasty_genius.adapters.cfbd_receiving_adapter import (
     fetch_team_pass_attempts,
     normalize_college_name,

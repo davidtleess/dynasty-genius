@@ -8,7 +8,6 @@ from typing import Iterable, Optional, Union
 
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 
-
 SUFFIX_RE = re.compile(r"\b(jr|sr|ii|iii|iv|v)\b\.?", re.IGNORECASE)
 NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 

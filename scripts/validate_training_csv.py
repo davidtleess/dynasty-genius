@@ -25,7 +25,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.dynasty_genius.models.engine_a_contract import LEAKAGE_REGEX, PROHIBITED_COLUMNS
+from src.dynasty_genius.models.engine_a_contract import (
+    LEAKAGE_REGEX,
+    PROHIBITED_COLUMNS,
+)
 from src.dynasty_genius.sources.source_registry import SOURCE_REGISTRY
 
 _TRAINING_DIR = Path("app/data/training")

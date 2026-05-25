@@ -11,16 +11,15 @@ Module-scoped fixtures: run() called once and reused across tests.
 """
 from __future__ import annotations
 
-import csv
 import json
 from datetime import datetime, timezone
-from io import StringIO
 from pathlib import Path
 from uuid import uuid4
 
 import pandas as pd
 import pytest
 
+from scripts.build_divergence_ledger import build_divergence_ledger
 from src.dynasty_genius.eval.backtest_artifact import (
     BacktestResult,
     FoldResult,
@@ -35,8 +34,6 @@ from src.dynasty_genius.eval.backtest_report import (
     write_prediction_log_csv,
 )
 from src.dynasty_genius.eval.market_snapshot_store import MarketSnapshotStore
-from scripts.build_divergence_ledger import build_divergence_ledger
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

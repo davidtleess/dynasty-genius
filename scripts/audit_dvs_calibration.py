@@ -17,8 +17,8 @@ from sklearn.isotonic import IsotonicRegression
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.dynasty_genius.eval.backtest_artifact import BacktestResult
 from src.dynasty_genius.models.engine_b_contract import ENGINE_B_P90_PPG
+
 
 def _calculate_ece(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10) -> float:
     """Expected Calibration Error (ECE)."""

@@ -17,12 +17,9 @@ No Engine B artifacts required.
 """
 from __future__ import annotations
 
-import pytest
-
 from src.dynasty_genius.models.engine_b_contract import ENGINE_B_PROHIBITED_FEATURES
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import assemble_pvo
-
 
 # ── Shared fixtures ───────────────────────────────────────────────────────────
 

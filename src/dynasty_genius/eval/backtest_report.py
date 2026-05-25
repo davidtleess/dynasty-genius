@@ -12,7 +12,6 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-
 # ── Prediction log ────────────────────────────────────────────────────────────
 
 PREDICTION_LOG_COLUMNS = [

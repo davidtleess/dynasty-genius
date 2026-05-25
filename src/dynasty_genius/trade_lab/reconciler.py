@@ -11,8 +11,11 @@ from pydantic import BaseModel, field_validator
 
 from src.dynasty_genius.models.engine_b_contract import TRADE_PARITY_BAND
 from src.dynasty_genius.roster_cut_engine import compute_roster_cut_candidates
-from src.dynasty_genius.trade_lab.evaluator import TradeAsset, TradeEvaluation, evaluate_trade
-
+from src.dynasty_genius.trade_lab.evaluator import (
+    TradeAsset,
+    TradeEvaluation,
+    evaluate_trade,
+)
 
 # ── Output models ─────────────────────────────────────────────────────────────
 

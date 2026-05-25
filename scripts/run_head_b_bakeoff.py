@@ -19,7 +19,6 @@ from __future__ import annotations
 import csv
 import dataclasses
 import json
-import math
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -459,7 +458,7 @@ def _run_position(
         print(f"    [COVERAGE] Dropped low-coverage features: {dropped_features}")
 
     if not available_features:
-        print(f"    [SKIP] All features dropped by coverage filter")
+        print("    [SKIP] All features dropped by coverage filter")
         return {
             "position": position,
             "n_total_rows": n_total,

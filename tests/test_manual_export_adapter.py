@@ -16,7 +16,10 @@ from __future__ import annotations
 
 import pytest
 
-from src.dynasty_genius.models.engine_a_contract import ALLOWED_ENRICHMENT_COLUMNS, PROHIBITED_COLUMNS
+from src.dynasty_genius.models.engine_a_contract import (
+    ALLOWED_ENRICHMENT_COLUMNS,
+    PROHIBITED_COLUMNS,
+)
 from src.dynasty_genius.sources.source_registry import SOURCE_REGISTRY
 
 MANUAL_EXPORT_SOURCES = {"pff", "rotoviz", "campus2canton"}

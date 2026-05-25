@@ -1,8 +1,10 @@
-import pandas as pd
-import pytest
 import json
 import os
 from pathlib import Path
+
+import pandas as pd
+import pytest
+
 from scripts.enrich_training_data import check_leakage
 
 ROOT = Path(__file__).resolve().parents[1]

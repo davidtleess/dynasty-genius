@@ -25,7 +25,10 @@ sys.path.append(str(Path(__file__).parent.parent))
 import pandas as pd
 
 from src.dynasty_genius.eval.backtest_artifact import BacktestResult
-from src.dynasty_genius.eval.backtest_metrics import compute_ece, compute_subgroup_metrics
+from src.dynasty_genius.eval.backtest_metrics import (
+    compute_ece,
+    compute_subgroup_metrics,
+)
 from src.dynasty_genius.eval.model_card import (
     CalibrationDecile,
     CalibrationReport,

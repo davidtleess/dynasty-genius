@@ -107,7 +107,10 @@ def test_team_posture_does_not_mutate_team_matrix():
 
 
 def test_apply_team_postures_replaces_unclassified_labels_without_mutating_inputs():
-    from src.dynasty_genius.team_posture import apply_team_postures, build_team_posture_artifact
+    from src.dynasty_genius.team_posture import (
+        apply_team_postures,
+        build_team_posture_artifact,
+    )
 
     matrix = _matrix()
     posture = build_team_posture_artifact(matrix)
@@ -119,7 +122,10 @@ def test_apply_team_postures_replaces_unclassified_labels_without_mutating_input
 
 
 def test_team_posture_writer_outputs_json_and_latest(tmp_path):
-    from src.dynasty_genius.team_posture import build_team_posture_artifact, write_team_posture_artifacts
+    from src.dynasty_genius.team_posture import (
+        build_team_posture_artifact,
+        write_team_posture_artifacts,
+    )
 
     posture = build_team_posture_artifact(_matrix())
     paths = write_team_posture_artifacts(posture, output_dir=tmp_path, run_id="phase18-3-test")

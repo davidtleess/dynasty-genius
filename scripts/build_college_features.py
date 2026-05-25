@@ -23,11 +23,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.dynasty_genius.adapters.pff_wr_export import parse_pff_wr_season
 from src.dynasty_genius.adapters.cfbd_receiving_adapter import (
     fetch_team_pass_attempts,
     normalize_college_name,
 )
+from src.dynasty_genius.adapters.pff_wr_export import parse_pff_wr_season
 
 MANIFEST_PATH = ROOT / "app/data/pff_exports/phase16_wr_manifest.json"
 TRAINING_CSV = ROOT / "app/data/training/prospects_with_outcomes.csv"

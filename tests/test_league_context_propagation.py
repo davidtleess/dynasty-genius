@@ -1,7 +1,6 @@
-import pytest
-from pathlib import Path
-from src.dynasty_genius.models.league_context import LeagueContext, DraftPick, LeagueMate
 from app.services.roster_auditor import liquidity_risk
+from src.dynasty_genius.models.league_context import DraftPick, LeagueContext
+
 
 def test_league_context_loading(tmp_path):
     json_path = tmp_path / "test_context.json"

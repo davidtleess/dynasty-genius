@@ -114,7 +114,8 @@ def _future_picks_for_roster(future_picks: list[dict[str, Any]], roster_id: int)
             owned.append(clean)
         if pick.get("original_roster_id") == roster_id and pick.get("current_roster_id") != roster_id:
             outgoing.append(clean)
-    key = lambda p: (p.get("season") or 9999, p.get("round") or 99, p.get("original_roster_id") or 99)
+    def key(p):
+        return (p.get("season") or 9999, p.get("round") or 99, p.get("original_roster_id") or 99)
     return {"owned": sorted(owned, key=key), "outgoing": sorted(outgoing, key=key)}
 
 

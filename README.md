@@ -9,7 +9,8 @@ Before working in this repository, agents must read:
 1. `docs/governance/02-agent-operating-loop.md`
 2. `docs/governance/00-product-constitution.md`
 3. `docs/governance/01-north-star-architecture.md`
-4. `AGENT_SYNC.md`
+4. `docs/governance/03-code-hygiene-policy.md`
+5. `AGENT_SYNC.md`
 
 The governance docs are the canonical operating system for this project.
 

@@ -9,11 +9,11 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import app.api.routes.trade as trade_route
-import app.api.routes.trade_market as trade_market_route
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
+import app.api.routes.trade as trade_route
+import app.api.routes.trade_market as trade_market_route
 from app.main import app
 
 client = TestClient(app)

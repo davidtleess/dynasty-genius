@@ -1,15 +1,15 @@
 import asyncio
 import json
-import os
 import sys
 from pathlib import Path
+
 import nflreadpy as nfl
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.dynasty_genius.identity import generate_dg_id
 from app.data.sleeper import get_all_players
+from src.dynasty_genius.identity import generate_dg_id
 
 SKILL_POSITIONS = {"QB", "RB", "WR", "TE"}
 

@@ -10,7 +10,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.dynasty_genius.adapters.fantasycalc_adapter import fetch_with_cache  # noqa: E402
+from src.dynasty_genius.adapters.fantasycalc_adapter import (
+    fetch_with_cache,  # noqa: E402
+)
 from src.dynasty_genius.universe_market_divergence import (  # noqa: E402
     build_universe_market_divergence,
     write_market_divergence_artifacts,

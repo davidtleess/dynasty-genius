@@ -80,7 +80,6 @@ def test_bakeoff_reports_deltas_vs_baseline_alpha_1():
     assert "mae_delta_vs_baseline_a1" in res_100["summary"]
 
 
-import json
 from pathlib import Path
 
 from scripts.run_te_regularization_bakeoff import build_regularization_report

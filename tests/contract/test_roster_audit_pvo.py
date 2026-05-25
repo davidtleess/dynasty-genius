@@ -15,8 +15,8 @@ Verifies:
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, patch
 import json
+from unittest.mock import AsyncMock, patch
 
 from app.services.roster_auditor import run_audit_pvo
 

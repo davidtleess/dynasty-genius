@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-
 BASE_DIR = Path(__file__).resolve().parents[1]
 LATEST_POINTER = BASE_DIR / "app" / "data" / "models" / "latest.json"
 EXPECTED_POSITIONS = {"WR", "RB", "TE", "QB"}

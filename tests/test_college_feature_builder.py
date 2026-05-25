@@ -1,13 +1,14 @@
 """Tests for Phase 16.3 college feature builder."""
 import pytest
+
 from scripts.build_college_features import (
-    normalize_player_name,
+    MANIFEST_DRAFT_YEARS,
+    build_college_season_year,
     compute_ryptpa,
     find_pff_match,
-    find_pff_name_mismatch,
     find_pff_match_any_season,
-    build_college_season_year,
-    MANIFEST_DRAFT_YEARS,
+    find_pff_name_mismatch,
+    normalize_player_name,
 )
 
 

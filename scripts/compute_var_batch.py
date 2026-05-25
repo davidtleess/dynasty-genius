@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.dynasty_genius.models.engine_b_contract import ENGINE_B_VAR_THRESHOLDS
 
+
 def compute_var_batch(
     df: pd.DataFrame,
     feature_season: int

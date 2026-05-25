@@ -8,7 +8,6 @@ import re
 import sys
 from pathlib import Path
 
-
 TRADE_TABLE_RE = re.compile(
     r"\b(?:gen_alpha\.)?gold\.trade_evaluations_v2\b|\btrade_evaluations_v2\b",
     re.IGNORECASE,

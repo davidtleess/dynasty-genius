@@ -6,7 +6,6 @@ Enforces leakage prevention by dropping prohibited columns during ingestion.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 

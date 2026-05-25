@@ -28,6 +28,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Ruff lint gate (Phase 3 ratchet). Version MUST match the rev in
+      # .pre-commit-config.yaml. Production scope only (src/app at zero selected
+      # findings); tests/scripts legacy debt is handled by the on-touch ratchet.
+      - name: Install Ruff
+        run: python -m pip install ruff==0.15.12
+
+      - name: Lint production Python (Ruff)
+        run: ruff check src app
+
       - name: Compile application
         run: PYTHONPYCACHEPREFIX=.pycache_tmp python -m compileall app
 

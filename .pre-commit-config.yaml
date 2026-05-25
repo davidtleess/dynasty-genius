@@ -1,4 +1,14 @@
 repos:
+  # Ruff lint ratchet (Phase 3). Lints only STAGED Python files (whole-file),
+  # so touching a file requires it to be clean under the selected rules in
+  # pyproject.toml — the fix-on-touch ratchet. Check-only (no --fix): the gate
+  # reports/blocks; developers run fixes explicitly. rev MUST match the CI ruff
+  # version in .github/workflows/ci.yml. Activate locally with: pre-commit install.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.12
+    hooks:
+      - id: ruff-check
+
   - repo: local
     hooks:
       - id: training-csv-market-leakage

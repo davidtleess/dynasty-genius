@@ -6,22 +6,17 @@ on the RED run.
 """
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
-from pathlib import Path
 from uuid import UUID
 
 import pytest
 
 from src.dynasty_genius.eval.backtest_artifact import (
     BacktestResult,
-    DivergenceResult,
     FoldResult,
     GateResult,
     StabilityResult,
-    TopKResult,
 )
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

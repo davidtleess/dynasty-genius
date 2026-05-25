@@ -1,7 +1,7 @@
-from fastapi import FastAPI
 from dotenv import load_dotenv
+from fastapi import FastAPI
 
-from app.api.routes import rookies, roster, trade, trade_market, engine_b, trust_surface
+from app.api.routes import engine_b, rookies, roster, trade, trade_market, trust_surface
 
 load_dotenv()
 

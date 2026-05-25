@@ -5,9 +5,10 @@ Enforces data integrity for QB efficiency, route metrics, outcome completeness, 
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_V2 = ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"

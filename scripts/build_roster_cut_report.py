@@ -18,7 +18,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.dynasty_genius.roster_cut_engine import (  # noqa: E402
-    RosterCutCandidate,
     RosterCutResult,
     compute_roster_cut_candidates,
 )

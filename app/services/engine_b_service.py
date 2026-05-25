@@ -13,12 +13,11 @@ from typing import Any
 
 import pandas as pd
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import Ridge, RidgeCV
 
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_EXPERIMENTAL_POSITIONS,
-    validate_no_temporal_leakage,
     validate_no_prohibited_features,
+    validate_no_temporal_leakage,
 )
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -159,7 +158,7 @@ class EngineBService:
             return []
 
         df = pd.read_csv(_DATASET_PATH)
-        inference_df = df[df["training_eligible"] == False].copy()
+        inference_df = df[df["training_eligible"] == False].copy()  # noqa: E712 - preserve pandas mask semantics (CSV bool/int/object dtype)
 
         predictions = []
         for _, row in inference_df.iterrows():

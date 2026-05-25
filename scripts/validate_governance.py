@@ -7,13 +7,13 @@ import re
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_FILES = [
     "docs/governance/00-product-constitution.md",
     "docs/governance/01-north-star-architecture.md",
     "docs/governance/02-agent-operating-loop.md",
+    "docs/governance/03-code-hygiene-policy.md",
     "docs/governance/archive/originals/DYNASTY_GENIUS_FRAMEWORK.original.md",
     "docs/governance/archive/originals/DYNASTY_GENIUS_NORTH_STAR.original.md",
     "docs/governance/archive/originals/DYNASTY_GENIUS_PRODUCT_DESIGN.original.md",
@@ -44,6 +44,7 @@ BOOTSTRAP_FILES = [
 
 REQUIRED_BOOTSTRAP_TARGETS = [
     "docs/governance/02-agent-operating-loop.md",
+    "docs/governance/03-code-hygiene-policy.md",
 ]
 
 REQUIRED_GOVERNANCE_PHRASES = {

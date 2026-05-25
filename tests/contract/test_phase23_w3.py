@@ -11,7 +11,6 @@ from src.dynasty_genius.trade_lab.market_reconciler import (
     resolve_market_asset,
 )
 
-
 BANNED_ARBITRAGE_TERMS = {
     "buy",
     "sell",

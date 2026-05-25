@@ -19,7 +19,10 @@ from pathlib import Path
 
 import pytest
 
-from src.dynasty_genius.models.engine_a_contract import LEAKAGE_REGEX, PROHIBITED_COLUMNS
+from src.dynasty_genius.models.engine_a_contract import (
+    LEAKAGE_REGEX,
+    PROHIBITED_COLUMNS,
+)
 from src.dynasty_genius.sources.source_registry import SOURCE_REGISTRY
 
 ROOT = Path(__file__).resolve().parents[1]

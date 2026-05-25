@@ -14,7 +14,6 @@ from scipy import stats as scipy_stats
 
 from src.dynasty_genius.eval.backtest_artifact import TopKResult
 
-
 # ── Rank Correlation ──────────────────────────────────────────────────────────
 
 def compute_rank_correlation(

@@ -1,15 +1,13 @@
 """Tests for Phase 15 Cross-Positional Architecture and Bayesian Bridge."""
 from __future__ import annotations
 
-import pytest
-from src.dynasty_genius.pvo_assembler import assemble_pvo
-from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_P90_PPG,
-    ENGINE_B_MIN_GAMES_T,
-    XVAR_LAMBDA_ENGINE_B,
-    ENGINE_B_REPLACEMENT_DVS
+    ENGINE_B_REPLACEMENT_DVS,
 )
+from src.dynasty_genius.models.player_identity import PlayerIdentity
+from src.dynasty_genius.pvo_assembler import assemble_pvo
+
 
 def _mock_identity(position: str, is_prospect: bool = False) -> PlayerIdentity:
     return PlayerIdentity(

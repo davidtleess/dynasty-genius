@@ -25,12 +25,15 @@ from src.dynasty_genius.eval.backtest_artifact import (
     GateResult,
     StabilityResult,
 )
-from src.dynasty_genius.eval.backtest_metrics import compute_ndcg, compute_rank_correlation
+from src.dynasty_genius.eval.backtest_metrics import (
+    compute_ndcg,
+    compute_rank_correlation,
+)
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_FEATURES_BY_POSITION,
     OUTCOME_COLUMN,
-    validate_no_temporal_leakage,
     validate_no_prohibited_features,
+    validate_no_temporal_leakage,
 )
 
 if TYPE_CHECKING:
@@ -233,9 +236,12 @@ def evaluate_promotion_gates(
         justification = "TE position experimental fallback."
     elif grade == "ACTIVE_B":
         failed = []
-        if not g1_pass: failed.append("G1")
-        if not g2_pass: failed.append("G2")
-        if g3_status != "passed": failed.append("G3")
+        if not g1_pass:
+            failed.append("G1")
+        if not g2_pass:
+            failed.append("G2")
+        if g3_status != "passed":
+            failed.append("G3")
         justification = f"Promotion blocked by {', '.join(failed)}."
     else:
         justification = ", ".join(just_parts) + "."

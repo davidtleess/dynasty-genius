@@ -10,8 +10,8 @@ from typing import Optional
 
 from src.dynasty_genius.eval.draft_capital_manifest import (
     DRAFT_CAPITAL_CANDIDATE_MANIFEST,
-    DraftCapitalCandidateManifest,
     PROHIBITED_INPUTS,
+    DraftCapitalCandidateManifest,
     candidate_names,
 )
 from src.dynasty_genius.eval.draft_class_loocv import (

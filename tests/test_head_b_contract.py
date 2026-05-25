@@ -35,7 +35,6 @@ from src.dynasty_genius.models.head_b_contract import (
     V3_POSITION_HEAD_A_FEATURES,
     V3_POSITION_HEAD_B_FEATURES,
     W1_TARGET_COLUMNS,
-    WR_CANDIDATE_FEATURES,
     check_head_b_feature_leakage,
     get_missingness_flag_name,
     get_provenance_flag_name,

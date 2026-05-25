@@ -11,11 +11,12 @@ Tests:
 5. 65:35 compliance ratio enforcement
 """
 
-import os
-import sys
 import json
+import os
 import subprocess
+import sys
 from datetime import datetime
+
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.sql import StatementState
 

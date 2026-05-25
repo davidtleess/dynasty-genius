@@ -21,7 +21,6 @@ from typing import Optional
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.dynasty_genius.eval.backtest_artifact import BacktestResult
 from src.dynasty_genius.eval.backtest_report import DivergenceLedgerEntry
 
 RUNS_DIR = Path("app/data/backtest/runs")

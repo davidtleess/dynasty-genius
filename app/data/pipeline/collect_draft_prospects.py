@@ -1,7 +1,7 @@
 from pathlib import Path
 
-import pandas as pd
 import nflreadpy as nfl
+import pandas as pd
 
 POSITIONS = {"WR", "RB", "TE", "QB"}
 DRAFT_YEARS = list(range(2015, 2026))

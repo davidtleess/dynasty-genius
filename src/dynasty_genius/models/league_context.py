@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
 import json
 from pathlib import Path
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
+
 
 class DraftPick(BaseModel):
     year: int

@@ -318,7 +318,7 @@ def _build_curves(rows: list[dict]) -> dict[str, IsotonicRegression]:
             curves[position] = fit_isotonic_curve(list(clean_picks), list(clean_ppg))
         else:
             if "WR" not in curves:
-                print(f"  [WARN] TE pooling requires WR curve — skipping TE fit")
+                print("  [WARN] TE pooling requires WR curve — skipping TE fit")
                 continue
             curves[position] = fit_te_pooled_curve(
                 list(clean_picks), list(clean_ppg), curves["WR"], SHRINKAGE_K_TE

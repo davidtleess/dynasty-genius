@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 from scipy import stats as scipy_stats
 
+from src.dynasty_genius.eval.backtest_artifact import TopKResult
 from src.dynasty_genius.eval.backtest_metrics import (
     compute_ece,
     compute_ndcg,
@@ -19,8 +20,6 @@ from src.dynasty_genius.eval.backtest_metrics import (
     compute_subgroup_metrics,
     diebold_mariano_hln,
 )
-from src.dynasty_genius.eval.backtest_artifact import TopKResult
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

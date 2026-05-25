@@ -108,8 +108,9 @@ def _norm_school_key(school: str) -> str:
 # ── API load / cache helpers ──────────────────────────────────────────────────
 
 def _cfbd_api_key() -> str:
-    from dotenv import load_dotenv
     import os
+
+    from dotenv import load_dotenv
     load_dotenv()
     return os.getenv("CFBD_API_KEY", "").strip()
 

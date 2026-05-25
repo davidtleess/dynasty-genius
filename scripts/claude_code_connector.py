@@ -18,8 +18,9 @@ Usage:
 
 import os
 import sys
-from databricks import sql
 from datetime import datetime
+
+from databricks import sql
 
 # Load credentials from environment
 DATABRICKS_HOST = os.environ.get("DATABRICKS_HOST", "https://dbc-228373f7-57ec.cloud.databricks.com")
@@ -147,7 +148,7 @@ def write_demo(cursor):
                 for row in result:
                     print(f"   {' | '.join(str(v) for v in row)}")
             else:
-                print(f"   ✅ Executed successfully")
+                print("   ✅ Executed successfully")
             
             print()
         

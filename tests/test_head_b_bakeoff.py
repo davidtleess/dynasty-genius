@@ -28,8 +28,8 @@ from run_head_b_bakeoff import (
     evaluate_head_b_mandatory_gate,
     flag_unstable_features,
 )
-from src.dynasty_genius.models.head_b_contract import check_head_b_feature_leakage
 
+from src.dynasty_genius.models.head_b_contract import check_head_b_feature_leakage
 
 # ── 1. Head B Leakage Guard ───────────────────────────────────────────────────
 

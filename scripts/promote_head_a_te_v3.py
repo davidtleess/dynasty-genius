@@ -190,7 +190,7 @@ def promote(run_ts: str | None = None) -> Path:
     existing[POSITION] = _rel(pkl_path)
     manifest_path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
 
-    print(f"\nHead A v3 TE Ridge promotion complete.")
+    print("\nHead A v3 TE Ridge promotion complete.")
     print(f"  pkl:      {pkl_path}")
     print(f"  metadata: {meta_path}")
     print(f"  manifest: {manifest_path}")

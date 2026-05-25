@@ -13,15 +13,12 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from src.dynasty_genius.audit.identity_coverage_matrix import (
     CohortCoverage,
     IdentityAuditRow,
     ResolutionStage,
     run_audit,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures / helpers

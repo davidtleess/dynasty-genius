@@ -6,12 +6,11 @@ data remains prohibited, and that active-player route fields are not
 accidentally admitted as college features.
 """
 from src.dynasty_genius.models.engine_a_contract import (
-    CFBD_MODEL_INPUT_COLUMNS,
     ALLOWED_ENRICHMENT_COLUMNS,
+    CFBD_MODEL_INPUT_COLUMNS,
     POSITION_FEATURE_MATRIX,
     PROHIBITED_COLUMNS,
 )
-
 
 # ── New college feature columns admitted ─────────────────────────────────────
 

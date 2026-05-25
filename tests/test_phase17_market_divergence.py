@@ -63,7 +63,9 @@ def _batch(rows: list[dict]) -> dict:
 
 
 def test_market_divergence_compares_percentiles_not_raw_values():
-    from src.dynasty_genius.universe_market_divergence import build_universe_market_divergence
+    from src.dynasty_genius.universe_market_divergence import (
+        build_universe_market_divergence,
+    )
 
     batch = _batch([
         _row("a", "WR", 90.0),
@@ -95,7 +97,9 @@ def test_market_divergence_compares_percentiles_not_raw_values():
 
 
 def test_market_divergence_suppresses_stale_volatile_and_small_cohort_rows():
-    from src.dynasty_genius.universe_market_divergence import build_universe_market_divergence
+    from src.dynasty_genius.universe_market_divergence import (
+        build_universe_market_divergence,
+    )
 
     stale = build_universe_market_divergence(
         _batch([_row("a", "RB", 10.0), _row("b", "RB", 8.0)]),
@@ -125,7 +129,9 @@ def test_market_divergence_suppresses_stale_volatile_and_small_cohort_rows():
 
 
 def test_market_divergence_marks_unavailable_without_imperative_language():
-    from src.dynasty_genius.universe_market_divergence import build_universe_market_divergence
+    from src.dynasty_genius.universe_market_divergence import (
+        build_universe_market_divergence,
+    )
 
     result = build_universe_market_divergence(
         _batch([
@@ -148,7 +154,9 @@ def test_market_divergence_marks_unavailable_without_imperative_language():
 
 
 def test_market_divergence_does_not_mutate_input_batch():
-    from src.dynasty_genius.universe_market_divergence import build_universe_market_divergence
+    from src.dynasty_genius.universe_market_divergence import (
+        build_universe_market_divergence,
+    )
 
     batch = _batch([_row("a", "WR", 10.0), _row("b", "WR", 8.0)])
     original = copy.deepcopy(batch)
