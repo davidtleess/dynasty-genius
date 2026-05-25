@@ -76,6 +76,44 @@ class PickKeyResolution(BaseModel):
     caveats: list[str]
 
 
+class MarketRosterPenalty(BaseModel):
+    roster_id: int
+    post_trade_overflow: int
+    forced_cut_candidates: list[MarketAssetOverlay]
+    penalty_market_value: int
+    unresolved_cut_count: int
+    caveats: list[str]
+    decision_supported: bool = False
+
+    @field_validator("decision_supported", mode="before")
+    @classmethod
+    def _lock_decision_supported(cls, v: object) -> bool:
+        return False
+
+
+class TradeMarketReconciliation(BaseModel):
+    market_source: Literal["fantasycalc"]
+    format_key: str
+    source_timestamp: Optional[str]
+    sent_assets: list[MarketAssetOverlay]
+    received_assets: list[MarketAssetOverlay]
+    market_sent_raw: int
+    market_received_raw: int
+    david_forced_cut_penalty: Optional[MarketRosterPenalty]
+    counterparty_forced_cut_penalty: Optional[MarketRosterPenalty]
+    adjusted_market_sent: int
+    adjusted_market_received: int
+    market_delta_for_david: int
+    coverage_gaps: list[str]
+    caveats: list[str]
+    decision_supported: bool = False
+
+    @field_validator("decision_supported", mode="before")
+    @classmethod
+    def _lock_decision_supported(cls, v: object) -> bool:
+        return False
+
+
 # ── Pick key resolver ───────────────────────────────────────────────────────
 
 
@@ -290,3 +328,117 @@ def resolve_market_assets(
         )
         for ref in asset_refs
     ]
+
+
+# ── Trade market reconciliation (W2) ────────────────────────────────────────
+
+
+def _price_forced_cuts(
+    david_roster_penalty: dict,
+    fantasycalc_entries: list[dict],
+    current_draft_year: int,
+    format_key: str,
+    source_timestamp: Optional[str],
+) -> MarketRosterPenalty:
+    """Price an already-selected, model-native forced-cut set at raw FC value.
+
+    The cut set comes from Phase 22 RosterCutEngine output (passed in); this
+    function never selects or reorders cuts — it only resolves their market
+    value. Unresolved cuts are preserved as overlays and counted, never imputed.
+    """
+    cut_overlays: list[MarketAssetOverlay] = []
+    penalty_caveats: list[str] = []
+
+    for cut in david_roster_penalty.get("forced_cut_candidates", []):
+        ref = MarketAssetRef(
+            asset_kind="player",
+            sleeper_id=cut.get("sleeper_player_id"),
+            player_id=cut.get("full_name"),
+        )
+        overlay = resolve_market_asset(
+            ref, fantasycalc_entries, current_draft_year, format_key, source_timestamp
+        )
+        cut_overlays.append(overlay)
+        if overlay.market_value is None:
+            penalty_caveats.append(
+                f"{overlay.label} ({overlay.asset_ref.sleeper_id}): "
+                "no FantasyCalc value — excluded from market penalty"
+            )
+
+    penalty_market_value = sum(
+        o.market_value for o in cut_overlays if o.market_value is not None
+    )
+    unresolved_cut_count = sum(1 for o in cut_overlays if o.market_value is None)
+
+    return MarketRosterPenalty(
+        roster_id=int(david_roster_penalty.get("roster_id", 0)),
+        post_trade_overflow=int(david_roster_penalty.get("post_trade_overflow", 0)),
+        forced_cut_candidates=cut_overlays,
+        penalty_market_value=penalty_market_value,
+        unresolved_cut_count=unresolved_cut_count,
+        caveats=penalty_caveats,
+    )
+
+
+def reconcile_trade_market(
+    sent_assets: list[MarketAssetRef],
+    received_assets: list[MarketAssetRef],
+    david_roster_penalty: dict,
+    fantasycalc_entries: list[dict],
+    current_draft_year: int,
+    format_key: str,
+    source_timestamp: Optional[str] = None,
+) -> TradeMarketReconciliation:
+    """Single-sided David market reconciliation (spec section 8).
+
+    Prices the trade's sent/received assets and David's already-selected forced
+    cuts at raw FantasyCalc value, then computes the market-only directional
+    delta. Cut selection is model-native and passed in via ``david_roster_penalty``;
+    no roster/PVO data is fetched here. Counterparty penalty is deferred to
+    Phase 23.5 and always ``None``.
+    """
+    sent_overlays = resolve_market_assets(
+        sent_assets, fantasycalc_entries, current_draft_year, format_key, source_timestamp
+    )
+    received_overlays = resolve_market_assets(
+        received_assets, fantasycalc_entries, current_draft_year, format_key, source_timestamp
+    )
+
+    market_sent_raw = sum(
+        o.market_value for o in sent_overlays if o.market_value is not None
+    )
+    market_received_raw = sum(
+        o.market_value for o in received_overlays if o.market_value is not None
+    )
+
+    david_penalty = _price_forced_cuts(
+        david_roster_penalty, fantasycalc_entries, current_draft_year, format_key, source_timestamp
+    )
+
+    adjusted_market_sent = market_sent_raw
+    adjusted_market_received = max(
+        0, market_received_raw - david_penalty.penalty_market_value
+    )
+    market_delta_for_david = adjusted_market_received - adjusted_market_sent
+
+    coverage_gaps: list[str] = []
+    for overlay in sent_overlays + received_overlays + david_penalty.forced_cut_candidates:
+        if overlay.coverage_gap and overlay.coverage_gap not in coverage_gaps:
+            coverage_gaps.append(overlay.coverage_gap)
+
+    return TradeMarketReconciliation(
+        market_source="fantasycalc",
+        format_key=format_key,
+        source_timestamp=source_timestamp,
+        sent_assets=sent_overlays,
+        received_assets=received_overlays,
+        market_sent_raw=market_sent_raw,
+        market_received_raw=market_received_raw,
+        david_forced_cut_penalty=david_penalty,
+        counterparty_forced_cut_penalty=None,
+        adjusted_market_sent=adjusted_market_sent,
+        adjusted_market_received=adjusted_market_received,
+        market_delta_for_david=market_delta_for_david,
+        coverage_gaps=coverage_gaps,
+        caveats=list(_BASE_MARKET_CAVEATS),
+    )
