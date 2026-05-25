@@ -1,0 +1,7 @@
+# Developer tooling (not runtime/test deps — see requirements.txt for those).
+# Install + activate the local lint ratchet:
+#   .venv/bin/python3.14 -m pip install -r requirements-dev.txt
+#   .venv/bin/pre-commit install
+# Ruff itself is version-pinned by the hook `rev` in .pre-commit-config.yaml
+# (and by the CI install step), so pre-commit only needs to be the runner here.
+pre-commit

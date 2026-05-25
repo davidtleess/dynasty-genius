@@ -12,9 +12,10 @@ At the start of every Gemini CLI session:
 1. Read `docs/governance/02-agent-operating-loop.md`.
 2. Read `docs/governance/00-product-constitution.md`.
 3. Read `docs/governance/01-north-star-architecture.md`.
-4. Read `AGENT_SYNC.md`.
-5. Read today's ledger if present: `docs/agent-ledger/YYYY-MM-DD.md`.
-6. Report current state and ask David what to do next.
+4. Read `docs/governance/03-code-hygiene-policy.md` when doing Python/implementation work.
+5. Read `AGENT_SYNC.md`.
+6. Read today's ledger if present: `docs/agent-ledger/YYYY-MM-DD.md`.
+7. Report current state and ask David what to do next.
 
 Bootstrap is read-only. Gemini must not run shell commands, refresh resources,
 research player facts, or take implementation actions during bootstrap.

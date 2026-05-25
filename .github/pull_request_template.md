@@ -17,6 +17,7 @@
 
 - [ ] `PYTHONPYCACHEPREFIX=.pycache_tmp python -m compileall app`
 - [ ] `python scripts/validate_governance.py`
+- [ ] Ruff / code-hygiene policy considered; relevant lint checks run or explicitly deferred (`docs/governance/03-code-hygiene-policy.md`)
 - [ ] Other:
 
 ## Model / Data Leakage Check

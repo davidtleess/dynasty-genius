@@ -7,13 +7,15 @@ All agents start with:
 1. `docs/governance/02-agent-operating-loop.md`
 2. `docs/governance/00-product-constitution.md`
 3. `docs/governance/01-north-star-architecture.md`
-4. `AGENT_SYNC.md`
+4. `docs/governance/03-code-hygiene-policy.md`
+5. `AGENT_SYNC.md`
 
 ## Canonical Governance
 
 - `governance/00-product-constitution.md` — analytical doctrine and locked product rulings.
 - `governance/01-north-star-architecture.md` — technical architecture and phase sequence.
 - `governance/02-agent-operating-loop.md` — required agent workflow, handoffs, and ledger rules.
+- `governance/03-code-hygiene-policy.md` — lint scope, enforcement, and unsafe-change guardrails.
 - `agent-ledger/` — daily session logs for all agents.
 
 ## Historical / Supporting Docs
