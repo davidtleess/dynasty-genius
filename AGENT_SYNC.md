@@ -427,9 +427,9 @@ Spec: `docs/strategies/2026-05-24-phase23-consolidated-trade-lab-strategy-spec.m
 - **Branch**: `hygiene/ruff-lint-ratchet`
 - **Roadmap**:
   - Phase 0: Add `pyproject.toml` base config; record the pinned Ruff version (0.15.12); capture baseline. Enforcing pre-commit hook DEFERRED to Phase 3 (a whole-file ratchet now would block the P1/P2 cleanup commits). **— DONE 2026-05-25** (branch `hygiene/ruff-lint-ratchet`): 317 findings (src+app=49; tests+scripts=268); validator green; no source/hooks changed; baseline at `docs/validation/phase-lint-baseline-2026-05-25.md`. **Checkpoint with David before P1.**
-  - Phase 1a: Safe autofixes only (`F401`, `F541`, `F811`, `E731`) -> verified with green test suite. (`F841` unused-variable is NOT a safe autofix — handled in Phase 2 manual review.)
-  - Phase 1b: Dedicated mechanical import sorting (`I001`) commit -> verified with green test suite.
-  - Phase 2: Manual clean of remaining production (`src/`, `app/`) files, hand-verifying registration/adapter side effects.
+  - Phase 1a: Safe autofixes only (`F401`, `F541`, `F811`) -> verified with green test suite. (`F841` and `E731` are NOT safe autofixes — both deferred to Phase 2 manual.) **— DONE 2026-05-25**: split into `8a3f120` P1a-prod (14 F401, src/app) + `cf2bcf0` P1a-support (116 fixes, tests/scripts). Suite 1200 passed each; side-effect-reviewed.
+  - Phase 1b: Dedicated mechanical import sorting (`I001`) commit -> verified with green test suite. **— DONE 2026-05-25**: `ec12e1a` (124 fixes, 100 files, repo-wide). Suite 1200 passed; no circular-import breakage.
+  - Phase 2: Manual clean of remaining production (`src/`, `app/`) files, hand-verifying registration/adapter side effects. **— SCOPE: 7 findings** (3 E701 `backtest_harness.py`; 3 E712 `engine_b_service.py`+`te_archetype_bakeoff.py` = pandas-mask review; 1 E731 `team_value_matrix.py`). **Checkpoint with David before P2.**
   - Phase 3: Wire standard pre-commit/CI ratchets (excluding untouched legacy files).
   - Phase 4: Create new authoritative document `docs/governance/03-code-hygiene-policy.md`, integrate into Required Reading/Authority order in `02-agent-operating-loop.md`, update bootstrap entrypoints and `validate_governance.py` path checks.
 
