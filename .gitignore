@@ -92,3 +92,8 @@ __pycache__/
 venv/
 app/data/backtest/phase19/
 app/data/backtest/phase20/
+
+# PDFs are not tracked going forward — binary blobs, kept local instead.
+# (The two pre-existing tracked PDFs in docs/strategies/ are unaffected.)
+# Use `git add -f some.pdf` to override intentionally.
+*.pdf
