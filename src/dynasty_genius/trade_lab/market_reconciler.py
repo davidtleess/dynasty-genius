@@ -113,6 +113,24 @@ class MarketRosterPenalty(BaseModel):
         return False
 
 
+class MarketRealismWarning(BaseModel):
+    warning_type: Literal[
+        "package_dilution_warning",
+        "roster_filler_warning",
+        "market_package_requires_manual_review",
+    ]
+    severity: Literal["advisory"]
+    message: str
+    metrics: dict[str, float]
+    caveats: list[str]
+    decision_supported: bool = False
+
+    @field_validator("decision_supported", mode="before")
+    @classmethod
+    def _lock_decision_supported(cls, v: object) -> bool:
+        return False
+
+
 class TradeMarketReconciliation(BaseModel):
     market_source: Literal["fantasycalc"]
     format_key: str
@@ -128,6 +146,7 @@ class TradeMarketReconciliation(BaseModel):
     market_delta_for_david: int
     coverage_gaps: list[str]
     caveats: list[str]
+    realism_warnings: list[MarketRealismWarning] = []
     decision_supported: bool = False
 
     @field_validator("decision_supported", mode="before")
@@ -585,3 +604,87 @@ def attach_market_divergence_context(
         context = _classify_divergence(divergence, sigma_threshold)
         enriched.append(overlay.model_copy(update={"divergence_context": context}))
     return enriched
+
+
+# ── Competitive realism warnings (W4) ───────────────────────────────────────
+
+_ROSTER_CONSUMING_KINDS = ("player", "prospect_player")
+
+
+def attach_competitive_realism_warnings(
+    reconciliation: TradeMarketReconciliation,
+    gamma: float = 0.15,
+    psi: float = 0.25,
+) -> TradeMarketReconciliation:
+    """Attach advisory-only "many-for-one" realism warnings to a reconciliation.
+
+    These are display warnings, never gating logic — no accept/reject/approve
+    semantics. The underlying market math is left untouched; warnings are added
+    on a copy. `market_package_requires_manual_review` is intentionally not
+    emitted here because it requires the model-native xVAR delta, which this
+    market-blind lane does not have.
+    """
+    sent = reconciliation.sent_assets
+    received = reconciliation.received_assets
+
+    all_values = [
+        o.market_value for o in sent + received if o.market_value is not None
+    ]
+    incoming_values = [
+        o.market_value
+        for o in received
+        if o.market_value is not None
+        and o.asset_ref.asset_kind in _ROSTER_CONSUMING_KINDS
+    ]
+
+    warnings: list[MarketRealismWarning] = []
+    if all_values and incoming_values:
+        premium_asset_value = max(all_values)
+        if premium_asset_value > 0:
+            average_package_ratio = (
+                sum(incoming_values) / len(incoming_values) / premium_asset_value
+            )
+            low_quality_asset_count = sum(
+                1 for v in incoming_values if v < gamma * premium_asset_value
+            )
+
+            if average_package_ratio < psi:
+                warnings.append(
+                    MarketRealismWarning(
+                        warning_type="package_dilution_warning",
+                        severity="advisory",
+                        message=(
+                            "Market realism warning: the incoming package averages a small "
+                            "fraction of the premium asset value. Review the roster capacity "
+                            "cost of absorbing several players for one premium asset."
+                        ),
+                        metrics={
+                            "average_package_ratio": round(average_package_ratio, 4),
+                            "psi": float(psi),
+                            "premium_asset_value": float(premium_asset_value),
+                            "incoming_asset_count": float(len(incoming_values)),
+                        },
+                        caveats=["market_realism_warning_only", "market_overlay_display_only"],
+                    )
+                )
+
+            if low_quality_asset_count >= 2:
+                warnings.append(
+                    MarketRealismWarning(
+                        warning_type="roster_filler_warning",
+                        severity="advisory",
+                        message=(
+                            "Market realism warning: multiple incoming assets fall below the "
+                            "roster-filler threshold. Weigh the capacity cost of the added "
+                            "bench spots when reviewing this package."
+                        ),
+                        metrics={
+                            "low_quality_asset_count": float(low_quality_asset_count),
+                            "gamma": float(gamma),
+                            "premium_asset_value": float(premium_asset_value),
+                        },
+                        caveats=["market_realism_warning_only", "market_overlay_display_only"],
+                    )
+                )
+
+    return reconciliation.model_copy(update={"realism_warnings": warnings})
