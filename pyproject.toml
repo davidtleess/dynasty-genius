@@ -1,6 +1,6 @@
 # Ruff configuration — Dynasty Genius repo lint-hygiene policy (Phase 0).
-# Authoritative policy: docs/strategies/2026-05-25-repo-linting-hygiene-spec.md
-# (promotion to docs/governance/03-code-hygiene-policy.md is a later phase).
+# Authoritative policy: docs/governance/03-code-hygiene-policy.md
+# (research/strategy origin: docs/strategies/2026-05-25-repo-linting-hygiene-spec.md).
 #
 # Scope is deliberately the known correctness/hygiene debt (~226 default-style
 # findings) plus import sorting (I), NOT broad E/W/UP/B/RUF — that would turn a
