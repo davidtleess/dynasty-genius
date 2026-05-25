@@ -20,19 +20,27 @@ Phase 17 — IMPLEMENTATION COMPLETE THROUGH 17.5: Sleeper universe, full PVO ba
 Phase 18 — COMPLETE: 18.1 roster-audit rookie PVO reconciliation complete; 18.2 daily batch orchestration complete; 18.3 team posture classification complete; 18.4 cross-position xVAR percentile complete; Gemini PM skill `dynasty-genius-pm` installed (2026-05-22; 780 tests)
 Phase 19 — **COMPLETE**: Engine A v3 (Bifurcated Rookie Forecast). W1–W5 all merged to main (`4cce9f2`, 2026-05-24; 1088 tests, 11 skipped). TE Head A v3 Ridge promoted and wired. Head B null result. Feature branch retired.
 Phase 20 — **COMPLETE — NULL RESULT** (2026-05-24; 1105 tests, 11 skipped). W1 WR FAIL (0/3 ridge + gbt; trimmed 5-feature set hurts vs baseline). W2 RB FAIL (ridge +5.6% RMSE below 7% gate, Spearman/NDCG regress; gbt −7.4%: 0/3). W3 QB BLOCKED (25.4% API coverage < 50% threshold — all 4 features dropped). No passing candidates. No promotion. Codex blockers resolved (commit `067ecd7`): QB 4-feature contract enforced in adapter + engine_a_contract; RB `/games` endpoint gated behind `--include-rb-ypg`. Spec: `docs/strategies/2026-05-24-phase20-prospect-enrichment-spec.md`.
-Phase 21 — **IMPLEMENTATION COMPLETE + CODEX PATCH** (2026-05-25; 1153 tests, 11 skipped). Roster Cut & Drop Candidate Engine. Spec v0.5 approved. W1: `src/dynasty_genius/roster_cut_engine.py` (pure function, 39 TDD tests). W2: `recommended_drop` field on WAIVER_CANDIDATE cards (9 TDD tests). W3: `scripts/build_roster_cut_report.py`. Codex patch: (1) capacity overflow fixed — `should_rank = over_limit > 0 or cuts_required > 0`; (2) `recommended_drop` now carries `decision_supported: False`; (3) `_lock_decision_supported` validator on both Pydantic models; (4) CLIFF_AGES corrected to doctrine (RB 26, WR 28, TE 30, QB 33); (5) `_coverage()` now recursively counts nested `decision_supported=True`. Artifacts at `app/data/valuation/roster_cut_report_latest.{json,md}`.
+Phase 21 — **IMPLEMENTATION COMPLETE + CODEX PATCH** (2026-05-24; 1153 tests, 11 skipped). Roster Cut & Drop Candidate Engine. Spec v0.5 approved. W1: `src/dynasty_genius/roster_cut_engine.py` (pure function, 39 TDD tests). W2: `recommended_drop` field on WAIVER_CANDIDATE cards (9 TDD tests). W3: `scripts/build_roster_cut_report.py`. Codex patch: (1) capacity overflow fixed — `should_rank = over_limit > 0 or cuts_required > 0`; (2) `recommended_drop` now carries `decision_supported: False`; (3) `_lock_decision_supported` validator on both Pydantic models; (4) CLIFF_AGES corrected to doctrine (RB 26, WR 28, TE 30, QB 33); (5) `_coverage()` now recursively counts nested `decision_supported=True`. Artifacts at `app/data/valuation/roster_cut_report_latest.{json,md}`.
+Phase 23 — **W1 COMPLETE + CODEX CLEARED** (2026-05-25; 1176 tests, 11 skipped). Trade Lab Market Overlay + Competitive Realism Engine. Authoritative spec: `docs/strategies/2026-05-24-phase23-consolidated-trade-lab-strategy-spec.md`; all six David rulings closed (Section 16). W1 (7 TDD contract tests, Codex-authored): `src/dynasty_genius/trade_lab/market_reconciler.py` — `MarketAssetRef`, `MarketAssetOverlay`, `PickKeyResolution`; `resolve_pick_market_key` (current-year+slot → `DP_{round-1}_{slot-1}`; generic future → `FP_{year}_{round}` + ±40% slot-spread caveat; bucketed picks → `unresolved`/`fantasycalc_bucket_pick_unavailable` per §7); `resolve_market_asset` / `resolve_market_assets` (player resolution by Sleeper ID; duplicate picks preserved via `quantity_id`). Market-blind: no Engine A/B/xVAR/RosterCutEngine imports; raw FC scale only; `decision_supported` coercion-locked False on all schemas; full §12 caveat set on every overlay. Codex re-review CLEAR, no further W1 findings. Next: W2 — `TradeMarketReconciliation` + David-side forced-cut market penalty.
+
 Phase 22 — **IMPLEMENTATION COMPLETE + CODEX CLEARED** (2026-05-24; 1169 tests, 11 skipped). Trade Lab Roster Reconciler. Spec v0.2 approved. W1 (12 TDD tests): `src/dynasty_genius/trade_lab/reconciler.py` (pure function — `RosterPenaltySummary`, `TradeRosterReconciliation`, `reconcile_trade_roster()`; Forced Cut Penalty = raw xVAR of top-N cut candidates; order-preserving roster mutation); `decision_supported` coercion-lock validators added to `TradeAsset` and `TradeEvaluation` in `src/dynasty_genius/trade_lab/evaluator.py`. W2 (4 TDD tests): `POST /api/trade/reconcile` endpoint in `app/api/routes/trade.py`; monkeypatchable `_load_reconcile_artifacts()`. No market data, no model pkl, no manifest changes. Spec: `docs/strategies/2026-05-24-phase22-roster-reconciler-spec.md`.
 
 ## Current Sprint Objective
 
-**Phase 22 — IMPLEMENTATION COMPLETE + CODEX CLEARED.** Trade Lab Roster Reconciler shipped. 1169 tests, 11 skipped.
-- Workstream 19.1 (Planning & Spec) — COMPLETE.
-- W1 (Head B Target Pipeline) — COMPLETE.
-- W2 (Feature Contract + Enrichment) — COMPLETE.
-- W2b (CFBD Player-Level Enrichment) — COMPLETE. v3 CSV: 874 rows × 155 cols.
-- W3 (Head A v3 Bake-Off per position) — **COMPLETE + TE:ridge PROMOTED (David approved 2026-05-24)**. 7 validation-integrity fixes applied (row alignment, pooled OOF RMSE, direct-PPG NDCG, fractional TE safety guard, fold-level rank gates, per-player OOF log). 18 TDD bakeoff tests + 6 TDD promotion tests passing (1044 total). Final results: **TE:ridge PASSES 2/3 gates** (RMSE +7.0% + NDCG; Spearman ✗); WR/RB fail (accepted limitations); QB skipped. TE model artifact: `app/data/models/head_a/runs/20260524T140748Z/te_v3.pkl` (sklearn Pipeline: StandardScaler + Ridge(alpha=50.0); 5 features; 62 train rows; gitignored). Manifest: `app/data/models/head_a/v3_manifest.json` (new Head A v3 routing structure, parallel to engine_b; does NOT update Engine A v2 `latest.json` — W5 will wire scorer). Validation report: `docs/validation/phase19-w3-head-a-promotion-decision.md`.
-- W4 (Head B v3 Bake-Off) — **COMPLETE — NO PROMOTION** (2026-05-24; 1067 total tests, 11 skipped). All positions fail mandatory residual R² > 0 gate. Passing candidates: none. LOOO: all features quarantined (>25% drift) across all positions. Artifacts: `app/data/backtest/phase19/head_b_bakeoff_20260524T145953Z_595f073d.json` + sensitivity report. Validation memo: `docs/validation/phase19-w4-head-b-promotion-decision.md`. No model pkl, manifest, PVO scorer, or decision_supported changes.
-- W5 (Service Layer Integration) — **COMPLETE + all Codex blockers resolved** (2026-05-24; 1088 total tests, 11 skipped). `EngineAV3Scorer` + `score_prospect_v3()` added to `src/dynasty_genius/scoring/engine_a.py`. `pvo_assembler.py` tries v3 before v2. `ProspectRequest` (rookies.py) extended with optional `final_college_age`, `te_ryptpa_final`, `te_yards_per_reception_career` — route `/api/rookies/score` now exercises v3 when fields supplied. Manifest relative paths resolved against ROOT. 21 TDD tests in `tests/test_engine_a_v3.py`. Governance validation: PASS. Head B remains dark.
+**Phases 21 and 22 — COMPLETE. Session closed 2026-05-24.**
+
+**Phase 21 — COMPLETE + CODEX PATCH** (1153 tests, 11 skipped)
+- W1: `src/dynasty_genius/roster_cut_engine.py` — pure function, 39 TDD tests.
+- W2: `recommended_drop` field on WAIVER_CANDIDATE cards — 9 TDD tests.
+- W3: `scripts/build_roster_cut_report.py` — live artifact builder.
+- Codex patch: capacity overflow fix, `decision_supported: False` coercion-lock, CLIFF_AGES corrected to doctrine, recursive `_coverage()`.
+- Artifacts: `app/data/valuation/roster_cut_report_latest.{json,md}`.
+
+**Phase 22 — COMPLETE + CODEX CLEARED** (1169 tests, 11 skipped; commit `5c7bc46`)
+- W1 (12 TDD tests): `src/dynasty_genius/trade_lab/reconciler.py` — `reconcile_trade_roster()` pure function; Forced Cut Penalty = raw xVAR of top-N post-trade cut candidates; order-preserving roster mutation; `decision_supported` coercion-lock on all four Phase 22 + evaluator models.
+- W2 (4 TDD tests): `POST /api/trade/reconcile` — monkeypatchable `_load_reconcile_artifacts()`; artifact paths `universe_pvo_latest.json` + `sleeper_universe_snapshot_latest.json`.
+- Live run: Jefferson trade evaluated against live PVO + snapshot; PRE_MODEL status surfaced; Barner confirmed as sole forced-cut candidate; penalty correctly 0.00 (sub-replacement xVAR); Codex audit cleared.
+- No model pkl, manifest, market data, or `decision_supported` changes.
 
 Phase 17 — 17.1 THROUGH 17.5 COMPLETE; REVIEWED / CHECKPOINTED.
 - Workstream 17.0 (Planning) — COMPLETE: Merged research brief finalized with Section 19 Decision Memo.
@@ -397,11 +405,18 @@ Execution roadmap: `docs/strategies/Dynasty Genius Phase 14 Execution Roadmap.md
 
 ## Next Recommended Work
 
-**Phase 22 complete. Awaiting David's direction for Phase 23.**
+**Phase 23 is authorized. Spec approved 2026-05-24.**
 
-Phase 22 `POST /api/trade/reconcile` is live. Candidate next phases:
-- **Phase 23**: Trade Lab UI — surface reconcile endpoint output to the draft board or a dedicated trade tool view.
-- **Roster artifact refresh**: Rebuild `universe_pvo_latest.json` + `sleeper_universe_snapshot_latest.json` for the reconciler to operate against live data.
-- **Phase 21 cut execution**: Roster is at 28/26 capacity; `build_roster_cut_report.py` + reconcile endpoint can now jointly inform cut decisions.
+Spec: `docs/strategies/2026-05-24-phase23-consolidated-trade-lab-strategy-spec.md`
 
-No next phase is authorized until David issues explicit direction.
+**Workstream sequence:**
+- **W1** — `MarketAssetRef`, `MarketAssetOverlay`, pick key resolver. Player resolution by Sleeper ID. Exact slot (`DP_*`) and generic future (`FP_*`) pick resolution. Duplicate pick preservation via `quantity_id`. Contract tests on schema separation first.
+- **W2** — `TradeMarketReconciliation`. Raw FC sent/received sums. David-side market forced-cut penalty (sum of resolved FC values for RosterCutEngine-selected cuts; no alpha, no floor). Coverage gap caveats.
+- **W3** — Arbitrage divergence context. Read existing `universe_market_divergence_latest.json`. Surface `model_higher_than_market` / `model_lower_than_market` / `inside_band` / `unavailable` per asset. σ threshold = 0.25.
+- **W4** — Competitive Realism warnings. Advisory only. `gamma=0.15`, `psi=0.25`. No block/approve language.
+- **W5** — `POST /api/trade/reconcile/market` (separate route file). Standalone Trade Lab page with two-panel display (Model View / Market Snapshot).
+- **W3b (Phase 23.5)** — Counterparty forced-cut penalty. Deferred until David-side overlay stable.
+
+**Standing pre-work:**
+- Rebuild `universe_pvo_latest.json` + `sleeper_universe_snapshot_latest.json` to reflect current league state.
+- Execute the 2 required roster cuts (28/26 capacity). Candidates: AJ Barner (TE, 34.3%), Adonai Mitchell (WR, 37.3%), Mac Jones (QB, 39.3%) — or execute Jefferson trade to collapse 2 cuts to 1.
