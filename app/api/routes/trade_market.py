@@ -133,13 +133,20 @@ def _select_counterparty_penalty(
         return "unavailable", None, ["counterparty_coverage_inadequate"]
 
     # Swap sides: counterparty sends David's received, receives David's sent.
-    cp_recon = reconcile_trade_roster(
-        received_model_assets,
-        david_assets,
-        universe_pvo,
-        sleeper_snapshot,
-        david_roster_id=counterparty_roster_id,
-    )
+    # Fail closed: if the post-trade snapshot cannot be built or RosterCutEngine
+    # cannot run (malformed/invalid snapshot, e.g. a protected slot type), degrade
+    # to unavailable rather than surfacing a 5xx (spec §385-386, 505). We never
+    # fall back to market-sorted selection.
+    try:
+        cp_recon = reconcile_trade_roster(
+            received_model_assets,
+            david_assets,
+            universe_pvo,
+            sleeper_snapshot,
+            david_roster_id=counterparty_roster_id,
+        )
+    except (ValueError, KeyError, StopIteration):
+        return "unavailable", None, ["counterparty_coverage_inadequate"]
     cp_penalty = cp_recon.roster_penalty
     penalty_input = {
         "roster_id": counterparty_roster_id,

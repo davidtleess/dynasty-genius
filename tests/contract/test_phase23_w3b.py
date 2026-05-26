@@ -277,6 +277,47 @@ def test_counterparty_not_requested_preserves_single_sided_market_math(monkeypat
     _assert_required_market_caveats(data)
 
 
+def test_counterparty_penalty_unavailable_when_selection_raises(monkeypatch):
+    """Snapshot/RosterCutEngine failure for the counterparty fails closed (no 5xx).
+
+    Locks the spec §385-386/505 clause: known roster but the post-trade snapshot
+    cannot be built / RosterCutEngine cannot run -> status unavailable, null
+    penalty, caveat — never a 5xx, never a market-sorted fallback.
+    """
+    _install_market_route_mocks(monkeypatch)
+
+    real_reconcile = trade_market_route.reconcile_trade_roster
+
+    def _raise_for_counterparty(
+        david_assets, received_assets, universe_pvo, sleeper_snapshot, david_roster_id=1
+    ):
+        # The counterparty selection runs with david_roster_id=2; the David-side
+        # call (roster 1) must still succeed.
+        if david_roster_id == 2:
+            raise ValueError("protected slot type in roster_positions")
+        return real_reconcile(
+            david_assets,
+            received_assets,
+            universe_pvo,
+            sleeper_snapshot,
+            david_roster_id=david_roster_id,
+        )
+
+    monkeypatch.setattr(
+        trade_market_route, "reconcile_trade_roster", _raise_for_counterparty
+    )
+
+    response = client.post("/api/trade/reconcile/market", json=_payload())
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["counterparty_market_penalty_status"] == "unavailable"
+    assert data["counterparty_forced_cut_penalty"] is None
+    assert "counterparty_coverage_inadequate" in data["caveats"]
+    assert data["adjusted_market_sent"] == data["market_sent_raw"]
+    _assert_required_market_caveats(data)
+
+
 def test_counterparty_outputs_keep_decision_supported_false_recursive(monkeypatch):
     """New W3b output remains advisory-only throughout the serialized payload."""
     _install_market_route_mocks(monkeypatch)
