@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import warnings
 from pathlib import Path
 
 import pandas as pd
@@ -15,6 +16,7 @@ from src.dynasty_genius.trade_lab.draft_pick_valuation import (
     smooth_and_tier,
     value_pick,
 )
+from src.dynasty_genius.trade_lab.evaluator import TradeAsset, value_draft_pick
 
 
 def test_engine_a_p90_public_constant_present():
@@ -228,3 +230,18 @@ def test_curve_artifact_built_and_shaped():
     assert all(int(year) <= 2022 for year in curve["mature_years_used"])
     assert "1" in curve["slots"]
     assert "expected_xvar_smoothed" in curve["slots"]["1"]
+
+
+def test_value_draft_pick_returns_tradeasset_curve_backed():
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        wr_asset = value_draft_pick(round_=1, pick_bucket="mid", position="WR", age=21)
+        rb_asset = value_draft_pick(round_=1, pick_bucket="mid", position="RB", age=21)
+
+    assert any(issubclass(warning.category, DeprecationWarning) for warning in caught)
+    assert isinstance(wr_asset, TradeAsset)
+    assert wr_asset.is_prospect is True
+    assert wr_asset.decision_supported is False
+    assert wr_asset.dvs_engine == "pick_curve_v1"
+    assert wr_asset.dvs is None
+    assert wr_asset.xvar == rb_asset.xvar
