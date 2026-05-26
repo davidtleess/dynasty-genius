@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import inspect
+import json
+from pathlib import Path
 
 import pandas as pd
 
@@ -72,6 +74,35 @@ def test_build_slot_curve_counts_low_sample_flag_per_slot():
     curve = build_slot_curve(_fixture_df(), mature_years=(2015, 2016), board_size=3)
 
     assert curve["slots"]["3"]["low_sample_count"] == 2
+
+
+def test_build_slot_curve_prices_picks_as_non_negative_option_value():
+    df = pd.DataFrame(
+        [
+            {
+                "draft_year": 2015,
+                "pick": 1,
+                "position": "WR",
+                "y24_ppg": 12.7,
+                "low_sample_flag": 0,
+            },
+            {
+                "draft_year": 2016,
+                "pick": 1,
+                "position": "WR",
+                "y24_ppg": 0.0,
+                "low_sample_flag": 0,
+            },
+        ]
+    )
+
+    curve = build_slot_curve(df, mature_years=(2015, 2016), board_size=1)
+    slot_one = curve["slots"]["1"]
+
+    assert min(slot_one["raw_samples"]) < 0
+    assert round(min(slot_one["raw_samples"]), 1) == -69.2
+    assert slot_one["priced_samples"] == [30.8, 0.0]
+    assert slot_one["expected_xvar"] == 15.4
 
 
 def test_smooth_and_tier_clamps_monotonic_non_increasing():
@@ -150,6 +181,7 @@ def test_value_pick_exact_slot():
     assert pick_value.xvar == 25.0
     assert pick_value.decision_supported is False
     assert "pick_value_historical_expected" in pick_value.caveats
+    assert "pick_value_floored_at_replacement" in pick_value.caveats
 
 
 def test_value_pick_tier():
@@ -183,3 +215,16 @@ def test_value_pick_decision_supported_locked():
     )
 
     assert pick_value.decision_supported is False
+
+
+def test_curve_artifact_built_and_shaped():
+    path = Path("app/data/valuation/draft_pick_value_curve_v1.json")
+
+    assert path.exists(), "run scripts/build_draft_pick_value_curve.py first"
+    curve = json.loads(path.read_text())
+
+    assert curve["version"] == "v1"
+    assert curve["board_size"] == 36
+    assert all(int(year) <= 2022 for year in curve["mature_years_used"])
+    assert "1" in curve["slots"]
+    assert "expected_xvar_smoothed" in curve["slots"]["1"]

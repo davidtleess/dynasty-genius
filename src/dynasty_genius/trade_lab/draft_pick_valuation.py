@@ -27,6 +27,7 @@ _SKILL = ("QB", "RB", "WR", "TE")
 # Required caveat set on every pick value (§6 governance).
 _BASE_PICK_CAVEATS = [
     "pick_value_historical_expected",
+    "pick_value_floored_at_replacement",
     "pick_value_thin_sample",
     "decision_supported_false",
 ]
@@ -135,9 +136,13 @@ def build_slot_curve(
         samples = per_slot_samples[slot]
         if not samples:
             continue
+        # Option-value floor: a busted pick is benched/cut -> contributes 0, never
+        # negative. Slot expected value is the MEAN of these floored (priced) payoffs
+        # (spec §4 Option A) — mean, not median, to preserve long-tail option value.
+        priced = [max(0.0, v) for v in samples]
         slots[str(slot)] = {
-            "expected_xvar": round(statistics.median(samples), 4),
-            "mean_xvar": round(statistics.fmean(samples), 4),
+            "expected_xvar": round(statistics.fmean(priced), 4),
+            "mean_xvar": round(statistics.fmean(samples), 4),  # raw mean (audit)
             "n_years": len(samples),
             "p25": round(_pctl(samples, 25), 4),
             "p75": round(_pctl(samples, 75), 4),
@@ -145,6 +150,7 @@ def build_slot_curve(
             "low_sample_count": per_slot_lowflags[slot],
             "positions": dict(per_slot_positions[slot]),
             "raw_samples": [round(v, 4) for v in samples],
+            "priced_samples": [round(v, 4) for v in priced],
         }
     return {
         "version": "v1",
