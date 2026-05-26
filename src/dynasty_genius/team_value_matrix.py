@@ -109,7 +109,9 @@ def _future_picks_for_roster(future_picks: list[dict[str, Any]], roster_id: int)
     owned = []
     outgoing = []
     for pick in future_picks:
-        clean = {k: v for k, v in pick.items() if k not in {"xvar", "dynasty_value_score"}}
+        # Phase 24: preserve pick valuation fields (xvar etc.). Pick values are surfaced
+        # here but stay OUT of team-strength aggregates (see starter_weighted_xvar).
+        clean = dict(pick)
         if pick.get("current_roster_id") == roster_id:
             owned.append(clean)
         if pick.get("original_roster_id") == roster_id and pick.get("current_roster_id") != roster_id:
@@ -299,8 +301,10 @@ def build_team_value_matrix(
         "coverage": {
             "team_count": len(teams),
             "all_teams_emitted": len(teams) == len(league_snapshot.get("rosters") or []),
-            "future_picks_present_unvalued": all(
-                "xvar" not in pick and "dynasty_value_score" not in pick
+            # Phase 24: future picks now carry xVAR but are intentionally excluded from
+            # team-strength aggregates (starter_weighted_xvar is players-only).
+            "future_picks_present_valued_excluded_from_strength": any(
+                pick.get("xvar") is not None
                 for team in teams
                 for bucket in ("owned", "outgoing")
                 for pick in team["future_picks"][bucket]

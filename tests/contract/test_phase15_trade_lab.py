@@ -76,10 +76,11 @@ def test_trade_outside_parity_band():
     assert result.favors == "side_b"
 
 
-def test_draft_pick_uses_engine_a():
-    """5.12: Draft pick via value_draft_pick -> dvs_engine == 'A', is_prospect True."""
+def test_draft_pick_uses_curve_backed_provenance():
+    """5.12 (Phase 24): value_draft_pick is now a deprecated curve-backed wrapper —
+    dvs_engine == 'pick_curve_v1' (not 'A'), is_prospect True, decision_supported False."""
     pick_asset = value_draft_pick(round_=1, pick_bucket="mid", position="WR", age=21.5)
-    assert pick_asset.dvs_engine == "A"
+    assert pick_asset.dvs_engine == "pick_curve_v1"
     assert pick_asset.is_prospect is True
     assert pick_asset.decision_supported is False
 

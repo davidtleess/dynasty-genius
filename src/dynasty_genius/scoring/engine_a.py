@@ -35,6 +35,10 @@ _P90_PPG: dict[str, float] = {
     "QB": 16.7,
 }
 
+# Public, governed alias of the Engine-A training P90 PPG ceilings, so downstream
+# governed consumers (e.g. the draft-pick value curve) need not import a private name.
+ENGINE_A_P90_PPG: dict[str, float] = dict(_P90_PPG)
+
 # model_grade propagated from the validation report. QB is D (negative R²).
 _ENGINE_A_GRADES: dict[str, str] = {
     "WR": "PROSPECT_C",

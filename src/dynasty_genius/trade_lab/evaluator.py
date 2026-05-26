@@ -1,6 +1,8 @@
 """Trade Lab evaluator - xVAR-sum parity with consolidation premium."""
 from __future__ import annotations
 
+import warnings
+from pathlib import Path
 from typing import List, Optional
 
 from pydantic import BaseModel, field_validator
@@ -8,12 +10,9 @@ from pydantic import BaseModel, field_validator
 from src.dynasty_genius.models.engine_b_contract import (
     CONSOLIDATION_FLOOR,
     CONSOLIDATION_KAPPA,
-    ENGINE_A_REPLACEMENT_DVS,
     TRADE_PARITY_BAND,
-    XVAR_ANCHOR_POSITION,
-    XVAR_LAMBDA_ENGINE_A,
 )
-from src.dynasty_genius.scoring.engine_a import score_prospect
+from src.dynasty_genius.trade_lab.draft_pick_valuation import load_curve, value_pick
 
 
 class TradeAsset(BaseModel):
@@ -111,31 +110,50 @@ def evaluate_trade(
     )
 
 
+_PICK_CURVE_PATH = (
+    Path(__file__).resolve().parents[3]
+    / "app" / "data" / "valuation" / "draft_pick_value_curve_v1.json"
+)
+_PICK_CURVE_CACHE: Optional[dict] = None
+_ROUND_ORDINAL = {1: "1st", 2: "2nd", 3: "3rd"}
+
+
+def _pick_curve() -> dict:
+    global _PICK_CURVE_CACHE
+    if _PICK_CURVE_CACHE is None:
+        _PICK_CURVE_CACHE = load_curve(_PICK_CURVE_PATH)
+    return _PICK_CURVE_CACHE
+
+
 def value_draft_pick(
     round_: int,
     pick_bucket: str,
     position: str,
     age: float = 21.5,
 ) -> TradeAsset:
-    """Score a draft pick through Engine A. Market data is not used."""
-    slot_map = {"early": 3.0, "mid": 6.5, "late": 10.5}
-    pick = slot_map.get(pick_bucket, 6.5)
-    pos_upper = position.upper()
-    result = score_prospect(pos_upper, pick, float(round_), age)
-    dvs = result.get("dynasty_value_score") if result else None
-    repl = ENGINE_A_REPLACEMENT_DVS.get(pos_upper, 0.0)
-    lambda_ = XVAR_LAMBDA_ENGINE_A.get(pos_upper, 1.0)
-    xvar_val = round((dvs - repl) * lambda_, 2) if dvs is not None else None
+    """DEPRECATED — use ``draft_pick_valuation.value_pick``.
+
+    Returns a curve-backed ``TradeAsset``. ``position`` and ``age`` are ignored for
+    the value: a dynasty pick's value is position-independent and comes from the
+    historical slot curve (Phase 24), not a fake per-position Engine-A prospect.
+    """
+    warnings.warn(
+        "value_draft_pick is deprecated; use draft_pick_valuation.value_pick. "
+        "position/age are ignored (pick value is position-independent).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    tier = f"{pick_bucket}_{_ROUND_ORDINAL.get(round_, '1st')}"
+    pv = value_pick(year=0, round_=round_, tier=tier, curve=_pick_curve())
     return TradeAsset(
-        player_id=f"pick_{round_}_{pick_bucket}_{pos_upper}",
-        xvar=xvar_val,
-        dvs=dvs,
-        dvs_engine="A",
-        position=pos_upper,
+        player_id=f"pick_{round_}_{pick_bucket}",
+        xvar=pv.xvar,
+        dvs=None,
+        dvs_engine="pick_curve_v1",
+        position=position.upper(),
         is_prospect=True,
         decision_supported=False,
-        caveat=(
-            f"Draft pick estimate: round={round_}, bucket={pick_bucket}, "
-            f"position={pos_upper}, age={age}, anchor={XVAR_ANCHOR_POSITION}"
+        caveat="; ".join(
+            ["value_draft_pick deprecated -> draft_pick_valuation.value_pick", *pv.caveats]
         ),
     )

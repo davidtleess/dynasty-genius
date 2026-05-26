@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from src.dynasty_genius.trade_lab.draft_pick_valuation import load_curve, value_pick
+
 FANTASY_POSITIONS = frozenset({"QB", "RB", "WR", "TE"})
 
 PHASE17_DEFAULTS: dict[str, Any] = {
@@ -24,7 +26,22 @@ PHASE17_DEFAULTS: dict[str, Any] = {
 }
 
 SCHEMA_VERSION = "sleeper_universe_snapshot.v1"
-PICK_VALUE_STATUS = "deferred"
+# Phase 24: future-pick valuation reopened (was "deferred" in Phase 17.3). Picks are now
+# valued in xVAR via the historical slot curve. David-approved 2026-05-26.
+PICK_VALUE_STATUS = "active_v1_historical"
+
+_PICK_CURVE_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "app" / "data" / "valuation" / "draft_pick_value_curve_v1.json"
+)
+_PICK_CURVE_CACHE: dict[str, Any] | None = None
+
+
+def _pick_curve() -> dict[str, Any]:
+    global _PICK_CURVE_CACHE
+    if _PICK_CURVE_CACHE is None:
+        _PICK_CURVE_CACHE = load_curve(_PICK_CURVE_PATH)
+    return _PICK_CURVE_CACHE
 
 
 def _stable_hash(value: Any) -> str:
@@ -105,16 +122,23 @@ def reconstruct_future_picks(
     applies those deltas, without assigning numeric pick value.
     """
     seasons = range(int(season) + 1, int(season) + seasons_ahead + 1)
+    curve = _pick_curve()
     picks: dict[tuple[int, int, int], dict[str, Any]] = {}
     for pick_season in seasons:
         for roster_id in sorted(int(rid) for rid in roster_ids):
             for round_no in range(1, int(rounds) + 1):
+                # Round-only valuation: a future pick knows only (season, round).
+                pv = value_pick(year=pick_season, round_=round_no, curve=curve)
                 picks[(pick_season, round_no, roster_id)] = {
                     "season": pick_season,
                     "round": round_no,
                     "original_roster_id": roster_id,
                     "current_roster_id": roster_id,
                     "pick_value_status": PICK_VALUE_STATUS,
+                    "xvar": pv.xvar,
+                    "dynasty_value_score": None,
+                    "pick_value_resolution": pv.resolution,
+                    "caveats": list(pv.caveats),
                     "reconstruction_method": "automated_sleeper_traded_picks",
                 }
 
