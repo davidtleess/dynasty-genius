@@ -141,6 +141,9 @@ class TradeMarketReconciliation(BaseModel):
     market_received_raw: int
     david_forced_cut_penalty: Optional[MarketRosterPenalty]
     counterparty_forced_cut_penalty: Optional[MarketRosterPenalty]
+    counterparty_market_penalty_status: Literal[
+        "not_requested", "available", "unavailable"
+    ] = "not_requested"
     adjusted_market_sent: int
     adjusted_market_received: int
     market_delta_for_david: int
@@ -429,14 +432,27 @@ def reconcile_trade_market(
     current_draft_year: int,
     format_key: str,
     source_timestamp: Optional[str] = None,
+    counterparty_roster_penalty: Optional[dict] = None,
+    counterparty_market_penalty_status: Literal[
+        "not_requested", "available", "unavailable"
+    ] = "not_requested",
+    counterparty_caveats: Optional[list[str]] = None,
 ) -> TradeMarketReconciliation:
-    """Single-sided David market reconciliation (spec section 8).
+    """David-side market reconciliation with optional counterparty penalty (spec §8, W3b).
 
     Prices the trade's sent/received assets and David's already-selected forced
     cuts at raw FantasyCalc value, then computes the market-only directional
-    delta. Cut selection is model-native and passed in via ``david_roster_penalty``;
-    no roster/PVO data is fetched here. Counterparty penalty is deferred to
-    Phase 23.5 and always ``None``.
+    delta. Cut selection — for both David and the counterparty — is model-native
+    and passed in via the penalty dicts; no roster/PVO data is fetched here and
+    this lane never sorts or selects cuts by FantasyCalc value.
+
+    The counterparty penalty is applied only when
+    ``counterparty_market_penalty_status == "available"`` and a penalty dict is
+    supplied; it reduces the sent side (the value the counterparty receives after
+    its own capacity cost). ``"unavailable"`` (known roster, inadequate coverage)
+    and ``"not_requested"`` (no counterparty roster supplied) both leave the sent
+    side unadjusted and surface ``counterparty_forced_cut_penalty=None`` — never a
+    fabricated zero penalty (spec §385-386, 505).
     """
     sent_overlays = resolve_market_assets(
         sent_assets, fantasycalc_entries, current_draft_year, format_key, source_timestamp
@@ -455,17 +471,45 @@ def reconcile_trade_market(
     david_penalty = _price_forced_cuts(
         david_roster_penalty, fantasycalc_entries, current_draft_year, format_key, source_timestamp
     )
-
-    adjusted_market_sent = market_sent_raw
     adjusted_market_received = max(
         0, market_received_raw - david_penalty.penalty_market_value
     )
+
+    # Counterparty forced-cut penalty (W3b): price only an already-selected,
+    # model-native cut set. Only the "available" status applies a penalty.
+    counterparty_penalty: Optional[MarketRosterPenalty] = None
+    if (
+        counterparty_market_penalty_status == "available"
+        and counterparty_roster_penalty is not None
+    ):
+        counterparty_penalty = _price_forced_cuts(
+            counterparty_roster_penalty,
+            fantasycalc_entries,
+            current_draft_year,
+            format_key,
+            source_timestamp,
+        )
+        adjusted_market_sent = max(
+            0, market_sent_raw - counterparty_penalty.penalty_market_value
+        )
+    else:
+        adjusted_market_sent = market_sent_raw
+
     market_delta_for_david = adjusted_market_received - adjusted_market_sent
 
+    cut_overlays_for_gaps = list(david_penalty.forced_cut_candidates)
+    if counterparty_penalty is not None:
+        cut_overlays_for_gaps += counterparty_penalty.forced_cut_candidates
+
     coverage_gaps: list[str] = []
-    for overlay in sent_overlays + received_overlays + david_penalty.forced_cut_candidates:
+    for overlay in sent_overlays + received_overlays + cut_overlays_for_gaps:
         if overlay.coverage_gap and overlay.coverage_gap not in coverage_gaps:
             coverage_gaps.append(overlay.coverage_gap)
+
+    caveats = list(_BASE_MARKET_CAVEATS)
+    for caveat in counterparty_caveats or []:
+        if caveat not in caveats:
+            caveats.append(caveat)
 
     return TradeMarketReconciliation(
         market_source="fantasycalc",
@@ -476,12 +520,13 @@ def reconcile_trade_market(
         market_sent_raw=market_sent_raw,
         market_received_raw=market_received_raw,
         david_forced_cut_penalty=david_penalty,
-        counterparty_forced_cut_penalty=None,
+        counterparty_forced_cut_penalty=counterparty_penalty,
+        counterparty_market_penalty_status=counterparty_market_penalty_status,
         adjusted_market_sent=adjusted_market_sent,
         adjusted_market_received=adjusted_market_received,
         market_delta_for_david=market_delta_for_david,
         coverage_gaps=coverage_gaps,
-        caveats=list(_BASE_MARKET_CAVEATS),
+        caveats=caveats,
     )
 
 
