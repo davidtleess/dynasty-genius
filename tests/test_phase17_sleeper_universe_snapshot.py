@@ -69,7 +69,7 @@ def test_build_universe_snapshot_classifies_players_and_preserves_rostered_conte
     assert snapshot["coverage"]["david_roster_players_missing_from_snapshot"] == []
 
 
-def test_reconstruct_future_picks_uses_automated_baseline_and_defers_values():
+def test_reconstruct_future_picks_uses_automated_baseline_and_values_picks():
     picks = reconstruct_future_picks(
         season=2026,
         roster_ids=[1, 2],
@@ -93,9 +93,11 @@ def test_reconstruct_future_picks_uses_automated_baseline_and_defers_values():
     )
     assert moved["current_roster_id"] == 2
     assert moved["reconstruction_method"] == "automated_sleeper_traded_picks"
-    assert moved["pick_value_status"] == "deferred"
-    assert "xvar" not in moved
-    assert "dynasty_value_score" not in moved
+    # Phase 24: future-pick lock reopened — picks now valued in xVAR (round-only curve).
+    assert moved["pick_value_status"] == "active_v1_historical"
+    assert moved["xvar"] is not None
+    assert moved["dynasty_value_score"] is None
+    assert moved["pick_value_resolution"] == "round_tier"
 
 
 def test_phase17_defaults_lock_section19_and_bench_guardrail():

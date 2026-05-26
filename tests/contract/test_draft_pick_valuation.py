@@ -8,10 +8,13 @@ from pathlib import Path
 import pandas as pd
 
 from src.dynasty_genius.scoring.engine_a import ENGINE_A_P90_PPG
+from src.dynasty_genius.sleeper_universe import reconstruct_future_picks
+from src.dynasty_genius.team_value_matrix import build_team_value_matrix
 from src.dynasty_genius.trade_lab.draft_pick_valuation import (
     PickValue,
     apply_sf_qb_ordering,
     build_slot_curve,
+    load_curve,
     player_xvar_from_ppg,
     smooth_and_tier,
     value_pick,
@@ -245,3 +248,121 @@ def test_value_draft_pick_returns_tradeasset_curve_backed():
     assert wr_asset.dvs_engine == "pick_curve_v1"
     assert wr_asset.dvs is None
     assert wr_asset.xvar == rb_asset.xvar
+
+
+def test_reconstruct_future_picks_surfaces_round_tier_xvar():
+    picks = reconstruct_future_picks(
+        season=2026,
+        roster_ids=[1],
+        rounds=3,
+        traded_picks=[],
+        seasons_ahead=1,
+    )
+    curve = load_curve("app/data/valuation/draft_pick_value_curve_v1.json")
+    expected = value_pick(year=2027, round_=1, curve=curve)
+
+    first_round_pick = next(
+        pick
+        for pick in picks
+        if pick["season"] == 2027
+        and pick["round"] == 1
+        and pick["original_roster_id"] == 1
+    )
+
+    assert first_round_pick["pick_value_status"] == "active_v1_historical"
+    assert first_round_pick["xvar"] == expected.xvar
+    assert first_round_pick["dynasty_value_score"] is None
+    assert first_round_pick["pick_value_resolution"] == "round_tier"
+    assert "generic_future_pick_round_only" in first_round_pick["caveats"]
+
+
+def _matrix_player(sleeper_id: str, position: str, xvar: float) -> dict:
+    return {
+        "sleeper_player_id": sleeper_id,
+        "player": {"full_name": f"Player {sleeper_id}", "position": position, "age": 25},
+        "league_context": {
+            "rostered": True,
+            "roster_id": 1,
+            "owner_user_id": "user-1",
+            "in_starters": False,
+            "on_taxi": False,
+            "on_ir": False,
+        },
+        "valuation": {
+            "engine_path": "ENGINE_B",
+            "xvar": xvar,
+            "dynasty_value_score": 60 + xvar,
+            "decision_supported": False,
+        },
+    }
+
+
+def _matrix_fixture(future_picks: list[dict]) -> dict:
+    players = [
+        _matrix_player("qb1", "QB", 10),
+        _matrix_player("qb2", "QB", 9),
+        _matrix_player("rb1", "RB", 8),
+        _matrix_player("rb2", "RB", 7),
+        _matrix_player("wr1", "WR", 6),
+        _matrix_player("wr2", "WR", 5),
+        _matrix_player("te1", "TE", 4),
+        _matrix_player("rb3", "RB", 3),
+        _matrix_player("wr3", "WR", 2),
+    ]
+    return build_team_value_matrix(
+        universe_pvo={"league_id": "L1", "players": players},
+        league_snapshot={
+            "league_id": "L1",
+            "league": {
+                "roster_positions": [
+                    "QB",
+                    "RB",
+                    "RB",
+                    "WR",
+                    "WR",
+                    "TE",
+                    "FLEX",
+                    "FLEX",
+                    "SUPER_FLEX",
+                ]
+            },
+            "rosters": [
+                {
+                    "roster_id": 1,
+                    "owner_id": "user-1",
+                    "players": [player["sleeper_player_id"] for player in players],
+                }
+            ],
+            "users": [{"user_id": "user-1", "display_name": "Team 1"}],
+            "future_picks": future_picks,
+        },
+    )
+
+
+def test_team_value_matrix_surfaces_pick_xvar_but_excludes_it_from_strength():
+    future_pick = {
+        "season": 2027,
+        "round": 1,
+        "original_roster_id": 1,
+        "current_roster_id": 1,
+        "pick_value_status": "active_v1_historical",
+        "xvar": 99.0,
+        "dynasty_value_score": None,
+        "pick_value_resolution": "round_tier",
+        "caveats": ["generic_future_pick_round_only"],
+    }
+
+    without_picks = _matrix_fixture([])
+    with_picks = _matrix_fixture([future_pick])
+
+    base_strength = without_picks["teams"][0]["team_value_views"]["starter_weighted_xvar"]
+    pick_strength = with_picks["teams"][0]["team_value_views"]["starter_weighted_xvar"]
+    owned_pick = with_picks["teams"][0]["future_picks"]["owned"][0]
+
+    assert owned_pick["xvar"] == 99.0
+    assert owned_pick["dynasty_value_score"] is None
+    assert owned_pick["pick_value_resolution"] == "round_tier"
+    assert "generic_future_pick_round_only" in owned_pick["caveats"]
+    assert pick_strength == base_strength
+    assert with_picks["coverage"]["future_picks_present_valued_excluded_from_strength"] is True
+    assert "future_picks_present_unvalued" not in with_picks["coverage"]
