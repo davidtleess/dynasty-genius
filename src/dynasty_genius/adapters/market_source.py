@@ -25,6 +25,29 @@ class FantasyCalcMarketSource(MarketSource):
         return data
 
 
+class MflAdpMarketSource(MarketSource):
+    """MFL rookie ADP overlay. Season via constructor (default = current season).
+
+    fetch() returns rows only (MarketSource contract); intrinsic caveats ride on each
+    row, transient cache/source caveats stay on the adapter fetch_*_with_cache() calls.
+    Overlay only — never an Engine A/B input. Not for SF-QB calibration.
+    """
+
+    def __init__(self, season: int | None = None) -> None:
+        from src.dynasty_genius.adapters.mfl_adp_adapter import _current_season
+        self.season = season if season is not None else _current_season()
+
+    def fetch(self) -> list[dict]:
+        from src.dynasty_genius.adapters.mfl_adp_adapter import (
+            fetch_adp_with_cache,
+            fetch_players_with_cache,
+            normalize_mfl_adp_entry,
+        )
+        adp_rows, _adp_caveats = fetch_adp_with_cache(self.season)
+        players_map, _players_caveats = fetch_players_with_cache(self.season)
+        return [normalize_mfl_adp_entry(r, players_map) for r in adp_rows]
+
+
 class KTCMarketSource(MarketSource):
     """Deferred. KTC ToS prohibits automated collection.
 

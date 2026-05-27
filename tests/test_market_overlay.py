@@ -157,6 +157,15 @@ def test_fantasycalc_market_source_is_subclass_of_market_source():
     assert issubclass(FantasyCalcMarketSource, MarketSource)
 
 
+def test_mfl_adp_market_source_is_subclass_of_market_source():
+    from src.dynasty_genius.adapters.market_source import (
+        MarketSource,
+        MflAdpMarketSource,
+    )
+
+    assert issubclass(MflAdpMarketSource, MarketSource)
+
+
 # ── Phase 9 adapter tests ─────────────────────────────────────────────────────
 
 import json

@@ -295,3 +295,41 @@ def test_normalize_unmatched_row_has_none_identity():
     assert out["position"] is None
     assert out["decision_supported"] is False
     assert out["market_adp_rank"] == int(unmatched["rank"])
+
+
+def test_market_source_fetch_returns_rows_only(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR",
+        tmp_path,
+    )
+    from src.dynasty_genius.adapters.market_source import MflAdpMarketSource
+
+    def _resp_for(url, **_kwargs):
+        class _R:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                if "TYPE=players" in url:
+                    return json.loads(PLAYERS_FIXTURE.read_text())
+                return json.loads(ADP_FIXTURE.read_text())
+
+        return _R()
+
+    with patch("httpx.get", side_effect=_resp_for):
+        rows = MflAdpMarketSource(season=2026).fetch()
+    assert isinstance(rows, list)
+    assert all(isinstance(r, dict) for r in rows)
+    assert all(r["decision_supported"] is False for r in rows)
+    by_id = {r["mfl_id"]: r for r in rows}
+    assert by_id["17472"]["full_name"] is not None
+    assert by_id["99999"]["full_name"] is None
+    assert not any("market_data_unavailable" == r for r in rows)
+
+
+def test_market_source_default_season_is_current():
+    from src.dynasty_genius.adapters.market_source import MflAdpMarketSource
+    from src.dynasty_genius.adapters.mfl_adp_adapter import _current_season
+
+    src = MflAdpMarketSource()
+    assert src.season == _current_season()
