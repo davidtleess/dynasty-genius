@@ -67,7 +67,8 @@ suffixes). Unmatched QBs are **excluded** and counted in the artifact (never gue
   2. `_load_seed_drafts()` — read `resources/seed_rookie_drafts.json`.
   3. `_nfl_skill_ranks(draft_class)` — build the rank map from prospect_cards / outcomes CSV.
   4. `_qb_promotions(boards, rank_maps)` — pure function: list of per-QB promotions (+ unmatched count).
-  5. `_recommend_k(promotions)` — pure: `clamp(round(median), 0, 3)`.
+  5. `_recommend_k(promotions)` — pure: `clamp(round_half_up(median), 0, 3)` (half-up per §1, NOT
+     banker's `round`; empty → 0).
   6. Write artifact `app/data/backtest/phase24/sf_qb_knob_calibration_<ts>.json`:
      `{n_drafts, n_qbs_matched, n_qbs_unmatched, per_draft: [...], promotions, median_raw,
      recommended_k, caveats: ["sf_qb_calibration_thin_sample", ...]}` and print the recommendation.
