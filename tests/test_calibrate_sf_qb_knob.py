@@ -58,6 +58,42 @@ def test_load_byo_draft_ids_empty_list(tmp_path, monkeypatch):
     assert cal._load_byo_draft_ids() == ([], [])
 
 
+def test_is_superflex_exact_token():
+    assert cal.is_superflex({"roster_positions": ["QB", "RB", "SUPER_FLEX", "BN"]}) is True
+    assert cal.is_superflex({"roster_positions": ["QB", "RB", "WR", "BN"]}) is False
+    assert cal.is_superflex({}) is False
+
+
+def test_is_twelve_team_int_coerced():
+    assert cal.is_twelve_team({"total_rosters": 12}) is True
+    assert cal.is_twelve_team({"total_rosters": "12"}) is True
+    assert cal.is_twelve_team({"total_rosters": 10}) is False
+    assert cal.is_twelve_team({}) is False
+    assert cal.is_twelve_team({"total_rosters": "oops"}) is False
+
+
+def test_league_format_metadata_reads_scoring_settings():
+    league = {
+        "roster_positions": ["QB", "SUPER_FLEX"],
+        "total_rosters": 12,
+        "scoring_settings": {"rec": 1.0, "bonus_rec_te": 0.5},
+    }
+
+    meta = cal.league_format_metadata(league)
+
+    assert meta == {
+        "superflex": True,
+        "total_rosters": 12,
+        "ppr": 1.0,
+        "te_premium": True,
+    }
+
+    meta2 = cal.league_format_metadata({"roster_positions": [], "total_rosters": 10})
+
+    assert meta2["ppr"] is None
+    assert meta2["te_premium"] is False
+
+
 def test_normalize_name_strips_case_punct_suffix():
     assert normalize_name("Michael Penix Jr.") == normalize_name("michael penix")
     assert normalize_name("Ja'Marr Chase") == "jamarr chase"

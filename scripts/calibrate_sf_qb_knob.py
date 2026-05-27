@@ -205,6 +205,33 @@ def _load_byo_draft_ids() -> tuple[list[str], list[str]]:
     return unique, dupes
 
 
+_SF_TOKEN = "SUPER_FLEX"
+
+
+def is_superflex(league: dict) -> bool:
+    """Exact-token SF test on roster_positions (never fuzzy draft metadata)."""
+    return _SF_TOKEN in (league.get("roster_positions") or [])
+
+
+def is_twelve_team(league: dict) -> bool:
+    """12-team test; total_rosters coerced to int; non-int/missing -> False."""
+    try:
+        return int(league.get("total_rosters")) == 12
+    except (TypeError, ValueError):
+        return False
+
+
+def league_format_metadata(league: dict) -> dict:
+    """Recorded-only format snapshot (never a gate). Reads Sleeper `scoring_settings`."""
+    scoring = league.get("scoring_settings") or {}
+    return {
+        "superflex": is_superflex(league),
+        "total_rosters": league.get("total_rosters"),
+        "ppr": scoring.get("rec"),
+        "te_premium": (scoring.get("bonus_rec_te") or 0) > 0,
+    }
+
+
 def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:
     boards = list(_fetch_league_rookie_drafts(league_id)) + _load_seed_drafts()
     classes = {b["draft_class"] for b in boards}
