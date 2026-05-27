@@ -73,6 +73,7 @@ def main() -> None:
         "sf_qb_promote_slots": _SF_QB_PROMOTE_SLOTS,
         "method": (
             "first-36-skill-NFL-order bridge; realized y24_ppg -> DVS -> xVAR; "
+            "Option A option-value floor (priced=max(0,raw), mean of priced); "
             "monotonic clamp; median tiers"
         ),
         "caveat": "NFL-derived historical expectation, not a market-measured price",

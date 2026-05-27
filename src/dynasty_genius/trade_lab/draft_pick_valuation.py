@@ -200,7 +200,11 @@ class PickValue(BaseModel):
     slot: Optional[int] = None
     tier: Optional[str] = None
     xvar: Optional[float]
-    resolution: Literal["exact_slot", "tier", "round_tier", "unresolved"]
+    resolution: Literal[
+        "board_exact_slot", "board_round",
+        "exact_slot", "tier", "round_tier", "unresolved",
+    ]
+    valuation_regime: Literal["prospect_board", "historical_curve"] = "historical_curve"
     caveats: list[str]
     decision_supported: bool = False
 
@@ -210,7 +214,7 @@ class PickValue(BaseModel):
         return False
 
 
-def value_pick(
+def _value_pick_from_curve(
     year: int,
     round_: int,
     *,
@@ -219,11 +223,11 @@ def value_pick(
     curve: dict,
     sf_qb_knob_active: bool = False,
 ) -> PickValue:
-    """Price a pick in xVAR against a loaded curve. No position argument.
+    """Regime B — price a pick against the historical slot curve. No position argument.
 
     Resolution order: exact ``slot`` -> explicit ``tier`` -> round-only generic tier
     (``round_{round_}_generic``, for reconstructed future picks that know only the
-    round) -> ``unresolved``.
+    round) -> ``unresolved``. (``valuation_regime`` defaults to ``historical_curve``.)
     """
     caveats = list(_BASE_PICK_CAVEATS)
     if sf_qb_knob_active:
@@ -257,6 +261,125 @@ def value_pick(
         )
     return PickValue(
         year=year, round_=round_, xvar=None, resolution="unresolved", caveats=caveats
+    )
+
+
+_ROUND_RANK_RANGES = {1: range(1, 13), 2: range(13, 25), 3: range(25, 37)}
+
+_BOARD_PICK_CAVEATS = [
+    "pick_value_board_class_specific",
+    "pick_value_floored_at_replacement",
+    "pick_value_board_model_output",
+    "decision_supported_false",
+]
+
+_DEFAULT_CARDS_PATH = (
+    Path(__file__).resolve().parents[3] / "resources" / "prospect_cards.json"
+)
+
+
+def load_prospect_board(
+    draft_class: int, path: str | Path = _DEFAULT_CARDS_PATH
+) -> dict[int, float]:
+    """Parse prospect_cards.json into a ``{xvar_class_rank: xvar}`` board for one class.
+
+    Model-blind: reads only the inference artifact (no scorer/Engine/market imports).
+    Filters to the requested ``draft_class`` with a non-null rank and numeric ``xvar``.
+    Raises ``ValueError`` on a duplicate rank (never silently picks one).
+    """
+    cards = json.loads(Path(path).read_text())
+    board: dict[int, float] = {}
+    for card in cards:
+        if card.get("draft_class") != draft_class:
+            continue
+        rank = card.get("xvar_class_rank")
+        xvar = card.get("xvar")
+        if rank is None or isinstance(xvar, bool) or not isinstance(xvar, (int, float)):
+            continue
+        rank = int(rank)
+        if rank in board:
+            raise ValueError(
+                f"duplicate xvar_class_rank {rank} in prospect board for class {draft_class}"
+            )
+        board[rank] = float(xvar)
+    return board
+
+
+def _value_pick_from_prospect_board(
+    year: int,
+    round_: int,
+    *,
+    slot: Optional[int],
+    board: dict[int, float],
+    sf_qb_knob_active: bool = False,
+) -> PickValue:
+    """Regime A — price a pick from the class's actual scored prospect board.
+
+    Option-A parity with the curve: each prospect is floored at ``max(0, xvar)``.
+    Exact slot N -> floored rank-N xVAR; round-only -> mean of floored over the round's
+    rank range. Slots/ranks beyond the board are unresolved (never a curve fallback).
+    """
+    caveats = list(_BOARD_PICK_CAVEATS)
+    if sf_qb_knob_active:
+        caveats.append("sf_qb_ordering_assumption")
+
+    if slot is not None:
+        raw = board.get(int(slot))
+        if raw is None:
+            return PickValue(
+                year=year, round_=round_, slot=slot, xvar=None,
+                resolution="unresolved", valuation_regime="prospect_board",
+                caveats=caveats + ["pick_value_board_slot_beyond_coverage"],
+            )
+        return PickValue(
+            year=year, round_=round_, slot=slot, xvar=round(max(0.0, raw), 4),
+            resolution="board_exact_slot", valuation_regime="prospect_board",
+            caveats=caveats,
+        )
+
+    ranks = _ROUND_RANK_RANGES.get(int(round_))
+    present = [board[r] for r in ranks if r in board] if ranks else []
+    if not present:
+        return PickValue(
+            year=year, round_=round_, xvar=None, resolution="unresolved",
+            valuation_regime="prospect_board",
+            caveats=caveats + ["pick_value_board_slot_beyond_coverage"],
+        )
+    priced = [max(0.0, v) for v in present]
+    if ranks is not None and len(present) < len(list(ranks)):
+        caveats = caveats + ["pick_value_board_partial_round_coverage"]
+    return PickValue(
+        year=year, round_=round_, xvar=round(statistics.fmean(priced), 4),
+        resolution="board_round", valuation_regime="prospect_board",
+        caveats=caveats,
+    )
+
+
+def value_pick(
+    year: int,
+    round_: int,
+    *,
+    slot: Optional[int] = None,
+    tier: Optional[str] = None,
+    curve: dict,
+    prospect_board: Optional[dict[int, float]] = None,
+    sf_qb_knob_active: bool = False,
+) -> PickValue:
+    """Price a dynasty rookie pick in xVAR.
+
+    Dispatches to the prospect-board path (Regime A) when a **non-empty** board is
+    supplied for a slot/round-only pick; otherwise the historical-curve path (Regime B).
+    A ``tier`` request always routes to the curve (board-tier mapping is undefined in
+    v1). ``curve`` is required so the fallback is always deterministic.
+    """
+    if prospect_board and tier is None:
+        return _value_pick_from_prospect_board(
+            year, round_, slot=slot, board=prospect_board,
+            sf_qb_knob_active=sf_qb_knob_active,
+        )
+    return _value_pick_from_curve(
+        year, round_, slot=slot, tier=tier, curve=curve,
+        sf_qb_knob_active=sf_qb_knob_active,
     )
 
 
