@@ -111,12 +111,15 @@ Yields `players.player[]` of `{id, name, position, team, ...}`. Same list-vs-sin
 
 - **Intrinsic (every row):** `mfl_adp_format_blended_qb_count`, `mfl_adp_te_premium_unfiltered` — MFL ADP blends 1QB+2QB and TEP+non-TEP leagues; disclosed, not hidden. `decision_supported=False` on every row.
 - **Transient (adapter caveat channel):** `stale_market_data` + cache age; `market_data_unavailable`; `mfl_players_map_unavailable`; `mfl_adp_timestamp_unavailable` when `adp.timestamp` is missing/unparseable (Codex must-fix #4).
-- **Freshness (Codex must-fix #4):** cache **both** `fetched_at` and `source_timestamp`. Prefer `source_timestamp` (MFL's real publish time) for staleness; fall back to `fetched_at` + `mfl_adp_timestamp_unavailable` caveat if absent/unparseable. Stale caveats distinguish **cache age** from **source publish age** where both are known.
+- **Freshness — two distinct clocks (Codex must-fix #4 + plan clarification):** cache **both** `fetched_at` and `source_timestamp`.
+  - **`fetched_at` is the cache-refresh clock only:** the adapter decides whether to attempt a live refresh when `now - fetched_at >= ttl_hours`. It governs local cache staleness, nothing else.
+  - **`source_timestamp` (MFL's `adp.timestamp`, the real publish time) is the market-data freshness disclosure:** the adapter always surfaces the **source publish age** as the freshness signal. If `adp.timestamp` is missing/unparseable, fall back to disclosing only cache age and emit `mfl_adp_timestamp_unavailable`.
+  - A **`stale_market_data`** caveat (emitted when an expired cache is served after a failed refresh) carries **both** the cache age (from `fetched_at`) and the source publish age (from `source_timestamp`) when both are known — the two are never conflated.
 - **Constitution:** market data is price discovery, not truth. MFL ADP fields **never** enter Engine A/B training dataframes. Read-only public API, no auth, no Databricks. Frontend HOLD + NOISE_BAND lock untouched. No model pkl/manifest/contract change.
 
 ## 5. Error handling — 3-stage degrade (per fetch, never raises)
 
-1. **Fresh cache** (age < TTL) → serve cached `data` + `source_timestamp`-derived caveat.
+1. **Fresh cache** (`now - fetched_at < ttl_hours`) → serve cached `data`; disclose source publish age from `source_timestamp` (or `mfl_adp_timestamp_unavailable` if absent).
 2. **Expired/absent cache + live fetch fails** → if a prior cache exists, serve **stale** with `stale_market_data` + age; else cold-fail.
 3. **Cold fail** (no cache, fetch fails) → ADP: `[]` + `market_data_unavailable`. Players: `{}` + `mfl_players_map_unavailable` (ADP rows then emit with `full_name/position=None`).
 
@@ -141,7 +144,7 @@ The two fetches fail independently; ADP can succeed while the players map cold-f
              "SF QB-count and TE-premium (not API-filterable); not for SF-QB calibration."),
   )
   ```
-- **Leakage gate:** extend `tests/test_market_leakage_gate.py` so `mfl_rookie_adp` fields are asserted overlay-only (never in training CSVs/columns/modules), the same way FantasyCalc is gated.
+- **Leakage gate:** extend `tests/test_market_leakage_gate.py` so `mfl_rookie_adp` fields are asserted overlay-only (never in training CSVs/columns/modules), the same way FantasyCalc is gated. **Plan clarification (Codex):** `market_adp_rank` / `market_average_pick` are already caught by the existing broad `market_*` / `*rank*` patterns, but **`draft_selection_pct` and `drafts_selected_in` are NOT** — the gate must add explicit protection for those two field names.
 
 ## 7. Testing / contract intent
 
@@ -155,7 +158,7 @@ All tests use **committed fixtures** (small, shape-faithful — not full raw exp
 - **Freshness:** `source_timestamp` preferred; missing/unparseable → `fetched_at` fallback + `mfl_adp_timestamp_unavailable`.
 - **Independent degrade:** players cold-fail while ADP succeeds → rows emitted unnamed + `mfl_players_map_unavailable`.
 - **Wrapper:** `MflAdpMarketSource(season=2026).fetch()` returns `list[dict]` (rows only), constructor season honored, default = current season.
-- **Leakage gate:** `mfl_rookie_adp` fields never present in training-CSV columns (extend existing gate).
+- **Leakage gate:** `mfl_rookie_adp` fields never present in training-CSV columns (extend existing gate), **with an explicit assertion for `draft_selection_pct` and `drafts_selected_in`** (not caught by the broad `market_*`/`*rank*` patterns).
 - **DO NOT** modify `tests/contract/test_market_overlay_pvo.py`.
 
 ## 8. Counter-argument (Rule 5 — mandatory)
