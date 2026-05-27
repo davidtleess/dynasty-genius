@@ -152,6 +152,77 @@ def test_gate_byo_draft_reject_reasons():
     assert (accepted, reason) == (False, "not_12_team")
 
 
+def _pick(no, first="Caleb", last="Williams", pos="QB"):
+    return {
+        "pick_no": no,
+        "metadata": {
+            "first_name": first,
+            "last_name": last,
+            "position": pos,
+        },
+    }
+
+
+def test_build_byo_board_caps_at_36_and_sorts():
+    board, reason = cal._build_byo_board(
+        "draft-1",
+        {"season": "2026"},
+        _sf12_league(),
+        [
+            _pick(40, "Late", "Quarterback", "QB"),
+            _pick(2, "Tetairoa", "McMillan", "WR"),
+            _pick(1, "Caleb", "Williams", "QB"),
+        ],
+    )
+
+    assert reason is None
+    assert board["draft_class"] == 2026
+    assert board["draft_id"] == "draft-1"
+    assert board["source"] == "sleeper_draft:draft-1"
+    assert board["format_meta"]["superflex"] is True
+    assert board["n_picks_raw"] == 3
+    assert board["n_picks_used"] == 2
+    assert board["n_picks_excluded_after_36"] == 1
+    assert [p["ff_slot"] for p in board["picks"]] == [1, 2]
+    assert [p["player_name"] for p in board["picks"]] == [
+        "Caleb Williams",
+        "Tetairoa McMillan",
+    ]
+
+
+def test_build_byo_board_invalid_draft_class():
+    board, reason = cal._build_byo_board("draft-1", {"season": None}, {}, [_pick(1)])
+
+    assert board is None
+    assert reason == "invalid_draft_class"
+
+
+def test_build_byo_board_malformed_picks_whole_draft_reject():
+    malformed = {"metadata": {"first_name": "No", "last_name": "Pick", "position": "QB"}}
+
+    board, reason = cal._build_byo_board(
+        "draft-1",
+        {"season": "2026"},
+        _sf12_league(),
+        [_pick(1), malformed],
+    )
+
+    assert board is None
+    assert reason == "malformed_picks"
+
+
+def test_build_byo_board_draft_class_falls_back_to_league_season():
+    board, reason = cal._build_byo_board(
+        "draft-1",
+        {"season": None},
+        {**_sf12_league(), "season": "2025"},
+        [_pick(1)],
+    )
+
+    assert reason is None
+    assert board["draft_class"] == 2025
+
+
 def test_normalize_name_strips_case_punct_suffix():
     assert normalize_name("Michael Penix Jr.") == normalize_name("michael penix")
     assert normalize_name("Ja'Marr Chase") == "jamarr chase"

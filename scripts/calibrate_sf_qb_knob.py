@@ -253,6 +253,48 @@ def gate_byo_draft(draft: dict, league: dict) -> tuple[bool, str | None, dict]:
     return True, None, fmt
 
 
+def _build_byo_board(draft_id: str, draft: dict, league: dict, picks: list[dict]):
+    """Build a capped BYO board or reject. Returns (board, None) | (None, reason)."""
+    season = draft.get("season") or league.get("season")
+    try:
+        draft_class = int(season)
+    except (TypeError, ValueError):
+        return None, "invalid_draft_class"
+
+    parsed: list[tuple[int, dict]] = []
+    for p in picks:
+        try:
+            pick_no = int(p["pick_no"])
+        except (TypeError, ValueError, KeyError):
+            return None, "malformed_picks"
+        parsed.append((pick_no, p))
+
+    n_raw = len(parsed)
+    parsed.sort(key=lambda t: t[0])
+    used = [(pn, p) for pn, p in parsed if pn <= _BOARD_SIZE]
+    board = {
+        "draft_class": draft_class,
+        "draft_id": draft_id,
+        "source": f"sleeper_draft:{draft_id}",
+        "format_meta": league_format_metadata(league),
+        "n_picks_raw": n_raw,
+        "n_picks_used": len(used),
+        "n_picks_excluded_after_36": n_raw - len(used),
+        "picks": [
+            {
+                "ff_slot": pn,
+                "player_name": (
+                    f"{(p.get('metadata') or {}).get('first_name', '')} "
+                    f"{(p.get('metadata') or {}).get('last_name', '')}".strip()
+                ),
+                "position": (p.get("metadata") or {}).get("position"),
+            }
+            for pn, p in used
+        ],
+    }
+    return board, None
+
+
 def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:
     boards = list(_fetch_league_rookie_drafts(league_id)) + _load_seed_drafts()
     classes = {b["draft_class"] for b in boards}
