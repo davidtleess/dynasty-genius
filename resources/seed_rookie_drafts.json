@@ -1,0 +1,24 @@
+{
+  "source": "docs/strategies/Rookie Draft Seed Data.md (Drafts B/A/F; QB rows; partial boards)",
+  "note": "QB-only rows; slot = overall 1-based pick number = (round-1)*12 + pick. Partial-but-strict-spec SF rookie drafts used for SF-QB knob calibration.",
+  "drafts": [
+    {"draft_class": 2024, "league": "seed_draft_B", "qbs": [
+      {"slot": 1, "player_name": "Caleb Williams"},
+      {"slot": 4, "player_name": "Jayden Daniels"},
+      {"slot": 5, "player_name": "J.J. McCarthy"},
+      {"slot": 8, "player_name": "Drake Maye"},
+      {"slot": 16, "player_name": "Bo Nix"},
+      {"slot": 18, "player_name": "Michael Penix Jr."}
+    ]},
+    {"draft_class": 2022, "league": "seed_draft_A", "qbs": [
+      {"slot": 3, "player_name": "Kenny Pickett"},
+      {"slot": 14, "player_name": "Desmond Ridder"},
+      {"slot": 15, "player_name": "Malik Willis"},
+      {"slot": 22, "player_name": "Matt Corral"}
+    ]},
+    {"draft_class": 2025, "league": "seed_draft_F", "qbs": [
+      {"slot": 5, "player_name": "Cam Ward"},
+      {"slot": 10, "player_name": "Jaxson Dart"}
+    ]}
+  ]
+}
