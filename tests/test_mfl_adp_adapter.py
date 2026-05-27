@@ -334,16 +334,20 @@ def test_fetch_rookie_adp_rows_returns_rows_and_caveats(tmp_path, monkeypatch):
     )
 
 
-def test_fetch_rookie_adp_rows_does_not_change_market_source_contract():
+def test_fetch_rookie_adp_rows_does_not_change_market_source_contract(tmp_path, monkeypatch):
     import inspect
 
     from src.dynasty_genius.adapters import market_source
     from src.dynasty_genius.adapters import mfl_adp_adapter as m
 
     assert callable(m.fetch_rookie_adp_rows)
-    source = inspect.getsource(market_source.MflAdpMarketSource.fetch)
-    assert "fetch_rookie_adp_rows" not in source
-    assert "caveats" not in source
+    # fetch() must not delegate to the report-only helper.
+    assert "fetch_rookie_adp_rows" not in inspect.getsource(market_source.MflAdpMarketSource.fetch)
+    # Behavioral contract: fetch() stays rows-only (a list), never a (rows, caveats) tuple.
+    monkeypatch.setattr("src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR", tmp_path)
+    with patch("httpx.get", side_effect=Exception("no net")):
+        result = market_source.MflAdpMarketSource(season=2026).fetch()
+    assert isinstance(result, list)
 
 
 def test_market_source_fetch_returns_rows_only(tmp_path, monkeypatch):
