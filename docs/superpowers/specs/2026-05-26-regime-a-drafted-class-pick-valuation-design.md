@@ -28,8 +28,12 @@ board loader + the `value_pick` board path + tests. No production consumer is wi
 - **`prospect_board` provided** (a scored board for the pick's class) → **Regime A** (board pricing).
 - **`prospect_board` is None/empty** → **Regime B** (existing historical-curve path, unchanged).
 
-The caller decides whether a scored board exists for the pick's `draft_class` and passes it in.
-`curve` stays **required** so the fallback is always deterministic.
+**The intended flow is AUTO** (David's trigger decision), not a manual/optional policy: any
+production caller MUST first attempt `load_prospect_board(draft_class)` and pass the result as
+`prospect_board`; a non-empty board auto-selects Regime A, and an empty/None board is the
+automatic Regime B fallback. (v1 is capability-only, so no production caller is wired yet — but
+the plan/implementers must treat the load-then-pass as the required pattern, not "caller's
+choice.") `curve` stays **required** so the fallback is always deterministic.
 
 ## 2. Valuation method (Option-A parity with the curve)
 
