@@ -1406,7 +1406,7 @@
     ],
     "board_size": 36,
     "sf_qb_promote_slots": 0,
-    "method": "first-36-skill-NFL-order bridge; realized y24_ppg -> DVS -> xVAR; monotonic clamp; median tiers",
+    "method": "first-36-skill-NFL-order bridge; realized y24_ppg -> DVS -> xVAR; Option A option-value floor (priced=max(0,raw), mean of priced); monotonic clamp; median tiers",
     "caveat": "NFL-derived historical expectation, not a market-measured price"
   }
 }
