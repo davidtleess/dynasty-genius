@@ -223,6 +223,53 @@ def test_build_byo_board_draft_class_falls_back_to_league_season():
     assert board["draft_class"] == 2025
 
 
+def test_collect_byo_boards_accept_reject_and_dedup(monkeypatch):
+    async def fake_get_draft(draft_id):
+        if draft_id == "BOOM":
+            raise RuntimeError("network down")
+        if draft_id == "NOLG":
+            return {"draft_id": draft_id, "season": "2026", "status": "complete"}
+        return {
+            "draft_id": draft_id,
+            "league_id": f"league-{draft_id}",
+            "season": "2026",
+            "status": "complete",
+            "settings": {"rounds": 3},
+            "type": "snake",
+        }
+
+    async def fake_get_league(league_id):
+        if league_id == "league-NOSF":
+            return {
+                "roster_positions": ["QB", "RB", "WR"],
+                "total_rosters": 12,
+                "scoring_settings": {"rec": 1.0},
+            }
+        return {**_sf12_league(), "season": "2026"}
+
+    async def fake_get_draft_picks(draft_id):
+        return [_pick(1)]
+
+    monkeypatch.setattr(cal, "get_draft", fake_get_draft)
+    monkeypatch.setattr(cal, "get_league", fake_get_league)
+    monkeypatch.setattr(cal, "get_draft_picks", fake_get_draft_picks)
+
+    boards, rejected = cal._fetch_byo_drafts(
+        ["GOOD", "NOSF", "NOLG", "BOOM", "INCHAIN"],
+        chain_draft_ids={"INCHAIN"},
+    )
+
+    assert [b["draft_id"] for b in boards] == ["GOOD"]
+
+    reasons = {r["draft_id"]: r["reason"] for r in rejected}
+    assert reasons == {
+        "NOSF": "not_superflex",
+        "NOLG": "missing_league_id",
+        "BOOM": "fetch_failed",
+        "INCHAIN": "duplicate_existing_draft",
+    }
+
+
 def test_normalize_name_strips_case_punct_suffix():
     assert normalize_name("Michael Penix Jr.") == normalize_name("michael penix")
     assert normalize_name("Ja'Marr Chase") == "jamarr chase"

@@ -157,6 +157,7 @@ async def _collect_rookie_boards(league_id: str) -> list[dict]:
             boards.append(
                 {
                     "draft_class": draft_class,
+                    "draft_id": d["draft_id"],
                     "source": f"sleeper_league:{current}",
                     "picks": [
                         {
@@ -178,6 +179,42 @@ async def _collect_rookie_boards(league_id: str) -> list[dict]:
 def _fetch_league_rookie_drafts(league_id: str) -> list[dict]:
     """Live read-only Sleeper fetch (monkeypatched in tests)."""
     return asyncio.run(_collect_rookie_boards(league_id))
+
+
+async def _collect_byo_boards(draft_ids: list[str], chain_draft_ids: set[str]):
+    """Gate + build curated BYO drafts. Returns (boards, rejections). Fail-closed; never silent."""
+    boards: list[dict] = []
+    rejections: list[dict] = []
+    for did in draft_ids:
+        if did in chain_draft_ids:
+            rejections.append({"draft_id": did, "reason": "duplicate_existing_draft"})
+            continue
+        try:
+            draft = await get_draft(did)
+            league_id = draft.get("league_id")
+            if not league_id:
+                rejections.append({"draft_id": did, "reason": "missing_league_id"})
+                continue
+            league = await get_league(league_id)
+            picks = await get_draft_picks(did)
+        except Exception:
+            rejections.append({"draft_id": did, "reason": "fetch_failed"})
+            continue
+        accepted, reason, fmt = gate_byo_draft(draft, league)
+        if not accepted:
+            rejections.append({"draft_id": did, "reason": reason, "format_meta": fmt})
+            continue
+        board, breason = _build_byo_board(did, draft, league, picks)
+        if board is None:
+            rejections.append({"draft_id": did, "reason": breason, "format_meta": fmt})
+            continue
+        boards.append(board)
+    return boards, rejections
+
+
+def _fetch_byo_drafts(draft_ids: list[str], chain_draft_ids: set[str]):
+    """Live read-only Sleeper fetch for BYO drafts (monkeypatched in tests)."""
+    return asyncio.run(_collect_byo_boards(draft_ids, chain_draft_ids))
 
 
 def _load_seed_drafts() -> list[dict]:
