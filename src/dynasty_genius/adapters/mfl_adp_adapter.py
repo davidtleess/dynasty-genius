@@ -213,3 +213,16 @@ def normalize_mfl_adp_entry(adp_row: dict, players_map: dict[str, dict]) -> dict
         "decision_supported": False,
         "caveats": list(INTRINSIC_CAVEATS),
     }
+
+
+def fetch_rookie_adp_rows(season: int | None = None) -> tuple[list[dict], list[str]]:
+    """Normalized MFL rookie ADP rows + transient caveats — for report consumers.
+
+    Wraps fetch_adp_with_cache + fetch_players_with_cache + normalize_mfl_adp_entry.
+    Additive: does NOT change MarketSource.fetch() (which stays rows-only).
+    """
+    season = season or _current_season()
+    adp_rows, adp_caveats = fetch_adp_with_cache(season)
+    players_map, players_caveats = fetch_players_with_cache(season)
+    rows = [normalize_mfl_adp_entry(r, players_map) for r in adp_rows]
+    return rows, list(adp_caveats) + list(players_caveats)

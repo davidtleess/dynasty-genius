@@ -297,6 +297,55 @@ def test_normalize_unmatched_row_has_none_identity():
     assert out["market_adp_rank"] == int(unmatched["rank"])
 
 
+def test_fetch_rookie_adp_rows_returns_rows_and_caveats(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR",
+        tmp_path,
+    )
+    from src.dynasty_genius.adapters import mfl_adp_adapter as m
+
+    def _resp_for(url, **_kwargs):
+        class _R:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                if "TYPE=players" in url:
+                    return json.loads(PLAYERS_FIXTURE.read_text())
+                return json.loads(ADP_FIXTURE.read_text())
+
+        return _R()
+
+    with patch("httpx.get", side_effect=_resp_for):
+        rows, caveats = m.fetch_rookie_adp_rows(2026)
+    assert isinstance(rows, list)
+    assert isinstance(caveats, list)
+    assert all(
+        r["source"] == "mfl_rookie_adp" and r["decision_supported"] is False
+        for r in rows
+    )
+    by_id = {r["mfl_id"]: r for r in rows}
+    assert by_id["17472"]["full_name"] is not None
+    assert by_id["99999"]["full_name"] is None
+    assert "mfl_adp_format_blended_qb_count" in by_id["17472"]["caveats"]
+    assert any(
+        c.startswith("source_publish_age_h=") or c == "mfl_adp_timestamp_unavailable"
+        for c in caveats
+    )
+
+
+def test_fetch_rookie_adp_rows_does_not_change_market_source_contract():
+    import inspect
+
+    from src.dynasty_genius.adapters import market_source
+    from src.dynasty_genius.adapters import mfl_adp_adapter as m
+
+    assert callable(m.fetch_rookie_adp_rows)
+    source = inspect.getsource(market_source.MflAdpMarketSource.fetch)
+    assert "fetch_rookie_adp_rows" not in source
+    assert "caveats" not in source
+
+
 def test_market_source_fetch_returns_rows_only(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR",
