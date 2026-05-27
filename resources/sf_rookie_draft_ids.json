@@ -1,4 +1,11 @@
 {
-  "note": "Curated real Superflex 12-team rookie draft IDs for the SF-QB knob calibration corpus. Each ID is fetched and hard-gated (SF + 12-team + completed rookie) before inclusion. Empty list = chain + seed only.",
-  "draft_ids": []
+  "note": "Curated real Superflex 12-team rookie draft IDs for the SF-QB knob calibration corpus. Each ID is fetched and hard-gated (SF + 12-team + completed rookie) before inclusion. Empty list = chain + seed only. 2026-05-27: resolved from 5 user-supplied Sleeper league IDs (walking previous_league_id chains). Trimmed to the 6 qualifying drafts. Dropped: League 1337563397696294912 chain (5 drafts) = 1-QB, not Superflex; League 1072964094526828544 chain 2020-2024 rookie drafts = 7 rounds (excluded by the rounds<=6 gate), so only its 2019 (5-round) draft is included.",
+  "draft_ids": [
+    "445819099369435136",
+    "1182833040563716097",
+    "1207055487728627712",
+    "1312135381499535360",
+    "1312135574538170368",
+    "1353166648118382592"
+  ]
 }

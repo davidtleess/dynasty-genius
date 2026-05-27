@@ -1,0 +1,281 @@
+{
+  "recommended_k": 0,
+  "median_raw": -2.0,
+  "n_drafts": 12,
+  "n_qbs_matched": 50,
+  "n_qbs_unmatched": 7,
+  "promotions": [
+    -12.0,
+    -12.0,
+    -11.0,
+    -10.0,
+    -10.0,
+    -10.0,
+    -10.0,
+    -9.0,
+    -8.0,
+    -7.0,
+    -6.0,
+    -5.0,
+    -5.0,
+    -5.0,
+    -5.0,
+    -5.0,
+    -4.0,
+    -4.0,
+    -4.0,
+    -4.0,
+    -3.0,
+    -2.0,
+    -2.0,
+    -2.0,
+    -2.0,
+    -2.0,
+    -2.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    3.0,
+    3.0,
+    3.0,
+    3.0,
+    3.0,
+    3.0,
+    4.0,
+    5.0,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    8.0,
+    13.0,
+    17.0
+  ],
+  "classes": [
+    2019,
+    2022,
+    2024,
+    2025,
+    2026
+  ],
+  "per_draft": [
+    {
+      "draft_class": 2026,
+      "source": "sleeper_league:1314363401744416768",
+      "n_qbs_matched": 5,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        -5.0,
+        -1.0,
+        3.0,
+        3.0,
+        13.0
+      ],
+      "draft_id": "1314363401757036544"
+    },
+    {
+      "draft_class": 2025,
+      "source": "sleeper_league:1183088915091423232",
+      "n_qbs_matched": 4,
+      "n_qbs_unmatched": 2,
+      "promotions": [
+        -11.0,
+        0.0,
+        3.0,
+        6.0
+      ],
+      "draft_id": "1183088915091423233"
+    },
+    {
+      "draft_class": 2024,
+      "source": "sleeper_league:1049152209134424064",
+      "n_qbs_matched": 6,
+      "n_qbs_unmatched": 1,
+      "promotions": [
+        -10.0,
+        -5.0,
+        -2.0,
+        -2.0,
+        -1.0,
+        3.0
+      ],
+      "draft_id": "1049152209134424065"
+    },
+    {
+      "draft_class": 2024,
+      "source": "seed_draft_B",
+      "n_qbs_matched": 6,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        -12.0,
+        -7.0,
+        -5.0,
+        -2.0,
+        0.0,
+        3.0
+      ]
+    },
+    {
+      "draft_class": 2022,
+      "source": "seed_draft_A",
+      "n_qbs_matched": 4,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        4.0,
+        5.0,
+        7.0,
+        8.0
+      ]
+    },
+    {
+      "draft_class": 2025,
+      "source": "seed_draft_F",
+      "n_qbs_matched": 2,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        -4.0,
+        0.0
+      ]
+    },
+    {
+      "draft_class": 2019,
+      "source": "sleeper_draft:445819099369435136",
+      "n_qbs_matched": 4,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        -10.0,
+        -9.0,
+        -3.0,
+        -1.0
+      ],
+      "draft_id": "445819099369435136",
+      "format_meta": {
+        "superflex": true,
+        "total_rosters": 12,
+        "ppr": 0.5,
+        "te_premium": false
+      },
+      "n_picks_raw": 60,
+      "n_picks_used": 36,
+      "n_picks_excluded_after_36": 24
+    },
+    {
+      "draft_class": 2025,
+      "source": "sleeper_draft:1182833040563716097",
+      "n_qbs_matched": 3,
+      "n_qbs_unmatched": 2,
+      "promotions": [
+        -10.0,
+        -6.0,
+        17.0
+      ],
+      "draft_id": "1182833040563716097",
+      "format_meta": {
+        "superflex": true,
+        "total_rosters": 12,
+        "ppr": 1.0,
+        "te_premium": true
+      },
+      "n_picks_raw": 36,
+      "n_picks_used": 36,
+      "n_picks_excluded_after_36": 0
+    },
+    {
+      "draft_class": 2025,
+      "source": "sleeper_draft:1207055487728627712",
+      "n_qbs_matched": 3,
+      "n_qbs_unmatched": 2,
+      "promotions": [
+        -12.0,
+        -5.0,
+        8.0
+      ],
+      "draft_id": "1207055487728627712",
+      "format_meta": {
+        "superflex": true,
+        "total_rosters": 12,
+        "ppr": 1.0,
+        "te_premium": true
+      },
+      "n_picks_raw": 48,
+      "n_picks_used": 36,
+      "n_picks_excluded_after_36": 12
+    },
+    {
+      "draft_class": 2026,
+      "source": "sleeper_draft:1312135381499535360",
+      "n_qbs_matched": 4,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        -10.0,
+        -8.0,
+        -4.0,
+        -2.0
+      ],
+      "draft_id": "1312135381499535360",
+      "format_meta": {
+        "superflex": true,
+        "total_rosters": 12,
+        "ppr": 1.0,
+        "te_premium": true
+      },
+      "n_picks_raw": 48,
+      "n_picks_used": 36,
+      "n_picks_excluded_after_36": 12
+    },
+    {
+      "draft_class": 2026,
+      "source": "sleeper_draft:1312135574538170368",
+      "n_qbs_matched": 4,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        -5.0,
+        -4.0,
+        -2.0,
+        -1.0
+      ],
+      "draft_id": "1312135574538170368",
+      "format_meta": {
+        "superflex": true,
+        "total_rosters": 12,
+        "ppr": 1.0,
+        "te_premium": true
+      },
+      "n_picks_raw": 36,
+      "n_picks_used": 36,
+      "n_picks_excluded_after_36": 0
+    },
+    {
+      "draft_class": 2026,
+      "source": "sleeper_draft:1353166648118382592",
+      "n_qbs_matched": 5,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        -4.0,
+        -2.0,
+        -1.0,
+        3.0,
+        5.0
+      ],
+      "draft_id": "1353166648118382592",
+      "format_meta": {
+        "superflex": true,
+        "total_rosters": 12,
+        "ppr": 1.0,
+        "te_premium": true
+      },
+      "n_picks_raw": 48,
+      "n_picks_used": 36,
+      "n_picks_excluded_after_36": 12
+    }
+  ],
+  "rejected": [],
+  "caveats": [
+    "sf_qb_calibration_thin_sample"
+  ]
+}
