@@ -255,3 +255,43 @@ def test_players_handles_singleton(tmp_path, monkeypatch):
     with patch("httpx.get", return_value=_Resp()):
         pmap, _caveats = m.fetch_players_with_cache(2026)
     assert pmap["1"]["name"] == "Solo, Han"
+
+
+def test_normalize_matched_row():
+    from src.dynasty_genius.adapters.mfl_adp_adapter import (
+        _rows_to_player_map,
+        normalize_mfl_adp_entry,
+    )
+
+    pmap = _rows_to_player_map(_players_rows())
+    row = _adp_player_rows()[0]
+    out = normalize_mfl_adp_entry(row, pmap)
+    assert out["mfl_id"] == row["id"]
+    assert out["full_name"] == pmap[row["id"]]["name"]
+    assert out["position"] == pmap[row["id"]]["position"]
+    assert out["market_adp_rank"] == int(row["rank"])
+    assert out["market_average_pick"] == float(row["averagePick"])
+    assert out["market_min_pick"] == int(row["minPick"])
+    assert out["market_max_pick"] == int(row["maxPick"])
+    assert out["draft_selection_pct"] == float(row["draftSelPct"])
+    assert out["drafts_selected_in"] == int(row["draftsSelectedIn"])
+    assert out["source"] == "mfl_rookie_adp"
+    assert out["decision_supported"] is False
+    assert "mfl_adp_format_blended_qb_count" in out["caveats"]
+    assert "mfl_adp_te_premium_unfiltered" in out["caveats"]
+
+
+def test_normalize_unmatched_row_has_none_identity():
+    from src.dynasty_genius.adapters.mfl_adp_adapter import (
+        _rows_to_player_map,
+        normalize_mfl_adp_entry,
+    )
+
+    pmap = _rows_to_player_map(_players_rows())
+    unmatched = next(r for r in _adp_player_rows() if r["id"] == "99999")
+    out = normalize_mfl_adp_entry(unmatched, pmap)
+    assert out["mfl_id"] == "99999"
+    assert out["full_name"] is None
+    assert out["position"] is None
+    assert out["decision_supported"] is False
+    assert out["market_adp_rank"] == int(unmatched["rank"])

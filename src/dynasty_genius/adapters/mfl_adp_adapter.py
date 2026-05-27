@@ -184,3 +184,32 @@ def fetch_players_with_cache(season: int | None = None) -> tuple[dict[str, dict]
         return _rows_to_player_map(cached["data"]), ["stale_players_map"]
 
     return {}, ["mfl_players_map_unavailable"]
+
+
+def _as_int(v):
+    return int(float(v)) if v is not None else None
+
+
+def _as_float(v):
+    return float(v) if v is not None else None
+
+
+def normalize_mfl_adp_entry(adp_row: dict, players_map: dict[str, dict]) -> dict:
+    """One self-describing overlay row. Intrinsic caveats + decision_supported ride on the row."""
+    mfl_id = adp_row.get("id")
+    ident = players_map.get(mfl_id, {})
+    return {
+        "mfl_id": mfl_id,
+        "full_name": ident.get("name"),
+        "position": ident.get("position"),
+        "nfl_team": ident.get("team"),
+        "market_adp_rank": _as_int(adp_row.get("rank")),
+        "market_average_pick": _as_float(adp_row.get("averagePick")),
+        "market_min_pick": _as_int(adp_row.get("minPick")),
+        "market_max_pick": _as_int(adp_row.get("maxPick")),
+        "draft_selection_pct": _as_float(adp_row.get("draftSelPct")),
+        "drafts_selected_in": _as_int(adp_row.get("draftsSelectedIn")),
+        "source": "mfl_rookie_adp",
+        "decision_supported": False,
+        "caveats": list(INTRINSIC_CAVEATS),
+    }
