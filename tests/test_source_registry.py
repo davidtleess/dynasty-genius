@@ -24,7 +24,7 @@ def test_registry_has_all_expected_sources():
         "nfl_data_py", "cfbd", "playerprofiler", "ras", "pff", "rotoviz",
         "campus2canton", "fantasycalc", "dynasty_data_lab", "dynasty_nerds",
         "ktc", "sleeper", "sportradar", "genius_sports", "stats_perform",
-        "rolling_insights", "nflreadpy_qb_context",
+        "rolling_insights", "nflreadpy_qb_context", "mfl_rookie_adp",
     }
     assert expected == set(SOURCE_REGISTRY.keys()), (
         f"Registry mismatch. Missing: {expected - set(SOURCE_REGISTRY.keys())}. "

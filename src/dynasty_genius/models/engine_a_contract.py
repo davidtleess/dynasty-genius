@@ -63,6 +63,8 @@ PROHIBITED_COLUMNS = {
     "nfl_receptions", "nfl_air_yards", "nfl_yprr",
     "pff_grade", "pff_route_grade",
     "scout_note", "analyst_note", "narrative",
+    # MFL rookie ADP overlay fields not caught by LEAKAGE_REGEX — overlay-only, never training:
+    "draft_selection_pct", "drafts_selected_in",
 }
 
 # Anchored regex for broader leakage scanning

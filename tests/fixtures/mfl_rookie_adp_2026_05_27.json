@@ -1,0 +1,54 @@
+{
+  "adp": {
+    "timestamp": "1779872452",
+    "totalDrafts": "670",
+    "totalPicks": "210000",
+    "player": [
+      {
+        "id": "17472",
+        "rank": "1",
+        "averagePick": "1.43",
+        "minPick": "1",
+        "maxPick": "38",
+        "draftSelPct": "94",
+        "draftsSelectedIn": "634"
+      },
+      {
+        "id": "17497",
+        "rank": "2",
+        "averagePick": "3.67",
+        "minPick": "1",
+        "maxPick": "94",
+        "draftSelPct": "95",
+        "draftsSelectedIn": "640"
+      },
+      {
+        "id": "17498",
+        "rank": "3",
+        "averagePick": "5.52",
+        "minPick": "1",
+        "maxPick": "123",
+        "draftSelPct": "96",
+        "draftsSelectedIn": "649"
+      },
+      {
+        "id": "17473",
+        "rank": "4",
+        "averagePick": "5.64",
+        "minPick": "1",
+        "maxPick": "91",
+        "draftSelPct": "105",
+        "draftsSelectedIn": "706"
+      },
+      {
+        "id": "99999",
+        "rank": "5",
+        "averagePick": "9.00",
+        "minPick": "3",
+        "maxPick": "130",
+        "draftSelPct": "90",
+        "draftsSelectedIn": "600"
+      }
+    ]
+  }
+}

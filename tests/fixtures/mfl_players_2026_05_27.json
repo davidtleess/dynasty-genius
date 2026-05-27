@@ -1,0 +1,31 @@
+{
+  "players": {
+    "timestamp": "1779872452",
+    "player": [
+      {
+        "id": "17472",
+        "name": "Love, Jeremiyah",
+        "position": "RB",
+        "team": "ARI"
+      },
+      {
+        "id": "17497",
+        "name": "Tate, Carnell",
+        "position": "WR",
+        "team": "TEN"
+      },
+      {
+        "id": "17498",
+        "name": "Tyson, Jordyn",
+        "position": "WR",
+        "team": "NOS"
+      },
+      {
+        "id": "17473",
+        "name": "Price, Jadarian",
+        "position": "RB",
+        "team": "SEA"
+      }
+    ]
+  }
+}

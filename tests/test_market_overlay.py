@@ -18,7 +18,12 @@ import pytest
 from src.dynasty_genius.models.engine_a_contract import ALLOWED_ENRICHMENT_COLUMNS
 from src.dynasty_genius.sources.source_registry import SOURCE_REGISTRY
 
-MARKET_OVERLAY_SOURCES = {"fantasycalc", "dynasty_data_lab", "dynasty_nerds"}
+MARKET_OVERLAY_SOURCES = {
+    "fantasycalc",
+    "dynasty_data_lab",
+    "dynasty_nerds",
+    "mfl_rookie_adp",
+}
 
 
 def test_all_market_overlay_sources_have_market_overlay_role():
@@ -71,6 +76,20 @@ def test_fantasycalc_is_primary_market_signal():
         "FantasyCalc must degrade gracefully to cache on API failure — "
         "market overlay is non-blocking."
     )
+
+
+def test_mfl_rookie_adp_is_market_overlay_only():
+    src = SOURCE_REGISTRY["mfl_rookie_adp"]
+    assert "market_overlay" in src.roles
+    assert "model_input" not in src.roles
+    assert "training_label" not in src.roles
+
+
+def test_mfl_rookie_adp_cache_and_freshness():
+    src = SOURCE_REGISTRY["mfl_rookie_adp"]
+    assert src.cache_policy == "json_cache"
+    assert src.freshness_hours == 24
+    assert src.failure_behavior == "use_cached"
 
 
 def test_deferred_market_sources_have_no_cache_policy():
@@ -136,6 +155,15 @@ def test_fantasycalc_market_source_is_subclass_of_market_source():
         MarketSource,
     )
     assert issubclass(FantasyCalcMarketSource, MarketSource)
+
+
+def test_mfl_adp_market_source_is_subclass_of_market_source():
+    from src.dynasty_genius.adapters.market_source import (
+        MarketSource,
+        MflAdpMarketSource,
+    )
+
+    assert issubclass(MflAdpMarketSource, MarketSource)
 
 
 # ── Phase 9 adapter tests ─────────────────────────────────────────────────────
