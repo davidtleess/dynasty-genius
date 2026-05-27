@@ -192,3 +192,66 @@ def test_adp_wrong_season_cache_not_served(tmp_path, monkeypatch):
         rows, caveats = m.fetch_adp_with_cache(2026)
     assert rows == []
     assert "market_data_unavailable" in caveats
+
+
+def test_players_live_refresh_builds_map(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR",
+        tmp_path,
+    )
+    from src.dynasty_genius.adapters import mfl_adp_adapter as m
+
+    class _Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return json.loads(PLAYERS_FIXTURE.read_text())
+
+    with patch("httpx.get", return_value=_Resp()):
+        pmap, _caveats = m.fetch_players_with_cache(2026)
+    first = _players_rows()[0]
+    assert pmap[first["id"]]["name"] == first["name"]
+    assert pmap[first["id"]]["position"] == first["position"]
+    assert m._players_cache_file(2026).exists()
+
+
+def test_players_cold_fail_returns_empty_map_with_caveat(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR",
+        tmp_path,
+    )
+    from src.dynasty_genius.adapters import mfl_adp_adapter as m
+
+    with patch("httpx.get", side_effect=Exception("network error")):
+        pmap, caveats = m.fetch_players_with_cache(2026)
+    assert pmap == {}
+    assert "mfl_players_map_unavailable" in caveats
+
+
+def test_players_handles_singleton(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR",
+        tmp_path,
+    )
+    from src.dynasty_genius.adapters import mfl_adp_adapter as m
+
+    class _Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "players": {
+                    "player": {
+                        "id": "1",
+                        "name": "Solo, Han",
+                        "position": "WR",
+                        "team": "FA",
+                    },
+                },
+            }
+
+    with patch("httpx.get", return_value=_Resp()):
+        pmap, _caveats = m.fetch_players_with_cache(2026)
+    assert pmap["1"]["name"] == "Solo, Han"

@@ -154,3 +154,33 @@ def fetch_adp_with_cache(season: int | None = None) -> tuple[list[dict], list[st
 
     # Stage 3: cold fail
     return [], ["market_data_unavailable"]
+
+
+def _rows_to_player_map(rows: list[dict]) -> dict[str, dict]:
+    return {r["id"]: {"name": r.get("name"), "position": r.get("position"), "team": r.get("team")}
+            for r in rows if r.get("id") is not None}
+
+
+def fetch_players_with_cache(season: int | None = None) -> tuple[dict[str, dict], list[str]]:
+    """({mfl_id: {name,position,team}}, transient caveats). Independent 3-stage degrade. Never raises."""
+    season = season or _current_season()
+    path = _players_cache_file(season)
+    cached = _load_cache(path)
+
+    if cached:
+        age = _cache_age_hours(cached.get("fetched_at", ""))
+        if age is not None and age < cached.get("ttl_hours", PLAYERS_TTL_HOURS):
+            return _rows_to_player_map(cached["data"]), []
+
+    try:
+        payload = _get_json(PLAYERS_API_URL_TEMPLATE.format(year=season)).get("players", {})
+        rows = _sanitize_players(_as_list(payload.get("player")))
+        _save_cache(path, rows, PLAYERS_TTL_HOURS, payload.get("timestamp"))
+        return _rows_to_player_map(rows), []
+    except Exception:
+        pass
+
+    if cached:
+        return _rows_to_player_map(cached["data"]), ["stale_players_map"]
+
+    return {}, ["mfl_players_map_unavailable"]
