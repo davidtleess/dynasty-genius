@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 ADP_FIXTURE = Path("tests/fixtures/mfl_rookie_adp_2026_05_27.json")
 PLAYERS_FIXTURE = Path("tests/fixtures/mfl_players_2026_05_27.json")
@@ -14,6 +16,16 @@ def _adp_player_rows() -> list[dict]:
 
 def _players_rows() -> list[dict]:
     return json.loads(PLAYERS_FIXTURE.read_text())["players"]["player"]
+
+
+def _write_adp_cache(path, fetched_at, source_ts, rows, ttl=24):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({
+        "fetched_at": fetched_at,
+        "source_timestamp": source_ts,
+        "ttl_hours": ttl,
+        "data": rows,
+    }))
 
 
 def test_adp_url_has_locked_params():
@@ -96,3 +108,87 @@ def test_freshness_caveats_flags_missing_timestamp():
     assert "mfl_adp_timestamp_unavailable" in _freshness_caveats(None)
     valid_epoch = str(int(time.time()))
     assert "mfl_adp_timestamp_unavailable" not in _freshness_caveats(valid_epoch)
+
+
+def test_adp_stage1_fresh_cache_served(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR",
+        tmp_path,
+    )
+    from src.dynasty_genius.adapters import mfl_adp_adapter as m
+
+    fresh = datetime.now(timezone.utc).strftime(m._TS_FMT)
+    source_ts = str(int(time.time()))
+    _write_adp_cache(m._adp_cache_file(2026), fresh, source_ts, _adp_player_rows())
+    with patch("httpx.get", side_effect=AssertionError("must not hit network")):
+        rows, caveats = m.fetch_adp_with_cache(2026)
+    assert len(rows) == len(_adp_player_rows())
+    assert any(c.startswith("source_publish_age_h=") for c in caveats)
+
+
+def test_adp_stage2_stale_serve_carries_both_ages(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR",
+        tmp_path,
+    )
+    from src.dynasty_genius.adapters import mfl_adp_adapter as m
+
+    old = (datetime.now(timezone.utc) - timedelta(hours=48)).strftime(m._TS_FMT)
+    old_source_ts = str(int(time.time()) - 48 * 3600)
+    _write_adp_cache(m._adp_cache_file(2026), old, old_source_ts, _adp_player_rows())
+    with patch("httpx.get", side_effect=Exception("network error")):
+        rows, caveats = m.fetch_adp_with_cache(2026)
+    assert len(rows) == len(_adp_player_rows())
+    assert "stale_market_data" in caveats
+    assert any(c.startswith("cache_age_h=") for c in caveats)
+    assert any(c.startswith("source_publish_age_h=") for c in caveats)
+
+
+def test_adp_stage3_cold_fail(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR",
+        tmp_path,
+    )
+    from src.dynasty_genius.adapters import mfl_adp_adapter as m
+
+    with patch("httpx.get", side_effect=Exception("network error")):
+        rows, caveats = m.fetch_adp_with_cache(2026)
+    assert rows == []
+    assert "market_data_unavailable" in caveats
+
+
+def test_adp_live_refresh_parses_and_caches(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR",
+        tmp_path,
+    )
+    from src.dynasty_genius.adapters import mfl_adp_adapter as m
+
+    class _Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return json.loads(ADP_FIXTURE.read_text())
+
+    with patch("httpx.get", return_value=_Resp()):
+        rows, _caveats = m.fetch_adp_with_cache(2026)
+    assert len(rows) == len(_adp_player_rows())
+    assert "junk" not in rows[0]
+    assert m._adp_cache_file(2026).exists()
+
+
+def test_adp_wrong_season_cache_not_served(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.mfl_adp_adapter.CACHE_DIR",
+        tmp_path,
+    )
+    from src.dynasty_genius.adapters import mfl_adp_adapter as m
+
+    fresh = datetime.now(timezone.utc).strftime(m._TS_FMT)
+    source_ts = str(int(time.time()))
+    _write_adp_cache(m._adp_cache_file(2025), fresh, source_ts, _adp_player_rows())
+    with patch("httpx.get", side_effect=Exception("network error")):
+        rows, caveats = m.fetch_adp_with_cache(2026)
+    assert rows == []
+    assert "market_data_unavailable" in caveats

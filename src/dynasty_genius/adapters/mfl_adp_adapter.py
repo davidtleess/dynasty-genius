@@ -11,8 +11,11 @@ Market values are post-scoring overlays only — never Engine A/B features.
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
+
+import httpx
 
 _BASE = "https://api.myfantasyleague.com"
 # Params live-locked 2026-05-27 (ROOKIES=1; IS_KEEPER=Rookie Only is INVALID).
@@ -88,3 +91,66 @@ def _freshness_caveats(source_timestamp) -> list[str]:
     if age is None:
         return ["mfl_adp_timestamp_unavailable"]
     return [f"source_publish_age_h={int(age)}"]
+
+
+def _load_cache(path: Path) -> dict | None:
+    try:
+        if path.exists():
+            return json.loads(path.read_text())
+    except Exception:
+        return None
+    return None
+
+
+def _save_cache(path: Path, data, ttl_hours: int, source_timestamp) -> None:
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({
+            "fetched_at": datetime.now(timezone.utc).strftime(_TS_FMT),
+            "source_timestamp": source_timestamp,
+            "ttl_hours": ttl_hours,
+            "data": data,
+        }))
+    except Exception:
+        pass
+
+
+def _get_json(url: str) -> dict:
+    resp = httpx.get(url, headers={"User-Agent": _USER_AGENT}, timeout=10.0)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def fetch_adp_with_cache(season: int | None = None) -> tuple[list[dict], list[str]]:
+    """(sanitized ADP rows, transient caveats). 3-stage degrade. Never raises."""
+    season = season or _current_season()
+    path = _adp_cache_file(season)
+    cached = _load_cache(path)
+
+    # Stage 1: fresh cache (fetched_at clock)
+    if cached:
+        age = _cache_age_hours(cached.get("fetched_at", ""))
+        if age is not None and age < cached.get("ttl_hours", ADP_TTL_HOURS):
+            return cached["data"], _freshness_caveats(cached.get("source_timestamp"))
+
+    # Attempt live refresh
+    try:
+        payload = _get_json(ADP_API_URL_TEMPLATE.format(year=season)).get("adp", {})
+        rows = _sanitize_adp(_as_list(payload.get("player")))
+        source_ts = payload.get("timestamp")
+        _save_cache(path, rows, ADP_TTL_HOURS, source_ts)
+        return rows, _freshness_caveats(source_ts)
+    except Exception:
+        pass
+
+    # Stage 2: stale serve (cache present but refresh failed)
+    if cached:
+        caveats = ["stale_market_data"]
+        cache_age = _cache_age_hours(cached.get("fetched_at", ""))
+        if cache_age is not None:
+            caveats.append(f"cache_age_h={int(cache_age)}")
+        caveats += _freshness_caveats(cached.get("source_timestamp"))
+        return cached["data"], caveats
+
+    # Stage 3: cold fail
+    return [], ["market_data_unavailable"]
