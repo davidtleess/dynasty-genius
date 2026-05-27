@@ -94,6 +94,64 @@ def test_league_format_metadata_reads_scoring_settings():
     assert meta2["te_premium"] is False
 
 
+def _sf12_league():
+    return {
+        "roster_positions": ["QB", "SUPER_FLEX"],
+        "total_rosters": 12,
+        "scoring_settings": {"rec": 1.0},
+    }
+
+
+def test_gate_byo_draft_accepts_sf_12team_complete_rookie():
+    draft = {"status": "complete", "settings": {"rounds": 4}, "type": "snake"}
+
+    accepted, reason, fmt = cal.gate_byo_draft(draft, _sf12_league())
+
+    assert accepted is True
+    assert reason is None
+    assert fmt["superflex"] is True
+
+
+def test_gate_byo_draft_reject_reasons():
+    sf12 = _sf12_league()
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "drafting", "settings": {"rounds": 4}},
+        sf12,
+    )
+    assert (accepted, reason) == (False, "not_rookie")
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "complete", "settings": {"rounds": "x"}},
+        sf12,
+    )
+    assert (accepted, reason) == (False, "malformed_draft_settings")
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "complete", "settings": {"rounds": 15}},
+        sf12,
+    )
+    assert (accepted, reason) == (False, "not_rookie")
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "complete", "settings": {"rounds": 4}, "type": "auction"},
+        sf12,
+    )
+    assert (accepted, reason) == (False, "unsupported_draft_type")
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "complete", "settings": {"rounds": 4}},
+        {"roster_positions": ["QB"], "total_rosters": 12},
+    )
+    assert (accepted, reason) == (False, "not_superflex")
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "complete", "settings": {"rounds": 4}},
+        {"roster_positions": ["SUPER_FLEX"], "total_rosters": 10},
+    )
+    assert (accepted, reason) == (False, "not_12_team")
+
+
 def test_normalize_name_strips_case_punct_suffix():
     assert normalize_name("Michael Penix Jr.") == normalize_name("michael penix")
     assert normalize_name("Ja'Marr Chase") == "jamarr chase"

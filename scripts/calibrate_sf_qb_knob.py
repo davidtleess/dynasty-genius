@@ -232,6 +232,27 @@ def league_format_metadata(league: dict) -> dict:
     }
 
 
+def gate_byo_draft(draft: dict, league: dict) -> tuple[bool, str | None, dict]:
+    """Draft+league gate ONLY (no picks). Returns (accepted, reason, format_meta)."""
+    fmt = league_format_metadata(league)
+    if draft.get("status") != "complete":
+        return False, "not_rookie", fmt
+    rounds = (draft.get("settings") or {}).get("rounds")
+    try:
+        rounds_int = int(rounds)
+    except (TypeError, ValueError):
+        return False, "malformed_draft_settings", fmt
+    if rounds_int > 6:
+        return False, "not_rookie", fmt
+    if draft.get("type") == "auction":
+        return False, "unsupported_draft_type", fmt
+    if not is_superflex(league):
+        return False, "not_superflex", fmt
+    if not is_twelve_team(league):
+        return False, "not_12_team", fmt
+    return True, None, fmt
+
+
 def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:
     boards = list(_fetch_league_rookie_drafts(league_id)) + _load_seed_drafts()
     classes = {b["draft_class"] for b in boards}
