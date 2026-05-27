@@ -60,3 +60,31 @@ def _sanitize_adp(rows: list[dict]) -> list[dict]:
 
 def _sanitize_players(rows: list[dict]) -> list[dict]:
     return [{k: r[k] for k in _PLAYERS_ALLOWED if k in r} for r in rows]
+
+
+def _cache_age_hours(fetched_at: str) -> float | None:
+    """Local cache age from fetched_at — governs whether to attempt a refresh."""
+    try:
+        fetched = datetime.strptime(fetched_at, _TS_FMT).replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - fetched).total_seconds() / 3600
+    except (ValueError, TypeError):
+        return None
+
+
+def _source_publish_age_hours(source_timestamp) -> float | None:
+    """Publish age from MFL adp.timestamp (epoch seconds) — the market freshness signal."""
+    if source_timestamp is None:
+        return None
+    try:
+        published = datetime.fromtimestamp(int(source_timestamp), tz=timezone.utc)
+        return (datetime.now(timezone.utc) - published).total_seconds() / 3600
+    except (ValueError, TypeError, OverflowError, OSError):
+        return None
+
+
+def _freshness_caveats(source_timestamp) -> list[str]:
+    """Disclose source publish age; flag when the source timestamp is unusable."""
+    age = _source_publish_age_hours(source_timestamp)
+    if age is None:
+        return ["mfl_adp_timestamp_unavailable"]
+    return [f"source_publish_age_h={int(age)}"]

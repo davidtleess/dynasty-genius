@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 ADP_FIXTURE = Path("tests/fixtures/mfl_rookie_adp_2026_05_27.json")
@@ -67,3 +68,31 @@ def test_sanitizers_keep_only_allowed_fields():
     players = _sanitize_players([dict(_players_rows()[0], junk="x")])
     assert "junk" not in players[0]
     assert set(players[0]) <= {"id", "name", "position", "team"}
+
+
+def test_source_publish_age_parses_epoch():
+    from src.dynasty_genius.adapters.mfl_adp_adapter import (
+        _source_publish_age_hours,
+    )
+
+    one_hour_ago = str(int(time.time()) - 3600)
+    age = _source_publish_age_hours(one_hour_ago)
+    assert age is not None
+    assert 0.9 < age < 1.2
+
+
+def test_source_publish_age_unparseable_returns_none():
+    from src.dynasty_genius.adapters.mfl_adp_adapter import (
+        _source_publish_age_hours,
+    )
+
+    assert _source_publish_age_hours(None) is None
+    assert _source_publish_age_hours("not-a-timestamp") is None
+
+
+def test_freshness_caveats_flags_missing_timestamp():
+    from src.dynasty_genius.adapters.mfl_adp_adapter import _freshness_caveats
+
+    assert "mfl_adp_timestamp_unavailable" in _freshness_caveats(None)
+    valid_epoch = str(int(time.time()))
+    assert "mfl_adp_timestamp_unavailable" not in _freshness_caveats(valid_epoch)
