@@ -457,3 +457,33 @@ def test_main_byo_dupe_within_file_recorded(tmp_path, monkeypatch):
     assert ("DUP", "duplicate_draft_id") in {
         (entry["draft_id"], entry["reason"]) for entry in art["rejected"]
     }
+
+
+def test_collect_byo_boards_gates_before_fetching_picks(monkeypatch):
+    # A not-SF draft must be rejected as not_superflex WITHOUT ever fetching picks —
+    # so a get_draft_picks failure cannot mislabel a hard-gate reject as fetch_failed.
+    draft = {"status": "complete", "settings": {"rounds": 4}, "season": "2024", "league_id": "L"}
+    league = {"roster_positions": ["QB"], "total_rosters": 12, "scoring_settings": {}}
+    picks_calls = []
+
+    async def fake_get_draft(did):
+        return draft
+
+    async def fake_get_league(lid):
+        return league
+
+    async def fake_get_draft_picks(did):
+        picks_calls.append(did)
+        raise RuntimeError("picks must not be fetched for a gated-out draft")
+
+    monkeypatch.setattr(cal, "get_draft", fake_get_draft)
+    monkeypatch.setattr(cal, "get_league", fake_get_league)
+    monkeypatch.setattr(cal, "get_draft_picks", fake_get_draft_picks)
+
+    boards, rejections = cal._fetch_byo_drafts(["NOSF"], chain_draft_ids=set())
+    assert boards == []
+    assert picks_calls == []  # gate happens before picks
+    assert rejections == [
+        {"draft_id": "NOSF", "reason": "not_superflex",
+         "format_meta": cal.league_format_metadata(league)}
+    ]

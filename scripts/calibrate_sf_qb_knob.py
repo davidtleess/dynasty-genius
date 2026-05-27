@@ -196,13 +196,19 @@ async def _collect_byo_boards(draft_ids: list[str], chain_draft_ids: set[str]):
                 rejections.append({"draft_id": did, "reason": "missing_league_id"})
                 continue
             league = await get_league(league_id)
-            picks = await get_draft_picks(did)
         except Exception:
             rejections.append({"draft_id": did, "reason": "fetch_failed"})
             continue
+        # Gate on draft+league BEFORE fetching picks — a hard-gate reject must never be
+        # mislabeled fetch_failed, and we skip the picks read for excluded drafts.
         accepted, reason, fmt = gate_byo_draft(draft, league)
         if not accepted:
             rejections.append({"draft_id": did, "reason": reason, "format_meta": fmt})
+            continue
+        try:
+            picks = await get_draft_picks(did)
+        except Exception:
+            rejections.append({"draft_id": did, "reason": "fetch_failed", "format_meta": fmt})
             continue
         board, breason = _build_byo_board(did, draft, league, picks)
         if board is None:
