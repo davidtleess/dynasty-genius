@@ -45,6 +45,13 @@ def test_ktc_fields_are_prohibited():
     assert "ktc_rank" in PROHIBITED_COLUMNS
 
 
+def test_mfl_overlay_only_fields_are_prohibited():
+    # market_adp_rank / market_average_pick are caught by LEAKAGE_REGEX,
+    # but these MFL fields need explicit protection.
+    assert "draft_selection_pct" in PROHIBITED_COLUMNS
+    assert "drafts_selected_in" in PROHIBITED_COLUMNS
+
+
 def test_no_market_source_is_model_input():
     for name in MARKET_SOURCES:
         src = SOURCE_REGISTRY[name]
@@ -74,6 +81,12 @@ def test_leakage_regex_catches_market_prefix():
 def test_leakage_regex_catches_consensus_prefix():
     assert re.search(LEAKAGE_REGEX, "expert_rank")
     assert re.search(LEAKAGE_REGEX, "consensus_adp")
+
+
+def test_mfl_overlay_only_fields_not_caught_by_regex_so_need_explicit_set():
+    # Documents why these fields are in the explicit prohibited set.
+    assert not re.search(LEAKAGE_REGEX, "draft_selection_pct")
+    assert not re.search(LEAKAGE_REGEX, "drafts_selected_in")
 
 
 def test_leakage_regex_does_not_block_clean_columns():
