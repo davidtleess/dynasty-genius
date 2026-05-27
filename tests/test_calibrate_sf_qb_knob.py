@@ -392,3 +392,68 @@ def test_main_writes_artifact_with_monkeypatched_fetch(tmp_path, monkeypatch):
     assert {"draft_class", "source", "n_qbs_matched", "n_qbs_unmatched", "promotions"} <= set(entry)
     # Aggregate matched == sum of per-draft matched (consistency).
     assert art["n_qbs_matched"] == sum(e["n_qbs_matched"] for e in art["per_draft"])
+
+
+def test_main_includes_byo_and_excludes_rank_map_unavailable(tmp_path, monkeypatch):
+    good_2024 = {
+        "draft_id": "G",
+        "draft_class": 2024,
+        "source": "sleeper_draft:G",
+        "format_meta": {"superflex": True, "total_rosters": 12},
+        "n_picks_raw": 1,
+        "n_picks_used": 1,
+        "n_picks_excluded_after_36": 0,
+        "picks": [{"ff_slot": 1, "player_name": "Caleb Williams", "position": "QB"}],
+    }
+    future_2027 = {
+        "draft_id": "F",
+        "draft_class": 2027,
+        "source": "sleeper_draft:F",
+        "format_meta": {"superflex": True, "total_rosters": 12},
+        "n_picks_raw": 1,
+        "n_picks_used": 1,
+        "n_picks_excluded_after_36": 0,
+        "picks": [{"ff_slot": 1, "player_name": "Future QB", "position": "QB"}],
+    }
+    monkeypatch.setattr(cal, "_fetch_league_rookie_drafts", lambda league_id: [])
+    monkeypatch.setattr(cal, "_load_seed_drafts", lambda: [])
+    monkeypatch.setattr(cal, "_load_byo_draft_ids", lambda: (["G", "F"], []))
+    monkeypatch.setattr(
+        cal,
+        "_fetch_byo_drafts",
+        lambda draft_ids, chain_draft_ids: ([good_2024, future_2027], []),
+    )
+    monkeypatch.setattr(
+        cal,
+        "nfl_skill_ranks",
+        lambda draft_class: {"caleb williams": 1} if draft_class == 2024 else {},
+    )
+    out = tmp_path / "cal.json"
+
+    cal.main(out_path=out)
+    art = json.loads(out.read_text())
+
+    assert [entry["draft_class"] for entry in art["per_draft"]] == [2024]
+    assert ("F", "rank_map_unavailable") in {
+        (entry["draft_id"], entry["reason"]) for entry in art["rejected"]
+    }
+    per_draft = art["per_draft"][0]
+    assert per_draft["source"] == "sleeper_draft:G"
+    assert per_draft["format_meta"]["superflex"] is True
+    assert per_draft["n_picks_used"] == 1
+    assert art["n_qbs_matched"] == sum(e["n_qbs_matched"] for e in art["per_draft"])
+
+
+def test_main_byo_dupe_within_file_recorded(tmp_path, monkeypatch):
+    monkeypatch.setattr(cal, "_fetch_league_rookie_drafts", lambda league_id: [])
+    monkeypatch.setattr(cal, "_load_seed_drafts", lambda: [])
+    monkeypatch.setattr(cal, "_load_byo_draft_ids", lambda: ([], ["DUP"]))
+    monkeypatch.setattr(cal, "_fetch_byo_drafts", lambda draft_ids, chain_draft_ids: ([], []))
+    out = tmp_path / "cal.json"
+
+    cal.main(out_path=out)
+    art = json.loads(out.read_text())
+
+    assert ("DUP", "duplicate_draft_id") in {
+        (entry["draft_id"], entry["reason"]) for entry in art["rejected"]
+    }

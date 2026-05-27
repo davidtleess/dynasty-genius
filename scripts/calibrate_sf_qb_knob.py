@@ -333,24 +333,55 @@ def _build_byo_board(draft_id: str, draft: dict, league: dict, picks: list[dict]
 
 
 def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:
-    boards = list(_fetch_league_rookie_drafts(league_id)) + _load_seed_drafts()
+    chain_boards = list(_fetch_league_rookie_drafts(league_id))
+    seed_drafts = _load_seed_drafts()
+    chain_draft_ids = {b["draft_id"] for b in chain_boards if b.get("draft_id")}
+
+    byo_ids, byo_dupes = _load_byo_draft_ids()
+    byo_boards, byo_rejections = _fetch_byo_drafts(byo_ids, chain_draft_ids)
+    rejected: list[dict] = [{"draft_id": d, "reason": "duplicate_draft_id"} for d in byo_dupes]
+    rejected.extend(byo_rejections)
+
+    boards = chain_boards + seed_drafts + byo_boards
     classes = {b["draft_class"] for b in boards}
     rank_maps = {c: nfl_skill_ranks(c) for c in classes}
+
+    # Exclude boards whose draft_class has no NFL skill-rank map (a data-coverage miss,
+    # NOT a name-match miss) so they never inflate the unmatched denominator or the K math.
+    surviving: list[dict] = []
+    for board in boards:
+        if not rank_maps.get(board["draft_class"]):
+            rejected.append(
+                {
+                    "draft_id": board.get("draft_id"),
+                    "reason": "rank_map_unavailable",
+                    "draft_class": board["draft_class"],
+                }
+            )
+        else:
+            surviving.append(board)
+    boards = surviving
 
     # Per-draft provenance (spec §4) — keeps the audit trail for a thin corpus:
     # which drafts/classes contributed and where unmatched QBs came from.
     per_draft = []
     for board in boards:
         p, bm, bu = _board_qb_promotions(board, rank_maps.get(board["draft_class"], {}))
-        per_draft.append(
-            {
-                "draft_class": board["draft_class"],
-                "source": board.get("source") or board.get("league") or "unknown",
-                "n_qbs_matched": bm,
-                "n_qbs_unmatched": bu,
-                "promotions": sorted(p),
-            }
-        )
+        entry = {
+            "draft_class": board["draft_class"],
+            "source": board.get("source") or board.get("league") or "unknown",
+            "n_qbs_matched": bm,
+            "n_qbs_unmatched": bu,
+            "promotions": sorted(p),
+        }
+        if "draft_id" in board:
+            entry["draft_id"] = board["draft_id"]
+        if "format_meta" in board:
+            entry["format_meta"] = board["format_meta"]
+        for key in ("n_picks_raw", "n_picks_used", "n_picks_excluded_after_36"):
+            if key in board:
+                entry[key] = board[key]
+        per_draft.append(entry)
 
     promotions, matched, unmatched = qb_promotions(boards, rank_maps)
     k = recommend_k(promotions)
@@ -363,6 +394,7 @@ def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:
         "promotions": sorted(promotions),
         "classes": sorted(classes),
         "per_draft": per_draft,
+        "rejected": rejected,
         "caveats": ["sf_qb_calibration_thin_sample"],
     }
     if out_path is None:
@@ -376,7 +408,8 @@ def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:
     out_path.write_text(json.dumps(artifact, indent=2))
     print(
         f"Wrote {out_path}; recommended_k={k} (median={artifact['median_raw']}, "
-        f"matched={matched}, unmatched={unmatched}, drafts={len(boards)})"
+        f"matched={matched}, unmatched={unmatched}, drafts={len(boards)}, "
+        f"rejected={len(rejected)})"
     )
     return k
 
