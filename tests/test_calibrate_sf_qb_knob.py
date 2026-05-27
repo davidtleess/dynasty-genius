@@ -149,3 +149,9 @@ def test_main_writes_artifact_with_monkeypatched_fetch(tmp_path, monkeypatch):
     assert art["n_qbs_matched"] >= 1
     assert isinstance(k, int)
     assert 0 <= k <= 3
+    # Per-draft provenance (spec §4): audit trail per contributing draft.
+    assert isinstance(art["per_draft"], list) and art["per_draft"]
+    entry = art["per_draft"][0]
+    assert {"draft_class", "source", "n_qbs_matched", "n_qbs_unmatched", "promotions"} <= set(entry)
+    # Aggregate matched == sum of per-draft matched (consistency).
+    assert art["n_qbs_matched"] == sum(e["n_qbs_matched"] for e in art["per_draft"])

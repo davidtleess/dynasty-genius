@@ -1,0 +1,122 @@
+{
+  "recommended_k": 0,
+  "median_raw": 0.0,
+  "n_drafts": 6,
+  "n_qbs_matched": 27,
+  "n_qbs_unmatched": 3,
+  "promotions": [
+    -12.0,
+    -11.0,
+    -10.0,
+    -7.0,
+    -5.0,
+    -5.0,
+    -5.0,
+    -4.0,
+    -2.0,
+    -2.0,
+    -2.0,
+    -1.0,
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    3.0,
+    3.0,
+    3.0,
+    3.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    13.0
+  ],
+  "classes": [
+    2022,
+    2024,
+    2025,
+    2026
+  ],
+  "per_draft": [
+    {
+      "draft_class": 2026,
+      "source": "sleeper_league:1314363401744416768",
+      "n_qbs_matched": 5,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        -5.0,
+        -1.0,
+        3.0,
+        3.0,
+        13.0
+      ]
+    },
+    {
+      "draft_class": 2025,
+      "source": "sleeper_league:1183088915091423232",
+      "n_qbs_matched": 4,
+      "n_qbs_unmatched": 2,
+      "promotions": [
+        -11.0,
+        0.0,
+        3.0,
+        6.0
+      ]
+    },
+    {
+      "draft_class": 2024,
+      "source": "sleeper_league:1049152209134424064",
+      "n_qbs_matched": 6,
+      "n_qbs_unmatched": 1,
+      "promotions": [
+        -10.0,
+        -5.0,
+        -2.0,
+        -2.0,
+        -1.0,
+        3.0
+      ]
+    },
+    {
+      "draft_class": 2024,
+      "source": "seed_draft_B",
+      "n_qbs_matched": 6,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        -12.0,
+        -7.0,
+        -5.0,
+        -2.0,
+        0.0,
+        3.0
+      ]
+    },
+    {
+      "draft_class": 2022,
+      "source": "seed_draft_A",
+      "n_qbs_matched": 4,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        4.0,
+        5.0,
+        7.0,
+        8.0
+      ]
+    },
+    {
+      "draft_class": 2025,
+      "source": "seed_draft_F",
+      "n_qbs_matched": 2,
+      "n_qbs_unmatched": 0,
+      "promotions": [
+        -4.0,
+        0.0
+      ]
+    }
+  ],
+  "caveats": [
+    "sf_qb_calibration_thin_sample"
+  ]
+}

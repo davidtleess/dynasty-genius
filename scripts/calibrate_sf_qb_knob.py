@@ -108,20 +108,31 @@ def _board_qbs(board: dict) -> list[tuple[int, str]]:
     ]
 
 
+def _board_qb_promotions(board: dict, ranks: dict[str, int]):
+    """One board's (promotions, matched, unmatched) given its class rank map."""
+    promotions: list[float] = []
+    matched = 0
+    unmatched = 0
+    for ff_slot, name in _board_qbs(board):
+        rank = ranks.get(normalize_name(name))
+        if rank is None:
+            unmatched += 1
+            continue
+        promotions.append(float(rank - ff_slot))
+        matched += 1
+    return promotions, matched, unmatched
+
+
 def qb_promotions(boards: list[dict], rank_maps: dict[int, dict[str, int]]):
     """Per-QB promotion = nfl_skill_rank - ff_slot. Returns (promotions, matched, unmatched)."""
     promotions: list[float] = []
     matched = 0
     unmatched = 0
     for board in boards:
-        ranks = rank_maps.get(board["draft_class"], {})
-        for ff_slot, name in _board_qbs(board):
-            rank = ranks.get(normalize_name(name))
-            if rank is None:
-                unmatched += 1
-                continue
-            promotions.append(float(rank - ff_slot))
-            matched += 1
+        p, bm, bu = _board_qb_promotions(board, rank_maps.get(board["draft_class"], {}))
+        promotions.extend(p)
+        matched += bm
+        unmatched += bu
     return promotions, matched, unmatched
 
 
@@ -145,6 +156,7 @@ async def _collect_rookie_boards(league_id: str) -> list[dict]:
             boards.append(
                 {
                     "draft_class": draft_class,
+                    "source": f"sleeper_league:{current}",
                     "picks": [
                         {
                             "ff_slot": int(p["pick_no"]),
@@ -175,6 +187,22 @@ def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:
     boards = list(_fetch_league_rookie_drafts(league_id)) + _load_seed_drafts()
     classes = {b["draft_class"] for b in boards}
     rank_maps = {c: nfl_skill_ranks(c) for c in classes}
+
+    # Per-draft provenance (spec §4) — keeps the audit trail for a thin corpus:
+    # which drafts/classes contributed and where unmatched QBs came from.
+    per_draft = []
+    for board in boards:
+        p, bm, bu = _board_qb_promotions(board, rank_maps.get(board["draft_class"], {}))
+        per_draft.append(
+            {
+                "draft_class": board["draft_class"],
+                "source": board.get("source") or board.get("league") or "unknown",
+                "n_qbs_matched": bm,
+                "n_qbs_unmatched": bu,
+                "promotions": sorted(p),
+            }
+        )
+
     promotions, matched, unmatched = qb_promotions(boards, rank_maps)
     k = recommend_k(promotions)
     artifact = {
@@ -185,6 +213,7 @@ def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:
         "n_qbs_unmatched": unmatched,
         "promotions": sorted(promotions),
         "classes": sorted(classes),
+        "per_draft": per_draft,
         "caveats": ["sf_qb_calibration_thin_sample"],
     }
     if out_path is None:
