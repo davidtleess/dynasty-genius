@@ -209,6 +209,22 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
             ),
         ),
         _make(
+            name="mfl_rookie_adp",
+            roles=["market_overlay"],
+            allowed_fields=[],
+            prohibited_fields=list(PROHIBITED_COLUMNS),
+            provenance_required=False,
+            cache_policy="json_cache",
+            freshness_hours=24,
+            failure_behavior="use_cached",
+            test_gate="tests/test_market_overlay.py",
+            notes=(
+                "Public documented MFL ADP API (TYPE=adp, ROOKIES=1). Real completed-draft "
+                "rookie ADP. Overlay only — never enters Engine A/B training. Aggregate blends "
+                "SF QB-count and TE-premium (not API-filterable); not for SF-QB calibration."
+            ),
+        ),
+        _make(
             name="dynasty_data_lab",
             roles=["market_overlay"],
             allowed_fields=[],

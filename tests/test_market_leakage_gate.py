@@ -28,7 +28,7 @@ from src.dynasty_genius.sources.source_registry import SOURCE_REGISTRY
 ROOT = Path(__file__).resolve().parents[1]
 ENRICHED_CSV = ROOT / "app" / "data" / "training" / "prospects_with_outcomes_v2.csv"
 
-MARKET_SOURCES = {"fantasycalc", "dynasty_data_lab", "dynasty_nerds", "ktc"}
+MARKET_SOURCES = {"fantasycalc", "dynasty_data_lab", "dynasty_nerds", "ktc", "mfl_rookie_adp"}
 
 
 # ── Registry enforcement ──────────────────────────────────────────────────────
