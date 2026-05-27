@@ -34,6 +34,7 @@ from app.data.sleeper import (  # noqa: E402
 
 _LEAGUE_ID = "1314363401744416768"
 _SEED_PATH = _ROOT / "resources" / "seed_rookie_drafts.json"
+_BYO_PATH = _ROOT / "resources" / "sf_rookie_draft_ids.json"
 _OUTCOMES_CSV = _ROOT / "app" / "data" / "training" / "prospects_with_outcomes.csv"
 _PROSPECT_CARDS = _ROOT / "resources" / "prospect_cards.json"
 _SKILL = {"QB", "RB", "WR", "TE"}
@@ -156,6 +157,7 @@ async def _collect_rookie_boards(league_id: str) -> list[dict]:
             boards.append(
                 {
                     "draft_class": draft_class,
+                    "draft_id": d["draft_id"],
                     "source": f"sleeper_league:{current}",
                     "picks": [
                         {
@@ -179,29 +181,213 @@ def _fetch_league_rookie_drafts(league_id: str) -> list[dict]:
     return asyncio.run(_collect_rookie_boards(league_id))
 
 
+async def _collect_byo_boards(draft_ids: list[str], chain_draft_ids: set[str]):
+    """Gate + build curated BYO drafts. Returns (boards, rejections). Fail-closed; never silent."""
+    boards: list[dict] = []
+    rejections: list[dict] = []
+    for did in draft_ids:
+        if did in chain_draft_ids:
+            rejections.append({"draft_id": did, "reason": "duplicate_existing_draft"})
+            continue
+        try:
+            draft = await get_draft(did)
+            league_id = draft.get("league_id")
+            if not league_id:
+                rejections.append({"draft_id": did, "reason": "missing_league_id"})
+                continue
+            league = await get_league(league_id)
+        except Exception:
+            rejections.append({"draft_id": did, "reason": "fetch_failed"})
+            continue
+        # Gate on draft+league BEFORE fetching picks — a hard-gate reject must never be
+        # mislabeled fetch_failed, and we skip the picks read for excluded drafts.
+        accepted, reason, fmt = gate_byo_draft(draft, league)
+        if not accepted:
+            rejections.append({"draft_id": did, "reason": reason, "format_meta": fmt})
+            continue
+        try:
+            picks = await get_draft_picks(did)
+        except Exception:
+            rejections.append({"draft_id": did, "reason": "fetch_failed", "format_meta": fmt})
+            continue
+        board, breason = _build_byo_board(did, draft, league, picks)
+        if board is None:
+            rejections.append({"draft_id": did, "reason": breason, "format_meta": fmt})
+            continue
+        boards.append(board)
+    return boards, rejections
+
+
+def _fetch_byo_drafts(draft_ids: list[str], chain_draft_ids: set[str]):
+    """Live read-only Sleeper fetch for BYO drafts (monkeypatched in tests)."""
+    return asyncio.run(_collect_byo_boards(draft_ids, chain_draft_ids))
+
+
 def _load_seed_drafts() -> list[dict]:
     return json.loads(_SEED_PATH.read_text())["drafts"]
 
 
+def _load_byo_draft_ids() -> tuple[list[str], list[str]]:
+    """(unique_ordered_ids, dropped_within_file_duplicates). Missing/empty/malformed -> ([], [])."""
+    if not _BYO_PATH.exists():
+        return [], []
+    try:
+        raw = (json.loads(_BYO_PATH.read_text()).get("draft_ids") or [])
+    except Exception:
+        return [], []
+    seen: set[str] = set()
+    unique: list[str] = []
+    dupes: list[str] = []
+    for did in raw:
+        did = str(did)
+        if did in seen:
+            dupes.append(did)
+            continue
+        seen.add(did)
+        unique.append(did)
+    return unique, dupes
+
+
+_SF_TOKEN = "SUPER_FLEX"
+
+
+def is_superflex(league: dict) -> bool:
+    """Exact-token SF test on roster_positions (never fuzzy draft metadata)."""
+    return _SF_TOKEN in (league.get("roster_positions") or [])
+
+
+def is_twelve_team(league: dict) -> bool:
+    """12-team test; total_rosters coerced to int; non-int/missing -> False."""
+    try:
+        return int(league.get("total_rosters")) == 12
+    except (TypeError, ValueError):
+        return False
+
+
+def league_format_metadata(league: dict) -> dict:
+    """Recorded-only format snapshot (never a gate). Reads Sleeper `scoring_settings`."""
+    scoring = league.get("scoring_settings") or {}
+    return {
+        "superflex": is_superflex(league),
+        "total_rosters": league.get("total_rosters"),
+        "ppr": scoring.get("rec"),
+        "te_premium": (scoring.get("bonus_rec_te") or 0) > 0,
+    }
+
+
+def gate_byo_draft(draft: dict, league: dict) -> tuple[bool, str | None, dict]:
+    """Draft+league gate ONLY (no picks). Returns (accepted, reason, format_meta)."""
+    fmt = league_format_metadata(league)
+    if draft.get("status") != "complete":
+        return False, "not_rookie", fmt
+    rounds = (draft.get("settings") or {}).get("rounds")
+    try:
+        rounds_int = int(rounds)
+    except (TypeError, ValueError):
+        return False, "malformed_draft_settings", fmt
+    if rounds_int > 6:
+        return False, "not_rookie", fmt
+    if draft.get("type") == "auction":
+        return False, "unsupported_draft_type", fmt
+    if not is_superflex(league):
+        return False, "not_superflex", fmt
+    if not is_twelve_team(league):
+        return False, "not_12_team", fmt
+    return True, None, fmt
+
+
+def _build_byo_board(draft_id: str, draft: dict, league: dict, picks: list[dict]):
+    """Build a capped BYO board or reject. Returns (board, None) | (None, reason)."""
+    season = draft.get("season") or league.get("season")
+    try:
+        draft_class = int(season)
+    except (TypeError, ValueError):
+        return None, "invalid_draft_class"
+
+    parsed: list[tuple[int, dict]] = []
+    for p in picks:
+        try:
+            pick_no = int(p["pick_no"])
+        except (TypeError, ValueError, KeyError):
+            return None, "malformed_picks"
+        parsed.append((pick_no, p))
+
+    n_raw = len(parsed)
+    parsed.sort(key=lambda t: t[0])
+    used = [(pn, p) for pn, p in parsed if pn <= _BOARD_SIZE]
+    board = {
+        "draft_class": draft_class,
+        "draft_id": draft_id,
+        "source": f"sleeper_draft:{draft_id}",
+        "format_meta": league_format_metadata(league),
+        "n_picks_raw": n_raw,
+        "n_picks_used": len(used),
+        "n_picks_excluded_after_36": n_raw - len(used),
+        "picks": [
+            {
+                "ff_slot": pn,
+                "player_name": (
+                    f"{(p.get('metadata') or {}).get('first_name', '')} "
+                    f"{(p.get('metadata') or {}).get('last_name', '')}".strip()
+                ),
+                "position": (p.get("metadata") or {}).get("position"),
+            }
+            for pn, p in used
+        ],
+    }
+    return board, None
+
+
 def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:
-    boards = list(_fetch_league_rookie_drafts(league_id)) + _load_seed_drafts()
+    chain_boards = list(_fetch_league_rookie_drafts(league_id))
+    seed_drafts = _load_seed_drafts()
+    chain_draft_ids = {b["draft_id"] for b in chain_boards if b.get("draft_id")}
+
+    byo_ids, byo_dupes = _load_byo_draft_ids()
+    byo_boards, byo_rejections = _fetch_byo_drafts(byo_ids, chain_draft_ids)
+    rejected: list[dict] = [{"draft_id": d, "reason": "duplicate_draft_id"} for d in byo_dupes]
+    rejected.extend(byo_rejections)
+
+    boards = chain_boards + seed_drafts + byo_boards
     classes = {b["draft_class"] for b in boards}
     rank_maps = {c: nfl_skill_ranks(c) for c in classes}
+
+    # Exclude boards whose draft_class has no NFL skill-rank map (a data-coverage miss,
+    # NOT a name-match miss) so they never inflate the unmatched denominator or the K math.
+    surviving: list[dict] = []
+    for board in boards:
+        if not rank_maps.get(board["draft_class"]):
+            rejected.append(
+                {
+                    "draft_id": board.get("draft_id"),
+                    "reason": "rank_map_unavailable",
+                    "draft_class": board["draft_class"],
+                }
+            )
+        else:
+            surviving.append(board)
+    boards = surviving
 
     # Per-draft provenance (spec §4) — keeps the audit trail for a thin corpus:
     # which drafts/classes contributed and where unmatched QBs came from.
     per_draft = []
     for board in boards:
         p, bm, bu = _board_qb_promotions(board, rank_maps.get(board["draft_class"], {}))
-        per_draft.append(
-            {
-                "draft_class": board["draft_class"],
-                "source": board.get("source") or board.get("league") or "unknown",
-                "n_qbs_matched": bm,
-                "n_qbs_unmatched": bu,
-                "promotions": sorted(p),
-            }
-        )
+        entry = {
+            "draft_class": board["draft_class"],
+            "source": board.get("source") or board.get("league") or "unknown",
+            "n_qbs_matched": bm,
+            "n_qbs_unmatched": bu,
+            "promotions": sorted(p),
+        }
+        if "draft_id" in board:
+            entry["draft_id"] = board["draft_id"]
+        if "format_meta" in board:
+            entry["format_meta"] = board["format_meta"]
+        for key in ("n_picks_raw", "n_picks_used", "n_picks_excluded_after_36"):
+            if key in board:
+                entry[key] = board[key]
+        per_draft.append(entry)
 
     promotions, matched, unmatched = qb_promotions(boards, rank_maps)
     k = recommend_k(promotions)
@@ -214,6 +400,7 @@ def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:
         "promotions": sorted(promotions),
         "classes": sorted(classes),
         "per_draft": per_draft,
+        "rejected": rejected,
         "caveats": ["sf_qb_calibration_thin_sample"],
     }
     if out_path is None:
@@ -227,7 +414,8 @@ def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:
     out_path.write_text(json.dumps(artifact, indent=2))
     print(
         f"Wrote {out_path}; recommended_k={k} (median={artifact['median_raw']}, "
-        f"matched={matched}, unmatched={unmatched}, drafts={len(boards)})"
+        f"matched={matched}, unmatched={unmatched}, drafts={len(boards)}, "
+        f"rejected={len(rejected)})"
     )
     return k
 

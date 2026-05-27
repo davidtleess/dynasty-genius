@@ -33,6 +33,243 @@ def test_recommend_k_clamps_and_half_up():
     assert recommend_k([]) == 0
 
 
+def test_load_byo_draft_ids_dedupes_order_preserving(tmp_path, monkeypatch):
+    p = tmp_path / "byo.json"
+    p.write_text(json.dumps({"draft_ids": ["A", "B", "A", "C", "B"]}))
+    monkeypatch.setattr(cal, "_BYO_PATH", p)
+
+    ids, dupes = cal._load_byo_draft_ids()
+
+    assert ids == ["A", "B", "C"]
+    assert dupes == ["A", "B"]
+
+
+def test_load_byo_draft_ids_missing_file_is_noop(tmp_path, monkeypatch):
+    monkeypatch.setattr(cal, "_BYO_PATH", tmp_path / "does_not_exist.json")
+
+    assert cal._load_byo_draft_ids() == ([], [])
+
+
+def test_load_byo_draft_ids_empty_list(tmp_path, monkeypatch):
+    p = tmp_path / "byo.json"
+    p.write_text(json.dumps({"draft_ids": []}))
+    monkeypatch.setattr(cal, "_BYO_PATH", p)
+
+    assert cal._load_byo_draft_ids() == ([], [])
+
+
+def test_is_superflex_exact_token():
+    assert cal.is_superflex({"roster_positions": ["QB", "RB", "SUPER_FLEX", "BN"]}) is True
+    assert cal.is_superflex({"roster_positions": ["QB", "RB", "WR", "BN"]}) is False
+    assert cal.is_superflex({}) is False
+
+
+def test_is_twelve_team_int_coerced():
+    assert cal.is_twelve_team({"total_rosters": 12}) is True
+    assert cal.is_twelve_team({"total_rosters": "12"}) is True
+    assert cal.is_twelve_team({"total_rosters": 10}) is False
+    assert cal.is_twelve_team({}) is False
+    assert cal.is_twelve_team({"total_rosters": "oops"}) is False
+
+
+def test_league_format_metadata_reads_scoring_settings():
+    league = {
+        "roster_positions": ["QB", "SUPER_FLEX"],
+        "total_rosters": 12,
+        "scoring_settings": {"rec": 1.0, "bonus_rec_te": 0.5},
+    }
+
+    meta = cal.league_format_metadata(league)
+
+    assert meta == {
+        "superflex": True,
+        "total_rosters": 12,
+        "ppr": 1.0,
+        "te_premium": True,
+    }
+
+    meta2 = cal.league_format_metadata({"roster_positions": [], "total_rosters": 10})
+
+    assert meta2["ppr"] is None
+    assert meta2["te_premium"] is False
+
+
+def _sf12_league():
+    return {
+        "roster_positions": ["QB", "SUPER_FLEX"],
+        "total_rosters": 12,
+        "scoring_settings": {"rec": 1.0},
+    }
+
+
+def test_gate_byo_draft_accepts_sf_12team_complete_rookie():
+    draft = {"status": "complete", "settings": {"rounds": 4}, "type": "snake"}
+
+    accepted, reason, fmt = cal.gate_byo_draft(draft, _sf12_league())
+
+    assert accepted is True
+    assert reason is None
+    assert fmt["superflex"] is True
+
+
+def test_gate_byo_draft_reject_reasons():
+    sf12 = _sf12_league()
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "drafting", "settings": {"rounds": 4}},
+        sf12,
+    )
+    assert (accepted, reason) == (False, "not_rookie")
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "complete", "settings": {"rounds": "x"}},
+        sf12,
+    )
+    assert (accepted, reason) == (False, "malformed_draft_settings")
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "complete", "settings": {"rounds": 15}},
+        sf12,
+    )
+    assert (accepted, reason) == (False, "not_rookie")
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "complete", "settings": {"rounds": 4}, "type": "auction"},
+        sf12,
+    )
+    assert (accepted, reason) == (False, "unsupported_draft_type")
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "complete", "settings": {"rounds": 4}},
+        {"roster_positions": ["QB"], "total_rosters": 12},
+    )
+    assert (accepted, reason) == (False, "not_superflex")
+
+    accepted, reason, _ = cal.gate_byo_draft(
+        {"status": "complete", "settings": {"rounds": 4}},
+        {"roster_positions": ["SUPER_FLEX"], "total_rosters": 10},
+    )
+    assert (accepted, reason) == (False, "not_12_team")
+
+
+def _pick(no, first="Caleb", last="Williams", pos="QB"):
+    return {
+        "pick_no": no,
+        "metadata": {
+            "first_name": first,
+            "last_name": last,
+            "position": pos,
+        },
+    }
+
+
+def test_build_byo_board_caps_at_36_and_sorts():
+    board, reason = cal._build_byo_board(
+        "draft-1",
+        {"season": "2026"},
+        _sf12_league(),
+        [
+            _pick(40, "Late", "Quarterback", "QB"),
+            _pick(2, "Tetairoa", "McMillan", "WR"),
+            _pick(1, "Caleb", "Williams", "QB"),
+        ],
+    )
+
+    assert reason is None
+    assert board["draft_class"] == 2026
+    assert board["draft_id"] == "draft-1"
+    assert board["source"] == "sleeper_draft:draft-1"
+    assert board["format_meta"]["superflex"] is True
+    assert board["n_picks_raw"] == 3
+    assert board["n_picks_used"] == 2
+    assert board["n_picks_excluded_after_36"] == 1
+    assert [p["ff_slot"] for p in board["picks"]] == [1, 2]
+    assert [p["player_name"] for p in board["picks"]] == [
+        "Caleb Williams",
+        "Tetairoa McMillan",
+    ]
+
+
+def test_build_byo_board_invalid_draft_class():
+    board, reason = cal._build_byo_board("draft-1", {"season": None}, {}, [_pick(1)])
+
+    assert board is None
+    assert reason == "invalid_draft_class"
+
+
+def test_build_byo_board_malformed_picks_whole_draft_reject():
+    malformed = {"metadata": {"first_name": "No", "last_name": "Pick", "position": "QB"}}
+
+    board, reason = cal._build_byo_board(
+        "draft-1",
+        {"season": "2026"},
+        _sf12_league(),
+        [_pick(1), malformed],
+    )
+
+    assert board is None
+    assert reason == "malformed_picks"
+
+
+def test_build_byo_board_draft_class_falls_back_to_league_season():
+    board, reason = cal._build_byo_board(
+        "draft-1",
+        {"season": None},
+        {**_sf12_league(), "season": "2025"},
+        [_pick(1)],
+    )
+
+    assert reason is None
+    assert board["draft_class"] == 2025
+
+
+def test_collect_byo_boards_accept_reject_and_dedup(monkeypatch):
+    async def fake_get_draft(draft_id):
+        if draft_id == "BOOM":
+            raise RuntimeError("network down")
+        if draft_id == "NOLG":
+            return {"draft_id": draft_id, "season": "2026", "status": "complete"}
+        return {
+            "draft_id": draft_id,
+            "league_id": f"league-{draft_id}",
+            "season": "2026",
+            "status": "complete",
+            "settings": {"rounds": 3},
+            "type": "snake",
+        }
+
+    async def fake_get_league(league_id):
+        if league_id == "league-NOSF":
+            return {
+                "roster_positions": ["QB", "RB", "WR"],
+                "total_rosters": 12,
+                "scoring_settings": {"rec": 1.0},
+            }
+        return {**_sf12_league(), "season": "2026"}
+
+    async def fake_get_draft_picks(draft_id):
+        return [_pick(1)]
+
+    monkeypatch.setattr(cal, "get_draft", fake_get_draft)
+    monkeypatch.setattr(cal, "get_league", fake_get_league)
+    monkeypatch.setattr(cal, "get_draft_picks", fake_get_draft_picks)
+
+    boards, rejected = cal._fetch_byo_drafts(
+        ["GOOD", "NOSF", "NOLG", "BOOM", "INCHAIN"],
+        chain_draft_ids={"INCHAIN"},
+    )
+
+    assert [b["draft_id"] for b in boards] == ["GOOD"]
+
+    reasons = {r["draft_id"]: r["reason"] for r in rejected}
+    assert reasons == {
+        "NOSF": "not_superflex",
+        "NOLG": "missing_league_id",
+        "BOOM": "fetch_failed",
+        "INCHAIN": "duplicate_existing_draft",
+    }
+
+
 def test_normalize_name_strips_case_punct_suffix():
     assert normalize_name("Michael Penix Jr.") == normalize_name("michael penix")
     assert normalize_name("Ja'Marr Chase") == "jamarr chase"
@@ -155,3 +392,98 @@ def test_main_writes_artifact_with_monkeypatched_fetch(tmp_path, monkeypatch):
     assert {"draft_class", "source", "n_qbs_matched", "n_qbs_unmatched", "promotions"} <= set(entry)
     # Aggregate matched == sum of per-draft matched (consistency).
     assert art["n_qbs_matched"] == sum(e["n_qbs_matched"] for e in art["per_draft"])
+
+
+def test_main_includes_byo_and_excludes_rank_map_unavailable(tmp_path, monkeypatch):
+    good_2024 = {
+        "draft_id": "G",
+        "draft_class": 2024,
+        "source": "sleeper_draft:G",
+        "format_meta": {"superflex": True, "total_rosters": 12},
+        "n_picks_raw": 1,
+        "n_picks_used": 1,
+        "n_picks_excluded_after_36": 0,
+        "picks": [{"ff_slot": 1, "player_name": "Caleb Williams", "position": "QB"}],
+    }
+    future_2027 = {
+        "draft_id": "F",
+        "draft_class": 2027,
+        "source": "sleeper_draft:F",
+        "format_meta": {"superflex": True, "total_rosters": 12},
+        "n_picks_raw": 1,
+        "n_picks_used": 1,
+        "n_picks_excluded_after_36": 0,
+        "picks": [{"ff_slot": 1, "player_name": "Future QB", "position": "QB"}],
+    }
+    monkeypatch.setattr(cal, "_fetch_league_rookie_drafts", lambda league_id: [])
+    monkeypatch.setattr(cal, "_load_seed_drafts", lambda: [])
+    monkeypatch.setattr(cal, "_load_byo_draft_ids", lambda: (["G", "F"], []))
+    monkeypatch.setattr(
+        cal,
+        "_fetch_byo_drafts",
+        lambda draft_ids, chain_draft_ids: ([good_2024, future_2027], []),
+    )
+    monkeypatch.setattr(
+        cal,
+        "nfl_skill_ranks",
+        lambda draft_class: {"caleb williams": 1} if draft_class == 2024 else {},
+    )
+    out = tmp_path / "cal.json"
+
+    cal.main(out_path=out)
+    art = json.loads(out.read_text())
+
+    assert [entry["draft_class"] for entry in art["per_draft"]] == [2024]
+    assert ("F", "rank_map_unavailable") in {
+        (entry["draft_id"], entry["reason"]) for entry in art["rejected"]
+    }
+    per_draft = art["per_draft"][0]
+    assert per_draft["source"] == "sleeper_draft:G"
+    assert per_draft["format_meta"]["superflex"] is True
+    assert per_draft["n_picks_used"] == 1
+    assert art["n_qbs_matched"] == sum(e["n_qbs_matched"] for e in art["per_draft"])
+
+
+def test_main_byo_dupe_within_file_recorded(tmp_path, monkeypatch):
+    monkeypatch.setattr(cal, "_fetch_league_rookie_drafts", lambda league_id: [])
+    monkeypatch.setattr(cal, "_load_seed_drafts", lambda: [])
+    monkeypatch.setattr(cal, "_load_byo_draft_ids", lambda: ([], ["DUP"]))
+    monkeypatch.setattr(cal, "_fetch_byo_drafts", lambda draft_ids, chain_draft_ids: ([], []))
+    out = tmp_path / "cal.json"
+
+    cal.main(out_path=out)
+    art = json.loads(out.read_text())
+
+    assert ("DUP", "duplicate_draft_id") in {
+        (entry["draft_id"], entry["reason"]) for entry in art["rejected"]
+    }
+
+
+def test_collect_byo_boards_gates_before_fetching_picks(monkeypatch):
+    # A not-SF draft must be rejected as not_superflex WITHOUT ever fetching picks —
+    # so a get_draft_picks failure cannot mislabel a hard-gate reject as fetch_failed.
+    draft = {"status": "complete", "settings": {"rounds": 4}, "season": "2024", "league_id": "L"}
+    league = {"roster_positions": ["QB"], "total_rosters": 12, "scoring_settings": {}}
+    picks_calls = []
+
+    async def fake_get_draft(did):
+        return draft
+
+    async def fake_get_league(lid):
+        return league
+
+    async def fake_get_draft_picks(did):
+        picks_calls.append(did)
+        raise RuntimeError("picks must not be fetched for a gated-out draft")
+
+    monkeypatch.setattr(cal, "get_draft", fake_get_draft)
+    monkeypatch.setattr(cal, "get_league", fake_get_league)
+    monkeypatch.setattr(cal, "get_draft_picks", fake_get_draft_picks)
+
+    boards, rejections = cal._fetch_byo_drafts(["NOSF"], chain_draft_ids=set())
+    assert boards == []
+    assert picks_calls == []  # gate happens before picks
+    assert rejections == [
+        {"draft_id": "NOSF", "reason": "not_superflex",
+         "format_meta": cal.league_format_metadata(league)}
+    ]
