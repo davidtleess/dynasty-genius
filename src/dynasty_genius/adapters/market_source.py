@@ -1,7 +1,8 @@
 """Market source abstraction.
 
 MarketSource defines the interface for all market overlay providers.
-FantasyCalcMarketSource is the only active implementation.
+Active implementations: FantasyCalcMarketSource (crowd trade values) and
+MflAdpMarketSource (real completed-draft rookie ADP, overlay-only, unwired).
 KTCMarketSource is a stub — KTC ToS prohibits automated access.
 """
 from __future__ import annotations
