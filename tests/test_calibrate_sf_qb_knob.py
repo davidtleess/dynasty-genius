@@ -33,6 +33,31 @@ def test_recommend_k_clamps_and_half_up():
     assert recommend_k([]) == 0
 
 
+def test_load_byo_draft_ids_dedupes_order_preserving(tmp_path, monkeypatch):
+    p = tmp_path / "byo.json"
+    p.write_text(json.dumps({"draft_ids": ["A", "B", "A", "C", "B"]}))
+    monkeypatch.setattr(cal, "_BYO_PATH", p)
+
+    ids, dupes = cal._load_byo_draft_ids()
+
+    assert ids == ["A", "B", "C"]
+    assert dupes == ["A", "B"]
+
+
+def test_load_byo_draft_ids_missing_file_is_noop(tmp_path, monkeypatch):
+    monkeypatch.setattr(cal, "_BYO_PATH", tmp_path / "does_not_exist.json")
+
+    assert cal._load_byo_draft_ids() == ([], [])
+
+
+def test_load_byo_draft_ids_empty_list(tmp_path, monkeypatch):
+    p = tmp_path / "byo.json"
+    p.write_text(json.dumps({"draft_ids": []}))
+    monkeypatch.setattr(cal, "_BYO_PATH", p)
+
+    assert cal._load_byo_draft_ids() == ([], [])
+
+
 def test_normalize_name_strips_case_punct_suffix():
     assert normalize_name("Michael Penix Jr.") == normalize_name("michael penix")
     assert normalize_name("Ja'Marr Chase") == "jamarr chase"

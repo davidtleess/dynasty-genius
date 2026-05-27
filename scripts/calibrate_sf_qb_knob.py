@@ -34,6 +34,7 @@ from app.data.sleeper import (  # noqa: E402
 
 _LEAGUE_ID = "1314363401744416768"
 _SEED_PATH = _ROOT / "resources" / "seed_rookie_drafts.json"
+_BYO_PATH = _ROOT / "resources" / "sf_rookie_draft_ids.json"
 _OUTCOMES_CSV = _ROOT / "app" / "data" / "training" / "prospects_with_outcomes.csv"
 _PROSPECT_CARDS = _ROOT / "resources" / "prospect_cards.json"
 _SKILL = {"QB", "RB", "WR", "TE"}
@@ -181,6 +182,27 @@ def _fetch_league_rookie_drafts(league_id: str) -> list[dict]:
 
 def _load_seed_drafts() -> list[dict]:
     return json.loads(_SEED_PATH.read_text())["drafts"]
+
+
+def _load_byo_draft_ids() -> tuple[list[str], list[str]]:
+    """(unique_ordered_ids, dropped_within_file_duplicates). Missing/empty/malformed -> ([], [])."""
+    if not _BYO_PATH.exists():
+        return [], []
+    try:
+        raw = (json.loads(_BYO_PATH.read_text()).get("draft_ids") or [])
+    except Exception:
+        return [], []
+    seen: set[str] = set()
+    unique: list[str] = []
+    dupes: list[str] = []
+    for did in raw:
+        did = str(did)
+        if did in seen:
+            dupes.append(did)
+            continue
+        seen.add(did)
+        unique.append(did)
+    return unique, dupes
 
 
 def main(out_path: Path | None = None, league_id: str = _LEAGUE_ID) -> int:

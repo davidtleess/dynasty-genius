@@ -1,0 +1,4 @@
+{
+  "note": "Curated real Superflex 12-team rookie draft IDs for the SF-QB knob calibration corpus. Each ID is fetched and hard-gated (SF + 12-team + completed rookie) before inclusion. Empty list = chain + seed only.",
+  "draft_ids": []
+}
