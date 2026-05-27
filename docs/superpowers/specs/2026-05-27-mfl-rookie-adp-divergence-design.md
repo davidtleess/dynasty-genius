@@ -57,7 +57,7 @@ For each cleanly-matched rookie (both ranks are within-class ordinals, 1 = best)
   - `model_higher_than_market` if `rank_gap > aligned_band`
   - `market_higher_than_model` if `rank_gap < -aligned_band`
   - `aligned_band` defaults to **3**, and is **recorded in artifact metadata** (Codex #2).
-- Each matched row also carries `dvs_class_rank`, `xvar`, `dynasty_value_score`, `market_adp_rank`, `market_average_pick`, the source publish timestamp/freshness caveat, the intrinsic blend caveats, and `decision_supported=False`.
+- Each matched row also carries `dvs_class_rank`, `xvar`, `dynasty_value_score`, `market_adp_rank`, `market_average_pick`, the intrinsic blend caveats, and `decision_supported=False`. **Source freshness is artifact-level, not per-row (Codex LOW lock):** the helper exposes `caveats` (freshness channel) — `source_publish_age_h=N` / `mfl_adp_timestamp_unavailable` / `stale_market_data` — which propagate to the artifact's top-level `caveats`. The plan must NOT infer a raw per-row `source_timestamp` the helper does not provide.
 - **Neutral flag language only** — `aligned` / `model_higher_than_market` / `market_higher_than_model`. No `buy`/`sell`/`target`/`fade`/verdict words.
 
 ## 5. Components & data flow
@@ -65,7 +65,7 @@ For each cleanly-matched rookie (both ranks are within-class ordinals, 1 = best)
 - `mfl_adp_adapter.fetch_rookie_adp_rows(season=None) -> (list[dict], list[str])` — narrow helper (§2). Additive; no contract change.
 - `src/dynasty_genius/mfl_rookie_adp_divergence.py`:
   - `build_mfl_rookie_adp_divergence(adp_rows, prospect_cards, *, season, captured_at, caveats, aligned_band=3) -> dict` — pure. Filters cards to `season`, builds fail-closed identity index, computes per-rookie divergence, assembles `matched` / `unmatched_adp` / `unmatched_model` / `ambiguous` + the coverage block (§6). `decision_supported=False` at top level and on every matched row.
-  - `write_mfl_rookie_adp_divergence_artifacts(divergence, *, output_dir, run_id) -> dict[str,Path]` — writes `mfl_rookie_adp_divergence_latest.json`, `…_<run_id>.json`, and a human-readable `…_latest.md`. Mirrors `write_market_divergence_artifacts`.
+  - `write_mfl_rookie_adp_divergence_artifacts(divergence, *, output_dir, run_id) -> dict[str,Path]` — writes **both run and latest for JSON and MD** (Codex LOW lock): `mfl_rookie_adp_divergence_{latest,<run_id>}.json` and human-readable `mfl_rookie_adp_divergence_{latest,<run_id>}.md` (run+latest parity, matching the `league_opportunity_*` report pattern). Mirrors `write_market_divergence_artifacts`.
 - `scripts/build_mfl_rookie_adp_divergence.py` — `fetch_rookie_adp_rows(season)` → load `prospect_cards.json` → `build_…` → `write_…` to `app/data/valuation/`. Read-only Sleeper; prints the artifact paths + coverage summary.
 
 ## 6. Artifact shape
