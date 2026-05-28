@@ -1,6 +1,7 @@
 """Subsystem 3 - Round 2 ingestion, bridge, and ambiguity contracts (section 10.5)."""
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from src.dynasty_genius.identity.college_prospect_identity import (
     atomic_write_bridge,
     atomic_write_registry,
     compute_match_key,
+    ingest_fixture,
     load_bridge,
     load_registry,
     mint_or_match,
@@ -326,6 +328,122 @@ def test_validate_bridge_targets_rejects_provisional_target():
         "bridge target" in error.lower() and "not confirmed" in error.lower()
         for error in errors
     )
+
+
+def test_ingest_fixture_writes_alias_bridge_artifact(tmp_path: Path):
+    fixture_path = tmp_path / "fixture.json"
+    fixture_path.write_text(
+        json.dumps(
+            {
+                "metadata": {"snapshot_id": "fixture_2027_v1"},
+                "entries": [
+                    _row(
+                        "Arch Manning",
+                        position="QB",
+                        position_group="QB",
+                        school="Texas",
+                        sid="fixture_2027_001",
+                    ).model_dump()
+                ],
+            }
+        )
+    )
+    out_dir = tmp_path / "out"
+
+    result = ingest_fixture(
+        fixture_path=fixture_path,
+        identity_dir=out_dir,
+        run_id="run_bridge",
+    )
+
+    bridge_path = out_dir / "college_alias_bridge.json"
+    assert bridge_path.exists()
+    bridge = load_bridge(bridge_path)
+    assert bridge.entries == [], "fresh ingestion seeds an empty bridge"
+    assert result.exit_code == 0
+
+
+def test_ingest_fixture_writes_source_id_conflict_queue_when_conflicts_found(
+    tmp_path: Path,
+):
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    seed_registry = CollegeProspectRegistry()
+    seed_row = _row("Original Name", school="Texas", sid="src_001")
+    seed_uuid = "cpr_seed0000-0000-4000-8000-000000000001"
+    seed_registry.entries[seed_uuid] = _registry_entry(
+        seed_uuid,
+        status="confirmed",
+        row=seed_row,
+        decision="confirm",
+    )
+    atomic_write_registry(seed_registry, out_dir / "college_prospect_registry.json")
+
+    fixture_path = tmp_path / "fixture.json"
+    fixture_path.write_text(
+        json.dumps(
+            {
+                "metadata": {"snapshot_id": "fixture_2027_v1"},
+                "entries": [
+                    _row("Different Person", school="Bama", sid="src_001").model_dump()
+                ],
+            }
+        )
+    )
+
+    result = ingest_fixture(
+        fixture_path=fixture_path,
+        identity_dir=out_dir,
+        run_id="conflict_run",
+    )
+
+    conflict_path = out_dir / "college_identity_source_id_conflict_conflict_run.jsonl"
+    assert conflict_path.exists()
+    lines = [line for line in conflict_path.read_text().splitlines() if line.strip()]
+    assert lines, "source_id_conflict queue must record the collision"
+    record = json.loads(lines[0])
+    assert record["incoming_source_record_id"] == "src_001"
+    assert record["existing_prospect_uuid"] == seed_uuid
+    assert result.exit_code != 0
+
+    review_path = out_dir / "college_identity_review_queue_conflict_run.jsonl"
+    if review_path.exists() and review_path.read_text().strip():
+        for line in review_path.read_text().splitlines():
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            assert entry["incoming_source_record_id"] != "src_001"
+
+
+def test_ingest_fixture_coverage_matrix_includes_source_id_conflict_count(
+    tmp_path: Path,
+):
+    out_dir = tmp_path / "out"
+    fixture_path = tmp_path / "fixture.json"
+    fixture_path.write_text(
+        json.dumps(
+            {
+                "metadata": {"snapshot_id": "fixture_2027_v1"},
+                "entries": [
+                    _row("Person A", sid="src_A").model_dump(),
+                    _row("Person B", sid="src_B").model_dump(),
+                ],
+            }
+        )
+    )
+
+    result = ingest_fixture(
+        fixture_path=fixture_path,
+        identity_dir=out_dir,
+        run_id="counts_run",
+    )
+
+    coverage_path = out_dir / "college_identity_coverage_matrix_counts_run.json"
+    coverage = json.loads(coverage_path.read_text())
+    assert "source_id_conflict" in coverage
+    assert coverage["source_id_conflict"] == 0
+    assert coverage["total_input_rows"] == 2
+    assert result.exit_code == 0
 
 
 def test_validate_bridge_targets_rejects_deprecated_target():

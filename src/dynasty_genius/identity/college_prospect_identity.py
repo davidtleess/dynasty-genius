@@ -832,3 +832,139 @@ def mint_or_match(
         prospect_uuid=new_uuid,
         review_candidates=candidates,
     )
+
+
+# ======================================================================
+# Fixture ingestion orchestration (spec §6.5)
+# ======================================================================
+
+
+@dataclass(frozen=True)
+class IngestResult:
+    exit_code: int
+    run_id: str
+    coverage: dict[str, int]
+
+
+def _atomic_write_jsonl(path: Path, entries: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    payload = "\n".join(json.dumps(e, sort_keys=True) for e in entries)
+    if entries:
+        payload += "\n"
+    tmp.write_text(payload)
+    os.replace(tmp, path)
+
+
+def ingest_fixture(
+    *,
+    fixture_path: Path,
+    identity_dir: Path,
+    run_id: str,
+) -> IngestResult:
+    """Spec §6.5 (Round 2): validate-before-replace ingestion that writes
+    registry + bridge + review_queue + dedicated source_id_conflict queue +
+    coverage matrix, each via per-file atomic os.replace.
+
+    Returns ``IngestResult.exit_code != 0`` when any source_id_conflict is detected
+    or when validate_registry_graph reports an inconsistency. The conflict queue
+    file is still written on non-zero exit so operators can inspect collisions.
+    """
+    raw = json.loads(fixture_path.read_text())
+    entries_raw = raw.get("entries", [])
+
+    registry_path = identity_dir / "college_prospect_registry.json"
+    bridge_path = identity_dir / "college_alias_bridge.json"
+    review_path = identity_dir / f"college_identity_review_queue_{run_id}.jsonl"
+    conflict_path = identity_dir / f"college_identity_source_id_conflict_{run_id}.jsonl"
+    coverage_path = identity_dir / f"college_identity_coverage_matrix_{run_id}.json"
+
+    identity_dir.mkdir(parents=True, exist_ok=True)
+    registry = load_registry(registry_path)
+    bridge = load_bridge(bridge_path)
+
+    coverage = {
+        "total_input_rows": 0,
+        "minted_new": 0,
+        "idempotent_rerun": 0,
+        "minted_new_with_surfaced_candidates": 0,
+        "source_id_conflict": 0,
+    }
+    review_entries: list[dict[str, Any]] = []
+    conflict_entries: list[dict[str, Any]] = []
+
+    for raw_entry in entries_raw:
+        incoming = NormalizedCollegeProspectRow.model_validate(raw_entry)
+        coverage["total_input_rows"] += 1
+        outcome = mint_or_match(incoming, registry, bridge=bridge)
+        coverage[outcome.kind] += 1
+
+        if outcome.kind == "source_id_conflict":
+            assert outcome.source_id_conflict_record is not None
+            conflict_entries.append({
+                "run_id": run_id,
+                "incoming_source": incoming.source,
+                "incoming_source_record_id": incoming.source_record_id,
+                "incoming_normalized_name": incoming.normalized_name,
+                "incoming_cfbd_athlete_id": incoming.cfbd_athlete_id,
+                "conflict_kind": outcome.source_id_conflict_record["kind"],
+                "existing_prospect_uuid": outcome.source_id_conflict_record["existing_prospect_uuid"],
+                "existing_normalized_name": outcome.source_id_conflict_record["existing_normalized_name"],
+                "matcher_algorithm_version": MATCHER_ALGORITHM_VERSION,
+            })
+            continue
+
+        for cand in outcome.review_candidates:
+            review_entries.append({
+                "run_id": run_id,
+                "review_id": f"{run_id}_review_{len(review_entries) + 1:04d}",
+                "incoming_source_record_id": incoming.source_record_id,
+                "minted_prospect_uuid": outcome.prospect_uuid,
+                "target_prospect_uuid": cand.target_prospect_uuid,
+                "match_score": cand.match_score,
+                "score_breakdown": cand.score_breakdown,
+                "risk_flags": list(cand.risk_flags),
+                "raw_match_features": cand.raw_match_features,
+                "matcher_algorithm_version": cand.matcher_algorithm_version,
+                "decided_at": None,
+                "decision": None,
+                "event_id": None,
+            })
+
+    errors = validate_registry_graph(registry, bridge=bridge)
+    if errors:
+        diagnostics_path = identity_dir / f"college_identity_failure_report_{run_id}.md"
+        diagnostics_path.write_text(
+            "# Subsystem 3 — ingestion failure report\n\n"
+            f"run_id: {run_id}\n\n" + "\n".join(f"- {e}" for e in errors)
+        )
+        # Still flush coverage + conflict queue so the operator can inspect
+        _atomic_write_jsonl(conflict_path, conflict_entries)
+        tmp_cov = coverage_path.with_suffix(coverage_path.suffix + ".tmp")
+        tmp_cov.write_text(json.dumps(coverage, indent=2, sort_keys=True))
+        os.replace(tmp_cov, coverage_path)
+        return IngestResult(exit_code=1, run_id=run_id, coverage=coverage)
+
+    # Per-file atomic writes (registry + bridge + jsonl + coverage)
+    atomic_write_registry(registry, registry_path)
+    atomic_write_bridge(bridge, bridge_path)
+    _atomic_write_jsonl(review_path, review_entries)
+    _atomic_write_jsonl(conflict_path, conflict_entries)
+
+    tmp_cov = coverage_path.with_suffix(coverage_path.suffix + ".tmp")
+    tmp_cov.write_text(json.dumps(coverage, indent=2, sort_keys=True))
+    os.replace(tmp_cov, coverage_path)
+
+    # Post-run validation
+    reloaded_registry = load_registry(registry_path)
+    reloaded_bridge = load_bridge(bridge_path)
+    post_errors = validate_registry_graph(reloaded_registry, bridge=reloaded_bridge)
+    if post_errors:
+        return IngestResult(exit_code=2, run_id=run_id, coverage=coverage)
+
+    # Source_id_conflicts are operational defects requiring investigation —
+    # surface via non-zero exit even when the graph itself stayed consistent.
+    if coverage["source_id_conflict"] > 0:
+        return IngestResult(exit_code=3, run_id=run_id, coverage=coverage)
+
+    return IngestResult(exit_code=0, run_id=run_id, coverage=coverage)
