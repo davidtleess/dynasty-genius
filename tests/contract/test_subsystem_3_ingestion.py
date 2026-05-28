@@ -446,6 +446,31 @@ def test_ingest_fixture_coverage_matrix_includes_source_id_conflict_count(
     assert result.exit_code == 0
 
 
+def test_ingest_fixture_handles_missing_fixture_file(tmp_path: Path):
+    result = ingest_fixture(
+        fixture_path=tmp_path / "missing_fixture.json",
+        identity_dir=tmp_path / "out",
+        run_id="missing_fixture_run",
+    )
+
+    assert result.exit_code == 0
+    assert result.coverage["total_input_rows"] == 0
+
+
+def test_ingest_fixture_handles_zero_byte_fixture_file(tmp_path: Path):
+    fixture_path = tmp_path / "zero_byte_fixture.json"
+    fixture_path.write_text("")
+
+    result = ingest_fixture(
+        fixture_path=fixture_path,
+        identity_dir=tmp_path / "out",
+        run_id="zero_byte_fixture_run",
+    )
+
+    assert result.exit_code == 0
+    assert result.coverage["total_input_rows"] == 0
+
+
 def test_validate_bridge_targets_rejects_deprecated_target():
     deprecated_uuid = "cpr_dddddddd-dddd-4ddd-8ddd-dddddddddddd"
     registry = CollegeProspectRegistry()

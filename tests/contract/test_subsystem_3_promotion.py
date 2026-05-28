@@ -13,6 +13,7 @@ from src.dynasty_genius.identity.college_prospect_identity import (
     EvidenceRequiredError,
     PromotionDecision,
     PromotionResult,
+    atomic_write_registry,
     ingest_fixture,
     load_bridge,
     load_registry,
@@ -497,6 +498,94 @@ def test_replay_reproduces_registry_AND_bridge_byte_identical(tmp_path: Path):
 
     assert (genesis_dir / "college_prospect_registry.json").read_bytes() == registry_after
     assert (genesis_dir / "college_alias_bridge.json").read_bytes() == bridge_after
+
+
+def test_promotion_log_event_carries_source_record_id_and_snapshot_id(tmp_path: Path):
+    _, out, run_id = _two_row_fixture(tmp_path)
+    source_uuid, target_uuid = _all_uuids(out)[:2]
+
+    registry = load_registry(out / "college_prospect_registry.json")
+    target_row = registry.get(target_uuid)
+    source_row = registry.get(source_uuid)
+    assert target_row is not None
+    assert source_row is not None
+    source_row.source_snapshot_id = "fixture_2027_source_snapshot_only"
+    atomic_write_registry(registry, out / "college_prospect_registry.json")
+    registry = load_registry(out / "college_prospect_registry.json")
+    target_row = registry.get(target_uuid)
+    source_row = registry.get(source_uuid)
+    assert target_row is not None
+    assert source_row is not None
+
+    promote_review_candidate(
+        review_id=None,
+        decision=PromotionDecision(kind="confirm", target_kind="self", target=target_uuid),
+        identity_dir=out,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+    )
+
+    review_id = f"{run_id}_source_provenance_review_001"
+    review_path = out / f"college_identity_review_queue_{run_id}.jsonl"
+    review_payload = {
+        "run_id": run_id,
+        "review_id": review_id,
+        "incoming_source_record_id": source_row.source_record_id,
+        "minted_prospect_uuid": source_uuid,
+        "target_prospect_uuid": target_uuid,
+        "match_score": 0.93,
+        "score_breakdown": {"final": 0.93},
+        "risk_flags": ["cross_position_group"],
+        "raw_match_features": {},
+        "matcher_algorithm_version": "cpr_matcher_v1.0.0",
+        "decided_at": None,
+        "decision": None,
+        "event_id": None,
+    }
+    existing = review_path.read_text() if review_path.exists() else ""
+    review_path.write_text(existing + json.dumps(review_payload, sort_keys=True) + "\n")
+
+    promote_review_candidate(
+        review_id=review_id,
+        decision=PromotionDecision(
+            kind="confirm",
+            target_kind="existing",
+            target=source_uuid,
+            survivor=target_uuid,
+        ),
+        identity_dir=out,
+        reviewer_id="davidleess",
+        evidence=None,
+        note="alias resolve",
+    )
+
+    events = [
+        json.loads(line)
+        for line in (out / "college_identity_promotion_log.jsonl").read_text().splitlines()
+        if line.strip()
+    ]
+    confirm_self_event = next(
+        event
+        for event in events
+        if event["decision"] == "confirm"
+        and event["target_kind"] == "self"
+        and event["target_prospect_uuid"] == target_uuid
+    )
+    assert confirm_self_event["source_record_id"] == target_row.source_record_id
+    assert confirm_self_event["source_snapshot_id"] == target_row.source_snapshot_id
+
+    alias_event = next(
+        event
+        for event in events
+        if event["decision"] == "confirm"
+        and event["target_kind"] == "existing"
+        and event["source_prospect_uuid"] == source_uuid
+    )
+    assert alias_event["source_record_id"] == source_row.source_record_id
+    assert alias_event["source_snapshot_id"] == source_row.source_snapshot_id
+    assert alias_event["source_record_id"] != target_row.source_record_id
+    assert alias_event["source_snapshot_id"] != target_row.source_snapshot_id
 
 
 def test_apply_logged_event_is_pure_no_fresh_timestamps_or_uuids(tmp_path: Path):

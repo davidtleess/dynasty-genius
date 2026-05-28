@@ -9,10 +9,13 @@ from pydantic import ValidationError
 
 from src.dynasty_genius.identity.college_prospect_identity import (
     MATCHER_ALGORITHM_VERSION,
+    CollegeAliasBridge,
+    CollegeProspectRegistry,
     NormalizedCollegeProspectRow,
     RegistryEntry,
     StatusHistoryAppendOnlyError,
     StatusHistoryEntry,
+    load_bridge,
     load_registry,
 )
 
@@ -109,6 +112,26 @@ def test_empty_or_missing_registry_file_loads_as_no_op(tmp_path: Path):
     empty = tmp_path / "empty.json"
     empty.write_text(json.dumps({"metadata": {}, "entries": []}))
     assert load_registry(empty).entries == {}
+
+
+def test_load_registry_handles_zero_byte_file(tmp_path: Path):
+    empty = tmp_path / "zero_byte_registry.json"
+    empty.write_text("")
+
+    registry = load_registry(empty)
+
+    assert isinstance(registry, CollegeProspectRegistry)
+    assert registry.entries == {}
+
+
+def test_load_bridge_handles_zero_byte_file(tmp_path: Path):
+    empty = tmp_path / "zero_byte_bridge.json"
+    empty.write_text("")
+
+    bridge = load_bridge(empty)
+
+    assert isinstance(bridge, CollegeAliasBridge)
+    assert bridge.entries == []
 
 
 def test_cfbd_shape_forward_compat_validates_against_documented_response_fields():

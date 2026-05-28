@@ -156,7 +156,10 @@ def load_registry(path: Path) -> CollegeProspectRegistry:
     """Spec §2 / §10.1: missing or empty file loads as a no-op empty registry."""
     if not path.exists():
         return CollegeProspectRegistry()
-    raw = json.loads(path.read_text())
+    text = path.read_text()
+    if not text.strip():
+        return CollegeProspectRegistry()
+    raw = json.loads(text)
     metadata = raw.get("metadata", {})
     entry_list = raw.get("entries", [])
     entries: dict[str, RegistryEntry] = {}
@@ -548,9 +551,13 @@ class CollegeAliasBridge(BaseModel):
 
 
 def load_bridge(path: Path) -> CollegeAliasBridge:
+    """Spec §3 + §10.1 parity with load_registry: missing or empty file → empty bridge."""
     if not path.exists():
         return CollegeAliasBridge()
-    raw = json.loads(path.read_text())
+    text = path.read_text()
+    if not text.strip():
+        return CollegeAliasBridge()
+    raw = json.loads(text)
     return CollegeAliasBridge.model_validate(raw)
 
 
@@ -875,8 +882,23 @@ def ingest_fixture(
     Returns ``IngestResult.exit_code != 0`` when any source_id_conflict is detected
     or when validate_registry_graph reports an inconsistency. The conflict queue
     file is still written on non-zero exit so operators can inspect collisions.
+
+    Missing or zero-byte fixture files load as a no-op (exit_code=0, total_input_rows=0,
+    no artifacts written) per plan/parity with load_registry/load_bridge.
     """
-    raw = json.loads(fixture_path.read_text())
+    empty_coverage = {
+        "total_input_rows": 0,
+        "minted_new": 0,
+        "idempotent_rerun": 0,
+        "minted_new_with_surfaced_candidates": 0,
+        "source_id_conflict": 0,
+    }
+    if not fixture_path.exists():
+        return IngestResult(exit_code=0, run_id=run_id, coverage=empty_coverage)
+    fixture_text = fixture_path.read_text()
+    if not fixture_text.strip():
+        return IngestResult(exit_code=0, run_id=run_id, coverage=empty_coverage)
+    raw = json.loads(fixture_text)
     entries_raw = raw.get("entries", [])
 
     registry_path = identity_dir / "college_prospect_registry.json"
@@ -1225,6 +1247,12 @@ def promote_review_candidate(
             decision.target if decision.target_kind == "existing" else None
         ),
         "survivor_prospect_uuid": decision.survivor,
+        # Spec §6.3 gold-standard audit trail: capture the acted-on row's source provenance.
+        # For confirm-existing the acted-on row is the provisional source (decision.target →
+        # target_row), NOT the survivor — so target_row.source_* is the correct value to log
+        # in every decision branch.
+        "source_record_id": target_row.source_record_id,
+        "source_snapshot_id": target_row.source_snapshot_id,
         "before_status": target_row.verification_status,
         "after_status": target_row.verification_status,
         "evidence": evidence,
