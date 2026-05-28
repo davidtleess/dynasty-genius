@@ -416,3 +416,106 @@ def surface_review_candidates(
             )
         )
     return flagged
+
+
+# ======================================================================
+# ConfirmedProspectUuid wrapper (spec §4.4)
+# ======================================================================
+
+
+class ConfirmedProspectUuid:
+    """Runtime-validated wrapper around a confirmed cpr_<uuid4>.
+
+    Spec §4.4 / §4.6: Python-honest runtime validation at construction. NOT compile-time.
+    Defenses are layered: ``__init__`` raises on every non-confirmed status; contract tests
+    inspect public consumer signatures; docs warn against raw-string construction;
+    mypy/pyright is future hardening out of scope for v1.
+
+    Construction rules:
+    - Unknown UUID → ``UnknownProspectUuid``
+    - Status ``provisional`` (and not following a redirect) → ``ProspectUuidNotConfirmed``
+    - Row has ``merged_into_prospect_uuid`` set + ``follow_redirect=False`` →
+      ``ProspectUuidDeprecatedMerged``
+    - ``follow_redirect=True`` + valid confirmed survivor → wraps the survivor's UUID
+    - Status ``deprecated`` (no redirect) → ``ProspectUuidNotConfirmed``
+    """
+
+    __slots__ = ("_value",)
+
+    def __init__(
+        self,
+        uuid_str: str,
+        *,
+        registry: CollegeProspectRegistry,
+        follow_redirect: bool = False,
+    ) -> None:
+        row = registry.get(uuid_str)
+        if row is None:
+            raise UnknownProspectUuid(uuid_str)
+        if row.merged_into_prospect_uuid:
+            if not follow_redirect:
+                raise ProspectUuidDeprecatedMerged(
+                    uuid_str, row.merged_into_prospect_uuid
+                )
+            survivor = registry.get(row.merged_into_prospect_uuid)
+            if survivor is None:
+                raise UnknownProspectUuid(row.merged_into_prospect_uuid)
+            if survivor.verification_status != "confirmed":
+                raise ProspectUuidNotConfirmed(
+                    survivor.prospect_uuid, survivor.verification_status
+                )
+            self._value = survivor.prospect_uuid
+            return
+        if row.verification_status != "confirmed":
+            raise ProspectUuidNotConfirmed(uuid_str, row.verification_status)
+        self._value = uuid_str
+
+    def __str__(self) -> str:
+        return self._value
+
+    def __repr__(self) -> str:
+        return f"ConfirmedProspectUuid({self._value!r})"
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, ConfirmedProspectUuid) and other._value == self._value
+
+    def __hash__(self) -> int:
+        return hash(("ConfirmedProspectUuid", self._value))
+
+
+# ======================================================================
+# Public runtime resolver (spec §1 + §8: sibling of prospect_identity_resolver)
+# ======================================================================
+
+
+def resolve_prospect_cfbd_athlete_id(
+    *,
+    name: str,
+    position: str,
+    draft_class: int,
+    registry: CollegeProspectRegistry,
+) -> Optional[ConfirmedProspectUuid]:
+    """Spec §1 + §8: three-stage resolution returning a typed ``ConfirmedProspectUuid``.
+
+    NEVER fuzzy. NEVER returns provisional/deprecated identities. Returns ``None`` on
+    unresolved (caller treats ``None`` as overlay-only / unresolved per spec §8).
+
+    Stage 1: explicit ``cfbd_athlete_id`` (reserved for v2 caller-override channel; not
+             threaded through in v1).
+    Stage 2: registry lookup via ``(normalized_name, position_group, draft_class)`` →
+             match_key; if exactly one CONFIRMED row matches, wrap and return.
+    Stage 3: unresolved → return ``None`` (caller handles as no-Engine-A-score / overlay-only).
+    """
+    normalized = normalize_name(name)
+    key = compute_match_key(
+        normalized_name=normalized,
+        position_group=position.upper(),
+        draft_class=draft_class,
+    )
+    candidates = [
+        e for e in registry.entries.values()
+        if e.match_key == key and e.verification_status == "confirmed"
+    ]
+    if len(candidates) != 1:
+        return None
+    return ConfirmedProspectUuid(candidates[0].prospect_uuid, registry=registry)
