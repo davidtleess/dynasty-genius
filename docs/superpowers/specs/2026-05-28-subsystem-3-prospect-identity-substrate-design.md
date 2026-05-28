@@ -258,8 +258,8 @@ Concretely:
    - Conflicting rerun (e.g., previously `confirm`, now `reject`) → fail closed; requires explicit `--override` flag (future tool).
 5. (Future hardening, out of scope for v1: a cross-file transaction layer — e.g., write-ahead log of intended replaces, or a single-file artifact bundle — would lift this to true multi-file atomicity. v1 accepts per-file atomicity + the recovery contract above.)
 
-### 6.5 Ingestion follows the same atomicity contracts
-The fixture-loader (`scripts/ingest_college_prospect_fixture.py`) and any future CFBD adapter follow the **same** write-tmp-rename + idempotency contract. Fixture-load → matcher candidates → review-queue write happens as one atomic artifact-set transaction. Inconsistent atomicity across write paths is a real risk; **the spec locks parity.**
+### 6.5 Ingestion follows the same validate-before-replace discipline
+The fixture-loader (`scripts/ingest_college_prospect_fixture.py`) and any future CFBD adapter follow the **same** validate-before-replace discipline and recovery posture as the promotion script (§6.4). Fixture-load → matcher candidates → review-queue write is **prepared and validated as one artifact-set update, then written via per-file atomic `os.replace` calls**. The artifact set is **not cross-file transactional in v1**; idempotent rerun plus post-run validation is the recovery contract. Inconsistent atomicity wording across write paths is a real risk; **the spec locks parity** (parity of the recovery contract, not of a claim to cross-file atomicity).
 
 ## 7. v1 data load scope
 
@@ -350,7 +350,7 @@ Group tests by module per Codex's plan-organization recommendation. Build plan w
 - `split` requires non-empty `--evidence` + surviving-key determinism
 - Idempotent rerun (same `review_id` + same decision) → no-op
 - Conflicting rerun (`confirm` then `reject`) → fail closed; requires `--override`
-- Promotion log replay deterministically reconstructs registry + bridge
+- Promotion log replay over the genesis fixture-ingestion state deterministically reconstructs registry + bridge (matches §6.3)
 
 ### 10.7 Audit / coverage / provisional-leak
 - All 5 provisional-leak contracts (§4.6) — one test each
