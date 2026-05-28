@@ -28,6 +28,24 @@
 
 ---
 
+## Round 2 patches (Codex plan review, 2026-05-28)
+
+After this plan was first committed, Codex's plan-level technical review surfaced 5 findings (2 HIGH + 3 MEDIUM + 1 non-blocking). All folded into the relevant tasks below.
+
+1. **HIGH — S3 confirmed + draft_year validation missing from RED + GREEN.** Task 1 added schema-only validation but spec §3.2 rules 1 + 2 require `prospect_uuid` is `verification_status="confirmed"` in S3 at write time AND `draft_year` == S3 row's `draft_class`. Original plan didn't load S3 from the promotion path. **Fix:** Task 1 RED adds `test_confirm_rejected_when_prospect_uuid_not_in_s3` + `test_confirm_rejected_when_prospect_uuid_not_confirmed` + `test_confirm_rejected_when_draft_year_mismatches_s3`. Task 4 GREEN `promote_bridge_candidate` accepts an `s3_registry` parameter and validates these two invariants before writing.
+
+2. **HIGH — `reject`/`defer` permanently block future `confirm`.** Original idempotency/conflict keyed on `prospect_uuid` alone, making a prior `defer` block all later `confirm`/`udfa`. Spec §3.3 says `defer` closes for this run; future discovery may reopen. **Fix:** Conflict semantics differentiate **accepted** decisions (`confirm`, `udfa`) from **procedural** decisions (`reject`, `defer`). Accepted-vs-accepted with different kinds → conflict; procedural → accepted is ALWAYS allowed (the procedural is overridden by the later accepted). Same-decision rerun stays idempotent. Task 4 RED adds `test_defer_then_confirm_succeeds` and `test_reject_then_confirm_succeeds`.
+
+3. **MEDIUM — Replay silently appended to non-empty genesis.** Original `replay_decision_log` loaded `bridge_path` (could be non-empty); spec §3.2 rule 6 locks replay over **missing or empty** genesis only. **Fix:** Task 2 GREEN raises `BridgeValidationError` if `bridge_path` exists with non-empty entries. Task 2 RED adds `test_replay_fail_closed_on_non_empty_genesis`.
+
+4. **MEDIUM — Audit leakage wording in Task 14 contradicted cleared spec.** Original said "no mock field names anywhere in S4 modules" — but `MockSnapshot`/`MockSnapshotPick`/`MockSnapshotMetadata` are CORRECT module surfaces. **Fix:** Task 14 audit wording tightened to match spec §7 — no mock-derived fields in S3 identity OR S4 bridge; no ADP/market fields in any S4 schema/output; mock fields ALLOWED in S4 snapshot/backtest diagnostic surfaces only.
+
+5. **MEDIUM — Coverage reconciliation formula incomplete.** Original formula `snapshots_used + leakage_excluded + untrusted_excluded == total_snapshots_found` missed three rejection buckets per spec §4.5. **Fix:** Task 14 formula extended: `snapshots_used + leakage_excluded_snapshots + untrusted_excluded_snapshots + duplicate_pick_no_rejections + duplicate_prospect_uuid_rejections + content_hash_collisions == total_snapshots_found`.
+
+6. **Non-blocking — Discovery per-run file writes are not atomic.** Task 4's `scripts/build_prospect_nfl_bridge.py` uses plain `write_text` for review queue / UDFA candidates / coverage matrix. **Fix:** swap to `.tmp + os.replace` pattern matching the bridge atomic-write style (low cost; consistent discipline).
+
+---
+
 ## File Structure
 
 **Create:**
@@ -273,6 +291,82 @@ def test_evidence_snapshot_none_for_udfa_is_valid():
     entry = ProspectNflBridgeEntry.model_validate(ok)
     errors = validate_bridge_entry(entry)
     assert errors == []
+
+
+# --- Round 2 patch 1 (Codex plan review): S3 confirmed + draft_year validation ---
+
+from src.dynasty_genius.identity.college_prospect_identity import (  # noqa: E402
+    CollegeProspectRegistry,
+    NormalizedCollegeProspectRow,
+    RegistryEntry,
+    StatusHistoryEntry,
+    compute_match_key,
+)
+from src.dynasty_genius.identity.prospect_nfl_bridge import (  # noqa: E402
+    validate_against_s3,
+)
+
+
+def _s3_row_for(uuid: str, status: str = "confirmed", draft_class: int = 2025):
+    base = NormalizedCollegeProspectRow.model_validate({
+        "raw_name": "Arch Manning", "normalized_name": "arch manning",
+        "full_name": "Arch Manning", "position": "QB", "position_group": "QB",
+        "draft_class": draft_class, "current_school": "Texas", "prior_schools": [],
+        "cfbd_athlete_id": None, "cfb_player_id": None,
+        "pfr_id": None, "gsis_id": None, "sleeper_id": None,
+        "source": "manual_fixture", "source_record_id": f"src_{uuid[:8]}",
+        "source_snapshot_id": "fixture_2025_v1",
+        "id_provenance": {"cfbd_athlete_id": None, "cfb_player_id": None,
+                          "pfr_id": None, "gsis_id": None, "sleeper_id": None},
+        "notes": None,
+    })
+    return RegistryEntry(
+        prospect_uuid=uuid, verification_status=status,
+        match_key=compute_match_key(
+            normalized_name=base.normalized_name, position_group="QB", draft_class=draft_class,
+        ),
+        status_history=[StatusHistoryEntry(
+            event_id=f"ev_{uuid}", decision="confirm", after_status=status,
+            decided_at="2026-05-28T12:00:00Z", reviewer_id="davidleess",
+        )],
+        merged_into_prospect_uuid=None, reviewer_id="davidleess", reviewer_metadata={},
+        **base.model_dump(),
+    )
+
+
+def test_confirm_rejected_when_prospect_uuid_not_in_s3():
+    """Spec §3.2 rule 1: prospect_uuid MUST resolve in S3 at write time."""
+    s3 = CollegeProspectRegistry()  # empty
+    entry = ProspectNflBridgeEntry.model_validate(_drafted_entry_kwargs())
+    errors = validate_against_s3(entry, s3_registry=s3)
+    assert any("not in S3" in e or "unknown" in e.lower() for e in errors)
+
+
+def test_confirm_rejected_when_prospect_uuid_not_confirmed():
+    """Spec §3.2 rule 1: prospect_uuid must be verification_status='confirmed'."""
+    uuid = "cpr_00000000-0000-4000-8000-000000000001"
+    s3 = CollegeProspectRegistry(entries={uuid: _s3_row_for(uuid, status="provisional")})
+    entry = ProspectNflBridgeEntry.model_validate({**_drafted_entry_kwargs(), "prospect_uuid": uuid})
+    errors = validate_against_s3(entry, s3_registry=s3)
+    assert any("provisional" in e.lower() or "not confirmed" in e.lower() for e in errors)
+
+
+def test_confirm_rejected_when_draft_year_mismatches_s3():
+    """Spec §3.2 rule 2: bridge entry draft_year MUST equal S3 row's draft_class."""
+    uuid = "cpr_00000000-0000-4000-8000-000000000001"
+    s3 = CollegeProspectRegistry(entries={uuid: _s3_row_for(uuid, draft_class=2024)})  # S3 says 2024
+    entry = ProspectNflBridgeEntry.model_validate({**_drafted_entry_kwargs(), "prospect_uuid": uuid})
+    # entry.draft_year is 2025; S3 row says 2024 — mismatch
+    errors = validate_against_s3(entry, s3_registry=s3)
+    assert any("draft_year" in e and "draft_class" in e for e in errors)
+
+
+def test_confirm_accepted_when_s3_confirmed_and_draft_year_matches():
+    uuid = "cpr_00000000-0000-4000-8000-000000000001"
+    s3 = CollegeProspectRegistry(entries={uuid: _s3_row_for(uuid, status="confirmed", draft_class=2025)})
+    entry = ProspectNflBridgeEntry.model_validate({**_drafted_entry_kwargs(), "prospect_uuid": uuid})
+    errors = validate_against_s3(entry, s3_registry=s3)
+    assert errors == []
 ```
 
 - [ ] **Step 2: Run RED check**
@@ -385,8 +479,9 @@ class BridgeConflictingDecisionError(RuntimeError):
 
 def validate_bridge_entry(entry: ProspectNflBridgeEntry) -> list[str]:
     """Per-entry shape validation. Returns a list of human-readable errors
-    (empty list = valid). Cross-entry invariants (1:1, decision-log consistency,
-    confirmed-prospect-uuid in S3) are checked in later validation layers."""
+    (empty list = valid). Cross-entry invariants (1:1) are checked in
+    `validate_bridge_graph`; S3 confirmation + draft_year invariants are
+    checked in `validate_against_s3` (Round 2 patch 1)."""
     errors: list[str] = []
     if entry.udfa:
         # spec §3.2 rule 4: udfa=True ⇒ 5 strict null fields
@@ -405,6 +500,39 @@ def validate_bridge_entry(entry: ProspectNflBridgeEntry) -> list[str]:
                     f"got None"
                 )
         # pfr_id is nullable secondary; not required even when udfa=False
+    return errors
+
+
+def validate_against_s3(
+    entry: ProspectNflBridgeEntry,
+    *,
+    s3_registry,
+) -> list[str]:
+    """Round 2 patch 1 (Codex plan review): spec §3.2 rules 1 + 2 require S3
+    knowledge at bridge write time. Caller passes a loaded S3 CollegeProspectRegistry.
+
+    Returns errors if:
+    - prospect_uuid is not present in S3 (unknown)
+    - prospect_uuid is in S3 but not verification_status='confirmed'
+    - bridge entry's draft_year != S3 row's draft_class
+    """
+    errors: list[str] = []
+    s3_row = s3_registry.entries.get(entry.prospect_uuid)
+    if s3_row is None:
+        errors.append(
+            f"prospect_uuid {entry.prospect_uuid} not in S3 registry (spec §3.2 rule 1)"
+        )
+        return errors  # can't check rule 2 without an S3 row
+    if s3_row.verification_status != "confirmed":
+        errors.append(
+            f"prospect_uuid {entry.prospect_uuid} has S3 status="
+            f"{s3_row.verification_status!r} (not confirmed; spec §3.2 rule 1)"
+        )
+    if entry.draft_year != s3_row.draft_class:
+        errors.append(
+            f"bridge draft_year={entry.draft_year} != S3 row's draft_class="
+            f"{s3_row.draft_class} (spec §3.2 rule 2)"
+        )
     return errors
 ```
 
@@ -554,6 +682,22 @@ def test_apply_decision_event_defer_does_not_mutate_bridge():
     assert bridge.entries == []
 
 
+def test_replay_fail_closed_on_non_empty_genesis(tmp_path: Path):
+    """Round 2 patch 3 (Codex plan review): replay must start from missing or
+    empty bridge file. Non-empty pre-existing entries → BridgeValidationError."""
+    pre_existing_entry = _drafted_entry("cpr_pre", "00-9999", 32)
+    seeded_bridge = CollegeProspectBridge(entries=[pre_existing_entry])
+    bridge_path = tmp_path / "seeded_bridge.json"
+    atomic_write_bridge(seeded_bridge, bridge_path)
+
+    log_path = tmp_path / "decision_log.jsonl"
+    atomic_write_decision_log([], log_path)
+
+    from src.dynasty_genius.identity.prospect_nfl_bridge import BridgeValidationError
+    with pytest.raises(BridgeValidationError):
+        replay_decision_log(log_path=log_path, bridge_path=bridge_path)
+
+
 def test_replay_decision_log_reproduces_bridge_byte_identical(tmp_path: Path):
     """Spec §3.2 rule 6: replay over GENESIS state (empty file) applies only
     accepted (confirm + udfa) events to reconstruct the bridge artifact
@@ -684,9 +828,19 @@ def apply_decision_event(event: dict[str, Any], bridge: CollegeProspectBridge) -
 def replay_decision_log(*, log_path: Path, bridge_path: Path) -> None:
     """Spec §3.2 rule 6: replay over GENESIS state (missing or empty bridge file).
     Applies events from the log in temporal order via apply_decision_event,
-    reconstructs the accepted-only artifact, atomic-writes the result."""
+    reconstructs the accepted-only artifact, atomic-writes the result.
+
+    Round 2 patch 3 (Codex plan review): fail-closed on non-empty genesis. Replay
+    must start from missing/empty bridge per spec §3.2 rule 6 — appending to a
+    non-empty file would silently produce a different artifact than the live path
+    and is the exact failure mode the spec language forbids."""
+    bridge = load_bridge(bridge_path)
+    if bridge.entries:
+        raise BridgeValidationError(
+            f"replay_decision_log requires missing or empty bridge genesis at {bridge_path}; "
+            f"got {len(bridge.entries)} pre-existing entries (spec §3.2 rule 6)"
+        )
     events = load_decision_log(log_path)
-    bridge = load_bridge(bridge_path)  # genesis: missing/empty → empty bridge
     for event in events:
         apply_decision_event(event, bridge)
     atomic_write_bridge(bridge, bridge_path)
@@ -1222,6 +1376,86 @@ def test_validate_bridge_graph_rejects_duplicate_gsis_id():
     bridge = CollegeProspectBridge(entries=[e1, e2])
     errors = validate_bridge_graph(bridge)
     assert any("gsis_id" in e and "duplicate" in e.lower() for e in errors)
+
+
+# --- Round 2 patch 2 (Codex plan review): accepted vs procedural conflict semantics ---
+
+
+def test_defer_then_confirm_succeeds(tmp_path: Path):
+    """Spec §3.3: defer closes the row for THIS run; a future discovery run can
+    re-open via a new review entry. A prior defer must NOT block later confirm."""
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+
+    # First: defer the prospect_uuid
+    defer_decision = PromotionDecision(kind="defer", prospect_uuid="cpr_aaa")
+    promote_bridge_candidate(
+        review_id=None, decision=defer_decision,
+        identity_dir=identity_dir, draft_year=2025,
+        reviewer_id="davidleess", evidence=None, note="transfer pending",
+    )
+
+    # Then: confirm the same prospect_uuid (different discovery run) — must succeed
+    entry = _drafted_entry("cpr_aaa", "00-0001", 1)
+    confirm_decision = PromotionDecision(kind="confirm", entry=entry)
+    result = promote_bridge_candidate(
+        review_id=None, decision=confirm_decision,
+        identity_dir=identity_dir, draft_year=2025,
+        reviewer_id="davidleess", evidence=None, note=None,
+    )
+    assert result.exit_code == 0
+    bridge = load_bridge(identity_dir / "prospect_to_nfl_bridge_2025.json")
+    assert any(e.prospect_uuid == "cpr_aaa" for e in bridge.entries)
+
+
+def test_reject_then_confirm_succeeds(tmp_path: Path):
+    """Same as defer: reject for one review row doesn't block a later confirm
+    from a future review run (a different match candidate succeeded)."""
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+
+    reject_decision = PromotionDecision(kind="reject", prospect_uuid="cpr_aaa")
+    promote_bridge_candidate(
+        review_id=None, decision=reject_decision,
+        identity_dir=identity_dir, draft_year=2025,
+        reviewer_id="davidleess", evidence=None, note="wrong match candidate",
+    )
+
+    entry = _drafted_entry("cpr_aaa", "00-0001", 1)
+    confirm_decision = PromotionDecision(kind="confirm", entry=entry)
+    result = promote_bridge_candidate(
+        review_id=None, decision=confirm_decision,
+        identity_dir=identity_dir, draft_year=2025,
+        reviewer_id="davidleess", evidence=None, note=None,
+    )
+    assert result.exit_code == 0
+    bridge = load_bridge(identity_dir / "prospect_to_nfl_bridge_2025.json")
+    assert any(e.prospect_uuid == "cpr_aaa" for e in bridge.entries)
+
+
+def test_confirm_then_different_accepted_decision_conflicts(tmp_path: Path):
+    """Accepted-vs-accepted with different kinds is still a conflict (e.g.,
+    confirm then udfa for the same prospect_uuid)."""
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+
+    entry = _drafted_entry("cpr_aaa", "00-0001", 1)
+    promote_bridge_candidate(
+        review_id=None,
+        decision=PromotionDecision(kind="confirm", entry=entry),
+        identity_dir=identity_dir, draft_year=2025,
+        reviewer_id="davidleess", evidence=None, note=None,
+    )
+
+    udfa_entry = ProspectNflBridgeEntry.model_validate({**_udfa_entry_kwargs(),
+                                                        "prospect_uuid": "cpr_aaa"})
+    with pytest.raises(BridgeConflictingDecisionError):
+        promote_bridge_candidate(
+            review_id=None,
+            decision=PromotionDecision(kind="udfa", entry=udfa_entry),
+            identity_dir=identity_dir, draft_year=2025,
+            reviewer_id="davidleess", evidence="evidence", note=None,
+        )
 ```
 
 - [ ] **Step 2: Run RED check**
@@ -1321,6 +1555,10 @@ def _close_review_queue_row(
             return
 
 
+_ACCEPTED_DECISIONS: frozenset[str] = frozenset({"confirm", "udfa"})
+_PROCEDURAL_DECISIONS: frozenset[str] = frozenset({"reject", "defer"})
+
+
 def promote_bridge_candidate(
     *,
     review_id: Optional[str],
@@ -1330,9 +1568,25 @@ def promote_bridge_candidate(
     reviewer_id: str,
     evidence: Optional[str],
     note: Optional[str],
+    s3_registry: Optional["CollegeProspectRegistry"] = None,
 ) -> PromotionResult:
     """Spec §3.3: the only blessed write path for bridge decisions. Three-point
-    logging in dependency-safe order: decision_log → bridge_artifact → review_queue closure."""
+    logging in dependency-safe order: decision_log → bridge_artifact → review_queue closure.
+
+    Round 2 patch 1 (Codex plan review): for `confirm`/`udfa` decisions, an
+    `s3_registry` MUST be supplied so spec §3.2 rules 1+2 can be validated
+    (prospect_uuid confirmed in S3; draft_year == S3 draft_class). When the
+    parameter is omitted for an accepted decision, the function returns
+    exit_code=1; the CLI loads S3 and passes it through.
+
+    Round 2 patch 2 (Codex plan review): conflict semantics differentiate
+    ACCEPTED decisions (confirm, udfa — these alter the bridge) from
+    PROCEDURAL decisions (reject, defer — these don't). A prior procedural
+    decision does NOT block a later accepted decision (a future discovery
+    run may re-surface the prospect with better evidence). A prior accepted
+    decision DOES block any different accepted decision. Same-decision rerun
+    is always idempotent.
+    """
     if decision.kind == "udfa" and not (evidence and evidence.strip()):
         raise BridgeEvidenceRequiredError(
             "udfa promotion requires non-empty --evidence per spec §3.3"
@@ -1343,24 +1597,36 @@ def promote_bridge_candidate(
     log_path = identity_dir / f"prospect_nfl_bridge_decision_log_{draft_year}.jsonl"
 
     # Determine the prospect_uuid being acted on
-    if decision.kind in ("confirm", "udfa"):
+    if decision.kind in _ACCEPTED_DECISIONS:
         if decision.entry is None:
             return PromotionResult(exit_code=1)
+        if s3_registry is None:
+            return PromotionResult(exit_code=1)  # Round 2 patch 1: required for accepted
         acted_uuid = decision.entry.prospect_uuid
     else:  # reject / defer
         if decision.prospect_uuid is None:
             return PromotionResult(exit_code=1)
         acted_uuid = decision.prospect_uuid
 
-    # Idempotency / conflict check
+    # Idempotency / conflict check — Round 2 patch 2 semantics
     existing_log = load_decision_log(log_path)
     for prior in existing_log:
-        if prior.get("prospect_uuid") == acted_uuid:
-            if prior.get("decision") == decision.kind:
-                return PromotionResult(exit_code=0, event_id=prior.get("event_id"))
+        if prior.get("prospect_uuid") != acted_uuid:
+            continue
+        prior_kind = prior.get("decision")
+        # Idempotent: identical decision is a no-op
+        if prior_kind == decision.kind:
+            return PromotionResult(exit_code=0, event_id=prior.get("event_id"))
+        # Procedural prior never blocks (later run may bring better evidence)
+        if prior_kind in _PROCEDURAL_DECISIONS:
+            continue
+        # Accepted prior + different new decision → conflict
+        # (covers accepted → different accepted AND accepted → procedural which
+        # is meaningless because the bridge entry already exists)
+        if prior_kind in _ACCEPTED_DECISIONS:
             raise BridgeConflictingDecisionError(
-                f"prospect_uuid {acted_uuid} already has decision={prior.get('decision')}; "
-                f"refusing to apply {decision.kind}"
+                f"prospect_uuid {acted_uuid} already has accepted decision="
+                f"{prior_kind!r}; refusing to apply {decision.kind}"
             )
 
     decided_at = _now_iso()
@@ -1379,7 +1645,7 @@ def promote_bridge_candidate(
 
     bridge = load_bridge(bridge_path)
 
-    if decision.kind in ("confirm", "udfa"):
+    if decision.kind in _ACCEPTED_DECISIONS:
         # Build the persistent entry with auto-filled audit fields
         entry_dict = decision.entry.model_dump()
         entry_dict["event_id"] = event_id
@@ -1389,7 +1655,12 @@ def promote_bridge_candidate(
             entry_dict["note"] = note
         final_entry = ProspectNflBridgeEntry.model_validate(entry_dict)
 
-        # Per-entry validation
+        # Round 2 patch 1: S3 confirmed + draft_year validation (spec §3.2 rules 1+2)
+        s3_errors = validate_against_s3(final_entry, s3_registry=s3_registry)
+        if s3_errors:
+            raise BridgeValidationError("; ".join(s3_errors))
+
+        # Per-entry shape validation
         per_errors = validate_bridge_entry(final_entry)
         if per_errors:
             raise BridgeValidationError("; ".join(per_errors))
@@ -1406,7 +1677,7 @@ def promote_bridge_candidate(
     # Dependency-safe per-file atomic write order
     existing_log.append(event)
     atomic_write_decision_log(existing_log, log_path)
-    if decision.kind in ("confirm", "udfa"):
+    if decision.kind in _ACCEPTED_DECISIONS:
         atomic_write_bridge(bridge, bridge_path)
     if review_id:
         _close_review_queue_row(
@@ -1472,7 +1743,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     decision_kind = args.decision
+    s3_registry = None  # only loaded when needed
     if decision_kind in ("confirm", "udfa"):
+        # Round 2 patch 1: load S3 for accepted-decision validation
+        from src.dynasty_genius.identity.college_prospect_identity import load_registry
+        s3_registry = load_registry(args.identity_dir / "college_prospect_registry.json")
         udfa = decision_kind == "udfa"
         entry = ProspectNflBridgeEntry.model_validate({
             "prospect_uuid": args.prospect_uuid,
@@ -1502,6 +1777,7 @@ def main(argv: list[str] | None = None) -> int:
         review_id=args.review_id, decision=decision,
         identity_dir=args.identity_dir, draft_year=args.draft_year,
         reviewer_id=args.reviewer, evidence=args.evidence, note=args.note,
+        s3_registry=s3_registry,
     )
     print(f"exit_code={result.exit_code} event_id={result.event_id}", file=sys.stderr)
     return result.exit_code
@@ -1628,12 +1904,29 @@ def main(argv: list[str] | None = None) -> int:
                 "draft_truth_content_hash": truth_content_hash,
             })
 
-    # Write artifacts (atomic-ish; v1 uses simple write_text for these per-run files)
+    # Round 2 patch 6 (Codex plan review): atomic writes for discovery per-run
+    # files via .tmp + os.replace, matching the bridge atomic-write discipline.
+    import os as _os
+
+    def _atomic_write_text(path: Path, content: str) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(content)
+        _os.replace(tmp, path)
+
     review_path = args.identity_dir / f"prospect_nfl_review_queue_{args.draft_year}_{args.run_id}.jsonl"
-    review_path.write_text("\n".join(json.dumps(e, sort_keys=True) for e in review_entries) + ("\n" if review_entries else ""))
+    _atomic_write_text(
+        review_path,
+        "\n".join(json.dumps(e, sort_keys=True) for e in review_entries)
+        + ("\n" if review_entries else ""),
+    )
 
     udfa_path = args.identity_dir / f"prospect_nfl_unmatched_udfa_candidates_{args.draft_year}_{args.run_id}.jsonl"
-    udfa_path.write_text("\n".join(json.dumps(e, sort_keys=True) for e in udfa_candidates) + ("\n" if udfa_candidates else ""))
+    _atomic_write_text(
+        udfa_path,
+        "\n".join(json.dumps(e, sort_keys=True) for e in udfa_candidates)
+        + ("\n" if udfa_candidates else ""),
+    )
 
     coverage_path = args.identity_dir / f"prospect_nfl_coverage_{args.draft_year}_{args.run_id}.json"
     coverage = {
@@ -1645,7 +1938,7 @@ def main(argv: list[str] | None = None) -> int:
         "prospects_unmatched_as_udfa": len(udfa_candidates),
         "draft_truth_content_hash": truth_content_hash,
     }
-    coverage_path.write_text(json.dumps(coverage, indent=2, sort_keys=True))
+    _atomic_write_text(coverage_path, json.dumps(coverage, indent=2, sort_keys=True))
 
     print(f"run_id={args.run_id} review_entries={len(review_entries)} udfa_candidates={len(udfa_candidates)}", file=sys.stderr)
     return 0
@@ -1827,14 +2120,17 @@ git commit -m "feat(subsystem-4): bridge promotion lifecycle + 2 CLI scripts (bu
 
 ### Task 14: Audit tests + AGENT_SYNC + ledger closeout — §6.3, §8.8, governance
 
-**RED test coverage (§8.8):**
+**RED test coverage (§8.8) — Round 2 patches 4 + 5 applied:**
 - S3 inviolate artifacts byte-unchanged via SHA-256 contract test (extends S3's pre-existing inviolate set; adds S3-merged committed artifacts)
-- No mock/ADP/market field names anywhere in `prospect_nfl_bridge.py` or `backtest_mock_draft.py` (leakage-gate scan)
-- Bridge schema + ingestion schemas carry zero banned market field names
+- **Round 2 patch 4**: Mock-data isolation rule per spec §7:
+  - NO mock/ADP/market field names in `prospect_nfl_bridge.py` (identity infrastructure must stay mock-free)
+  - NO ADP/market field names in any S4 schema or output across both modules (mock-derived diagnostic data is allowed; market data is barred)
+  - Mock fields ARE allowed in `backtest_mock_draft.py` for `MockSnapshot`, `MockSnapshotPick`, `MockSnapshotMetadata`, and Backtest A run artifacts — these are isolated diagnostic surfaces per spec §7
 - No banned David-facing language in any S4 output string (verdict/tier/grade/action — match patterns from S3 audit test)
 - `decision_supported=False` recursively absent or False on all S4 surfaces (B stub structured field; any output schema that has a `decision_supported` field)
-- Coverage matrix counts reconcile: `snapshots_used + leakage_excluded + untrusted_excluded == total_snapshots_found`
-- Acceptance criteria from §6.3 documented in spec + acceptance_criteria_failed list emission tested
+- **Round 2 patch 5**: Coverage matrix counts reconcile across ALL §4.5 rejection buckets:
+  `snapshots_used + leakage_excluded_snapshots + untrusted_excluded_snapshots + duplicate_pick_no_rejections + duplicate_prospect_uuid_rejections + content_hash_collisions == total_snapshots_found`
+- Acceptance criteria from §6.3 documented in spec + `acceptance_criteria_failed` list emission tested
 
 **GREEN: no impl needed if Tasks 1–13 implemented correctly.** Tests pass on the existing surfaces.
 
