@@ -206,3 +206,24 @@ def test_script_is_read_only_and_writes_only_divergence_artifacts(
         "mfl_rookie_adp_divergence_phase-b_2026.json",
         "mfl_rookie_adp_divergence_phase-b_2026.md",
     }
+
+
+def test_matched_rows_and_artifact_carry_blend_caveats():
+    # Intrinsic MFL blend caveats must propagate to matched rows AND artifact-level caveats,
+    # alongside the transient freshness caveat (Codex PR #52 MEDIUM).
+    out = _build([_adp("1", "Caleb Williams", "QB", 6)],
+                 [_card("Caleb Williams", "QB", 2026, 8)])
+    row = out["matched"][0]
+    assert "mfl_adp_format_blended_qb_count" in row["caveats"]
+    assert "mfl_adp_te_premium_unfiltered" in row["caveats"]
+    assert "mfl_adp_format_blended_qb_count" in out["caveats"]
+    assert "mfl_adp_te_premium_unfiltered" in out["caveats"]
+    assert "source_publish_age_h=1" in out["caveats"]      # transient still present
+
+
+def test_banned_language_guard_ignores_player_name_substrings():
+    # A player named with a banned-word substring (Winston -> "win") must NOT trip the guard;
+    # only our generated label strings are scanned, word-boundary.
+    out = _build([_adp("1", "Jameis Winston", "QB", 3)],
+                 [_card("Jameis Winston", "QB", 2026, 5)])
+    assert out["coverage"]["banned_language_present"] == []

@@ -7,6 +7,7 @@ and emits a standalone divergence artifact. Never mutates model/PVO state.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Callable
 
@@ -41,12 +42,20 @@ def _flag(rank_gap: int, aligned_band: int) -> str:
 
 
 def _coverage(artifact: dict, *, total_adp_rows: int) -> dict:
+    # Scan OUR generated label strings (flags/reasons/source labels) for banned verdict
+    # words, word-boundary — never player-name data (e.g. "Winston" must not trip "win").
+    label_strings = (
+        [str(r.get("divergence_flag", "")) for r in artifact["matched"]]
+        + [str(a.get("reason", "")) for a in artifact["ambiguous"]]
+        + [str(e.get("reason", "")) for e in artifact["model_rank_unavailable"]]
+        + [str(artifact.get("rank_source", "")), str(artifact.get("source", ""))]
+    )
     banned = sorted(
         {
             w
-            for r in artifact["matched"]
+            for s in label_strings
             for w in _BANNED_VERDICT_WORDS
-            if w in str(r.get("divergence_flag", "")).lower()
+            if re.search(rf"\b{re.escape(w)}\b", s.lower())
         }
     )
     return {
@@ -113,6 +122,7 @@ def build_mfl_rookie_adp_divergence(
                 "dynasty_value_score": card.get("dynasty_value_score"),
                 "rank_gap": rank_gap,
                 "divergence_flag": _flag(rank_gap, aligned_band),
+                "caveats": list(row.get("caveats") or []),
                 "decision_supported": False,
             }
         )
@@ -148,6 +158,17 @@ def build_mfl_rookie_adp_divergence(
         ]
     )
 
+    # Artifact caveats = intrinsic blend caveats (from the ADP rows) + transient channel,
+    # order-stable + deduped (intrinsic first per spec §6).
+    artifact_caveats: list[str] = []
+    for row in adp_rows:
+        for c in row.get("caveats") or []:
+            if c not in artifact_caveats:
+                artifact_caveats.append(c)
+    for c in caveats:
+        if c not in artifact_caveats:
+            artifact_caveats.append(c)
+
     artifact = {
         "captured_at": captured_at,
         "source": "mfl_rookie_adp",
@@ -155,7 +176,7 @@ def build_mfl_rookie_adp_divergence(
         "rank_source": "xvar_class_rank_v1",
         "aligned_band": aligned_band,
         "decision_supported": False,
-        "caveats": list(caveats),
+        "caveats": artifact_caveats,
         "matched": matched,
         "model_rank_unavailable": model_rank_unavailable,
         "unmatched_adp": unmatched_adp,
