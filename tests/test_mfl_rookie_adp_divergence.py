@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
+
 from src.dynasty_genius.mfl_rookie_adp_divergence import (
     build_mfl_rookie_adp_divergence,
+    write_mfl_rookie_adp_divergence_artifacts,
 )
 
 
@@ -141,3 +144,27 @@ def test_coverage_block_reconciles_and_guards():
     )
     assert cov["decision_supported_true_count"] == 0
     assert cov["banned_language_present"] == []
+
+
+def test_writer_emits_run_and_latest_json_and_md(tmp_path):
+    out = _build(
+        [_adp("1", "Caleb Williams", "QB", 6)],
+        [_card("Caleb Williams", "QB", 2026, 8, dvs_rank=5)],
+    )
+
+    write_mfl_rookie_adp_divergence_artifacts(out, output_dir=tmp_path, run_id="r1")
+
+    assert {p.name for p in tmp_path.iterdir()} == {
+        "mfl_rookie_adp_divergence_latest.json",
+        "mfl_rookie_adp_divergence_latest.md",
+        "mfl_rookie_adp_divergence_r1.json",
+        "mfl_rookie_adp_divergence_r1.md",
+    }
+    latest_json = json.loads(
+        (tmp_path / "mfl_rookie_adp_divergence_latest.json").read_text()
+    )
+    latest_md = (tmp_path / "mfl_rookie_adp_divergence_latest.md").read_text()
+    assert latest_json["matched"][0]["full_name"] == "Caleb Williams"
+    assert "Caleb Williams" in latest_md
+    assert "aligned" in latest_md
+    assert "decision_supported: false" in latest_md

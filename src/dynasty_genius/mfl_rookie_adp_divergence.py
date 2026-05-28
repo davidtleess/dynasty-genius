@@ -6,6 +6,8 @@ and emits a standalone divergence artifact. Never mutates model/PVO state.
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, Callable
 
 from src.dynasty_genius.adapters.prospect_identity_resolver import normalize_name
@@ -162,3 +164,53 @@ def build_mfl_rookie_adp_divergence(
     }
     artifact["coverage"] = _coverage(artifact, total_adp_rows=len(adp_rows))
     return artifact
+
+
+def _render_md(divergence: dict) -> str:
+    cov = divergence["coverage"]
+    lines = [
+        f"# MFL Rookie ADP Divergence — class {divergence['adp_draft_class']}",
+        "",
+        f"- captured_at: {divergence['captured_at']}",
+        f"- source: {divergence['source']} | rank_source: {divergence['rank_source']} "
+        f"| aligned_band: {divergence['aligned_band']}",
+        "- decision_supported: false (overlay/inference-only)",
+        f"- caveats: {', '.join(divergence['caveats']) or 'none'}",
+        "",
+        f"Coverage: total_adp={cov['total_adp_rows']} matched={cov['matched_count']} "
+        f"unmatched_adp={cov['unmatched_adp_count']} unmatched_model={cov['unmatched_model_count']} "
+        f"ambiguous={cov['ambiguous_count']} model_rank_unavailable={cov['model_rank_unavailable_count']}",
+        "",
+        "| Rookie | Pos | Market ADP rank | Model rank (xVAR) | rank_gap | flag |",
+        "|---|---|---|---|---|---|",
+    ]
+    for r in sorted(divergence["matched"], key=lambda x: x["market_adp_rank"]):
+        lines.append(
+            f"| {r['full_name']} | {r['position']} | {r['market_adp_rank']} | "
+            f"{r['model_rank']} | {r['rank_gap']:+d} | {r['divergence_flag']} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def write_mfl_rookie_adp_divergence_artifacts(
+    divergence: dict, *, output_dir: Path, run_id: str | None = None
+) -> dict[str, Path]:
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    safe = run_id or str(divergence["captured_at"]).replace(":", "").replace("-", "")
+    json_payload = json.dumps(divergence, indent=2, sort_keys=True) + "\n"
+    md_payload = _render_md(divergence)
+    run_json = output_dir / f"mfl_rookie_adp_divergence_{safe}.json"
+    latest_json = output_dir / "mfl_rookie_adp_divergence_latest.json"
+    run_md = output_dir / f"mfl_rookie_adp_divergence_{safe}.md"
+    latest_md = output_dir / "mfl_rookie_adp_divergence_latest.md"
+    run_json.write_text(json_payload)
+    latest_json.write_text(json_payload)
+    run_md.write_text(md_payload)
+    latest_md.write_text(md_payload)
+    return {
+        "run_json": run_json,
+        "latest_json": latest_json,
+        "run_md": run_md,
+        "latest_md": latest_md,
+    }
