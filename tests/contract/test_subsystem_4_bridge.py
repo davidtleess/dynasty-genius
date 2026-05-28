@@ -6,16 +6,27 @@ from pathlib import Path
 
 import pytest
 
+from src.dynasty_genius.identity.college_prospect_identity import (
+    NormalizedCollegeProspectRow,
+    RegistryEntry,
+    StatusHistoryEntry,
+    compute_match_key,
+)
 from src.dynasty_genius.identity.prospect_nfl_bridge import (
+    NFL_POSITION_WHITELIST,
     BridgeValidationError,
     CollegeProspectBridge,
+    NflTruthRow,
     ProspectNflBridgeEntry,
     apply_decision_event,
     atomic_write_bridge,
     atomic_write_decision_log,
+    is_nfl_position_pair_compatible,
     load_bridge,
     load_decision_log,
     replay_decision_log,
+    score_nfl_candidate,
+    surface_nfl_bridge_candidates,
 )
 
 
@@ -230,3 +241,140 @@ def test_replay_decision_log_reproduces_bridge_byte_identical(tmp_path: Path):
         "cpr_bbbb",
         "cpr_udfa",
     }
+
+
+def _confirmed_s3_row(
+    uuid: str,
+    name: str,
+    position: str,
+    position_group: str,
+    school: str = "Texas",
+) -> RegistryEntry:
+    base = NormalizedCollegeProspectRow.model_validate(
+        {
+            "raw_name": name,
+            "normalized_name": name.lower(),
+            "full_name": name,
+            "position": position,
+            "position_group": position_group,
+            "draft_class": 2025,
+            "current_school": school,
+            "prior_schools": [],
+            "cfbd_athlete_id": None,
+            "cfb_player_id": None,
+            "pfr_id": None,
+            "gsis_id": None,
+            "sleeper_id": None,
+            "source": "manual_fixture",
+            "source_record_id": f"src_{uuid[:8]}",
+            "source_snapshot_id": "fixture_2025_v1",
+            "id_provenance": {
+                "cfbd_athlete_id": None,
+                "cfb_player_id": None,
+                "pfr_id": None,
+                "gsis_id": None,
+                "sleeper_id": None,
+            },
+            "notes": None,
+        }
+    )
+    return RegistryEntry(
+        prospect_uuid=uuid,
+        verification_status="confirmed",
+        match_key=compute_match_key(
+            normalized_name=base.normalized_name,
+            position_group=position_group,
+            draft_class=2025,
+        ),
+        status_history=[
+            StatusHistoryEntry(
+                event_id=f"ev_{uuid}",
+                decision="confirm",
+                after_status="confirmed",
+                decided_at="2026-05-28T12:00:00Z",
+                reviewer_id="davidleess",
+            )
+        ],
+        merged_into_prospect_uuid=None,
+        reviewer_id="davidleess",
+        reviewer_metadata={},
+        **base.model_dump(),
+    )
+
+
+def _nfl_truth_row(
+    name: str,
+    position: str,
+    gsis_id: str,
+    pick_no: int,
+    team: str = "CAR",
+) -> NflTruthRow:
+    return NflTruthRow(
+        gsis_id=gsis_id,
+        pfr_id=None,
+        full_name=name,
+        normalized_name=name.lower(),
+        position=position,
+        college="Texas",
+        draft_year=2025,
+        draft_pick_no=pick_no,
+        draft_round=1 if pick_no <= 32 else 2,
+        nfl_team=team,
+        fetched_at="2026-05-28T12:00:00Z",
+    )
+
+
+def test_nfl_position_whitelist_supports_known_transitions():
+    assert frozenset({"EDGE", "OLB"}) in NFL_POSITION_WHITELIST
+    assert is_nfl_position_pair_compatible("QB", "QB") is True
+    assert is_nfl_position_pair_compatible("EDGE", "OLB") is True
+    assert is_nfl_position_pair_compatible("EDGE", "DE") is True
+    assert is_nfl_position_pair_compatible("S", "FS") is True
+    assert is_nfl_position_pair_compatible("S", "SS") is True
+    assert is_nfl_position_pair_compatible("CB", "CB") is True
+    assert is_nfl_position_pair_compatible("WR", "RB") is False
+
+
+def test_nfl_position_hard_blocks_offense_vs_defense():
+    assert is_nfl_position_pair_compatible("QB", "DE") is False
+    assert is_nfl_position_pair_compatible("WR", "CB") is False
+
+
+def test_score_nfl_candidate_uses_s3_score_candidate_pattern():
+    college = _confirmed_s3_row("cpr_aaa", "Arch Manning", "QB", "QB")
+    nfl_truth = _nfl_truth_row("Arch Manning", "QB", "00-0001", 1)
+
+    result = score_nfl_candidate(college, nfl_truth)
+
+    assert 0.0 <= result.match_score <= 1.0
+    assert result.gsis_id == "00-0001"
+
+
+def test_surface_nfl_bridge_candidates_returns_high_score_matches():
+    college = _confirmed_s3_row("cpr_aaa", "Arch Manning", "QB", "QB")
+    nfl_rows = [
+        _nfl_truth_row("Caleb Williams", "QB", "00-0002", 10),
+        _nfl_truth_row("Arch Manning", "QB", "00-0001", 1),
+    ]
+
+    candidates = surface_nfl_bridge_candidates(college, nfl_rows)
+
+    assert candidates
+    assert candidates[0].gsis_id == "00-0001"
+
+
+def test_surface_excludes_hard_blocked_positions():
+    college = _confirmed_s3_row("cpr_aaa", "Arch Manning", "QB", "QB")
+    nfl_rows = [_nfl_truth_row("Arch Manning", "DE", "00-0001", 1)]
+
+    assert surface_nfl_bridge_candidates(college, nfl_rows) == []
+
+
+def test_surface_includes_whitelist_position_transition():
+    college = _confirmed_s3_row("cpr_aaa", "Aidan Hutchinson", "EDGE", "EDGE")
+    nfl_rows = [_nfl_truth_row("Aidan Hutchinson", "OLB", "00-0001", 1)]
+
+    candidates = surface_nfl_bridge_candidates(college, nfl_rows)
+
+    assert candidates
+    assert "position_transition_allowed" in candidates[0].risk_flags

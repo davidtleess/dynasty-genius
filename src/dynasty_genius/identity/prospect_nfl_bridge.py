@@ -253,3 +253,188 @@ def replay_decision_log(*, log_path: Path, bridge_path: Path) -> None:
     for event in events:
         apply_decision_event(event, bridge)
     atomic_write_bridge(bridge, bridge_path)
+
+
+# ======================================================================
+# Discovery / NFL-domain candidate matching (spec §3.3 stage i)
+# ======================================================================
+
+from dataclasses import dataclass  # noqa: E402
+
+from src.dynasty_genius.identity.college_prospect_identity import (  # noqa: E402
+    NormalizedCollegeProspectRow,
+)
+from src.dynasty_genius.identity.college_prospect_identity import (  # noqa: E402
+    RegistryEntry as S3RegistryEntry,
+)
+from src.dynasty_genius.identity.college_prospect_identity import (  # noqa: E402
+    score_candidate as s3_score_candidate,
+)
+
+
+class NflTruthRow(BaseModel):
+    """A single row of nflreadr draft truth (column subset we care about)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    gsis_id: str
+    pfr_id: Optional[str] = None
+    full_name: str
+    normalized_name: str
+    position: str
+    college: Optional[str] = None
+    draft_year: int
+    draft_pick_no: int
+    draft_round: int
+    nfl_team: str
+    fetched_at: str
+
+
+# NFL-domain position taxonomy (different from S3's offense-only college whitelist).
+# Frozen sets keep this auditable + immutable.
+NFL_POSITION_WHITELIST: frozenset[frozenset[str]] = frozenset({
+    # Pass-rush / linebacker transitions
+    frozenset({"EDGE", "OLB"}),
+    frozenset({"EDGE", "DE"}),
+    frozenset({"DE", "DT"}),       # 3-4 vs 4-3 alignment differences
+    # Secondary
+    frozenset({"S", "FS"}),
+    frozenset({"S", "SS"}),
+    frozenset({"FS", "SS"}),
+    frozenset({"CB", "NB"}),       # nickelback
+    # Linebacker family
+    frozenset({"ILB", "MLB"}),
+    frozenset({"LB", "ILB"}),
+    frozenset({"LB", "OLB"}),
+    frozenset({"LB", "MLB"}),
+    # Offense
+    frozenset({"OG", "OT"}),       # interior swing
+    frozenset({"OT", "OL"}),
+    frozenset({"OG", "OL"}),
+    frozenset({"C", "OG"}),
+})
+
+# Hard-block offense ↔ defense pairings (never compatible regardless of name match)
+_NFL_OFFENSE: frozenset[str] = frozenset({
+    "QB", "RB", "FB", "WR", "TE", "OL", "OT", "OG", "C",
+})
+_NFL_DEFENSE: frozenset[str] = frozenset({
+    "DL", "DE", "DT", "EDGE", "LB", "ILB", "MLB", "OLB",
+    "CB", "NB", "S", "FS", "SS", "DB",
+})
+
+
+def is_nfl_position_pair_compatible(college_pos: str, nfl_pos: str) -> bool:
+    """NFL-domain position compatibility. Direct exact-match always allowed.
+    Whitelist transitions allowed. Offense ↔ defense always blocked."""
+    if college_pos.upper() == nfl_pos.upper():
+        return True
+    cu, nu = college_pos.upper(), nfl_pos.upper()
+    if (cu in _NFL_OFFENSE and nu in _NFL_DEFENSE) or (
+        cu in _NFL_DEFENSE and nu in _NFL_OFFENSE
+    ):
+        return False
+    if frozenset({cu, nu}) in NFL_POSITION_WHITELIST:
+        return True
+    return False
+
+
+@dataclass(frozen=True)
+class NflBridgeCandidate:
+    """Discovery output: a candidate pairing of college prospect → nflreadr row."""
+
+    prospect_uuid: str
+    gsis_id: str
+    nfl_truth_row: dict[str, Any]
+    match_score: float
+    score_breakdown: dict[str, float]
+    risk_flags: tuple[str, ...]
+    matcher_algorithm_version: str
+
+
+def score_nfl_candidate(
+    college: S3RegistryEntry,
+    nfl_truth: NflTruthRow,
+) -> NflBridgeCandidate:
+    """Score a college → NFL candidate using S3's score_candidate for name
+    similarity, then apply NFL-domain position taxonomy."""
+    # Adapt the NFL truth row into an S3-shaped row so we can call
+    # s3_score_candidate for the name/school similarity scoring.
+    nfl_as_college_shape = NormalizedCollegeProspectRow.model_validate({
+        "raw_name": nfl_truth.full_name,
+        "normalized_name": nfl_truth.normalized_name,
+        "full_name": nfl_truth.full_name,
+        "position": nfl_truth.position,
+        "position_group": nfl_truth.position,
+        "draft_class": nfl_truth.draft_year,
+        "current_school": nfl_truth.college or "",
+        "prior_schools": [],
+        "cfbd_athlete_id": None,
+        "cfb_player_id": None,
+        "pfr_id": None,
+        "gsis_id": None,
+        "sleeper_id": None,
+        "source": "nflreadr",
+        "source_record_id": f"nflreadr_{nfl_truth.gsis_id}",
+        "source_snapshot_id": f"nflreadr_{nfl_truth.draft_year}",
+        "id_provenance": {
+            "cfbd_athlete_id": None,
+            "cfb_player_id": None,
+            "pfr_id": None,
+            "gsis_id": None,
+            "sleeper_id": None,
+        },
+        "notes": None,
+    })
+
+    # s3_score_candidate enforces draft_class equality (hard-zeros otherwise);
+    # we set nfl_truth.draft_year == college.draft_class via the validated rows.
+    s3_candidate = s3_score_candidate(nfl_as_college_shape, college)
+
+    risk_flags: list[str] = list(s3_candidate.risk_flags)
+    if not is_nfl_position_pair_compatible(college.position, nfl_truth.position):
+        # Hard-block: drop score to 0
+        return NflBridgeCandidate(
+            prospect_uuid=college.prospect_uuid,
+            gsis_id=nfl_truth.gsis_id,
+            nfl_truth_row=nfl_truth.model_dump(),
+            match_score=0.0,
+            score_breakdown={**s3_candidate.score_breakdown, "nfl_position_block": 1.0},
+            risk_flags=("position_hard_blocked",),
+            matcher_algorithm_version=NFL_DOMAIN_MATCHER_VERSION,
+        )
+
+    if college.position.upper() != nfl_truth.position.upper():
+        # Whitelist transition allowed
+        risk_flags.append("position_transition_allowed")
+
+    return NflBridgeCandidate(
+        prospect_uuid=college.prospect_uuid,
+        gsis_id=nfl_truth.gsis_id,
+        nfl_truth_row=nfl_truth.model_dump(),
+        match_score=s3_candidate.match_score,
+        score_breakdown=s3_candidate.score_breakdown,
+        risk_flags=tuple(risk_flags),
+        matcher_algorithm_version=NFL_DOMAIN_MATCHER_VERSION,
+    )
+
+
+def surface_nfl_bridge_candidates(
+    college: S3RegistryEntry,
+    nfl_truth_rows: list[NflTruthRow],
+    *,
+    min_score: float = 0.75,
+    top_k: int = 5,
+) -> list[NflBridgeCandidate]:
+    """Surface up to ``top_k`` NFL truth candidates above ``min_score`` for a
+    given college prospect. Hard-blocked position pairings are excluded;
+    whitelist transitions surface only when name match clears ``min_score``."""
+    scored: list[NflBridgeCandidate] = []
+    for nfl in nfl_truth_rows:
+        if nfl.draft_year != college.draft_class:
+            continue  # cross-class blocked
+        cand = score_nfl_candidate(college, nfl)
+        if cand.match_score >= min_score and "position_hard_blocked" not in cand.risk_flags:
+            scored.append(cand)
+    scored.sort(key=lambda c: c.match_score, reverse=True)
+    return scored[:top_k]
