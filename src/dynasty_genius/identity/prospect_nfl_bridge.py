@@ -156,3 +156,100 @@ def validate_against_s3(
             f"{s3_row.draft_class} (spec §3.2 rule 2)"
         )
     return errors
+
+
+# ======================================================================
+# Atomic write helpers + decision log + replay (spec §3.2 rule 6, §3.3)
+# ======================================================================
+
+import json  # noqa: E402  (grouped with the persistence section it serves)
+import os  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+from pydantic import Field  # noqa: E402
+
+
+class CollegeProspectBridge(BaseModel):
+    """Container for accepted-only bridge entries (`confirm` + `udfa` decisions).
+    Decision-log replay reconstructs this from missing/empty genesis."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    entries: list[ProspectNflBridgeEntry] = Field(default_factory=list)
+
+
+def load_bridge(path: Path) -> CollegeProspectBridge:
+    """Spec parity with S3 load_registry: missing or empty file → empty bridge."""
+    if not path.exists():
+        return CollegeProspectBridge()
+    text = path.read_text()
+    if not text.strip():
+        return CollegeProspectBridge()
+    raw = json.loads(text)
+    return CollegeProspectBridge.model_validate(raw)
+
+
+def atomic_write_bridge(bridge: CollegeProspectBridge, path: Path) -> None:
+    """Per-file atomic write via sibling .tmp then ``os.replace`` (S3 §6.4 pattern)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    payload = {
+        "metadata": bridge.metadata,
+        "entries": [e.model_dump(mode="json") for e in bridge.entries],
+    }
+    tmp.write_text(json.dumps(payload, indent=2, sort_keys=True))
+    os.replace(tmp, path)
+
+
+def load_decision_log(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+def atomic_write_decision_log(events: list[dict[str, Any]], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    payload = "\n".join(json.dumps(e, sort_keys=True) for e in events)
+    if events:
+        payload += "\n"
+    tmp.write_text(payload)
+    os.replace(tmp, path)
+
+
+def apply_decision_event(event: dict[str, Any], bridge: CollegeProspectBridge) -> None:
+    """Spec §3.2 rule 6: replay applies ONLY accepted (`confirm` and `udfa`)
+    events to mutate the bridge artifact. `reject` and `defer` events are
+    recorded in the log for audit but do NOT mutate the bridge."""
+    decision = event.get("decision")
+    if decision in ("confirm", "udfa"):
+        entry_dict = event.get("entry")
+        if entry_dict is None:
+            return  # malformed event; skip
+        entry = ProspectNflBridgeEntry.model_validate(entry_dict)
+        bridge.entries.append(entry)
+    # reject / defer: no mutation
+
+
+def replay_decision_log(*, log_path: Path, bridge_path: Path) -> None:
+    """Spec §3.2 rule 6: replay over GENESIS state (missing or empty bridge file).
+    Applies events from the log in temporal order via ``apply_decision_event``,
+    reconstructs the accepted-only artifact, atomic-writes the result.
+
+    Round 2 patch 3 (Codex plan review): fail-closed on non-empty genesis.
+    Replay must start from missing/empty bridge per spec §3.2 rule 6 — appending
+    to a non-empty file would silently produce a different artifact than the
+    live path and is the exact failure mode the spec language forbids.
+    """
+    bridge = load_bridge(bridge_path)
+    if bridge.entries:
+        raise BridgeValidationError(
+            f"replay_decision_log requires missing or empty bridge genesis at "
+            f"{bridge_path}; got {len(bridge.entries)} pre-existing entries "
+            f"(spec §3.2 rule 6)"
+        )
+    events = load_decision_log(log_path)
+    for event in events:
+        apply_decision_event(event, bridge)
+    atomic_write_bridge(bridge, bridge_path)
