@@ -245,15 +245,18 @@ Hand-editing the registry, bridge, or log is **not** an equal path. Validation r
 2. **`registry.status_history`** — per-row append-only list of `{event_id, decision, after_status, decided_at, reviewer_id}` — local-inspection cache for `ConfirmedProspectUuid` construction checks.
 3. **`review_queue` closure marker** — `decided_at` + `decision` + `event_id` appended on the original review-queue row.
 
-### 6.4 Atomic write order (write-tmp-then-rename, validate-before-replace)
-**All mutated artifacts — `promotion_log`, `registry`, `bridge`, and any `review_queue` closure marker — are built in memory or as temp files, the full identity graph is validated, and only then are all artifacts atomically replaced.** The append-only `promotion_log` is **not the first irreversible write**; otherwise a later validation/replace failure would record an event that never actually applied, contradicting the "log replays to reconstruct registry+bridge" guarantee in §6.3.
+### 6.4 Write order: validate-then-replace, per-file atomicity + recovery contract
+**Honest about the boundary:** `os.replace` is **per-file atomic only**; a multi-file artifact set is **not cross-file transactional in v1**. A crash between two `os.replace` calls can leave the artifact set partially updated. The recovery contract below (idempotent rerun + post-run validation) is how we tolerate that without a cross-file transaction layer.
 
 Concretely:
-1. Build the new `promotion_log` content (existing log + the new event) in memory.
-2. Apply in-memory mutations to `registry`, `bridge`, and the `review_queue` closure marker.
-3. **Validate the whole identity graph** — `ConfirmedProspectUuid` would still construct cleanly for all confirmed rows; bridge targets all reference confirmed (non-deprecated) UUIDs; `source_record_id` uniqueness invariant holds; promotion-log-replay over the genesis-state would reproduce the new registry/bridge byte-for-byte.
-4. Write **each** artifact (incl. `promotion_log`) to a sibling `*.tmp`; on validation pass, `os.replace` swaps all atomically (in dependency-safe order: log first replace, then registry, then bridge, then review_queue).
-5. **Idempotent rerun**: same `review_id` + same decision → no-op. Conflicting rerun (e.g., previously `confirm`, now `reject`) → fail closed; requires explicit `--override` flag (future tool).
+1. Build new content for **all** affected artifacts (`promotion_log`, `registry`, `bridge`, `review_queue` closure marker) in memory; serialize each to a sibling `*.tmp` file.
+2. **Validate the full identity graph in memory before any replace** — `ConfirmedProspectUuid` would still construct cleanly for all confirmed rows; bridge targets all reference confirmed (non-deprecated) UUIDs; `source_record_id` uniqueness invariant holds; promotion-log-replay over the genesis-state would reproduce the new registry/bridge byte-for-byte. **Any validation failure aborts before any `os.replace`** — no artifact has changed on disk.
+3. Apply `os.replace` to each artifact in **dependency-safe order**: `promotion_log` → `registry` → `bridge` → `review_queue` closure. Each call is per-file atomic. **No claim of cross-file atomicity.**
+4. **Recovery contract** (covers the per-file crash window in step 3):
+   - **Idempotent rerun** — same `review_id` + same decision → no-op. A crashed run can be safely re-invoked; the script detects which artifacts already reflect the event (via `event_id` lookup in `promotion_log` and `status_history`) and completes only the remaining replaces.
+   - **Post-run validation** — the script's last action is a full identity-graph re-validation reading from the on-disk artifacts; any inconsistency surfaces immediately as a non-zero exit + explicit diagnostic (no silent partial state).
+   - Conflicting rerun (e.g., previously `confirm`, now `reject`) → fail closed; requires explicit `--override` flag (future tool).
+5. (Future hardening, out of scope for v1: a cross-file transaction layer — e.g., write-ahead log of intended replaces, or a single-file artifact bundle — would lift this to true multi-file atomicity. v1 accepts per-file atomicity + the recovery contract above.)
 
 ### 6.5 Ingestion follows the same atomicity contracts
 The fixture-loader (`scripts/ingest_college_prospect_fixture.py`) and any future CFBD adapter follow the **same** write-tmp-rename + idempotency contract. Fixture-load → matcher candidates → review-queue write happens as one atomic artifact-set transaction. Inconsistent atomicity across write paths is a real risk; **the spec locks parity.**
@@ -331,7 +334,7 @@ Group tests by module per Codex's plan-organization recommendation. Build plan w
 - Construction succeeds only on `confirmed` rows
 - Raises `UnknownProspectUuid`, `ProspectUuidNotConfirmed`, `ProspectUuidDeprecatedMerged` on the respective failures
 - Redirects followed only when explicitly allowed
-- Static-checker (mypy) contract test that consumer signatures require `ConfirmedProspectUuid`, not `str`
+- Signature/introspection contract test that public runtime consumers require `ConfirmedProspectUuid`, not raw `str`; no `mypy`/`pyright` gate in v1.
 
 ### 10.5 Ingestion atomicity / idempotency
 - Fixture loader uses write-tmp-rename
@@ -369,6 +372,6 @@ Group tests by module per Codex's plan-organization recommendation. Build plan w
 
 1. **Substrate without a consumer might be premature.** Increment A's actual product use (Engine A near-class scoring) is a later increment. Why build identity now? *Mitigation:* the reconciliation (4-way triangulated) and both research reports agreed identity is the foundational dependency for both S1 (aggregation) and S4 (backtest), and it has the longest lead-time to get right. Building it first de-risks everything downstream. Substrate has clear unit-test coverage; it doesn't require a consumer to be valid.
 2. **Manual fixture might bias the substrate to whatever I curate.** *Mitigation:* the CFBD-shape contract test forces the schema to accept exactly what a future CFBD adapter would produce; synthetic tests cover edge cases beyond the fixture; ingestion contracts are class-agnostic and source-agnostic by design.
-3. **The "type safety" of `ConfirmedProspectUuid` is weaker than the cockpit initially treated it.** *Mitigation explicit in this spec (§4.4):* it's runtime validation at construction in Python, *not* compile-time. Defenses are layered: `__init__` raises; lint/static checker flags `str` where `ConfirmedProspectUuid` is required; contract tests enforce consumer-API typing; docs warn against raw-string construction. Stronger than no protection; honest about what Python can enforce.
+3. **The "type safety" of `ConfirmedProspectUuid` is weaker than the cockpit initially treated it.** *Mitigation explicit in this spec (§4.4):* it's runtime validation at construction in Python, *not* compile-time. Defenses are layered: `__init__` raises; contract tests inspect public consumer signatures and behavior; docs warn against raw-string construction; `mypy`/`pyright` is future hardening out of scope for v1. Stronger than no protection; honest about what Python can enforce.
 4. **`source_id_conflict` hard block might mask real data we want to see.** *Mitigation:* the conflict is routed to a dedicated investigation queue (not silently dropped); coverage matrix counts it; reviewer can manually inspect and decide (manual bridge entry, deprecation, or split).
 5. **The test surface (~50+) is substantial for a "substrate-only" v1.** *Mitigation:* honest in §10; build plan organizes tests by module; the alternative (fewer tests) would risk the silent-identity-corruption failure mode the resolver docstring explicitly warns against ("wrong joins corrupt market overlay data silently, which is worse than a null overlay"). Test depth is the price of identity correctness.
