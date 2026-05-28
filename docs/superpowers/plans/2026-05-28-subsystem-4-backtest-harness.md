@@ -44,6 +44,8 @@ After this plan was first committed, Codex's plan-level technical review surface
 
 6. **Non-blocking — Discovery per-run file writes are not atomic.** Task 4's `scripts/build_prospect_nfl_bridge.py` uses plain `write_text` for review queue / UDFA candidates / coverage matrix. **Fix:** swap to `.tmp + os.replace` pattern matching the bridge atomic-write style (low cost; consistent discipline).
 
+7. **MEDIUM/HIGH — Library-path can write entry into wrong-year artifact (Codex round-2 finding).** `promote_bridge_candidate` validates `entry.draft_year == S3.draft_class` via `validate_against_s3` (Patch 1), but doesn't validate `entry.draft_year == draft_year` (the kwarg that selects the artifact file). A direct library call like `promote_bridge_candidate(decision=entry_with_draft_year=2024, draft_year=2025, s3_registry=s3_where_uuid_is_2024)` would pass S3 validation yet write a 2024 entry into the **2025** artifact. CLI normally aligns these, but the library is the blessed write path so the contract must lock here. **Fix:** Task 4 GREEN raises `BridgeValidationError` if `final_entry.draft_year != draft_year` arg, before appending event or entry. Task 4 RED adds `test_promote_confirm_rejects_entry_draft_year_mismatching_artifact_draft_year`.
+
 ---
 
 ## File Structure
@@ -1433,6 +1435,39 @@ def test_reject_then_confirm_succeeds(tmp_path: Path):
     assert any(e.prospect_uuid == "cpr_aaa" for e in bridge.entries)
 
 
+def test_promote_confirm_rejects_entry_draft_year_mismatching_artifact_draft_year(tmp_path: Path):
+    """Round 2 patch 7 (Codex round-2 finding): library-path must lock the
+    invariant that entry.draft_year == draft_year arg (the kwarg that
+    selects the artifact file). Without this, a 2024 entry could be written
+    into the 2025 bridge artifact even though S3 validation passes."""
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    uuid = "cpr_00000000-0000-4000-8000-000000000001"
+
+    # Seed S3 with a confirmed 2024 row
+    s3 = CollegeProspectRegistry(entries={uuid: _s3_row_for(uuid, status="confirmed", draft_class=2024)})
+
+    # Entry with draft_year=2024 (matches S3)
+    entry_2024 = ProspectNflBridgeEntry.model_validate({**_drafted_entry_kwargs(),
+                                                        "prospect_uuid": uuid,
+                                                        "draft_year": 2024})
+    decision = PromotionDecision(kind="confirm", entry=entry_2024)
+
+    # Call with draft_year=2025 (mismatched artifact year)
+    from src.dynasty_genius.identity.prospect_nfl_bridge import BridgeValidationError
+    with pytest.raises(BridgeValidationError):
+        promote_bridge_candidate(
+            review_id=None, decision=decision,
+            identity_dir=identity_dir, draft_year=2025,  # mismatch
+            reviewer_id="davidleess", evidence=None, note=None,
+            s3_registry=s3,
+        )
+
+    # Verify no artifact written for either year
+    assert not (identity_dir / "prospect_to_nfl_bridge_2024.json").exists()
+    assert not (identity_dir / "prospect_to_nfl_bridge_2025.json").exists()
+
+
 def test_confirm_then_different_accepted_decision_conflicts(tmp_path: Path):
     """Accepted-vs-accepted with different kinds is still a conflict (e.g.,
     confirm then udfa for the same prospect_uuid)."""
@@ -1654,6 +1689,16 @@ def promote_bridge_candidate(
         if note is not None:
             entry_dict["note"] = note
         final_entry = ProspectNflBridgeEntry.model_validate(entry_dict)
+
+        # Round 2 patch 7: entry draft_year MUST match the artifact-selecting
+        # draft_year arg. Locks the library invariant — CLI normally aligns
+        # these, but the library is the blessed write path so the contract
+        # must hold here too.
+        if final_entry.draft_year != draft_year:
+            raise BridgeValidationError(
+                f"entry.draft_year={final_entry.draft_year} != promote draft_year={draft_year} "
+                f"(artifact selector mismatch; Round 2 patch 7)"
+            )
 
         # Round 2 patch 1: S3 confirmed + draft_year validation (spec §3.2 rules 1+2)
         s3_errors = validate_against_s3(final_entry, s3_registry=s3_registry)
