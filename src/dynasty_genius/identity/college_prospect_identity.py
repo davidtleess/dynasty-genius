@@ -519,3 +519,316 @@ def resolve_prospect_cfbd_athlete_id(
     if len(candidates) != 1:
         return None
     return ConfirmedProspectUuid(candidates[0].prospect_uuid, registry=registry)
+
+
+# ======================================================================
+# College alias bridge schema + I/O (spec §3 + §6.2)
+# ======================================================================
+
+import os  # noqa: E402  (grouped with the persistence section it serves)
+import uuid as _uuid  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
+
+
+class CollegeAliasBridgeEntry(BaseModel):
+    """Spec §3 + §6.2: maps (match_key, source_record_id) → confirmed prospect_uuid."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    match_key: str
+    source_record_id: str
+    target_prospect_uuid: str
+
+
+class CollegeAliasBridge(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    entries: list[CollegeAliasBridgeEntry] = Field(default_factory=list)
+
+
+def load_bridge(path: Path) -> CollegeAliasBridge:
+    if not path.exists():
+        return CollegeAliasBridge()
+    raw = json.loads(path.read_text())
+    return CollegeAliasBridge.model_validate(raw)
+
+
+def atomic_write_bridge(bridge: CollegeAliasBridge, path: Path) -> None:
+    """Spec §6.4: per-file atomic write; sibling .tmp then os.replace."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    payload = {
+        "metadata": bridge.metadata,
+        "entries": [e.model_dump(mode="json") for e in bridge.entries],
+    }
+    tmp_path.write_text(json.dumps(payload, indent=2, sort_keys=True))
+    os.replace(tmp_path, path)
+
+
+# ======================================================================
+# Atomic registry persistence (spec §6.4 — per-file os.replace)
+# ======================================================================
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def atomic_write_registry(registry: CollegeProspectRegistry, path: Path) -> None:
+    """Spec §6.4: serialize to sibling .tmp file then os.replace into place.
+
+    Per-file atomic only; NOT cross-file transactional. Caller orchestrates the
+    multi-artifact write order and the recovery contract.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    payload = {
+        "metadata": registry.metadata,
+        "entries": [e.model_dump(mode="json") for e in registry.entries.values()],
+    }
+    tmp_path.write_text(json.dumps(payload, indent=2, sort_keys=True))
+    os.replace(tmp_path, path)
+
+
+# ======================================================================
+# Identity-graph validation (spec §4.6 contracts 3 + 4 + 5)
+# ======================================================================
+
+
+def validate_registry_graph(
+    registry: CollegeProspectRegistry,
+    *,
+    bridge: Optional[CollegeAliasBridge] = None,
+) -> list[str]:
+    """Returns a list of human-readable errors. Empty list = consistent.
+
+    Checks:
+    - source_record_id uniqueness per confirmed prospect_uuid (§4.6 contract 4)
+    - merged_into_prospect_uuid redirects must point to a confirmed survivor
+    - bridge entries must point to confirmed, non-deprecated UUIDs (§4.6 contract 3)
+    """
+    errors: list[str] = []
+    seen_source_records: dict[tuple[str, str], str] = {}
+    for entry in registry.entries.values():
+        if entry.verification_status == "confirmed":
+            key = (entry.source, entry.source_record_id)
+            if key in seen_source_records:
+                errors.append(
+                    f"source_record_id collision on {entry.source_record_id}: "
+                    f"{seen_source_records[key]} and {entry.prospect_uuid}"
+                )
+            else:
+                seen_source_records[key] = entry.prospect_uuid
+        if entry.merged_into_prospect_uuid:
+            survivor = registry.get(entry.merged_into_prospect_uuid)
+            if survivor is None:
+                errors.append(
+                    f"{entry.prospect_uuid} redirects to unknown {entry.merged_into_prospect_uuid}"
+                )
+            elif survivor.verification_status != "confirmed":
+                errors.append(
+                    f"{entry.prospect_uuid} redirects to non-confirmed "
+                    f"{entry.merged_into_prospect_uuid}"
+                )
+    if bridge is not None:
+        for entry in bridge.entries:
+            target = registry.get(entry.target_prospect_uuid)
+            if target is None:
+                errors.append(
+                    f"bridge target {entry.target_prospect_uuid} is unknown"
+                )
+            elif target.verification_status != "confirmed":
+                errors.append(
+                    f"bridge target {entry.target_prospect_uuid} is not confirmed "
+                    f"(status={target.verification_status})"
+                )
+            elif target.merged_into_prospect_uuid:
+                errors.append(
+                    f"bridge target {entry.target_prospect_uuid} is deprecated/redirected to "
+                    f"{target.merged_into_prospect_uuid}"
+                )
+    return errors
+
+
+# ======================================================================
+# Ambiguity-before-mint + source_id_conflict (spec §4.3 + §5.5)
+# ======================================================================
+
+
+@dataclass(frozen=True)
+class IngestionOutcome:
+    """Round 2 shape. ``source_id_conflict_record`` is populated only when
+    ``kind == 'source_id_conflict'``; ``review_candidates`` is empty for
+    ``source_id_conflict`` and ``minted_new`` outcomes."""
+
+    kind: Literal[
+        "minted_new",
+        "idempotent_rerun",
+        "minted_new_with_surfaced_candidates",
+        "source_id_conflict",
+    ]
+    prospect_uuid: Optional[str] = None
+    review_candidates: tuple[MatchCandidate, ...] = ()
+    source_id_conflict_record: Optional[dict[str, Any]] = None
+
+
+def _mint_provisional_uuid() -> str:
+    return f"cpr_{_uuid.uuid4()}"
+
+
+def _mint_and_insert(
+    incoming: NormalizedCollegeProspectRow,
+    registry: CollegeProspectRegistry,
+    match_key: str,
+) -> str:
+    new_uuid = _mint_provisional_uuid()
+    entry = RegistryEntry(
+        prospect_uuid=new_uuid,
+        verification_status="provisional",
+        match_key=match_key,
+        status_history=[
+            StatusHistoryEntry(
+                event_id=f"ingest_{new_uuid}",
+                decision="ingest",
+                after_status="provisional",
+                decided_at=_now_iso(),
+                reviewer_id="system_ingestion",
+            )
+        ],
+        merged_into_prospect_uuid=None,
+        reviewer_id="system_ingestion",
+        reviewer_metadata={},
+        **incoming.model_dump(),
+    )
+    registry.entries[new_uuid] = entry
+    return new_uuid
+
+
+def _detect_source_id_conflict(
+    incoming: NormalizedCollegeProspectRow,
+    registry: CollegeProspectRegistry,
+) -> Optional[dict[str, Any]]:
+    """Spec §5.5: shared ``source_record_id`` OR shared ``cfbd_athlete_id`` pointing to a
+    different confirmed ``prospect_uuid`` → hard-block, route to dedicated source_id_conflict
+    queue. Only confirmed entries count as collision sources; provisional rows still flow
+    through the normal ambiguity-before-mint path."""
+    for entry in registry.entries.values():
+        if entry.verification_status != "confirmed":
+            continue
+        if (
+            entry.source == incoming.source
+            and entry.source_record_id == incoming.source_record_id
+            and entry.normalized_name != incoming.normalized_name
+        ):
+            return {
+                "kind": "source_record_id_collision",
+                "incoming_source": incoming.source,
+                "incoming_source_record_id": incoming.source_record_id,
+                "incoming_normalized_name": incoming.normalized_name,
+                "existing_prospect_uuid": entry.prospect_uuid,
+                "existing_normalized_name": entry.normalized_name,
+            }
+        if (
+            incoming.cfbd_athlete_id is not None
+            and entry.cfbd_athlete_id == incoming.cfbd_athlete_id
+            and entry.normalized_name != incoming.normalized_name
+        ):
+            return {
+                "kind": "cfbd_athlete_id_collision",
+                "incoming_cfbd_athlete_id": incoming.cfbd_athlete_id,
+                "incoming_normalized_name": incoming.normalized_name,
+                "existing_prospect_uuid": entry.prospect_uuid,
+                "existing_normalized_name": entry.normalized_name,
+            }
+    return None
+
+
+def mint_or_match(
+    incoming: NormalizedCollegeProspectRow,
+    registry: CollegeProspectRegistry,
+    *,
+    bridge: Optional[CollegeAliasBridge] = None,
+) -> IngestionOutcome:
+    """Spec §4.3 + §5.4 + §5.5 (Round 2 ingestion contract).
+
+    Order of operations:
+      1. source_id_conflict pre-check → hard-block, no fuzzy output
+      2. Idempotent rerun check (same source + source_record_id + source_snapshot_id)
+      3. surface_review_candidates() over §5.4 query (normalized_name + draft_class
+         match; position_group same OR in whitelist transition map). Hard-block + whitelist
+         + threshold semantics live inside surface_review_candidates().
+      4. Mint a new provisional and emit review candidates (if any).
+
+    The ``bridge`` parameter is accepted for forward-compatibility with future caller
+    flows that may want to consult bridge state during ingestion; v1 mint_or_match does
+    not read from the bridge.
+    """
+    del bridge  # accepted for API parity; v1 ingestion does not consult the bridge
+
+    # (1) source_id_conflict pre-check
+    conflict = _detect_source_id_conflict(incoming, registry)
+    if conflict is not None:
+        return IngestionOutcome(
+            kind="source_id_conflict",
+            source_id_conflict_record=conflict,
+        )
+
+    # (2) idempotent rerun
+    for entry in registry.entries.values():
+        if (
+            entry.source == incoming.source
+            and entry.source_record_id == incoming.source_record_id
+            and entry.source_snapshot_id == incoming.source_snapshot_id
+        ):
+            return IngestionOutcome(
+                kind="idempotent_rerun",
+                prospect_uuid=entry.prospect_uuid,
+            )
+
+    # (3) Surface candidates via §5.4 query (delegates to surface_review_candidates,
+    # which applies hard-block + whitelist + score threshold).
+    candidates_before_mint = tuple(surface_review_candidates(incoming, registry.entries))
+
+    # (4) Mint new provisional regardless of candidate count (spec §4.3: never auto-merge)
+    key = compute_match_key(
+        normalized_name=incoming.normalized_name,
+        position_group=incoming.position_group,
+        draft_class=incoming.draft_class,
+    )
+    new_uuid = _mint_and_insert(incoming, registry, key)
+
+    if not candidates_before_mint:
+        return IngestionOutcome(kind="minted_new", prospect_uuid=new_uuid)
+
+    # Attach same-match_key ambiguity flags. Count includes the just-minted incoming row.
+    same_match_key_count = sum(
+        1 for entry in registry.entries.values() if entry.match_key == key
+    )
+    if same_match_key_count >= 3:
+        extra_flags = {"ambiguous_existing_candidates", "common_name"}
+    elif same_match_key_count == 2:
+        extra_flags = {"common_name"}
+    else:
+        extra_flags = set()
+
+    if extra_flags:
+        candidates = tuple(
+            MatchCandidate(
+                target_prospect_uuid=c.target_prospect_uuid,
+                match_score=c.match_score,
+                score_breakdown=c.score_breakdown,
+                risk_flags=tuple(set(c.risk_flags) | extra_flags),
+                raw_match_features=c.raw_match_features,
+                matcher_algorithm_version=c.matcher_algorithm_version,
+            )
+            for c in candidates_before_mint
+        )
+    else:
+        candidates = candidates_before_mint
+
+    return IngestionOutcome(
+        kind="minted_new_with_surfaced_candidates",
+        prospect_uuid=new_uuid,
+        review_candidates=candidates,
+    )
