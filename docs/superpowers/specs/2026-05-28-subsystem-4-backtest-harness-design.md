@@ -94,7 +94,7 @@ tests/
 ```
 
 **Dependencies:**
-- `prospect_nfl_bridge.py` depends on `college_prospect_identity` for the matcher PATTERN (uses `score_candidate`, `surface_review_candidates` for candidate matching at discovery time; uses S3's `ConfirmedProspectUuid` to validate `prospect_uuid` inputs are confirmed). S4 implements its own atomic-write / decision-log helpers following the S3 pattern; no underscore-private cross-module imports.
+- `prospect_nfl_bridge.py` depends on `college_prospect_identity` for the matcher SCORING (uses S3's `score_candidate` public function directly for per-row similarity scoring; uses S3's `ConfirmedProspectUuid` to validate `prospect_uuid` inputs are confirmed). S4 implements its **own discovery wrapper** analogous to `surface_review_candidates` but with an NFL-domain position taxonomy (e.g., college EDGE → NFL OLB transitions, college S → NFL FS/SS, etc.); the S3 `surface_review_candidates` function is NOT imported directly because its hard-block + whitelist filters are college-side and would mis-handle college→NFL position migrations. S4 also implements its own atomic-write / decision-log helpers following the S3 pattern; no underscore-private cross-module imports.
 - `backtest_mock_draft.py` depends on `prospect_nfl_bridge` (read bridge artifact at run time) and a thin nflreadr wrapper (draft truth)
 - `nflreadpy` already in `requirements.txt` (Phase 17/18 universe-snapshot usage); no new deps
 
@@ -155,7 +155,8 @@ class ProspectNflBridgeEntry(BaseModel):
 5. Provenance fields all present (`nflreadr_source`, `nflreadr_season`, `draft_truth_content_hash`, `nflreadr_fetched_at`)
 6. **Decision-log replay over genesis state reproduces the bridge artifact byte-identical** (S3 §6.3 pattern)
    - Genesis = **missing or empty** `prospect_to_nfl_bridge_<draft_year>.json` (no entries yet)
-   - Decision log records every accepted decision (`confirm` and `udfa`) in temporal order
+   - Decision log records **EVERY decision** (`confirm`, `udfa`, `reject`, `defer`) in temporal order — complete audit trail
+   - Replay **applies only accepted (`confirm` and `udfa`) events** to reconstruct the bridge artifact byte-identical. `reject` and `defer` events are recorded in the log for audit but never mutate the bridge artifact
    - v1 bridge is **never pre-seeded** — no ingestion step that loads entries before the decision log
 
 ### 3.3 Workflow (3 stages; blessed-write-path discipline)
@@ -175,13 +176,13 @@ class ProspectNflBridgeEntry(BaseModel):
 Decisions:
 - `confirm` (commits a drafted bridge entry; requires non-null `gsis_id` + 4 NFL outcome fields)
 - `udfa` (commits a udfa=True entry; requires non-empty `--evidence` e.g., "verified absent from nflreadr 2025 7-day post-draft window")
-- `reject` (closes review row, no entry written)
-- `defer` (review row stays open with a note; no identity mutation)
+- `reject` (no bridge entry written; review row gets closure marker — `decision="reject"` + `decided_at` + `event_id`)
+- `defer` (no identity mutation; review row gets closure marker — `decision="defer"` + `decided_at` + `event_id` + `note`. The row IS closed for this run's review cycle; a future discovery run can re-open the question by emitting a new review entry for the same prospect)
 
 Three-point logging (per S3 §6.3 pattern):
 1. **Bridge artifact** entry (accepted only — `confirm` and `udfa` decisions)
-2. **Append-only decision log**: `prospect_nfl_bridge_decision_log_<draft_year>.jsonl` (every decision, including `reject`/`defer`)
-3. **Review-queue closure marker** appended to the originating review row (`decision`, `decided_at`, `event_id`)
+2. **Append-only decision log**: `prospect_nfl_bridge_decision_log_<draft_year>.jsonl` (every decision, including `reject` and `defer` — complete audit trail)
+3. **Review-queue closure marker** appended to the originating review row on **every decision** (`confirm`, `udfa`, `reject`, `defer` — all four close the review row for this run with `decision` + `decided_at` + `event_id`)
 
 Per-file atomic writes in dependency-safe order: `decision_log → bridge_artifact → review_queue_closure`. NOT cross-file transactional; idempotent rerun + post-run graph validation is the recovery contract (mirrors S3 §6.4).
 
@@ -486,7 +487,7 @@ Estimated ~60–80 contract tests across the 8 files (similar order to S3's 75).
 ## 7. Governance & guardrails
 
 - **Read-only of any external source** in v1 (synthetic + nflreadr only); no scraping; no parser code for live sources
-- **No mock/ADP/market data in identity registry, bridge, or backtest artifacts.** Snapshots store only pick/prospect/sidecar metadata; bridge stores only identity + provenance + audit; backtest report stores only metrics + coverage + gate status
+- **Mock-data isolation rule** (tightened from earlier draft): NO mock/ADP/market data in **S3 identity registry or S4 bridge** (those are identity truth). NO market/ADP data in **S4 artifacts** (snapshots and backtest reports). Mock snapshots and Backtest A outputs DO contain mock-derived pick/prospect data + computed metrics (that's the point of Backtest A), but those artifacts are **isolated diagnostic outputs** that **never feed identity truth, Engine A/B, PVO, Trade Lab, or model-training pipelines**. Bridge stores only identity + provenance + audit; never pick predictions.
 - **No Engine A/B/PVO/Trade Lab/model-training feed.** Backtest A is overlay/inference-only diagnostic infrastructure
 - **Frontend HOLD intact**; NOISE_BAND lock untouched; no model .pkl / manifest / contract changes
 - **`decision_supported=False`** implicit throughout (S4 has no user-facing decision surfaces; this is validation infrastructure)
