@@ -674,6 +674,12 @@ class IngestionOutcome:
 
 
 def _mint_provisional_uuid() -> str:
+    """Spec §4.1: opaque prefixed uuid4 — never a deterministic hash of player-identity data.
+
+    Replay determinism is achieved by snapshotting the genesis state from the live ingest
+    rather than re-ingesting (which would re-mint different uuid4 values). See spec §6.3 and
+    the byte-identical replay tests.
+    """
     return f"cpr_{_uuid.uuid4()}"
 
 
@@ -968,3 +974,371 @@ def ingest_fixture(
         return IngestResult(exit_code=3, run_id=run_id, coverage=coverage)
 
     return IngestResult(exit_code=0, run_id=run_id, coverage=coverage)
+
+
+# ======================================================================
+# Promotion entry-points (spec §6, Round 2 + Round 3 patches)
+# ======================================================================
+
+
+class EvidenceRequiredError(ValueError):
+    """``merge_into`` and ``split`` require non-empty ``--evidence``."""
+
+
+class ConflictingDecisionError(RuntimeError):
+    """Same target / target_kind already has a different decision in the log;
+    requires an explicit ``--override`` (future tool) to change."""
+
+
+@dataclass(frozen=True)
+class PromotionDecision:
+    """Round 2 + Round 3 shape: ``target_kind`` distinguishes ``confirm-self`` from
+    ``confirm-existing``; the ``new_*`` fields are populated only for the ``split``
+    happy-path."""
+
+    kind: Literal["confirm", "reject", "defer", "merge_into", "split"]
+    target_kind: Literal["self", "existing"]
+    target: str
+    survivor: Optional[str] = None  # merge_into; also = bridge survivor for confirm-existing
+    new_full_name: Optional[str] = None  # split
+    new_position: Optional[str] = None  # split
+    new_position_group: Optional[str] = None  # split
+
+
+@dataclass(frozen=True)
+class PromotionResult:
+    exit_code: int
+    event_id: Optional[str] = None
+
+
+def _read_promotion_log(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+def _append_promotion_event(path: Path, event: dict[str, Any]) -> None:
+    """Per-file atomic append: read existing → append → tmp-write → os.replace."""
+    existing = _read_promotion_log(path)
+    existing.append(event)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text("\n".join(json.dumps(e, sort_keys=True) for e in existing) + "\n")
+    os.replace(tmp, path)
+
+
+def _close_review_queue_row(
+    identity_dir: Path,
+    review_id: str,
+    decision_kind: str,
+    decided_at: str,
+    event_id: str,
+) -> None:
+    """Spec §6.3 third leg: append closure marker to the originating review_queue row."""
+    for path in identity_dir.glob("college_identity_review_queue_*.jsonl"):
+        lines = path.read_text().splitlines()
+        updated: list[str] = []
+        changed = False
+        for line in lines:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("review_id") == review_id and row.get("decision") is None:
+                row["decision"] = decision_kind
+                row["decided_at"] = decided_at
+                row["event_id"] = event_id
+                changed = True
+            updated.append(json.dumps(row, sort_keys=True))
+        if changed:
+            tmp = path.with_suffix(path.suffix + ".tmp")
+            tmp.write_text("\n".join(updated) + "\n")
+            os.replace(tmp, path)
+            return
+
+
+def _apply_logged_event(
+    event: dict[str, Any],
+    registry: CollegeProspectRegistry,
+    bridge: CollegeAliasBridge,
+) -> None:
+    """Round 2 + Round 3 pure replay applicator (spec §6.3 byte-identical reconstruction).
+
+    Uses logged ``event_id`` / ``decided_at`` / ``reviewer_id`` / ``target_prospect_uuid``
+    / ``source_prospect_uuid`` / ``survivor_prospect_uuid`` / ``new_split_uuid`` directly.
+    NEVER calls ``_now_iso()`` or ``_uuid.uuid4()``.
+    """
+    decision = event["decision"]
+    target_uuid = event["target_prospect_uuid"]
+    survivor_uuid = event.get("survivor_prospect_uuid")
+    target_kind = event.get("target_kind", "self")
+    target_row = registry.get(target_uuid)
+
+    if decision == "confirm" and target_kind == "self":
+        if target_row is None:
+            return
+        target_row.verification_status = "confirmed"
+        target_row.append_status_history(StatusHistoryEntry(
+            event_id=event["event_id"], decision="confirm",
+            after_status="confirmed", decided_at=event["decided_at"],
+            reviewer_id=event["reviewer_id"],
+        ))
+    elif decision == "confirm" and target_kind == "existing":
+        # Round 3 patch 1: for confirm-existing the row to deprecate is the SOURCE
+        # (provisional) row, NOT event["target_prospect_uuid"] (which now correctly
+        # holds the existing confirmed survivor).
+        source_uuid = event["source_prospect_uuid"]
+        survivor_uuid_existing = event["target_prospect_uuid"]
+        source_row = registry.get(source_uuid)
+        if source_row is None:
+            return
+        source_row.verification_status = "deprecated"
+        source_row.merged_into_prospect_uuid = survivor_uuid_existing
+        source_row.append_status_history(StatusHistoryEntry(
+            event_id=event["event_id"], decision="confirm",
+            after_status="deprecated", decided_at=event["decided_at"],
+            reviewer_id=event["reviewer_id"],
+        ))
+        bridge.entries.append(CollegeAliasBridgeEntry(
+            match_key=source_row.match_key,
+            source_record_id=source_row.source_record_id,
+            target_prospect_uuid=survivor_uuid_existing,
+        ))
+    elif decision == "merge_into":
+        if target_row is None or survivor_uuid is None:
+            return
+        target_row.verification_status = "deprecated"
+        target_row.merged_into_prospect_uuid = survivor_uuid
+        target_row.append_status_history(StatusHistoryEntry(
+            event_id=event["event_id"], decision="merge_into",
+            after_status="deprecated", decided_at=event["decided_at"],
+            reviewer_id=event["reviewer_id"],
+        ))
+    elif decision == "split":
+        # Round 3 patch 3: replay split using the logged new_split_uuid for deterministic
+        # reconstruction. Original target retains its UUID; new row gets the logged UUID.
+        new_split_uuid = event.get("new_split_uuid")
+        if new_split_uuid is None or target_row is None:
+            return
+        new_full_name = event.get("new_full_name") or target_row.full_name
+        new_position = event.get("new_position") or target_row.position
+        new_position_group = event.get("new_position_group") or target_row.position_group
+        new_normalized = normalize_name(new_full_name)
+        new_row = target_row.model_copy(update={
+            "prospect_uuid": new_split_uuid,
+            "verification_status": "provisional",
+            "raw_name": new_full_name,
+            "normalized_name": new_normalized,
+            "full_name": new_full_name,
+            "position": new_position,
+            "position_group": new_position_group,
+            "match_key": compute_match_key(
+                normalized_name=new_normalized,
+                position_group=new_position_group,
+                draft_class=target_row.draft_class,
+            ),
+            "source_record_id": f"{target_row.source_record_id}__split__{new_split_uuid[-12:]}",
+            "status_history": [StatusHistoryEntry(
+                event_id=event["event_id"], decision="split",
+                after_status="provisional", decided_at=event["decided_at"],
+                reviewer_id=event["reviewer_id"],
+            )],
+        })
+        registry.entries[new_split_uuid] = new_row
+        target_row.append_status_history(StatusHistoryEntry(
+            event_id=event["event_id"], decision="split",
+            after_status=target_row.verification_status,
+            decided_at=event["decided_at"], reviewer_id=event["reviewer_id"],
+        ))
+    # reject / defer: no identity mutation
+
+
+def promote_review_candidate(
+    *,
+    review_id: Optional[str],
+    decision: PromotionDecision,
+    identity_dir: Path,
+    reviewer_id: str,
+    evidence: Optional[str],
+    note: Optional[str],
+) -> PromotionResult:
+    """Spec §6 (Round 2 + Round 3): the only blessed write path for review decisions.
+
+    Per-file atomic writes in dependency-safe order: promotion_log → registry →
+    bridge → review_queue closure marker. Idempotent rerun is a no-op (returns the
+    prior event_id). Conflicting rerun raises ConflictingDecisionError unless a
+    future ``--override`` flag is added.
+    """
+    if decision.kind in {"merge_into", "split"} and not (evidence and evidence.strip()):
+        raise EvidenceRequiredError(
+            f"decision={decision.kind} requires non-empty --evidence (spec §6.2)"
+        )
+
+    identity_dir.mkdir(parents=True, exist_ok=True)
+    log_path = identity_dir / "college_identity_promotion_log.jsonl"
+    registry_path = identity_dir / "college_prospect_registry.json"
+    bridge_path = identity_dir / "college_alias_bridge.json"
+    log = _read_promotion_log(log_path)
+
+    # Idempotency / conflict check keyed on the acted-on row. For confirm-existing the
+    # acted-on row is the source/provisional UUID (decision.target); the log carries it
+    # in source_prospect_uuid. For everything else, target_prospect_uuid is the acted-on
+    # row.
+    for prior in log:
+        prior_acted_uuid = (
+            prior.get("source_prospect_uuid")
+            if prior.get("target_kind") == "existing"
+            else prior.get("target_prospect_uuid")
+        )
+        if prior_acted_uuid == decision.target:
+            if (
+                prior.get("decision") == decision.kind
+                and prior.get("target_kind") == decision.target_kind
+            ):
+                return PromotionResult(exit_code=0, event_id=prior.get("event_id"))
+            raise ConflictingDecisionError(
+                f"target={decision.target} already has decision={prior.get('decision')}; "
+                f"refusing to apply {decision.kind} without --override"
+            )
+
+    registry = load_registry(registry_path)
+    bridge = load_bridge(bridge_path)
+    target_row = registry.get(decision.target)
+    if target_row is None:
+        return PromotionResult(exit_code=1)
+
+    decided_at = _now_iso()
+    event_id = f"ev_{_uuid.uuid4()}"
+    event: dict[str, Any] = {
+        "event_id": event_id,
+        "review_id": review_id,
+        "decision": decision.kind,
+        "target_kind": decision.target_kind,
+        "reviewer_id": reviewer_id,
+        "reviewer_metadata": {},
+        "decided_at": decided_at,
+        # Round 3 patch 1: target_prospect_uuid carries the SURVIVOR for confirm-existing;
+        # source_prospect_uuid carries the provisional source row. For all other decisions,
+        # target_prospect_uuid is the row being acted on (self semantics).
+        "target_prospect_uuid": (
+            decision.survivor if decision.target_kind == "existing" else decision.target
+        ),
+        "source_prospect_uuid": (
+            decision.target if decision.target_kind == "existing" else None
+        ),
+        "survivor_prospect_uuid": decision.survivor,
+        "before_status": target_row.verification_status,
+        "after_status": target_row.verification_status,
+        "evidence": evidence,
+        "note": note,
+    }
+
+    if decision.kind == "confirm" and decision.target_kind == "self":
+        target_row.verification_status = "confirmed"
+        target_row.append_status_history(StatusHistoryEntry(
+            event_id=event_id, decision="confirm", after_status="confirmed",
+            decided_at=decided_at, reviewer_id=reviewer_id,
+        ))
+        event["after_status"] = "confirmed"
+    elif decision.kind == "confirm" and decision.target_kind == "existing":
+        if decision.survivor is None:
+            return PromotionResult(exit_code=1)
+        survivor_row = registry.get(decision.survivor)
+        if survivor_row is None or survivor_row.verification_status != "confirmed":
+            return PromotionResult(exit_code=1)
+        target_row.verification_status = "deprecated"
+        target_row.merged_into_prospect_uuid = decision.survivor
+        target_row.append_status_history(StatusHistoryEntry(
+            event_id=event_id, decision="confirm", after_status="deprecated",
+            decided_at=decided_at, reviewer_id=reviewer_id,
+        ))
+        bridge.entries.append(CollegeAliasBridgeEntry(
+            match_key=target_row.match_key,
+            source_record_id=target_row.source_record_id,
+            target_prospect_uuid=decision.survivor,
+        ))
+        event["after_status"] = "deprecated"
+    elif decision.kind == "merge_into":
+        target_row.verification_status = "deprecated"
+        target_row.merged_into_prospect_uuid = decision.survivor
+        target_row.append_status_history(StatusHistoryEntry(
+            event_id=event_id, decision="merge_into", after_status="deprecated",
+            decided_at=decided_at, reviewer_id=reviewer_id,
+        ))
+        event["after_status"] = "deprecated"
+    elif decision.kind == "split":
+        # Round 3 patch 3: spec §6.2 split happy-path. Mint a NEW provisional UUID for
+        # the second identity; original target retains its UUID + verification_status;
+        # both rows append a shared 'split' StatusHistoryEntry with this event_id. The
+        # minted UUID is logged in event["new_split_uuid"] so replay uses the logged
+        # value directly (no fresh uuid4 during _apply_logged_event).
+        new_split_uuid = _mint_provisional_uuid()
+        new_full_name = decision.new_full_name or target_row.full_name
+        new_position = decision.new_position or target_row.position
+        new_position_group = decision.new_position_group or target_row.position_group
+        new_normalized = normalize_name(new_full_name)
+        new_row = target_row.model_copy(update={
+            "prospect_uuid": new_split_uuid,
+            "verification_status": "provisional",
+            "raw_name": new_full_name,
+            "normalized_name": new_normalized,
+            "full_name": new_full_name,
+            "position": new_position,
+            "position_group": new_position_group,
+            "match_key": compute_match_key(
+                normalized_name=new_normalized,
+                position_group=new_position_group,
+                draft_class=target_row.draft_class,
+            ),
+            "source_record_id": f"{target_row.source_record_id}__split__{new_split_uuid[-12:]}",
+            "status_history": [StatusHistoryEntry(
+                event_id=event_id, decision="split", after_status="provisional",
+                decided_at=decided_at, reviewer_id=reviewer_id,
+            )],
+        })
+        registry.entries[new_split_uuid] = new_row
+        target_row.append_status_history(StatusHistoryEntry(
+            event_id=event_id, decision="split",
+            after_status=target_row.verification_status,
+            decided_at=decided_at, reviewer_id=reviewer_id,
+        ))
+        event["new_split_uuid"] = new_split_uuid
+        event["new_full_name"] = new_full_name
+        event["new_position"] = new_position
+        event["new_position_group"] = new_position_group
+    # reject / defer: no identity mutation; closure marker still gets appended below
+
+    # Validate before any os.replace
+    errors = validate_registry_graph(registry, bridge=bridge)
+    if errors:
+        return PromotionResult(exit_code=2)
+
+    # Dependency-safe per-file atomic write order: log → registry → bridge → review closure
+    _append_promotion_event(log_path, event)
+    atomic_write_registry(registry, registry_path)
+    atomic_write_bridge(bridge, bridge_path)
+    if review_id:
+        _close_review_queue_row(identity_dir, review_id, decision.kind, decided_at, event_id)
+
+    # Post-run validation
+    reloaded_registry = load_registry(registry_path)
+    reloaded_bridge = load_bridge(bridge_path)
+    post_errors = validate_registry_graph(reloaded_registry, bridge=reloaded_bridge)
+    if post_errors:
+        return PromotionResult(exit_code=3, event_id=event_id)
+    return PromotionResult(exit_code=0, event_id=event_id)
+
+
+def replay_promotion_log(*, log_path: Path, identity_dir: Path) -> None:
+    """Spec §6.3 Round 2 + Round 3: pure replay over the genesis fixture-ingestion state.
+
+    Uses ``_apply_logged_event`` so the reconstructed registry + bridge are byte-identical
+    to the live promotion path (no fresh timestamps or UUIDs leak in during replay).
+    """
+    log = _read_promotion_log(log_path)
+    registry_path = identity_dir / "college_prospect_registry.json"
+    bridge_path = identity_dir / "college_alias_bridge.json"
+    registry = load_registry(registry_path)
+    bridge = load_bridge(bridge_path)
+    for event in log:
+        _apply_logged_event(event, registry, bridge)
+    atomic_write_registry(registry, registry_path)
+    atomic_write_bridge(bridge, bridge_path)
