@@ -132,11 +132,11 @@ class ConfirmedProspectUuid:
         self._value = uuid_str
 ```
 
-**Python-honest framing:** this is **runtime validation at construction**, NOT compile-time enforcement. A developer who bypasses construction by passing a raw `str` violates the contract. The defenses against that:
-- **Lint rule / static checker** (mypy strict or equivalent) flags every consumer signature that accepts `str` where the documented API requires `ConfirmedProspectUuid`.
-- **Contract tests** assert all runtime resolver / consumer APIs require `ConfirmedProspectUuid` parameters (not raw `str`).
+**Python-honest framing:** this is **runtime validation at construction**, NOT compile-time enforcement. A developer who bypasses construction by passing a raw `str` violates the contract. The defenses (repo-honest for v1):
+- **Contract tests** inspect public consumer signatures (via `inspect.signature` / type-hint introspection) and behavior to assert that every runtime resolver / consumer API requires a `ConfirmedProspectUuid` parameter, not a raw `str`. This is the v1-realistic enforcement: contract-tested, not gated by a tooling layer the repo doesn't yet run.
 - **Documentation** in this spec and on every consumer's docstring: "never construct from raw string; always go through the resolver."
 - Runtime `__init__` raises on every status that isn't `confirmed` — the real enforcement.
+- **Future hardening (out of scope for v1, called out for visibility):** a repo-wide `mypy --strict` or `pyright` gate would lift the signature-check from contract tests into the static-checker layer. Introducing that gate is a repo-wide tooling addition, not a free win — it would need its own scoping increment.
 
 ### 4.5 Six locked spec contracts (binding)
 1. Same `source_record_id` + same `source_snapshot_id` reruns idempotently to the same `prospect_uuid` row.
@@ -160,7 +160,7 @@ The matcher generates **candidate suggestions** for the review queue. It is **ne
 ### 5.1 Algorithm
 - **Primary:** Jaro-Winkler on `normalized_name` (library: `jellyfish`).
 - **Secondary:** token-set ratio on the same normalized name (library: `rapidfuzz`).
-- **Normalization:** identical to `prospect_identity_resolver.normalize_name` — no matcher-only normalization that disagrees with the resolver. Suffix stripping (Jr./Sr./II/III), punctuation, lowercasing happen exactly once.
+- **Normalization (v1, exact):** identical to the existing `prospect_identity_resolver.normalize_name` — lowercase, strip non-alphanumeric-non-space chars, trim. **No suffix stripping in v1** (the existing function does not strip `Jr./Sr./II/III` and the non-goal in §1 keeps existing resolver behavior unchanged). Suffix variants (`Marvin Harrison Jr.` vs `Marvin Harrison`) are handled by **alias-bridge entries / review-queue confirmation**, not by a divergent matcher-only normalization. If suffix-stripping ever becomes desirable, it must be a deliberate later increment: introduce a new shared normalization helper, migrate both the existing Sleeper-side resolver and the new college-side resolver in the same PR, with explicit regression tests proving no existing Sleeper-overlay behavior breaks. **Not in scope for v1.**
 - **No double-metaphone in v1.** Phonetic matching adds review-queue noise; revisit if review log shows repeated phonetic misses JW/token-set wouldn't catch.
 
 ### 5.2 Score composition (locked)
@@ -191,7 +191,8 @@ The whitelist + hard-block list are **direction-insensitive** (normalized as sor
 
 ### 5.4 Review-queue surfacing
 For each ingested source row, after `ambiguity-before-mint` (§4.3) emits a candidate-comparison need:
-- Compute `final_score` for each existing registry row sharing `match_key` group (plus position-group whitelist neighbors).
+- **Candidate query (explicit shape):** since `match_key` includes `position_group` by construction, a literal same-`match_key` lookup misses whitelist neighbors. Instead the candidate query is: **existing registry rows where `normalized_name` matches AND `draft_class` matches AND `position_group` is either the same OR in the whitelist transition map for the incoming row's position_group.** Same-`match_key` is a subset of this query (when both positions match exactly); whitelist neighbors broaden it to allowed cross-group transitions only.
+- Compute `final_score` for each row returned by that query.
 - Surface **top-3 candidates above `final_score ≥ 0.80`** as review-queue entries.
 - If best score is in **`0.80 ≤ score < 0.88`** → entry carries `low_confidence` flag.
 - If top-2 candidates within margin `≤ 0.05` → entry carries `ambiguous_near_tie` + `common_name` flags.
@@ -230,22 +231,28 @@ scripts/promote_review_candidate.py <review_id> <decision> [--reviewer <id>] [--
 Hand-editing the registry, bridge, or log is **not** an equal path. Validation rejects manual edits that bypass the script.
 
 ### 6.2 Five reviewer decisions
-- **`confirm`** — candidate IS the right match. Adds `college_alias_bridge.json` entry mapping `(match_key, source_record_id)` → existing `prospect_uuid`; sets that row's `verification_status = confirmed`; archives the review row.
+- **`confirm`** — has two distinct shapes the script must distinguish on a `--target` flag:
+  - **`confirm --target self`** (no candidate involved): the row itself is confirmed as a new standalone identity. Sets *its own* row's `verification_status = confirmed`; no bridge mapping written (the row IS the identity).
+  - **`confirm --target <existing_prospect_uuid>`** (candidate match): this source row IS the same person as an existing registry row. Adds `college_alias_bridge.json` entry mapping `(match_key, source_record_id)` → `<existing_prospect_uuid>`; the **existing target row** becomes `verification_status = confirmed` (if not already); the incoming source row is treated as an alias-resolved alternate, not a separate confirmed identity.
+  - Either way: archive the review row; append `promotion_log` event with both `target_prospect_uuid` and `source_prospect_uuid` (the incoming row's provisional UUID) so replay is unambiguous.
 - **`reject`** — not a match. Review row marked rejected; source row stays as its own `provisional` (or becomes a new one via §4.3).
 - **`defer`** — needs more info. Review row stays open with a note; no identity mutation.
 - **`merge_into <survivor_prospect_uuid>`** — this prospect IS the same person as another existing `prospect_uuid` (typically spelling-drift convergence across sources). Emits merge ledger entry; deprecated UUID redirects via `merged_into_prospect_uuid`. **Requires non-empty `--evidence`** (symmetric with `split`; equal identity-collision risk if wrongly merged).
 - **`split <new_full_name> <new_position> [...]`** — an existing `prospect_uuid` actually represents two distinct people. Mints a new `prospect_uuid` for the second; original retains UUID by primary-spelling / most-mock-data rule; "split from X" lineage in promotion log. **Requires non-empty `--evidence`** (Gemini's gate: distinct CFBD athlete IDs, birth dates, or other verified disambiguators).
 
 ### 6.3 Three-point logging (the "gold standard")
-1. **`college_identity_promotion_log.jsonl`** — append-only, **single source of truth**. Every promotion event captures: `event_id`, `review_id`, `decision`, `reviewer_id`, `reviewer_metadata`, `decided_at`, `source_record_id`, `source_snapshot_id`, `before_status`, `after_status`, `prospect_uuid(s) involved` (target + survivor + redirect targets), `evidence` (required for merge/split), `note`. **Can deterministically reconstruct registry + bridge by replay.**
+1. **`college_identity_promotion_log.jsonl`** — append-only, **single source of truth for review decisions**. Every promotion event captures: `event_id`, `review_id`, `decision`, `reviewer_id`, `reviewer_metadata`, `decided_at`, `source_record_id`, `source_snapshot_id`, `before_status`, `after_status`, `prospect_uuid(s) involved` (target + survivor + redirect targets), `evidence` (required for `merge_into`/`split`), `note`. **Replay semantics (precise):** the promotion log replays *over the genesis registry/bridge state* (the state produced by the most recent fixture ingestion) and deterministically reconstructs the current registry + bridge. Initial fixture ingestion is **not** itself a promotion-log event — it's the genesis state the log replays over. (A future increment could log ingestion events too, but v1 does not.)
 2. **`registry.status_history`** — per-row append-only list of `{event_id, decision, after_status, decided_at, reviewer_id}` — local-inspection cache for `ConfirmedProspectUuid` construction checks.
 3. **`review_queue` closure marker** — `decided_at` + `decision` + `event_id` appended on the original review-queue row.
 
-### 6.4 Atomic write order (write-tmp-then-rename)
-1. Append to `promotion_log` first (append-only, lowest risk).
-2. Apply in-memory mutations to `registry`, `bridge`, and (if applicable) the closure-marker on the `review_queue`.
-3. **Validate the whole identity graph post-mutation** — `ConfirmedProspectUuid` would still construct cleanly for all confirmed rows; bridge targets all reference confirmed (non-deprecated) UUIDs; `source_record_id` uniqueness invariant holds.
-4. Write each artifact to a sibling `*.tmp`; `os.replace` swaps atomically.
+### 6.4 Atomic write order (write-tmp-then-rename, validate-before-replace)
+**All mutated artifacts — `promotion_log`, `registry`, `bridge`, and any `review_queue` closure marker — are built in memory or as temp files, the full identity graph is validated, and only then are all artifacts atomically replaced.** The append-only `promotion_log` is **not the first irreversible write**; otherwise a later validation/replace failure would record an event that never actually applied, contradicting the "log replays to reconstruct registry+bridge" guarantee in §6.3.
+
+Concretely:
+1. Build the new `promotion_log` content (existing log + the new event) in memory.
+2. Apply in-memory mutations to `registry`, `bridge`, and the `review_queue` closure marker.
+3. **Validate the whole identity graph** — `ConfirmedProspectUuid` would still construct cleanly for all confirmed rows; bridge targets all reference confirmed (non-deprecated) UUIDs; `source_record_id` uniqueness invariant holds; promotion-log-replay over the genesis-state would reproduce the new registry/bridge byte-for-byte.
+4. Write **each** artifact (incl. `promotion_log`) to a sibling `*.tmp`; on validation pass, `os.replace` swaps all atomically (in dependency-safe order: log first replace, then registry, then bridge, then review_queue).
 5. **Idempotent rerun**: same `review_id` + same decision → no-op. Conflicting rerun (e.g., previously `confirm`, now `reject`) → fail closed; requires explicit `--override` flag (future tool).
 
 ### 6.5 Ingestion follows the same atomicity contracts
