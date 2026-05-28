@@ -210,6 +210,67 @@ SCHOOL_BONUS: float = 0.05
 JW_WEIGHT: float = 0.75
 TOKEN_SET_WEIGHT: float = 0.25
 
+# Position-group whitelist (offense-only v1; direction-insensitive) — spec §5.3
+POSITION_GROUP_WHITELIST: frozenset[frozenset[str]] = frozenset({
+    frozenset({"WR", "TE"}),
+    frozenset({"WR", "RB"}),
+    frozenset({"FB", "RB"}),
+})
+
+# Hard-block families (spec §5.3) — direction-insensitive
+_OL_FAMILY: frozenset[str] = frozenset({"OL", "OT", "OG", "C"})
+_SPECIAL_TEAMS: frozenset[str] = frozenset({"K", "P", "LS"})
+_DEFENSIVE_GROUPS: frozenset[str] = frozenset({
+    "DL", "DT", "DE", "EDGE", "OLB", "LB", "CB", "S", "DB",
+})
+_OFFENSIVE_SKILL: frozenset[str] = frozenset({"QB", "RB", "WR", "TE", "FB"})
+
+
+def is_position_pair_whitelisted(a: str, b: str) -> bool:
+    """Spec §5.3: direction-insensitive whitelist check."""
+    return frozenset({a.upper(), b.upper()}) in POSITION_GROUP_WHITELIST
+
+
+def is_position_pair_hard_blocked(a: str, b: str) -> bool:
+    """Spec §5.3: direction-insensitive hard-block check.
+
+    Hard-block rules:
+    - QB ↔ anything else (never)
+    - OL family (OL/OT/OG/C) ↔ anything except itself (never)
+    - Special teams (K/P/LS) ↔ anything except themselves (never)
+    - Defensive group ↔ offensive skill, either direction (never)
+    """
+    au = a.upper()
+    bu = b.upper()
+    if au == bu:
+        return False
+    if "QB" in {au, bu}:
+        return True
+    if au in _OL_FAMILY or bu in _OL_FAMILY:
+        return True
+    if au in _SPECIAL_TEAMS or bu in _SPECIAL_TEAMS:
+        return True
+    if (au in _DEFENSIVE_GROUPS and bu in _OFFENSIVE_SKILL) or (
+        bu in _DEFENSIVE_GROUPS and au in _OFFENSIVE_SKILL
+    ):
+        return True
+    return False
+
+
+def POSITION_GROUP_HARD_BLOCKS() -> dict[str, frozenset[str]]:  # noqa: N802
+    """Backstop accessor for callers that want the raw hard-block table.
+
+    Computed on call from the source-of-truth frozensets above; returned dict is a
+    fresh build and is not cached. Caller-name kept uppercase per spec naming.
+    """
+    blocks: dict[str, frozenset[str]] = {}
+    universe = _OL_FAMILY | _SPECIAL_TEAMS | _DEFENSIVE_GROUPS | _OFFENSIVE_SKILL | {"QB"}
+    for a in universe:
+        bs = frozenset(b for b in universe if is_position_pair_hard_blocked(a, b))
+        if bs:
+            blocks[a] = bs
+    return blocks
+
 
 @dataclass(frozen=True)
 class MatchCandidate:
@@ -294,12 +355,36 @@ def surface_review_candidates(
     registry: dict[str, RegistryEntry],
 ) -> list[MatchCandidate]:
     """Spec §5.4: emit top-3 above MIN_CANDIDATE_SCORE; attach low_confidence /
-    ambiguous_near_tie / common_name flags.
+    ambiguous_near_tie / common_name flags; apply whitelist + hard-block per spec §5.3.
 
-    Whitelist / hard-block gating arrives in Task 4. For now, this function scores every
-    registry entry uniformly; cross-position transitions are filtered in by Task 4.
+    Cross-position whitelist transitions surface only at final_score >= CROSS_POSITION_THRESHOLD
+    and carry cross_position_group + position_transition_allowed flags. Hard-blocked pairs
+    are filtered out before scoring.
     """
-    scored = [score_candidate(incoming, e) for e in registry.values()]
+    scored: list[MatchCandidate] = []
+    for existing in registry.values():
+        if is_position_pair_hard_blocked(incoming.position_group, existing.position_group):
+            continue
+        cand = score_candidate(incoming, existing)
+        same_group = incoming.position_group.upper() == existing.position_group.upper()
+        if not same_group:
+            if not is_position_pair_whitelisted(
+                incoming.position_group, existing.position_group
+            ):
+                continue
+            if cand.match_score < CROSS_POSITION_THRESHOLD:
+                continue
+            cand = MatchCandidate(
+                target_prospect_uuid=cand.target_prospect_uuid,
+                match_score=cand.match_score,
+                score_breakdown=cand.score_breakdown,
+                risk_flags=cand.risk_flags
+                + ("cross_position_group", "position_transition_allowed"),
+                raw_match_features=cand.raw_match_features,
+                matcher_algorithm_version=cand.matcher_algorithm_version,
+            )
+        scored.append(cand)
+
     above = sorted(
         (c for c in scored if c.match_score >= MIN_CANDIDATE_SCORE),
         key=lambda c: c.match_score,
