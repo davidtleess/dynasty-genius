@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+from pathlib import Path
 
 from src.dynasty_genius.mfl_rookie_adp_divergence import (
     build_mfl_rookie_adp_divergence,
@@ -168,3 +170,39 @@ def test_writer_emits_run_and_latest_json_and_md(tmp_path):
     assert "Caleb Williams" in latest_md
     assert "aligned" in latest_md
     assert "decision_supported: false" in latest_md
+
+
+def test_script_is_read_only_and_writes_only_divergence_artifacts(
+    tmp_path, monkeypatch
+):
+    prospect_cards = Path("resources/prospect_cards.json")
+    universe_pvo = Path("app/data/valuation/universe_pvo_latest.json")
+    before = {
+        prospect_cards: hashlib.sha256(prospect_cards.read_bytes()).hexdigest(),
+        universe_pvo: hashlib.sha256(universe_pvo.read_bytes()).hexdigest(),
+    }
+
+    import scripts.build_mfl_rookie_adp_divergence as bld
+
+    monkeypatch.setattr(
+        bld,
+        "_fetch_rows",
+        lambda season: (
+            [_adp("1", "Caleb Williams", "QB", 6)],
+            ["source_publish_age_h=1"],
+        ),
+    )
+
+    bld.main(season=2026, output_dir=tmp_path)
+
+    after = {
+        prospect_cards: hashlib.sha256(prospect_cards.read_bytes()).hexdigest(),
+        universe_pvo: hashlib.sha256(universe_pvo.read_bytes()).hexdigest(),
+    }
+    assert after == before
+    assert {p.name for p in tmp_path.iterdir()} == {
+        "mfl_rookie_adp_divergence_latest.json",
+        "mfl_rookie_adp_divergence_latest.md",
+        "mfl_rookie_adp_divergence_phase-b_2026.json",
+        "mfl_rookie_adp_divergence_phase-b_2026.md",
+    }
