@@ -26,7 +26,7 @@ import hashlib
 import json
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # ======================================================================
 # Constants & versions
@@ -549,3 +549,238 @@ def aggregate_per_prospect(
         result[uuid] = consensus
 
     return result
+
+
+# ======================================================================
+# Bridge join + RealizedOutcome + JoinDiagnostics (spec §5.1 stage 3, §11.5)
+# ======================================================================
+
+from src.dynasty_genius.identity.prospect_nfl_bridge import (  # noqa: E402
+    CollegeProspectBridge,
+    NflTruthRow,
+    ProspectNflBridgeEntry,
+)
+
+TEAM_CODE_NORMALIZATION_VERSION: str = "s4_team_norm_v1"
+
+# Documented relocation/abbreviation equivalence classes. Each raw code maps to a
+# single canonical token so a franchise's historical and current codes compare
+# equal. Bump TEAM_CODE_NORMALIZATION_VERSION if these classes ever change.
+_TEAM_CODE_EQUIVALENCE: dict[str, str] = {
+    # Raiders — Oakland / Las Vegas
+    "OAK": "LV", "LV": "LV", "LVR": "LV", "LAS": "LV",
+    # Chargers — San Diego / Los Angeles
+    "SD": "LAC", "SDG": "LAC", "LAC": "LAC",
+    # Rams — St. Louis / Los Angeles
+    "STL": "LAR", "LA": "LAR", "LAR": "LAR", "RAM": "LAR",
+    # Washington
+    "WAS": "WSH", "WSH": "WSH",
+}
+
+
+def normalize_team_code(raw_code: str) -> str:
+    """Normalize an NFL team code to a canonical token (spec §11.5 #6).
+
+    Strips surrounding whitespace, upper-cases, then collapses documented
+    relocation/abbreviation equivalence classes (OAK/LVR, SDG/LAC, LAR/LA,
+    WAS/WSH) so a franchise's historical and current codes compare equal.
+    Unknown codes pass through normalized (strip + upper) but unmapped.
+    """
+    code = raw_code.strip().upper()
+    return _TEAM_CODE_EQUIVALENCE.get(code, code)
+
+
+class RealizedOutcome(BaseModel):
+    """Realized NFL draft outcome joined to a prospect (spec §5.1 stage 3, §11.5).
+
+    Pure-functional product of ``join_bridge_to_realized``. Carries the bridge's
+    recorded draft capital plus a per-prospect ``warnings`` surface and the
+    stale/unbridged flags. Runner-level concerns (review-queue writes, acceptance
+    aggregation, metric skips) are Task 10/12; this object never touches the
+    filesystem.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    prospect_uuid: str
+    gsis_id: Optional[str] = None
+    pfr_id: Optional[str] = None
+    draft_year: Optional[int] = None
+    draft_pick_no: Optional[int] = None
+    draft_round: Optional[int] = None
+    nfl_team: Optional[str] = None
+    udfa: bool = False
+    unbridged_prospect: bool = False
+    bridge_stale_warning: bool = False
+    warnings: list[str] = Field(default_factory=list)
+    evidence_full_name: Optional[str] = None
+    evidence_position: Optional[str] = None
+    evidence_college: Optional[str] = None
+
+
+class JoinDiagnostics(BaseModel):
+    """Run-level join diagnostics (spec §11.5).
+
+    ``hard_block_reasons`` strings ARE the canonical ``acceptance_criteria_failed``
+    tokens the Task 12 runner unions directly — there is no warning→failure
+    mapping. ``warnings`` on each ``RealizedOutcome`` is the human-readable
+    per-prospect surface; this payload is the machine-actionable runner gate.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    hard_block_reasons: list[str] = Field(default_factory=list)
+    review_queue_payload: list[dict] = Field(default_factory=list)
+    duplicate_gsis_ids_detected: list[str] = Field(default_factory=list)
+    wrong_year_truth_collisions: list[str] = Field(default_factory=list)
+    evidence_incomplete_uuids: list[str] = Field(default_factory=list)
+
+
+def join_bridge_to_realized(
+    consensuses: list[ProspectConsensus],
+    bridge: CollegeProspectBridge,
+    nflreadr_current: list[NflTruthRow],
+) -> tuple[list[tuple[ProspectConsensus, RealizedOutcome]], JoinDiagnostics]:
+    """Join prospect consensus rows to realized NFL draft truth (§5.1 stage 3, §11.5).
+
+    Pure function — performs NO filesystem writes. Returns the per-prospect
+    ``(consensus, outcome)`` pairs plus a run-level ``JoinDiagnostics``.
+
+    Fail-closed truth-lookup precedence (§11.5), per drafted bridge entry:
+      1. duplicate ``gsis_id`` in truth  → hard block; refuse comparison.
+      2. truth row absent                → stale warning (disappearance, not corrupt).
+      3. truth ``draft_year`` mismatch   → hard block (wrong-year collision).
+      4. single matching row             → evidence + pick/round/team divergence.
+    Missing drafted-entry evidence is a hard block — the ``gsis_id``-only fallback
+    is explicitly disabled. UDFA and unbridged prospects emit non-blocking flags.
+    """
+    diagnostics = JoinDiagnostics()
+
+    # One decided bridge entry per prospect_uuid.
+    entry_by_uuid: dict[str, ProspectNflBridgeEntry] = {
+        e.prospect_uuid: e for e in bridge.entries
+    }
+
+    # gsis_id -> all truth rows carrying it. Duplicates are preserved at build
+    # time so step 1 can fail closed rather than silently last-row-wins.
+    truth_by_gsis: dict[str, list[NflTruthRow]] = {}
+    for row in nflreadr_current:
+        truth_by_gsis.setdefault(row.gsis_id, []).append(row)
+
+    pairs: list[tuple[ProspectConsensus, RealizedOutcome]] = []
+    for consensus in consensuses:
+        uuid = consensus.prospect_uuid
+        entry = entry_by_uuid.get(uuid)
+
+        if entry is None:
+            # Unbridged — flag only; coverage hard-block is Task 10/12 (§11.5 #5).
+            pairs.append(
+                (
+                    consensus,
+                    RealizedOutcome(
+                        prospect_uuid=uuid,
+                        unbridged_prospect=True,
+                        warnings=["unbridged_prospect"],
+                    ),
+                )
+            )
+            continue
+
+        if entry.udfa:
+            # Explicit UDFA — verified absent from draft truth; clean outcome.
+            pairs.append(
+                (
+                    consensus,
+                    RealizedOutcome(
+                        prospect_uuid=uuid,
+                        draft_year=entry.draft_year,
+                        udfa=True,
+                    ),
+                )
+            )
+            continue
+
+        warnings: list[str] = []
+        bridge_stale = False
+        evidence_full_name: Optional[str] = None
+        evidence_position: Optional[str] = None
+        evidence_college: Optional[str] = None
+
+        gsis_id = entry.gsis_id
+        rows = truth_by_gsis.get(gsis_id, []) if gsis_id is not None else []
+
+        if gsis_id is not None and len(rows) >= 2:
+            # (1) Duplicate gsis_id — fail closed; refuse current-truth comparison.
+            warnings.append("nflreadr_duplicate_gsis_id_warning")
+            bridge_stale = True
+            diagnostics.duplicate_gsis_ids_detected.append(gsis_id)
+            diagnostics.hard_block_reasons.append("nflreadr_duplicate_gsis_id")
+        elif gsis_id is None or not rows:
+            # (2) Truth disappearance — stale, not a hard block.
+            bridge_stale = True
+            warnings.append("truth_row_missing")
+        elif rows[0].draft_year != entry.draft_year:
+            # (3) Wrong-year truth collision — hard conflict; queue for review.
+            warnings.append("truth_row_wrong_year_warning")
+            diagnostics.wrong_year_truth_collisions.append(gsis_id)
+            diagnostics.hard_block_reasons.append("wrong_year_truth_collision")
+            diagnostics.review_queue_payload.append(
+                {
+                    "prospect_uuid": uuid,
+                    "gsis_id": gsis_id,
+                    "reason": "wrong_year_truth_collision",
+                    "bridge_draft_year": entry.draft_year,
+                    "truth_draft_year": rows[0].draft_year,
+                }
+            )
+        elif not entry.evidence_snapshot:
+            # (4a) Missing evidence — refuse gsis_id-only fallback (§11.5 #4).
+            warnings.append("evidence_snapshot_missing_warning")
+            bridge_stale = True
+            diagnostics.evidence_incomplete_uuids.append(uuid)
+            diagnostics.hard_block_reasons.append("evidence_snapshot_missing")
+        else:
+            # (4b) Single matching row + evidence present → divergence comparison.
+            evidence_full_name = entry.evidence_snapshot.get("full_name")
+            evidence_position = entry.evidence_snapshot.get("position")
+            evidence_college = entry.evidence_snapshot.get("college")
+
+            truth = rows[0]
+            if entry.draft_pick_no != truth.draft_pick_no:
+                warnings.append("draft_pick_no_diverged")
+                bridge_stale = True
+            if entry.draft_round != truth.draft_round:
+                warnings.append("draft_round_diverged")
+                bridge_stale = True
+            if (
+                entry.nfl_team is not None
+                and truth.nfl_team is not None
+                and normalize_team_code(entry.nfl_team)
+                != normalize_team_code(truth.nfl_team)
+            ):
+                warnings.append("nfl_team_diverged")
+                bridge_stale = True
+
+        pairs.append(
+            (
+                consensus,
+                RealizedOutcome(
+                    prospect_uuid=uuid,
+                    gsis_id=entry.gsis_id,
+                    pfr_id=entry.pfr_id,
+                    draft_year=entry.draft_year,
+                    draft_pick_no=entry.draft_pick_no,
+                    draft_round=entry.draft_round,
+                    nfl_team=entry.nfl_team,
+                    udfa=False,
+                    unbridged_prospect=False,
+                    bridge_stale_warning=bridge_stale,
+                    warnings=warnings,
+                    evidence_full_name=evidence_full_name,
+                    evidence_position=evidence_position,
+                    evidence_college=evidence_college,
+                ),
+            )
+        )
+
+    return pairs, diagnostics
