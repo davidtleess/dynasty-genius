@@ -93,6 +93,130 @@ Agents must:
 
 Agents are accelerators, not authorities. They may draft, analyze, implement, and review, but product rulings belong to the governance docs and David.
 
+## Cockpit Process
+
+The cockpit is the three-way collaboration between Claude Code, Codex, and Gemini. It is the working pattern for non-trivial spec, plan, design, code, or governance work that benefits from adversarial review.
+
+Cockpit messages are routed via `scripts/tmux_msg.py`. **Pane targets are not hardcoded.** Before sending any cockpit message, the sender MUST discover current pane targets via `scripts/tmux_msg.py list` or `tmux list-panes` to avoid misroutes (a real failure mode observed in 2026-05-28 traffic).
+
+### When the cockpit applies
+
+A cockpit cycle is REQUIRED for:
+- spec or plan authorship and patches
+- governance amendments (constitution, north-star, this file, code hygiene)
+- non-trivial code that lands on a feature branch (full TDD cycle: Codex RED → Claude GREEN → cockpit review)
+- decisions that change a contract, schema, or invariant
+- PR review and merge strategy (squash vs merge vs rebase; conflicts; post-review patch sets)
+- CI failure triage when the fix changes code or contracts
+- merge conflicts, rebases, or cherry-picks that touch active feature scope
+
+A cockpit cycle is NOT required for:
+- mechanical formatting fixes with no semantic change
+- ledger appends and AGENT_SYNC state updates that do not change any contract
+- terminal commands that read state
+- mechanical CI reruns or status-check polling
+
+When in doubt, route through the cockpit. The cost of an extra round-trip is small; the cost of a missed defect compounds.
+
+### Roles, default reviewers, and escalation
+
+The agent roles defined above carry into the cockpit. No agent has final authority over David or over the governance documents.
+
+- **Codex** is the default technical reviewer. It reviews test contracts, type shapes, fail-closed semantics, replay reproducibility, architectural boundaries, and impl feasibility.
+- **Gemini** is the default governance reviewer. It reviews constitutional alignment, decision-grade language, leakage rules, `decision_supported`, frontend HOLD, and banned David-facing patterns.
+- **Claude Code** owns implementation feasibility and repo-state reporting (current branch state, suite status, file presence, diff stat). Claude does not have final authority on technical or governance questions.
+
+When Codex and Gemini converge, the convergence stands. When they diverge:
+- If the question is purely within Codex's technical domain, Codex's read stands by default.
+- If the question is purely within Gemini's governance domain, Gemini's read stands by default.
+- If the question crosses domains (technical decision with governance implications, or vice versa), the divergence escalates to David. No agent has authority to resolve cross-domain disagreement unilaterally.
+
+### Message format
+
+Every cockpit message sent via `scripts/tmux_msg.py` for review requests, findings, recommendations, CLEAR/CONCUR requests, or post-action confirmations MUST:
+
+1. Identify the sender on the first line, in the form `From <sender> (<role>) — <subject>`. Without an explicit sender, the recipient may treat the message as ambient context rather than an actionable request.
+2. State the artifact under review with an explicit path (file path, SHA, or `/tmp/<file>`) and, for committed artifacts, the diff stat.
+3. Request a reply on the last line, in the form `PLEASE REPLY with: (a) <accept condition>, OR (b) <reject condition>`. Without an explicit reply request, the recipient may proceed without confirming the state the sender needs.
+4. Be sent to BOTH Codex AND Gemini for any message that carries a decision, finding, or recommendation. Parallel awareness lets the other agent flag concerns early.
+
+Purely operational primary-agent commands (e.g., "Codex: run focused pytest on this file and paste output") that contain no decisions, findings, or recommendations MAY be sent to one agent. The boundary: if the message asks for judgment, route to both.
+
+### Adversarial review pattern
+
+Cockpit cycles run as multi-round adversarial review, not single-pass validation. The win condition for each round is finding defects, not converging on PASS.
+
+Standard cycle:
+1. Claude authors v1 draft.
+2. Cycle-round 1: send v1 to both agents with explicit "find concrete defects" framing. Each agent returns specific findings.
+3. Claude consolidates findings into v2.
+4. Cycle-round 2: send v2 to both agents asking whether their v1 findings are integrated.
+5. Repeat until both agents reply with explicit CONCUR / CLEAR.
+6. Claude commits.
+7. Close the loop (see next subsection).
+
+**Each CLEAR must answer every raised question with explicit checks performed.** A CLEAR may take the form "no finding after checking X" or "addressed at lines N–M" or a bullet list of question→verification, but it must enumerate the checks. Bare replies of the form "looks good", "elegant", or "fully aligned" without enumerated checks are not CLEARs and do not terminate the cycle. The cycle terminates only on unanimous CLEAR from both agents.
+
+### Closing the loop
+
+After every committed cycle, the authoring agent MUST send a post-commit confirmation to both reviewing agents containing:
+- the commit SHA
+- the file paths and diff stat
+- key language snippets, line references, or a diff summary (so reviewing agents can detect drift between cleared and committed states)
+- an explicit reply request asking for divergence verification
+
+**Reviewing agents MUST audit the actual commit diff** (via `git diff`, `git show <SHA>`, or by reading the committed files directly) and confirm zero divergence from the cleared content. If any undocumented or un-cleared change is detected (including whitespace, comment drift, or section reordering), the loop remains open and a correction commit MUST be made before the cycle is considered complete.
+
+The same discipline applies to non-commit final actions: force-push, branch delete, PR merge, rollback. Post-action confirmation is mandatory for any hard-to-reverse operation.
+
+### Post-fix sweep + post-commit sweep
+
+**Post-fix sweep (sender side, pre-commit).** After fixing a concept in a multi-section document (spec, plan, code), the author MUST grep the entire document for all references to that concept and update any remaining references. Spot-fixes commonly miss adjacent mentions (impl outlines, summary tables, GREEN/RED notes, commit-message hints). Sweep before sending the fix to the cockpit; otherwise the cockpit catches the stale reference and the cycle adds a round.
+
+**Post-commit sweep (reviewer side, post-commit).** After the closing-the-loop confirmation, the reviewing agents SHOULD scan dependent documents and downstream modules for stale references introduced by the patch (e.g., line-number citations in a plan that now point to wrong content after a spec patch, broken cross-references). Surface any drift in the closing-the-loop reply.
+
+### No-anchor framing
+
+When sending the cockpit a question or draft, do not pre-recommend a solution. Present the artifact and the open questions neutrally; let the agents debate and surface their own analysis. Pre-anchoring biases agents toward concur-and-move-on rather than adversarial review. Phrases to avoid in cockpit prompts: "I lean toward X", "the right answer is X", "this should be X".
+
+### Verify before alarming
+
+Before sending the cockpit a finding ("X is wrong because Y"), do the arithmetic or basic check that supports the claim. False alarms cost a full cockpit cycle in follow-up investigation. On 2026-05-28, Claude verified that a Codex-stated IQR value of 20.0 was incorrect (actual: 25.0) before sending the v2 patch; this prevented a wrong-fixture commit that would have required a v3 cycle.
+
+### Bootstrap-first and discipline reset
+
+Every agent MUST run the bootstrap reading order (this file, then `00-product-constitution.md`, `01-north-star-architecture.md`, `03-code-hygiene-policy.md`, `AGENT_SYNC.md`, and today's ledger) before substantive analysis or mutation at session start. Light read-only inspection (e.g., a single `ls` or `git status` to orient) does not require bootstrap, but any spec, plan, code, governance, or contract decision does.
+
+Mid-session, when discipline drift is detected (cockpit converging too quickly, complimentary attestations without adversarial bite, repeated single-pass PASSes), **any agent in the cockpit — Codex, Gemini, or Claude — has the authority and the duty to call a discipline reset.** A discipline reset is:
+1. Pause all in-flight work.
+2. Send a sender-identified directive to the other two agents instructing them to re-bootstrap.
+3. The calling agent does the same re-read.
+4. After bootstrap, resume the work with an explicit adversarial review framing.
+
+A discipline reset is not a punishment. It is a recovery mechanism for a known failure mode of multi-agent review (premature convergence on PASS). The reset on 2026-05-28 surfaced 2 MEDIUM bugs in committed code that the pre-reset cockpit had missed.
+
+### Strategic pause
+
+When the cockpit identifies a concrete, named governance or architectural risk after work has begun (mid-build), any agent MAY call a strategic pause:
+1. Halt in-flight TDD/GREEN work.
+2. Route a critical-reflection request to both agents asking for adversarial assessment of the risk.
+3. If the risk is real, write a spec/plan patch capturing the resolution.
+4. Resume work only after the patch is cockpit-cleared and committed.
+
+**A strategic pause must be triggered only by a concrete, named risk that directly threatens a constitutional or north-star invariant.** It must not be used to stall execution or debate minor stylistic choices. The initial critical-reflection round (step 2 above) decides whether the risk is real and whether a patch is needed. If the cockpit cannot agree on the existence or scope of the risk after that initial round, the matter is immediately escalated to David. Once a patch is drafted (step 3), it follows the normal adversarial multi-round cockpit review until CLEAR — or until a substantive unresolved disagreement requires David.
+
+The strategic pause on 2026-05-28 resolved four governance risks (architectural overlap, selection bias, decision-destination gap, pace) into the binding section 11 Architecture Decision Note of the Subsystem 4 spec.
+
+### Three-point audit trail
+
+Substantive cockpit cycles (spec patch, plan patch, GREEN commit, governance amendment) should leave a three-point audit trail. This pattern is conceptually analogous to the Subsystem 3 §6.3 ingestion three-point logging but is a separate construct serving cockpit-cycle auditability rather than ingestion replay:
+
+- **artifact change**: the spec, plan, code, or governance commit itself
+- **decision-log entry**: a daily-ledger entry recording the cycle (cockpit questions raised, findings, resolutions, final CLEAR)
+- **review-queue closure**: the post-commit confirmation messages exchanged with both reviewing agents and the resulting clearance replies
+
+To preserve auditability, the final daily-ledger entry for a substantive session MUST explicitly record the final commit SHA, a summary of files changed, the validation-suite results, and the timestamps (or relative-time markers) of the reviewing agents' clearances. The ledger is the definitive single source of truth for what the cockpit cleared in that session.
+
 ## Postflight: Session End
 
 Before ending a material session, every agent must:
