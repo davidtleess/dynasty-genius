@@ -1,7 +1,7 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-05-28
+Last updated: 2026-05-29
 
 ## Active Phase
 
@@ -60,6 +60,13 @@ Phase 22 — **IMPLEMENTATION COMPLETE + CODEX CLEARED** (2026-05-24; 1169 tests
 2. Claude implements Task 9 GREEN.
 3. Tasks 10–14 proceed per plan with §11 cross-impacts in place.
 4. PR open after Task 14 closeout per Phase 24 Follow-up B Increment A merge pattern.
+
+**Additional active branch — `docs/cockpit-process` (cross-cutting governance, pushed 2026-05-29):**
+- Branched off `main`; one commit `e69a515` (`docs(governance): add Cockpit Process section to 02-agent-operating-loop.md` — +124 LOC).
+- PR-create URL: https://github.com/davidtleess/dynasty-genius/pull/new/docs/cockpit-process (ready to open at David's discretion).
+- Codifies the multi-agent cockpit working rules (11 subsections): when the cockpit applies, roles + escalation, message format, adversarial review pattern, closing the loop, post-fix + post-commit sweeps, no-anchor framing, verify-before-alarming, bootstrap-first + discipline reset, strategic pause, three-point audit trail.
+- Doc was authored using the cockpit process it documents; 3 rounds of adversarial review; unanimous CLEAR.
+- The S4 branch carries a revert of the same commit (`67754ff` add + `9341c1f` revert) so net governance-file change on S4 is zero vs `main`. When S4 merges to `main` after `docs/cockpit-process` is merged, three-way merge preserves the governance section (verified by Codex via patch-id and `git diff` checks).
 
 **Cockpit process improvements memorized 2026-05-28:** [[feedback_close_the_loop]] (post-action confirmation discipline) + [[feedback_post_fix_sweep]] (grep entire doc for stale references after fixing a concept) — see `~/.claude/projects/-Users-davidleess-dynasty-genius/memory/`.
 
