@@ -572,3 +572,74 @@ Organized by module per the §6.4 split. Build plan will follow this grouping.
 5. **Bridge stale-warning re-fetch at every backtest run is expensive.** If nflreadr is slow or rate-limited, every Backtest A run pays the cost. *Mitigation:* nflreadr is already cached locally per existing Phase 17/18 usage patterns; re-fetch is a cache hit in normal operation; warning fires only on genuine divergence.
 
 6. **Cross-domain bridge replay-over-genesis assumes genesis is empty.** If a future increment pre-seeds the bridge from historical research, replay precision breaks silently. *Mitigation:* spec explicitly locks "v1 bridge is never pre-seeded"; pre-seeding requires its own spec amendment with new replay-precision wording (mirrors S3 §6.3 discipline).
+## 11. Architecture Decision Note — 2026-05-28 strategic pause
+
+This section records the resolution of a mid-build strategic pause taken on 2026-05-28 after the cockpit (Codex + Gemini + Claude) identified 4 governance risks during Task 9 RED authoring. The pause was authorized by David; cockpit converged on the resolutions below before Task 9 GREEN resumed.
+
+### 11.1 Risk A — Specialization boundary (no parallel generic harness)
+
+S4 is a **specialized pre-draft diagnostic harness** for mock-consensus signal evaluation against realized NFL draft capital. It MUST NOT evolve into a generic backtest platform.
+
+Locked constraints:
+- **Locked two-module split.** S4's analytics engine (snapshot ingestion, normalization, ProspectConsensus aggregation, abstention gates, bridge join, metrics, B-gate evaluation, artifact writer) lives strictly in `src/dynasty_genius/eval/backtest_mock_draft.py`. S4's cross-domain identity bridge (schemas, validation, review-queue management, promotion lifecycle, replay) lives strictly in `src/dynasty_genius/identity/prospect_nfl_bridge.py` under the identity package substrate.
+- **Phase 10/11 inviolate paths.** S4 code is strictly barred from modifying or importing the following Phase 10/11 + Phase 12 production assets. These remain byte-unchanged for the duration of S4 work; Task 14 audit asserts this via SHA-256 contract test:
+  - `src/dynasty_genius/eval/backtest_harness.py`
+  - `src/dynasty_genius/eval/backtest_artifact.py`
+  - `src/dynasty_genius/eval/backtest_metrics.py`
+  - `src/dynasty_genius/eval/backtest_report.py`
+  - `src/dynasty_genius/eval/model_card.py`
+  - `src/dynasty_genius/eval/market_snapshot_store.py`
+  - `scripts/run_backtest.py`
+  - `app/api/routes/trust_surface.py`
+- **Idiom reuse, not code reuse.** S4 reuses Phase 10/11 design idioms for versioning-field naming (`metric_version`, `aggregation_version`, `gate_version`), metadata-recording structure, gate-evaluation shape, and report structure. S4 does NOT modify or import any Phase 10/11 asset listed above.
+- New backtest needs that are NOT pre-draft mock-consensus diagnostic MUST extend the existing Phase 10/11 harness, not S4.
+
+### 11.2 Risk B — Selection bias discipline (`tracked_confirmed_prospect_universe`)
+
+Per S3 design, the prospect identity bridge is curated by David. ALL bridged prospects are a non-random sample. S4's metrics therefore describe signal quality only over the David-curated tracked-and-confirmed universe, NOT over all pre-draft prospects.
+
+Locked constraints:
+- **Universe naming.** All S4 artifact metadata MUST name the population: `metric_universe: "tracked_confirmed_prospect_universe"`.
+- **Mandatory caveat (prominently displayed).** All S4 artifacts MUST emit `cohort_selection_bias_caveat` as a non-null string with explicit text: `"Metrics reflect signal quality only over the David-curated S3 confirmed-prospect universe, which is a non-random sample; per the constitution's 'Truth over convenience' tenet, results do not generalize to all pre-draft prospects."` Any downstream diagnostic report, CLI stdout summary, or future trust surface that displays S4 metrics MUST prominently display this caveat alongside the metrics. Hiding the caveat in nested JSON metadata is a governance violation.
+- **Segmented coverage counts (no conflation).** S4 coverage reporting MUST explicitly separate:
+  - `consensus_unbridged_count`: number of distinct prospects emitting a ProspectConsensus (Task 8) who do NOT have an active bridge entry for the draft year.
+  - `confirmed_class_unbridged_count`: number of distinct prospects in the S3 registry for the draft year with `verification_status="confirmed"` who do NOT have a bridge entry.
+  - `orphan_bridges_detected`: list of bridge entries for the draft year whose `prospect_uuid` does not resolve to an S3 entry, or resolves but is not `confirmed`. Reported as active identity drift/corruption; NEVER conflated with the unbridged counts above.
+- **Hard execution block.** The S4 runner (`run_backtest_a.py` per Task 12) MUST hard-fail (exit code 1) and refuse to write metrics into `backtest_a_result.json` if any of: `consensus_unbridged_count > 0`, `confirmed_class_unbridged_count > 0`, or `len(orphan_bridges_detected) > 0`. When the hard block fires the artifact's `metrics` block MUST be `null` (or omitted); the artifact retains only the diagnostic report listing the blocking unbridged/orphan prospects. An informative run requires all three counts to be zero.
+- This gate is distinct from `coverage_after_abstention` — that measures post-abstention metric coverage; this gate measures bridge coverage.
+
+### 11.3 Risk C — Decision destination & transitive-laundering prevention
+
+S4 is strictly trust-layer / diagnostic infrastructure. Its outputs are barred from feeding Engine A or Engine B predictive features per the constitution's locked anti-market-data ruling.
+
+Locked constraints:
+- **Allowed destinations.** S4's sole near-term decision destinations are: (i) govern mock-consensus eligibility as a pre-draft Market Overlay on future decision surfaces (e.g., Rookie Board), AND (ii) inform Backtest B gating per §5.5.
+- `decision_supported=False` recursively on all S4 schemas (already locked per §6.3 + §7).
+- **Anti-laundering transitive bar.** Any path — direct OR transitive (including via intermediate overlay tables, trust-surface views, feature-store tables, or Bayesian-prior shims) — from mock-consensus data, mock snapshots, or S4 backtest results into Engine A or Engine B feature extraction, training pipelines, or player scoring models is strictly, unconditionally barred by this spec and its v1 implementation. A future amendment requires a David-approved constitution-compatible spec patch plus a verified validation report proving statistically significant out-of-sample predictive lift.
+- **AST scan import audit.** Task 14 MUST add a pytest contract/audit test in `tests/contract/test_subsystem_4_audit.py` using AST-based static checks. Because contract tests run in CI, this enforces the boundary without requiring changes to repo lint/pre-commit policy. The test MUST scan all Engine A, Engine B, PVO, Trade Lab, and model-training source files and FAIL on either:
+  - Imports of S4 modules: `dynasty_genius.eval.backtest_mock_draft`, `dynasty_genius.identity.prospect_nfl_bridge`.
+  - File reads or path references to S4 runner artifacts: `app/data/backtest/mock_draft/**/backtest_a_result.json`, `app/data/backtest/mock_draft/**/backtest_b_abstain.json`.
+- **No agent amendment authority.** The boundary defined here is a locked analytical ruling. No agent has authority to relax, amend, or bypass it. Any agent plan, spec patch, or code modification that attempts to route mock or market data into Engine A/B training is an automatic escalation trigger requiring an immediate hard stop, a logged failure in the daily ledger, and rollback of the offending changes.
+
+### 11.4 Risk D — Pace discipline
+
+All future S4 contract decisions require deliberate cockpit debate, not RED-time casual locks. Task 9 schema is explicitly re-debated in §11.5 below.
+
+### 11.5 Task 9 schema refinements (replaces prior provisional 14-field shape)
+
+The Task 9 `RealizedOutcome` + `join_bridge_to_realized` contracts MUST cover the following edge cases, each as an explicit named test:
+
+1. **Truth disappearance.** Drafted bridge entry with `gsis_id=X` but `X` absent from re-fetched `nflreadr_current` → `bridge_stale_warning=True` with `truth_row_missing` warning string (NOT silently `False`).
+2. **Duplicate `gsis_id` in `nflreadr_current` (fail-closed).** If duplicate `gsis_id` rows are present, S4 MUST emit a critical `nflreadr_duplicate_gsis_id_warning`, refuse current-truth comparison for the affected prospect (no overwrite, no last-row-wins), and add the failure to `acceptance_criteria_failed`.
+3. **Compound-key wrong-year truth mismatch (hard conflict).** Truth lookups MUST use the compound key `(gsis_id, draft_year)`. If the lookup returns no row, OR returns a row whose `draft_year` differs from the bridge entry's `draft_year` for that `gsis_id`, S4 MUST emit `truth_row_wrong_year_warning`, write the affected entry to the review queue for manual audit, and add `wrong_year_truth_collision` to `acceptance_criteria_failed` (hard exit block).
+4. **Missing `evidence_snapshot` on drafted entry (hard block).** If `entry.udfa=False` but `evidence_snapshot is None`, S4 MUST refuse to fall back to a clean `gsis_id`-only comparison: emit `evidence_snapshot_missing_warning`, mark the comparison `stale/evidence_incomplete`, and add the failure to `acceptance_criteria_failed`.
+5. **Unbridged coverage semantics.** Unbridged prospects are reported in the coverage matrix and cause the hard-block gate in §11.2; therefore metric computation is skipped entirely for nonzero unbridged counts. If a future diagnostic-only mode permits partial metrics, those prospects MUST be excluded from numerators and denominators and the run MUST remain non-informative.
+6. **Pick/round/team divergence in stale tuple (with team-code normalization).** If `draft_pick_no`, `draft_round`, OR `nfl_team` divergence is detected between the bridge top-level and current `nflreadr_current`, set `bridge_stale_warning=True` with an explicit reason string indicating which field(s) diverged. To prevent false positives from team relocations/rebrandings (e.g., `"OAK"` ↔ `"LVR"`, `"SDG"` ↔ `"LAC"`, `"LAR"` ↔ `"LA"`, `"WAS"` ↔ `"WSH"`), team codes MUST pass through a dedicated `normalize_team_code` helper before comparison. The helper's whitelist of equivalence classes is recorded in artifact metadata as `team_code_normalization_version` for replay reproducibility.
+
+### 11.6 Authorization audit trail
+
+This patch was authored by Claude after cockpit convergence on 2026-05-28 (~22:42 ET). Codex and Gemini independently produced critical reflections on the 4 risks, then independently produced adversarial reviews of the v1 draft patch (full responses captured in `docs/agent-ledger/2026-05-28.md`).
+
+This strategic pause was invoked under the supreme authority of the Dynasty Genius Product Constitution (`docs/governance/00-product-constitution.md`) — specifically the Prime Directive ("Be right, not fast") and the Truth-over-convenience tenet — and the North Star Architecture (`docs/governance/01-north-star-architecture.md`) which forbids "a collection of disconnected tools" and locks the market-data leakage boundary.
+
+David authorized the strategic pause and the patch effort. Task 9 GREEN was halted at branch `feature/subsystem-4-backtest-harness` commit `a41e0c6` — which represents the Task 8 branch tip and the Task 9 RED-only test state, carrying zero Task 9 GREEN implementation code — pending commit and gating of this patch.
