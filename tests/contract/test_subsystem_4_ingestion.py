@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
@@ -15,6 +17,7 @@ from src.dynasty_genius.eval.backtest_mock_draft import (
     compute_canonical_content_hash,
     derive_snapshot_id,
     ingest_snapshots,
+    resolve_draft_date,
 )
 from src.dynasty_genius.identity.college_prospect_identity import (
     CollegeProspectRegistry,
@@ -496,3 +499,130 @@ def test_ingest_snapshots_coverage_matrix_populates_section_4_5_fields(tmp_path)
     assert coverage["total_picks"] == 1
     assert coverage["draft_date_used"] == "2025-04-24"
     assert coverage["draft_date_source"] == "explicit"
+
+
+class _FakeDraftPickFrame:
+    def to_pandas(self):
+        return self
+
+    def to_dict(self, orient: str):
+        assert orient == "records"
+        return [
+            {"season": 2025, "draft_date": "2025-04-24", "pick": 1},
+            {"season": 2025, "draft_date": "2025-04-24", "pick": 2},
+        ]
+
+
+def _install_fake_nflreadpy(monkeypatch):
+    def load_draft_picks(seasons):
+        assert seasons == [2025] or seasons == 2025
+        return _FakeDraftPickFrame()
+
+    monkeypatch.setitem(
+        sys.modules,
+        "nflreadpy",
+        SimpleNamespace(load_draft_picks=load_draft_picks),
+    )
+
+
+def test_ingest_snapshots_partial_parse_status_included_with_warning(tmp_path):
+    uuid = "cpr_90000000-0000-4000-8000-000000000001"
+    _write_snapshot(
+        tmp_path,
+        "partial.json",
+        [_pick(prospect_uuid=uuid)],
+        parse_status="partial",
+    )
+
+    normalized_picks, coverage = ingest_snapshots(
+        tmp_path,
+        s3_registry=_registry(_registry_entry(uuid)),
+        draft_date="2025-04-24",
+    )
+
+    assert [pick.resolved_prospect_uuid for pick in normalized_picks] == [uuid]
+    assert coverage["snapshots_used"] == 1
+    assert coverage["partial_snapshot_warnings"] == 1
+
+
+def test_ingest_snapshots_untrusted_excluded_unless_flag_enabled(tmp_path):
+    uuid = "cpr_91000000-0000-4000-8000-000000000001"
+    _write_snapshot(
+        tmp_path,
+        "untrusted.json",
+        [_pick(prospect_uuid=uuid)],
+        parse_status="untrusted",
+    )
+
+    normalized_picks, coverage = ingest_snapshots(
+        tmp_path,
+        s3_registry=_registry(_registry_entry(uuid)),
+        draft_date="2025-04-24",
+    )
+    assert normalized_picks == []
+    assert coverage["snapshots_used"] == 0
+    assert coverage["untrusted_excluded_snapshots"] == 1
+
+    included_picks, included_coverage = ingest_snapshots(
+        tmp_path,
+        s3_registry=_registry(_registry_entry(uuid)),
+        draft_date="2025-04-24",
+        include_untrusted=True,
+    )
+    assert [pick.resolved_prospect_uuid for pick in included_picks] == [uuid]
+    assert included_coverage["snapshots_used"] == 1
+    assert included_coverage["untrusted_excluded_snapshots"] == 0
+
+
+def test_resolve_draft_date_defaults_to_nflreadr_draft_picks(monkeypatch):
+    _install_fake_nflreadpy(monkeypatch)
+
+    draft_date, source = resolve_draft_date(2025)
+
+    assert draft_date == "2025-04-24"
+    assert source == "nflreadr.draft_picks"
+
+
+def test_resolve_draft_date_override_requires_date_and_reason():
+    assert resolve_draft_date(
+        2025,
+        override_date="2025-04-24",
+        override_reason="synthetic fixture",
+    ) == ("2025-04-24", "override:synthetic fixture")
+
+    with pytest.raises(ValueError):
+        resolve_draft_date(2025, override_date="2025-04-24")
+
+    with pytest.raises(ValueError):
+        resolve_draft_date(2025, override_reason="synthetic fixture")
+
+
+def test_ingest_snapshots_records_resolved_draft_date_source(tmp_path, monkeypatch):
+    _install_fake_nflreadpy(monkeypatch)
+    uuid = "cpr_92000000-0000-4000-8000-000000000001"
+    _write_snapshot(tmp_path, "resolved.json", [_pick(prospect_uuid=uuid)])
+
+    normalized_picks, coverage = ingest_snapshots(
+        tmp_path,
+        s3_registry=_registry(_registry_entry(uuid)),
+    )
+
+    assert [pick.resolved_prospect_uuid for pick in normalized_picks] == [uuid]
+    assert coverage["draft_date_used"] == "2025-04-24"
+    assert coverage["draft_date_source"] == "nflreadr.draft_picks"
+
+
+def test_ingest_snapshots_records_override_draft_date_source(tmp_path):
+    uuid = "cpr_93000000-0000-4000-8000-000000000001"
+    _write_snapshot(tmp_path, "override.json", [_pick(prospect_uuid=uuid)])
+
+    normalized_picks, coverage = ingest_snapshots(
+        tmp_path,
+        s3_registry=_registry(_registry_entry(uuid)),
+        override_date="2025-04-24",
+        override_reason="synthetic fixture",
+    )
+
+    assert [pick.resolved_prospect_uuid for pick in normalized_picks] == [uuid]
+    assert coverage["draft_date_used"] == "2025-04-24"
+    assert coverage["draft_date_source"] == "override:synthetic fixture"

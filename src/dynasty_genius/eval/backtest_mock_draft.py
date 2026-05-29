@@ -190,12 +190,46 @@ def _resolve_identity(
 _HIGH_REDIRECT_RATE_THRESHOLD: float = 0.05  # >5% of picks needed redirect (spec §4.3 rule 3)
 
 
+def resolve_draft_date(
+    draft_year: int,
+    *,
+    override_date: Optional[str] = None,
+    override_reason: Optional[str] = None,
+) -> tuple[str, str]:
+    """Spec §4.6: returns ``(draft_date, draft_date_source)``.
+
+    Default: fetch from nflreadr. ``source = "nflreadr.draft_picks"``.
+
+    Override: BOTH ``override_date`` AND ``override_reason`` MUST be supplied;
+    if either is provided alone, raises ``ValueError`` (no silent override).
+    When both are supplied, returns ``(override_date, "override:<reason>")``.
+    """
+    if override_date is not None or override_reason is not None:
+        if override_date is None or override_reason is None:
+            raise ValueError(
+                "resolve_draft_date override requires BOTH override_date AND "
+                "override_reason (spec §4.6; no silent override)"
+            )
+        return override_date, f"override:{override_reason}"
+
+    import nflreadpy
+    df = nflreadpy.load_draft_picks([draft_year])
+    records = df.to_pandas().to_dict("records")
+    if not records:
+        raise ValueError(
+            f"resolve_draft_date: nflreadr returned no rows for season {draft_year}"
+        )
+    return records[0]["draft_date"], "nflreadr.draft_picks"
+
+
 def ingest_snapshots(
     snapshots_dir: Path,
     *,
     s3_registry: CollegeProspectRegistry,
-    draft_date: str,
+    draft_date: Optional[str] = None,
     include_untrusted: bool = False,
+    override_date: Optional[str] = None,
+    override_reason: Optional[str] = None,
 ) -> tuple[list[NormalizedPick], dict]:
     """Spec §4.3 + §4.5: read all snapshots in ``snapshots_dir`` (recursive),
     apply ingestion validation, identity resolution, and emit a coverage matrix.
@@ -215,6 +249,31 @@ def ingest_snapshots(
 
     Returns ``(normalized_picks, coverage_matrix)``.
     """
+    # Resolve draft_date + source (spec §4.6, Task 7)
+    if draft_date is not None:
+        resolved_draft_date, resolved_source = draft_date, "explicit"
+    elif override_date is not None or override_reason is not None:
+        resolved_draft_date, resolved_source = resolve_draft_date(
+            draft_year=0,  # unused for override branch
+            override_date=override_date,
+            override_reason=override_reason,
+        )
+    else:
+        # Default: derive draft_year from first valid snapshot's metadata, fetch from nflreadr
+        derived_year: Optional[int] = None
+        for path in sorted(snapshots_dir.rglob("*.json"), key=lambda p: str(p)):
+            try:
+                meta_raw = json.loads(path.read_text()).get("metadata", {})
+                derived_year = meta_raw.get("draft_year")
+                if derived_year is not None:
+                    break
+            except Exception:
+                continue
+        if derived_year is None:
+            resolved_draft_date, resolved_source = "9999-12-31", "no_snapshots"
+        else:
+            resolved_draft_date, resolved_source = resolve_draft_date(derived_year)
+
     coverage = {
         "snapshot_ids_used": [],
         "metadata_tuple_keys_used": [],
@@ -231,8 +290,8 @@ def ingest_snapshots(
         "high_redirect_rate_warning": False,
         "unresolved_picks": 0,
         "unresolved_picks_ratio": 0.0,
-        "draft_date_used": draft_date,
-        "draft_date_source": "explicit",
+        "draft_date_used": resolved_draft_date,
+        "draft_date_source": resolved_source,
         "warnings": [],
     }
     normalized_picks: list[NormalizedPick] = []
@@ -279,7 +338,7 @@ def ingest_snapshots(
             continue
 
         # Stage 4: strict leakage gate
-        if snapshot.metadata.published_date >= draft_date:
+        if snapshot.metadata.published_date >= resolved_draft_date:
             coverage["leakage_excluded_snapshots"] += 1
             continue
 
