@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -784,3 +785,179 @@ def join_bridge_to_realized(
         )
 
     return pairs, diagnostics
+
+
+# ======================================================================
+# Bridge-coverage gate + the 6 metrics (spec §5.4, §11.2)         (Task 10)
+# ======================================================================
+
+SKILL_POSITIONS: frozenset[str] = frozenset({"QB", "RB", "WR", "TE"})
+DRAFT_PICK_MAX: int = 257  # projected_drafted predicate range [1, 257] (raw median; §5.4)
+ROUND_BUCKET_ORDER: list[str] = [
+    "R1-early",
+    "R1-mid",
+    "R1-late",
+    "R2",
+    "R3",
+    "Day3",
+    "UDFA",
+]
+ROUND_BUCKET_ROUNDING_POLICY: str = "round_half_up"
+
+
+def evaluate_bridge_gates(coverage: dict) -> Optional[list[str]]:
+    """§11.2 bridge-coverage hard-block helper.
+
+    Returns ``None`` when all three coverage counts are clear; otherwise returns the
+    canonical ``hard_block_reasons`` tokens (order-preserving) that the Task 12 runner
+    unions verbatim into ``acceptance_criteria_failed`` (no mapping). When this returns
+    non-None, the runner skips metric computation and the artifact ``metrics`` block is
+    null.
+    """
+    reasons: list[str] = []
+    if coverage.get("consensus_unbridged_count", 0):
+        reasons.append("consensus_unbridged")
+    if coverage.get("confirmed_class_unbridged_count", 0):
+        reasons.append("confirmed_class_unbridged")
+    if coverage.get("orphan_bridges_detected"):
+        reasons.append("orphan_bridges_detected")
+    return reasons or None
+
+
+def _round_half_up(median: float) -> int:
+    """Round-half-up to an int pick number per §5.4 (`math.floor(x + 0.5)`)."""
+    return math.floor(median + 0.5)
+
+
+def _bucket_from_pick(pick_no: int) -> str:
+    """Map an int draft pick to its round bucket (§5.4 buckets table)."""
+    if pick_no <= 10:
+        return "R1-early"
+    if pick_no <= 21:
+        return "R1-mid"
+    if pick_no <= 32:
+        return "R1-late"
+    if pick_no <= 64:
+        return "R2"
+    if pick_no <= 105:
+        return "R3"
+    return "Day3"
+
+
+def _realized_bucket(outcome: RealizedOutcome) -> str:
+    """Round bucket for a realized outcome; UDFA / no realized pick → 'UDFA'."""
+    if outcome.udfa or outcome.draft_pick_no is None:
+        return "UDFA"
+    return _bucket_from_pick(outcome.draft_pick_no)
+
+
+def _is_projected_drafted(consensus: ProspectConsensus) -> bool:
+    """Consensus emitted AND raw `projected_pick_median` in [1, 257] (§5.4).
+
+    Predicate is applied to the raw float median (no rounding) per §5.4: a half-pick
+    like 32.5 is inside the inclusive range and counts as projected_drafted.
+    """
+    median = consensus.projected_pick_median
+    return median is not None and 1 <= median <= DRAFT_PICK_MAX
+
+
+def compute_metrics(
+    joined_outcomes: list[tuple[ProspectConsensus, RealizedOutcome]],
+    n_prospects_total_in_class: int,
+    bridge: CollegeProspectBridge,
+) -> dict:
+    """Compute the 6 §5.4 Backtest-A metrics + per-bucket breakdown + warnings.
+
+    Pure function — no filesystem writes. Each metric enforces its spec §5.4 universe
+    exactly. Returns ``{metric_version, metrics, warnings}``; the ``metrics`` block
+    carries the 6 named metrics plus ``per_bucket_breakdown`` (every round bucket
+    present, in canonical order).
+    """
+    warnings: list[str] = []
+
+    # drafted-AND-projected-drafted intersection (UDFA excluded) — MAE + weighted error.
+    abs_errors: list[float] = []
+    weighted_num = 0.0
+    weighted_den = 0.0
+    for consensus, outcome in joined_outcomes:
+        if (
+            _is_projected_drafted(consensus)
+            and not outcome.udfa
+            and outcome.draft_pick_no is not None
+        ):
+            err = abs(consensus.projected_pick_median - outcome.draft_pick_no)
+            weight = 1.0 / outcome.draft_pick_no
+            abs_errors.append(err)
+            weighted_num += err * weight
+            weighted_den += weight
+    overall_pick_mae = (sum(abs_errors) / len(abs_errors)) if abs_errors else None
+    early_pick_weighted_error = (weighted_num / weighted_den) if weighted_den else None
+
+    # round_bucket_accuracy — all non-abstain consensus prospects.
+    scored_rows = [
+        (c, o) for c, o in joined_outcomes if c.abstention_tier != "abstain"
+    ]
+    correct = 0
+    for consensus, outcome in scored_rows:
+        predicted = _bucket_from_pick(_round_half_up(consensus.projected_pick_median))
+        if predicted == _realized_bucket(outcome):
+            correct += 1
+    round_bucket_accuracy = (correct / len(scored_rows)) if scored_rows else None
+
+    # top_36_skill_recall — |projected_top_36 ∩ realized_top_36| / min(36, |realized|).
+    realized_top_36: set[str] = set()
+    for entry in bridge.entries:
+        if entry.udfa or entry.draft_pick_no is None or entry.draft_pick_no > 36:
+            continue
+        position = (entry.evidence_snapshot or {}).get("position")
+        if position in SKILL_POSITIONS:
+            realized_top_36.add(entry.prospect_uuid)
+    projected_top_36: set[str] = {
+        c.prospect_uuid
+        for c, _o in joined_outcomes
+        if _is_projected_drafted(c) and _round_half_up(c.projected_pick_median) <= 36
+    }
+    realized_top_36_count = len(realized_top_36)
+    if realized_top_36_count < 36:
+        warnings.append("insufficient_truth_coverage")
+    denominator = min(36, realized_top_36_count)
+    top_36_skill_recall = (
+        len(projected_top_36 & realized_top_36) / denominator if denominator else None
+    )
+
+    # udfa_false_positive_rate — false_positives / projected_drafted (abstain excluded).
+    projected_drafted = [(c, o) for c, o in joined_outcomes if _is_projected_drafted(c)]
+    false_positives = sum(1 for _c, o in projected_drafted if o.udfa)
+    udfa_false_positive_rate = (
+        (false_positives / len(projected_drafted)) if projected_drafted else None
+    )
+
+    # coverage_after_abstention — n_scored / n_prospects_total_in_class.
+    n_scored = len(scored_rows)
+    coverage_after_abstention = (
+        (n_scored / n_prospects_total_in_class) if n_prospects_total_in_class else None
+    )
+
+    # per-bucket breakdown — every bucket present, canonical order; n_scored excludes abstain.
+    per_bucket_breakdown: dict[str, dict] = {
+        bucket: {"n_realized": 0, "n_scored": 0} for bucket in ROUND_BUCKET_ORDER
+    }
+    for consensus, outcome in joined_outcomes:
+        bucket = _realized_bucket(outcome)
+        per_bucket_breakdown[bucket]["n_realized"] += 1
+        if consensus.abstention_tier != "abstain":
+            per_bucket_breakdown[bucket]["n_scored"] += 1
+
+    return {
+        "metric_version": METRIC_VERSION,
+        "metrics": {
+            "overall_pick_mae": overall_pick_mae,
+            "round_bucket_accuracy": round_bucket_accuracy,
+            "top_36_skill_recall": top_36_skill_recall,
+            "udfa_false_positive_rate": udfa_false_positive_rate,
+            "coverage_after_abstention": coverage_after_abstention,
+            "early_pick_weighted_error": early_pick_weighted_error,
+            "per_bucket_breakdown": per_bucket_breakdown,
+        },
+        "warnings": warnings,
+    }
