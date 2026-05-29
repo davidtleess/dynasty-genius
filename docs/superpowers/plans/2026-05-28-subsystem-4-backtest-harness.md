@@ -2068,17 +2068,19 @@ git commit -m "feat(subsystem-4): bridge promotion lifecycle + 2 CLI scripts (bu
 ### Task 8: ProspectConsensus aggregation + abstention tiers — §5.2, §5.3
 
 **RED test coverage:**
-- ProspectConsensus Pydantic shape
+- ProspectConsensus Pydantic shape (`projected_pick_median: Optional[float]` per 2026-05-28 amendment; `projected_pick_min` / `projected_pick_max` remain `Optional[int]`)
 - `n_sources` counted by distinct `source_label`; `n_unique_analysts` by distinct `analyst`
 - `abstention_tier`: `n_sources < 3` → `abstain`; `3 ≤ n_sources ≤ 4` → `round_tier_only`; `n_sources ≥ 5` with `IQR ≤ 6` → `exact_pick`; otherwise `round_tier_only`
 - `staleness_days` computed from most-recent snapshot's `published_date` to `draft_date`
 - `dispersion_threshold` configurable + recorded in artifact metadata
 - Empty snapshots → abstain
 - All abstention reasons populated
+- **(2026-05-28 amendment)** `test_aggregation_median_preserves_float_and_rounding` — fixture: 4 distinct sources contributing pick_nos `[31, 32, 33, 34]` (round_tier_only tier, not abstain). Asserts `consensus.projected_pick_median == 32.5` and `isinstance(consensus.projected_pick_median, float) is True`. Prevents the round-boundary truncation bias surfaced by the joint cockpit retrospective.
+- **(2026-05-28 amendment)** `test_aggregation_iqr_uses_exclusive_quantiles` — fixture: 4 distinct sources contributing pick_nos `[10, 20, 30, 40]`. Verified expected values (computed before authoring): exclusive method Q1=12.5, Q3=37.5, **IQR=25.0**; inclusive method Q1=17.5, Q3=32.5, IQR=15.0. Test asserts `consensus.projected_pick_iqr == 25.0` (exclusive). Locks the method choice under `aggregation_version`.
 
 **GREEN impl outline:**
 - `aggregate_per_prospect(normalized_picks, draft_date, dispersion_threshold=6)` returns `dict[prospect_uuid, ProspectConsensus]`
-- Median pick, IQR, min, max computed per prospect; counts distinct sources/analysts
+- Median pick (`float(_median(pick_nos))` — NOT `int()` cast per 2026-05-28 amendment), IQR (`statistics.quantiles(..., method='exclusive')` locked under `aggregation_version`), min, max computed per prospect; counts distinct sources/analysts
 - Abstention tier logic exactly per §5.3
 
 **Commit:** `feat(subsystem-4): ProspectConsensus aggregation + abstention tiers section 5.2 + 5.3`
@@ -2208,6 +2210,7 @@ Task 12 runner orchestrates: (i) Task 9 `join_bridge_to_realized` returning `(pa
 **Required RED tests (§11-driven):**
 - `test_artifact_metrics_null_on_unbridged_hard_block` — when `evaluate_bridge_gates` returns non-None, artifact `metrics` is `null` and a diagnostic report is populated.
 - `test_artifact_metadata_includes_team_code_normalization_version` **(CANONICAL OWNER — Task 12)** — artifact metadata contains `team_code_normalization_version` matching Task 9's constant. Audit-guard reference in Task 14.
+- `test_artifact_metadata_includes_round_bucket_rounding_policy` **(CANONICAL OWNER — Task 12; 2026-05-28 amendment)** — artifact metadata contains `round_bucket_rounding_policy` equal to `"round_half_up"` matching the spec §5.4 footer rule. Audit-guard reference in Task 14.
 - `test_artifact_emits_selection_bias_caveat_with_constitution_citation` **(CANONICAL OWNER — Task 12)** — artifact emits `cohort_selection_bias_caveat` as non-null string containing exact substring `"Truth over convenience"` (constitution citation locked); also `metric_universe == "tracked_confirmed_prospect_universe"`. Audit-guard reference in Task 14.
 - `test_artifact_acceptance_criteria_failed_aggregated_from_canonical_tokens` — given a `JoinDiagnostics` with known `hard_block_reasons` and a known `evaluate_bridge_gates` output, the artifact's `acceptance_criteria_failed` equals their union (no mapping, no parsing — both sources already produce canonical tokens).
 - `test_review_queue_written_from_join_diagnostics` — `JoinDiagnostics.review_queue_payload` is written atomically to the configured queue path; no other writes.
@@ -2304,6 +2307,7 @@ Task 12 runner orchestrates: (i) Task 9 `join_bridge_to_realized` returning `(pa
 | `test_normalize_team_code_equivalence_classes` | Task 9 | Task 14 |
 | `test_artifact_metadata_includes_team_code_normalization_version` | Task 12 | Task 14 |
 | `test_artifact_emits_selection_bias_caveat_with_constitution_citation` | Task 12 | Task 14 |
+| `test_artifact_metadata_includes_round_bucket_rounding_policy` | Task 12 | Task 14 |
 
 **GREEN: no impl needed if Tasks 1–13 implemented correctly.** Tests pass on the existing surfaces.
 

@@ -293,7 +293,7 @@ class ProspectConsensus(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     prospect_uuid: str
-    projected_pick_median: Optional[int] = None    # None if abstain tier
+    projected_pick_median: Optional[float] = None  # None if abstain tier; half-picks preserved (no truncation)
     projected_pick_iqr: Optional[float] = None
     projected_pick_min: Optional[int] = None
     projected_pick_max: Optional[int] = None
@@ -325,6 +325,10 @@ class ProspectConsensus(BaseModel):
 | `early_pick_weighted_error` | `sum(err × 1/realized_pick_no) / sum(weights)` | drafted-and-projected-drafted intersection; weight `1/realized_pick_no` recorded as `metric_version="s4_metrics_v1"` |
 
 Round buckets: `R1-early` (1–10), `R1-mid` (11–21), `R1-late` (22–32), `R2` (33–64), `R3` (65–105), `Day3` (R4–7), `UDFA`.
+
+**Round-bucket assignment from float median (Codex+Gemini retrospective 2026-05-28).** Round-bucket assignment from a float `projected_pick_median` uses `round_half_up(median)` — i.e., `math.floor(median + 0.5)` — to produce an int pick number, then maps via the buckets table. `round_half_up(32.5) = 33 → R2`. The rounding policy is recorded in artifact metadata as `round_bucket_rounding_policy: "round_half_up"` for replay reproducibility.
+
+**`udfa_false_positive_rate` predicate semantics (Codex retrospective finding 2).** The predicate `projected_pick_median ∈ [1, 257]` is applied to the raw float median (no rounding). A half-pick like `32.5` is inside the inclusive range and counts as `projected_drafted`. Bucket mapping uses `round_half_up` per the paragraph above; the `[1, 257]` predicate does not.
 
 ### 5.5 `backtest_b_gate_status` per (round_bucket, position)
 
@@ -365,6 +369,9 @@ Per-bucket entries retain the same schema shape — each shows `gate_result="not
   "metric_version": "s4_metrics_v1",
   "aggregation_version": "s4_provisional_consensus_v1",
   "gate_version": "s4_b_gate_thresholds_v1",
+  "round_bucket_rounding_policy": "round_half_up",
+  "team_code_normalization_version": "s4_team_norm_v1",
+  "within_source_aggregation_applied": false,
   "dispersion_threshold_used": 6,
   "bridge_artifact_path": "...",
   "draft_date_used": "2025-04-24",
@@ -558,6 +565,8 @@ Organized by module per the §6.4 split. Build plan will follow this grouping.
 - **Historical 2018–2026 backfill** of bridge + snapshots is the follow-up curation workstream per the §6.3 evidence criteria.
 - **Live per-source adapters (Subsystem 2)** remain NO-GO until permission + maturity gates pass (≈ Dec 2026–Apr 2027 per reconciliation §23).
 - **Calibrated v1 thresholds** (`dispersion_threshold`, B-gate per-bucket MAE/coverage, `early_pick_weighted_error` weight function) are starting points; first real-data run informs calibration.
+- **S1 within-source aggregation — HARD acceptance blocker on real data (Codex retrospective MEDIUM finding 2).** `s4_provisional_consensus_v1` aggregation is across all normalized picks, so sources with `>=2` versions (per §6.3 evidence criteria) overweight the consensus. **Real-data Backtest A artifacts MUST emit `within_source_aggregation_missing` in `acceptance_criteria_failed`** unless EITHER: (a) `data_mode == "synthetic"` (synthetic runs are exempt), OR (b) `metadata.within_source_aggregation_applied` is `true` AND `aggregation_version != "s4_provisional_consensus_v1"`. Subsystem 1 (consensus aggregation), when written, MUST aggregate within-source first (most recent version per source OR temporal decay) before aggregating across sources, AND MUST set `metadata.within_source_aggregation_applied = true` on its emitted artifacts. The explicit boolean flag + `aggregation_version` check avoids string-substring guessing on the version identifier.
+- **IQR computation method locked under `aggregation_version`.** v1 uses `statistics.quantiles(pick_nos, n=4, method="exclusive")` (Python default). Changing the method invalidates replay reproducibility and requires bumping `aggregation_version` plus a spec patch. Plan Task 8 carries contract test `test_aggregation_iqr_uses_exclusive_quantiles` that locks the choice with a fixture where exclusive and inclusive diverge.
 
 ## 10. Counter-argument (Rule 5 — mandatory)
 
