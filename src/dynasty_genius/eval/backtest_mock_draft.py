@@ -423,7 +423,7 @@ class ProspectConsensus(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     prospect_uuid: str
-    projected_pick_median: Optional[int] = None
+    projected_pick_median: Optional[float] = None  # half-picks preserved (no truncation); spec §5.2 amended 2026-05-28
     projected_pick_iqr: Optional[float] = None
     projected_pick_min: Optional[int] = None
     projected_pick_max: Optional[int] = None
@@ -476,7 +476,7 @@ def aggregate_per_prospect(
         staleness = _whole_day_staleness(draft_date, most_recent_published)
 
         pick_nos = [p.pick_no for p in picks]
-        median_val = int(_median(pick_nos))
+        median_val = float(_median(pick_nos))
         min_val = min(pick_nos)
         max_val = max(pick_nos)
         if len(pick_nos) >= 2:

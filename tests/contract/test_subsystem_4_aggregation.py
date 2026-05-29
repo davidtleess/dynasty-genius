@@ -205,3 +205,34 @@ def test_staleness_days_uses_most_recent_snapshot_whole_calendar_days():
 
 def test_empty_normalized_picks_returns_empty_consensus_map():
     assert aggregate_per_prospect([], draft_date="2025-04-24") == {}
+
+
+def test_aggregation_median_preserves_float_and_rounding():
+    uuid = "cpr_33333333-0000-4000-8000-000000000001"
+    picks = [
+        _pick(uuid, pick_no=31, source_label="source_a", analyst="analyst_a"),
+        _pick(uuid, pick_no=32, source_label="source_b", analyst="analyst_b"),
+        _pick(uuid, pick_no=33, source_label="source_c", analyst="analyst_c"),
+        _pick(uuid, pick_no=34, source_label="source_d", analyst="analyst_d"),
+    ]
+
+    consensus = aggregate_per_prospect(picks, draft_date="2025-04-24")[uuid]
+
+    assert consensus.abstention_tier == "round_tier_only"
+    assert consensus.projected_pick_median == 32.5
+    assert isinstance(consensus.projected_pick_median, float)
+
+
+def test_aggregation_iqr_uses_exclusive_quantiles():
+    uuid = "cpr_44444444-0000-4000-8000-000000000001"
+    picks = [
+        _pick(uuid, pick_no=10, source_label="source_a", analyst="analyst_a"),
+        _pick(uuid, pick_no=20, source_label="source_b", analyst="analyst_b"),
+        _pick(uuid, pick_no=30, source_label="source_c", analyst="analyst_c"),
+        _pick(uuid, pick_no=40, source_label="source_d", analyst="analyst_d"),
+    ]
+
+    consensus = aggregate_per_prospect(picks, draft_date="2025-04-24")[uuid]
+
+    assert consensus.abstention_tier == "round_tier_only"
+    assert consensus.projected_pick_iqr == 25.0
