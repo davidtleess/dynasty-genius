@@ -438,3 +438,230 @@ def surface_nfl_bridge_candidates(
             scored.append(cand)
     scored.sort(key=lambda c: c.match_score, reverse=True)
     return scored[:top_k]
+
+
+# ======================================================================
+# Promotion lifecycle (spec §3.3 stages ii–iii)
+# ======================================================================
+
+import uuid as _uuid  # noqa: E402  (grouped with the promotion section)
+from datetime import datetime, timezone  # noqa: E402
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+# Round 2 patch 2 (Codex plan review): differentiate accepted decisions
+# (which alter the bridge artifact) from procedural decisions (which don't).
+# A prior procedural never blocks a later accepted; an accepted-vs-different-accepted
+# is a conflict.
+_ACCEPTED_DECISIONS: frozenset[str] = frozenset({"confirm", "udfa"})
+_PROCEDURAL_DECISIONS: frozenset[str] = frozenset({"reject", "defer"})
+
+
+@dataclass(frozen=True)
+class PromotionDecision:
+    """Per spec §3.3: 4 decisions (confirm, udfa, reject, defer).
+    ``confirm`` and ``udfa`` carry a populated ``entry`` (ProspectNflBridgeEntry sans
+    auto-filled audit fields). ``reject`` and ``defer`` carry only ``prospect_uuid``
+    and an optional note."""
+
+    kind: Literal["confirm", "udfa", "reject", "defer"]
+    entry: Optional[ProspectNflBridgeEntry] = None
+    prospect_uuid: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class PromotionResult:
+    exit_code: int
+    event_id: Optional[str] = None
+
+
+def validate_bridge_graph(bridge: CollegeProspectBridge) -> list[str]:
+    """Cross-entry invariants (spec §3.2 rule 3): 1:1 within draft_year for
+    prospect_uuid and non-null gsis_id."""
+    errors: list[str] = []
+    seen_uuids: set[str] = set()
+    seen_gsis: set[str] = set()
+    for entry in bridge.entries:
+        if entry.prospect_uuid in seen_uuids:
+            errors.append(
+                f"duplicate prospect_uuid {entry.prospect_uuid} in bridge entries"
+            )
+        seen_uuids.add(entry.prospect_uuid)
+        if entry.gsis_id is not None:
+            if entry.gsis_id in seen_gsis:
+                errors.append(
+                    f"duplicate gsis_id {entry.gsis_id} in bridge entries"
+                )
+            seen_gsis.add(entry.gsis_id)
+    return errors
+
+
+def _close_review_queue_row(
+    identity_dir: Path,
+    draft_year: int,
+    review_id: str,
+    decision_kind: str,
+    decided_at: str,
+    event_id: str,
+    note: Optional[str],
+) -> None:
+    """Spec §3.3 third leg of three-point logging."""
+    for path in identity_dir.glob(f"prospect_nfl_review_queue_{draft_year}_*.jsonl"):
+        lines = path.read_text().splitlines()
+        updated: list[str] = []
+        changed = False
+        for line in lines:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("review_id") == review_id and row.get("decision") is None:
+                row["decision"] = decision_kind
+                row["decided_at"] = decided_at
+                row["event_id"] = event_id
+                if note is not None:
+                    row["note"] = note
+                changed = True
+            updated.append(json.dumps(row, sort_keys=True))
+        if changed:
+            tmp = path.with_suffix(path.suffix + ".tmp")
+            tmp.write_text("\n".join(updated) + "\n")
+            os.replace(tmp, path)
+            return
+
+
+def promote_bridge_candidate(
+    *,
+    review_id: Optional[str],
+    decision: PromotionDecision,
+    identity_dir: Path,
+    draft_year: int,
+    reviewer_id: str,
+    evidence: Optional[str],
+    note: Optional[str],
+    s3_registry: Optional[CollegeProspectRegistry] = None,
+) -> PromotionResult:
+    """Spec §3.3: the only blessed write path for bridge decisions. Three-point
+    logging in dependency-safe order: decision_log → bridge_artifact →
+    review_queue closure.
+
+    Round 2 patch 1 (Codex plan review): for ``confirm``/``udfa`` decisions, an
+    ``s3_registry`` MUST be supplied so spec §3.2 rules 1+2 can be validated
+    (prospect_uuid confirmed in S3; draft_year == S3 draft_class). When the
+    parameter is omitted for an accepted decision, the function returns
+    exit_code=1; the CLI loads S3 and passes it through.
+
+    Round 2 patch 2: conflict semantics differentiate ACCEPTED decisions
+    (confirm, udfa) from PROCEDURAL decisions (reject, defer). Procedural prior
+    does NOT block a later accepted. Accepted-vs-different-accepted DOES conflict.
+    Same-decision rerun is idempotent.
+
+    Round 2 patch 7: ``entry.draft_year`` MUST equal the ``draft_year`` kwarg
+    (which selects the artifact file). Without this guard, a mismatched library
+    call could silently write a wrong-year entry into the wrong artifact file.
+    """
+    if decision.kind == "udfa" and not (evidence and evidence.strip()):
+        raise BridgeEvidenceRequiredError(
+            "udfa promotion requires non-empty --evidence per spec §3.3"
+        )
+
+    identity_dir.mkdir(parents=True, exist_ok=True)
+    bridge_path = identity_dir / f"prospect_to_nfl_bridge_{draft_year}.json"
+    log_path = identity_dir / f"prospect_nfl_bridge_decision_log_{draft_year}.jsonl"
+
+    # Determine the prospect_uuid being acted on
+    if decision.kind in _ACCEPTED_DECISIONS:
+        if decision.entry is None:
+            return PromotionResult(exit_code=1)
+        if s3_registry is None:
+            return PromotionResult(exit_code=1)  # Round 2 patch 1: required for accepted
+        acted_uuid = decision.entry.prospect_uuid
+    else:  # reject / defer
+        if decision.prospect_uuid is None:
+            return PromotionResult(exit_code=1)
+        acted_uuid = decision.prospect_uuid
+
+    # Idempotency / conflict check — Round 2 patch 2 semantics
+    existing_log = load_decision_log(log_path)
+    for prior in existing_log:
+        if prior.get("prospect_uuid") != acted_uuid:
+            continue
+        prior_kind = prior.get("decision")
+        # Idempotent: identical decision is a no-op
+        if prior_kind == decision.kind:
+            return PromotionResult(exit_code=0, event_id=prior.get("event_id"))
+        # Procedural prior never blocks (later run may bring better evidence)
+        if prior_kind in _PROCEDURAL_DECISIONS:
+            continue
+        # Accepted prior + different new decision → conflict
+        if prior_kind in _ACCEPTED_DECISIONS:
+            raise BridgeConflictingDecisionError(
+                f"prospect_uuid {acted_uuid} already has accepted decision="
+                f"{prior_kind!r}; refusing to apply {decision.kind}"
+            )
+
+    decided_at = _now_iso()
+    event_id = f"ev_{_uuid.uuid4()}"
+
+    event: dict[str, Any] = {
+        "event_id": event_id,
+        "decision": decision.kind,
+        "prospect_uuid": acted_uuid,
+        "decided_at": decided_at,
+        "reviewer_id": reviewer_id,
+        "evidence": evidence,
+        "note": note,
+    }
+
+    bridge = load_bridge(bridge_path)
+
+    if decision.kind in _ACCEPTED_DECISIONS:
+        # Build the persistent entry with auto-filled audit fields
+        entry_dict = decision.entry.model_dump()
+        entry_dict["event_id"] = event_id
+        entry_dict["decided_at"] = decided_at
+        entry_dict["reviewer_id"] = reviewer_id
+        if note is not None:
+            entry_dict["note"] = note
+        final_entry = ProspectNflBridgeEntry.model_validate(entry_dict)
+
+        # Round 2 patch 7: entry draft_year MUST match the artifact-selecting
+        # draft_year arg. Locks the library invariant.
+        if final_entry.draft_year != draft_year:
+            raise BridgeValidationError(
+                f"entry.draft_year={final_entry.draft_year} != promote draft_year="
+                f"{draft_year} (artifact selector mismatch; Round 2 patch 7)"
+            )
+
+        # Round 2 patch 1: S3 confirmed + draft_year validation (spec §3.2 rules 1+2)
+        s3_errors = validate_against_s3(final_entry, s3_registry=s3_registry)
+        if s3_errors:
+            raise BridgeValidationError("; ".join(s3_errors))
+
+        # Per-entry shape validation
+        per_errors = validate_bridge_entry(final_entry)
+        if per_errors:
+            raise BridgeValidationError("; ".join(per_errors))
+
+        bridge.entries.append(final_entry)
+
+        # Cross-entry validation
+        graph_errors = validate_bridge_graph(bridge)
+        if graph_errors:
+            raise BridgeValidationError("; ".join(graph_errors))
+
+        event["entry"] = final_entry.model_dump(mode="json")
+
+    # Dependency-safe per-file atomic write order
+    existing_log.append(event)
+    atomic_write_decision_log(existing_log, log_path)
+    if decision.kind in _ACCEPTED_DECISIONS:
+        atomic_write_bridge(bridge, bridge_path)
+    if review_id:
+        _close_review_queue_row(
+            identity_dir, draft_year, review_id, decision.kind, decided_at, event_id, note
+        )
+
+    return PromotionResult(exit_code=0, event_id=event_id)

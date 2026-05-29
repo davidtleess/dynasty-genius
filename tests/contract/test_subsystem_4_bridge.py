@@ -1,12 +1,14 @@
 """Subsystem 4 bridge atomic persistence + decision-log replay tests (§3.2)."""
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
 import pytest
 
 from src.dynasty_genius.identity.college_prospect_identity import (
+    CollegeProspectRegistry,
     NormalizedCollegeProspectRow,
     RegistryEntry,
     StatusHistoryEntry,
@@ -14,9 +16,13 @@ from src.dynasty_genius.identity.college_prospect_identity import (
 )
 from src.dynasty_genius.identity.prospect_nfl_bridge import (
     NFL_POSITION_WHITELIST,
+    BridgeConflictingDecisionError,
+    BridgeEvidenceRequiredError,
     BridgeValidationError,
     CollegeProspectBridge,
     NflTruthRow,
+    PromotionDecision,
+    PromotionResult,
     ProspectNflBridgeEntry,
     apply_decision_event,
     atomic_write_bridge,
@@ -24,9 +30,11 @@ from src.dynasty_genius.identity.prospect_nfl_bridge import (
     is_nfl_position_pair_compatible,
     load_bridge,
     load_decision_log,
+    promote_bridge_candidate,
     replay_decision_log,
     score_nfl_candidate,
     surface_nfl_bridge_candidates,
+    validate_bridge_graph,
 )
 
 
@@ -89,6 +97,69 @@ def _udfa_entry(prospect_uuid: str) -> ProspectNflBridgeEntry:
             "note": "verified absent from nflreadr 2025 post-draft truth",
             **_provenance(),
         }
+    )
+
+
+def _s3_row_for(
+    uuid: str,
+    status: str = "confirmed",
+    draft_class: int = 2025,
+) -> RegistryEntry:
+    base = NormalizedCollegeProspectRow.model_validate(
+        {
+            "raw_name": "Arch Manning",
+            "normalized_name": "arch manning",
+            "full_name": "Arch Manning",
+            "position": "QB",
+            "position_group": "QB",
+            "draft_class": draft_class,
+            "current_school": "Texas",
+            "prior_schools": [],
+            "cfbd_athlete_id": None,
+            "cfb_player_id": None,
+            "pfr_id": None,
+            "gsis_id": None,
+            "sleeper_id": None,
+            "source": "manual_fixture",
+            "source_record_id": f"src_{uuid[:8]}",
+            "source_snapshot_id": "fixture_2025_v1",
+            "id_provenance": {
+                "cfbd_athlete_id": None,
+                "cfb_player_id": None,
+                "pfr_id": None,
+                "gsis_id": None,
+                "sleeper_id": None,
+            },
+            "notes": None,
+        }
+    )
+    return RegistryEntry(
+        prospect_uuid=uuid,
+        verification_status=status,
+        match_key=compute_match_key(
+            normalized_name=base.normalized_name,
+            position_group="QB",
+            draft_class=draft_class,
+        ),
+        status_history=[
+            StatusHistoryEntry(
+                event_id=f"ev_{uuid}",
+                decision="confirm",
+                after_status=status,
+                decided_at="2026-05-28T12:00:00Z",
+                reviewer_id="davidleess",
+            )
+        ],
+        merged_into_prospect_uuid=None,
+        reviewer_id="davidleess",
+        reviewer_metadata={},
+        **base.model_dump(),
+    )
+
+
+def _s3_registry_for(*uuids: str, draft_class: int = 2025) -> CollegeProspectRegistry:
+    return CollegeProspectRegistry(
+        entries={uuid: _s3_row_for(uuid, draft_class=draft_class) for uuid in uuids}
     )
 
 
@@ -378,3 +449,327 @@ def test_surface_includes_whitelist_position_transition():
 
     assert candidates
     assert "position_transition_allowed" in candidates[0].risk_flags
+
+
+def _make_review_payload(review_id: str, prospect_uuid: str, gsis_id: str) -> dict:
+    return {
+        "review_id": review_id,
+        "prospect_uuid": prospect_uuid,
+        "gsis_id": gsis_id,
+        "match_score": 0.95,
+        "decided_at": None,
+        "decision": None,
+        "event_id": None,
+    }
+
+
+def test_promote_confirm_writes_three_point_trail(tmp_path: Path):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    review_path = identity_dir / "prospect_nfl_review_queue_2025_run_a.jsonl"
+    review_path.write_text(
+        json.dumps(_make_review_payload("rev_1", "cpr_aaa", "00-0001")) + "\n"
+    )
+    entry = _drafted_entry("cpr_aaa", "00-0001", 1)
+    decision = PromotionDecision(kind="confirm", entry=entry)
+
+    result = promote_bridge_candidate(
+        review_id="rev_1",
+        decision=decision,
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+        s3_registry=_s3_registry_for("cpr_aaa"),
+    )
+
+    assert isinstance(result, PromotionResult)
+    assert result.exit_code == 0
+    bridge = load_bridge(identity_dir / "prospect_to_nfl_bridge_2025.json")
+    assert len(bridge.entries) == 1
+    assert bridge.entries[0].prospect_uuid == "cpr_aaa"
+    log = load_decision_log(identity_dir / "prospect_nfl_bridge_decision_log_2025.jsonl")
+    assert len(log) == 1
+    assert log[0]["decision"] == "confirm"
+    closed_rows = [
+        json.loads(line) for line in review_path.read_text().splitlines() if line.strip()
+    ]
+    assert closed_rows[0]["decision"] == "confirm"
+    assert closed_rows[0]["event_id"] is not None
+    assert closed_rows[0]["decided_at"] is not None
+
+
+def test_promote_udfa_requires_evidence(tmp_path: Path):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    udfa_entry = _udfa_entry("cpr_udfa")
+    decision = PromotionDecision(kind="udfa", entry=udfa_entry)
+
+    with pytest.raises(BridgeEvidenceRequiredError):
+        promote_bridge_candidate(
+            review_id=None,
+            decision=decision,
+            identity_dir=identity_dir,
+            draft_year=2025,
+            reviewer_id="davidleess",
+            evidence=None,
+            note=None,
+            s3_registry=_s3_registry_for("cpr_udfa"),
+        )
+
+
+def test_promote_reject_closes_review_without_mutating_bridge(tmp_path: Path):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    review_path = identity_dir / "prospect_nfl_review_queue_2025_run_a.jsonl"
+    review_path.write_text(
+        json.dumps(_make_review_payload("rev_1", "cpr_xxx", "00-9999")) + "\n"
+    )
+    decision = PromotionDecision(kind="reject", prospect_uuid="cpr_xxx")
+
+    result = promote_bridge_candidate(
+        review_id="rev_1",
+        decision=decision,
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note="not a match",
+    )
+
+    assert result.exit_code == 0
+    bridge = load_bridge(identity_dir / "prospect_to_nfl_bridge_2025.json")
+    assert bridge.entries == []
+    closed_rows = [
+        json.loads(line) for line in review_path.read_text().splitlines() if line.strip()
+    ]
+    assert closed_rows[0]["decision"] == "reject"
+
+
+def test_promote_defer_closes_review_without_mutating_bridge(tmp_path: Path):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    review_path = identity_dir / "prospect_nfl_review_queue_2025_run_a.jsonl"
+    review_path.write_text(
+        json.dumps(_make_review_payload("rev_1", "cpr_xxx", "00-9999")) + "\n"
+    )
+    decision = PromotionDecision(kind="defer", prospect_uuid="cpr_xxx")
+
+    result = promote_bridge_candidate(
+        review_id="rev_1",
+        decision=decision,
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note="transfer pending verification",
+    )
+
+    assert result.exit_code == 0
+    bridge = load_bridge(identity_dir / "prospect_to_nfl_bridge_2025.json")
+    assert bridge.entries == []
+    closed_rows = [
+        json.loads(line) for line in review_path.read_text().splitlines() if line.strip()
+    ]
+    assert closed_rows[0]["decision"] == "defer"
+
+
+def test_idempotent_rerun_same_decision_is_noop(tmp_path: Path):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    entry = _drafted_entry("cpr_aaa", "00-0001", 1)
+    decision = PromotionDecision(kind="confirm", entry=entry)
+    s3_registry = _s3_registry_for("cpr_aaa")
+    result_first = promote_bridge_candidate(
+        review_id=None,
+        decision=decision,
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+        s3_registry=s3_registry,
+    )
+    log_path = identity_dir / "prospect_nfl_bridge_decision_log_2025.jsonl"
+    before = log_path.read_bytes()
+
+    result_second = promote_bridge_candidate(
+        review_id=None,
+        decision=decision,
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+        s3_registry=s3_registry,
+    )
+
+    assert result_second.exit_code == 0
+    assert result_second.event_id == result_first.event_id
+    assert before == log_path.read_bytes()
+
+
+def test_conflicting_rerun_raises(tmp_path: Path):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    s3_registry = _s3_registry_for("cpr_aaa")
+    entry = _drafted_entry("cpr_aaa", "00-0001", 1)
+    promote_bridge_candidate(
+        review_id=None,
+        decision=PromotionDecision(kind="confirm", entry=entry),
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+        s3_registry=s3_registry,
+    )
+    udfa_entry = _udfa_entry("cpr_aaa")
+
+    with pytest.raises(BridgeConflictingDecisionError):
+        promote_bridge_candidate(
+            review_id=None,
+            decision=PromotionDecision(kind="udfa", entry=udfa_entry),
+            identity_dir=identity_dir,
+            draft_year=2025,
+            reviewer_id="davidleess",
+            evidence="verified not drafted",
+            note=None,
+            s3_registry=s3_registry,
+        )
+
+
+def test_validate_bridge_graph_rejects_duplicate_prospect_uuid():
+    e1 = _drafted_entry("cpr_aaa", "00-0001", 1)
+    e2 = _drafted_entry("cpr_aaa", "00-0002", 5)
+    bridge = CollegeProspectBridge(entries=[e1, e2])
+    errors = validate_bridge_graph(bridge)
+    assert any("prospect_uuid" in error and "duplicate" in error.lower() for error in errors)
+
+
+def test_validate_bridge_graph_rejects_duplicate_gsis_id():
+    e1 = _drafted_entry("cpr_aaa", "00-0001", 1)
+    e2 = _drafted_entry("cpr_bbb", "00-0001", 5)
+    bridge = CollegeProspectBridge(entries=[e1, e2])
+    errors = validate_bridge_graph(bridge)
+    assert any("gsis_id" in error and "duplicate" in error.lower() for error in errors)
+
+
+def test_defer_then_confirm_succeeds(tmp_path: Path):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    promote_bridge_candidate(
+        review_id=None,
+        decision=PromotionDecision(kind="defer", prospect_uuid="cpr_aaa"),
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note="transfer pending",
+    )
+    entry = _drafted_entry("cpr_aaa", "00-0001", 1)
+
+    result = promote_bridge_candidate(
+        review_id=None,
+        decision=PromotionDecision(kind="confirm", entry=entry),
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+        s3_registry=_s3_registry_for("cpr_aaa"),
+    )
+
+    assert result.exit_code == 0
+    bridge = load_bridge(identity_dir / "prospect_to_nfl_bridge_2025.json")
+    assert any(entry.prospect_uuid == "cpr_aaa" for entry in bridge.entries)
+
+
+def test_reject_then_confirm_succeeds(tmp_path: Path):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    promote_bridge_candidate(
+        review_id=None,
+        decision=PromotionDecision(kind="reject", prospect_uuid="cpr_aaa"),
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note="wrong match candidate",
+    )
+    entry = _drafted_entry("cpr_aaa", "00-0001", 1)
+
+    result = promote_bridge_candidate(
+        review_id=None,
+        decision=PromotionDecision(kind="confirm", entry=entry),
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+        s3_registry=_s3_registry_for("cpr_aaa"),
+    )
+
+    assert result.exit_code == 0
+    bridge = load_bridge(identity_dir / "prospect_to_nfl_bridge_2025.json")
+    assert any(entry.prospect_uuid == "cpr_aaa" for entry in bridge.entries)
+
+
+def test_confirm_then_different_accepted_decision_conflicts(tmp_path: Path):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    s3_registry = _s3_registry_for("cpr_aaa")
+    entry = _drafted_entry("cpr_aaa", "00-0001", 1)
+    promote_bridge_candidate(
+        review_id=None,
+        decision=PromotionDecision(kind="confirm", entry=entry),
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+        s3_registry=s3_registry,
+    )
+    udfa_entry = _udfa_entry("cpr_aaa")
+
+    with pytest.raises(BridgeConflictingDecisionError):
+        promote_bridge_candidate(
+            review_id=None,
+            decision=PromotionDecision(kind="udfa", entry=udfa_entry),
+            identity_dir=identity_dir,
+            draft_year=2025,
+            reviewer_id="davidleess",
+            evidence="verified not drafted",
+            note=None,
+            s3_registry=s3_registry,
+        )
+
+
+def test_promote_confirm_rejects_entry_draft_year_mismatching_artifact_draft_year(
+    tmp_path: Path,
+):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    uuid = "cpr_00000000-0000-4000-8000-000000000001"
+    s3_registry = CollegeProspectRegistry(
+        entries={uuid: _s3_row_for(uuid, status="confirmed", draft_class=2024)}
+    )
+    entry_2024 = ProspectNflBridgeEntry.model_validate(
+        {**_drafted_entry("cpr_tmp", "00-0001", 1).model_dump(), "prospect_uuid": uuid, "draft_year": 2024}
+    )
+
+    with pytest.raises(BridgeValidationError):
+        promote_bridge_candidate(
+            review_id=None,
+            decision=PromotionDecision(kind="confirm", entry=entry_2024),
+            identity_dir=identity_dir,
+            draft_year=2025,
+            reviewer_id="davidleess",
+            evidence=None,
+            note=None,
+            s3_registry=s3_registry,
+        )
+
+    assert not (identity_dir / "prospect_to_nfl_bridge_2024.json").exists()
+    assert not (identity_dir / "prospect_to_nfl_bridge_2025.json").exists()
