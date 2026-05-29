@@ -1,7 +1,7 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-05-27
+Last updated: 2026-05-28
 
 ## Active Phase
 
@@ -43,7 +43,27 @@ Phase 22 — **IMPLEMENTATION COMPLETE + CODEX CLEARED** (2026-05-24; 1169 tests
 
 **Increment A Subsystem 3 is merged on `main`** (PR #55 → `0730dcb`; suite 1376/11/0). Per the Increment A reconciliation (`docs/strategies/2026-05-28-increment-a-reconciliation-and-go-forward.md`) build order — S3 first → **S4 backtest manual-first** → S1 design → S2 deferred — the next authorized subsystem is **S4 (backtest harness, manual-first)**. Task 10 (S3's top-100 2027 fixture curation) remains David's separate Tier-1 verification workstream and is not blocking S4.
 
-**Current state:** no active implementation branch is authorized from `AGENT_SYNC.md`. Frontend HOLD remains binding. Next work should be selected explicitly by David: Subsystem 4 backtest harness (per reconciliation build order — recommended); Follow-up B Increment A (NFL mock aggregation, separately spec'd — biggest/least-bounded lane); Subsystem 3 Task 10 fixture curation; widening the rookie-draft rounds gate to admit 7-round SF leagues (small); Phase 23 W5b UI (deferred/browser-tested); additional Phase 23/23.5 backend calibration; or another backend/spec lane.
+**Current state:** Active S4 implementation branch `feature/subsystem-4-backtest-harness` is in flight (NOT YET MERGED). Tasks 0–8 GREEN-committed; Task 9 GREEN paused after the 2026-05-28 strategic pause; obsoleted v1 join RED file `tests/contract/test_subsystem_4_join.py` flagged for deletion at session close. Frontend HOLD remains binding.
+
+**S4 branch state (latest commits, oldest → newest):**
+- `1d863d7` Task 5: mock snapshot schema + canonical content_hash (§4.1)
+- `be246e0` Task 6: snapshot ingestion + coverage matrix (§4.3, §4.5)
+- `91b539a` Task 7: parse_status + draft_date sourcing + audited override (§4.3 rule 5, §4.6)
+- `a41e0c6` Task 8 GREEN v1: ProspectConsensus aggregation + abstention tiers (§5.2, §5.3) — 9 RED tests, surfaced 2 MEDIUM bugs in joint cockpit retrospective
+- `a48ba3c` Spec §11 patch — Architecture Decision Note from 2026-05-28 strategic pause (specialization boundary, selection bias hard-gate, transitive-laundering bar, pace discipline, Task 9 schema refinements, audit trail)
+- `e780ea3` Plan patch — Tasks 9 + 10 + 12 + 14 hardened per §11 (JoinDiagnostics shape, truth-lookup precedence, normalize_team_code helper, AST anti-laundering audit, recorded SHA-256 baselines, canonical-owner table)
+- `aa1fb47` Spec + Plan amendments — Task 8 follow-up driven by joint retrospective (§5.2 float median, §5.4 round_half_up bucket policy, §5.8 metadata fields, §9 within_source_aggregation_missing hard acceptance blocker, 2 new RED tests, Task 12 metadata test)
+- `a2aee5d` Task 8 follow-up GREEN — float median + 2 new RED tests; full suite 1447 passed, 11 skipped, 0 failed (+2 from new tests vs prior 1445 baseline)
+
+**Cockpit-cleared next steps (Task 9 onward):**
+1. Codex re-authors Task 9 RED tests in fresh `tests/contract/test_subsystem_4_join.py` matching the 12 named tests + JoinDiagnostics schema + truth-lookup precedence per spec §11.5 + plan Task 9 hardened contract.
+2. Claude implements Task 9 GREEN.
+3. Tasks 10–14 proceed per plan with §11 cross-impacts in place.
+4. PR open after Task 14 closeout per Phase 24 Follow-up B Increment A merge pattern.
+
+**Cockpit process improvements memorized 2026-05-28:** [[feedback_close_the_loop]] (post-action confirmation discipline) + [[feedback_post_fix_sweep]] (grep entire doc for stale references after fixing a concept) — see `~/.claude/projects/-Users-davidleess-dynasty-genius/memory/`.
+
+**Other lanes (not active this session):** Follow-up B Increment A (NFL mock aggregation, separately spec'd); Subsystem 3 Task 10 fixture curation; widening the rookie-draft rounds gate to admit 7-round SF leagues; Phase 23 W5b UI (deferred/browser-tested); additional Phase 23/23.5 backend calibration; or another backend/spec lane.
 
 Phase 17 — 17.1 THROUGH 17.5 COMPLETE; REVIEWED / CHECKPOINTED.
 - Workstream 17.0 (Planning) — COMPLETE: Merged research brief finalized with Section 19 Decision Memo.
