@@ -399,3 +399,153 @@ def ingest_snapshots(
             coverage["high_redirect_rate_warning"] = True
 
     return normalized_picks, coverage
+
+
+# ======================================================================
+# ProspectConsensus + abstention gates (spec §5.2, §5.3)
+# ======================================================================
+
+from datetime import date as _date  # noqa: E402  (grouped with [Task 8])
+from statistics import median as _median  # noqa: E402
+from statistics import quantiles as _quantiles  # noqa: E402
+
+
+class ProspectConsensus(BaseModel):
+    """Per-prospect consensus across normalized picks (spec §5.2).
+
+    Abstention tiers per spec §5.3:
+    - ``abstain``: n_sources < 3; no projection emitted (median/iqr/min/max = None)
+    - ``round_tier_only``: 3-4 sources, OR >=5 sources with IQR > dispersion_threshold
+    - ``exact_pick``: >=5 sources AND IQR <= dispersion_threshold (internal diagnostic only;
+      per §5.3 must never reach David-facing surfaces)
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    prospect_uuid: str
+    projected_pick_median: Optional[int] = None
+    projected_pick_iqr: Optional[float] = None
+    projected_pick_min: Optional[int] = None
+    projected_pick_max: Optional[int] = None
+    n_sources: int
+    n_unique_analysts: int
+    snapshot_ids_used: list[str]
+    staleness_days: Optional[float] = None
+    abstention_tier: Literal["abstain", "round_tier_only", "exact_pick"]
+    abstention_reason: Optional[str] = None
+
+
+def _analyst_from_metadata_tuple_key(tuple_key: str) -> str:
+    """Parse analyst from ``source_label|analyst|published_date|mock_version``
+    (the canonical format produced by ``_metadata_tuple_key``)."""
+    parts = tuple_key.split("|")
+    return parts[1] if len(parts) >= 2 else ""
+
+
+def _whole_day_staleness(draft_date: str, most_recent_published: str) -> float:
+    """Whole calendar days between most-recent snapshot and draft_date,
+    emitted as float per the §5.2 schema (whole-day integer value as float)."""
+    delta = _date.fromisoformat(draft_date) - _date.fromisoformat(most_recent_published)
+    return float(delta.days)
+
+
+def aggregate_per_prospect(
+    normalized_picks: list[NormalizedPick],
+    draft_date: str,
+    dispersion_threshold: float = 6,
+) -> dict[str, ProspectConsensus]:
+    """Group normalized picks by resolved prospect, compute consensus, apply §5.3 tiers.
+
+    Returns ``{prospect_uuid: ProspectConsensus}``. Empty input → empty dict.
+    """
+    if not normalized_picks:
+        return {}
+
+    by_uuid: dict[str, list[NormalizedPick]] = {}
+    for pick in normalized_picks:
+        by_uuid.setdefault(pick.resolved_prospect_uuid, []).append(pick)
+
+    result: dict[str, ProspectConsensus] = {}
+    for uuid, picks in by_uuid.items():
+        sources = {p.source_label for p in picks}
+        analysts = {_analyst_from_metadata_tuple_key(p.metadata_tuple_key) for p in picks}
+        snapshot_ids = sorted({p.snapshot_id for p in picks})
+        n_sources = len(sources)
+        n_unique_analysts = len(analysts)
+        most_recent_published = max(p.published_date for p in picks)
+        staleness = _whole_day_staleness(draft_date, most_recent_published)
+
+        pick_nos = [p.pick_no for p in picks]
+        median_val = int(_median(pick_nos))
+        min_val = min(pick_nos)
+        max_val = max(pick_nos)
+        if len(pick_nos) >= 2:
+            # IQR via statistics.quantiles default ('exclusive'); bump AGGREGATION_VERSION
+            # if the method choice ever changes (replay outputs are sensitive to this).
+            q1, _q2, q3 = _quantiles(pick_nos, n=4)
+            iqr_val = float(q3 - q1)
+        else:
+            iqr_val = 0.0
+
+        if n_sources < 3:
+            tier: Literal["abstain", "round_tier_only", "exact_pick"] = "abstain"
+            consensus = ProspectConsensus(
+                prospect_uuid=uuid,
+                projected_pick_median=None,
+                projected_pick_iqr=None,
+                projected_pick_min=None,
+                projected_pick_max=None,
+                n_sources=n_sources,
+                n_unique_analysts=n_unique_analysts,
+                snapshot_ids_used=snapshot_ids,
+                staleness_days=staleness,
+                abstention_tier=tier,
+                abstention_reason=(
+                    f"abstain: n_sources={n_sources} below minimum (>=3 required)"
+                ),
+            )
+        elif n_sources < 5:
+            tier = "round_tier_only"
+            consensus = ProspectConsensus(
+                prospect_uuid=uuid,
+                projected_pick_median=median_val,
+                projected_pick_iqr=iqr_val,
+                projected_pick_min=min_val,
+                projected_pick_max=max_val,
+                n_sources=n_sources,
+                n_unique_analysts=n_unique_analysts,
+                snapshot_ids_used=snapshot_ids,
+                staleness_days=staleness,
+                abstention_tier=tier,
+                abstention_reason=(
+                    f"round_tier_only: n_sources={n_sources} in [3,4]; "
+                    "exact-pick claim not permitted per spec §5.3"
+                ),
+            )
+        else:
+            if iqr_val <= dispersion_threshold:
+                tier = "exact_pick"
+                reason: Optional[str] = None
+            else:
+                tier = "round_tier_only"
+                reason = (
+                    f"round_tier_only: IQR={iqr_val:.2f} exceeds "
+                    f"dispersion_threshold={dispersion_threshold}"
+                )
+            consensus = ProspectConsensus(
+                prospect_uuid=uuid,
+                projected_pick_median=median_val,
+                projected_pick_iqr=iqr_val,
+                projected_pick_min=min_val,
+                projected_pick_max=max_val,
+                n_sources=n_sources,
+                n_unique_analysts=n_unique_analysts,
+                snapshot_ids_used=snapshot_ids,
+                staleness_days=staleness,
+                abstention_tier=tier,
+                abstention_reason=reason,
+            )
+
+        result[uuid] = consensus
+
+    return result
