@@ -43,7 +43,7 @@ Phase 22 — **IMPLEMENTATION COMPLETE + CODEX CLEARED** (2026-05-24; 1169 tests
 
 **Increment A Subsystem 3 is merged on `main`** (PR #55 → `0730dcb`; suite 1376/11/0). Per the Increment A reconciliation (`docs/strategies/2026-05-28-increment-a-reconciliation-and-go-forward.md`) build order — S3 first → **S4 backtest manual-first** → S1 design → S2 deferred — the next authorized subsystem is **S4 (backtest harness, manual-first)**. Task 10 (S3's top-100 2027 fixture curation) remains David's separate Tier-1 verification workstream and is not blocking S4.
 
-**Current state:** Active S4 implementation branch `feature/subsystem-4-backtest-harness` is in flight (NOT YET MERGED). Tasks 0–9 GREEN-committed. **Task 9 GREEN committed `3a1ab1f` (2026-05-29)** — bridge join + `RealizedOutcome` + `JoinDiagnostics` + `normalize_team_code` + §11.5 fail-closed precedence, over Codex's 12 RED tests; unanimous pre-commit cockpit CLEAR (Codex technical 6 checks + independent pytest/ruff; Gemini governance 5 checks); full suite **1459 passed, 11 skipped, 0 failed** (+12 vs 1447). Next: Task 10 (the 6 metrics, §5.4). Frontend HOLD remains binding.
+**Current state:** Active S4 implementation branch `feature/subsystem-4-backtest-harness` is in flight (NOT YET MERGED). Tasks 0–9 GREEN-committed. **Task 9 GREEN committed `3a1ab1f` (2026-05-29)** — bridge join + `RealizedOutcome` + `JoinDiagnostics` + `normalize_team_code` + §11.5 fail-closed precedence, over Codex's 12 RED tests; unanimous pre-commit cockpit CLEAR (Codex technical 6 checks + independent pytest/ruff; Gemini governance 5 checks); full suite **1459 passed, 11 skipped, 0 failed** (+12 vs 1447). **Task 10 GREEN committed `b67f451` (2026-05-29)** — `evaluate_bridge_gates` (§11.2 hard-block helper, canonical tokens no-mapping) + `compute_metrics` (the 6 metrics with explicit §5.4 universes + per-bucket breakdown), over Codex's 13 RED tests in `tests/contract/test_subsystem_4_metrics.py`; unanimous pre-commit cockpit CLEAR (Codex technical 6 checks + independent pytest/ruff; Gemini governance 5 checks); full suite **1472 passed, 11 skipped, 0 failed** (+13 vs 1459). Next: Task 11. Frontend HOLD remains binding.
 
 **S4 branch state (latest commits, oldest → newest):**
 - `1d863d7` Task 5: mock snapshot schema + canonical content_hash (§4.1)
@@ -55,10 +55,11 @@ Phase 22 — **IMPLEMENTATION COMPLETE + CODEX CLEARED** (2026-05-24; 1169 tests
 - `aa1fb47` Spec + Plan amendments — Task 8 follow-up driven by joint retrospective (§5.2 float median, §5.4 round_half_up bucket policy, §5.8 metadata fields, §9 within_source_aggregation_missing hard acceptance blocker, 2 new RED tests, Task 12 metadata test)
 - `a2aee5d` Task 8 follow-up GREEN — float median + 2 new RED tests; full suite 1447 passed, 11 skipped, 0 failed (+2 from new tests vs prior 1445 baseline)
 - `3a1ab1f` Task 9 GREEN — bridge join + `RealizedOutcome` (14-field) + `JoinDiagnostics` (5-field) + `normalize_team_code`/`TEAM_CODE_NORMALIZATION_VERSION` + §11.5 fail-closed precedence (duplicate→missing→wrong-year→evidence/divergence); Codex 12 RED + Claude GREEN; unanimous pre-commit cockpit CLEAR; full suite 1459 passed, 11 skipped, 0 failed (+12 vs 1447 baseline)
+- `b67f451` Task 10 GREEN — `evaluate_bridge_gates` (§11.2 hard-block helper) + `compute_metrics` (6 metrics w/ explicit §5.4 universes + per-bucket breakdown + `round_half_up`); Codex 13 RED + Claude GREEN; unanimous pre-commit cockpit CLEAR; full suite 1472 passed, 11 skipped, 0 failed (+13 vs 1459 baseline)
 
-**Cockpit-cleared next steps (Task 10 onward):**
-1. Claude implements Task 10 GREEN (the 6 metrics, §5.4) against Codex-authored RED tests.
-2. Tasks 11–14 proceed per plan with §11 cross-impacts in place.
+**Cockpit-cleared next steps (Task 11 onward):**
+1. Claude implements Task 11 GREEN (`backtest_b_gate_status` + synthetic safety hedge + two-tier thresholds, §5.5–5.7) against Codex-authored RED tests.
+2. Tasks 12–14 proceed per plan with §11 cross-impacts in place.
 3. PR open after Task 14 closeout per Phase 24 Follow-up B Increment A merge pattern.
 
 **Additional active branch — `docs/cockpit-process` (cross-cutting governance, pushed 2026-05-29):**
