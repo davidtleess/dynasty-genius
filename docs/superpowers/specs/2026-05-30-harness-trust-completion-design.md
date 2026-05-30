@@ -54,7 +54,17 @@ Net: the initiative is still predominantly **data-provisioning + R² + honesty-s
 
 **Not in scope / explicitly barred:**
 - Any change to Engine A/B *feature* sets or training rows (the market-overlay wall stays correct and untouched; W1 increases market-data *volume*, never its *role*).
-- Any touch to S4's mock-draft modules (`backtest_mock_draft.py` and the `test_subsystem_4_*` suite).
+- Any touch to S4's mock-draft modules (`backtest_mock_draft.py` and the `test_subsystem_4_*` suite) — **with ONE authorized exception (David ruling 2026-05-30, §1.1 below).**
+
+### §1.1 Authorized S4-audit rescope (David ruling 2026-05-30)
+
+The S4 audit `tests/contract/test_subsystem_4_audit.py::test_phase_10_11_12_inviolate_paths_byte_unchanged` byte-locks (`INVIOLATE_BASELINE_SHA256_A41E0C6`) the Phase 10/11 files this spec is sanctioned to modify. That byte-lock was a **build-duration** guardrail — §11.1 declared the files inviolate *"for the duration of S4 work"* — and **expired when S4 merged to `main` (`95345ea`)**. Surfaced by the W3 full-suite run; unanimous cockpit concurrence (Claude/Codex/Gemini, 2026-05-30); David-approved resolution = **narrow rescope** (not retire):
+
+- **Remove from `INVIOLATE_BASELINE_SHA256_A41E0C6`** the 6 harness-trust-owned files: `backtest_harness.py`, `backtest_artifact.py`, `backtest_metrics.py`, `model_card.py`, `market_snapshot_store.py`, `app/api/routes/trust_surface.py`.
+- **Keep byte-locked** the 2 Phase-10/11 files harness-trust does NOT touch: `backtest_report.py`, `scripts/run_backtest.py`.
+- **Keep intact every PERMANENT guardrail** in the same suite: S4-module isolation, `S3_INVIOLATE_SHA256`, AST anti-laundering, the authorized-eval-file allowlist, banned-language / `decision_supported` audits, Engine A/B market-leakage wall.
+
+This is the ONLY authorized edit to `test_subsystem_4_*`; no other S4 file or test may be touched. Executed via a cockpit cycle (dual-CLEAR) before W2a resumes.
 - Frontend (Phase 12 HOLD). W4 changes a backend route's emitted caveat only.
 - R5 (Phase 20 Engine A null root-cause) — separate research-only stub, its own doc and David approval; referenced in §12, never folded in here.
 
