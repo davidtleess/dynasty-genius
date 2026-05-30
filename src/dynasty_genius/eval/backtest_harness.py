@@ -27,6 +27,7 @@ from src.dynasty_genius.eval.backtest_artifact import (
 )
 from src.dynasty_genius.eval.backtest_metrics import (
     compute_ndcg,
+    compute_ndcg_diff_bootstrap,
     compute_r2,
     compute_rank_correlation,
 )
@@ -70,22 +71,30 @@ def _compute_market_ndcg(
     y_realized: np.ndarray,
     market_rows: list[dict],
     id_map: dict[str, str],
-) -> dict[str, Optional[float]]:
-    """Compute NDCG@12 and @24 for model and market on the sleeper-matched pool.
+    position: Optional[str] = None,
+    n_bootstrap: int = 1000,
+    rng_seed: int = 12345,
+) -> dict:
+    """Compute NDCG@12/@24 for model and market on the sleeper-matched pool.
 
     Players without a gsis_id → sleeper_id mapping, or whose sleeper_id is absent
     from the market snapshot, are excluded from the comparison pool but do NOT
     affect the fold's prediction metrics (y_pred / y_realized stay untouched).
 
-    Returns a dict with keys: ndcg_at_12_model, ndcg_at_12_market,
-    ndcg_at_24_model, ndcg_at_24_market.  All None when pool is empty.
+    Keys: ndcg_at_12_model, ndcg_at_12_market, ndcg_at_24_model, ndcg_at_24_market,
+    plus the W1 bootstrap destinations primary_k, market_pool_n,
+    ndcg_diff_primary_k, ndcg_diff_bca_ci95, caveat. When ``position`` is given,
+    the paired BCa NDCG-diff bootstrap is computed at PRIMARY_NDCG_K[position]
+    (pool < primary_k → null diff + "pool_below_k").
     """
-    _null: dict[str, Optional[float]] = {
+    _null: dict = {
         "ndcg_at_12_model": None, "ndcg_at_12_market": None,
         "ndcg_at_24_model": None, "ndcg_at_24_market": None,
+        "primary_k": None, "market_pool_n": None,
+        "ndcg_diff_primary_k": None, "ndcg_diff_bca_ci95": None, "caveat": None,
     }
     if not market_rows:
-        return _null
+        return dict(_null)
 
     market_by_sleeper = {row["sleeper_id"]: float(row["value"]) for row in market_rows}
 
@@ -102,19 +111,32 @@ def _compute_market_ndcg(
 
     n = len(pool_pred)
     if n == 0:
-        return _null
+        return dict(_null)
 
     model_ranks = _compute_ranks_desc(pool_pred)
     market_ranks = _compute_ranks_desc(pool_market)
 
-    result: dict[str, Optional[float]] = {}
+    result: dict = dict(_null)
+    result["market_pool_n"] = n
     for k in [12, 24]:
         if n >= k:
             result[f"ndcg_at_{k}_model"] = compute_ndcg(model_ranks, pool_realized, k)
             result[f"ndcg_at_{k}_market"] = compute_ndcg(market_ranks, pool_realized, k)
+
+    # W1 producer: paired BCa NDCG-diff bootstrap at the position-primary k.
+    if position is not None:
+        primary_k = PRIMARY_NDCG_K[position]
+        result["primary_k"] = primary_k
+        if n >= primary_k:
+            boot = compute_ndcg_diff_bootstrap(
+                model_ranks, market_ranks, pool_realized, primary_k,
+                n_bootstrap=n_bootstrap, rng_seed=rng_seed,
+            )
+            result["ndcg_diff_primary_k"] = boot["ndcg_diff"]
+            result["ndcg_diff_bca_ci95"] = boot["ndcg_diff_bca_ci95"]
+            result["caveat"] = boot["caveat"]
         else:
-            result[f"ndcg_at_{k}_model"] = None
-            result[f"ndcg_at_{k}_market"] = None
+            result["caveat"] = "pool_below_k"
 
     return result
 
@@ -465,9 +487,12 @@ class WalkForwardDriver:
             )
 
             # Market comparison — only when store provided
-            ndcg_fields: dict[str, Optional[float]] = {
+            ndcg_fields: dict = {
                 "ndcg_at_12_model": None, "ndcg_at_12_market": None,
                 "ndcg_at_24_model": None, "ndcg_at_24_market": None,
+                "primary_k": None, "market_pool_n": None,
+                "ndcg_diff_primary_k": None, "ndcg_diff_bca_ci95": None,
+                "caveat": None,
             }
             if market_store is not None:
                 snap_date = _market_snapshot_date(test_year)
@@ -526,6 +551,7 @@ class WalkForwardDriver:
                     y_realized=y_test,
                     market_rows=market_rows if market_store is not None else [],
                     id_map=_id_map,
+                    position=position,
                 )
 
             n_test = X_test.shape[0]
@@ -535,6 +561,8 @@ class WalkForwardDriver:
                 fold_caveats.append("r2_oos_unavailable")
             elif n_test < 50:
                 fold_caveats.append("r2_oos_small_sample")
+            if ndcg_fields.get("caveat"):
+                fold_caveats.append(ndcg_fields["caveat"])
 
             fold_results.append(FoldResult(
                 fold_index=fold_index,
@@ -556,6 +584,10 @@ class WalkForwardDriver:
                 ndcg_at_12_market=ndcg_fields["ndcg_at_12_market"],
                 ndcg_at_24_model=ndcg_fields["ndcg_at_24_model"],
                 ndcg_at_24_market=ndcg_fields["ndcg_at_24_market"],
+                primary_k=ndcg_fields["primary_k"],
+                market_pool_n=ndcg_fields["market_pool_n"],
+                ndcg_diff_primary_k=ndcg_fields["ndcg_diff_primary_k"],
+                ndcg_diff_bca_ci95=ndcg_fields["ndcg_diff_bca_ci95"],
                 feature_coefficients=feature_coefficients,
             ))
 

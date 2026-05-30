@@ -682,8 +682,10 @@ git commit -am "fix(harness-trust): G3 under-coverage→deferred + primary-k ver
 
 ### Task W1.4: point-in-time historical backfill → run G3
 
+> **Scope (adapter vs. loader; Codex 2026-05-30):** W1.4 = the PIT-validating **adapter** `backfill_market_archive(archive: list[dict], …)` + the `_compute_market_ndcg`/`run()` producer wiring. The source-specific **loader** (file → `list[dict]`) and the **actual G3 run** are a separate, David-gated increment — the real archive is not in the repo (see `[[project_w1_needs_historical_fc_archive]]`; spec §5). Adapter + wiring test on synthetic fixtures.
+
 **Files:**
-- Create: `scripts/backfill_market_archive.py` (or extend `scripts/ingest_market_archive.py`)
+- Create: `scripts/backfill_market_archive.py`
 - Test: `tests/contract/test_harness_trust_w1_backfill.py`
 
 - [ ] **Step 1 (RED): failing tests for point-in-time integrity + fail-closed**
