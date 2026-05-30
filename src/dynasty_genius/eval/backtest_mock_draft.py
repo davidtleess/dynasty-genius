@@ -722,7 +722,11 @@ def join_bridge_to_realized(
             warnings.append("truth_row_missing")
         elif rows[0].draft_year != entry.draft_year:
             # (3) Wrong-year truth collision — hard conflict; queue for review.
+            # A wrong-year mismatch is a major alignment failure, so the bridge's
+            # recorded capital is stale vs current truth (consistent with the
+            # duplicate-gsis_id branch).
             warnings.append("truth_row_wrong_year_warning")
+            bridge_stale = True
             diagnostics.wrong_year_truth_collisions.append(gsis_id)
             diagnostics.hard_block_reasons.append("wrong_year_truth_collision")
             diagnostics.review_queue_payload.append(
@@ -830,7 +834,14 @@ def _round_half_up(median: float) -> int:
 
 
 def _bucket_from_pick(pick_no: int) -> str:
-    """Map an int draft pick to its round bucket (§5.4 buckets table)."""
+    """Map an int draft pick to its round bucket (§5.4 buckets table).
+
+    Fail-closed: a pick number < 1 is corrupt data (no schema ge-constraint
+    enforces it) and raises ValueError rather than silently classifying it as
+    'R1-early'.
+    """
+    if pick_no < 1:
+        raise ValueError(f"invalid draft pick number: {pick_no!r} (must be >= 1)")
     if pick_no <= 10:
         return "R1-early"
     if pick_no <= 21:
@@ -993,6 +1004,22 @@ def evaluate_b_gate(
     Pure function — no filesystem writes. ``per_bucket_breakdown`` is
     ``{round_bucket: {position: {"mae": float, "coverage": float}}}``.
 
+    Robustness boundary: this function guards TYPE corruption only — a malformed
+    bucket (non-dict), a malformed stat (non-dict), or a non-numeric mae/coverage
+    all fail closed (recorded as ``fail`` with nulled stats, never crashing and
+    never silently dropped/passed). SEMANTIC validation (coverage in [0, 1],
+    mae >= 0, etc.) is the Task 12 producer's responsibility — it computes these
+    metrics in-range by construction.
+
+    NOTE — reserved/disconnected inputs (Task 12 owns the data-flow): the
+    ``metrics`` parameter is reserved and unused in the v1 gate evaluator, and the
+    ``per_bucket_breakdown`` shape this function consumes (per-(bucket, position)
+    MAE/coverage) is NOT what ``compute_metrics`` emits (round-level
+    ``{n_realized, n_scored}`` counts). The Task 12 runner MUST define/build the
+    per-(bucket, position) MAE/coverage mapping and decide whether ``metrics`` is
+    wired or formally dropped — do not assume ``compute_metrics`` output flows in
+    directly.
+
     The synthetic safety hedge (§5.6) is applied BEFORE per-bucket evaluation:
     a synthetic ``data_mode`` OR an ``override:``-sourced draft date forces
     ``overall_status="always_abstain_synthetic_data"`` and every per-bucket
@@ -1007,11 +1034,32 @@ def evaluate_b_gate(
 
     per_bucket_results: dict[str, dict] = {}
     n_pass = 0
+    n_evaluable = 0  # buckets with gate_result in {"pass","fail"}; abstains excluded
     for round_bucket, positions in per_bucket_breakdown.items():
+        if not isinstance(positions, dict):
+            # Bucket-level malformed structure → fail-closed; never silently
+            # dropped (D8). Synthetic still abstains; real-mode counts as a fail
+            # so a corrupt bucket can't masquerade as all_pass.
+            key = f"{round_bucket}|__malformed__"
+            if is_synthetic:
+                per_bucket_results[key] = {
+                    "gate_result": "not_evaluable_synthetic",
+                    "mae": None,
+                    "coverage": None,
+                }
+            else:
+                per_bucket_results[key] = {
+                    "gate_result": "fail",
+                    "mae": None,
+                    "coverage": None,
+                }
+                n_evaluable += 1
+            continue
         for position, stats in positions.items():
             key = f"{round_bucket}|{position}"
-            mae = stats.get("mae")
-            coverage = stats.get("coverage")
+            # Synthetic hedge is applied FIRST — never inspect per-bucket stat
+            # VALUES on a synthetic/override run (anti-false-confidence; a malformed
+            # or differently-shaped stats entry must still safely abstain, not crash).
             if is_synthetic:
                 per_bucket_results[key] = {
                     "gate_result": "not_evaluable_synthetic",
@@ -1019,36 +1067,58 @@ def evaluate_b_gate(
                     "coverage": None,
                 }
                 continue
+            mae = stats.get("mae") if isinstance(stats, dict) else None
+            coverage = stats.get("coverage") if isinstance(stats, dict) else None
+            # Type-corruption guard (D9): a present-but-non-numeric mae/coverage
+            # cannot be compared against a threshold — coerce to None so it routes
+            # to the fail-closed path instead of raising. (Semantic range checks,
+            # e.g. coverage in [0,1] / mae >= 0, are the Task 12 producer's job.)
+            if not isinstance(mae, (int, float)) or isinstance(mae, bool):
+                mae = None
+            if not isinstance(coverage, (int, float)) or isinstance(coverage, bool):
+                coverage = None
             threshold = B_GATE_BUCKET_THRESHOLDS.get(round_bucket, {})
             if threshold.get("gate_result") == "always_abstain":
+                # Structural abstain (R3/Day3 in v1): excluded from the pass/fail
+                # rollup, but surfaced here with its input mae/coverage retained.
                 gate_result = "always_abstain"
-            elif (
-                "mae_max" in threshold
-                and mae is not None
-                and coverage is not None
-                and mae <= threshold["mae_max"]
-                and coverage >= threshold["coverage_min"]
-            ):
-                gate_result = "pass"
-                n_pass += 1
+                result_mae, result_coverage = mae, coverage
+            elif "mae_max" in threshold and mae is not None and coverage is not None:
+                if mae <= threshold["mae_max"] and coverage >= threshold["coverage_min"]:
+                    gate_result = "pass"
+                else:
+                    gate_result = "fail"
+                result_mae, result_coverage = mae, coverage
             else:
+                # Fail-closed: malformed/incomplete stats or an unknown bucket can
+                # NEVER pass; report "fail" with nulled mae/coverage (never silently
+                # bypass a checkpoint, never crash).
                 gate_result = "fail"
+                result_mae, result_coverage = None, None
             per_bucket_results[key] = {
                 "gate_result": gate_result,
-                "mae": mae,
-                "coverage": coverage,
+                "mae": result_mae,
+                "coverage": result_coverage,
             }
+            if gate_result == "pass":
+                n_pass += 1
+            if gate_result in ("pass", "fail"):
+                n_evaluable += 1
 
+    # overall_status is computed over EVALUABLE buckets only — structural
+    # always_abstain buckets do not count as failures (§5.9; anti-conflation).
     if is_synthetic:
         overall_status = "always_abstain_synthetic_data"
+    elif not per_bucket_results:
+        overall_status = "all_fail"  # empty input fails closed (nothing evaluated)
+    elif n_evaluable == 0:
+        overall_status = "always_abstain"  # >=1 bucket, all structurally abstained
+    elif n_pass == n_evaluable:
+        overall_status = "all_pass"
+    elif n_pass == 0:
+        overall_status = "all_fail"
     else:
-        n_total = len(per_bucket_results)
-        if n_total and n_pass == n_total:
-            overall_status = "all_pass"
-        elif n_pass == 0:
-            overall_status = "all_fail"
-        else:
-            overall_status = "partial"
+        overall_status = "partial"
 
     return {
         "overall_status": overall_status,

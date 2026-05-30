@@ -290,3 +290,9 @@ def test_per_bucket_breakdown_populates_exact_bucket_set_and_counts():
     assert breakdown["R2"]["n_scored"] == 1
     assert breakdown["UDFA"]["n_scored"] == 1
     assert breakdown["R3"]["n_scored"] == 0
+
+
+@pytest.mark.parametrize("pick_no", [0, -3])
+def test_bucket_from_pick_rejects_invalid_pick_numbers(pick_no: int):
+    with pytest.raises(ValueError):
+        bmd._bucket_from_pick(pick_no)

@@ -68,7 +68,7 @@ def test_evaluate_b_gate_always_abstains_r3_and_day3_regardless_of_metrics():
         }
     )
 
-    assert result["overall_status"] == "all_fail"
+    assert result["overall_status"] == "always_abstain"
     assert result["per_bucket_results"]["R3|WR"] == {
         "gate_result": "always_abstain",
         "mae": 0.0,
@@ -79,6 +79,54 @@ def test_evaluate_b_gate_always_abstains_r3_and_day3_regardless_of_metrics():
         "mae": 0.0,
         "coverage": 1.0,
     }
+
+
+def test_evaluate_b_gate_empty_breakdown_fails_closed():
+    result = _status({})
+
+    assert result["overall_status"] == "all_fail"
+    assert result["per_bucket_results"] == {}
+
+
+def test_evaluate_b_gate_pass_plus_always_abstain_rolls_up_to_all_pass():
+    result = _status(
+        {
+            "R1-early": {"QB": {"mae": 8.0, "coverage": 0.80}},
+            "R3": {"WR": {"mae": 0.0, "coverage": 1.0}},
+        }
+    )
+
+    assert result["overall_status"] == "all_pass"
+    assert result["per_bucket_results"]["R1-early|QB"]["gate_result"] == "pass"
+    assert result["per_bucket_results"]["R3|WR"]["gate_result"] == "always_abstain"
+
+
+def test_evaluate_b_gate_fail_plus_always_abstain_rolls_up_to_all_fail():
+    result = _status(
+        {
+            "R2": {"RB": {"mae": 25.0, "coverage": 0.80}},
+            "Day3": {"TE": {"mae": 0.0, "coverage": 1.0}},
+        }
+    )
+
+    assert result["overall_status"] == "all_fail"
+    assert result["per_bucket_results"]["R2|RB"]["gate_result"] == "fail"
+    assert result["per_bucket_results"]["Day3|TE"]["gate_result"] == "always_abstain"
+
+
+def test_evaluate_b_gate_pass_fail_and_always_abstain_rolls_up_to_partial():
+    result = _status(
+        {
+            "R1-late": {"WR": {"mae": 12.0, "coverage": 0.70}},
+            "R2": {"RB": {"mae": 25.0, "coverage": 0.80}},
+            "R3": {"TE": {"mae": 0.0, "coverage": 1.0}},
+        }
+    )
+
+    assert result["overall_status"] == "partial"
+    assert result["per_bucket_results"]["R1-late|WR"]["gate_result"] == "pass"
+    assert result["per_bucket_results"]["R2|RB"]["gate_result"] == "fail"
+    assert result["per_bucket_results"]["R3|TE"]["gate_result"] == "always_abstain"
 
 
 @pytest.mark.parametrize(
@@ -101,6 +149,68 @@ def test_evaluate_b_gate_synthetic_inputs_force_always_abstain_with_schema_shape
     assert result["overall_status"] == "always_abstain_synthetic_data"
     assert result["per_bucket_results"]["R1-early|QB"] == {
         "gate_result": "not_evaluable_synthetic",
+        "mae": None,
+        "coverage": None,
+    }
+
+
+def test_evaluate_b_gate_synthetic_hedge_ignores_malformed_stat_values():
+    result = _status(
+        {"R1-early": {"n_realized": 1, "n_scored": 1}},
+        data_mode="synthetic",
+        draft_date_source="x",
+    )
+
+    assert result["overall_status"] == "always_abstain_synthetic_data"
+    assert result["per_bucket_results"]["R1-early|n_realized"] == {
+        "gate_result": "not_evaluable_synthetic",
+        "mae": None,
+        "coverage": None,
+    }
+    assert result["per_bucket_results"]["R1-early|n_scored"] == {
+        "gate_result": "not_evaluable_synthetic",
+        "mae": None,
+        "coverage": None,
+    }
+
+
+@pytest.mark.parametrize(
+    ("per_bucket_breakdown", "expected_key"),
+    [
+        ({"R1-early": {"n_realized": 1}}, "R1-early|n_realized"),
+        ({"R1-mid": {"QB": {"coverage": 0.80}}}, "R1-mid|QB"),
+        ({"R2": {"RB": {"mae": None, "coverage": 0.80}}}, "R2|RB"),
+        ({"R1-early": {"QB": {"mae": "garbage", "coverage": 0.80}}}, "R1-early|QB"),
+        ({"R1-mid": {"WR": {"mae": 10.0, "coverage": "garbage"}}}, "R1-mid|WR"),
+    ],
+)
+def test_evaluate_b_gate_real_mode_malformed_stats_fail_closed(
+    per_bucket_breakdown: dict,
+    expected_key: str,
+):
+    result = _status(per_bucket_breakdown, data_mode="real")
+
+    assert result["overall_status"] == "all_fail"
+    assert result["per_bucket_results"][expected_key] == {
+        "gate_result": "fail",
+        "mae": None,
+        "coverage": None,
+    }
+
+
+def test_evaluate_b_gate_real_mode_malformed_bucket_structure_fails_closed():
+    result = _status(
+        {
+            "R1-early": {"QB": {"mae": 8.0, "coverage": 0.80}},
+            "R2": "garbage_string",
+        },
+        data_mode="real",
+    )
+
+    assert result["overall_status"] == "partial"
+    assert result["per_bucket_results"]["R1-early|QB"]["gate_result"] == "pass"
+    assert result["per_bucket_results"]["R2|__malformed__"] == {
+        "gate_result": "fail",
         "mae": None,
         "coverage": None,
     }

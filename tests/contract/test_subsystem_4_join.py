@@ -319,6 +319,7 @@ def test_compound_key_wrong_year_truth_mismatch_hard_conflict():
 
     outcome = pairs[0][1]
     assert "truth_row_wrong_year_warning" in outcome.warnings
+    assert outcome.bridge_stale_warning is True
     assert diagnostics.wrong_year_truth_collisions == ["00-0001"]
     assert "wrong_year_truth_collision" in diagnostics.hard_block_reasons
     assert diagnostics.review_queue_payload

@@ -343,6 +343,8 @@ For each `(round_bucket, position)` combo, compute MAE and coverage on that subs
 | R2 | 18 picks | 0.6 |
 | R3 + Day3 | not gated for B (always abstain regardless of metrics) | — |
 
+**`overall_status` rollup (amended 2026-05-29, cockpit-unanimous).** `overall_status` is computed over **evaluable buckets only** — buckets whose `gate_result` is `pass` or `fail`. Structural `always_abstain` buckets (R3/Day3 in v1) are surfaced in `per_bucket_results` but **excluded** from the rollup so a planned abstention is never conflated with an evaluation failure. Resolution order: synthetic/override run → `always_abstain_synthetic_data`; empty breakdown → `all_fail` (fail-closed, nothing evaluated); ≥1 bucket with **zero** evaluable (all structurally abstained) → `always_abstain`; all evaluable pass → `all_pass`; no evaluable pass → `all_fail`; mixed evaluable → `partial`.
+
 ### 5.6 Synthetic-data safety hedge
 
 Even if synthetic metrics pass v1 thresholds, `backtest_b_gate_status.overall_status` is **forced** to `always_abstain_synthetic_data` when **either**:
@@ -403,7 +405,7 @@ S4 v1 aggregation is **provisional by design** — clearly marked `s4_provisiona
     "exact_pick": 18
   },
   "backtest_b_gate_status": {
-    "overall_status": "partial" | "all_pass" | "all_fail" | "always_abstain_synthetic_data",
+    "overall_status": "partial" | "all_pass" | "all_fail" | "always_abstain" | "always_abstain_synthetic_data",
     "per_bucket_results": {
       "R1-early|QB": { "gate_result": "pass", "mae": 5.2, "coverage": 0.92 },
       "R1-early|WR": { "gate_result": "fail", "mae": 11.5, "coverage": 0.7 },
