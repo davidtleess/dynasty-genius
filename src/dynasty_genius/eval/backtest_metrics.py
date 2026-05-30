@@ -14,6 +14,36 @@ from scipy import stats as scipy_stats
 
 from src.dynasty_genius.eval.backtest_artifact import TopKResult
 
+# ── R² (coefficient of determination) ─────────────────────────────────────────
+
+
+def compute_r2(y_true, y_pred) -> Optional[float]:
+    """OOS coefficient of determination ``1 - SS_res/SS_tot``.
+
+    Fail-closed → ``None``: zero-variance truth (``SS_tot == 0``); any non-finite
+    value (NaN/inf) in either array (data corruption). Raises ``ValueError`` on
+    API-misuse (length mismatch / empty input). Negative R² is valid and returned
+    as-is (a model worse than predicting the mean).
+    """
+    yt = np.asarray(y_true, dtype=float)
+    yp = np.asarray(y_pred, dtype=float)
+    if yt.shape != yp.shape:
+        raise ValueError("compute_r2: y_true and y_pred must have equal length")
+    if yt.size == 0:
+        raise ValueError("compute_r2: empty input")
+    if not (np.isfinite(yt).all() and np.isfinite(yp).all()):
+        return None
+    with np.errstate(over="ignore", invalid="ignore"):
+        ss_tot = float(np.sum((yt - yt.mean()) ** 2))
+        ss_res = float(np.sum((yt - yp) ** 2))
+    if not (math.isfinite(ss_tot) and math.isfinite(ss_res)):
+        return None  # finite inputs overflowed the squared sums → fail closed
+    if ss_tot == 0.0:
+        return None
+    r2 = 1.0 - ss_res / ss_tot
+    return r2 if math.isfinite(r2) else None
+
+
 # ── Rank Correlation ──────────────────────────────────────────────────────────
 
 def compute_rank_correlation(
