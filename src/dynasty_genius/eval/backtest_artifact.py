@@ -43,6 +43,11 @@ class FoldResult(BaseModel):
     rmse: float
     mae: float
 
+    # R² — OOS coefficient of determination (disclose-only; None when fail-closed)
+    r2_oos: Optional[float] = None
+    # Fixed-token fail-closed caveats (banned-language-safe); e.g. "r2_oos_unavailable"
+    metric_caveats: List[str] = Field(default_factory=list)
+
     # Market comparison — None when market data unavailable for this fold
     ndcg_at_12_model: Optional[float] = None
     ndcg_at_12_market: Optional[float] = None

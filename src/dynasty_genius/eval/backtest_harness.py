@@ -27,6 +27,7 @@ from src.dynasty_genius.eval.backtest_artifact import (
 )
 from src.dynasty_genius.eval.backtest_metrics import (
     compute_ndcg,
+    compute_r2,
     compute_rank_correlation,
 )
 from src.dynasty_genius.models.engine_b_contract import (
@@ -510,13 +511,21 @@ class WalkForwardDriver:
                     id_map=_id_map,
                 )
 
+            n_test = X_test.shape[0]
+            r2_oos = compute_r2(y_test, y_pred)
+            fold_caveats: list[str] = []
+            if r2_oos is None:
+                fold_caveats.append("r2_oos_unavailable")
+            elif n_test < 50:
+                fold_caveats.append("r2_oos_small_sample")
+
             fold_results.append(FoldResult(
                 fold_index=fold_index,
                 train_years=train_years,
                 test_year=test_year,
                 outcome_seasons=outcome_seasons,
                 n_train=X_train.shape[0],
-                n_test=X_test.shape[0],
+                n_test=n_test,
                 kendall_tau=tau,
                 kendall_tau_bca_ci95=tau_ci,
                 spearman_rho=rho,
@@ -524,6 +533,8 @@ class WalkForwardDriver:
                 rank_ic=rho,
                 rmse=rmse,
                 mae=mae,
+                r2_oos=r2_oos,
+                metric_caveats=fold_caveats,
                 ndcg_at_12_model=ndcg_fields["ndcg_at_12_model"],
                 ndcg_at_12_market=ndcg_fields["ndcg_at_12_market"],
                 ndcg_at_24_model=ndcg_fields["ndcg_at_24_model"],
