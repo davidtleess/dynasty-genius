@@ -25,6 +25,9 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -130,7 +133,6 @@ def derive_snapshot_id(metadata: MockSnapshotMetadata) -> str:
 # ======================================================================
 
 from dataclasses import dataclass  # noqa: E402  (grouped with ingestion)
-from pathlib import Path  # noqa: E402
 
 from src.dynasty_genius.identity.college_prospect_identity import (  # noqa: E402
     CollegeProspectRegistry,
@@ -1135,3 +1137,371 @@ def evaluate_b_gate(
             },
         },
     }
+
+
+# ======================================================================
+# Backtest-A runner + artifact writer + CLI support (§5.8–§5.9)   (Task 12)
+# ======================================================================
+
+MATCHER_ALGORITHM_VERSION: str = "cpr_matcher_v1.0.0"
+METRIC_UNIVERSE: str = "tracked_confirmed_prospect_universe"
+COHORT_SELECTION_BIAS_CAVEAT: str = (
+    "Cohort selection-bias caveat: Backtest-A metrics are computed over the tracked "
+    "confirmed prospect universe only (metric_universe="
+    "tracked_confirmed_prospect_universe), NOT the full draft class. This is a "
+    "cohort-selection bias — results are descriptive of the tracked cohort and must "
+    "not be read as full-class predictive accuracy. Per the product constitution's "
+    "'Truth over convenience' tenet, the harness reports only what it can verify "
+    "rather than an attractive but unsupported full-class claim."
+)
+
+
+class BacktestAResult(BaseModel):
+    """Backtest-A run artifact (spec §5.9).
+
+    Pure data product of ``build_backtest_a_result``. ``metrics`` is null whenever a
+    hard block fires (metric computation skipped).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    metadata: dict
+    coverage: dict
+    metric_universe: str
+    metrics: Optional[dict] = None
+    abstention_summary: dict
+    backtest_b_gate_status: dict
+    warnings: list[str] = Field(default_factory=list)
+    cohort_selection_bias_caveat: str
+    acceptance_criteria_failed: list[str] = Field(default_factory=list)
+
+
+class BacktestAInputError(RuntimeError):
+    """Raised by ``run_backtest_a`` on missing/empty/malformed inputs (fail loud)."""
+
+
+def build_b_gate_per_bucket_position_breakdown(
+    joined_outcomes: list[tuple[ProspectConsensus, RealizedOutcome]],
+) -> dict[str, dict[str, dict]]:
+    """Build the per-(round_bucket, position) MAE/coverage structure that
+    ``evaluate_b_gate`` consumes — resolving the documented compute_metrics↔
+    evaluate_b_gate data-flow (§5.5; the D4 note).
+
+    This is NOT the shape ``compute_metrics`` emits (round-level
+    ``{n_realized, n_scored}`` counts). Groups joined outcomes by (realized round
+    bucket, evidence position); per group: ``coverage`` = scored / total; ``mae`` =
+    mean ``|projected_pick_median - realized_pick_no|`` over scored rows (None when
+    no scored rows). Producer-side: finite numeric production is owned here, so
+    evaluate_b_gate's type guard never has to.
+    """
+    groups: dict[tuple[str, str], list[tuple[ProspectConsensus, RealizedOutcome]]] = {}
+    for consensus, outcome in joined_outcomes:
+        bucket = _realized_bucket(outcome)
+        position = outcome.evidence_position or "UNKNOWN"
+        groups.setdefault((bucket, position), []).append((consensus, outcome))
+
+    breakdown: dict[str, dict[str, dict]] = {}
+    for (bucket, position), rows in groups.items():
+        scored = [
+            (c, o)
+            for c, o in rows
+            if c.abstention_tier != "abstain" and c.projected_pick_median is not None
+        ]
+        coverage = len(scored) / len(rows) if rows else 0.0
+        errors = [
+            abs(c.projected_pick_median - o.draft_pick_no)
+            for c, o in scored
+            if o.draft_pick_no is not None
+        ]
+        mae = sum(errors) / len(errors) if errors else None
+        breakdown.setdefault(bucket, {})[position] = {"mae": mae, "coverage": coverage}
+    return breakdown
+
+
+def _abstention_summary(
+    joined_outcomes: list[tuple[ProspectConsensus, RealizedOutcome]],
+) -> dict[str, int]:
+    summary = {"abstain": 0, "round_tier_only": 0, "exact_pick": 0}
+    for consensus, _outcome in joined_outcomes:
+        if consensus.abstention_tier in summary:
+            summary[consensus.abstention_tier] += 1
+    return summary
+
+
+def build_backtest_a_result(
+    *,
+    run_id: str,
+    draft_year: int,
+    data_mode: str,
+    draft_date: str,
+    draft_date_source: str,
+    snapshots_coverage: dict,
+    bridge_coverage: dict,
+    joined_outcomes: list[tuple[ProspectConsensus, RealizedOutcome]],
+    join_diagnostics: JoinDiagnostics,
+    bridge: CollegeProspectBridge,
+    n_prospects_total_in_class: int,
+    dispersion_threshold: float = 6,
+    bridge_artifact_path: Optional[str] = None,
+) -> BacktestAResult:
+    """Assemble the Backtest-A artifact model (spec §5.9). Pure — no filesystem.
+
+    ``acceptance_criteria_failed`` = ``JoinDiagnostics.hard_block_reasons`` +
+    ``evaluate_bridge_gates(bridge_coverage)`` (canonical tokens, no mapping). When
+    any hard block fires, ``metrics`` is null (metric computation skipped). The
+    B-gate status is always computed from the per-(bucket, position) breakdown.
+    """
+    gate_reasons = evaluate_bridge_gates(bridge_coverage) or []
+    acceptance_criteria_failed = list(join_diagnostics.hard_block_reasons) + list(
+        gate_reasons
+    )
+    hard_block = bool(acceptance_criteria_failed)
+
+    warnings: list[str] = list(snapshots_coverage.get("warnings", []))
+
+    if hard_block:
+        metrics_field: Optional[dict] = None
+        metrics_for_gate: dict = {}
+    else:
+        metrics_result = compute_metrics(
+            joined_outcomes, n_prospects_total_in_class, bridge
+        )
+        metrics_field = metrics_result["metrics"]
+        metrics_for_gate = metrics_result
+        for warning in metrics_result.get("warnings", []):
+            if warning not in warnings:
+                warnings.append(warning)
+
+    breakdown = build_b_gate_per_bucket_position_breakdown(joined_outcomes)
+    backtest_b_gate_status = evaluate_b_gate(
+        metrics_for_gate,
+        breakdown,
+        data_mode=data_mode,
+        draft_date_source=draft_date_source,
+    )
+
+    metadata = {
+        "run_id": run_id,
+        "draft_year": draft_year,
+        "ran_at": datetime.now(timezone.utc).isoformat(),
+        "matcher_algorithm_version": MATCHER_ALGORITHM_VERSION,
+        "metric_version": METRIC_VERSION,
+        "aggregation_version": AGGREGATION_VERSION,
+        "gate_version": GATE_VERSION,
+        "round_bucket_rounding_policy": ROUND_BUCKET_ROUNDING_POLICY,
+        "team_code_normalization_version": TEAM_CODE_NORMALIZATION_VERSION,
+        "within_source_aggregation_applied": False,
+        "dispersion_threshold_used": dispersion_threshold,
+        "bridge_artifact_path": bridge_artifact_path,
+        "draft_date_used": draft_date,
+        "draft_date_source": draft_date_source,
+        "data_mode": data_mode,
+    }
+
+    return BacktestAResult(
+        metadata=metadata,
+        coverage={**snapshots_coverage, **bridge_coverage},
+        metric_universe=METRIC_UNIVERSE,
+        metrics=metrics_field,
+        abstention_summary=_abstention_summary(joined_outcomes),
+        backtest_b_gate_status=backtest_b_gate_status,
+        warnings=warnings,
+        cohort_selection_bias_caveat=COHORT_SELECTION_BIAS_CAVEAT,
+        acceptance_criteria_failed=acceptance_criteria_failed,
+    )
+
+
+def _atomic_write_json(payload, path: Path) -> None:
+    """Write JSON to ``path`` atomically (temp file + ``os.replace``)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def write_review_queue_from_join_diagnostics(
+    diagnostics: JoinDiagnostics, queue_path: Path
+) -> None:
+    """Atomically write ``JoinDiagnostics.review_queue_payload`` to ``queue_path`` (§11.2)."""
+    _atomic_write_json(diagnostics.review_queue_payload, Path(queue_path))
+
+
+def write_backtest_a_artifact(result: BacktestAResult, *, output_root: Path) -> Path:
+    """Write the artifact to ``<output_root>/<run_id>/backtest_a_result.json``.
+
+    Creates the run directory and refuses a duplicate run_id (``FileExistsError``)
+    so a completed run is never silently overwritten.
+    """
+    run_id = result.metadata["run_id"]
+    artifact_path = Path(output_root) / run_id / "backtest_a_result.json"
+    if artifact_path.exists():
+        raise FileExistsError(
+            f"backtest_a artifact already exists for run_id {run_id!r}: {artifact_path}"
+        )
+    _atomic_write_json(result.model_dump(mode="json"), artifact_path)
+    return artifact_path
+
+
+def _find_bridge_artifact(identity_dir: Path, draft_year: int) -> Optional[Path]:
+    for candidate in (
+        Path(identity_dir) / f"prospect_to_nfl_bridge_{draft_year}.json",
+        Path(identity_dir) / "prospect_nfl_bridge.json",
+    ):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _load_nflreadr_truth(draft_year: int, *, data_mode: str) -> list[NflTruthRow]:
+    """Load realized NFL draft truth rows for the join (v1 SEAM).
+
+    Returns an empty truth set in v1: the real nflreadr draft-pick → NflTruthRow
+    mapping (column mapping + synthetic-vs-real sourcing) is a separate increment
+    with its own RED contract. Because no truth is loaded, ``run_backtest_a`` FAILS
+    CLOSED in real mode (surfaces ``nflreadr_truth_unavailable`` → metrics null) so
+    no unverified metrics are ever presented as nflreadr-verified — never depending
+    on guessed nflreadr columns. Out-of-scope-by-contract per the Task 12
+    falsification matrix; owner: a follow-up truth-loader increment.
+    """
+    return []
+
+
+def _compute_bridge_coverage(
+    joined_outcomes: list[tuple[ProspectConsensus, RealizedOutcome]],
+) -> dict:
+    """Derive the §11.2 bridge-coverage counts from joined outcomes (v1 seam).
+
+    ``consensus_unbridged_count`` is derived from per-outcome flags;
+    ``confirmed_class_unbridged_count`` and ``orphan_bridges_detected`` require the
+    S3 confirmed-class universe and are produced by the same follow-up increment as
+    the truth loader (defaulted here).
+    """
+    return {
+        "consensus_unbridged_count": sum(
+            1 for _c, o in joined_outcomes if o.unbridged_prospect
+        ),
+        "confirmed_class_unbridged_count": 0,
+        "orphan_bridges_detected": [],
+    }
+
+
+def run_backtest_a(
+    *,
+    snapshots_dir: Path,
+    identity_dir: Path,
+    draft_year: int,
+    run_id: str,
+    output_root: Path,
+    override_draft_date: Optional[str] = None,
+    override_reason: Optional[str] = None,
+    include_untrusted: bool = False,
+    dispersion_threshold: float = 6,
+) -> BacktestAResult:
+    """Orchestrate the Backtest-A pipeline and write the artifact (§5.9).
+
+    Fail-loud input validation, in order: (1) override draft-date and reason must be
+    supplied together (§5.6 audit trail); (2) the snapshots dir must exist and be
+    non-empty; (3) the identity bridge artifact must be present; (4) each snapshot
+    file must be valid JSON. Then ingest → aggregate → join → build → write. The
+    nflreadr truth join uses the documented ``_load_nflreadr_truth`` v1 seam.
+    """
+    from src.dynasty_genius.identity.college_prospect_identity import load_registry
+    from src.dynasty_genius.identity.prospect_nfl_bridge import load_bridge
+
+    snapshots_dir = Path(snapshots_dir)
+    identity_dir = Path(identity_dir)
+
+    # (1) Override provenance: both-or-neither (loud, auditable; §5.6).
+    if (override_draft_date is None) != (override_reason is None):
+        raise BacktestAInputError(
+            "override draft date and override reason must be provided together "
+            "(both or neither) for a loud, auditable override"
+        )
+
+    # (2) Snapshots dir present and non-empty. Recursive discovery to match
+    # ingest_snapshots' own recursive (rglob) discovery (F3).
+    snapshot_files = (
+        sorted(snapshots_dir.rglob("*.json")) if snapshots_dir.is_dir() else []
+    )
+    if not snapshot_files:
+        raise BacktestAInputError(f"snapshots dir is missing or empty: {snapshots_dir}")
+
+    # (3) Identity bridge artifact present.
+    bridge_path = _find_bridge_artifact(identity_dir, draft_year)
+    if bridge_path is None:
+        raise BacktestAInputError(
+            f"identity bridge artifact not found under {identity_dir}"
+        )
+
+    # (4) Each snapshot file must be valid JSON (fail loud before ingestion).
+    for snapshot_file in snapshot_files:
+        try:
+            json.loads(snapshot_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise BacktestAInputError(
+                f"malformed snapshot JSON in {snapshot_file.name}: {exc}"
+            ) from exc
+
+    # (5) Orchestrate. An override draft date marks the run synthetic.
+    data_mode = "synthetic" if override_draft_date is not None else "real"
+    draft_date_source = (
+        f"override:{override_reason}"
+        if override_reason is not None
+        else "nflreadr.draft_picks"
+    )
+
+    bridge = load_bridge(bridge_path)
+    s3_registry = load_registry(identity_dir / "college_prospect_registry.json")
+    normalized_picks, snapshots_coverage = ingest_snapshots(
+        snapshots_dir,
+        s3_registry=s3_registry,
+        draft_date=override_draft_date,
+        include_untrusted=include_untrusted,
+        override_date=override_draft_date,
+        override_reason=override_reason,
+    )
+    # Resolve the draft date from ingestion (real mode derives it from nflreadr)
+    # before aggregation — never pass an empty string to date parsing (F2).
+    resolved_draft_date = (
+        override_draft_date or snapshots_coverage.get("draft_date_used") or ""
+    )
+    consensus_map = aggregate_per_prospect(
+        normalized_picks,
+        draft_date=resolved_draft_date,
+        dispersion_threshold=dispersion_threshold,
+    )
+    truth_rows = _load_nflreadr_truth(draft_year, data_mode=data_mode)
+    pairs, diagnostics = join_bridge_to_realized(
+        list(consensus_map.values()), bridge, truth_rows
+    )
+
+    # Fail closed when real-mode nflreadr truth is unavailable (F1; anti-false-
+    # confidence): without verified truth, metrics must not be presented as
+    # nflreadr-verified. Surfaces a canonical token so metrics is nulled.
+    if data_mode == "real" and not truth_rows:
+        if "nflreadr_truth_unavailable" not in diagnostics.hard_block_reasons:
+            diagnostics.hard_block_reasons.append("nflreadr_truth_unavailable")
+
+    result = build_backtest_a_result(
+        run_id=run_id,
+        draft_year=draft_year,
+        data_mode=data_mode,
+        draft_date=resolved_draft_date,
+        draft_date_source=draft_date_source,
+        snapshots_coverage=snapshots_coverage,
+        bridge_coverage=_compute_bridge_coverage(pairs),
+        joined_outcomes=pairs,
+        join_diagnostics=diagnostics,
+        bridge=bridge,
+        n_prospects_total_in_class=len(consensus_map),
+        dispersion_threshold=dispersion_threshold,
+        bridge_artifact_path=str(bridge_path),
+    )
+
+    if diagnostics.review_queue_payload:
+        write_review_queue_from_join_diagnostics(
+            diagnostics, Path(output_root) / run_id / "review_queue.json"
+        )
+    write_backtest_a_artifact(result, output_root=Path(output_root))
+    return result
