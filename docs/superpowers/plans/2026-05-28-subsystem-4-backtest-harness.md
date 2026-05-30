@@ -2068,37 +2068,106 @@ git commit -m "feat(subsystem-4): bridge promotion lifecycle + 2 CLI scripts (bu
 ### Task 8: ProspectConsensus aggregation + abstention tiers — §5.2, §5.3
 
 **RED test coverage:**
-- ProspectConsensus Pydantic shape
+- ProspectConsensus Pydantic shape (`projected_pick_median: Optional[float]` per 2026-05-28 amendment; `projected_pick_min` / `projected_pick_max` remain `Optional[int]`)
 - `n_sources` counted by distinct `source_label`; `n_unique_analysts` by distinct `analyst`
 - `abstention_tier`: `n_sources < 3` → `abstain`; `3 ≤ n_sources ≤ 4` → `round_tier_only`; `n_sources ≥ 5` with `IQR ≤ 6` → `exact_pick`; otherwise `round_tier_only`
 - `staleness_days` computed from most-recent snapshot's `published_date` to `draft_date`
 - `dispersion_threshold` configurable + recorded in artifact metadata
 - Empty snapshots → abstain
 - All abstention reasons populated
+- **(2026-05-28 amendment)** `test_aggregation_median_preserves_float_and_rounding` — fixture: 4 distinct sources contributing pick_nos `[31, 32, 33, 34]` (round_tier_only tier, not abstain). Asserts `consensus.projected_pick_median == 32.5` and `isinstance(consensus.projected_pick_median, float) is True`. Prevents the round-boundary truncation bias surfaced by the joint cockpit retrospective.
+- **(2026-05-28 amendment)** `test_aggregation_iqr_uses_exclusive_quantiles` — fixture: 4 distinct sources contributing pick_nos `[10, 20, 30, 40]`. Verified expected values (computed before authoring): exclusive method Q1=12.5, Q3=37.5, **IQR=25.0**; inclusive method Q1=17.5, Q3=32.5, IQR=15.0. Test asserts `consensus.projected_pick_iqr == 25.0` (exclusive). Locks the method choice under `aggregation_version`.
 
 **GREEN impl outline:**
 - `aggregate_per_prospect(normalized_picks, draft_date, dispersion_threshold=6)` returns `dict[prospect_uuid, ProspectConsensus]`
-- Median pick, IQR, min, max computed per prospect; counts distinct sources/analysts
+- Median pick (`float(_median(pick_nos))` — NOT `int()` cast per 2026-05-28 amendment), IQR (`statistics.quantiles(..., method='exclusive')` locked under `aggregation_version`), min, max computed per prospect; counts distinct sources/analysts
 - Abstention tier logic exactly per §5.3
 
 **Commit:** `feat(subsystem-4): ProspectConsensus aggregation + abstention tiers section 5.2 + 5.3`
 
-### Task 9: Bridge join + RealizedOutcome + bridge_stale_warning — §5.1 stage 3
+### Task 9: Bridge join + RealizedOutcome + JoinDiagnostics + bridge_stale_warning (hardened per §11.5) — §5.1 stage 3
 
-**RED test coverage:**
-- `RealizedOutcome` Pydantic shape
-- Bridge join produces matched `RealizedOutcome` for prospects in bridge
-- Prospects NOT in bridge → `RealizedOutcome(udfa=True, ...)` only if bridge has explicit udfa entry; otherwise skipped from metric computation with `unbridged_prospect` flag
-- `bridge_stale_warning` fires when current nflreadr fetch differs from `evidence_snapshot.fetched_at` data (deterministic check on `(full_name, position, draft_pick_no, nfl_team)`)
-- Snapshot files never mutated by the join
+**Spec governance:** Spec §11.5 (committed `a48ba3c`) replaces the prior provisional 14-field shape and locks 6 hard-blocking edge cases. Each edge case MUST be an explicit named test; do NOT collapse them.
+
+**Boundary discipline (no runner-level writes in Task 9):** Task 9 owns pure-functional computation only — it returns per-outcome `warnings: list[str]` and a typed `JoinDiagnostics` payload. Task 9 does NOT write to the review queue, does NOT populate `acceptance_criteria_failed` directly, and does NOT touch the filesystem. Runner-level concerns (queue writes, `acceptance_criteria_failed` aggregation, hard-block exit) belong to Task 12.
+
+**RealizedOutcome shape (14 fields, locked):**
+`prospect_uuid, gsis_id, pfr_id, draft_year, draft_pick_no, draft_round, nfl_team, udfa, unbridged_prospect, bridge_stale_warning, warnings: list[str], evidence_full_name, evidence_position, evidence_college` — Pydantic v2 `extra="forbid"`.
+
+**JoinDiagnostics shape:**
+```python
+class JoinDiagnostics(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    hard_block_reasons: list[str]              # e.g., ["nflreadr_duplicate_gsis_id", "wrong_year_truth_collision"]
+    review_queue_payload: list[dict]           # entries Task 12 runner writes to review queue
+    duplicate_gsis_ids_detected: list[str]
+    wrong_year_truth_collisions: list[str]
+    evidence_incomplete_uuids: list[str]
+```
+
+**RED test coverage (one explicit test per row, named as shown):**
+
+1. `test_realized_outcome_schema_extra_forbid` — 14-field shape; `extra="forbid"` rejects unknown keys.
+2. `test_join_diagnostics_schema_extra_forbid` — JoinDiagnostics 5-field shape; `extra="forbid"`.
+3. `test_join_matches_confirmed_bridge_entry` — drafted prospect joined correctly; `warnings == []`; `JoinDiagnostics.hard_block_reasons == []`.
+4. `test_join_represents_explicit_udfa_entry` — bridge `udfa=True` → `RealizedOutcome.udfa=True`, `gsis_id=None`; clean diagnostics.
+5. `test_join_flags_unbridged_prospect` — consensus with no bridge entry → `unbridged_prospect=True`, `"unbridged_prospect"` in outcome `warnings`. (Hard-block aggregation is Task 10/12 concern.)
+6. `test_truth_disappearance_fires_stale_warning` **(§11.5 #1)** — drafted bridge with `gsis_id=X` but `X` absent from `nflreadr_current` → `bridge_stale_warning=True`, `"truth_row_missing"` warning in outcome. NOT silently False.
+7. `test_duplicate_gsis_id_in_nflreadr_fail_closed` **(§11.5 #2)** — duplicate `gsis_id` rows in `nflreadr_current` → `"nflreadr_duplicate_gsis_id_warning"` emitted on outcome; current-truth comparison refused for affected prospect; `JoinDiagnostics.duplicate_gsis_ids_detected` contains the gsis_id; `JoinDiagnostics.hard_block_reasons` contains `"nflreadr_duplicate_gsis_id"`. No last-row-wins, no silent overwrite.
+8. `test_compound_key_wrong_year_truth_mismatch_hard_conflict` **(§11.5 #3)** — lookup uses compound key `(gsis_id, draft_year)`; if no row OR returned row has different `draft_year`, emit `"truth_row_wrong_year_warning"` in outcome; `JoinDiagnostics.wrong_year_truth_collisions` contains the gsis_id; `JoinDiagnostics.review_queue_payload` contains the audit dict; `JoinDiagnostics.hard_block_reasons` contains `"wrong_year_truth_collision"`.
+9. `test_missing_evidence_snapshot_drafted_entry_hard_block` **(§11.5 #4)** — `entry.udfa=False` AND `entry.evidence_snapshot is None` → refuse `gsis_id`-only fallback; emit `"evidence_snapshot_missing_warning"` in outcome; comparison marked `stale/evidence_incomplete`; `JoinDiagnostics.evidence_incomplete_uuids` contains the prospect_uuid; `JoinDiagnostics.hard_block_reasons` contains `"evidence_snapshot_missing"`.
+10. `test_pick_round_team_divergence_fires_stale_warning_with_normalization` **(§11.5 #6)** — divergence on `draft_pick_no` OR `draft_round` OR `nfl_team` between bridge top-level and current `nflreadr_current` → `bridge_stale_warning=True` with reason string indicating which field(s) diverged. Team codes pass through `normalize_team_code` helper before comparison. (Stale warning only; not a hard block.)
+11. `test_normalize_team_code_equivalence_classes` **(CANONICAL OWNER — Task 9)** — unit-tests the helper on documented equivalences: OAK↔LVR, SDG↔LAC, LAR↔LA, WAS↔WSH. Audit-guard reference in Task 14.
+12. `test_join_is_purely_functional` — monkeypatch the full set of file-writing APIs and assert `join_bridge_to_realized` triggers zero file writes during call. Monkeypatch targets: `builtins.open`, `pathlib.Path.write_text`, `pathlib.Path.write_bytes`, `pathlib.Path.open` (for write modes), `os.replace`, `os.rename`. Test asserts each is called zero times.
+
+**Hard-block reasons are canonical acceptance_criteria_failed tokens:** `JoinDiagnostics.hard_block_reasons` strings ARE the exact tokens that flow into `acceptance_criteria_failed`. No `WARNING_TO_ACCEPTANCE_FAILURE` mapping. Outcome `warnings` is the human-readable per-prospect surface; `hard_block_reasons` is the machine-actionable runner gate. Task 12 unions `JoinDiagnostics.hard_block_reasons` directly into `acceptance_criteria_failed`.
+
+**Truth-lookup algorithm precedence (explicit ordering):**
+```
+1. Build nflreadr_by_gsis: dict[str, list[NflTruthRow]] (allow multiple entries per gsis_id at build time).
+2. For each drafted bridge entry with gsis_id=X:
+   a. If len(nflreadr_by_gsis.get(X, [])) >= 2 → fail-closed:
+        emit "nflreadr_duplicate_gsis_id_warning" on outcome,
+        diagnostics.duplicate_gsis_ids_detected += [X],
+        diagnostics.hard_block_reasons += ["nflreadr_duplicate_gsis_id"].
+        Skip remaining steps for this prospect (no stale comparison attempted).
+   b. Elif X not in nflreadr_by_gsis (zero rows) →
+        bridge_stale_warning=True, "truth_row_missing" on outcome.
+        (NOT a hard block — truth disappearance is stale, not corrupt.)
+   c. Elif nflreadr_by_gsis[X][0].draft_year != entry.draft_year →
+        emit "truth_row_wrong_year_warning" on outcome,
+        diagnostics.wrong_year_truth_collisions += [X],
+        diagnostics.review_queue_payload += [audit_dict],
+        diagnostics.hard_block_reasons += ["wrong_year_truth_collision"].
+   d. Else (exactly one row, year matches) → proceed to evidence/pick/team comparison.
+```
+This precedence ensures duplicate-gsis_id ALWAYS wins over disappearance vs wrong-year; truth-missing and wrong-year are mutually exclusive by construction.
 
 **GREEN impl outline:**
-- `join_bridge_to_realized(consensuses, bridge, nflreadr_current)` returns `list[(consensus, realized_outcome)]`
-- Stale warning emitted as a list of strings + flags on per-prospect outcomes
+- `join_bridge_to_realized(consensuses, bridge, nflreadr_current) -> tuple[list[tuple[ProspectConsensus, RealizedOutcome]], JoinDiagnostics]`
+- Compound-key lookup `(gsis_id, draft_year)` against `nflreadr_current`; same-gsis-id duplicates rejected fail-closed at lookup time.
+- `normalize_team_code(raw_code) -> str` helper exposed as module-level function with documented equivalence classes; `TEAM_CODE_NORMALIZATION_VERSION` module-level constant (string, e.g., `"s4_team_norm_v1"`).
+- Stale-comparison fallback for missing-evidence is explicitly DISABLED: emit warning, mark `evidence_incomplete`, contribute to `JoinDiagnostics.hard_block_reasons`; do NOT silently use `gsis_id`-only.
+- `JoinDiagnostics.hard_block_reasons` are canonical `acceptance_criteria_failed` tokens; Task 12 imports no warning mapping.
 
-**Commit:** `feat(subsystem-4): bridge join + bridge_stale_warning section 5.1 stage 3`
+**§11.5 #5 — Unbridged coverage semantics:** unbridged prospects are reported in the Task 10 coverage matrix and trigger the §11.2 hard-block at runner level (Task 12). Task 9 emits the per-outcome `unbridged_prospect=True` flag; metric computation skip happens in Tasks 10/12 per §11.2.
+
+**Commit:** `feat(subsystem-4): Task 9 bridge join + RealizedOutcome + JoinDiagnostics + 6 hardened edge cases (section 11.5)`
 
 ### Task 10: The 6 metrics — §5.4
+
+**Spec governance precondition (§11.2 hard-block, owned by Task 10 helper + Task 12 runner):**
+
+Task 10 owns `evaluate_bridge_gates(coverage) -> Optional[list[str]]` helper in `backtest_mock_draft.py`. Returns `None` if no hard-block; returns a list of `hard_block_reasons` strings (`"consensus_unbridged"`, `"confirmed_class_unbridged"`, `"orphan_bridges_detected"`) if any of the three §11.2 counts is nonzero. Task 12 runner calls this BEFORE `compute_metrics`; if non-None, metrics are skipped and the artifact's `metrics` block is null.
+
+**Required RED tests (split per §11.2 — three counts, three gates):**
+- `test_evaluate_bridge_gates_passes_when_all_counts_zero` — all three counts zero → returns `None`.
+- `test_evaluate_bridge_gates_blocks_on_consensus_unbridged` — `consensus_unbridged_count > 0` only → returns `["consensus_unbridged"]`.
+- `test_evaluate_bridge_gates_blocks_on_confirmed_class_unbridged` — `confirmed_class_unbridged_count > 0` only → returns `["confirmed_class_unbridged"]`.
+- `test_evaluate_bridge_gates_blocks_on_orphan_bridges` — `len(orphan_bridges_detected) > 0` only → returns `["orphan_bridges_detected"]`.
+- `test_evaluate_bridge_gates_combines_multiple_blockers` — multiple counts nonzero → returns the union (preserving order).
+
+(Existing Task 10 RED list and GREEN outline for the 6 metrics remain below this precondition section.)
 
 **RED test coverage (from §6.2 contract path 1; spec §5.4 universes):**
 - `overall_pick_mae`: drafted-and-projected-drafted intersection only; deterministic golden-answer fixture
@@ -2134,6 +2203,20 @@ git commit -m "feat(subsystem-4): bridge promotion lifecycle + 2 CLI scripts (bu
 
 ### Task 12: Artifact writer + run_backtest_a.py CLI — §5.9
 
+**Spec governance shape (§11.2 + §11.5 #6; runner concerns aggregated from Task 9 + Task 10):**
+
+Task 12 runner orchestrates: (i) Task 9 `join_bridge_to_realized` returning `(pairs, JoinDiagnostics)`; (ii) Task 10 `evaluate_bridge_gates(coverage)` returning hard-block reasons; (iii) `acceptance_criteria_failed` aggregation = `JoinDiagnostics.hard_block_reasons + (evaluate_bridge_gates output)` directly (no mapping; both sources already produce canonical tokens); (iv) review-queue writes from `JoinDiagnostics.review_queue_payload`; (v) metric skip when any hard-block fires.
+
+**Required RED tests (§11-driven):**
+- `test_artifact_metrics_null_on_unbridged_hard_block` — when `evaluate_bridge_gates` returns non-None, artifact `metrics` is `null` and a diagnostic report is populated.
+- `test_artifact_metadata_includes_team_code_normalization_version` **(CANONICAL OWNER — Task 12)** — artifact metadata contains `team_code_normalization_version` matching Task 9's constant. Audit-guard reference in Task 14.
+- `test_artifact_metadata_includes_round_bucket_rounding_policy` **(CANONICAL OWNER — Task 12; 2026-05-28 amendment)** — artifact metadata contains `round_bucket_rounding_policy` equal to `"round_half_up"` matching the spec §5.4 footer rule. Audit-guard reference in Task 14.
+- `test_artifact_emits_selection_bias_caveat_with_constitution_citation` **(CANONICAL OWNER — Task 12)** — artifact emits `cohort_selection_bias_caveat` as non-null string containing exact substring `"Truth over convenience"` (constitution citation locked); also `metric_universe == "tracked_confirmed_prospect_universe"`. Audit-guard reference in Task 14.
+- `test_artifact_acceptance_criteria_failed_aggregated_from_canonical_tokens` — given a `JoinDiagnostics` with known `hard_block_reasons` and a known `evaluate_bridge_gates` output, the artifact's `acceptance_criteria_failed` equals their union (no mapping, no parsing — both sources already produce canonical tokens).
+- `test_review_queue_written_from_join_diagnostics` — `JoinDiagnostics.review_queue_payload` is written atomically to the configured queue path; no other writes.
+
+(Existing Task 12 RED list below this insertion.)
+
 **RED test coverage:**
 - Artifact written at `app/data/backtest/mock_draft/runs/<run_id>/backtest_a_result.json`
 - Schema exactly per spec §5.9 (metadata, coverage, metrics, abstention_summary, backtest_b_gate_status, warnings)
@@ -2163,9 +2246,9 @@ git commit -m "feat(subsystem-4): bridge promotion lifecycle + 2 CLI scripts (bu
 
 **Commit:** `feat(subsystem-4): B-shaped always-abstain stub + run_backtest_b.py CLI`
 
-### Task 14: Audit tests + AGENT_SYNC + ledger closeout — §6.3, §8.8, governance
+### Task 14: Audit tests + AGENT_SYNC + ledger closeout (extended per §11) — §6.3, §8.8, §11, governance
 
-**RED test coverage (§8.8) — Round 2 patches 4 + 5 applied:**
+**§8.8 RED test coverage (Round 2 patches 4 + 5 preserved verbatim):**
 - S3 inviolate artifacts byte-unchanged via SHA-256 contract test (extends S3's pre-existing inviolate set; adds S3-merged committed artifacts)
 - **Round 2 patch 4**: Mock-data isolation rule per spec §7:
   - NO mock/ADP/market field names in `prospect_nfl_bridge.py` (identity infrastructure must stay mock-free)
@@ -2176,6 +2259,55 @@ git commit -m "feat(subsystem-4): bridge promotion lifecycle + 2 CLI scripts (bu
 - **Round 2 patch 5**: Coverage matrix counts reconcile across ALL §4.5 rejection buckets:
   `snapshots_used + leakage_excluded_snapshots + untrusted_excluded_snapshots + duplicate_pick_no_rejections + duplicate_prospect_uuid_rejections + content_hash_collisions == total_snapshots_found`
 - Acceptance criteria from §6.3 documented in spec + `acceptance_criteria_failed` list emission tested
+
+**§11.1 — Phase 10/11 + Phase 12 inviolate paths (8 paths) byte-check:**
+- `test_phase_10_11_12_inviolate_paths_byte_unchanged` runs SHA-256 over the 8 paths:
+  - `src/dynasty_genius/eval/backtest_harness.py`
+  - `src/dynasty_genius/eval/backtest_artifact.py`
+  - `src/dynasty_genius/eval/backtest_metrics.py`
+  - `src/dynasty_genius/eval/backtest_report.py`
+  - `src/dynasty_genius/eval/model_card.py`
+  - `src/dynasty_genius/eval/market_snapshot_store.py`
+  - `scripts/run_backtest.py`
+  - `app/api/routes/trust_surface.py`
+- Asserts each byte-identical to **recorded SHA-256 constant baselines** generated from `a41e0c6` merge-base (recorded constants, NOT dynamic main comparison). The 8 baseline hashes are hardcoded in the test file as `INVIOLATE_BASELINE_SHA256_A41E0C6: dict[str, str]`.
+- `test_eval_directory_contains_only_authorized_files` — asserts `src/dynasty_genius/eval/` contains EXACTLY: `__init__.py` + the 6 Phase 10/11+12 files listed above + the S4-authorized `backtest_mock_draft.py` + existing pre-S4 files at branch creation (`draft_capital_bakeoff.py`, `draft_capital_manifest.py`, `draft_class_loocv.py`, `te_archetype_bakeoff.py`, `te_regularization_bakeoff.py`, `te_role_risk_experiment.py`). Rejects any unauthorized new files.
+
+**§11.3 — Anti-laundering AST audit:**
+- `tests/contract/test_subsystem_4_audit.py::test_no_s4_imports_in_production_paths` uses Python `ast` module to scan source files under the following scan roots:
+  - `src/dynasty_genius/scoring/`
+  - `src/dynasty_genius/models/`
+  - `src/dynasty_genius/pvo_assembler.py`
+  - `src/dynasty_genius/trade_lab/`
+  - `src/dynasty_genius/adapters/`
+  - `src/dynasty_genius/pipelines/`
+  - `src/dynasty_genius/decision_logic/`
+  - `src/dynasty_genius/valuation/`
+  - `src/dynasty_genius/sources/`
+  - `app/services/`
+- FAILS the test on ANY of:
+  - `import` statements referencing `dynasty_genius.eval.backtest_mock_draft`, `dynasty_genius.identity.prospect_nfl_bridge`, OR their `src.`-prefixed forms `src.dynasty_genius.eval.backtest_mock_draft`, `src.dynasty_genius.identity.prospect_nfl_bridge` (repo uses both forms).
+  - `from` imports of those modules in either prefix form.
+  - Aliased imports (`import ... as ...`) of those modules in either prefix form.
+  - String literal constants (in `ast.Constant`/`ast.Str` nodes) containing substrings `"backtest_mock_draft"`, `"backtest_a_result"`, OR `"backtest_b_abstain"` — catches fragmented path assembly via `os.path.join`, `pathlib.Path / "..." / "..."`, or `Path(...)` chains.
+- Scan roots enumerated as a module-level constant `AST_AUDIT_SCAN_ROOTS` in the test file for traceability.
+
+**§11.2 — Selection-bias presence checks (artifact-level, audit-guard tier):**
+- `test_artifact_emits_selection_bias_caveat_with_constitution_citation` (canonical owner Task 12; this is an audit-guard reference asserting Task 12 implementation is correct).
+- `test_artifact_emits_three_segmented_unbridged_counts` — asserts presence + distinct keys for `consensus_unbridged_count`, `confirmed_class_unbridged_count`, `orphan_bridges_detected`. (Audit-tier; complements Task 12 implementation tests.)
+- `test_artifact_emits_metric_universe_tracked_confirmed`.
+
+**§11.5 — Team-code normalization (audit-guard tier):**
+- `test_normalize_team_code_equivalence_classes` (canonical owner Task 9; audit-guard reference).
+- `test_artifact_metadata_includes_team_code_normalization_version` (canonical owner Task 12; audit-guard reference).
+
+**Canonical test ownership map:**
+| Test | Canonical owner | Audit-guard reference |
+|---|---|---|
+| `test_normalize_team_code_equivalence_classes` | Task 9 | Task 14 |
+| `test_artifact_metadata_includes_team_code_normalization_version` | Task 12 | Task 14 |
+| `test_artifact_emits_selection_bias_caveat_with_constitution_citation` | Task 12 | Task 14 |
+| `test_artifact_metadata_includes_round_bucket_rounding_policy` | Task 12 | Task 14 |
 
 **GREEN: no impl needed if Tasks 1–13 implemented correctly.** Tests pass on the existing surfaces.
 
