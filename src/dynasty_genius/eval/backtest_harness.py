@@ -161,9 +161,11 @@ def evaluate_promotion_gates(
       Pass if: rmse_max_deviation_pct <= 25.0%
                AND stability.dm_hln_pvalue <= 0.10 (if computed).
 
-    G3 — Market Superiority:
-      Pass if: ndcg_at_24_model >= ndcg_at_24_market in >= 3 of 4 folds
-               where market data is available.
+    G3 — Market Superiority (keys on the position-primary k: QB/TE @12, RB/WR @24):
+      Pass if: ndcg_at_{primary_k}_model >= ndcg_at_{primary_k}_market in >= 3 of 4
+               COMPLETE (model+market) folds.
+      Deferred if: fewer than 3 complete (model+market) primary-k pairs exist
+               (under-coverage is NOT reported as a failure/loss).
 
     G4 — Divergence Validity (Deferred to v2):
       Pass if: MW p <= 0.10, diff CI > 0, and hit-rate CI > 0.50 on n >= 30.
@@ -184,17 +186,28 @@ def evaluate_promotion_gates(
     if stability.dm_hln_pvalue is not None:
         g2_pass = g2_pass and stability.dm_hln_pvalue <= 0.10
 
-    # G3 — Market Superiority
+    # G3 — Market Superiority (W1: keys on the position-primary k; under-coverage
+    # → "deferred", never "failed"). The verdict uses ndcg_at_{primary_k} per §8.2
+    # (QB/TE @12, RB/WR @24), not a hardcoded @24.
+    primary_k = PRIMARY_NDCG_K[position]
+    # A fold is G3-evaluable only as a COMPLETE pair — both primary-k model AND market
+    # NDCG present. A market-present-but-model-None fold must NOT count as a win (a bare
+    # `or 0` fallback could beat a 0.0 market — false confidence).
     market_available_folds = [
-        f for f in folds if f.ndcg_at_24_market is not None
+        f for f in folds
+        if getattr(f, f"ndcg_at_{primary_k}_market") is not None
+        and getattr(f, f"ndcg_at_{primary_k}_model") is not None
     ]
-    if not market_available_folds:
+    if len(market_available_folds) < 3:
+        # 0, 1, or 2 complete pairs: wins >= 3 is impossible, so a "failed" here would
+        # report UNDER-COVERAGE as a market-superiority loss (false confidence).
         g3_result: bool | str = "deferred"
         g3_status = "deferred"
     else:
         wins = sum(
             1 for f in market_available_folds
-            if (f.ndcg_at_24_model or 0) >= (f.ndcg_at_24_market or 0)
+            if getattr(f, f"ndcg_at_{primary_k}_model")
+            >= getattr(f, f"ndcg_at_{primary_k}_market")
         )
         g3_result = wins >= 3
         g3_status = "passed" if g3_result else "failed"

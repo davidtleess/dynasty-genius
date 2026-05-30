@@ -13,6 +13,8 @@ def build_mock_fold(
     tau_ci_low: float = 0.25,
     model_ndcg: Optional[float] = 0.85,
     market_ndcg: Optional[float] = 0.80,
+    model_ndcg_12: Optional[float] = 0.85,
+    market_ndcg_12: Optional[float] = 0.80,
 ) -> FoldResult:
     return FoldResult(
         fold_index=1,
@@ -28,6 +30,8 @@ def build_mock_fold(
         rank_ic=0.6,
         rmse=3.5,
         mae=2.8,
+        ndcg_at_12_model=model_ndcg_12,
+        ndcg_at_12_market=market_ndcg_12,
         ndcg_at_24_model=model_ndcg,
         ndcg_at_24_market=market_ndcg,
     )
@@ -148,7 +152,7 @@ def test_g3_market_superiority_logic():
     assert gate.g4_divergence_validity_pass == "deferred"
     assert gate.overall_grade == "ACTIVE_B"
 
-    # Fail: only 2 folds available, even if we win both (need 3 wins)
+    # Deferred: only 2 folds available, even if we win both (need 3 evaluable folds)
     folds = [
         build_mock_fold(model_ndcg=0.90, market_ndcg=0.85),
         build_mock_fold(model_ndcg=0.90, market_ndcg=0.85),
@@ -156,7 +160,7 @@ def test_g3_market_superiority_logic():
         build_mock_fold(model_ndcg=None, market_ndcg=None),
     ]
     gate = evaluate_promotion_gates(folds, stability, "WR")
-    assert gate.g3_market_superiority_pass is False
+    assert gate.g3_market_superiority_pass == "deferred"
     assert gate.overall_grade == "ACTIVE_B"
 
 
