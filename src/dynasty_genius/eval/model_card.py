@@ -35,6 +35,9 @@ class ModelCardMetrics(BaseModel):
     ece: Optional[float] = None
     ndcg_at_24_model_mean: Optional[float] = None
     ndcg_at_24_market_mean: Optional[float] = None
+    # R² (OOS, disclose-only) — nullable: fail-closed folds emit null
+    r2_oos_mean: Optional[float] = None
+    r2_oos_per_fold: List[Optional[float]] = []
     g1_pass: bool
     g2_pass: bool
     g3_pass: Any                    # bool | "deferred"
