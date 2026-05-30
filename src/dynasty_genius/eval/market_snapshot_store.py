@@ -37,6 +37,26 @@ CREATE INDEX IF NOT EXISTS idx_fc_snapshots_sleeper
 """
 
 
+class MarketSnapshotImmutabilityError(RuntimeError):
+    """Raised when an append would change an already-recorded snapshot row.
+
+    Forward (fc_native) and point-in-time backfill snapshots are immutable: a
+    changed value for an existing (snapshot_date, league_settings_hash, sleeper_id)
+    is a corruption signal, not an overwrite.
+    """
+
+
+# Columns whose change for an existing PK constitutes an immutability violation.
+_IMMUTABLE_COLS = (
+    "value",
+    "overall_rank",
+    "position_rank",
+    "position",
+    "trend_30day",
+    "source",
+)
+
+
 class MarketSnapshotStore:
     """SQLite-backed store for FantasyCalc snapshots (native + archive).
 
@@ -70,6 +90,48 @@ class MarketSnapshotStore:
         """
         with self._connect() as conn:
             conn.executemany(sql, rows)
+            conn.commit()
+        return self._row_count_for_date(rows[0]["snapshot_date"])
+
+    def append_snapshots(self, rows: list[dict]) -> int:
+        """Append-only immutable write (W2a). Returns row count for the date.
+
+        Identical same-key re-write is an idempotent no-op; a *changed* value for
+        an existing (snapshot_date, league_settings_hash, sleeper_id) raises
+        MarketSnapshotImmutabilityError — no silent overwrite (unlike
+        upsert_snapshots, which is INSERT OR REPLACE). The whole batch is one
+        transaction: a mid-batch conflict rolls back any rows already inserted in
+        the same call, so a failed append leaves no partial write.
+        """
+        if not rows:
+            return 0
+        insert_sql = """
+            INSERT INTO fc_snapshots
+                (snapshot_date, league_settings_hash, sleeper_id, value,
+                 overall_rank, position_rank, position, trend_30day,
+                 source, inserted_at)
+            VALUES
+                (:snapshot_date, :league_settings_hash, :sleeper_id, :value,
+                 :overall_rank, :position_rank, :position, :trend_30day,
+                 :source, :inserted_at)
+        """
+        with self._connect() as conn:
+            for r in rows:
+                existing = conn.execute(
+                    "SELECT value, overall_rank, position_rank, position, "
+                    "trend_30day, source FROM fc_snapshots "
+                    "WHERE snapshot_date = ? AND league_settings_hash = ? "
+                    "AND sleeper_id = ?",
+                    (r["snapshot_date"], r["league_settings_hash"], r["sleeper_id"]),
+                ).fetchone()
+                if existing is not None:
+                    if any(existing[c] != r[c] for c in _IMMUTABLE_COLS):
+                        raise MarketSnapshotImmutabilityError(
+                            "immutable snapshot conflict at "
+                            f"{r['snapshot_date']}/{r['sleeper_id']}"
+                        )
+                    continue  # identical → idempotent no-op
+                conn.execute(insert_sql, r)
             conn.commit()
         return self._row_count_for_date(rows[0]["snapshot_date"])
 
