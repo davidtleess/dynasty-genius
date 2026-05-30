@@ -1505,3 +1505,52 @@ def run_backtest_a(
         )
     write_backtest_a_artifact(result, output_root=Path(output_root))
     return result
+
+
+# ======================================================================
+# Backtest-B v1 always-abstain stub (§6.1)                        (Task 13)
+# ======================================================================
+
+BACKTEST_B_ABSTAIN_REASON: str = (
+    "Backtest B v1 deliberately excluded per spec §39; "
+    "gated on Backtest A clearance"
+)
+
+
+def run_backtest_b(upstream_run_id: Optional[str] = None) -> dict:
+    """Backtest-B v1 library function — ALWAYS returns a structured abstain (§6.1).
+
+    Backtest B is deliberately excluded in v1; it is gated on Backtest A clearance
+    by round/position bucket. This stub returns the abstain contract verbatim and is
+    locked by ``test_backtest_b_remains_abstained_in_v1`` — a future agent
+    implementing real Backtest B must explicitly flip that test, never quietly fill
+    this in. ``decision_supported`` is False.
+    """
+    return {
+        "status": "gated_on_backtest_a_per_bucket_position",
+        "reason": BACKTEST_B_ABSTAIN_REASON,
+        "required_gate": "backtest_a_per_bucket_position",
+        "upstream_run_id": upstream_run_id,
+        "decision_supported": False,
+        "exit_code": 0,
+    }
+
+
+def write_backtest_b_abstain_report(
+    *,
+    run_id: str,
+    output_root: Path,
+    upstream_run_id: Optional[str] = None,
+) -> dict:
+    """Write the single B-stub abstain report and return the abstain payload (§6.1).
+
+    Writes ONLY ``<output_root>/<run_id>/backtest_b_abstain.json`` — no other
+    B-related artifact (write-isolation is contract-locked). Direct single-write
+    (no atomic temp file) so the lock test sees exactly one write.
+    """
+    payload = run_backtest_b(upstream_run_id)
+    report_path = Path(output_root) / run_id / "backtest_b_abstain.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(report_path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+    return payload
