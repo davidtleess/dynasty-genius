@@ -129,6 +129,10 @@ def _load_gsis_to_sleeper_map() -> dict[str, str]:
     except Exception:
         return {}
 
+# Position-primary NDCG k for the G3 verdict (W1; Gate B §8.2). QB/TE pools are
+# small (~32–45) so the verdict keys on @12; RB/WR on @24.
+PRIMARY_NDCG_K = {"QB": 12, "RB": 24, "WR": 24, "TE": 12}
+
 CSV_PATH = Path("app/data/training/engine_b_features_v2.csv")
 
 _METADATA_COLS: frozenset[str] = frozenset({
