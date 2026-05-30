@@ -27,6 +27,8 @@ from src.dynasty_genius.eval.backtest_artifact import (
 )
 from src.dynasty_genius.eval.backtest_metrics import (
     compute_ndcg,
+    compute_ndcg_diff_bootstrap,
+    compute_r2,
     compute_rank_correlation,
 )
 from src.dynasty_genius.models.engine_b_contract import (
@@ -69,22 +71,30 @@ def _compute_market_ndcg(
     y_realized: np.ndarray,
     market_rows: list[dict],
     id_map: dict[str, str],
-) -> dict[str, Optional[float]]:
-    """Compute NDCG@12 and @24 for model and market on the sleeper-matched pool.
+    position: Optional[str] = None,
+    n_bootstrap: int = 1000,
+    rng_seed: int = 12345,
+) -> dict:
+    """Compute NDCG@12/@24 for model and market on the sleeper-matched pool.
 
     Players without a gsis_id → sleeper_id mapping, or whose sleeper_id is absent
     from the market snapshot, are excluded from the comparison pool but do NOT
     affect the fold's prediction metrics (y_pred / y_realized stay untouched).
 
-    Returns a dict with keys: ndcg_at_12_model, ndcg_at_12_market,
-    ndcg_at_24_model, ndcg_at_24_market.  All None when pool is empty.
+    Keys: ndcg_at_12_model, ndcg_at_12_market, ndcg_at_24_model, ndcg_at_24_market,
+    plus the W1 bootstrap destinations primary_k, market_pool_n,
+    ndcg_diff_primary_k, ndcg_diff_bca_ci95, caveat. When ``position`` is given,
+    the paired BCa NDCG-diff bootstrap is computed at PRIMARY_NDCG_K[position]
+    (pool < primary_k → null diff + "pool_below_k").
     """
-    _null: dict[str, Optional[float]] = {
+    _null: dict = {
         "ndcg_at_12_model": None, "ndcg_at_12_market": None,
         "ndcg_at_24_model": None, "ndcg_at_24_market": None,
+        "primary_k": None, "market_pool_n": None,
+        "ndcg_diff_primary_k": None, "ndcg_diff_bca_ci95": None, "caveat": None,
     }
     if not market_rows:
-        return _null
+        return dict(_null)
 
     market_by_sleeper = {row["sleeper_id"]: float(row["value"]) for row in market_rows}
 
@@ -101,19 +111,32 @@ def _compute_market_ndcg(
 
     n = len(pool_pred)
     if n == 0:
-        return _null
+        return dict(_null)
 
     model_ranks = _compute_ranks_desc(pool_pred)
     market_ranks = _compute_ranks_desc(pool_market)
 
-    result: dict[str, Optional[float]] = {}
+    result: dict = dict(_null)
+    result["market_pool_n"] = n
     for k in [12, 24]:
         if n >= k:
             result[f"ndcg_at_{k}_model"] = compute_ndcg(model_ranks, pool_realized, k)
             result[f"ndcg_at_{k}_market"] = compute_ndcg(market_ranks, pool_realized, k)
+
+    # W1 producer: paired BCa NDCG-diff bootstrap at the position-primary k.
+    if position is not None:
+        primary_k = PRIMARY_NDCG_K[position]
+        result["primary_k"] = primary_k
+        if n >= primary_k:
+            boot = compute_ndcg_diff_bootstrap(
+                model_ranks, market_ranks, pool_realized, primary_k,
+                n_bootstrap=n_bootstrap, rng_seed=rng_seed,
+            )
+            result["ndcg_diff_primary_k"] = boot["ndcg_diff"]
+            result["ndcg_diff_bca_ci95"] = boot["ndcg_diff_bca_ci95"]
+            result["caveat"] = boot["caveat"]
         else:
-            result[f"ndcg_at_{k}_model"] = None
-            result[f"ndcg_at_{k}_market"] = None
+            result["caveat"] = "pool_below_k"
 
     return result
 
@@ -127,6 +150,10 @@ def _load_gsis_to_sleeper_map() -> dict[str, str]:
         return dict(zip(valid["gsis_id"].astype(str), valid["sleeper_id"].astype(str)))
     except Exception:
         return {}
+
+# Position-primary NDCG k for the G3 verdict (W1; Gate B §8.2). QB/TE pools are
+# small (~32–45) so the verdict keys on @12; RB/WR on @24.
+PRIMARY_NDCG_K = {"QB": 12, "RB": 24, "WR": 24, "TE": 12}
 
 CSV_PATH = Path("app/data/training/engine_b_features_v2.csv")
 
@@ -156,9 +183,11 @@ def evaluate_promotion_gates(
       Pass if: rmse_max_deviation_pct <= 25.0%
                AND stability.dm_hln_pvalue <= 0.10 (if computed).
 
-    G3 — Market Superiority:
-      Pass if: ndcg_at_24_model >= ndcg_at_24_market in >= 3 of 4 folds
-               where market data is available.
+    G3 — Market Superiority (keys on the position-primary k: QB/TE @12, RB/WR @24):
+      Pass if: ndcg_at_{primary_k}_model >= ndcg_at_{primary_k}_market in >= 3 of 4
+               COMPLETE (model+market) folds.
+      Deferred if: fewer than 3 complete (model+market) primary-k pairs exist
+               (under-coverage is NOT reported as a failure/loss).
 
     G4 — Divergence Validity (Deferred to v2):
       Pass if: MW p <= 0.10, diff CI > 0, and hit-rate CI > 0.50 on n >= 30.
@@ -179,17 +208,28 @@ def evaluate_promotion_gates(
     if stability.dm_hln_pvalue is not None:
         g2_pass = g2_pass and stability.dm_hln_pvalue <= 0.10
 
-    # G3 — Market Superiority
+    # G3 — Market Superiority (W1: keys on the position-primary k; under-coverage
+    # → "deferred", never "failed"). The verdict uses ndcg_at_{primary_k} per §8.2
+    # (QB/TE @12, RB/WR @24), not a hardcoded @24.
+    primary_k = PRIMARY_NDCG_K[position]
+    # A fold is G3-evaluable only as a COMPLETE pair — both primary-k model AND market
+    # NDCG present. A market-present-but-model-None fold must NOT count as a win (a bare
+    # `or 0` fallback could beat a 0.0 market — false confidence).
     market_available_folds = [
-        f for f in folds if f.ndcg_at_24_market is not None
+        f for f in folds
+        if getattr(f, f"ndcg_at_{primary_k}_market") is not None
+        and getattr(f, f"ndcg_at_{primary_k}_model") is not None
     ]
-    if not market_available_folds:
+    if len(market_available_folds) < 3:
+        # 0, 1, or 2 complete pairs: wins >= 3 is impossible, so a "failed" here would
+        # report UNDER-COVERAGE as a market-superiority loss (false confidence).
         g3_result: bool | str = "deferred"
         g3_status = "deferred"
     else:
         wins = sum(
             1 for f in market_available_folds
-            if (f.ndcg_at_24_model or 0) >= (f.ndcg_at_24_market or 0)
+            if getattr(f, f"ndcg_at_{primary_k}_model")
+            >= getattr(f, f"ndcg_at_{primary_k}_market")
         )
         g3_result = wins >= 3
         g3_status = "passed" if g3_result else "failed"
@@ -447,9 +487,12 @@ class WalkForwardDriver:
             )
 
             # Market comparison — only when store provided
-            ndcg_fields: dict[str, Optional[float]] = {
+            ndcg_fields: dict = {
                 "ndcg_at_12_model": None, "ndcg_at_12_market": None,
                 "ndcg_at_24_model": None, "ndcg_at_24_market": None,
+                "primary_k": None, "market_pool_n": None,
+                "ndcg_diff_primary_k": None, "ndcg_diff_bca_ci95": None,
+                "caveat": None,
             }
             if market_store is not None:
                 snap_date = _market_snapshot_date(test_year)
@@ -508,7 +551,18 @@ class WalkForwardDriver:
                     y_realized=y_test,
                     market_rows=market_rows if market_store is not None else [],
                     id_map=_id_map,
+                    position=position,
                 )
+
+            n_test = X_test.shape[0]
+            r2_oos = compute_r2(y_test, y_pred)
+            fold_caveats: list[str] = []
+            if r2_oos is None:
+                fold_caveats.append("r2_oos_unavailable")
+            elif n_test < 50:
+                fold_caveats.append("r2_oos_small_sample")
+            if ndcg_fields.get("caveat"):
+                fold_caveats.append(ndcg_fields["caveat"])
 
             fold_results.append(FoldResult(
                 fold_index=fold_index,
@@ -516,7 +570,7 @@ class WalkForwardDriver:
                 test_year=test_year,
                 outcome_seasons=outcome_seasons,
                 n_train=X_train.shape[0],
-                n_test=X_test.shape[0],
+                n_test=n_test,
                 kendall_tau=tau,
                 kendall_tau_bca_ci95=tau_ci,
                 spearman_rho=rho,
@@ -524,10 +578,16 @@ class WalkForwardDriver:
                 rank_ic=rho,
                 rmse=rmse,
                 mae=mae,
+                r2_oos=r2_oos,
+                metric_caveats=fold_caveats,
                 ndcg_at_12_model=ndcg_fields["ndcg_at_12_model"],
                 ndcg_at_12_market=ndcg_fields["ndcg_at_12_market"],
                 ndcg_at_24_model=ndcg_fields["ndcg_at_24_model"],
                 ndcg_at_24_market=ndcg_fields["ndcg_at_24_market"],
+                primary_k=ndcg_fields["primary_k"],
+                market_pool_n=ndcg_fields["market_pool_n"],
+                ndcg_diff_primary_k=ndcg_fields["ndcg_diff_primary_k"],
+                ndcg_diff_bca_ci95=ndcg_fields["ndcg_diff_bca_ci95"],
                 feature_coefficients=feature_coefficients,
             ))
 

@@ -17,30 +17,21 @@ from src.dynasty_genius.identity.prospect_nfl_bridge import CollegeProspectBridg
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+# NOTE (2026-05-30, David-authorized rescope — Harness Trust Completion spec §1.1):
+# The §11.1 byte-lock on Phase 10/11 files was a BUILD-DURATION guardrail for S4
+# ("inviolate for the duration of S4 work") and EXPIRED when S4 merged to main
+# (95345ea). The sanctioned Harness Trust Completion initiative now legitimately
+# modifies those files, so the 6 harness-trust-owned files were removed from this
+# byte-baseline. The 2 Phase-10/11 files harness-trust does NOT touch remain locked.
+# ALL permanent guardrails below (S4-module isolation, S3 byte-locks, AST anti-
+# laundering, eval allowlist, banned-language/decision_supported, Engine A/B leakage
+# wall) are UNCHANGED. This is the only authorized edit to test_subsystem_4_*.
 INVIOLATE_BASELINE_SHA256_A41E0C6 = {
-    "src/dynasty_genius/eval/backtest_harness.py": (
-        "e1b88e019118d11c8669270b882d153022c2bd4474ee0f2086affcd90a7dcc04"
-    ),
-    "src/dynasty_genius/eval/backtest_artifact.py": (
-        "d7a64d4a705e3a8067402534fed57eea946492d5e2047e1716f8d919d52d61f5"
-    ),
-    "src/dynasty_genius/eval/backtest_metrics.py": (
-        "3746fbac48702219e3f711ff860767b0d3a3880f31f22480b23b3678af02e162"
-    ),
     "src/dynasty_genius/eval/backtest_report.py": (
         "659da032440ac31498183486ee08b2f9fb938043ff0ea0356afd555711c9d49a"
     ),
-    "src/dynasty_genius/eval/model_card.py": (
-        "8593a4a7bb7b3384af7f90686837e79eafc74a8ad5f8067d33987abdba559a4a"
-    ),
-    "src/dynasty_genius/eval/market_snapshot_store.py": (
-        "0ef228716b20aa3aeb1d835cbdca23721538611f3fb85900238764a7d85b6f47"
-    ),
     "scripts/run_backtest.py": (
         "45d80ef0ba3a0b9ec9580cb0d03732d79c06c1d6f35c48cb3a9a69586b54d565"
-    ),
-    "app/api/routes/trust_surface.py": (
-        "a6b85f77d0e38297f34d839bf5ea653a521c08efac4e12a135c67ad51c75001f"
     ),
 }
 

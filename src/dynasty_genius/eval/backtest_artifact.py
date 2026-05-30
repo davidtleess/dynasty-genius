@@ -43,6 +43,17 @@ class FoldResult(BaseModel):
     rmse: float
     mae: float
 
+    # R² — OOS coefficient of determination (disclose-only; None when fail-closed)
+    r2_oos: Optional[float] = None
+    # Fixed-token fail-closed caveats (banned-language-safe); e.g. "r2_oos_unavailable"
+    metric_caveats: List[str] = Field(default_factory=list)
+
+    # Market-comparison destinations (W1) — None when market data unavailable
+    primary_k: Optional[int] = None                       # position-primary k for the verdict
+    market_pool_n: Optional[int] = None                   # matched model∩market pool size
+    ndcg_diff_primary_k: Optional[float] = None           # ndcg_model@k − ndcg_market@k
+    ndcg_diff_bca_ci95: Optional[Tuple[float, float]] = None  # paired BCa bootstrap CI
+
     # Market comparison — None when market data unavailable for this fold
     ndcg_at_12_model: Optional[float] = None
     ndcg_at_12_market: Optional[float] = None

@@ -64,6 +64,28 @@ async def get_trust_surface(position: str) -> dict[str, Any]:
     data["model_card_available"] = (
         MODEL_CARDS_DIR / f"{pos_upper}_model_card.json"
     ).exists()
+
+    # W4: QB-only model-reliability stamp — a descriptive, measured-uncertainty
+    # caveat (no buy/sell/roster-action, no verdict/tier/grade). The QB engine is
+    # the least-validated; a divergence read should visibly carry that.
+    if pos_upper == "QB":
+        folds = result.folds
+        _r2 = [f.r2_oos for f in folds if f.r2_oos is not None]
+        r2_mean = (sum(_r2) / len(_r2)) if _r2 else None
+        rho_mean = (
+            sum(f.spearman_rho for f in folds) / len(folds) if folds else None
+        )
+        data["model_reliability"] = {
+            "position": "QB",
+            "r2_oos_mean": r2_mean,
+            "spearman_rho_mean": rho_mean,
+            "caveat": (
+                "QB magnitude predictions carry elevated uncertainty: OOS "
+                f"R-squared={'n/a' if r2_mean is None else round(r2_mean, 3)}, "
+                f"Spearman={'n/a' if rho_mean is None else round(rho_mean, 3)}."
+            ),
+        }
+
     return data
 
 

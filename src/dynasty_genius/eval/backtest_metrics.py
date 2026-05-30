@@ -7,12 +7,43 @@ Reference: Harvey, Leybourne & Newbold (1997) for HLN-corrected DM test.
 from __future__ import annotations
 
 import math
+import warnings
 from typing import Optional
 
 import numpy as np
 from scipy import stats as scipy_stats
 
 from src.dynasty_genius.eval.backtest_artifact import TopKResult
+
+# ── R² (coefficient of determination) ─────────────────────────────────────────
+
+
+def compute_r2(y_true, y_pred) -> Optional[float]:
+    """OOS coefficient of determination ``1 - SS_res/SS_tot``.
+
+    Fail-closed → ``None``: zero-variance truth (``SS_tot == 0``); any non-finite
+    value (NaN/inf) in either array (data corruption). Raises ``ValueError`` on
+    API-misuse (length mismatch / empty input). Negative R² is valid and returned
+    as-is (a model worse than predicting the mean).
+    """
+    yt = np.asarray(y_true, dtype=float)
+    yp = np.asarray(y_pred, dtype=float)
+    if yt.shape != yp.shape:
+        raise ValueError("compute_r2: y_true and y_pred must have equal length")
+    if yt.size == 0:
+        raise ValueError("compute_r2: empty input")
+    if not (np.isfinite(yt).all() and np.isfinite(yp).all()):
+        return None
+    with np.errstate(over="ignore", invalid="ignore"):
+        ss_tot = float(np.sum((yt - yt.mean()) ** 2))
+        ss_res = float(np.sum((yt - yp) ** 2))
+    if not (math.isfinite(ss_tot) and math.isfinite(ss_res)):
+        return None  # finite inputs overflowed the squared sums → fail closed
+    if ss_tot == 0.0:
+        return None
+    r2 = 1.0 - ss_res / ss_tot
+    return r2 if math.isfinite(r2) else None
+
 
 # ── Rank Correlation ──────────────────────────────────────────────────────────
 
@@ -111,6 +142,92 @@ def compute_ndcg(
     if idcg == 0.0:
         return 0.0
     return dcg / idcg
+
+
+def compute_ndcg_diff_bootstrap(
+    model_ranks,
+    market_ranks,
+    realized_relevance,
+    k,
+    *,
+    n_bootstrap: int = 1000,
+    rng_seed: int = 12345,
+    min_pool: int = 10,
+) -> dict:
+    """Paired player-level BCa bootstrap of NDCG@k difference (model - market).
+
+    Resamples player indices with replacement — the SAME indices applied to model
+    and market (paired) — so the pairing is preserved. Returns keys: ndcg_diff,
+    ndcg_diff_bca_ci95, pool_n, method ("bca_bootstrap"), caveat.
+
+    Fail-closed → diff/CI None: pool n < max(k, min_pool) (caveat
+    "insufficient_pool_for_bootstrap"); any non-finite rank/relevance (caveat
+    "nonfinite_input_for_bootstrap"). Raises ValueError on unequal-length inputs
+    (API misuse). Degenerate distribution (e.g. perfect model==market agreement)
+    → CI collapses to the point estimate. Mirrors the existing ``_bca_ci`` pattern.
+    """
+    if not (len(model_ranks) == len(market_ranks) == len(realized_relevance)):
+        raise ValueError(
+            "compute_ndcg_diff_bootstrap: model_ranks, market_ranks, and "
+            "realized_relevance must have equal length"
+        )
+    if k < 1:
+        raise ValueError("compute_ndcg_diff_bootstrap: k must be >= 1")
+    if n_bootstrap < 1:
+        raise ValueError("compute_ndcg_diff_bootstrap: n_bootstrap must be >= 1")
+    n = len(realized_relevance)
+    base = {
+        "ndcg_diff": None,
+        "ndcg_diff_bca_ci95": None,
+        "pool_n": n,
+        "method": "bca_bootstrap",
+    }
+    if n < max(k, min_pool):
+        return {**base, "caveat": "insufficient_pool_for_bootstrap"}
+
+    mr = np.asarray(model_ranks, dtype=float)
+    kr = np.asarray(market_ranks, dtype=float)
+    rel = np.asarray(realized_relevance, dtype=float)
+    if not (
+        np.isfinite(mr).all() and np.isfinite(kr).all() and np.isfinite(rel).all()
+    ):
+        return {**base, "caveat": "nonfinite_input_for_bootstrap"}
+    # Ranks must be >= 1 — compute_ndcg divides by log2(rank + 1), so rank <= 0
+    # yields a non-finite metric. Fail closed rather than emit a bogus G3 number.
+    if (mr < 1).any() or (kr < 1).any():
+        return {**base, "caveat": "invalid_rank_domain"}
+
+    def _diff(m, kk, r):
+        return (
+            compute_ndcg(m.tolist(), r.tolist(), k)
+            - compute_ndcg(kk.tolist(), r.tolist(), k)
+        )
+
+    point = float(_diff(mr, kr, rel))
+    if not math.isfinite(point):  # backstop: never return a non-finite metric as valid
+        return {**base, "caveat": "nonfinite_metric"}
+    try:
+        with warnings.catch_warnings():
+            # Perfect agreement / zero-variance statistic is an EXPECTED degenerate
+            # case we handle by collapsing the CI — don't surface scipy's warning.
+            warnings.simplefilter("ignore")
+            result = scipy_stats.bootstrap(
+                (mr, kr, rel),
+                _diff,
+                n_resamples=n_bootstrap,
+                random_state=rng_seed,
+                method="BCa",
+                paired=True,
+                confidence_level=0.95,
+            )
+        lo = float(result.confidence_interval.low)
+        hi = float(result.confidence_interval.high)
+        if not (math.isfinite(lo) and math.isfinite(hi)):
+            lo = hi = point
+    except Exception:
+        # Degenerate distribution (e.g. perfect agreement) — CI collapses to point
+        lo = hi = point
+    return {**base, "ndcg_diff": point, "ndcg_diff_bca_ci95": (lo, hi), "caveat": None}
 
 
 # ── Precision@k ───────────────────────────────────────────────────────────────

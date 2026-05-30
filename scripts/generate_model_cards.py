@@ -282,8 +282,14 @@ def generate_card_for_position(
     ndcg_model_vals = [f.ndcg_at_24_model for f in folds if f.ndcg_at_24_model is not None]
     ndcg_market_vals = [f.ndcg_at_24_market for f in folds if f.ndcg_at_24_market is not None]
 
+    r2_per_fold = [f.r2_oos for f in folds]
+    _r2_present = [v for v in r2_per_fold if v is not None]
+    r2_mean = (sum(_r2_present) / len(_r2_present)) if _r2_present else None
+
     metrics = ModelCardMetrics(
         rmse_mean=rmse_mean,
+        r2_oos_mean=r2_mean,
+        r2_oos_per_fold=r2_per_fold,
         rmse_per_fold=rmse_per_fold,
         kendall_tau_mean=tau_mean,
         kendall_tau_per_fold=tau_per_fold,
