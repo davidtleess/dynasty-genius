@@ -961,3 +961,107 @@ def compute_metrics(
         },
         "warnings": warnings,
     }
+
+
+# ======================================================================
+# backtest_b_gate_status + synthetic hedge + two-tier (§5.5–§5.7)  (Task 11)
+# ======================================================================
+
+# Per-(round_bucket) v1 candidate thresholds (§5.5). R3/Day3 always abstain in v1.
+B_GATE_BUCKET_THRESHOLDS: dict[str, dict] = {
+    "R1-early": {"mae_max": 8.0, "coverage_min": 0.80},
+    "R1-mid": {"mae_max": 12.0, "coverage_min": 0.70},
+    "R1-late": {"mae_max": 12.0, "coverage_min": 0.70},
+    "R2": {"mae_max": 18.0, "coverage_min": 0.60},
+    "R3": {"gate_result": "always_abstain"},
+    "Day3": {"gate_result": "always_abstain"},
+}
+# Two-tier bridge top-36 truth coverage (§5.7): v1 evidence-to-evaluate-A vs B's gate.
+EVIDENCE_TO_EVALUATE_A_TOP_36_BRIDGE_COVERAGE: float = 0.90
+B_GATE_REQUIRED_TRUTH_COVERAGE: float = 1.00
+
+
+def evaluate_b_gate(
+    metrics: dict,
+    per_bucket_breakdown: dict,
+    *,
+    data_mode: str = "real",
+    draft_date_source: str = "",
+) -> dict:
+    """Evaluate Backtest-B gate status per (round_bucket, position) — §5.5–§5.7.
+
+    Pure function — no filesystem writes. ``per_bucket_breakdown`` is
+    ``{round_bucket: {position: {"mae": float, "coverage": float}}}``.
+
+    The synthetic safety hedge (§5.6) is applied BEFORE per-bucket evaluation:
+    a synthetic ``data_mode`` OR an ``override:``-sourced draft date forces
+    ``overall_status="always_abstain_synthetic_data"`` and every per-bucket
+    ``gate_result="not_evaluable_synthetic"`` (mae/coverage nulled, schema shape
+    preserved) — anti-false-confidence, regardless of metric values. R3/Day3 always
+    abstain in v1. Two-tier thresholds (§5.7) are recorded for the future
+    Backtest-B implementation but are not active gating in v1.
+    """
+    is_synthetic = (
+        data_mode == "synthetic" or draft_date_source.startswith("override:")
+    )
+
+    per_bucket_results: dict[str, dict] = {}
+    n_pass = 0
+    for round_bucket, positions in per_bucket_breakdown.items():
+        for position, stats in positions.items():
+            key = f"{round_bucket}|{position}"
+            mae = stats.get("mae")
+            coverage = stats.get("coverage")
+            if is_synthetic:
+                per_bucket_results[key] = {
+                    "gate_result": "not_evaluable_synthetic",
+                    "mae": None,
+                    "coverage": None,
+                }
+                continue
+            threshold = B_GATE_BUCKET_THRESHOLDS.get(round_bucket, {})
+            if threshold.get("gate_result") == "always_abstain":
+                gate_result = "always_abstain"
+            elif (
+                "mae_max" in threshold
+                and mae is not None
+                and coverage is not None
+                and mae <= threshold["mae_max"]
+                and coverage >= threshold["coverage_min"]
+            ):
+                gate_result = "pass"
+                n_pass += 1
+            else:
+                gate_result = "fail"
+            per_bucket_results[key] = {
+                "gate_result": gate_result,
+                "mae": mae,
+                "coverage": coverage,
+            }
+
+    if is_synthetic:
+        overall_status = "always_abstain_synthetic_data"
+    else:
+        n_total = len(per_bucket_results)
+        if n_total and n_pass == n_total:
+            overall_status = "all_pass"
+        elif n_pass == 0:
+            overall_status = "all_fail"
+        else:
+            overall_status = "partial"
+
+    return {
+        "overall_status": overall_status,
+        "per_bucket_results": per_bucket_results,
+        "gate_version": GATE_VERSION,
+        "thresholds": {
+            "evidence_to_evaluate_a_top_36_bridge_coverage": (
+                EVIDENCE_TO_EVALUATE_A_TOP_36_BRIDGE_COVERAGE
+            ),
+            "b_gate_required_truth_coverage": B_GATE_REQUIRED_TRUTH_COVERAGE,
+            "bucket_thresholds": {
+                bucket: dict(spec)
+                for bucket, spec in B_GATE_BUCKET_THRESHOLDS.items()
+            },
+        },
+    }
