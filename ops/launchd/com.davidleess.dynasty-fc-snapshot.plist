@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Harness Trust Completion W2a.3 — local daily FantasyCalc snapshot scheduler.
+
+  Starts the Gate-4 forward-collection clock: runs scripts/snapshot_fantasycalc.py
+  daily, writing immutable fc_native rows to app/data/fc_snapshots.db. Local-first
+  (no Databricks). Committed but LOADED MANUALLY BY DAVID — the agent does not load
+  it:  launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-fc-snapshot.plist
+  (symlink or copy this file there first).
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-fc-snapshot</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/snapshot_fantasycalc.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/fc_snapshot.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/fc_snapshot.err.log</string>
+</dict>
+</plist>

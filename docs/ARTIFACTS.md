@@ -105,3 +105,11 @@ Use `--market-store app/data/fc_snapshots.db` on `run_backtest.py` when a valid 
 - `NOISE_BAND=0.10` remains locked until mid-July 2026.
 - DVS, RB feature expansion, and TE remodeling require separate review/spec approval after Phase 12 artifact review.
 - Draft-pick values are an NFL-derived historical expectation, never an Engine A/B training input and never a market-measured price; pick output stays `decision_supported=False`. Raising `sf_qb_promote_slots` above 0 (and the resulting curve regen) requires David's explicit approval of a fresh calibration K.
+
+## Harness Trust Completion — Gate-4 forward-collection clock (W2a)
+
+- **Daily `fc_native` snapshot cadence.** `scripts/snapshot_fantasycalc.py` runs **daily** (~09:00 local) via the LaunchAgent `ops/launchd/com.davidleess.dynasty-fc-snapshot.plist`, writing immutable FantasyCalc snapshot rows (`source=fc_native`) to `app/data/fc_snapshots.db`. Local-first; no Databricks.
+- **Immutability contract.** Writes go through `MarketSnapshotStore.append_snapshots` (verify-or-raise): a same-`(snapshot_date, league_settings_hash, sleeper_id)` re-run with identical values is an idempotent no-op; a *changed* value for an already-recorded date raises `MarketSnapshotImmutabilityError` (fail loud — no silent overwrite). This protects point-in-time provenance.
+- **Manual activation (David).** The plist is committed but loaded manually: `launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-fc-snapshot.plist`. The agent never auto-loads it.
+- **Gate-4 readiness clock.** Gate 4 (divergence forward-return validity) needs a forward-collected, point-in-time snapshot series that does not exist yet. **Gate-4 readiness date = first-collection-date + ~6 months** (a six-month forward window). W2b — the `DivergenceResult` producer + matched-control design (spec §8.3) — stays deferred until this ~6-month readiness window matures. Every day the clock is not running pushes Gate-4 out a day.
+- Market/FantasyCalc data here remain **overlays only** — never an Engine A/B feature/training input; `decision_supported=False` throughout.
