@@ -154,8 +154,10 @@ def test_id_map_csv_loads_and_normalizes_float_string_sleeper_ids(tmp_path):
 
 
 @pytest.mark.parametrize("id_map", [{}, {"00-0031234": ""}])
-def test_market_store_active_empty_or_all_na_id_map_raises_loudly(tmp_path, id_map):
-    store = MarketSnapshotStore(db_path=tmp_path / "snapshots.db")
+def test_market_data_present_empty_or_all_na_id_map_raises_loudly(tmp_path, id_map):
+    player_ids = _wr_2020_player_ids(3)
+    rows, _ = _market_rows(player_ids, ranks_present=True)
+    store = _store_with_rows(tmp_path, rows)
     expected_error = getattr(backtest_harness, "IdMapUnavailableError", RuntimeError)
 
     with pytest.raises(expected_error, match="id_map_unavailable"):
@@ -166,7 +168,9 @@ def test_market_store_active_default_loader_unavailable_raises_loudly(
     monkeypatch,
     tmp_path,
 ):
-    store = MarketSnapshotStore(db_path=tmp_path / "snapshots.db")
+    player_ids = _wr_2020_player_ids(3)
+    rows, _ = _market_rows(player_ids, ranks_present=True)
+    store = _store_with_rows(tmp_path, rows)
     expected_error = getattr(backtest_harness, "IdMapUnavailableError", RuntimeError)
     monkeypatch.setattr(backtest_harness, "_load_gsis_to_sleeper_map", lambda: {})
 
@@ -203,7 +207,10 @@ def test_cli_passes_normalized_id_map_csv_to_driver(monkeypatch, tmp_path):
 
 def test_cli_empty_id_map_csv_fails_loudly_when_market_store_active(tmp_path):
     market_store_path = tmp_path / "snapshots.db"
-    MarketSnapshotStore(db_path=market_store_path)
+    player_ids = _wr_2020_player_ids(3)
+    rows, _ = _market_rows(player_ids, ranks_present=True)
+    store = MarketSnapshotStore(db_path=market_store_path)
+    store.upsert_snapshots(rows)
     id_map_path = tmp_path / "db_playerids.csv"
     id_map_path.write_text(
         "gsis_id,sleeper_id\n00-0031234,\n00-0039999,NA\n",
