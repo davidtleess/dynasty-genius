@@ -143,8 +143,8 @@ def test_default_nflreadpy_id_loader_normalizes_float_sleeper_ids(monkeypatch):
 
 def test_default_nflreadpy_id_loader_skips_fractional_sleeper_ids(monkeypatch):
     fake_ff = pd.DataFrame({
-        "gsis_id": ["00-0031234", "00-0039999"],
-        "sleeper_id": [13269.5, 4034.0],
+        "gsis_id": ["00-0031234", "00-0039999", "00-0038888"],
+        "sleeper_id": [13269.5, 4034.0, "not-a-sleeper-id"],
     })
     monkeypatch.setitem(
         sys.modules,
@@ -156,6 +156,7 @@ def test_default_nflreadpy_id_loader_skips_fractional_sleeper_ids(monkeypatch):
 
     assert id_map == {"00-0039999": "4034"}
     assert backtest_harness._normalize_sleeper_id("13269.5") is None
+    assert backtest_harness._normalize_sleeper_id("not-a-sleeper-id") is None
 
 
 def test_id_map_csv_loads_and_normalizes_float_string_sleeper_ids(tmp_path):
@@ -187,6 +188,21 @@ def test_id_map_csv_skips_fractional_sleeper_ids_without_truncation(tmp_path):
 
     assert id_map == {"00-0039999": "4034"}
     assert "13269" not in id_map.values()
+
+
+def test_id_map_csv_skips_non_numeric_sleeper_ids(tmp_path):
+    path = tmp_path / "db_playerids.csv"
+    path.write_text(
+        "gsis_id,sleeper_id,name\n"
+        "00-0031234,not-a-sleeper-id,Wrong Type\n"
+        "00-0039999,4034.0,Clean Float\n",
+        encoding="utf-8",
+    )
+
+    id_map = run_backtest._load_id_map_csv(path)
+
+    assert id_map == {"00-0039999": "4034"}
+    assert "not-a-sleeper-id" not in id_map.values()
 
 
 @pytest.mark.parametrize("id_map", [{}, {"00-0031234": ""}])
