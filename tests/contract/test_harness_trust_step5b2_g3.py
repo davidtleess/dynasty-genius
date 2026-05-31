@@ -205,6 +205,33 @@ def test_id_map_csv_skips_non_numeric_sleeper_ids(tmp_path):
     assert "not-a-sleeper-id" not in id_map.values()
 
 
+def test_sleeper_id_normalizers_skip_non_finite_numeric_values(monkeypatch, tmp_path):
+    fake_ff = pd.DataFrame({
+        "gsis_id": ["00-0031111", "00-0032222", "00-0033333"],
+        "sleeper_id": ["nan", "inf", "4034.0"],
+    })
+    monkeypatch.setitem(
+        sys.modules,
+        "nflreadpy",
+        SimpleNamespace(load_ff_playerids=lambda: fake_ff),
+    )
+
+    assert backtest_harness._normalize_sleeper_id("nan") is None
+    assert backtest_harness._normalize_sleeper_id("inf") is None
+    assert _load_gsis_to_sleeper_map() == {"00-0033333": "4034"}
+
+    path = tmp_path / "db_playerids.csv"
+    path.write_text(
+        "gsis_id,sleeper_id,name\n"
+        "00-0031111,nan,Not A Number\n"
+        "00-0032222,inf,Infinity\n"
+        "00-0033333,4034.0,Clean Float\n",
+        encoding="utf-8",
+    )
+
+    assert run_backtest._load_id_map_csv(path) == {"00-0033333": "4034"}
+
+
 @pytest.mark.parametrize("id_map", [{}, {"00-0031234": ""}])
 def test_market_data_present_empty_or_all_na_id_map_raises_loudly(tmp_path, id_map):
     player_ids = _wr_2020_player_ids(3)
