@@ -27,14 +27,18 @@ from src.dynasty_genius.eval.backtest_harness import (
 from src.dynasty_genius.eval.market_snapshot_store import MarketSnapshotStore
 
 
-def _wr_2020_player_ids(n: int) -> list[str]:
+def _wr_player_ids(feature_season: int, n: int) -> list[str]:
     df = pd.read_csv("app/data/training/engine_b_features_v2.csv")
     mask = (
         (df["position"] == "WR")
-        & (df["feature_season"] == 2020)
+        & (df["feature_season"] == feature_season)
         & df["training_eligible"].astype(bool)
     )
     return df.loc[mask, "player_id"].head(n).astype(str).tolist()
+
+
+def _wr_2020_player_ids(n: int) -> list[str]:
+    return _wr_player_ids(2020, n)
 
 
 def _market_rows(
@@ -209,6 +213,36 @@ def test_market_data_present_zero_overlap_id_map_raises_loudly(tmp_path):
         WalkForwardDriver(position="WR").run(
             market_store=store,
             id_map=non_empty_zero_overlap_map,
+        )
+
+
+def test_market_data_present_mixed_fold_zero_overlap_still_raises_loudly(tmp_path):
+    valid_2020_ids = _wr_player_ids(2020, 24)
+    zero_overlap_2021_ids = _wr_player_ids(2021, 24)
+    valid_rows, valid_id_map = _market_rows(
+        valid_2020_ids,
+        snapshot_date="2021-09-08",
+        ranks_present=True,
+    )
+    zero_overlap_rows, _ = _market_rows(
+        zero_overlap_2021_ids,
+        snapshot_date="2022-09-08",
+        ranks_present=True,
+    )
+    store = _store_with_rows(tmp_path, valid_rows + zero_overlap_rows)
+    mixed_id_map = {
+        **valid_id_map,
+        **{
+            pid: f"wrong_sleeper_{i}"
+            for i, pid in enumerate(zero_overlap_2021_ids)
+        },
+    }
+    expected_error = getattr(backtest_harness, "IdMapUnavailableError", RuntimeError)
+
+    with pytest.raises(expected_error, match="id_map_unavailable.*zero overlap"):
+        WalkForwardDriver(position="WR").run(
+            market_store=store,
+            id_map=mixed_id_map,
         )
 
 
