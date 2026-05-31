@@ -23,15 +23,19 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # (95345ea). The sanctioned Harness Trust Completion initiative now legitimately
 # modifies those files, so the 6 harness-trust-owned files were removed from this
 # byte-baseline. The 2 Phase-10/11 files harness-trust does NOT touch remain locked.
-# ALL permanent guardrails below (S4-module isolation, S3 byte-locks, AST anti-
-# laundering, eval allowlist, banned-language/decision_supported, Engine A/B leakage
-# wall) are UNCHANGED. This is the only authorized edit to test_subsystem_4_*.
+#
+# ADDENDUM (2026-05-30, David-authorized — Harness Trust Step-5b.2): the original
+# rescope kept scripts/run_backtest.py locked on the assumption harness-trust would
+# not touch the CLI entrypoint. Step-5b.2 (deterministic --id-map-csv G3 join) now
+# legitimately modifies it, so scripts/run_backtest.py is released here under the
+# same justification as the 6 engine files. backtest_report.py remains locked
+# (untouched). ALL permanent guardrails below (S4-module isolation, S3 byte-locks,
+# AST anti-laundering, eval allowlist, banned-language/decision_supported, Engine
+# A/B leakage wall) are UNCHANGED. These two are the only authorized edits to
+# test_subsystem_4_*.
 INVIOLATE_BASELINE_SHA256_A41E0C6 = {
     "src/dynasty_genius/eval/backtest_report.py": (
         "659da032440ac31498183486ee08b2f9fb938043ff0ea0356afd555711c9d49a"
-    ),
-    "scripts/run_backtest.py": (
-        "45d80ef0ba3a0b9ec9580cb0d03732d79c06c1d6f35c48cb3a9a69586b54d565"
     ),
 }
 

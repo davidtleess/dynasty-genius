@@ -126,6 +126,12 @@ class BacktestResult(BaseModel):
     divergence_validity: Optional[DivergenceResult] = None
 
     market_source: Literal["fc_native", "dp_archive", "ktc_community_csv", "unavailable"]
+    market_source_label: Literal[
+        "fantasycalc_native",
+        "dynastyprocess_ecr_2qb",
+        "ktc_community_csv",
+        "unavailable",
+    ] = "unavailable"
     market_snapshot_dates: Optional[Dict[int, str]] = None  # {test_year: "YYYY-MM-DD"}
 
     promotion_gate: GateResult

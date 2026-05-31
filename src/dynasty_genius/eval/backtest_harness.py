@@ -55,6 +55,26 @@ _MARKET_SOURCE_MAP: dict[str, str] = {
     "dp_archive": "dp_archive",
 }
 
+# Honest David-facing labels for each market source. dp_archive is DynastyProcess
+# expert-consensus ECR (2QB), NOT a FantasyCalc trade-market value.
+_MARKET_SOURCE_LABELS: dict[str, str] = {
+    "fc_native": "fantasycalc_native",
+    "ktc_community_csv": "ktc_community_csv",
+    "dp_archive": "dynastyprocess_ecr_2qb",
+    "unavailable": "unavailable",
+}
+
+
+class IdMapUnavailableError(RuntimeError):
+    """Raised when market data is present for a fold but the GSIS→Sleeper id map
+    is empty/all-blank, so real market data would be silently dropped.
+
+    An empty market store (genuinely no data) stays graceful — it is honestly
+    "unavailable", not a silent substitution. This fails closed only when the
+    crosswalk is broken while market data actually exists (constitution: "Silent
+    substitution is forbidden").
+    """
+
 
 def _compute_ranks_desc(scores: list[float]) -> list[int]:
     """Rank n scores descending: highest score gets rank 1."""
@@ -141,13 +161,35 @@ def _compute_market_ndcg(
     return result
 
 
+def _normalize_sleeper_id(value: object) -> str:
+    """Normalize a Sleeper id to a clean integer string, stripping any float
+    suffix (e.g. 13269.0 / "13269.0" → "13269"). Sleeper ids loaded via
+    polars→pandas arrive as float64; an unstripped ".0" would never match the
+    integer-string keys in the market snapshot store.
+    """
+    s = str(value).strip()
+    try:
+        return str(int(float(s)))
+    except (ValueError, TypeError):
+        return s
+
+
 def _load_gsis_to_sleeper_map() -> dict[str, str]:
-    """Build GSIS → Sleeper ID map from nflreadpy. Returns {} if unavailable."""
+    """Build GSIS → Sleeper ID map from nflreadpy. Returns {} if unavailable.
+
+    nflreadpy returns a Polars DataFrame; convert to pandas before the pandas-
+    style mask/zip. Sleeper ids are normalized to clean integer strings.
+    """
     try:
         import nflreadpy  # type: ignore[import]
         ff = nflreadpy.load_ff_playerids()
+        if hasattr(ff, "to_pandas"):  # Polars DataFrame → pandas
+            ff = ff.to_pandas()
         valid = ff[ff["gsis_id"].notna() & ff["sleeper_id"].notna()]
-        return dict(zip(valid["gsis_id"].astype(str), valid["sleeper_id"].astype(str)))
+        return {
+            str(gsis): _normalize_sleeper_id(sleeper)
+            for gsis, sleeper in zip(valid["gsis_id"], valid["sleeper_id"])
+        }
     except Exception:
         return {}
 
@@ -415,8 +457,10 @@ class WalkForwardDriver:
 
         # Build id_map once if market comparison is active
         _id_map: dict[str, str] = {}
+        _has_usable_id_map = False
         if market_store is not None:
             _id_map = id_map if id_map is not None else _load_gsis_to_sleeper_map()
+            _has_usable_id_map = any(str(v).strip() for v in _id_map.values())
 
         fold_results: list[FoldResult] = []
         market_snapshot_dates_by_fold: dict[int, str] = {}
@@ -497,6 +541,16 @@ class WalkForwardDriver:
             if market_store is not None:
                 snap_date = _market_snapshot_date(test_year)
                 market_rows = market_store.get_ranked(snap_date, position)
+                # Fail loud (Option A): market data exists for this fold but the
+                # crosswalk is empty/all-blank → real market data would be silently
+                # dropped. Empty store (no rows) stays graceful — see below.
+                if market_rows and not _has_usable_id_map:
+                    raise IdMapUnavailableError(
+                        "id_map_unavailable: market data present for "
+                        f"{position} {market_rows[0]['snapshot_date']} but the "
+                        "GSIS→Sleeper id map is empty/all-blank — refusing to "
+                        "silently drop market data (broken crosswalk)."
+                    )
                 if market_rows:
                     actual_date = market_rows[0]["snapshot_date"]
                     market_snapshot_dates_by_fold[test_year] = actual_date
@@ -507,6 +561,7 @@ class WalkForwardDriver:
                         market_by_sleeper = {
                             str(row["sleeper_id"]): row for row in market_rows
                         }
+                        fold_rows: list[dict] = []
                         for i, pid in enumerate(player_ids_test):
                             sleeper_id = _id_map.get(str(pid))
                             market_row = (
@@ -514,17 +569,7 @@ class WalkForwardDriver:
                                 if sleeper_id is not None
                                 else None
                             )
-                            fc_rank = (
-                                int(market_row["position_rank"])
-                                if market_row is not None and market_row.get("position_rank") is not None
-                                else (
-                                    int(market_row["overall_rank"])
-                                    if market_row is not None and market_row.get("overall_rank") is not None
-                                    else None
-                                )
-                            )
-                            model_rank = model_ranks[i]
-                            _market_comparison_rows.append({
+                            fold_rows.append({
                                 "player_id": pid,
                                 "sleeper_id": sleeper_id,
                                 "position": position,
@@ -532,19 +577,31 @@ class WalkForwardDriver:
                                 "feature_season": test_year,
                                 "snapshot_date": actual_date,
                                 "predicted_ppg": float(y_pred[i]),
-                                "model_rank": model_rank,
+                                "model_rank": model_ranks[i],
                                 "fc_value": (
                                     int(market_row["value"])
                                     if market_row is not None and market_row.get("value") is not None
                                     else None
                                 ),
-                                "fc_rank": fc_rank,
+                                "fc_rank": None,
                                 "realized_ppg": float(y_test[i]),
                                 "realized_rank": realized_ranks[i],
-                                "rank_delta": (
-                                    fc_rank - model_rank if fc_rank is not None else None
-                                ),
+                                "rank_delta": None,
                             })
+                        # Derive fc_rank from fc_value descending within this
+                        # (position, snapshot_date) cohort. dp_archive supplies
+                        # values, not ranks; the rank is computed here purely for
+                        # honest diagnostic output (it does NOT feed the G3 NDCG
+                        # math, which ranks values internally).
+                        valued = sorted(
+                            (r for r in fold_rows if r["fc_value"] is not None),
+                            key=lambda r: r["fc_value"],
+                            reverse=True,
+                        )
+                        for derived_rank, r in enumerate(valued, start=1):
+                            r["fc_rank"] = derived_rank
+                            r["rank_delta"] = derived_rank - r["model_rank"]
+                        _market_comparison_rows.extend(fold_rows)
                 ndcg_fields = _compute_market_ndcg(
                     y_pred=y_pred,
                     player_ids=player_ids_test,
@@ -618,11 +675,13 @@ class WalkForwardDriver:
                 (s for s in market_sources_found if s in _MARKET_SOURCE_MAP), ""
             )
             final_market_source: str = _MARKET_SOURCE_MAP.get(raw_source, "unavailable")
+            final_market_source_label = _MARKET_SOURCE_LABELS[final_market_source]
             final_snapshot_dates: Optional[dict[int, str]] = (
                 market_snapshot_dates_by_fold or None
             )
         else:
             final_market_source = "unavailable"
+            final_market_source_label = "unavailable"
             final_snapshot_dates = None
 
         pkl_path = self._find_model_pkl(position)
@@ -648,6 +707,7 @@ class WalkForwardDriver:
             folds=fold_results,
             rmse_stability=stability,
             market_source=final_market_source,
+            market_source_label=final_market_source_label,
             market_snapshot_dates=final_snapshot_dates,
             promotion_gate=gate,
         )

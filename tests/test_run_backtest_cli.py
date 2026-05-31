@@ -50,6 +50,7 @@ class _FakeDriver:
     def run(
         self,
         market_store=None,
+        id_map=None,
         emit_prediction_log=False,
         emit_market_comparison=False,
     ):
