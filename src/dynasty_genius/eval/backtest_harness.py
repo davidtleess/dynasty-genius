@@ -8,6 +8,7 @@ Gate evaluation (10.8) added later.
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
@@ -161,17 +162,29 @@ def _compute_market_ndcg(
     return result
 
 
-def _normalize_sleeper_id(value: object) -> str:
-    """Normalize a Sleeper id to a clean integer string, stripping any float
+def _normalize_sleeper_id(value: object) -> str | None:
+    """Normalize a Sleeper id to a clean integer string, stripping a pure float
     suffix (e.g. 13269.0 / "13269.0" → "13269"). Sleeper ids loaded via
     polars→pandas arrive as float64; an unstripped ".0" would never match the
     integer-string keys in the market snapshot store.
+
+    Returns None for a malformed id — a non-zero fractional value (e.g. 13269.5),
+    blank, or non-numeric — so callers skip/reject the row rather than silently
+    truncating it to a *different* valid-looking player id (constitution:
+    canonical identity; "Silent substitution is forbidden").
     """
     s = str(value).strip()
+    if not s:
+        return None
     try:
-        return str(int(float(s)))
+        f = float(s)
     except (ValueError, TypeError):
-        return s
+        return None
+    if not math.isfinite(f):  # nan / inf → malformed; never reaches int()
+        return None
+    if f != int(f):  # non-zero fractional part → malformed, do not truncate
+        return None
+    return str(int(f))
 
 
 def _load_gsis_to_sleeper_map() -> dict[str, str]:
@@ -186,10 +199,13 @@ def _load_gsis_to_sleeper_map() -> dict[str, str]:
         if hasattr(ff, "to_pandas"):  # Polars DataFrame → pandas
             ff = ff.to_pandas()
         valid = ff[ff["gsis_id"].notna() & ff["sleeper_id"].notna()]
-        return {
-            str(gsis): _normalize_sleeper_id(sleeper)
-            for gsis, sleeper in zip(valid["gsis_id"], valid["sleeper_id"])
-        }
+        result: dict[str, str] = {}
+        for gsis, sleeper in zip(valid["gsis_id"], valid["sleeper_id"]):
+            norm = _normalize_sleeper_id(sleeper)
+            if norm is None:  # malformed/fractional id → skip, never truncate
+                continue
+            result[str(gsis)] = norm
+        return result
     except Exception:
         return {}
 
@@ -610,6 +626,26 @@ class WalkForwardDriver:
                     id_map=_id_map,
                     position=position,
                 )
+                # Fail loud (Design S): market data exists for this fold and the
+                # id_map is non-empty, yet it matched ZERO players. Verified
+                # Step-5a coverage is ~99.5%+ on every dp_archive date, so a
+                # non-empty-map zero-overlap fold is a broken cross-component
+                # join (corrupt map / column or era mismatch), not legitimate
+                # undercoverage — refuse to stamp dp_archive coverage and defer
+                # silently. Per-fold raise so a later bad fold still trips even
+                # when an earlier fold matched ("Silent substitution is
+                # forbidden"). Empty store / empty-or-all-blank map handled above.
+                if (
+                    market_rows
+                    and _has_usable_id_map
+                    and not ndcg_fields.get("market_pool_n")
+                ):
+                    raise IdMapUnavailableError(
+                        "id_map_unavailable: zero overlap — market data present "
+                        f"for {position} {market_rows[0]['snapshot_date']} but the "
+                        "non-empty GSIS→Sleeper id map matched 0 players (broken "
+                        "cross-component join)."
+                    )
 
             n_test = X_test.shape[0]
             r2_oos = compute_r2(y_test, y_pred)

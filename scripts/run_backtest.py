@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import math
 import subprocess
 import sys
 from pathlib import Path
@@ -57,7 +58,10 @@ def _load_id_map_csv(path: Path) -> dict[str, str]:
 
     Requires gsis_id and sleeper_id columns (fails loud on missing columns).
     Sleeper ids are normalized to clean integer strings (e.g. "13269.0" →
-    "13269"); NA/blank rows are skipped.
+    "13269"); NA/blank rows are skipped. A malformed sleeper id — non-zero
+    fractional (e.g. "13269.5") or non-numeric (e.g. "abc") — is skipped rather
+    than truncated or admitted as a bogus crosswalk value, consistent with
+    _normalize_sleeper_id (canonical identity; "Silent substitution forbidden").
     """
     with path.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -74,9 +78,20 @@ def _load_id_map_csv(path: Path) -> dict[str, str]:
             if not gsis_id or gsis_id == "NA" or not sleeper_id or sleeper_id == "NA":
                 continue
             try:
-                sleeper_id = str(int(float(sleeper_id)))
+                f_val = float(sleeper_id)
             except ValueError:
-                pass
+                # Non-numeric id (e.g. "abc") is malformed — skip, consistent
+                # with _normalize_sleeper_id, rather than admit a bogus crosswalk
+                # value ("Silent substitution is forbidden").
+                continue
+            if not math.isfinite(f_val):
+                # nan / inf is malformed — skip; never reaches int().
+                continue
+            if f_val != int(f_val):
+                # Fractional id (e.g. 13269.5) is malformed — skip rather than
+                # truncate to a different valid-looking player id.
+                continue
+            sleeper_id = str(int(f_val))
             id_map[gsis_id] = sleeper_id
     return id_map
 
