@@ -137,6 +137,23 @@ def test_default_nflreadpy_id_loader_normalizes_float_sleeper_ids(monkeypatch):
     assert all(not sleeper_id.endswith(".0") for sleeper_id in id_map.values())
 
 
+def test_default_nflreadpy_id_loader_skips_fractional_sleeper_ids(monkeypatch):
+    fake_ff = pd.DataFrame({
+        "gsis_id": ["00-0031234", "00-0039999"],
+        "sleeper_id": [13269.5, 4034.0],
+    })
+    monkeypatch.setitem(
+        sys.modules,
+        "nflreadpy",
+        SimpleNamespace(load_ff_playerids=lambda: fake_ff),
+    )
+
+    id_map = _load_gsis_to_sleeper_map()
+
+    assert id_map == {"00-0039999": "4034"}
+    assert backtest_harness._normalize_sleeper_id("13269.5") is None
+
+
 def test_id_map_csv_loads_and_normalizes_float_string_sleeper_ids(tmp_path):
     path = tmp_path / "db_playerids.csv"
     path.write_text(
@@ -153,6 +170,21 @@ def test_id_map_csv_loads_and_normalizes_float_string_sleeper_ids(tmp_path):
     assert all(".0" not in sleeper_id for sleeper_id in id_map.values())
 
 
+def test_id_map_csv_skips_fractional_sleeper_ids_without_truncation(tmp_path):
+    path = tmp_path / "db_playerids.csv"
+    path.write_text(
+        "gsis_id,sleeper_id,name\n"
+        "00-0031234,13269.5,Fractional Bad\n"
+        "00-0039999,4034.0,Clean Float\n",
+        encoding="utf-8",
+    )
+
+    id_map = run_backtest._load_id_map_csv(path)
+
+    assert id_map == {"00-0039999": "4034"}
+    assert "13269" not in id_map.values()
+
+
 @pytest.mark.parametrize("id_map", [{}, {"00-0031234": ""}])
 def test_market_data_present_empty_or_all_na_id_map_raises_loudly(tmp_path, id_map):
     player_ids = _wr_2020_player_ids(3)
@@ -162,6 +194,22 @@ def test_market_data_present_empty_or_all_na_id_map_raises_loudly(tmp_path, id_m
 
     with pytest.raises(expected_error, match="id_map_unavailable"):
         WalkForwardDriver(position="WR").run(market_store=store, id_map=id_map)
+
+
+def test_market_data_present_zero_overlap_id_map_raises_loudly(tmp_path):
+    player_ids = _wr_2020_player_ids(24)
+    rows, _ = _market_rows(player_ids, ranks_present=True)
+    store = _store_with_rows(tmp_path, rows)
+    non_empty_zero_overlap_map = {
+        pid: f"wrong_sleeper_{i}" for i, pid in enumerate(player_ids)
+    }
+    expected_error = getattr(backtest_harness, "IdMapUnavailableError", RuntimeError)
+
+    with pytest.raises(expected_error, match="id_map_unavailable.*zero overlap"):
+        WalkForwardDriver(position="WR").run(
+            market_store=store,
+            id_map=non_empty_zero_overlap_map,
+        )
 
 
 def test_market_store_active_default_loader_unavailable_raises_loudly(
