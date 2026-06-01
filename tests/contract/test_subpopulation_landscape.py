@@ -424,3 +424,68 @@ def test_compute_slice_is_deterministic_for_fixed_rng_seed():
 
     assert first["bca_ci95"] == second["bca_ci95"]
     assert first["boot_p_value"] == second["boot_p_value"]
+
+
+def test_aggregate_folds_uses_median_rho_diff_and_counts_evaluable_folds_only():
+    module = _subpop_module()
+    slice_folds = [
+        {
+            "fold": 2021,
+            "category": "model_leads_point_estimate",
+            "rho_diff": 0.50,
+            "n": 40,
+        },
+        {
+            "fold": 2022,
+            "category": "insufficient_n",
+            "rho_diff": None,
+            "n": 12,
+        },
+        {
+            "fold": 2023,
+            "category": "consensus_leads_point_estimate",
+            "rho_diff": -0.10,
+            "n": 41,
+        },
+        {
+            "fold": 2024,
+            "category": "insufficient_n",
+            "rho_diff": None,
+            "n": 11,
+        },
+    ]
+
+    aggregate = module.aggregate_folds(slice_folds)
+
+    assert aggregate["median_rho_diff"] == pytest.approx(0.20)
+    assert aggregate["folds_covered"] == 2
+    assert aggregate["fold_rows"] == slice_folds
+
+
+def test_aggregate_folds_preserves_fold_rows_without_pseudo_replication_primary():
+    module = _subpop_module()
+    slice_folds = [
+        {"fold": 2021, "rho_diff": 0.70, "category": "model_leads_point_estimate"},
+        {"fold": 2022, "rho_diff": -0.10, "category": "consensus_leads_point_estimate"},
+    ]
+
+    aggregate = module.aggregate_folds(slice_folds)
+
+    assert aggregate["median_rho_diff"] == pytest.approx(0.30)
+    assert aggregate["folds_covered"] == 2
+    assert aggregate["fold_rows"] == slice_folds
+    assert "pooled_rho_diff" not in aggregate
+    if "secondary_pooled" in aggregate:
+        assert "median_rho_diff" not in aggregate["secondary_pooled"]
+        assert aggregate["secondary_pooled"].get("label") == "secondary"
+
+
+@pytest.mark.parametrize("slice_folds", [[], [{"fold": 2021, "rho_diff": None}]])
+def test_aggregate_folds_fail_closed_when_empty_or_all_insufficient(slice_folds):
+    module = _subpop_module()
+
+    aggregate = module.aggregate_folds(slice_folds)
+
+    assert aggregate["median_rho_diff"] is None
+    assert aggregate["folds_covered"] == 0
+    assert aggregate["fold_rows"] == slice_folds
