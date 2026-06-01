@@ -60,6 +60,16 @@ S3_INVIOLATE_SHA256 = {
     ),
 }
 
+# ADDENDUM (2026-05-31, David-authorized — Task B Subpopulation/Axis-of-Edge Study):
+# subpopulation_landscape.py is added to AUTHORIZED_EVAL_FILES below. It is a
+# deliberate, dual-CLEARED, model-blind, descriptive/diagnostic eval module per spec
+# docs/superpowers/specs/2026-05-31-subpopulation-axis-of-edge-study-design.md (11e3c2d)
+# and plan docs/superpowers/plans/2026-05-31-subpopulation-axis-of-edge-study.md
+# (cd8f2b8). This EXTENDS the authorized set only; the exact-set allowlist semantics
+# are preserved (any other new, unlisted eval file still fails this audit). All
+# permanent S4 guardrails remain UNCHANGED: S4-module isolation, S3 byte-locks, AST
+# anti-laundering, mock/market isolation, banned-language/decision_supported, and the
+# Engine A/B leakage wall.
 AUTHORIZED_EVAL_FILES = {
     "__init__.py",
     "backtest_artifact.py",
@@ -72,6 +82,7 @@ AUTHORIZED_EVAL_FILES = {
     "draft_class_loocv.py",
     "market_snapshot_store.py",
     "model_card.py",
+    "subpopulation_landscape.py",
     "te_archetype_bakeoff.py",
     "te_regularization_bakeoff.py",
     "te_role_risk_experiment.py",
