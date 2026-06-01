@@ -670,6 +670,53 @@ def test_apply_fdr_fail_closed_for_empty_and_all_none_p_values():
     )
 
 
+@pytest.mark.parametrize(
+    ("fold_rho_diffs", "expected_p"),
+    [
+        ([0.5, 0.4, 0.3, 0.2], 0.25),
+        ([0.5, 0.4, 0.3], 0.50),
+        ([0.5, 0.4], 0.50),
+        ([0.6, 0.5, 0.4, 0.3, 0.2, 0.1], 0.125),
+        ([0.5, 0.4, 0.3, -0.2], 0.25),
+    ],
+)
+def test_aggregate_signflip_p_exact_reference_values(
+    fold_rho_diffs,
+    expected_p,
+):
+    module = _subpop_module()
+
+    assert module.aggregate_signflip_p(fold_rho_diffs) == pytest.approx(expected_p)
+
+
+def test_aggregate_signflip_p_fail_closed_empty_and_all_zero():
+    module = _subpop_module()
+
+    assert module.aggregate_signflip_p([]) is None
+    assert module.aggregate_signflip_p([0.0, 0.0, 0.0, 0.0]) == pytest.approx(1.0)
+
+
+def test_aggregate_signflip_p_includes_zero_effects_as_evaluable_folds():
+    module = _subpop_module()
+
+    # Zero fold effects remain in the observed median and in the 2^K sign-flip
+    # enumeration; a zero's flipped sign is still zero.
+    assert module.aggregate_signflip_p([0.5, 0.4, 0.0, 0.0]) == pytest.approx(0.50)
+
+
+def test_aggregate_signflip_p_is_deterministic_without_rng(monkeypatch):
+    module = _subpop_module()
+
+    def fail_rng(*_args, **_kwargs):
+        raise AssertionError("aggregate_signflip_p must be exact, not random")
+
+    monkeypatch.setattr(module.np.random, "default_rng", fail_rng)
+
+    first = module.aggregate_signflip_p([0.5, 0.4, 0.3, -0.2])
+    second = module.aggregate_signflip_p([0.5, 0.4, 0.3, -0.2])
+    assert first == second == pytest.approx(0.25)
+
+
 def test_build_slice_ledger_balanced_bins_header_and_provenance():
     module = _subpop_module()
     aggregate_tests = [
