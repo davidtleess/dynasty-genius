@@ -1,10 +1,14 @@
 """Subsystem 4 v2 draft-truth loader contract tests."""
 from __future__ import annotations
 
+import ast
 import json
+import sys
+import types
 from pathlib import Path
 from typing import get_args, get_origin
 
+import polars as pl
 import pytest
 from pydantic import BaseModel, ValidationError
 
@@ -73,6 +77,28 @@ def _load_synthetic(draft_year: int = 2025, **kwargs):
         data_mode="synthetic",
         **kwargs,
     )
+
+
+def _load_live(draft_year: int = 2024, **kwargs):
+    return bridge.load_nflreadr_draft_truth(
+        draft_year,
+        data_mode="real",
+        **kwargs,
+    )
+
+
+def _install_fake_nflreadpy(monkeypatch, rows: list[dict] | Exception):
+    calls: list[dict] = []
+
+    def load_draft_picks(*, seasons):
+        calls.append({"seasons": seasons})
+        if isinstance(rows, Exception):
+            raise rows
+        return pl.DataFrame(rows)
+
+    fake_module = types.SimpleNamespace(load_draft_picks=load_draft_picks)
+    monkeypatch.setitem(sys.modules, "nflreadpy", fake_module)
+    return calls
 
 
 def test_truth_load_diagnostics_model_contract():
@@ -438,3 +464,110 @@ def test_synthetic_mode_empty_fixture_uses_unavailable_token(tmp_path: Path):
     message = str(exc_info.value)
     assert "synthetic_truth_fixture_unavailable" in message
     assert "NflreadrEmptyTruthError" not in message
+
+
+def test_real_mode_live_path_lazily_loads_source_frame_and_maps_rows(monkeypatch):
+    calls = _install_fake_nflreadpy(
+        monkeypatch,
+        [
+            _source_row(
+                gsis_id="00-live001",
+                pfr_player_id="DanJe00",
+                pfr_player_name="Jayden Daniels",
+                team="WAS",
+            ),
+            _source_row(
+                gsis_id="00-live002",
+                pfr_player_id=None,
+                pfr_player_name="Malik Nabers",
+                position="WR",
+                college="LSU",
+                pick=6,
+                team="NYG",
+            ),
+        ],
+    )
+
+    result = _load_live()
+
+    assert calls == [{"seasons": [2024]}]
+    assert isinstance(result, bridge.NflreadrTruthLoadResult)
+    assert result.diagnostics.truth_rows_loaded == 2
+    assert [row.gsis_id for row in result.rows] == ["00-live001", "00-live002"]
+
+    first = result.rows[0]
+    assert first.pfr_id == "DanJe00"
+    assert first.full_name == "Jayden Daniels"
+    assert first.normalized_name == normalize_name("Jayden Daniels")
+    assert first.position == "QB"
+    assert first.college == "USC"
+    assert first.draft_year == 2024
+    assert first.draft_pick_no == 1
+    assert first.draft_round == 1
+    assert first.nfl_team == "WAS"
+
+    assert result.rows[1].pfr_id is None
+    assert result.rows[1].position == "WR"
+    assert result.rows[1].draft_pick_no == 6
+
+
+def test_real_mode_imports_nflreadpy_only_inside_function_body():
+    source_path = REPO_ROOT / "src/dynasty_genius/identity/prospect_nfl_bridge.py"
+    tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+
+    module_level_imports = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.Import)
+        for alias in node.names
+        if alias.name == "nflreadpy"
+    ]
+    assert module_level_imports == []
+
+
+def test_real_mode_live_path_fetched_at_override_is_verbatim(monkeypatch):
+    _install_fake_nflreadpy(monkeypatch, [_source_row()])
+
+    result = _load_live(fetched_at="2026-04-05T06:07:08+00:00")
+
+    assert result.rows[0].fetched_at == "2026-04-05T06:07:08+00:00"
+
+
+def test_real_mode_live_path_default_fetched_at_is_utc_z_iso(monkeypatch):
+    _install_fake_nflreadpy(monkeypatch, [_source_row()])
+
+    result = _load_live()
+
+    fetched_at = result.rows[0].fetched_at
+    assert fetched_at.endswith("Z")
+    assert "T" in fetched_at
+
+
+def test_real_mode_live_source_errors_propagate(monkeypatch):
+    _install_fake_nflreadpy(monkeypatch, RuntimeError("live source unavailable"))
+
+    with pytest.raises(RuntimeError, match="live source unavailable"):
+        _load_live()
+
+
+def test_real_mode_live_empty_source_raises_empty_truth_error(monkeypatch):
+    _install_fake_nflreadpy(monkeypatch, [])
+
+    with pytest.raises(bridge.NflreadrEmptyTruthError):
+        _load_live()
+
+
+def test_real_mode_live_missing_required_column_raises_schema_drift(monkeypatch):
+    row = _source_row()
+    row.pop("pick")
+    _install_fake_nflreadpy(monkeypatch, [row])
+
+    with pytest.raises(bridge.NflreadrSchemaDriftError):
+        _load_live()
+
+
+def test_real_mode_live_wrong_season_raises_source_contamination(monkeypatch):
+    _install_fake_nflreadpy(monkeypatch, [_source_row(season=2023)])
+
+    with pytest.raises(bridge.NflreadrSourceContaminationError):
+        _load_live()

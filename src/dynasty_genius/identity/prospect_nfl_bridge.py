@@ -393,21 +393,25 @@ def _coerce_draft_truth_row_or_skip(
     )
 
 
-def _load_draft_truth_from_fixture(
-    fixture_path: Path,
+def _assemble_truth_result(
+    rows: list[dict[str, Any]],
     *,
     draft_year: int,
-    fetched_at_override: Optional[str],
+    fetched_at: str,
 ) -> NflreadrTruthLoadResult:
-    """Load + validate draft truth from a source-shaped fixture (real + fixture path)."""
-    payload = json.loads(Path(fixture_path).read_text(encoding="utf-8"))
-    rows = payload.get("rows", [])
+    """Shared schema-gate + season-integrity + mapping + validation for both paths.
 
+    ``rows`` are source-shaped dicts — JSON fixture rows, or live polars rows via
+    ``iter_rows(named=True)`` — so the fixture and live paths exercise the identical
+    fail-closed contract. Empty source → ``NflreadrEmptyTruthError``; a missing
+    required column → ``NflreadrSchemaDriftError``; a wrong-season row →
+    ``NflreadrSourceContaminationError`` (fail-loud, before skip accounting);
+    present-key/bad-value rows are skipped and counted. ``fetched_at`` is supplied
+    by the caller (verbatim from a fixture, or the live ``_now_iso()``).
+    """
     # Empty source fails closed — never a vacuous schema-gate pass / empty-success.
     if not rows:
-        raise NflreadrEmptyTruthError(
-            f"draft-truth fixture {fixture_path} contains zero rows"
-        )
+        raise NflreadrEmptyTruthError("draft-truth source contains zero rows")
 
     # Schema gate: every required column KEY must be present in every source row.
     # A missing column is drift; a present key with a bad value is a counted skip.
@@ -416,17 +420,6 @@ def _load_draft_truth_from_fixture(
             raise NflreadrSchemaDriftError(
                 f"draft-truth source missing required column '{column}'"
             )
-
-    # fetched_at is supplied deterministically (raw rows carry none): override wins,
-    # else the fixture's metadata.fetched_at, preserved verbatim (no normalization).
-    fetched_at = fetched_at_override
-    if fetched_at is None:
-        fetched_at = payload.get("metadata", {}).get("fetched_at")
-    if fetched_at is None:
-        raise ValueError(
-            f"draft-truth fixture {fixture_path} missing metadata.fetched_at "
-            "and no fetched_at override supplied"
-        )
 
     diagnostics = NflTruthLoadDiagnostics(
         required_columns_seen=sorted(_REQUIRED_DRAFT_COLUMNS),
@@ -454,6 +447,30 @@ def _load_draft_truth_from_fixture(
     diagnostics.truth_rows_loaded = len(truth_rows)
 
     return NflreadrTruthLoadResult(rows=truth_rows, diagnostics=diagnostics)
+
+
+def _load_draft_truth_from_fixture(
+    fixture_path: Path,
+    *,
+    draft_year: int,
+    fetched_at_override: Optional[str],
+) -> NflreadrTruthLoadResult:
+    """Load + validate draft truth from a source-shaped fixture (real + fixture path)."""
+    payload = json.loads(Path(fixture_path).read_text(encoding="utf-8"))
+    rows = payload.get("rows", [])
+
+    # fetched_at is supplied deterministically (raw rows carry none): override wins,
+    # else the fixture's metadata.fetched_at, preserved verbatim (no normalization).
+    fetched_at = fetched_at_override
+    if fetched_at is None:
+        fetched_at = payload.get("metadata", {}).get("fetched_at")
+    if fetched_at is None:
+        raise ValueError(
+            f"draft-truth fixture {fixture_path} missing metadata.fetched_at "
+            "and no fetched_at override supplied"
+        )
+
+    return _assemble_truth_result(rows, draft_year=draft_year, fetched_at=fetched_at)
 
 
 def _load_synthetic_draft_truth(
@@ -496,6 +513,29 @@ def _load_synthetic_draft_truth(
         ) from exc
 
 
+def _load_live_draft_truth(
+    draft_year: int,
+    *,
+    fetched_at_override: Optional[str],
+) -> NflreadrTruthLoadResult:
+    """Real live path: lazily load draft capital from nflreadpy, fail-closed.
+
+    The ``import nflreadpy`` is lazy/inline so the heavy draft-DATA dependency stays
+    out of the module's import-time surface (draft capital is a structural prediction
+    baseline, NOT market data — Constitution §6). A fetch/import failure propagates
+    (no broad ``except``, never ``[]``). The returned polars frame is consumed via
+    ``iter_rows(named=True)`` and run through the same gate/season/mapping contract as
+    the fixture path. ``fetched_at`` uses the explicit override, else the deterministic
+    UTC ``…Z`` stamp from ``_now_iso()`` (the one live-only, non-deterministic value).
+    """
+    import nflreadpy
+
+    frame = nflreadpy.load_draft_picks(seasons=[draft_year])
+    rows = list(frame.iter_rows(named=True))
+    fetched_at = fetched_at_override if fetched_at_override is not None else _now_iso()
+    return _assemble_truth_result(rows, draft_year=draft_year, fetched_at=fetched_at)
+
+
 def load_nflreadr_draft_truth(
     draft_year: int,
     *,
@@ -508,7 +548,7 @@ def load_nflreadr_draft_truth(
     See ``docs/superpowers/specs/2026-06-01-s4-v2-draft-truth-loader-design.md``.
     Modes: ``synthetic`` resolves a committed synthetic-truth fixture (Task 4);
     ``real`` + ``fixture_path`` loads a committed source-shaped fixture (Task 2);
-    ``real`` without a fixture uses the live draft source (Task 5, not yet wired).
+    ``real`` without a fixture loads the live draft source via lazy nflreadpy (Task 5).
     """
     if data_mode == "synthetic":
         return _load_synthetic_draft_truth(
@@ -522,9 +562,7 @@ def load_nflreadr_draft_truth(
             draft_year=draft_year,
             fetched_at_override=fetched_at,
         )
-    raise NotImplementedError(
-        "load_nflreadr_draft_truth: the live draft-source path is not implemented yet."
-    )
+    return _load_live_draft_truth(draft_year, fetched_at_override=fetched_at)
 
 
 # NFL-domain position taxonomy (different from S3's offense-only college whitelist).
