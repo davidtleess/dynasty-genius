@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
+import types
 from pathlib import Path
 
+import polars as pl
 import pytest
 from pydantic import ValidationError
 
@@ -241,6 +244,155 @@ def _write_runner_inputs_with_bridge_entries(tmp_path: Path) -> tuple[Path, Path
         encoding="utf-8",
     )
     return snapshots_dir, identity_dir
+
+
+def _registry_entry(*, uuid: str, name: str, position: str) -> dict:
+    return {
+        "raw_name": name,
+        "normalized_name": name.lower(),
+        "full_name": name,
+        "position": position,
+        "position_group": position,
+        "draft_class": 2025,
+        "current_school": "Test U",
+        "prior_schools": [],
+        "cfbd_athlete_id": None,
+        "cfb_player_id": None,
+        "pfr_id": None,
+        "gsis_id": None,
+        "sleeper_id": None,
+        "source": "test_fixture",
+        "source_record_id": uuid,
+        "source_snapshot_id": "task9_registry",
+        "id_provenance": {},
+        "notes": None,
+        "prospect_uuid": uuid,
+        "verification_status": "confirmed",
+        "match_key": f"task9|{uuid}",
+        "status_history": [
+            {
+                "event_id": f"confirm-{uuid[-1]}",
+                "decision": "confirm",
+                "after_status": "confirmed",
+                "decided_at": "2026-01-01T00:00:00Z",
+                "reviewer_id": "codex",
+            }
+        ],
+        "merged_into_prospect_uuid": None,
+        "reviewer_id": "codex",
+        "reviewer_metadata": {},
+    }
+
+
+def _write_real_mode_e2e_runner_inputs(tmp_path: Path) -> tuple[Path, Path]:
+    snapshots_dir, identity_dir = _write_runner_inputs_with_bridge_entries(tmp_path)
+    (identity_dir / "college_prospect_registry.json").write_text(
+        json.dumps(
+            {
+                "metadata": {"schema_version": "task9_e2e"},
+                "entries": [
+                    _registry_entry(
+                        uuid=UUID_A,
+                        name="Task Six Quarterback",
+                        position="QB",
+                    ),
+                    _registry_entry(
+                        uuid=UUID_B,
+                        name="Task Six Receiver",
+                        position="WR",
+                    ),
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    for index in range(5):
+        snapshot_path = (
+            snapshots_dir / "snapshot.json"
+            if index == 0
+            else snapshots_dir / f"snapshot_{index}.json"
+        )
+        snapshot_path.write_text(
+            json.dumps(
+                {
+                    "metadata": {
+                        "source_url": f"https://example.test/task9/{index}",
+                        "source_label": f"task9_source_{index}",
+                        "analyst": f"Analyst {index}",
+                        "mock_version": "v1",
+                        "published_date": f"2025-04-{index + 1:02d}",
+                        "fetched_at": "2025-04-20T00:00:00Z",
+                        "content_hash": f"task9-content-{index}",
+                        "parser_version": "task9_parser",
+                        "parse_status": "complete",
+                        "draft_year": 2025,
+                    },
+                    "picks": [
+                        {"pick_no": 1, "prospect_uuid": UUID_A},
+                        {"pick_no": 48, "prospect_uuid": UUID_B},
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+    return snapshots_dir, identity_dir
+
+
+def _source_draft_rows() -> list[dict]:
+    return [
+        {
+            "season": 2025,
+            "round": 1,
+            "pick": 1,
+            "team": "TEN",
+            "gsis_id": "00-task6a",
+            "pfr_player_id": "TaskSi00",
+            "pfr_player_name": "Task Six Quarterback",
+            "position": "QB",
+            "college": "Test U",
+            "draft_date": "2025-04-24",
+        },
+        {
+            "season": 2025,
+            "round": 2,
+            "pick": 40,
+            "team": "TEN",
+            "gsis_id": "00-task6b",
+            "pfr_player_id": "TaskSi01",
+            "pfr_player_name": "Task Six Receiver",
+            "position": "WR",
+            "college": "Test U",
+            "draft_date": "2025-04-24",
+        },
+        {
+            "season": 2025,
+            "round": 7,
+            "pick": 250,
+            "team": "TEN",
+            "gsis_id": "",
+            "pfr_player_id": "SkipMi00",
+            "pfr_player_name": "Skipped Missing Gsis",
+            "position": "RB",
+            "college": "Test U",
+            "draft_date": "2025-04-24",
+        },
+    ]
+
+
+def _install_fake_nflreadpy(monkeypatch) -> list[list[int]]:
+    calls: list[list[int]] = []
+
+    def load_draft_picks(seasons):
+        calls.append(list(seasons))
+        return pl.DataFrame(_source_draft_rows())
+
+    monkeypatch.setitem(
+        sys.modules,
+        "nflreadpy",
+        types.SimpleNamespace(load_draft_picks=load_draft_picks),
+    )
+    return calls
 
 
 def _fake_truth_result() -> NflreadrTruthLoadResult:
@@ -775,6 +927,58 @@ def test_runner_synthetic_mode_keeps_abstain_with_non_empty_truth_join(
     assert result.metrics is not None
     assert result.metrics["per_bucket_breakdown"]["R1-early"]["n_realized"] == 1
     assert result.metrics["per_bucket_breakdown"]["R2"]["n_realized"] == 1
+
+
+def test_runner_real_mode_e2e_live_truth_loader_chain_writes_metrics_and_diagnostics(
+    tmp_path: Path,
+    monkeypatch,
+):
+    snapshots_dir, identity_dir = _write_real_mode_e2e_runner_inputs(tmp_path)
+    nflreadpy_calls = _install_fake_nflreadpy(monkeypatch)
+
+    result = bmd.run_backtest_a(
+        snapshots_dir=snapshots_dir,
+        identity_dir=identity_dir,
+        draft_year=2025,
+        run_id="task9_real_loader_e2e",
+        output_root=tmp_path / "runs",
+    )
+
+    assert nflreadpy_calls == [[2025], [2025]]
+    assert "nflreadr_truth_unavailable" not in result.acceptance_criteria_failed
+    assert result.metrics is not None
+
+    expected_diagnostics = {
+        "truth_rows_loaded": 2,
+        "skipped_missing_gsis_id": 1,
+        "skipped_bad_pick": 0,
+        "skipped_bad_round": 0,
+        "skipped_missing_name": 0,
+        "skipped_missing_position": 0,
+        "skipped_missing_team": 0,
+        "required_columns_seen": [
+            "college",
+            "gsis_id",
+            "pfr_player_id",
+            "pfr_player_name",
+            "pick",
+            "position",
+            "round",
+            "season",
+            "team",
+        ],
+    }
+    assert result.metadata["truth_load_diagnostics"] == expected_diagnostics
+    assert result.metrics["per_bucket_breakdown"]["R1-early"]["n_realized"] == 1
+    assert result.metrics["per_bucket_breakdown"]["R2"]["n_realized"] == 1
+
+    artifact_path = (
+        tmp_path / "runs" / "task9_real_loader_e2e" / "backtest_a_result.json"
+    )
+    payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+    assert payload["metrics"] is not None
+    assert payload["metadata"]["truth_load_diagnostics"] == expected_diagnostics
+    assert "nflreadr_truth_unavailable" not in payload["acceptance_criteria_failed"]
 
 
 def test_runner_real_mode_uses_ingestion_resolved_draft_date_for_aggregation(
