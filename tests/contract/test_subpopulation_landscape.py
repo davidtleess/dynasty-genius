@@ -855,3 +855,60 @@ def test_build_slice_ledger_posture_guard_no_decision_or_edge_labels():
                 str(row.get("recommendation", "")),
             ]
             assert not any("edge" in text.lower() for text in checked)
+
+
+def test_build_slice_ledger_does_not_echo_dirty_aggregate_posture_fields():
+    module = _subpop_module()
+
+    ledger = module.build_slice_ledger(
+        [
+            {
+                "axis": "aging_cliff_transition",
+                "slice": "edge_buy_candidate",
+                "position": "RB",
+                "category": "buy_grade_edge",
+                "n": 30,
+                "folds_covered": 2,
+                "decision_supported": True,
+                "recommendation": "buy",
+                "fold_rows": [
+                    {
+                        "decision_supported": True,
+                        "recommendation": "sell",
+                        "slice": "edge_followup",
+                    }
+                ],
+            }
+        ],
+        draft_year_provenance={
+            "draft_year_source": "dynastyprocess_db_playerids",
+            "db_season_snapshot": 2025,
+            "draft_year_coverage_numerator": 30,
+            "draft_year_coverage_denominator": 30,
+            "excluded_missing_draft_year_count": 0,
+            "invalid_negative_experience_count": 0,
+            "per_position_disagreement_denominators": {"RB": 30},
+        },
+        early_career_coverage={
+            "overall": {"covered": 30, "denominator": 30},
+            "per_position_fold": [
+                {"position": "RB", "fold": 2021, "covered": 30, "denominator": 30}
+            ],
+        },
+    )
+
+    assert ledger["header"] == REPORT_HEADER
+    assert all(
+        record.get("decision_supported") is not True for record in _walk_dicts(ledger)
+    )
+    strings = [text for text in _walk_strings(ledger) if text != REPORT_HEADER]
+    banned = {"buy", "sell", "verdict", "grade", "tier", "recommendation"}
+    assert not any(token in text.lower() for text in strings for token in banned)
+    for axis_table in ledger["axis_tables"].values():
+        for row in axis_table["rows"]:
+            checked = [
+                str(row.get("category", "")),
+                str(row.get("slice", "")),
+                str(row.get("recommendation", "")),
+            ]
+            assert not any("edge" in text.lower() for text in checked)
