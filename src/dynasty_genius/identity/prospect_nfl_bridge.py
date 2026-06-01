@@ -433,6 +433,16 @@ def _load_draft_truth_from_fixture(
     )
     truth_rows: list[NflTruthRow] = []
     for row in rows:
+        # Season integrity is fail-loud and runs BEFORE per-row skip accounting:
+        # a contaminated source must halt the load, not silently drop the bad row.
+        # type(...) is int excludes bool (type(True) is bool); no int() coercion of
+        # strings/floats — a wrong-typed season is contamination, never a rescued pass.
+        season = row["season"]
+        if type(season) is not int or season != draft_year:
+            raise NflreadrSourceContaminationError(
+                f"draft-truth source contamination: row gsis_id={row['gsis_id']!r} "
+                f"has season {season!r} != requested draft_year {draft_year}"
+            )
         truth_row = _coerce_draft_truth_row_or_skip(
             row,
             draft_year=draft_year,

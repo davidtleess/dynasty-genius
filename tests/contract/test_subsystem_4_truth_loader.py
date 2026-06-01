@@ -303,3 +303,43 @@ def test_fixture_mode_drops_extra_source_columns_before_model_validation(
 
     assert result.diagnostics.truth_rows_loaded == 1
     assert "extra_source_column" not in result.rows[0].model_dump()
+
+
+def test_fixture_mode_wrong_season_fails_loud_before_skip_accounting(
+    tmp_path: Path,
+):
+    path = _write_fixture(tmp_path, [_source_row(season=2023, pick="1")])
+
+    with pytest.raises(bridge.NflreadrSourceContaminationError) as exc_info:
+        _load_fixture(path)
+
+    message = str(exc_info.value)
+    assert "2023" in message
+    assert "2024" in message
+    assert "00-0039918" in message
+    assert "skipped_bad_pick" not in message
+
+
+@pytest.mark.parametrize("bad_season", ["2024", 2024.0, True])
+def test_fixture_mode_non_int_season_fails_loud_without_coercion(
+    tmp_path: Path,
+    bad_season,
+):
+    path = _write_fixture(tmp_path, [_source_row(season=bad_season)])
+
+    with pytest.raises(bridge.NflreadrSourceContaminationError) as exc_info:
+        _load_fixture(path)
+
+    message = str(exc_info.value)
+    assert repr(bad_season) in message
+    assert "2024" in message
+    assert "00-0039918" in message
+
+
+def test_fixture_mode_integer_matching_season_remains_valid(tmp_path: Path):
+    path = _write_fixture(tmp_path, [_source_row(season=2024)])
+
+    result = _load_fixture(path)
+
+    assert result.diagnostics.truth_rows_loaded == 1
+    assert result.rows[0].draft_year == 2024
