@@ -978,6 +978,244 @@ def test_build_slice_ledger_does_not_echo_dirty_aggregate_posture_fields():
             assert not any("edge" in text.lower() for text in checked)
 
 
+def test_compute_landscape_payload_orchestrates_slices_aggregates_and_provenance(
+    monkeypatch,
+):
+    cli = _subpop_cli_module()
+
+    rho_by_model_rank = {1: 0.20, 2: 0.10, 30: -0.20, 40: -0.10}
+
+    def fake_compute_slice(
+        model_ranks,
+        consensus_ranks,
+        realized_ranks,
+        *,
+        primary_k,
+        n_bootstrap,
+        rng_seed,
+    ):
+        assert primary_k in {12, 24}
+        assert n_bootstrap == cli.N_BOOTSTRAP
+        assert rng_seed == cli.RNG_SEED
+        rho_diff = rho_by_model_rank[model_ranks[0]]
+        return {
+            "n": len(model_ranks),
+            "rho_model": rho_diff,
+            "rho_consensus": 0.0,
+            "rho_diff": rho_diff,
+            "bca_ci95": (-0.25, 0.25),
+            "ci_includes_zero": True,
+            "boot_p_value": 0.01,
+            "category": "fold_category_must_not_drive_aggregate",
+            "ndcg_xcheck": {"status": "available"},
+        }
+
+    monkeypatch.setattr(cli, "compute_slice", fake_compute_slice)
+
+    payload = cli._compute_landscape_payload(
+        [
+            {
+                "player_id": "rb_bull_2024",
+                "position": "RB",
+                "feature_season": 2024,
+                "age_at_feature_season": 25.0,
+                "draft_year": 2022,
+                "model_rank": 1,
+                "consensus_rank": 20,
+                "realized_rank": 1,
+                "decision_supported": True,
+                "recommendation": "buy",
+                "raw_passthrough": "edge_buy_candidate",
+            },
+            {
+                "player_id": "rb_bull_2025",
+                "position": "RB",
+                "feature_season": 2025,
+                "age_at_feature_season": 26.0,
+                "draft_year": 2023,
+                "model_rank": 2,
+                "consensus_rank": 22,
+                "realized_rank": 2,
+            },
+            {
+                "player_id": "rb_bear_missing_draft",
+                "position": "RB",
+                "feature_season": 2024,
+                "age_at_feature_season": 23.0,
+                "draft_year": None,
+                "model_rank": 30,
+                "consensus_rank": 10,
+                "realized_rank": 3,
+            },
+            {
+                "player_id": "wr_bear_negative_exp",
+                "position": "WR",
+                "feature_season": 2024,
+                "age_at_feature_season": 28.0,
+                "draft_year": 2025,
+                "model_rank": 40,
+                "consensus_rank": 20,
+                "realized_rank": 4,
+            },
+        ],
+        draft_year_provenance={
+            "draft_year_source": "dynastyprocess_db_playerids",
+            "db_season_snapshot": 2025,
+        },
+        run_id="orchestration_fixture",
+    )
+
+    assert set(payload) == {"ledger", "aggregate_details"}
+    ledger = payload["ledger"]
+    assert set(ledger) == {"header", "axis_tables", "provenance"}
+    assert ledger["header"] == REPORT_HEADER
+    assert ledger["axis_tables"]["early_career"]["status"] == (
+        "early_career_axis_unavailable"
+    )
+
+    aggregate_details = payload["aggregate_details"]
+
+    def detail(axis, slice_label, position):
+        matches = [
+            row
+            for row in aggregate_details
+            if row["axis"] == axis
+            and row["slice"] == slice_label
+            and row["position"] == position
+        ]
+        assert len(matches) == 1
+        return matches[0]
+
+    aging_rb = detail("aging_cliff_transition", "aging_cliff", "RB")
+    assert aging_rb["median_rho_diff"] == pytest.approx(0.15)
+    assert aging_rb["folds_covered"] == 2
+    assert aging_rb["boot_p_value"] == pytest.approx(0.50)
+    assert aging_rb["boot_p_value"] != pytest.approx(0.01)
+    assert aging_rb["aggregate_p_value_method"] == "fold_signflip_median_exact"
+    assert aging_rb["category"] == "model_leads_point_estimate"
+    assert aging_rb["q_value"] is not None
+    assert aging_rb["powered_followup_candidate"] is False
+
+    assert detail("high_disagreement", "model_bullish", "RB")[
+        "median_rho_diff"
+    ] == pytest.approx(0.15)
+    assert detail("high_disagreement", "model_bearish", "RB")[
+        "category"
+    ] == "consensus_leads_point_estimate"
+    assert detail("early_career", "eligible", "RB")["folds_covered"] == 2
+    assert detail("aging_cliff_transition", "aging_cliff", "WR")[
+        "median_rho_diff"
+    ] == pytest.approx(-0.10)
+
+    allowed_detail_keys = {
+        "axis",
+        "slice",
+        "position",
+        "category",
+        "median_rho_diff",
+        "folds_covered",
+        "n",
+        "boot_p_value",
+        "aggregate_p_value_method",
+        "q_value",
+        "powered_followup_candidate",
+        "powered_followup_label",
+    }
+    for row in aggregate_details:
+        assert set(row) == allowed_detail_keys
+        assert row.get("decision_supported") is not True
+        assert "recommendation" not in row
+        assert "raw_passthrough" not in row
+        assert "fold_rows" not in row
+        assert "edge" not in str(row.get("slice", "")).lower()
+
+    provenance = ledger["provenance"]
+    assert provenance["draft_year_source"] == "dynastyprocess_db_playerids"
+    assert provenance["db_season_snapshot"] == 2025
+    assert provenance["draft_year_coverage_numerator"] == 3
+    assert provenance["draft_year_coverage_denominator"] == 4
+    assert provenance["excluded_missing_draft_year_count"] == 1
+    assert provenance["invalid_negative_experience_count"] == 1
+    assert provenance["per_position_disagreement_denominators"] == {
+        "RB": 3,
+        "WR": 1,
+    }
+    assert provenance["early_career_coverage"]["overall"] == {
+        "covered": 3,
+        "denominator": 4,
+    }
+    assert provenance["early_career_coverage"]["per_position_fold"] == [
+        {"position": "RB", "fold": 2024, "covered": 1, "denominator": 2},
+        {"position": "RB", "fold": 2025, "covered": 1, "denominator": 1},
+        {"position": "WR", "fold": 2024, "covered": 1, "denominator": 1},
+    ]
+
+
+def test_compute_landscape_payload_gates_early_career_on_position_fold_coverage():
+    cli = _subpop_cli_module()
+    enriched_rows = [
+        {
+            "player_id": f"covered_late_{idx}",
+            "position": "RB",
+            "feature_season": 2025,
+            "age_at_feature_season": 22.0,
+            "draft_year": 2024,
+            "model_rank": None,
+            "consensus_rank": None,
+            "realized_rank": None,
+        }
+        for idx in range(18)
+    ]
+    enriched_rows.extend(
+        [
+            {
+                "player_id": "covered_early",
+                "position": "RB",
+                "feature_season": 2024,
+                "age_at_feature_season": 22.0,
+                "draft_year": 2023,
+                "model_rank": None,
+                "consensus_rank": None,
+                "realized_rank": None,
+            },
+            {
+                "player_id": "missing_early",
+                "position": "RB",
+                "feature_season": 2024,
+                "age_at_feature_season": 22.0,
+                "draft_year": None,
+                "model_rank": None,
+                "consensus_rank": None,
+                "realized_rank": None,
+            },
+        ]
+    )
+
+    payload = cli._compute_landscape_payload(
+        enriched_rows,
+        draft_year_provenance={
+            "draft_year_source": "dynastyprocess_db_playerids",
+            "db_season_snapshot": 2025,
+        },
+        run_id="position_fold_gate_fixture",
+    )
+
+    provenance = payload["ledger"]["provenance"]
+    assert provenance["early_career_coverage"]["overall"] == {
+        "covered": 19,
+        "denominator": 20,
+    }
+    assert provenance["early_career_coverage"]["per_position_fold"] == [
+        {"position": "RB", "fold": 2024, "covered": 1, "denominator": 2},
+        {"position": "RB", "fold": 2025, "covered": 18, "denominator": 18},
+    ]
+    assert payload["ledger"]["axis_tables"]["early_career"] == {
+        "status": "early_career_axis_unavailable",
+        "coverage_counts": provenance["early_career_coverage"],
+        "rows": [],
+    }
+
+
 def test_subpopulation_cli_loads_joins_writes_and_preserves_inputs(
     tmp_path,
     monkeypatch,
