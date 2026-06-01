@@ -489,3 +489,142 @@ def test_aggregate_folds_fail_closed_when_empty_or_all_insufficient(slice_folds)
     assert aggregate["median_rho_diff"] is None
     assert aggregate["folds_covered"] == 0
     assert aggregate["fold_rows"] == slice_folds
+
+
+def test_apply_fdr_returns_new_records_with_global_bh_q_values_on_aggregates_only():
+    module = _subpop_module()
+    aggregate_tests = [
+        {
+            "axis": "aging_cliff_transition",
+            "slice": "all",
+            "position": "RB",
+            "boot_p_value": 0.001,
+            "fold_rows": [{"fold": 2021, "boot_p_value": 0.90}],
+        },
+        {
+            "axis": "high_disagreement",
+            "slice": "model_bullish",
+            "position": "WR",
+            "boot_p_value": 0.04,
+            "fold_rows": [{"fold": 2021, "boot_p_value": 0.001}],
+        },
+        {
+            "axis": "high_disagreement",
+            "slice": "model_bearish",
+            "position": "TE",
+            "boot_p_value": 0.03,
+            "fold_rows": [],
+        },
+        {
+            "axis": "early_career",
+            "slice": "eligible",
+            "position": "QB",
+            "boot_p_value": 0.20,
+            "fold_rows": [],
+        },
+        {
+            "axis": "early_career",
+            "slice": "missing_draft_year",
+            "position": "RB",
+            "boot_p_value": None,
+            "fold_rows": [],
+        },
+    ]
+
+    adjusted = module.apply_fdr(aggregate_tests)
+
+    assert adjusted is not aggregate_tests
+    assert [record["q_value"] for record in adjusted[:-1]] == pytest.approx([
+        0.004,
+        0.05333333333333334,
+        0.05333333333333334,
+        0.20,
+    ])
+    assert adjusted[-1]["q_value"] is None
+    assert [record["powered_followup_candidate"] for record in adjusted] == [
+        True,
+        True,
+        True,
+        False,
+        False,
+    ]
+    assert all(
+        record["powered_followup_label"] == "hypothesis_generating"
+        for record in adjusted
+    )
+    assert all("q_value" not in record for record in aggregate_tests)
+    assert all("powered_followup_candidate" not in record for record in aggregate_tests)
+
+
+def test_apply_fdr_ignores_fold_level_p_values_and_leaves_fold_rows_untouched():
+    module = _subpop_module()
+    fold_rows = [
+        {"fold": 2021, "boot_p_value": 0.001},
+        {"fold": 2022, "boot_p_value": 0.002},
+    ]
+    aggregate_tests = [
+        {
+            "axis": "high_disagreement",
+            "slice": "model_bullish",
+            "position": "RB",
+            "boot_p_value": 0.80,
+            "fold_rows": fold_rows,
+        },
+        {
+            "axis": "high_disagreement",
+            "slice": "model_bearish",
+            "position": "RB",
+            "boot_p_value": 0.90,
+            "fold_rows": [],
+        },
+    ]
+
+    adjusted = module.apply_fdr(aggregate_tests)
+
+    assert [record["q_value"] for record in adjusted] == pytest.approx([0.90, 0.90])
+    assert [record["powered_followup_candidate"] for record in adjusted] == [
+        False,
+        False,
+    ]
+    assert adjusted[0]["fold_rows"] == fold_rows
+    assert adjusted[0]["fold_rows"] is not fold_rows
+    assert all("q_value" not in fold_row for fold_row in adjusted[0]["fold_rows"])
+    assert all(
+        "powered_followup_candidate" not in fold_row
+        for fold_row in adjusted[0]["fold_rows"]
+    )
+    assert all("q_value" not in fold_row for fold_row in fold_rows)
+    assert all("powered_followup_candidate" not in fold_row for fold_row in fold_rows)
+
+
+def test_apply_fdr_fail_closed_for_empty_and_all_none_p_values():
+    module = _subpop_module()
+
+    assert module.apply_fdr([]) == []
+
+    adjusted = module.apply_fdr([
+        {
+            "axis": "aging_cliff_transition",
+            "slice": "all",
+            "position": "RB",
+            "boot_p_value": None,
+            "fold_rows": [],
+        },
+        {
+            "axis": "early_career",
+            "slice": "eligible",
+            "position": "WR",
+            "boot_p_value": None,
+            "fold_rows": [],
+        },
+    ])
+
+    assert [record["q_value"] for record in adjusted] == [None, None]
+    assert [record["powered_followup_candidate"] for record in adjusted] == [
+        False,
+        False,
+    ]
+    assert all(
+        record["powered_followup_label"] == "hypothesis_generating"
+        for record in adjusted
+    )
