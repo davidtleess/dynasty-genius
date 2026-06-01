@@ -18,8 +18,11 @@ statistical integrity. They must remain module-level constants, never inline
 literals, so a reviewer can confirm no threshold was tuned to a result.
 
 Task 1: module scaffold + pre-registered constants.
+Task 2: resolve_draft_year — early-career draft-year dedup, fail-closed.
 """
 from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
 
 # Category neutral band on rho_diff: |rho_diff| < NEUTRAL_BAND is reported as
 # `statistically_indistinguishable`, independent of the bootstrap CI (spec §4).
@@ -55,3 +58,89 @@ AGING_THRESHOLDS = {
     "TE": 29,
     "QB": 32,
 }
+
+
+class InvalidDraftYearError(ValueError):
+    """Raised when a non-null draft_year cannot be read as an integer year.
+
+    A malformed draft_year is a data-integrity violation, not a missing value:
+    "silent substitution forbidden" — we never coerce a bad value to missing
+    (spec §7). Distinct from the plain ``ValueError`` raised on a genuine
+    conflict between two valid-but-different draft years for one player.
+    """
+
+
+def _coerce_draft_year(raw: object) -> int | None:
+    """Return draft_year as int, ``None`` when absent/null, else raise.
+
+    Accepts ``int``, integral ``float``, and base-10 integer strings. Rejects
+    ``bool``, non-integral ``float``, and non-integer strings with
+    ``InvalidDraftYearError`` (no coercion to missing).
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, bool):  # bool is an int subclass; not a valid year
+        raise InvalidDraftYearError(f"draft_year is boolean, not a year: {raw!r}")
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, float):
+        if raw.is_integer():
+            return int(raw)
+        raise InvalidDraftYearError(f"draft_year is a non-integer float: {raw!r}")
+    if isinstance(raw, str):
+        try:
+            return int(raw.strip())
+        except ValueError as exc:
+            raise InvalidDraftYearError(
+                f"draft_year is not an integer string: {raw!r}"
+            ) from exc
+    raise InvalidDraftYearError(
+        f"draft_year has unsupported type {type(raw).__name__}: {raw!r}"
+    )
+
+
+def resolve_draft_year(
+    rows: Iterable[Mapping[str, object]],
+) -> tuple[dict[str, int], int | None]:
+    """Resolve ``{gsis_id -> draft_year}`` plus the db_season snapshot.
+
+    Deterministic and fail-closed (spec §6/§7):
+
+    - exactly one distinct non-null draft_year per ``gsis_id`` -> mapped (int);
+    - two or more distinct non-null draft_year values for one ``gsis_id`` ->
+      ``ValueError`` (a genuine conflict; "latest db_season wins" never silently
+      overrides a conflict);
+    - null/absent draft_year -> excluded from the map (the caller counts the
+      ``gsis_id`` toward the coverage denominator), no raise;
+    - non-null non-integer draft_year -> ``InvalidDraftYearError`` (no coercion).
+
+    ``db_season_snapshot`` is the latest (max) ``db_season`` across all rows.
+    """
+    values_by_id: dict[str, set[int]] = {}
+    db_seasons: list[int] = []
+    for row in rows:
+        db_season = row.get("db_season")
+        if db_season is not None:
+            db_seasons.append(int(db_season))
+        year = _coerce_draft_year(row.get("draft_year"))
+        gsis_id = row.get("gsis_id")
+        if gsis_id is None:
+            continue
+        bucket = values_by_id.setdefault(str(gsis_id), set())
+        if year is not None:
+            bucket.add(year)
+
+    draft_year_map: dict[str, int] = {}
+    for gsis_id, years in values_by_id.items():
+        if not years:
+            # null/absent only -> excluded; caller counts it toward coverage.
+            continue
+        if len(years) > 1:
+            raise ValueError(
+                f"conflicting non-null draft_year values for {gsis_id!r}: "
+                f"{sorted(years)}"
+            )
+        draft_year_map[gsis_id] = next(iter(years))
+
+    db_season_snapshot = max(db_seasons) if db_seasons else None
+    return draft_year_map, db_season_snapshot
