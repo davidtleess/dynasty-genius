@@ -2,6 +2,8 @@ from importlib import import_module
 
 import pytest
 
+REPORT_HEADER = "DESCRIPTIVE / DIAGNOSTIC — not decision-grade. No edge claim."
+
 
 def _subpop_module():
     return import_module("src.dynasty_genius.eval.subpopulation_landscape")
@@ -9,6 +11,27 @@ def _subpop_module():
 
 def _rank_fixture(n: int) -> list[int]:
     return list(range(1, n + 1))
+
+
+def _walk_strings(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _walk_strings(item)
+    elif isinstance(value, list | tuple):
+        for item in value:
+            yield from _walk_strings(item)
+
+
+def _walk_dicts(value):
+    if isinstance(value, dict):
+        yield value
+        for item in value.values():
+            yield from _walk_dicts(item)
+    elif isinstance(value, list | tuple):
+        for item in value:
+            yield from _walk_dicts(item)
 
 
 def test_subpopulation_landscape_exposes_pre_registered_constants():
@@ -628,3 +651,207 @@ def test_apply_fdr_fail_closed_for_empty_and_all_none_p_values():
         record["powered_followup_label"] == "hypothesis_generating"
         for record in adjusted
     )
+
+
+def test_build_slice_ledger_balanced_bins_header_and_provenance():
+    module = _subpop_module()
+    aggregate_tests = [
+        {
+            "axis": "high_disagreement",
+            "slice": "model_bullish",
+            "position": "WR",
+            "category": "model_leads_point_estimate",
+            "n": 64,
+            "folds_covered": 4,
+            "median_rho_diff": 0.11,
+            "q_value": 0.04,
+            "powered_followup_candidate": True,
+            "powered_followup_label": "hypothesis_generating",
+            "fold_rows": [
+                {
+                    "fold": 2021,
+                    "category": "model_leads_point_estimate",
+                    "n": 32,
+                }
+            ],
+        },
+    ]
+    draft_year_provenance = {
+        "draft_year_source": "dynastyprocess_db_playerids",
+        "db_season_snapshot": 2025,
+        "draft_year_coverage_numerator": 98,
+        "draft_year_coverage_denominator": 100,
+        "excluded_missing_draft_year_count": 2,
+        "invalid_negative_experience_count": 1,
+        "per_position_disagreement_denominators": {"WR": 64, "RB": 0},
+    }
+    early_career_coverage = {
+        "overall": {"covered": 98, "denominator": 100},
+        "per_position_fold": [
+            {"position": "WR", "fold": 2021, "covered": 32, "denominator": 32}
+        ],
+    }
+
+    ledger = module.build_slice_ledger(
+        aggregate_tests,
+        draft_year_provenance=draft_year_provenance,
+        early_career_coverage=early_career_coverage,
+    )
+
+    assert ledger["header"] == REPORT_HEADER
+    assert set(ledger) == {"header", "axis_tables", "provenance"}
+    assert ledger["provenance"] == {
+        **draft_year_provenance,
+        "early_career_coverage": early_career_coverage,
+    }
+    expected_bins = {
+        "model_leads_point_estimate",
+        "consensus_leads_point_estimate",
+        "statistically_indistinguishable",
+        "insufficient_n",
+    }
+    for axis in [
+        "aging_cliff_transition",
+        "high_disagreement",
+        "early_career",
+    ]:
+        axis_table = ledger["axis_tables"][axis]
+        assert axis_table["status"] == "available"
+        bins = {row["category"] for row in axis_table["rows"]}
+        assert bins == expected_bins
+        assert all("n" in row and "folds_covered" in row for row in axis_table["rows"])
+
+    high_disagreement_rows = {
+        row["category"]: row
+        for row in ledger["axis_tables"]["high_disagreement"]["rows"]
+    }
+    assert high_disagreement_rows["model_leads_point_estimate"]["n"] == 64
+    assert high_disagreement_rows["model_leads_point_estimate"]["folds_covered"] == 4
+    assert high_disagreement_rows["consensus_leads_point_estimate"]["n"] == 0
+    assert high_disagreement_rows["consensus_leads_point_estimate"][
+        "folds_covered"
+    ] == 0
+
+
+def test_build_slice_ledger_early_career_coverage_gate_fails_closed():
+    module = _subpop_module()
+    aggregate_tests = [
+        {
+            "axis": "early_career",
+            "slice": "eligible",
+            "position": "RB",
+            "category": "model_leads_point_estimate",
+            "n": 40,
+            "folds_covered": 3,
+            "median_rho_diff": 0.20,
+            "fold_rows": [],
+        }
+    ]
+    draft_year_provenance = {
+        "draft_year_source": "dynastyprocess_db_playerids",
+        "db_season_snapshot": 2025,
+        "draft_year_coverage_numerator": 94,
+        "draft_year_coverage_denominator": 100,
+        "excluded_missing_draft_year_count": 6,
+        "invalid_negative_experience_count": 0,
+        "per_position_disagreement_denominators": {"RB": 40},
+    }
+    early_career_coverage = {
+        "overall": {"covered": 94, "denominator": 100},
+        "per_position_fold": [
+            {"position": "RB", "fold": 2021, "covered": 38, "denominator": 40}
+        ],
+    }
+
+    ledger = module.build_slice_ledger(
+        aggregate_tests,
+        draft_year_provenance=draft_year_provenance,
+        early_career_coverage=early_career_coverage,
+    )
+
+    early_career = ledger["axis_tables"]["early_career"]
+    assert early_career == {
+        "status": "early_career_axis_unavailable",
+        "coverage_counts": {
+            "overall": {"covered": 94, "denominator": 100},
+            "per_position_fold": [
+                {"position": "RB", "fold": 2021, "covered": 38, "denominator": 40}
+            ],
+        },
+        "rows": [],
+    }
+
+
+def test_build_slice_ledger_missing_or_invalid_draft_year_input_fails_closed():
+    module = _subpop_module()
+
+    ledger = module.build_slice_ledger(
+        [],
+        draft_year_provenance={
+            "draft_year_source": None,
+            "db_season_snapshot": None,
+            "draft_year_coverage_numerator": 0,
+            "draft_year_coverage_denominator": 0,
+            "excluded_missing_draft_year_count": 0,
+            "invalid_negative_experience_count": 0,
+            "per_position_disagreement_denominators": {},
+        },
+        early_career_coverage=None,
+        invalid_draft_year_error=module.InvalidDraftYearError("bad draft_year"),
+    )
+
+    assert ledger["axis_tables"]["early_career"]["status"] == (
+        "early_career_axis_unavailable"
+    )
+    assert ledger["axis_tables"]["early_career"]["rows"] == []
+    assert ledger["provenance"]["invalid_draft_year_error"] == "bad draft_year"
+
+
+def test_build_slice_ledger_posture_guard_no_decision_or_edge_labels():
+    module = _subpop_module()
+
+    ledger = module.build_slice_ledger(
+        [
+            {
+                "axis": "aging_cliff_transition",
+                "slice": "all",
+                "position": "RB",
+                "category": "statistically_indistinguishable",
+                "n": 30,
+                "folds_covered": 2,
+                "decision_supported": False,
+                "fold_rows": [],
+            }
+        ],
+        draft_year_provenance={
+            "draft_year_source": "dynastyprocess_db_playerids",
+            "db_season_snapshot": 2025,
+            "draft_year_coverage_numerator": 30,
+            "draft_year_coverage_denominator": 30,
+            "excluded_missing_draft_year_count": 0,
+            "invalid_negative_experience_count": 0,
+            "per_position_disagreement_denominators": {"RB": 30},
+        },
+        early_career_coverage={
+            "overall": {"covered": 30, "denominator": 30},
+            "per_position_fold": [
+                {"position": "RB", "fold": 2021, "covered": 30, "denominator": 30}
+            ],
+        },
+    )
+
+    assert ledger["header"] == REPORT_HEADER
+    assert all(
+        record.get("decision_supported") is not True for record in _walk_dicts(ledger)
+    )
+    banned = {"buy", "sell", "verdict", "grade", "tier", "recommendation"}
+    strings = [text for text in _walk_strings(ledger) if text != REPORT_HEADER]
+    assert not any(token in text.lower() for text in strings for token in banned)
+    for axis_table in ledger["axis_tables"].values():
+        for row in axis_table["rows"]:
+            checked = [
+                str(row.get("category", "")),
+                str(row.get("slice", "")),
+                str(row.get("recommendation", "")),
+            ]
+            assert not any("edge" in text.lower() for text in checked)
