@@ -1,4 +1,8 @@
+import hashlib
+import importlib.util
+import json
 from importlib import import_module
+from pathlib import Path
 
 import pytest
 
@@ -7,6 +11,15 @@ REPORT_HEADER = "DESCRIPTIVE / DIAGNOSTIC — not decision-grade. No edge claim.
 
 def _subpop_module():
     return import_module("src.dynasty_genius.eval.subpopulation_landscape")
+
+
+def _subpop_cli_module():
+    path = Path("scripts/run_subpopulation_landscape.py")
+    spec = importlib.util.spec_from_file_location("run_subpopulation_landscape", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    spec.loader.exec_module(module)
+    return module
 
 
 def _rank_fixture(n: int) -> list[int]:
@@ -32,6 +45,10 @@ def _walk_dicts(value):
     elif isinstance(value, list | tuple):
         for item in value:
             yield from _walk_dicts(item)
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def test_subpopulation_landscape_exposes_pre_registered_constants():
@@ -912,3 +929,265 @@ def test_build_slice_ledger_does_not_echo_dirty_aggregate_posture_fields():
                 str(row.get("recommendation", "")),
             ]
             assert not any("edge" in text.lower() for text in checked)
+
+
+def test_subpopulation_cli_loads_joins_writes_and_preserves_inputs(
+    tmp_path,
+    monkeypatch,
+):
+    cli = _subpop_cli_module()
+    run_dir = tmp_path / "20260601T120000Z"
+    run_dir.mkdir()
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    market_path = run_dir / "market_comparison_WR.json"
+    prediction_path = run_dir / "predictions_WR.csv"
+    id_map_path = tmp_path / "db_playerids.csv"
+    market_path.write_text(
+        json.dumps([
+            {
+                "player_id": "00-001",
+                "feature_season": 2024,
+                "position": "WR",
+                "model_rank": 8,
+                "consensus_rank": 20,
+                "realized_rank": 6,
+            }
+        ]),
+        encoding="utf-8",
+    )
+    prediction_path.write_text(
+        "player_id,feature_season,age_at_feature_season\n00-001,2024,24.5\n",
+        encoding="utf-8",
+    )
+    id_map_path.write_text(
+        "gsis_id,draft_year,db_season\n00-001,2022,2025\n",
+        encoding="utf-8",
+    )
+    input_hashes = {
+        path: _sha256(path) for path in [market_path, prediction_path, id_map_path]
+    }
+    captured = {}
+
+    def fake_compute(enriched_rows, *, draft_year_provenance, run_id):
+        captured["enriched_rows"] = enriched_rows
+        captured["draft_year_provenance"] = draft_year_provenance
+        captured["run_id"] = run_id
+        return {
+            "ledger": {
+                "header": REPORT_HEADER,
+                "axis_tables": {},
+                "provenance": draft_year_provenance,
+            },
+            "aggregate_details": [
+                {
+                    "axis": "high_disagreement",
+                    "slice": "model_bullish",
+                    "position": "WR",
+                    "category": "model_leads_point_estimate",
+                    "q_value": 0.04,
+                    "powered_followup_label": "hypothesis_generating",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(cli, "_compute_landscape_payload", fake_compute)
+
+    assert cli.main([
+        "--run-dir",
+        str(run_dir),
+        "--id-map-csv",
+        str(id_map_path),
+        "--output-dir",
+        str(output_dir),
+    ]) == 0
+
+    assert captured["run_id"] == "20260601T120000Z"
+    assert captured["enriched_rows"] == [
+        {
+            "player_id": "00-001",
+            "feature_season": 2024,
+            "position": "WR",
+            "model_rank": 8,
+            "consensus_rank": 20,
+            "realized_rank": 6,
+            "age_at_feature_season": 24.5,
+            "draft_year": 2022,
+        }
+    ]
+    assert captured["draft_year_provenance"]["draft_year_source"] == (
+        "dynastyprocess_db_playerids"
+    )
+    assert captured["draft_year_provenance"]["db_season_snapshot"] == 2025
+    assert (output_dir / "subpopulation_landscape_latest.json").exists()
+    assert (output_dir / "subpopulation_landscape_latest.md").exists()
+    run_json = output_dir / "subpopulation_landscape_20260601T120000Z.json"
+    run_md = output_dir / "subpopulation_landscape_20260601T120000Z.md"
+    assert run_json.exists()
+    assert run_md.exists()
+    artifact = json.loads(run_json.read_text(encoding="utf-8"))
+    assert artifact["run_id"] == "20260601T120000Z"
+    assert artifact["ledger"]["header"] == REPORT_HEADER
+    assert artifact["aggregate_details"][0]["powered_followup_label"] == (
+        "hypothesis_generating"
+    )
+    assert {path: _sha256(path) for path in input_hashes} == input_hashes
+
+
+def test_subpopulation_cli_missing_id_map_fails_closed_without_crash(
+    tmp_path,
+    monkeypatch,
+):
+    cli = _subpop_cli_module()
+    run_dir = tmp_path / "run_missing_id"
+    run_dir.mkdir()
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    (run_dir / "market_comparison_RB.json").write_text(
+        json.dumps([
+            {
+                "player_id": "00-002",
+                "feature_season": 2024,
+                "position": "RB",
+                "model_rank": 12,
+                "consensus_rank": 24,
+                "realized_rank": 10,
+            }
+        ]),
+        encoding="utf-8",
+    )
+    (run_dir / "predictions_RB.csv").write_text(
+        "player_id,feature_season,age_at_feature_season\n00-002,2024,23\n",
+        encoding="utf-8",
+    )
+
+    def fake_compute(enriched_rows, *, draft_year_provenance, run_id):
+        assert enriched_rows[0]["draft_year"] is None
+        assert draft_year_provenance["draft_year_source"] is None
+        return {
+            "ledger": {
+                "header": REPORT_HEADER,
+                "axis_tables": {
+                    "early_career": {
+                        "status": "early_career_axis_unavailable",
+                        "coverage_counts": None,
+                        "rows": [],
+                    }
+                },
+                "provenance": draft_year_provenance,
+            },
+            "aggregate_details": [],
+        }
+
+    monkeypatch.setattr(cli, "_compute_landscape_payload", fake_compute)
+
+    assert cli.main([
+        "--run-dir",
+        str(run_dir),
+        "--output-dir",
+        str(output_dir),
+    ]) == 0
+
+    artifact = json.loads(
+        (output_dir / "subpopulation_landscape_run_missing_id.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert artifact["ledger"]["axis_tables"]["early_career"]["status"] == (
+        "early_career_axis_unavailable"
+    )
+
+
+def test_subpopulation_cli_refuses_differing_run_artifact_overwrite(
+    tmp_path,
+    monkeypatch,
+):
+    cli = _subpop_cli_module()
+    run_dir = tmp_path / "run_collision"
+    run_dir.mkdir()
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    (run_dir / "market_comparison_QB.json").write_text("[]", encoding="utf-8")
+    (run_dir / "predictions_QB.csv").write_text(
+        "player_id,feature_season,age_at_feature_season\n",
+        encoding="utf-8",
+    )
+    existing = output_dir / "subpopulation_landscape_run_collision.json"
+    existing.write_text('{"different": true}\n', encoding="utf-8")
+    before = existing.read_text(encoding="utf-8")
+
+    monkeypatch.setattr(
+        cli,
+        "_compute_landscape_payload",
+        lambda enriched_rows, *, draft_year_provenance, run_id: {
+            "ledger": {
+                "header": REPORT_HEADER,
+                "axis_tables": {},
+                "provenance": draft_year_provenance,
+            },
+            "aggregate_details": [],
+        },
+    )
+
+    assert cli.main([
+        "--run-dir",
+        str(run_dir),
+        "--output-dir",
+        str(output_dir),
+    ]) == 1
+    assert existing.read_text(encoding="utf-8") == before
+    assert not (output_dir / "subpopulation_landscape_latest.json").exists()
+
+
+def test_subpopulation_cli_posture_guard_fails_loud_before_write(tmp_path, monkeypatch):
+    cli = _subpop_cli_module()
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    dirty_payload = {
+        "ledger": {
+            "header": REPORT_HEADER,
+            "axis_tables": {},
+            "provenance": {},
+        },
+        "aggregate_details": [
+            {
+                "axis": "aging_cliff_transition",
+                "slice": "edge_buy_candidate",
+                "position": "RB",
+                "category": "buy_grade_edge",
+                "decision_supported": True,
+                "recommendation": "buy",
+            }
+        ],
+    }
+
+    with pytest.raises(ValueError, match="posture"):
+        cli._write_outputs(
+            dirty_payload,
+            output_dir=output_dir,
+            run_id="dirty_run",
+        )
+
+    assert list(output_dir.iterdir()) == []
+
+
+def test_subpopulation_cli_reexec_under_repo_venv_guard(monkeypatch):
+    cli = _subpop_cli_module()
+    calls = []
+
+    monkeypatch.setattr(cli.sys, "prefix", "/usr/bin")
+    monkeypatch.setattr(cli.sys, "base_prefix", "/usr")
+    monkeypatch.setenv("DYNASTY_SUBPOPULATION_REEXEC", "")
+
+    def fake_execv(executable, argv):
+        calls.append((executable, argv))
+        raise RuntimeError("stop after exec")
+
+    monkeypatch.setattr(cli.os, "execv", fake_execv)
+
+    with pytest.raises(RuntimeError, match="stop after exec"):
+        cli._reexec_under_venv()
+
+    assert calls
+    assert calls[0][0].endswith(".venv/bin/python3.14")
+    assert calls[0][1][0].endswith(".venv/bin/python3.14")
