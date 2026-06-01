@@ -23,6 +23,7 @@ Task 3: tag_cohorts — three pre-registered axes (aging / disagreement / early-
 Task 4: compute_slice — orientation-locked Spearman rho_diff + NDCG cross-check.
 Task 5: aggregate_folds — median rho_diff + folds_covered, no pseudo-replication.
 Task 6: apply_fdr — aggregate-only Benjamini-Hochberg family + candidate flag.
+Task 7: build_slice_ledger — balanced bins + coverage gate + provenance + posture.
 """
 from __future__ import annotations
 
@@ -495,3 +496,130 @@ def apply_fdr(aggregate_tests: Iterable[Mapping[str, object]]) -> list[dict]:
         rec["powered_followup_candidate"] = q is not None and q <= FDR_Q
         rec["powered_followup_label"] = "hypothesis_generating"
     return records
+
+
+# Structural constants for the slice ledger (NOT pre-registered thresholds).
+_LEDGER_AXES = ("aging_cliff_transition", "high_disagreement", "early_career")
+_CATEGORY_BINS = (
+    "model_leads_point_estimate",
+    "consensus_leads_point_estimate",
+    "statistically_indistinguishable",
+    "insufficient_n",
+)
+# The ONE sanctioned use of the word "edge": the descriptive/diagnostic report
+# header. The §8 banned-language guard applies to category/slice/recommendation
+# labels, never to this header.
+_REPORT_HEADER = "DESCRIPTIVE / DIAGNOSTIC — not decision-grade. No edge claim."
+
+
+def _early_career_axis_available(
+    early_career_coverage: Mapping[str, object] | None,
+    invalid_draft_year_error: object,
+) -> bool:
+    """Fail-closed early-career coverage gate (spec §7).
+
+    Unavailable when: an InvalidDraftYearError was raised, coverage is missing,
+    overall draft_year coverage < COVERAGE_GATE, or ANY per-position-fold coverage
+    < COVERAGE_GATE. No age substitution is ever used as a fallback.
+    """
+    if invalid_draft_year_error is not None:
+        return False
+    if not early_career_coverage:
+        return False
+    overall = early_career_coverage.get("overall") or {}
+    denom = overall.get("denominator") or 0
+    covered = overall.get("covered") or 0
+    if denom <= 0 or (covered / denom) < COVERAGE_GATE:
+        return False
+    for pf in early_career_coverage.get("per_position_fold", []) or []:
+        d = pf.get("denominator") or 0
+        c = pf.get("covered") or 0
+        if d <= 0 or (c / d) < COVERAGE_GATE:
+            return False
+    return True
+
+
+def _balanced_axis_rows(aggregates_for_axis: list) -> list[dict]:
+    """One row per category bin (all four always present — balanced reporting).
+
+    Empty bins are emitted with n=0, folds_covered=0 so the table can never
+    cherry-pick the model-favorable direction. n / folds_covered are summed over
+    the aggregates that fell into each category for this axis.
+    """
+    rows = []
+    for category in _CATEGORY_BINS:
+        members = [a for a in aggregates_for_axis if a.get("category") == category]
+        rows.append(
+            {
+                "category": category,
+                "n": sum(int(a.get("n") or 0) for a in members),
+                "folds_covered": sum(int(a.get("folds_covered") or 0) for a in members),
+            }
+        )
+    return rows
+
+
+def build_slice_ledger(
+    aggregate_tests: Iterable[Mapping[str, object]],
+    *,
+    draft_year_provenance: Mapping[str, object],
+    early_career_coverage: Mapping[str, object] | None,
+    invalid_draft_year_error: object = None,
+) -> dict:
+    """Assemble the descriptive slice ledger (spec §4/§7/§8).
+
+    Returns exactly ``{"header", "axis_tables", "provenance"}``:
+
+    - ``header``: the verbatim DESCRIPTIVE/DIAGNOSTIC posture header (the one
+      sanctioned use of "edge");
+    - ``axis_tables``: one table per pre-registered axis. Available axes carry
+      ONLY the controlled balanced category bins (all four, empty bins
+      zero-filled); raw per-(slice, position) aggregate dicts are deliberately
+      NOT echoed, so a dirty upstream aggregate cannot leak posture fields into
+      the ledger (the per-slice median/q/candidate detail is the apply_fdr output,
+      carried and posture-checked by the Task 8 CLI artifact). The early-career
+      axis fails closed to ``{status: early_career_axis_unavailable,
+      coverage_counts, rows: []}`` when the §7 coverage gate is not met (no age
+      substitution);
+    - ``provenance``: the draft-year provenance block + ``early_career_coverage``
+      (+ ``invalid_draft_year_error`` string when one was raised upstream).
+
+    Posture: ``decision_supported`` is never True anywhere, no banned David-facing
+    language appears, and "edge" appears only in the header.
+    """
+    by_axis: dict[str, list] = {axis: [] for axis in _LEDGER_AXES}
+    for agg in aggregate_tests:
+        axis = agg.get("axis")
+        if axis in by_axis:
+            by_axis[axis].append(agg)
+
+    axis_tables: dict[str, dict] = {}
+    for axis in _LEDGER_AXES:
+        if axis == "early_career" and not _early_career_axis_available(
+            early_career_coverage, invalid_draft_year_error
+        ):
+            axis_tables[axis] = {
+                "status": "early_career_axis_unavailable",
+                "coverage_counts": early_career_coverage,
+                "rows": [],
+            }
+            continue
+        # Emit ONLY the controlled balanced bins — never echo raw input aggregate
+        # dicts, which could carry dirty posture fields (decision_supported=True,
+        # recommendation/banned labels) and defeat the §8 guard. Per-(slice,
+        # position) median/q/candidate detail is the apply_fdr output, carried and
+        # posture-checked by the Task 8 CLI artifact, not echoed here.
+        axis_tables[axis] = {
+            "status": "available",
+            "rows": _balanced_axis_rows(by_axis[axis]),
+        }
+
+    provenance = {**dict(draft_year_provenance), "early_career_coverage": early_career_coverage}
+    if invalid_draft_year_error is not None:
+        provenance["invalid_draft_year_error"] = str(invalid_draft_year_error)
+
+    return {
+        "header": _REPORT_HEADER,
+        "axis_tables": axis_tables,
+        "provenance": provenance,
+    }
