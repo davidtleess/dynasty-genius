@@ -21,6 +21,7 @@ Task 1: module scaffold + pre-registered constants.
 Task 2: resolve_draft_year — early-career draft-year dedup, fail-closed.
 Task 3: tag_cohorts — three pre-registered axes (aging / disagreement / early-career).
 Task 4: compute_slice — orientation-locked Spearman rho_diff + NDCG cross-check.
+Task 5: aggregate_folds — median rho_diff + folds_covered, no pseudo-replication.
 """
 from __future__ import annotations
 
@@ -421,4 +422,27 @@ def compute_slice(
         "boot_p_value": boot["boot_p_value"],
         "category": _categorize_rho_diff(boot["rho_diff"]),
         "ndcg_xcheck": ndcg_xcheck,
+    }
+
+
+def aggregate_folds(slice_folds: Iterable[Mapping[str, object]]) -> dict:
+    """Aggregate per-fold compute_slice results over EVALUABLE folds (spec §4).
+
+    No pseudo-replication: the primary aggregate is the MEDIAN ``rho_diff`` across
+    folds whose ``rho_diff`` is numeric (not None); ``insufficient_n`` folds are
+    excluded from both the median and ``folds_covered``. Every fold row is
+    preserved in ``fold_rows`` for auditability and downstream distribution
+    mapping — raw rankings are NEVER pooled across folds for the primary
+    aggregate (no ``pooled_rho_diff``). Fail-closed: empty input or zero evaluable
+    folds -> ``median_rho_diff`` None, ``folds_covered`` 0 (no fabricated 0.0).
+    """
+    fold_rows = list(slice_folds)
+    evaluable = [
+        row["rho_diff"] for row in fold_rows if row.get("rho_diff") is not None
+    ]
+    median_rho_diff = float(np.median(evaluable)) if evaluable else None
+    return {
+        "median_rho_diff": median_rho_diff,
+        "folds_covered": len(evaluable),
+        "fold_rows": fold_rows,
     }
