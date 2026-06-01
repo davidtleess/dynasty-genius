@@ -221,11 +221,20 @@ def test_tag_cohorts_flags_early_career_and_exclusions():
                 "model_rank": 10,
                 "consensus_rank": 10,
             },
+            {
+                "player_id": "null_experience",
+                "position": "RB",
+                "age_at_feature_season": 22,
+                "feature_season": None,
+                "model_rank": 10,
+                "consensus_rank": 10,
+            },
         ],
         {
             "rookie_window": 2022,
             "too_old_for_axis": 2021,
             "negative_experience": 2025,
+            "null_experience": 2022,
         },
     )
 
@@ -244,6 +253,11 @@ def test_tag_cohorts_flags_early_career_and_exclusions():
     assert by_id["missing_draft_year"]["early_career_eligible"] is False
     assert by_id["missing_draft_year"]["early_career_experience_year"] is None
     assert by_id["missing_draft_year"]["cohort_exclusion_reasons"] == []
+    assert by_id["null_experience"]["early_career_eligible"] is False
+    assert by_id["null_experience"]["early_career_experience_year"] is None
+    assert "invalid_negative_experience" in by_id["null_experience"][
+        "cohort_exclusion_reasons"
+    ]
 
 
 def test_tag_cohorts_never_mutates_rank_fields():
