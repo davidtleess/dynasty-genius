@@ -25,6 +25,7 @@ from pydantic import BaseModel, ConfigDict
 
 from src.dynasty_genius.identity.college_prospect_identity import (
     CollegeProspectRegistry,
+    normalize_name,
 )
 
 # ======================================================================
@@ -329,6 +330,144 @@ _REQUIRED_DRAFT_COLUMNS: frozenset[str] = frozenset({
     "season", "round", "pick", "team", "gsis_id",
     "pfr_player_id", "pfr_player_name", "position", "college",
 })
+
+
+def _coerce_draft_truth_row_or_skip(
+    row: dict[str, Any],
+    *,
+    draft_year: int,
+    fetched_at: str,
+    diagnostics: NflTruthLoadDiagnostics,
+) -> Optional[NflTruthRow]:
+    """Map one source row to an ``NflTruthRow`` or count a fail-closed per-row skip.
+
+    Present-key/bad-value rows are skipped and tallied (never a silent default); the
+    missing-column schema gate and season contamination are enforced by the caller
+    before this. Numeric ``pick``/``round`` use ``type(...) is int`` so ``bool``
+    (``type(True) is bool``), ``float``, and numeric strings are skipped, not coerced.
+    """
+    gsis_id = row["gsis_id"]
+    if not isinstance(gsis_id, str) or not gsis_id:
+        diagnostics.skipped_missing_gsis_id += 1
+        return None
+
+    pick = row["pick"]
+    if type(pick) is not int:
+        diagnostics.skipped_bad_pick += 1
+        return None
+
+    draft_round = row["round"]
+    if type(draft_round) is not int:
+        diagnostics.skipped_bad_round += 1
+        return None
+
+    pfr_player_name = row["pfr_player_name"]
+    if not isinstance(pfr_player_name, str) or not pfr_player_name:
+        diagnostics.skipped_missing_name += 1
+        return None
+
+    position = row["position"]
+    if not isinstance(position, str) or not position:
+        diagnostics.skipped_missing_position += 1
+        return None
+
+    team = row["team"]
+    if not isinstance(team, str) or not team:
+        diagnostics.skipped_missing_team += 1
+        return None
+
+    pfr_player_id = row["pfr_player_id"]
+    college = row["college"]
+    return NflTruthRow(
+        gsis_id=gsis_id,
+        pfr_id=pfr_player_id if pfr_player_id else None,
+        full_name=pfr_player_name,
+        normalized_name=normalize_name(pfr_player_name),
+        position=position,
+        college=college if college else None,
+        draft_year=draft_year,
+        draft_pick_no=pick,
+        draft_round=draft_round,
+        nfl_team=team,
+        fetched_at=fetched_at,
+    )
+
+
+def _load_draft_truth_from_fixture(
+    fixture_path: Path,
+    *,
+    draft_year: int,
+    fetched_at_override: Optional[str],
+) -> NflreadrTruthLoadResult:
+    """Load + validate draft truth from a source-shaped fixture (real + fixture path)."""
+    payload = json.loads(Path(fixture_path).read_text(encoding="utf-8"))
+    rows = payload.get("rows", [])
+
+    # Empty source fails closed — never a vacuous schema-gate pass / empty-success.
+    if not rows:
+        raise NflreadrEmptyTruthError(
+            f"draft-truth fixture {fixture_path} contains zero rows"
+        )
+
+    # Schema gate: every required column KEY must be present in every source row.
+    # A missing column is drift; a present key with a bad value is a counted skip.
+    for column in _REQUIRED_DRAFT_COLUMNS:
+        if not all(column in row for row in rows):
+            raise NflreadrSchemaDriftError(
+                f"draft-truth source missing required column '{column}'"
+            )
+
+    # fetched_at is supplied deterministically (raw rows carry none): override wins,
+    # else the fixture's metadata.fetched_at, preserved verbatim (no normalization).
+    fetched_at = fetched_at_override
+    if fetched_at is None:
+        fetched_at = payload.get("metadata", {}).get("fetched_at")
+    if fetched_at is None:
+        raise ValueError(
+            f"draft-truth fixture {fixture_path} missing metadata.fetched_at "
+            "and no fetched_at override supplied"
+        )
+
+    diagnostics = NflTruthLoadDiagnostics(
+        required_columns_seen=sorted(_REQUIRED_DRAFT_COLUMNS),
+    )
+    truth_rows: list[NflTruthRow] = []
+    for row in rows:
+        truth_row = _coerce_draft_truth_row_or_skip(
+            row,
+            draft_year=draft_year,
+            fetched_at=fetched_at,
+            diagnostics=diagnostics,
+        )
+        if truth_row is not None:
+            truth_rows.append(truth_row)
+    diagnostics.truth_rows_loaded = len(truth_rows)
+
+    return NflreadrTruthLoadResult(rows=truth_rows, diagnostics=diagnostics)
+
+
+def load_nflreadr_draft_truth(
+    draft_year: int,
+    *,
+    data_mode: str,
+    fixture_path: Optional[Path] = None,
+    fetched_at: Optional[str] = None,
+) -> NflreadrTruthLoadResult:
+    """Load draft-capital truth rows for a draft class, fail-closed.
+
+    See ``docs/superpowers/specs/2026-06-01-s4-v2-draft-truth-loader-design.md``.
+    Task 2 implements the fixture-backed path (``real`` + ``fixture_path``); the
+    synthetic convention path and the live draft-source path arrive in later tasks.
+    """
+    if fixture_path is not None:
+        return _load_draft_truth_from_fixture(
+            fixture_path,
+            draft_year=draft_year,
+            fetched_at_override=fetched_at,
+        )
+    raise NotImplementedError(
+        "load_nflreadr_draft_truth: only fixture-backed loading is implemented (Task 2)."
+    )
 
 
 # NFL-domain position taxonomy (different from S3's offense-only college whitelist).

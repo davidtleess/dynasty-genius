@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "fetched_at": "2026-01-01T00:00:00Z"
+  },
+  "rows": [
+    {
+      "season": 2024,
+      "round": 1,
+      "pick": 1,
+      "team": "CHI",
+      "gsis_id": "00-0039918",
+      "pfr_player_id": "WillCa03",
+      "pfr_player_name": "Caleb Williams",
+      "position": "QB",
+      "college": "USC"
+    },
+    {
+      "season": 2024,
+      "round": 1,
+      "pick": 4,
+      "team": "ARI",
+      "gsis_id": "00-0039919",
+      "pfr_player_id": "HarrMa09",
+      "pfr_player_name": "Marvin Harrison Jr.",
+      "position": "WR",
+      "college": "Ohio State"
+    }
+  ]
+}

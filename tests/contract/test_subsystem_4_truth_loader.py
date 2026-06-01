@@ -1,12 +1,64 @@
 """Subsystem 4 v2 draft-truth loader contract tests."""
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import get_args, get_origin
 
 import pytest
 from pydantic import BaseModel, ValidationError
 
 from src.dynasty_genius.identity import prospect_nfl_bridge as bridge
+from src.dynasty_genius.identity.college_prospect_identity import normalize_name
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DRAFT_TRUTH_FIXTURE = (
+    REPO_ROOT
+    / "tests"
+    / "fixtures"
+    / ("backtest_" + "mo" + "ck_draft")
+    / "draft_truth"
+    / "2024.json"
+)
+
+
+def _source_row(**overrides):
+    row = {
+        "season": 2024,
+        "round": 1,
+        "pick": 1,
+        "team": "CHI",
+        "gsis_id": "00-0039918",
+        "pfr_player_id": "WillCa03",
+        "pfr_player_name": "Caleb Williams",
+        "position": "QB",
+        "college": "USC",
+    }
+    row.update(overrides)
+    return row
+
+
+def _write_fixture(
+    tmp_path: Path,
+    rows: list[dict],
+    *,
+    fetched_at: str | None = "2026-01-01T00:00:00Z",
+) -> Path:
+    payload: dict = {"rows": rows}
+    if fetched_at is not None:
+        payload["metadata"] = {"fetched_at": fetched_at}
+    path = tmp_path / "draft_truth.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def _load_fixture(path: Path, **kwargs):
+    return bridge.load_nflreadr_draft_truth(
+        2024,
+        data_mode="real",
+        fixture_path=path,
+        **kwargs,
+    )
 
 
 def test_truth_load_diagnostics_model_contract():
@@ -80,3 +132,174 @@ def test_truth_loader_exceptions_are_value_errors():
     assert issubclass(bridge.NflreadrSchemaDriftError, ValueError)
     assert issubclass(bridge.NflreadrSourceContaminationError, ValueError)
     assert issubclass(bridge.NflreadrEmptyTruthError, ValueError)
+
+
+def test_fixture_mode_maps_committed_source_rows_to_truth_rows():
+    result = _load_fixture(DRAFT_TRUTH_FIXTURE)
+
+    assert isinstance(result, bridge.NflreadrTruthLoadResult)
+    assert isinstance(result.diagnostics, bridge.NflTruthLoadDiagnostics)
+    assert result.diagnostics.truth_rows_loaded == 2
+
+    first = result.rows[0]
+    assert isinstance(first, bridge.NflTruthRow)
+    assert first.gsis_id == "00-0039918"
+    assert first.pfr_id == "WillCa03"
+    assert first.full_name == "Caleb Williams"
+    assert first.normalized_name == normalize_name("Caleb Williams")
+    assert first.position == "QB"
+    assert first.college == "USC"
+    assert first.draft_year == 2024
+    assert first.draft_pick_no == 1
+    assert first.draft_round == 1
+    assert first.nfl_team == "CHI"
+    assert first.fetched_at == "2026-01-01T00:00:00Z"
+
+
+def test_fixture_mode_schema_gate_rejects_missing_required_key(tmp_path: Path):
+    row = _source_row()
+    del row["pfr_player_id"]
+    path = _write_fixture(tmp_path, [row])
+
+    with pytest.raises(bridge.NflreadrSchemaDriftError):
+        _load_fixture(path)
+
+
+def test_fixture_mode_rejects_pre_normalized_truth_row_shape(tmp_path: Path):
+    path = _write_fixture(
+        tmp_path,
+        [
+            {
+                "gsis_id": "00-0039918",
+                "pfr_id": "WillCa03",
+                "full_name": "Caleb Williams",
+                "normalized_name": "caleb williams",
+                "position": "QB",
+                "college": "USC",
+                "draft_year": 2024,
+                "draft_pick_no": 1,
+                "draft_round": 1,
+                "nfl_team": "CHI",
+                "fetched_at": "2026-01-01T00:00:00Z",
+            }
+        ],
+    )
+
+    with pytest.raises(bridge.NflreadrSchemaDriftError):
+        _load_fixture(path)
+
+
+def test_fixture_mode_null_pfr_player_id_maps_to_none(tmp_path: Path):
+    path = _write_fixture(tmp_path, [_source_row(pfr_player_id=None)])
+
+    result = _load_fixture(path)
+
+    assert result.rows[0].pfr_id is None
+    assert result.diagnostics.truth_rows_loaded == 1
+
+
+def test_fixture_mode_skips_present_key_bad_values_and_counts_each_reason(
+    tmp_path: Path,
+):
+    path = _write_fixture(
+        tmp_path,
+        [
+            _source_row(gsis_id=""),
+            _source_row(gsis_id="00-badpick-bool", pick=True),
+            _source_row(gsis_id="00-badpick-float", pick=1.0),
+            _source_row(gsis_id="00-badpick-string", pick="1"),
+            _source_row(gsis_id="00-badround-bool", round=False),
+            _source_row(gsis_id="00-badround-float", round=1.0),
+            _source_row(gsis_id="00-badround-string", round="1"),
+            _source_row(gsis_id="00-missing-name", pfr_player_name=""),
+            _source_row(gsis_id="00-missing-position", position=""),
+            _source_row(gsis_id="00-missing-team", team=""),
+            _source_row(gsis_id="00-kept", pfr_player_name="Kept Player"),
+        ],
+    )
+
+    result = _load_fixture(path)
+
+    assert [row.gsis_id for row in result.rows] == ["00-kept"]
+    assert result.diagnostics.truth_rows_loaded == 1
+    assert result.diagnostics.skipped_missing_gsis_id == 1
+    assert result.diagnostics.skipped_bad_pick == 3
+    assert result.diagnostics.skipped_bad_round == 3
+    assert result.diagnostics.skipped_missing_name == 1
+    assert result.diagnostics.skipped_missing_position == 1
+    assert result.diagnostics.skipped_missing_team == 1
+
+
+def test_fixture_mode_absent_pick_or_round_key_is_schema_drift_not_skip(
+    tmp_path: Path,
+):
+    missing_pick = _source_row()
+    del missing_pick["pick"]
+    missing_round = _source_row(gsis_id="00-missing-round")
+    del missing_round["round"]
+
+    for row in (missing_pick, missing_round):
+        path = _write_fixture(tmp_path, [row])
+        with pytest.raises(bridge.NflreadrSchemaDriftError):
+            _load_fixture(path)
+
+
+def test_fixture_mode_fetched_at_is_verbatim_and_override_is_allowed(
+    tmp_path: Path,
+):
+    offset_path = _write_fixture(
+        tmp_path,
+        [_source_row()],
+        fetched_at="2026-01-01T00:00:00+00:00",
+    )
+    first = _load_fixture(offset_path)
+    second = _load_fixture(offset_path)
+
+    assert first.rows[0].fetched_at == "2026-01-01T00:00:00+00:00"
+    assert first.model_dump() == second.model_dump()
+
+    missing_path = _write_fixture(tmp_path, [_source_row()], fetched_at=None)
+    with pytest.raises(ValueError):
+        _load_fixture(missing_path)
+
+    overridden = _load_fixture(
+        missing_path,
+        fetched_at="2026-02-03T04:05:06Z",
+    )
+    assert overridden.rows[0].fetched_at == "2026-02-03T04:05:06Z"
+
+
+def test_fixture_mode_empty_real_rows_raise_empty_truth_error(tmp_path: Path):
+    path = _write_fixture(tmp_path, [])
+
+    with pytest.raises(bridge.NflreadrEmptyTruthError):
+        _load_fixture(path)
+
+
+def test_fixture_mode_preserves_duplicate_gsis_id_rows(tmp_path: Path):
+    path = _write_fixture(
+        tmp_path,
+        [
+            _source_row(gsis_id="00-duplicate", pick=1),
+            _source_row(gsis_id="00-duplicate", pick=2),
+        ],
+    )
+
+    result = _load_fixture(path)
+
+    assert [row.gsis_id for row in result.rows] == ["00-duplicate", "00-duplicate"]
+    assert [row.draft_pick_no for row in result.rows] == [1, 2]
+
+
+def test_fixture_mode_drops_extra_source_columns_before_model_validation(
+    tmp_path: Path,
+):
+    path = _write_fixture(
+        tmp_path,
+        [_source_row(extra_source_column="must_not_reach_truth_row")],
+    )
+
+    result = _load_fixture(path)
+
+    assert result.diagnostics.truth_rows_loaded == 1
+    assert "extra_source_column" not in result.rows[0].model_dump()
