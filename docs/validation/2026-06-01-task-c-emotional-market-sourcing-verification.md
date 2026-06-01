@@ -22,7 +22,7 @@ A **point-in-time** dynasty-**Superflex** (`numQbs=2`, 12-team, `ppr=1`) **emoti
 | **Dynasty Daddy** (KTC → Postgres, Sleeper-keyed) | **No** | README: data scraped to a **private** Postgres; **no public dump / CSV / API**. KTC baseline is **.5-PPR** (format mismatch) | **Not obtainable** |
 | **FantasyCalc** (preferred source) | **No** (for the 4 dates) | Public API (`/values/current`) is **current-only**; only a rolling ~1-year UI window; a FantasyCalc commenter says data exists back to 2021 but it is **not** a documented public export | **No verified, documented, integrity-passing public historical export for the four required dates** |
 | FantasyCalc via Wayback (JSON captures) | Unverified | Research rates captures **sparse / fragile**; `web.archive.org` was **not fetchable** from this environment, so not verifiable inline | Low-confidence; deferred |
-| Community KTC+FC sheet (Reddit, "daily since 2020") | Unverified | Not locatable via search; community-maintained = lowest integrity (survivorship / as-published / dating unverifiable); KTC .5-PPR mismatch | Fails the bar |
+| Community KTC+FC sheet (Reddit, u/325xi5mt, "daily since 2020") | Located/documented (cited in the sourcing research), not directly retrieved here | Community-maintained = lowest integrity (survivorship / as-published / intrinsic dating unverifiable); KTC .5-PPR mismatch | **Rejected/deferred pending integrity verification** (located but unvetted; not "missing") |
 
 ## Conclusion
 
