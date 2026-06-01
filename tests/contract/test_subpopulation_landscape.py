@@ -132,7 +132,33 @@ def test_resolve_draft_year_excludes_null_or_absent_draft_year_without_raising()
     assert db_season_snapshot == 2025
 
 
-@pytest.mark.parametrize("bad_draft_year", ["abc", 2020.5])
+@pytest.mark.parametrize(
+    "null_marker",
+    ["NA", "na", "NULL", "null", "None", "none", "", "   ", None],
+)
+def test_resolve_draft_year_declared_null_markers_do_not_poison_id_map(
+    null_marker,
+):
+    module = _subpop_module()
+
+    assert module._coerce_draft_year(null_marker) is None
+    draft_year_map, db_season_snapshot = module.resolve_draft_year([
+        {"gsis_id": "00-null", "draft_year": null_marker, "db_season": 2025},
+        {"gsis_id": "00-int", "draft_year": 2021, "db_season": 2024},
+        {"gsis_id": "00-str", "draft_year": "2022", "db_season": 2025},
+        {"gsis_id": "00-float", "draft_year": 2023.0, "db_season": 2023},
+    ])
+
+    assert draft_year_map == {
+        "00-int": 2021,
+        "00-str": 2022,
+        "00-float": 2023,
+    }
+    assert "00-null" not in draft_year_map
+    assert db_season_snapshot == 2025
+
+
+@pytest.mark.parametrize("bad_draft_year", ["abc", "2020.5", 2020.5])
 def test_resolve_draft_year_non_integer_values_raise_typed_error(bad_draft_year):
     module = _subpop_module()
 
@@ -1214,6 +1240,96 @@ def test_compute_landscape_payload_gates_early_career_on_position_fold_coverage(
         "coverage_counts": provenance["early_career_coverage"],
         "rows": [],
     }
+
+
+def test_cli_enrich_normalizes_fc_rank_for_real_shaped_disagreement_rows(
+    monkeypatch,
+):
+    cli = _subpop_cli_module()
+    compute_calls = []
+
+    def fake_compute_slice(
+        model_ranks,
+        consensus_ranks,
+        realized_ranks,
+        *,
+        primary_k,
+        n_bootstrap,
+        rng_seed,
+    ):
+        compute_calls.append(
+            {
+                "model_ranks": model_ranks,
+                "consensus_ranks": consensus_ranks,
+                "realized_ranks": realized_ranks,
+                "primary_k": primary_k,
+                "n_bootstrap": n_bootstrap,
+                "rng_seed": rng_seed,
+            }
+        )
+        return {
+            "n": len(model_ranks),
+            "rho_model": 0.12,
+            "rho_consensus": 0.0,
+            "rho_diff": 0.12,
+            "bca_ci95": (-0.2, 0.2),
+            "ci_includes_zero": True,
+            "boot_p_value": 0.99,
+            "category": "fold_category_must_not_drive_aggregate",
+            "ndcg_xcheck": {"status": "available"},
+        }
+
+    monkeypatch.setattr(cli, "compute_slice", fake_compute_slice)
+
+    enriched_rows = cli._enrich(
+        [
+            {
+                "player_id": "00-real",
+                "sleeper_id": "00-real",
+                "position": "RB",
+                "fold_index": 0,
+                "feature_season": 2024,
+                "snapshot_date": "2024-08-01",
+                "predicted_ppg": 12.3,
+                "model_rank": 5,
+                "fc_value": 3000,
+                "fc_rank": 20,
+                "realized_ppg": 11.0,
+                "realized_rank": 9,
+                "rank_delta": -4,
+            }
+        ],
+        {("00-real", 2024): 24.0},
+        {"00-real": 2022},
+    )
+
+    assert enriched_rows[0]["fc_rank"] == 20
+    assert enriched_rows[0]["consensus_rank"] == 20
+
+    payload = cli._compute_landscape_payload(
+        enriched_rows,
+        draft_year_provenance={
+            "draft_year_source": "dynastyprocess_db_playerids",
+            "db_season_snapshot": 2025,
+        },
+        run_id="real_shape_fc_rank_fixture",
+    )
+
+    assert compute_calls
+    assert any(call["consensus_ranks"] == [20] for call in compute_calls)
+    assert payload["ledger"]["provenance"][
+        "per_position_disagreement_denominators"
+    ] == {"RB": 1}
+    bullish = [
+        row
+        for row in payload["aggregate_details"]
+        if row["axis"] == "high_disagreement"
+        and row["slice"] == "model_bullish"
+        and row["position"] == "RB"
+    ][0]
+    assert bullish["n"] == 1
+    assert bullish["folds_covered"] == 1
+    assert bullish["median_rho_diff"] == pytest.approx(0.12)
 
 
 def test_subpopulation_cli_loads_joins_writes_and_preserves_inputs(
