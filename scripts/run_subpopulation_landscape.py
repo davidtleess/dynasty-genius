@@ -118,6 +118,12 @@ def _enrich(
     enriched: list[dict] = []
     for row in market_rows:
         pid = row.get("player_id")
+        # Real market_comparison_*.json names the consensus rank `fc_rank`
+        # (derived from fc_value); the pipeline reads `consensus_rank`. Normalize
+        # at the boundary, preferring an explicit consensus_rank when present.
+        consensus_rank = row.get("consensus_rank")
+        if consensus_rank is None:
+            consensus_rank = row.get("fc_rank")
         enriched.append(
             {
                 **row,
@@ -125,6 +131,7 @@ def _enrich(
                     (pid, row.get("feature_season"))
                 ),
                 "draft_year": draft_year_map.get(pid),
+                "consensus_rank": consensus_rank,
             }
         )
     return enriched
@@ -265,6 +272,16 @@ def _build_provenance_and_coverage(tagged, positions, base_provenance):
         "invalid_negative_experience_count": invalid_neg,
         "per_position_disagreement_denominators": per_pos_disagreement,
     }
+    # Carry through the id-map resolution diagnostics (auditable fail-closed
+    # provenance for the real db_playerids: conflicting + null-marker counts).
+    for key in (
+        "conflicting_draft_year_excluded_count",
+        "conflicting_draft_year_excluded_ids",
+        "null_marker_gsis_id_skipped_count",
+        "invalid_draft_year_error",
+    ):
+        if key in base_provenance:
+            provenance[key] = base_provenance[key]
     per_position_fold = []
     seen = sorted({
         (r.get("position"), r.get("feature_season"))
@@ -423,10 +440,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.id_map_csv is not None:
         draft_year_provenance["draft_year_source"] = DRAFT_YEAR_SOURCE_LABEL
         try:
-            draft_year_map, snapshot = resolve_draft_year(
+            draft_year_map, snapshot, diagnostics = resolve_draft_year(
                 _load_id_map_rows(args.id_map_csv)
             )
             draft_year_provenance["db_season_snapshot"] = snapshot
+            draft_year_provenance.update(diagnostics)
         except InvalidDraftYearError as exc:
             draft_year_map = {}
             draft_year_provenance["invalid_draft_year_error"] = str(exc)

@@ -86,12 +86,22 @@ class InvalidDraftYearError(ValueError):
     """
 
 
+# Declared null markers (R / DynastyProcess CSV conventions), matched
+# case-insensitively after stripping. These are MISSING values, not malformed
+# integers: they are excluded (counted toward coverage), never raised — so one
+# `NA` row cannot poison the whole id-map. Truly malformed values ("abc",
+# "2020.5") still raise. (Task 2 contract refinement, cockpit-ruled 2026-06-01.)
+_NULL_MARKERS = frozenset({"", "na", "null", "none"})
+
+
 def _coerce_draft_year(raw: object) -> int | None:
     """Return draft_year as int, ``None`` when absent/null, else raise.
 
-    Accepts ``int``, integral ``float``, and base-10 integer strings. Rejects
-    ``bool``, non-integral ``float``, and non-integer strings with
-    ``InvalidDraftYearError`` (no coercion to missing).
+    Accepts ``int``, integral ``float``, and base-10 integer strings. Declared
+    null markers (None, or a string in ``_NULL_MARKERS`` after strip/lower) ->
+    ``None`` (missing, excluded — no raise). Rejects ``bool``, non-integral
+    ``float``, and genuinely non-integer strings with ``InvalidDraftYearError``
+    (no silent coercion of malformed values).
     """
     if raw is None:
         return None
@@ -104,8 +114,11 @@ def _coerce_draft_year(raw: object) -> int | None:
             return int(raw)
         raise InvalidDraftYearError(f"draft_year is a non-integer float: {raw!r}")
     if isinstance(raw, str):
+        stripped = raw.strip()
+        if stripped.lower() in _NULL_MARKERS:
+            return None  # declared missing, not malformed
         try:
-            return int(raw.strip())
+            return int(stripped)
         except ValueError as exc:
             raise InvalidDraftYearError(
                 f"draft_year is not an integer string: {raw!r}"
@@ -115,51 +128,72 @@ def _coerce_draft_year(raw: object) -> int | None:
     )
 
 
+def _is_null_marker_key(value: object) -> bool:
+    """True for a null-marker gsis_id (None, or string in _NULL_MARKERS)."""
+    if value is None:
+        return True
+    return isinstance(value, str) and value.strip().lower() in _NULL_MARKERS
+
+
 def resolve_draft_year(
     rows: Iterable[Mapping[str, object]],
-) -> tuple[dict[str, int], int | None]:
-    """Resolve ``{gsis_id -> draft_year}`` plus the db_season snapshot.
+) -> tuple[dict[str, int], int | None, dict]:
+    """Resolve ``({gsis_id -> draft_year}, db_season_snapshot, diagnostics)``.
 
-    Deterministic and fail-closed (spec §6/§7):
+    Deterministic, real-id-map-robust, and fail-closed at the player-key level
+    (cockpit-ruled 2026-06-01, spec §6/§7/§11):
 
-    - exactly one distinct non-null draft_year per ``gsis_id`` -> mapped (int);
-    - two or more distinct non-null draft_year values for one ``gsis_id`` ->
-      ``ValueError`` (a genuine conflict; "latest db_season wins" never silently
-      overrides a conflict);
-    - null/absent draft_year -> excluded from the map (the caller counts the
-      ``gsis_id`` toward the coverage denominator), no raise;
-    - non-null non-integer draft_year -> ``InvalidDraftYearError`` (no coercion).
+    - null-marker ``gsis_id`` (None, or a string in ``_NULL_MARKERS``,
+      case-insensitive) -> the row is SKIPPED (unjoinnable key) and counted in
+      ``null_marker_gsis_id_skipped_count``; it never forms a shared bucket;
+    - exactly one distinct non-null draft_year per real ``gsis_id`` -> mapped;
+    - a GENUINE conflict (>=2 distinct non-null draft_year for one real
+      ``gsis_id``) -> that ambiguous id is EXCLUDED from the map (counted in
+      ``conflicting_draft_year_excluded_count`` + sorted into
+      ``conflicting_draft_year_excluded_ids``), NEVER raised/aborted and NEVER
+      "latest wins";
+    - null-marker / absent draft_year -> excluded (counted toward coverage by the
+      caller), no raise;
+    - genuinely malformed draft_year (non-integer, non-null-marker) ->
+      ``InvalidDraftYearError`` (no silent coercion).
 
     ``db_season_snapshot`` is the latest (max) ``db_season`` across all rows.
     """
     values_by_id: dict[str, set[int]] = {}
     db_seasons: list[int] = []
+    null_marker_gsis_skipped = 0
     for row in rows:
         db_season = row.get("db_season")
         if db_season is not None:
             db_seasons.append(int(db_season))
         year = _coerce_draft_year(row.get("draft_year"))
         gsis_id = row.get("gsis_id")
-        if gsis_id is None:
+        if _is_null_marker_key(gsis_id):
+            null_marker_gsis_skipped += 1
             continue
         bucket = values_by_id.setdefault(str(gsis_id), set())
         if year is not None:
             bucket.add(year)
 
     draft_year_map: dict[str, int] = {}
+    conflicting_ids: list[str] = []
     for gsis_id, years in values_by_id.items():
         if not years:
             # null/absent only -> excluded; caller counts it toward coverage.
             continue
         if len(years) > 1:
-            raise ValueError(
-                f"conflicting non-null draft_year values for {gsis_id!r}: "
-                f"{sorted(years)}"
-            )
+            # Genuine conflict -> exclude the ambiguous id (no raise, no pick).
+            conflicting_ids.append(gsis_id)
+            continue
         draft_year_map[gsis_id] = next(iter(years))
 
     db_season_snapshot = max(db_seasons) if db_seasons else None
-    return draft_year_map, db_season_snapshot
+    diagnostics = {
+        "conflicting_draft_year_excluded_count": len(conflicting_ids),
+        "conflicting_draft_year_excluded_ids": sorted(conflicting_ids),
+        "null_marker_gsis_id_skipped_count": null_marker_gsis_skipped,
+    }
+    return draft_year_map, db_season_snapshot, diagnostics
 
 
 def tag_cohorts(
