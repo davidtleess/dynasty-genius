@@ -22,12 +22,11 @@ import hashlib
 import json
 import os as _os
 import sys
-from datetime import datetime
 from pathlib import Path
 
 from src.dynasty_genius.identity.college_prospect_identity import load_registry
 from src.dynasty_genius.identity.prospect_nfl_bridge import (
-    NflTruthRow,
+    load_nflreadr_draft_truth,
     surface_nfl_bridge_candidates,
 )
 
@@ -37,35 +36,6 @@ def _atomic_write_text(path: Path, content: str) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(content)
     _os.replace(tmp, path)
-
-
-def _load_nflreadr_draft_truth(draft_year: int, fixture_path: Path | None) -> list[NflTruthRow]:
-    if fixture_path is not None:
-        raw = json.loads(fixture_path.read_text())
-        return [NflTruthRow.model_validate(r) for r in raw["rows"]]
-    # Real nflreadr fetch
-    try:
-        import nflreadpy
-        df = nflreadpy.load_draft_picks(seasons=[draft_year])
-        rows: list[NflTruthRow] = []
-        for row in df.iter_rows(named=True):
-            rows.append(NflTruthRow(
-                gsis_id=row.get("gsis_id", "") or "",
-                pfr_id=row.get("pfr_id"),
-                full_name=row.get("pfr_player_name") or row.get("full_name") or "",
-                normalized_name=(row.get("pfr_player_name") or "").lower(),
-                position=row.get("position", ""),
-                college=row.get("college"),
-                draft_year=draft_year,
-                draft_pick_no=int(row.get("pick", 0)),
-                draft_round=int(row.get("round", 0)),
-                nfl_team=row.get("team", ""),
-                fetched_at=datetime.utcnow().isoformat() + "Z",
-            ))
-        return rows
-    except Exception as e:
-        print(f"nflreadr fetch failed: {e}", file=sys.stderr)
-        return []
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -89,8 +59,15 @@ def main(argv: list[str] | None = None) -> int:
         if e.draft_class == args.draft_year and e.verification_status == "confirmed"
     ]
 
-    # Fetch nflreadr truth
-    nfl_rows = _load_nflreadr_draft_truth(args.draft_year, args.nflreadr_fixture)
+    # Fetch nflreadr draft-capital truth via the shared loader (DRY). Fail-closed:
+    # a schema-drift / contamination / fetch failure propagates (the script exits
+    # nonzero) and NO discovery artifact is written — never a fabricated empty truth
+    # universe (which would manufacture false UDFA candidates).
+    data_mode = "synthetic" if args.nflreadr_fixture is not None else "real"
+    truth_result = load_nflreadr_draft_truth(
+        args.draft_year, data_mode=data_mode, fixture_path=args.nflreadr_fixture
+    )
+    nfl_rows = truth_result.rows
     truth_content_hash = hashlib.sha256(
         json.dumps(
             [r.model_dump() for r in nfl_rows], sort_keys=True
@@ -159,6 +136,7 @@ def main(argv: list[str] | None = None) -> int:
         "prospects_with_candidates": len(matched_uuids),
         "prospects_unmatched_as_udfa": len(udfa_candidates),
         "draft_truth_content_hash": truth_content_hash,
+        "truth_load_diagnostics": truth_result.diagnostics.model_dump(),
     }
     _atomic_write_text(coverage_path, json.dumps(coverage, indent=2, sort_keys=True))
 
