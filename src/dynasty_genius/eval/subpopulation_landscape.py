@@ -22,9 +22,11 @@ Task 2: resolve_draft_year — early-career draft-year dedup, fail-closed.
 Task 3: tag_cohorts — three pre-registered axes (aging / disagreement / early-career).
 Task 4: compute_slice — orientation-locked Spearman rho_diff + NDCG cross-check.
 Task 5: aggregate_folds — median rho_diff + folds_covered, no pseudo-replication.
+Task 6: apply_fdr — aggregate-only Benjamini-Hochberg family + candidate flag.
 """
 from __future__ import annotations
 
+import copy
 import math
 import warnings
 from collections.abc import Iterable, Mapping
@@ -446,3 +448,50 @@ def aggregate_folds(slice_folds: Iterable[Mapping[str, object]]) -> dict:
         "folds_covered": len(evaluable),
         "fold_rows": fold_rows,
     }
+
+
+def apply_fdr(aggregate_tests: Iterable[Mapping[str, object]]) -> list[dict]:
+    """Benjamini-Hochberg FDR over the AGGREGATE per-(axis, slice, position) tests.
+
+    One GLOBAL BH family across all aggregate slice tests with a non-None
+    ``boot_p_value`` (spec §4/§6/§9.3). Returns NEW records (deep-copied so the
+    inputs and their ``fold_rows`` are never mutated); fold-level rows are left
+    untouched and carry no ``q_value`` / ``powered_followup_candidate``. Each
+    returned aggregate gains:
+
+    - ``q_value``: BH-adjusted q (step-up monotone, clamped to <= 1.0); ``None``
+      for a record whose ``boot_p_value`` is None (excluded from the family);
+    - ``powered_followup_candidate``: ``q_value is not None and q_value <= FDR_Q``;
+    - ``powered_followup_label``: always ``"hypothesis_generating"`` — a candidate
+      is a descriptive flag for a powered confirmatory follow-up, NEVER a
+      decision-grade or buy/sell signal.
+
+    Fail-closed: empty input -> ``[]``; all-None p-values -> every q ``None`` and
+    no candidates (no crash, no fabricated q).
+    """
+    records = [copy.deepcopy(dict(rec)) for rec in aggregate_tests]
+
+    valid = [
+        (i, rec["boot_p_value"])
+        for i, rec in enumerate(records)
+        if rec.get("boot_p_value") is not None
+    ]
+    m = len(valid)
+    q_by_index: dict[int, float] = {}
+    if m > 0:
+        order = sorted(valid, key=lambda t: t[1])  # ascending p, stable
+        raw = [(idx, p * m / rank) for rank, (idx, p) in enumerate(order, start=1)]
+        q_sorted = [0.0] * m
+        running = float("inf")
+        for k in range(m - 1, -1, -1):  # BH step-up from largest rank down
+            running = min(running, raw[k][1])
+            q_sorted[k] = min(running, 1.0)
+        for k, (idx, _p) in enumerate(order):
+            q_by_index[idx] = q_sorted[k]
+
+    for i, rec in enumerate(records):
+        q = q_by_index.get(i)
+        rec["q_value"] = q
+        rec["powered_followup_candidate"] = q is not None and q <= FDR_Q
+        rec["powered_followup_label"] = "hypothesis_generating"
+    return records
