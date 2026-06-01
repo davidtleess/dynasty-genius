@@ -5,6 +5,7 @@ import ast
 import hashlib
 import inspect
 import json
+import re
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -282,6 +283,38 @@ def _walk(value):
             yield from _walk(child)
 
 
+def _banned_identity_fragments_in_text(text: str) -> list[str]:
+    lower = text.lower()
+    tokens = set(re.split(r"[^a-z0-9]+", lower))
+    banned_identity_fragments = ("mock", *BANNED_MARKET_FIELD_FRAGMENTS)
+    found = []
+    for item in banned_identity_fragments:
+        # 'adp' (the short market fragment) is matched as a discrete TOKEN so the
+        # draft-DATA library name nflreadpy — which merely contains the substring
+        # 'adp' — is not a false positive. Real ADP field names (adp, player_adp,
+        # adp_value) tokenize to a standalone 'adp' and are still caught. 'mock'
+        # and the multi-char market fragments stay substring matches so partial
+        # leaks (e.g. player_market_value) are still flagged — tighten-preserving.
+        matched = ("adp" in tokens) if item == "adp" else (item in lower)
+        if matched:
+            found.append(item)
+    return found
+
+
+def test_adp_market_fragment_detection_is_token_aware_without_weakening_others():
+    assert _banned_identity_fragments_in_text("adp") == ["adp"]
+    assert _banned_identity_fragments_in_text("player_adp") == ["adp"]
+    assert _banned_identity_fragments_in_text("adp_value") == ["adp"]
+    assert _banned_identity_fragments_in_text("adp_rank") == ["adp"]
+
+    assert _banned_identity_fragments_in_text("nflreadpy") == []
+    assert _banned_identity_fragments_in_text("readptable") == []
+
+    assert "market_value" in _banned_identity_fragments_in_text("market_value")
+    assert "ktc" in _banned_identity_fragments_in_text("ktc")
+    assert "mock" in _banned_identity_fragments_in_text("synthetic mock fixture")
+
+
 def test_phase_10_11_12_inviolate_paths_byte_unchanged():
     observed = {
         rel_path: _sha256(REPO_ROOT / rel_path)
@@ -340,9 +373,7 @@ def test_mock_data_and_market_field_isolation():
     bridge_text = (REPO_ROOT / "src/dynasty_genius/identity/prospect_nfl_bridge.py").read_text(
         encoding="utf-8"
     )
-    bridge_lower = bridge_text.lower()
-    banned_identity_fragments = ("mock", *BANNED_MARKET_FIELD_FRAGMENTS)
-    assert [item for item in banned_identity_fragments if item in bridge_lower] == []
+    assert _banned_identity_fragments_in_text(bridge_text) == []
 
     s4_models = [
         value
@@ -355,6 +386,9 @@ def test_mock_data_and_market_field_isolation():
     for model in s4_models:
         for field_name in model.model_fields:
             lower = field_name.lower()
+            # Market-field fragments only (NOT "mock": "mock" is legitimate in
+            # backtest_mock_draft model names, e.g. MockSnapshotMetadata.mock_version;
+            # it is banned only in the prospect_nfl_bridge.py source text above).
             if any(fragment in lower for fragment in BANNED_MARKET_FIELD_FRAGMENTS):
                 leaked_fields.append(f"{model.__name__}.{field_name}")
 
