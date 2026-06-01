@@ -290,6 +290,47 @@ class NflTruthRow(BaseModel):
     fetched_at: str
 
 
+class NflreadrSchemaDriftError(ValueError):
+    """A draft-truth source is missing a required column (fail loud, no guessing)."""
+
+
+class NflreadrSourceContaminationError(ValueError):
+    """A draft-truth source row's ``season`` does not match the requested draft_year."""
+
+
+class NflreadrEmptyTruthError(ValueError):
+    """A real/live draft-truth source yielded zero rows (fail closed, never empty-success)."""
+
+
+class NflTruthLoadDiagnostics(BaseModel):
+    """Counted, never-silent diagnostics for a draft-truth load (no silent defaults)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    truth_rows_loaded: int = 0
+    skipped_missing_gsis_id: int = 0
+    skipped_bad_pick: int = 0
+    skipped_bad_round: int = 0
+    skipped_missing_name: int = 0
+    skipped_missing_position: int = 0
+    skipped_missing_team: int = 0
+    required_columns_seen: list[str] = Field(default_factory=list)
+
+
+class NflreadrTruthLoadResult(BaseModel):
+    """Typed result of a draft-truth load: mapped rows + load diagnostics."""
+
+    rows: list[NflTruthRow]
+    diagnostics: NflTruthLoadDiagnostics
+
+
+# Required source columns for the draft-truth load (schema gate; no guessed columns).
+_REQUIRED_DRAFT_COLUMNS: frozenset[str] = frozenset({
+    "season", "round", "pick", "team", "gsis_id",
+    "pfr_player_id", "pfr_player_name", "position", "college",
+})
+
+
 # NFL-domain position taxonomy (different from S3's offense-only college whitelist).
 # Frozen sets keep this auditable + immutable.
 NFL_POSITION_WHITELIST: frozenset[frozenset[str]] = frozenset({
