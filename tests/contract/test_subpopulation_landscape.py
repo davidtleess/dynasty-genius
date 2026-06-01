@@ -7,6 +7,11 @@ from pathlib import Path
 import pytest
 
 REPORT_HEADER = "DESCRIPTIVE / DIAGNOSTIC — not decision-grade. No edge claim."
+EMPTY_DRAFT_YEAR_DIAGNOSTICS = {
+    "conflicting_draft_year_excluded_count": 0,
+    "conflicting_draft_year_excluded_ids": [],
+    "null_marker_gsis_id_skipped_count": 0,
+}
 
 
 def _subpop_module():
@@ -71,19 +76,20 @@ def test_subpopulation_landscape_exposes_pre_registered_constants():
 def test_resolve_draft_year_maps_one_row_per_gsis_id():
     module = _subpop_module()
 
-    draft_year_map, db_season_snapshot = module.resolve_draft_year([
+    draft_year_map, db_season_snapshot, diagnostics = module.resolve_draft_year([
         {"gsis_id": "00-001", "draft_year": "2021", "db_season": 2024},
         {"gsis_id": "00-002", "draft_year": 2022, "db_season": 2024},
     ])
 
     assert draft_year_map == {"00-001": 2021, "00-002": 2022}
     assert db_season_snapshot == 2024
+    assert diagnostics == EMPTY_DRAFT_YEAR_DIAGNOSTICS
 
 
 def test_resolve_draft_year_latest_db_season_wins_deterministically():
     module = _subpop_module()
 
-    draft_year_map, db_season_snapshot = module.resolve_draft_year([
+    draft_year_map, db_season_snapshot, diagnostics = module.resolve_draft_year([
         {"gsis_id": "00-001", "draft_year": None, "db_season": 2023},
         {"gsis_id": "00-001", "draft_year": 2021, "db_season": 2025},
         {"gsis_id": "00-002", "draft_year": 2022, "db_season": 2024},
@@ -91,22 +97,32 @@ def test_resolve_draft_year_latest_db_season_wins_deterministically():
 
     assert draft_year_map == {"00-001": 2021, "00-002": 2022}
     assert db_season_snapshot == 2025
+    assert diagnostics == EMPTY_DRAFT_YEAR_DIAGNOSTICS
 
 
-def test_resolve_draft_year_conflicting_non_null_values_raise_value_error():
+def test_resolve_draft_year_conflicting_non_null_values_excludes_ambiguous_id():
     module = _subpop_module()
 
-    with pytest.raises(ValueError):
-        module.resolve_draft_year([
-            {"gsis_id": "00-001", "draft_year": 2020, "db_season": 2024},
-            {"gsis_id": "00-001", "draft_year": 2021, "db_season": 2025},
-        ])
+    draft_year_map, db_season_snapshot, diagnostics = module.resolve_draft_year([
+        {"gsis_id": "00-conflict", "draft_year": 2020, "db_season": 2024},
+        {"gsis_id": "00-conflict", "draft_year": 2021, "db_season": 2025},
+        {"gsis_id": "00-usable", "draft_year": 2022, "db_season": 2025},
+    ])
+
+    assert draft_year_map == {"00-usable": 2022}
+    assert "00-conflict" not in draft_year_map
+    assert db_season_snapshot == 2025
+    assert diagnostics == {
+        "conflicting_draft_year_excluded_count": 1,
+        "conflicting_draft_year_excluded_ids": ["00-conflict"],
+        "null_marker_gsis_id_skipped_count": 0,
+    }
 
 
 def test_resolve_draft_year_allows_identical_and_null_vs_value_duplicates():
     module = _subpop_module()
 
-    draft_year_map, db_season_snapshot = module.resolve_draft_year([
+    draft_year_map, db_season_snapshot, diagnostics = module.resolve_draft_year([
         {"gsis_id": "00-001", "draft_year": 2021, "db_season": 2023},
         {"gsis_id": "00-001", "draft_year": 2021, "db_season": 2025},
         {"gsis_id": "00-002", "draft_year": None, "db_season": 2024},
@@ -115,12 +131,13 @@ def test_resolve_draft_year_allows_identical_and_null_vs_value_duplicates():
 
     assert draft_year_map == {"00-001": 2021, "00-002": 2022}
     assert db_season_snapshot == 2025
+    assert diagnostics == EMPTY_DRAFT_YEAR_DIAGNOSTICS
 
 
 def test_resolve_draft_year_excludes_null_or_absent_draft_year_without_raising():
     module = _subpop_module()
 
-    draft_year_map, db_season_snapshot = module.resolve_draft_year([
+    draft_year_map, db_season_snapshot, diagnostics = module.resolve_draft_year([
         {"gsis_id": "00-001", "draft_year": None, "db_season": 2024},
         {"gsis_id": "00-002", "db_season": 2025},
         {"gsis_id": "00-003", "draft_year": 2023, "db_season": 2025},
@@ -130,6 +147,7 @@ def test_resolve_draft_year_excludes_null_or_absent_draft_year_without_raising()
     assert "00-001" not in draft_year_map
     assert "00-002" not in draft_year_map
     assert db_season_snapshot == 2025
+    assert diagnostics == EMPTY_DRAFT_YEAR_DIAGNOSTICS
 
 
 @pytest.mark.parametrize(
@@ -142,7 +160,7 @@ def test_resolve_draft_year_declared_null_markers_do_not_poison_id_map(
     module = _subpop_module()
 
     assert module._coerce_draft_year(null_marker) is None
-    draft_year_map, db_season_snapshot = module.resolve_draft_year([
+    draft_year_map, db_season_snapshot, diagnostics = module.resolve_draft_year([
         {"gsis_id": "00-null", "draft_year": null_marker, "db_season": 2025},
         {"gsis_id": "00-int", "draft_year": 2021, "db_season": 2024},
         {"gsis_id": "00-str", "draft_year": "2022", "db_season": 2025},
@@ -156,6 +174,29 @@ def test_resolve_draft_year_declared_null_markers_do_not_poison_id_map(
     }
     assert "00-null" not in draft_year_map
     assert db_season_snapshot == 2025
+    assert diagnostics == EMPTY_DRAFT_YEAR_DIAGNOSTICS
+
+
+def test_resolve_draft_year_skips_null_marker_gsis_ids_before_conflict_bucketing():
+    module = _subpop_module()
+
+    draft_year_map, db_season_snapshot, diagnostics = module.resolve_draft_year([
+        {"gsis_id": "NA", "draft_year": 2001, "db_season": 2023},
+        {"gsis_id": "na", "draft_year": 2002, "db_season": 2024},
+        {"gsis_id": "", "draft_year": 2003, "db_season": 2025},
+        {"gsis_id": "NULL", "draft_year": 2004, "db_season": 2025},
+        {"gsis_id": "None", "draft_year": 2005, "db_season": 2025},
+        {"gsis_id": None, "draft_year": 2006, "db_season": 2025},
+        {"gsis_id": "00-usable", "draft_year": 2022, "db_season": 2025},
+    ])
+
+    assert draft_year_map == {"00-usable": 2022}
+    assert db_season_snapshot == 2025
+    assert diagnostics == {
+        "conflicting_draft_year_excluded_count": 0,
+        "conflicting_draft_year_excluded_ids": [],
+        "null_marker_gsis_id_skipped_count": 6,
+    }
 
 
 @pytest.mark.parametrize("bad_draft_year", ["abc", "2020.5", 2020.5])
@@ -1433,6 +1474,103 @@ def test_subpopulation_cli_loads_joins_writes_and_preserves_inputs(
         "hypothesis_generating"
     )
     assert {path: _sha256(path) for path in input_hashes} == input_hashes
+
+
+def test_subpopulation_cli_merges_id_map_diagnostics_into_provenance(
+    tmp_path,
+    monkeypatch,
+):
+    cli = _subpop_cli_module()
+    run_dir = tmp_path / "run_diagnostics"
+    run_dir.mkdir()
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    id_map_path = tmp_path / "db_playerids.csv"
+    (run_dir / "market_comparison_RB.json").write_text(
+        json.dumps([
+            {
+                "player_id": "00-usable",
+                "feature_season": 2024,
+                "position": "RB",
+                "model_rank": 5,
+                "fc_rank": 20,
+                "realized_rank": 7,
+            }
+        ]),
+        encoding="utf-8",
+    )
+    (run_dir / "predictions_RB.csv").write_text(
+        "player_id,feature_season,age_at_feature_season\n00-usable,2024,24\n",
+        encoding="utf-8",
+    )
+    id_map_path.write_text(
+        "\n".join(
+            [
+                "gsis_id,draft_year,db_season",
+                "NA,2001,2023",
+                "null,2002,2024",
+                "00-conflict,2000,2024",
+                "00-conflict,2015,2025",
+                "00-usable,2022,2025",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    def fake_compute(enriched_rows, *, draft_year_provenance, run_id):
+        assert enriched_rows == [
+            {
+                "player_id": "00-usable",
+                "feature_season": 2024,
+                "position": "RB",
+                "model_rank": 5,
+                "fc_rank": 20,
+                "realized_rank": 7,
+                "age_at_feature_season": 24.0,
+                "draft_year": 2022,
+                "consensus_rank": 20,
+            }
+        ]
+        assert draft_year_provenance == {
+            "draft_year_source": "dynastyprocess_db_playerids",
+            "db_season_snapshot": 2025,
+            "conflicting_draft_year_excluded_count": 1,
+            "conflicting_draft_year_excluded_ids": ["00-conflict"],
+            "null_marker_gsis_id_skipped_count": 2,
+        }
+        return {
+            "ledger": {
+                "header": REPORT_HEADER,
+                "axis_tables": {},
+                "provenance": draft_year_provenance,
+            },
+            "aggregate_details": [],
+        }
+
+    monkeypatch.setattr(cli, "_compute_landscape_payload", fake_compute)
+
+    assert cli.main([
+        "--run-dir",
+        str(run_dir),
+        "--id-map-csv",
+        str(id_map_path),
+        "--output-dir",
+        str(output_dir),
+    ]) == 0
+
+    artifact = json.loads(
+        (output_dir / "subpopulation_landscape_run_diagnostics.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert artifact["ledger"]["provenance"][
+        "conflicting_draft_year_excluded_count"
+    ] == 1
+    assert artifact["ledger"]["provenance"]["conflicting_draft_year_excluded_ids"] == [
+        "00-conflict"
+    ]
+    assert artifact["ledger"]["provenance"]["null_marker_gsis_id_skipped_count"] == 2
 
 
 def test_subpopulation_cli_missing_id_map_fails_closed_without_crash(
