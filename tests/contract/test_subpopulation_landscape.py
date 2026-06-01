@@ -7,6 +7,10 @@ def _subpop_module():
     return import_module("src.dynasty_genius.eval.subpopulation_landscape")
 
 
+def _rank_fixture(n: int) -> list[int]:
+    return list(range(1, n + 1))
+
+
 def test_subpopulation_landscape_exposes_pre_registered_constants():
     module = _subpop_module()
 
@@ -280,3 +284,143 @@ def test_tag_cohorts_never_mutates_rank_fields():
     assert tagged[0]["model_rank"] == 5
     assert tagged[0]["consensus_rank"] == 17
     assert tagged[0] is not rows[0]
+
+
+def test_compute_slice_orientation_lock_lower_rank_is_better():
+    module = _subpop_module()
+    realized = _rank_fixture(30)
+    model = _rank_fixture(30)
+    consensus = list(reversed(realized))
+
+    result = module.compute_slice(
+        model,
+        consensus,
+        realized,
+        primary_k=10,
+        n_bootstrap=25,
+        rng_seed=7,
+    )
+
+    assert result["n"] == 30
+    assert result["rho_model"] == pytest.approx(1.0)
+    assert result["rho_consensus"] == pytest.approx(-1.0)
+    assert result["rho_diff"] > 0
+    assert result["category"] == "model_leads_point_estimate"
+    assert result["bca_ci95"][0] <= result["rho_diff"] <= result["bca_ci95"][1]
+    assert isinstance(result["ci_includes_zero"], bool)
+    assert 0.0 <= result["boot_p_value"] <= 1.0
+    assert result["ndcg_xcheck"]["status"] == "available"
+
+
+@pytest.mark.parametrize(
+    ("rho_diff", "expected_category"),
+    [
+        (0.05, "model_leads_point_estimate"),
+        (-0.05, "consensus_leads_point_estimate"),
+        (0.049, "statistically_indistinguishable"),
+        (-0.049, "statistically_indistinguishable"),
+    ],
+)
+def test_compute_slice_category_uses_sign_and_neutral_band_not_ci(
+    monkeypatch,
+    rho_diff,
+    expected_category,
+):
+    module = _subpop_module()
+
+    def fake_rho_diff(*_args, **_kwargs):
+        return {
+            "rho_model": 0.4 + rho_diff,
+            "rho_consensus": 0.4,
+            "rho_diff": rho_diff,
+            "bca_ci95": (-1.0, 1.0),
+            "ci_includes_zero": True,
+            "boot_p_value": 1.0,
+        }
+
+    monkeypatch.setattr(module, "_bootstrap_rho_diff", fake_rho_diff, raising=False)
+
+    result = module.compute_slice(
+        _rank_fixture(30),
+        _rank_fixture(30),
+        _rank_fixture(30),
+        primary_k=10,
+        n_bootstrap=25,
+        rng_seed=7,
+    )
+
+    assert result["ci_includes_zero"] is True
+    assert result["rho_diff"] == pytest.approx(rho_diff)
+    assert result["category"] == expected_category
+
+
+def test_compute_slice_spearman_available_when_ndcg_insufficient():
+    module = _subpop_module()
+
+    result = module.compute_slice(
+        _rank_fixture(30),
+        list(reversed(_rank_fixture(30))),
+        _rank_fixture(30),
+        primary_k=40,
+        n_bootstrap=25,
+        rng_seed=7,
+    )
+
+    assert result["n"] == 30
+    assert result["category"] == "model_leads_point_estimate"
+    assert result["rho_model"] == pytest.approx(1.0)
+    assert result["ndcg_xcheck"]["status"] == "insufficient_n"
+    assert result["ndcg_xcheck"]["model_ndcg"] is None
+    assert result["ndcg_xcheck"]["consensus_ndcg"] is None
+
+
+def test_compute_slice_ndcg_available_when_spearman_insufficient():
+    module = _subpop_module()
+
+    result = module.compute_slice(
+        _rank_fixture(20),
+        list(reversed(_rank_fixture(20))),
+        _rank_fixture(20),
+        primary_k=10,
+        n_bootstrap=25,
+        rng_seed=7,
+    )
+
+    assert result["n"] == 20
+    assert result["category"] == "insufficient_n"
+    assert result["rho_model"] is None
+    assert result["rho_consensus"] is None
+    assert result["rho_diff"] is None
+    assert result["bca_ci95"] is None
+    assert result["ci_includes_zero"] is None
+    assert result["boot_p_value"] is None
+    assert result["ndcg_xcheck"]["status"] == "available"
+    assert result["ndcg_xcheck"]["model_ndcg"] is not None
+    assert result["ndcg_xcheck"]["consensus_ndcg"] is not None
+
+
+def test_compute_slice_is_deterministic_for_fixed_rng_seed():
+    module = _subpop_module()
+    realized = _rank_fixture(35)
+    model = [1, 2, 4, 3, *range(5, 36)]
+    consensus = [2, 1, 3, 5, 4, *range(6, 36)]
+
+    first = module.compute_slice(
+        model,
+        consensus,
+        realized,
+        primary_k=10,
+        n_bootstrap=50,
+        rng_seed=123,
+    )
+    second = module.compute_slice(
+        model,
+        consensus,
+        realized,
+        primary_k=10,
+        n_bootstrap=50,
+        rng_seed=123,
+    )
+
+    assert first["bca_ci95"] == second["bca_ci95"]
+    assert first["boot_p_value"] == second["boot_p_value"]
