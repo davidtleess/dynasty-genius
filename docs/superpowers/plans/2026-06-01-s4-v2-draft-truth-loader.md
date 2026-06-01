@@ -16,7 +16,7 @@
 - **Modify** `src/dynasty_genius/eval/backtest_mock_draft.py` — `_load_nflreadr_truth` calls the shared loader for **both** real and synthetic modes (synthetic resolves the committed synthetic-truth fixture so the join is non-degenerate; **no bare `[]` hedge**) and **returns the full `NflreadrTruthLoadResult`** (its return type changes from `list[NflTruthRow]` to `NflreadrTruthLoadResult` so diagnostics survive — this is an internal seam change, not a public-signature change). `run_backtest_a` then does `truth_result = _load_nflreadr_truth(...)`, `truth_rows = truth_result.rows`, and threads `truth_result.diagnostics.model_dump()` into `BacktestAResult.metadata["truth_load_diagnostics"]`. The b-gate still abstains for `synthetic_data` (its hedge is unchanged); the truth join must NOT blanket `truth_row_missing` in synthetic mode.
 - **Modify** `scripts/build_prospect_nfl_bridge.py` — replace `_load_nflreadr_draft_truth` with a call to the shared loader (kills the broad `except → []`).
 - **Create** `tests/contract/test_subsystem_4_truth_loader.py` — the RED suite (Codex).
-- **Create fixtures** under `tests/fixtures/backtest_mock_draft/`: `draft_truth/2024.json` (real-mode, source-shaped) and `synthetic_truth/<year>.json` (synthetic).
+- **Create fixtures:** real-mode at `tests/fixtures/backtest_mock_draft/draft_truth/2024.json` (source-shaped; reaches the loader via `fixture_path` arg, never hardcoded in production); synthetic at `resources/synthetic_draft_truth/<year>.json` (production-owned committed asset, resolved package-relative — relocated out of `tests/fixtures/backtest_mock_draft/synthetic_truth/` per the 2026-06-01 David-approved §3 amendment so production's by-convention resolution carries no `mock` substring / no prod-reads-`tests/` dependency).
 - **Modify only** these files + fixtures. No Engine A/B, PVO, trade, frontend, or eval-allowlist change.
 
 **Module boundary check:** `load_nflreadr_draft_truth` (source rows → validated `NflTruthRow` list + diagnostics) is independently testable with hand-built source-shaped rows; the seam + bridge-script wrappers are thin adapters.
@@ -64,11 +64,11 @@
 
 ## Task 4: Synthetic mode — committed synthetic-truth fixture, fail-closed
 
-**Files:** Modify the module; create `tests/fixtures/backtest_mock_draft/synthetic_truth/2025.json`; extend the test.
+**Files:** Modify the module; create `resources/synthetic_draft_truth/2025.json` (production-owned committed asset, per the §3 amendment); extend the test.
 
-- [ ] **Step 1 (RED):** `load_nflreadr_draft_truth(2025, data_mode="synthetic")` (no `fixture_path`) loads the committed `tests/fixtures/backtest_mock_draft/synthetic_truth/2025.json` (source-shaped, same gate/mapping); returns non-empty mapped rows; **never calls nflreadpy** (monkeypatch `nflreadpy.load_draft_picks` to raise → still succeeds from the fixture); a missing/invalid synthetic fixture → raises with an explicit `synthetic_truth_fixture_unavailable` message (NOT a silent `[]`). `fixture_path` overrides the convention path.
+- [ ] **Step 1 (RED):** `load_nflreadr_draft_truth(2025, data_mode="synthetic")` (no `fixture_path`) loads the committed `resources/synthetic_draft_truth/2025.json` (source-shaped, same gate/mapping); returns non-empty mapped rows; **never calls nflreadpy** (monkeypatch `nflreadpy.load_draft_picks` to raise → still succeeds from the fixture); a missing/invalid synthetic fixture → raises with an explicit `synthetic_truth_fixture_unavailable` message (NOT a silent `[]`). `fixture_path` overrides the convention path.
 - [ ] **Step 2:** run → fail.
-- [ ] **Step 3 (GREEN):** synthetic branch resolves the convention path (`tests/fixtures/backtest_mock_draft/synthetic_truth/<draft_year>.json`) unless `fixture_path` given; if absent → raise `synthetic_truth_fixture_unavailable`; else reuse the Task-2 fixture path. Never import/call nflreadpy in this branch.
+- [ ] **Step 3 (GREEN):** synthetic branch resolves the convention path (`Path(__file__).resolve().parents[3] / "resources" / "synthetic_draft_truth" / f"{draft_year}.json"`) unless `fixture_path` given; if the resolved file is absent → raise `ValueError("synthetic_truth_fixture_unavailable: ... {draft_year}")`; else reuse the Task-2 `_load_draft_truth_from_fixture`, re-raising its `NflreadrEmptyTruthError` as `synthetic_truth_fixture_unavailable` (empty synthetic fixture → unavailable token, not the real-mode empty error). Never import/call nflreadpy in this branch (carries no `mock`/`adp`/nflreadpy substring).
 - [ ] **Step 4:** focused pass; ruff clean.
 - [ ] **Step 5:** commit `feat(s4v2): synthetic-mode committed truth fixture, fail-closed`.
 

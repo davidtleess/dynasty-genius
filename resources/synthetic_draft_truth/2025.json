@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "fetched_at": "2026-01-02T00:00:00Z"
+  },
+  "rows": [
+    {
+      "season": 2025,
+      "round": 1,
+      "pick": 1,
+      "team": "TEN",
+      "gsis_id": "00-synth001",
+      "pfr_player_id": "MannAr00",
+      "pfr_player_name": "Arch Manning",
+      "position": "QB",
+      "college": "Texas"
+    },
+    {
+      "season": 2025,
+      "round": 1,
+      "pick": 2,
+      "team": "CLE",
+      "gsis_id": "00-synth002",
+      "pfr_player_id": null,
+      "pfr_player_name": "Synthetic Receiver",
+      "position": "WR",
+      "college": "Synthetic U"
+    }
+  ]
+}

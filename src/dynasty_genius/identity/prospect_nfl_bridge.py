@@ -456,6 +456,46 @@ def _load_draft_truth_from_fixture(
     return NflreadrTruthLoadResult(rows=truth_rows, diagnostics=diagnostics)
 
 
+def _load_synthetic_draft_truth(
+    draft_year: int,
+    *,
+    fixture_path: Optional[Path],
+    fetched_at_override: Optional[str],
+) -> NflreadrTruthLoadResult:
+    """Synthetic mode: load ONLY a committed synthetic-truth fixture, fail-closed.
+
+    Resolves the production-owned convention path
+    ``resources/synthetic_draft_truth/<draft_year>.json`` (override via
+    ``fixture_path``), package-relative like other ``resources/`` assets. Never
+    touches the live draft source. A missing or empty synthetic fixture fails
+    closed with an explicit ``synthetic_truth_fixture_unavailable`` token — never a
+    silent empty result, and never mixes synthetic predictions with real truth.
+    """
+    if fixture_path is None:
+        fixture_path = (
+            Path(__file__).resolve().parents[3]
+            / "resources"
+            / "synthetic_draft_truth"
+            / f"{draft_year}.json"
+        )
+    if not Path(fixture_path).exists():
+        raise ValueError(
+            f"synthetic_truth_fixture_unavailable: no committed synthetic draft-truth "
+            f"fixture for draft_year {draft_year} at {fixture_path}"
+        )
+    try:
+        return _load_draft_truth_from_fixture(
+            fixture_path,
+            draft_year=draft_year,
+            fetched_at_override=fetched_at_override,
+        )
+    except NflreadrEmptyTruthError as exc:
+        raise ValueError(
+            f"synthetic_truth_fixture_unavailable: synthetic draft-truth fixture for "
+            f"draft_year {draft_year} at {fixture_path} contains zero rows"
+        ) from exc
+
+
 def load_nflreadr_draft_truth(
     draft_year: int,
     *,
@@ -466,9 +506,16 @@ def load_nflreadr_draft_truth(
     """Load draft-capital truth rows for a draft class, fail-closed.
 
     See ``docs/superpowers/specs/2026-06-01-s4-v2-draft-truth-loader-design.md``.
-    Task 2 implements the fixture-backed path (``real`` + ``fixture_path``); the
-    synthetic convention path and the live draft-source path arrive in later tasks.
+    Modes: ``synthetic`` resolves a committed synthetic-truth fixture (Task 4);
+    ``real`` + ``fixture_path`` loads a committed source-shaped fixture (Task 2);
+    ``real`` without a fixture uses the live draft source (Task 5, not yet wired).
     """
+    if data_mode == "synthetic":
+        return _load_synthetic_draft_truth(
+            draft_year,
+            fixture_path=fixture_path,
+            fetched_at_override=fetched_at,
+        )
     if fixture_path is not None:
         return _load_draft_truth_from_fixture(
             fixture_path,
@@ -476,7 +523,7 @@ def load_nflreadr_draft_truth(
             fetched_at_override=fetched_at,
         )
     raise NotImplementedError(
-        "load_nflreadr_draft_truth: only fixture-backed loading is implemented (Task 2)."
+        "load_nflreadr_draft_truth: the live draft-source path is not implemented yet."
     )
 
 

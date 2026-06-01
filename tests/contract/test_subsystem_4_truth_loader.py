@@ -20,6 +20,12 @@ DRAFT_TRUTH_FIXTURE = (
     / "draft_truth"
     / "2024.json"
 )
+SYNTHETIC_TRUTH_FIXTURE = (
+    REPO_ROOT
+    / "resources"
+    / "synthetic_draft_truth"
+    / "2025.json"
+)
 
 
 def _source_row(**overrides):
@@ -57,6 +63,14 @@ def _load_fixture(path: Path, **kwargs):
         2024,
         data_mode="real",
         fixture_path=path,
+        **kwargs,
+    )
+
+
+def _load_synthetic(draft_year: int = 2025, **kwargs):
+    return bridge.load_nflreadr_draft_truth(
+        draft_year,
+        data_mode="synthetic",
         **kwargs,
     )
 
@@ -343,3 +357,84 @@ def test_fixture_mode_integer_matching_season_remains_valid(tmp_path: Path):
 
     assert result.diagnostics.truth_rows_loaded == 1
     assert result.rows[0].draft_year == 2024
+
+
+def test_synthetic_mode_uses_committed_fixture_by_convention():
+    result = _load_synthetic()
+
+    assert isinstance(result, bridge.NflreadrTruthLoadResult)
+    assert result.diagnostics.truth_rows_loaded == 2
+    assert [row.gsis_id for row in result.rows] == ["00-synth001", "00-synth002"]
+
+    first = result.rows[0]
+    assert isinstance(first, bridge.NflTruthRow)
+    assert first.pfr_id == "MannAr00"
+    assert first.full_name == "Arch Manning"
+    assert first.normalized_name == normalize_name("Arch Manning")
+    assert first.position == "QB"
+    assert first.college == "Texas"
+    assert first.draft_year == 2025
+    assert first.draft_pick_no == 1
+    assert first.draft_round == 1
+    assert first.nfl_team == "TEN"
+    assert first.fetched_at == "2026-01-02T00:00:00Z"
+
+    assert result.rows[1].pfr_id is None
+
+
+def test_synthetic_mode_does_not_call_live_draft_source(monkeypatch):
+    def fail_if_called(*_args, **_kwargs):
+        raise AssertionError("synthetic mode must not call live draft source")
+
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "nflreadpy",
+        type("FakeNflreadpy", (), {"load_draft_picks": fail_if_called})(),
+    )
+
+    result = _load_synthetic()
+
+    assert result.diagnostics.truth_rows_loaded == 2
+
+
+def test_synthetic_mode_explicit_fixture_path_overrides_convention(tmp_path: Path):
+    override_path = _write_fixture(
+        tmp_path,
+        [
+            {
+                **_source_row(
+                    season=2025,
+                    gsis_id="00-override",
+                    pfr_player_name="Override Player",
+                    team="NYG",
+                )
+            }
+        ],
+        fetched_at="2026-03-04T05:06:07Z",
+    )
+
+    result = _load_synthetic(fixture_path=override_path)
+
+    assert [row.gsis_id for row in result.rows] == ["00-override"]
+    assert result.rows[0].full_name == "Override Player"
+    assert result.rows[0].fetched_at == "2026-03-04T05:06:07Z"
+
+
+def test_synthetic_mode_missing_convention_fixture_fails_with_explicit_token():
+    with pytest.raises(ValueError) as exc_info:
+        _load_synthetic(2099)
+
+    message = str(exc_info.value)
+    assert "synthetic_truth_fixture_unavailable" in message
+    assert "2099" in message
+
+
+def test_synthetic_mode_empty_fixture_uses_unavailable_token(tmp_path: Path):
+    empty_path = _write_fixture(tmp_path, [], fetched_at="2026-01-02T00:00:00Z")
+
+    with pytest.raises(ValueError) as exc_info:
+        _load_synthetic(fixture_path=empty_path)
+
+    message = str(exc_info.value)
+    assert "synthetic_truth_fixture_unavailable" in message
+    assert "NflreadrEmptyTruthError" not in message
