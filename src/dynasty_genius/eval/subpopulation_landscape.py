@@ -19,6 +19,7 @@ literals, so a reviewer can confirm no threshold was tuned to a result.
 
 Task 1: module scaffold + pre-registered constants.
 Task 2: resolve_draft_year — early-career draft-year dedup, fail-closed.
+Task 3: tag_cohorts — three pre-registered axes (aging / disagreement / early-career).
 """
 from __future__ import annotations
 
@@ -144,3 +145,96 @@ def resolve_draft_year(
 
     db_season_snapshot = max(db_seasons) if db_seasons else None
     return draft_year_map, db_season_snapshot
+
+
+def tag_cohorts(
+    rows: Iterable[Mapping[str, object]],
+    draft_year_map: Mapping[str, int],
+) -> list[dict]:
+    """Attach the three pre-registered cohort axes to each row (spec §3).
+
+    Returns NEW row dicts (shallow copies); ranks are never mutated. Each
+    returned row gains:
+
+    - ``aging_cliff_transition`` (bool): ``age_at_feature_season >=
+      AGING_THRESHOLDS[position]``;
+    - ``high_disagreement`` (bool) + ``disagreement_bucket``
+      (``model_bullish`` / ``model_bearish`` / ``None``): triggered when
+      ``abs(model_rank - consensus_rank) >= DISAGREEMENT_MIN_SLOTS``; on the
+      lower-is-better rank convention ``model_rank < consensus_rank`` means the
+      model ranks the player better (bullish);
+    - ``early_career_eligible`` (bool), ``early_career_experience_year``
+      (int | None), ``cohort_exclusion_reasons`` (list[str]): experience =
+      ``feature_season - draft_year`` (draft_year from ``draft_year_map`` keyed
+      by ``player_id``); eligible when ``0 <= experience <= EARLY_CAREER_MAX_EXP``;
+      ``experience < 0`` -> ineligible + ``invalid_negative_experience``; missing
+      draft_year -> ineligible, experience ``None``, no exclusion reason (a
+      coverage gap, not a data-integrity violation).
+
+    Fail-soft for out-of-universe inputs: an unknown position, or a missing
+    age / model_rank / consensus_rank, simply yields an un-flagged axis (False /
+    None) rather than raising — the join layer (Task 8) owns input completeness.
+    """
+    tagged: list[dict] = []
+    for row in rows:
+        out = dict(row)
+        reasons: list[str] = []
+
+        # Axis 1 — aging-cliff transition (per-position threshold).
+        position = out.get("position")
+        age = out.get("age_at_feature_season")
+        threshold = AGING_THRESHOLDS.get(position) if isinstance(position, str) else None
+        out["aging_cliff_transition"] = (
+            threshold is not None and age is not None and age >= threshold
+        )
+
+        # Axis 2 — high model-vs-consensus disagreement (lower-is-better ranks).
+        model_rank = out.get("model_rank")
+        consensus_rank = out.get("consensus_rank")
+        if model_rank is None or consensus_rank is None:
+            out["high_disagreement"] = False
+            out["disagreement_bucket"] = None
+        elif abs(model_rank - consensus_rank) >= DISAGREEMENT_MIN_SLOTS:
+            out["high_disagreement"] = True
+            out["disagreement_bucket"] = (
+                "model_bullish" if model_rank < consensus_rank else "model_bearish"
+            )
+        else:
+            out["high_disagreement"] = False
+            out["disagreement_bucket"] = None
+
+        # Axis 3 — early-career window via derived experience.
+        player_id = out.get("player_id")
+        draft_year = (
+            draft_year_map.get(player_id) if isinstance(player_id, str) else None
+        )
+        feature_season = out.get("feature_season")
+        if draft_year is None:
+            # True coverage gap: un-bridged row. Counted toward the coverage
+            # denominator by the caller; not a data-integrity violation, no reason.
+            experience: int | None = None
+            eligible = False
+        elif feature_season is None:
+            # Malformed: a draft year is present but feature_season is missing,
+            # so experience is null. Distinct from the coverage gap — flagged
+            # rather than silently treated as un-bridged ("silent substitution
+            # forbidden"). Reuses the pre-registered invalid_negative_experience
+            # token (no new label; §4.5/§9.2 pre-registration integrity).
+            experience = None
+            eligible = False
+            reasons.append("invalid_negative_experience")
+        else:
+            experience = feature_season - draft_year
+            if experience < 0:
+                eligible = False
+                reasons.append("invalid_negative_experience")
+            elif experience <= EARLY_CAREER_MAX_EXP:
+                eligible = True
+            else:
+                eligible = False
+        out["early_career_experience_year"] = experience
+        out["early_career_eligible"] = eligible
+        out["cohort_exclusion_reasons"] = reasons
+
+        tagged.append(out)
+    return tagged
