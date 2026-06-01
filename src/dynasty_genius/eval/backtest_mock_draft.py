@@ -560,8 +560,10 @@ def aggregate_per_prospect(
 
 from src.dynasty_genius.identity.prospect_nfl_bridge import (  # noqa: E402
     CollegeProspectBridge,
+    NflreadrTruthLoadResult,
     NflTruthRow,
     ProspectNflBridgeEntry,
+    load_nflreadr_draft_truth,
 )
 
 TEAM_CODE_NORMALIZATION_VERSION: str = "s4_team_norm_v1"
@@ -1243,6 +1245,7 @@ def build_backtest_a_result(
     n_prospects_total_in_class: int,
     dispersion_threshold: float = 6,
     bridge_artifact_path: Optional[str] = None,
+    truth_load_diagnostics: Optional[dict] = None,
 ) -> BacktestAResult:
     """Assemble the Backtest-A artifact model (spec §5.9). Pure — no filesystem.
 
@@ -1296,6 +1299,7 @@ def build_backtest_a_result(
         "draft_date_used": draft_date,
         "draft_date_source": draft_date_source,
         "data_mode": data_mode,
+        "truth_load_diagnostics": truth_load_diagnostics,
     }
 
     return BacktestAResult(
@@ -1353,18 +1357,17 @@ def _find_bridge_artifact(identity_dir: Path, draft_year: int) -> Optional[Path]
     return None
 
 
-def _load_nflreadr_truth(draft_year: int, *, data_mode: str) -> list[NflTruthRow]:
-    """Load realized NFL draft truth rows for the join (v1 SEAM).
+def _load_nflreadr_truth(draft_year: int, *, data_mode: str) -> NflreadrTruthLoadResult:
+    """Load realized NFL draft-capital truth via the shared loader (S4 v2 seam).
 
-    Returns an empty truth set in v1: the real nflreadr draft-pick → NflTruthRow
-    mapping (column mapping + synthetic-vs-real sourcing) is a separate increment
-    with its own RED contract. Because no truth is loaded, ``run_backtest_a`` FAILS
-    CLOSED in real mode (surfaces ``nflreadr_truth_unavailable`` → metrics null) so
-    no unverified metrics are ever presented as nflreadr-verified — never depending
-    on guessed nflreadr columns. Out-of-scope-by-contract per the Task 12
-    falsification matrix; owner: a follow-up truth-loader increment.
+    Delegates to ``load_nflreadr_draft_truth`` (identity/prospect_nfl_bridge):
+    ``synthetic`` resolves the committed synthetic-truth fixture; ``real`` loads the
+    live draft source (lazy nflreadpy) — both fail-closed (a missing/empty/contaminated
+    source raises; never a silent ``[]``). Returns the full ``NflreadrTruthLoadResult``
+    so ``run_backtest_a`` threads the typed load diagnostics into the artifact. The
+    module-level binding is what the contract tests monkeypatch.
     """
-    return []
+    return load_nflreadr_draft_truth(draft_year, data_mode=data_mode)
 
 
 def _compute_bridge_coverage(
@@ -1404,7 +1407,9 @@ def run_backtest_a(
     supplied together (§5.6 audit trail); (2) the snapshots dir must exist and be
     non-empty; (3) the identity bridge artifact must be present; (4) each snapshot
     file must be valid JSON. Then ingest → aggregate → join → build → write. The
-    nflreadr truth join uses the documented ``_load_nflreadr_truth`` v1 seam.
+    nflreadr truth join uses the S4 v2 ``_load_nflreadr_truth`` seam, which returns
+    a ``NflreadrTruthLoadResult`` and threads loader diagnostics into artifact
+    metadata; a real-mode truth-load failure propagates (fail-loud, no artifact).
     """
     from src.dynasty_genius.identity.college_prospect_identity import load_registry
     from src.dynasty_genius.identity.prospect_nfl_bridge import load_bridge
@@ -1471,17 +1476,15 @@ def run_backtest_a(
         draft_date=resolved_draft_date,
         dispersion_threshold=dispersion_threshold,
     )
-    truth_rows = _load_nflreadr_truth(draft_year, data_mode=data_mode)
+    # S4 v2: the shared loader supplies real-shaped truth (real: live nflreadpy;
+    # synthetic: committed synthetic-truth fixture) or fails loud — it never returns
+    # a silent empty set, so the old real-mode ``nflreadr_truth_unavailable`` hard
+    # block is obsolete. The typed load diagnostics are threaded into the artifact.
+    truth_result = _load_nflreadr_truth(draft_year, data_mode=data_mode)
+    truth_rows = truth_result.rows
     pairs, diagnostics = join_bridge_to_realized(
         list(consensus_map.values()), bridge, truth_rows
     )
-
-    # Fail closed when real-mode nflreadr truth is unavailable (F1; anti-false-
-    # confidence): without verified truth, metrics must not be presented as
-    # nflreadr-verified. Surfaces a canonical token so metrics is nulled.
-    if data_mode == "real" and not truth_rows:
-        if "nflreadr_truth_unavailable" not in diagnostics.hard_block_reasons:
-            diagnostics.hard_block_reasons.append("nflreadr_truth_unavailable")
 
     result = build_backtest_a_result(
         run_id=run_id,
@@ -1497,6 +1500,7 @@ def run_backtest_a(
         n_prospects_total_in_class=len(consensus_map),
         dispersion_threshold=dispersion_threshold,
         bridge_artifact_path=str(bridge_path),
+        truth_load_diagnostics=truth_result.diagnostics.model_dump(),
     )
 
     if diagnostics.review_queue_payload:

@@ -9,7 +9,13 @@ import pytest
 from pydantic import ValidationError
 
 from src.dynasty_genius.eval import backtest_mock_draft as bmd
-from src.dynasty_genius.identity.prospect_nfl_bridge import CollegeProspectBridge
+from src.dynasty_genius.identity.prospect_nfl_bridge import (
+    CollegeProspectBridge,
+    NflreadrEmptyTruthError,
+    NflreadrTruthLoadResult,
+    NflTruthLoadDiagnostics,
+    NflTruthRow,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUN_BACKTEST_A_CLI = REPO_ROOT / "scripts" / "run_backtest_a.py"
@@ -187,6 +193,152 @@ def _write_minimal_runner_inputs(
         encoding="utf-8",
     )
     return snapshots_dir, identity_dir
+
+
+def _write_runner_inputs_with_bridge_entries(tmp_path: Path) -> tuple[Path, Path]:
+    snapshots_dir, identity_dir = _write_minimal_runner_inputs(tmp_path)
+    entries = []
+    for uuid, gsis_id, pick_no, position, name in (
+        (UUID_A, "00-task6a", 1, "QB", "Task Six Quarterback"),
+        (UUID_B, "00-task6b", 40, "WR", "Task Six Receiver"),
+    ):
+        entries.append(
+            {
+                "prospect_uuid": uuid,
+                "gsis_id": gsis_id,
+                "pfr_id": None,
+                "draft_year": 2025,
+                "draft_pick_no": pick_no,
+                "draft_round": _round_for_pick(pick_no),
+                "nfl_team": "TEN",
+                "udfa": False,
+                "nflreadr_source": "test",
+                "nflreadr_season": 2025,
+                "draft_truth_content_hash": f"hash-{uuid[-1]}",
+                "nflreadr_fetched_at": "2026-01-01T00:00:00Z",
+                "evidence_snapshot": {
+                    "full_name": name,
+                    "position": position,
+                    "college": "Test U",
+                },
+                "event_id": f"evt-{uuid[-1]}",
+                "decided_at": "2026-01-01T00:00:00Z",
+                "reviewer_id": "codex",
+                "decision": "confirm",
+                "note": None,
+            }
+        )
+    (identity_dir / "prospect_nfl_bridge.json").write_text(
+        json.dumps(
+            {
+                "metadata": {
+                    "draft_year": 2025,
+                    "schema_version": "prospect_nfl_bridge_v1.0.0",
+                },
+                "entries": entries,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return snapshots_dir, identity_dir
+
+
+def _fake_truth_result() -> NflreadrTruthLoadResult:
+    diagnostics = NflTruthLoadDiagnostics(
+        truth_rows_loaded=2,
+        skipped_missing_gsis_id=3,
+        skipped_bad_pick=4,
+        skipped_bad_round=5,
+        skipped_missing_name=6,
+        skipped_missing_position=7,
+        skipped_missing_team=8,
+        required_columns_seen=[
+            "college",
+            "gsis_id",
+            "pfr_player_id",
+            "pfr_player_name",
+            "pick",
+            "position",
+            "round",
+            "season",
+            "team",
+        ],
+    )
+    rows = [
+        NflTruthRow(
+            gsis_id="00-task6a",
+            pfr_id=None,
+            full_name="Task Six Quarterback",
+            normalized_name="task six quarterback",
+            position="QB",
+            college="Test U",
+            draft_year=2025,
+            draft_pick_no=1,
+            draft_round=1,
+            nfl_team="TEN",
+            fetched_at="2026-01-01T00:00:00Z",
+        ),
+        NflTruthRow(
+            gsis_id="00-task6b",
+            pfr_id=None,
+            full_name="Task Six Receiver",
+            normalized_name="task six receiver",
+            position="WR",
+            college="Test U",
+            draft_year=2025,
+            draft_pick_no=40,
+            draft_round=2,
+            nfl_team="TEN",
+            fetched_at="2026-01-01T00:00:00Z",
+        ),
+    ]
+    return NflreadrTruthLoadResult(rows=rows, diagnostics=diagnostics)
+
+
+def _empty_truth_result() -> NflreadrTruthLoadResult:
+    return NflreadrTruthLoadResult(rows=[], diagnostics=NflTruthLoadDiagnostics())
+
+
+def _install_task6_runner_stubs(
+    monkeypatch,
+    calls: list[dict],
+    captured: dict,
+) -> NflreadrTruthLoadResult:
+    truth_result = _fake_truth_result()
+
+    def fake_loader(draft_year: int, *, data_mode: str):
+        calls.append({"draft_year": draft_year, "data_mode": data_mode})
+        return truth_result
+
+    original_join = bmd.join_bridge_to_realized
+
+    def capture_join(consensuses, bridge, nflreadr_current):
+        captured["truth_rows"] = list(nflreadr_current)
+        return original_join(consensuses, bridge, nflreadr_current)
+
+    monkeypatch.setattr(bmd, "load_nflreadr_draft_truth", fake_loader, raising=False)
+    monkeypatch.setattr(bmd, "join_bridge_to_realized", capture_join)
+    monkeypatch.setattr(
+        bmd,
+        "ingest_snapshots",
+        lambda *args, **kwargs: (
+            [],
+            {
+                "draft_date_used": "2025-04-24",
+                "draft_date_source": "nflreadr.draft_picks",
+                "warnings": [],
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        bmd,
+        "aggregate_per_prospect",
+        lambda *args, **kwargs: {
+            UUID_A: _consensus(UUID_A, 1.0),
+            UUID_B: _consensus(UUID_B, 48.0),
+        },
+    )
+    return truth_result
 
 
 def _join_diagnostics(*, reasons=None, review_queue=None) -> bmd.JoinDiagnostics:
@@ -502,11 +654,12 @@ def test_runner_rejects_malformed_partial_snapshot_json(tmp_path: Path):
         )
 
 
-def test_runner_real_mode_truth_unavailable_fails_closed_with_metrics_null(
+def test_runner_real_mode_truth_load_failure_propagates_without_artifact(
     tmp_path: Path,
     monkeypatch,
 ):
     snapshots_dir, identity_dir = _write_minimal_runner_inputs(tmp_path)
+    run_id = "truth_load_failure"
 
     monkeypatch.setattr(
         bmd,
@@ -525,7 +678,14 @@ def test_runner_real_mode_truth_unavailable_fails_closed_with_metrics_null(
         "aggregate_per_prospect",
         lambda *args, **kwargs: {UUID_A: _consensus(UUID_A, 5.0)},
     )
-    monkeypatch.setattr(bmd, "_load_nflreadr_truth", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        bmd,
+        "load_nflreadr_draft_truth",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            NflreadrEmptyTruthError("live source contains zero rows")
+        ),
+        raising=False,
+    )
     monkeypatch.setattr(
         bmd,
         "join_bridge_to_realized",
@@ -535,16 +695,86 @@ def test_runner_real_mode_truth_unavailable_fails_closed_with_metrics_null(
         ),
     )
 
+    with pytest.raises(NflreadrEmptyTruthError, match="zero rows"):
+        bmd.run_backtest_a(
+            snapshots_dir=snapshots_dir,
+            identity_dir=identity_dir,
+            draft_year=2025,
+            run_id=run_id,
+            output_root=tmp_path / "runs",
+        )
+
+    assert not (tmp_path / "runs" / run_id / "backtest_a_result.json").exists()
+
+
+def test_runner_real_mode_uses_shared_truth_loader_and_records_diagnostics(
+    tmp_path: Path,
+    monkeypatch,
+):
+    snapshots_dir, identity_dir = _write_runner_inputs_with_bridge_entries(tmp_path)
+    calls: list[dict] = []
+    captured: dict = {}
+    truth_result = _install_task6_runner_stubs(monkeypatch, calls, captured)
+
     result = bmd.run_backtest_a(
         snapshots_dir=snapshots_dir,
         identity_dir=identity_dir,
         draft_year=2025,
-        run_id="truth_unavailable",
+        run_id="task6_real_loader",
         output_root=tmp_path / "runs",
     )
 
-    assert "nflreadr_truth_unavailable" in result.acceptance_criteria_failed
-    assert result.metrics is None
+    assert calls == [{"draft_year": 2025, "data_mode": "real"}]
+    assert captured["truth_rows"] == truth_result.rows
+    assert "nflreadr_truth_unavailable" not in result.acceptance_criteria_failed
+    assert result.metadata["truth_load_diagnostics"] == (
+        truth_result.diagnostics.model_dump()
+    )
+    assert result.metrics is not None
+    assert result.metrics["per_bucket_breakdown"]["R1-early"]["n_realized"] == 1
+    assert result.metrics["per_bucket_breakdown"]["R2"]["n_realized"] == 1
+    payload = json.loads(
+        (tmp_path / "runs" / "task6_real_loader" / "backtest_a_result.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert payload["metadata"]["truth_load_diagnostics"] == (
+        truth_result.diagnostics.model_dump()
+    )
+
+
+def test_runner_synthetic_mode_keeps_abstain_with_non_empty_truth_join(
+    tmp_path: Path,
+    monkeypatch,
+):
+    snapshots_dir, identity_dir = _write_runner_inputs_with_bridge_entries(tmp_path)
+    calls: list[dict] = []
+    captured: dict = {}
+    truth_result = _install_task6_runner_stubs(monkeypatch, calls, captured)
+
+    result = bmd.run_backtest_a(
+        snapshots_dir=snapshots_dir,
+        identity_dir=identity_dir,
+        draft_year=2025,
+        run_id="task6_synthetic_loader",
+        output_root=tmp_path / "runs",
+        override_draft_date="2025-04-24",
+        override_reason="manual_fixture_date",
+    )
+
+    assert calls == [{"draft_year": 2025, "data_mode": "synthetic"}]
+    assert captured["truth_rows"] == truth_result.rows
+    assert result.metadata["truth_load_diagnostics"] == (
+        truth_result.diagnostics.model_dump()
+    )
+    assert (
+        result.backtest_b_gate_status["overall_status"]
+        == "always_abstain_synthetic_data"
+    )
+    assert "nflreadr_truth_unavailable" not in result.acceptance_criteria_failed
+    assert result.metrics is not None
+    assert result.metrics["per_bucket_breakdown"]["R1-early"]["n_realized"] == 1
+    assert result.metrics["per_bucket_breakdown"]["R2"]["n_realized"] == 1
 
 
 def test_runner_real_mode_uses_ingestion_resolved_draft_date_for_aggregation(
@@ -570,7 +800,7 @@ def test_runner_real_mode_uses_ingestion_resolved_draft_date_for_aggregation(
 
     monkeypatch.setattr(bmd, "ingest_snapshots", fake_ingest)
     monkeypatch.setattr(bmd, "aggregate_per_prospect", fake_aggregate)
-    monkeypatch.setattr(bmd, "_load_nflreadr_truth", lambda *args, **kwargs: [])
+    monkeypatch.setattr(bmd, "_load_nflreadr_truth", lambda *args, **kwargs: _empty_truth_result())
 
     result = bmd.run_backtest_a(
         snapshots_dir=snapshots_dir,
@@ -605,7 +835,7 @@ def test_runner_preflight_uses_recursive_snapshot_discovery(
         ),
     )
     monkeypatch.setattr(bmd, "aggregate_per_prospect", lambda *args, **kwargs: {})
-    monkeypatch.setattr(bmd, "_load_nflreadr_truth", lambda *args, **kwargs: [])
+    monkeypatch.setattr(bmd, "_load_nflreadr_truth", lambda *args, **kwargs: _empty_truth_result())
 
     result = bmd.run_backtest_a(
         snapshots_dir=snapshots_dir,
