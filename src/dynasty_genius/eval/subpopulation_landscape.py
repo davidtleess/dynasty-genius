@@ -20,10 +20,18 @@ literals, so a reviewer can confirm no threshold was tuned to a result.
 Task 1: module scaffold + pre-registered constants.
 Task 2: resolve_draft_year — early-career draft-year dedup, fail-closed.
 Task 3: tag_cohorts — three pre-registered axes (aging / disagreement / early-career).
+Task 4: compute_slice — orientation-locked Spearman rho_diff + NDCG cross-check.
 """
 from __future__ import annotations
 
+import math
+import warnings
 from collections.abc import Iterable, Mapping
+
+import numpy as np
+from scipy import stats as scipy_stats
+
+from src.dynasty_genius.eval.backtest_metrics import compute_ndcg
 
 # Category neutral band on rho_diff: |rho_diff| < NEUTRAL_BAND is reported as
 # `statistically_indistinguishable`, independent of the bootstrap CI (spec §4).
@@ -238,3 +246,179 @@ def tag_cohorts(
 
         tagged.append(out)
     return tagged
+
+
+def _categorize_rho_diff(rho_diff: float) -> str:
+    """Category by sign + NEUTRAL_BAND, independent of the bootstrap CI (spec §4).
+
+    rho_diff >= +NEUTRAL_BAND -> model leads (point estimate); <= -NEUTRAL_BAND ->
+    consensus leads; otherwise statistically_indistinguishable. Band edges
+    (exactly +/-NEUTRAL_BAND) resolve to the leading category (>= / <=).
+    """
+    if rho_diff >= NEUTRAL_BAND:
+        return "model_leads_point_estimate"
+    if rho_diff <= -NEUTRAL_BAND:
+        return "consensus_leads_point_estimate"
+    return "statistically_indistinguishable"
+
+
+def _bootstrap_rho_diff(
+    model_ranks: list,
+    consensus_ranks: list,
+    realized_ranks: list,
+    *,
+    n_bootstrap: int,
+    rng_seed: int,
+) -> dict:
+    """Paired BCa bootstrap of the Spearman rho difference (model - consensus).
+
+    Lower-is-better on both sides: a perfectly aligned ranker yields rho = +1, so
+    rho_diff = rho_model - rho_consensus > 0 means the model aligns better.
+    Returns rho_model / rho_consensus / rho_diff point estimates, the paired BCa
+    95% CI on rho_diff (bca_ci95), ci_includes_zero, and a two-sided percentile
+    bootstrap p-value (boot_p_value) for H0: rho_diff == 0. Deterministic for a
+    fixed rng_seed. Mirrors the compute_ndcg_diff_bootstrap degenerate-collapse
+    pattern: a zero-variance statistic (e.g. perfect separation) collapses the CI
+    to the point estimate rather than raising.
+    """
+    model = np.asarray(model_ranks, dtype=float)
+    consensus = np.asarray(consensus_ranks, dtype=float)
+    realized = np.asarray(realized_ranks, dtype=float)
+
+    rho_model = float(scipy_stats.spearmanr(model, realized).statistic)
+    rho_consensus = float(scipy_stats.spearmanr(consensus, realized).statistic)
+    rho_diff = rho_model - rho_consensus
+
+    def _diff(m, c, r):
+        return (
+            scipy_stats.spearmanr(m, r).statistic
+            - scipy_stats.spearmanr(c, r).statistic
+        )
+
+    lo = hi = rho_diff
+    boot_p_value = 0.0 if rho_diff != 0.0 else 1.0
+    try:
+        with warnings.catch_warnings():
+            # Perfect-separation / zero-variance is an EXPECTED degenerate case we
+            # handle by collapsing the CI — don't surface scipy's warning.
+            warnings.simplefilter("ignore")
+            result = scipy_stats.bootstrap(
+                (model, consensus, realized),
+                _diff,
+                n_resamples=n_bootstrap,
+                random_state=rng_seed,
+                method="BCa",
+                paired=True,
+                confidence_level=0.95,
+            )
+        ci_lo = float(result.confidence_interval.low)
+        ci_hi = float(result.confidence_interval.high)
+        if math.isfinite(ci_lo) and math.isfinite(ci_hi):
+            lo = max(-2.0, ci_lo)
+            hi = min(2.0, ci_hi)
+        dist = np.asarray(result.bootstrap_distribution, dtype=float)
+        dist = dist[np.isfinite(dist)]
+        if dist.size:
+            frac_le = float(np.mean(dist <= 0.0))
+            frac_ge = float(np.mean(dist >= 0.0))
+            boot_p_value = min(1.0, 2.0 * min(frac_le, frac_ge))
+    except Exception:
+        # Degenerate distribution — CI collapses to the point estimate.
+        lo = hi = rho_diff
+        boot_p_value = 0.0 if rho_diff != 0.0 else 1.0
+
+    return {
+        "rho_model": rho_model,
+        "rho_consensus": rho_consensus,
+        "rho_diff": rho_diff,
+        "bca_ci95": (lo, hi),
+        "ci_includes_zero": lo <= 0.0 <= hi,
+        "boot_p_value": boot_p_value,
+    }
+
+
+def _ndcg_xcheck(
+    model_ranks: list,
+    consensus_ranks: list,
+    realized_ranks: list,
+    primary_k: int,
+    n: int,
+) -> dict:
+    """NDCG@primary_k cross-check, gated INDEPENDENTLY at n >= primary_k (spec §4).
+
+    Relevance is derived from the realized rank (gain = 1/realized_rank; best
+    realized rank gets the highest gain) because compute_slice's contract takes
+    realized ranks, not realized PPG. See compute_slice for the (flagged)
+    semantic note. Returns status 'available' with both NDCG values, or
+    'insufficient_n' with both None when n < primary_k.
+    """
+    if n < primary_k:
+        return {"status": "insufficient_n", "model_ndcg": None, "consensus_ndcg": None}
+    relevance = [1.0 / float(r) for r in realized_ranks]
+    return {
+        "status": "available",
+        "model_ndcg": compute_ndcg(list(model_ranks), relevance, primary_k),
+        "consensus_ndcg": compute_ndcg(list(consensus_ranks), relevance, primary_k),
+    }
+
+
+def compute_slice(
+    model_ranks: list,
+    consensus_ranks: list,
+    realized_ranks: list,
+    *,
+    primary_k: int,
+    n_bootstrap: int = 1000,
+    rng_seed: int = 42,
+) -> dict:
+    """One slice-fold: orientation-locked Spearman rho_diff + NDCG cross-check.
+
+    Lower-is-better rank convention on both predicted and realized ranks. The two
+    gates are INDEPENDENT and never suppress each other:
+    - Spearman rho_diff is computed only at n >= SPEARMAN_MIN_N; below that the
+      category is 'insufficient_n' and all rho / CI / p-value fields are None.
+    - The NDCG cross-check is computed only at n >= primary_k.
+    Category is assigned by sign + NEUTRAL_BAND, INDEPENDENT of the CI;
+    ci_includes_zero and boot_p_value are reported as separate descriptive fields.
+
+    Note: the NDCG cross-check uses rank-derived relevance (gain = 1/realized_rank)
+    because this contract receives realized ranks. A PPG-graded NDCG would need a
+    realized_relevance input — a deliberate later-task contract change, not done
+    here.
+    """
+    n = len(realized_ranks)
+    ndcg_xcheck = _ndcg_xcheck(
+        model_ranks, consensus_ranks, realized_ranks, primary_k, n
+    )
+
+    if n < SPEARMAN_MIN_N:
+        return {
+            "n": n,
+            "rho_model": None,
+            "rho_consensus": None,
+            "rho_diff": None,
+            "bca_ci95": None,
+            "ci_includes_zero": None,
+            "boot_p_value": None,
+            "category": "insufficient_n",
+            "ndcg_xcheck": ndcg_xcheck,
+        }
+
+    boot = _bootstrap_rho_diff(
+        model_ranks,
+        consensus_ranks,
+        realized_ranks,
+        n_bootstrap=n_bootstrap,
+        rng_seed=rng_seed,
+    )
+    return {
+        "n": n,
+        "rho_model": boot["rho_model"],
+        "rho_consensus": boot["rho_consensus"],
+        "rho_diff": boot["rho_diff"],
+        "bca_ci95": boot["bca_ci95"],
+        "ci_includes_zero": boot["ci_includes_zero"],
+        "boot_p_value": boot["boot_p_value"],
+        "category": _categorize_rho_diff(boot["rho_diff"]),
+        "ndcg_xcheck": ndcg_xcheck,
+    }
