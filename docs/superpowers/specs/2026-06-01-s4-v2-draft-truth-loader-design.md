@@ -1,7 +1,7 @@
 # Subsystem 4 v2 — Real nflreadr Draft-Capital Truth Loader — Design Spec
 
 - **Date:** 2026-06-01
-- **Status:** DESIGN (pre-implementation). Cockpit-converged (Codex technical + Gemini governance, 2 review rounds; both divergences resolved).
+- **Status:** DESIGN (pre-implementation). Cockpit-converged (Codex technical + Gemini governance, 2 review rounds; both divergences resolved). **Addendum 2026-06-01** (see §9): six fail-closed hardening contracts — five new REDs (12–16) plus the new exception `NflreadrEmptyTruthError` — added after a Codex adversarial-falsification round on the implementation plan; David-approved contract amendment; tighten-only (no contract loosened); pending dual re-CLEAR of spec + plan together.
 - **Initiative:** Subsystem 4 (manual-first backtest harness) v2 — replace the empty `_load_nflreadr_truth` v1 seam with a real, hardened, verified-column draft-capital truth loader so **real-mode Backtest-A runs** instead of failing closed (`nflreadr_truth_unavailable` → metrics null).
 - **Scope (locked):** the truth loader ONLY. `_compute_bridge_coverage`'s S3 confirmed-class universe (`confirmed_class_unbridged_count`, `orphan_bridges_detected`) stays defaulted as a **separate later increment**.
 
@@ -70,7 +70,27 @@ Model-blind (draft data is not market data); backtest/bridge-only consumers — 
 9. `fetched_at` reproducibility: two loads of an identical fixture (same `metadata.fetched_at`) produce bit-identical `NflTruthRow` rows (no runtime `utcnow`); a fixture missing `metadata.fetched_at` raises unless a `fetched_at` override is supplied.
 10. S4 audit stays green: no "mock" substring introduced into `prospect_nfl_bridge.py`; no new banned production import; `AUTHORIZED_EVAL_FILES` untouched.
 11. Diagnostics are a typed `NflTruthLoadDiagnostics` model (not a dict) and surface in the `BacktestAResult` metadata (`truth_load_diagnostics`), serialized into `backtest_a_result.json`.
+12. **Empty source fails closed (not vacuous success):** a fixture with `rows == []` or a live frame with zero rows does NOT pass the schema gate vacuously. Real/live empty source → raises `NflreadrEmptyTruthError`; synthetic empty fixture → `synthetic_truth_fixture_unavailable`. Never an empty-rows success (which would re-create `nflreadr_truth_unavailable` / synthetic degeneracy).
+13. **Duplicate `gsis_id` preserved (no dedupe):** two source rows with the same `gsis_id` both appear in `result.rows`; the loader does not deduplicate (the join stage `join_bridge_to_realized` owns the duplicate-`gsis_id` hard-block, and silent loader-side de-duping would erase that fail-closed evidence).
+14. **Extra source columns dropped safely:** a source row carrying columns beyond `_REQUIRED_DRAFT_COLUMNS` loads successfully, and the extra keys do NOT appear in the produced `NflTruthRow.model_dump()` — the mapping constructs `NflTruthRow` from explicitly-mapped fields only and never splats the raw source row into the `extra="forbid"` model.
+15. **Numeric coercion pinned to a single rule:** `pick`/`round` are valid iff `type(value) is int` (accepts the real polars/nflreadpy `int`; skips `bool`, `float`, and numeric strings → `skipped_bad_pick`/`skipped_bad_round`). `season` is valid iff `type(value) is int and value == draft_year`; a non-int season (`"2024"`, `2024.0`, `True`) → `NflreadrSourceContaminationError` (no `int()` coercion).
+16. **`fetched_at` stored verbatim:** the `metadata.fetched_at` (or override) string is preserved byte-for-byte — never parsed/reformatted — so `+00:00` stays `+00:00` and `Z` stays `Z`; two loads of an identical fixture are bit-identical. Only the live no-fixture path *generates* a `…Z` string.
 
 ## 8. Out of scope
 
 `_compute_bridge_coverage` confirmed-class universe (separate increment); realized NFL production/PPG truth; any Engine A/B model change; the W2a FantasyCalc/market path (unrelated).
+
+## 9. Addendum (2026-06-01) — adversarial-review hardening
+
+A Codex adversarial-falsification round on the implementation plan surfaced six contract points the original §4/§7 under-specified. David approved adding them as formal spec contracts (this §9 + RED 12–16 above). All are **tighten-only** — they strengthen the fail-closed posture of §4 and loosen nothing.
+
+**New typed exception.** `NflreadrEmptyTruthError` (subclasses `ValueError`), raised for an empty real/live source (§4 / RED 12). This makes the loader's exception set: `NflreadrSchemaDriftError`, `NflreadrSourceContaminationError`, `NflreadrEmptyTruthError`.
+
+**Fail-closed refinements (amend §4):**
+- **§4.1a (empty source).** The schema gate must not pass vacuously on zero rows; an empty source is a fail-closed condition (RED 12), not an empty-rows success.
+- **§4.3a (numeric coercion).** `pick`/`round` valid iff `type(value) is int`; `season` valid iff `type(value) is int and == draft_year` — no `int()` coercion of strings/floats/bools (RED 15). Pins a single expected outcome for RED authorship.
+- **§4.4a (duplicate `gsis_id`).** Preserved, not de-duped — the join stage owns the hard-block (RED 13).
+- **§4.4b (extra columns).** `NflTruthRow` is built from explicitly-mapped fields only; raw source rows are never splatted into the `extra="forbid"` model (RED 14).
+- **§4.6a (`fetched_at` verbatim).** Stored byte-for-byte; no normalization (RED 16) — guarantees the §4.6 bit-identical property across `+00:00`/`Z` forms.
+
+**Implementation-seam note (informs the plan, not a public contract):** the backtest seam `eval/backtest_mock_draft.py::_load_nflreadr_truth` returns the full `NflreadrTruthLoadResult` (not `list[NflTruthRow]`) so `run_backtest_a` can thread `diagnostics.model_dump()` into `BacktestAResult.metadata["truth_load_diagnostics"]`; `run_backtest_a`'s public signature is unchanged. Imports follow the repo convention `from src.dynasty_genius...`.
