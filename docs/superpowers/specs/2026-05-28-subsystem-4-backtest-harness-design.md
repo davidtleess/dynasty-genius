@@ -619,6 +619,29 @@ Locked constraints:
 - **Hard execution block.** The S4 runner (`run_backtest_a.py` per Task 12) MUST hard-fail (exit code 1) and refuse to write metrics into `backtest_a_result.json` if any of: `consensus_unbridged_count > 0`, `confirmed_class_unbridged_count > 0`, or `len(orphan_bridges_detected) > 0`. When the hard block fires the artifact's `metrics` block MUST be `null` (or omitted); the artifact retains only the diagnostic report listing the blocking unbridged/orphan prospects. An informative run requires all three counts to be zero.
 - This gate is distinct from `coverage_after_abstention` — that measures post-abstention metric coverage; this gate measures bridge coverage.
 
+#### 11.2a — Confirmed-class coverage activation (Amendment 2026-06-01, David-approved; cockpit-converged)
+
+The §11.2 `confirmed_class_unbridged_count` and `orphan_bridges_detected` fields were shipped **defaulted** (`0` / `[]`) in the S4 v1 build (`_compute_bridge_coverage` lacked the S3 confirmed-class universe), so the gate's confirmed-class and orphan arms were dormant — only `consensus_unbridged_count` was live. This amendment activates them with a pinned computation contract. It is **tighten-only**: it strengthens the existing fail-closed selection-bias gate (`evaluate_bridge_gates` already consumes all three counts); no model/market/decision surface and `decision_supported` are touched.
+
+**Inputs.** `run_backtest_a` already loads the per-class `bridge` (`CollegeProspectBridge`, accepted-only `confirm`+`udfa` entries) and the `s3_registry` (`college_prospect_registry.json`). Both are threaded into `_compute_bridge_coverage` (alongside the run `draft_year`); the registry-vs-bridge analysis lives in a focused helper.
+
+**Confirmed-class universe.** `confirmed_class = { e.prospect_uuid : e for e in s3_registry.entries.values() if e.draft_class == draft_year and e.verification_status == "confirmed" }`.
+
+**Bridged set (run-year only).** `bridged_uuids = { entry.prospect_uuid for entry in bridge.entries if entry.draft_year == draft_year }`. A bridge entry whose own `draft_year` ≠ the run `draft_year` does NOT count as bridging a confirmed prospect (it is drift — see orphan reason 1), so it cannot spuriously satisfy coverage.
+
+**`confirmed_class_unbridged_count` + actionable listing.** `confirmed_class_unbridged_uuids = sorted(confirmed_class.keys() − bridged_uuids)`; the count is `len(...)`. The sorted uuid list is surfaced in the coverage block so a blocked run names exactly which confirmed prospects need a bridge entry (per §11.2's "diagnostic report listing the blocking … prospects").
+
+**`orphan_bridges_detected`.** For each bridge entry, classify by the FIRST matching condition (ordered), entry-side year before registry-side membership:
+1. `bridge_wrong_draft_year` — `entry.draft_year != draft_year` (the entry's own year disagrees with the run; reachable via direct construction / decision-log replay).
+2. `not_in_registry` — `entry.prospect_uuid` absent from `s3_registry`.
+3. `not_confirmed` — present but `verification_status != "confirmed"`.
+4. `wrong_draft_class` — present + confirmed but `draft_class != draft_year` (registry-side class disagrees).
+An entry matching none is valid (not an orphan). `orphan_bridges_detected` is a list of `{prospect_uuid, reason}`, **deduplicated by `prospect_uuid`** (first/most-specific reason in the order above wins) and **sorted by `prospect_uuid`** for deterministic, entry-order-independent artifact output. **This `list[{prospect_uuid, reason}]` shape SUPERSEDES the prior `list[str]` (bare-uuid) shape** that the v1 contract tests blessed while the field was always empty; reconciling those tests to the dict-row shape is part of this increment's blast radius.
+
+**Duplicate bridge entries (scope decision).** Duplicate `prospect_uuid` entries collapse in `bridged_uuids` (set) and dedupe in `orphan_bridges_detected`; this increment does NOT add a separate duplicate-entry gate (not a §11.2 gate condition). Documented as a deliberate scope boundary; a duplicate-detection gate, if ever wanted, is a later increment.
+
+**Fail-closed edges (no silent defaults).** An empty confirmed-class universe with a non-empty bridge → every entry is an orphan → gate blocks. A confirmed prospect with multiple valid bridge entries → bridged (set collapse). The gate (`evaluate_bridge_gates`) and the metrics-null behavior are unchanged; this amendment only supplies the real inputs.
+
 ### 11.3 Risk C — Decision destination & transitive-laundering prevention
 
 S4 is strictly trust-layer / diagnostic infrastructure. Its outputs are barred from feeding Engine A or Engine B predictive features per the constitution's locked anti-market-data ruling.

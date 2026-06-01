@@ -3,7 +3,7 @@
 - **Date:** 2026-06-01
 - **Status:** DESIGN (pre-implementation). Cockpit-converged (Codex technical + Gemini governance, 2 review rounds; both divergences resolved). **Addendum 2026-06-01** (see §9): six fail-closed hardening contracts — five new REDs (12–16) plus the new exception `NflreadrEmptyTruthError` — added after a Codex adversarial-falsification round on the implementation plan; David-approved contract amendment; tighten-only (no contract loosened); pending dual re-CLEAR of spec + plan together.
 - **Initiative:** Subsystem 4 (manual-first backtest harness) v2 — replace the empty `_load_nflreadr_truth` v1 seam with a real, hardened, verified-column draft-capital truth loader so **real-mode Backtest-A runs** instead of failing closed (`nflreadr_truth_unavailable` → metrics null).
-- **Scope (locked):** the truth loader ONLY. `_compute_bridge_coverage`'s S3 confirmed-class universe (`confirmed_class_unbridged_count`, `orphan_bridges_detected`) stays defaulted as a **separate later increment**.
+- **Scope (locked):** the truth loader ONLY. (Scope note as of this S4 v2 loader spec: `_compute_bridge_coverage`'s S3 confirmed-class universe — `confirmed_class_unbridged_count`, `orphan_bridges_detected` — was left defaulted, as a separate later increment. **That follow-up is now separately specified in the foundational S4 spec §11.2a + plan `docs/superpowers/plans/2026-06-01-s4-confirmed-class-coverage.md` (2026-06-01); see §8.**)
 
 ## 1. Purpose & what "truth" means here
 
@@ -78,7 +78,7 @@ Model-blind (draft data is not market data); backtest/bridge-only consumers — 
 
 ## 8. Out of scope
 
-`_compute_bridge_coverage` confirmed-class universe (separate increment); realized NFL production/PPG truth; any Engine A/B model change; the W2a FantasyCalc/market path (unrelated).
+`_compute_bridge_coverage` confirmed-class universe (separate increment — **now built 2026-06-01: see the foundational S4 spec §11.2a Confirmed-class coverage activation amendment** + plan `docs/superpowers/plans/2026-06-01-s4-confirmed-class-coverage.md`); realized NFL production/PPG truth; any Engine A/B model change; the W2a FantasyCalc/market path (unrelated).
 
 ## 9. Addendum (2026-06-01) — adversarial-review hardening
 
