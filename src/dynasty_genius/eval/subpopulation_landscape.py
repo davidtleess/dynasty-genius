@@ -24,11 +24,14 @@ Task 4: compute_slice — orientation-locked Spearman rho_diff + NDCG cross-chec
 Task 5: aggregate_folds — median rho_diff + folds_covered, no pseudo-replication.
 Task 6: apply_fdr — aggregate-only Benjamini-Hochberg family + candidate flag.
 Task 7: build_slice_ledger — balanced bins + coverage gate + provenance + posture.
+Aggregate-p: aggregate_signflip_p — exact fold-level sign-flip permutation p (§4).
 """
 from __future__ import annotations
 
 import copy
+import itertools
 import math
+import statistics
 import warnings
 from collections.abc import Iterable, Mapping
 
@@ -623,3 +626,35 @@ def build_slice_ledger(
         "axis_tables": axis_tables,
         "provenance": provenance,
     }
+
+
+def aggregate_signflip_p(fold_rho_diffs: Iterable[float]) -> float | None:
+    """Exact fold-level sign-flip permutation p-value for an aggregate (spec §4).
+
+    Tests whether the per-fold ``rho_diff`` effects are consistently signed, with
+    the FOLD as the unit of inference (no row-level pooling / pseudo-replication).
+    Deterministic and exact — enumerates all ``2^K`` sign flips, no RNG.
+
+    K = number of evaluable folds (zeros are INCLUDED: a zero's flipped sign is
+    still zero, but it stays in the observed median and in the enumeration).
+    statistic = ``abs(median(fold_rho_diffs))``; two-sided p = fraction of the
+    ``2^K`` sign-flip medians whose ``abs`` is ``>= observed``. ``K == 0 -> None``;
+    all-zero effects -> ``1.0`` (every flip's median is 0 >= 0).
+
+    With this study's <= 4 annual folds the minimum two-sided p is 0.25, so a
+    downstream ``powered_followup_candidate`` (q <= FDR_Q) is structurally
+    unreachable — disclosed as a fold-count power limit, not "no signal".
+    """
+    diffs = [float(d) for d in fold_rho_diffs]
+    k = len(diffs)
+    if k == 0:
+        return None
+    observed = abs(statistics.median(diffs))
+    hits = 0
+    total = 0
+    for signs in itertools.product((1.0, -1.0), repeat=k):
+        total += 1
+        flipped = [s * d for s, d in zip(signs, diffs)]
+        if abs(statistics.median(flipped)) >= observed - 1e-12:
+            hits += 1
+    return hits / total
