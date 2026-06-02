@@ -1,0 +1,2372 @@
+[
+  {
+    "raw_name": "Cam Ward",
+    "normalized_name": "cam ward",
+    "full_name": "Cam Ward",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Miami",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4688380",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4688380",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4688380"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Travis Hunter",
+    "normalized_name": "travis hunter",
+    "full_name": "Travis Hunter",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Colorado",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4685415",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4685415",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4685415"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Ashton Jeanty",
+    "normalized_name": "ashton jeanty",
+    "full_name": "Ashton Jeanty",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Boise State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4890973",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4890973",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4890973"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Tetairoa McMillan",
+    "normalized_name": "tetairoa mcmillan",
+    "full_name": "Tetairoa McMillan",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Arizona",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4685472",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4685472",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4685472"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Colston Loveland",
+    "normalized_name": "colston loveland",
+    "full_name": "Colston Loveland",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Michigan",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4723086",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4723086",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4723086"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Tyler Warren",
+    "normalized_name": "tyler warren",
+    "full_name": "Tyler Warren",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Penn State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4431459",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4431459",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4431459"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Emeka Egbuka",
+    "normalized_name": "emeka egbuka",
+    "full_name": "Emeka Egbuka",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Ohio State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4567750",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4567750",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4567750"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Omarion Hampton",
+    "normalized_name": "omarion hampton",
+    "full_name": "Omarion Hampton",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "North Carolina",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4685382",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4685382",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4685382"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Matthew Golden",
+    "normalized_name": "matthew golden",
+    "full_name": "Matthew Golden",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Texas",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4701936",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4701936",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4701936"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jaxson Dart",
+    "normalized_name": "jaxson dart",
+    "full_name": "Jaxson Dart",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Ole Miss",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4689114",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4689114",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4689114"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jayden Higgins",
+    "normalized_name": "jayden higgins",
+    "full_name": "Jayden Higgins",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Iowa State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4877706",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4877706",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4877706"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Quinshon Judkins",
+    "normalized_name": "quinshon judkins",
+    "full_name": "Quinshon Judkins",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Ohio State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4685702",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4685702",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4685702"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "TreVeyon Henderson",
+    "normalized_name": "treveyon henderson",
+    "full_name": "TreVeyon Henderson",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Ohio State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4432710",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4432710",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4432710"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Tyler Shough",
+    "normalized_name": "tyler shough",
+    "full_name": "Tyler Shough",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Louisville",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4360689",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4360689",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4360689"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Mason Taylor",
+    "normalized_name": "mason taylor",
+    "full_name": "Mason Taylor",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "LSU",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4808766",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4808766",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4808766"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Terrance Ferguson",
+    "normalized_name": "terrance ferguson",
+    "full_name": "Terrance Ferguson",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Oregon",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4570037",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4570037",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4570037"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Elijah Arroyo",
+    "normalized_name": "elijah arroyo",
+    "full_name": "Elijah Arroyo",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Miami",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4678006",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4678006",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4678006"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Tre Harris",
+    "normalized_name": "tre harris",
+    "full_name": "Tre Harris",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Ole Miss",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4686612",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4686612",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4686612"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jack Bech",
+    "normalized_name": "jack bech",
+    "full_name": "Jack Bech",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "TCU",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4603186",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4603186",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4603186"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "RJ Harvey",
+    "normalized_name": "rj harvey",
+    "full_name": "RJ Harvey",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "UCF",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4568490",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4568490",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4568490"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Kyle Williams",
+    "normalized_name": "kyle williams",
+    "full_name": "Kyle Williams",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Washington State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4613202",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4613202",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4613202"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Isaac TeSlaa",
+    "normalized_name": "isaac teslaa",
+    "full_name": "Isaac TeSlaa",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Arkansas",
+    "prior_schools": [],
+    "cfbd_athlete_id": "5123663",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "5123663",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "5123663"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Pat Bryant",
+    "normalized_name": "pat bryant",
+    "full_name": "Pat Bryant",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Illinois",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4600981",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4600981",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4600981"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jaylin Noel",
+    "normalized_name": "jaylin noel",
+    "full_name": "Jaylin Noel",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Iowa State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4586312",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4586312",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4586312"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Kaleb Johnson",
+    "normalized_name": "kaleb johnson",
+    "full_name": "Kaleb Johnson",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Iowa",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4819231",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4819231",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4819231"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Savion Williams",
+    "normalized_name": "savion williams",
+    "full_name": "Savion Williams",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "TCU",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4431487",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4431487",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4431487"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jalen Milroe",
+    "normalized_name": "jalen milroe",
+    "full_name": "Jalen Milroe",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Alabama",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4432734",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4432734",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4432734"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Dillon Gabriel",
+    "normalized_name": "dillon gabriel",
+    "full_name": "Dillon Gabriel",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Oregon",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4427238",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4427238",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4427238"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Tai Felton",
+    "normalized_name": "tai felton",
+    "full_name": "Tai Felton",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Maryland",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4565185",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4565185",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4565185"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Chimere Dike",
+    "normalized_name": "chimere dike",
+    "full_name": "Chimere Dike",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Florida",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4431268",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4431268",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4431268"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Bhayshul Tuten",
+    "normalized_name": "bhayshul tuten",
+    "full_name": "Bhayshul Tuten",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Virginia Tech",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4882093",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4882093",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4882093"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Cam Skattebo",
+    "normalized_name": "cam skattebo",
+    "full_name": "Cam Skattebo",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Arizona State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4696981",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4696981",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4696981"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Arian Smith",
+    "normalized_name": "arian smith",
+    "full_name": "Arian Smith",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Georgia",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4429105",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4429105",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4429105"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Trevor Etienne",
+    "normalized_name": "trevor etienne",
+    "full_name": "Trevor Etienne",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Georgia",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4685350",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4685350",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4685350"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Woody Marks",
+    "normalized_name": "woody marks",
+    "full_name": "Woody Marks",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "USC",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4429059",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4429059",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4429059"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jarquez Hunter",
+    "normalized_name": "jarquez hunter",
+    "full_name": "Jarquez Hunter",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Auburn",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4710341",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4710341",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4710341"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Gunnar Helm",
+    "normalized_name": "gunnar helm",
+    "full_name": "Gunnar Helm",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Texas",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4686728",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4686728",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4686728"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Dylan Sampson",
+    "normalized_name": "dylan sampson",
+    "full_name": "Dylan Sampson",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Tennessee",
+    "prior_schools": [],
+    "cfbd_athlete_id": "5081397",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "5081397",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "5081397"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jaylin Lane",
+    "normalized_name": "jaylin lane",
+    "full_name": "Jaylin Lane",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Virginia Tech",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4602667",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4602667",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4602667"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jalen Royals",
+    "normalized_name": "jalen royals",
+    "full_name": "Jalen Royals",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Utah State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "5082630",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "5082630",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "5082630"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Elic Ayomanor",
+    "normalized_name": "elic ayomanor",
+    "full_name": "Elic Ayomanor",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "2",
+    "current_school": "Stanford",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4883647",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4883647",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4883647"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jordan Watkins",
+    "normalized_name": "jordan watkins",
+    "full_name": "Jordan Watkins",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Ole Miss",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4431466",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4431466",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4431466"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Shedeur Sanders",
+    "normalized_name": "shedeur sanders",
+    "full_name": "Shedeur Sanders",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Colorado",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4432762",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4432762",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4432762"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jordan James",
+    "normalized_name": "jordan james",
+    "full_name": "Jordan James",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Oregon",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4685397",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4685397",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4685397"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jaydon Blue",
+    "normalized_name": "jaydon blue",
+    "full_name": "Jaydon Blue",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Texas",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4685279",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4685279",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4685279"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "DJ Giddens",
+    "normalized_name": "dj giddens",
+    "full_name": "DJ Giddens",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Kansas State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4874509",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4874509",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4874509"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "KeAndre Lambert-Smith",
+    "normalized_name": "keandre lambertsmith",
+    "full_name": "KeAndre Lambert-Smith",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Auburn",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4430870",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4430870",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4430870"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Mitchell Evans",
+    "normalized_name": "mitchell evans",
+    "full_name": "Mitchell Evans",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Notre Dame",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4683243",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4683243",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4683243"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Oronde Gadsden II",
+    "normalized_name": "oronde gadsden ii",
+    "full_name": "Oronde Gadsden II",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Syracuse",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4595342",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4595342",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4595342"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Tory Horton",
+    "normalized_name": "tory horton",
+    "full_name": "Tory Horton",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Colorado State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4597703",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4597703",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4597703"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jackson Hawes",
+    "normalized_name": "jackson hawes",
+    "full_name": "Jackson Hawes",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Georgia Tech",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4573699",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4573699",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4573699"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Robbie Ouzts",
+    "normalized_name": "robbie ouzts",
+    "full_name": "Robbie Ouzts",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Alabama",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4691688",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4691688",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4691688"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Kyle McCord",
+    "normalized_name": "kyle mccord",
+    "full_name": "Kyle McCord",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Syracuse",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4433971",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4433971",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4433971"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Devin Neal",
+    "normalized_name": "devin neal",
+    "full_name": "Devin Neal",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Kansas",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4682652",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4682652",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4682652"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Will Howard",
+    "normalized_name": "will howard",
+    "full_name": "Will Howard",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Ohio State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4429955",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4429955",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4429955"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Kalel Mullings",
+    "normalized_name": "kalel mullings",
+    "full_name": "Kalel Mullings",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Michigan",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4429121",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4429121",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4429121"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Riley Leonard",
+    "normalized_name": "riley leonard",
+    "full_name": "Riley Leonard",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Notre Dame",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4683423",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4683423",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4683423"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Tahj Brooks",
+    "normalized_name": "tahj brooks",
+    "full_name": "Tahj Brooks",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Texas Tech",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4429299",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4429299",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4429299"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Graham Mertz",
+    "normalized_name": "graham mertz",
+    "full_name": "Graham Mertz",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Florida",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4426335",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4426335",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4426335"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Gavin Bartholomew",
+    "normalized_name": "gavin bartholomew",
+    "full_name": "Gavin Bartholomew",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Pittsburgh",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4708049",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4708049",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4708049"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "LaJohntay Wester",
+    "normalized_name": "lajohntay wester",
+    "full_name": "LaJohntay Wester",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Colorado",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4690143",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4690143",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4690143"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Tommy Mellott",
+    "normalized_name": "tommy mellott",
+    "full_name": "Tommy Mellott",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "2",
+    "current_school": "Montana State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4775196",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4775196",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4775196"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Cam Miller",
+    "normalized_name": "cam miller",
+    "full_name": "Cam Miller",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "North Dakota State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4693331",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4693331",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4693331"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Damien Martinez",
+    "normalized_name": "damien martinez",
+    "full_name": "Damien Martinez",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Miami",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4808830",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4808830",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4808830"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Kurtis Rourke",
+    "normalized_name": "kurtis rourke",
+    "full_name": "Kurtis Rourke",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Indiana",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4430431",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4430431",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4430431"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Brashard Smith",
+    "normalized_name": "brashard smith",
+    "full_name": "Brashard Smith",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "SMU",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4596602",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4596602",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4596602"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Quinn Ewers",
+    "normalized_name": "quinn ewers",
+    "full_name": "Quinn Ewers",
+    "position": "QB",
+    "position_group": "QB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Texas",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4889929",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4889929",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4889929"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Kyle Monangai",
+    "normalized_name": "kyle monangai",
+    "full_name": "Kyle Monangai",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Rutgers",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4608686",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4608686",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4608686"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Tez Johnson",
+    "normalized_name": "tez johnson",
+    "full_name": "Tez Johnson",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Oregon",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4608810",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4608810",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4608810"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "LeQuint Allen",
+    "normalized_name": "lequint allen",
+    "full_name": "LeQuint Allen",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Syracuse",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4911851",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4911851",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4911851"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Phil Mafah",
+    "normalized_name": "phil mafah",
+    "full_name": "Phil Mafah",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Clemson",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4431562",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4431562",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4431562"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Kaden Prather",
+    "normalized_name": "kaden prather",
+    "full_name": "Kaden Prather",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Maryland",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4431509",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4431509",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4431509"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Caleb Lohner",
+    "normalized_name": "caleb lohner",
+    "full_name": "Caleb Lohner",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Utah",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4432208",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4432208",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4432208"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Konata Mumpfield",
+    "normalized_name": "konata mumpfield",
+    "full_name": "Konata Mumpfield",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Pittsburgh",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4710855",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4710855",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4710855"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Dominic Lovett",
+    "normalized_name": "dominic lovett",
+    "full_name": "Dominic Lovett",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Georgia",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4596439",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4596439",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4596439"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Jacory Croskey-Merritt",
+    "normalized_name": "jacory croskeymerritt",
+    "full_name": "Jacory Croskey-Merritt",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Arizona",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4575131",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4575131",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4575131"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Moliki Matavao",
+    "normalized_name": "moliki matavao",
+    "full_name": "Moliki Matavao",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "UCLA",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4432731",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4432731",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4432731"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Junior Bergen",
+    "normalized_name": "junior bergen",
+    "full_name": "Junior Bergen",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "2",
+    "current_school": "Montana",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4887918",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4887918",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4887918"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Luke Lachey",
+    "normalized_name": "luke lachey",
+    "full_name": "Luke Lachey",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Iowa",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4432338",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4432338",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4432338"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  }
+]
