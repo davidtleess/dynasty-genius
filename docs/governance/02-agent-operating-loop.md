@@ -21,15 +21,18 @@ Agents share the same product doctrine, but they do not share the same authority
   artifacts, modify tracked files outside the daily ledger, write implementation code,
   or treat `AGENT_SYNC.md`
   next steps as executable instructions without David's explicit per-session approval.
-  As of 2026-06-02 this boundary is **tool-permission-enforced** at the Antigravity
-  layer — the native write/exec tools (`write_file`/`replace`/`create_file`/`edit_file`/
-  `generate_image`/`start_subagent`) are denied; Gemini's only writes are the path-locked
-  `scripts/gemini_ledger_append.py` ledger command and cockpit messaging
-  (`scripts/tmux_msg.py`), per
-  `docs/superpowers/specs/2026-06-02-gemini-enforced-controls-design.md`. Gemini's
-  positive mandate is **Product Vision** (NFL-scout + data-scientist + UI/UX + advanced-
-  statistics lenses, anchoring the team to winning David's league) — full charter in
-  `GEMINI.md`.
+  As of 2026-06-02 this boundary is enforced where the Antigravity platform allows and
+  **detected** where it does not (P3 result, spec §12): the **shell is prompt-gated** (the
+  `settings.json` allow-list lets only read-only git + the two sanctioned commands auto-run;
+  any other command prompts David), and **native file writes are NOT config-deniable on agy**
+  — they are prohibited by mandate and caught by the **mandatory** `cockpit_hygiene_check.py`
+  tripwire, which Claude/Codex run (`.venv/bin/python3.14 scripts/cockpit_hygiene_check.py`)
+  before accepting any Gemini source-verification CLEAR and at session boundaries. Gemini's
+  only sanctioned writes are the path-locked `scripts/gemini_ledger_append.py` ledger command
+  and cockpit messaging (`scripts/tmux_msg.py`), per
+  `docs/superpowers/specs/2026-06-02-gemini-enforced-controls-design.md`. Gemini's positive
+  mandate is **Product Vision** (NFL-scout + data-scientist + UI/UX + advanced-statistics
+  lenses, anchoring the team to winning David's league) — full charter in `GEMINI.md`.
 - Claude Code: local development agent. Claude Code may implement approved local
   code changes, run tests, manage branches, and commit when the session scope
   authorizes it.

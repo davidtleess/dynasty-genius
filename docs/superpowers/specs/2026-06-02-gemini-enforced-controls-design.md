@@ -1,7 +1,7 @@
 # Gemini (Antigravity/agy) Enforced Controls — Design Spec
 
 - **Date:** 2026-06-02
-- **Status:** DESIGN v2 (pre-implementation). Claude + Codex converged on the design and sequence; **v2 integrates Codex S-review findings 1-3** (HIGH: deny the live `write_file`/`replace` names not just SDK `create_file`/`edit_file`; MEDIUM: standalone hygiene script; MEDIUM: P3 probes target the live writers). **Gemini governance review** covers the §6 amendment only (it does NOT design its own enforcement, per David's directive). **David approved the plan + "lock down Gemini first"** (2026-06-02).
+- **Status:** DESIGN v2 (pre-implementation). Claude + Codex converged on the design and sequence; **v2 integrates Codex S-review findings 1-3** (HIGH: deny the live `write_file`/`replace` names not just SDK `create_file`/`edit_file`; MEDIUM: standalone hygiene script; MEDIUM: P3 probes target the live writers). **Gemini governance review** covers the §6 amendment only (it does NOT design its own enforcement, per David's directive). **David approved the plan + "lock down Gemini first"** (2026-06-02). **UPDATE — see §12 (P3 amendment):** S/P1/P2 built + committed LOCAL (`fea3bf9`, `1075c2b`, `2c9d370`); P3 empirically proved the Layer-1 native-write *deny* is **UNACHIEVABLE on the agy CLI** → David ruled **finalized posture A** (shell-lock + mandatory hygiene tripwire + charter; native writes are **detected, not prevented**).
 - **Objective:** Convert Gemini's read-only PM boundary from *guidance* (`GEMINI.md`) into an *enforced* floor at the Antigravity tool-permission layer, while sharpening Gemini's positive mandate around **Product Vision**. Gemini retains full cockpit participation and diligent read-only source verification; its only write surfaces become the **daily ledger** (via a constrained command) and **cockpit messages**.
 - **Trigger:** On 2026-06-02 Gemini authored an out-of-lane live runner (`scripts/run_2025_curation.py`) and then `rm`'d it — both implementation/shell actions outside its read-only PM lane. `GEMINI.md` already prohibited exactly this. **The gap is enforcement, not instruction.**
 
@@ -29,16 +29,7 @@ From the Antigravity SDK references on this machine (`~/.gemini/config/plugins/g
 
 > **MACHINE config (not in repo). David applies the diff and restarts `agy`** — changes take effect only on restart.
 
-**`permissions.deny`** (specific deny = top precedence; blocks every write/mutate/bypass surface a read-only PM does not need). **Both the LIVE-observed names and the SDK names are denied (deny both families — Codex finding 1), since a denied-but-nonexistent name is a harmless no-op but a missed live name is an open door:**
-
-- `write_file` — **live** native file writer (primary)
-- `replace` — **live** native file editor (primary)
-- `create_file` — SDK name (defensive, in case agy aliases it)
-- `edit_file` — SDK name (defensive)
-- `generate_image` — writes image files
-- `start_subagent` — **bypass vector**: a subagent could carry its own permissive tool policy and write/execute, defeating the lock. Denied because PM coordination uses the cockpit, not subagents.
-
-The exact live-name set is re-confirmed by the P3 probe (§7); if agy exposes any additional write/mutate/delete/patch tool under another label, it is added before sign-off.
+**`permissions.deny` — ATTEMPTED, NOT EFFECTIVE (P3, §12).** The design intent was a specific-deny on every write/mutate/bypass surface (`write_file`/`replace` live + `create_file`/`edit_file` SDK aliases + `generate_image` + `start_subagent`). **P3 proved this does not work:** the agy CLI did not retain the `deny[]` entries across `settings.json` persistence, and even when an agy log parsed them, native write calls were not enforced — native `write_file`/`replace` succeeded. The agy CLI `settings.json permissions` block governs **only `command(...)` (shell) entries**, not native tools. This bullet list is retained as the recorded attempt; **it is NOT the enforcement.** Native-write enforcement is the §5 tripwire (detection) + the §6 charter (mandate). See §12.
 
 **`permissions.allow`** (tighten to the minimum Gemini legitimately needs):
 
@@ -51,11 +42,11 @@ The exact live-name set is re-confirmed by the P3 probe (§7); if agy exposes an
 
 **Deliberately NOT denied: the shell tool (`run_shell_command`, live name; `run_command` in SDK docs).** A bare `deny("run_shell_command")` would (by precedence) override the specific `command(...)` allows and break cockpit + ledger + git. Instead the shell tool is governed by the narrowed allow list; **any command not on the allow list falls back to the default `ask_user`** — so arbitrary python/shell **prompts David**, never runs silently. (P3 confirms `command(...)` predicates survive alongside the default ask, rather than being clobbered.)
 
-**Net floor:** native writes hard-denied and un-re-grantable; subagent/image-write bypass closed; cockpit + constrained-ledger + read-only-git auto-approved; everything else prompts David; all read tools open.
+**Net floor ACHIEVED (posture A, P3-verified):** the allow-list tightening **persists and works** — cockpit + constrained-ledger + read-only-git are auto-approved; **any non-allowlisted shell/python prompts David** (the silent-script hole is closed); all read tools stay open. **Native file writes are NOT prevented** (the `deny[]` above is not honored by agy) — they are enforced by **detection** (the §5 tripwire, mandatory gate) + **mandate** (§6 charter), not prevention. See §12.
 
 ## 4. Ledger-as-command — `scripts/gemini_ledger_append.py` (Layer 2; new, TDD)
 
-Because the native write tools (`write_file`/`replace` + the SDK `create_file`/`edit_file`) are denied, Gemini cannot touch the ledger via the native editor. The **only** ledger path is this constrained command.
+The native write tools (`write_file`/`replace`) cannot be config-denied on agy (P3, §12), so this command is the **sanctioned** ledger path (by mandate), not the only *physically possible* one — a native-editor ledger write is still possible but is out-of-lane and caught by the §5 tripwire. The command exists so the legitimate ledger write needs no native editor at all: it is path-locked (no path arg), append-only, Gemini-attributed, and fail-closed on escape.
 
 Contract:
 
@@ -75,7 +66,7 @@ Contract:
 - Reads `git status --porcelain` **including untracked (`??`)**.
 - Partitions working-tree changes into **accounted** vs **anomalous** against a configured allowlist of expected-mutable paths/globs (e.g. `docs/agent-ledger/<today>.md`, `AGENT_SYNC.md`, known untracked strategy-doc/`app/data/` patterns the cockpit already tracks).
 - **Exit non-zero** when the anomalous set is non-empty; prints the offending paths.
-- **Run by Claude/Codex** at session boundaries and **before accepting any Gemini source-verification CLEAR**.
+- **Run by Claude/Codex** at session boundaries and **before accepting any Gemini source-verification CLEAR**. **Exact gate command:** `.venv/bin/python3.14 scripts/cockpit_hygiene_check.py` (the script is not marked executable, so invoke via the venv interpreter, not `./`), adding `--allow <glob>` for known in-flight/session-mutable files. Non-zero exit = anomalies present.
 - **Tension acknowledged:** it runs on the shared tree where Claude/Codex make legitimate changes, so the allowlist must be sane to avoid false positives on in-flight authored work. The allowlist mechanism is finalized in P1 TDD. It does **not** attribute authorship (git can't); it surfaces "is the tree in the expected state?" so an unexpected artifact (like the runner) is caught.
 - **FORK RESOLVED (Codex technical ruling, S review):** **a new standalone `scripts/cockpit_hygiene_check.py`** — NOT an extension of `scripts/validate_governance.py`. Rationale: `validate_governance.py` is a repo/governance-invariant scanner that may later be CI/pre-commit-wired; folding a shared-working-tree untracked-file scan into it would false-positive on normal in-flight Claude/Codex work and create CI ambiguity. The hygiene check stays a **manual cockpit / session-boundary gate** with expected-mutable allowlists, isolated from CI.
 
@@ -84,14 +75,14 @@ Contract:
 The controls are a **sharpening, not a demotion.** The docs gain David's positive mandate. Surfaces:
 
 - **`GEMINI.md`** (repo): add the Product Vision mandate + explicit hard-stop tripwire lines ("if you are about to write or edit any file, or run a non-allowlisted command — STOP; that is Claude/Codex's lane"); keep the existing read-only/no-code prohibitions.
-- **`docs/governance/02-agent-operating-loop.md`** (repo; **governance amendment** → Gemini governance review + David approval): a Gemini *enforced-scope* subsection under Agent Roles recording that the read-only PM boundary is now tool-permission-enforced (deny `write_file`/`replace`/`create_file`/`edit_file`/`generate_image`/`start_subagent`; writes = ledger-command + cockpit), so the doctrine matches the floor.
+- **`docs/governance/02-agent-operating-loop.md`** (repo; **governance amendment** → Gemini governance review + David approval): a Gemini *enforced-scope* note under Agent Roles recording the posture-A reality — **shell is prompt-gated** (non-allowlisted commands prompt David), **native file writes are detection-enforced** (the §5 hygiene tripwire as a mandatory gate) **+ mandate**, not config-denied (P3); sanctioned writes = the ledger command + cockpit. The mandatory-tripwire-gate rule is recorded as cockpit doctrine here.
 - **`dynasty-genius-pm` skill** (`~/.gemini/extensions/dynasty-genius/skills/dynasty-genius-pm/SKILL.md`; **MACHINE**, David-applied): align with the same mandate.
 
 **The mandate (David's words, to be expanded with Gemini's own charter-bullet input in P2):** Gemini owns **Product Vision** — *what an expert dynasty fantasy manager needs at his fingertips to win his Superflex PPR league.* It reasons through four lenses simultaneously: **NFL scout, data scientist, UI/UX designer, advanced-statistics analyst.** Its standing job is to **keep the team anchored to the end goal so we build with purpose, not get lost in code** — every spec/plan/review tied back to a concrete dynasty decision (constitution §"serve a concrete dynasty decision"). It **verifies diligently, at the source, read-only.** It proposes; David approves; Claude/Codex implement.
 
 ## 7. Empirical verification (P3 — David's hands, after settings applied + `agy` restart)
 
-Negative + positive probes, recorded in the ledger:
+Negative + positive probes, recorded in the ledger. **[AMENDED §12: P3 was run — actual results: probe (1) PROMPTED ✅; probe (2) "both must be DENIED" was NOT met — native writes SUCCEEDED ❌ (deny stripped); probes (3)/(4)/(5) allowed ✅; tripwire flagged the probe write ✅. Posture A adopted.]**
 
 1. Gemini attempts arbitrary python (`.venv/bin/python3.14 -c "..."`) → **must prompt (`ask_user`) or deny**, not auto-run.
 2. Gemini attempts the **actual live native write tools** on a **disposable repo temp file** — i.e. `write_file` (create/overwrite) AND `replace` (edit), by whatever labels agy presents — → **both must be DENIED** (proves the Layer-1 native-write lock against the real writers, not just the SDK names). This is the probe that closes finding 1.
@@ -104,12 +95,12 @@ If (2) still succeeds (bare tool-name deny does not bite on the CLI): apply §8 
 ## 8. Failure modes + fallbacks
 
 - **F1 — broad `command(python3.14)`/`pytest` re-added** → re-opens the shell door. Guard: governance note (§6), hygiene tripwire (§5), David owns `settings.json`.
-- **F2 — bare tool-name `deny[]` does not bite on the CLI** (linchpin) → native writes still possible. Fallback: remove the repo from `trustedWorkspaces` (forces a prompt on every edit) **and/or** lean on the hygiene tripwire until exact CLI deny syntax is found; keep `GEMINI.md` hard-stops. Verified by P3 probe (2).
+- **F2 — bare tool-name `deny[]` does not bite on the CLI** (linchpin) → native writes still possible. **RESOLVED as a CONFIRMED NEGATIVE (P3, §12):** agy strips the `deny[]` block on restart AND `gitFolder.allowWrite:false` does not gate write tools — there is NO config/flag that denies native writes while preserving reads. Adopted fallback = the hygiene tripwire (§5) as a mandatory gate + `GEMINI.md` hard-stops + the shell-lock. `trustedWorkspaces`-untrust REJECTED (it governs `view_file`/`create_file`/`edit_file` together → would also block reads). The only true hard-deny is Option C (SDK `policy.deny`), not chosen.
 - **F3 — ledger script taking a path arg** → directory escape. Guard: no path arg; internal date/path; append-only; fail-closed traversal guard (§4).
-- **F4 — Gemini edits `settings.json` to re-grant** → if writes are denied it cannot; `~/.gemini` is outside repo-hygiene scope, so settings integrity is **David-owned** (optionally `chmod` it read-only — David's call).
+- **F4 — Gemini widens its own `settings.json` allow-list** → since native writes are NOT prevented (P3), Gemini *can* edit `~/.gemini` files, which are outside repo-hygiene scope so the §5 tripwire won't catch them. Mitigation: settings integrity is **David-owned** — David periodically eyeballs `settings.json`, never re-adds `command(.venv/bin/python3.14)`/`command(.venv/bin/pytest)`, and never launches agy with `--dangerously-skip-permissions`; optionally `chmod` the settings read-only (David's call).
 - **F5 — settings change needs `agy` restart** → David restarts (§3).
-- **F6 — `start_subagent` bypass** → closed by denying it (§3); re-confirm no other delegation/exec tool exists if Antigravity adds tools later.
-- **F7 — deny enumeration incomplete (live vs SDK name drift)** → the live agy toolset (`write_file`/`replace`/`run_shell_command`) differs from the SDK docs; a future agy update could add a new write/patch/delete tool under another label, silently re-opening writes. Guard: deny both name families now (§3); the P3 probe attempts the **actual** native writers; treat any new agy tool as deny-by-default pending review; the hygiene tripwire (§5) catches a write that slips through.
+- **F6 — `start_subagent` bypass** → the deny does not take (P3), but a spawned subagent's file writes still land in the working tree, so the §5 tripwire catches them; the §6 mandate prohibits spawning subagents.
+- **F7 — new agy write tool under another label** → moot for *prevention* (no settings deny works anyway), but the §5 tripwire catches any write regardless of which tool produced it (it inspects the working tree, not the tool name). If Antigravity later ships a real settings-level tool-deny, revisit Layer-1 prevention then.
 
 ## 9. Files changed (repo vs machine; David-gated marked)
 
@@ -134,3 +125,26 @@ If (2) still succeeds (bare tool-name deny does not bite on the CLI): apply §8 
 - **P2** — `GEMINI.md` + operating-loop enforced-scope subsection + `dynasty-genius-pm` skill (+ Gemini's charter bullets) → Gemini governance review → commit LOCAL (skill = David-applied).
 - **P3** — David applies `settings.json` + restarts `agy` → run §7 probes → record results → apply §8 fallbacks if needed.
 - **Postflight** — ledger + `AGENT_SYNC`; hygiene check becomes a standing pre-CLEAR gate for Gemini source-verification.
+
+## 12. P3 RESULT — empirical outcome + finalized posture (2026-06-02 AMENDMENT)
+
+P3 was executed (David applied `settings.json` + restarted `agy`; probes run via Gemini as the subject). **The Layer-1 hard native-write deny is NOT achievable on the agy CLI** — this section supersedes the §3 "native writes hard-denied / un-re-grantable" design intent and resolves §8 F2 as a confirmed negative. David ruled **posture A** (2026-06-02).
+
+**Probe round 1 (settings.json `permissions.deny`):**
+- The `deny: [write_file, replace, create_file, edit_file, generate_image, start_subagent]` block was **not retained as an effective control**: after restart the persisted `settings.json` held only `command(...)` (shell) entries (bare tool-names not retained), and even where an agy log parsed the `Deny:[…]` array it **did not enforce native tool calls**. (The approval dialog's "always allow … Persist to settings.json" writes a `command(...)` entry — confirming command-shaped persistence only.) Net: native writes were allowed regardless of the parse.
+- With the deny ineffective, the live native writers **`write_file` (`Create`)** and **`replace` (`Edit`)** (SDK doc aliases: `create_file`/`edit_file`) **succeeded with NO prompt** (SDK default policy allows file tools).
+- Arbitrary `.venv/bin/python3.14 -c …` (`run_shell_command`) **PROMPTED David** — the §3 allow-list tightening (removing `command(.venv/bin/python3.14)` + `command(.venv/bin/pytest)`) **DID take and persists**. The shell hole is closed.
+- The §5 hygiene tripwire **flagged the probe write** (`?? scripts/_AGY_WRITE_PROBE_DELETEME.txt`, exit 1) — detection works.
+
+**Probe round 2 (project-config `gitFolder.allowWrite`, Codex lead):** set `gitFolder.allowWrite: false` on the active project config (`b35a02a0`, confirmed bound in the post-restart log; the flag *survived* restart, unlike the settings deny). `create_file`/`replace` **still succeeded**; reads still worked. `gitFolder.allowWrite` is git-folder-write semantics, **not** `write_file`-tool permission (and agy reads projects "via cache"). The edit was reverted to the original plain-folder resource.
+
+**Config surface exhausted:** `settings.json` deny (not retained / not enforced), CLI flags (none — only `--dangerously-skip-permissions` [the inverse] and `--sandbox` [terminal-only]), `gitFolder.allowWrite` (not a write-tool gate). **No agy config or flag denies native writes while preserving reads** — `view_file`/`create_file`/`edit_file` are governed together. The only true hard-deny is **Option C** (relaunch Gemini via the Antigravity SDK with `policy.deny("write_file"/"replace"/"create_file"/"edit_file"/…)`), which abandons the interactive `agy` CLI — **NOT chosen** (David: too heavy for a single-user project).
+
+**FINALIZED POSTURE A (David ruling 2026-06-02):**
+1. **Shell-lock (settings allow-list)** — persists; arbitrary shell/python prompts David. *Caveat:* never launch agy with `--dangerously-skip-permissions` (it drops this and auto-approves everything).
+2. **Hygiene tripwire = MANDATORY gate** — Claude/Codex run `.venv/bin/python3.14 scripts/cockpit_hygiene_check.py` (not executable as `./`; add `--allow <glob>` for known in-flight files) before accepting any Gemini source-verification CLEAR and at session boundaries. **This is the native-write enforcement (detection, not prevention).**
+3. **Charter (committed P2 `2c9d370`)** — `GEMINI.md` / operating-loop / `dynasty-genius-pm` skill: the read-only mandate + Product Vision.
+
+**Honest statement of enforcement strength:** native file writes are **DETECTED, NOT PREVENTED**. This is a real improvement over the pre-breach state (the silent-script/shell hole is closed; detection exists; the role is sharpened and enforced where the platform allows), but it is **not** an absolute write-prevention wall. Any prior "hard-denied / un-re-grantable" language in this spec is superseded by this section.
+
+**P2 doc reconciliation (BUNDLED into this amendment):** the `GEMINI.md` / operating-loop charter language committed in P2 (`2c9d370`) had stated native writes were "tool-denied." This amendment reconciles both to the posture-A truth — **shell prompt-gated; native writes prohibited-by-mandate + `cockpit_hygiene_check.py`-tripwire-detected (not config-deniable on agy)**; the mandatory-tripwire-gate rule is recorded in the operating-loop. The *scope* (read-only PM, no implementation writes) is unchanged and correct.

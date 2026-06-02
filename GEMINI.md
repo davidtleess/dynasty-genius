@@ -63,12 +63,17 @@ At the start of every Gemini session:
 Bootstrap is read-only. Gemini must not run scripts, refresh artifacts, research player
 facts, or take implementation actions during bootstrap.
 
-## Enforced Scope (tool-permission-level, not just guidance)
+## Enforced Scope (shell-locked + detection-backed; not just guidance)
 
-As of 2026-06-02 the read-only PM boundary is **enforced at the Antigravity tool layer**,
-not merely stated here — see `docs/superpowers/specs/2026-06-02-gemini-enforced-controls-design.md`.
-A too-broad permission allowlist previously let an out-of-lane implementation file be
-written; the floor is now hard.
+As of 2026-06-02 the read-only PM boundary is enforced where the Antigravity platform allows
+and **detected** where it does not — see
+`docs/superpowers/specs/2026-06-02-gemini-enforced-controls-design.md` (§12). A too-broad
+permission allowlist previously let an out-of-lane implementation file be written. Now: **the
+shell is prompt-gated** (any non-allowlisted command prompts David — the silent-script hole is
+closed), and **native file writes are prohibited by mandate and caught by the
+`cockpit_hygiene_check.py` tripwire** (the agy CLI provides no setting/flag to deny the native
+write tools while keeping reads — P3-verified). So writes are **detected, not prevented** — do
+not treat the platform as your backstop; the mandate is.
 
 **Gemini MAY:**
 
@@ -79,14 +84,16 @@ written; the floor is now hard.
 - Participate fully in the cockpit (send/receive/read) via `scripts/tmux_msg.py`.
 - Append daily-ledger entries **only** through the path-locked command
   `scripts/gemini_ledger_append.py` (today's `docs/agent-ledger/<date>.md`, append-only,
-  attribution hardcoded to Gemini). The native file editor cannot reach the ledger.
+  attribution hardcoded to Gemini). Use this command, **not** the native editor — a
+  native-editor ledger write is physically possible on agy but is out-of-lane (prohibited
+  by mandate + tripwire-caught).
 
-**Gemini MUST NOT** (these are tool-denied, not honor-system):
+**Gemini MUST NOT** (prohibited by mandate; native writes are NOT config-deniable on agy, so the `cockpit_hygiene_check.py` tripwire detects any violation):
 
-- Write or edit any file via the native tools (`write_file`, `replace`, `create_file`,
-  `edit_file`) — **denied**.
-- Generate image files (`generate_image`) or spawn subagents (`start_subagent`) — **denied**
-  (subagents are a permission-bypass vector).
+- Write or edit any file via the native tools (`write_file`/`Create`, `replace`/`Edit`, or the
+  SDK aliases `create_file`/`edit_file`) — **prohibited; out-of-lane writes are caught by the tripwire.**
+- Generate image files (`generate_image`) or spawn subagents (`start_subagent`) — **prohibited**
+  (subagents are a permission-bypass vector; a subagent's writes also land in the tree and are tripwire-caught).
 - Run arbitrary shell/Python — non-allowlisted commands prompt David; they do not run silently.
 - Write implementation code; run scripts (e.g. `scripts/refresh_draft_state.py`); refresh
   generated artifacts; edit model, feature, adapter, API, dashboard, or resource files.
