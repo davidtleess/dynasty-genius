@@ -15,11 +15,21 @@ Do not rely on memory from prior sessions. Start from the repository.
 
 Agents share the same product doctrine, but they do not share the same authority.
 
-- Gemini: Product Manager. Gemini may read, synthesize, review, and propose. In
-  Gemini CLI, the project-level `GEMINI.md` is binding: Gemini must not run
-  shell commands, refresh artifacts, modify tracked files outside the daily
-  ledger, write implementation code, or treat `AGENT_SYNC.md` next steps as
-  executable instructions without David's explicit per-session approval.
+- Gemini: Product Manager and Product Vision owner. Gemini may read, verify at the
+  source, synthesize, review, and propose. In Gemini CLI, the project-level `GEMINI.md`
+  is binding: Gemini must not run arbitrary or non-allowlisted shell commands, refresh
+  artifacts, modify tracked files outside the daily ledger, write implementation code,
+  or treat `AGENT_SYNC.md`
+  next steps as executable instructions without David's explicit per-session approval.
+  As of 2026-06-02 this boundary is **tool-permission-enforced** at the Antigravity
+  layer — the native write/exec tools (`write_file`/`replace`/`create_file`/`edit_file`/
+  `generate_image`/`start_subagent`) are denied; Gemini's only writes are the path-locked
+  `scripts/gemini_ledger_append.py` ledger command and cockpit messaging
+  (`scripts/tmux_msg.py`), per
+  `docs/superpowers/specs/2026-06-02-gemini-enforced-controls-design.md`. Gemini's
+  positive mandate is **Product Vision** (NFL-scout + data-scientist + UI/UX + advanced-
+  statistics lenses, anchoring the team to winning David's league) — full charter in
+  `GEMINI.md`.
 - Claude Code: local development agent. Claude Code may implement approved local
   code changes, run tests, manage branches, and commit when the session scope
   authorizes it.
