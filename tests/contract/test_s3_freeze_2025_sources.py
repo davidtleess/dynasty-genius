@@ -161,6 +161,10 @@ def test_freeze_2025_sources_writes_raw_inputs_manifest_and_hashes(tmp_path: Pat
         "sha256": expected_cfbd_hash,
         "row_count": 2,
     }
+    assert manifest["cfbd_roster"]["source_snapshot_id_str"] == (
+        f"cfbd_roster_2025:{FIXED_RETRIEVAL_TS}:/roster?year=2025:"
+        f"v2:{expected_cfbd_hash}:2"
+    )
     assert manifest["nflverse_draft_picks"]["source_snapshot_id"] == {
         "retrieval_timestamp": FIXED_RETRIEVAL_TS,
         "endpoint": "nflreadpy.load_draft_picks(2025)",
@@ -168,6 +172,10 @@ def test_freeze_2025_sources_writes_raw_inputs_manifest_and_hashes(tmp_path: Pat
         "sha256": expected_draft_hash,
         "row_count": 1,
     }
+    assert manifest["nflverse_draft_picks"]["source_snapshot_id_str"] == (
+        f"draft_picks_2025:{FIXED_RETRIEVAL_TS}:nflreadpy.load_draft_picks(2025):"
+        f"nflverse:{expected_draft_hash}:1"
+    )
     assert manifest["ff_playerids"]["source_snapshot_id"] == {
         "retrieval_timestamp": FIXED_RETRIEVAL_TS,
         "endpoint": "nflreadpy.load_ff_playerids()",
@@ -175,6 +183,10 @@ def test_freeze_2025_sources_writes_raw_inputs_manifest_and_hashes(tmp_path: Pat
         "sha256": expected_ff_hash,
         "row_count": 1,
     }
+    assert manifest["ff_playerids"]["source_snapshot_id_str"] == (
+        f"ff_playerids_2025:{FIXED_RETRIEVAL_TS}:nflreadpy.load_ff_playerids():"
+        f"dynastyprocess_crosswalk:{expected_ff_hash}:1"
+    )
     assert manifest["udfa_sources"]["source_snapshot_id"] == {
         "retrieval_timestamp": FIXED_RETRIEVAL_TS,
         "endpoint": "udfa_source_manifest",
@@ -182,6 +194,10 @@ def test_freeze_2025_sources_writes_raw_inputs_manifest_and_hashes(tmp_path: Pat
         "sha256": expected_udfa_hash,
         "row_count": 2,
     }
+    assert manifest["udfa_sources"]["source_snapshot_id_str"] == (
+        f"udfa_sources_2025:{FIXED_RETRIEVAL_TS}:udfa_source_manifest:"
+        f"manual_urls:{expected_udfa_hash}:2"
+    )
     assert cfbd_client.roster_calls == [{"year": 2025, "team": None}]
 
 
@@ -253,3 +269,8 @@ def test_freeze_2025_sources_uses_per_team_fallback_when_all_team_roster_empty(
         "/roster?year=2025&team=*"
     )
     assert manifest["cfbd_roster"]["source_snapshot_id"]["row_count"] == 2
+    cfbd_hash = _canonical_sha256(module, raw_cfbd)
+    assert manifest["cfbd_roster"]["source_snapshot_id_str"] == (
+        f"cfbd_roster_2025:{FIXED_RETRIEVAL_TS}:/roster?year=2025&team=*:"
+        f"v2:{cfbd_hash}:2"
+    )

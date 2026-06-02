@@ -44,6 +44,26 @@ def _snapshot_id(
     }
 
 
+def _snapshot_id_str(source: str, snapshot_id: dict) -> str:
+    """Canonical pre-composed snapshot string (spec §6, D5 — single source of truth).
+
+    ``f"{source}:{retrieval_timestamp}:{endpoint}:{api_version}:{sha256}:{row_count}"``
+    where ``source`` is the **year-qualified artifact name** (the persisted file stem,
+    e.g. ``cfbd_roster_2025``), NOT the bare manifest dict key. The Task-2 builder reads
+    this string verbatim; it is never recomposed downstream.
+    """
+    return ":".join(
+        [
+            source,
+            snapshot_id["retrieval_timestamp"],
+            snapshot_id["endpoint"],
+            snapshot_id["api_version"],
+            snapshot_id["sha256"],
+            str(snapshot_id["row_count"]),
+        ]
+    )
+
+
 def _write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
@@ -84,42 +104,53 @@ def freeze_2025_prospect_sources(
     _write_json(frozen / "ff_playerids_pin.json", ff_payload)
     _write_json(frozen / "udfa_sources_manifest.json", udfa_payload)
 
+    cfbd_sid = _snapshot_id(
+        retrieval_timestamp=retrieval_timestamp,
+        endpoint=cfbd_endpoint,
+        api_version="v2",
+        payload=roster_rows,
+        row_count=len(roster_rows),
+    )
+    draft_sid = _snapshot_id(
+        retrieval_timestamp=retrieval_timestamp,
+        endpoint=f"nflreadpy.load_draft_picks({year})",
+        api_version="nflverse",
+        payload=draft_payload,
+        row_count=len(draft_payload["rows"]),
+    )
+    ff_sid = _snapshot_id(
+        retrieval_timestamp=retrieval_timestamp,
+        endpoint="nflreadpy.load_ff_playerids()",
+        api_version="dynastyprocess_crosswalk",
+        payload=ff_payload,
+        row_count=len(ff_payload["rows"]),
+    )
+    udfa_sid = _snapshot_id(
+        retrieval_timestamp=retrieval_timestamp,
+        endpoint="udfa_source_manifest",
+        api_version="manual_urls",
+        payload=udfa_payload,
+        row_count=len(udfa_sources),
+    )
+
+    # Each entry carries the structured snapshot dict AND the canonical pre-composed
+    # string (spec §6 D5). ``{source}`` is the year-qualified artifact name (file stem).
     manifest = {
         "cfbd_roster": {
-            "source_snapshot_id": _snapshot_id(
-                retrieval_timestamp=retrieval_timestamp,
-                endpoint=cfbd_endpoint,
-                api_version="v2",
-                payload=roster_rows,
-                row_count=len(roster_rows),
-            )
+            "source_snapshot_id": cfbd_sid,
+            "source_snapshot_id_str": _snapshot_id_str(f"cfbd_roster_{year}", cfbd_sid),
         },
         "nflverse_draft_picks": {
-            "source_snapshot_id": _snapshot_id(
-                retrieval_timestamp=retrieval_timestamp,
-                endpoint=f"nflreadpy.load_draft_picks({year})",
-                api_version="nflverse",
-                payload=draft_payload,
-                row_count=len(draft_payload["rows"]),
-            )
+            "source_snapshot_id": draft_sid,
+            "source_snapshot_id_str": _snapshot_id_str(f"draft_picks_{year}", draft_sid),
         },
         "ff_playerids": {
-            "source_snapshot_id": _snapshot_id(
-                retrieval_timestamp=retrieval_timestamp,
-                endpoint="nflreadpy.load_ff_playerids()",
-                api_version="dynastyprocess_crosswalk",
-                payload=ff_payload,
-                row_count=len(ff_payload["rows"]),
-            )
+            "source_snapshot_id": ff_sid,
+            "source_snapshot_id_str": _snapshot_id_str(f"ff_playerids_{year}", ff_sid),
         },
         "udfa_sources": {
-            "source_snapshot_id": _snapshot_id(
-                retrieval_timestamp=retrieval_timestamp,
-                endpoint="udfa_source_manifest",
-                api_version="manual_urls",
-                payload=udfa_payload,
-                row_count=len(udfa_sources),
-            )
+            "source_snapshot_id": udfa_sid,
+            "source_snapshot_id_str": _snapshot_id_str(f"udfa_sources_{year}", udfa_sid),
         },
     }
     _write_json(frozen / "manifest.json", manifest)
