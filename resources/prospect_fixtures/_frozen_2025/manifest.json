@@ -1,0 +1,42 @@
+{
+  "cfbd_roster": {
+    "source_snapshot_id": {
+      "api_version": "v2",
+      "endpoint": "/roster?year=2025",
+      "retrieval_timestamp": "2026-06-02T20:14:35Z",
+      "row_count": 30072,
+      "sha256": "d4f181f27daa1eaad03558734bcb5b5daabca89cd22200cc66377de1dd521f42"
+    },
+    "source_snapshot_id_str": "cfbd_roster_2025:2026-06-02T20:14:35Z:/roster?year=2025:v2:d4f181f27daa1eaad03558734bcb5b5daabca89cd22200cc66377de1dd521f42:30072"
+  },
+  "ff_playerids": {
+    "source_snapshot_id": {
+      "api_version": "dynastyprocess_crosswalk",
+      "endpoint": "nflreadpy.load_ff_playerids()",
+      "retrieval_timestamp": "2026-06-02T20:14:35Z",
+      "row_count": 12457,
+      "sha256": "04127157ff09972be5ef3109dd0af84115a16f1a0215bd697b05cb7ddafe9a97"
+    },
+    "source_snapshot_id_str": "ff_playerids_2025:2026-06-02T20:14:35Z:nflreadpy.load_ff_playerids():dynastyprocess_crosswalk:04127157ff09972be5ef3109dd0af84115a16f1a0215bd697b05cb7ddafe9a97:12457"
+  },
+  "nflverse_draft_picks": {
+    "source_snapshot_id": {
+      "api_version": "nflverse",
+      "endpoint": "nflreadpy.load_draft_picks(2025)",
+      "retrieval_timestamp": "2026-06-02T20:14:35Z",
+      "row_count": 257,
+      "sha256": "5fa1c5e39ba3f04163df0ce6c445d1b373da0c8452e98d868ecbacaa224bec6b"
+    },
+    "source_snapshot_id_str": "draft_picks_2025:2026-06-02T20:14:35Z:nflreadpy.load_draft_picks(2025):nflverse:5fa1c5e39ba3f04163df0ce6c445d1b373da0c8452e98d868ecbacaa224bec6b:257"
+  },
+  "udfa_sources": {
+    "source_snapshot_id": {
+      "api_version": "manual_urls",
+      "endpoint": "udfa_source_manifest",
+      "retrieval_timestamp": "2026-06-02T20:14:35Z",
+      "row_count": 3,
+      "sha256": "da5c1a75e63d9233f957b5a3215b1053df1883432aeaec58478d37e4851cdd23"
+    },
+    "source_snapshot_id_str": "udfa_sources_2025:2026-06-02T20:14:35Z:udfa_source_manifest:manual_urls:da5c1a75e63d9233f957b5a3215b1053df1883432aeaec58478d37e4851cdd23:3"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "name": "NFL.com 2025 UDFA tracker",
+      "url": "https://www.nfl.com/news/2025-undrafted-free-agent-tracker"
+    },
+    {
+      "name": "PFF 2025 UDFA tracker",
+      "url": "https://www.pff.com/news/nfl-2025-undrafted-free-agent-tracker"
+    },
+    {
+      "name": "Spotrac 2025 undrafted database",
+      "url": "https://www.spotrac.com/nfl/undrafted/_/year/2025"
+    }
+  ]
+}
