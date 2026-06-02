@@ -43,7 +43,12 @@ SCHOOL_ALIASES: dict[str, str] = {
     "arizona st.": "arizona state",
     "florida st.": "florida state",
     "appalachian st.": "appalachian state",
+    "boise st.": "boise state",
+    "montana st.": "montana state",
+    "north dakota st.": "north dakota state",
+    "utah st.": "utah state",
     "miami (fl)": "miami",
+    "central florida": "ucf",
 }
 
 # Frozen-file name <-> frozen_inputs dict key (the keys build_2025_prospect_fixture expects).

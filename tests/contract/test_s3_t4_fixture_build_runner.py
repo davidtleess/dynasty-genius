@@ -151,6 +151,13 @@ def test_build_runner_loads_frozen_stack_invokes_builder_and_writes_only_fixture
     assert frozen_inputs["udfa_sources"]["sources"][0]["name"] == "Test UDFA source"
     assert frozen_inputs["manifest"]["cfbd_roster"]["source_snapshot_id"]["row_count"] == 1
     assert calls[0]["school_aliases"]["ole miss"] == "mississippi"
+    assert {
+        "boise st.": "boise state",
+        "montana st.": "montana state",
+        "north dakota st.": "north dakota state",
+        "utah st.": "utah state",
+        "central florida": "ucf",
+    }.items() <= calls[0]["school_aliases"].items()
 
     fixture_path = tmp_path / "2025_fantasy_prospects.json"
     review_path = tmp_path / "2025_review_queue.json"
