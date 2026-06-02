@@ -47,6 +47,15 @@ load_nflreadr_draft_truth(draft_year, *, data_mode, fixture_path=None, fetched_a
    - **Never** `datetime.utcnow()` (deprecated in 3.12+).
 7. **"mock" scrub (S4-audit landmine).** `test_mock_data_and_market_field_isolation` asserts the substring "mock" is absent from `prospect_nfl_bridge.py`. The loader's code, docstrings, parameter names, variables, and exceptions must avoid "mock" — use "synthetic" / "simulated" / "fixture" / "backtest". (The seam wrapper lives in `backtest_mock_draft.py`, where "mock" is fine.)
 
+### 4a — Fail-closed hardening (Amendment 2026-06-01, session-retrospective remediation; David-approved, cockpit-converged)
+
+Two fail-closed gaps the per-task CLEARs missed (a non-empty source that yields zero usable rows after per-row skips, and an unvalidated `data_mode`) are closed. Both are **tighten-only** and aligned with §4.5's "never a silent empty-success" intent.
+
+8. **All-rows-skipped is NOT empty-success (fail loud).** §4.4 skips bad rows and tallies them; but a source that is **non-empty yet yields zero usable rows** (every row skipped) must NOT return a successful `NflreadrTruthLoadResult(rows=[])` — that is the same fabricated-empty-truth-universe hazard §4.5 forbids (it would let the backtest compute metrics off the stale bridge artifact while the current truth load is empty, and would let the bridge script write `total_nfl_truth_rows=0` discovery artifacts). After mapping, if the source had ≥1 row but `truth_rows_loaded == 0`, **raise `NflreadrEmptyTruthError`** with a distinct message summarizing the skip counts (reusing the type keeps the synthetic wrapper's catch → `synthetic_truth_fixture_unavailable` correct, and real/live propagates fail-loud — no artifact written). The genuinely-empty-source case (§4 / RED 12, `rows == []`) is unchanged.
+9. **`data_mode` validation (fail-closed API boundary).** `load_nflreadr_draft_truth` must reject an unknown `data_mode` — only `"real"` and `"synthetic"` are valid — by raising `ValueError` **before** any fixture/live dispatch. An unknown mode must never silently fall through to the fixture or live path.
+
+(Doc cleanup, same amendment: the foundational S4 spec §11.2a heading "Fail-closed edges" is renamed "Fail-closed cases" — governance-doc hygiene, avoiding the substring in a sensitive area.)
+
 ## 5. Diagnostics
 
 `NflreadrTruthLoadResult.diagnostics` is a **typed Pydantic model** `NflTruthLoadDiagnostics` (NOT an informal dict), with fields: `required_columns_seen: list[str]`, `truth_rows_loaded: int`, `skipped_missing_gsis_id: int`, `skipped_bad_pick: int`, `skipped_bad_round: int`, `skipped_missing_name: int`, `skipped_missing_position: int`, `skipped_missing_team: int`. **No `skipped_wrong_season`** — wrong-season is a fail-loud exception (§4.2), never a counted skip.

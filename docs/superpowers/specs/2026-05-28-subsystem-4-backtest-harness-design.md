@@ -640,7 +640,7 @@ An entry matching none is valid (not an orphan). `orphan_bridges_detected` is a 
 
 **Duplicate bridge entries (scope decision).** Duplicate `prospect_uuid` entries collapse in `bridged_uuids` (set) and dedupe in `orphan_bridges_detected`; this increment does NOT add a separate duplicate-entry gate (not a §11.2 gate condition). Documented as a deliberate scope boundary; a duplicate-detection gate, if ever wanted, is a later increment.
 
-**Fail-closed edges (no silent defaults).** An empty confirmed-class universe with a non-empty bridge → every entry is an orphan → gate blocks. A confirmed prospect with multiple valid bridge entries → bridged (set collapse). The gate (`evaluate_bridge_gates`) and the metrics-null behavior are unchanged; this amendment only supplies the real inputs.
+**Fail-closed cases (no silent defaults).** An empty confirmed-class universe with a non-empty bridge → every entry is an orphan → gate blocks. A confirmed prospect with multiple valid bridge entries → bridged (set collapse). The gate (`evaluate_bridge_gates`) and the metrics-null behavior are unchanged; this amendment only supplies the real inputs.
 
 ### 11.3 Risk C — Decision destination & transitive-laundering prevention
 
