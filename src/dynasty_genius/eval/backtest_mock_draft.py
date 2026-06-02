@@ -1370,22 +1370,77 @@ def _load_nflreadr_truth(draft_year: int, *, data_mode: str) -> NflreadrTruthLoa
     return load_nflreadr_draft_truth(draft_year, data_mode=data_mode)
 
 
+def _confirmed_class_selection_bias(
+    s3_registry: CollegeProspectRegistry,
+    bridge: CollegeProspectBridge,
+    draft_year: int,
+) -> dict:
+    """§11.2a registry-vs-bridge selection-bias analysis (fail-closed, no defaults).
+
+    Confirmed-class universe = S3 entries with ``draft_class == draft_year`` and
+    ``verification_status == "confirmed"``. A confirmed prospect is "bridged" only by
+    a run-year bridge entry (``entry.draft_year == draft_year``; ``confirm`` and
+    ``udfa`` both count) — a wrong-year entry cannot spuriously satisfy coverage and
+    is itself flagged as drift. Orphans are classified by the FIRST matching reason
+    (entry-side year before registry-side membership) and the list is deduped + sorted
+    by ``prospect_uuid`` for deterministic, entry-order-independent output.
+    """
+    confirmed_class = {
+        e.prospect_uuid: e
+        for e in s3_registry.entries.values()
+        if e.draft_class == draft_year and e.verification_status == "confirmed"
+    }
+    bridged_uuids = {
+        entry.prospect_uuid
+        for entry in bridge.entries
+        if entry.draft_year == draft_year
+    }
+    unbridged = sorted(set(confirmed_class) - bridged_uuids)
+
+    orphans: dict[str, str] = {}
+    for entry in bridge.entries:
+        if entry.prospect_uuid in orphans:
+            continue  # dedupe by prospect_uuid (first/most-specific reason wins)
+        if entry.draft_year != draft_year:
+            orphans[entry.prospect_uuid] = "bridge_wrong_draft_year"
+        elif entry.prospect_uuid not in s3_registry.entries:
+            orphans[entry.prospect_uuid] = "not_in_registry"
+        elif s3_registry.entries[entry.prospect_uuid].verification_status != "confirmed":
+            orphans[entry.prospect_uuid] = "not_confirmed"
+        elif s3_registry.entries[entry.prospect_uuid].draft_class != draft_year:
+            orphans[entry.prospect_uuid] = "wrong_draft_class"
+        # else: valid bridge entry — not an orphan
+
+    return {
+        "confirmed_class_unbridged_count": len(unbridged),
+        "confirmed_class_unbridged_uuids": unbridged,
+        "orphan_bridges_detected": [
+            {"prospect_uuid": uuid, "reason": orphans[uuid]}
+            for uuid in sorted(orphans)
+        ],
+    }
+
+
 def _compute_bridge_coverage(
     joined_outcomes: list[tuple[ProspectConsensus, RealizedOutcome]],
+    *,
+    s3_registry: CollegeProspectRegistry,
+    bridge: CollegeProspectBridge,
+    draft_year: int,
 ) -> dict:
-    """Derive the §11.2 bridge-coverage counts from joined outcomes (v1 seam).
+    """Derive the §11.2 bridge-coverage counts.
 
     ``consensus_unbridged_count`` is derived from per-outcome flags;
-    ``confirmed_class_unbridged_count`` and ``orphan_bridges_detected`` require the
-    S3 confirmed-class universe and are produced by the same follow-up increment as
-    the truth loader (defaulted here).
+    ``confirmed_class_unbridged_count`` / ``confirmed_class_unbridged_uuids`` /
+    ``orphan_bridges_detected`` come from the §11.2a registry-vs-bridge analysis
+    (``_confirmed_class_selection_bias``) — the real inputs the existing
+    ``evaluate_bridge_gates`` hard-block consumes.
     """
     return {
         "consensus_unbridged_count": sum(
             1 for _c, o in joined_outcomes if o.unbridged_prospect
         ),
-        "confirmed_class_unbridged_count": 0,
-        "orphan_bridges_detected": [],
+        **_confirmed_class_selection_bias(s3_registry, bridge, draft_year),
     }
 
 
@@ -1493,7 +1548,9 @@ def run_backtest_a(
         draft_date=resolved_draft_date,
         draft_date_source=draft_date_source,
         snapshots_coverage=snapshots_coverage,
-        bridge_coverage=_compute_bridge_coverage(pairs),
+        bridge_coverage=_compute_bridge_coverage(
+            pairs, s3_registry=s3_registry, bridge=bridge, draft_year=draft_year
+        ),
         joined_outcomes=pairs,
         join_diagnostics=diagnostics,
         bridge=bridge,

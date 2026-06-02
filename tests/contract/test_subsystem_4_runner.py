@@ -12,6 +12,9 @@ import pytest
 from pydantic import ValidationError
 
 from src.dynasty_genius.eval import backtest_mock_draft as bmd
+from src.dynasty_genius.identity.college_prospect_identity import (
+    CollegeProspectRegistry,
+)
 from src.dynasty_genius.identity.prospect_nfl_bridge import (
     CollegeProspectBridge,
     NflreadrEmptyTruthError,
@@ -26,6 +29,10 @@ RUN_BACKTEST_A_CLI = REPO_ROOT / "scripts" / "run_backtest_a.py"
 UUID_A = "cpr_12000000-0000-4000-8000-000000000001"
 UUID_B = "cpr_12000000-0000-4000-8000-000000000002"
 UUID_C = "cpr_12000000-0000-4000-8000-000000000003"
+UUID_D = "cpr_12000000-0000-4000-8000-000000000004"
+UUID_E = "cpr_12000000-0000-4000-8000-000000000005"
+UUID_F = "cpr_12000000-0000-4000-8000-000000000006"
+UUID_G = "cpr_12000000-0000-4000-8000-000000000007"
 
 FALSIFICATION_MATRIX = {
     "valid_nominal": {
@@ -243,17 +250,43 @@ def _write_runner_inputs_with_bridge_entries(tmp_path: Path) -> tuple[Path, Path
         ),
         encoding="utf-8",
     )
+    # §11.2a: a matching confirmed-class S3 universe (UUID_A/UUID_B as the bridge
+    # entries) so the selection-bias gate stays clear (zero unbridged/orphan) for
+    # the metrics-producing tests built on this helper.
+    (identity_dir / "college_prospect_registry.json").write_text(
+        json.dumps(
+            {
+                "metadata": {"schema_version": "task6_fixture"},
+                "entries": [
+                    _registry_entry(
+                        uuid=UUID_A, name="Task Six Quarterback", position="QB"
+                    ),
+                    _registry_entry(
+                        uuid=UUID_B, name="Task Six Receiver", position="WR"
+                    ),
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
     return snapshots_dir, identity_dir
 
 
-def _registry_entry(*, uuid: str, name: str, position: str) -> dict:
+def _registry_entry(
+    *,
+    uuid: str,
+    name: str,
+    position: str,
+    draft_class: int = 2025,
+    verification_status: str = "confirmed",
+) -> dict:
     return {
         "raw_name": name,
         "normalized_name": name.lower(),
         "full_name": name,
         "position": position,
         "position_group": position,
-        "draft_class": 2025,
+        "draft_class": draft_class,
         "current_school": "Test U",
         "prior_schools": [],
         "cfbd_athlete_id": None,
@@ -267,13 +300,13 @@ def _registry_entry(*, uuid: str, name: str, position: str) -> dict:
         "id_provenance": {},
         "notes": None,
         "prospect_uuid": uuid,
-        "verification_status": "confirmed",
+        "verification_status": verification_status,
         "match_key": f"task9|{uuid}",
         "status_history": [
             {
                 "event_id": f"confirm-{uuid[-1]}",
                 "decision": "confirm",
-                "after_status": "confirmed",
+                "after_status": verification_status,
                 "decided_at": "2026-01-01T00:00:00Z",
                 "reviewer_id": "codex",
             }
@@ -285,27 +318,9 @@ def _registry_entry(*, uuid: str, name: str, position: str) -> dict:
 
 
 def _write_real_mode_e2e_runner_inputs(tmp_path: Path) -> tuple[Path, Path]:
+    # The base helper now writes a matching confirmed-class S3 registry (§11.2a),
+    # so this e2e helper only adds the richer snapshot set on top.
     snapshots_dir, identity_dir = _write_runner_inputs_with_bridge_entries(tmp_path)
-    (identity_dir / "college_prospect_registry.json").write_text(
-        json.dumps(
-            {
-                "metadata": {"schema_version": "task9_e2e"},
-                "entries": [
-                    _registry_entry(
-                        uuid=UUID_A,
-                        name="Task Six Quarterback",
-                        position="QB",
-                    ),
-                    _registry_entry(
-                        uuid=UUID_B,
-                        name="Task Six Receiver",
-                        position="WR",
-                    ),
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
 
     for index in range(5):
         snapshot_path = (
@@ -337,6 +352,92 @@ def _write_real_mode_e2e_runner_inputs(tmp_path: Path) -> tuple[Path, Path]:
             encoding="utf-8",
         )
     return snapshots_dir, identity_dir
+
+
+def _write_registry_file(identity_dir: Path, *entries: dict) -> None:
+    (identity_dir / "college_prospect_registry.json").write_text(
+        json.dumps(
+            {
+                "metadata": {"schema_version": "task2_integration"},
+                "entries": list(entries),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_bridge_file(identity_dir: Path, *entries: dict) -> None:
+    (identity_dir / "prospect_nfl_bridge.json").write_text(
+        json.dumps(
+            {
+                "metadata": {
+                    "draft_year": 2025,
+                    "schema_version": "prospect_nfl_bridge_v1.0.0",
+                },
+                "entries": list(entries),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _registry_with_entries(*entries: dict) -> CollegeProspectRegistry:
+    return CollegeProspectRegistry.model_validate(
+        {
+            "metadata": {"schema_version": "task_coverage"},
+            "entries": {entry["prospect_uuid"]: entry for entry in entries},
+        }
+    )
+
+
+def _bridge_entry(
+    uuid: str,
+    *,
+    draft_year: int = 2025,
+    decision: str = "confirm",
+    gsis_id: str | None = None,
+    pick_no: int | None = None,
+) -> dict:
+    if decision == "udfa":
+        gsis_id = None
+        pick_no = None
+        draft_round = None
+        nfl_team = None
+    else:
+        gsis_id = gsis_id or f"00-{uuid[-4:]}"
+        pick_no = pick_no or 40
+        draft_round = _round_for_pick(pick_no)
+        nfl_team = "TEN"
+    return {
+        "prospect_uuid": uuid,
+        "gsis_id": gsis_id,
+        "pfr_id": None,
+        "draft_year": draft_year,
+        "draft_pick_no": pick_no,
+        "draft_round": draft_round,
+        "nfl_team": nfl_team,
+        "udfa": decision == "udfa",
+        "nflreadr_source": "test",
+        "nflreadr_season": draft_year,
+        "draft_truth_content_hash": f"hash-{uuid[-4:]}",
+        "nflreadr_fetched_at": "2026-01-01T00:00:00Z",
+        "evidence_snapshot": {
+            "full_name": f"Prospect {uuid[-4:]}",
+            "position": "WR",
+            "college": "Test U",
+        },
+        "event_id": f"event-{uuid[-4:]}",
+        "decided_at": "2026-01-01T00:00:00Z",
+        "reviewer_id": "codex",
+        "decision": decision,
+        "note": None,
+    }
+
+
+def _bridge_with_entries(*entries: dict) -> CollegeProspectBridge:
+    return CollegeProspectBridge.model_validate(
+        {"metadata": {"draft_year": 2025}, "entries": list(entries)}
+    )
 
 
 def _source_draft_rows() -> list[dict]:
@@ -552,6 +653,123 @@ def _payload(result) -> dict:
     return result
 
 
+def test_compute_bridge_coverage_adds_confirmed_class_unbridged_listing_and_keeps_consensus_count():
+    registry = _registry_with_entries(
+        _registry_entry(uuid=UUID_A, name="Prospect A", position="QB"),
+        _registry_entry(uuid=UUID_B, name="Prospect B", position="WR"),
+        _registry_entry(uuid=UUID_C, name="Prospect C", position="RB"),
+    )
+    bridge = _bridge_with_entries(
+        _bridge_entry(UUID_A, pick_no=1),
+        _bridge_entry(UUID_B, decision="udfa"),
+    )
+    joined_outcomes = [
+        (_consensus(UUID_A, 5.0), bmd.RealizedOutcome(prospect_uuid=UUID_A)),
+        (
+            _consensus(UUID_C, 40.0),
+            bmd.RealizedOutcome(prospect_uuid=UUID_C, unbridged_prospect=True),
+        ),
+    ]
+
+    coverage = bmd._compute_bridge_coverage(
+        joined_outcomes,
+        s3_registry=registry,
+        bridge=bridge,
+        draft_year=2025,
+    )
+
+    assert coverage["consensus_unbridged_count"] == 1
+    assert coverage["confirmed_class_unbridged_count"] == 1
+    assert coverage["confirmed_class_unbridged_uuids"] == [UUID_C]
+    assert coverage["orphan_bridges_detected"] == []
+
+
+def test_compute_bridge_coverage_classifies_orphans_by_ordered_reasons_and_sorted_output():
+    registry = _registry_with_entries(
+        _registry_entry(uuid=UUID_A, name="Prospect A", position="QB"),
+        _registry_entry(
+            uuid=UUID_B,
+            name="Prospect B",
+            position="WR",
+            verification_status="provisional",
+        ),
+        _registry_entry(
+            uuid=UUID_C,
+            name="Prospect C",
+            position="RB",
+            draft_class=2024,
+        ),
+        _registry_entry(uuid=UUID_D, name="Prospect D", position="TE"),
+    )
+    bridge = _bridge_with_entries(
+        _bridge_entry(UUID_G),
+        _bridge_entry(UUID_C),
+        _bridge_entry(UUID_D, draft_year=2024),
+        _bridge_entry(UUID_B),
+        _bridge_entry(UUID_G, gsis_id="00-duplicate"),
+    )
+
+    coverage = bmd._compute_bridge_coverage(
+        [],
+        s3_registry=registry,
+        bridge=bridge,
+        draft_year=2025,
+    )
+
+    assert coverage["confirmed_class_unbridged_uuids"] == [UUID_A, UUID_D]
+    assert coverage["orphan_bridges_detected"] == [
+        {"prospect_uuid": UUID_B, "reason": "not_confirmed"},
+        {"prospect_uuid": UUID_C, "reason": "wrong_draft_class"},
+        {"prospect_uuid": UUID_D, "reason": "bridge_wrong_draft_year"},
+        {"prospect_uuid": UUID_G, "reason": "not_in_registry"},
+    ]
+
+
+def test_compute_bridge_coverage_empty_registry_semantics_and_duplicate_valid_entries():
+    empty_registry = _registry_with_entries()
+    empty_bridge = _bridge_with_entries()
+
+    empty_coverage = bmd._compute_bridge_coverage(
+        [],
+        s3_registry=empty_registry,
+        bridge=empty_bridge,
+        draft_year=2025,
+    )
+    assert empty_coverage["confirmed_class_unbridged_count"] == 0
+    assert empty_coverage["confirmed_class_unbridged_uuids"] == []
+    assert empty_coverage["orphan_bridges_detected"] == []
+
+    non_empty_bridge = _bridge_with_entries(_bridge_entry(UUID_A), _bridge_entry(UUID_B))
+    orphaned_coverage = bmd._compute_bridge_coverage(
+        [],
+        s3_registry=empty_registry,
+        bridge=non_empty_bridge,
+        draft_year=2025,
+    )
+    assert orphaned_coverage["confirmed_class_unbridged_count"] == 0
+    assert orphaned_coverage["orphan_bridges_detected"] == [
+        {"prospect_uuid": UUID_A, "reason": "not_in_registry"},
+        {"prospect_uuid": UUID_B, "reason": "not_in_registry"},
+    ]
+
+    complete_registry = _registry_with_entries(
+        _registry_entry(uuid=UUID_E, name="Prospect E", position="WR")
+    )
+    duplicate_valid_bridge = _bridge_with_entries(
+        _bridge_entry(UUID_E, gsis_id="00-first"),
+        _bridge_entry(UUID_E, gsis_id="00-second"),
+    )
+    complete_coverage = bmd._compute_bridge_coverage(
+        [],
+        s3_registry=complete_registry,
+        bridge=duplicate_valid_bridge,
+        draft_year=2025,
+    )
+    assert complete_coverage["confirmed_class_unbridged_count"] == 0
+    assert complete_coverage["confirmed_class_unbridged_uuids"] == []
+    assert complete_coverage["orphan_bridges_detected"] == []
+
+
 def test_task12_falsification_matrix_seeded_with_explicit_owners():
     expected_rows = {
         "valid_nominal",
@@ -638,7 +856,9 @@ def test_artifact_acceptance_criteria_failed_aggregated_from_canonical_tokens():
         ),
         bridge_coverage=_bridge_coverage(
             consensus_unbridged_count=1,
-            orphan_bridges_detected=[UUID_A],
+            orphan_bridges_detected=[
+                {"prospect_uuid": UUID_A, "reason": "not_in_registry"}
+            ],
         ),
     )
     payload = _payload(result)
@@ -927,6 +1147,174 @@ def test_runner_synthetic_mode_keeps_abstain_with_non_empty_truth_join(
     assert result.metrics is not None
     assert result.metrics["per_bucket_breakdown"]["R1-early"]["n_realized"] == 1
     assert result.metrics["per_bucket_breakdown"]["R2"]["n_realized"] == 1
+
+
+def test_runner_real_mode_writes_clear_confirmed_class_coverage_for_matched_universe(
+    tmp_path: Path,
+    monkeypatch,
+):
+    snapshots_dir, identity_dir = _write_runner_inputs_with_bridge_entries(tmp_path)
+    _write_registry_file(
+        identity_dir,
+        _registry_entry(uuid=UUID_A, name="Task Six Quarterback", position="QB"),
+        _registry_entry(uuid=UUID_B, name="Task Six Receiver", position="WR"),
+    )
+    _install_task6_runner_stubs(monkeypatch, [], {})
+
+    result = bmd.run_backtest_a(
+        snapshots_dir=snapshots_dir,
+        identity_dir=identity_dir,
+        draft_year=2025,
+        run_id="matched_confirmed_class",
+        output_root=tmp_path / "runs",
+    )
+
+    assert "confirmed_class_unbridged" not in result.acceptance_criteria_failed
+    assert "orphan_bridges_detected" not in result.acceptance_criteria_failed
+    assert result.metrics is not None
+    assert result.coverage["confirmed_class_unbridged_count"] == 0
+    assert result.coverage["confirmed_class_unbridged_uuids"] == []
+    assert result.coverage["orphan_bridges_detected"] == []
+
+    payload = json.loads(
+        (
+            tmp_path
+            / "runs"
+            / "matched_confirmed_class"
+            / "backtest_a_result.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert payload["coverage"]["confirmed_class_unbridged_count"] == 0
+    assert payload["coverage"]["confirmed_class_unbridged_uuids"] == []
+    assert payload["coverage"]["orphan_bridges_detected"] == []
+    assert payload["metrics"] is not None
+
+
+def test_runner_blocks_when_confirmed_class_prospect_has_no_bridge_entry(
+    tmp_path: Path,
+    monkeypatch,
+):
+    snapshots_dir, identity_dir = _write_runner_inputs_with_bridge_entries(tmp_path)
+    _write_registry_file(
+        identity_dir,
+        _registry_entry(uuid=UUID_A, name="Task Six Quarterback", position="QB"),
+        _registry_entry(uuid=UUID_B, name="Task Six Receiver", position="WR"),
+        _registry_entry(uuid=UUID_C, name="Unbridged Confirmed", position="RB"),
+    )
+    _install_task6_runner_stubs(monkeypatch, [], {})
+
+    result = bmd.run_backtest_a(
+        snapshots_dir=snapshots_dir,
+        identity_dir=identity_dir,
+        draft_year=2025,
+        run_id="missing_confirmed_bridge",
+        output_root=tmp_path / "runs",
+    )
+
+    assert "confirmed_class_unbridged" in result.acceptance_criteria_failed
+    assert result.metrics is None
+    assert result.coverage["confirmed_class_unbridged_uuids"] == [UUID_C]
+
+    payload = json.loads(
+        (
+            tmp_path
+            / "runs"
+            / "missing_confirmed_bridge"
+            / "backtest_a_result.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert "confirmed_class_unbridged" in payload["acceptance_criteria_failed"]
+    assert payload["metrics"] is None
+    assert payload["coverage"]["confirmed_class_unbridged_uuids"] == [UUID_C]
+
+
+@pytest.mark.parametrize(
+    ("reason", "orphan_uuid", "registry_entry", "bridge_entry"),
+    [
+        (
+            "bridge_wrong_draft_year",
+            UUID_C,
+            _registry_entry(uuid=UUID_C, name="Wrong Year Bridge", position="RB"),
+            _bridge_entry(UUID_C, draft_year=2024),
+        ),
+        (
+            "not_in_registry",
+            UUID_D,
+            None,
+            _bridge_entry(UUID_D),
+        ),
+        (
+            "not_confirmed",
+            UUID_E,
+            _registry_entry(
+                uuid=UUID_E,
+                name="Provisional Bridge",
+                position="TE",
+                verification_status="provisional",
+            ),
+            _bridge_entry(UUID_E),
+        ),
+        (
+            "wrong_draft_class",
+            UUID_F,
+            _registry_entry(
+                uuid=UUID_F,
+                name="Wrong Class Bridge",
+                position="WR",
+                draft_class=2024,
+            ),
+            _bridge_entry(UUID_F),
+        ),
+    ],
+)
+def test_runner_blocks_and_serializes_orphan_bridge_reason(
+    tmp_path: Path,
+    monkeypatch,
+    reason: str,
+    orphan_uuid: str,
+    registry_entry: dict | None,
+    bridge_entry: dict,
+):
+    snapshots_dir, identity_dir = _write_runner_inputs_with_bridge_entries(tmp_path)
+    registry_entries = [
+        _registry_entry(uuid=UUID_A, name="Task Six Quarterback", position="QB"),
+        _registry_entry(uuid=UUID_B, name="Task Six Receiver", position="WR"),
+    ]
+    if registry_entry is not None:
+        registry_entries.append(registry_entry)
+    _write_registry_file(identity_dir, *registry_entries)
+    _write_bridge_file(
+        identity_dir,
+        _bridge_entry(UUID_A, gsis_id="00-task6a", pick_no=1),
+        _bridge_entry(UUID_B, gsis_id="00-task6b", pick_no=40),
+        bridge_entry,
+    )
+    _install_task6_runner_stubs(monkeypatch, [], {})
+
+    result = bmd.run_backtest_a(
+        snapshots_dir=snapshots_dir,
+        identity_dir=identity_dir,
+        draft_year=2025,
+        run_id=f"orphan_{reason}",
+        output_root=tmp_path / "runs",
+    )
+
+    expected_orphan = {"prospect_uuid": orphan_uuid, "reason": reason}
+    assert "orphan_bridges_detected" in result.acceptance_criteria_failed
+    assert result.metrics is None
+    assert expected_orphan in result.coverage["orphan_bridges_detected"]
+
+    payload = json.loads(
+        (
+            tmp_path
+            / "runs"
+            / f"orphan_{reason}"
+            / "backtest_a_result.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert "orphan_bridges_detected" in payload["acceptance_criteria_failed"]
+    assert payload["metrics"] is None
+    assert expected_orphan in payload["coverage"]["orphan_bridges_detected"]
 
 
 def test_runner_real_mode_e2e_live_truth_loader_chain_writes_metrics_and_diagnostics(

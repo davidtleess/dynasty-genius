@@ -518,7 +518,9 @@ def test_artifact_acceptance_criteria_failed_emits_section_6_3_hard_blocks():
             bridge_coverage=_bridge_coverage(
                 consensus_unbridged_count=1,
                 confirmed_class_unbridged_count=2,
-                orphan_bridges_detected=[UUID_A],
+                orphan_bridges_detected=[
+                    {"prospect_uuid": UUID_A, "reason": "not_in_registry"}
+                ],
             ),
         )
     )
@@ -548,14 +550,18 @@ def test_artifact_emits_three_segmented_unbridged_counts():
             bridge_coverage=_bridge_coverage(
                 consensus_unbridged_count=1,
                 confirmed_class_unbridged_count=2,
-                orphan_bridges_detected=[UUID_A],
+                orphan_bridges_detected=[
+                    {"prospect_uuid": UUID_A, "reason": "not_in_registry"}
+                ],
             )
         )
     )
 
     assert payload["coverage"]["consensus_unbridged_count"] == 1
     assert payload["coverage"]["confirmed_class_unbridged_count"] == 2
-    assert payload["coverage"]["orphan_bridges_detected"] == [UUID_A]
+    assert payload["coverage"]["orphan_bridges_detected"] == [
+        {"prospect_uuid": UUID_A, "reason": "not_in_registry"}
+    ]
 
 
 def test_artifact_emits_metric_universe_tracked_confirmed():

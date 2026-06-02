@@ -195,7 +195,7 @@ def test_evaluate_bridge_gates_blocks_on_confirmed_class_unbridged():
 
 
 def test_evaluate_bridge_gates_blocks_on_orphan_bridges():
-    assert _evaluate_bridge_gates(_coverage(orphan_bridges_detected=[UUID_A])) == [
+    assert _evaluate_bridge_gates(_coverage(orphan_bridges_detected=[{"prospect_uuid": UUID_A, "reason": "not_in_registry"}])) == [
         "orphan_bridges_detected"
     ]
 
@@ -205,7 +205,7 @@ def test_evaluate_bridge_gates_combines_multiple_blockers():
         _coverage(
             consensus_unbridged_count=1,
             confirmed_class_unbridged_count=2,
-            orphan_bridges_detected=[UUID_A],
+            orphan_bridges_detected=[{"prospect_uuid": UUID_A, "reason": "not_in_registry"}],
         )
     ) == [
         "consensus_unbridged",
