@@ -13,11 +13,13 @@ Membership + review semantics (spec §4):
 - Iterate **drafted picks**, not CFBD roster rows. Undrafted CFBD rows are not
   cohort members and are silently excluded.
 - A drafted pick whose position is a skill group (QB/RB/WR/TE) is matched to CFBD.
-- A drafted pick in a clearly-non-skill group (OL family / special teams / defense)
-  is **silently excluded** (not a review row).
-- A drafted pick whose position does not resolve to a skill group but is *not*
-  clearly-non-skill (``ATH``, and ``FB`` — never auto-admitted as RB) becomes a
-  ``unresolved_draft_pick_position`` review row (fantasy-relevance is David's call).
+- A drafted pick in a **fantasy-ambiguous** position (``ATH``, and ``FB`` — never
+  auto-admitted as RB) becomes a ``unresolved_draft_pick_position`` review row
+  (fantasy-relevance is David's call).
+- **EVERY other drafted position is silently excluded** (not a review row): all OL /
+  defense / special-teams codes incl. real nflverse spellings (``SAF``, ``G``, …) and
+  any future/unknown non-skill code. (Inverted 2026-06-02 — an enumerated non-skill set
+  previously missed ``SAF``/``G`` and wrongly routed them to review.)
 
 Match pipeline (spec §4 — final classification runs LAST):
 
@@ -47,18 +49,15 @@ from src.dynasty_genius.identity.college_prospect_identity import (
 # Manifest dict key for the CFBD roster input (spec §6 — builder dereferences by key).
 _CFBD_MANIFEST_KEY = "cfbd_roster"
 
-# Drafted-pick position classification (spec §4).
+# Drafted-pick position classification (spec §4; INVERTED 2026-06-02 for robustness —
+# review the fantasy-AMBIGUOUS codes ONLY and silently exclude everything else, so real
+# nflverse codes (SAF, G, …) and any future/unknown non-skill code never pollute the review
+# queue. An enumerated clearly-non-skill set previously missed SAF/G and routed them to review.)
 # Emittable skill groups: matched to CFBD and (on a clean 1:1) emitted.
 _EMITTABLE_SKILL_GROUPS: frozenset[str] = frozenset({"QB", "RB", "WR", "TE"})
-# Clearly-non-skill drafted positions: not cohort members → silently excluded.
-_CLEARLY_NON_SKILL: frozenset[str] = frozenset({
-    "OL", "OT", "OG", "C",          # offensive line family
-    "K", "P", "LS",                 # special teams
-    "DL", "DT", "DE", "EDGE",       # defensive line / edge
-    "OLB", "LB", "ILB",             # linebackers
-    "CB", "S", "DB", "FS", "SS",    # secondary
-})
-# Everything else (FB, ATH, and any unknown drafted position) → review row.
+# Fantasy-ambiguous drafted positions -> unresolved_draft_pick_position review row (David's
+# call; FB never auto-admitted as RB). EVERY other non-skill position is silently excluded.
+_FANTASY_AMBIGUOUS: frozenset[str] = frozenset({"ATH", "FB"})
 
 # Required structural fields on a drafted-pick source record (spec §4 D-1). A pick
 # missing any of these is malformed source data → fail closed (operating-loop §8).
@@ -253,10 +252,10 @@ def build_2025_prospect_fixture(
         position = str(pick.get("position", "")).upper()
         if position in _EMITTABLE_SKILL_GROUPS:
             skill_picks.append(pick)
-        elif position in _CLEARLY_NON_SKILL:
-            continue  # not a cohort member — silently excluded
-        else:
+        elif position in _FANTASY_AMBIGUOUS:
             review_queue.append(_review_row(pick, "unresolved_draft_pick_position"))
+        else:
+            continue  # clearly non-skill / non-cohort (incl. SAF, G, any unknown) — silently excluded
 
     # --- primary-key match pass for skill picks ---
     matched: dict[int, list[dict]] = {}

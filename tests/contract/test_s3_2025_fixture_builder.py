@@ -225,6 +225,81 @@ def test_pick_keyed_review_rows_for_missing_ambiguous_and_unresolved_draft_posit
     assert all("guessed" not in str(row).lower() for row in review_queue)
 
 
+def test_only_ath_and_fb_draft_positions_are_reviewed_as_fantasy_ambiguous():
+    module = _builder_module()
+    frozen_inputs = _frozen_inputs(
+        cfbd_rows=[
+            _cfbd_row(205, "Clean", "Quarterback", team="Test State", position="QB"),
+        ],
+        draft_rows=[
+            _draft_row(
+                "Clean Quarterback",
+                position="QB",
+                college="Test State",
+                pfr_player_id="CleaQu00",
+                pick=25,
+            ),
+            _draft_row(
+                "Safety Prospect",
+                position="SAF",
+                college="Test State",
+                pfr_player_id="SafePr00",
+                pick=26,
+            ),
+            _draft_row(
+                "Guard Prospect",
+                position="G",
+                college="Test State",
+                pfr_player_id="GuarPr00",
+                pick=27,
+            ),
+            _draft_row(
+                "Corner Prospect",
+                position="CB",
+                college="Test State",
+                pfr_player_id="CornPr00",
+                pick=28,
+            ),
+            _draft_row(
+                "End Prospect",
+                position="DE",
+                college="Test State",
+                pfr_player_id="EndPr00",
+                pick=29,
+            ),
+            _draft_row(
+                "Unknown Prospect",
+                position="XYZ",
+                college="Test State",
+                pfr_player_id="UnknPr00",
+                pick=30,
+            ),
+            _draft_row(
+                "Athlete Prospect",
+                position="ATH",
+                college="Test State",
+                pfr_player_id="AthPr00",
+                pick=31,
+            ),
+            _draft_row(
+                "Fullback Prospect",
+                position="FB",
+                college="Test State",
+                pfr_player_id="FullPr00",
+                pick=32,
+            ),
+        ],
+    )
+
+    rows, review_queue = module.build_2025_prospect_fixture(frozen_inputs)
+
+    assert [row["source_record_id"] for row in rows] == ["205"]
+    review_by_pick = _by_source_record(review_queue)
+    assert set(review_by_pick) == {"AthPr00", "FullPr00"}
+    assert review_by_pick["AthPr00"]["reason"] == "unresolved_draft_pick_position"
+    assert review_by_pick["FullPr00"]["reason"] == "unresolved_draft_pick_position"
+
+
 def test_college_athlete_id_fallback_runs_before_final_missing_classification():
     module = _builder_module()
     frozen_inputs = _frozen_inputs(
