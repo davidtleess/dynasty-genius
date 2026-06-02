@@ -496,6 +496,24 @@ def _install_fake_nflreadpy(monkeypatch) -> list[list[int]]:
     return calls
 
 
+def _install_all_skipped_nflreadpy(monkeypatch) -> list[list[int]]:
+    calls: list[list[int]] = []
+
+    def load_draft_picks(seasons):
+        calls.append(list(seasons))
+        rows = _source_draft_rows()
+        for row in rows:
+            row["gsis_id"] = ""
+        return pl.DataFrame(rows)
+
+    monkeypatch.setitem(
+        sys.modules,
+        "nflreadpy",
+        types.SimpleNamespace(load_draft_picks=load_draft_picks),
+    )
+    return calls
+
+
 def _fake_truth_result() -> NflreadrTruthLoadResult:
     diagnostics = NflTruthLoadDiagnostics(
         truth_rows_loaded=2,
@@ -1367,6 +1385,30 @@ def test_runner_real_mode_e2e_live_truth_loader_chain_writes_metrics_and_diagnos
     assert payload["metrics"] is not None
     assert payload["metadata"]["truth_load_diagnostics"] == expected_diagnostics
     assert "nflreadr_truth_unavailable" not in payload["acceptance_criteria_failed"]
+
+
+def test_runner_real_mode_all_skipped_truth_load_propagates_without_artifact(
+    tmp_path: Path,
+    monkeypatch,
+):
+    snapshots_dir, identity_dir = _write_real_mode_e2e_runner_inputs(tmp_path)
+    nflreadpy_calls = _install_all_skipped_nflreadpy(monkeypatch)
+    run_id = "all_skipped_truth"
+
+    with pytest.raises(NflreadrEmptyTruthError) as exc_info:
+        bmd.run_backtest_a(
+            snapshots_dir=snapshots_dir,
+            identity_dir=identity_dir,
+            draft_year=2025,
+            run_id=run_id,
+            output_root=tmp_path / "runs",
+        )
+
+    assert nflreadpy_calls == [[2025], [2025]]
+    message = str(exc_info.value)
+    assert "0 usable" in message or "all-skipped" in message
+    assert "skipped_missing_gsis_id" in message
+    assert not (tmp_path / "runs" / run_id / "backtest_a_result.json").exists()
 
 
 def test_runner_real_mode_uses_ingestion_resolved_draft_date_for_aggregation(

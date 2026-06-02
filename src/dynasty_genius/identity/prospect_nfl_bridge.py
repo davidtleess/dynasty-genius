@@ -446,6 +446,17 @@ def _assemble_truth_result(
             truth_rows.append(truth_row)
     diagnostics.truth_rows_loaded = len(truth_rows)
 
+    # §4a.8: a non-empty source that yields ZERO usable rows (every row skipped) is
+    # NOT an empty-success — that would fabricate an empty truth universe (metrics
+    # off the stale bridge / total_nfl_truth_rows=0 discovery). Fail loud. (rows is
+    # already known non-empty here — the top-of-function empty check handled []; a
+    # contaminated row would have raised mid-loop.)
+    if not truth_rows:
+        raise NflreadrEmptyTruthError(
+            f"draft-truth source had {len(rows)} row(s) but 0 usable after per-row "
+            f"skips: {diagnostics.model_dump()}"
+        )
+
     return NflreadrTruthLoadResult(rows=truth_rows, diagnostics=diagnostics)
 
 
@@ -507,9 +518,11 @@ def _load_synthetic_draft_truth(
             fetched_at_override=fetched_at_override,
         )
     except NflreadrEmptyTruthError as exc:
+        # Chain the underlying message so an all-skipped synthetic fixture surfaces
+        # the actual skip reason, not only "zero rows" (Codex CLEAR polish).
         raise ValueError(
             f"synthetic_truth_fixture_unavailable: synthetic draft-truth fixture for "
-            f"draft_year {draft_year} at {fixture_path} contains zero rows"
+            f"draft_year {draft_year} at {fixture_path}: {exc}"
         ) from exc
 
 
@@ -550,6 +563,12 @@ def load_nflreadr_draft_truth(
     ``real`` + ``fixture_path`` loads a committed source-shaped fixture (Task 2);
     ``real`` without a fixture loads the live draft source via lazy nflreadpy (Task 5).
     """
+    # §4a.9: validate the mode at the API boundary — an unknown data_mode must fail
+    # loud BEFORE any fixture read or live fetch, never silently fall through.
+    if data_mode not in ("real", "synthetic"):
+        raise ValueError(
+            f"unknown data_mode {data_mode!r}: expected 'real' or 'synthetic'"
+        )
     if data_mode == "synthetic":
         return _load_synthetic_draft_truth(
             draft_year,

@@ -316,6 +316,18 @@ def test_fixture_mode_empty_real_rows_raise_empty_truth_error(tmp_path: Path):
         _load_fixture(path)
 
 
+def test_fixture_mode_all_rows_skipped_raises_empty_truth_error(tmp_path: Path):
+    path = _write_fixture(tmp_path, [_source_row(gsis_id="")])
+
+    with pytest.raises(bridge.NflreadrEmptyTruthError) as exc_info:
+        _load_fixture(path)
+
+    message = str(exc_info.value)
+    assert "0 usable" in message or "all-skipped" in message
+    assert "skipped_missing_gsis_id" in message
+    assert "contains zero rows" not in message
+
+
 def test_fixture_mode_preserves_duplicate_gsis_id_rows(tmp_path: Path):
     path = _write_fixture(
         tmp_path,
@@ -466,6 +478,25 @@ def test_synthetic_mode_empty_fixture_uses_unavailable_token(tmp_path: Path):
     assert "NflreadrEmptyTruthError" not in message
 
 
+def test_synthetic_mode_all_rows_skipped_chains_unavailable_skip_reason(
+    tmp_path: Path,
+):
+    skipped_path = _write_fixture(
+        tmp_path,
+        [_source_row(season=2025, gsis_id="")],
+        fetched_at="2026-01-02T00:00:00Z",
+    )
+
+    with pytest.raises(ValueError) as exc_info:
+        _load_synthetic(fixture_path=skipped_path)
+
+    message = str(exc_info.value)
+    assert "synthetic_truth_fixture_unavailable" in message
+    assert "0 usable" in message or "all-skipped" in message
+    assert "skipped_missing_gsis_id" in message
+    assert "contains zero rows" not in message
+
+
 def test_real_mode_live_path_lazily_loads_source_frame_and_maps_rows(monkeypatch):
     calls = _install_fake_nflreadpy(
         monkeypatch,
@@ -557,6 +588,18 @@ def test_real_mode_live_empty_source_raises_empty_truth_error(monkeypatch):
         _load_live()
 
 
+def test_real_mode_live_all_rows_skipped_raises_empty_truth_error(monkeypatch):
+    _install_fake_nflreadpy(monkeypatch, [_source_row(gsis_id="")])
+
+    with pytest.raises(bridge.NflreadrEmptyTruthError) as exc_info:
+        _load_live()
+
+    message = str(exc_info.value)
+    assert "0 usable" in message or "all-skipped" in message
+    assert "skipped_missing_gsis_id" in message
+    assert "contains zero rows" not in message
+
+
 def test_real_mode_live_missing_required_column_raises_schema_drift(monkeypatch):
     row = _source_row()
     row.pop("pick")
@@ -571,3 +614,19 @@ def test_real_mode_live_wrong_season_raises_source_contamination(monkeypatch):
 
     with pytest.raises(bridge.NflreadrSourceContaminationError):
         _load_live()
+
+
+def test_unknown_data_mode_fails_before_fixture_or_live_dispatch(
+    tmp_path: Path,
+    monkeypatch,
+):
+    fixture_path = tmp_path / "malformed_if_read.json"
+    fixture_path.write_text("not json", encoding="utf-8")
+    monkeypatch.delitem(sys.modules, "nflreadpy", raising=False)
+
+    with pytest.raises(ValueError, match="unknown data_mode"):
+        bridge.load_nflreadr_draft_truth(
+            2025,
+            data_mode="bogus",
+            fixture_path=fixture_path,
+        )

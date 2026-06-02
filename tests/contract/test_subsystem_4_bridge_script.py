@@ -12,6 +12,7 @@ from src.dynasty_genius.identity.college_prospect_identity import (
     CollegeProspectRegistry,
 )
 from src.dynasty_genius.identity.prospect_nfl_bridge import (
+    NflreadrEmptyTruthError,
     NflreadrSchemaDriftError,
     NflreadrTruthLoadResult,
     NflTruthLoadDiagnostics,
@@ -57,6 +58,36 @@ def _truth_result() -> NflreadrTruthLoadResult:
             ],
         ),
     )
+
+
+def _source_truth_row(**overrides):
+    row = {
+        "season": 2025,
+        "round": 1,
+        "pick": 12,
+        "team": "TEN",
+        "gsis_id": "00-script001",
+        "pfr_player_id": "SharTe00",
+        "pfr_player_name": "Shared Loader",
+        "position": "WR",
+        "college": "Test U",
+    }
+    row.update(overrides)
+    return row
+
+
+def _write_source_fixture(tmp_path: Path, rows: list[dict]) -> Path:
+    path = tmp_path / "truth_fixture.json"
+    path.write_text(
+        json.dumps(
+            {
+                "metadata": {"fetched_at": "2026-01-01T00:00:00Z"},
+                "rows": rows,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
 
 
 def test_bridge_script_uses_shared_truth_loader_not_private_broad_except():
@@ -120,6 +151,36 @@ def test_bridge_script_propagates_shared_loader_failures(monkeypatch, tmp_path: 
         )
 
     assert not (tmp_path / "prospect_nfl_coverage_2025_schema_drift.json").exists()
+
+
+def test_bridge_script_all_skipped_truth_source_fails_before_artifact_write(
+    tmp_path: Path,
+):
+    fixture_path = _write_source_fixture(tmp_path, [_source_truth_row(gsis_id="")])
+
+    with pytest.raises((NflreadrEmptyTruthError, ValueError)) as exc_info:
+        script.main(
+            [
+                "--identity-dir",
+                str(tmp_path),
+                "--draft-year",
+                "2025",
+                "--run-id",
+                "all_skipped",
+                "--nflreadr-fixture",
+                str(fixture_path),
+            ]
+        )
+
+    message = str(exc_info.value)
+    assert "0 usable" in message or "all-skipped" in message
+    assert not (tmp_path / "prospect_nfl_coverage_2025_all_skipped.json").exists()
+    assert not (
+        tmp_path / "prospect_nfl_review_queue_2025_all_skipped.jsonl"
+    ).exists()
+    assert not (
+        tmp_path / "prospect_nfl_unmatched_udfa_candidates_2025_all_skipped.jsonl"
+    ).exists()
 
 
 def test_bridge_script_surfaces_shared_loader_rows_and_diagnostics(
