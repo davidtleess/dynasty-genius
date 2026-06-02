@@ -1444,6 +1444,221 @@ def _compute_bridge_coverage(
     }
 
 
+class BacktestAPreflightCheck(BaseModel):
+    """One input-readiness check (§11.2b). Descriptive/diagnostic — not decision-grade."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    status: Literal["ok", "blocked", "not_checked"]
+    detail: str
+
+
+class BacktestAPreflightReport(BaseModel):
+    """Backtest-A input-readiness report (§11.2b). DESCRIPTIVE / DIAGNOSTIC ONLY — it
+    reports input presence + selection-bias prerequisites; it does NOT validate model
+    predictions or market divergence and is NOT decision-grade clearance. ``ready`` is
+    input-readiness only and never a run guarantee (the live truth fetch is not probed;
+    run-time-only consensus coverage is excluded). No decision-grade field by contract.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    ready: bool
+    checks: list[BacktestAPreflightCheck]
+    blocking_reasons: list[str]
+    confirmed_class_unbridged_count: int
+    confirmed_class_unbridged_uuids: list[str]
+    orphan_bridges_detected: list[dict]
+    ingest_summary: dict
+
+
+def preflight_backtest_a_inputs(
+    snapshots_dir: Path,
+    identity_dir: Path,
+    draft_year: int,
+    *,
+    override_draft_date: Optional[str] = None,
+    include_untrusted: bool = False,
+    run_id: Optional[str] = None,
+    output_root: Optional[Path] = None,
+) -> BacktestAPreflightReport:
+    """§11.2b read-only input-readiness preflight for Backtest-A (diagnostic-only).
+
+    NO aggregate/join/metrics/write. Checks accumulate (one pass, all issues). ``ready``
+    means input-ready EXCLUDING the live nflreadpy truth fetch (which fails loud at
+    run-time, never preflighted) and EXCLUDING run-time-only consensus coverage. Not
+    decision-grade.
+    """
+    from src.dynasty_genius.identity.college_prospect_identity import load_registry
+    from src.dynasty_genius.identity.prospect_nfl_bridge import load_bridge
+
+    snapshots_dir = Path(snapshots_dir)
+    identity_dir = Path(identity_dir)
+    checks: list[BacktestAPreflightCheck] = []
+    blocking: list[str] = []
+    confirmed_class_unbridged_count = 0
+    confirmed_class_unbridged_uuids: list[str] = []
+    orphan_bridges_detected: list[dict] = []
+    ingest_summary: dict = {
+        "snapshot_files": 0,
+        "schema_invalid": 0,
+        "normalized_picks": 0,
+        "draft_date_resolved": False,
+    }
+
+    def _add(name: str, status: str, detail: str) -> None:
+        checks.append(BacktestAPreflightCheck(name=name, status=status, detail=detail))
+
+    # --- (1) presence: missing AND zero-byte, BEFORE the no-op loaders ---
+    snapshot_files = (
+        sorted(snapshots_dir.rglob("*.json")) if snapshots_dir.exists() else []
+    )
+    presence_reasons: list[str] = []
+    if not snapshots_dir.exists() or not snapshot_files:
+        presence_reasons.append("snapshots_dir_missing_or_empty")
+    bridge_path = _find_bridge_artifact(identity_dir, draft_year)
+    if bridge_path is None or not bridge_path.exists():
+        presence_reasons.append("bridge_missing")
+    elif bridge_path.stat().st_size == 0:
+        presence_reasons.append("bridge_zero_byte")
+    registry_path = identity_dir / "college_prospect_registry.json"
+    if not registry_path.exists():
+        presence_reasons.append("registry_missing")
+    elif registry_path.stat().st_size == 0:
+        presence_reasons.append("registry_zero_byte")
+
+    if presence_reasons:
+        blocking.extend(presence_reasons)
+        _add("presence", "blocked", "; ".join(presence_reasons))
+        for name in ("ingest", "alignment", "static_coverage"):
+            _add(name, "not_checked", "skipped: input presence blocked")
+    else:
+        _add("presence", "ok", "snapshots, bridge, and registry present and non-empty")
+        registry = load_registry(registry_path)
+        bridge = load_bridge(bridge_path)
+
+        # --- (2) ingest: per-file schema scan + read-only dry ingest ---
+        schema_invalid = 0
+        for snap in snapshot_files:
+            try:
+                MockSnapshot.model_validate(json.loads(snap.read_text(encoding="utf-8")))
+            except Exception:  # noqa: BLE001 — any parse/validation failure = schema-invalid
+                schema_invalid += 1
+        normalized_picks, coverage = ingest_snapshots(
+            snapshots_dir,
+            s3_registry=registry,
+            draft_date=override_draft_date,
+            include_untrusted=include_untrusted,
+            override_date=override_draft_date,
+            override_reason=(
+                "preflight_readiness_check" if override_draft_date else None
+            ),
+        )
+        draft_date_resolved = (
+            override_draft_date is not None
+            or coverage.get("draft_date_source") != "no_snapshots"
+        )
+        ingest_summary = {
+            "snapshot_files": len(snapshot_files),
+            "schema_invalid": schema_invalid,
+            "normalized_picks": len(normalized_picks),
+            "draft_date_resolved": draft_date_resolved,
+        }
+        ingest_reasons: list[str] = []
+        if not normalized_picks:
+            ingest_reasons.append("ingest_zero_usable_picks")
+        if not draft_date_resolved:
+            ingest_reasons.append("ingest_draft_date_unresolved")
+        if ingest_reasons:
+            blocking.extend(ingest_reasons)
+            _add("ingest", "blocked", "; ".join(ingest_reasons))
+        else:
+            _add(
+                "ingest",
+                "ok",
+                f"{len(normalized_picks)} normalized pick(s); draft date resolved",
+            )
+
+        # --- (3) alignment: bridge draft_year + confirmed registry universe ---
+        alignment_reasons: list[str] = []
+        bridge_year = bridge.metadata.get("draft_year")
+        if bridge_year != draft_year:
+            alignment_reasons.append(
+                f"bridge_draft_year_mismatch:{bridge_year}!={draft_year}"
+            )
+        confirmed_for_year = [
+            e
+            for e in registry.entries.values()
+            if e.draft_class == draft_year and e.verification_status == "confirmed"
+        ]
+        if not confirmed_for_year:
+            alignment_reasons.append("no_confirmed_registry_entries")
+        if alignment_reasons:
+            blocking.extend(alignment_reasons)
+            _add("alignment", "blocked", "; ".join(alignment_reasons))
+        else:
+            _add(
+                "alignment",
+                "ok",
+                "bridge draft_year matches; registry has confirmed entries",
+            )
+
+        # --- (4) static §11.2 coverage (consensus_unbridged is run-time-only) ---
+        cov = _confirmed_class_selection_bias(registry, bridge, draft_year)
+        confirmed_class_unbridged_count = cov["confirmed_class_unbridged_count"]
+        confirmed_class_unbridged_uuids = cov["confirmed_class_unbridged_uuids"]
+        orphan_bridges_detected = cov["orphan_bridges_detected"]
+        coverage_reasons: list[str] = []
+        if confirmed_class_unbridged_count > 0:
+            coverage_reasons.append("confirmed_class_unbridged")
+        if orphan_bridges_detected:
+            coverage_reasons.append("orphan_bridges_detected")
+        if coverage_reasons:
+            blocking.extend(coverage_reasons)
+            _add("static_coverage", "blocked", "; ".join(coverage_reasons))
+        else:
+            _add(
+                "static_coverage",
+                "ok",
+                "no unbridged confirmed prospects or orphan bridges (consensus is run-time)",
+            )
+
+    # --- (5) output collision: not_checked unless BOTH run_id + output_root ---
+    if run_id is not None and output_root is not None:
+        artifact = Path(output_root) / run_id / "backtest_a_result.json"
+        if artifact.exists():
+            blocking.append("output_collision")
+            _add("output_collision", "blocked", f"artifact already exists: {artifact}")
+        else:
+            _add("output_collision", "ok", "no existing artifact at the run output path")
+    else:
+        _add(
+            "output_collision",
+            "not_checked",
+            "run_id and output_root not both provided",
+        )
+
+    # --- (6) live truth source: never probed (fails loud at run-time) ---
+    _add(
+        "live_truth_source",
+        "not_checked",
+        "live nflreadpy draft-truth fetch is not probed; it fails loud at run-time. "
+        "'ready' is input-readiness only and excludes the live truth fetch.",
+    )
+
+    ready = all(check.status != "blocked" for check in checks)
+    return BacktestAPreflightReport(
+        ready=ready,
+        checks=checks,
+        blocking_reasons=blocking,
+        confirmed_class_unbridged_count=confirmed_class_unbridged_count,
+        confirmed_class_unbridged_uuids=confirmed_class_unbridged_uuids,
+        orphan_bridges_detected=orphan_bridges_detected,
+        ingest_summary=ingest_summary,
+    )
+
+
 def run_backtest_a(
     *,
     snapshots_dir: Path,
