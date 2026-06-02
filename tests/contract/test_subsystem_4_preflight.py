@@ -1,6 +1,7 @@
 """Subsystem 4 Backtest-A input-readiness preflight contract tests."""
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 from typing import get_args, get_origin
@@ -201,6 +202,16 @@ def _snapshot_tree(root: Path) -> set[tuple[str, str]]:
         for path in root.rglob("*")
         if path.is_file()
     }
+
+
+def _preflight_cli_module():
+    path = Path("scripts/preflight_backtest_a.py")
+    spec = importlib.util.spec_from_file_location("preflight_backtest_a_cli", path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_preflight_report_model_contract():
@@ -501,3 +512,147 @@ def test_preflight_is_read_only(tmp_path: Path):
     }
     assert before == after
     assert report.ready is True
+
+
+def test_preflight_cli_prints_descriptive_report_and_exits_zero_when_ready(
+    tmp_path: Path,
+    capsys,
+):
+    cli = _preflight_cli_module()
+    snapshots_dir, identity_dir = _write_ready_inputs(tmp_path)
+
+    exit_code = cli.main([
+        "--snapshots-dir",
+        str(snapshots_dir),
+        "--identity-dir",
+        str(identity_dir),
+        "--draft-year",
+        "2025",
+        "--override-draft-date",
+        "2025-04-24",
+    ])
+
+    stdout = capsys.readouterr().out
+    assert exit_code == 0
+    assert "DESCRIPTIVE / DIAGNOSTIC — not decision-grade. No edge claim." in stdout
+    assert (
+        "Preflight checks INPUT READINESS only (file presence, schema validation, "
+        "and selection-bias gate prerequisites). It does NOT validate model "
+        "predictions, market divergence, or represent decision-grade clearance."
+    ) in stdout
+    assert "checks" in stdout
+    assert "presence" in stdout
+    assert "ok" in stdout
+    assert "blocking_reasons" in stdout
+    assert "confirmed_class_unbridged_count" in stdout
+    assert "confirmed_class_unbridged_uuids" in stdout
+    assert "orphan_bridges_detected" in stdout
+    assert "ingest_summary" in stdout
+    assert "normalized_picks" in stdout
+    assert "live_truth_source" in stdout
+    assert "not_checked" in stdout
+
+
+def test_preflight_cli_exits_nonzero_and_prints_blocked_report(
+    tmp_path: Path,
+    capsys,
+):
+    cli = _preflight_cli_module()
+    snapshots_dir, identity_dir = _write_ready_inputs(tmp_path)
+    missing_snapshots = snapshots_dir.parent / "missing_snapshots"
+
+    exit_code = cli.main([
+        "--snapshots-dir",
+        str(missing_snapshots),
+        "--identity-dir",
+        str(identity_dir),
+        "--draft-year",
+        "2025",
+        "--override-draft-date",
+        "2025-04-24",
+    ])
+
+    stdout = capsys.readouterr().out
+    assert exit_code != 0
+    assert "DESCRIPTIVE / DIAGNOSTIC — not decision-grade. No edge claim." in stdout
+    assert "blocked" in stdout
+    assert "blocking_reasons" in stdout
+    assert "snapshots_dir_missing_or_empty" in stdout
+
+
+def test_preflight_cli_passes_include_untrusted_flag(monkeypatch, tmp_path: Path):
+    cli = _preflight_cli_module()
+    captured = {}
+
+    def fake_preflight(
+        snapshots_dir,
+        identity_dir,
+        draft_year,
+        *,
+        override_draft_date=None,
+        include_untrusted=False,
+        run_id=None,
+        output_root=None,
+    ):
+        captured.update(
+            {
+                "snapshots_dir": Path(snapshots_dir),
+                "identity_dir": Path(identity_dir),
+                "draft_year": draft_year,
+                "override_draft_date": override_draft_date,
+                "include_untrusted": include_untrusted,
+                "run_id": run_id,
+                "output_root": Path(output_root),
+            }
+        )
+        return bmd.BacktestAPreflightReport(
+            ready=True,
+            checks=[
+                bmd.BacktestAPreflightCheck(
+                    name="presence",
+                    status="ok",
+                    detail="captured",
+                )
+            ],
+            blocking_reasons=[],
+            confirmed_class_unbridged_count=0,
+            confirmed_class_unbridged_uuids=[],
+            orphan_bridges_detected=[],
+            ingest_summary={
+                "snapshot_files": 1,
+                "schema_invalid": 0,
+                "normalized_picks": 1,
+                "draft_date_resolved": True,
+            },
+        )
+
+    monkeypatch.setattr(cli, "preflight_backtest_a_inputs", fake_preflight)
+    snapshots_dir = tmp_path / "snapshots"
+    identity_dir = tmp_path / "identity"
+    output_root = tmp_path / "runs"
+
+    assert cli.main([
+        "--snapshots-dir",
+        str(snapshots_dir),
+        "--identity-dir",
+        str(identity_dir),
+        "--draft-year",
+        "2025",
+        "--override-draft-date",
+        "2025-04-24",
+        "--include-untrusted",
+        "--run-id",
+        "preflight_cli",
+        "--output-root",
+        str(output_root),
+    ]) == 0
+
+    assert captured == {
+        "snapshots_dir": snapshots_dir,
+        "identity_dir": identity_dir,
+        "draft_year": 2025,
+        "override_draft_date": "2025-04-24",
+        "include_untrusted": True,
+        "run_id": "preflight_cli",
+        "output_root": output_root,
+    }
