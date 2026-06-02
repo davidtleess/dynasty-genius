@@ -29,7 +29,7 @@ def _runner_module():
 def _write_frozen_stack(root: Path) -> None:
     frozen_dir = root / "_frozen_2025"
     frozen_dir.mkdir(parents=True)
-    (frozen_dir / "cfbd_roster_2025.json").write_text(
+    (frozen_dir / "cfbd_roster_2024.json").write_text(
         json.dumps(
             [
                 {
@@ -72,14 +72,14 @@ def _write_frozen_stack(root: Path) -> None:
                 "cfbd_roster": {
                     "source_snapshot_id": {
                         "retrieval_timestamp": "2026-06-02T20:14:35Z",
-                        "endpoint": "/roster?year=2025",
+                        "endpoint": "/roster?year=2024",
                         "api_version": "v2",
                         "sha256": "cfbdhash",
                         "row_count": 1,
                     },
                     "source_snapshot_id_str": (
-                        "cfbd_roster_2025:2026-06-02T20:14:35Z:"
-                        "/roster?year=2025:v2:cfbdhash:1"
+                        "cfbd_roster_2024:2026-06-02T20:14:35Z:"
+                        "/roster?year=2024:v2:cfbdhash:1"
                     ),
                 }
             }
@@ -101,8 +101,8 @@ def _fake_builder(calls: list[dict]):
                     "raw_name": "Alias Receiver",
                     "cfbd_athlete_id": "101",
                     "source_snapshot_id": (
-                        "cfbd_roster_2025:2026-06-02T20:14:35Z:"
-                        "/roster?year=2025:v2:cfbdhash:1"
+                        "cfbd_roster_2024:2026-06-02T20:14:35Z:"
+                        "/roster?year=2024:v2:cfbdhash:1"
                     ),
                 }
             ],
@@ -159,8 +159,8 @@ def test_build_runner_loads_frozen_stack_invokes_builder_and_writes_only_fixture
             "raw_name": "Alias Receiver",
             "cfbd_athlete_id": "101",
             "source_snapshot_id": (
-                "cfbd_roster_2025:2026-06-02T20:14:35Z:"
-                "/roster?year=2025:v2:cfbdhash:1"
+                "cfbd_roster_2024:2026-06-02T20:14:35Z:"
+                "/roster?year=2024:v2:cfbdhash:1"
             ),
         }
     ]

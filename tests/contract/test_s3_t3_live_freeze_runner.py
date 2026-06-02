@@ -44,7 +44,7 @@ class FakeHttpClient:
     def __init__(self):
         self.calls: list[dict] = []
         self.payloads = {
-            ("/roster", (("year", 2025),)): [
+            ("/roster", (("year", 2024),)): [
                 {
                     "id": "184812",
                     "firstName": "Fcs",
@@ -53,7 +53,7 @@ class FakeHttpClient:
                     "team": "Cal Poly",
                 }
             ],
-            ("/roster", (("team", "Cal Poly"), ("year", 2025))): [
+            ("/roster", (("team", "Cal Poly"), ("year", 2024))): [
                 {
                     "id": "184812",
                     "firstName": "Fcs",
@@ -62,7 +62,7 @@ class FakeHttpClient:
                     "team": "Cal Poly",
                 }
             ],
-            ("/teams", (("year", 2025),)): [
+            ("/teams", (("year", 2024),)): [
                 {"school": "Cal Poly", "classification": "fcs"},
                 {"school": "Georgia", "classification": "fbs"},
             ],
@@ -130,9 +130,9 @@ def test_cfbd_client_uses_bearer_auth_year_roster_and_full_teams_endpoint():
     http_client = FakeHttpClient()
     client = module.CFBDClient(api_key="test-key", http_client=http_client)
 
-    roster = client.get_roster(year=2025)
-    team_roster = client.get_roster(year=2025, team="Cal Poly")
-    teams = client.list_teams(year=2025)
+    roster = client.get_roster(year=2024)
+    team_roster = client.get_roster(year=2024, team="Cal Poly")
+    teams = client.list_teams(year=2024)
 
     assert roster[0]["team"] == "Cal Poly"
     assert team_roster[0]["id"] == "184812"
@@ -142,9 +142,9 @@ def test_cfbd_client_uses_bearer_auth_year_roster_and_full_teams_endpoint():
         "/roster",
         "/teams",
     ]
-    assert http_client.calls[0]["params"] == {"year": 2025}
-    assert http_client.calls[1]["params"] == {"year": 2025, "team": "Cal Poly"}
-    assert http_client.calls[2]["params"] == {"year": 2025}
+    assert http_client.calls[0]["params"] == {"year": 2024}
+    assert http_client.calls[1]["params"] == {"year": 2024, "team": "Cal Poly"}
+    assert http_client.calls[2]["params"] == {"year": 2024}
     assert "/teams/fbs" not in {call["path"] for call in http_client.calls}
     assert all(
         call["headers"]["Authorization"] == "Bearer test-key"
@@ -159,7 +159,8 @@ def test_run_t3_freeze_wires_live_sources_and_writes_only_frozen_inputs(tmp_path
 
     manifest = module.run_t3_freeze_2025(
         output_root=tmp_path,
-        year=2025,
+        roster_year=2024,
+        draft_year=2025,
         api_key="test-key",
         retrieval_timestamp=FIXED_TS,
         http_client=http_client,
@@ -172,7 +173,7 @@ def test_run_t3_freeze_wires_live_sources_and_writes_only_frozen_inputs(tmp_path
     assert {
         path.name for path in frozen_dir.iterdir() if path.is_file()
     } == {
-        "cfbd_roster_2025.json",
+        "cfbd_roster_2024.json",
         "nflverse_draft_picks_2025_pin.json",
         "ff_playerids_pin.json",
         "udfa_sources_manifest.json",
@@ -181,7 +182,7 @@ def test_run_t3_freeze_wires_live_sources_and_writes_only_frozen_inputs(tmp_path
     assert not (tmp_path / "2025_fantasy_prospects.json").exists()
     assert not (tmp_path / "2025_review_queue.json").exists()
 
-    raw_roster = json.loads((frozen_dir / "cfbd_roster_2025.json").read_text())
+    raw_roster = json.loads((frozen_dir / "cfbd_roster_2024.json").read_text())
     draft_pin = json.loads(
         (frozen_dir / "nflverse_draft_picks_2025_pin.json").read_text()
     )
@@ -197,11 +198,11 @@ def test_run_t3_freeze_wires_live_sources_and_writes_only_frozen_inputs(tmp_path
         "Spotrac 2025 undrafted database",
     }
     assert manifest["cfbd_roster"]["source_snapshot_id"]["endpoint"] == (
-        "/roster?year=2025"
+        "/roster?year=2024"
     )
     assert manifest["cfbd_roster"]["source_snapshot_id"]["row_count"] == 1
     assert manifest["cfbd_roster"]["source_snapshot_id_str"].startswith(
-        f"cfbd_roster_2025:{FIXED_TS}:/roster?year=2025:v2:"
+        f"cfbd_roster_2024:{FIXED_TS}:/roster?year=2024:v2:"
     )
     assert nflreadpy_calls == [
         ("load_draft_picks", [2025]),
@@ -217,7 +218,8 @@ def test_run_t3_freeze_requires_cfbd_api_key(tmp_path: Path, monkeypatch):
     with pytest.raises(RuntimeError, match="CFBD_API_KEY"):
         module.run_t3_freeze_2025(
             output_root=tmp_path,
-            year=2025,
+            roster_year=2024,
+            draft_year=2025,
             retrieval_timestamp=FIXED_TS,
             http_client=FakeHttpClient(),
             nflreadpy_module=_fake_nflreadpy([]),

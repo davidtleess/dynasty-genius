@@ -47,8 +47,9 @@ SCHOOL_ALIASES: dict[str, str] = {
 }
 
 # Frozen-file name <-> frozen_inputs dict key (the keys build_2025_prospect_fixture expects).
+# `cfbd_roster` is NOT here: its artifact is roster_year-qualified (`cfbd_roster_{roster_year}.json`,
+# e.g. cfbd_roster_2024.json per spec §2 year decoupling), so it is derived by glob, not a fixed name.
 _FROZEN_FILES: dict[str, str] = {
-    "cfbd_roster": "cfbd_roster_2025.json",
     "nflverse_draft_picks": "nflverse_draft_picks_2025_pin.json",
     "ff_playerids": "ff_playerids_pin.json",
     "udfa_sources": "udfa_sources_manifest.json",
@@ -81,6 +82,19 @@ def build_2025_fixture_from_frozen(
 
     # Load ALL frozen inputs first (a missing file raises here, before any write).
     frozen_inputs: dict[str, Any] = {}
+    # cfbd_roster: roster_year-qualified artifact (cfbd_roster_{roster_year}.json) — derived by
+    # glob, not a hardcoded year (spec §2 year decoupling; the registry/draft year stays 2025).
+    roster_matches = sorted(frozen_dir.glob("cfbd_roster_*.json"))
+    if not roster_matches:
+        raise FileNotFoundError(
+            f"required frozen input missing: {frozen_dir / 'cfbd_roster_*.json'}"
+        )
+    if len(roster_matches) > 1:
+        raise ValueError(
+            f"ambiguous CFBD roster artifacts in {frozen_dir}: "
+            f"{[p.name for p in roster_matches]}"
+        )
+    frozen_inputs["cfbd_roster"] = json.loads(roster_matches[0].read_text(encoding="utf-8"))
     for key, filename in _FROZEN_FILES.items():
         path = frozen_dir / filename
         if not path.exists():

@@ -7,8 +7,10 @@ Wires a live CFBD client + nflreadpy loaders into the cleared, pure freeze core
 **T3 FREEZE ONLY.** This runner does NOT build the 2025 prospect fixture or any review
 queue (that is T4, kept separate and gated for David's inspection of the frozen pull).
 
-Probe-confirmed API shape (read-only `scripts/probe_cfbd_api.py`, 2026-06-02): live
-`/roster?year=2025` returns ALL teams in one call (315 teams, incl. FCS) — so the freeze
+Year decoupling (spec §2): `roster_year` (= `draft_year - 1` = 2024 for the 2025 class)
+drives the CFBD `/roster` pull; `draft_year` (2025) drives `load_draft_picks`/UDFA + the
+`_frozen_{draft_year}/` dir. Probe-confirmed API shape (read-only `scripts/probe_cfbd_api.py`,
+2026-06-02): live `/roster?year=` returns ALL teams in one call (incl. FCS) — so the freeze
 core's primary all-team path is used and the per-team fallback does not trigger. The
 fallback's team list uses `/teams` (all divisions, incl. FCS), NOT `/teams/fbs`.
 
@@ -79,17 +81,21 @@ def _load_freeze_core() -> Any:
 def run_t3_freeze_2025(
     *,
     output_root: Path,
-    year: int,
+    roster_year: int,
+    draft_year: int,
     retrieval_timestamp: str,
     http_client: Any,
     nflreadpy_module: Any,
     api_key: str | None = None,
     print_summary: bool = True,
 ) -> dict:
-    """Freeze the live 2025 source stack into ``_frozen_2025/``; return the manifest.
+    """Freeze the live source stack into ``_frozen_{draft_year}/``; return the manifest.
 
-    Fail-closed: raises ``RuntimeError`` if no ``api_key`` arg and no ``CFBD_API_KEY`` env.
-    T3 only — never builds the T4 fixture/review queue.
+    Spec §2 year decoupling: ``roster_year`` (= ``draft_year - 1``) drives the CFBD
+    ``/roster`` pull + ``cfbd_roster_{roster_year}`` artifact; ``draft_year`` drives
+    ``load_draft_picks`` + the registry class + the frozen dir. Fail-closed: raises
+    ``RuntimeError`` if no ``api_key`` arg and no ``CFBD_API_KEY`` env. T3 only — never
+    builds the T4 fixture/review queue.
     """
     key = api_key or os.getenv("CFBD_API_KEY")
     if not key:
@@ -109,7 +115,8 @@ def run_t3_freeze_2025(
     freeze = _load_freeze_core()
     manifest = freeze.freeze_2025_prospect_sources(
         output_root=Path(output_root),
-        year=year,
+        roster_year=roster_year,
+        draft_year=draft_year,
         retrieval_timestamp=retrieval_timestamp,
         cfbd_client=cfbd_client,
         draft_picks_loader=draft_picks_loader,
@@ -119,7 +126,7 @@ def run_t3_freeze_2025(
 
     if print_summary:
         # Bounded summary for David's inspection — counts/hashes/endpoints, NEVER the key.
-        print(f"T3 freeze complete -> {Path(output_root) / '_frozen_2025'}")
+        print(f"T3 freeze complete -> {Path(output_root) / f'_frozen_{draft_year}'}")
         for source, entry in manifest.items():
             sid = entry["source_snapshot_id"]
             print(
@@ -140,7 +147,8 @@ def main(argv: list[str] | None = None) -> int:
     with httpx.Client() as client:
         run_t3_freeze_2025(
             output_root=output_root,
-            year=2025,
+            roster_year=2024,
+            draft_year=2025,
             retrieval_timestamp=retrieval_timestamp,
             http_client=client,
             nflreadpy_module=nflreadpy,

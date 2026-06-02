@@ -108,7 +108,8 @@ def test_freeze_2025_sources_writes_raw_inputs_manifest_and_hashes(tmp_path: Pat
 
     manifest = module.freeze_2025_prospect_sources(
         output_root=output_root,
-        year=2025,
+        roster_year=2024,
+        draft_year=2025,
         retrieval_timestamp=FIXED_RETRIEVAL_TS,
         cfbd_client=cfbd_client,
         draft_picks_loader=lambda year: _draft_picks_payload(),
@@ -121,7 +122,7 @@ def test_freeze_2025_sources_writes_raw_inputs_manifest_and_hashes(tmp_path: Pat
     assert {
         path.name for path in frozen_dir.iterdir() if path.is_file()
     } == {
-        "cfbd_roster_2025.json",
+        "cfbd_roster_2024.json",
         "nflverse_draft_picks_2025_pin.json",
         "ff_playerids_pin.json",
         "udfa_sources_manifest.json",
@@ -133,7 +134,7 @@ def test_freeze_2025_sources_writes_raw_inputs_manifest_and_hashes(tmp_path: Pat
         if path.is_file()
     )
 
-    raw_cfbd = json.loads((frozen_dir / "cfbd_roster_2025.json").read_text())
+    raw_cfbd = json.loads((frozen_dir / "cfbd_roster_2024.json").read_text())
     draft_pin = json.loads(
         (frozen_dir / "nflverse_draft_picks_2025_pin.json").read_text()
     )
@@ -156,13 +157,13 @@ def test_freeze_2025_sources_writes_raw_inputs_manifest_and_hashes(tmp_path: Pat
 
     assert manifest["cfbd_roster"]["source_snapshot_id"] == {
         "retrieval_timestamp": FIXED_RETRIEVAL_TS,
-        "endpoint": "/roster?year=2025",
+        "endpoint": "/roster?year=2024",
         "api_version": "v2",
         "sha256": expected_cfbd_hash,
         "row_count": 2,
     }
     assert manifest["cfbd_roster"]["source_snapshot_id_str"] == (
-        f"cfbd_roster_2025:{FIXED_RETRIEVAL_TS}:/roster?year=2025:"
+        f"cfbd_roster_2024:{FIXED_RETRIEVAL_TS}:/roster?year=2024:"
         f"v2:{expected_cfbd_hash}:2"
     )
     assert manifest["nflverse_draft_picks"]["source_snapshot_id"] == {
@@ -198,7 +199,7 @@ def test_freeze_2025_sources_writes_raw_inputs_manifest_and_hashes(tmp_path: Pat
         f"udfa_sources_2025:{FIXED_RETRIEVAL_TS}:udfa_source_manifest:"
         f"manual_urls:{expected_udfa_hash}:2"
     )
-    assert cfbd_client.roster_calls == [{"year": 2025, "team": None}]
+    assert cfbd_client.roster_calls == [{"year": 2024, "team": None}]
 
 
 def test_freeze_2025_sources_uses_per_team_fallback_when_all_team_roster_empty(
@@ -232,7 +233,8 @@ def test_freeze_2025_sources_uses_per_team_fallback_when_all_team_roster_empty(
 
     manifest = module.freeze_2025_prospect_sources(
         output_root=output_root,
-        year=2025,
+        roster_year=2024,
+        draft_year=2025,
         retrieval_timestamp=FIXED_RETRIEVAL_TS,
         cfbd_client=cfbd_client,
         draft_picks_loader=lambda year: _draft_picks_payload(),
@@ -241,13 +243,13 @@ def test_freeze_2025_sources_uses_per_team_fallback_when_all_team_roster_empty(
     )
 
     frozen_dir = output_root / "_frozen_2025"
-    raw_cfbd = json.loads((frozen_dir / "cfbd_roster_2025.json").read_text())
+    raw_cfbd = json.loads((frozen_dir / "cfbd_roster_2024.json").read_text())
 
-    assert cfbd_client.team_calls == [2025]
+    assert cfbd_client.team_calls == [2024]
     assert cfbd_client.roster_calls == [
-        {"year": 2025, "team": None},
-        {"year": 2025, "team": "Miami"},
-        {"year": 2025, "team": "Ole Miss"},
+        {"year": 2024, "team": None},
+        {"year": 2024, "team": "Miami"},
+        {"year": 2024, "team": "Ole Miss"},
     ]
     assert raw_cfbd == [
         {
@@ -266,11 +268,11 @@ def test_freeze_2025_sources_uses_per_team_fallback_when_all_team_roster_empty(
         },
     ]
     assert manifest["cfbd_roster"]["source_snapshot_id"]["endpoint"] == (
-        "/roster?year=2025&team=*"
+        "/roster?year=2024&team=*"
     )
     assert manifest["cfbd_roster"]["source_snapshot_id"]["row_count"] == 2
     cfbd_hash = _canonical_sha256(module, raw_cfbd)
     assert manifest["cfbd_roster"]["source_snapshot_id_str"] == (
-        f"cfbd_roster_2025:{FIXED_RETRIEVAL_TS}:/roster?year=2025&team=*:"
+        f"cfbd_roster_2024:{FIXED_RETRIEVAL_TS}:/roster?year=2024&team=*:"
         f"v2:{cfbd_hash}:2"
     )
