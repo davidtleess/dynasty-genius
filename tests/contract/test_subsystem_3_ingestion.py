@@ -3,7 +3,11 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+import sys
 from pathlib import Path
+
+import pytest
 
 from src.dynasty_genius.identity.college_prospect_identity import (
     CollegeAliasBridge,
@@ -444,6 +448,85 @@ def test_ingest_fixture_coverage_matrix_includes_source_id_conflict_count(
     assert coverage["source_id_conflict"] == 0
     assert coverage["total_input_rows"] == 2
     assert result.exit_code == 0
+
+
+def test_ingest_fixture_accepts_task10a_bare_list_fixture_and_mints_79_rows(
+    tmp_path: Path,
+):
+    fixture_path = Path("resources/prospect_fixtures/2025_fantasy_prospects.json")
+    assert fixture_path.exists(), "Task 10A fixture must be committed before Task-4 ingest"
+
+    result = ingest_fixture(
+        fixture_path=fixture_path,
+        identity_dir=tmp_path / "out",
+        run_id="manual_2025_contract",
+    )
+
+    registry = load_registry(tmp_path / "out" / "college_prospect_registry.json")
+    coverage = json.loads(
+        (tmp_path / "out" / "college_identity_coverage_matrix_manual_2025_contract.json")
+        .read_text()
+    )
+    assert result.exit_code == 0
+    assert coverage["total_input_rows"] == 79
+    assert (
+        coverage["minted_new"]
+        + coverage["minted_new_with_surfaced_candidates"]
+        == 79
+    )
+    assert len(registry.entries) == 79
+    assert {entry.verification_status for entry in registry.entries.values()} == {
+        "provisional"
+    }
+
+
+def test_ingest_fixture_malformed_top_level_fixture_shape_fails_before_writes(
+    tmp_path: Path,
+):
+    fixture_path = tmp_path / "bad_fixture.json"
+    fixture_path.write_text(json.dumps({"metadata": {"snapshot_id": "missing_entries"}}))
+    out_dir = tmp_path / "out"
+
+    try:
+        with pytest.raises(ValueError, match="entries"):
+            ingest_fixture(
+                fixture_path=fixture_path,
+                identity_dir=out_dir,
+                run_id="bad_shape",
+            )
+    except AttributeError as exc:
+        pytest.fail(f"malformed top-level fixture shape must not crash with {exc!r}")
+
+    assert not (out_dir / "college_prospect_registry.json").exists()
+    assert not (out_dir / "college_identity_coverage_matrix_bad_shape.json").exists()
+
+
+def test_ingest_college_prospect_fixture_cli_runs_from_repo_root(tmp_path: Path):
+    fixture_path = tmp_path / "fixture.json"
+    fixture_path.write_text(json.dumps([_row("Cli Runner", sid="cli_001").model_dump()]))
+    out_dir = tmp_path / "out"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/ingest_college_prospect_fixture.py",
+            "--fixture",
+            str(fixture_path),
+            "--identity-dir",
+            str(out_dir),
+            "--run-id",
+            "cli_contract",
+        ],
+        cwd=Path.cwd(),
+        env={},
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    registry = load_registry(out_dir / "college_prospect_registry.json")
+    assert len(registry.entries) == 1
 
 
 def test_ingest_fixture_handles_missing_fixture_file(tmp_path: Path):

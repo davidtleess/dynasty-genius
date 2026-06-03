@@ -899,7 +899,17 @@ def ingest_fixture(
     if not fixture_text.strip():
         return IngestResult(exit_code=0, run_id=run_id, coverage=empty_coverage)
     raw = json.loads(fixture_text)
-    entries_raw = raw.get("entries", [])
+    # Accept the Task-10A bare-list fixture (spec §3) OR the legacy {metadata, entries:[...]}
+    # wrapper (Subsystem-3 tests); reject any other top-level shape BEFORE any write (fail-closed).
+    if isinstance(raw, list):
+        entries_raw = raw
+    elif isinstance(raw, dict) and isinstance(raw.get("entries"), list):
+        entries_raw = raw["entries"]
+    else:
+        raise ValueError(
+            "fixture must be a bare JSON list of rows (Task-10A, spec §3) or an object with "
+            f"an 'entries' list (legacy Subsystem-3); got top-level {type(raw).__name__}"
+        )
 
     registry_path = identity_dir / "college_prospect_registry.json"
     bridge_path = identity_dir / "college_alias_bridge.json"

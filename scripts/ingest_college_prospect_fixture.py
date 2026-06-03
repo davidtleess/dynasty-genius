@@ -14,6 +14,9 @@ import argparse
 import sys
 from pathlib import Path
 
+# Ensure the repo root is importable when invoked directly from the repo root.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from src.dynasty_genius.identity.college_prospect_identity import ingest_fixture
 
 
