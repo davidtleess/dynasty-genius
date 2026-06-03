@@ -390,6 +390,36 @@
     "notes": null
   },
   {
+    "raw_name": "Luther Burden III",
+    "normalized_name": "luther burden iii",
+    "full_name": "Luther Burden III",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Missouri",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4685278",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4685278",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4685278"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
     "raw_name": "Tyler Shough",
     "normalized_name": "tyler shough",
     "full_name": "Tyler Shough",
@@ -591,6 +621,36 @@
       "cfbd_athlete_id": {
         "source": "CFBD /roster v2",
         "source_record_id": "4568490"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Harold Fannin Jr.",
+    "normalized_name": "harold fannin jr",
+    "full_name": "Harold Fannin Jr.",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Bowling Green",
+    "prior_schools": [],
+    "cfbd_athlete_id": "5083076",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "5083076",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "5083076"
       },
       "cfb_player_id": null,
       "pfr_id": null,
@@ -951,6 +1011,36 @@
       "cfbd_athlete_id": {
         "source": "CFBD /roster v2",
         "source_record_id": "4696981"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Dont'e Thornton Jr.",
+    "normalized_name": "donte thornton jr",
+    "full_name": "Dont'e Thornton Jr.",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Tennessee",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4432775",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4432775",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4432775"
       },
       "cfb_player_id": null,
       "pfr_id": null,
@@ -1560,6 +1650,36 @@
     "notes": null
   },
   {
+    "raw_name": "Ollie Gordon II",
+    "normalized_name": "ollie gordon ii",
+    "full_name": "Ollie Gordon II",
+    "position": "RB",
+    "position_group": "RB",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Oklahoma State",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4711533",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4711533",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4711533"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
     "raw_name": "Kyle McCord",
     "normalized_name": "kyle mccord",
     "full_name": "Kyle McCord",
@@ -1830,6 +1950,36 @@
     "notes": null
   },
   {
+    "raw_name": "Jimmy Horn Jr.",
+    "normalized_name": "jimmy horn jr",
+    "full_name": "Jimmy Horn Jr.",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "Colorado",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4708486",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4708486",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4708486"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
     "raw_name": "Tommy Mellott",
     "normalized_name": "tommy mellott",
     "full_name": "Tommy Mellott",
@@ -1881,6 +2031,36 @@
       "cfbd_athlete_id": {
         "source": "CFBD /roster v2",
         "source_record_id": "4693331"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Thomas Fidone II",
+    "normalized_name": "thomas fidone ii",
+    "full_name": "Thomas Fidone II",
+    "position": "TE",
+    "position_group": "TE",
+    "draft_class": 2025,
+    "class_year": "3",
+    "current_school": "Nebraska",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4590292",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4590292",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4590292"
       },
       "cfb_player_id": null,
       "pfr_id": null,
@@ -2091,6 +2271,36 @@
       "cfbd_athlete_id": {
         "source": "CFBD /roster v2",
         "source_record_id": "4911851"
+      },
+      "cfb_player_id": null,
+      "pfr_id": null,
+      "gsis_id": null,
+      "sleeper_id": null
+    },
+    "notes": null
+  },
+  {
+    "raw_name": "Ricky White III",
+    "normalized_name": "ricky white iii",
+    "full_name": "Ricky White III",
+    "position": "WR",
+    "position_group": "WR",
+    "draft_class": 2025,
+    "class_year": "4",
+    "current_school": "UNLV",
+    "prior_schools": [],
+    "cfbd_athlete_id": "4431479",
+    "cfb_player_id": null,
+    "pfr_id": null,
+    "gsis_id": null,
+    "sleeper_id": null,
+    "source": "cfbd_roster_2024",
+    "source_record_id": "4431479",
+    "source_snapshot_id": "cfbd_roster_2024:2026-06-02T21:55:43Z:/roster?year=2024:v2:bec1f98cc50d2a5004f647102c3ac252aaca67d1aab641436459085aeba12eaf:22843",
+    "id_provenance": {
+      "cfbd_athlete_id": {
+        "source": "CFBD /roster v2",
+        "source_record_id": "4431479"
       },
       "cfb_player_id": null,
       "pfr_id": null,
