@@ -2721,5 +2721,8 @@
       "udfa": false
     }
   ],
-  "metadata": {}
+  "metadata": {
+    "draft_year": 2025,
+    "schema_version": "prospect_nfl_bridge_v1.0.0"
+  }
 }
