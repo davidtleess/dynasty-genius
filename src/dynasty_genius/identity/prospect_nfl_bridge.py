@@ -952,6 +952,15 @@ def promote_bridge_candidate(
     existing_log.append(event)
     atomic_write_decision_log(existing_log, log_path)
     if decision.kind in _ACCEPTED_DECISIONS:
+        # Initialize the bridge artifact metadata so a bridge built purely by the blessed
+        # promotion path is preflight-aligned: the §11.2b alignment arm reads
+        # bridge.metadata["draft_year"]. load_bridge() starts metadata empty, so without this
+        # an entirely promotion-built bridge would carry {} and block alignment on a
+        # bridge_draft_year_mismatch:None. Set deterministically on every accepted write.
+        bridge.metadata = {
+            "draft_year": draft_year,
+            "schema_version": BRIDGE_SCHEMA_VERSION,
+        }
         atomic_write_bridge(bridge, bridge_path)
     if review_id:
         _close_review_queue_row(

@@ -15,6 +15,7 @@ from src.dynasty_genius.identity.college_prospect_identity import (
     compute_match_key,
 )
 from src.dynasty_genius.identity.prospect_nfl_bridge import (
+    BRIDGE_SCHEMA_VERSION,
     NFL_POSITION_WHITELIST,
     BridgeConflictingDecisionError,
     BridgeEvidenceRequiredError,
@@ -498,6 +499,71 @@ def test_promote_confirm_writes_three_point_trail(tmp_path: Path):
     assert closed_rows[0]["decision"] == "confirm"
     assert closed_rows[0]["event_id"] is not None
     assert closed_rows[0]["decided_at"] is not None
+
+
+def test_promote_confirm_initializes_bridge_metadata_for_preflight_alignment(
+    tmp_path: Path,
+):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    entry = _drafted_entry("cpr_aaa", "00-0001", 1)
+
+    result = promote_bridge_candidate(
+        review_id=None,
+        decision=PromotionDecision(kind="confirm", entry=entry),
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+        s3_registry=_s3_registry_for("cpr_aaa"),
+    )
+
+    assert result.exit_code == 0
+    bridge = load_bridge(identity_dir / "prospect_to_nfl_bridge_2025.json")
+    assert bridge.metadata["schema_version"] == BRIDGE_SCHEMA_VERSION
+    assert bridge.metadata["draft_year"] == 2025
+
+
+def test_promote_confirm_preserves_consistent_bridge_metadata_across_appends(
+    tmp_path: Path,
+):
+    identity_dir = tmp_path / "identity"
+    identity_dir.mkdir()
+    s3_registry = _s3_registry_for("cpr_aaa", "cpr_bbb")
+    first_entry = _drafted_entry("cpr_aaa", "00-0001", 1)
+    second_entry = _drafted_entry("cpr_bbb", "00-0002", 2)
+
+    first = promote_bridge_candidate(
+        review_id=None,
+        decision=PromotionDecision(kind="confirm", entry=first_entry),
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+        s3_registry=s3_registry,
+    )
+    second = promote_bridge_candidate(
+        review_id=None,
+        decision=PromotionDecision(kind="confirm", entry=second_entry),
+        identity_dir=identity_dir,
+        draft_year=2025,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+        s3_registry=s3_registry,
+    )
+
+    assert first.exit_code == 0
+    assert second.exit_code == 0
+    bridge = load_bridge(identity_dir / "prospect_to_nfl_bridge_2025.json")
+    assert bridge.metadata == {
+        "draft_year": 2025,
+        "schema_version": BRIDGE_SCHEMA_VERSION,
+    }
+    assert [entry.prospect_uuid for entry in bridge.entries] == ["cpr_aaa", "cpr_bbb"]
+    assert [entry.gsis_id for entry in bridge.entries] == ["00-0001", "00-0002"]
 
 
 def test_promote_udfa_requires_evidence(tmp_path: Path):
