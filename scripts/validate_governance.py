@@ -66,9 +66,9 @@ REQUIRED_GOVERNANCE_PHRASES = {
         "It does not have permission to bypass failing tests",
     ],
     "GEMINI.md": [
-        "Gemini is the Product Manager",
-        "must not run shell commands",
-        "must not modify tracked files",
+        "Product Vision owner and Product Manager",
+        "shell is prompt-gated",
+        "native file writes are prohibited by mandate",
         "Bootstrap is read-only",
     ],
 }
