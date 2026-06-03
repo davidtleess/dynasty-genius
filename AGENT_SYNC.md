@@ -1,9 +1,11 @@
 # Dynasty Genius Agent Sync
 
 Doctrine version: 1.0.0
-Last updated: 2026-06-01
+Last updated: 2026-06-03
 
 ## Active Phase
+
+Phase 12 (FRONTEND) — **HOLD LIFTED 2026-06-03 (David-authorized phase-sequence exception; Codex + Gemini CLEAR).** The Stack-A cockpit build is authorized; backend-first was honored (S3 Task-10A shipped, origin/main `c58a879`). Record: `docs/validation/2026-05-25-frontend-stack-consensus-decision.md` ADDENDUM. **STILL GATED:** no scaffold / dep install / npm until the merged Frontend Design spec is cockpit-cleared + committed. Stack A only; minimal deps = React/Vite/TS/Zod (Tailwind barred → CSS vars); cockpit + ⌘K first; `rookie_board.html` untouched/standalone.
 
 Phase 12.5 — COMPLETE: Market-leakage guard + QB Backup caveat + pre-commit hooks (merged 2026-05-15; 530 tests)
 Phase 13 — SPEC APPROVED: Identity Audit + Engine A Draft-Capital Bake-Off + TE Remodel Step 0

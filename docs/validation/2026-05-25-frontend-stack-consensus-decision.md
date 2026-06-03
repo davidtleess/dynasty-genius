@@ -97,3 +97,27 @@ Source inputs:
 - **Governance docs amended**: No — `03-code-hygiene-policy.md` and the bootstrap
   layout are explicitly unchanged.
 - **Code or dependencies installed**: No.
+
+---
+
+## ADDENDUM — Frontend HOLD lifted; Phase-12 cockpit build authorized (2026-06-03)
+
+**Status: APPROVED (David-authorized phase-sequence exception · Codex technical CLEAR + Gemini governance CLEAR)**
+
+**Decision owner**: David · **Authoring agent**: Claude Code · **Type**: phase-order transition (planning → build authorization)
+
+David authorizes **lifting the Phase-12 frontend HOLD** to begin the Stack-A cockpit build.
+
+**Governance basis (not a constitution amendment):** `01-north-star-architecture.md` §Phase Sequence already provides the mechanism — *"No agent should advance phases without satisfying the relevant gate or logging an explicit David-approved exception."* This addendum **is** that logged exception. The constitution's substantive frontend guardrail (`00-product-constitution.md`: *"No David-facing surface should imply decision-grade confidence before the model, source freshness, and validation gates justify it"*) is **preserved, not waived** — the Honest-Terminal design encodes it (`decision_supported=false`, uncertainty-first, Trust surface). "Frontend polish comes last" governs polish; this authorizes the foundational cockpit build with the guardrail baked in.
+
+**Trigger:** backend-first was honored — Engine A/B, S4 harness, harness-trust, and **S3 Task-10A** all shipped (origin/main `c58a879`). The backend milestone the HOLD protected has been reached.
+
+**Bounds carried from this ADR + the 2026-06-03 cockpit CLEARs (unchanged invariants):**
+- Stack A: Vite + React + TypeScript; FastAPI serves the **built static bundle as a mount/fallback** (NOT a rewrite of existing API routes; API stays authoritative; React routing not coupled to backend logic).
+- **Minimal deps = React + Vite + TypeScript + Zod ONLY. Tailwind is BARRED** in favor of plain CSS variables (OKLCH tokens become CSS custom properties). No shadcn/TanStack/Plot/MSW/etc. without a follow-up ADR.
+- **First surface = cockpit primitives + ⌘K command palette**, before Trade Lab or any stateful surface.
+- **Hey API codegen comes AFTER the minimal shell** (FastAPI OpenAPI → TS/Zod under the frontend tree; generated code never hand-edited; generator version pinned exactly).
+- Biome frontend-only; Ruff stays canonical for Python.
+- **`rookie_board.html` untouched + standalone** (`scripts/serve_rookie_board.py`); the React cockpit does not displace it until a specific React equivalent earns it via its own ADR + surface spec.
+
+**GATE (still binding):** NO scaffold / dependency install / npm until the **merged Frontend Design spec** (the spec this ADR deferred) is cockpit-cleared and committed. That spec is the immediate next artifact.
