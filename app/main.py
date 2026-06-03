@@ -1,9 +1,19 @@
+import mimetypes
+from pathlib import Path
+
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import engine_b, rookies, roster, trade, trade_market, trust_surface
 
 load_dotenv()
+
+# Serve JS modules with the WHATWG/RFC-9239 MIME (text/javascript), overriding any OS
+# mimetypes entry that would otherwise return the legacy application/javascript.
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/javascript", ".mjs")
 
 app = FastAPI(title="Dynasty Genius")
 
@@ -13,3 +23,32 @@ app.include_router(trade.router, prefix="/api")
 app.include_router(trade_market.router, prefix="/api")
 app.include_router(engine_b.router, prefix="/api")
 app.include_router(trust_surface.router, prefix="/api")
+
+
+# --- Frontend SPA static mount (Phase-12 surface 1; spec 2026-06-03-frontend-design-spec) ---
+# Serve the built Stack-A bundle (`frontend/dist/`) as a SCOPED fallback, registered LAST so it
+# never shadows the API/docs namespace. The mount is CONDITIONAL on a built dist existing, so
+# environments without a frontend build (the backend test suite, a fresh checkout) are unchanged.
+# `rookie_board.html` is served by its own standalone `scripts/serve_rookie_board.py`, never here.
+_FRONTEND_DIST = Path("frontend/dist")
+_FRONTEND_INDEX = _FRONTEND_DIST / "index.html"
+
+if _FRONTEND_DIST.is_dir() and _FRONTEND_INDEX.is_file():
+    _assets_dir = _FRONTEND_DIST / "assets"
+    if _assets_dir.is_dir():
+        # Real built assets only; a missing asset 404s here (never falls back to index.html).
+        app.mount("/assets", StaticFiles(directory=_assets_dir), name="frontend-assets")
+
+    @app.get("/{spa_path:path}")
+    def _serve_spa(spa_path: str) -> FileResponse:
+        """SPA fallback for client-side routes. Excludes the API/docs namespace and any
+        asset-extension path so generated docs, the API, and missing files never resolve to
+        the SPA shell."""
+        # Never claim the API namespace or FastAPI's own doc routes.
+        if spa_path.startswith("api/") or spa_path in {"openapi.json", "docs", "redoc"}:
+            raise HTTPException(status_code=404)
+        # A path whose last segment carries a file extension (e.g. rookie_board.html, app.css)
+        # is a file request, not an SPA route — 404 rather than silently serving the shell.
+        if "." in spa_path.rsplit("/", 1)[-1]:
+            raise HTTPException(status_code=404)
+        return FileResponse(_FRONTEND_INDEX)
