@@ -1,0 +1,29 @@
+{
+  "draft_truth_content_hash": "15a1af31fc2f64e0aecc1c253d754b38131666fb6cbfe9ec18f5c3063b1aa0fb",
+  "draft_year": 2025,
+  "prospects_unmatched_as_udfa": 0,
+  "prospects_with_candidates": 86,
+  "run_id": "manual_2025_20260603T025656Z",
+  "total_nfl_truth_rows": 256,
+  "total_s3_confirmed_prospects": 86,
+  "truth_load_diagnostics": {
+    "required_columns_seen": [
+      "college",
+      "gsis_id",
+      "pfr_player_id",
+      "pfr_player_name",
+      "pick",
+      "position",
+      "round",
+      "season",
+      "team"
+    ],
+    "skipped_bad_pick": 0,
+    "skipped_bad_round": 0,
+    "skipped_missing_gsis_id": 1,
+    "skipped_missing_name": 0,
+    "skipped_missing_position": 0,
+    "skipped_missing_team": 0,
+    "truth_rows_loaded": 256
+  }
+}
