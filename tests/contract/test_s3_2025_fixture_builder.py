@@ -349,6 +349,83 @@ def test_college_athlete_id_fallback_runs_before_final_missing_classification():
     assert all(row["sleeper_id"] is None for row in rows)
 
 
+def test_builder_match_key_strips_cfbd_name_suffix_without_changing_emitted_name():
+    module = _builder_module()
+    frozen_inputs = _frozen_inputs(
+        cfbd_rows=[
+            _cfbd_row(901, "Luther", "Burden III", team="Missouri", position="WR"),
+        ],
+        draft_rows=[
+            _draft_row(
+                "Luther Burden",
+                position="WR",
+                college="Missouri",
+                pfr_player_id="BurdLu00",
+                pick=39,
+            ),
+        ],
+    )
+
+    rows, review_queue = module.build_2025_prospect_fixture(frozen_inputs)
+
+    assert review_queue == []
+    assert len(rows) == 1
+    assert rows[0]["source_record_id"] == "901"
+    assert rows[0]["full_name"] == "Luther Burden III"
+    assert rows[0]["normalized_name"] == "luther burden iii"
+
+
+def test_builder_match_key_strips_draft_name_suffix_symmetrically():
+    module = _builder_module()
+    frozen_inputs = _frozen_inputs(
+        cfbd_rows=[
+            _cfbd_row(902, "Suffix", "Receiver", team="Test State", position="WR"),
+        ],
+        draft_rows=[
+            _draft_row(
+                "Suffix Receiver Jr.",
+                position="WR",
+                college="Test State",
+                pfr_player_id="SuffRe00",
+                pick=90,
+            ),
+        ],
+    )
+
+    rows, review_queue = module.build_2025_prospect_fixture(frozen_inputs)
+
+    assert review_queue == []
+    assert len(rows) == 1
+    assert rows[0]["source_record_id"] == "902"
+    assert rows[0]["full_name"] == "Suffix Receiver"
+
+
+def test_suffix_stripping_does_not_false_merge_distinct_same_base_name_players():
+    module = _builder_module()
+    frozen_inputs = _frozen_inputs(
+        cfbd_rows=[
+            _cfbd_row(903, "Same", "Receiver Jr.", team="Test State", position="WR"),
+            _cfbd_row(904, "Same", "Receiver III", team="Test State", position="WR"),
+        ],
+        draft_rows=[
+            _draft_row(
+                "Same Receiver",
+                position="WR",
+                college="Test State",
+                pfr_player_id="SameRe00",
+                pick=91,
+            ),
+        ],
+    )
+
+    rows, review_queue = module.build_2025_prospect_fixture(frozen_inputs)
+
+    assert rows == []
+    review_by_pick = _by_source_record(review_queue)
+    assert set(review_by_pick) == {"SameRe00"}
+    assert review_by_pick["SameRe00"]["reason"] == "draft_truth_match_ambiguous"
+
+
 def test_top_level_shape_fails_loud_but_malformed_source_records_fail_closed():
     module = _builder_module()
 

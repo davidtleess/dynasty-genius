@@ -82,6 +82,30 @@ def _cfbd_full_name(cfbd_row: dict) -> str:
     return f"{cfbd_row.get('firstName', '')} {cfbd_row.get('lastName', '')}".strip()
 
 
+# Generational suffix tokens stripped from the MATCH KEY only (spec §4 — draft-vs-roster
+# name reconciliation). nflverse draft names carry no suffix while CFBD rosters do (Luther
+# Burden III, Harold Fannin Jr., …), so the suffix breaks the primary-key name match. The
+# strip is builder-scoped — applied symmetrically to both key name sides and NOT to the
+# shared normalize_name (§5.1 contract-coupled across all S3 matching) nor to the emitted
+# full_name/normalized_name. Genuine same-base-name collisions still fail closed via the
+# existing >1-match -> draft_truth_match_ambiguous guard (D-2).
+_NAME_SUFFIXES: frozenset[str] = frozenset({"jr", "sr", "ii", "iii", "iv", "v"})
+
+
+def _match_key_name(name: str) -> str:
+    """Normalize a name then drop a single trailing generational suffix token.
+
+    Operates on the output of ``normalize_name`` so "." in "Jr." is already gone.
+    Only the LAST token is dropped, and only when a base name remains (never reduce a
+    name to empty), so the strip is symmetric and cannot collapse a one-token name.
+    """
+    normalized = normalize_name(name)
+    tokens = normalized.split()
+    if len(tokens) > 1 and tokens[-1] in _NAME_SUFFIXES:
+        return " ".join(tokens[:-1])
+    return normalized
+
+
 def _review_row(pick: dict, reason: str) -> dict:
     """Pick-keyed review row (spec §4). Keyed on the draft pick's id."""
     return {
@@ -232,7 +256,7 @@ def build_2025_prospect_fixture(
             review_queue.append(_malformed_cfbd_index_review_row())
             continue
         key = (
-            normalize_name(_cfbd_full_name(cfbd_row)),
+            _match_key_name(_cfbd_full_name(cfbd_row)),
             str(cfbd_row.get("position", "")).upper(),
             _norm_school(str(cfbd_row.get("team", "")), aliases),
         )
@@ -261,7 +285,7 @@ def build_2025_prospect_fixture(
     matched: dict[int, list[dict]] = {}
     for index, pick in enumerate(skill_picks):
         key = (
-            normalize_name(str(pick.get("pfr_player_name", ""))),
+            _match_key_name(str(pick.get("pfr_player_name", ""))),
             str(pick.get("position", "")).upper(),
             _norm_school(str(pick.get("college", "")), aliases),
         )
