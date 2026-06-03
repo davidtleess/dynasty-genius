@@ -450,7 +450,7 @@ def test_ingest_fixture_coverage_matrix_includes_source_id_conflict_count(
     assert result.exit_code == 0
 
 
-def test_ingest_fixture_accepts_task10a_bare_list_fixture_and_mints_79_rows(
+def test_ingest_fixture_accepts_task10a_bare_list_fixture_and_mints_86_rows(
     tmp_path: Path,
 ):
     fixture_path = Path("resources/prospect_fixtures/2025_fantasy_prospects.json")
@@ -468,13 +468,15 @@ def test_ingest_fixture_accepts_task10a_bare_list_fixture_and_mints_79_rows(
         .read_text()
     )
     assert result.exit_code == 0
-    assert coverage["total_input_rows"] == 79
+    # Cohort grew 79 -> 86 at d57444a (generational-suffix recovery of 7 draft-vs-roster
+    # name-misses). The invariant is every input row mints (no silent drops); the count is 86.
+    assert coverage["total_input_rows"] == 86
     assert (
         coverage["minted_new"]
         + coverage["minted_new_with_surfaced_candidates"]
-        == 79
+        == coverage["total_input_rows"]
     )
-    assert len(registry.entries) == 79
+    assert len(registry.entries) == 86
     assert {entry.verification_status for entry in registry.entries.values()} == {
         "provisional"
     }

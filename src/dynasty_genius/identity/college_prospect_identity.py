@@ -1225,6 +1225,19 @@ def promote_review_candidate(
                 prior.get("decision") == decision.kind
                 and prior.get("target_kind") == decision.target_kind
             ):
+                # Idempotent same-decision rerun. If this rerun carries a NEW review_id
+                # (a second surfaced-candidate edge on the same already-decided UUID — the
+                # Jaylin Lane two-edge case), close that additional edge with the ORIGINAL
+                # event id so a decided row never carries a lingering open review edge (audit
+                # drift), without appending a duplicate promotion event.
+                if review_id:
+                    _close_review_queue_row(
+                        identity_dir,
+                        review_id,
+                        decision.kind,
+                        _now_iso(),
+                        prior.get("event_id"),
+                    )
                 return PromotionResult(exit_code=0, event_id=prior.get("event_id"))
             raise ConflictingDecisionError(
                 f"target={decision.target} already has decision={prior.get('decision')}; "

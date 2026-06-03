@@ -447,6 +447,70 @@ def test_review_queue_closure_marker_appended_to_originating_review_row(tmp_path
     assert row["event_id"] is not None
 
 
+def test_idempotent_same_decision_with_new_review_id_closes_additional_review_edge(
+    tmp_path: Path,
+):
+    _, out, run_id = _two_row_fixture(tmp_path)
+    target = _provisional_uuid(out)
+    review_path = out / f"college_identity_review_queue_{run_id}.jsonl"
+
+    review_ids = [
+        f"{run_id}_multi_edge_review_001",
+        f"{run_id}_multi_edge_review_002",
+    ]
+    for review_id in review_ids:
+        review_payload = {
+            "run_id": run_id,
+            "review_id": review_id,
+            "incoming_source_record_id": "fixture_2027_synthetic",
+            "minted_prospect_uuid": target,
+            "target_prospect_uuid": target,
+            "match_score": 1.0,
+            "score_breakdown": {"final": 1.0},
+            "risk_flags": [],
+            "raw_match_features": {},
+            "matcher_algorithm_version": "cpr_matcher_v1.0.0",
+            "decided_at": None,
+            "decision": None,
+            "event_id": None,
+        }
+        existing = review_path.read_text() if review_path.exists() else ""
+        review_path.write_text(existing + json.dumps(review_payload, sort_keys=True) + "\n")
+
+    first = promote_review_candidate(
+        review_id=review_ids[0],
+        decision=PromotionDecision(kind="confirm", target_kind="self", target=target),
+        identity_dir=out,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+    )
+    log_after_first = (out / "college_identity_promotion_log.jsonl").read_bytes()
+
+    second = promote_review_candidate(
+        review_id=review_ids[1],
+        decision=PromotionDecision(kind="confirm", target_kind="self", target=target),
+        identity_dir=out,
+        reviewer_id="davidleess",
+        evidence=None,
+        note=None,
+    )
+
+    assert second.exit_code == 0
+    assert second.event_id == first.event_id
+    assert (out / "college_identity_promotion_log.jsonl").read_bytes() == log_after_first
+    rows = [
+        json.loads(line)
+        for line in review_path.read_text().splitlines()
+        if line.strip()
+    ]
+    closed = {row["review_id"]: row for row in rows if row["review_id"] in review_ids}
+    assert closed[review_ids[0]]["decision"] == "confirm"
+    assert closed[review_ids[1]]["decision"] == "confirm"
+    assert closed[review_ids[0]]["event_id"] == first.event_id
+    assert closed[review_ids[1]]["event_id"] == first.event_id
+
+
 def test_replay_reproduces_registry_AND_bridge_byte_identical(tmp_path: Path):
     import shutil
 

@@ -40,6 +40,19 @@ INVIOLATE_BASELINE_SHA256_A41E0C6 = {
     ),
 }
 
+# ADDENDUM (2026-06-02, David-authorized — S3 Task-10A 2025-registry curation):
+# The byte baseline for college_prospect_identity.py is refreshed to its post-Task-10A
+# state. This file is an S3-OWNED module, and Task-10A is sanctioned S3 work (spec
+# docs/superpowers/specs/2026-06-01-s3-task10a-2025-registry-curation-design.md). Two
+# legitimate S3-owned edits land here:
+#   1. f4d7685 — ingest_fixture accepts a bare-list Task-10A fixture (Task-4 compat). This
+#      edit shipped WITHOUT refreshing this baseline, leaving the byte-lock stale at HEAD
+#      (caught by this audit during the Task-5 full-suite run, 2026-06-02).
+#   2. Task-5 review-edge closure — promote_review_candidate now closes an additional
+#      review edge on an idempotent same-decision rerun (the Jaylin Lane two-edge case).
+# This refresh re-pins college_prospect_identity.py ONLY. The byte-lock itself remains a
+# PERMANENT guardrail; every other S3 inviolate artifact (the two _runs registries, the
+# alias bridge, the resolver, identity/__init__.py) is UNCHANGED.
 S3_INVIOLATE_SHA256 = {
     "app/data/identity/_runs/prospect_registry.json": (
         "d779e617fc62041955aee53ef371efedc418f1aac8212b7518f852d75a1ad823"
@@ -56,8 +69,10 @@ S3_INVIOLATE_SHA256 = {
     "src/dynasty_genius/identity/__init__.py": (
         "7f458537b7d788fbdf6dd8c270823efa36cd32a49d682180e1f2657a294eb291"
     ),
+    # Refreshed 2026-06-02 (David-authorized — see ADDENDUM above): f4d7685 compat +
+    # Task-5 review-edge closure. Prior baseline: 7b78a7c46ddb53bb735c40eb1dc57c9966ecf731afc656bd1743ee25b08a90f6
     "src/dynasty_genius/identity/college_prospect_identity.py": (
-        "7b78a7c46ddb53bb735c40eb1dc57c9966ecf731afc656bd1743ee25b08a90f6"
+        "f6fd6571b53bab1ba3756936ca9f4e1680463989c646dbcb60f6537dd96f0067"
     ),
 }
 
