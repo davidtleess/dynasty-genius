@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -121,6 +123,69 @@ def test_confirm_self_promotes_row_to_confirmed_and_logs(tmp_path: Path):
     registry = load_registry(out / "college_prospect_registry.json")
     assert registry.get(target).verification_status == "confirmed"
     assert (out / "college_identity_promotion_log.jsonl").exists()
+
+
+def test_promote_review_candidate_cli_runs_from_repo_root_without_pythonpath(
+    tmp_path: Path,
+):
+    _, out, run_id = _two_row_fixture(tmp_path)
+    target = _provisional_uuid(out)
+    review_id = f"{run_id}_cli_review_001"
+    review_path = out / f"college_identity_review_queue_{run_id}.jsonl"
+    review_payload = {
+        "run_id": run_id,
+        "review_id": review_id,
+        "incoming_source_record_id": "fixture_2027_synthetic",
+        "minted_prospect_uuid": target,
+        "target_prospect_uuid": target,
+        "match_score": 1.0,
+        "score_breakdown": {"final": 1.0},
+        "risk_flags": [],
+        "raw_match_features": {},
+        "matcher_algorithm_version": "cpr_matcher_v1.0.0",
+        "decided_at": None,
+        "decision": None,
+        "event_id": None,
+    }
+    existing = review_path.read_text() if review_path.exists() else ""
+    review_path.write_text(existing + json.dumps(review_payload, sort_keys=True) + "\n")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/promote_review_candidate.py",
+            "--identity-dir",
+            str(out),
+            "--target",
+            target,
+            "--decision",
+            "confirm",
+            "--target-kind",
+            "self",
+            "--review-id",
+            review_id,
+            "--reviewer",
+            "davidleess",
+        ],
+        cwd=Path.cwd(),
+        env={},
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    registry = load_registry(out / "college_prospect_registry.json")
+    assert registry.get(target).verification_status == "confirmed"
+    rows = [
+        json.loads(line)
+        for line in review_path.read_text().splitlines()
+        if line.strip()
+    ]
+    row = next(row for row in rows if row["review_id"] == review_id)
+    assert row["decision"] == "confirm"
+    assert row["decided_at"] is not None
+    assert row["event_id"] is not None
 
 
 def test_reject_closes_review_without_mutating_identity(tmp_path: Path):
