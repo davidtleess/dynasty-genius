@@ -41,9 +41,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_6bea2bbf-d0a8-4c3a-a417-0fdd7c0e696e",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.596495Z",
+          "decision": "confirm",
+          "event_id": "ev_8a2dfe61-bfbe-4de3-8a5b-99bb9f539980",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -86,9 +93,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_c9eba82f-5048-48bb-b8a9-6a11c0b3c978",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.620567Z",
+          "decision": "confirm",
+          "event_id": "ev_fdf690be-12c4-4cf4-8467-3f94d2f573b4",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -131,9 +145,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_fe44522e-a668-406f-a4f1-bf1dfac3edd9",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.637509Z",
+          "decision": "confirm",
+          "event_id": "ev_301d0abe-930e-49b3-94f3-cbef5232282c",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -176,9 +197,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_1245f89b-08cb-418d-bc6f-b10baca1c888",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.654989Z",
+          "decision": "confirm",
+          "event_id": "ev_dae2ec2e-4acb-4bfd-bed9-41980521eb67",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -221,9 +249,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_0998ff56-53a5-4805-9283-41a8608fbb78",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.669322Z",
+          "decision": "confirm",
+          "event_id": "ev_12dd946f-88cb-49a8-ba97-f20687c0d163",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -266,9 +301,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_eb0ae423-a7dd-491e-a16c-00723be0e267",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.686034Z",
+          "decision": "confirm",
+          "event_id": "ev_82424f4d-f3d9-4c6b-b2b4-5531b753923b",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -311,9 +353,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_6501489c-6ffa-45e5-8166-6931ac6e492f",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.699180Z",
+          "decision": "confirm",
+          "event_id": "ev_73624131-a340-4ee0-abbe-b958ced59342",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -356,9 +405,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_7d2dce6a-95d7-4b75-8bcf-e8cefc46cf58",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.720440Z",
+          "decision": "confirm",
+          "event_id": "ev_2f1f3d1e-f82d-48c2-ae3a-7ea48c5144e9",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -401,9 +457,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_dac1db6c-f2c1-412b-8d57-1298d7c7fd9f",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.738509Z",
+          "decision": "confirm",
+          "event_id": "ev_2b7a5fee-98e8-4d99-b674-926ae496c444",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -446,9 +509,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_bd895146-100d-4eb2-b54c-731b356e0fbf",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.756136Z",
+          "decision": "confirm",
+          "event_id": "ev_f88917c0-e60e-4301-b966-9c7a21b957dc",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -491,9 +561,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_dc7cea27-f367-4668-8283-2928f2367ab9",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.768798Z",
+          "decision": "confirm",
+          "event_id": "ev_8bdeebb1-7620-4448-b97c-1b01cd73f497",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -536,9 +613,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_c1eb6f24-96f7-463f-b7c8-749398431a3e",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.782265Z",
+          "decision": "confirm",
+          "event_id": "ev_364d2a88-33e7-4025-b808-2ae64971d948",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -581,9 +665,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_55cd98a0-977d-4534-a09c-e102b177b6eb",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.803383Z",
+          "decision": "confirm",
+          "event_id": "ev_7af9b792-9bd8-4421-b965-7522864fdc17",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -626,9 +717,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_4a356f69-2460-402f-9735-846fc01c33b5",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.823963Z",
+          "decision": "confirm",
+          "event_id": "ev_7116a8d0-0322-4af7-a91c-42a447479b17",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -671,9 +769,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_8ce485c7-5856-4e06-b280-ad8aa3318925",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.859944Z",
+          "decision": "confirm",
+          "event_id": "ev_7008caca-2292-4fdc-b486-eccd9ff4c17a",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -716,9 +821,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_a27f12c9-3fc1-4fc8-b951-baa6a213d047",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.878274Z",
+          "decision": "confirm",
+          "event_id": "ev_ac3d027d-6fb2-4d48-85cb-36bd446c1c2d",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -761,9 +873,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_118652a7-a203-4f5d-a60a-ddd3a9c8faee",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.894557Z",
+          "decision": "confirm",
+          "event_id": "ev_1a596c38-c89d-407a-96a7-94c1f24c3a56",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -806,9 +925,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_a878ca2f-4549-4bc5-bd21-b44a85197fbf",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.908634Z",
+          "decision": "confirm",
+          "event_id": "ev_198c66f1-52de-4898-8255-c5c1a6b7ce2a",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -851,9 +977,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_1d041f92-2ac6-4162-bd9f-c3b11699ec9a",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.922571Z",
+          "decision": "confirm",
+          "event_id": "ev_b7c17af2-61e5-410d-b87d-0066db69d88a",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -896,9 +1029,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_581b52b9-2096-4564-9404-d87c5eead19b",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.938477Z",
+          "decision": "confirm",
+          "event_id": "ev_d6b6a743-cfe0-4276-a473-f2bd82c69c75",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -941,9 +1081,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_dc1776ed-551d-495b-b4ec-f95c4fd6ecde",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.952256Z",
+          "decision": "confirm",
+          "event_id": "ev_0c7d0ed6-47f9-4254-bdd3-2b0ed4035128",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -986,9 +1133,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_1a22b374-77d1-415e-9b00-a815a20374e8",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.965634Z",
+          "decision": "confirm",
+          "event_id": "ev_5e084a58-d39f-472f-84c7-785ffec0ef44",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1031,9 +1185,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_c3da1995-220d-4db6-8dfa-9e5dc5a6be86",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:12.980941Z",
+          "decision": "confirm",
+          "event_id": "ev_6bc6d021-30b6-4fbd-add6-d1819eeb9fba",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1076,9 +1237,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_75165863-44c7-4999-9767-9996bd28e6f7",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:21:41.197460Z",
+          "decision": "confirm",
+          "event_id": "ev_8dfba6c6-2d6a-46a1-9fbd-69053ed86952",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1121,9 +1289,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_298b4ac5-1152-428c-988d-79c60bfc8997",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.005889Z",
+          "decision": "confirm",
+          "event_id": "ev_ec994f9b-faa6-4c5b-abe2-c17fb5379f77",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1166,9 +1341,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_d3a5dcc7-e46a-49ae-badb-0ceb21935849",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:21:41.659906Z",
+          "decision": "confirm",
+          "event_id": "ev_c0216f66-eb81-48c1-a941-589cf831ce5c",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1211,9 +1393,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_481ed988-92da-4420-8933-565f899d4725",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.024133Z",
+          "decision": "confirm",
+          "event_id": "ev_e1cd3164-5761-4537-a7eb-8204ca656142",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1256,9 +1445,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_87d70265-88e8-44d7-b8ff-c5d7f3a5deb1",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.040998Z",
+          "decision": "confirm",
+          "event_id": "ev_72dc457e-7147-45d0-90bf-c59bf6930257",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1301,9 +1497,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_d8ae10bd-6ec5-4d83-aa48-0a4fddb9fd7b",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.057624Z",
+          "decision": "confirm",
+          "event_id": "ev_70e64374-2c8b-4684-9f60-61cf18ffb941",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1346,9 +1549,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_80bd0660-3649-41f1-8fd6-58eaec98013b",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.073432Z",
+          "decision": "confirm",
+          "event_id": "ev_10ce75dd-6806-4e38-af40-9dd0552f5336",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1391,9 +1601,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_26e1d5eb-ab38-43a2-a008-90c0eaeed32a",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.087523Z",
+          "decision": "confirm",
+          "event_id": "ev_bb440442-a60f-4543-b380-c8080ef1ea12",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1436,9 +1653,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_e778b283-f79c-42bc-8c3b-4c9518ff98a2",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.102020Z",
+          "decision": "confirm",
+          "event_id": "ev_d6ea58df-755a-4212-ac7f-0bf49a2ec6ef",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1481,9 +1705,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_7026bfdc-576b-4297-a680-4449d78369ed",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.116632Z",
+          "decision": "confirm",
+          "event_id": "ev_6213a94e-3d57-469a-8835-6bd88033c6c9",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1526,9 +1757,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_0c3f2dec-f2a7-4d9f-abc2-6657d245e833",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:21:42.138626Z",
+          "decision": "confirm",
+          "event_id": "ev_ff1ea328-489b-4f16-80e7-abf774420f4e",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1571,9 +1809,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_80cf4281-85d5-4f08-a1ea-6c6432a74506",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.134533Z",
+          "decision": "confirm",
+          "event_id": "ev_15e527ac-9856-4ebf-a3dd-f399f0f30873",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1616,9 +1861,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_3e310d17-9a56-41d5-a457-33fc138ac063",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.154224Z",
+          "decision": "confirm",
+          "event_id": "ev_55e20776-8cef-4b21-b130-8126ab93e90a",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1661,9 +1913,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_46b86dce-3023-4515-a638-6f864e34b985",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.170247Z",
+          "decision": "confirm",
+          "event_id": "ev_234ceb87-2b15-48fe-8d72-7222a2d5e50a",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1706,9 +1965,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_4465ade7-7955-4a20-af00-f4c35bcb2aaf",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.189636Z",
+          "decision": "confirm",
+          "event_id": "ev_4eaf11e8-d835-47f6-8414-73258ea958ac",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1751,9 +2017,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_4a90c532-9c61-44fb-b9c0-fcd1ceb3ee31",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:21:42.638128Z",
+          "decision": "confirm",
+          "event_id": "ev_7312e01c-a1fa-4b5f-965e-73ea7b1763bc",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1796,9 +2069,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_3ffc600c-88c6-4652-aaab-d4cbaea98914",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:21:43.841862Z",
+          "decision": "confirm",
+          "event_id": "ev_0a93984f-e7a0-421d-9c05-a74febcdf179",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1841,9 +2121,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_f040a6ef-9dad-495f-8546-0d8433ded95c",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.208583Z",
+          "decision": "confirm",
+          "event_id": "ev_f2d07d3b-6b4a-4716-bcdf-3671a5cd5eab",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1886,9 +2173,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_89a7abae-fd15-4388-8cae-5996f001b99c",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.225820Z",
+          "decision": "confirm",
+          "event_id": "ev_caa9425e-5eaa-461e-89ea-0e840e5af075",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1931,9 +2225,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_d0afdcd2-0fd3-4a7e-a310-238eec549831",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.247133Z",
+          "decision": "confirm",
+          "event_id": "ev_24753e4f-fce5-41a0-9a35-5866b5f59871",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -1976,9 +2277,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_681b7109-3ee0-4d7c-af6d-25eba00a5d6a",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.271155Z",
+          "decision": "confirm",
+          "event_id": "ev_4068ef88-bad4-4ac4-a373-13fa94f1d7bc",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2021,9 +2329,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_da21ce62-5339-47a8-9809-72012cd8e0b0",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.288723Z",
+          "decision": "confirm",
+          "event_id": "ev_806aecc1-f2e1-43f3-94b7-836cfec144c9",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2066,9 +2381,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_09cd681b-6a38-4849-9735-0f109e4a40cc",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.305578Z",
+          "decision": "confirm",
+          "event_id": "ev_2f7d5848-e5f6-44e3-9e8f-d582dcdcf28f",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2111,9 +2433,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_bedc7d09-77e0-4abd-b31b-27d8d72b2070",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.321632Z",
+          "decision": "confirm",
+          "event_id": "ev_4f8382ed-b873-4f89-911f-917fb5a0f17d",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2156,9 +2485,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_82e15887-8242-4385-8d94-e909b91d8bdc",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.338194Z",
+          "decision": "confirm",
+          "event_id": "ev_e4318de2-aacc-479a-bb58-3de955dfc6a0",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2201,9 +2537,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_54597015-3024-4a61-9259-87ad1a002ce6",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.354815Z",
+          "decision": "confirm",
+          "event_id": "ev_3adea155-3c14-458f-9ec6-972fc370e9b9",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2246,9 +2589,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_079b7abd-c8f8-4270-86bd-8b161c6ccd49",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.371656Z",
+          "decision": "confirm",
+          "event_id": "ev_24c5a3f0-446c-4336-be3e-f98b34c95870",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2291,9 +2641,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_712786d6-409a-47e9-91f6-71097be92e4d",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.397718Z",
+          "decision": "confirm",
+          "event_id": "ev_6f22602b-52ed-4901-ba2f-3d5773106b50",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2336,9 +2693,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_e836ab7a-42f1-400b-adf5-3cc18630888a",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.413122Z",
+          "decision": "confirm",
+          "event_id": "ev_2b9b56c5-9a8b-41f3-829c-f21d55db350b",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2381,9 +2745,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_2bb368e4-e341-4544-bda8-ce451a772433",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.429230Z",
+          "decision": "confirm",
+          "event_id": "ev_62587a84-e571-48af-992e-7e624beb84fd",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2426,9 +2797,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_d8ae7c00-ca15-46f5-9a53-f34714e091d6",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.447281Z",
+          "decision": "confirm",
+          "event_id": "ev_de4a176a-a4ee-4c6b-a6c1-038807a4b48b",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2471,9 +2849,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_7b58a347-feae-4d79-9460-7e0a36b1a8b8",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.462191Z",
+          "decision": "confirm",
+          "event_id": "ev_a0ffeceb-3980-40f0-8f40-943d2d088a7a",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2516,9 +2901,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_112947b0-85cc-44a7-a972-32650597a716",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.477475Z",
+          "decision": "confirm",
+          "event_id": "ev_307edf68-4d94-4d80-845b-fd1c172c08bc",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2561,9 +2953,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_237e67ba-2aca-40fc-ab66-5a0011193143",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:21:44.420813Z",
+          "decision": "confirm",
+          "event_id": "ev_82acc8b2-88d6-42be-960d-936c3d407bfb",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2606,9 +3005,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_6dd82995-a1e2-416a-856b-5076297ec14d",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.494795Z",
+          "decision": "confirm",
+          "event_id": "ev_685c3ef7-57c3-4b04-9510-067cbef93c3e",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2651,9 +3057,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_4eb0af3f-d4e7-409a-a39e-274642179782",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.511652Z",
+          "decision": "confirm",
+          "event_id": "ev_bfecb199-ac6e-40a4-8fc9-cda95b00c799",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2696,9 +3109,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_6edf66e5-e255-454a-8b3b-6631126a4c60",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.528846Z",
+          "decision": "confirm",
+          "event_id": "ev_d69735e4-5731-4ce1-8c06-433a4b1436d6",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2741,9 +3161,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_b659325d-a5e3-463e-b6ee-3dca37b04526",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.545537Z",
+          "decision": "confirm",
+          "event_id": "ev_0fe0edeb-fc8b-4ff4-b7dd-7b0bf2f63ce1",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2786,9 +3213,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_69b44de0-69d4-4ed1-928e-bc36c0de6693",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.561583Z",
+          "decision": "confirm",
+          "event_id": "ev_471a2e95-8013-4ccc-9850-6935d9f90ca2",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2831,9 +3265,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_1f40c8b6-20f2-410b-a524-95a57c87681a",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:21:44.911825Z",
+          "decision": "confirm",
+          "event_id": "ev_382c2cd9-591e-49f7-a27f-d5cf6ee3d1b6",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2876,9 +3317,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_0f06d099-e6d8-4428-849e-ab115a23eaff",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.578038Z",
+          "decision": "confirm",
+          "event_id": "ev_1aaca035-c16f-4338-ae5c-890ea406369b",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2921,9 +3369,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_a9eafc8c-fa09-4574-bcec-6041a0031003",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.593765Z",
+          "decision": "confirm",
+          "event_id": "ev_fddcb171-952c-4d38-beee-4c1356f0af4d",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -2966,9 +3421,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_671a8eb9-8cda-4f26-a55c-65ee4748f7c9",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.609164Z",
+          "decision": "confirm",
+          "event_id": "ev_dec97e66-1613-4280-8d46-d371c4703997",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3011,9 +3473,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_050d927d-257b-42d2-b6da-f0bb0b5b6747",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.626475Z",
+          "decision": "confirm",
+          "event_id": "ev_74431fc8-3094-4f0e-a257-73d3308c51e4",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3056,9 +3525,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_37e01fe0-63ca-4d19-922f-35516dbaa8ca",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.647416Z",
+          "decision": "confirm",
+          "event_id": "ev_e91baf13-6eae-4256-908c-e4d50bb923c9",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3101,9 +3577,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_2b8e5059-6cea-4a6f-9977-53bf5d46e74a",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.678135Z",
+          "decision": "confirm",
+          "event_id": "ev_62554502-2bc8-44e2-817e-0f36f33b12bc",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3146,9 +3629,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_46f9731c-c405-4226-a6eb-ae345accbc97",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.695300Z",
+          "decision": "confirm",
+          "event_id": "ev_7c5b0136-3200-472b-a663-2a8a7809b6e3",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3191,9 +3681,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_f6fc839f-d0b5-4316-b235-06d89769fc93",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.721400Z",
+          "decision": "confirm",
+          "event_id": "ev_886ce2ac-57d0-4b7b-be0b-20e0a65c34a7",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3236,9 +3733,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_47411890-5725-440e-8735-e7a35ce99984",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.745700Z",
+          "decision": "confirm",
+          "event_id": "ev_a030a892-446c-42c9-9327-14498783541a",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3281,9 +3785,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_9627fdd6-312a-40c7-b6a1-75ff9189339e",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.775998Z",
+          "decision": "confirm",
+          "event_id": "ev_7b6387bc-97d8-485e-899d-b0a7b43f557c",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3326,9 +3837,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_00d1e0b8-ec93-42b8-be6e-19f68b1ff136",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.805800Z",
+          "decision": "confirm",
+          "event_id": "ev_b60232d1-c877-4151-a55a-1f86005df763",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3371,9 +3889,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_965bddde-910a-4800-a112-74128a2c9cac",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.831422Z",
+          "decision": "confirm",
+          "event_id": "ev_d515dc28-fb59-4f0c-be95-55ae0795f181",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3416,9 +3941,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_ac2886a8-8c40-4dc0-8f00-0df6bc683297",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.855953Z",
+          "decision": "confirm",
+          "event_id": "ev_dc0ff020-0121-4818-ae8a-5cd6985c778a",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3461,9 +3993,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_eb29e7a3-7466-45f4-a2d9-b33896cbc162",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.876939Z",
+          "decision": "confirm",
+          "event_id": "ev_9356f82e-1bc7-48e2-8dd8-e5be0ba41806",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3506,9 +4045,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_d6db45aa-8993-427b-a40b-28492c8e84d5",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.897140Z",
+          "decision": "confirm",
+          "event_id": "ev_3591c260-5734-42ec-bbde-1d9adf260bbe",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3551,9 +4097,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_e8b04fe5-e61e-449a-923b-ccaa89411032",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.914060Z",
+          "decision": "confirm",
+          "event_id": "ev_386e2ee2-f6b9-407d-8b43-436d36711693",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3596,9 +4149,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_528fee51-94ef-4518-8cb3-9d6281dcfecc",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.931103Z",
+          "decision": "confirm",
+          "event_id": "ev_4100b1b6-c337-4285-94a2-3528083a435a",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3641,9 +4201,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_f888bc7f-d343-495b-b380-bbf623d5a6d3",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.952459Z",
+          "decision": "confirm",
+          "event_id": "ev_d9ad0ef1-7949-4935-8087-cb00d09b9e2c",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3686,9 +4253,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_3a659b7a-6661-4b94-9aa2-db7d94726ad7",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:13.989859Z",
+          "decision": "confirm",
+          "event_id": "ev_36a6228b-f43e-4882-81cb-57f76428751a",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3731,9 +4305,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_6adaabe1-43c1-4d39-8e6d-b9ebffdbd1e7",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:14.009110Z",
+          "decision": "confirm",
+          "event_id": "ev_5f7bb85b-0c6f-45ce-8be3-2a81390502be",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3776,9 +4357,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_b97bd9a7-4128-4345-9832-5b81eefeec0a",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:14.029030Z",
+          "decision": "confirm",
+          "event_id": "ev_6db7ce32-0c21-4300-b784-075519a57a06",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3821,9 +4409,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_6a43a955-6b36-4f90-8b69-8ddf5f01fec9",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:14.049394Z",
+          "decision": "confirm",
+          "event_id": "ev_a5021498-6d9e-4fbf-bffc-a79a622fe353",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     },
     {
       "cfb_player_id": null,
@@ -3866,9 +4461,16 @@
           "decision": "ingest",
           "event_id": "ingest_cpr_a8f170a7-c28e-4955-8633-c39f6451a67c",
           "reviewer_id": "system_ingestion"
+        },
+        {
+          "after_status": "confirmed",
+          "decided_at": "2026-06-03T02:15:14.068564Z",
+          "decision": "confirm",
+          "event_id": "ev_545561d3-434a-4c53-9e59-ec2ddabecdd1",
+          "reviewer_id": "davidleess"
         }
       ],
-      "verification_status": "provisional"
+      "verification_status": "confirmed"
     }
   ],
   "metadata": {}
