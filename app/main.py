@@ -39,7 +39,11 @@ if _FRONTEND_DIST.is_dir() and _FRONTEND_INDEX.is_file():
         # Real built assets only; a missing asset 404s here (never falls back to index.html).
         app.mount("/assets", StaticFiles(directory=_assets_dir), name="frontend-assets")
 
-    @app.get("/{spa_path:path}")
+    # include_in_schema=False: the SPA fallback serves index.html for client routes and is
+    # NOT an API endpoint. Excluding it keeps app.openapi() deterministic regardless of
+    # whether a built dist is present (CI's backend job has none), so the committed
+    # frontend/openapi.json snapshot matches across environments (Hey API codegen seam).
+    @app.get("/{spa_path:path}", include_in_schema=False)
     def _serve_spa(spa_path: str) -> FileResponse:
         """SPA fallback for client-side routes. Excludes the API/docs namespace and any
         asset-extension path so generated docs, the API, and missing files never resolve to

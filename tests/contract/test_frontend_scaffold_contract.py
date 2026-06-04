@@ -18,6 +18,7 @@ EXPECTED_DEPENDENCIES = {
 
 EXPECTED_DEV_DEPENDENCIES = {
     "@biomejs/biome": "2.4.16",
+    "@hey-api/openapi-ts": "0.98.1",
     "@testing-library/dom": "10.4.1",
     "@testing-library/react": "16.3.2",
     "@types/react": "19.2.16",
@@ -31,12 +32,12 @@ EXPECTED_DEV_DEPENDENCIES = {
 EXPECTED_SCRIPTS = {
     "build": "vite build",
     "lint": "biome check .",
+    "openapi-gen": "../.venv/bin/python3.14 ../scripts/dump_openapi.py && openapi-ts",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
 }
 
 BANNED_DEPENDENCIES = {
-    "@hey-api/openapi-ts",
     "@tailwindcss/vite",
     "@tanstack/react-query",
     "@tanstack/react-router",
@@ -121,8 +122,13 @@ def test_frontend_typescript_and_biome_configs_are_strict_and_scoped() -> None:
     files = biome.get("files", {})
     includes = files.get("includes") or files.get("include")
     assert includes, "Biome must be scoped to the frontend workspace"
+    assert "!src/lib/api" in includes, (
+        "Generated Hey API client code must be excluded from Biome formatting/linting"
+    )
     assert all(
-        str(include).startswith(("src/", "*.html", "*.ts", "*.tsx", "vite.config.ts"))
+        str(include).lstrip("!").startswith(
+            ("src/", "*.html", "*.ts", "*.tsx", "vite.config.ts")
+        )
         for include in includes
     ), f"Biome includes must stay frontend-scoped, got {includes!r}"
 
