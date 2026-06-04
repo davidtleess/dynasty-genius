@@ -1,0 +1,44 @@
+/*
+ * Dynasty Genius design tokens (Surface-1, T2).
+ * Single source of truth for the palette + scale. Plain CSS custom properties in
+ * OKLCH; no Tailwind. Two-lane discipline: model = cool blue, market = amber.
+ * No verdict hues (the constitution bans confidence-implying signal colors); the
+ * palette test enforces that no token lands in the banned warm-low or mid hue arcs.
+ */
+:root {
+  /* Model axis: cool blue. DG-computed valuation signal. */
+  --dg-model: oklch(0.55 0.15 255);
+  --dg-model-emphasis: oklch(0.45 0.18 255);
+  --dg-model-muted: oklch(0.72 0.08 255);
+
+  /* Market axis: amber. Overlay context only; never feeds the model score. */
+  --dg-market: oklch(0.74 0.14 75);
+  --dg-market-emphasis: oklch(0.64 0.16 75);
+  --dg-market-muted: oklch(0.84 0.07 75);
+
+  /* Age-cliff warning: amber family (constitutional ages RB 26 / WR 28 / TE 30 / QB 33). */
+  --dg-cliff: oklch(0.68 0.16 70);
+
+  /* Position categorical hues: orthogonal to both model and market axes. */
+  --dg-pos-qb: oklch(0.6 0.14 300);
+  --dg-pos-rb: oklch(0.62 0.13 170);
+  --dg-pos-wr: oklch(0.6 0.15 340);
+  --dg-pos-te: oklch(0.64 0.12 205);
+
+  /* DVS 0-100 constitutional scale: neutral ramp (near-achromatic, low chroma). */
+  --dg-dvs-floor: oklch(0.32 0.02 255);
+  --dg-dvs-ceiling: oklch(0.88 0.03 255);
+
+  /* Typography. */
+  --dg-font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --dg-font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", monospace;
+  --dg-text-sm: 0.8125rem;
+  --dg-text-base: 0.9375rem;
+  --dg-text-lg: 1.125rem;
+
+  /* Spacing scale. */
+  --dg-space-1: 0.25rem;
+  --dg-space-2: 0.5rem;
+  --dg-space-3: 0.75rem;
+  --dg-space-4: 1rem;
+}
