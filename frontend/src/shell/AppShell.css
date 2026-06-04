@@ -1,0 +1,77 @@
+/*
+ * AppShell layout (Surface-1, T3). Consumes the design tokens (tokens.css):
+ * left rail, sticky Trust-strip slot, main column, collapsible right inspector.
+ * Calm, dense analytical cockpit; no verdict colors.
+ */
+.dg-shell {
+  display: grid;
+  grid-template-columns: 14rem 1fr auto;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "rail trust trust"
+    "rail main inspector";
+  min-block-size: 100vh;
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-base);
+}
+
+.dg-shell__rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-1);
+  padding: var(--dg-space-3);
+}
+
+.dg-shell__nav-item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  text-align: start;
+  padding: var(--dg-space-2) var(--dg-space-3);
+  font: inherit;
+  cursor: pointer;
+  color: var(--dg-model-muted);
+}
+
+.dg-shell__nav-item[aria-current="page"] {
+  color: var(--dg-model-emphasis);
+  font-weight: 600;
+}
+
+.dg-shell__trust {
+  grid-area: trust;
+  position: sticky;
+  inset-block-start: 0;
+  padding: var(--dg-space-2) var(--dg-space-4);
+}
+
+.dg-shell__main {
+  grid-area: main;
+  padding: var(--dg-space-4);
+}
+
+.dg-shell__title {
+  margin: 0;
+  font-size: var(--dg-text-lg);
+}
+
+.dg-shell__inspector {
+  grid-area: inspector;
+  padding: var(--dg-space-3);
+}
+
+.dg-shell__inspector[data-state="closed"] {
+  inline-size: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dg-shell__inspector-toggle {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  color: var(--dg-market);
+}

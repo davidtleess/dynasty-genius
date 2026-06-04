@@ -1,3 +1,5 @@
+import { AppShell } from "./shell/AppShell";
+
 export function App() {
-  return <div className="dg-shell">Dynasty Genius</div>;
+  return <AppShell />;
 }
