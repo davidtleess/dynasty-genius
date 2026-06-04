@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { type Command, CommandPalette } from "../command/CommandPalette";
 import "./AppShell.css";
 
 // North-star Decision Surfaces (01-north-star-architecture.md). Slots only in T3;
@@ -19,6 +20,14 @@ type Surface = (typeof SURFACES)[number];
 export function AppShell() {
   const [activeSurface, setActiveSurface] = useState<Surface>(SURFACES[0]);
   const [inspectorOpen, setInspectorOpen] = useState(true);
+
+  const commands: Command[] = SURFACES.map((surface) => ({
+    id: surface.toLowerCase().replace(/\s+/g, "-"),
+    label: surface,
+    run: () => {
+      setActiveSurface(surface);
+    },
+  }));
 
   return (
     <div className="dg-shell">
@@ -62,6 +71,8 @@ export function AppShell() {
           Inspector
         </button>
       </aside>
+
+      <CommandPalette commands={commands} />
     </div>
   );
 }
