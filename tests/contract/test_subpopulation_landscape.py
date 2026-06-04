@@ -1,5 +1,6 @@
 import hashlib
 import importlib.util
+import inspect
 import json
 from importlib import import_module
 from pathlib import Path
@@ -1724,9 +1725,55 @@ def test_subpopulation_cli_reexec_under_repo_venv_guard(monkeypatch):
 
     monkeypatch.setattr(cli.os, "execv", fake_execv)
 
+    # Make the .venv/bin/python3.14 existence precondition deterministic so this
+    # test exercises the execv reexec path regardless of whether the running
+    # environment has a repo .venv. CI (hosted Python, no repo .venv) would
+    # otherwise no-op at the `if not venv_python.exists(): return` guard and the
+    # expected RuntimeError would never be raised.
+    real_path_exists = Path.exists
+
+    def fake_path_exists(self):
+        if str(self).endswith(".venv/bin/python3.14"):
+            return True
+        return real_path_exists(self)
+
+    monkeypatch.setattr(cli.Path, "exists", fake_path_exists)
+
     with pytest.raises(RuntimeError, match="stop after exec"):
         cli._reexec_under_venv()
 
     assert calls
     assert calls[0][0].endswith(".venv/bin/python3.14")
     assert calls[0][1][0].endswith(".venv/bin/python3.14")
+
+
+def test_subpopulation_cli_reexec_noops_when_repo_venv_missing(monkeypatch):
+    cli = _subpop_cli_module()
+    calls = []
+    original_exists = cli.Path.exists
+
+    monkeypatch.setattr(cli.sys, "prefix", "/usr/bin")
+    monkeypatch.setattr(cli.sys, "base_prefix", "/usr")
+    monkeypatch.setenv("DYNASTY_SUBPOPULATION_REEXEC", "")
+
+    def fake_exists(path):
+        if str(path).endswith(".venv/bin/python3.14"):
+            return False
+        return original_exists(path)
+
+    def fake_execv(executable, argv):
+        calls.append((executable, argv))
+        raise RuntimeError("exec should not be called")
+
+    monkeypatch.setattr(cli.Path, "exists", fake_exists)
+    monkeypatch.setattr(cli.os, "execv", fake_execv)
+
+    cli._reexec_under_venv()
+
+    assert calls == []
+
+
+def test_subpopulation_cli_reexec_execv_test_controls_venv_presence():
+    source = inspect.getsource(test_subpopulation_cli_reexec_under_repo_venv_guard)
+
+    assert "Path.exists" in source or "venv_python.exists" in source
