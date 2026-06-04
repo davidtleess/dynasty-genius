@@ -71,3 +71,46 @@ jobs:
             echo "$tracked_artifacts"
             exit 1
           fi
+
+  # Frontend (Stack-A) checks run in an isolated Node job. GitHub Actions jobs are
+  # isolated runners, so this job owns the authoritative build/dist gate: the Python
+  # job never builds the frontend and frontend/dist is a gitignored artifact. The
+  # Python-side scaffold contract test skips its dist assertion when dist is absent.
+  frontend-checks:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: "frontend/.node-version"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies (clean)
+        working-directory: frontend
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Lint (Biome)
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Test (Vitest)
+        working-directory: frontend
+        run: npm run test
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Verify SPA build output exists
+        working-directory: frontend
+        run: test -f dist/index.html
