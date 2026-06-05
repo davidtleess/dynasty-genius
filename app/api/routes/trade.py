@@ -8,7 +8,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.services.trade_analyzer import analyze_trade_pvo
+from src.dynasty_genius.trade_lab.asset_catalog import (
+    TradeAssetCatalogResponse,
+    build_asset_catalog,
+)
+from src.dynasty_genius.trade_lab.draft_pick_valuation import load_curve
 from src.dynasty_genius.trade_lab.evaluator import (
+    _PICK_CURVE_PATH,
     TradeAsset,
     TradeEvaluation,
     evaluate_trade,
@@ -77,3 +83,17 @@ def reconcile_trade_endpoint(request: TradeReconcileRequest) -> TradeRosterRecon
 def evaluate_trade_endpoint(request: TradeEvaluateRequest) -> TradeEvaluation:
     """Evaluate a multi-asset trade using model-native xVAR parity."""
     return evaluate_trade(list(request.side_a), list(request.side_b))
+
+
+@router.get("/assets", response_model=TradeAssetCatalogResponse)
+def trade_assets(q: str = "", limit: int = 50) -> TradeAssetCatalogResponse:
+    """Read-only catalog of tradeable assets (rostered players + future picks).
+
+    The frontend selects from these pre-shaped entries; it never invents
+    TradeAsset / MarketAssetRef payloads or pick keys. ``limit`` is clamped
+    inside ``build_asset_catalog`` (max 0..100); short queries return empty.
+    """
+    universe_pvo, sleeper_snapshot = _load_reconcile_artifacts()
+    return build_asset_catalog(
+        q, universe_pvo, sleeper_snapshot, load_curve(_PICK_CURVE_PATH), limit=limit
+    )
