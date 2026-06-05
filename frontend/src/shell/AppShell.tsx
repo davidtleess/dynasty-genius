@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { type Command, CommandPalette } from "../command/CommandPalette";
 import "./AppShell.css";
+import { TrustStrip } from "./TrustStrip";
 
 // North-star Decision Surfaces (01-north-star-architecture.md). Slots only in T3;
 // each surface gets real content in later tasks.
@@ -50,7 +51,7 @@ export function AppShell() {
           Explicit role="banner" + aria-label gives the named landmark the AppShell
           contract test queries; <div role="banner"> trips useSemanticElements instead. */}
       <header className="dg-shell__trust" role="banner" aria-label="Trust strip">
-        {/* Trust-strip slot: model grade + source freshness wired in T5. */}
+        <TrustStrip position="QB" />
       </header>
 
       <main className="dg-shell__main">
