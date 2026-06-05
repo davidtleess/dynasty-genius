@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -20,6 +19,7 @@ from src.dynasty_genius.adapters.fantasycalc_adapter import fetch_with_cache
 from src.dynasty_genius.trade_lab.evaluator import TradeAsset
 from src.dynasty_genius.trade_lab.market_reconciler import (
     MarketAssetRef,
+    TradeMarketReconciliation,
     attach_competitive_realism_warnings,
     attach_market_divergence_context,
     load_market_divergence_artifact,
@@ -39,8 +39,8 @@ router = APIRouter(prefix="/trade", tags=["trade-market"])
 
 
 class MarketReconcileRequest(BaseModel):
-    sent_assets: list[dict[str, Any]]
-    received_assets: list[dict[str, Any]]
+    sent_assets: list[MarketAssetRef]
+    received_assets: list[MarketAssetRef]
     current_draft_year: int = _DEFAULT_DRAFT_YEAR
     format_key: str = _DEFAULT_FORMAT_KEY
     # W3b: optional double-sided market penalty. When omitted, behavior is the
@@ -156,16 +156,19 @@ def _select_counterparty_penalty(
     return "available", penalty_input, []
 
 
-@router.post("/reconcile/market")
-def reconcile_trade_market_endpoint(request: MarketReconcileRequest) -> dict:
+@router.post("/reconcile/market", response_model=TradeMarketReconciliation)
+def reconcile_trade_market_endpoint(
+    request: MarketReconcileRequest,
+) -> TradeMarketReconciliation:
     """Market-overlay reconciliation (FantasyCalc), parallel to the model lane."""
     # 1. Model-native artifacts (503 if missing — required to self-compute cuts).
     universe_pvo, sleeper_snapshot = _load_reconcile_artifacts()
     pvo_lookup = {p["sleeper_player_id"]: p for p in universe_pvo.get("players", [])}
 
     # 2. Market asset refs + model-native trade assets (for cut selection only).
-    sent_refs = [MarketAssetRef(**a) for a in request.sent_assets]
-    received_refs = [MarketAssetRef(**a) for a in request.received_assets]
+    # Request body is already typed as list[MarketAssetRef]; pass through.
+    sent_refs = list(request.sent_assets)
+    received_refs = list(request.received_assets)
     david_assets = [_to_trade_asset(r, pvo_lookup) for r in sent_refs]
     received_model_assets = [_to_trade_asset(r, pvo_lookup) for r in received_refs]
 
@@ -236,4 +239,4 @@ def reconcile_trade_market_endpoint(request: MarketReconcileRequest) -> dict:
             merged_caveats.append(caveat)
     reconciliation = reconciliation.model_copy(update={"caveats": merged_caveats})
 
-    return reconciliation.model_dump()
+    return reconciliation
