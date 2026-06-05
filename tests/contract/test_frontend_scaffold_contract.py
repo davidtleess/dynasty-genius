@@ -30,10 +30,12 @@ EXPECTED_DEV_DEPENDENCIES = {
 }
 
 EXPECTED_SCRIPTS = {
+    "banned-language": "node scripts/check-banned-language.mjs",
     "build": "vite build",
     "lint": "biome check .",
     "openapi-gen": "../.venv/bin/python3.14 ../scripts/dump_openapi.py && openapi-ts",
     "test": "vitest run --passWithNoTests",
+    "test:governance": "npm run banned-language",
     "typecheck": "tsc --noEmit",
 }
 

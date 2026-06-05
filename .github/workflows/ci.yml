@@ -107,6 +107,10 @@ jobs:
         working-directory: frontend
         run: npm run test
 
+      - name: Banned-language gate
+        working-directory: frontend
+        run: npm run banned-language
+
       - name: Build
         working-directory: frontend
         run: npm run build

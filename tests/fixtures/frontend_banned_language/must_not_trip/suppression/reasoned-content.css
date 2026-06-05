@@ -1,0 +1,4 @@
+.tier::after {
+  /* banned-language-ok: legacy imported label requires follow-up copy rewrite */
+  content: "Bust";
+}

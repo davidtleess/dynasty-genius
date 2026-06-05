@@ -1,0 +1,37 @@
+{
+  "banned_phrases": [
+    "sell now",
+    "shop actively",
+    "buy now",
+    "sell high",
+    "buy low",
+    "must add",
+    "must draft",
+    "must start",
+    "strong win",
+    "strong loss",
+    "winning side",
+    "losing side",
+    "fade him",
+    "accept this trade",
+    "reject this trade",
+    "recommended action",
+    "recommend accept",
+    "recommend reject",
+    "should accept",
+    "should reject",
+    "confidence score",
+    "dynasty tier",
+    "side total",
+    "net win",
+    "net loss"
+  ],
+  "banned_fields": [
+    "verdict",
+    "dynasty_tier",
+    "confidence",
+    "recommended_action",
+    "roster_action"
+  ],
+  "banned_standalone_words": ["elite", "starter", "depth", "bust"]
+}

@@ -1,0 +1,17 @@
+{
+  "banned_phrases": [
+    "sell now",
+    "strong win",
+    "accept this trade"
+  ],
+  "banned_fields": [
+    "verdict",
+    "dynasty_tier"
+  ],
+  "banned_standalone_words": [
+    "elite",
+    "starter",
+    "depth",
+    "bust"
+  ]
+}
