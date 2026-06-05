@@ -60,6 +60,14 @@ jobs:
           assert max(split_info["training_seasons"]) < min(split_info["holdout_seasons"]), split_info
           PY
 
+      # The banned-language contract test (tests/contract/test_frontend_banned_language_linter_contract.py)
+      # drives the Node scanner, which imports `typescript` from frontend/node_modules.
+      # Install frontend deps here so that test runs in the full pytest suite. Node is
+      # preinstalled on the runner.
+      - name: Install frontend deps (for banned-language contract test)
+        working-directory: frontend
+        run: npm ci
+
       - name: Run pytest
         run: PYTHONPATH=. PYTHONPYCACHEPREFIX=.pycache_tmp pytest -q
 
