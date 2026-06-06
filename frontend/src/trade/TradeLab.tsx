@@ -7,6 +7,7 @@ import {
 } from "../lib/api/zod.gen";
 import { AssetSearch } from "./AssetSearch";
 import { DivergenceStrip } from "./DivergenceStrip";
+import { LaneDegradedState } from "./LaneDegradedState";
 import { MarketLanePanel } from "./MarketLanePanel";
 import { ModelLanePanel } from "./ModelLanePanel";
 import { RunComparisonBar } from "./RunComparisonBar";
@@ -24,13 +25,19 @@ const FORMAT_KEY = "dynasty_sf_ppr";
 type ModelReconciliation = z.infer<typeof zTradeRosterReconciliation>;
 type MarketReconciliation = z.infer<typeof zTradeMarketReconciliation>;
 
-// One lane: POST, then validate the 200 at the SDK boundary with the
-// generated Zod schema. Not-ok or shape mismatch -> null (the lane degrades).
+// A lane is idle (not run), ready (200 + valid), or unavailable (not-ok or a
+// 200 that failed schema validation). Coupled degradation is a backend fact:
+// missing model artifacts 503 BOTH routes, so both lanes land "unavailable".
+type LaneState<T> =
+  | { status: "idle" }
+  | { status: "ready"; data: T }
+  | { status: "unavailable" };
+
 async function fetchLane<T>(
   url: string,
   body: unknown,
   schema: ZodType<T>,
-): Promise<T | null> {
+): Promise<LaneState<T>> {
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -38,20 +45,26 @@ async function fetchLane<T>(
       body: JSON.stringify(body),
     });
     if (!response.ok) {
-      return null;
+      return { status: "unavailable" };
     }
     const parsed = schema.safeParse(await response.json());
-    return parsed.success ? parsed.data : null;
+    return parsed.success
+      ? { status: "ready", data: parsed.data }
+      : { status: "unavailable" };
   } catch {
-    return null;
+    return { status: "unavailable" };
   }
 }
 
 export function TradeLab() {
   const [trade, setTrade] = useState<Trade>(() => loadTrade());
   const [activeSide, setActiveSide] = useState<Side>("sent");
-  const [modelResult, setModelResult] = useState<ModelReconciliation | null>(null);
-  const [marketResult, setMarketResult] = useState<MarketReconciliation | null>(null);
+  const [modelLane, setModelLane] = useState<LaneState<ModelReconciliation>>({
+    status: "idle",
+  });
+  const [marketLane, setMarketLane] = useState<LaneState<MarketReconciliation>>({
+    status: "idle",
+  });
 
   function select(entry: CatalogEntry): void {
     setTrade((current) => {
@@ -87,12 +100,21 @@ export function TradeLab() {
       fetchLane("/api/trade/reconcile", modelBody, zTradeRosterReconciliation),
       fetchLane("/api/trade/reconcile/market", marketBody, zTradeMarketReconciliation),
     ]);
-    setModelResult(model);
-    setMarketResult(market);
+    setModelLane(model);
+    setMarketLane(market);
   }
+
+  const modelData = modelLane.status === "ready" ? modelLane.data : null;
+  const marketData = marketLane.status === "ready" ? marketLane.data : null;
+  const hasRun = modelLane.status !== "idle" || marketLane.status !== "idle";
 
   return (
     <section className="dg-trade-lab" aria-label="Trade Lab">
+      {/* Universal, non-dismissible: this surface is decision support, not a
+          decision-grade output. Avoids banned verdict wording. */}
+      <p className="dg-trade-lab__banner">
+        Not decision-grade — decision support only.
+      </p>
       <AssetSearch onSelect={select} />
       <div className="dg-trade-lab__sides">
         <TradeSideBuilder
@@ -115,13 +137,25 @@ export function TradeLab() {
         onCounterpartyChange={setCounterparty}
         onRun={() => void run()}
       />
-      {(modelResult || marketResult) && (
+      {hasRun && (
         <>
           <div className="dg-trade-lab__lanes">
-            {modelResult && <ModelLanePanel reconciliation={modelResult} />}
-            {marketResult && <MarketLanePanel reconciliation={marketResult} />}
+            {modelLane.status === "ready" && (
+              <ModelLanePanel reconciliation={modelLane.data} />
+            )}
+            {modelLane.status === "unavailable" && (
+              <LaneDegradedState label="Model lane" />
+            )}
+            {marketLane.status === "ready" && (
+              <MarketLanePanel reconciliation={marketLane.data} />
+            )}
+            {marketLane.status === "unavailable" && (
+              <LaneDegradedState label="Market lane" />
+            )}
           </div>
-          <DivergenceStrip model={modelResult} market={marketResult} />
+          {(modelData || marketData) && (
+            <DivergenceStrip model={modelData} market={marketData} />
+          )}
         </>
       )}
     </section>
