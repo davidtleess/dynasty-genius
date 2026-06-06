@@ -8,11 +8,21 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.services.trade_analyzer import analyze_trade_pvo
+from src.dynasty_genius.trade_lab.asset_catalog import (
+    TradeAssetCatalogResponse,
+    build_asset_catalog,
+)
+from src.dynasty_genius.trade_lab.draft_pick_valuation import load_curve
 from src.dynasty_genius.trade_lab.evaluator import (
+    _PICK_CURVE_PATH,
     TradeAsset,
+    TradeEvaluation,
     evaluate_trade,
 )
-from src.dynasty_genius.trade_lab.reconciler import reconcile_trade_roster
+from src.dynasty_genius.trade_lab.reconciler import (
+    TradeRosterReconciliation,
+    reconcile_trade_roster,
+)
 
 _ROOT = Path(__file__).resolve().parents[3]
 
@@ -25,13 +35,13 @@ class TradeRequest(BaseModel):
 
 
 class TradeEvaluateRequest(BaseModel):
-    side_a: list[dict[str, Any]]
-    side_b: list[dict[str, Any]]
+    side_a: list[TradeAsset]
+    side_b: list[TradeAsset]
 
 
 class TradeReconcileRequest(BaseModel):
-    david_assets: list[dict[str, Any]]    # what David sends
-    received_assets: list[dict[str, Any]] # what David receives
+    david_assets: list[TradeAsset]     # what David sends
+    received_assets: list[TradeAsset]  # what David receives
 
 
 def _load_reconcile_artifacts() -> tuple[dict, dict]:
@@ -56,20 +66,34 @@ def analyze(request: TradeRequest) -> dict:
         raise HTTPException(status_code=422, detail=str(e))
 
 
-@router.post("/reconcile")
-def reconcile_trade_endpoint(request: TradeReconcileRequest) -> dict:
+@router.post("/reconcile", response_model=TradeRosterReconciliation)
+def reconcile_trade_endpoint(request: TradeReconcileRequest) -> TradeRosterReconciliation:
     """Evaluate a trade with post-trade roster overflow penalty (Forced Cut Penalty)."""
     universe_pvo, sleeper_snapshot = _load_reconcile_artifacts()
-    david_assets = [TradeAsset(**a) for a in request.david_assets]
-    received_assets = [TradeAsset(**a) for a in request.received_assets]
-    result = reconcile_trade_roster(david_assets, received_assets, universe_pvo, sleeper_snapshot)
-    return result.dict()
+    # Request body is already typed as list[TradeAsset]; pass through (no Model(**a)).
+    return reconcile_trade_roster(
+        list(request.david_assets),
+        list(request.received_assets),
+        universe_pvo,
+        sleeper_snapshot,
+    )
 
 
-@router.post("/evaluate")
-def evaluate_trade_endpoint(request: TradeEvaluateRequest) -> dict:
+@router.post("/evaluate", response_model=TradeEvaluation)
+def evaluate_trade_endpoint(request: TradeEvaluateRequest) -> TradeEvaluation:
     """Evaluate a multi-asset trade using model-native xVAR parity."""
-    side_a = [TradeAsset(**asset) for asset in request.side_a]
-    side_b = [TradeAsset(**asset) for asset in request.side_b]
-    result = evaluate_trade(side_a, side_b)
-    return result.dict()
+    return evaluate_trade(list(request.side_a), list(request.side_b))
+
+
+@router.get("/assets", response_model=TradeAssetCatalogResponse)
+def trade_assets(q: str = "", limit: int = 50) -> TradeAssetCatalogResponse:
+    """Read-only catalog of tradeable assets (rostered players + future picks).
+
+    The frontend selects from these pre-shaped entries; it never invents
+    TradeAsset / MarketAssetRef payloads or pick keys. ``limit`` is clamped
+    inside ``build_asset_catalog`` (max 0..100); short queries return empty.
+    """
+    universe_pvo, sleeper_snapshot = _load_reconcile_artifacts()
+    return build_asset_catalog(
+        q, universe_pvo, sleeper_snapshot, load_curve(_PICK_CURVE_PATH), limit=limit
+    )

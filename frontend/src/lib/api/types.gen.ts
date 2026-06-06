@@ -246,6 +246,162 @@ export type HttpValidationError = {
 };
 
 /**
+ * MarketAssetOverlay
+ */
+export type MarketAssetOverlay = {
+    asset_ref: MarketAssetRef;
+    /**
+     * Caveats
+     */
+    caveats: Array<string>;
+    /**
+     * Coverage Gap
+     */
+    coverage_gap: string | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    divergence_context?: MarketDivergenceContext | null;
+    /**
+     * Format Key
+     */
+    format_key: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Market Value
+     */
+    market_value: number | null;
+    /**
+     * Market Volatility
+     */
+    market_volatility?: number | null;
+    /**
+     * Resolution
+     */
+    resolution: 'player_sleeper_id' | 'pick_exact_slot' | 'pick_generic_year_round' | 'unresolved';
+    /**
+     * Source
+     */
+    source: 'fantasycalc';
+    /**
+     * Source Timestamp
+     */
+    source_timestamp?: string | null;
+    /**
+     * Trend 30D
+     */
+    trend_30d?: number | null;
+};
+
+/**
+ * MarketAssetRef
+ */
+export type MarketAssetRef = {
+    /**
+     * Asset Kind
+     */
+    asset_kind: 'player' | 'prospect_player' | 'future_pick';
+    /**
+     * Bucket
+     */
+    bucket?: 'early' | 'mid' | 'late' | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    /**
+     * Player Id
+     */
+    player_id?: string | null;
+    /**
+     * Quantity Id
+     */
+    quantity_id?: string | null;
+    /**
+     * Round
+     */
+    round?: number | null;
+    /**
+     * Sleeper Id
+     */
+    sleeper_id?: string | null;
+    /**
+     * Slot
+     */
+    slot?: number | null;
+    /**
+     * Year
+     */
+    year?: number | null;
+};
+
+/**
+ * MarketDivergenceContext
+ */
+export type MarketDivergenceContext = {
+    /**
+     * Caveats
+     */
+    caveats: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    /**
+     * Percentile Delta
+     */
+    percentile_delta: number | null;
+    /**
+     * Sigma Threshold
+     */
+    sigma_threshold: number;
+    /**
+     * Signal Label
+     */
+    signal_label: 'model_higher_than_market' | 'model_lower_than_market' | 'inside_band' | 'unavailable';
+    /**
+     * Source Signal Status
+     */
+    source_signal_status: string | null;
+};
+
+/**
+ * MarketRealismWarning
+ */
+export type MarketRealismWarning = {
+    /**
+     * Caveats
+     */
+    caveats: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Metrics
+     */
+    metrics: {
+        [key: string]: number;
+    };
+    /**
+     * Severity
+     */
+    severity: 'advisory';
+    /**
+     * Warning Type
+     */
+    warning_type: 'package_dilution_warning' | 'roster_filler_warning' | 'market_package_requires_manual_review';
+};
+
+/**
  * MarketReconcileRequest
  */
 export type MarketReconcileRequest = {
@@ -264,15 +420,45 @@ export type MarketReconcileRequest = {
     /**
      * Received Assets
      */
-    received_assets: Array<{
-        [key: string]: unknown;
-    }>;
+    received_assets: Array<MarketAssetRef>;
     /**
      * Sent Assets
      */
-    sent_assets: Array<{
-        [key: string]: unknown;
-    }>;
+    sent_assets: Array<MarketAssetRef>;
+};
+
+/**
+ * MarketRosterPenalty
+ */
+export type MarketRosterPenalty = {
+    /**
+     * Caveats
+     */
+    caveats: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    /**
+     * Forced Cut Candidates
+     */
+    forced_cut_candidates: Array<MarketAssetOverlay>;
+    /**
+     * Penalty Market Value
+     */
+    penalty_market_value: number;
+    /**
+     * Post Trade Overflow
+     */
+    post_trade_overflow: number;
+    /**
+     * Roster Id
+     */
+    roster_id: number;
+    /**
+     * Unresolved Cut Count
+     */
+    unresolved_cut_count: number;
 };
 
 /**
@@ -346,6 +532,38 @@ export type ProspectRequest = {
 };
 
 /**
+ * RosterPenaltySummary
+ */
+export type RosterPenaltySummary = {
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    /**
+     * Forced Cut Candidates
+     */
+    forced_cut_candidates: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Forced Cut Penalty Xvar
+     */
+    forced_cut_penalty_xvar: number;
+    /**
+     * Penalty Caveats
+     */
+    penalty_caveats: Array<string>;
+    /**
+     * Post Trade Overflow
+     */
+    post_trade_overflow: number;
+    /**
+     * Post Trade Total Players
+     */
+    post_trade_total_players: number;
+};
+
+/**
  * StabilityResult
  */
 export type StabilityResult = {
@@ -409,21 +627,225 @@ export type TopKResult = {
 };
 
 /**
+ * TradeAsset
+ */
+export type TradeAsset = {
+    /**
+     * Caveat
+     */
+    caveat?: string | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    /**
+     * Dvs
+     */
+    dvs?: number | null;
+    /**
+     * Dvs Engine
+     */
+    dvs_engine?: string | null;
+    /**
+     * Is Prospect
+     */
+    is_prospect?: boolean;
+    /**
+     * Player Id
+     */
+    player_id: string;
+    /**
+     * Position
+     */
+    position: string;
+    /**
+     * Xvar
+     */
+    xvar: number | null;
+};
+
+/**
+ * TradeAssetCatalogEntry
+ *
+ * A single selectable asset, pre-shaped in both payload forms.
+ */
+export type TradeAssetCatalogEntry = {
+    /**
+     * Asset Id
+     */
+    asset_id: string;
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    /**
+     * Kind
+     */
+    kind: 'player' | 'future_pick';
+    /**
+     * Label
+     */
+    label: string;
+    market_ref: MarketAssetRef;
+    model_payload: TradeAsset;
+    /**
+     * Position
+     */
+    position?: string | null;
+    /**
+     * Roster Owner Id
+     */
+    roster_owner_id?: number | null;
+    /**
+     * Roster Owner Name
+     */
+    roster_owner_name?: string | null;
+};
+
+/**
+ * TradeAssetCatalogResponse
+ *
+ * The catalog envelope for a single search query.
+ */
+export type TradeAssetCatalogResponse = {
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    /**
+     * Query
+     */
+    query: string;
+    /**
+     * Results
+     */
+    results?: Array<TradeAssetCatalogEntry>;
+    /**
+     * Source Timestamp
+     */
+    source_timestamp?: string | null;
+};
+
+/**
  * TradeEvaluateRequest
  */
 export type TradeEvaluateRequest = {
     /**
      * Side A
      */
-    side_a: Array<{
-        [key: string]: unknown;
-    }>;
+    side_a: Array<TradeAsset>;
     /**
      * Side B
      */
-    side_b: Array<{
-        [key: string]: unknown;
-    }>;
+    side_b: Array<TradeAsset>;
+};
+
+/**
+ * TradeEvaluation
+ */
+export type TradeEvaluation = {
+    /**
+     * Caveats
+     */
+    caveats: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    /**
+     * Fairness Delta
+     */
+    fairness_delta: number;
+    /**
+     * Favors
+     */
+    favors: string | null;
+    /**
+     * Favors Xvar Margin
+     */
+    favors_xvar_margin: number | null;
+    side_a: TradeSide;
+    side_b: TradeSide;
+    /**
+     * Within Parity Band
+     */
+    within_parity_band: boolean;
+};
+
+/**
+ * TradeMarketReconciliation
+ */
+export type TradeMarketReconciliation = {
+    /**
+     * Adjusted Market Received
+     */
+    adjusted_market_received: number;
+    /**
+     * Adjusted Market Sent
+     */
+    adjusted_market_sent: number;
+    /**
+     * Caveats
+     */
+    caveats: Array<string>;
+    counterparty_forced_cut_penalty: MarketRosterPenalty | null;
+    /**
+     * Counterparty Market Penalty Status
+     */
+    counterparty_market_penalty_status?: 'not_requested' | 'available' | 'unavailable';
+    /**
+     * Coverage Gaps
+     */
+    coverage_gaps: Array<string>;
+    david_forced_cut_penalty: MarketRosterPenalty | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    /**
+     * Format Key
+     */
+    format_key: string;
+    /**
+     * Market Delta For David
+     */
+    market_delta_for_david: number;
+    /**
+     * Market Received Raw
+     */
+    market_received_raw: number;
+    /**
+     * Market Sent Raw
+     */
+    market_sent_raw: number;
+    /**
+     * Market Source
+     */
+    market_source: 'fantasycalc';
+    /**
+     * Realism Warnings
+     */
+    realism_warnings?: Array<MarketRealismWarning>;
+    /**
+     * Received Assets
+     */
+    received_assets: Array<MarketAssetOverlay>;
+    /**
+     * Sent Assets
+     */
+    sent_assets: Array<MarketAssetOverlay>;
+    /**
+     * Source Timestamp
+     */
+    source_timestamp: string | null;
 };
 
 /**
@@ -433,15 +855,11 @@ export type TradeReconcileRequest = {
     /**
      * David Assets
      */
-    david_assets: Array<{
-        [key: string]: unknown;
-    }>;
+    david_assets: Array<TradeAsset>;
     /**
      * Received Assets
      */
-    received_assets: Array<{
-        [key: string]: unknown;
-    }>;
+    received_assets: Array<TradeAsset>;
 };
 
 /**
@@ -460,6 +878,60 @@ export type TradeRequest = {
     their_assets: Array<{
         [key: string]: unknown;
     }>;
+};
+
+/**
+ * TradeRosterReconciliation
+ */
+export type TradeRosterReconciliation = {
+    /**
+     * Adjusted David Received Value
+     */
+    adjusted_david_received_value: number;
+    /**
+     * Adjusted Fairness Delta
+     */
+    adjusted_fairness_delta: number;
+    /**
+     * Adjusted Favors
+     */
+    adjusted_favors: string;
+    /**
+     * Adjusted Within Parity Band
+     */
+    adjusted_within_parity_band: boolean;
+    base_evaluation: TradeEvaluation;
+    /**
+     * Caveats
+     */
+    caveats: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: boolean;
+    roster_penalty: RosterPenaltySummary;
+};
+
+/**
+ * TradeSide
+ */
+export type TradeSide = {
+    /**
+     * Assets
+     */
+    assets: Array<TradeAsset>;
+    /**
+     * Consolidation Factor
+     */
+    consolidation_factor: number;
+    /**
+     * Side Value
+     */
+    side_value: number;
+    /**
+     * Xvar Sum
+     */
+    xvar_sum: number;
 };
 
 /**
@@ -700,6 +1172,40 @@ export type AnalyzeApiTradeAnalyzePostResponses = {
 
 export type AnalyzeApiTradeAnalyzePostResponse = AnalyzeApiTradeAnalyzePostResponses[keyof AnalyzeApiTradeAnalyzePostResponses];
 
+export type TradeAssetsApiTradeAssetsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/trade/assets';
+};
+
+export type TradeAssetsApiTradeAssetsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TradeAssetsApiTradeAssetsGetError = TradeAssetsApiTradeAssetsGetErrors[keyof TradeAssetsApiTradeAssetsGetErrors];
+
+export type TradeAssetsApiTradeAssetsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: TradeAssetCatalogResponse;
+};
+
+export type TradeAssetsApiTradeAssetsGetResponse = TradeAssetsApiTradeAssetsGetResponses[keyof TradeAssetsApiTradeAssetsGetResponses];
+
 export type EvaluateTradeEndpointApiTradeEvaluatePostData = {
     body: TradeEvaluateRequest;
     path?: never;
@@ -718,13 +1224,9 @@ export type EvaluateTradeEndpointApiTradeEvaluatePostError = EvaluateTradeEndpoi
 
 export type EvaluateTradeEndpointApiTradeEvaluatePostResponses = {
     /**
-     * Response Evaluate Trade Endpoint Api Trade Evaluate Post
-     *
      * Successful Response
      */
-    200: {
-        [key: string]: unknown;
-    };
+    200: TradeEvaluation;
 };
 
 export type EvaluateTradeEndpointApiTradeEvaluatePostResponse = EvaluateTradeEndpointApiTradeEvaluatePostResponses[keyof EvaluateTradeEndpointApiTradeEvaluatePostResponses];
@@ -747,13 +1249,9 @@ export type ReconcileTradeEndpointApiTradeReconcilePostError = ReconcileTradeEnd
 
 export type ReconcileTradeEndpointApiTradeReconcilePostResponses = {
     /**
-     * Response Reconcile Trade Endpoint Api Trade Reconcile Post
-     *
      * Successful Response
      */
-    200: {
-        [key: string]: unknown;
-    };
+    200: TradeRosterReconciliation;
 };
 
 export type ReconcileTradeEndpointApiTradeReconcilePostResponse = ReconcileTradeEndpointApiTradeReconcilePostResponses[keyof ReconcileTradeEndpointApiTradeReconcilePostResponses];
@@ -776,13 +1274,9 @@ export type ReconcileTradeMarketEndpointApiTradeReconcileMarketPostError = Recon
 
 export type ReconcileTradeMarketEndpointApiTradeReconcileMarketPostResponses = {
     /**
-     * Response Reconcile Trade Market Endpoint Api Trade Reconcile Market Post
-     *
      * Successful Response
      */
-    200: {
-        [key: string]: unknown;
-    };
+    200: TradeMarketReconciliation;
 };
 
 export type ReconcileTradeMarketEndpointApiTradeReconcileMarketPostResponse = ReconcileTradeMarketEndpointApiTradeReconcileMarketPostResponses[keyof ReconcileTradeMarketEndpointApiTradeReconcileMarketPostResponses];

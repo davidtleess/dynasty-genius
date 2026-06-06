@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { type Command, CommandPalette } from "../command/CommandPalette";
+import { TradeLab } from "../trade/TradeLab";
 import "./AppShell.css";
 import { TrustStrip } from "./TrustStrip";
 
@@ -56,6 +57,7 @@ export function AppShell() {
 
       <main className="dg-shell__main">
         <h1 className="dg-shell__title">{activeSurface}</h1>
+        {activeSurface === "Trade Lab" && <TradeLab />}
       </main>
 
       <aside
