@@ -4,14 +4,19 @@
   gap: 1rem;
 }
 
-.dg-trade-lab__sides {
+.dg-trade-lab__sides,
+.dg-trade-lab__lanes {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
 
 .dg-asset-search__results,
-.dg-trade-side__assets {
+.dg-trade-side__assets,
+.dg-lane__assets,
+.dg-lane__caveats,
+.dg-lane__warnings,
+.dg-divergence__signals {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -24,6 +29,24 @@
 }
 
 .dg-run-bar__counterparty {
+  display: flex;
+  flex-direction: column;
+}
+
+.dg-lane--model {
+  border-left: 3px solid var(--dg-model, oklch(0.6 0.13 250));
+}
+
+.dg-lane--market {
+  border-left: 3px solid var(--dg-market, oklch(0.75 0.13 75));
+}
+
+.dg-divergence {
+  display: flex;
+  gap: 2rem;
+}
+
+.dg-divergence__fact {
   display: flex;
   flex-direction: column;
 }
