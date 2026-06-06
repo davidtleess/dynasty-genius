@@ -1,0 +1,12 @@
+.dg-trade-lab {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dg-asset-search__results,
+.dg-trade-lab__selected {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

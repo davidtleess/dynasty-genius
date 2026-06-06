@@ -440,6 +440,341 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "MarketAssetOverlay": {
+        "properties": {
+          "asset_ref": {
+            "$ref": "#/components/schemas/MarketAssetRef"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "coverage_gap": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Gap"
+          },
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "divergence_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketDivergenceContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "format_key": {
+            "title": "Format Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "market_value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Value"
+          },
+          "market_volatility": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Volatility"
+          },
+          "resolution": {
+            "enum": [
+              "player_sleeper_id",
+              "pick_exact_slot",
+              "pick_generic_year_round",
+              "unresolved"
+            ],
+            "title": "Resolution",
+            "type": "string"
+          },
+          "source": {
+            "const": "fantasycalc",
+            "title": "Source",
+            "type": "string"
+          },
+          "source_timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Timestamp"
+          },
+          "trend_30d": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trend 30D"
+          }
+        },
+        "required": [
+          "asset_ref",
+          "label",
+          "source",
+          "format_key",
+          "market_value",
+          "resolution",
+          "coverage_gap",
+          "caveats"
+        ],
+        "title": "MarketAssetOverlay",
+        "type": "object"
+      },
+      "MarketAssetRef": {
+        "properties": {
+          "asset_kind": {
+            "enum": [
+              "player",
+              "prospect_player",
+              "future_pick"
+            ],
+            "title": "Asset Kind",
+            "type": "string"
+          },
+          "bucket": {
+            "anyOf": [
+              {
+                "enum": [
+                  "early",
+                  "mid",
+                  "late"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bucket"
+          },
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "player_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Player Id"
+          },
+          "quantity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity Id"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round"
+          },
+          "sleeper_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sleeper Id"
+          },
+          "slot": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slot"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          }
+        },
+        "required": [
+          "asset_kind"
+        ],
+        "title": "MarketAssetRef",
+        "type": "object"
+      },
+      "MarketDivergenceContext": {
+        "properties": {
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "percentile_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentile Delta"
+          },
+          "sigma_threshold": {
+            "title": "Sigma Threshold",
+            "type": "number"
+          },
+          "signal_label": {
+            "enum": [
+              "model_higher_than_market",
+              "model_lower_than_market",
+              "inside_band",
+              "unavailable"
+            ],
+            "title": "Signal Label",
+            "type": "string"
+          },
+          "source_signal_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Signal Status"
+          }
+        },
+        "required": [
+          "signal_label",
+          "percentile_delta",
+          "sigma_threshold",
+          "source_signal_status",
+          "caveats"
+        ],
+        "title": "MarketDivergenceContext",
+        "type": "object"
+      },
+      "MarketRealismWarning": {
+        "properties": {
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Metrics",
+            "type": "object"
+          },
+          "severity": {
+            "const": "advisory",
+            "title": "Severity",
+            "type": "string"
+          },
+          "warning_type": {
+            "enum": [
+              "package_dilution_warning",
+              "roster_filler_warning",
+              "market_package_requires_manual_review"
+            ],
+            "title": "Warning Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warning_type",
+          "severity",
+          "message",
+          "metrics",
+          "caveats"
+        ],
+        "title": "MarketRealismWarning",
+        "type": "object"
+      },
       "MarketReconcileRequest": {
         "properties": {
           "counterparty_roster_id": {
@@ -465,16 +800,14 @@
           },
           "received_assets": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/MarketAssetRef"
             },
             "title": "Received Assets",
             "type": "array"
           },
           "sent_assets": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/MarketAssetRef"
             },
             "title": "Sent Assets",
             "type": "array"
@@ -485,6 +818,55 @@
           "received_assets"
         ],
         "title": "MarketReconcileRequest",
+        "type": "object"
+      },
+      "MarketRosterPenalty": {
+        "properties": {
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "forced_cut_candidates": {
+            "items": {
+              "$ref": "#/components/schemas/MarketAssetOverlay"
+            },
+            "title": "Forced Cut Candidates",
+            "type": "array"
+          },
+          "penalty_market_value": {
+            "title": "Penalty Market Value",
+            "type": "integer"
+          },
+          "post_trade_overflow": {
+            "title": "Post Trade Overflow",
+            "type": "integer"
+          },
+          "roster_id": {
+            "title": "Roster Id",
+            "type": "integer"
+          },
+          "unresolved_cut_count": {
+            "title": "Unresolved Cut Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "roster_id",
+          "post_trade_overflow",
+          "forced_cut_candidates",
+          "penalty_market_value",
+          "unresolved_cut_count",
+          "caveats"
+        ],
+        "title": "MarketRosterPenalty",
         "type": "object"
       },
       "ModelReliability": {
@@ -616,6 +998,51 @@
         "title": "ProspectRequest",
         "type": "object"
       },
+      "RosterPenaltySummary": {
+        "properties": {
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "forced_cut_candidates": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Forced Cut Candidates",
+            "type": "array"
+          },
+          "forced_cut_penalty_xvar": {
+            "title": "Forced Cut Penalty Xvar",
+            "type": "number"
+          },
+          "penalty_caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Penalty Caveats",
+            "type": "array"
+          },
+          "post_trade_overflow": {
+            "title": "Post Trade Overflow",
+            "type": "integer"
+          },
+          "post_trade_total_players": {
+            "title": "Post Trade Total Players",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "post_trade_total_players",
+          "post_trade_overflow",
+          "forced_cut_candidates",
+          "forced_cut_penalty_xvar",
+          "penalty_caveats"
+        ],
+        "title": "RosterPenaltySummary",
+        "type": "object"
+      },
       "StabilityResult": {
         "properties": {
           "dm_hln_pvalue": {
@@ -723,20 +1150,219 @@
         "title": "TopKResult",
         "type": "object"
       },
+      "TradeAsset": {
+        "properties": {
+          "caveat": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caveat"
+          },
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "dvs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs"
+          },
+          "dvs_engine": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs Engine"
+          },
+          "is_prospect": {
+            "default": false,
+            "title": "Is Prospect",
+            "type": "boolean"
+          },
+          "player_id": {
+            "title": "Player Id",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "xvar": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xvar"
+          }
+        },
+        "required": [
+          "player_id",
+          "xvar",
+          "position"
+        ],
+        "title": "TradeAsset",
+        "type": "object"
+      },
+      "TradeAssetCatalogEntry": {
+        "description": "A single selectable asset, pre-shaped in both payload forms.",
+        "properties": {
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "player",
+              "future_pick"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "market_ref": {
+            "$ref": "#/components/schemas/MarketAssetRef"
+          },
+          "model_payload": {
+            "$ref": "#/components/schemas/TradeAsset"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "roster_owner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roster Owner Id"
+          },
+          "roster_owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roster Owner Name"
+          }
+        },
+        "required": [
+          "asset_id",
+          "label",
+          "kind",
+          "model_payload",
+          "market_ref"
+        ],
+        "title": "TradeAssetCatalogEntry",
+        "type": "object"
+      },
+      "TradeAssetCatalogResponse": {
+        "description": "The catalog envelope for a single search query.",
+        "properties": {
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "results": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TradeAssetCatalogEntry"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "source_timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Timestamp"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "TradeAssetCatalogResponse",
+        "type": "object"
+      },
       "TradeEvaluateRequest": {
         "properties": {
           "side_a": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/TradeAsset"
             },
             "title": "Side A",
             "type": "array"
           },
           "side_b": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/TradeAsset"
             },
             "title": "Side B",
             "type": "array"
@@ -749,20 +1375,214 @@
         "title": "TradeEvaluateRequest",
         "type": "object"
       },
+      "TradeEvaluation": {
+        "properties": {
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "fairness_delta": {
+            "title": "Fairness Delta",
+            "type": "number"
+          },
+          "favors": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Favors"
+          },
+          "favors_xvar_margin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Favors Xvar Margin"
+          },
+          "side_a": {
+            "$ref": "#/components/schemas/TradeSide"
+          },
+          "side_b": {
+            "$ref": "#/components/schemas/TradeSide"
+          },
+          "within_parity_band": {
+            "title": "Within Parity Band",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "side_a",
+          "side_b",
+          "fairness_delta",
+          "within_parity_band",
+          "favors",
+          "favors_xvar_margin",
+          "caveats"
+        ],
+        "title": "TradeEvaluation",
+        "type": "object"
+      },
+      "TradeMarketReconciliation": {
+        "properties": {
+          "adjusted_market_received": {
+            "title": "Adjusted Market Received",
+            "type": "integer"
+          },
+          "adjusted_market_sent": {
+            "title": "Adjusted Market Sent",
+            "type": "integer"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "counterparty_forced_cut_penalty": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketRosterPenalty"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "counterparty_market_penalty_status": {
+            "default": "not_requested",
+            "enum": [
+              "not_requested",
+              "available",
+              "unavailable"
+            ],
+            "title": "Counterparty Market Penalty Status",
+            "type": "string"
+          },
+          "coverage_gaps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Coverage Gaps",
+            "type": "array"
+          },
+          "david_forced_cut_penalty": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketRosterPenalty"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "format_key": {
+            "title": "Format Key",
+            "type": "string"
+          },
+          "market_delta_for_david": {
+            "title": "Market Delta For David",
+            "type": "integer"
+          },
+          "market_received_raw": {
+            "title": "Market Received Raw",
+            "type": "integer"
+          },
+          "market_sent_raw": {
+            "title": "Market Sent Raw",
+            "type": "integer"
+          },
+          "market_source": {
+            "const": "fantasycalc",
+            "title": "Market Source",
+            "type": "string"
+          },
+          "realism_warnings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MarketRealismWarning"
+            },
+            "title": "Realism Warnings",
+            "type": "array"
+          },
+          "received_assets": {
+            "items": {
+              "$ref": "#/components/schemas/MarketAssetOverlay"
+            },
+            "title": "Received Assets",
+            "type": "array"
+          },
+          "sent_assets": {
+            "items": {
+              "$ref": "#/components/schemas/MarketAssetOverlay"
+            },
+            "title": "Sent Assets",
+            "type": "array"
+          },
+          "source_timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Timestamp"
+          }
+        },
+        "required": [
+          "market_source",
+          "format_key",
+          "source_timestamp",
+          "sent_assets",
+          "received_assets",
+          "market_sent_raw",
+          "market_received_raw",
+          "david_forced_cut_penalty",
+          "counterparty_forced_cut_penalty",
+          "adjusted_market_sent",
+          "adjusted_market_received",
+          "market_delta_for_david",
+          "coverage_gaps",
+          "caveats"
+        ],
+        "title": "TradeMarketReconciliation",
+        "type": "object"
+      },
       "TradeReconcileRequest": {
         "properties": {
           "david_assets": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/TradeAsset"
             },
             "title": "David Assets",
             "type": "array"
           },
           "received_assets": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/TradeAsset"
             },
             "title": "Received Assets",
             "type": "array"
@@ -799,6 +1619,86 @@
           "their_assets"
         ],
         "title": "TradeRequest",
+        "type": "object"
+      },
+      "TradeRosterReconciliation": {
+        "properties": {
+          "adjusted_david_received_value": {
+            "title": "Adjusted David Received Value",
+            "type": "number"
+          },
+          "adjusted_fairness_delta": {
+            "title": "Adjusted Fairness Delta",
+            "type": "number"
+          },
+          "adjusted_favors": {
+            "title": "Adjusted Favors",
+            "type": "string"
+          },
+          "adjusted_within_parity_band": {
+            "title": "Adjusted Within Parity Band",
+            "type": "boolean"
+          },
+          "base_evaluation": {
+            "$ref": "#/components/schemas/TradeEvaluation"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "roster_penalty": {
+            "$ref": "#/components/schemas/RosterPenaltySummary"
+          }
+        },
+        "required": [
+          "base_evaluation",
+          "roster_penalty",
+          "adjusted_david_received_value",
+          "adjusted_fairness_delta",
+          "adjusted_within_parity_band",
+          "adjusted_favors",
+          "caveats"
+        ],
+        "title": "TradeRosterReconciliation",
+        "type": "object"
+      },
+      "TradeSide": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/TradeAsset"
+            },
+            "title": "Assets",
+            "type": "array"
+          },
+          "consolidation_factor": {
+            "title": "Consolidation Factor",
+            "type": "number"
+          },
+          "side_value": {
+            "title": "Side Value",
+            "type": "number"
+          },
+          "xvar_sum": {
+            "title": "Xvar Sum",
+            "type": "number"
+          }
+        },
+        "required": [
+          "assets",
+          "xvar_sum",
+          "consolidation_factor",
+          "side_value"
+        ],
+        "title": "TradeSide",
         "type": "object"
       },
       "TrustSurfaceResponse": {
@@ -1190,6 +2090,60 @@
         ]
       }
     },
+    "/api/trade/assets": {
+      "get": {
+        "description": "Read-only catalog of tradeable assets (rostered players + future picks).\n\nThe frontend selects from these pre-shaped entries; it never invents\nTradeAsset / MarketAssetRef payloads or pick keys. ``limit`` is clamped\ninside ``build_asset_catalog`` (max 0..100); short queries return empty.",
+        "operationId": "trade_assets_api_trade_assets_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeAssetCatalogResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Trade Assets",
+        "tags": [
+          "trade"
+        ]
+      }
+    },
     "/api/trade/evaluate": {
       "post": {
         "description": "Evaluate a multi-asset trade using model-native xVAR parity.",
@@ -1209,9 +2163,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Evaluate Trade Endpoint Api Trade Evaluate Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/TradeEvaluation"
                 }
               }
             },
@@ -1253,9 +2205,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Reconcile Trade Endpoint Api Trade Reconcile Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/TradeRosterReconciliation"
                 }
               }
             },
@@ -1297,9 +2247,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Reconcile Trade Market Endpoint Api Trade Reconcile Market Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/TradeMarketReconciliation"
                 }
               }
             },

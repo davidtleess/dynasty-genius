@@ -52,14 +52,107 @@ export const zGateResult = z.object({
 });
 
 /**
+ * MarketAssetRef
+ */
+export const zMarketAssetRef = z.object({
+    asset_kind: z.enum([
+        'player',
+        'prospect_player',
+        'future_pick'
+    ]),
+    bucket: z.enum([
+        'early',
+        'mid',
+        'late'
+    ]).nullish(),
+    decision_supported: z.boolean().optional().default(false),
+    player_id: z.string().nullish(),
+    quantity_id: z.string().nullish(),
+    round: z.int().nullish(),
+    sleeper_id: z.string().nullish(),
+    slot: z.int().nullish(),
+    year: z.int().nullish()
+});
+
+/**
+ * MarketDivergenceContext
+ */
+export const zMarketDivergenceContext = z.object({
+    caveats: z.array(z.string()),
+    decision_supported: z.boolean().optional().default(false),
+    percentile_delta: z.number().nullable(),
+    sigma_threshold: z.number(),
+    signal_label: z.enum([
+        'model_higher_than_market',
+        'model_lower_than_market',
+        'inside_band',
+        'unavailable'
+    ]),
+    source_signal_status: z.string().nullable()
+});
+
+/**
+ * MarketAssetOverlay
+ */
+export const zMarketAssetOverlay = z.object({
+    asset_ref: zMarketAssetRef,
+    caveats: z.array(z.string()),
+    coverage_gap: z.string().nullable(),
+    decision_supported: z.boolean().optional().default(false),
+    divergence_context: zMarketDivergenceContext.nullish(),
+    format_key: z.string(),
+    label: z.string(),
+    market_value: z.int().nullable(),
+    market_volatility: z.number().nullish(),
+    resolution: z.enum([
+        'player_sleeper_id',
+        'pick_exact_slot',
+        'pick_generic_year_round',
+        'unresolved'
+    ]),
+    source: z.literal('fantasycalc'),
+    source_timestamp: z.string().nullish(),
+    trend_30d: z.int().nullish()
+});
+
+/**
+ * MarketRealismWarning
+ */
+export const zMarketRealismWarning = z.object({
+    caveats: z.array(z.string()),
+    decision_supported: z.boolean().optional().default(false),
+    message: z.string(),
+    metrics: z.record(z.string(), z.number()),
+    severity: z.literal('advisory'),
+    warning_type: z.enum([
+        'package_dilution_warning',
+        'roster_filler_warning',
+        'market_package_requires_manual_review'
+    ])
+});
+
+/**
  * MarketReconcileRequest
  */
 export const zMarketReconcileRequest = z.object({
     counterparty_roster_id: z.int().nullish(),
     current_draft_year: z.int().optional().default(2026),
     format_key: z.string().optional().default('dynasty_sf_ppr'),
-    received_assets: z.array(z.record(z.string(), z.unknown())),
-    sent_assets: z.array(z.record(z.string(), z.unknown()))
+    received_assets: z.array(zMarketAssetRef),
+    sent_assets: z.array(zMarketAssetRef)
+});
+
+/**
+ * MarketRosterPenalty
+ */
+export const zMarketRosterPenalty = z.object({
+    caveats: z.array(z.string()),
+    decision_supported: z.boolean().optional().default(false),
+    forced_cut_candidates: z.array(zMarketAssetOverlay),
+    penalty_market_value: z.int(),
+    post_trade_overflow: z.int(),
+    roster_id: z.int(),
+    unresolved_cut_count: z.int()
 });
 
 /**
@@ -88,6 +181,18 @@ export const zProspectRequest = z.object({
     sleeper_id: z.string().nullish(),
     te_ryptpa_final: z.number().nullish(),
     te_yards_per_reception_career: z.number().nullish()
+});
+
+/**
+ * RosterPenaltySummary
+ */
+export const zRosterPenaltySummary = z.object({
+    decision_supported: z.boolean().optional().default(false),
+    forced_cut_candidates: z.array(z.record(z.string(), z.unknown())),
+    forced_cut_penalty_xvar: z.number(),
+    penalty_caveats: z.array(z.string()),
+    post_trade_overflow: z.int(),
+    post_trade_total_players: z.int()
 });
 
 /**
@@ -149,19 +254,91 @@ export const zFoldResult = z.object({
 });
 
 /**
+ * TradeAsset
+ */
+export const zTradeAsset = z.object({
+    caveat: z.string().nullish(),
+    decision_supported: z.boolean().optional().default(false),
+    dvs: z.number().nullish(),
+    dvs_engine: z.string().nullish(),
+    is_prospect: z.boolean().optional().default(false),
+    player_id: z.string(),
+    position: z.string(),
+    xvar: z.number().nullable()
+});
+
+/**
+ * TradeAssetCatalogEntry
+ *
+ * A single selectable asset, pre-shaped in both payload forms.
+ */
+export const zTradeAssetCatalogEntry = z.object({
+    asset_id: z.string(),
+    caveats: z.array(z.string()).optional().default([]),
+    decision_supported: z.boolean().optional().default(false),
+    kind: z.enum(['player', 'future_pick']),
+    label: z.string(),
+    market_ref: zMarketAssetRef,
+    model_payload: zTradeAsset,
+    position: z.string().nullish(),
+    roster_owner_id: z.int().nullish(),
+    roster_owner_name: z.string().nullish()
+});
+
+/**
+ * TradeAssetCatalogResponse
+ *
+ * The catalog envelope for a single search query.
+ */
+export const zTradeAssetCatalogResponse = z.object({
+    caveats: z.array(z.string()).optional().default([]),
+    decision_supported: z.boolean().optional().default(false),
+    query: z.string(),
+    results: z.array(zTradeAssetCatalogEntry).optional().default([]),
+    source_timestamp: z.string().nullish()
+});
+
+/**
  * TradeEvaluateRequest
  */
 export const zTradeEvaluateRequest = z.object({
-    side_a: z.array(z.record(z.string(), z.unknown())),
-    side_b: z.array(z.record(z.string(), z.unknown()))
+    side_a: z.array(zTradeAsset),
+    side_b: z.array(zTradeAsset)
+});
+
+/**
+ * TradeMarketReconciliation
+ */
+export const zTradeMarketReconciliation = z.object({
+    adjusted_market_received: z.int(),
+    adjusted_market_sent: z.int(),
+    caveats: z.array(z.string()),
+    counterparty_forced_cut_penalty: zMarketRosterPenalty.nullable(),
+    counterparty_market_penalty_status: z.enum([
+        'not_requested',
+        'available',
+        'unavailable'
+    ]).optional().default('not_requested'),
+    coverage_gaps: z.array(z.string()),
+    david_forced_cut_penalty: zMarketRosterPenalty.nullable(),
+    decision_supported: z.boolean().optional().default(false),
+    format_key: z.string(),
+    market_delta_for_david: z.int(),
+    market_received_raw: z.int(),
+    market_sent_raw: z.int(),
+    market_source: z.literal('fantasycalc'),
+    realism_warnings: z.array(zMarketRealismWarning).optional().default([]),
+    received_assets: z.array(zMarketAssetOverlay),
+    sent_assets: z.array(zMarketAssetOverlay),
+    source_timestamp: z.string().nullable()
 });
 
 /**
  * TradeReconcileRequest
  */
 export const zTradeReconcileRequest = z.object({
-    david_assets: z.array(z.record(z.string(), z.unknown())),
-    received_assets: z.array(z.record(z.string(), z.unknown()))
+    david_assets: z.array(zTradeAsset),
+    received_assets: z.array(zTradeAsset)
 });
 
 /**
@@ -170,6 +347,44 @@ export const zTradeReconcileRequest = z.object({
 export const zTradeRequest = z.object({
     my_assets: z.array(z.record(z.string(), z.unknown())),
     their_assets: z.array(z.record(z.string(), z.unknown()))
+});
+
+/**
+ * TradeSide
+ */
+export const zTradeSide = z.object({
+    assets: z.array(zTradeAsset),
+    consolidation_factor: z.number(),
+    side_value: z.number(),
+    xvar_sum: z.number()
+});
+
+/**
+ * TradeEvaluation
+ */
+export const zTradeEvaluation = z.object({
+    caveats: z.array(z.string()),
+    decision_supported: z.boolean().optional().default(false),
+    fairness_delta: z.number(),
+    favors: z.string().nullable(),
+    favors_xvar_margin: z.number().nullable(),
+    side_a: zTradeSide,
+    side_b: zTradeSide,
+    within_parity_band: z.boolean()
+});
+
+/**
+ * TradeRosterReconciliation
+ */
+export const zTradeRosterReconciliation = z.object({
+    adjusted_david_received_value: z.number(),
+    adjusted_fairness_delta: z.number(),
+    adjusted_favors: z.string(),
+    adjusted_within_parity_band: z.boolean(),
+    base_evaluation: zTradeEvaluation,
+    caveats: z.array(z.string()),
+    decision_supported: z.boolean().optional().default(false),
+    roster_penalty: zRosterPenaltySummary
 });
 
 /**
@@ -279,32 +494,36 @@ export const zAnalyzeApiTradeAnalyzePostBody = zTradeRequest;
  */
 export const zAnalyzeApiTradeAnalyzePostResponse = z.record(z.string(), z.unknown());
 
+export const zTradeAssetsApiTradeAssetsGetQuery = z.object({
+    q: z.string().optional().default(''),
+    limit: z.int().optional().default(50)
+});
+
+/**
+ * Successful Response
+ */
+export const zTradeAssetsApiTradeAssetsGetResponse = zTradeAssetCatalogResponse;
+
 export const zEvaluateTradeEndpointApiTradeEvaluatePostBody = zTradeEvaluateRequest;
 
 /**
- * Response Evaluate Trade Endpoint Api Trade Evaluate Post
- *
  * Successful Response
  */
-export const zEvaluateTradeEndpointApiTradeEvaluatePostResponse = z.record(z.string(), z.unknown());
+export const zEvaluateTradeEndpointApiTradeEvaluatePostResponse = zTradeEvaluation;
 
 export const zReconcileTradeEndpointApiTradeReconcilePostBody = zTradeReconcileRequest;
 
 /**
- * Response Reconcile Trade Endpoint Api Trade Reconcile Post
- *
  * Successful Response
  */
-export const zReconcileTradeEndpointApiTradeReconcilePostResponse = z.record(z.string(), z.unknown());
+export const zReconcileTradeEndpointApiTradeReconcilePostResponse = zTradeRosterReconciliation;
 
 export const zReconcileTradeMarketEndpointApiTradeReconcileMarketPostBody = zMarketReconcileRequest;
 
 /**
- * Response Reconcile Trade Market Endpoint Api Trade Reconcile Market Post
- *
  * Successful Response
  */
-export const zReconcileTradeMarketEndpointApiTradeReconcileMarketPostResponse = z.record(z.string(), z.unknown());
+export const zReconcileTradeMarketEndpointApiTradeReconcileMarketPostResponse = zTradeMarketReconciliation;
 
 export const zGetTrustSurfaceApiTrustSurfacePositionGetPath = z.object({
     position: z.string()
