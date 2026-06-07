@@ -1,5 +1,20 @@
+import json
+import re
+from pathlib import Path
+
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import assemble_pvo
+
+ROOT = Path(__file__).resolve().parents[1]
+BANNED_VOCABULARY = json.loads(
+    (ROOT / "frontend" / "src" / "shell" / "banned_vocabulary.json").read_text()
+)
+BANNED_STANDALONE_WORDS = set(BANNED_VOCABULARY["banned_standalone_words"])
+
+
+def _assert_no_banned_standalone_words(text: str) -> None:
+    for word in BANNED_STANDALONE_WORDS:
+        assert re.search(rf"\b{re.escape(word)}\b", text, re.IGNORECASE) is None
 
 
 def test_counter_argument_age_cliff():
@@ -56,7 +71,33 @@ def test_counter_argument_top_asset_qb():
     pvo = assemble_pvo(identity, features)
     
     assert pvo.dynasty_value_score == 85
-    assert "Elite valuation assumes continued high-level rushing or outlier passing efficiency" in pvo.counter_argument
+    assert (
+        "Premium valuation assumes continued high-level rushing or outlier passing efficiency"
+        in pvo.counter_argument
+    )
+    assert "dip in mobility or supporting cast" in pvo.counter_argument
+    _assert_no_banned_standalone_words(pvo.counter_argument)
+
+
+def test_counter_argument_top_asset_te():
+    identity = PlayerIdentity(
+        dg_id="test_player_te",
+        full_name="Premium TE",
+        position="TE",
+        nfl_team="FA"
+    )
+    features = {
+        "age": 25,
+        "snap_share": 1.0,
+        "dynasty_value_score": 85
+    }
+    pvo = assemble_pvo(identity, features)
+
+    assert pvo.dynasty_value_score == 85
+    assert "premium status is difficult to maintain" in pvo.counter_argument
+    assert "TD-dependent" in pvo.counter_argument
+    assert "target-earning wideouts or changes offensive schemes" in pvo.counter_argument
+    _assert_no_banned_standalone_words(pvo.counter_argument)
 
 def test_counter_argument_priority():
     # Age cliff should take priority over high value in my implementation
