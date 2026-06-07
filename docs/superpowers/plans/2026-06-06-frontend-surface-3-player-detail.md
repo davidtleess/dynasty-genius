@@ -25,7 +25,7 @@
 - [ ] **Create the feature branch.** Code + artifacts land on a branch, not `main` (spec/plan docs are already on `main`).
   ```bash
   git checkout main && git pull
-  git checkout -b feature/frontend-surface-3-player-detail   # base: cddbed9 (origin/main)
+  git checkout -b feature/frontend-surface-3-player-detail   # base: latest origin/main (ecc7597 at plan authoring; rebase to current main before T1)
   ```
 - [ ] **Confirm baseline green** (so later regressions are attributable):
   ```bash
