@@ -340,7 +340,9 @@ def _check_js(post_root: Path, post_prospect: Any) -> None:
 
 
 def _is_generated_at_line(line: str) -> bool:
-    return line.lstrip().startswith("Generated at:")
+    # The real phase15 report uses 'Generated: <ts>'; the optional ' at' keeps the
+    # synthetic 'Generated at:' fixture form valid too.
+    return re.match(r"^Generated(\s+at)?\s*:", line.lstrip()) is not None
 
 
 def _report_counter_argument_id(line: str) -> str | None:

@@ -538,3 +538,27 @@ def test_integrity_audit_fails_on_banned_word_in_report_counter_argument(
 
     with pytest.raises(IntegrityAuditError, match="banned"):
         validate_regen_integrity(pre_root, post_root)
+
+
+def test_integrity_audit_passes_for_real_report_generated_marker_format(
+    tmp_path: Path,
+) -> None:
+    # v8 regression: the REAL phase15 report uses 'Generated: <ts>' (no 'at') and
+    # has NO counter_argument lines. Only the Generated: line moves on regen; that
+    # must be allowlisted (the synthetic fixture's 'Generated at:' marker missed it).
+    pre_root, post_root = _roots(tmp_path)
+    real_report = (
+        "# Phase 15 — 2026 Rookie Rank Refresh\n"
+        "\n"
+        "Generated: {ts}\n"
+        "\n"
+        "| rank | player |\n"
+        "| 1 | Fernando Mendoza |\n"
+    )
+    (pre_root / PHASE15_REPORT).write_text(real_report.format(ts="2026-05-24T16:54:53Z"))
+    (post_root / PHASE15_REPORT).write_text(
+        real_report.format(ts="2026-06-07T14:32:31Z")
+    )
+
+    result = validate_regen_integrity(pre_root, post_root)
+    assert result["status"] == "pass"
