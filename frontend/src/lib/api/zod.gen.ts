@@ -3,6 +3,30 @@
 import * as z from 'zod';
 
 /**
+ * CounterArgumentField
+ */
+export const zCounterArgumentField = z.object({
+    caveats: z.array(z.string()).optional().default([]),
+    status: z.string(),
+    text: z.string().nullable()
+});
+
+/**
+ * DegradationField
+ */
+export const zDegradationField = z.object({
+    message: z.string()
+});
+
+/**
+ * DivergenceField
+ */
+export const zDivergenceField = z.object({
+    delta: z.number().nullable(),
+    status: z.string()
+});
+
+/**
  * DivergenceResult
  *
  * Gate 4. Populated only when sufficient FC snapshots and flagged player data exist.
@@ -21,6 +45,14 @@ export const zDivergenceResult = z.object({
     n_flagged: z.int(),
     n_matched_controls_per_flag: z.int().optional().default(3),
     position_beta: z.number()
+});
+
+/**
+ * EvidenceListField
+ */
+export const zEvidenceListField = z.object({
+    caveats: z.array(z.string()).optional().default([]),
+    items: z.array(z.string()).optional().default([])
 });
 
 /**
@@ -165,6 +197,75 @@ export const zModelReliability = z.object({
     position: z.string(),
     r2_oos_mean: z.number().nullish(),
     spearman_rho_mean: z.number().nullish()
+});
+
+/**
+ * PlayerEvidence
+ */
+export const zPlayerEvidence = z.object({
+    caveats: zEvidenceListField,
+    counter_argument: zCounterArgumentField,
+    risk_flags: zEvidenceListField,
+    top_drivers: zEvidenceListField
+});
+
+/**
+ * PlayerIdentity
+ */
+export const zPlayerIdentity = z.object({
+    age: z.number().nullable(),
+    draft_class: z.int().nullable(),
+    name: z.string().nullable(),
+    nfl_draft_pick: z.int().nullable(),
+    nfl_draft_round: z.int().nullable(),
+    position: z.string().nullable(),
+    sleeper_id: z.string(),
+    team: z.string().nullable()
+});
+
+/**
+ * PlayerMarketLane
+ */
+export const zPlayerMarketLane = z.object({
+    caveats: z.array(z.string()).optional().default([]),
+    market_rank_overall: z.int().nullable(),
+    market_rank_position: z.int().nullable(),
+    market_value: z.number().nullable(),
+    source: z.string().nullable(),
+    source_timestamp: z.string().nullable(),
+    status: z.string()
+});
+
+/**
+ * PlayerModelLane
+ */
+export const zPlayerModelLane = z.object({
+    dynasty_value_score: z.number().nullable(),
+    engine_path: z.string().nullable(),
+    model_grade: z.string().nullable(),
+    model_version: z.string().nullable(),
+    projection_1y: z.number().nullable(),
+    projection_2y: z.number().nullable(),
+    projection_3y: z.number().nullable(),
+    xvar: z.number().nullable(),
+    xvar_percentile_position: z.number().nullable()
+});
+
+/**
+ * PlayerDetailResponse
+ */
+export const zPlayerDetailResponse = z.object({
+    caveats: z.array(z.string()).optional().default([]),
+    decision_supported: z.literal(false).optional().default(false),
+    degradation: zDegradationField.nullable(),
+    divergence: zDivergenceField,
+    evidence: zPlayerEvidence.nullable(),
+    identity: zPlayerIdentity,
+    market: zPlayerMarketLane,
+    model: zPlayerModelLane.nullable(),
+    model_status: z.string(),
+    sleeper_id: z.string(),
+    source_timestamps: z.record(z.string(), z.string().nullable())
 });
 
 /**
@@ -456,6 +557,15 @@ export const zHttpValidationError = z.object({
  * Successful Response
  */
 export const zGetEngineBScoresApiEngineBScoresGetResponse = z.record(z.string(), z.unknown());
+
+export const zGetPlayerDetailApiPlayersSleeperIdGetPath = z.object({
+    sleeper_id: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zGetPlayerDetailApiPlayersSleeperIdGetResponse = zPlayerDetailResponse;
 
 export const zScoreSingleApiRookiesScorePostBody = zProspectRequest;
 

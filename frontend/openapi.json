@@ -1,6 +1,77 @@
 {
   "components": {
     "schemas": {
+      "CounterArgumentField": {
+        "properties": {
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "required": [
+          "text",
+          "status"
+        ],
+        "title": "CounterArgumentField",
+        "type": "object"
+      },
+      "DegradationField": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "DegradationField",
+        "type": "object"
+      },
+      "DivergenceField": {
+        "properties": {
+          "delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "delta",
+          "status"
+        ],
+        "title": "DivergenceField",
+        "type": "object"
+      },
       "DivergenceResult": {
         "description": "Gate 4. Populated only when sufficient FC snapshots and flagged player data exist.",
         "properties": {
@@ -93,6 +164,28 @@
           "hit_rate_wilson_ci95"
         ],
         "title": "DivergenceResult",
+        "type": "object"
+      },
+      "EvidenceListField": {
+        "properties": {
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "items": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "EvidenceListField",
         "type": "object"
       },
       "FoldResult": {
@@ -908,6 +1001,416 @@
           "caveat"
         ],
         "title": "ModelReliability",
+        "type": "object"
+      },
+      "PlayerDetailResponse": {
+        "properties": {
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "degradation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DegradationField"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "divergence": {
+            "$ref": "#/components/schemas/DivergenceField"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlayerEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "identity": {
+            "$ref": "#/components/schemas/PlayerIdentity"
+          },
+          "market": {
+            "$ref": "#/components/schemas/PlayerMarketLane"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlayerModelLane"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_status": {
+            "title": "Model Status",
+            "type": "string"
+          },
+          "sleeper_id": {
+            "title": "Sleeper Id",
+            "type": "string"
+          },
+          "source_timestamps": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Source Timestamps",
+            "type": "object"
+          }
+        },
+        "required": [
+          "sleeper_id",
+          "identity",
+          "model_status",
+          "model",
+          "evidence",
+          "market",
+          "divergence",
+          "degradation",
+          "source_timestamps"
+        ],
+        "title": "PlayerDetailResponse",
+        "type": "object"
+      },
+      "PlayerEvidence": {
+        "properties": {
+          "caveats": {
+            "$ref": "#/components/schemas/EvidenceListField"
+          },
+          "counter_argument": {
+            "$ref": "#/components/schemas/CounterArgumentField"
+          },
+          "risk_flags": {
+            "$ref": "#/components/schemas/EvidenceListField"
+          },
+          "top_drivers": {
+            "$ref": "#/components/schemas/EvidenceListField"
+          }
+        },
+        "required": [
+          "counter_argument",
+          "top_drivers",
+          "risk_flags",
+          "caveats"
+        ],
+        "title": "PlayerEvidence",
+        "type": "object"
+      },
+      "PlayerIdentity": {
+        "properties": {
+          "age": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age"
+          },
+          "draft_class": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Class"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "nfl_draft_pick": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nfl Draft Pick"
+          },
+          "nfl_draft_round": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nfl Draft Round"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "sleeper_id": {
+            "title": "Sleeper Id",
+            "type": "string"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team"
+          }
+        },
+        "required": [
+          "sleeper_id",
+          "name",
+          "position",
+          "team",
+          "age",
+          "draft_class",
+          "nfl_draft_pick",
+          "nfl_draft_round"
+        ],
+        "title": "PlayerIdentity",
+        "type": "object"
+      },
+      "PlayerMarketLane": {
+        "properties": {
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "market_rank_overall": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Rank Overall"
+          },
+          "market_rank_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Rank Position"
+          },
+          "market_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Value"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "source_timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Timestamp"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "source",
+          "market_value",
+          "market_rank_overall",
+          "market_rank_position",
+          "source_timestamp"
+        ],
+        "title": "PlayerMarketLane",
+        "type": "object"
+      },
+      "PlayerModelLane": {
+        "properties": {
+          "dynasty_value_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dynasty Value Score"
+          },
+          "engine_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Path"
+          },
+          "model_grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Grade"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "projection_1y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projection 1Y"
+          },
+          "projection_2y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projection 2Y"
+          },
+          "projection_3y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projection 3Y"
+          },
+          "xvar": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xvar"
+          },
+          "xvar_percentile_position": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xvar Percentile Position"
+          }
+        },
+        "required": [
+          "engine_path",
+          "model_grade",
+          "model_version",
+          "dynasty_value_score",
+          "xvar",
+          "xvar_percentile_position",
+          "projection_1y",
+          "projection_2y",
+          "projection_3y"
+        ],
+        "title": "PlayerModelLane",
         "type": "object"
       },
       "ProspectRequest": {
@@ -1928,6 +2431,48 @@
         "summary": "Get Engine B Scores",
         "tags": [
           "engine-b"
+        ]
+      }
+    },
+    "/api/players/{sleeper_id}": {
+      "get": {
+        "operationId": "get_player_detail_api_players__sleeper_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sleeper_id",
+            "required": true,
+            "schema": {
+              "title": "Sleeper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Player Detail",
+        "tags": [
+          "players"
         ]
       }
     },
