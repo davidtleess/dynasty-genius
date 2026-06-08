@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { type Command, CommandPalette } from "../command/CommandPalette";
+import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { PlayerInspector } from "../player/PlayerInspector";
 import { TradeLab } from "../trade/TradeLab";
 import type { CatalogEntry } from "../trade/tradeState";
@@ -39,6 +40,9 @@ export function AppShell() {
   const [activeSurface, setActiveSurface] = useState<Surface>(SURFACES[0]);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer | null>(null);
+  // When set, the main view shows the full Decision-Evidence-Card page for this
+  // player (opened from the inspector's "Open full evidence card" action).
+  const [fullDetailSleeperId, setFullDetailSleeperId] = useState<string | null>(null);
 
   // Any surface (asset search, Trade Lab chip) may select a player → opens the
   // inspector. Players only; non-player catalog entries are not inspectable in v1.
@@ -61,6 +65,7 @@ export function AppShell() {
     label: surface,
     run: () => {
       setActiveSurface(surface);
+      setFullDetailSleeperId(null);
     },
   }));
 
@@ -73,7 +78,10 @@ export function AppShell() {
             type="button"
             className="dg-shell__nav-item"
             aria-current={activeSurface === surface ? "page" : undefined}
-            onClick={() => setActiveSurface(surface)}
+            onClick={() => {
+              setActiveSurface(surface);
+              setFullDetailSleeperId(null);
+            }}
           >
             {surface}
           </button>
@@ -89,8 +97,16 @@ export function AppShell() {
       </header>
 
       <main className="dg-shell__main">
-        <h1 className="dg-shell__title">{activeSurface}</h1>
-        {activeSurface === "Trade Lab" && <TradeLab onSelectPlayer={selectPlayer} />}
+        {fullDetailSleeperId ? (
+          <PlayerDetailPage sleeperId={fullDetailSleeperId} />
+        ) : (
+          <>
+            <h1 className="dg-shell__title">{activeSurface}</h1>
+            {activeSurface === "Trade Lab" && (
+              <TradeLab onSelectPlayer={selectPlayer} />
+            )}
+          </>
+        )}
       </main>
 
       <aside
@@ -110,6 +126,7 @@ export function AppShell() {
           <PlayerInspector
             player={selectedPlayer}
             onClose={() => setInspectorOpen(false)}
+            onOpenFullDetail={() => setFullDetailSleeperId(selectedPlayer.sleeperId)}
           />
         )}
       </aside>

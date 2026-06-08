@@ -59,9 +59,11 @@ function NeutralPreview({ detail }: { detail: PlayerDetail }) {
 export function PlayerInspector({
   player,
   onClose,
+  onOpenFullDetail,
 }: {
   player: { sleeperId: string; label: string };
   onClose: () => void;
+  onOpenFullDetail?: (() => void) | undefined;
 }) {
   const [preview, setPreview] = useState<PreviewState>({ status: "loading" });
 
@@ -99,7 +101,11 @@ export function PlayerInspector({
       {preview.status === "unavailable" && (
         <p className="dg-player-inspector__counts">Preview unavailable</p>
       )}
-      <button type="button" className="dg-player-inspector__open">
+      <button
+        type="button"
+        className="dg-player-inspector__open"
+        onClick={onOpenFullDetail}
+      >
         Open full evidence card
       </button>
       <button
