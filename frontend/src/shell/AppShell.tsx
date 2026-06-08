@@ -1,9 +1,25 @@
 import { useState } from "react";
 
 import { type Command, CommandPalette } from "../command/CommandPalette";
+import { PlayerInspector } from "../player/PlayerInspector";
 import { TradeLab } from "../trade/TradeLab";
+import type { CatalogEntry } from "../trade/tradeState";
 import "./AppShell.css";
 import { TrustStrip } from "./TrustStrip";
+
+type SelectedPlayer = { sleeperId: string; label: string };
+
+function readSleeperId(entry: CatalogEntry): string | null {
+  const ref = entry.market_ref;
+  if (ref && typeof ref === "object") {
+    const id = (ref as Record<string, unknown>).sleeper_id;
+    if (typeof id === "string") {
+      return id;
+    }
+  }
+  const direct = entry.sleeper_id;
+  return typeof direct === "string" ? direct : null;
+}
 
 // North-star Decision Surfaces (01-north-star-architecture.md). Slots only in T3;
 // each surface gets real content in later tasks.
@@ -22,6 +38,23 @@ type Surface = (typeof SURFACES)[number];
 export function AppShell() {
   const [activeSurface, setActiveSurface] = useState<Surface>(SURFACES[0]);
   const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer | null>(null);
+
+  // Any surface (asset search, Trade Lab chip) may select a player → opens the
+  // inspector. Players only; non-player catalog entries are not inspectable in v1.
+  // The sleeper id lives on market_ref (the catalog entry's top-level sleeper_id
+  // is not part of the generated schema, so it is stripped at the Zod boundary).
+  function selectPlayer(entry: CatalogEntry): void {
+    if (entry.kind !== "player") {
+      return;
+    }
+    const sleeperId = readSleeperId(entry);
+    if (sleeperId === null) {
+      return;
+    }
+    setSelectedPlayer({ sleeperId, label: entry.label });
+    setInspectorOpen(true);
+  }
 
   const commands: Command[] = SURFACES.map((surface) => ({
     id: surface.toLowerCase().replace(/\s+/g, "-"),
@@ -57,7 +90,7 @@ export function AppShell() {
 
       <main className="dg-shell__main">
         <h1 className="dg-shell__title">{activeSurface}</h1>
-        {activeSurface === "Trade Lab" && <TradeLab />}
+        {activeSurface === "Trade Lab" && <TradeLab onSelectPlayer={selectPlayer} />}
       </main>
 
       <aside
@@ -73,6 +106,12 @@ export function AppShell() {
         >
           Inspector
         </button>
+        {selectedPlayer && (
+          <PlayerInspector
+            player={selectedPlayer}
+            onClose={() => setInspectorOpen(false)}
+          />
+        )}
       </aside>
 
       <CommandPalette commands={commands} />

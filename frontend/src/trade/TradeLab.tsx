@@ -56,7 +56,11 @@ async function fetchLane<T>(
   }
 }
 
-export function TradeLab() {
+export function TradeLab({
+  onSelectPlayer,
+}: {
+  onSelectPlayer?: ((entry: CatalogEntry) => void) | undefined;
+} = {}) {
   const [trade, setTrade] = useState<Trade>(() => loadTrade());
   const [activeSide, setActiveSide] = useState<Side>("sent");
   const [modelLane, setModelLane] = useState<LaneState<ModelReconciliation>>({
@@ -72,6 +76,8 @@ export function TradeLab() {
       saveTrade(next);
       return next;
     });
+    // Selecting an asset also opens the player inspector (entry-point wiring).
+    onSelectPlayer?.(entry);
   }
 
   function setCounterparty(value: number | null): void {
@@ -123,6 +129,7 @@ export function TradeLab() {
           entries={trade.sent}
           active={activeSide === "sent"}
           onActivate={setActiveSide}
+          onSelectPlayer={onSelectPlayer}
         />
         <TradeSideBuilder
           side="received"
@@ -130,6 +137,7 @@ export function TradeLab() {
           entries={trade.received}
           active={activeSide === "received"}
           onActivate={setActiveSide}
+          onSelectPlayer={onSelectPlayer}
         />
       </div>
       <RunComparisonBar
