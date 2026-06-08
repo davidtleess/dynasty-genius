@@ -6,7 +6,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import engine_b, rookies, roster, trade, trade_market, trust_surface
+from app.api.routes import (
+    engine_b,
+    players,
+    rookies,
+    roster,
+    trade,
+    trade_market,
+    trust_surface,
+)
 
 load_dotenv()
 
@@ -23,6 +31,7 @@ app.include_router(trade.router, prefix="/api")
 app.include_router(trade_market.router, prefix="/api")
 app.include_router(engine_b.router, prefix="/api")
 app.include_router(trust_surface.router, prefix="/api")
+app.include_router(players.router, prefix="/api")
 
 
 # --- Frontend SPA static mount (Phase-12 surface 1; spec 2026-06-03-frontend-design-spec) ---

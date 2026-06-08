@@ -8,12 +8,14 @@ export function TradeSideBuilder({
   entries,
   active,
   onActivate,
+  onSelectPlayer,
 }: {
   side: Side;
   label: string;
   entries: CatalogEntry[];
   active: boolean;
   onActivate: (side: Side) => void;
+  onSelectPlayer?: ((entry: CatalogEntry) => void) | undefined;
 }) {
   return (
     <section className="dg-trade-side" aria-label={label} data-active={active}>
@@ -26,9 +28,22 @@ export function TradeSideBuilder({
         {label}
       </button>
       <ul className="dg-trade-side__assets">
-        {entries.map((entry) => (
-          <li key={entry.asset_id}>{entry.label}</li>
-        ))}
+        {entries.map((entry) =>
+          onSelectPlayer && entry.kind === "player" ? (
+            // A player chip is an inspector entry point (opens the inspector).
+            <li key={entry.asset_id}>
+              <button
+                type="button"
+                className="dg-trade-side__chip"
+                onClick={() => onSelectPlayer(entry)}
+              >
+                {entry.label}
+              </button>
+            </li>
+          ) : (
+            <li key={entry.asset_id}>{entry.label}</li>
+          ),
+        )}
       </ul>
     </section>
   );

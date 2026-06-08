@@ -5,6 +5,48 @@ export type ClientOptions = {
 };
 
 /**
+ * CounterArgumentField
+ */
+export type CounterArgumentField = {
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Text
+     */
+    text: string | null;
+};
+
+/**
+ * DegradationField
+ */
+export type DegradationField = {
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * DivergenceField
+ */
+export type DivergenceField = {
+    /**
+     * Delta
+     */
+    delta: number | null;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
  * DivergenceResult
  *
  * Gate 4. Populated only when sufficient FC snapshots and flagged player data exist.
@@ -68,6 +110,20 @@ export type DivergenceResult = {
      * Position Beta
      */
     position_beta: number;
+};
+
+/**
+ * EvidenceListField
+ */
+export type EvidenceListField = {
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Items
+     */
+    items?: Array<string>;
 };
 
 /**
@@ -483,6 +539,164 @@ export type ModelReliability = {
      * Spearman Rho Mean
      */
     spearman_rho_mean?: number | null;
+};
+
+/**
+ * PlayerDetailResponse
+ */
+export type PlayerDetailResponse = {
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    degradation: DegradationField | null;
+    divergence: DivergenceField;
+    evidence: PlayerEvidence | null;
+    identity: PlayerIdentity;
+    market: PlayerMarketLane;
+    model: PlayerModelLane | null;
+    /**
+     * Model Status
+     */
+    model_status: string;
+    /**
+     * Sleeper Id
+     */
+    sleeper_id: string;
+    /**
+     * Source Timestamps
+     */
+    source_timestamps: {
+        [key: string]: string | null;
+    };
+};
+
+/**
+ * PlayerEvidence
+ */
+export type PlayerEvidence = {
+    caveats: EvidenceListField;
+    counter_argument: CounterArgumentField;
+    risk_flags: EvidenceListField;
+    top_drivers: EvidenceListField;
+};
+
+/**
+ * PlayerIdentity
+ */
+export type PlayerIdentity = {
+    /**
+     * Age
+     */
+    age: number | null;
+    /**
+     * Draft Class
+     */
+    draft_class: number | null;
+    /**
+     * Name
+     */
+    name: string | null;
+    /**
+     * Nfl Draft Pick
+     */
+    nfl_draft_pick: number | null;
+    /**
+     * Nfl Draft Round
+     */
+    nfl_draft_round: number | null;
+    /**
+     * Position
+     */
+    position: string | null;
+    /**
+     * Sleeper Id
+     */
+    sleeper_id: string;
+    /**
+     * Team
+     */
+    team: string | null;
+};
+
+/**
+ * PlayerMarketLane
+ */
+export type PlayerMarketLane = {
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Market Rank Overall
+     */
+    market_rank_overall: number | null;
+    /**
+     * Market Rank Position
+     */
+    market_rank_position: number | null;
+    /**
+     * Market Value
+     */
+    market_value: number | null;
+    /**
+     * Source
+     */
+    source: string | null;
+    /**
+     * Source Timestamp
+     */
+    source_timestamp: string | null;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * PlayerModelLane
+ */
+export type PlayerModelLane = {
+    /**
+     * Dynasty Value Score
+     */
+    dynasty_value_score: number | null;
+    /**
+     * Engine Path
+     */
+    engine_path: string | null;
+    /**
+     * Model Grade
+     */
+    model_grade: string | null;
+    /**
+     * Model Version
+     */
+    model_version: string | null;
+    /**
+     * Projection 1Y
+     */
+    projection_1y: number | null;
+    /**
+     * Projection 2Y
+     */
+    projection_2y: number | null;
+    /**
+     * Projection 3Y
+     */
+    projection_3y: number | null;
+    /**
+     * Xvar
+     */
+    xvar: number | null;
+    /**
+     * Xvar Percentile Position
+     */
+    xvar_percentile_position: number | null;
 };
 
 /**
@@ -1061,6 +1275,36 @@ export type GetEngineBScoresApiEngineBScoresGetResponses = {
 };
 
 export type GetEngineBScoresApiEngineBScoresGetResponse = GetEngineBScoresApiEngineBScoresGetResponses[keyof GetEngineBScoresApiEngineBScoresGetResponses];
+
+export type GetPlayerDetailApiPlayersSleeperIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Sleeper Id
+         */
+        sleeper_id: string;
+    };
+    query?: never;
+    url: '/api/players/{sleeper_id}';
+};
+
+export type GetPlayerDetailApiPlayersSleeperIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPlayerDetailApiPlayersSleeperIdGetError = GetPlayerDetailApiPlayersSleeperIdGetErrors[keyof GetPlayerDetailApiPlayersSleeperIdGetErrors];
+
+export type GetPlayerDetailApiPlayersSleeperIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PlayerDetailResponse;
+};
+
+export type GetPlayerDetailApiPlayersSleeperIdGetResponse = GetPlayerDetailApiPlayersSleeperIdGetResponses[keyof GetPlayerDetailApiPlayersSleeperIdGetResponses];
 
 export type ScoreSingleApiRookiesScorePostData = {
     body: ProspectRequest;

@@ -173,6 +173,18 @@ def build_universe_pvo_batch(
                 "final_college_age": pvo.get("final_college_age") if pvo else None,
                 "te_ryptpa_final": pvo.get("te_ryptpa_final") if pvo else None,
                 "te_yards_per_reception_career": pvo.get("te_yards_per_reception_career") if pvo else None,
+                # Surface-3 (T2): additively preserve the 10 DTO-backed evidence/projection
+                # fields from the source PVO (None when no PVO matched). Existing keys unchanged.
+                "counter_argument": pvo.get("counter_argument") if pvo else None,
+                "risk_flags": pvo.get("risk_flags") if pvo else None,
+                "top_drivers": pvo.get("top_drivers") if pvo else None,
+                "caveats": pvo.get("caveats") if pvo else None,
+                "draft_class": pvo.get("draft_class") if pvo else None,
+                "nfl_draft_pick": pvo.get("nfl_draft_pick") if pvo else None,
+                "nfl_draft_round": pvo.get("nfl_draft_round") if pvo else None,
+                "projection_1y": pvo.get("projection_1y") if pvo else None,
+                "projection_2y": pvo.get("projection_2y") if pvo else None,
+                "projection_3y": pvo.get("projection_3y") if pvo else None,
                 "valuation": valuation,
                 "market_overlay": None,
                 "divergence": None,
