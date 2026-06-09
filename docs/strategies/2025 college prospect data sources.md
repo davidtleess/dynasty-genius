@@ -1,0 +1,76 @@
+# Building a 2025 College-Prospect Registry: Recommended Layered Source Stack
+
+## TL;DR
+- **Use a three-layer stack:** CFBD `/roster` (v2 REST, free Bearer-key API) as the college-identity substrate supplying `cfbd_athlete_id` + name/position/school; the nflreadpy `load_draft_picks(2025)` parquet as the drafted-cohort truth supplying `gsis_id`/`pfr_player_id`/`cfb_player_id`; and named UDFA trackers (NFL.com + PFF + Spotrac) to define the ~30–50 undrafted members. Bridge CFBD→draft truth on normalized name + position-group + school.
+- **Each layer has a real, stable record ID** for provenance: the CFBD athlete `id` (integer), the PFR `pfr_player_id` slug (e.g. `SimsBi00`), the sports-reference `cfb_player_id` slug (e.g. `billy-sims-1`, delivered *inside* the nflverse draft file so no scraping of sports-reference is needed), and Sleeper/PFR/ESPN IDs via the DynastyProcess `load_ff_playerids()` crosswalk. `sleeper_id` and `gsis_id` for UDFAs come from the nflverse/DynastyProcess player tables, never from CFBD.
+- **The biggest 2025-specific risks** are CFBD's ambiguous numeric `year`/eligibility field, school-name spelling mismatches between CFBD ("Ole Miss"/"Miami") and nflverse/PFR conventions, missing `gsis_id` for players who never log an NFL snap (true of most UDFAs), and the absence of any transfer/prior-school field on the CFBD roster record (transfers require a separate `/player/portal` pull).
+
+## Key Findings
+
+**1. CFBD is the correct primary for college identity, and it is free.** The College Football Data API v2 is in general availability. Per the CFBD blog, "API v1 will be shut down prior to the start of the 2025 season. In May 2025, both api.collegefootballdata.com and apinext.collegefootballdata.com will point to v2," with the warning that "there WILL be breaking changes." A free API key is issued by email at `collegefootballdata.com/key` and passed as the header `Authorization: Bearer <key>`. The CFBD blog states "The free tier has been set at 1000 monthly calls (tiering and call limits subject to change)," with paid Patreon tiers rising to "Patreon Tier 3 ($10/mo) — 75,000 monthly calls (+ access to the GraphQL API with realtime data subscriptions)." For a one-time snapshot this limit is irrelevant — the entire FBS+FCS roster set for one season is a handful of calls.
+
+**2. The `/roster` endpoint is the right one for `cfbd_athlete_id` + identity.** `GET /roster?year=2025&team=<team>` (team optional; omit to get all teams) returns records with a stable integer athlete `id`, `firstName`, `lastName`, `team`, `position`, `jersey`, `height`, `weight`, hometown fields (`homeCity`/`homeState`/`homeCountry`/lat/long/FIPS), and `recruitIds`. The athlete `id` is the stable key to use as `source_record_id`.
+
+**3. CFBD roster does NOT carry transfers or external NFL IDs.** There is no prior-school/transfer field on the roster record — transfer history is a separate endpoint (`/player/portal`, by offseason year). The CFBD `/draft/picks` endpoint carries `collegeAthleteId` and `nflAthleteId` (ESPN-sourced) but **no pfr/gsis/sleeper IDs**. Those external IDs come only from the nflverse side.
+
+**4. The drafted-truth file already contains the cross-walk you need.** `nflreadpy.load_draft_picks(2025)` (the "nflverse Draft Picks, via Pro Football Reference" dataset — a 12,670 × 36 table) provides per-pick `gsis_id`, `pfr_player_id`, **`cfb_player_id`** (the sports-reference college slug, e.g. row 1 = 1980 R1 P1 DET, `pfr_player_id` "SimsBi00", `cfb_player_id` "billy-sims-1", Billy Sims), plus `pfr_player_name`, `position`, `college`, `round`, `pick`, `team`. This means `cfb_player_id` is delivered for free — you never need to scrape sports-reference. Note that `gsis_id` is literally empty (`""`) for players who never logged an NFL snap, confirming the blank-gsis limitation below.
+
+**5. `sleeper_id` requires one more free join — and that crosswalk is keyed on `mfl_id`, not `gsis_id`.** Neither CFBD nor the draft file carries Sleeper IDs. Use `load_ff_playerids()` (DynastyProcess.com database, redistributed through nflreadr/nflreadpy; a 12,186 × 35 table). Per the nflreadr FF Player IDs dictionary, **`mfl_id` is the primary key** for this table (not `gsis_id`), and the columns include `gsis_id`, `pff_id`, `sleeper_id`, `nfl_id`, `espn_id`, `pfr_id`, and a `cfbref_id` documented as "College Football Reference ID - usual format is firstname-lastname-integer." Join on `gsis_id` to attach `sleeper_id`; the `cfbref_id` here gives you a second independent path to `cfb_player_id`.
+
+**6. UDFA sourcing has several real, citable trackers.** For the ~30–50 notable undrafted skill-position players, the most complete and traceable are: the official NFL.com UDFA tracker, the PFF UDFA tracker (which links each listed player to the reporting source), CBS Sports' team-by-team tracker, theScore's tracker, and Spotrac's undrafted database (which adds contract value and has a stable URL per team/player). Spotrac and PFF give the most stable per-record URLs.
+
+## Details
+
+### Layer 1 — CFBD `/roster` (college identity substrate)
+- **Access:** `GET https://api.collegefootballdata.com/roster?year=2025` with header `Authorization: Bearer <key>`. Free key from `collegefootballdata.com/key`. v2 GA; OpenAPI docs at `apinext.collegefootballdata.com`; official Python client `cfbd` (PyPI) and `CFBD/cfbd-python` on GitHub (`get_roster(team=..., year=...)` → `list[Player]`).
+- **Fields it provides:** `id` (→ `cfbd_athlete_id` and `source_record_id`), `firstName`+`lastName` (→ `raw_name`/`full_name`), `position` (→ `position` and, after mapping, `position_group`), `team` (→ `current_school`), plus jersey/height/weight/hometown/`recruitIds`.
+- **Provenance characteristics:** Excellent. The athlete `id` is a stable integer primary key. `source` = "CFBD /roster v2"; `source_record_id` = athlete `id`.
+- **Limitations:** (a) No combined `name` field — concatenate first+last. (b) **`year`/eligibility is numeric and semantically inconsistent** across seasons in observed wrapper data (sometimes a class value 1–4, sometimes a 4-digit season), so treat `class_year` as best-effort/optional and don't trust it blindly. (c) **No transfer/prior-school field** — `prior_schools` must come from a separate `/player/portal?year=2025` pull (which is name+position-keyed, not athlete-id-keyed, so it itself needs fuzzy matching). (d) Position is the raw CFBD position; you must map ATH/FB/edge cases to the QB/RB/WR/TE fantasy cohort yourself.
+
+### Layer 2 — nflreadpy `load_draft_picks(2025)` (drafted-cohort truth)
+- **Access:** `nflreadpy.load_draft_picks(2025)` → Polars DataFrame; data hosted on nflverse-data GitHub releases (CC-BY 4.0), sourced from Pro Football Reference. (Handled per your constraints.)
+- **Fields:** `gsis_id`, `pfr_player_id`, `cfb_player_id`, `pfr_player_name`, `position`, `college`, `season`, `round`, `pick`, `team`.
+- **Provenance:** `cfb_player_id` = sports-reference college slug (stable, e.g. `billy-sims-1`). `pfr_player_id` = PFR slug (e.g. `SimsBi00`). These become `id_provenance: "nflreadpy load_draft_picks 2025 (PFR)"`.
+- **Limitations:** `gsis_id` is blank (`""`) for players who never appear in an NFL game; `cfb_player_id`/`pfr_player_id` are occasionally empty for players PFR never assigned. Name format follows PFR/nflscrapR conventions, which differ from CFBD.
+
+### Layer 3 — UDFA trackers (cohort membership for undrafted players)
+- **NFL.com UDFA tracker** ("Undrafted rookie free agents: Team signings after 2025 NFL Draft"): official, team-by-team, lists player + position + college. Citable by URL + team section; no per-player numeric ID.
+- **PFF 2025 UDFA tracker:** team-by-team, and explicitly links each listed player to the reporting source — good for provenance chains. (PFF's editor's note flags that "Signing reports are subject to change, as many have not been confirmed by NFL teams.")
+- **Spotrac undrafted database** (`spotrac.com/nfl/undrafted/_/year/2025`, plus per-team URLs like `/team/sea`): adds total value, guaranteed money, signing bonus; stable per-team URL; best for a citable record locator.
+- **CBS Sports** and **theScore** trackers: additional corroboration; compiled from NFL team and college announcements.
+- **Recommended provenance for UDFAs:** `source` = the specific tracker (e.g. "NFL.com 2025 UDFA tracker"); `source_record_id` = the stable URL (+ team section anchor) since none expose a numeric player ID. Cross-confirm each UDFA against at least two trackers before inclusion.
+
+### The bridge (assigning gsis_id and the other NFL IDs)
+- **Key:** normalized name + position-group + college school. This is sufficient for the ~150–200 fantasy cohort because the set is small and skill-position-only, which sharply limits name collisions.
+- **Recommended procedure:** (1) Normalize names on both sides (strip suffixes Jr./Sr./III, punctuation, accents; casefold). (2) Build a school-name alias map between CFBD names and nflverse/PFR `college` strings. (3) Join CFBD roster → draft-picks on (normalized_name, position_group, normalized_school); attach `gsis_id`, `pfr_player_id`, `cfb_player_id`. (4) For UDFAs, the draft file won't help — match the tracker name+school to `load_players()`/`load_ff_playerids()` (which include undrafted rookies once rostered) to pick up `gsis_id`/`sleeper_id`. (5) Record per-field `id_provenance`.
+- **Known 2025 pitfalls:** name variants (Jr./II/III, hyphenated and apostrophe names like J.J., De'Zhaun); school-name mismatches (CFBD "Ole Miss" vs PFR "Mississippi"; "Miami" vs "Miami (FL)"; "Louisiana" vs "Louisiana-Lafayette"); position reclassification (a CFBD "ATH"/"FB" who is a fantasy RB/WR; edge "DL/LB"); and JUCO/transfer ambiguity where the player's listed CFBD school differs from where PFR lists their college.
+
+### Alternative / supplementary identity sources
+- **Pro Football Reference (draft pages):** The authoritative origin of `pfr_player_id` and the draft truth — but you should consume it through nflverse rather than scraping. Per Sports Reference's Bot Traffic page, requests to "our other sites more often than twenty requests in a minute…regardless of bot type" are blocked and "your session will be in jail for up to a day" (FBref/Stathead are limited to ten/minute). The SR Data Use page is explicit that "you should not create websites or tools based on data you scrape from Sports Reference or any of our sites or use our data to train generative artificial intelligence models without our permission."
+- **sports-reference.com college football:** Has stable player slugs (the `cfb_player_id`/`cfbref_id`), but the same Terms/anti-scraping posture applies. **Confirmed for this use case: there is no need to scrape it directly** — the stable college slug already arrives both inside the nflverse draft file (`cfb_player_id`) and inside `load_ff_playerids()` (`cfbref_id`). So the "no stable IDs / high fabrication risk in scraping" concern is moot: you get the stable ID secondhand, free, without scraping.
+- **ESPN hidden API / Sportradar:** ESPN athlete IDs flow through CFBD's `nflAthleteId` and nflverse's `espn_id` (the nflverse `load_players()` table, keyed on `gsis_id`, carries `pfr_id`, `pff_id`, `otc_id`, `esb_id`, `espn_id`, `smart_id`). Sportradar is paid and unnecessary here.
+
+### Practical snapshot freezing (reproducibility)
+Record, per pull, into `source_snapshot_id`:
+- Retrieval timestamp (UTC, ISO-8601).
+- Exact endpoint + full query string (e.g. `GET /roster?year=2025`).
+- API version (v2) and, if available, the response build/commit.
+- A content hash (e.g. SHA-256) of the canonicalized JSON payload.
+- Row count.
+
+Persist the raw JSON to immutable storage (object store, or a DuckDB blob/`read_json` snapshot table) keyed by that snapshot ID so every registry row can be regenerated. Because this is a frozen 2025 pull taken in mid-2026, the underlying season is historical and stable; the main drift risk is CFBD silently correcting/backfilling roster records, which the content hash will detect. Likewise pin the nflreadpy data release (nflverse-data release tag + file hash) and the `load_ff_playerids()` snapshot date, since those files are refreshed periodically (e.g. the FF Player IDs table observed "Data updated: 2026-01-10").
+
+## Recommendations
+1. **Get the free CFBD key and pull `/roster?year=2025` once**, persist raw JSON, compute the snapshot hash. Filter to QB/RB/WR/TE (map ATH/FB/edge cases manually). This is your spine and sets `cfbd_athlete_id`/`source_record_id`.
+2. **Pin and load `load_draft_picks(2025)`**; join to the CFBD spine on normalized name+position-group+school to assign `gsis_id`, `pfr_player_id`, `cfb_player_id`. Log unmatched rows for manual review (expect a handful from school-name aliasing).
+3. **Add the UDFA layer** from NFL.com + PFF + Spotrac; require two-source confirmation; store the tracker URL as `source_record_id`. Match each UDFA to `load_players()`/`load_ff_playerids()` to backfill `gsis_id`/`sleeper_id` where the player has been rostered.
+4. **Run the `load_ff_playerids()` crosswalk** (remember it is keyed on `mfl_id`; join your `gsis_id` against its `gsis_id` column) to populate `sleeper_id`, and optionally verify `pfr_id` and `cfbref_id`.
+5. **Populate `id_provenance` per field** ("cfbd_athlete_id: CFBD /roster v2 #<id>"; "gsis_id: nflreadpy load_draft_picks 2025 via PFR"; "sleeper_id: DynastyProcess load_ff_playerids join on gsis_id").
+6. **Benchmarks that change the plan:** if name+position+school matching leaves more than roughly 5% of the drafted skill cohort unmatched, build a more complete school-alias table or fall back to matching via the CFBD `/draft/picks` `collegeAthleteId`→roster `id` link (CFBD-internal, avoids name matching entirely for drafted players); if you later need transfer history, add the `/player/portal?year=2025` pull and fuzzy-match it back to the roster spine.
+
+## Caveats
+- CFBD's free-tier limit (1,000 calls/month) and any rate concerns are immaterial for a one-time snapshot, per your constraints — but the numeric/ambiguous `year` field means `class_year` should be treated as low-confidence and flagged in provenance.
+- `gsis_id` will be null/empty for most UDFAs who never play an NFL snap; this is expected, not an error — keep the field nullable and source it opportunistically.
+- UDFA trackers are journalistic and were updated live; some early entries were unconfirmed or later released (PFF explicitly warns of this). Treat them as provisional and require corroboration across two sources.
+- Sports Reference / PFR direct scraping is both rate-limited (20 req/min on the main sites) and prohibited by Terms (including a specific prohibition on using their data to train models); rely on the nflverse redistribution (CC-BY) instead.
+- The CFBD v2 roster JSON field casing (camelCase) was inferred from the cfbfastR wrapper and the cfbd-python `TeamsApi`/`DraftPick` docs; the canonical `Player.md` OpenAPI model could not be fetched verbatim. Confirm exact field names against the live OpenAPI (`api-docs.json`) at pull time and record the observed schema in your snapshot metadata.
