@@ -1,0 +1,440 @@
+{
+  "aggregate_details": [
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "aging_cliff_transition",
+      "boot_p_value": null,
+      "category": "insufficient_n",
+      "folds_covered": 0,
+      "median_rho_diff": null,
+      "n": 35,
+      "position": "QB",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": null,
+      "slice": "aging_cliff"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "aging_cliff_transition",
+      "boot_p_value": 1.0,
+      "category": "statistically_indistinguishable",
+      "folds_covered": 4,
+      "median_rho_diff": 0.017863254206958,
+      "n": 182,
+      "position": "RB",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": 1.0,
+      "slice": "aging_cliff"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "aging_cliff_transition",
+      "boot_p_value": null,
+      "category": "insufficient_n",
+      "folds_covered": 0,
+      "median_rho_diff": null,
+      "n": 49,
+      "position": "TE",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": null,
+      "slice": "aging_cliff"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "aging_cliff_transition",
+      "boot_p_value": 0.625,
+      "category": "statistically_indistinguishable",
+      "folds_covered": 4,
+      "median_rho_diff": -0.03424321306127548,
+      "n": 175,
+      "position": "WR",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": 1.0,
+      "slice": "aging_cliff"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "high_disagreement",
+      "boot_p_value": null,
+      "category": "insufficient_n",
+      "folds_covered": 0,
+      "median_rho_diff": null,
+      "n": 12,
+      "position": "QB",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": null,
+      "slice": "model_bullish"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "high_disagreement",
+      "boot_p_value": null,
+      "category": "insufficient_n",
+      "folds_covered": 0,
+      "median_rho_diff": null,
+      "n": 56,
+      "position": "RB",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": null,
+      "slice": "model_bullish"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "high_disagreement",
+      "boot_p_value": 1.0,
+      "category": "statistically_indistinguishable",
+      "folds_covered": 2,
+      "median_rho_diff": 0.00878589438728454,
+      "n": 135,
+      "position": "TE",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": 1.0,
+      "slice": "model_bullish"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "high_disagreement",
+      "boot_p_value": 0.5,
+      "category": "consensus_leads_point_estimate",
+      "folds_covered": 2,
+      "median_rho_diff": -0.06265839615297819,
+      "n": 121,
+      "position": "WR",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": 1.0,
+      "slice": "model_bullish"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "high_disagreement",
+      "boot_p_value": null,
+      "category": "insufficient_n",
+      "folds_covered": 0,
+      "median_rho_diff": null,
+      "n": 17,
+      "position": "QB",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": null,
+      "slice": "model_bearish"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "high_disagreement",
+      "boot_p_value": null,
+      "category": "insufficient_n",
+      "folds_covered": 0,
+      "median_rho_diff": null,
+      "n": 72,
+      "position": "RB",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": null,
+      "slice": "model_bearish"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "high_disagreement",
+      "boot_p_value": 1.0,
+      "category": "model_leads_point_estimate",
+      "folds_covered": 1,
+      "median_rho_diff": 0.35677506775067735,
+      "n": 137,
+      "position": "TE",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": 1.0,
+      "slice": "model_bearish"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "high_disagreement",
+      "boot_p_value": 0.375,
+      "category": "statistically_indistinguishable",
+      "folds_covered": 4,
+      "median_rho_diff": -0.03627450980392166,
+      "n": 141,
+      "position": "WR",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": 1.0,
+      "slice": "model_bearish"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "early_career",
+      "boot_p_value": null,
+      "category": "insufficient_n",
+      "folds_covered": 0,
+      "median_rho_diff": null,
+      "n": 59,
+      "position": "QB",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": null,
+      "slice": "eligible"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "early_career",
+      "boot_p_value": 0.25,
+      "category": "consensus_leads_point_estimate",
+      "folds_covered": 4,
+      "median_rho_diff": -0.08329052531067382,
+      "n": 173,
+      "position": "RB",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": 1.0,
+      "slice": "eligible"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "early_career",
+      "boot_p_value": 1.0,
+      "category": "statistically_indistinguishable",
+      "folds_covered": 3,
+      "median_rho_diff": -0.020022246941045596,
+      "n": 236,
+      "position": "TE",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": 1.0,
+      "slice": "eligible"
+    },
+    {
+      "aggregate_p_value_method": "fold_signflip_median_exact",
+      "axis": "early_career",
+      "boot_p_value": 0.25,
+      "category": "statistically_indistinguishable",
+      "folds_covered": 4,
+      "median_rho_diff": -0.02759612770934322,
+      "n": 246,
+      "position": "WR",
+      "powered_followup_candidate": false,
+      "powered_followup_label": "hypothesis_generating",
+      "q_value": 1.0,
+      "slice": "eligible"
+    }
+  ],
+  "ledger": {
+    "axis_tables": {
+      "aging_cliff_transition": {
+        "rows": [
+          {
+            "category": "model_leads_point_estimate",
+            "folds_covered": 0,
+            "n": 0
+          },
+          {
+            "category": "consensus_leads_point_estimate",
+            "folds_covered": 0,
+            "n": 0
+          },
+          {
+            "category": "statistically_indistinguishable",
+            "folds_covered": 8,
+            "n": 357
+          },
+          {
+            "category": "insufficient_n",
+            "folds_covered": 0,
+            "n": 84
+          }
+        ],
+        "status": "available"
+      },
+      "early_career": {
+        "rows": [
+          {
+            "category": "model_leads_point_estimate",
+            "folds_covered": 0,
+            "n": 0
+          },
+          {
+            "category": "consensus_leads_point_estimate",
+            "folds_covered": 4,
+            "n": 173
+          },
+          {
+            "category": "statistically_indistinguishable",
+            "folds_covered": 7,
+            "n": 482
+          },
+          {
+            "category": "insufficient_n",
+            "folds_covered": 0,
+            "n": 59
+          }
+        ],
+        "status": "available"
+      },
+      "high_disagreement": {
+        "rows": [
+          {
+            "category": "model_leads_point_estimate",
+            "folds_covered": 1,
+            "n": 137
+          },
+          {
+            "category": "consensus_leads_point_estimate",
+            "folds_covered": 2,
+            "n": 121
+          },
+          {
+            "category": "statistically_indistinguishable",
+            "folds_covered": 6,
+            "n": 276
+          },
+          {
+            "category": "insufficient_n",
+            "folds_covered": 0,
+            "n": 157
+          }
+        ],
+        "status": "available"
+      }
+    },
+    "header": "DESCRIPTIVE / DIAGNOSTIC \u2014 not decision-grade. No edge claim.",
+    "provenance": {
+      "conflicting_draft_year_excluded_count": 9,
+      "conflicting_draft_year_excluded_ids": [
+        "00-0022828",
+        "00-0022888",
+        "00-0026515",
+        "00-0027349",
+        "00-0028488",
+        "00-0029435",
+        "00-0030653",
+        "00-0031636",
+        "00-0032050"
+      ],
+      "db_season_snapshot": 2026,
+      "draft_year_coverage_denominator": 1702,
+      "draft_year_coverage_numerator": 1702,
+      "draft_year_source": "dynastyprocess_db_playerids",
+      "early_career_coverage": {
+        "overall": {
+          "covered": 1702,
+          "denominator": 1702
+        },
+        "per_position_fold": [
+          {
+            "covered": 43,
+            "denominator": 43,
+            "fold": 2020,
+            "position": "QB"
+          },
+          {
+            "covered": 46,
+            "denominator": 46,
+            "fold": 2021,
+            "position": "QB"
+          },
+          {
+            "covered": 46,
+            "denominator": 46,
+            "fold": 2022,
+            "position": "QB"
+          },
+          {
+            "covered": 49,
+            "denominator": 49,
+            "fold": 2023,
+            "position": "QB"
+          },
+          {
+            "covered": 98,
+            "denominator": 98,
+            "fold": 2020,
+            "position": "RB"
+          },
+          {
+            "covered": 98,
+            "denominator": 98,
+            "fold": 2021,
+            "position": "RB"
+          },
+          {
+            "covered": 96,
+            "denominator": 96,
+            "fold": 2022,
+            "position": "RB"
+          },
+          {
+            "covered": 90,
+            "denominator": 90,
+            "fold": 2023,
+            "position": "RB"
+          },
+          {
+            "covered": 206,
+            "denominator": 206,
+            "fold": 2020,
+            "position": "TE"
+          },
+          {
+            "covered": 146,
+            "denominator": 146,
+            "fold": 2021,
+            "position": "TE"
+          },
+          {
+            "covered": 90,
+            "denominator": 90,
+            "fold": 2022,
+            "position": "TE"
+          },
+          {
+            "covered": 81,
+            "denominator": 81,
+            "fold": 2023,
+            "position": "TE"
+          },
+          {
+            "covered": 160,
+            "denominator": 160,
+            "fold": 2020,
+            "position": "WR"
+          },
+          {
+            "covered": 153,
+            "denominator": 153,
+            "fold": 2021,
+            "position": "WR"
+          },
+          {
+            "covered": 147,
+            "denominator": 147,
+            "fold": 2022,
+            "position": "WR"
+          },
+          {
+            "covered": 153,
+            "denominator": 153,
+            "fold": 2023,
+            "position": "WR"
+          }
+        ]
+      },
+      "excluded_missing_draft_year_count": 0,
+      "invalid_negative_experience_count": 0,
+      "null_marker_gsis_id_skipped_count": 4484,
+      "per_position_disagreement_denominators": {
+        "QB": 29,
+        "RB": 128,
+        "TE": 272,
+        "WR": 262
+      }
+    }
+  },
+  "run_id": "g3_subpop_consolidated"
+}
