@@ -291,7 +291,7 @@ Primary surfaces:
 - Trade Lab
 - Waiver Radar
 - League Pulse
-- Backtest Harness
+- Model Trust
 - Research Assistant
 
 Gates:

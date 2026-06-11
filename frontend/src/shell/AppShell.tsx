@@ -5,6 +5,7 @@ import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { PlayerInspector } from "../player/PlayerInspector";
 import { TradeLab } from "../trade/TradeLab";
 import type { CatalogEntry } from "../trade/tradeState";
+import { TrustConsole } from "../trust/TrustConsole";
 import "./AppShell.css";
 import { TrustStrip } from "./TrustStrip";
 
@@ -30,7 +31,7 @@ const SURFACES = [
   "Trade Lab",
   "Waiver Radar",
   "League Pulse",
-  "Backtest Harness",
+  "Model Trust",
   "Research Assistant",
 ] as const;
 
@@ -105,6 +106,7 @@ export function AppShell() {
             {activeSurface === "Trade Lab" && (
               <TradeLab onSelectPlayer={selectPlayer} />
             )}
+            {activeSurface === "Model Trust" && <TrustConsole />}
           </>
         )}
       </main>
