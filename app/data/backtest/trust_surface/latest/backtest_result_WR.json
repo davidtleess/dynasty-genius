@@ -1,0 +1,292 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "fc1e6e1c-180a-4c0b-b93b-cb525ef404f1",
+  "run_date": "2026-05-31T14:25:29.603620Z",
+  "git_sha": "12f55658a543718d57d49a115327d56fecfc0cfe",
+  "model_version": "engine_b_v2",
+  "model_artifact_hash": "3b83bbf98118d272196a0942a4190cc539b08409cbb3b23da570ed42b4ec873e",
+  "position": "WR",
+  "ridge_alpha": 200.0,
+  "retrain_mode": "refit_per_fold_fixed_alpha",
+  "folds": [
+    {
+      "fold_index": 1,
+      "train_years": [
+        2018,
+        2019
+      ],
+      "test_year": 2020,
+      "outcome_seasons": [
+        2021,
+        2022
+      ],
+      "n_train": 294,
+      "n_test": 160,
+      "n_excluded_injury": 0,
+      "kendall_tau": 0.56378002323523,
+      "kendall_tau_bca_ci95": [
+        0.4840049527447288,
+        0.6258225761278439
+      ],
+      "spearman_rho": 0.7629092661648494,
+      "spearman_rho_bca_ci95": [
+        0.6760732818042003,
+        0.8230577085703896
+      ],
+      "rank_ic": 0.7629092661648494,
+      "rmse": 3.201492286839923,
+      "mae": 2.5397071688502324,
+      "r2_oos": 0.6015359842751693,
+      "metric_caveats": [],
+      "primary_k": 24,
+      "market_pool_n": 125,
+      "ndcg_diff_primary_k": 0.009815292700842027,
+      "ndcg_diff_bca_ci95": [
+        -0.28617578080922895,
+        0.2880552984138309
+      ],
+      "ndcg_at_12_model": 0.8630779801999405,
+      "ndcg_at_12_market": 0.8640944743758094,
+      "ndcg_at_24_model": 0.8940459696764095,
+      "ndcg_at_24_market": 0.8842306769755675,
+      "precision_at_k": null,
+      "calibration_by_decile": null,
+      "regime_notes": null,
+      "feature_coefficients": {
+        "age": -0.3848106350772512,
+        "aging_curve_value": 0.11821070042122472,
+        "games_t": 0.4294246044935573,
+        "ppg_t": 1.2356848892487216,
+        "ppg_t_minus_1": 0.42514895350171744,
+        "ppg_t_minus_1_available": -0.05220194606052559,
+        "ppg_t_minus_2": 0.0,
+        "ppg_t_minus_2_available": 0.0,
+        "snap_share": 0.5915665903576697,
+        "snap_share_t_minus_1": 0.09275141911470097,
+        "snap_share_t_minus_1_available": 0.0010899450569164428,
+        "tprr": 0.1694100399085917,
+        "weighted_opportunity": 0.9473874771538244,
+        "yprr": 0.4042838025355923
+      }
+    },
+    {
+      "fold_index": 2,
+      "train_years": [
+        2018,
+        2019,
+        2020
+      ],
+      "test_year": 2021,
+      "outcome_seasons": [
+        2022,
+        2023
+      ],
+      "n_train": 454,
+      "n_test": 153,
+      "n_excluded_injury": 0,
+      "kendall_tau": 0.5969468936931761,
+      "kendall_tau_bca_ci95": [
+        0.514106143802434,
+        0.6649189635382197
+      ],
+      "spearman_rho": 0.7850565459913779,
+      "spearman_rho_bca_ci95": [
+        0.7054934718073551,
+        0.8499171300656952
+      ],
+      "rank_ic": 0.7850565459913779,
+      "rmse": 2.9016265559792,
+      "mae": 2.277823655037047,
+      "r2_oos": 0.6795443489608839,
+      "metric_caveats": [],
+      "primary_k": 24,
+      "market_pool_n": 128,
+      "ndcg_diff_primary_k": 0.0102639599777814,
+      "ndcg_diff_bca_ci95": [
+        -0.2893323585196581,
+        0.30871129032622063
+      ],
+      "ndcg_at_12_model": 0.8955917543956002,
+      "ndcg_at_12_market": 0.9306305755136022,
+      "ndcg_at_24_model": 0.9234678738434479,
+      "ndcg_at_24_market": 0.9132039138656665,
+      "precision_at_k": null,
+      "calibration_by_decile": null,
+      "regime_notes": null,
+      "feature_coefficients": {
+        "age": -0.3909835334466396,
+        "aging_curve_value": 0.04196865863947804,
+        "games_t": 0.40785212877814186,
+        "ppg_t": 1.3295168040767391,
+        "ppg_t_minus_1": 0.4866134853762878,
+        "ppg_t_minus_1_available": -0.08965092100999116,
+        "ppg_t_minus_2": 0.18505319475330076,
+        "ppg_t_minus_2_available": -0.10302612372977614,
+        "snap_share": 0.5227763859826627,
+        "snap_share_t_minus_1": -0.04632819626760221,
+        "snap_share_t_minus_1_available": -0.040117898551927524,
+        "tprr": 0.2558078190406484,
+        "weighted_opportunity": 0.9598727963428132,
+        "yprr": 0.4285743265803978
+      }
+    },
+    {
+      "fold_index": 3,
+      "train_years": [
+        2018,
+        2019,
+        2020,
+        2021
+      ],
+      "test_year": 2022,
+      "outcome_seasons": [
+        2023,
+        2024
+      ],
+      "n_train": 607,
+      "n_test": 147,
+      "n_excluded_injury": 0,
+      "kendall_tau": 0.6311570964329672,
+      "kendall_tau_bca_ci95": [
+        0.5467578649008139,
+        0.6934405160485229
+      ],
+      "spearman_rho": 0.8155891453304746,
+      "spearman_rho_bca_ci95": [
+        0.7371624012325755,
+        0.8739932047369643
+      ],
+      "rank_ic": 0.8155891453304746,
+      "rmse": 2.865342406069913,
+      "mae": 2.2724922115513144,
+      "r2_oos": 0.6925515121225828,
+      "metric_caveats": [],
+      "primary_k": 24,
+      "market_pool_n": 132,
+      "ndcg_diff_primary_k": 0.01627352211663846,
+      "ndcg_diff_bca_ci95": [
+        -0.19312871698726264,
+        0.2127352488418618
+      ],
+      "ndcg_at_12_model": 0.9231281617213662,
+      "ndcg_at_12_market": 0.9264473522951804,
+      "ndcg_at_24_model": 0.9349217578913281,
+      "ndcg_at_24_market": 0.9186482357746897,
+      "precision_at_k": null,
+      "calibration_by_decile": null,
+      "regime_notes": null,
+      "feature_coefficients": {
+        "age": -0.4425524135238748,
+        "aging_curve_value": 0.06703812042524826,
+        "games_t": 0.38069685981754203,
+        "ppg_t": 1.4173231262075277,
+        "ppg_t_minus_1": 0.5563248863996104,
+        "ppg_t_minus_1_available": -0.12802045040073642,
+        "ppg_t_minus_2": 0.19742590902574886,
+        "ppg_t_minus_2_available": -0.1197862050334958,
+        "snap_share": 0.4329545280310775,
+        "snap_share_t_minus_1": -0.02173246636881731,
+        "snap_share_t_minus_1_available": -0.07935625941569645,
+        "tprr": 0.2695569846830417,
+        "weighted_opportunity": 0.9914654001499746,
+        "yprr": 0.4496981694013659
+      }
+    },
+    {
+      "fold_index": 4,
+      "train_years": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ],
+      "test_year": 2023,
+      "outcome_seasons": [
+        2024,
+        2025
+      ],
+      "n_train": 754,
+      "n_test": 153,
+      "n_excluded_injury": 0,
+      "kendall_tau": 0.5905728626866674,
+      "kendall_tau_bca_ci95": [
+        0.5255155500831746,
+        0.6446771376844703
+      ],
+      "spearman_rho": 0.79446943926956,
+      "spearman_rho_bca_ci95": [
+        0.7282201299946234,
+        0.8456014277202564
+      ],
+      "rank_ic": 0.79446943926956,
+      "rmse": 2.9435485601001616,
+      "mae": 2.3639990222281564,
+      "r2_oos": 0.6662544238160589,
+      "metric_caveats": [],
+      "primary_k": 24,
+      "market_pool_n": 130,
+      "ndcg_diff_primary_k": -0.03887323617106109,
+      "ndcg_diff_bca_ci95": [
+        -0.28105760419804005,
+        0.23778142228444127
+      ],
+      "ndcg_at_12_model": 0.8556365691981945,
+      "ndcg_at_12_market": 0.8689384545635858,
+      "ndcg_at_24_model": 0.8591506395057944,
+      "ndcg_at_24_market": 0.8980238756768555,
+      "precision_at_k": null,
+      "calibration_by_decile": null,
+      "regime_notes": null,
+      "feature_coefficients": {
+        "age": -0.4702800002752042,
+        "aging_curve_value": 0.03010840863544915,
+        "games_t": 0.3224501761897364,
+        "ppg_t": 1.4967222651891943,
+        "ppg_t_minus_1": 0.6545454813964743,
+        "ppg_t_minus_1_available": -0.11714238090704769,
+        "ppg_t_minus_2": 0.22887025731755978,
+        "ppg_t_minus_2_available": -0.24361057591052868,
+        "snap_share": 0.35568669659073937,
+        "snap_share_t_minus_1": -0.04162118976748781,
+        "snap_share_t_minus_1_available": -0.06841816363501656,
+        "tprr": 0.2931804589313408,
+        "weighted_opportunity": 1.0458254863651397,
+        "yprr": 0.44658385710826537
+      }
+    }
+  ],
+  "rmse_stability": {
+    "rmse_per_fold": [
+      3.201492286839923,
+      2.9016265559792,
+      2.865342406069913,
+      2.9435485601001616
+    ],
+    "rmse_mean": 2.978002452247299,
+    "rmse_cv": 0.05116902216501881,
+    "rmse_max_deviation_pct": 0.07504689407625266,
+    "dm_hln_statistic": null,
+    "dm_hln_pvalue": null,
+    "dm_method": "harvey_leybourne_newbold_1997",
+    "dm_passes": null
+  },
+  "divergence_validity": null,
+  "market_source": "dp_archive",
+  "market_source_label": "dynastyprocess_ecr_2qb",
+  "market_snapshot_dates": {
+    "2020": "2021-09-08",
+    "2021": "2022-09-08",
+    "2022": "2023-09-08",
+    "2023": "2024-09-08"
+  },
+  "promotion_gate": {
+    "g1_rank_correlation_pass": true,
+    "g2_rmse_stability_pass": true,
+    "g3_market_superiority_pass": true,
+    "g4_divergence_validity_pass": "deferred",
+    "overall_grade": "ACTIVE_B_VALIDATED",
+    "gate_version": "1.0",
+    "promotion_justification": "G1 rank-corr pass (0.60 tau), G2 stability pass (0.1% dev), G3 market superiority pass."
+  }
+}

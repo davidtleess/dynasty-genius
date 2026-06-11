@@ -11,7 +11,10 @@ from src.dynasty_genius.eval.model_card import ModelCard
 
 router = APIRouter(prefix="/trust-surface", tags=["trust-surface"])
 
-RUNS_DIR = Path("app/data/backtest/runs")
+# Published trust substrate (Model Trust Console): the route reads the governed,
+# tracked published path by default; the gitignored raw runs/ remain only as a local
+# subdir fallback (never the CI / clean-clone path).
+RUNS_DIR = Path("app/data/backtest/trust_surface/latest")
 MODEL_CARDS_DIR = Path("app/data/backtest/model_cards")
 
 _VALID_POSITIONS = frozenset({"QB", "RB", "WR", "TE"})
@@ -54,8 +57,13 @@ async def get_trust_surface(position: str) -> JSONResponse:
             detail=f"Invalid position: {position}. Must be one of {sorted(_VALID_POSITIONS)}.",
         )
 
-    pattern = f"*/backtest_result_{pos_upper}.json"
-    artifact_paths = list(RUNS_DIR.glob(pattern))
+    # Published path is FLAT (trust_surface/latest/backtest_result_{POS}.json). Fall back
+    # to the legacy run-subdir glob only when no published flat file exists (local runs/).
+    flat_path = RUNS_DIR / f"backtest_result_{pos_upper}.json"
+    if flat_path.is_file():
+        artifact_paths = [flat_path]
+    else:
+        artifact_paths = list(RUNS_DIR.glob(f"*/backtest_result_{pos_upper}.json"))
 
     if not artifact_paths:
         raise HTTPException(

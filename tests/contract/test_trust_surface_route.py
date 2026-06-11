@@ -111,3 +111,32 @@ def test_get_trust_surface_overall_grade_at_top_level(mock_runs_dir):
         data = response.json()
         assert "overall_grade" in data, "overall_grade must be at response top level"
         assert data["overall_grade"] == art.promotion_gate.overall_grade
+
+
+def test_get_trust_surface_reads_published_path_without_run_subdirectories(tmp_path):
+    """Surface reads trust_surface/latest/backtest_result_{POS}.json directly."""
+    published_dir = tmp_path / "app/data/backtest/trust_surface/latest"
+    artifacts = {
+        position: create_fake_artifact(position, datetime.now(timezone.utc))
+        for position in ("QB", "RB", "WR", "TE")
+    }
+    for artifact in artifacts.values():
+        artifact.save(published_dir)
+
+    with patch("app.api.routes.trust_surface.RUNS_DIR", published_dir):
+        for position, artifact in artifacts.items():
+            response = client.get(f"/api/trust-surface/{position}")
+            assert response.status_code == 200
+            assert response.json()["run_id"] == str(artifact.run_id)
+
+
+def test_get_trust_surface_404_when_published_path_empty(tmp_path):
+    """Empty published path degrades honestly instead of falling back to ignored runs."""
+    published_dir = tmp_path / "app/data/backtest/trust_surface/latest"
+    published_dir.mkdir(parents=True)
+
+    with patch("app.api.routes.trust_surface.RUNS_DIR", published_dir):
+        response = client.get("/api/trust-surface/QB")
+
+    assert response.status_code == 404
+    assert "No backtest artifact found for position QB" in response.json()["detail"]
