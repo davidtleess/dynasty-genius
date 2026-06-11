@@ -39,6 +39,7 @@ SOURCE_VALIDATION_NOTE = (
 )
 
 RUNS_DIR = Path("app/data/backtest/runs")
+MODEL_CARDS_DIR = Path("app/data/backtest/model_cards")
 PUBLISHED_DIR = Path("app/data/backtest/trust_surface/latest")
 
 
@@ -87,6 +88,37 @@ def publish(
             "publication_timestamp": publication_timestamp,
             "decision_supported": False,
         }
+
+        # PublishedModelCardSource: the model card's safety text stamped with the
+        # PUBLISHED run's provenance. Guard: the card must describe the SAME model
+        # version as the published validation run (the honest model-identity check).
+        card_path = MODEL_CARDS_DIR / f"{position}_model_card.json"
+        if not card_path.is_file():
+            raise FileNotFoundError(f"model card for {position} not found: {card_path}")
+        card = json.loads(card_path.read_text(encoding="utf-8"))
+        if card.get("model_version") != artifact.model_version:
+            raise ValueError(
+                f"{position}: model card model_version {card.get('model_version')!r} "
+                f"!= published {artifact.model_version!r}"
+            )
+        card_source = {
+            "position": position,
+            "backtest_run_id": str(artifact.run_id),
+            "generated_at": card.get("generated_at"),
+            "is_experimental": artifact.promotion_gate.overall_grade == "EXPERIMENTAL",
+            "intended_use": card["intended_use"],
+            "out_of_scope_uses": card["out_of_scope_uses"],
+            "caveats": card["caveats"],
+            "known_failure_modes": card["known_failure_modes"],
+            "model_version": artifact.model_version,
+            "model_artifact_hash": artifact.model_artifact_hash,
+            "git_sha": artifact.git_sha,
+        }
+        source_dest = published_dir / f"model_card_source_{position}.json"
+        source_dest.write_text(
+            json.dumps(card_source, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        published_files.append(source_dest.name)
 
     manifest_path = published_dir / "manifest.json"
     manifest_path.write_text(

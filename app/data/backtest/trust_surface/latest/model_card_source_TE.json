@@ -1,0 +1,24 @@
+{
+  "backtest_run_id": "6ba3a451-67be-42e8-a431-c9c3130b3086",
+  "caveats": [
+    "TE model failed Phase 10/11 promotion gates (0/3). Alpha=1.0 indicates severe overfitting; model cannot beat a naive prior-PPG baseline.",
+    "Role heterogeneity (inline blocker vs. receiving specialist) is not segmented. A single model trained on mixed archetypes cannot capture either reliably.",
+    "Sample size is the tightest of any position: ~30\u201335 TE starters per fold."
+  ],
+  "generated_at": "2026-05-15T21:35:52.898803Z",
+  "git_sha": "12f55658a543718d57d49a115327d56fecfc0cfe",
+  "intended_use": "EXPERIMENTAL \u2014 not for trade decisions. Diagnostic only.",
+  "is_experimental": false,
+  "known_failure_modes": [
+    "TD variance dominates short-window PPG, making calibration unstable. The model's calibration_by_decile will show large residuals.",
+    "Draft capital selects for inline blockers who have zero fantasy utility. Model trained on overall_rank overweights pick number for non-fantasy TEs."
+  ],
+  "model_artifact_hash": "e2ca15ed2ffb88c4aea2abc57e26c543d141fdeaaf70716a1805f44ff860ba7d",
+  "model_version": "engine_b_v2",
+  "out_of_scope_uses": [
+    "Any trade decision",
+    "Dynasty value ranking",
+    "Trust Surface display without explicit EXPERIMENTAL label"
+  ],
+  "position": "TE"
+}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -15,6 +16,14 @@ from src.dynasty_genius.eval.backtest_artifact import (
     StabilityResult,
 )
 from src.dynasty_genius.eval.model_card import ModelCard, ModelCardMetrics
+from tests.contract.test_model_card_response_route import (
+    FORBIDDEN_PUBLIC_KEYS,
+    PUBLIC_MODEL_CARD_FIELDS,
+)
+from tests.contract.test_trust_publication_audit import (
+    _write_model_card_sources,
+    _write_publication,
+)
 
 client = TestClient(app)
 
@@ -152,12 +161,13 @@ def test_get_trust_surface_includes_model_card_available_false_when_no_card(mock
 
 
 def test_get_trust_surface_includes_model_card_available_true_when_card_exists(mock_runs_dir, mock_cards_dir):
-    """`model_card_available` is True when the card file exists."""
-    _write_backtest_result(mock_runs_dir, "WR", "ACTIVE_B")
-    _model_card("WR").save(mock_cards_dir / "WR_model_card.json")
+    """`model_card_available` is True when the published card source exists."""
+    published_dir = mock_runs_dir / "published"
+    _write_publication(published_dir)
+    _write_model_card_sources(published_dir)
 
     with (
-        patch("app.api.routes.trust_surface.RUNS_DIR", mock_runs_dir),
+        patch("app.api.routes.trust_surface.RUNS_DIR", published_dir),
         patch("app.api.routes.trust_surface.MODEL_CARDS_DIR", mock_cards_dir, create=True),
     ):
         response = client.get("/api/trust-surface/WR")
@@ -166,45 +176,52 @@ def test_get_trust_surface_includes_model_card_available_true_when_card_exists(m
     assert response.json()["model_card_available"] is True
 
 
-def test_get_model_card_404_when_no_card(mock_cards_dir):
-    """`GET /trust-surface/WR/model-card` returns 404 when no card."""
-    with patch("app.api.routes.trust_surface.MODEL_CARDS_DIR", mock_cards_dir, create=True):
+def test_get_model_card_404_when_no_card(mock_runs_dir):
+    """`GET /trust-surface/WR/model-card` returns 404 when no published source exists.
+
+    Repointed to RUNS_DIR (the published path) since the route now serves the curated
+    model_card_source_{POS}.json from there, not the legacy MODEL_CARDS_DIR.
+    """
+    with patch("app.api.routes.trust_surface.RUNS_DIR", mock_runs_dir):
         response = client.get("/api/trust-surface/WR/model-card")
 
     assert response.status_code == 404
     assert "No model card found for position WR" in response.json()["detail"]
 
 
-def test_get_model_card_200_returns_valid_model_card(mock_cards_dir):
-    """Returns 200 with all 9 ModelCard sections in response."""
-    _model_card("WR").save(mock_cards_dir / "WR_model_card.json")
+def test_get_model_card_200_returns_valid_model_card(mock_runs_dir, mock_cards_dir):
+    """Returns 200 with only the curated public ModelCardResponse fields."""
+    published_dir = mock_runs_dir / "published"
+    _write_publication(published_dir)
+    _write_model_card_sources(published_dir)
 
-    with patch("app.api.routes.trust_surface.MODEL_CARDS_DIR", mock_cards_dir, create=True):
+    with (
+        patch("app.api.routes.trust_surface.RUNS_DIR", published_dir),
+        patch("app.api.routes.trust_surface.MODEL_CARDS_DIR", mock_cards_dir, create=True),
+    ):
         response = client.get("/api/trust-surface/WR/model-card")
 
     assert response.status_code == 200
     data = response.json()
+    assert set(data) == PUBLIC_MODEL_CARD_FIELDS
     assert data["position"] == "WR"
-    for key in [
-        "model_version",
-        "intended_use",
-        "relevant_factors",
-        "metrics",
-        "evaluation_data",
-        "training_data",
-        "subgroup_results",
-        "ethical_considerations",
-        "caveats",
-        "known_failure_modes",
-    ]:
-        assert key in data
+    assert FORBIDDEN_PUBLIC_KEYS.isdisjoint(data)
 
 
-def test_get_model_card_is_experimental_at_top_level(mock_cards_dir):
+def test_get_model_card_is_experimental_at_top_level(mock_runs_dir, mock_cards_dir):
     """`is_experimental` is present at top level of response."""
-    _model_card("TE", is_experimental=True).save(mock_cards_dir / "TE_model_card.json")
+    published_dir = mock_runs_dir / "published"
+    _write_publication(published_dir)
+    _write_model_card_sources(published_dir)
+    source_path = published_dir / "model_card_source_TE.json"
+    source = json.loads(source_path.read_text(encoding="utf-8"))
+    source["is_experimental"] = True
+    source_path.write_text(json.dumps(source, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
-    with patch("app.api.routes.trust_surface.MODEL_CARDS_DIR", mock_cards_dir, create=True):
+    with (
+        patch("app.api.routes.trust_surface.RUNS_DIR", published_dir),
+        patch("app.api.routes.trust_surface.MODEL_CARDS_DIR", mock_cards_dir, create=True),
+    ):
         response = client.get("/api/trust-surface/TE/model-card")
 
     assert response.status_code == 200

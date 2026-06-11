@@ -29,6 +29,18 @@ def _audit_module():
     return TrustPublicationAuditError, validate_trust_publication_t1
 
 
+def _audit_t2_module():
+    try:
+        from scripts.validate_trust_publication import (  # noqa: PLC0415
+            TrustPublicationAuditError,
+            validate_trust_publication_t2,
+        )
+    except (ImportError, ModuleNotFoundError) as exc:
+        pytest.fail(f"T2 publication audit module missing: {exc}")
+
+    return TrustPublicationAuditError, validate_trust_publication_t2
+
+
 def _artifact(position: str) -> BacktestResult:
     return BacktestResult(
         run_id=uuid4(),
@@ -120,11 +132,43 @@ def _write_publication(root: Path) -> dict[str, str]:
     return pinned
 
 
+def _model_card_source_for(root: Path, position: str) -> dict[str, object]:
+    artifact = _read_json(root / f"backtest_result_{position}.json")
+    return {
+        "position": position,
+        "backtest_run_id": artifact["run_id"],
+        "generated_at": "2026-06-10T00:00:00Z",
+        "is_experimental": artifact["promotion_gate"]["overall_grade"] == "EXPERIMENTAL",
+        "intended_use": f"{position} model trust context for validation review only.",
+        "out_of_scope_uses": ["Roster-action recommendations"],
+        "caveats": ["Edge remains unproven while confidence intervals include zero."],
+        "known_failure_modes": ["Small validation cohorts can make rank metrics unstable."],
+        "model_version": artifact["model_version"],
+        "model_artifact_hash": artifact["model_artifact_hash"],
+        "git_sha": artifact.get("git_sha"),
+    }
+
+
+def _write_model_card_sources(root: Path) -> None:
+    for position in POSITIONS:
+        _write_json(
+            root / f"model_card_source_{position}.json",
+            _model_card_source_for(root, position),
+        )
+
+
 def _assert_audit_fails(root: Path, pinned: dict[str, str], pattern: str) -> None:
     AuditError, validate_t1 = _audit_module()
 
     with pytest.raises(AuditError, match=pattern):
         validate_t1(root, pinned_run_ids=pinned)
+
+
+def _assert_t2_audit_fails(root: Path, pinned: dict[str, str], pattern: str) -> None:
+    AuditError, validate_t2 = _audit_t2_module()
+
+    with pytest.raises(AuditError, match=pattern):
+        validate_t2(root, pinned_run_ids=pinned)
 
 
 def test_t1_publication_audit_accepts_well_formed_pinned_publication(tmp_path: Path) -> None:
@@ -250,3 +294,112 @@ def test_t1_publication_audit_fails_on_unallowlisted_tracked_file(
     _write_json(root / "runs" / "raw_backtest_result_QB.json", {"leak": True})
 
     _assert_audit_fails(root, pinned, "unallowlisted.*raw_backtest_result_QB")
+
+
+def test_t2_publication_audit_accepts_nine_file_published_substrate(
+    tmp_path: Path,
+) -> None:
+    _, validate_t2 = _audit_t2_module()
+    root = tmp_path / "trust_surface" / "latest"
+    pinned = _write_publication(root)
+    _write_model_card_sources(root)
+
+    result = validate_t2(root, pinned_run_ids=pinned)
+
+    assert result["status"] == "pass"
+    assert result["positions"] == list(POSITIONS)
+    assert result["allowed_files"] == [
+        "backtest_result_QB.json",
+        "backtest_result_RB.json",
+        "backtest_result_TE.json",
+        "backtest_result_WR.json",
+        "manifest.json",
+        "model_card_source_QB.json",
+        "model_card_source_RB.json",
+        "model_card_source_TE.json",
+        "model_card_source_WR.json",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value", "pattern"),
+    [
+        ("position", "RB", "position.*QB"),
+        ("backtest_run_id", "stale-run", "backtest_run_id.*QB"),
+        ("model_version", "stale-version", "model_version.*QB"),
+        ("model_artifact_hash", "stale-hash", "model_artifact_hash.*QB"),
+        ("git_sha", "stale-sha", "git_sha.*QB"),
+    ],
+)
+def test_t2_publication_audit_fails_on_model_card_provenance_mismatch(
+    tmp_path: Path,
+    field: str,
+    bad_value: str,
+    pattern: str,
+) -> None:
+    root = tmp_path / "trust_surface" / "latest"
+    pinned = _write_publication(root)
+    _write_model_card_sources(root)
+    source = _read_json(root / "model_card_source_QB.json")
+    source[field] = bad_value
+    _write_json(root / "model_card_source_QB.json", source)
+
+    _assert_t2_audit_fails(root, pinned, pattern)
+
+
+@pytest.mark.parametrize(
+    "leaked_key",
+    ["metrics", "feature_list", "subgroup_results", "calibration", "ethical_considerations"],
+)
+def test_t2_publication_audit_fails_on_nine_section_model_card_leakage(
+    tmp_path: Path,
+    leaked_key: str,
+) -> None:
+    root = tmp_path / "trust_surface" / "latest"
+    pinned = _write_publication(root)
+    _write_model_card_sources(root)
+    source = _read_json(root / "model_card_source_WR.json")
+    source[leaked_key] = {"leak": True}
+    _write_json(root / "model_card_source_WR.json", source)
+
+    _assert_t2_audit_fails(root, pinned, f"curated.*{leaked_key}")
+
+
+def test_t2_publication_audit_fails_on_model_card_decision_supported_true(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "trust_surface" / "latest"
+    pinned = _write_publication(root)
+    _write_model_card_sources(root)
+    source = _read_json(root / "model_card_source_TE.json")
+    source["decision_supported"] = True
+    _write_json(root / "model_card_source_TE.json", source)
+
+    _assert_t2_audit_fails(root, pinned, "decision_supported.*TE")
+
+
+def test_t2_publication_audit_fails_on_unallowlisted_file_after_sources(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "trust_surface" / "latest"
+    pinned = _write_publication(root)
+    _write_model_card_sources(root)
+    _write_json(root / "TE_model_card.json", {"old_shape": True})
+
+    _assert_t2_audit_fails(root, pinned, "unallowlisted.*TE_model_card")
+
+
+@pytest.mark.parametrize("missing_field", ["caveats", "intended_use", "model_version"])
+def test_t2_publication_audit_fails_on_missing_required_source_field(
+    tmp_path: Path,
+    missing_field: str,
+) -> None:
+    """A model card source missing a required field hard-stops (no runtime KeyError)."""
+    root = tmp_path / "trust_surface" / "latest"
+    pinned = _write_publication(root)
+    _write_model_card_sources(root)
+    source = _read_json(root / "model_card_source_QB.json")
+    del source[missing_field]
+    _write_json(root / "model_card_source_QB.json", source)
+
+    _assert_t2_audit_fails(root, pinned, f"{missing_field}.*QB")

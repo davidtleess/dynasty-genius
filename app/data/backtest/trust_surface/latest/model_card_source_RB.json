@@ -1,0 +1,23 @@
+{
+  "backtest_run_id": "e639a40c-e88b-4650-ab90-0e8f02fd397d",
+  "caveats": [
+    "RB age cliff begins ~26. The model encodes age as a continuous feature; users should interpret high-confidence predictions for players \u226526 with increased skepticism.",
+    "Role volatility (committee backfields, mid-season usage shifts) creates floor risk not captured in PPG-based training labels.",
+    "Weighted Opportunity and High-Value Touches are not yet in the feature set. See Phase 13 research brief."
+  ],
+  "generated_at": "2026-05-15T21:35:52.812629Z",
+  "git_sha": "12f55658a543718d57d49a115327d56fecfc0cfe",
+  "intended_use": "Forecast 2-year average PPG for active NFL running backs. Dynasty trade decision support in Superflex PPR (12-team, 2QB) leagues.",
+  "is_experimental": false,
+  "known_failure_modes": [
+    "Low-snap, high-efficiency backs on poor offenses may be undervalued by a PPG-trained label.",
+    "Committee backs show high variance that PPG smooths over."
+  ],
+  "model_artifact_hash": "5507e37feda9ba9d8f2bda7f1f259df5a59edcb2880e7ff7af6938d34401c4f9",
+  "model_version": "engine_b_v2",
+  "out_of_scope_uses": [
+    "Single-season redraft start/sit decisions",
+    "Keeper cap valuations without manager review"
+  ],
+  "position": "RB"
+}

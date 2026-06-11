@@ -27,6 +27,29 @@ T1_ALLOWED_FILES: frozenset[str] = frozenset(
     {f"backtest_result_{pos}.json" for pos in POSITIONS} | {"manifest.json"}
 )
 
+# T2 extends the allowlist with the 4 published model-card sources (9 files total).
+T2_ALLOWED_FILES: frozenset[str] = frozenset(
+    T1_ALLOWED_FILES | {f"model_card_source_{pos}.json" for pos in POSITIONS}
+)
+
+# The on-disk PublishedModelCardSource shape: the 8 public ModelCardResponse fields
+# + 3 audit-internal provenance fields. Any other key is 9-section leakage.
+_PUBLIC_CARD_FIELDS: frozenset[str] = frozenset(
+    {
+        "position",
+        "backtest_run_id",
+        "generated_at",
+        "is_experimental",
+        "intended_use",
+        "out_of_scope_uses",
+        "caveats",
+        "known_failure_modes",
+    }
+)
+_SOURCE_ALLOWED_FIELDS: frozenset[str] = frozenset(
+    _PUBLIC_CARD_FIELDS | {"model_version", "model_artifact_hash", "git_sha"}
+)
+
 # Market-derived MODEL-INPUT leakage tokens. These are disallowed only on model
 # feature surfaces (fold ``feature_coefficients`` keys, a ``model_feature_list``);
 # legitimate market *comparison/provenance* fields (``market_source``,
@@ -48,34 +71,26 @@ def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def validate_trust_publication_t1(
-    root: Path | str,
-    *,
+def _validate_substrate(
+    root: Path,
     pinned_run_ids: dict[str, str],
+    *,
+    allowed_files: frozenset[str],
+    check_model_cards: bool,
 ) -> dict[str, Any]:
-    """Validate the T1 published trust substrate. Raises on any violation.
-
-    Checks (fail-loud):
-      1. allowlist — no file under ``root`` outside ``T1_ALLOWED_FILES``;
-      2. presence + loadability of each position's ``backtest_result_{POS}.json``;
-      3. ``decision_supported`` is not True on any artifact or manifest entry;
-      4. no market-derived model-INPUT leakage on model feature surfaces;
-      5. manifest ``run_id`` per position equals the pinned input.
-    Returns ``{"status": "pass", "positions": [...], "allowed_files": [...]}``.
-    """
-    root = Path(root)
-
-    # 1. allowlist (phase-scoped): any tracked file outside the T1 allowlist is a leak.
+    """Shared fail-loud validator for the published trust substrate (T1 and T2)."""
+    # 1. allowlist (phase-scoped): any tracked file outside the allowlist is a leak.
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
         rel = path.relative_to(root).as_posix()
-        if rel not in T1_ALLOWED_FILES:
+        if rel not in allowed_files:
             raise TrustPublicationAuditError(
                 f"unallowlisted file in published path: {rel}"
             )
 
     # 2. per-position artifacts: present, loadable, no decision-grade, no input leak.
+    artifacts: dict[str, dict[str, Any]] = {}
     for pos in POSITIONS:
         artifact_path = root / f"backtest_result_{pos}.json"
         if not artifact_path.is_file():
@@ -113,6 +128,7 @@ def validate_trust_publication_t1(
                     f"market-derived model input leak in {pos} "
                     f"model_feature_list: {entry}"
                 )
+        artifacts[pos] = artifact
 
     # 3. manifest: present, pinned run_ids match, no decision-grade.
     manifest_path = root / "manifest.json"
@@ -138,8 +154,89 @@ def validate_trust_publication_t1(
                 f"decision_supported=True in manifest for {pos}"
             )
 
+    # 4. (T2) per-position model-card sources: provenance-aligned + curated-only.
+    if check_model_cards:
+        for pos in POSITIONS:
+            source_path = root / f"model_card_source_{pos}.json"
+            if not source_path.is_file():
+                raise TrustPublicationAuditError(
+                    f"missing model card source for {pos}: {source_path.name}"
+                )
+            source = _load_json(source_path)
+            # Decision-grade first (so the error names the field before curated-only).
+            if source.get("decision_supported") is True:
+                raise TrustPublicationAuditError(
+                    f"decision_supported=True in model card source for {pos}"
+                )
+            # Key-set completeness: every required field must be present — a missing
+            # field would runtime-KeyError the route's curated filter.
+            missing = sorted(_SOURCE_ALLOWED_FIELDS - set(source))
+            if missing:
+                raise TrustPublicationAuditError(
+                    f"missing required field(s) {missing} in model card source for {pos}"
+                )
+            # Curated-only: no 9-section leakage on the published source.
+            for key in source:
+                if key not in _SOURCE_ALLOWED_FIELDS:
+                    raise TrustPublicationAuditError(
+                        f"curated-only violation: model card source for {pos} "
+                        f"carries non-curated key {key!r} (9-section leakage)"
+                    )
+            # Provenance equality vs the published BacktestResult for the position.
+            artifact = artifacts[pos]
+            provenance = {
+                "position": (source.get("position"), pos),
+                "backtest_run_id": (
+                    str(source.get("backtest_run_id")),
+                    str(artifact["run_id"]),
+                ),
+                "model_version": (
+                    source.get("model_version"),
+                    artifact["model_version"],
+                ),
+                "model_artifact_hash": (
+                    source.get("model_artifact_hash"),
+                    artifact["model_artifact_hash"],
+                ),
+                "git_sha": (source.get("git_sha"), artifact.get("git_sha")),
+            }
+            for field, (got, expected) in provenance.items():
+                if got != expected:
+                    raise TrustPublicationAuditError(
+                        f"{field} mismatch for {pos}: model card source {got!r} "
+                        f"!= published {expected!r}"
+                    )
+
     return {
         "status": "pass",
         "positions": list(POSITIONS),
-        "allowed_files": sorted(T1_ALLOWED_FILES),
+        "allowed_files": sorted(allowed_files),
     }
+
+
+def validate_trust_publication_t1(
+    root: Path | str,
+    *,
+    pinned_run_ids: dict[str, str],
+) -> dict[str, Any]:
+    """Validate the T1 substrate (4 BacktestResult + manifest). Raises on violation."""
+    return _validate_substrate(
+        Path(root),
+        pinned_run_ids,
+        allowed_files=T1_ALLOWED_FILES,
+        check_model_cards=False,
+    )
+
+
+def validate_trust_publication_t2(
+    root: Path | str,
+    *,
+    pinned_run_ids: dict[str, str],
+) -> dict[str, Any]:
+    """Validate the T2 substrate (T1 + 4 provenance-aligned model-card sources)."""
+    return _validate_substrate(
+        Path(root),
+        pinned_run_ids,
+        allowed_files=T2_ALLOWED_FILES,
+        check_model_cards=True,
+    )
