@@ -47,8 +47,8 @@ class ModelCardResponse(BaseModel):
     """
 
     position: str
-    backtest_run_id: str | None = None
-    generated_at: str | None = None
+    backtest_run_id: str | None
+    generated_at: str | None
     is_experimental: bool
     intended_use: str
     out_of_scope_uses: list[str]
