@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 
 import { zModelCardResponse, zTrustSurfaceResponse } from "../lib/api/zod.gen";
+import { FoldTable } from "./FoldTable";
 import { GateMatrix } from "./GateMatrix";
 import "./TrustConsole.css";
 import { TrustTruthPanel } from "./TrustTruthPanel";
@@ -93,6 +94,7 @@ export function TrustConsole() {
           <p className="dg-trust-console__status">Trust data loaded</p>
           <TrustTruthPanel vm={state.vm} />
           <GateMatrix gates={state.vm.gates} />
+          <FoldTable folds={state.vm.folds} />
           {state.vm.model_card === null && (
             <p className="dg-trust-console__degraded">Model card unavailable</p>
           )}

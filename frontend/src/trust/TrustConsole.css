@@ -87,3 +87,39 @@
   font-size: 0.8rem;
   color: oklch(0.5 0.02 255);
 }
+
+/* Fold table — per-fold evidence in neutral slate. The "CI includes zero" note is a
+ * factual annotation, NOT a failure state: it gets the same muted slate as every other
+ * cell, never a warning/negative hue. No positive/negative coloring anywhere. */
+.dg-trust-folds {
+  display: flex;
+  flex-direction: column;
+}
+
+.dg-trust-folds__table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  color: oklch(0.32 0.02 255);
+}
+
+.dg-trust-folds__table th,
+.dg-trust-folds__table td {
+  border: 1px solid oklch(0.88 0.01 255);
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.dg-trust-folds__table th {
+  font-weight: 600;
+  color: oklch(0.4 0.02 255);
+}
+
+.dg-trust-folds__ci-note {
+  color: oklch(0.5 0.02 255);
+}
+
+.dg-trust-folds__empty {
+  font-size: 0.85rem;
+  color: oklch(0.5 0.02 255);
+}

@@ -236,4 +236,15 @@ describe("TrustConsole", () => {
       within(matrix).getByText("G4 Divergence validity: INSUFFICIENT DATA"),
     ).toBeTruthy();
   });
+
+  it("renders the fold table from the ready-state view model", async () => {
+    vi.stubGlobal("fetch", mockTrustFetch());
+
+    render(<TrustConsole />);
+
+    await screen.findByText("Trust data loaded");
+    const table = screen.getByRole("table", { name: "Per-fold backtest results" });
+    expect(within(table).getByText("Fold 1")).toBeTruthy();
+    expect(within(table).getByText("CI includes zero")).toBeTruthy();
+  });
 });
