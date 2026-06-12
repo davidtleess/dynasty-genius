@@ -1,0 +1,39 @@
+/* Model Trust Console — neutral slate visual system.
+ * Anti-overclaim: no green/red hues, no checkmark glyphs, no success styling. The
+ * surface conveys credibility status in low-chroma neutral text only. Position tabs
+ * are navigation (not status), so their active state is a neutral slate emphasis,
+ * never a positive/negative hue. */
+
+.dg-trust-console {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dg-trust-console__tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dg-trust-console__tab {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid oklch(0.82 0.01 255);
+  border-radius: 0.3rem;
+  background: transparent;
+  color: oklch(0.55 0.02 255);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* Active position — neutral slate emphasis (NOT a success/green highlight). */
+.dg-trust-console__tab[aria-pressed="true"] {
+  border-color: oklch(0.5 0.02 255);
+  color: oklch(0.32 0.02 255);
+  font-weight: 600;
+}
+
+.dg-trust-console__status,
+.dg-trust-console__degraded {
+  font-size: 0.85rem;
+  color: oklch(0.5 0.02 255);
+}
