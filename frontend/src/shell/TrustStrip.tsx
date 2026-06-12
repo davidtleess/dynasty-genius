@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { z } from "zod";
 
 import { zTrustSurfaceResponse } from "../lib/api/zod.gen";
+import { MODEL_GRADE_QUALIFIER } from "../lib/trustCopy";
 import "./TrustStrip.css";
 
 // The validated shape IS the generated Zod schema's output (validated at the SDK
@@ -70,6 +71,9 @@ function TrustReady({ data }: { data: TrustSurface }) {
     <div className="dg-trust__body">
       <span className="dg-trust__label">Model grade</span>
       <span className="dg-trust__grade">{data.overall_grade}</span>
+      {/* The grade is never a headline edge claim in the shell — it always carries the
+          same non-decision-grade qualifier the Model Trust Console footer uses. */}
+      <span className="dg-trust__grade-qualifier">{MODEL_GRADE_QUALIFIER}</span>
       {unvalidated && <span className="dg-trust__badge">Unvalidated</span>}
       <span className="dg-trust__label">Source</span>
       <span className="dg-trust__source">

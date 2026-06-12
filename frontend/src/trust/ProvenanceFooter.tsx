@@ -6,10 +6,8 @@
 // a success tier (e.g. WR's ACTIVE_B_VALIDATED), so it is DEMOTED out of the truth panel
 // (spec §4.1) to here, rendered as neutral text permanently bound to a fixed qualifier —
 // never a colored/graded badge, never the lede.
+import { MODEL_GRADE_QUALIFIER } from "../lib/trustCopy";
 import type { TrustConsoleViewModel } from "./trustViewModel";
-
-const GRADE_QUALIFIER =
-  "internal model grade — not a market-edge or decision-support claim";
 
 const orNA = (v: string | null | undefined): string =>
   v === null || v === undefined || v === "" ? "not available" : v;
@@ -67,7 +65,7 @@ export function ProvenanceFooter({
       {/* Demoted grade — neutral text, bound to its qualifier, never a badge or the lede. */}
       <div className="dg-trust-prov__grade">
         <span className="dg-trust-prov__value">{overallGrade}</span>
-        <span className="dg-trust-prov__qualifier">{GRADE_QUALIFIER}</span>
+        <span className="dg-trust-prov__qualifier">{MODEL_GRADE_QUALIFIER}</span>
       </div>
     </footer>
   );
