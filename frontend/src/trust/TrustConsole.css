@@ -32,8 +32,7 @@
   font-weight: 600;
 }
 
-.dg-trust-console__status,
-.dg-trust-console__degraded {
+.dg-trust-console__status {
   font-size: 0.85rem;
   color: oklch(0.5 0.02 255);
 }
@@ -122,4 +121,93 @@
 .dg-trust-folds__empty {
   font-size: 0.85rem;
   color: oklch(0.5 0.02 255);
+}
+
+/* Model-card essentials — full-text safety instructions; neutral slate, muted headings. */
+.dg-trust-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: oklch(0.32 0.02 255);
+}
+
+.dg-trust-card__heading {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: oklch(0.4 0.02 255);
+}
+
+.dg-trust-card__list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.dg-trust-card__unavailable {
+  font-size: 0.85rem;
+  color: oklch(0.5 0.02 255);
+}
+
+/* QB reliability — elevated-uncertainty caveat. Neutral slate, NOT a warning/defect hue. */
+.dg-trust-qb {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-left: 3px solid oklch(0.7 0.02 255);
+  padding-left: 0.7rem;
+}
+
+.dg-trust-qb__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: oklch(0.4 0.02 255);
+}
+
+.dg-trust-qb__caveat,
+.dg-trust-qb__metric {
+  font-size: 0.8rem;
+  color: oklch(0.5 0.02 255);
+}
+
+/* Provenance footer — small, neutral, copyable. The demoted grade is plain text bound to
+ * its qualifier: no badge, no positive/negative hue, never emphasized over the truth lede. */
+.dg-trust-prov {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-top: 1px solid oklch(0.88 0.01 255);
+  padding-top: 0.5rem;
+  font-size: 0.78rem;
+  color: oklch(0.5 0.02 255);
+}
+
+.dg-trust-prov__row,
+.dg-trust-prov__grade {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.dg-trust-prov__label {
+  color: oklch(0.55 0.02 255);
+  min-width: 9rem;
+}
+
+.dg-trust-prov__value {
+  color: oklch(0.4 0.02 255);
+  font-variant-numeric: tabular-nums;
+}
+
+.dg-trust-prov__snapshots {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.dg-trust-prov__grade {
+  margin-top: 0.3rem;
+}
+
+.dg-trust-prov__qualifier {
+  color: oklch(0.55 0.02 255);
+  font-style: italic;
 }

@@ -207,6 +207,7 @@ describe("TrustConsole", () => {
 
     await screen.findByText("Trust data loaded");
     expect(screen.getByText("Model card unavailable")).toBeTruthy();
+    expect(screen.getAllByText("Model card unavailable")).toHaveLength(1);
     expect(screen.queryByText("Trust data unavailable")).toBeNull();
   });
 
@@ -246,5 +247,55 @@ describe("TrustConsole", () => {
     const table = screen.getByRole("table", { name: "Per-fold backtest results" });
     expect(within(table).getByText("Fold 1")).toBeTruthy();
     expect(within(table).getByText("CI includes zero")).toBeTruthy();
+  });
+
+  it("renders the model-card essentials from the ready-state view model", async () => {
+    vi.stubGlobal("fetch", mockTrustFetch());
+
+    render(<TrustConsole />);
+
+    await screen.findByText("Trust data loaded");
+    const section = screen.getByRole("region", { name: "Model card essentials" });
+    expect(within(section).getByText("Read-only trust review.")).toBeTruthy();
+    expect(within(section).getByText("Roster-action recommendations")).toBeTruthy();
+    expect(within(section).getByText("Decision support disabled.")).toBeTruthy();
+    expect(within(section).getByText("Small cohorts can be unstable.")).toBeTruthy();
+  });
+
+  it("renders the QB reliability callout from the ready-state view model", async () => {
+    vi.stubGlobal("fetch", mockTrustFetch());
+
+    render(<TrustConsole />);
+
+    await screen.findByText("Trust data loaded");
+    const callout = screen.getByRole("region", { name: "QB reliability note" });
+    expect(within(callout).getByText("Elevated uncertainty")).toBeTruthy();
+    expect(
+      within(callout).getByText("QB magnitude predictions carry elevated uncertainty."),
+    ).toBeTruthy();
+    expect(within(callout).getByText("OOS R2: 0.14")).toBeTruthy();
+    expect(within(callout).getByText("Spearman: 0.31")).toBeTruthy();
+  });
+
+  it("renders provenance footer with the demoted model grade outside the truth panel", async () => {
+    vi.stubGlobal("fetch", mockTrustFetch());
+
+    render(<TrustConsole />);
+
+    await screen.findByText("Trust data loaded");
+    const panel = screen.getByRole("region", { name: "Model trust truth" });
+    expect(within(panel).queryByText("ACTIVE_B_VALIDATED")).toBeNull();
+
+    const footer = screen.getByRole("contentinfo", { name: "Model trust provenance" });
+    expect(within(footer).getByText("ACTIVE_B_VALIDATED")).toBeTruthy();
+    expect(
+      within(footer).getByText(
+        "internal model grade — not a market-edge or decision-support claim",
+      ),
+    ).toBeTruthy();
+    expect(within(footer).getByText("dynastyprocess_ecr_2qb")).toBeTruthy();
+    expect(
+      within(footer).getByText("483f87f9-1a16-4750-a825-0165c7335696"),
+    ).toBeTruthy();
   });
 });

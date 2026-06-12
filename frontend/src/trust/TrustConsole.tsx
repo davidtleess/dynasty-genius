@@ -9,6 +9,9 @@ import { useEffect, useState } from "react";
 import { zModelCardResponse, zTrustSurfaceResponse } from "../lib/api/zod.gen";
 import { FoldTable } from "./FoldTable";
 import { GateMatrix } from "./GateMatrix";
+import { ModelCardEssentials } from "./ModelCardEssentials";
+import { ProvenanceFooter } from "./ProvenanceFooter";
+import { QbReliabilityCallout } from "./QbReliabilityCallout";
 import "./TrustConsole.css";
 import { TrustTruthPanel } from "./TrustTruthPanel";
 import {
@@ -95,9 +98,16 @@ export function TrustConsole() {
           <TrustTruthPanel vm={state.vm} />
           <GateMatrix gates={state.vm.gates} />
           <FoldTable folds={state.vm.folds} />
-          {state.vm.model_card === null && (
-            <p className="dg-trust-console__degraded">Model card unavailable</p>
-          )}
+          <QbReliabilityCallout
+            position={state.vm.position}
+            reliability={state.vm.model_reliability}
+          />
+          <ModelCardEssentials card={state.vm.model_card} />
+          <ProvenanceFooter
+            provenance={state.vm.provenance}
+            market={state.vm.market}
+            overallGrade={state.vm.overall_grade}
+          />
         </div>
       )}
     </div>
