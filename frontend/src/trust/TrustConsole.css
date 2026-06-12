@@ -58,3 +58,32 @@
   font-size: 0.8rem;
   color: oklch(0.5 0.02 255);
 }
+
+/* Gate matrix — neutral point-estimate labels. The status word (MET/UNMET/DEFERRED/
+ * INSUFFICIENT DATA) is the entire signal; no positive/negative hue, no badge, no
+ * checkmark. MET must never read as a success state, so every row is the same slate. */
+.dg-trust-gates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dg-trust-gates__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dg-trust-gates__row {
+  font-size: 0.85rem;
+  color: oklch(0.32 0.02 255);
+}
+
+.dg-trust-gates__disclaimer,
+.dg-trust-gates__justification {
+  font-size: 0.8rem;
+  color: oklch(0.5 0.02 255);
+}

@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 
 import { zModelCardResponse, zTrustSurfaceResponse } from "../lib/api/zod.gen";
+import { GateMatrix } from "./GateMatrix";
 import "./TrustConsole.css";
 import { TrustTruthPanel } from "./TrustTruthPanel";
 import {
@@ -91,6 +92,7 @@ export function TrustConsole() {
         <div className="dg-trust-console__body">
           <p className="dg-trust-console__status">Trust data loaded</p>
           <TrustTruthPanel vm={state.vm} />
+          <GateMatrix gates={state.vm.gates} />
           {state.vm.model_card === null && (
             <p className="dg-trust-console__degraded">Model card unavailable</p>
           )}

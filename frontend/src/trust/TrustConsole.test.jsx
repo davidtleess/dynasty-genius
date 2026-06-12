@@ -221,4 +221,19 @@ describe("TrustConsole", () => {
     expect(within(panel).getByText("Experimental — not validated")).toBeTruthy();
     expect(within(panel).queryByText("ACTIVE_B_VALIDATED")).toBeNull();
   });
+
+  it("renders the gate matrix from the ready-state view model", async () => {
+    vi.stubGlobal("fetch", mockTrustFetch());
+
+    render(<TrustConsole />);
+
+    await screen.findByText("Trust data loaded");
+    const matrix = screen.getByRole("region", { name: "Validation gates" });
+    expect(within(matrix).getByText("G1 Rank correlation: MET")).toBeTruthy();
+    expect(within(matrix).getByText("G2 RMSE stability: UNMET")).toBeTruthy();
+    expect(within(matrix).getByText("G3 Market superiority: DEFERRED")).toBeTruthy();
+    expect(
+      within(matrix).getByText("G4 Divergence validity: INSUFFICIENT DATA"),
+    ).toBeTruthy();
+  });
 });
