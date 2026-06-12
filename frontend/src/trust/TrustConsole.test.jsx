@@ -9,6 +9,8 @@ import { AppShell } from "../shell/AppShell";
 import { TrustConsole } from "./TrustConsole";
 
 const TRUST_DIR = join(process.cwd(), "src", "trust");
+const TRUST_TRUTH_COPY =
+  "Consensus-competitive, edge unproven. Engine B is statistically tied with DynastyProcess ECR expert consensus; per-fold NDCG-diff bootstrap CIs include zero.";
 
 function authoredTrustFiles() {
   if (!existsSync(TRUST_DIR)) {
@@ -65,7 +67,7 @@ function trustSurface(position = "QB") {
           }
         : null,
     model_version: "engine_b_v2",
-    overall_grade: "EXPERIMENTAL",
+    overall_grade: "ACTIVE_B_VALIDATED",
     position,
     promotion_gate: gate,
     retrain_mode: "refit_per_fold_fixed_alpha",
@@ -206,5 +208,17 @@ describe("TrustConsole", () => {
     await screen.findByText("Trust data loaded");
     expect(screen.getByText("Model card unavailable")).toBeTruthy();
     expect(screen.queryByText("Trust data unavailable")).toBeNull();
+  });
+
+  it("renders the truth panel from the ready-state view model", async () => {
+    vi.stubGlobal("fetch", mockTrustFetch());
+
+    render(<TrustConsole />);
+
+    await screen.findByText("Trust data loaded");
+    const panel = screen.getByRole("region", { name: "Model trust truth" });
+    expect(within(panel).getByText(TRUST_TRUTH_COPY)).toBeTruthy();
+    expect(within(panel).getByText("Experimental — not validated")).toBeTruthy();
+    expect(within(panel).queryByText("ACTIVE_B_VALIDATED")).toBeNull();
   });
 });

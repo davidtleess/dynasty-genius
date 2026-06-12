@@ -37,3 +37,24 @@
   font-size: 0.85rem;
   color: oklch(0.5 0.02 255);
 }
+
+/* Truth panel — neutral slate; the G3 truth statement is the lede, decision/experimental
+ * are muted. No tier/badge, no green/red, no success styling. */
+.dg-trust-truth {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-left: 3px solid oklch(0.7 0.02 255);
+  padding-left: 0.7rem;
+}
+
+.dg-trust-truth__statement {
+  font-size: 0.95rem;
+  color: oklch(0.32 0.02 255);
+}
+
+.dg-trust-truth__decision,
+.dg-trust-truth__experimental {
+  font-size: 0.8rem;
+  color: oklch(0.5 0.02 255);
+}

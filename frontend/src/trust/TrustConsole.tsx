@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 
 import { zModelCardResponse, zTrustSurfaceResponse } from "../lib/api/zod.gen";
 import "./TrustConsole.css";
+import { TrustTruthPanel } from "./TrustTruthPanel";
 import {
   buildTrustConsoleViewModel,
   type ModelCardData,
@@ -36,11 +37,8 @@ export function TrustConsole() {
           if (active) setState({ status: "unavailable" });
           return;
         }
-        const surface = zTrustSurfaceResponse.safeParse(await surfaceResponse.json());
-        if (!surface.success) {
-          if (active) setState({ status: "unavailable" });
-          return;
-        }
+        // Validate at the Zod boundary; parse() throws on invalid -> outer catch -> unavailable.
+        const surfaceData = zTrustSurfaceResponse.parse(await surfaceResponse.json());
         // Model-card degrades independently — never blanks the trust shell.
         let card: ModelCardData | null = null;
         try {
@@ -48,8 +46,7 @@ export function TrustConsole() {
             `/api/trust-surface/${activePosition}/model-card`,
           );
           if (cardResponse.ok) {
-            const parsed = zModelCardResponse.safeParse(await cardResponse.json());
-            card = parsed.success ? parsed.data : null;
+            card = zModelCardResponse.parse(await cardResponse.json());
           }
         } catch {
           card = null;
@@ -57,7 +54,7 @@ export function TrustConsole() {
         if (!active) return;
         setState({
           status: "ready",
-          vm: buildTrustConsoleViewModel(surface.data, card),
+          vm: buildTrustConsoleViewModel(surfaceData, card),
         });
       } catch {
         if (active) setState({ status: "unavailable" });
@@ -93,6 +90,7 @@ export function TrustConsole() {
       {state.status === "ready" && (
         <div className="dg-trust-console__body">
           <p className="dg-trust-console__status">Trust data loaded</p>
+          <TrustTruthPanel vm={state.vm} />
           {state.vm.model_card === null && (
             <p className="dg-trust-console__degraded">Model card unavailable</p>
           )}
