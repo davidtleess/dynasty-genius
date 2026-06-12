@@ -152,6 +152,48 @@ describe("FoldTable", () => {
     expectRowText(spearmanSpanRow, "CI includes zero");
   });
 
+  it("normalizes display-only negative zero without changing the raw CI predicate", async () => {
+    const { FoldTable } = await import("./FoldTable");
+
+    render(
+      <FoldTable
+        folds={[
+          fold({
+            fold_index: 1,
+            kendall_tau: -0.004,
+            kendall_tau_bca_ci95: [-0.003, 0.31],
+            spearman_rho: -0.004,
+            rank_ic: -0.004,
+            rmse: -0.004,
+            mae: -0.004,
+          }),
+          fold({
+            fold_index: 2,
+            kendall_tau: -0.18,
+            kendall_tau_bca_ci95: [-0.18, -0.04],
+            spearman_rho: -0.22,
+            spearman_rho_bca_ci95: [-0.33, -0.11],
+            rank_ic: -0.22,
+            rmse: 4.12,
+            mae: 3.05,
+          }),
+        ]}
+      />,
+    );
+
+    const table = screen.getByRole("table", { name: "Per-fold backtest results" });
+    const [nearZeroRow, trueNegativeRow] = tableRows(table);
+
+    expectRowText(nearZeroRow, "0.00");
+    expectRowText(nearZeroRow, "[0.00, 0.31]");
+    expectRowText(nearZeroRow, "CI includes zero");
+    expect(nearZeroRow.textContent).not.toContain("-0.00");
+
+    expectRowText(trueNegativeRow, "-0.18");
+    expectRowText(trueNegativeRow, "[-0.18, -0.04]");
+    expect(trueNegativeRow.textContent).not.toContain("CI includes zero");
+  });
+
   it("renders a neutral empty state when no folds are available", async () => {
     const { FoldTable } = await import("./FoldTable");
 

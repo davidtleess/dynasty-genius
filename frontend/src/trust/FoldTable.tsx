@@ -10,7 +10,13 @@ import type { TrustConsoleViewModel } from "./trustViewModel";
 type Fold = TrustConsoleViewModel["folds"][number];
 type Band = readonly [number, number];
 
-const f2 = (n: number): string => n.toFixed(2);
+// Display-only: collapse the negative-zero artifact (e.g. -0.004 -> "-0.00") to "0.00".
+// This NEVER touches includesZero, which runs on the raw band numbers — a raw -0.003 lower
+// bound still counts as CI-includes-zero even though it now displays as 0.00.
+const f2 = (n: number): string => {
+  const s = n.toFixed(2);
+  return s === "-0.00" ? "0.00" : s;
+};
 const ci = (band: Band): string => `[${f2(band[0])}, ${f2(band[1])}]`;
 
 // CI includes zero <=> the closed band straddles (or touches) zero.
