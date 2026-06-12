@@ -188,6 +188,26 @@ export const zMarketRosterPenalty = z.object({
 });
 
 /**
+ * ModelCardResponse
+ *
+ * Curated PUBLIC model-card contract — the 8 safety/identity fields only.
+ *
+ * Provenance fields (model_version / model_artifact_hash / git_sha) live on the
+ * audit-internal PublishedModelCardSource artifact and are deliberately NOT exposed
+ * here, so the public surface never leaks the 9-section ModelCard internals.
+ */
+export const zModelCardResponse = z.object({
+    backtest_run_id: z.string().nullable(),
+    caveats: z.array(z.string()),
+    generated_at: z.string().nullable(),
+    intended_use: z.string(),
+    is_experimental: z.boolean(),
+    known_failure_modes: z.array(z.string()),
+    out_of_scope_uses: z.array(z.string()),
+    position: z.string()
+});
+
+/**
  * ModelReliability
  *
  * QB-only descriptive model-reliability stamp (measured uncertainty, no verdict).
@@ -649,8 +669,6 @@ export const zGetModelCardApiTrustSurfacePositionModelCardGetPath = z.object({
 });
 
 /**
- * Response Get Model Card Api Trust Surface  Position  Model Card Get
- *
  * Successful Response
  */
-export const zGetModelCardApiTrustSurfacePositionModelCardGetResponse = z.record(z.string(), z.unknown());
+export const zGetModelCardApiTrustSurfacePositionModelCardGetResponse = zModelCardResponse;

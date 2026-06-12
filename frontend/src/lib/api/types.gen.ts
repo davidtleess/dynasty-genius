@@ -518,6 +518,50 @@ export type MarketRosterPenalty = {
 };
 
 /**
+ * ModelCardResponse
+ *
+ * Curated PUBLIC model-card contract — the 8 safety/identity fields only.
+ *
+ * Provenance fields (model_version / model_artifact_hash / git_sha) live on the
+ * audit-internal PublishedModelCardSource artifact and are deliberately NOT exposed
+ * here, so the public surface never leaks the 9-section ModelCard internals.
+ */
+export type ModelCardResponse = {
+    /**
+     * Backtest Run Id
+     */
+    backtest_run_id: string | null;
+    /**
+     * Caveats
+     */
+    caveats: Array<string>;
+    /**
+     * Generated At
+     */
+    generated_at: string | null;
+    /**
+     * Intended Use
+     */
+    intended_use: string;
+    /**
+     * Is Experimental
+     */
+    is_experimental: boolean;
+    /**
+     * Known Failure Modes
+     */
+    known_failure_modes: Array<string>;
+    /**
+     * Out Of Scope Uses
+     */
+    out_of_scope_uses: Array<string>;
+    /**
+     * Position
+     */
+    position: string;
+};
+
+/**
  * ModelReliability
  *
  * QB-only descriptive model-reliability stamp (measured uncertainty, no verdict).
@@ -1578,13 +1622,9 @@ export type GetModelCardApiTrustSurfacePositionModelCardGetError = GetModelCardA
 
 export type GetModelCardApiTrustSurfacePositionModelCardGetResponses = {
     /**
-     * Response Get Model Card Api Trust Surface  Position  Model Card Get
-     *
      * Successful Response
      */
-    200: {
-        [key: string]: unknown;
-    };
+    200: ModelCardResponse;
 };
 
 export type GetModelCardApiTrustSurfacePositionModelCardGetResponse = GetModelCardApiTrustSurfacePositionModelCardGetResponses[keyof GetModelCardApiTrustSurfacePositionModelCardGetResponses];

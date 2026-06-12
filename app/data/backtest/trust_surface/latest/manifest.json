@@ -1,0 +1,52 @@
+{
+  "positions": {
+    "QB": {
+      "decision_supported": false,
+      "git_sha": "12f55658a543718d57d49a115327d56fecfc0cfe",
+      "market_source": "dp_archive",
+      "market_source_label": "dynastyprocess_ecr_2qb",
+      "model_artifact_hash": "d7acb6808e4a6caf412ec05b41aa90324e04f90ef219bbf78f680f66ea7d304f",
+      "model_version": "engine_b_v2",
+      "publication_timestamp": "2026-06-10T00:00:00Z",
+      "run_date": "2026-05-31T14:24:53.734748+00:00",
+      "run_id": "483f87f9-1a16-4750-a825-0165c7335696",
+      "source_validation_note": "G3 ECR validation run (2026-05-31 batch); descriptive/diagnostic only; decision support disabled."
+    },
+    "RB": {
+      "decision_supported": false,
+      "git_sha": "12f55658a543718d57d49a115327d56fecfc0cfe",
+      "market_source": "dp_archive",
+      "market_source_label": "dynastyprocess_ecr_2qb",
+      "model_artifact_hash": "5507e37feda9ba9d8f2bda7f1f259df5a59edcb2880e7ff7af6938d34401c4f9",
+      "model_version": "engine_b_v2",
+      "publication_timestamp": "2026-06-10T00:00:00Z",
+      "run_date": "2026-05-31T14:25:08.480115+00:00",
+      "run_id": "e639a40c-e88b-4650-ab90-0e8f02fd397d",
+      "source_validation_note": "G3 ECR validation run (2026-05-31 batch); descriptive/diagnostic only; decision support disabled."
+    },
+    "TE": {
+      "decision_supported": false,
+      "git_sha": "12f55658a543718d57d49a115327d56fecfc0cfe",
+      "market_source": "dp_archive",
+      "market_source_label": "dynastyprocess_ecr_2qb",
+      "model_artifact_hash": "e2ca15ed2ffb88c4aea2abc57e26c543d141fdeaaf70716a1805f44ff860ba7d",
+      "model_version": "engine_b_v2",
+      "publication_timestamp": "2026-06-10T00:00:00Z",
+      "run_date": "2026-05-31T14:26:39.679189+00:00",
+      "run_id": "6ba3a451-67be-42e8-a431-c9c3130b3086",
+      "source_validation_note": "G3 ECR validation run (2026-05-31 batch); descriptive/diagnostic only; decision support disabled."
+    },
+    "WR": {
+      "decision_supported": false,
+      "git_sha": "12f55658a543718d57d49a115327d56fecfc0cfe",
+      "market_source": "dp_archive",
+      "market_source_label": "dynastyprocess_ecr_2qb",
+      "model_artifact_hash": "3b83bbf98118d272196a0942a4190cc539b08409cbb3b23da570ed42b4ec873e",
+      "model_version": "engine_b_v2",
+      "publication_timestamp": "2026-06-10T00:00:00Z",
+      "run_date": "2026-05-31T14:25:29.603620+00:00",
+      "run_id": "fc1e6e1c-180a-4c0b-b93b-cb525ef404f1",
+      "source_validation_note": "G3 ECR validation run (2026-05-31 batch); descriptive/diagnostic only; decision support disabled."
+    }
+  }
+}

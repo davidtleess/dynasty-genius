@@ -1,0 +1,21 @@
+{
+  "backtest_run_id": "fc1e6e1c-180a-4c0b-b93b-cb525ef404f1",
+  "caveats": [
+    "Age cliff begins ~29. WR prime window is broad (25\u201329), making mid-career predictions most reliable.",
+    "Quarterback volatility (team changes, QB injuries) creates landing-spot risk that YPRR-adjacent features cannot capture in a pure efficiency model."
+  ],
+  "generated_at": "2026-05-15T21:35:52.859476Z",
+  "git_sha": "12f55658a543718d57d49a115327d56fecfc0cfe",
+  "intended_use": "Forecast 2-year average PPG for active NFL wide receivers. Dynasty trade decision support in Superflex PPR (12-team, 2QB) leagues.",
+  "is_experimental": false,
+  "known_failure_modes": [
+    "Slot vs. outside receiver distinctions are not explicitly modeled. A slot receiver moving to a vertical role will be mispredicted until the new role PPG accumulates."
+  ],
+  "model_artifact_hash": "3b83bbf98118d272196a0942a4190cc539b08409cbb3b23da570ed42b4ec873e",
+  "model_version": "engine_b_v2",
+  "out_of_scope_uses": [
+    "Single-season redraft start/sit decisions",
+    "Keeper cap valuations without manager review"
+  ],
+  "position": "WR"
+}

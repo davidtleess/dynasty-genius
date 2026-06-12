@@ -1,17 +1,18 @@
 import json
 from pathlib import Path
-from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from src.dynasty_genius.eval.backtest_artifact import BacktestResult
-from src.dynasty_genius.eval.model_card import ModelCard
 
 router = APIRouter(prefix="/trust-surface", tags=["trust-surface"])
 
-RUNS_DIR = Path("app/data/backtest/runs")
+# Published trust substrate (Model Trust Console): the route reads the governed,
+# tracked published path by default; the gitignored raw runs/ remain only as a local
+# subdir fallback (never the CI / clean-clone path).
+RUNS_DIR = Path("app/data/backtest/trust_surface/latest")
 MODEL_CARDS_DIR = Path("app/data/backtest/model_cards")
 
 _VALID_POSITIONS = frozenset({"QB", "RB", "WR", "TE"})
@@ -37,6 +38,24 @@ class TrustSurfaceResponse(BacktestResult):
     model_reliability: ModelReliability | None = None
 
 
+class ModelCardResponse(BaseModel):
+    """Curated PUBLIC model-card contract — the 8 safety/identity fields only.
+
+    Provenance fields (model_version / model_artifact_hash / git_sha) live on the
+    audit-internal PublishedModelCardSource artifact and are deliberately NOT exposed
+    here, so the public surface never leaks the 9-section ModelCard internals.
+    """
+
+    position: str
+    backtest_run_id: str | None
+    generated_at: str | None
+    is_experimental: bool
+    intended_use: str
+    out_of_scope_uses: list[str]
+    caveats: list[str]
+    known_failure_modes: list[str]
+
+
 @router.get("/{position}", response_model=TrustSurfaceResponse)
 async def get_trust_surface(position: str) -> JSONResponse:
     """Read-only Trust Surface endpoint.
@@ -54,8 +73,13 @@ async def get_trust_surface(position: str) -> JSONResponse:
             detail=f"Invalid position: {position}. Must be one of {sorted(_VALID_POSITIONS)}.",
         )
 
-    pattern = f"*/backtest_result_{pos_upper}.json"
-    artifact_paths = list(RUNS_DIR.glob(pattern))
+    # Published path is FLAT (trust_surface/latest/backtest_result_{POS}.json). Fall back
+    # to the legacy run-subdir glob only when no published flat file exists (local runs/).
+    flat_path = RUNS_DIR / f"backtest_result_{pos_upper}.json"
+    if flat_path.is_file():
+        artifact_paths = [flat_path]
+    else:
+        artifact_paths = list(RUNS_DIR.glob(f"*/backtest_result_{pos_upper}.json"))
 
     if not artifact_paths:
         raise HTTPException(
@@ -108,7 +132,7 @@ async def get_trust_surface(position: str) -> JSONResponse:
         overall_grade=overall_grade,
         experimental=overall_grade == "EXPERIMENTAL",
         model_card_available=(
-            MODEL_CARDS_DIR / f"{pos_upper}_model_card.json"
+            RUNS_DIR / f"model_card_source_{pos_upper}.json"
         ).exists(),
         model_reliability=model_reliability,
     )
@@ -123,12 +147,14 @@ async def get_trust_surface(position: str) -> JSONResponse:
     return JSONResponse(content=payload)
 
 
-@router.get("/{position}/model-card")
-async def get_model_card(position: str) -> dict[str, Any]:
-    """Return the generated ModelCard artifact for the position.
+@router.get("/{position}/model-card", response_model=ModelCardResponse)
+async def get_model_card(position: str) -> ModelCardResponse:
+    """Return the curated public ModelCardResponse for the position.
 
-    Read-only file access. This endpoint does not run the backtest harness,
-    generate cards, or compute metrics on demand.
+    Reads the published, provenance-aligned PublishedModelCardSource
+    (``trust_surface/latest/model_card_source_{POS}.json``) and filters it to the 8
+    curated public fields — provenance fields stay audit-internal. Read-only; no card
+    generation or metric computation on demand.
     """
     pos_upper = position.upper()
     if pos_upper not in _VALID_POSITIONS:
@@ -137,14 +163,22 @@ async def get_model_card(position: str) -> dict[str, Any]:
             detail=f"Invalid position: {position}. Must be one of {sorted(_VALID_POSITIONS)}.",
         )
 
-    card_path = MODEL_CARDS_DIR / f"{pos_upper}_model_card.json"
-    if not card_path.exists():
+    source_path = RUNS_DIR / f"model_card_source_{pos_upper}.json"
+    if not source_path.exists():
         raise HTTPException(
             status_code=404,
-            detail=(
-                f"No model card found for position {pos_upper}. "
-                "Run scripts/generate_model_cards.py first."
-            ),
+            detail=f"No model card found for position {pos_upper}",
         )
 
-    return json.loads(ModelCard.load(card_path).json())
+    source = json.loads(source_path.read_text(encoding="utf-8"))
+    # Curated filter — the provenance fields (model_version/hash/git_sha) are dropped.
+    return ModelCardResponse(
+        position=source["position"],
+        backtest_run_id=source.get("backtest_run_id"),
+        generated_at=source.get("generated_at"),
+        is_experimental=source["is_experimental"],
+        intended_use=source["intended_use"],
+        out_of_scope_uses=source["out_of_scope_uses"],
+        caveats=source["caveats"],
+        known_failure_modes=source["known_failure_modes"],
+    )

@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TrustStrip } from "./TrustStrip";
+
+const GRADE_QUALIFIER =
+  "internal model grade — not a market-edge or decision-support claim";
+const TRUST_STRIP_CSS = join(process.cwd(), "src", "shell", "TrustStrip.css");
 
 function trustSurfaceResponse(overrides = {}) {
   return {
@@ -91,6 +97,37 @@ describe("TrustStrip", () => {
     expect(
       screen.getByText("QB magnitude predictions carry elevated uncertainty."),
     ).toBeTruthy();
+  });
+
+  it("renders active grades with the non-decision-grade qualifier in the shell strip", async () => {
+    mockFetchResponse(
+      trustSurfaceResponse({
+        experimental: false,
+        overall_grade: "ACTIVE_B_VALIDATED",
+        promotion_gate: {
+          ...trustSurfaceResponse().promotion_gate,
+          overall_grade: "ACTIVE_B_VALIDATED",
+        },
+      }),
+    );
+
+    render(<TrustStrip position="WR" />);
+
+    await screen.findByText("ACTIVE_B_VALIDATED");
+
+    expect(screen.getByText(GRADE_QUALIFIER)).toBeTruthy();
+    expect(screen.queryByText("Unvalidated")).toBeNull();
+  });
+
+  it("keeps the shell grade visually neutral instead of emphasized as a success tier", () => {
+    const css = readFileSync(TRUST_STRIP_CSS, "utf8");
+    const gradeRule = css.match(/\.dg-trust__grade\s*\{[^}]*\}/)?.[0] ?? "";
+
+    expect(gradeRule).toContain("color: var(--dg-model-muted)");
+    expect(gradeRule).not.toContain("--dg-model-emphasis");
+    expect(gradeRule).not.toMatch(/font-weight:\s*600/);
+    expect(css).not.toMatch(/(^|[\s,{])\.(?:green|red|pass|success)\b/i);
+    expect(css).not.toMatch(new RegExp("ver" + "dict", "i"));
   });
 
   it("degrades visibly when the trust endpoint returns an error response", async () => {

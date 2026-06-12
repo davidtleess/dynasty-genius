@@ -11,7 +11,7 @@ const NAV_LABELS = [
   "Trade Lab",
   "Waiver Radar",
   "League Pulse",
-  "Backtest Harness",
+  "Model Trust",
   "Research Assistant",
 ];
 
@@ -29,6 +29,9 @@ describe("AppShell", () => {
     for (const label of NAV_LABELS) {
       expect(within(navigation).getByRole("button", { name: label })).toBeTruthy();
     }
+    expect(
+      within(navigation).queryByRole("button", { name: "Backtest Harness" }),
+    ).toBeNull();
   });
 
   it("keeps navigation and trust strip mounted while switching placeholders", () => {
@@ -59,5 +62,23 @@ describe("AppShell", () => {
 
     fireEvent.click(toggle);
     expect(inspector.dataset.state).toBe("open");
+  });
+
+  it("renders the Model Trust placeholder from the primary navigation", () => {
+    render(<AppShell />);
+
+    const navigation = screen.getByRole("navigation", { name: "Primary surfaces" });
+    fireEvent.click(within(navigation).getByRole("button", { name: "Model Trust" }));
+
+    const main = screen.getByRole("main");
+    expect(
+      within(main).getByRole("heading", { name: "Model Trust", level: 1 }),
+    ).toBeTruthy();
+    for (const position of ["QB", "RB", "WR", "TE"]) {
+      expect(within(main).getByRole("button", { name: position })).toBeTruthy();
+    }
+    expect(
+      within(navigation).queryByRole("button", { name: "Backtest Harness" }),
+    ).toBeNull();
   });
 });

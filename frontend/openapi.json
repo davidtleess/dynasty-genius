@@ -962,6 +962,78 @@
         "title": "MarketRosterPenalty",
         "type": "object"
       },
+      "ModelCardResponse": {
+        "description": "Curated PUBLIC model-card contract \u2014 the 8 safety/identity fields only.\n\nProvenance fields (model_version / model_artifact_hash / git_sha) live on the\naudit-internal PublishedModelCardSource artifact and are deliberately NOT exposed\nhere, so the public surface never leaks the 9-section ModelCard internals.",
+        "properties": {
+          "backtest_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backtest Run Id"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "generated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated At"
+          },
+          "intended_use": {
+            "title": "Intended Use",
+            "type": "string"
+          },
+          "is_experimental": {
+            "title": "Is Experimental",
+            "type": "boolean"
+          },
+          "known_failure_modes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Known Failure Modes",
+            "type": "array"
+          },
+          "out_of_scope_uses": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Out Of Scope Uses",
+            "type": "array"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "backtest_run_id",
+          "generated_at",
+          "is_experimental",
+          "intended_use",
+          "out_of_scope_uses",
+          "caveats",
+          "known_failure_modes"
+        ],
+        "title": "ModelCardResponse",
+        "type": "object"
+      },
       "ModelReliability": {
         "description": "QB-only descriptive model-reliability stamp (measured uncertainty, no verdict).",
         "properties": {
@@ -2860,7 +2932,7 @@
     },
     "/api/trust-surface/{position}/model-card": {
       "get": {
-        "description": "Return the generated ModelCard artifact for the position.\n\nRead-only file access. This endpoint does not run the backtest harness,\ngenerate cards, or compute metrics on demand.",
+        "description": "Return the curated public ModelCardResponse for the position.\n\nReads the published, provenance-aligned PublishedModelCardSource\n(``trust_surface/latest/model_card_source_{POS}.json``) and filters it to the 8\ncurated public fields \u2014 provenance fields stay audit-internal. Read-only; no card\ngeneration or metric computation on demand.",
         "operationId": "get_model_card_api_trust_surface__position__model_card_get",
         "parameters": [
           {
@@ -2878,9 +2950,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Model Card Api Trust Surface  Position  Model Card Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ModelCardResponse"
                 }
               }
             },

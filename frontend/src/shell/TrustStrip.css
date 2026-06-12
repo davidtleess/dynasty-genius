@@ -2,7 +2,7 @@
  * Trust strip (Surface-1, T5b). Read-only MODEL trust: grade + source freshness +
  * an Unvalidated badge for experimental/pre-model engines, degrading visibly to
  * "Trust data unavailable" on fetch/validation failure (never a confident fallback).
- * Model-axis (blue) tokens only; no market verdict, no green/red.
+ * Model-axis (blue) tokens only; no market edge claim, no green/red.
  */
 .dg-trust {
   display: flex;
@@ -23,10 +23,16 @@
   text-transform: uppercase;
 }
 
+/* Grade is neutral/muted in the shell — NOT an emphasized success tier. It is provenance,
+ * not a headline; the adjacent qualifier keeps it from reading as a decision/edge claim. */
 .dg-trust__grade {
-  color: var(--dg-model-emphasis);
-  font-weight: 600;
+  color: var(--dg-model-muted);
   font-family: var(--dg-font-mono);
+}
+
+.dg-trust__grade-qualifier {
+  color: var(--dg-model-muted);
+  font-style: italic;
 }
 
 .dg-trust__badge {

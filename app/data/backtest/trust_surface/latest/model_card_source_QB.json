@@ -1,0 +1,23 @@
+{
+  "backtest_run_id": "483f87f9-1a16-4750-a825-0165c7335696",
+  "caveats": [
+    "Sample size: ~43\u201349 QB rows per fold. Folds involving roster turnover years carry elevated noise.",
+    "Mobile QB rushing floors depreciate sharply after age 33. Model does not encode a hard cliff \u2014 age is a continuous feature \u2014 but predictions near this threshold carry higher uncertainty.",
+    "Superflex format premiums are not modeled directly. Value-above-replacement comparisons across positions require a separate normalization layer (deferred to DVS spec)."
+  ],
+  "generated_at": "2026-05-15T21:35:52.778535Z",
+  "git_sha": "12f55658a543718d57d49a115327d56fecfc0cfe",
+  "intended_use": "Forecast 2-year average PPG for active NFL quarterbacks. Dynasty trade decision support in Superflex PPR (12-team, 2QB) leagues.",
+  "is_experimental": false,
+  "known_failure_modes": [
+    "Injury-year outliers distort PPG labels for players who missed significant games. The model has no games-played filter in v2.",
+    "Historical regime shifts (2020 COVID, rules changes) can widen fold-to-fold RMSE."
+  ],
+  "model_artifact_hash": "d7acb6808e4a6caf412ec05b41aa90324e04f90ef219bbf78f680f66ea7d304f",
+  "model_version": "engine_b_v2",
+  "out_of_scope_uses": [
+    "Single-season redraft start/sit decisions",
+    "Keeper cap valuations without manager review"
+  ],
+  "position": "QB"
+}
