@@ -48,6 +48,9 @@ class FoldResult(BaseModel):
     # Fixed-token fail-closed caveats (banned-language-safe); e.g. "r2_oos_unavailable"
     metric_caveats: List[str] = Field(default_factory=list)
 
+    # Step 0.5 — fold-local null coverage (scored/eligible); None until computed/wired.
+    null_coverage: Optional[float] = None
+
     # Market-comparison destinations (W1) — None when market data unavailable
     primary_k: Optional[int] = None                       # position-primary k for the verdict
     market_pool_n: Optional[int] = None                   # matched model∩market pool size

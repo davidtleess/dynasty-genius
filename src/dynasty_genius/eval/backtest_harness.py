@@ -29,8 +29,15 @@ from src.dynasty_genius.eval.backtest_artifact import (
 from src.dynasty_genius.eval.backtest_metrics import (
     compute_ndcg,
     compute_ndcg_diff_bootstrap,
+    compute_null_coverage,
     compute_r2,
     compute_rank_correlation,
+)
+from src.dynasty_genius.eval.composite_gate import (
+    NULL_COVERAGE_MIN,
+    compute_model_status,
+    effective_ci_adequacy_gate_pass,
+    effective_rank_gate_pass,
 )
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_FEATURES_BY_POSITION,
@@ -224,11 +231,27 @@ _METADATA_COLS: frozenset[str] = frozenset({
 })
 
 
+def _compute_fold_null_coverage(test_mask: pd.Series, x_test: pd.DataFrame) -> float:
+    """Fold-local null coverage from the two component shapes (Step 0.5 §3.1).
+
+    eligible = identity-valid test universe (``test_mask`` True count, BEFORE feature
+    handling); scored = rows in the returned ``X_test`` (AFTER feature handling). The
+    current harness imputes feature nulls (``keep_empty_features=True``) rather than
+    dropping rows, so real v1 folds report 1.0; this wiring activates the gate the
+    moment future feature work introduces row drops.
+    """
+    return compute_null_coverage(
+        n_eligible=int(test_mask.sum()),
+        n_scored=int(x_test.shape[0]),
+    )
+
+
 def evaluate_promotion_gates(
     folds: list[FoldResult],
     stability: StabilityResult,
     position: str,
     divergence: Optional[DivergenceResult] = None,
+    leakage_clean: bool = True,
 ) -> GateResult:
     """Evaluate G1–G3 (v1) and G4 (v2) promotion gates.
 
@@ -344,13 +367,42 @@ def evaluate_promotion_gates(
     else:
         justification = ", ".join(just_parts) + "."
 
+    # Step 0.5 — unified validity status. G3 (market superiority) is computed above
+    # and DISCLOSED on the result but never gates model_status (validity-only, spec §3.2).
+    null_coverage_values = [
+        f.null_coverage for f in folds if f.null_coverage is not None
+    ]
+    null_coverage_min = min(null_coverage_values) if null_coverage_values else None
+    model_status, status_explanation = compute_model_status(
+        folds=folds,
+        null_coverage_min_obs=null_coverage_min,
+        leakage_clean=leakage_clean,
+    )
+
     return GateResult(
         g1_rank_correlation_pass=g1_pass,
         g2_rmse_stability_pass=g2_pass,
-        g3_market_superiority_pass=g3_result,
+        g3_market_superiority_pass=g3_result,      # DISCLOSED only; never gates model_status
         g4_divergence_validity_pass=g4_status,
-        overall_grade=grade,
+        overall_grade=grade,                        # deprecated, unchanged contract
         promotion_justification=justification,
+        model_status=model_status,
+        # Rank gate is Spearman + R² jointly with cold-start tolerance, single-sourced
+        # from compute_model_status' status_explanation (no raw all-fold recompute).
+        validity_spearman_pass=effective_rank_gate_pass(status_explanation),
+        validity_r2_pass=effective_rank_gate_pass(status_explanation),
+        validity_ci_adequacy_pass=effective_ci_adequacy_gate_pass(status_explanation),
+        validity_rmse_stability_pass=g2_pass,
+        validity_null_coverage_pass=(
+            null_coverage_min is not None and null_coverage_min >= NULL_COVERAGE_MIN
+        ),
+        validity_leakage_pass=leakage_clean,
+        validity_cold_start_fold_index=status_explanation.cold_start_fold_index,
+        validity_cold_start_tolerated=status_explanation.cold_start_tolerated,
+        validity_most_recent_fold_index=status_explanation.most_recent_fold_index,
+        validity_most_recent_fold_pass=status_explanation.most_recent_fold_pass,
+        null_coverage_min=null_coverage_min,
+        status_explanation=status_explanation,
     )
 
 
@@ -664,6 +716,7 @@ class WalkForwardDriver:
                 outcome_seasons=outcome_seasons,
                 n_train=X_train.shape[0],
                 n_test=n_test,
+                null_coverage=_compute_fold_null_coverage(test_mask, X_test),
                 kendall_tau=tau,
                 kendall_tau_bca_ci95=tau_ci,
                 spearman_rho=rho,
@@ -731,6 +784,7 @@ class WalkForwardDriver:
             folds=fold_results,
             stability=stability,
             position=position,
+            leakage_clean=True,
         )
 
         return BacktestResult(
