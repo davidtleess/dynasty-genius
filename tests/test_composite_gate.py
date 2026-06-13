@@ -1,9 +1,13 @@
 from src.dynasty_genius.eval.backtest_artifact import GateResult, StatusExplanation
 from src.dynasty_genius.eval.composite_gate import (
     CI_WIDTH_MAX,
+    NULL_COVERAGE_MIN,
     R2_FLOOR,
     SPEARMAN_THRESHOLD,
     ci_width,
+    compute_model_status,
+    effective_ci_adequacy_gate_pass,
+    effective_rank_gate_pass,
     fold_ci_adequate,
     fold_rank_pass,
     identify_cold_start_fold,
@@ -165,3 +169,150 @@ def test_cold_start_fail_loud_when_min_year_not_thinnest_train():
         ),
     ]
     assert identify_cold_start_fold(folds) is None
+
+
+def _four_folds(spears, r2s, cis):
+    train = [
+        [2018, 2019],
+        [2018, 2019, 2020],
+        [2018, 2019, 2020, 2021],
+        [2018, 2019, 2020, 2021, 2022],
+    ]
+    return [
+        build_mock_fold(
+            idx=i + 1,
+            test_year=2020 + i,
+            train_years=train[i],
+            spear=spears[i],
+            r2=r2s[i],
+            ci=cis[i],
+        )
+        for i in range(4)
+    ]
+
+
+def test_status_wr_validated():
+    folds = _four_folds(
+        [0.763, 0.785, 0.816, 0.794],
+        [0.602, 0.680, 0.693, 0.666],
+        [(0.69, 0.84), (0.71, 0.85), (0.74, 0.88), (0.73, 0.85)],
+    )
+    status, expl = compute_model_status(
+        folds,
+        null_coverage_min_obs=0.97,
+        leakage_clean=True,
+    )
+    assert status == "VALIDATED"
+    assert expl.most_recent_fold_pass is True
+
+
+def test_status_te_validated_cold_start_excused():
+    # fold-1 (cold-start) fails both rank (0.436) and CI-width (0.345); later folds strong
+    folds = _four_folds(
+        [0.436, 0.792, 0.714, 0.706],
+        [0.244, 0.457, 0.472, 0.558],
+        [(0.24, 0.585), (0.69, 0.85), (0.61, 0.81), (0.57, 0.81)],
+    )
+    status, expl = compute_model_status(
+        folds,
+        null_coverage_min_obs=0.97,
+        leakage_clean=True,
+    )
+    assert status == "VALIDATED"
+    assert expl.cold_start_tolerated is True
+    assert expl.failed_rank_folds == [1] and expl.failed_ci_folds == [1]
+    assert effective_rank_gate_pass(expl) is True
+    assert effective_ci_adequacy_gate_pass(expl) is True
+
+
+def test_status_qb_provisional_middle_ci_breach():
+    # all rank-pass, but CI-width breaches at fold-1(cold-start) AND fold-3(middle)
+    folds = _four_folds(
+        [0.678, 0.721, 0.693, 0.755],
+        [0.141, 0.298, 0.287, 0.286],
+        [(0.42, 0.82), (0.54, 0.83), (0.43, 0.84), (0.61, 0.86)],
+    )
+    status, expl = compute_model_status(
+        folds,
+        null_coverage_min_obs=0.97,
+        leakage_clean=True,
+    )
+    assert status == "PROVISIONAL"
+    assert 3 in expl.failed_ci_folds
+
+
+def test_status_experimental_when_leakage_dirty():
+    folds = _four_folds(
+        [0.80, 0.80, 0.80, 0.80],
+        [0.6, 0.6, 0.6, 0.6],
+        [(0.7, 0.8)] * 4,
+    )
+    status, _ = compute_model_status(
+        folds,
+        null_coverage_min_obs=0.99,
+        leakage_clean=False,
+    )
+    assert status == "EXPERIMENTAL"
+
+
+def test_status_experimental_when_null_coverage_below_floor():
+    assert NULL_COVERAGE_MIN == 0.90
+    folds = _four_folds(
+        [0.80, 0.80, 0.80, 0.80],
+        [0.6, 0.6, 0.6, 0.6],
+        [(0.7, 0.8)] * 4,
+    )
+    status, _ = compute_model_status(
+        folds,
+        null_coverage_min_obs=0.80,
+        leakage_clean=True,
+    )
+    assert status == "EXPERIMENTAL"
+
+
+def test_status_provisional_when_most_recent_fold_fails():
+    # most-recent (fold-4) fails rank -> never VALIDATED even though 3/4 pass
+    folds = _four_folds(
+        [0.80, 0.80, 0.80, 0.40],
+        [0.6, 0.6, 0.6, 0.6],
+        [(0.7, 0.8)] * 4,
+    )
+    status, expl = compute_model_status(
+        folds,
+        null_coverage_min_obs=0.97,
+        leakage_clean=True,
+    )
+    assert status == "PROVISIONAL"
+    assert expl.most_recent_fold_pass is False
+
+
+def test_status_provisional_when_middle_fold_fails_not_cold_start():
+    # only fold-2 (middle) fails rank; cold-start tolerance does NOT cover it
+    folds = _four_folds(
+        [0.80, 0.40, 0.80, 0.80],
+        [0.6, 0.6, 0.6, 0.6],
+        [(0.7, 0.8)] * 4,
+    )
+    status, _ = compute_model_status(
+        folds,
+        null_coverage_min_obs=0.97,
+        leakage_clean=True,
+    )
+    assert status == "PROVISIONAL"
+
+
+def test_status_provisional_when_cold_start_not_unique():
+    # fail-loud cold-start (None) -> a failing oldest fold is NOT excused
+    folds = _four_folds(
+        [0.40, 0.80, 0.80, 0.80],
+        [0.6, 0.6, 0.6, 0.6],
+        [(0.7, 0.8)] * 4,
+    )
+    folds[1].test_year = 2020  # duplicate min year -> identify returns None
+    status, expl = compute_model_status(
+        folds,
+        null_coverage_min_obs=0.97,
+        leakage_clean=True,
+    )
+    assert status == "PROVISIONAL"
+    assert expl.cold_start_fold_index is None
