@@ -15,6 +15,7 @@ from src.dynasty_genius.eval.backtest_artifact import TopKResult
 from src.dynasty_genius.eval.backtest_metrics import (
     compute_ece,
     compute_ndcg,
+    compute_null_coverage,
     compute_precision_at_k,
     compute_rank_correlation,
     compute_subgroup_metrics,
@@ -31,6 +32,25 @@ def _monotone(n: int) -> tuple[list[float], list[float]]:
 def _reversed(n: int) -> tuple[list[float], list[float]]:
     """Perfect negative monotone pair, length n."""
     return list(range(1, n + 1)), list(range(n, 0, -1))
+
+
+# ── Null Coverage ─────────────────────────────────────────────────────────────
+
+def test_null_coverage_scored_over_eligible():
+    # eligible (identity-valid) = 100; scored (survived feature-null drops) = 95
+    cov = compute_null_coverage(n_eligible=100, n_scored=95)
+    assert cov == 0.95
+
+
+def test_null_coverage_zero_eligible_is_fail_closed():
+    # no eligible rows -> 0.0 (fail-closed, not div-by-zero)
+    assert compute_null_coverage(n_eligible=0, n_scored=0) == 0.0
+
+
+def test_null_coverage_rejects_scored_above_eligible():
+    # cross-component shape mismatch: scored rows cannot exceed the fold universe
+    with pytest.raises(ValueError, match="n_scored cannot exceed n_eligible"):
+        compute_null_coverage(n_eligible=95, n_scored=100)
 
 
 # ── Kendall τ-b ───────────────────────────────────────────────────────────────
