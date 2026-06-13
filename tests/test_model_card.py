@@ -9,6 +9,7 @@ All tests are pure — no network, no harness run.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -110,6 +111,15 @@ def test_model_card_validates_all_9_sections():
     assert card.metrics.g1_pass is True
     assert len(card.caveats) > 0
     assert len(card.known_failure_modes) > 0
+
+
+def test_model_card_metrics_carries_model_status():
+    assert "model_status" in ModelCardMetrics.model_fields
+
+    metrics = _metrics().model_copy(update={"model_status": "VALIDATED"})
+
+    assert metrics.model_status == "VALIDATED"
+    assert metrics.overall_grade == "ACTIVE_B"
 
 
 def test_model_card_save_and_load_round_trips(tmp_path):
@@ -270,6 +280,24 @@ def test_generate_model_card_populates_metrics_from_result(tmp_path):
 
     assert card.metrics.kendall_tau_mean == pytest.approx(0.45, abs=1e-9)
     assert len(card.metrics.kendall_tau_per_fold) == 4
+
+
+def test_generate_model_card_populates_model_status_from_gate(tmp_path):
+    result = _make_result("WR")
+    result.promotion_gate.model_status = "PROVISIONAL"
+    runs_dir = tmp_path / "runs"
+    output_dir = tmp_path / "cards"
+    run_dir = runs_dir / str(result.run_id)
+    result.save(run_dir)
+
+    card, _ = generate_card_for_position(
+        "WR",
+        runs_dir=runs_dir,
+        output_dir=output_dir,
+    )
+
+    assert card.metrics.model_status == "PROVISIONAL"
+    assert card.metrics.overall_grade == result.promotion_gate.overall_grade
 
 
 def test_generate_model_card_te_sets_is_experimental_true(tmp_path):

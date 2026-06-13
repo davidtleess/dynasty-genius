@@ -43,6 +43,9 @@ class ModelCardMetrics(BaseModel):
     g3_pass: Any                    # bool | "deferred"
     g4_pass: Any                    # bool | "deferred" | "insufficient_data"
     overall_grade: str
+    # Step 0.5 — unified validity status propagated from the gate (public-but-quarantined
+    # alongside the deprecated overall_grade). Default fail-closed for legacy cards.
+    model_status: str = "EXPERIMENTAL"
 
 
 class ModelCardSubgroup(BaseModel):
