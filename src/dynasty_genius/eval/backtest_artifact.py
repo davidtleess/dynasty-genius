@@ -94,6 +94,23 @@ class DivergenceResult(BaseModel):
     hit_rate_wilson_ci95: Tuple[float, float]
 
 
+class StatusExplanation(BaseModel):
+    """Auditable record of why a model_status was assigned (Step 0.5 spec §6.5).
+
+    Records which folds failed each validity predicate and whether the cold-start
+    fold was excused, so the status is a documented decision rather than a vibe.
+    """
+    failed_rank_folds: List[int] = Field(default_factory=list)   # fold_index list
+    failed_ci_folds: List[int] = Field(default_factory=list)
+    cold_start_fold_index: Optional[int] = None                  # None = fail-loud (no excuse)
+    cold_start_tolerated: bool = False
+    most_recent_fold_index: Optional[int] = None
+    most_recent_fold_pass: Optional[bool] = None
+    null_coverage_min: Optional[float] = None
+    leakage_clean: Optional[bool] = None
+    reason: str = ""
+
+
 class GateResult(BaseModel):
     g1_rank_correlation_pass: bool
     g2_rmse_stability_pass: bool
@@ -105,6 +122,23 @@ class GateResult(BaseModel):
     ]
     gate_version: str = "1.0"
     promotion_justification: str
+
+    # Step 0.5 — unified validity status (additive; overall_grade kept public-but-deprecated).
+    # All fields default fail-closed; populated by evaluate_promotion_gates in a later task.
+    model_status: Literal["VALIDATED", "PROVISIONAL", "EXPERIMENTAL"] = "EXPERIMENTAL"
+    status_version: str = "0.5.0"
+    validity_spearman_pass: bool = False
+    validity_r2_pass: bool = False
+    validity_ci_adequacy_pass: bool = False
+    validity_rmse_stability_pass: bool = False
+    validity_null_coverage_pass: bool = False
+    validity_leakage_pass: bool = False
+    validity_cold_start_fold_index: Optional[int] = None
+    validity_cold_start_tolerated: bool = False
+    validity_most_recent_fold_index: Optional[int] = None
+    validity_most_recent_fold_pass: Optional[bool] = None
+    null_coverage_min: Optional[float] = None
+    status_explanation: Optional[StatusExplanation] = None
 
 
 class BacktestResult(BaseModel):
