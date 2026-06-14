@@ -1,4 +1,5 @@
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -225,3 +226,31 @@ def test_standalone_check_allows_future_annotations_dataclass(tmp_path):
     )
 
     assert vsc.check_standalone_scripts([str(script)]).passed is True
+
+
+def test_report_and_remind():
+    def run(cmd, cwd=None):
+        if "--name-status" in cmd:
+            return _ok(stdout="M\tapp/data/x.json\n")
+        return _ok(rc=0)
+
+    report = vsc.report_changes(
+        artifacts=["app/data/x.json"],
+        new_files=["scripts/new_tool.py"],
+        base="origin/main",
+        run=run,
+    )
+
+    assert report.tier == vsc.REPORT
+    assert report.passed is None
+    assert "M\tapp/data/x.json" in report.detail
+    assert "scripts/new_tool.py" in report.detail
+
+    remind = vsc.remind_checklist()
+    assert remind.tier == vsc.REMIND
+    assert remind.passed is None
+    detail = remind.detail.lower()
+    for token in ("david", "cockpit", "close the loop", "ci"):
+        assert token in detail
+    for banned_token in ("win", "loss", "buy", "sell", "elite", "bust"):
+        assert re.search(rf"\b{banned_token}\b", detail) is None

@@ -164,3 +164,30 @@ def check_standalone_scripts(scripts: list[str], run=_subprocess_run) -> CheckRe
     passed = not failures
     return CheckResult("standalone-scripts", ENFORCE, passed,
                        "all changed scripts load standalone" if passed else "; ".join(failures))
+
+
+def report_changes(artifacts, new_files, base="origin/main", run=_subprocess_run) -> CheckResult:
+    parts = []
+    if artifacts:
+        diff = run(["git", "diff", "--name-status", base, "--", *artifacts])  # F5: per-file summary vs base
+        summary = diff.stdout.strip() if diff.returncode == 0 and diff.stdout.strip() else ", ".join(artifacts)
+        parts.append("Tracked data artifacts changed — audit the allowed-path diff vs base:\n" + summary)
+    if new_files:
+        parts.append("New files added (if any sit in a guarded/allowlisted directory, confirm its "
+                     "inviolate audit is green and any allowlist amendment is David-authorized): "
+                     + ", ".join(new_files))
+    return CheckResult("report", REPORT, None, "\n".join(parts) if parts else "no artifact/new-file changes")
+
+
+def remind_checklist() -> CheckResult:
+    text = (
+        "Human-judgment gates (see docs/governance/02-agent-operating-loop.md — not restated here):\n"
+        "- Commits, pushes, merges, branch deletes, and inviolate-surface amendments require David's "
+        "explicit authorization.\n"
+        "- Route decisions (spec/plan/contract/merge-strategy) through the cockpit (Codex + Gemini) "
+        "before David.\n"
+        "- After any hard-to-reverse op (commit/push/merge/delete), close the loop with a post-action "
+        "confirmation to both reviewers.\n"
+        "- CI (not local-green) is the push gate; this verifier is local pre-flight, not a CI substitute."
+    )
+    return CheckResult("remind", REMIND, None, text)
