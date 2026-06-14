@@ -3,8 +3,10 @@ ENFORCE deterministic checks, REPORT human-audit surfaces, REMIND human-judgment
 gates. Read-only; never installs/downloads or mutates source/artifacts/git."""
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -78,3 +80,87 @@ def detect_surfaces(paths: set[str], added: set[str]) -> dict:
         "artifacts": sorted(p for p in paths if p.startswith(ARTIFACT_DIRS)),
         "new_files": sorted(added),
     }
+
+
+RUFF_BIN = ".venv/bin/ruff"
+RUFF_PIN = "0.15.12"
+PYTEST = [".venv/bin/python3.14", "-m", "pytest"]
+FE_GATE = ("typecheck", "lint", "test", "banned-language", "build")
+
+
+def check_python_suite(run=_subprocess_run) -> CheckResult:
+    r = run(PYTEST)
+    passed = r.returncode == 0
+    return CheckResult("python-suite", ENFORCE, passed,
+                       "full pytest suite" if passed else f"pytest failed (rc={r.returncode})")
+
+
+def check_ruff(run=_subprocess_run) -> CheckResult:
+    v = run([RUFF_BIN, "--version"])
+    out = (v.stdout or "").strip()
+    # Exact version-token match, NOT substring: `0.15.12 in "ruff 0.15.120"` is True —
+    # substring membership would falsely accept 0.15.120 / 0.15.123 / 0.15.12-dev.
+    parts = out.split()
+    version = parts[1] if len(parts) >= 2 else ""
+    if version != RUFF_PIN:
+        return CheckResult("ruff", ENFORCE, False,
+                           f"{RUFF_BIN} must be {RUFF_PIN} (got {out or 'absent'}); "
+                           "install/update it — verifier never downloads ruff")
+    r = run([RUFF_BIN, "check", "src", "app"])
+    passed = r.returncode == 0
+    return CheckResult("ruff", ENFORCE, passed, "ruff check src app" if passed else (r.stdout or "").strip())
+
+
+def _fe_scripts(read_text=None) -> dict:
+    """Discover scripts from frontend/package.json (read_text injectable for tests) (F4)."""
+    raw = (read_text or (lambda: (_REPO_ROOT / FE_DIR / "package.json").read_text(encoding="utf-8")))()
+    return json.loads(raw).get("scripts", {})
+
+
+def check_fe_gate(run=_subprocess_run, read_text=None) -> CheckResult:
+    try:  # fail loud as a clean CheckResult, not a raw traceback (spec F3 / §8 data-corruption)
+        available = _fe_scripts(read_text)
+    except FileNotFoundError:
+        return CheckResult("fe-gate", ENFORCE, False,
+                           "frontend/package.json not found (frontend surface touched but manifest absent)")
+    except json.JSONDecodeError as exc:
+        return CheckResult("fe-gate", ENFORCE, False,
+                           f"frontend/package.json malformed: {exc}")
+    missing = [s for s in FE_GATE if s not in available]
+    if missing:  # fail loud — do NOT run npm against a drifted gate (F4)
+        return CheckResult("fe-gate", ENFORCE, False,
+                           f"required FE gate script(s) absent from frontend/package.json: {', '.join(missing)}")
+    failed = [s for s in FE_GATE if run(["npm", "--prefix", "frontend", "run", s]).returncode != 0]
+    passed = not failed
+    return CheckResult("fe-gate", ENFORCE, passed,
+                       "frontend typecheck/lint/test/banned-language/build" if passed
+                       else f"FE gate failed: {', '.join(failed)}")
+
+
+def check_standalone_scripts(scripts: list[str], run=_subprocess_run) -> CheckResult:
+    """Replicate `python <script>` faithfully (F1): the script's OWN dir on sys.path[0],
+    repo root + cwd ('') REMOVED from sys.path, and the module REGISTERED in sys.modules
+    before exec_module (so direct execution as __main__ — which is registered — is matched;
+    without registration a valid future-annotations dataclass would falsely fail). Runs from
+    a cwd OUTSIDE the repo; loads the module body only (no main()/side effects)."""
+    outside = tempfile.gettempdir()  # cwd outside repo so '' (if present) is not repo root
+    failures = []
+    for path in scripts:
+        p = Path(path).resolve()
+        probe = (
+            "import importlib.util,sys; "
+            f"repo={str(_REPO_ROOT)!r}; "
+            "sys.path[:] = [x for x in sys.path if x not in ('', repo)]; "
+            f"sys.path.insert(0, {str(p.parent)!r}); "
+            f"s=importlib.util.spec_from_file_location('._probe', {str(p)!r}); "
+            "m=importlib.util.module_from_spec(s); "
+            "sys.modules[s.name]=m; "
+            "s.loader.exec_module(m)"
+        )
+        r = run([sys.executable, "-c", probe], cwd=outside)
+        if r.returncode != 0:
+            tail = ((r.stderr or "").strip().splitlines() or ["load failed"])[-1]
+            failures.append(f"{path}: {tail}")
+    passed = not failures
+    return CheckResult("standalone-scripts", ENFORCE, passed,
+                       "all changed scripts load standalone" if passed else "; ".join(failures))
