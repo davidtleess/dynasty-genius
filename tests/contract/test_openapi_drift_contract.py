@@ -64,6 +64,7 @@ def test_trust_surface_route_has_typed_openapi_schema() -> None:
         "market_source",
         "promotion_gate",
         "overall_grade",
+        "model_status",
         "experimental",
         "model_card_available",
     ]

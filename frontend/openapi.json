@@ -351,6 +351,17 @@
             ],
             "title": "Ndcg Diff Primary K"
           },
+          "null_coverage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Null Coverage"
+          },
           "outcome_seasons": {
             "items": {
               "type": "integer"
@@ -493,6 +504,27 @@
             "title": "Gate Version",
             "type": "string"
           },
+          "model_status": {
+            "default": "EXPERIMENTAL",
+            "enum": [
+              "VALIDATED",
+              "PROVISIONAL",
+              "EXPERIMENTAL"
+            ],
+            "title": "Model Status",
+            "type": "string"
+          },
+          "null_coverage_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Null Coverage Min"
+          },
           "overall_grade": {
             "enum": [
               "PRE_MODEL",
@@ -507,6 +539,89 @@
           "promotion_justification": {
             "title": "Promotion Justification",
             "type": "string"
+          },
+          "status_explanation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StatusExplanation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status_version": {
+            "default": "0.5.0",
+            "title": "Status Version",
+            "type": "string"
+          },
+          "validity_ci_adequacy_pass": {
+            "default": false,
+            "title": "Validity Ci Adequacy Pass",
+            "type": "boolean"
+          },
+          "validity_cold_start_fold_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validity Cold Start Fold Index"
+          },
+          "validity_cold_start_tolerated": {
+            "default": false,
+            "title": "Validity Cold Start Tolerated",
+            "type": "boolean"
+          },
+          "validity_leakage_pass": {
+            "default": false,
+            "title": "Validity Leakage Pass",
+            "type": "boolean"
+          },
+          "validity_most_recent_fold_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validity Most Recent Fold Index"
+          },
+          "validity_most_recent_fold_pass": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validity Most Recent Fold Pass"
+          },
+          "validity_null_coverage_pass": {
+            "default": false,
+            "title": "Validity Null Coverage Pass",
+            "type": "boolean"
+          },
+          "validity_r2_pass": {
+            "default": false,
+            "title": "Validity R2 Pass",
+            "type": "boolean"
+          },
+          "validity_rmse_stability_pass": {
+            "default": false,
+            "title": "Validity Rmse Stability Pass",
+            "type": "boolean"
+          },
+          "validity_spearman_pass": {
+            "default": false,
+            "title": "Validity Spearman Pass",
+            "type": "boolean"
           }
         },
         "required": [
@@ -1687,6 +1802,92 @@
         "title": "StabilityResult",
         "type": "object"
       },
+      "StatusExplanation": {
+        "description": "Auditable record of why a model_status was assigned (Step 0.5 spec \u00a76.5).\n\nRecords which folds failed each validity predicate and whether the cold-start\nfold was excused, so the status is a documented decision rather than a vibe.",
+        "properties": {
+          "cold_start_fold_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cold Start Fold Index"
+          },
+          "cold_start_tolerated": {
+            "default": false,
+            "title": "Cold Start Tolerated",
+            "type": "boolean"
+          },
+          "failed_ci_folds": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Failed Ci Folds",
+            "type": "array"
+          },
+          "failed_rank_folds": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Failed Rank Folds",
+            "type": "array"
+          },
+          "leakage_clean": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leakage Clean"
+          },
+          "most_recent_fold_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Most Recent Fold Index"
+          },
+          "most_recent_fold_pass": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Most Recent Fold Pass"
+          },
+          "null_coverage_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Null Coverage Min"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "StatusExplanation",
+        "type": "object"
+      },
       "TopKResult": {
         "properties": {
           "diff_wilson_ci95": {
@@ -2364,6 +2565,10 @@
               }
             ]
           },
+          "model_status": {
+            "title": "Model Status",
+            "type": "string"
+          },
           "model_version": {
             "title": "Model Version",
             "type": "string"
@@ -2428,6 +2633,7 @@
           "market_source",
           "promotion_gate",
           "overall_grade",
+          "model_status",
           "experimental",
           "model_card_available"
         ],

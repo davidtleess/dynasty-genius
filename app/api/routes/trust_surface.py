@@ -33,6 +33,9 @@ class TrustSurfaceResponse(BacktestResult):
     frontend Hey API codegen has a real OpenAPI schema (no untyped object)."""
 
     overall_grade: str
+    # Step 0.5 — quarantined unified validity status (primary), hoisted alongside the
+    # public-but-deprecated overall_grade. Rendered under the existing T9/T11 quarantine.
+    model_status: str
     experimental: bool
     model_card_available: bool
     model_reliability: ModelReliability | None = None
@@ -130,6 +133,7 @@ async def get_trust_surface(position: str) -> JSONResponse:
     response = TrustSurfaceResponse(
         **result.model_dump(),
         overall_grade=overall_grade,
+        model_status=result.promotion_gate.model_status,
         experimental=overall_grade == "EXPERIMENTAL",
         model_card_available=(
             RUNS_DIR / f"model_card_source_{pos_upper}.json"

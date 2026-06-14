@@ -67,7 +67,8 @@
         "tprr": 0.1694100399085917,
         "weighted_opportunity": 0.9473874771538244,
         "yprr": 0.4042838025355923
-      }
+      },
+      "null_coverage": 1.0
     },
     {
       "fold_index": 2,
@@ -128,7 +129,8 @@
         "tprr": 0.2558078190406484,
         "weighted_opportunity": 0.9598727963428132,
         "yprr": 0.4285743265803978
-      }
+      },
+      "null_coverage": 1.0
     },
     {
       "fold_index": 3,
@@ -190,7 +192,8 @@
         "tprr": 0.2695569846830417,
         "weighted_opportunity": 0.9914654001499746,
         "yprr": 0.4496981694013659
-      }
+      },
+      "null_coverage": 1.0
     },
     {
       "fold_index": 4,
@@ -253,7 +256,8 @@
         "tprr": 0.2931804589313408,
         "weighted_opportunity": 1.0458254863651397,
         "yprr": 0.44658385710826537
-      }
+      },
+      "null_coverage": 1.0
     }
   ],
   "rmse_stability": {
@@ -287,6 +291,30 @@
     "g4_divergence_validity_pass": "deferred",
     "overall_grade": "ACTIVE_B_VALIDATED",
     "gate_version": "1.0",
-    "promotion_justification": "G1 rank-corr pass (0.60 tau), G2 stability pass (0.1% dev), G3 market superiority pass."
+    "promotion_justification": "G1 rank-corr pass (0.60 tau), G2 stability pass (0.1% dev), G3 market superiority pass.",
+    "model_status": "VALIDATED",
+    "status_version": "0.5.0",
+    "validity_spearman_pass": true,
+    "validity_r2_pass": true,
+    "validity_ci_adequacy_pass": true,
+    "validity_rmse_stability_pass": true,
+    "validity_null_coverage_pass": true,
+    "validity_leakage_pass": true,
+    "validity_cold_start_fold_index": 1,
+    "validity_cold_start_tolerated": false,
+    "validity_most_recent_fold_index": 4,
+    "validity_most_recent_fold_pass": true,
+    "null_coverage_min": 1.0,
+    "status_explanation": {
+      "failed_rank_folds": [],
+      "failed_ci_folds": [],
+      "cold_start_fold_index": 1,
+      "cold_start_tolerated": false,
+      "most_recent_fold_index": 4,
+      "most_recent_fold_pass": true,
+      "null_coverage_min": 1.0,
+      "leakage_clean": true,
+      "reason": "all folds pass (cold-start excused if any); most-recent passes -> VALIDATED"
+    }
   }
 }

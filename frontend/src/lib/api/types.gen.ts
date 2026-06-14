@@ -207,6 +207,10 @@ export type FoldResult = {
      */
     ndcg_diff_primary_k?: number | null;
     /**
+     * Null Coverage
+     */
+    null_coverage?: number | null;
+    /**
      * Outcome Seasons
      */
     outcome_seasons: Array<number>;
@@ -282,6 +286,14 @@ export type GateResult = {
      */
     gate_version?: string;
     /**
+     * Model Status
+     */
+    model_status?: 'VALIDATED' | 'PROVISIONAL' | 'EXPERIMENTAL';
+    /**
+     * Null Coverage Min
+     */
+    null_coverage_min?: number | null;
+    /**
      * Overall Grade
      */
     overall_grade: 'PRE_MODEL' | 'EXPERIMENTAL' | 'ACTIVE_B' | 'ACTIVE_B_VALIDATED' | 'DECISION_GRADE';
@@ -289,6 +301,51 @@ export type GateResult = {
      * Promotion Justification
      */
     promotion_justification: string;
+    status_explanation?: StatusExplanation | null;
+    /**
+     * Status Version
+     */
+    status_version?: string;
+    /**
+     * Validity Ci Adequacy Pass
+     */
+    validity_ci_adequacy_pass?: boolean;
+    /**
+     * Validity Cold Start Fold Index
+     */
+    validity_cold_start_fold_index?: number | null;
+    /**
+     * Validity Cold Start Tolerated
+     */
+    validity_cold_start_tolerated?: boolean;
+    /**
+     * Validity Leakage Pass
+     */
+    validity_leakage_pass?: boolean;
+    /**
+     * Validity Most Recent Fold Index
+     */
+    validity_most_recent_fold_index?: number | null;
+    /**
+     * Validity Most Recent Fold Pass
+     */
+    validity_most_recent_fold_pass?: boolean | null;
+    /**
+     * Validity Null Coverage Pass
+     */
+    validity_null_coverage_pass?: boolean;
+    /**
+     * Validity R2 Pass
+     */
+    validity_r2_pass?: boolean;
+    /**
+     * Validity Rmse Stability Pass
+     */
+    validity_rmse_stability_pass?: boolean;
+    /**
+     * Validity Spearman Pass
+     */
+    validity_spearman_pass?: boolean;
 };
 
 /**
@@ -860,6 +917,53 @@ export type StabilityResult = {
 };
 
 /**
+ * StatusExplanation
+ *
+ * Auditable record of why a model_status was assigned (Step 0.5 spec §6.5).
+ *
+ * Records which folds failed each validity predicate and whether the cold-start
+ * fold was excused, so the status is a documented decision rather than a vibe.
+ */
+export type StatusExplanation = {
+    /**
+     * Cold Start Fold Index
+     */
+    cold_start_fold_index?: number | null;
+    /**
+     * Cold Start Tolerated
+     */
+    cold_start_tolerated?: boolean;
+    /**
+     * Failed Ci Folds
+     */
+    failed_ci_folds?: Array<number>;
+    /**
+     * Failed Rank Folds
+     */
+    failed_rank_folds?: Array<number>;
+    /**
+     * Leakage Clean
+     */
+    leakage_clean?: boolean | null;
+    /**
+     * Most Recent Fold Index
+     */
+    most_recent_fold_index?: number | null;
+    /**
+     * Most Recent Fold Pass
+     */
+    most_recent_fold_pass?: boolean | null;
+    /**
+     * Null Coverage Min
+     */
+    null_coverage_min?: number | null;
+    /**
+     * Reason
+     */
+    reason?: string;
+};
+
+/**
  * TopKResult
  */
 export type TopKResult = {
@@ -1236,6 +1340,10 @@ export type TrustSurfaceResponse = {
      */
     model_card_available: boolean;
     model_reliability?: ModelReliability | null;
+    /**
+     * Model Status
+     */
+    model_status: string;
     /**
      * Model Version
      */

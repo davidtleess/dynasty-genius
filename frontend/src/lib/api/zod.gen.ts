@@ -56,34 +56,6 @@ export const zEvidenceListField = z.object({
 });
 
 /**
- * GateResult
- */
-export const zGateResult = z.object({
-    g1_rank_correlation_pass: z.boolean(),
-    g2_rmse_stability_pass: z.boolean(),
-    g3_market_superiority_pass: z.union([
-        z.literal(true),
-        z.literal(false),
-        z.literal('deferred')
-    ]),
-    g4_divergence_validity_pass: z.union([
-        z.literal(true),
-        z.literal(false),
-        z.literal('deferred'),
-        z.literal('insufficient_data')
-    ]),
-    gate_version: z.string().optional().default('1.0'),
-    overall_grade: z.enum([
-        'PRE_MODEL',
-        'EXPERIMENTAL',
-        'ACTIVE_B',
-        'ACTIVE_B_VALIDATED',
-        'DECISION_GRADE'
-    ]),
-    promotion_justification: z.string()
-});
-
-/**
  * MarketAssetRef
  */
 export const zMarketAssetRef = z.object({
@@ -331,6 +303,72 @@ export const zStabilityResult = z.object({
 });
 
 /**
+ * StatusExplanation
+ *
+ * Auditable record of why a model_status was assigned (Step 0.5 spec §6.5).
+ *
+ * Records which folds failed each validity predicate and whether the cold-start
+ * fold was excused, so the status is a documented decision rather than a vibe.
+ */
+export const zStatusExplanation = z.object({
+    cold_start_fold_index: z.int().nullish(),
+    cold_start_tolerated: z.boolean().optional().default(false),
+    failed_ci_folds: z.array(z.int()).optional(),
+    failed_rank_folds: z.array(z.int()).optional(),
+    leakage_clean: z.boolean().nullish(),
+    most_recent_fold_index: z.int().nullish(),
+    most_recent_fold_pass: z.boolean().nullish(),
+    null_coverage_min: z.number().nullish(),
+    reason: z.string().optional().default('')
+});
+
+/**
+ * GateResult
+ */
+export const zGateResult = z.object({
+    g1_rank_correlation_pass: z.boolean(),
+    g2_rmse_stability_pass: z.boolean(),
+    g3_market_superiority_pass: z.union([
+        z.literal(true),
+        z.literal(false),
+        z.literal('deferred')
+    ]),
+    g4_divergence_validity_pass: z.union([
+        z.literal(true),
+        z.literal(false),
+        z.literal('deferred'),
+        z.literal('insufficient_data')
+    ]),
+    gate_version: z.string().optional().default('1.0'),
+    model_status: z.enum([
+        'VALIDATED',
+        'PROVISIONAL',
+        'EXPERIMENTAL'
+    ]).optional().default('EXPERIMENTAL'),
+    null_coverage_min: z.number().nullish(),
+    overall_grade: z.enum([
+        'PRE_MODEL',
+        'EXPERIMENTAL',
+        'ACTIVE_B',
+        'ACTIVE_B_VALIDATED',
+        'DECISION_GRADE'
+    ]),
+    promotion_justification: z.string(),
+    status_explanation: zStatusExplanation.nullish(),
+    status_version: z.string().optional().default('0.5.0'),
+    validity_ci_adequacy_pass: z.boolean().optional().default(false),
+    validity_cold_start_fold_index: z.int().nullish(),
+    validity_cold_start_tolerated: z.boolean().optional().default(false),
+    validity_leakage_pass: z.boolean().optional().default(false),
+    validity_most_recent_fold_index: z.int().nullish(),
+    validity_most_recent_fold_pass: z.boolean().nullish(),
+    validity_null_coverage_pass: z.boolean().optional().default(false),
+    validity_r2_pass: z.boolean().optional().default(false),
+    validity_rmse_stability_pass: z.boolean().optional().default(false),
+    validity_spearman_pass: z.boolean().optional().default(false)
+});
+
+/**
  * TopKResult
  */
 export const zTopKResult = z.object({
@@ -361,6 +399,7 @@ export const zFoldResult = z.object({
     ndcg_at_24_model: z.number().nullish(),
     ndcg_diff_bca_ci95: z.tuple([z.number(), z.number()]).nullish(),
     ndcg_diff_primary_k: z.number().nullish(),
+    null_coverage: z.number().nullish(),
     outcome_seasons: z.array(z.int()),
     precision_at_k: z.record(z.string(), zTopKResult).nullish(),
     primary_k: z.int().nullish(),
@@ -536,6 +575,7 @@ export const zTrustSurfaceResponse = z.object({
     model_artifact_hash: z.string(),
     model_card_available: z.boolean(),
     model_reliability: zModelReliability.nullish(),
+    model_status: z.string(),
     model_version: z.string(),
     overall_grade: z.string(),
     position: z.enum([

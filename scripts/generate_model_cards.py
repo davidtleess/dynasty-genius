@@ -303,6 +303,7 @@ def generate_card_for_position(
         g3_pass=gate.g3_market_superiority_pass,
         g4_pass=gate.g4_divergence_validity_pass,
         overall_grade=gate.overall_grade,
+        model_status=gate.model_status,
     )
 
     tmpl = _TEMPLATES[position]

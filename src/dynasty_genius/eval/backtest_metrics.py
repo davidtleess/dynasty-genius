@@ -361,3 +361,30 @@ def diebold_mariano_hln(
         return (0.0, 1.0)
     stat, pvalue = scipy_stats.ttest_1samp(d, 0.0)
     return (float(stat), float(pvalue))
+
+
+# ── Null coverage (Step 0.5 §3.1) ─────────────────────────────────────────────
+
+
+def compute_null_coverage(n_eligible: int, n_scored: int) -> float:
+    """Fold-local null coverage = scored / eligible (Step 0.5 spec §3.1).
+
+    ``n_eligible`` = identity-valid player-season rows in the fold's evaluation
+    universe BEFORE model-feature-null drops. ``n_scored`` = rows that survived
+    feature-null handling and were actually scored.
+
+    Fail-closed to ``0.0`` when there are no eligible rows (no div-by-zero).
+    Raises ``ValueError`` on a cross-component shape mismatch where more rows were
+    scored than were eligible — that cannot happen for a real fold and signals a
+    wiring bug rather than a coverage gap.
+
+    Note (v1 disclosure): the current Engine B harness imputes feature nulls
+    (``SimpleImputer(keep_empty_features=True)``) instead of dropping rows, so real
+    v1 folds report ``1.0`` structurally. This producer is wired so the gate
+    activates automatically if future feature work introduces row drops.
+    """
+    if n_eligible <= 0:
+        return 0.0
+    if n_scored > n_eligible:
+        raise ValueError("n_scored cannot exceed n_eligible")
+    return round(n_scored / n_eligible, 6)
