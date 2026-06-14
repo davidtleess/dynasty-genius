@@ -27,6 +27,7 @@ const gate = {
   g2_rmse_stability_pass: false,
   g3_market_superiority_pass: "deferred",
   g4_divergence_validity_pass: "insufficient_data",
+  model_status: "EXPERIMENTAL",
   overall_grade: "EXPERIMENTAL",
   promotion_justification: "Confidence intervals include zero.",
 };
@@ -66,6 +67,7 @@ function trustSurface(position = "QB") {
             spearman_rho_mean: 0.31,
           }
         : null,
+    model_status: "EXPERIMENTAL",
     model_version: "engine_b_v2",
     overall_grade: "ACTIVE_B_VALIDATED",
     position,

@@ -86,6 +86,12 @@ S3_INVIOLATE_SHA256 = {
 # permanent S4 guardrails remain UNCHANGED: S4-module isolation, S3 byte-locks, AST
 # anti-laundering, mock/market isolation, banned-language/decision_supported, and the
 # Engine A/B leakage wall.
+# ADDENDUM (2026-06-13, David-authorized — Step 0.5 Unified Composite Validation Gate):
+# composite_gate.py is added to AUTHORIZED_EVAL_FILES below. It is a deliberate,
+# dual-CLEARED, model-blind validity-gate module (pure per-fold predicates + the
+# recency-aware compute_model_status; no market/G3 coupling, no Engine A/B feature or
+# training change). This EXTENDS the authorized set only; the exact-set allowlist
+# semantics are preserved (any other new, unlisted eval file still fails this audit).
 AUTHORIZED_EVAL_FILES = {
     "__init__.py",
     "backtest_artifact.py",
@@ -93,6 +99,7 @@ AUTHORIZED_EVAL_FILES = {
     "backtest_metrics.py",
     "backtest_mock_draft.py",
     "backtest_report.py",
+    "composite_gate.py",
     "draft_capital_bakeoff.py",
     "draft_capital_manifest.py",
     "draft_class_loocv.py",

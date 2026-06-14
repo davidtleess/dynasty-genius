@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from src.dynasty_genius.eval.backtest_artifact import GateResult, StatusExplanation
 from src.dynasty_genius.eval.composite_gate import (
     CI_WIDTH_MAX,
@@ -316,3 +319,57 @@ def test_status_provisional_when_cold_start_not_unique():
     )
     assert status == "PROVISIONAL"
     assert expl.cold_start_fold_index is None
+
+
+def test_wrong_type_metric_fails_loud():
+    with pytest.raises(ValidationError):
+        build_mock_fold(
+            idx=1,
+            test_year=2020,
+            train_years=[2018, 2019],
+            spear="high",  # type: ignore[arg-type]
+            r2=0.2,
+            ci=(0.2, 0.5),
+        )
+
+
+def test_empty_folds_is_experimental():
+    status, expl = compute_model_status(
+        [],
+        null_coverage_min_obs=0.99,
+        leakage_clean=True,
+    )
+
+    assert status == "EXPERIMENTAL"
+    assert expl.most_recent_fold_index is None
+
+
+def test_duplicate_test_year_disables_cold_start_excuse():
+    folds = _four_folds(
+        [0.40, 0.80, 0.80, 0.80],
+        [0.6, 0.6, 0.6, 0.6],
+        [(0.7, 0.8)] * 4,
+    )
+    folds[1].test_year = 2020
+
+    status, expl = compute_model_status(
+        folds,
+        null_coverage_min_obs=0.99,
+        leakage_clean=True,
+    )
+
+    assert expl.cold_start_fold_index is None
+    assert status == "PROVISIONAL"
+
+
+def test_r2_none_fails_rank():
+    fold = build_mock_fold(
+        idx=2,
+        test_year=2021,
+        train_years=[2018, 2019, 2020],
+        spear=0.79,
+        r2=None,
+        ci=(0.69, 0.85),
+    )
+
+    assert fold_rank_pass(fold) is False

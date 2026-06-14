@@ -68,7 +68,8 @@
         "tprr": 0.05160548284428955,
         "weighted_opportunity": 0.7896739601754635,
         "yprr": 0.03290346495989418
-      }
+      },
+      "null_coverage": 1.0
     },
     {
       "fold_index": 2,
@@ -130,7 +131,8 @@
         "tprr": -0.0950891390506153,
         "weighted_opportunity": 0.767779849667557,
         "yprr": 0.10183945709450076
-      }
+      },
+      "null_coverage": 1.0
     },
     {
       "fold_index": 3,
@@ -193,7 +195,8 @@
         "tprr": -0.2460276886084815,
         "weighted_opportunity": 0.7342518232320521,
         "yprr": 0.0749276767897491
-      }
+      },
+      "null_coverage": 1.0
     },
     {
       "fold_index": 4,
@@ -257,7 +260,8 @@
         "tprr": -0.21421555676736206,
         "weighted_opportunity": 0.7060258214608888,
         "yprr": 0.054722656368199535
-      }
+      },
+      "null_coverage": 1.0
     }
   ],
   "rmse_stability": {
@@ -291,6 +295,34 @@
     "g4_divergence_validity_pass": "deferred",
     "overall_grade": "ACTIVE_B",
     "gate_version": "1.0",
-    "promotion_justification": "Promotion blocked by G3."
+    "promotion_justification": "Promotion blocked by G3.",
+    "model_status": "VALIDATED",
+    "status_version": "0.5.0",
+    "validity_spearman_pass": true,
+    "validity_r2_pass": true,
+    "validity_ci_adequacy_pass": true,
+    "validity_rmse_stability_pass": true,
+    "validity_null_coverage_pass": true,
+    "validity_leakage_pass": true,
+    "validity_cold_start_fold_index": 1,
+    "validity_cold_start_tolerated": true,
+    "validity_most_recent_fold_index": 4,
+    "validity_most_recent_fold_pass": true,
+    "null_coverage_min": 1.0,
+    "status_explanation": {
+      "failed_rank_folds": [
+        1
+      ],
+      "failed_ci_folds": [
+        1
+      ],
+      "cold_start_fold_index": 1,
+      "cold_start_tolerated": true,
+      "most_recent_fold_index": 4,
+      "most_recent_fold_pass": true,
+      "null_coverage_min": 1.0,
+      "leakage_clean": true,
+      "reason": "all folds pass (cold-start excused if any); most-recent passes -> VALIDATED"
+    }
   }
 }
