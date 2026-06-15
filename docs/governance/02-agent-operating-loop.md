@@ -252,6 +252,10 @@ These rules are binding for non-trivial or fail-closed work. Trivial mechanical 
 
 8. **Robustness boundary in specs (up front).** Specs for modules consuming external or variable data must define the robustness boundary at design time: API-misuse (wrong argument types → fail loud), data-corruption (malformed contents → fail closed), and semantic/range/finiteness validation (the producer's responsibility). This prevents both missed hardening and unbounded whack-a-mole during adversarial sweeps.
 
+### Sprint-closeout tollgate
+
+Before claiming a multi-task build or phase is verified/complete, and before any push or PR, run `scripts/verify_sprint_closeout.py`. Its ENFORCE checks (full Python suite — not focused slices — `.venv/bin/ruff check src app`, and the FE gate + standalone-script checks when those surfaces are touched) must pass; its REPORT items (changed tracked artifacts, new files in guarded directories) must be audited; and its REMIND human-judgment gates (David authorization, cockpit routing, close-the-loop, CI-as-gate) must be satisfied. Focused per-task test slices are acceptable mid-build, but the full suite + full FE gate run here is the binding closeout verification. This tollgate does not replace cockpit review or David's authorization — it ensures the deterministic matrix is not skipped.
+
 ## Postflight: Session End
 
 Before ending a material session, every agent must:
