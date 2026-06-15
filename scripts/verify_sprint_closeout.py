@@ -36,9 +36,12 @@ class _Completed:
         self.returncode, self.stdout, self.stderr = returncode, stdout, stderr
 
 
-def _subprocess_run(cmd, cwd=None):
+def _subprocess_run(cmd, cwd=None, timeout=None):
+    # timeout defaults None so check_python_suite et al. stay UNBOUNDED; only the
+    # standalone probe passes a timeout. TimeoutExpired propagates to the caller (F1).
     try:
-        return subprocess.run(cmd, cwd=cwd or str(_REPO_ROOT), capture_output=True, text=True)
+        return subprocess.run(cmd, cwd=cwd or str(_REPO_ROOT), capture_output=True, text=True,
+                              timeout=timeout)
     except FileNotFoundError as exc:
         return _Completed(127, "", f"{cmd[0]}: not found ({exc})")
 
@@ -138,6 +141,9 @@ def check_fe_gate(run=_subprocess_run, read_text=None) -> CheckResult:
                        else f"FE gate failed: {', '.join(failed)}")
 
 
+_STANDALONE_TIMEOUT_S = 10  # per-script probe cap; a module-load hang must fail loud, not hang the verifier (F1)
+
+
 def check_standalone_scripts(scripts: list[str], run=_subprocess_run) -> CheckResult:
     """Replicate `python <script>` faithfully (F1): the script's OWN dir on sys.path[0],
     repo root + cwd ('') REMOVED from sys.path, and the module REGISTERED in sys.modules
@@ -158,7 +164,11 @@ def check_standalone_scripts(scripts: list[str], run=_subprocess_run) -> CheckRe
             "sys.modules[s.name]=m; "
             "s.loader.exec_module(m)"
         )
-        r = run([sys.executable, "-c", probe], cwd=outside)
+        try:
+            r = run([sys.executable, "-c", probe], cwd=outside, timeout=_STANDALONE_TIMEOUT_S)
+        except subprocess.TimeoutExpired:
+            failures.append(f"{path}: load timed out after {_STANDALONE_TIMEOUT_S}s")
+            continue
         if r.returncode != 0:
             tail = ((r.stderr or "").strip().splitlines() or ["load failed"])[-1]
             failures.append(f"{path}: {tail}")

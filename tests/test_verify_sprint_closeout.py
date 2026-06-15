@@ -1,5 +1,6 @@
 import importlib.util
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -226,6 +227,25 @@ def test_standalone_check_allows_future_annotations_dataclass(tmp_path):
     )
 
     assert vsc.check_standalone_scripts([str(script)]).passed is True
+
+
+def test_standalone_check_times_out_per_script(tmp_path):
+    script = tmp_path / "hangs.py"
+    script.write_text("while True:\n    pass\n")
+    seen_timeouts = []
+
+    def timeout_run(cmd, cwd=None, timeout=None):
+        seen_timeouts.append(timeout)
+        raise subprocess.TimeoutExpired(cmd, timeout)
+
+    result = vsc.check_standalone_scripts([str(script)], run=timeout_run)
+
+    assert seen_timeouts == [10]
+    assert result.tier == vsc.ENFORCE
+    assert result.passed is False
+    assert str(script) in result.detail
+    assert "timed out" in result.detail
+    assert "10s" in result.detail
 
 
 def test_report_and_remind():
