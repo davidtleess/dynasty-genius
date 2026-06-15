@@ -298,6 +298,41 @@ def test_run_verification_includes_conditional_checks():
     assert "standalone-scripts" in names
 
 
+def test_no_change_diff_still_runs_always_checks():
+    surfaces = vsc.detect_surfaces(set(), added=set())
+
+    def run(cmd, cwd=None):
+        if "--version" in cmd:
+            return _ok(stdout="ruff 0.15.12\n")
+        return _ok(rc=0)
+
+    results = vsc.run_verification(surfaces, run=run)
+    names = [result.name for result in results]
+
+    assert names == ["python-suite", "ruff", "report", "remind"]
+
+
+def test_report_only_never_affects_exit_code():
+    results = [
+        vsc.CheckResult("report", vsc.REPORT, None, "advisory"),
+        vsc.CheckResult("remind", vsc.REMIND, None, "human gates"),
+    ]
+
+    assert vsc.exit_code(results) == 0
+
+
+def test_ruff_absent_binary_fails_loud():
+    def run(cmd, cwd=None):
+        if "--version" in cmd:
+            return _ok(stdout="")
+        raise AssertionError("must not run ruff check when version probe is absent")
+
+    result = vsc.check_ruff(run=run)
+
+    assert result.passed is False
+    assert "install" in result.detail
+
+
 def test_exit_code_and_render():
     passing = [
         vsc.CheckResult("python-suite", vsc.ENFORCE, True, "ok"),
