@@ -312,3 +312,45 @@ def test_exit_code_and_render():
     assert "ENFORCE" in out
     assert "ruff" in out
     assert "FAIL" in out
+
+
+def test_main_returns_exit_code(monkeypatch, capsys):
+    monkeypatch.setattr(vsc, "changed_paths", lambda base, run=None: {"app/data/x.json"})
+    monkeypatch.setattr(vsc, "added_paths", lambda base, run=None: set())
+    monkeypatch.setattr(
+        vsc,
+        "run_verification",
+        lambda surfaces, **kw: [
+            vsc.CheckResult("python-suite", vsc.ENFORCE, False, "bad")
+        ],
+    )
+
+    rc = vsc.main(["--base", "origin/main"])
+
+    assert rc == 1
+    assert "ENFORCE verdict: FAIL" in capsys.readouterr().out
+
+
+def test_surface_detection_failure_still_prints_remind(monkeypatch, capsys):
+    def boom(base, run=None):
+        raise RuntimeError("git failed (128): bad base")
+
+    monkeypatch.setattr(vsc, "changed_paths", boom)
+
+    rc = vsc.main(["--base", "does-not-exist"])
+    out = capsys.readouterr().out
+
+    assert rc == 1
+    assert "surface-detection" in out
+    assert "FAIL" in out
+    assert "[REMIND]" in out
+    for banned_token in ("win", "loss", "buy", "sell", "elite", "bust"):
+        assert re.search(rf"\b{banned_token}\b", out.lower()) is None
+
+
+def test_module_loads_standalone():
+    result = vsc.check_standalone_scripts(
+        [str(vsc._REPO_ROOT / "scripts" / "verify_sprint_closeout.py")]
+    )
+
+    assert result.passed is True

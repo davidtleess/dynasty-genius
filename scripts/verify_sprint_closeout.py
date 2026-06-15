@@ -3,6 +3,7 @@ ENFORCE deterministic checks, REPORT human-audit surfaces, REMIND human-judgment
 gates. Read-only; never installs/downloads or mutates source/artifacts/git."""
 from __future__ import annotations
 
+import argparse
 import json
 import subprocess
 import sys
@@ -225,3 +226,24 @@ def render(results: list[CheckResult]) -> str:
     verdict = "PASS" if exit_code(results) == 0 else "FAIL"
     lines.append(f"\nENFORCE verdict: {verdict}")
     return "\n".join(lines)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Sprint-closeout verification tollgate.")
+    parser.add_argument("--base", default="origin/main",
+                        help="ref to diff against for surface detection")
+    args = parser.parse_args(argv)
+    try:  # F3: a git failure (e.g. a missing --base ref) is a fail-loud CLI error, not an empty surface
+        surfaces = detect_surfaces(changed_paths(args.base), added=added_paths(args.base))
+    except RuntimeError as exc:
+        # R1: REMIND is ALWAYS printed, even on a surface-detection failure.
+        results = [CheckResult("surface-detection", ENFORCE, False, str(exc)), remind_checklist()]
+        print(render(results))
+        return exit_code(results)  # 1 — an ENFORCE check failed
+    results = run_verification(surfaces, base=args.base)
+    print(render(results))
+    return exit_code(results)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
