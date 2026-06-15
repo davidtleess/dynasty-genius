@@ -254,3 +254,61 @@ def test_report_and_remind():
         assert token in detail
     for banned_token in ("win", "loss", "buy", "sell", "elite", "bust"):
         assert re.search(rf"\b{banned_token}\b", detail) is None
+
+
+def test_run_verification_selects_checks_by_surface():
+    surfaces = {
+        "frontend": False,
+        "scripts": [],
+        "artifacts": ["app/data/x.json"],
+        "new_files": [],
+    }
+
+    results = vsc.run_verification(surfaces, run=lambda cmd, cwd=None: _ok(rc=0))
+    names = {result.name for result in results}
+
+    assert "python-suite" in names
+    assert "ruff" in names
+    assert "fe-gate" not in names
+    assert "standalone-scripts" not in names
+    assert "report" in names
+    assert "remind" in names
+
+
+def test_run_verification_includes_conditional_checks():
+    surfaces = {
+        "frontend": True,
+        "scripts": ["scripts/a.py"],
+        "artifacts": [],
+        "new_files": [],
+    }
+
+    def standalone(scripts, run=None):
+        assert scripts == ["scripts/a.py"]
+        return vsc.CheckResult("standalone-scripts", vsc.ENFORCE, True, "ok")
+
+    results = vsc.run_verification(
+        surfaces,
+        run=lambda cmd, cwd=None: _ok(rc=0),
+        standalone=standalone,
+    )
+    names = {result.name for result in results}
+
+    assert "fe-gate" in names
+    assert "standalone-scripts" in names
+
+
+def test_exit_code_and_render():
+    passing = [
+        vsc.CheckResult("python-suite", vsc.ENFORCE, True, "ok"),
+        vsc.CheckResult("remind", vsc.REMIND, None, "x"),
+    ]
+    failing = passing + [vsc.CheckResult("ruff", vsc.ENFORCE, False, "bad")]
+
+    assert vsc.exit_code(passing) == 0
+    assert vsc.exit_code(failing) == 1
+
+    out = vsc.render(failing)
+    assert "ENFORCE" in out
+    assert "ruff" in out
+    assert "FAIL" in out

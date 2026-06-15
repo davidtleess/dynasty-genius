@@ -191,3 +191,37 @@ def remind_checklist() -> CheckResult:
         "- CI (not local-green) is the push gate; this verifier is local pre-flight, not a CI substitute."
     )
     return CheckResult("remind", REMIND, None, text)
+
+
+def run_verification(surfaces, base="origin/main", run=_subprocess_run,
+                     standalone=check_standalone_scripts) -> list[CheckResult]:
+    results = [check_python_suite(run=run), check_ruff(run=run)]
+    if surfaces["frontend"]:
+        results.append(check_fe_gate(run=run))
+    if surfaces["scripts"]:
+        results.append(standalone(surfaces["scripts"], run=run))
+    results.append(report_changes(surfaces["artifacts"], surfaces["new_files"], base=base, run=run))
+    results.append(remind_checklist())
+    return results
+
+
+def exit_code(results: list[CheckResult]) -> int:
+    # Only an ENFORCE failure flips the exit code; REPORT/REMIND (passed=None) never do.
+    return 1 if any(r.tier == ENFORCE and r.passed is False for r in results) else 0
+
+
+def render(results: list[CheckResult]) -> str:
+    # Tier-segregated so a hard ENFORCE failure is visually distinct from advisory surfaces.
+    lines = []
+    for r in results:
+        if r.tier == ENFORCE:
+            lines.append(f"[ENFORCE] {r.name}: {'PASS' if r.passed else 'FAIL'} — {r.detail}")
+    for r in results:
+        if r.tier == REPORT:
+            lines.append(f"[REPORT] {r.name}:\n{r.detail}")
+    for r in results:
+        if r.tier == REMIND:
+            lines.append(f"[REMIND] {r.name}:\n{r.detail}")
+    verdict = "PASS" if exit_code(results) == 0 else "FAIL"
+    lines.append(f"\nENFORCE verdict: {verdict}")
+    return "\n".join(lines)
