@@ -256,6 +256,8 @@ These rules are binding for non-trivial or fail-closed work. Trivial mechanical 
 
 Before claiming a multi-task build or phase is verified/complete, and before any push or PR, run `scripts/verify_sprint_closeout.py`. Its ENFORCE checks (full Python suite — not focused slices — `.venv/bin/ruff check src app`, and the FE gate + standalone-script checks when those surfaces are touched) must pass; its REPORT items (changed tracked artifacts, new files in guarded directories) must be audited; and its REMIND human-judgment gates (David authorization, cockpit routing, close-the-loop, CI-as-gate) must be satisfied. Focused per-task test slices are acceptable mid-build, but the full suite + full FE gate run here is the binding closeout verification. This tollgate does not replace cockpit review or David's authorization — it ensures the deterministic matrix is not skipped.
 
+This tollgate applies before declaring any build/phase complete and before pushing any code, test, configuration, or model-artifact change. Routine state-documentation pushes that alter neither execution surfaces nor governance/spec/plan contracts (e.g., AGENT_SYNC.md state updates, daily-ledger appends) are exempt.
+
 ## Postflight: Session End
 
 Before ending a material session, every agent must:
