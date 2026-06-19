@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AppShell } from "./AppShell";
 
@@ -14,6 +14,8 @@ const NAV_LABELS = [
   "Model Trust",
   "Research Assistant",
 ];
+
+afterEach(() => vi.restoreAllMocks());
 
 describe("AppShell", () => {
   it("renders the persistent shell regions and north-star navigation surfaces", () => {
@@ -80,5 +82,28 @@ describe("AppShell", () => {
     expect(
       within(navigation).queryByRole("button", { name: "Backtest Harness" }),
     ).toBeNull();
+  });
+
+  it("renders the Roster Audit surface when its nav item is selected", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        status: "active",
+        engine: "e",
+        reason: "r",
+        model_status_by_position: {},
+        caveats: [],
+        players: [],
+        qb_context_cards: [],
+        dropped_player_count: 0,
+        decision_supported: false,
+      }),
+    });
+    render(<AppShell />);
+    fireEvent.click(screen.getByRole("button", { name: "Roster Audit" }));
+    await waitFor(() =>
+      expect(screen.getByText(/experimental — not decision-grade/i)).toBeTruthy(),
+    );
   });
 });
