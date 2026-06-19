@@ -49,8 +49,8 @@ Mount → `fetch("/api/roster/audit")`, then `zRosterAuditResponse.parse(await r
 
 - **HTTP 200 + parse OK, `status="active"`** → header (active) + table + QB section.
 - **HTTP 200 + parse OK, `status="degraded"`** → SAME table view, with the header in its degraded presentation (degraded banner, dropped-count, caveats). Degraded is renderable-but-flagged — explicitly distinct from 503.
-- **HTTP 422** → "Roster not configured" full-surface state (read `detail.error`/`detail.message` **defensively** — fall back to a generic message if the shape differs).
-- **HTTP 503** → "Roster data unavailable" full-surface state (same defensive detail read).
+- **HTTP 422** → "Roster not configured" full-surface state. Mapped on the **HTTP status only** — the UI shows a generic message and does **not** parse or render the backend `detail` body, so it cannot break on an unexpected detail shape (maximally defensive).
+- **HTTP 503** → "Roster data unavailable" full-surface state (same HTTP-status-only mapping, no detail-shape dependency).
 - **Zod parse failure / network error** → generic honest error state (never silently render partial/garbage).
 - **200 + `players` empty (status active)** → honest "No rostered skill players" state, not a crash.
 
@@ -88,6 +88,6 @@ Colocated vitest `.test.jsx` per the existing surface pattern:
 - **AC-3 (no false certainty):** per-row `model_status_applies` chip + EXPERIMENTAL de-emphasis present; neutral copy/emphasis (no verdict vocabulary); FE banned-vocabulary gate clean; disclaimer surfaces `decision_supported=False`.
 - **AC-4 (row-expand detail):** expand reveals counter_argument / top_drivers / risk_flags / projections / xvar / liquidity_risk / biological_debt_score / full caveats; rendered verbatim (no runtime suppression).
 - **AC-5 (QB context):** `qb_context_cards` render in their own section, labeled context-signal / not-decision-grade.
-- **AC-6 (boundary robustness):** Zod-parse at the boundary; 422/503 detail read defensively; parse failure → honest error, never partial render.
+- **AC-6 (boundary robustness):** Zod-parse at the boundary; 422/503 mapped on HTTP status only (generic messages, no `detail`-shape dependency); parse failure / network error → honest error state, never a partial/garbage render.
 - **AC-7 (real-PVO coverage, both halves):** a real-`assemble_pvo()`-shaped FE fixture renders correctly (UI half) AND a permanent Python integration test asserts a real `assemble_pvo()`-shaped row maps through `assemble_response()` with no drop/leak and free-text caveats surviving (backend half) — together closing the Inc1 follow-up.
 - **AC-8 (no regression / scope):** full FE gate green; OpenAPI drift guard untouched; no backend/contract change; `PlayerInspector`/`TrustStrip` unchanged.
