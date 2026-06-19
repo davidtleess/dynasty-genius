@@ -4,11 +4,23 @@
 
 **Goal:** Replace the untyped `GET /api/roster/audit` response (`dict` → `z.record(unknown)`) with a typed, allowlist-mapped, leakage-safe contract so a future read-only UI cannot overclaim.
 
-**Architecture:** Typed Pydantic response models + an explicit **allowlist** DTO mapper (no raw `pvo.dict()`, no `extra="allow"`); Engine-B trust status sourced **live + fail-closed** via `BacktestResult.load`; nested `decision_supported` and token-only fields coerced/validated centrally; honest 503/422/degraded contract. Backend only — UI is Increment 2.
+**Architecture:** Typed Pydantic response models + an explicit **allowlist** DTO mapper (no raw `pvo.dict()`, no `extra="allow"`); Engine-B trust status sourced **live + fail-closed** via `BacktestResult.load`; nested `decision_supported` and token-only fields coerced/validated centrally; top-level PVO `caveats` treated as free-text uncertainty/provenance evidence with banned-language suppression; honest 503/422/degraded contract. Backend only — UI is Increment 2.
 
 **Tech Stack:** Python 3.14, FastAPI, Pydantic v2, pytest; frontend OpenAPI codegen (`npm --prefix frontend run openapi-gen`).
 
 **Spec:** `docs/superpowers/specs/2026-06-18-roster-audit-increment-1-contract-design.md` (dual-CLEARED, committed `a65b583`).
+
+## Plan v5 — strategic-pause caveats-contract patch
+
+- **SP-1 top-level player caveats are free text, not token-only:** Task 7 found
+  `run_audit_pvo()` reaches `assemble_pvo()`, whose top-level PVO `caveats`
+  include sentence/provenance disclosures such as signal completeness and
+  model-gate text. T3 must filter top-level player `caveats` with banned-language
+  suppression (`_evidence_list_field`-style) rather than `SAFE_TOKENS`.
+  `SAFE_TOKENS` remains authoritative for genuinely token-only fields:
+  `roster_audit.signal`, `signal_drivers`, `age_value_context`,
+  `liquidity_risk`, nested `roster_audit.caveats`, QB annotations/caveats/source,
+  trust/drop caveats.
 
 ## Plan v4 — round-3 finding integrated
 
@@ -37,7 +49,7 @@
 
 **Reused existing code:** `players.py` (`CounterArgumentField`, `EvidenceListField`, `_counter_argument_field`, `_evidence_list_field`, `_contains_banned`); `backtest_artifact.BacktestResult.load`; `engine_a_contract.QB_CONTEXT_COLUMNS`; `roster_auditor.run_audit_pvo`/`RosterConfigError`; `player_value_object.RosterAuditSignals` (as the source we curate).
 
-**Verified producer tokens (F1 seed):** `signal` ∈ {`past_cliff`,`at_cliff`,`approaching_cliff`,`no_age_signal`}; `signal_drivers` ∈ {`age_past_position_cliff`,`age_at_position_cliff`,…}; `age_value_context` ∈ {`past_cliff_depreciation_risk`,`approaching_cliff_high_projection`,…}; `liquidity_risk` ∈ {`HIGH_NO_SECOND_ROUND_ESCAPE_HATCH`,`MEDIUM_LIMITED_ESCAPE_HATCH`,`LOW`}; caveats ∈ {`no_market_overlay`,`engine_b_experimental_v1_fallback`,…}. T2 seeds `SAFE_TOKENS` from these; T7 completeness test fails if a producer emits an unlisted token.
+**Verified producer tokens (F1 seed):** `signal` ∈ {`past_cliff`,`at_cliff`,`approaching_cliff`,`no_age_signal`}; `signal_drivers` ∈ {`age_past_position_cliff`,`age_at_position_cliff`,…}; `age_value_context` ∈ {`past_cliff_depreciation_risk`,`approaching_cliff_high_projection`,…}; `liquidity_risk` ∈ {`HIGH_NO_SECOND_ROUND_ESCAPE_HATCH`,`MEDIUM_LIMITED_ESCAPE_HATCH`,`LOW`}; nested roster-audit/QB/trust/drop caveats are tokens. **Top-level player `caveats` from PVO assembly are free text and intentionally excluded from `SAFE_TOKENS` completeness.** T2 seeds `SAFE_TOKENS` from token-only producers; T7 completeness test fails if a token-only producer emits an unlisted token.
 
 ---
 
@@ -333,9 +345,14 @@ def test_nested_decision_supported_coerced_false():  # F3
     p = map_player(_raw())
     assert p.roster_audit.decision_supported is False
 
-def test_token_only_caveats_enforced():  # AC-5
-    p = map_player(_raw(caveats=["no_market_overlay", "elite", "mystery_token"]))
-    assert "elite" not in p.caveats and "mystery_token" not in p.caveats
+def test_player_caveats_preserve_clean_free_text():  # SP-1 / AC-5
+    free_text = "Signal completeness 94% — missing: ppg_t_minus_2"
+    p = map_player(_raw(caveats=["no_market_overlay", free_text]))
+    assert p.caveats == ["no_market_overlay", free_text]
+
+def test_player_caveats_suppress_banned_free_text():  # SP-1 / AC-5
+    p = map_player(_raw(caveats=["no_market_overlay", "Sell now"]))
+    assert p.caveats == ["no_market_overlay", "evidence_suppressed_banned_term"]
 
 def test_scalar_token_fields_validated():  # R3-1: AC-5 scalar (signal/age_value_context/liquidity_risk)
     p = map_player(_raw(roster_audit={"signal": "elite", "age_value_context": "must sell",
@@ -351,7 +368,7 @@ def test_engine_a_not_applicable():  # AC-6 / F6
     assert map_player(_raw(engine_used="engine_b")).model_status_applies is True
 ```
 
-- [ ] **Step 2: Run to verify fail** — `... -k "excludes_market or nested_decision or token_only or applicable" -v` → FAIL.
+- [ ] **Step 2: Run to verify fail** — `... -k "excludes_market or nested_decision or player_caveats or applicable or scalar_token" -v` → FAIL.
 
 - [ ] **Step 3: Implement**
 
@@ -383,8 +400,8 @@ def map_player(raw: dict) -> RosterAuditPlayer:
     """Explicit ALLOWLIST mapping (no raw pvo.dict()); market/value/future fields excluded
     by construction; David-facing text validated/suppressed."""
     data = {k: raw.get(k) for k in _SCALARS}
-    clean_caveats, dc = validate_tokens(raw.get("caveats"))
-    data["caveats"] = clean_caveats + dc
+    caveats = _evidence_list_field(raw.get("caveats"))
+    data["caveats"] = caveats.items + caveats.caveats
     data["counter_argument"] = _counter_argument_field(raw.get("counter_argument"))
     data["top_drivers"] = _evidence_list_field(raw.get("top_drivers"))
     data["risk_flags"] = _evidence_list_field(raw.get("risk_flags"))
@@ -396,6 +413,9 @@ def map_player(raw: dict) -> RosterAuditPlayer:
 ```
 
 - [ ] **Step 4: Run to verify pass** — same command → PASS.
+  Probe SP-1 explicitly: clean free-text top-level PVO caveats survive; banned
+  free-text caveats are suppressed; nested token-only roster-audit caveats still
+  use `validate_tokens`.
 - [ ] **Step 5: Commit** — `git commit -am "feat(roster-audit): allowlist mapper + token enforcement + curated nested signals (Inc1 T3)"`
 
 ---
@@ -583,7 +603,7 @@ def test_roster_audit_route_typed_in_live_schema() -> None:
 
 **Files:** none (verification) + one completeness test
 
-- [ ] **Step 1: Token-completeness test** — assert every token a representative audit fixture emits in token-only fields is in `SAFE_TOKENS` (fails if a producer token is unlisted — Codex F1 guard):
+- [ ] **Step 1: Token-completeness test** — assert every token a representative audit fixture emits in token-only fields is in `SAFE_TOKENS` (fails if a token-only producer emits an unlisted token — Codex F1 guard). Do **not** include top-level PVO player `caveats`; they are free-text evidence and are guarded by the SP-1 T3 tests instead:
 
 ```python
 def test_safe_tokens_cover_producers():  # verified producers from roster_auditor.py

@@ -1,7 +1,7 @@
 # Roster Audit — Increment 1: API Contract Hardening — Design Spec
 
 **Date:** 2026-06-18
-**Status:** v2 (round-1 cockpit findings integrated; round-2 review pending)
+**Status:** v3 (strategic-pause caveats-contract patch)
 **Authored by:** Claude Code
 **Cockpit design poll:** Codex (technical) CONCUR + findings F1–F6 · Gemini (governance) CONCUR + §4 fail-closed finding
 **Phase:** Phase 12 (Frontend) decision-surface sequence — Roster Audit (next surface after Surface-1/2/3 + Model Trust Console)
@@ -16,6 +16,12 @@
 - **F5 (Codex, §4):** trust freshness — live artifacts; missing/stale/malformed → degraded + fail-closed, never omitted keys.
 - **F6 (Codex, AC-5):** banned-vocab coverage must include **all** David-facing strings, not just three fields.
 - **OQ rulings (both lanes):** OQ-1 → LIVE; OQ-2 → drop-isolated / 503-systemic; OQ-3 → adopt Surface-3 wrapped fields and extend to all David-facing text.
+- **SP-1 (Codex/Gemini, Task 7 strategic pause):** top-level player `caveats`
+  are PVO free text, not token-only. Treating them as `SAFE_TOKENS` destroys
+  uncertainty/provenance text and falsely emits `evidence_suppressed_banned_term`.
+  Patch: top-level player `caveats` are free-text evidence filtered by banned
+  vocabulary; `SAFE_TOKENS` remains for genuinely token-only nested/structural
+  fields.
 
 ---
 
@@ -61,7 +67,10 @@ Built by an **explicit allowlist mapper** from `PlayerValueObject` — only the 
 - **Scores (nullable until decision-grade):** `dynasty_value_score`, `projection_1y/2y/3y`, `xvar`, `dvs_pct` (all `float | None`)
 - **Signal:** `signal_completeness: float`, `inputs_present: list[str]`, `inputs_missing: list[str]`
 - **Evidence — free-text, banned-vocab-suppressed (Surface-3 wrapped, OQ-3/F6):** `counter_argument: CounterArgumentField`, `top_drivers: EvidenceListField`, `risk_flags: EvidenceListField`
-- **`caveats: list[str]`** — token-only; constrained to a known safe-token set (§3.5)
+- **`caveats: list[str]`** — PVO free-text uncertainty/provenance caveats filtered
+  through banned-language suppression, not token-only. Clean assembler caveats
+  must survive; caveats containing banned terms are removed and replaced by
+  `evidence_suppressed_banned_term` (§3.5, SP-1).
 - **`roster_audit: RosterAuditSignals | None`** — existing typed age-cliff model; its free-text-ish fields (`signal_drivers`, `age_value_context`, `signal`) are token-only and constrained to the known enum set (§3.5)
 - **`decision_supported: Literal[False] = False`**
 
@@ -76,8 +85,18 @@ The map reflects **Engine-B** position-level validation from Step 0.5. A positio
 ### 3.5 David-facing text classification (F6/OQ-3)
 
 Every David-facing string is either:
-- **Free-text → wrapped + suppressed:** `counter_argument`, `top_drivers`, `risk_flags` (CounterArgumentField/EvidenceListField with banned-vocab suppression).
-- **Token-only → constrained:** player `caveats`, `roster_audit.signal_drivers`/`age_value_context`/`signal`, `qb_context_annotations`/`qb_context_caveats`, `source_qb_context_annotations`. These must contain only values from a known safe-token allowlist; AC-5 asserts no banned term and no unknown token appears.
+- **Free-text → suppressed by banned vocabulary:** `counter_argument`,
+  `top_drivers`, `risk_flags`, and top-level player `caveats`. `counter_argument`
+  uses `CounterArgumentField`; list-like evidence uses the same banned-language
+  filtering pattern as `EvidenceListField`. Clean PVO caveats such as signal
+  completeness, draft-capital provenance, and model-gate disclosures must not be
+  token-stripped.
+- **Token-only → constrained:** `roster_audit.signal_drivers`/
+  `age_value_context`/`signal`/`liquidity_risk`/nested `caveats`,
+  `qb_context_annotations`/`qb_context_caveats`,
+  `source_qb_context_annotations`, trust/drop caveats. These must contain only
+  values from a known safe-token allowlist; AC-5 asserts no banned term and no
+  unknown token appears.
 
 ## 4. Degraded-state + failure contract (G1/F3/F5)
 
@@ -107,7 +126,10 @@ Every David-facing string is either:
 - **AC-2 (decision_supported lock):** recursive assert no `decision_supported: true` anywhere.
 - **AC-3 (typed OpenAPI):** the route no longer emits `z.record(unknown)`/`additionalProperties: true`; references `RosterAuditResponse`; snapshot drift-guard passes.
 - **AC-4 (failure/degraded honesty):** isolated corrupt row → dropped + `dropped_player_count`++ + caveat, others render; trust artifact missing → positions `EXPERIMENTAL` + caveat (fail-closed); systemic/all-invalid → 503; config → 422; never silent `{}`.
-- **AC-5 (banned-vocab, all David-facing text, F6):** injected banned terms in free-text fields are suppressed (`evidence_suppressed_banned_term`); token-only fields reject banned + unknown tokens.
+- **AC-5 (banned-vocab, all David-facing text, F6/SP-1):** injected banned terms
+  in free-text fields are suppressed (`evidence_suppressed_banned_term`); clean
+  top-level PVO caveats survive; token-only fields reject banned + unknown
+  tokens.
 - **AC-6 (position-status invariant, F2):** an Engine-A WR / non-modeled player under a VALIDATED WR map has `model_status_applies == False` and renders its own `model_grade`/caveats.
 - **AC-7 (no regression):** full Python suite green; `"no_market_overlay"` caveat now accurate.
 

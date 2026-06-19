@@ -847,6 +847,272 @@ export type ProspectRequest = {
 };
 
 /**
+ * QBContextCard
+ *
+ * F2: explicitly typed; extra fields forbidden (no provenance/market backdoor).
+ */
+export type QbContextCard = {
+    /**
+     * Context Role
+     */
+    context_role?: 'context_signal';
+    /**
+     * Cpoe
+     */
+    cpoe?: number | null;
+    /**
+     * Dakota
+     */
+    dakota?: number | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Dropback Count
+     */
+    dropback_count?: number | null;
+    /**
+     * Epa Per Dropback
+     */
+    epa_per_dropback?: number | null;
+    /**
+     * Full Name
+     */
+    full_name: string;
+    /**
+     * Identity Coverage
+     */
+    identity_coverage: 'FULL' | 'PARTIAL' | 'NONE';
+    /**
+     * Pass Attempts
+     */
+    pass_attempts?: number | null;
+    /**
+     * Player Id
+     */
+    player_id: string;
+    /**
+     * Qb Context Annotations
+     */
+    qb_context_annotations?: Array<string>;
+    /**
+     * Qb Context Caveats
+     */
+    qb_context_caveats?: Array<string>;
+    /**
+     * Source Qb Context Annotations
+     */
+    source_qb_context_annotations: string;
+};
+
+/**
+ * RosterAuditPlayer
+ */
+export type RosterAuditPlayer = {
+    /**
+     * Age
+     */
+    age?: number | null;
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    counter_argument: CounterArgumentField;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Draft Class
+     */
+    draft_class?: number | null;
+    /**
+     * Dvs Engine
+     */
+    dvs_engine?: 'A' | 'B' | 'blend' | null;
+    /**
+     * Dvs Pct
+     */
+    dvs_pct?: number | null;
+    /**
+     * Dynasty Value Score
+     */
+    dynasty_value_score?: number | null;
+    /**
+     * Engine Used
+     */
+    engine_used?: string | null;
+    /**
+     * Full Name
+     */
+    full_name: string;
+    /**
+     * Inputs Missing
+     */
+    inputs_missing?: Array<string>;
+    /**
+     * Inputs Present
+     */
+    inputs_present?: Array<string>;
+    /**
+     * Is Prospect
+     */
+    is_prospect?: boolean;
+    /**
+     * Model Grade
+     */
+    model_grade: string;
+    /**
+     * Model Status Applies
+     */
+    model_status_applies?: boolean;
+    /**
+     * Model Version
+     */
+    model_version?: string | null;
+    /**
+     * Nfl Draft Pick
+     */
+    nfl_draft_pick?: number | null;
+    /**
+     * Nfl Draft Round
+     */
+    nfl_draft_round?: number | null;
+    /**
+     * Nfl Team
+     */
+    nfl_team?: string | null;
+    /**
+     * Player Id
+     */
+    player_id: string;
+    /**
+     * Position
+     */
+    position: string;
+    /**
+     * Projection 1Y
+     */
+    projection_1y?: number | null;
+    /**
+     * Projection 2Y
+     */
+    projection_2y?: number | null;
+    /**
+     * Projection 3Y
+     */
+    projection_3y?: number | null;
+    risk_flags: EvidenceListField;
+    roster_audit?: RosterAuditSignalsView | null;
+    /**
+     * Signal Completeness
+     */
+    signal_completeness?: number;
+    /**
+     * Sleeper Id
+     */
+    sleeper_id?: string | null;
+    top_drivers: EvidenceListField;
+    /**
+     * Xvar
+     */
+    xvar?: number | null;
+};
+
+/**
+ * RosterAuditResponse
+ */
+export type RosterAuditResponse = {
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Dropped Player Count
+     */
+    dropped_player_count?: number;
+    /**
+     * Engine
+     */
+    engine: string;
+    /**
+     * Model Status By Position
+     */
+    model_status_by_position: {
+        [key: string]: 'VALIDATED' | 'PROVISIONAL' | 'EXPERIMENTAL';
+    };
+    /**
+     * Players
+     */
+    players?: Array<RosterAuditPlayer>;
+    /**
+     * Qb Context Cards
+     */
+    qb_context_cards?: Array<QbContextCard>;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Status
+     */
+    status: 'active' | 'degraded';
+};
+
+/**
+ * RosterAuditSignalsView
+ *
+ * F3: curated signals view; nested decision_supported can never leak true.
+ */
+export type RosterAuditSignalsView = {
+    /**
+     * Age Cliff Risk
+     */
+    age_cliff_risk?: number | null;
+    /**
+     * Age Value Context
+     */
+    age_value_context?: string | null;
+    /**
+     * Biological Debt Score
+     */
+    biological_debt_score?: number | null;
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Cliff Age
+     */
+    cliff_age?: number | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Liquidity Risk
+     */
+    liquidity_risk?: string | null;
+    /**
+     * Signal
+     */
+    signal?: string | null;
+    /**
+     * Signal Drivers
+     */
+    signal_drivers?: Array<string>;
+    /**
+     * Years To Cliff
+     */
+    years_to_cliff?: number | null;
+};
+
+/**
  * RosterPenaltySummary
  */
 export type RosterPenaltySummary = {
@@ -1528,13 +1794,9 @@ export type AuditRosterApiRosterAuditGetData = {
 
 export type AuditRosterApiRosterAuditGetResponses = {
     /**
-     * Response Audit Roster Api Roster Audit Get
-     *
      * Successful Response
      */
-    200: {
-        [key: string]: unknown;
-    };
+    200: RosterAuditResponse;
 };
 
 export type AuditRosterApiRosterAuditGetResponse = AuditRosterApiRosterAuditGetResponses[keyof AuditRosterApiRosterAuditGetResponses];
