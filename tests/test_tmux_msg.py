@@ -44,7 +44,7 @@ def test_send_message_separates_option_like_message_from_set_buffer_flags() -> N
     assert commands[0] == ["tmux", "set-buffer", "--", "-n no flag please"]
 
 
-def test_send_message_can_submit_with_enter() -> None:
+def test_send_message_submits_with_carriage_return() -> None:
     calls: list[list[str]] = []
 
     def runner(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
@@ -53,33 +53,20 @@ def test_send_message_can_submit_with_enter() -> None:
 
     tmux_msg.send_message("dynasty:1.1", "status?", submit=True, runner=runner)
 
-    assert calls[-1] == ["tmux", "send-keys", "-t", "dynasty:1.1", "Enter"]
-
-
-def test_send_message_waits_between_paste_and_submit_enter() -> None:
-    events: list[object] = []
-
-    def runner(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
-        events.append(command)
-        return subprocess.CompletedProcess(command, 0, "", "")
-
-    def sleeper(delay: float) -> None:
-        events.append(("sleep", delay))
-
-    tmux_msg.send_message(
-        "dynasty:1.1",
-        "status?",
-        submit=True,
-        submit_delay=0.42,
-        runner=runner,
-        sleeper=sleeper,
-    )
-
-    assert events == [
+    assert calls == [
         ["tmux", "set-buffer", "--", "status?"],
-        ["tmux", "paste-buffer", "-p", "-t", "dynasty:1.1"],
-        ("sleep", 0.42),
-        ["tmux", "send-keys", "-t", "dynasty:1.1", "Enter"],
+        [
+            "tmux",
+            "paste-buffer",
+            "-p",
+            "-t",
+            "dynasty:1.1",
+            ";",
+            "send-keys",
+            "-t",
+            "dynasty:1.1",
+            "C-m",
+        ],
     ]
 
 
@@ -101,6 +88,16 @@ def test_dry_run_does_not_call_runner() -> None:
     assert calls == []
     assert commands == [
         ["tmux", "set-buffer", "--", "dry run only"],
-        ["tmux", "paste-buffer", "-p", "-t", "dynasty:1.3"],
-        ["tmux", "send-keys", "-t", "dynasty:1.3", "Enter"],
+        [
+            "tmux",
+            "paste-buffer",
+            "-p",
+            "-t",
+            "dynasty:1.3",
+            ";",
+            "send-keys",
+            "-t",
+            "dynasty:1.3",
+            "C-m",
+        ],
     ]

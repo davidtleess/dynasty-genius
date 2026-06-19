@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import subprocess
-import time
 from dataclasses import dataclass
 from typing import Callable
 
@@ -17,7 +16,6 @@ TMUX_PANE_FORMAT = (
 )
 
 Runner = Callable[..., subprocess.CompletedProcess]
-Sleeper = Callable[[float], None]
 
 
 @dataclass(frozen=True)
@@ -66,12 +64,29 @@ def list_panes(
 
 
 def _send_commands(target: str, message: str, *, submit: bool) -> list[list[str]]:
+    if submit:
+        # tmux treats ";" as an internal command separator here, keeping paste
+        # and Enter in one invocation so the submit key cannot lag behind.
+        return [
+            ["tmux", "set-buffer", "--", message],
+            [
+                "tmux",
+                "paste-buffer",
+                "-p",
+                "-t",
+                target,
+                ";",
+                "send-keys",
+                "-t",
+                target,
+                "C-m",
+            ],
+        ]
+
     commands = [
         ["tmux", "set-buffer", "--", message],
         ["tmux", "paste-buffer", "-p", "-t", target],
     ]
-    if submit:
-        commands.append(["tmux", "send-keys", "-t", target, "Enter"])
     return commands
 
 
@@ -80,20 +95,16 @@ def send_message(
     message: str,
     *,
     submit: bool = False,
-    submit_delay: float = 0.3,
     dry_run: bool = False,
     runner: Runner = subprocess.run,
-    sleeper: Sleeper = time.sleep,
 ) -> list[list[str]]:
-    """Paste a message into a tmux pane and optionally submit it."""
+    """Paste or type a message into a tmux pane and optionally submit it."""
 
     commands = _send_commands(target, message, submit=submit)
     if dry_run:
         return commands
 
-    for index, command in enumerate(commands):
-        if submit and index == 2:
-            sleeper(submit_delay)
+    for command in commands:
         runner(command, check=True, capture_output=True, text=True)
     return commands
 
@@ -132,12 +143,6 @@ def main() -> None:
         help="Press Enter after pasting the message.",
     )
     send_parser.add_argument(
-        "--submit-delay",
-        type=float,
-        default=0.3,
-        help="Seconds to wait between paste and Enter when --submit is used.",
-    )
-    send_parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print tmux commands without running them.",
@@ -153,7 +158,6 @@ def main() -> None:
         args.target,
         message,
         submit=args.submit,
-        submit_delay=args.submit_delay,
         dry_run=args.dry_run,
     )
     if args.dry_run:
