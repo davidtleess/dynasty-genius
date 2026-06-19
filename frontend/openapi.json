@@ -1688,6 +1688,560 @@
         "title": "ProspectRequest",
         "type": "object"
       },
+      "QBContextCard": {
+        "additionalProperties": false,
+        "description": "F2: explicitly typed; extra fields forbidden (no provenance/market backdoor).",
+        "properties": {
+          "context_role": {
+            "const": "context_signal",
+            "default": "context_signal",
+            "title": "Context Role",
+            "type": "string"
+          },
+          "cpoe": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpoe"
+          },
+          "dakota": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dakota"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "dropback_count": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dropback Count"
+          },
+          "epa_per_dropback": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Epa Per Dropback"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "identity_coverage": {
+            "enum": [
+              "FULL",
+              "PARTIAL",
+              "NONE"
+            ],
+            "title": "Identity Coverage",
+            "type": "string"
+          },
+          "pass_attempts": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Attempts"
+          },
+          "player_id": {
+            "title": "Player Id",
+            "type": "string"
+          },
+          "qb_context_annotations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Qb Context Annotations",
+            "type": "array"
+          },
+          "qb_context_caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Qb Context Caveats",
+            "type": "array"
+          },
+          "source_qb_context_annotations": {
+            "title": "Source Qb Context Annotations",
+            "type": "string"
+          }
+        },
+        "required": [
+          "player_id",
+          "full_name",
+          "identity_coverage",
+          "source_qb_context_annotations"
+        ],
+        "title": "QBContextCard",
+        "type": "object"
+      },
+      "RosterAuditPlayer": {
+        "properties": {
+          "age": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "counter_argument": {
+            "$ref": "#/components/schemas/CounterArgumentField"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "draft_class": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Class"
+          },
+          "dvs_engine": {
+            "anyOf": [
+              {
+                "enum": [
+                  "A",
+                  "B",
+                  "blend"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs Engine"
+          },
+          "dvs_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs Pct"
+          },
+          "dynasty_value_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dynasty Value Score"
+          },
+          "engine_used": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Used"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "inputs_missing": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Inputs Missing",
+            "type": "array"
+          },
+          "inputs_present": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Inputs Present",
+            "type": "array"
+          },
+          "is_prospect": {
+            "default": false,
+            "title": "Is Prospect",
+            "type": "boolean"
+          },
+          "model_grade": {
+            "title": "Model Grade",
+            "type": "string"
+          },
+          "model_status_applies": {
+            "default": false,
+            "title": "Model Status Applies",
+            "type": "boolean"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "nfl_draft_pick": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nfl Draft Pick"
+          },
+          "nfl_draft_round": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nfl Draft Round"
+          },
+          "nfl_team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nfl Team"
+          },
+          "player_id": {
+            "title": "Player Id",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "projection_1y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projection 1Y"
+          },
+          "projection_2y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projection 2Y"
+          },
+          "projection_3y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projection 3Y"
+          },
+          "risk_flags": {
+            "$ref": "#/components/schemas/EvidenceListField"
+          },
+          "roster_audit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RosterAuditSignalsView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "signal_completeness": {
+            "default": 0.0,
+            "title": "Signal Completeness",
+            "type": "number"
+          },
+          "sleeper_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sleeper Id"
+          },
+          "top_drivers": {
+            "$ref": "#/components/schemas/EvidenceListField"
+          },
+          "xvar": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xvar"
+          }
+        },
+        "required": [
+          "player_id",
+          "full_name",
+          "position",
+          "model_grade",
+          "counter_argument",
+          "top_drivers",
+          "risk_flags"
+        ],
+        "title": "RosterAuditPlayer",
+        "type": "object"
+      },
+      "RosterAuditResponse": {
+        "properties": {
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "dropped_player_count": {
+            "default": 0,
+            "title": "Dropped Player Count",
+            "type": "integer"
+          },
+          "engine": {
+            "title": "Engine",
+            "type": "string"
+          },
+          "model_status_by_position": {
+            "additionalProperties": {
+              "enum": [
+                "VALIDATED",
+                "PROVISIONAL",
+                "EXPERIMENTAL"
+              ],
+              "type": "string"
+            },
+            "title": "Model Status By Position",
+            "type": "object"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/RosterAuditPlayer"
+            },
+            "title": "Players",
+            "type": "array"
+          },
+          "qb_context_cards": {
+            "items": {
+              "$ref": "#/components/schemas/QBContextCard"
+            },
+            "title": "Qb Context Cards",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "degraded"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "engine",
+          "reason",
+          "model_status_by_position"
+        ],
+        "title": "RosterAuditResponse",
+        "type": "object"
+      },
+      "RosterAuditSignalsView": {
+        "description": "F3: curated signals view; nested decision_supported can never leak true.",
+        "properties": {
+          "age_cliff_risk": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Cliff Risk"
+          },
+          "age_value_context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Value Context"
+          },
+          "biological_debt_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Biological Debt Score"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "cliff_age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cliff Age"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "liquidity_risk": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Liquidity Risk"
+          },
+          "signal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signal"
+          },
+          "signal_drivers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Signal Drivers",
+            "type": "array"
+          },
+          "years_to_cliff": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Years To Cliff"
+          }
+        },
+        "title": "RosterAuditSignalsView",
+        "type": "object"
+      },
       "RosterPenaltySummary": {
         "properties": {
           "decision_supported": {
@@ -2855,9 +3409,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Audit Roster Api Roster Audit Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/RosterAuditResponse"
                 }
               }
             },

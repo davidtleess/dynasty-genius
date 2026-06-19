@@ -277,6 +277,108 @@ export const zProspectRequest = z.object({
 });
 
 /**
+ * QBContextCard
+ *
+ * F2: explicitly typed; extra fields forbidden (no provenance/market backdoor).
+ */
+export const zQbContextCard = z.object({
+    context_role: z.literal('context_signal').optional().default('context_signal'),
+    cpoe: z.number().nullish(),
+    dakota: z.number().nullish(),
+    decision_supported: z.literal(false).optional().default(false),
+    dropback_count: z.number().nullish(),
+    epa_per_dropback: z.number().nullish(),
+    full_name: z.string(),
+    identity_coverage: z.enum([
+        'FULL',
+        'PARTIAL',
+        'NONE'
+    ]),
+    pass_attempts: z.number().nullish(),
+    player_id: z.string(),
+    qb_context_annotations: z.array(z.string()).optional(),
+    qb_context_caveats: z.array(z.string()).optional(),
+    source_qb_context_annotations: z.string()
+});
+
+/**
+ * RosterAuditSignalsView
+ *
+ * F3: curated signals view; nested decision_supported can never leak true.
+ */
+export const zRosterAuditSignalsView = z.object({
+    age_cliff_risk: z.number().nullish(),
+    age_value_context: z.string().nullish(),
+    biological_debt_score: z.number().nullish(),
+    caveats: z.array(z.string()).optional(),
+    cliff_age: z.int().nullish(),
+    decision_supported: z.literal(false).optional().default(false),
+    liquidity_risk: z.string().nullish(),
+    signal: z.string().nullish(),
+    signal_drivers: z.array(z.string()).optional(),
+    years_to_cliff: z.int().nullish()
+});
+
+/**
+ * RosterAuditPlayer
+ */
+export const zRosterAuditPlayer = z.object({
+    age: z.number().nullish(),
+    caveats: z.array(z.string()).optional(),
+    counter_argument: zCounterArgumentField,
+    decision_supported: z.literal(false).optional().default(false),
+    draft_class: z.int().nullish(),
+    dvs_engine: z.enum([
+        'A',
+        'B',
+        'blend'
+    ]).nullish(),
+    dvs_pct: z.number().nullish(),
+    dynasty_value_score: z.number().nullish(),
+    engine_used: z.string().nullish(),
+    full_name: z.string(),
+    inputs_missing: z.array(z.string()).optional(),
+    inputs_present: z.array(z.string()).optional(),
+    is_prospect: z.boolean().optional().default(false),
+    model_grade: z.string(),
+    model_status_applies: z.boolean().optional().default(false),
+    model_version: z.string().nullish(),
+    nfl_draft_pick: z.int().nullish(),
+    nfl_draft_round: z.int().nullish(),
+    nfl_team: z.string().nullish(),
+    player_id: z.string(),
+    position: z.string(),
+    projection_1y: z.number().nullish(),
+    projection_2y: z.number().nullish(),
+    projection_3y: z.number().nullish(),
+    risk_flags: zEvidenceListField,
+    roster_audit: zRosterAuditSignalsView.nullish(),
+    signal_completeness: z.number().optional().default(0),
+    sleeper_id: z.string().nullish(),
+    top_drivers: zEvidenceListField,
+    xvar: z.number().nullish()
+});
+
+/**
+ * RosterAuditResponse
+ */
+export const zRosterAuditResponse = z.object({
+    caveats: z.array(z.string()).optional(),
+    decision_supported: z.literal(false).optional().default(false),
+    dropped_player_count: z.int().optional().default(0),
+    engine: z.string(),
+    model_status_by_position: z.record(z.string(), z.enum([
+        'VALIDATED',
+        'PROVISIONAL',
+        'EXPERIMENTAL'
+    ])),
+    players: z.array(zRosterAuditPlayer).optional(),
+    qb_context_cards: z.array(zQbContextCard).optional(),
+    reason: z.string(),
+    status: z.enum(['active', 'degraded'])
+});
+
+/**
  * RosterPenaltySummary
  */
 export const zRosterPenaltySummary = z.object({
@@ -649,11 +751,9 @@ export const zScoreClassApiRookiesScoreClassPostBody = z.array(zProspectRequest)
 export const zScoreClassApiRookiesScoreClassPostResponse = z.array(z.record(z.string(), z.unknown()));
 
 /**
- * Response Audit Roster Api Roster Audit Get
- *
  * Successful Response
  */
-export const zAuditRosterApiRosterAuditGetResponse = z.record(z.string(), z.unknown());
+export const zAuditRosterApiRosterAuditGetResponse = zRosterAuditResponse;
 
 export const zAnalyzeApiTradeAnalyzePostBody = zTradeRequest;
 

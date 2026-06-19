@@ -68,3 +68,28 @@ def test_trust_surface_route_has_typed_openapi_schema() -> None:
         "experimental",
         "model_card_available",
     ]
+
+
+def test_roster_audit_route_typed_in_live_schema() -> None:
+    schema = app.openapi()
+    roster_audit_schema = schema["paths"]["/api/roster/audit"]["get"]["responses"][
+        "200"
+    ]["content"]["application/json"]["schema"]
+
+    assert roster_audit_schema.get("$ref", "").endswith("/RosterAuditResponse")
+
+
+def test_roster_audit_generated_client_is_typed() -> None:
+    zod_client = (
+        REPO_ROOT / "frontend" / "src" / "lib" / "api" / "zod.gen.ts"
+    ).read_text(encoding="utf-8")
+    types_client = (
+        REPO_ROOT / "frontend" / "src" / "lib" / "api" / "types.gen.ts"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "zAuditRosterApiRosterAuditGetResponse = z.record(z.string(), z.unknown())"
+        not in zod_client
+    )
+    assert "RosterAuditResponse" in zod_client
+    assert "RosterAuditResponse" in types_client
