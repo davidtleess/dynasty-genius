@@ -14,7 +14,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.api.routes.players import CounterArgumentField, EvidenceListField
+from app.api.routes.players import (
+    CounterArgumentField,
+    EvidenceListField,
+    _counter_argument_field,
+    _evidence_list_field,
+)
 from src.dynasty_genius.eval.backtest_artifact import BacktestResult
 
 TRUST_DIR = Path("app/data/backtest/trust_surface/latest")
@@ -200,3 +205,57 @@ class RosterAuditResponse(BaseModel):
     qb_context_cards: list[QBContextCard] = Field(default_factory=list)
     dropped_player_count: int = 0
     decision_supported: Literal[False] = False
+
+
+# ── Task 3: allowlist mapper (market-safe, token-enforced, applicability) ──────
+
+# Explicit scalar allowlist. Anything not named here (market_overlay, market_value,
+# future_*, etc.) is excluded from the David-facing player by construction — this is
+# the leak fix: no raw pvo.dict() pass-through.
+_SCALARS = (
+    "player_id", "full_name", "position", "nfl_team", "age", "sleeper_id",
+    "is_prospect", "draft_class", "nfl_draft_pick", "nfl_draft_round", "engine_used",
+    "model_version", "model_grade", "dvs_engine", "dynasty_value_score",
+    "projection_1y", "projection_2y", "projection_3y", "xvar", "dvs_pct",
+    "signal_completeness", "inputs_present", "inputs_missing",
+)
+
+
+def _map_signals(raw: dict | None) -> RosterAuditSignalsView | None:
+    """Curate the nested signals view: list + scalar token-only fields validated through
+    SAFE_TOKENS; decision_supported is Literal[False] so a nested true cannot survive."""
+    if not raw:
+        return None
+    drivers, dc1 = validate_tokens(raw.get("signal_drivers"))
+    cav, dc2 = validate_tokens(raw.get("caveats"))
+    signal, sc1 = validate_token(raw.get("signal"))           # R3-1: scalar token-only
+    avc, sc2 = validate_token(raw.get("age_value_context"))   # R3-1
+    liq, sc3 = validate_token(raw.get("liquidity_risk"))      # R3-1
+    return RosterAuditSignalsView(
+        cliff_age=raw.get("cliff_age"),
+        years_to_cliff=raw.get("years_to_cliff"),
+        age_cliff_risk=raw.get("age_cliff_risk"),
+        biological_debt_score=raw.get("biological_debt_score"),  # R2-3 retained
+        liquidity_risk=liq,
+        signal=signal,
+        signal_drivers=drivers,
+        age_value_context=avc,
+        caveats=cav + dc1 + dc2 + sc1 + sc2 + sc3,
+    )
+
+
+def map_player(raw: dict) -> RosterAuditPlayer:
+    """Explicit ALLOWLIST mapping (no raw pvo.dict()); market/value/future fields are
+    excluded by construction; David-facing text is validated/suppressed."""
+    data: dict = {k: raw.get(k) for k in _SCALARS}
+    clean_caveats, dc = validate_tokens(raw.get("caveats"))
+    data["caveats"] = clean_caveats + dc
+    data["counter_argument"] = _counter_argument_field(raw.get("counter_argument"))
+    data["top_drivers"] = _evidence_list_field(raw.get("top_drivers"))
+    data["risk_flags"] = _evidence_list_field(raw.get("risk_flags"))
+    data["roster_audit"] = _map_signals(raw.get("roster_audit"))
+    # R2-6: scoped to run_audit_pvo output (which emits engine_a / engine_b). Repo-wide,
+    # engine_used can carry engine_a_*_ridge via pvo_assembler; this mapper consumes
+    # run_audit_pvo output, so exact "engine_b" equality is correct here.
+    data["model_status_applies"] = raw.get("engine_used") == "engine_b"
+    return RosterAuditPlayer(**{k: v for k, v in data.items() if v is not None})
