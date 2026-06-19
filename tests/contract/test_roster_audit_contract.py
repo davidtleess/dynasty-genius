@@ -2,7 +2,15 @@ import json
 import shutil
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from app.api.routes import roster_audit_models as ram
+from app.api.routes.roster_audit_models import (
+    QBContextCard,
+    RosterAuditResponse,
+    validate_tokens,
+)
 
 REAL = Path("app/data/backtest/trust_surface/latest")
 
@@ -56,3 +64,30 @@ def test_trust_out_of_domain_status_is_failclosed(tmp_path, monkeypatch):
     monkeypatch.setattr(ram, "TRUST_DIR", d)
     status, caveats = ram.load_model_status_by_position(["WR"])
     assert status["WR"] == "EXPERIMENTAL" and "trust_status_unavailable" in caveats
+
+
+def test_decision_supported_locked():
+    with pytest.raises(ValidationError):
+        RosterAuditResponse(
+            status="active",
+            engine="e",
+            reason="r",
+            model_status_by_position={},
+            decision_supported=True,
+        )  # type: ignore[arg-type]
+
+
+def test_qb_card_rejects_unknown_field():  # F2: no extra=allow
+    with pytest.raises(ValidationError):
+        QBContextCard(
+            player_id="q",
+            full_name="QB",
+            identity_coverage="FULL",
+            source_qb_context_annotations="x",
+            market_value=99,
+        )  # type: ignore[call-arg]
+
+
+def test_validate_tokens_strips_unknown_and_banned():  # F1
+    clean, caveats = validate_tokens(["past_cliff", "elite", "totally_unknown"])
+    assert clean == ["past_cliff"] and "evidence_suppressed_banned_term" in caveats
