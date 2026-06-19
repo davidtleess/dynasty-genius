@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from app.api.routes import roster_audit_models as ram
@@ -14,6 +15,7 @@ from app.api.routes.roster_audit_models import (
     map_player,
     validate_tokens,
 )
+from app.main import app
 
 REAL = Path("app/data/backtest/trust_surface/latest")
 
@@ -171,3 +173,24 @@ def test_qb_card_unsafe_source_dropped_degraded():  # R2-2 + R2-5
     r = assemble_response(_audit([_raw()], qb=qb))
     assert r.qb_context_cards == [] and r.dropped_player_count == 1
     assert "qb_context_card_dropped_corrupt" in r.caveats and r.status == "degraded"
+
+
+def _no_true(o):  # recursive AC-2
+    if isinstance(o, dict):
+        return o.get("decision_supported") is not True and all(_no_true(v) for v in o.values())
+    if isinstance(o, list):
+        return all(_no_true(x) for x in o)
+    return True
+
+
+def test_route_typed_recursive_clean(monkeypatch):
+    from app.api.routes import roster as route
+    async def fake():  # nested decision_supported=true under roster_audit (F8)
+        return _audit([_raw(roster_audit={"signal": "at_cliff", "decision_supported": True})])
+    monkeypatch.setattr(route, "run_audit_pvo", fake)
+    r = TestClient(app).get("/api/roster/audit")
+    assert r.status_code == 200
+    body = r.json()
+    assert '"market_overlay"' not in r.text and '"market_value"' not in r.text
+    assert "future_x" not in r.text and "123" not in r.text and "leak" not in r.text
+    assert _no_true(body)
