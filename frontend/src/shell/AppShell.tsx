@@ -3,6 +3,7 @@ import { useState } from "react";
 import { type Command, CommandPalette } from "../command/CommandPalette";
 import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { PlayerInspector } from "../player/PlayerInspector";
+import { RosterAudit } from "../roster/RosterAudit";
 import { TradeLab } from "../trade/TradeLab";
 import type { CatalogEntry } from "../trade/tradeState";
 import { TrustConsole } from "../trust/TrustConsole";
@@ -103,6 +104,7 @@ export function AppShell() {
         ) : (
           <>
             <h1 className="dg-shell__title">{activeSurface}</h1>
+            {activeSurface === "Roster Audit" && <RosterAudit />}
             {activeSurface === "Trade Lab" && (
               <TradeLab onSelectPlayer={selectPlayer} />
             )}
