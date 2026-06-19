@@ -122,9 +122,15 @@ def test_nested_decision_supported_coerced_false():  # F3
     assert p.roster_audit.decision_supported is False
 
 
-def test_token_only_caveats_enforced():  # AC-5
-    p = map_player(_raw(caveats=["no_market_overlay", "elite", "mystery_token"]))
-    assert "elite" not in p.caveats and "mystery_token" not in p.caveats
+def test_player_caveats_preserve_clean_free_text():  # SP-1 / AC-5
+    free_text = "Signal completeness 94% — missing: ppg_t_minus_2"
+    p = map_player(_raw(caveats=["no_market_overlay", free_text]))
+    assert p.caveats == ["no_market_overlay", free_text]
+
+
+def test_player_caveats_suppress_banned_free_text():  # SP-1 / AC-5
+    p = map_player(_raw(caveats=["no_market_overlay", "Sell now"]))
+    assert p.caveats == ["no_market_overlay", "evidence_suppressed_banned_term"]
 
 
 def test_scalar_token_fields_validated():  # R3-1: AC-5 scalar (signal/age_value_context/liquidity_risk)
@@ -194,3 +200,20 @@ def test_route_typed_recursive_clean(monkeypatch):
     assert '"market_overlay"' not in r.text and '"market_value"' not in r.text
     assert "future_x" not in r.text and "123" not in r.text and "leak" not in r.text
     assert _no_true(body)
+
+
+def test_safe_tokens_cover_producers():  # verified producers from roster_auditor.py
+    from app.api.routes.roster_audit_models import SAFE_TOKENS
+    producers = {
+        "past_cliff","at_cliff","approaching_cliff","no_age_signal",
+        "age_past_position_cliff","age_at_position_cliff",
+        "age_within_two_years_of_position_cliff","age_not_near_position_cliff",
+        "past_cliff_depreciation_risk","no_engine_b_projection",
+        "approaching_cliff_high_projection","approaching_cliff_low_projection",
+        "prime_window_high_projection","stable_age_low_projection",
+        "no_market_overlay","no_market_derived_inputs","no_internal_value_signal",
+        "no_usage_signal","age_curve_only","engine_b_experimental_v1_fallback",
+        "HIGH_NO_SECOND_ROUND_ESCAPE_HATCH","MEDIUM_LIMITED_ESCAPE_HATCH","LOW",
+        "low_td_int_ratio_bust_context","all_purpose_yards_mobility_context",
+        "missing_qb_college_context","p2s_context_unavailable","cfbd_qb_context_annotations"}
+    assert producers <= SAFE_TOKENS

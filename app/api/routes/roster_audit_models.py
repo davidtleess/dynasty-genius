@@ -246,10 +246,14 @@ def _map_signals(raw: dict | None) -> RosterAuditSignalsView | None:
 
 def map_player(raw: dict) -> RosterAuditPlayer:
     """Explicit ALLOWLIST mapping (no raw pvo.dict()); market/value/future fields are
-    excluded by construction; David-facing text is validated/suppressed."""
+    excluded by construction; David-facing text is validated/suppressed.
+
+    Top-level PVO caveats are free-text uncertainty/provenance evidence, so they use
+    banned-language filtering. Nested roster-audit/QB caveats remain token-only.
+    """
     data: dict = {k: raw.get(k) for k in _SCALARS}
-    clean_caveats, dc = validate_tokens(raw.get("caveats"))
-    data["caveats"] = clean_caveats + dc
+    caveats = _evidence_list_field(raw.get("caveats"))
+    data["caveats"] = caveats.items + caveats.caveats
     data["counter_argument"] = _counter_argument_field(raw.get("counter_argument"))
     data["top_drivers"] = _evidence_list_field(raw.get("top_drivers"))
     data["risk_flags"] = _evidence_list_field(raw.get("risk_flags"))
