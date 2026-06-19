@@ -9,6 +9,8 @@ from app.api.routes import roster_audit_models as ram
 from app.api.routes.roster_audit_models import (
     QBContextCard,
     RosterAuditResponse,
+    RosterDependencyError,
+    assemble_response,
     map_player,
     validate_tokens,
 )
@@ -136,3 +138,36 @@ def test_engine_a_not_applicable():  # AC-6 / F6
     for eng in ("engine_a", None):
         assert map_player(_raw(engine_used=eng, model_grade="PROSPECT_C")).model_status_applies is False
     assert map_player(_raw(engine_used="engine_b")).model_status_applies is True
+
+
+def _audit(players, qb=None):
+    return {"status": "active", "engine": "pvo_assembler_v1", "reason": "ok",
+        "caveats": ["no_market_overlay"], "players": players, "qb_context_cards": qb or []}
+
+
+def test_isolated_corrupt_dropped():  # AC-4
+    r = assemble_response(_audit([_raw(player_id="g"), {"oops": 1}]))
+    assert r.dropped_player_count == 1 and "player_row_dropped_corrupt" in r.caveats
+    assert len(r.players) == 1 and r.status == "degraded"
+
+
+def test_all_invalid_systemic_503():
+    with pytest.raises(RosterDependencyError):
+        assemble_response(_audit([{"x": 1}, {"y": 2}]))
+
+
+def test_qb_card_tokens_validated():  # AC-5 (QB path)
+    qb = [{"player_id": "q", "full_name": "QB", "identity_coverage": "FULL",
+           "source_qb_context_annotations": "cfbd_qb_context_annotations",
+           "qb_context_annotations": ["elite", "low_td_int_ratio_bust_context"]}]
+    r = assemble_response(_audit([_raw()], qb=qb))
+    assert "elite" not in r.qb_context_cards[0].qb_context_annotations
+    assert "low_td_int_ratio_bust_context" in r.qb_context_cards[0].qb_context_annotations
+
+
+def test_qb_card_unsafe_source_dropped_degraded():  # R2-2 + R2-5
+    qb = [{"player_id": "q", "full_name": "QB", "identity_coverage": "FULL",
+           "source_qb_context_annotations": "totally_unknown_source"}]
+    r = assemble_response(_audit([_raw()], qb=qb))
+    assert r.qb_context_cards == [] and r.dropped_player_count == 1
+    assert "qb_context_card_dropped_corrupt" in r.caveats and r.status == "degraded"

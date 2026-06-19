@@ -259,3 +259,79 @@ def map_player(raw: dict) -> RosterAuditPlayer:
     # run_audit_pvo output, so exact "engine_b" equality is correct here.
     data["model_status_applies"] = raw.get("engine_used") == "engine_b"
     return RosterAuditPlayer(**{k: v for k, v in data.items() if v is not None})
+
+
+# ── Task 4: envelope assembler (QB token validation, isolated-drop / systemic-503) ──
+
+
+class RosterDependencyError(RuntimeError):
+    """Systemic roster-audit failure (e.g. every row unmappable) -> caller returns 503."""
+
+
+def _map_qb(raw: dict) -> QBContextCard:
+    """Map a raw QB-context card through the allowlist + token validation. The source
+    label is token-only (R2-2): an unsafe source raises, so the caller drops the card."""
+    ann, dc1 = validate_tokens(raw.get("qb_context_annotations"))
+    cav, dc2 = validate_tokens(raw.get("qb_context_caveats"))
+    src = raw.get("source_qb_context_annotations")
+    if src not in SAFE_TOKENS:
+        raise ValueError(f"unsafe source token {src!r}")
+    allow = {
+        "player_id", "full_name", "identity_coverage",
+        "epa_per_dropback", "cpoe", "dakota", "dropback_count", "pass_attempts",
+    }
+    base = {k: raw.get(k) for k in allow if raw.get(k) is not None}
+    return QBContextCard(
+        **base,
+        source_qb_context_annotations=src,
+        qb_context_annotations=ann,
+        qb_context_caveats=cav + dc1 + dc2,
+    )
+
+
+def assemble_response(audit: dict) -> RosterAuditResponse:
+    """Map run_audit_pvo output into the typed RosterAuditResponse. Isolated unmappable
+    rows are dropped, counted, named (player_row_dropped_corrupt), and degrade the status;
+    ALL rows failing is systemic -> RosterDependencyError (caller 503), not a silent empty
+    success. QB cards with an unsafe source label are dropped + named
+    (qb_context_card_dropped_corrupt, R2-5). Any trust caveat forces degraded."""
+    raw_players = audit.get("players", [])
+    mapped: list[RosterAuditPlayer] = []
+    dropped = 0
+    for raw in raw_players:
+        try:
+            mapped.append(map_player(raw))
+        except Exception:
+            dropped += 1
+    if raw_players and not mapped:
+        raise RosterDependencyError("all roster rows failed to map")
+    qb_cards: list[QBContextCard] = []
+    qb_dropped = 0
+    for raw in audit.get("qb_context_cards", []):
+        try:
+            qb_cards.append(_map_qb(raw))
+        except Exception:
+            qb_dropped += 1
+    status_map, trust_caveats = load_model_status_by_position(
+        [p.position for p in mapped]
+    )
+    caveats = list(audit.get("caveats", [])) + trust_caveats
+    status = "active"
+    if dropped:
+        caveats.append("player_row_dropped_corrupt")
+        status = "degraded"
+    if qb_dropped:  # R2-5: QB-card drop is degraded + named, never silent
+        caveats.append("qb_context_card_dropped_corrupt")
+        status = "degraded"
+    if trust_caveats:
+        status = "degraded"
+    return RosterAuditResponse(
+        status=status,
+        engine=audit.get("engine", "pvo_assembler_v1"),
+        reason=audit.get("reason", ""),
+        model_status_by_position=status_map,
+        caveats=caveats,
+        players=mapped,
+        qb_context_cards=qb_cards,
+        dropped_player_count=dropped + qb_dropped,
+    )
