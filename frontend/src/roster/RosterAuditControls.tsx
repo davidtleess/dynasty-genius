@@ -11,6 +11,7 @@ const GROUP_OPTIONS: { value: GroupKey; label: string }[] = [
   { value: "none", label: "None" },
   { value: "position", label: "Position" },
   { value: "depreciation_band", label: "Depreciation band" },
+  { value: "xvar_bracket", label: "xVAR bracket" },
 ];
 const PROSPECT_OPTIONS: { value: ProspectFilter; label: string }[] = [
   { value: "all", label: "All" },
