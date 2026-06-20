@@ -3,6 +3,7 @@ import type { RosterAuditResponse } from "../lib/api";
 import { zRosterAuditResponse } from "../lib/api/zod.gen";
 import { QbContextSection } from "./QbContextSection";
 import "./RosterAudit.css";
+import { type ControlsState, RosterAuditControls } from "./RosterAuditControls";
 import { RosterAuditHeader } from "./RosterAuditHeader";
 import {
   ConfigErrorState,
@@ -12,6 +13,7 @@ import {
   UnavailableState,
 } from "./RosterAuditStates";
 import { RosterAuditTable } from "./RosterAuditTable";
+import { applyFilter, applyGroup, type Player } from "./rosterTransform";
 
 type State =
   | { status: "loading" }
@@ -60,9 +62,44 @@ export function RosterAudit() {
   if (state.status === "parse-error") return <ParseErrorState />;
 
   const { data } = state;
-  const players = data.players ?? [];
+  const allPlayers = data.players ?? [];
   const cards = data.qb_context_cards ?? [];
   const caveats = data.caveats ?? [];
+
+  return (
+    <ReadyView data={data} allPlayers={allPlayers} cards={cards} caveats={caveats} />
+  );
+}
+
+// Success-state view: owns the local sort/filter/group UI state and runs the
+// pure transform over the players before rendering. Default state (none/all)
+// is identity-preserving, so the surface still renders the backend order.
+function ReadyView({
+  data,
+  allPlayers,
+  cards,
+  caveats,
+}: {
+  data: RosterAuditResponse;
+  allPlayers: Player[];
+  cards: NonNullable<RosterAuditResponse["qb_context_cards"]>;
+  caveats: string[];
+}) {
+  const [ctrl, setCtrl] = useState<ControlsState>({
+    sortKey: "none",
+    groupBy: "none",
+    positions: [],
+    prospect: "all",
+  });
+  const allPositions = Array.from(new Set(allPlayers.map((p) => p.position)));
+  const filtered = applyFilter(allPlayers, {
+    positions: ctrl.positions,
+    prospect: ctrl.prospect,
+  });
+  const groups = applyGroup(filtered, ctrl.groupBy, ctrl.sortKey);
+  const filteredOutCount = allPlayers.length - filtered.length;
+  const reset = () =>
+    setCtrl({ sortKey: "none", groupBy: "none", positions: [], prospect: "all" });
 
   return (
     <div className="dg-roster">
@@ -72,7 +109,29 @@ export function RosterAudit() {
         caveats={caveats}
         droppedPlayerCount={data.dropped_player_count ?? 0}
       />
-      {players.length === 0 ? <EmptyState /> : <RosterAuditTable players={players} />}
+      {allPlayers.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <>
+          <RosterAuditControls
+            {...ctrl}
+            allPositions={allPositions}
+            filteredOutCount={filteredOutCount}
+            onChange={setCtrl}
+            onReset={reset}
+          />
+          {filtered.length === 0 ? (
+            <p className="dg-roster__no-match" role="status">
+              No rows match the current filters.{" "}
+              <button type="button" onClick={reset}>
+                Reset
+              </button>
+            </p>
+          ) : (
+            <RosterAuditTable groups={groups} />
+          )}
+        </>
+      )}
       <QbContextSection cards={cards} />
     </div>
   );
