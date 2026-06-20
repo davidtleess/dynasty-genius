@@ -1,3 +1,5 @@
+> **⚠️ DEPRECATED for live status (2026-06-19).** This file is RETAINED as the historical macro-roadmap playbook (detail + rationale). **Live phase/task status now lives in `resources/project_plan.json`** (rendered by the Project Tracker surface). Update status there; this doc is reference-only.
+
 # Dynasty Genius — Agent Execution Plan
 
 Step-by-step playbook for developer agents. Each step has a single owner, concrete files, dependencies, and acceptance criteria. Agents pick up a step, execute it, and ship.

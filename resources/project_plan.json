@@ -1,0 +1,71 @@
+{
+  "schema_version": "project_plan.v1",
+  "updated_at": "2026-06-19",
+  "doctrine_version": "1.0.0",
+  "phases": [
+    {
+      "id": "phase-foundation",
+      "title": "Foundation, Governance & League Context",
+      "status": "done",
+      "summary": "Safety, governance doctrine, league context, and identity resolution.",
+      "tasks": [
+        { "id": "fnd-governance", "title": "Governance doctrine (00-03)", "status": "done" },
+        { "id": "fnd-identity", "title": "Identity resolution layer", "status": "done" }
+      ]
+    },
+    {
+      "id": "phase-engine-a",
+      "title": "Engine A — Rookie Forecast",
+      "status": "done",
+      "summary": "Bifurcated rookie forecast (v3).",
+      "tasks": [
+        { "id": "ea-v3", "title": "Engine A v3 (W1-W5)", "status": "done", "note": "Phase 19" }
+      ]
+    },
+    {
+      "id": "phase-engine-b",
+      "title": "Engine B — Active Player Forecast",
+      "status": "done",
+      "summary": "Position-stratified active-player models.",
+      "tasks": [
+        { "id": "eb-v2", "title": "Engine B v2 (QB/RB/WR/TE)", "status": "done" }
+      ]
+    },
+    {
+      "id": "phase-pvo",
+      "title": "Unified Player Value Object",
+      "status": "done",
+      "summary": "DVS normalization, xVAR, PVO assembly.",
+      "tasks": [
+        { "id": "pvo-dvs", "title": "DVS normalization + bridge", "status": "done", "note": "Phase 14" },
+        { "id": "pvo-xvar", "title": "xVAR cross-positional valuation", "status": "done", "note": "Phase 15" }
+      ]
+    },
+    {
+      "id": "phase-decision-surfaces",
+      "title": "Phase 12 — Decision Surfaces (Frontend)",
+      "status": "in_progress",
+      "summary": "Read-only decision surfaces over the typed contract.",
+      "tasks": [
+        { "id": "ds-rookie-board", "title": "Rookie Board (standalone)", "status": "done" },
+        { "id": "ds-trade-lab", "title": "Trade Lab surface", "status": "done", "note": "PR #59" },
+        { "id": "ds-trust-console", "title": "Model Trust Console", "status": "done", "note": "PR #61" },
+        { "id": "ds-roster-audit-inc1", "title": "Roster Audit Inc1 (backend contract)", "status": "done", "note": "PR #65" },
+        { "id": "ds-roster-audit-inc2", "title": "Roster Audit Inc2 (read-only UI)", "status": "done", "note": "PR #66" },
+        { "id": "ds-roster-audit-inc3a", "title": "Roster Audit Inc3 Task A (sort/filter/group)", "status": "done", "note": "PR #67" },
+        { "id": "ds-roster-audit-inc3b", "title": "Roster Audit Inc3 Task B (decision-framed grouping)", "status": "planned" },
+        { "id": "ds-project-tracker", "title": "Project Tracker v1 (internal tooling)", "status": "in_progress" }
+      ]
+    },
+    {
+      "id": "phase-market-overlay",
+      "title": "Market Overlay & Backtest Harness",
+      "status": "in_progress",
+      "summary": "Market overlay (overlay-only) + model-vs-market validation harness.",
+      "tasks": [
+        { "id": "mo-harness-trust", "title": "Harness Trust Completion (G3/R2)", "status": "done" },
+        { "id": "mo-gate4", "title": "Gate-4 forward fc_native accrual", "status": "in_progress", "note": "~2026-12-12" }
+      ]
+    }
+  ]
+}

@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import (
     engine_b,
+    internal_project_plan,
     players,
     rookies,
     roster,
@@ -32,6 +33,7 @@ app.include_router(trade_market.router, prefix="/api")
 app.include_router(engine_b.router, prefix="/api")
 app.include_router(trust_surface.router, prefix="/api")
 app.include_router(players.router, prefix="/api")
+app.include_router(internal_project_plan.router, prefix="/api")
 
 
 # --- Frontend SPA static mount (Phase-12 surface 1; spec 2026-06-03-frontend-design-spec) ---

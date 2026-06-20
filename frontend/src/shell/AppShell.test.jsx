@@ -106,4 +106,31 @@ describe("AppShell", () => {
       expect(screen.getByText(/experimental — not decision-grade/i)).toBeTruthy(),
     );
   });
+
+  it("renders the Project Tracker surface when its nav item is selected", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        source: "resources/project_plan.json",
+        status: "ok",
+        phases: [
+          {
+            id: "p1",
+            title: "Phase 1",
+            status: "in_progress",
+            summary: null,
+            tasks: [],
+          },
+        ],
+        warnings: [],
+        parser_version: "v1",
+      }),
+    });
+
+    render(<AppShell />);
+    fireEvent.click(screen.getByRole("button", { name: "Project Tracker" }));
+
+    await waitFor(() => expect(screen.getByText("Phase 1")).toBeTruthy());
+  });
 });
