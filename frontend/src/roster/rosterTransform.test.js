@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { applyFilter, applySort } from "./rosterTransform";
+import { applyFilter, applyGroup, applySort } from "./rosterTransform";
 
 const mk = (o) => ({
   player_id: o.id,
@@ -106,5 +106,49 @@ describe("applyFilter", () => {
     expect(
       applyFilter(ps, { positions: [], prospect: "prospects" }).map((p) => p.player_id),
     ).toEqual(["rookie"]);
+  });
+});
+
+describe("applyGroup", () => {
+  it("position groups in first-seen backend order; group order independent of sort", () => {
+    const ps = [
+      mk({ id: "wr1", pos: "WR", xvar: 1 }),
+      mk({ id: "qb1", pos: "QB", xvar: 99 }),
+      mk({ id: "wr2", pos: "WR", xvar: 50 }),
+    ];
+
+    const groups = applyGroup(ps, "position", "xvar");
+
+    expect(groups.map((g) => g.key)).toEqual(["WR", "QB"]);
+    expect(groups[0].players.map((p) => p.player_id)).toEqual(["wr2", "wr1"]);
+  });
+
+  it("depreciation_band uses producer token severity order; missing last", () => {
+    const ps = [
+      mk({ id: "noSig", ra: null }),
+      mk({ id: "appr", ra: { signal: "approaching_cliff" } }),
+      mk({ id: "past", ra: { signal: "past_cliff" } }),
+      mk({ id: "far", ra: { signal: "no_age_signal" } }),
+      mk({ id: "at", ra: { signal: "at_cliff" } }),
+    ];
+
+    const groups = applyGroup(ps, "depreciation_band", "none");
+
+    expect(groups.map((g) => g.label)).toEqual([
+      "Past cliff age",
+      "At cliff age",
+      "Approaching cliff",
+      "3+ years (No immediate cliff)",
+      "Missing age signal",
+    ]);
+  });
+
+  it("none returns a single unlabeled group, sorted", () => {
+    const ps = [mk({ id: "a", age: 20 }), mk({ id: "b", age: 30 })];
+
+    const groups = applyGroup(ps, "none", "age");
+
+    expect(groups.length).toBe(1);
+    expect(groups[0].players.map((p) => p.player_id)).toEqual(["b", "a"]);
   });
 });
