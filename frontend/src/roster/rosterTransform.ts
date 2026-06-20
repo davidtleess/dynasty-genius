@@ -53,3 +53,23 @@ export function applySort(players: Player[], key: SortKey): Player[] {
   });
   return arr;
 }
+
+export type ProspectFilter = "all" | "active" | "prospects";
+
+export interface RosterFilterState {
+  positions: string[]; // empty = all
+  prospect: ProspectFilter;
+}
+
+export function applyFilter(players: Player[], f: RosterFilterState): Player[] {
+  return players.filter((p) => {
+    const posOk = f.positions.length === 0 || f.positions.includes(p.position);
+    const prospectOk =
+      f.prospect === "all"
+        ? true
+        : f.prospect === "prospects"
+          ? p.is_prospect === true
+          : p.is_prospect !== true;
+    return posOk && prospectOk;
+  });
+}

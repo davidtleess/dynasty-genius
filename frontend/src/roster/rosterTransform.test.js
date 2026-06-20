@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { applySort } from "./rosterTransform";
+import { applyFilter, applySort } from "./rosterTransform";
 
 const mk = (o) => ({
   player_id: o.id,
@@ -72,5 +72,39 @@ describe("applySort", () => {
       mk({ id: "3", age: 25 }),
     ];
     expect(applySort(ps, "age").map((p) => p.player_id)).toEqual(["1", "2", "3"]);
+  });
+});
+
+describe("applyFilter", () => {
+  const ps = [
+    mk({ id: "wr", pos: "WR", prospect: false }),
+    mk({ id: "qb", pos: "QB", prospect: false }),
+    mk({ id: "rookie", pos: "RB", prospect: true }),
+  ];
+
+  it("empty positions = all", () => {
+    expect(
+      applyFilter(ps, { positions: [], prospect: "all" }).map((p) => p.player_id),
+    ).toEqual(["wr", "qb", "rookie"]);
+  });
+
+  it("position multi-select subsets", () => {
+    expect(
+      applyFilter(ps, { positions: ["WR", "QB"], prospect: "all" }).map(
+        (p) => p.player_id,
+      ),
+    ).toEqual(["wr", "qb"]);
+  });
+
+  it("prospect=active excludes prospects", () => {
+    expect(
+      applyFilter(ps, { positions: [], prospect: "active" }).map((p) => p.player_id),
+    ).toEqual(["wr", "qb"]);
+  });
+
+  it("prospect=prospects keeps only prospects", () => {
+    expect(
+      applyFilter(ps, { positions: [], prospect: "prospects" }).map((p) => p.player_id),
+    ).toEqual(["rookie"]);
   });
 });
