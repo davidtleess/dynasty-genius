@@ -3,6 +3,7 @@ import { useState } from "react";
 import { type Command, CommandPalette } from "../command/CommandPalette";
 import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { PlayerInspector } from "../player/PlayerInspector";
+import { ProjectTracker } from "../project/ProjectTracker";
 import { RosterAudit } from "../roster/RosterAudit";
 import { TradeLab } from "../trade/TradeLab";
 import type { CatalogEntry } from "../trade/tradeState";
@@ -34,6 +35,7 @@ const SURFACES = [
   "League Pulse",
   "Model Trust",
   "Research Assistant",
+  "Project Tracker",
 ] as const;
 
 type Surface = (typeof SURFACES)[number];
@@ -109,6 +111,7 @@ export function AppShell() {
               <TradeLab onSelectPlayer={selectPlayer} />
             )}
             {activeSurface === "Model Trust" && <TrustConsole />}
+            {activeSurface === "Project Tracker" && <ProjectTracker />}
           </>
         )}
       </main>
