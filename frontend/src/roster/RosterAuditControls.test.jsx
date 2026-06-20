@@ -20,6 +20,10 @@ describe("RosterAuditControls", () => {
     expect(screen.getByLabelText(/sort by/i)).toBeTruthy();
     expect(screen.getByLabelText(/group by/i)).toBeTruthy();
     expect(screen.getByLabelText(/players/i)).toBeTruthy();
+    const groupOptions = Array.from(screen.getByLabelText(/group by/i).options).map(
+      (option) => [option.value, option.textContent],
+    );
+    expect(groupOptions).toContainEqual(["xvar_bracket", "xVAR bracket"]);
     expect(screen.getByText(/experimental — not decision-grade/i)).toBeTruthy();
   });
 

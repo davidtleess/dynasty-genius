@@ -143,6 +143,91 @@ describe("applyGroup", () => {
     ]);
   });
 
+  it("xvar_bracket groups finite xVAR high to low with not-modeled last", () => {
+    const ps = [
+      mk({ id: "notModeled", xvar: null }),
+      mk({ id: "negative", xvar: -3.5 }),
+      mk({ id: "replacement", xvar: 0.0 }),
+      mk({ id: "positive", xvar: 12.4 }),
+    ];
+
+    const groups = applyGroup(ps, "xvar_bracket", "none");
+
+    expect(groups.map((g) => g.label)).toEqual([
+      "xVAR 0.0+",
+      "xVAR below 0.0 (sub-replacement)",
+      "xVAR not modeled",
+    ]);
+    expect(groups.map((g) => g.players.map((p) => p.player_id))).toEqual([
+      ["replacement", "positive"],
+      ["negative"],
+      ["notModeled"],
+    ]);
+  });
+
+  it("xvar_bracket treats boundary and non-finite xVAR values exactly", () => {
+    const undefinedXvar = mk({ id: "undefined" });
+    undefinedXvar.xvar = undefined;
+    const ps = [
+      mk({ id: "nan", xvar: Number.NaN }),
+      mk({ id: "posInf", xvar: Number.POSITIVE_INFINITY }),
+      mk({ id: "negInf", xvar: Number.NEGATIVE_INFINITY }),
+      undefinedXvar,
+      mk({ id: "null", xvar: null }),
+      mk({ id: "zero", xvar: 0.0 }),
+      mk({ id: "justBelow", xvar: -0.0001 }),
+    ];
+
+    const groups = applyGroup(ps, "xvar_bracket", "none");
+
+    expect(groups.map((g) => g.label)).toEqual([
+      "xVAR 0.0+",
+      "xVAR below 0.0 (sub-replacement)",
+      "xVAR not modeled",
+    ]);
+    expect(groups.map((g) => g.players.map((p) => p.player_id))).toEqual([
+      ["zero"],
+      ["justBelow"],
+      ["nan", "posInf", "negInf", "undefined", "null"],
+    ]);
+  });
+
+  it("xvar_bracket omits empty buckets for empty, all-missing, and single-bucket rosters", () => {
+    expect(applyGroup([], "xvar_bracket", "none")).toEqual([]);
+
+    const allMissing = applyGroup(
+      [mk({ id: "a", xvar: null }), mk({ id: "b", xvar: Number.NaN })],
+      "xvar_bracket",
+      "none",
+    );
+    expect(allMissing.map((g) => g.label)).toEqual(["xVAR not modeled"]);
+    expect(allMissing[0].players.map((p) => p.player_id)).toEqual(["a", "b"]);
+
+    const singleBucket = applyGroup(
+      [mk({ id: "a", xvar: 1 }), mk({ id: "b", xvar: 2 })],
+      "xvar_bracket",
+      "none",
+    );
+    expect(singleBucket.map((g) => g.label)).toEqual(["xVAR 0.0+"]);
+    expect(singleBucket[0].players.map((p) => p.player_id)).toEqual(["a", "b"]);
+  });
+
+  it("xvar_bracket applies the active sort key within each bucket", () => {
+    const ps = [
+      mk({ id: "lowPositive", xvar: 1 }),
+      mk({ id: "highPositive", xvar: 15 }),
+      mk({ id: "lessNegative", xvar: -2 }),
+      mk({ id: "moreNegative", xvar: -20 }),
+    ];
+
+    const groups = applyGroup(ps, "xvar_bracket", "xvar");
+
+    expect(groups.map((g) => g.players.map((p) => p.player_id))).toEqual([
+      ["highPositive", "lowPositive"],
+      ["lessNegative", "moreNegative"],
+    ]);
+  });
+
   it("none returns a single unlabeled group, sorted", () => {
     const ps = [mk({ id: "a", age: 20 }), mk({ id: "b", age: 30 })];
 

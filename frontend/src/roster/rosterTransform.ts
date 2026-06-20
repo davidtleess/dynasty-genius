@@ -74,7 +74,7 @@ export function applyFilter(players: Player[], f: RosterFilterState): Player[] {
   });
 }
 
-export type GroupKey = "none" | "position" | "depreciation_band";
+export type GroupKey = "none" | "position" | "depreciation_band" | "xvar_bracket";
 
 export interface RosterGroup {
   key: string;
@@ -89,6 +89,23 @@ const BAND_ORDER: { token: string; label: string }[] = [
   { token: "no_age_signal", label: "3+ years (No immediate cliff)" },
 ];
 const MISSING_BAND = { key: "__missing_age_signal__", label: "Missing age signal" };
+
+// Coarse, descriptive xVAR display-binning (Task B). Edges are NOT model tiers:
+// 0.0 is the only principled boundary (xVAR = value above replacement). Non-finite
+// and null/undefined xvar route to "not modeled" via num(), matching applySort.
+const XVAR_BRACKET_ORDER: {
+  token: string;
+  label: string;
+  test: (x: number) => boolean;
+}[] = [
+  { token: "xvar_positive", label: "xVAR 0.0+", test: (x) => x >= 0 },
+  {
+    token: "xvar_negative",
+    label: "xVAR below 0.0 (sub-replacement)",
+    test: (x) => x < 0,
+  },
+];
+const XVAR_NOT_MODELED = { key: "__xvar_not_modeled__", label: "xVAR not modeled" };
 
 export function applyGroup(
   players: Player[],
@@ -115,6 +132,42 @@ export function applyGroup(
       label: pos,
       players: applySort(buckets.get(pos) ?? [], sortKey),
     }));
+  }
+  if (key === "xvar_bracket") {
+    const buckets = new Map<string, Player[]>();
+    for (const p of players) {
+      const x = num(p.xvar); // null for null/undefined AND non-finite
+      const token =
+        x === null
+          ? XVAR_NOT_MODELED.key
+          : (XVAR_BRACKET_ORDER.find((b) => b.test(x))?.token ?? XVAR_NOT_MODELED.key);
+      const existing = buckets.get(token);
+      if (existing) {
+        existing.push(p);
+      } else {
+        buckets.set(token, [p]);
+      }
+    }
+    const groups: RosterGroup[] = [];
+    for (const b of XVAR_BRACKET_ORDER) {
+      const rows = buckets.get(b.token);
+      if (rows) {
+        groups.push({
+          key: b.token,
+          label: b.label,
+          players: applySort(rows, sortKey),
+        });
+      }
+    }
+    const notModeled = buckets.get(XVAR_NOT_MODELED.key);
+    if (notModeled) {
+      groups.push({
+        key: XVAR_NOT_MODELED.key,
+        label: XVAR_NOT_MODELED.label,
+        players: applySort(notModeled, sortKey),
+      });
+    }
+    return groups;
   }
   // depreciation_band
   const buckets = new Map<string, Player[]>();
