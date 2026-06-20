@@ -17,6 +17,7 @@ export function RosterAuditRow({ player }: { player: Player }) {
   return (
     <>
       <tr
+        data-player-id={player.player_id}
         data-applies={String(player.model_status_applies ?? false)}
         data-grade={player.model_grade}
       >

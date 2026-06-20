@@ -34,3 +34,28 @@ describe("RosterAuditTable", () => {
     expect(headerText).not.toMatch(/\b(sell|buy|hold|drop now|must|tier|win|loss)\b/i);
   });
 });
+
+const row = (id, pos) => ({
+  player_id: id,
+  full_name: id,
+  position: pos,
+  model_grade: "ACTIVE_B",
+  model_status_applies: true,
+  signal_completeness: 0.5,
+  caveats: [],
+});
+
+describe("RosterAuditTable grouped", () => {
+  it("renders a heading per group and its rows; trust cells preserved", () => {
+    const groups = [
+      { key: "WR", label: "WR", players: [row("wr1", "WR")] },
+      { key: "QB", label: "QB", players: [row("qb1", "QB")] },
+    ];
+    const { container } = render(<RosterAuditTable groups={groups} />);
+
+    const headings = container.querySelectorAll(".dg-roster__group-heading");
+    expect([...headings].map((h) => h.textContent)).toEqual(["WR", "QB"]);
+    expect(screen.getByText("wr1")).toBeTruthy();
+    expect(screen.getAllByText("50%").length).toBeGreaterThan(0);
+  });
+});
