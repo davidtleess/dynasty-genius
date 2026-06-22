@@ -648,6 +648,603 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "LeaguePulseCard": {
+        "additionalProperties": false,
+        "description": "Model-native opportunity card. Rejects market evidence/score keys.",
+        "properties": {
+          "card_id": {
+            "title": "Card Id",
+            "type": "string"
+          },
+          "card_type": {
+            "const": "ROSTER_SURPLUS_DEFICIT_MATCH",
+            "title": "Card Type",
+            "type": "string"
+          },
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "opportunity_score": {
+            "title": "Opportunity Score",
+            "type": "number"
+          },
+          "rationale_primary": {
+            "title": "Rationale Primary",
+            "type": "string"
+          },
+          "rationale_secondary": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Rationale Secondary",
+            "type": "array"
+          },
+          "score_components": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Score Components",
+            "type": "object"
+          }
+        },
+        "required": [
+          "card_id",
+          "card_type",
+          "opportunity_score",
+          "rationale_primary",
+          "evidence",
+          "score_components"
+        ],
+        "title": "LeaguePulseCard",
+        "type": "object"
+      },
+      "LeaguePulseDropCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "market_overlay_cards": {
+            "default": 0,
+            "title": "Market Overlay Cards",
+            "type": "integer"
+          },
+          "model_native_cards": {
+            "default": 0,
+            "title": "Model Native Cards",
+            "type": "integer"
+          },
+          "partner_rankings": {
+            "default": 0,
+            "title": "Partner Rankings",
+            "type": "integer"
+          },
+          "recommended_drops": {
+            "default": 0,
+            "title": "Recommended Drops",
+            "type": "integer"
+          },
+          "team_postures": {
+            "default": 0,
+            "title": "Team Postures",
+            "type": "integer"
+          },
+          "team_values": {
+            "default": 0,
+            "title": "Team Values",
+            "type": "integer"
+          }
+        },
+        "title": "LeaguePulseDropCounts",
+        "type": "object"
+      },
+      "LeaguePulseMarketCard": {
+        "additionalProperties": false,
+        "description": "Labeled market-overlay card (Q3=B). Admits market evidence/score keys.",
+        "properties": {
+          "card_id": {
+            "title": "Card Id",
+            "type": "string"
+          },
+          "card_type": {
+            "enum": [
+              "WAIVER_CANDIDATE",
+              "DIVERGENCE_MODEL_HIGH",
+              "DIVERGENCE_MARKET_HIGH",
+              "TAXI_ACTIVATION_CANDIDATE"
+            ],
+            "title": "Card Type",
+            "type": "string"
+          },
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "opportunity_score": {
+            "title": "Opportunity Score",
+            "type": "number"
+          },
+          "rationale_primary": {
+            "title": "Rationale Primary",
+            "type": "string"
+          },
+          "rationale_secondary": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Rationale Secondary",
+            "type": "array"
+          },
+          "recommended_drop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeaguePulseRecommendedDrop"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "score_components": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Score Components",
+            "type": "object"
+          }
+        },
+        "required": [
+          "card_id",
+          "card_type",
+          "opportunity_score",
+          "rationale_primary",
+          "evidence",
+          "score_components"
+        ],
+        "title": "LeaguePulseMarketCard",
+        "type": "object"
+      },
+      "LeaguePulsePartnerRanking": {
+        "additionalProperties": false,
+        "properties": {
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "counterparty_roster_id": {
+            "title": "Counterparty Roster Id",
+            "type": "integer"
+          },
+          "counterparty_team_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterparty Team Name"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "market_influenced": {
+            "const": true,
+            "default": true,
+            "title": "Market Influenced",
+            "type": "boolean"
+          },
+          "matched_positions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Positions",
+            "type": "array"
+          },
+          "partner_score": {
+            "title": "Partner Score",
+            "type": "number"
+          },
+          "score_components": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Score Components",
+            "type": "object"
+          }
+        },
+        "required": [
+          "counterparty_roster_id",
+          "counterparty_team_name",
+          "partner_score",
+          "matched_positions",
+          "score_components",
+          "evidence"
+        ],
+        "title": "LeaguePulsePartnerRanking",
+        "type": "object"
+      },
+      "LeaguePulseRecommendedDrop": {
+        "additionalProperties": false,
+        "properties": {
+          "cut_priority": {
+            "title": "Cut Priority",
+            "type": "integer"
+          },
+          "cut_rationale": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Cut Rationale",
+            "type": "array"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "ir_compliance_status": {
+            "title": "Ir Compliance Status",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "sleeper_player_id": {
+            "title": "Sleeper Player Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sleeper_player_id",
+          "full_name",
+          "position",
+          "cut_priority",
+          "ir_compliance_status"
+        ],
+        "title": "LeaguePulseRecommendedDrop",
+        "type": "object"
+      },
+      "LeaguePulseResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "captured_at": {
+            "title": "Captured At",
+            "type": "string"
+          },
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "dropped": {
+            "$ref": "#/components/schemas/LeaguePulseDropCounts"
+          },
+          "market_overlay_cards": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LeaguePulseMarketCard"
+            },
+            "title": "Market Overlay Cards",
+            "type": "array"
+          },
+          "model_native_cards": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LeaguePulseCard"
+            },
+            "title": "Model Native Cards",
+            "type": "array"
+          },
+          "partner_rankings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LeaguePulsePartnerRanking"
+            },
+            "title": "Partner Rankings",
+            "type": "array"
+          },
+          "perspective_roster_id": {
+            "title": "Perspective Roster Id",
+            "type": "integer"
+          },
+          "source_artifacts": {
+            "$ref": "#/components/schemas/LeaguePulseSources"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "degraded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "team_postures": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LeaguePulseTeamPosture"
+            },
+            "title": "Team Postures",
+            "type": "array"
+          },
+          "team_values": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LeaguePulseTeamValue"
+            },
+            "title": "Team Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "perspective_roster_id",
+          "source_artifacts",
+          "captured_at",
+          "dropped"
+        ],
+        "title": "LeaguePulseResponse",
+        "type": "object"
+      },
+      "LeaguePulseSources": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "league_opportunity": {
+            "additionalProperties": true,
+            "title": "League Opportunity",
+            "type": "object"
+          },
+          "team_posture": {
+            "additionalProperties": true,
+            "title": "Team Posture",
+            "type": "object"
+          },
+          "team_value_matrix": {
+            "additionalProperties": true,
+            "title": "Team Value Matrix",
+            "type": "object"
+          }
+        },
+        "required": [
+          "team_posture",
+          "team_value_matrix",
+          "league_opportunity"
+        ],
+        "title": "LeaguePulseSources",
+        "type": "object"
+      },
+      "LeaguePulseTeamPosture": {
+        "additionalProperties": false,
+        "properties": {
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "components": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Components",
+            "type": "object"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "posture_label": {
+            "enum": [
+              "CONTENDER",
+              "REBUILDING",
+              "ASCENDING",
+              "BALANCED",
+              "TRANSITIONAL"
+            ],
+            "title": "Posture Label",
+            "type": "string"
+          },
+          "roster_id": {
+            "title": "Roster Id",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "team_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Name"
+          }
+        },
+        "required": [
+          "roster_id",
+          "team_name",
+          "posture_label",
+          "score",
+          "components"
+        ],
+        "title": "LeaguePulseTeamPosture",
+        "type": "object"
+      },
+      "LeaguePulseTeamValue": {
+        "additionalProperties": false,
+        "properties": {
+          "age_profile": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Age Profile",
+            "type": "object"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "future_picks": {
+            "additionalProperties": true,
+            "title": "Future Picks",
+            "type": "object"
+          },
+          "positional_summary": {
+            "additionalProperties": true,
+            "title": "Positional Summary",
+            "type": "object"
+          },
+          "roster_id": {
+            "title": "Roster Id",
+            "type": "integer"
+          },
+          "team_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Name"
+          },
+          "value_views": {
+            "$ref": "#/components/schemas/LeaguePulseValueViews"
+          }
+        },
+        "required": [
+          "roster_id",
+          "team_name",
+          "value_views",
+          "age_profile",
+          "positional_summary",
+          "future_picks"
+        ],
+        "title": "LeaguePulseTeamValue",
+        "type": "object"
+      },
+      "LeaguePulseValueViews": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "depth_credit_xvar": {
+            "title": "Depth Credit Xvar",
+            "type": "number"
+          },
+          "lineup_xvar": {
+            "title": "Lineup Xvar",
+            "type": "number"
+          },
+          "starter_weighted_xvar": {
+            "title": "Starter Weighted Xvar",
+            "type": "number"
+          },
+          "top_n_xvar": {
+            "title": "Top N Xvar",
+            "type": "number"
+          },
+          "total_xvar_capped": {
+            "title": "Total Xvar Capped",
+            "type": "number"
+          }
+        },
+        "required": [
+          "starter_weighted_xvar",
+          "lineup_xvar",
+          "depth_credit_xvar",
+          "total_xvar_capped",
+          "top_n_xvar"
+        ],
+        "title": "LeaguePulseValueViews",
+        "type": "object"
+      },
       "MarketAssetOverlay": {
         "properties": {
           "asset_ref": {
@@ -3263,6 +3860,28 @@
         "summary": "Get Engine B Scores",
         "tags": [
           "engine-b"
+        ]
+      }
+    },
+    "/api/league/pulse": {
+      "get": {
+        "description": "Read-only League Pulse over the Phase 17/18 artifacts (artifact-state).",
+        "operationId": "league_pulse_surface_api_league_pulse_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaguePulseResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "League Pulse Surface",
+        "tags": [
+          "league-pulse"
         ]
       }
     },
