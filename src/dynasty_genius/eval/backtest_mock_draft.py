@@ -409,8 +409,8 @@ def ingest_snapshots(
 # ======================================================================
 
 from datetime import date as _date  # noqa: E402  (grouped with [Task 8])
-from statistics import median as _median  # noqa: E402
-from statistics import quantiles as _quantiles  # noqa: E402
+
+from src.dynasty_genius.mock_consensus import consensus_math  # noqa: E402
 
 
 class ProspectConsensus(BaseModel):
@@ -478,17 +478,29 @@ def aggregate_per_prospect(
         most_recent_published = max(p.published_date for p in picks)
         staleness = _whole_day_staleness(draft_date, most_recent_published)
 
-        pick_nos = [p.pick_no for p in picks]
-        median_val = float(_median(pick_nos))
-        min_val = min(pick_nos)
-        max_val = max(pick_nos)
-        if len(pick_nos) >= 2:
-            # IQR via statistics.quantiles default ('exclusive'); bump AGGREGATION_VERSION
-            # if the method choice ever changes (replay outputs are sensitive to this).
-            q1, _q2, q3 = _quantiles(pick_nos, n=4)
-            iqr_val = float(q3 - q1)
-        else:
-            iqr_val = 0.0
+        # Raw consensus statistics delegated to the S1 canonical math (spec v4 U1/U2:
+        # one-directional S4 -> mock_consensus edge). S4 retains its own n_sources
+        # policy, dispersion_threshold, staleness, and ProspectConsensus shape; only
+        # the raw median/min/max/IQR are delegated. Values are bit-identical to the
+        # prior inline computation (same float-median + statistics.quantiles(n=4)
+        # exclusive, len<2 -> 0.0).
+        stats = consensus_math.compute_consensus_stats(
+            [
+                consensus_math.ConsensusObservation(
+                    pick_no=p.pick_no,
+                    projected_round=None,
+                    source_id=p.source_label,
+                    analyst=_analyst_from_metadata_tuple_key(p.metadata_tuple_key),
+                    published_date=p.published_date,
+                )
+                for p in picks
+            ],
+            as_of=draft_date,
+        )
+        median_val = stats.median
+        min_val = stats.min
+        max_val = stats.max
+        iqr_val = stats.iqr
 
         if n_sources < 3:
             tier: Literal["abstain", "round_tier_only", "exact_pick"] = "abstain"
