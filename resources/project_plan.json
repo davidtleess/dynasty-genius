@@ -1,6 +1,6 @@
 {
   "schema_version": "project_plan.v1",
-  "updated_at": "2026-06-19",
+  "updated_at": "2026-06-22",
   "doctrine_version": "1.0.0",
   "phases": [
     {
@@ -64,6 +64,7 @@
       "summary": "Market overlay (overlay-only) + model-vs-market validation harness.",
       "tasks": [
         { "id": "mo-harness-trust", "title": "Harness Trust Completion (G3/R2)", "status": "done" },
+        { "id": "mo-s1-mock-consensus", "title": "Subsystem 1 — Mock-Draft Consensus Aggregation (overlay)", "status": "done", "note": "PR #70" },
         { "id": "mo-gate4", "title": "Gate-4 forward fc_native accrual", "status": "in_progress", "note": "~2026-12-12" }
       ]
     }
