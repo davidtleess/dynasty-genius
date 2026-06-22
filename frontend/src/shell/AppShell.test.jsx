@@ -3,6 +3,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { leaguePulseResponse } from "../league-pulse/fixtures";
 import { AppShell } from "./AppShell";
 
 const NAV_LABELS = [
@@ -132,5 +133,21 @@ describe("AppShell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Project Tracker" }));
 
     await waitFor(() => expect(screen.getByText("Phase 1")).toBeTruthy());
+  });
+
+  it("renders the League Pulse surface when its nav item is selected", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => leaguePulseResponse(),
+    });
+
+    render(<AppShell />);
+    fireEvent.click(screen.getByRole("button", { name: "League Pulse" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: /league pulse/i })).toBeTruthy(),
+    );
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/league/pulse");
   });
 });

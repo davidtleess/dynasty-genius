@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { type Command, CommandPalette } from "../command/CommandPalette";
+import { LeaguePulse } from "../league-pulse/LeaguePulse";
 import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { PlayerInspector } from "../player/PlayerInspector";
 import { ProjectTracker } from "../project/ProjectTracker";
@@ -112,6 +113,7 @@ export function AppShell() {
             )}
             {activeSurface === "Model Trust" && <TrustConsole />}
             {activeSurface === "Project Tracker" && <ProjectTracker />}
+            {activeSurface === "League Pulse" && <LeaguePulse />}
           </>
         )}
       </main>

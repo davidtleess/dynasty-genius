@@ -1,0 +1,11 @@
+/* League Pulse read-only surface (Increment 2). Sections styled in T2–T5. */
+.dg-league-pulse {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dg-league-pulse__state {
+  color: var(--dg-text-muted, #6b7280);
+  padding: 1rem 0;
+}
