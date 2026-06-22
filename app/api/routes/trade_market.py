@@ -16,7 +16,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.dynasty_genius.adapters.fantasycalc_adapter import fetch_with_cache
-from src.dynasty_genius.trade_lab.evaluator import TradeAsset
+from src.dynasty_genius.trade_lab.cross_lane_review import (
+    evaluate_cross_lane_manual_review,
+)
+from src.dynasty_genius.trade_lab.draft_pick_valuation import load_curve, value_pick
+from src.dynasty_genius.trade_lab.evaluator import _PICK_CURVE_PATH, TradeAsset
 from src.dynasty_genius.trade_lab.market_reconciler import (
     MarketAssetRef,
     TradeMarketReconciliation,
@@ -90,6 +94,46 @@ def _to_trade_asset(ref: MarketAssetRef, pvo_lookup: dict[str, dict]) -> TradeAs
         xvar=None,
         position=position,
         is_prospect=(ref.asset_kind != "player"),
+    )
+
+
+def _hydrate_model_asset(
+    ref: MarketAssetRef, pvo_lookup: dict[str, dict], pick_curve: dict
+) -> TradeAsset:
+    """Build a model-native TradeAsset with REAL xVAR for the W5b cross-lane delta.
+
+    Distinct from ``_to_trade_asset`` (which leaves xVAR None for cut selection).
+    Players price from PVO; exact-slot/round-only picks via ``value_pick``;
+    bucket-only picks and any unresolvable ref get xVAR ``None`` — driving the
+    fail-closed model-coverage-incomplete path (spec §5 Option A, §3.3).
+    """
+    if ref.asset_kind == "player":
+        entry = pvo_lookup.get(ref.sleeper_id or "", {})
+        xvar = (entry.get("valuation") or {}).get("xvar")
+        position = (entry.get("player") or {}).get("position") or "UNK"
+        return TradeAsset(
+            player_id=ref.sleeper_id or ref.player_id or "",
+            xvar=xvar,
+            position=position,
+            is_prospect=False,
+        )
+
+    # Pick refs. Bucket-only picks are not priceable (value_pick has no bucket
+    # parameter); they fail closed to xVAR None.
+    xvar: float | None = None
+    if ref.year is not None and ref.round is not None and ref.bucket is None:
+        if ref.slot is not None:
+            priced = value_pick(
+                year=ref.year, round_=ref.round, slot=ref.slot, curve=pick_curve
+            )
+        else:
+            priced = value_pick(year=ref.year, round_=ref.round, curve=pick_curve)
+        xvar = priced.xvar
+    return TradeAsset(
+        player_id=ref.quantity_id or ref.player_id or "",
+        xvar=xvar,
+        position="",
+        is_prospect=True,
     )
 
 
@@ -238,5 +282,71 @@ def reconcile_trade_market_endpoint(
         if caveat not in merged_caveats:
             merged_caveats.append(caveat)
     reconciliation = reconciliation.model_copy(update={"caveats": merged_caveats})
+
+    # 9. W5b cross-lane manual-review producer. Runs AFTER W3/W4 on a SEPARATE
+    #    hydrated model reconcile — the step-3 cut-selection reconcile (xvar=None)
+    #    and all market math above are left untouched. Fail-closed: incomplete
+    #    coverage (incl. forced-cut gaps / bucket picks) suppresses with a
+    #    per-lane caveat instead of emitting on partial evidence.
+    pick_curve = load_curve(_PICK_CURVE_PATH)
+    hydrated_sent = [_hydrate_model_asset(r, pvo_lookup, pick_curve) for r in sent_refs]
+    hydrated_received = [
+        _hydrate_model_asset(r, pvo_lookup, pick_curve) for r in received_refs
+    ]
+    hydrated_recon = reconcile_trade_roster(
+        hydrated_sent, hydrated_received, universe_pvo, sleeper_snapshot
+    )
+
+    # Model coverage: every traded asset priced AND no forced-cut candidate with a
+    # missing raw xVAR (never infer zero).
+    model_coverage_complete = all(
+        a.xvar is not None for a in hydrated_sent + hydrated_received
+    ) and all(
+        cut.get("xvar_raw") is not None
+        for cut in hydrated_recon.roster_penalty.forced_cut_candidates
+    )
+    # Market coverage: every traded overlay resolved + valued, no envelope coverage
+    # gaps, and no unresolved forced cuts on either priced penalty.
+    market_penalties = [
+        reconciliation.david_forced_cut_penalty,
+        reconciliation.counterparty_forced_cut_penalty,
+    ]
+    market_coverage_complete = (
+        all(
+            o.market_value is not None and o.resolution != "unresolved"
+            for o in reconciliation.sent_assets + reconciliation.received_assets
+        )
+        and not reconciliation.coverage_gaps
+        and all(
+            p is None or p.unresolved_cut_count == 0 for p in market_penalties
+        )
+    )
+
+    adjusted_model_received = hydrated_recon.adjusted_david_received_value
+    adjusted_model_sent = hydrated_recon.base_evaluation.side_a.side_value
+    cross_lane = evaluate_cross_lane_manual_review(
+        model_favors_raw=hydrated_recon.adjusted_favors,
+        model_coverage_complete=model_coverage_complete,
+        model_delta_signed=adjusted_model_received - adjusted_model_sent,
+        adjusted_model_sent=adjusted_model_sent,
+        adjusted_model_received=adjusted_model_received,
+        market_delta_for_david=reconciliation.market_delta_for_david,
+        adjusted_market_sent=reconciliation.adjusted_market_sent,
+        adjusted_market_received=reconciliation.adjusted_market_received,
+        market_coverage_complete=market_coverage_complete,
+    )
+
+    w5b_warnings = list(reconciliation.realism_warnings)
+    w5b_caveats = list(reconciliation.caveats)
+    if cross_lane.warning is not None:
+        w5b_warnings.append(cross_lane.warning)
+    if cross_lane.suppressed_reason:
+        for reason in sorted(cross_lane.suppressed_reason):
+            caveat = f"cross_lane_manual_review_suppressed_{reason}"
+            if caveat not in w5b_caveats:
+                w5b_caveats.append(caveat)
+    reconciliation = reconciliation.model_copy(
+        update={"realism_warnings": w5b_warnings, "caveats": w5b_caveats}
+    )
 
     return reconciliation
