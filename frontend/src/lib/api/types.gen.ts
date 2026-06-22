@@ -359,6 +359,396 @@ export type HttpValidationError = {
 };
 
 /**
+ * LeaguePulseCard
+ *
+ * Model-native opportunity card. Rejects market evidence/score keys.
+ */
+export type LeaguePulseCard = {
+    /**
+     * Card Id
+     */
+    card_id: string;
+    /**
+     * Card Type
+     */
+    card_type: 'ROSTER_SURPLUS_DEFICIT_MATCH';
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Evidence
+     */
+    evidence: {
+        [key: string]: unknown;
+    };
+    /**
+     * Opportunity Score
+     */
+    opportunity_score: number;
+    /**
+     * Rationale Primary
+     */
+    rationale_primary: string;
+    /**
+     * Rationale Secondary
+     */
+    rationale_secondary?: Array<string>;
+    /**
+     * Score Components
+     */
+    score_components: {
+        [key: string]: number;
+    };
+};
+
+/**
+ * LeaguePulseDropCounts
+ */
+export type LeaguePulseDropCounts = {
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Market Overlay Cards
+     */
+    market_overlay_cards?: number;
+    /**
+     * Model Native Cards
+     */
+    model_native_cards?: number;
+    /**
+     * Partner Rankings
+     */
+    partner_rankings?: number;
+    /**
+     * Recommended Drops
+     */
+    recommended_drops?: number;
+    /**
+     * Team Postures
+     */
+    team_postures?: number;
+    /**
+     * Team Values
+     */
+    team_values?: number;
+};
+
+/**
+ * LeaguePulseMarketCard
+ *
+ * Labeled market-overlay card (Q3=B). Admits market evidence/score keys.
+ */
+export type LeaguePulseMarketCard = {
+    /**
+     * Card Id
+     */
+    card_id: string;
+    /**
+     * Card Type
+     */
+    card_type: 'WAIVER_CANDIDATE' | 'DIVERGENCE_MODEL_HIGH' | 'DIVERGENCE_MARKET_HIGH' | 'TAXI_ACTIVATION_CANDIDATE';
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Evidence
+     */
+    evidence: {
+        [key: string]: unknown;
+    };
+    /**
+     * Opportunity Score
+     */
+    opportunity_score: number;
+    /**
+     * Rationale Primary
+     */
+    rationale_primary: string;
+    /**
+     * Rationale Secondary
+     */
+    rationale_secondary?: Array<string>;
+    recommended_drop?: LeaguePulseRecommendedDrop | null;
+    /**
+     * Score Components
+     */
+    score_components: {
+        [key: string]: number;
+    };
+};
+
+/**
+ * LeaguePulsePartnerRanking
+ */
+export type LeaguePulsePartnerRanking = {
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Counterparty Roster Id
+     */
+    counterparty_roster_id: number;
+    /**
+     * Counterparty Team Name
+     */
+    counterparty_team_name: string | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Evidence
+     */
+    evidence: {
+        [key: string]: unknown;
+    };
+    /**
+     * Market Influenced
+     */
+    market_influenced?: true;
+    /**
+     * Matched Positions
+     */
+    matched_positions: Array<string>;
+    /**
+     * Partner Score
+     */
+    partner_score: number;
+    /**
+     * Score Components
+     */
+    score_components: {
+        [key: string]: number;
+    };
+};
+
+/**
+ * LeaguePulseRecommendedDrop
+ */
+export type LeaguePulseRecommendedDrop = {
+    /**
+     * Cut Priority
+     */
+    cut_priority: number;
+    /**
+     * Cut Rationale
+     */
+    cut_rationale?: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Full Name
+     */
+    full_name: string;
+    /**
+     * Ir Compliance Status
+     */
+    ir_compliance_status: string;
+    /**
+     * Position
+     */
+    position: string;
+    /**
+     * Sleeper Player Id
+     */
+    sleeper_player_id: string;
+};
+
+/**
+ * LeaguePulseResponse
+ */
+export type LeaguePulseResponse = {
+    /**
+     * Captured At
+     */
+    captured_at: string;
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    dropped: LeaguePulseDropCounts;
+    /**
+     * Market Overlay Cards
+     */
+    market_overlay_cards?: Array<LeaguePulseMarketCard>;
+    /**
+     * Model Native Cards
+     */
+    model_native_cards?: Array<LeaguePulseCard>;
+    /**
+     * Partner Rankings
+     */
+    partner_rankings?: Array<LeaguePulsePartnerRanking>;
+    /**
+     * Perspective Roster Id
+     */
+    perspective_roster_id: number;
+    source_artifacts: LeaguePulseSources;
+    /**
+     * Status
+     */
+    status: 'active' | 'degraded';
+    /**
+     * Team Postures
+     */
+    team_postures?: Array<LeaguePulseTeamPosture>;
+    /**
+     * Team Values
+     */
+    team_values?: Array<LeaguePulseTeamValue>;
+};
+
+/**
+ * LeaguePulseSources
+ */
+export type LeaguePulseSources = {
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * League Opportunity
+     */
+    league_opportunity: {
+        [key: string]: unknown;
+    };
+    /**
+     * Team Posture
+     */
+    team_posture: {
+        [key: string]: unknown;
+    };
+    /**
+     * Team Value Matrix
+     */
+    team_value_matrix: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * LeaguePulseTeamPosture
+ */
+export type LeaguePulseTeamPosture = {
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Components
+     */
+    components: {
+        [key: string]: number;
+    };
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Posture Label
+     */
+    posture_label: 'CONTENDER' | 'REBUILDING' | 'ASCENDING' | 'BALANCED' | 'TRANSITIONAL';
+    /**
+     * Roster Id
+     */
+    roster_id: number;
+    /**
+     * Score
+     */
+    score: number;
+    /**
+     * Team Name
+     */
+    team_name: string | null;
+};
+
+/**
+ * LeaguePulseTeamValue
+ */
+export type LeaguePulseTeamValue = {
+    /**
+     * Age Profile
+     */
+    age_profile: {
+        [key: string]: number;
+    };
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Future Picks
+     */
+    future_picks: {
+        [key: string]: unknown;
+    };
+    /**
+     * Positional Summary
+     */
+    positional_summary: {
+        [key: string]: unknown;
+    };
+    /**
+     * Roster Id
+     */
+    roster_id: number;
+    /**
+     * Team Name
+     */
+    team_name: string | null;
+    value_views: LeaguePulseValueViews;
+};
+
+/**
+ * LeaguePulseValueViews
+ */
+export type LeaguePulseValueViews = {
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Depth Credit Xvar
+     */
+    depth_credit_xvar: number;
+    /**
+     * Lineup Xvar
+     */
+    lineup_xvar: number;
+    /**
+     * Starter Weighted Xvar
+     */
+    starter_weighted_xvar: number;
+    /**
+     * Top N Xvar
+     */
+    top_n_xvar: number;
+    /**
+     * Total Xvar Capped
+     */
+    total_xvar_capped: number;
+};
+
+/**
  * MarketAssetOverlay
  */
 export type MarketAssetOverlay = {
@@ -1693,6 +2083,22 @@ export type GetEngineBScoresApiEngineBScoresGetResponses = {
 };
 
 export type GetEngineBScoresApiEngineBScoresGetResponse = GetEngineBScoresApiEngineBScoresGetResponses[keyof GetEngineBScoresApiEngineBScoresGetResponses];
+
+export type LeaguePulseSurfaceApiLeaguePulseGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/league/pulse';
+};
+
+export type LeaguePulseSurfaceApiLeaguePulseGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: LeaguePulseResponse;
+};
+
+export type LeaguePulseSurfaceApiLeaguePulseGetResponse = LeaguePulseSurfaceApiLeaguePulseGetResponses[keyof LeaguePulseSurfaceApiLeaguePulseGetResponses];
 
 export type GetPlayerDetailApiPlayersSleeperIdGetData = {
     body?: never;
