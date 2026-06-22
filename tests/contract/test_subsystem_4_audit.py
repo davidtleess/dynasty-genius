@@ -112,6 +112,7 @@ AUTHORIZED_EVAL_FILES = {
 }
 
 AST_AUDIT_SCAN_ROOTS = (
+    Path("src/dynasty_genius/mock_consensus"),
     Path("src/dynasty_genius/scoring"),
     Path("src/dynasty_genius/models"),
     Path("src/dynasty_genius/pvo_assembler.py"),
@@ -130,6 +131,14 @@ BANNED_IMPORT_MODULES = {
     "dynasty_genius.identity.prospect_nfl_bridge",
     "src.dynasty_genius.identity.prospect_nfl_bridge",
 }
+MOCK_CONSENSUS_BANNED_IMPORT_PREFIXES = (
+    "dynasty_genius.models.engine_a",
+    "src.dynasty_genius.models.engine_a",
+    "dynasty_genius.models.engine_b",
+    "src.dynasty_genius.models.engine_b",
+    "dynasty_genius.scoring",
+    "src.dynasty_genius.scoring",
+)
 BANNED_S4_ARTIFACT_STRINGS = (
     "backtest_mock_draft",
     "backtest_a_result",
@@ -176,6 +185,17 @@ def _round_for_pick(pick_no: int | None) -> int | None:
     if pick_no <= 105:
         return 3
     return min(7, ((pick_no - 1) // 32) + 1)
+
+
+def _is_banned_import(module: str, *, path: Path) -> bool:
+    if module in BANNED_IMPORT_MODULES:
+        return True
+    if "mock_consensus" not in path.parts:
+        return False
+    return any(
+        module == prefix or module.startswith(f"{prefix}.")
+        for prefix in MOCK_CONSENSUS_BANNED_IMPORT_PREFIXES
+    )
 
 
 def _consensus(prospect_uuid: str, projected_pick_median: float | None):
@@ -370,25 +390,65 @@ def test_eval_directory_contains_only_authorized_files():
     assert actual == AUTHORIZED_EVAL_FILES
 
 
+def _scan_file_for_banned_imports(tree: ast.AST, path: Path) -> list[str]:
+    """Collect banned-import / banned-string failures for one parsed file.
+
+    For ``ImportFrom`` nodes the imported *names* are also checked against the
+    banned set (combined as ``module.name``), so the
+    ``from src.dynasty_genius.eval import backtest_mock_draft`` form cannot evade
+    the reverse-import guard (U2 hardening).
+    """
+    failures: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if _is_banned_import(alias.name, path=path):
+                    failures.append(f"{path}:{node.lineno} import {alias.name}")
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if _is_banned_import(module, path=path):
+                failures.append(f"{path}:{node.lineno} from {module}")
+            else:
+                for alias in node.names:
+                    full = f"{module}.{alias.name}" if module else alias.name
+                    if _is_banned_import(full, path=path):
+                        failures.append(
+                            f"{path}:{node.lineno} from {module} import {alias.name}"
+                        )
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if "mock_consensus" in path.parts:
+                continue
+            for banned in BANNED_S4_ARTIFACT_STRINGS:
+                if banned in node.value:
+                    failures.append(f"{path}:{node.lineno} string {banned!r}")
+    return failures
+
+
 def test_no_s4_imports_in_production_paths():
     failures: list[str] = []
     for path in _python_files_for_roots(AST_AUDIT_SCAN_ROOTS):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    if alias.name in BANNED_IMPORT_MODULES:
-                        failures.append(f"{path}:{node.lineno} import {alias.name}")
-            elif isinstance(node, ast.ImportFrom):
-                module = node.module or ""
-                if module in BANNED_IMPORT_MODULES:
-                    failures.append(f"{path}:{node.lineno} from {module}")
-            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                for banned in BANNED_S4_ARTIFACT_STRINGS:
-                    if banned in node.value:
-                        failures.append(f"{path}:{node.lineno} string {banned!r}")
+        failures.extend(_scan_file_for_banned_imports(tree, path))
 
     assert failures == []
+
+
+def test_reverse_import_guard_catches_backtest_import_in_every_form():
+    """U2 hardening: a ``mock_consensus`` file importing ``backtest_mock_draft``
+    must be caught in EVERY syntactic form, including the
+    ``from <package> import <module>`` form that evades a module-only check."""
+    mock_consensus_path = Path("src/dynasty_genius/mock_consensus/consensus_math.py")
+    for snippet in (
+        "import src.dynasty_genius.eval.backtest_mock_draft",
+        "import dynasty_genius.eval.backtest_mock_draft",
+        "from src.dynasty_genius.eval.backtest_mock_draft import aggregate_per_prospect",
+        "from src.dynasty_genius.eval import backtest_mock_draft",
+        "from dynasty_genius.eval import backtest_mock_draft",
+    ):
+        tree = ast.parse(snippet)
+        assert _scan_file_for_banned_imports(tree, mock_consensus_path), (
+            f"reverse-import guard failed to catch: {snippet!r}"
+        )
 
 
 def test_mock_data_and_market_field_isolation():
