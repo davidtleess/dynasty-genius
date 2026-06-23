@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { leaguePulseResponse } from "./fixtures";
@@ -36,6 +36,19 @@ describe("LeaguePulse container", () => {
     const surface = await screen.findByTestId("league-pulse-ready");
     expect(surface.dataset.status).toBe("degraded");
     expect(screen.queryByText(/league pulse unavailable/i)).toBeNull();
+  });
+
+  it("renders the honesty header inside the ready region", async () => {
+    mockFetch(200, leaguePulseResponse());
+
+    render(<LeaguePulse />);
+
+    const surface = await screen.findByTestId("league-pulse-ready");
+    expect(
+      within(surface).getByRole("banner", { name: /league pulse status/i }),
+    ).toBeTruthy();
+    expect(within(surface).getByText(/not decision-grade/i)).toBeTruthy();
+    expect(within(surface).getByText(/as of 2026-06-22T18:00:00Z/i)).toBeTruthy();
   });
 
   it("renders unavailable for every non-OK status, including 422", async () => {

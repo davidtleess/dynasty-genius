@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { LeaguePulseResponse } from "../lib/api";
 import { zLeaguePulseResponse } from "../lib/api/zod.gen";
+import { LeaguePulseHeader } from "./LeaguePulseHeader";
 import "./LeaguePulse.css";
 import { LoadingState, ParseErrorState, UnavailableState } from "./LeaguePulseStates";
 
@@ -53,6 +54,9 @@ export function LeaguePulse() {
       aria-label="League Pulse"
       data-testid="league-pulse-ready"
       data-status={state.data.status}
-    />
+    >
+      <LeaguePulseHeader data={state.data} />
+      {/* Partner Rankings (T3), Postures + Values (T4), Opportunity Cards (T5) */}
+    </section>
   );
 }

@@ -9,3 +9,31 @@
   color: var(--dg-text-muted, #6b7280);
   padding: 1rem 0;
 }
+
+.dg-league-pulse__header {
+  border-bottom: 1px solid var(--dg-border, #e5e7eb);
+  padding-bottom: 0.75rem;
+}
+
+.dg-league-pulse__experimental {
+  color: var(--dg-warn, #b45309);
+  font-weight: 600;
+}
+
+.dg-league-pulse__asof,
+.dg-league-pulse__caveat,
+.dg-league-pulse__withheld,
+.dg-league-pulse__grade {
+  color: var(--dg-text-muted, #6b7280);
+  font-size: 0.85rem;
+}
+
+.dg-league-pulse__sources {
+  display: flex;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+  margin: 0.25rem 0 0;
+  color: var(--dg-text-muted, #6b7280);
+  font-size: 0.8rem;
+}
