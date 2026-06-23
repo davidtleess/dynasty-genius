@@ -19,16 +19,25 @@ def test_refresh_league_intelligence_runs_pipeline_scripts_in_order():
     result = run_refresh(runner=runner)
 
     assert result["status"] == "complete"
-    assert [step.phase for step in PHASE_STEPS] == ["17.1", "17.2", "17.3", "18.3", "17.4", "17.5"]
+    assert [step.phase for step in PHASE_STEPS] == [
+        "17.1",
+        "17.2",
+        "21",
+        "17.3",
+        "18.3",
+        "17.4",
+        "17.5",
+    ]
     assert calls == [
         [sys.executable, "scripts/build_sleeper_universe_snapshot.py"],
         [sys.executable, "scripts/build_universe_pvo_batch.py"],
+        [sys.executable, "scripts/build_roster_cut_report.py"],
         [sys.executable, "scripts/build_team_value_matrix.py"],
         [sys.executable, "scripts/build_team_posture.py"],
         [sys.executable, "scripts/build_universe_market_divergence.py"],
         [sys.executable, "scripts/build_league_opportunity_map.py"],
     ]
-    assert [item["status"] for item in result["steps"]] == ["passed"] * 6
+    assert [item["status"] for item in result["steps"]] == ["passed"] * 7
     assert result["decision_supported"] is False
     assert result["market_data_overlay_only"] is True
 
@@ -54,6 +63,28 @@ def test_refresh_league_intelligence_fails_fast_without_running_later_phases():
     ]
 
 
+def test_refresh_league_intelligence_fails_fast_on_roster_cut_before_later_phases():
+    from scripts.refresh_league_intelligence import run_refresh
+
+    calls: list[list[str]] = []
+
+    def runner(command: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess:
+        calls.append(command)
+        if command[-1] == "scripts/build_roster_cut_report.py":
+            raise subprocess.CalledProcessError(7, command)
+        return subprocess.CompletedProcess(command, 0)
+
+    with pytest.raises(SystemExit) as excinfo:
+        run_refresh(runner=runner)
+
+    assert excinfo.value.code == 7
+    assert calls == [
+        [sys.executable, "scripts/build_sleeper_universe_snapshot.py"],
+        [sys.executable, "scripts/build_universe_pvo_batch.py"],
+        [sys.executable, "scripts/build_roster_cut_report.py"],
+    ]
+
+
 def test_refresh_league_intelligence_dry_run_reports_commands_without_execution():
     from scripts.refresh_league_intelligence import run_refresh
 
@@ -63,5 +94,5 @@ def test_refresh_league_intelligence_dry_run_reports_commands_without_execution(
     result = run_refresh(dry_run=True, runner=runner)
 
     assert result["status"] == "dry_run"
-    assert [step["status"] for step in result["steps"]] == ["planned"] * 6
+    assert [step["status"] for step in result["steps"]] == ["planned"] * 7
     assert result["steps"][0]["command"] == [sys.executable, "scripts/build_sleeper_universe_snapshot.py"]

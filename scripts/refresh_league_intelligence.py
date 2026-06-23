@@ -23,6 +23,10 @@ class PhaseStep:
 PHASE_STEPS: tuple[PhaseStep, ...] = (
     PhaseStep("17.1", "Sleeper universe snapshot", "scripts/build_sleeper_universe_snapshot.py"),
     PhaseStep("17.2", "Full-universe PVO batch", "scripts/build_universe_pvo_batch.py"),
+    # Phase 21 roster-cut report (snapshot + PVO -> roster_cut_report_latest.json) runs
+    # AFTER 17.2 and BEFORE 17.5 so the league opportunity map can wire recommended_drop
+    # into WAIVER cards (Y-expansion — restores Waiver Radar drop-pairing).
+    PhaseStep("21", "Roster cut report", "scripts/build_roster_cut_report.py"),
     PhaseStep("17.3", "Team value matrix", "scripts/build_team_value_matrix.py"),
     PhaseStep("18.3", "Team posture classification", "scripts/build_team_posture.py"),
     PhaseStep("17.4", "Market divergence overlay", "scripts/build_universe_market_divergence.py"),

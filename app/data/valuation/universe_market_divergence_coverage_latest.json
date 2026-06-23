@@ -1,7 +1,7 @@
 {
   "banned_language_present": [],
   "decision_supported_true_count": 0,
-  "market_overlay_present_count": 396,
+  "market_overlay_present_count": 394,
   "phase17_4_exit_criteria": {
     "decision_supported_false": true,
     "market_data_overlay_only": true,
@@ -9,17 +9,17 @@
     "te_not_suppressed_by_position_alone": true
   },
   "signal_status_counts": {
-    "gates_passed": 167,
-    "inside_band": 106,
-    "unavailable": 11916
+    "gates_passed": 168,
+    "inside_band": 104,
+    "unavailable": 11929
   },
   "signals_by_type": {
-    "INSIDE_BAND": 106,
-    "MODEL_HIGH_MARKET_LOW": 111,
-    "MODEL_LOW_MARKET_HIGH": 56,
-    "UNAVAILABLE": 11915,
+    "INSIDE_BAND": 104,
+    "MODEL_HIGH_MARKET_LOW": 109,
+    "MODEL_LOW_MARKET_HIGH": 59,
+    "UNAVAILABLE": 11928,
     "UNRESOLVED_IDENTITY": 1
   },
   "te_position_suppressed_count": 0,
-  "total_players": 12189
+  "total_players": 12201
 }

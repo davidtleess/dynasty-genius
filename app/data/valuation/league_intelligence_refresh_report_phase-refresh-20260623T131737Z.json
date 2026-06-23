@@ -1,0 +1,166 @@
+{
+  "schema_version": "league_intelligence_refresh_report.v1",
+  "status": "passed",
+  "steps": [
+    {
+      "phase": "17.1",
+      "label": "Sleeper universe snapshot",
+      "script": "scripts/build_sleeper_universe_snapshot.py",
+      "command": [
+        "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+        "scripts/build_sleeper_universe_snapshot.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "phase": "17.2",
+      "label": "Full-universe PVO batch",
+      "script": "scripts/build_universe_pvo_batch.py",
+      "command": [
+        "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+        "scripts/build_universe_pvo_batch.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "phase": "21",
+      "label": "Roster cut report",
+      "script": "scripts/build_roster_cut_report.py",
+      "command": [
+        "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+        "scripts/build_roster_cut_report.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "phase": "17.3",
+      "label": "Team value matrix",
+      "script": "scripts/build_team_value_matrix.py",
+      "command": [
+        "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+        "scripts/build_team_value_matrix.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "phase": "18.3",
+      "label": "Team posture classification",
+      "script": "scripts/build_team_posture.py",
+      "command": [
+        "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+        "scripts/build_team_posture.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "phase": "17.4",
+      "label": "Market divergence overlay",
+      "script": "scripts/build_universe_market_divergence.py",
+      "command": [
+        "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+        "scripts/build_universe_market_divergence.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "phase": "17.5",
+      "label": "League opportunity map",
+      "script": "scripts/build_league_opportunity_map.py",
+      "command": [
+        "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+        "scripts/build_league_opportunity_map.py"
+      ],
+      "status": "passed"
+    }
+  ],
+  "market_source": {
+    "status": "fresh-cache",
+    "cache_sha_pre": "53b64d40ce58103bbcb311833ccbe10b406b1d9da23511bc2b2b725af6a1130a",
+    "cache_existed_pre": true,
+    "cache_sha_post": "53b64d40ce58103bbcb311833ccbe10b406b1d9da23511bc2b2b725af6a1130a"
+  },
+  "artifacts": [
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/league_snapshots/sleeper_universe_snapshot_latest.json",
+      "sha256": "7b294553b9018715ced2b012e2bc26fb4960b7567692f2fcf2e1e80fad51572b",
+      "byte_size": 7485559
+    },
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/league_snapshots/sleeper_universe_coverage_latest.json",
+      "sha256": "52e204969590e7c53fc52ab5381f540614459c5d7c71d8d37ab68e557b5784c0",
+      "byte_size": 1000
+    },
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/valuation/universe_pvo_latest.json",
+      "sha256": "3fb0d2dc7796aeea4408e1f6144ae5b52d874d41a6cad432cc7908d571582347",
+      "byte_size": 23532756
+    },
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/valuation/universe_pvo_coverage_latest.json",
+      "sha256": "6de930623266e5f05a6627b2d5df6eb071fc0f89ac04c62d7d7a784fbc9aa1c5",
+      "byte_size": 1049
+    },
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/valuation/roster_cut_report_latest.json",
+      "sha256": "a4d93e43d785ff3cfd584517a986220eff6298b0ad04df8c7cba8de93c946436",
+      "byte_size": 14226
+    },
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/valuation/roster_cut_report_latest.md",
+      "sha256": "ab83dddd8caf789cf36c332a6ee6048cd70bfffa63bbd23a9d2dcd4bdf0b93d8",
+      "byte_size": 2526
+    },
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/valuation/team_value_matrix_latest.json",
+      "sha256": "cbd6010bc1868ea20c0e59d07aa1fa7c05f28e848f2e3e0aeae747235207a6da",
+      "byte_size": 217757
+    },
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/valuation/team_posture_latest.json",
+      "sha256": "3bf355b81d467847831874ceea5e3c77e3e9ed1f50cb78e927b34aa4055fb829",
+      "byte_size": 9296
+    },
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/valuation/universe_market_divergence_latest.json",
+      "sha256": "eb2fffceb26e55b6938269abca33c7ed0a707cb2aa1c4139c898039e587484b2",
+      "byte_size": 28088352
+    },
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/valuation/universe_market_divergence_coverage_latest.json",
+      "sha256": "b91c774a805da77438e1cce548951ee9f2bf8448de4e87f77b653de2b6345f2a",
+      "byte_size": 653
+    },
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/valuation/league_opportunity_latest.json",
+      "sha256": "0ba711ecf982a2fa65e15acdf83fdc8eab6793c65920b2209dfb270801ac8cb4",
+      "byte_size": 33983
+    },
+    {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/valuation/league_opportunity_latest.md",
+      "sha256": "1a394f4b92ccd965395f3a7596bdca2eccca55bb8c79dd13cb937eb23ada7509",
+      "byte_size": 2412
+    }
+  ],
+  "captured_at_delta": {
+    "previous": "2026-05-24T17:19:59.627275+00:00",
+    "current": "2026-06-23T13:17:34.508685+00:00"
+  },
+  "counts": {
+    "team_count": 12,
+    "waiver_cards": 16,
+    "waiver_recommended_drops": 16
+  },
+  "checks": {
+    "shape_drift": "passed",
+    "market_bleed": "passed",
+    "drop_pairing": "passed",
+    "decision_supported": "passed",
+    "banned_language": "passed",
+    "freshness": "passed",
+    "guardrails": "passed",
+    "schema_version_unchanged": "passed",
+    "counts": "passed"
+  },
+  "rollback_guardrail_diff": "not_triggered; full PASS",
+  "decision_supported": false
+}
