@@ -92,6 +92,16 @@ S3_INVIOLATE_SHA256 = {
 # recency-aware compute_model_status; no market/G3 coupling, no Engine A/B feature or
 # training change). This EXTENDS the authorized set only; the exact-set allowlist
 # semantics are preserved (any other new, unlisted eval file still fails this audit).
+# ADDENDUM (2026-06-23, David-authorized — Gate-4 Divergence-Edge Validation):
+# gate4_divergence_edge.py is added to AUTHORIZED_EVAL_FILES below. It is a deliberate,
+# dual-CLEARED, pure (no DB/file/network I/O, no model call) validation engine per the
+# pre-registered spec docs/superpowers/specs/2026-06-23-gate4-divergence-edge-validation-design.md
+# (84531dc). Validation-study only: no Engine A/B feature or training change, no PVO/
+# scoring change, no product/UI change, market data overlay-only, decision_supported=False.
+# This EXTENDS the authorized set only; the exact-set allowlist semantics are preserved
+# (any other new, unlisted eval file still fails this audit). All permanent S4 guardrails
+# remain UNCHANGED: S4-module isolation, S3 byte-locks, AST anti-laundering, mock/market
+# isolation, banned-language/decision_supported, and the Engine A/B leakage wall.
 AUTHORIZED_EVAL_FILES = {
     "__init__.py",
     "backtest_artifact.py",
@@ -103,6 +113,7 @@ AUTHORIZED_EVAL_FILES = {
     "draft_capital_bakeoff.py",
     "draft_capital_manifest.py",
     "draft_class_loocv.py",
+    "gate4_divergence_edge.py",
     "market_snapshot_store.py",
     "model_card.py",
     "subpopulation_landscape.py",
