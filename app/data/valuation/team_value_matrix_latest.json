@@ -5,10 +5,10 @@
     "lineup_selection": "best_legal_lineup_from_raw_player_xvar",
     "player_level_value_decay_allowed": false
   },
-  "captured_at": "2026-05-24T17:19:56.801257+00:00",
+  "captured_at": "2026-06-23T13:17:30.723485+00:00",
   "coverage": {
     "all_teams_emitted": true,
-    "future_picks_present_unvalued": true,
+    "future_picks_present_valued_excluded_from_strength": true,
     "taxi_activation_cost_represented": true,
     "team_count": 12
   },
@@ -19,124 +19,300 @@
       "age_profile": {
         "median_age": 23.0,
         "pct_value_over_28": 0.0,
-        "value_weighted_age": 23.77
+        "value_weighted_age": 23.52
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 1,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 3,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 10,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 1,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 3,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 6,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 1,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 7,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
+            "original_roster_id": 8,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027,
+            "xvar": 0.1076
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 1,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2028
+            "season": 2028,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 1,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 1,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
+            "original_roster_id": 8,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028,
+            "xvar": 0.1076
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 1,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2029
+            "season": 2029,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 1,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 1,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -153,7 +329,7 @@
           "FLEX",
           "SUPER_FLEX"
         ],
-        "starter_xvar": 10.75,
+        "starter_xvar": -1.05,
         "starters": [
           {
             "full_name": "J.J. McCarthy",
@@ -170,11 +346,11 @@
             "xvar": 13.4
           },
           {
-            "full_name": "Tyrone Tracy",
+            "full_name": "Rasheen Ali",
             "position": "RB",
-            "sleeper_player_id": "11655",
+            "sleeper_player_id": "11570",
             "slot": "RB",
-            "xvar": 11.8
+            "xvar": 0.0
           },
           {
             "full_name": "Rome Odunze",
@@ -198,16 +374,16 @@
             "xvar": -16.85
           },
           {
-            "full_name": "Rasheen Ali",
-            "position": "RB",
-            "sleeper_player_id": "11570",
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "sleeper_player_id": "12499",
             "slot": "FLEX",
             "xvar": 0.0
           },
           {
-            "full_name": "Elic Ayomanor",
+            "full_name": "Tre' Harris",
             "position": "WR",
-            "sleeper_player_id": "12499",
+            "sleeper_player_id": "12509",
             "slot": "FLEX",
             "xvar": 0.0
           },
@@ -245,16 +421,6 @@
           "position": "RB",
           "raw_xvar": 13.4,
           "sleeper_player_id": "13414",
-          "starter_weight_multiplier_current_year": 1.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
-          "full_name": "Tyrone Tracy",
-          "lineup_role": "starter",
-          "long_term_value_multiplier": 1.0,
-          "position": "RB",
-          "raw_xvar": 11.8,
-          "sleeper_player_id": "11655",
           "starter_weight_multiplier_current_year": 1.0
         },
         {
@@ -362,12 +528,12 @@
         {
           "depth_credit_xvar": 0.0,
           "full_name": "Tre' Harris",
-          "lineup_role": "bench",
+          "lineup_role": "starter",
           "long_term_value_multiplier": 1.0,
           "position": "WR",
           "raw_xvar": 0.0,
           "sleeper_player_id": "12509",
-          "starter_weight_multiplier_current_year": 0.0
+          "starter_weight_multiplier_current_year": 1.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -516,28 +682,28 @@
           "n_rostered": 5,
           "starter_xvar": 0.0,
           "surplus_label": "deficit",
-          "z_score": -1.73
+          "z_score": -1.907
         },
         "RB": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 6,
-          "starter_xvar": 25.2,
+          "n_rostered": 5,
+          "starter_xvar": 13.4,
           "surplus_label": "deficit",
-          "z_score": -1.255
+          "z_score": -1.457
         },
         "TE": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 3,
           "starter_xvar": -16.85,
           "surplus_label": "deficit",
-          "z_score": -2.722
+          "z_score": -2.72
         },
         "WR": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 14,
           "starter_xvar": 2.4,
           "surplus_label": "deficit",
-          "z_score": -1.76
+          "z_score": -1.739
         }
       },
       "posture": {
@@ -549,95 +715,185 @@
       "schema_version": "team_value.v1",
       "team_value_views": {
         "depth_credit_xvar": 0.0,
-        "lineup_xvar": 10.75,
+        "lineup_xvar": -1.05,
         "market_overlay_total": null,
-        "starter_weighted_xvar": 10.75,
-        "top_n_xvar": 70.52,
-        "total_xvar_capped": 70.52
+        "starter_weighted_xvar": -1.05,
+        "top_n_xvar": 58.72,
+        "total_xvar_capped": 58.72
       }
     },
     {
       "age_profile": {
-        "median_age": 26.0,
+        "median_age": 24.5,
         "pct_value_over_28": 0.2621,
         "value_weighted_age": 25.84
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 2,
+            "dynasty_value_score": null,
             "original_roster_id": 2,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 2,
+            "dynasty_value_score": null,
             "original_roster_id": 2,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 2,
+            "dynasty_value_score": null,
             "original_roster_id": 2,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 2,
+            "dynasty_value_score": null,
             "original_roster_id": 2,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2028
+            "season": 2028,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 2,
+            "dynasty_value_score": null,
             "original_roster_id": 2,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 2,
+            "dynasty_value_score": null,
             "original_roster_id": 2,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 2,
+            "dynasty_value_score": null,
             "original_roster_id": 2,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2029
+            "season": 2029,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 2,
+            "dynasty_value_score": null,
             "original_roster_id": 2,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 2,
+            "dynasty_value_score": null,
             "original_roster_id": 2,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -870,32 +1126,12 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Philip Rivers",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "QB",
-          "raw_xvar": 0.0,
-          "sleeper_player_id": "331",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "Christian McCaffrey",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "RB",
           "raw_xvar": 0.0,
           "sleeper_player_id": "4034",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
-          "full_name": "Taysom Hill",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "TE",
-          "raw_xvar": -0.65,
-          "sleeper_player_id": "4381",
           "starter_weight_multiplier_current_year": 0.0
         },
         {
@@ -952,31 +1188,31 @@
       "positional_summary": {
         "QB": {
           "depth_xvar_adj": 1.11,
-          "n_rostered": 5,
+          "n_rostered": 4,
           "starter_xvar": 47.13,
           "surplus_label": "neutral",
-          "z_score": 0.178
+          "z_score": 0.188
         },
         "RB": {
           "depth_xvar_adj": 0.477,
           "n_rostered": 7,
           "starter_xvar": 118.7,
           "surplus_label": "neutral",
-          "z_score": 0.656
+          "z_score": 0.665
         },
         "TE": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 3,
+          "n_rostered": 2,
           "starter_xvar": 2.85,
           "surplus_label": "neutral",
-          "z_score": 0.53
+          "z_score": 0.525
         },
         "WR": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 7,
           "starter_xvar": 87.8,
           "surplus_label": "neutral",
-          "z_score": 0.224
+          "z_score": 0.238
         }
       },
       "posture": {
@@ -998,86 +1234,176 @@
     {
       "age_profile": {
         "median_age": 24.5,
-        "pct_value_over_28": 0.05,
-        "value_weighted_age": 25.49
+        "pct_value_over_28": 0.0547,
+        "value_weighted_age": 25.82
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 3,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 3,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 11,
+            "dynasty_value_score": null,
+            "original_roster_id": 3,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028,
+            "xvar": 11.1553
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 11,
+            "dynasty_value_score": null,
+            "original_roster_id": 3,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028,
+            "xvar": 0.1076
           }
         ],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 3,
+            "dynasty_value_score": null,
             "original_roster_id": 3,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 3,
+            "dynasty_value_score": null,
             "original_roster_id": 3,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028,
+            "xvar": 0.1076
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 3,
+            "dynasty_value_score": null,
+            "original_roster_id": 3,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2028
+            "season": 2029,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 3,
+            "dynasty_value_score": null,
             "original_roster_id": 3,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2029,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 3,
+            "dynasty_value_score": null,
             "original_roster_id": 3,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2028
-          },
-          {
-            "current_roster_id": 3,
-            "original_roster_id": 3,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 1,
-            "season": 2029
-          },
-          {
-            "current_roster_id": 3,
-            "original_roster_id": 3,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 2,
-            "season": 2029
-          },
-          {
-            "current_roster_id": 3,
-            "original_roster_id": 3,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 3,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -1094,7 +1420,7 @@
           "FLEX",
           "SUPER_FLEX"
         ],
-        "starter_xvar": 210.69,
+        "starter_xvar": 192.89,
         "starters": [
           {
             "full_name": "Sam Darnold",
@@ -1118,18 +1444,18 @@
             "xvar": 36.93
           },
           {
-            "full_name": "Jaxon Smith-Njigba",
-            "position": "WR",
-            "sleeper_player_id": "9488",
-            "slot": "WR",
-            "xvar": 29.3
-          },
-          {
             "full_name": "D.J. Moore",
             "position": "WR",
             "sleeper_player_id": "4983",
             "slot": "WR",
             "xvar": 25.2
+          },
+          {
+            "full_name": "Jayden Reed",
+            "position": "WR",
+            "sleeper_player_id": "10222",
+            "slot": "WR",
+            "xvar": 16.9
           },
           {
             "full_name": "Sam LaPorta",
@@ -1146,18 +1472,18 @@
             "xvar": 25.23
           },
           {
-            "full_name": "Jayden Reed",
-            "position": "WR",
-            "sleeper_player_id": "10222",
-            "slot": "FLEX",
-            "xvar": 16.9
-          },
-          {
             "full_name": "Rico Dowdle",
             "position": "RB",
             "sleeper_player_id": "7021",
-            "slot": "SUPER_FLEX",
+            "slot": "FLEX",
             "xvar": 15.16
+          },
+          {
+            "full_name": "Matthew Stafford",
+            "position": "QB",
+            "sleeper_player_id": "421",
+            "slot": "SUPER_FLEX",
+            "xvar": 11.5
           }
         ],
         "unfilled_slots": 0
@@ -1186,16 +1512,6 @@
           "position": "RB",
           "raw_xvar": 36.93,
           "sleeper_player_id": "8150",
-          "starter_weight_multiplier_current_year": 1.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
-          "full_name": "Jaxon Smith-Njigba",
-          "lineup_role": "starter",
-          "long_term_value_multiplier": 1.0,
-          "position": "WR",
-          "raw_xvar": 29.3,
-          "sleeper_player_id": "9488",
           "starter_weight_multiplier_current_year": 1.0
         },
         {
@@ -1249,13 +1565,23 @@
           "starter_weight_multiplier_current_year": 1.0
         },
         {
-          "depth_credit_xvar": 5.75,
+          "depth_credit_xvar": 0.0,
           "full_name": "Matthew Stafford",
-          "lineup_role": "bench",
+          "lineup_role": "starter",
           "long_term_value_multiplier": 1.0,
           "position": "QB",
           "raw_xvar": 11.5,
           "sleeper_player_id": "421",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 4.71,
+          "full_name": "Drake Maye",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 9.42,
+          "sleeper_player_id": "11564",
           "starter_weight_multiplier_current_year": 0.0
         },
         {
@@ -1277,16 +1603,6 @@
           "raw_xvar": 2.85,
           "sleeper_player_id": "10859",
           "starter_weight_multiplier_current_year": 1.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
-          "full_name": "Jonathon Brooks",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "RB",
-          "raw_xvar": 0.0,
-          "sleeper_player_id": "11583",
-          "starter_weight_multiplier_current_year": 0.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -1346,6 +1662,16 @@
           "position": "WR",
           "raw_xvar": -6.7,
           "sleeper_player_id": "10232",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Malachi Fields",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -7.53,
+          "sleeper_player_id": "13285",
           "starter_weight_multiplier_current_year": 0.0
         },
         {
@@ -1413,32 +1739,32 @@
       ],
       "positional_summary": {
         "QB": {
-          "depth_xvar_adj": 5.75,
-          "n_rostered": 4,
-          "starter_xvar": 13.31,
-          "surplus_label": "deficit",
-          "z_score": -0.976
+          "depth_xvar_adj": 4.71,
+          "n_rostered": 5,
+          "starter_xvar": 24.81,
+          "surplus_label": "neutral",
+          "z_score": -0.625
         },
         "RB": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 9,
+          "n_rostered": 8,
           "starter_xvar": 123.13,
           "surplus_label": "neutral",
-          "z_score": 0.736
+          "z_score": 0.744
         },
         "TE": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 3,
           "starter_xvar": 2.85,
           "surplus_label": "neutral",
-          "z_score": 0.53
+          "z_score": 0.525
         },
         "WR": {
           "depth_xvar_adj": 1.95,
           "n_rostered": 8,
-          "starter_xvar": 71.4,
-          "surplus_label": "neutral",
-          "z_score": -0.112
+          "starter_xvar": 42.1,
+          "surplus_label": "deficit",
+          "z_score": -0.775
         }
       },
       "posture": {
@@ -1449,112 +1775,187 @@
       "roster_id": 3,
       "schema_version": "team_value.v1",
       "team_value_views": {
-        "depth_credit_xvar": 7.7,
-        "lineup_xvar": 210.69,
+        "depth_credit_xvar": 6.66,
+        "lineup_xvar": 192.89,
         "market_overlay_total": null,
-        "starter_weighted_xvar": 218.39,
-        "top_n_xvar": 219.34,
-        "total_xvar_capped": 229.99
+        "starter_weighted_xvar": 199.55,
+        "top_n_xvar": 199.46,
+        "total_xvar_capped": 210.11
       }
     },
     {
       "age_profile": {
         "median_age": 25.0,
-        "pct_value_over_28": 0.0382,
-        "value_weighted_age": 24.82
+        "pct_value_over_28": 0.0289,
+        "value_weighted_age": 25.53
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
-        "outgoing": [],
+        "outgoing": [
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 6,
+            "dynasty_value_score": null,
+            "original_roster_id": 4,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027,
+            "xvar": 11.1553
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 6,
+            "dynasty_value_score": null,
+            "original_roster_id": 4,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028,
+            "xvar": 11.1553
+          }
+        ],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 4,
+            "dynasty_value_score": null,
             "original_roster_id": 4,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 1,
-            "season": 2027
-          },
-          {
-            "current_roster_id": 4,
-            "original_roster_id": 6,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 1,
-            "season": 2027
-          },
-          {
-            "current_roster_id": 4,
-            "original_roster_id": 4,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 4,
+            "dynasty_value_score": null,
             "original_roster_id": 4,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 4,
+            "dynasty_value_score": null,
             "original_roster_id": 4,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 1,
-            "season": 2028
-          },
-          {
-            "current_roster_id": 4,
-            "original_roster_id": 10,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 1,
-            "season": 2028
-          },
-          {
-            "current_roster_id": 4,
-            "original_roster_id": 4,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 4,
+            "dynasty_value_score": null,
             "original_roster_id": 4,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 4,
+            "dynasty_value_score": null,
             "original_roster_id": 4,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2029
+            "season": 2029,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 4,
+            "dynasty_value_score": null,
             "original_roster_id": 4,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 4,
+            "dynasty_value_score": null,
             "original_roster_id": 4,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -1571,14 +1972,14 @@
           "FLEX",
           "SUPER_FLEX"
         ],
-        "starter_xvar": 197.24,
+        "starter_xvar": 244.85,
         "starters": [
           {
-            "full_name": "Aaron Rodgers",
+            "full_name": "Josh Allen",
             "position": "QB",
-            "sleeper_player_id": "96",
+            "sleeper_player_id": "4984",
             "slot": "QB",
-            "xvar": 7.76
+            "xvar": 49.62
           },
           {
             "full_name": "Kenneth Walker III",
@@ -1623,18 +2024,18 @@
             "xvar": 20.3
           },
           {
+            "full_name": "DK Metcalf",
+            "position": "WR",
+            "sleeper_player_id": "5846",
+            "slot": "FLEX",
+            "xvar": 15.5
+          },
+          {
             "full_name": "Jauan Jennings",
             "position": "WR",
             "sleeper_player_id": "7049",
-            "slot": "FLEX",
-            "xvar": 10.5
-          },
-          {
-            "full_name": "Travis Etienne",
-            "position": "RB",
-            "sleeper_player_id": "7543",
             "slot": "SUPER_FLEX",
-            "xvar": 9.75
+            "xvar": 10.5
           }
         ],
         "unfilled_slots": 0
@@ -1645,6 +2046,16 @@
         "user_id": "913546847858470912"
       },
       "players": [
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Josh Allen",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "QB",
+          "raw_xvar": 49.62,
+          "sleeper_player_id": "4984",
+          "starter_weight_multiplier_current_year": 1.0
+        },
         {
           "depth_credit_xvar": 0.0,
           "full_name": "Kenneth Walker III",
@@ -1697,6 +2108,16 @@
         },
         {
           "depth_credit_xvar": 0.0,
+          "full_name": "DK Metcalf",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 15.5,
+          "sleeper_player_id": "5846",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
           "full_name": "Jauan Jennings",
           "lineup_role": "starter",
           "long_term_value_multiplier": 1.0,
@@ -1706,27 +2127,27 @@
           "starter_weight_multiplier_current_year": 1.0
         },
         {
-          "depth_credit_xvar": 0.0,
+          "depth_credit_xvar": 4.875,
           "full_name": "Travis Etienne",
-          "lineup_role": "starter",
+          "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "RB",
           "raw_xvar": 9.75,
           "sleeper_player_id": "7543",
-          "starter_weight_multiplier_current_year": 1.0
+          "starter_weight_multiplier_current_year": 0.0
         },
         {
-          "depth_credit_xvar": 0.0,
+          "depth_credit_xvar": 1.94,
           "full_name": "Aaron Rodgers",
-          "lineup_role": "starter",
+          "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "QB",
           "raw_xvar": 7.76,
           "sleeper_player_id": "96",
-          "starter_weight_multiplier_current_year": 1.0
+          "starter_weight_multiplier_current_year": 0.0
         },
         {
-          "depth_credit_xvar": 2.8,
+          "depth_credit_xvar": 0.7,
           "full_name": "Quentin Johnston",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
@@ -1746,7 +2167,7 @@
           "starter_weight_multiplier_current_year": 1.0
         },
         {
-          "depth_credit_xvar": 0.035,
+          "depth_credit_xvar": 0.009,
           "full_name": "Trevor Lawrence",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
@@ -1773,16 +2194,6 @@
           "position": "TE",
           "raw_xvar": 0.0,
           "sleeper_player_id": "12493",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
-          "full_name": "Jalen Milroe",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "QB",
-          "raw_xvar": 0.0,
-          "sleeper_player_id": "12510",
           "starter_weight_multiplier_current_year": 0.0
         },
         {
@@ -1880,32 +2291,32 @@
       ],
       "positional_summary": {
         "QB": {
-          "depth_xvar_adj": 0.035,
+          "depth_xvar_adj": 1.949,
           "n_rostered": 4,
-          "starter_xvar": 7.76,
-          "surplus_label": "deficit",
-          "z_score": -1.422
+          "starter_xvar": 49.62,
+          "surplus_label": "neutral",
+          "z_score": 0.333
         },
         "RB": {
-          "depth_xvar_adj": 0.0,
+          "depth_xvar_adj": 4.875,
           "n_rostered": 8,
-          "starter_xvar": 89.03,
+          "starter_xvar": 79.28,
           "surplus_label": "neutral",
-          "z_score": 0.043
+          "z_score": -0.038
         },
         "TE": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 3,
           "starter_xvar": 2.85,
           "surplus_label": "neutral",
-          "z_score": 0.53
+          "z_score": 0.525
         },
         "WR": {
-          "depth_xvar_adj": 2.8,
-          "n_rostered": 8,
-          "starter_xvar": 97.6,
-          "surplus_label": "neutral",
-          "z_score": 0.517
+          "depth_xvar_adj": 0.7,
+          "n_rostered": 9,
+          "starter_xvar": 113.1,
+          "surplus_label": "surplus",
+          "z_score": 0.841
         }
       },
       "posture": {
@@ -1916,104 +2327,204 @@
       "roster_id": 4,
       "schema_version": "team_value.v1",
       "team_value_views": {
-        "depth_credit_xvar": 2.835,
-        "lineup_xvar": 197.24,
+        "depth_credit_xvar": 7.524,
+        "lineup_xvar": 244.85,
         "market_overlay_total": null,
-        "starter_weighted_xvar": 200.075,
-        "top_n_xvar": 199.99,
-        "total_xvar_capped": 202.98
+        "starter_weighted_xvar": 252.374,
+        "top_n_xvar": 251.75,
+        "total_xvar_capped": 268.1
       }
     },
     {
       "age_profile": {
         "median_age": 23.0,
-        "pct_value_over_28": 0.1024,
-        "value_weighted_age": 23.46
+        "pct_value_over_28": 0.0,
+        "value_weighted_age": 22.6
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 5,
+            "dynasty_value_score": null,
             "original_roster_id": 5,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 5,
+            "dynasty_value_score": null,
             "original_roster_id": 5,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 5,
+            "dynasty_value_score": null,
             "original_roster_id": 5,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 5,
+            "dynasty_value_score": null,
             "original_roster_id": 5,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2028
+            "season": 2028,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 5,
+            "dynasty_value_score": null,
             "original_roster_id": 5,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 5,
+            "dynasty_value_score": null,
             "original_roster_id": 11,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 5,
+            "dynasty_value_score": null,
             "original_roster_id": 5,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 5,
+            "dynasty_value_score": null,
             "original_roster_id": 5,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2029
+            "season": 2029,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 5,
+            "dynasty_value_score": null,
             "original_roster_id": 5,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 5,
+            "dynasty_value_score": null,
             "original_roster_id": 5,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -2030,7 +2541,7 @@
           "FLEX",
           "SUPER_FLEX"
         ],
-        "starter_xvar": 73.79,
+        "starter_xvar": 64.04,
         "starters": [
           {
             "full_name": "C.J. Stroud",
@@ -2061,11 +2572,11 @@
             "xvar": 39.4
           },
           {
-            "full_name": "Cooper Kupp",
+            "full_name": "Denzel Boston",
             "position": "WR",
-            "sleeper_player_id": "4039",
+            "sleeper_player_id": "13346",
             "slot": "WR",
-            "xvar": 11.8
+            "xvar": 2.05
           },
           {
             "full_name": "Terrance Ferguson",
@@ -2082,9 +2593,9 @@
             "xvar": 0.0
           },
           {
-            "full_name": "Harold Fannin",
-            "position": "TE",
-            "sleeper_player_id": "12506",
+            "full_name": "Jalen Royals",
+            "position": "WR",
+            "sleeper_player_id": "12505",
             "slot": "FLEX",
             "xvar": 0.0
           },
@@ -2136,24 +2647,13 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Cooper Kupp",
-          "lineup_role": "starter",
-          "long_term_value_multiplier": 1.0,
-          "position": "WR",
-          "raw_xvar": 11.8,
-          "sleeper_player_id": "4039",
-          "starter_weight_multiplier_current_year": 1.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "Denzel Boston",
-          "lineup_role": "taxi",
+          "lineup_role": "starter",
           "long_term_value_multiplier": 1.0,
           "position": "WR",
           "raw_xvar": 2.05,
           "sleeper_player_id": "13346",
-          "starter_weight_multiplier_current_year": 0.0,
-          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+          "starter_weight_multiplier_current_year": 1.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -2197,13 +2697,23 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Harold Fannin",
+          "full_name": "Jalen Royals",
           "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "12505",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Harold Fannin",
+          "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "TE",
           "raw_xvar": 0.0,
           "sleeper_player_id": "12506",
-          "starter_weight_multiplier_current_year": 1.0
+          "starter_weight_multiplier_current_year": 0.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -2329,12 +2839,13 @@
         {
           "depth_credit_xvar": 0.0,
           "full_name": "Garrett Nussmeier",
-          "lineup_role": "bench",
+          "lineup_role": "taxi",
           "long_term_value_multiplier": 1.0,
           "position": "QB",
           "raw_xvar": -101.65,
           "sleeper_player_id": "13404",
-          "starter_weight_multiplier_current_year": 0.0
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
         }
       ],
       "positional_summary": {
@@ -2343,28 +2854,28 @@
           "n_rostered": 3,
           "starter_xvar": 22.59,
           "surplus_label": "deficit",
-          "z_score": -0.837
+          "z_score": -0.926
         },
         "RB": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 6,
           "starter_xvar": 0.0,
           "surplus_label": "deficit",
-          "z_score": -1.768
+          "z_score": -1.726
         },
         "TE": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 4,
           "starter_xvar": 0.0,
           "surplus_label": "neutral",
-          "z_score": 0.06
+          "z_score": 0.055
         },
         "WR": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 10,
-          "starter_xvar": 51.2,
-          "surplus_label": "neutral",
-          "z_score": -0.626
+          "starter_xvar": 41.45,
+          "surplus_label": "deficit",
+          "z_score": -0.835
         }
       },
       "posture": {
@@ -2376,96 +2887,240 @@
       "schema_version": "team_value.v1",
       "team_value_views": {
         "depth_credit_xvar": 0.0,
-        "lineup_xvar": 73.79,
+        "lineup_xvar": 64.04,
         "market_overlay_total": null,
-        "starter_weighted_xvar": 73.79,
-        "top_n_xvar": 115.24,
-        "total_xvar_capped": 115.24
+        "starter_weighted_xvar": 64.04,
+        "top_n_xvar": 103.44,
+        "total_xvar_capped": 103.44
       }
     },
     {
       "age_profile": {
-        "median_age": 25.0,
-        "pct_value_over_28": 0.2904,
-        "value_weighted_age": 27.27
+        "median_age": 24.0,
+        "pct_value_over_28": 0.3818,
+        "value_weighted_age": 27.11
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
           {
-            "current_roster_id": 4,
-            "original_roster_id": 6,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 1,
-            "season": 2027
-          },
-          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 6,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           }
         ],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 6,
-            "original_roster_id": 6,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 3,
-            "season": 2027
-          },
-          {
-            "current_roster_id": 6,
-            "original_roster_id": 6,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 1,
-            "season": 2028
-          },
-          {
-            "current_roster_id": 6,
-            "original_roster_id": 6,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 2,
-            "season": 2028
-          },
-          {
-            "current_roster_id": 6,
-            "original_roster_id": 6,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 3,
-            "season": 2028
-          },
-          {
-            "current_roster_id": 6,
-            "original_roster_id": 6,
-            "pick_value_status": "deferred",
+            "dynasty_value_score": null,
+            "original_roster_id": 4,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2029
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 6,
+            "dynasty_value_score": null,
             "original_roster_id": 6,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 2,
-            "season": 2029
+            "round": 1,
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 6,
+            "dynasty_value_score": null,
             "original_roster_id": 6,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2029
+            "season": 2027,
+            "xvar": 0.1076
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 6,
+            "dynasty_value_score": null,
+            "original_roster_id": 4,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028,
+            "xvar": 11.1553
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 6,
+            "dynasty_value_score": null,
+            "original_roster_id": 6,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028,
+            "xvar": 11.1553
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 6,
+            "dynasty_value_score": null,
+            "original_roster_id": 10,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2028,
+            "xvar": 11.1553
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 6,
+            "dynasty_value_score": null,
+            "original_roster_id": 6,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2028,
+            "xvar": 0.1076
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 6,
+            "dynasty_value_score": null,
+            "original_roster_id": 6,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028,
+            "xvar": 0.1076
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 6,
+            "dynasty_value_score": null,
+            "original_roster_id": 6,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029,
+            "xvar": 11.1553
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 6,
+            "dynasty_value_score": null,
+            "original_roster_id": 6,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029,
+            "xvar": 0.1076
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 6,
+            "dynasty_value_score": null,
+            "original_roster_id": 6,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -2482,14 +3137,14 @@
           "FLEX",
           "SUPER_FLEX"
         ],
-        "starter_xvar": 263.62,
+        "starter_xvar": 206.89,
         "starters": [
           {
-            "full_name": "Josh Allen",
+            "full_name": "Jordan Love",
             "position": "QB",
-            "sleeper_player_id": "4984",
+            "sleeper_player_id": "6804",
             "slot": "QB",
-            "xvar": 49.62
+            "xvar": 15.11
           },
           {
             "full_name": "Josh Jacobs",
@@ -2534,18 +3189,18 @@
             "xvar": 32.17
           },
           {
-            "full_name": "DK Metcalf",
+            "full_name": "Wan'Dale Robinson",
             "position": "WR",
-            "sleeper_player_id": "5846",
+            "sleeper_player_id": "8126",
             "slot": "FLEX",
-            "xvar": 15.5
+            "xvar": 8.0
           },
           {
-            "full_name": "Jordan Love",
-            "position": "QB",
-            "sleeper_player_id": "6804",
+            "full_name": "Isaiah Likely",
+            "position": "TE",
+            "sleeper_player_id": "8131",
             "slot": "SUPER_FLEX",
-            "xvar": 15.11
+            "xvar": 0.39
           }
         ],
         "unfilled_slots": 0
@@ -2564,16 +3219,6 @@
           "position": "RB",
           "raw_xvar": 51.33,
           "sleeper_player_id": "5850",
-          "starter_weight_multiplier_current_year": 1.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
-          "full_name": "Josh Allen",
-          "lineup_role": "starter",
-          "long_term_value_multiplier": 1.0,
-          "position": "QB",
-          "raw_xvar": 49.62,
-          "sleeper_player_id": "4984",
           "starter_weight_multiplier_current_year": 1.0
         },
         {
@@ -2618,16 +3263,6 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "DK Metcalf",
-          "lineup_role": "starter",
-          "long_term_value_multiplier": 1.0,
-          "position": "WR",
-          "raw_xvar": 15.5,
-          "sleeper_player_id": "5846",
-          "starter_weight_multiplier_current_year": 1.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "Jordan Love",
           "lineup_role": "starter",
           "long_term_value_multiplier": 1.0,
@@ -2637,14 +3272,14 @@
           "starter_weight_multiplier_current_year": 1.0
         },
         {
-          "depth_credit_xvar": 4.0,
+          "depth_credit_xvar": 0.0,
           "full_name": "Wan'Dale Robinson",
-          "lineup_role": "bench",
+          "lineup_role": "starter",
           "long_term_value_multiplier": 1.0,
           "position": "WR",
           "raw_xvar": 8.0,
           "sleeper_player_id": "8126",
-          "starter_weight_multiplier_current_year": 0.0
+          "starter_weight_multiplier_current_year": 1.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -2657,14 +3292,14 @@
           "starter_weight_multiplier_current_year": 1.0
         },
         {
-          "depth_credit_xvar": 0.098,
+          "depth_credit_xvar": 0.0,
           "full_name": "Isaiah Likely",
-          "lineup_role": "bench",
+          "lineup_role": "starter",
           "long_term_value_multiplier": 1.0,
           "position": "TE",
           "raw_xvar": 0.39,
           "sleeper_player_id": "8131",
-          "starter_weight_multiplier_current_year": 0.0
+          "starter_weight_multiplier_current_year": 1.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -2688,28 +3323,8 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Alexander Mattison",
-          "lineup_role": "ir",
-          "long_term_value_multiplier": 1.0,
-          "position": "RB",
-          "raw_xvar": 0.0,
-          "sleeper_player_id": "5987",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
-          "full_name": "Patrick Taylor",
-          "lineup_role": "ir",
-          "long_term_value_multiplier": 1.0,
-          "position": "RB",
-          "raw_xvar": 0.0,
-          "sleeper_player_id": "6963",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "Anthony Richardson",
-          "lineup_role": "ir",
+          "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "QB",
           "raw_xvar": 0.0,
@@ -2748,16 +3363,6 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "DeAndre Hopkins",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "WR",
-          "raw_xvar": -7.6,
-          "sleeper_player_id": "1426",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "Noah Gray",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
@@ -2769,22 +3374,11 @@
         {
           "depth_credit_xvar": 0.0,
           "full_name": "Troy Franklin",
-          "lineup_role": "taxi",
+          "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "WR",
           "raw_xvar": -12.3,
           "sleeper_player_id": "11627",
-          "starter_weight_multiplier_current_year": 0.0,
-          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
-        },
-        {
-          "depth_credit_xvar": 0.0,
-          "full_name": "Raheem Mostert",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "RB",
-          "raw_xvar": -16.35,
-          "sleeper_player_id": "2749",
           "starter_weight_multiplier_current_year": 0.0
         },
         {
@@ -2811,31 +3405,31 @@
       "positional_summary": {
         "QB": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 5,
-          "starter_xvar": 64.73,
-          "surplus_label": "surplus",
-          "z_score": 0.83
+          "n_rostered": 4,
+          "starter_xvar": 15.11,
+          "surplus_label": "deficit",
+          "z_score": -1.251
         },
         "RB": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 7,
+          "n_rostered": 4,
           "starter_xvar": 131.04,
           "surplus_label": "surplus",
-          "z_score": 0.897
+          "z_score": 0.903
         },
         "TE": {
-          "depth_xvar_adj": 0.098,
+          "depth_xvar_adj": 0.0,
           "n_rostered": 3,
-          "starter_xvar": 2.85,
+          "starter_xvar": 3.24,
           "surplus_label": "neutral",
-          "z_score": 0.546
+          "z_score": 0.589
         },
         "WR": {
-          "depth_xvar_adj": 4.0,
-          "n_rostered": 10,
-          "starter_xvar": 65.0,
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 8,
+          "starter_xvar": 57.5,
           "surplus_label": "neutral",
-          "z_score": -0.213
+          "z_score": -0.463
         }
       },
       "posture": {
@@ -2846,12 +3440,12 @@
       "roster_id": 6,
       "schema_version": "team_value.v1",
       "team_value_views": {
-        "depth_credit_xvar": 4.098,
-        "lineup_xvar": 263.62,
+        "depth_credit_xvar": 0.0,
+        "lineup_xvar": 206.89,
         "market_overlay_total": null,
-        "starter_weighted_xvar": 267.718,
-        "top_n_xvar": 268.77,
-        "total_xvar_capped": 272.01
+        "starter_weighted_xvar": 206.89,
+        "top_n_xvar": 206.89,
+        "total_xvar_capped": 206.89
       }
     },
     {
@@ -2860,83 +3454,173 @@
         "pct_value_over_28": 0.2472,
         "value_weighted_age": 25.09
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 7,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           }
         ],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 7,
+            "dynasty_value_score": null,
             "original_roster_id": 7,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 7,
+            "dynasty_value_score": null,
             "original_roster_id": 7,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 7,
+            "dynasty_value_score": null,
             "original_roster_id": 7,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2028
+            "season": 2028,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 7,
+            "dynasty_value_score": null,
             "original_roster_id": 7,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 7,
+            "dynasty_value_score": null,
             "original_roster_id": 7,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 7,
+            "dynasty_value_score": null,
             "original_roster_id": 7,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2029
+            "season": 2029,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 7,
+            "dynasty_value_score": null,
             "original_roster_id": 7,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 7,
+            "dynasty_value_score": null,
             "original_roster_id": 7,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -3266,28 +3950,28 @@
           "n_rostered": 5,
           "starter_xvar": 76.78,
           "surplus_label": "surplus",
-          "z_score": 1.307
+          "z_score": 1.428
         },
         "RB": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 6,
           "starter_xvar": 159.74,
           "surplus_label": "surplus",
-          "z_score": 1.481
+          "z_score": 1.479
         },
         "TE": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 3,
           "starter_xvar": 2.85,
           "surplus_label": "neutral",
-          "z_score": 0.53
+          "z_score": 0.525
         },
         "WR": {
           "depth_xvar_adj": 10.425,
           "n_rostered": 9,
           "starter_xvar": 102.4,
           "surplus_label": "surplus",
-          "z_score": 0.805
+          "z_score": 0.818
         }
       },
       "posture": {
@@ -3310,84 +3994,175 @@
       "age_profile": {
         "median_age": 25.0,
         "pct_value_over_28": 0.0,
-        "value_weighted_age": 25.48
+        "value_weighted_age": 25.46
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
-        "outgoing": [],
+        "outgoing": [
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 1,
+            "dynasty_value_score": null,
+            "original_roster_id": 8,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2027,
+            "xvar": 0.1076
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 1,
+            "dynasty_value_score": null,
+            "original_roster_id": 8,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2028,
+            "xvar": 0.1076
+          }
+        ],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 8,
+            "dynasty_value_score": null,
             "original_roster_id": 8,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 8,
+            "dynasty_value_score": null,
             "original_roster_id": 8,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 8,
+            "dynasty_value_score": null,
             "original_roster_id": 8,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 3,
-            "season": 2027
-          },
-          {
-            "current_roster_id": 8,
-            "original_roster_id": 8,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2028
+            "season": 2028,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 8,
+            "dynasty_value_score": null,
             "original_roster_id": 8,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 8,
+            "dynasty_value_score": null,
             "original_roster_id": 8,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 3,
-            "season": 2028
-          },
-          {
-            "current_roster_id": 8,
-            "original_roster_id": 8,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2029
+            "season": 2029,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 8,
+            "dynasty_value_score": null,
             "original_roster_id": 8,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 8,
+            "dynasty_value_score": null,
             "original_roster_id": 8,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -3404,7 +4179,7 @@
           "FLEX",
           "SUPER_FLEX"
         ],
-        "starter_xvar": 232.86,
+        "starter_xvar": 236.86,
         "starters": [
           {
             "full_name": "Joe Burrow",
@@ -3414,18 +4189,18 @@
             "xvar": 35.34
           },
           {
+            "full_name": "Tyrone Tracy",
+            "position": "RB",
+            "sleeper_player_id": "11655",
+            "slot": "RB",
+            "xvar": 11.8
+          },
+          {
             "full_name": "Javonte Williams",
             "position": "RB",
             "sleeper_player_id": "7588",
             "slot": "RB",
             "xvar": 10.07
-          },
-          {
-            "full_name": "Tyjae Spears",
-            "position": "RB",
-            "sleeper_player_id": "9508",
-            "slot": "RB",
-            "xvar": 7.8
           },
           {
             "full_name": "Justin Jefferson",
@@ -3550,6 +4325,16 @@
         },
         {
           "depth_credit_xvar": 0.0,
+          "full_name": "Tyrone Tracy",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 11.8,
+          "sleeper_player_id": "11655",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
           "full_name": "Javonte Williams",
           "lineup_role": "starter",
           "long_term_value_multiplier": 1.0,
@@ -3559,14 +4344,14 @@
           "starter_weight_multiplier_current_year": 1.0
         },
         {
-          "depth_credit_xvar": 0.0,
+          "depth_credit_xvar": 1.95,
           "full_name": "Tyjae Spears",
-          "lineup_role": "starter",
+          "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "RB",
           "raw_xvar": 7.8,
           "sleeper_player_id": "9508",
-          "starter_weight_multiplier_current_year": 1.0
+          "starter_weight_multiplier_current_year": 0.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -3671,13 +4456,12 @@
         {
           "depth_credit_xvar": 0.0,
           "full_name": "Emmett Johnson",
-          "lineup_role": "taxi",
+          "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "RB",
           "raw_xvar": -12.19,
           "sleeper_player_id": "13337",
-          "starter_weight_multiplier_current_year": 0.0,
-          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+          "starter_weight_multiplier_current_year": 0.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -3693,12 +4477,13 @@
         {
           "depth_credit_xvar": 0.0,
           "full_name": "Matthew Hibner",
-          "lineup_role": "bench",
+          "lineup_role": "taxi",
           "long_term_value_multiplier": 1.0,
           "position": "TE",
           "raw_xvar": -34.79,
           "sleeper_player_id": "13324",
-          "starter_weight_multiplier_current_year": 0.0
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
         }
       ],
       "positional_summary": {
@@ -3707,28 +4492,28 @@
           "n_rostered": 4,
           "starter_xvar": 35.34,
           "surplus_label": "neutral",
-          "z_score": 0.199
+          "z_score": 0.212
         },
         "RB": {
-          "depth_xvar_adj": 0.0,
-          "n_rostered": 7,
-          "starter_xvar": 17.87,
+          "depth_xvar_adj": 1.95,
+          "n_rostered": 8,
+          "starter_xvar": 21.87,
           "surplus_label": "deficit",
-          "z_score": -1.404
+          "z_score": -1.248
         },
         "TE": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 5,
           "starter_xvar": 2.85,
           "surplus_label": "neutral",
-          "z_score": 0.53
+          "z_score": 0.525
         },
         "WR": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 6,
           "starter_xvar": 176.8,
           "surplus_label": "surplus",
-          "z_score": 2.291
+          "z_score": 2.299
         }
       },
       "posture": {
@@ -3739,12 +4524,12 @@
       "roster_id": 8,
       "schema_version": "team_value.v1",
       "team_value_views": {
-        "depth_credit_xvar": 13.445,
-        "lineup_xvar": 232.86,
+        "depth_credit_xvar": 15.395,
+        "lineup_xvar": 236.86,
         "market_overlay_total": null,
-        "starter_weighted_xvar": 246.305,
-        "top_n_xvar": 256.9,
-        "total_xvar_capped": 259.75
+        "starter_weighted_xvar": 252.255,
+        "top_n_xvar": 260.9,
+        "total_xvar_capped": 271.55
       }
     },
     {
@@ -3753,82 +4538,172 @@
         "pct_value_over_28": 0.1276,
         "value_weighted_age": 25.39
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 9,
+            "dynasty_value_score": null,
             "original_roster_id": 9,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 9,
+            "dynasty_value_score": null,
             "original_roster_id": 9,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 9,
+            "dynasty_value_score": null,
             "original_roster_id": 9,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 9,
+            "dynasty_value_score": null,
             "original_roster_id": 9,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2028
+            "season": 2028,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 9,
+            "dynasty_value_score": null,
             "original_roster_id": 9,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 9,
+            "dynasty_value_score": null,
             "original_roster_id": 9,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 9,
+            "dynasty_value_score": null,
             "original_roster_id": 9,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2029
+            "season": 2029,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 9,
+            "dynasty_value_score": null,
             "original_roster_id": 9,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 9,
+            "dynasty_value_score": null,
             "original_roster_id": 9,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -4166,28 +5041,28 @@
           "n_rostered": 4,
           "starter_xvar": 48.51,
           "surplus_label": "neutral",
-          "z_score": 0.189
+          "z_score": 0.2
         },
         "RB": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 7,
           "starter_xvar": 76.9,
           "surplus_label": "neutral",
-          "z_score": -0.204
+          "z_score": -0.183
         },
         "TE": {
           "depth_xvar_adj": 1.797,
           "n_rostered": 4,
           "starter_xvar": 2.85,
           "surplus_label": "surplus",
-          "z_score": 0.827
+          "z_score": 0.821
         },
         "WR": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 8,
           "starter_xvar": 77.73,
           "surplus_label": "neutral",
-          "z_score": -0.01
+          "z_score": 0.005
         }
       },
       "posture": {
@@ -4212,83 +5087,173 @@
         "pct_value_over_28": 0.2815,
         "value_weighted_age": 26.18
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 1,
+            "dynasty_value_score": null,
             "original_roster_id": 10,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
-            "current_roster_id": 4,
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 6,
+            "dynasty_value_score": null,
             "original_roster_id": 10,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2028
+            "season": 2028,
+            "xvar": 11.1553
           }
         ],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 10,
+            "dynasty_value_score": null,
             "original_roster_id": 10,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 10,
+            "dynasty_value_score": null,
             "original_roster_id": 10,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 10,
+            "dynasty_value_score": null,
             "original_roster_id": 10,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 10,
+            "dynasty_value_score": null,
             "original_roster_id": 10,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 10,
+            "dynasty_value_score": null,
             "original_roster_id": 10,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2029
+            "season": 2029,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 10,
+            "dynasty_value_score": null,
             "original_roster_id": 10,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 10,
+            "dynasty_value_score": null,
             "original_roster_id": 10,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -4531,16 +5496,6 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Jalen Royals",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "WR",
-          "raw_xvar": 0.0,
-          "sleeper_player_id": "12505",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "Kayshon Boutte",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
@@ -4551,14 +5506,24 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Zachariah Branch",
+          "full_name": "Caleb Douglas",
           "lineup_role": "taxi",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": -7.81,
+          "sleeper_player_id": "13296",
+          "starter_weight_multiplier_current_year": 0.0,
+          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Zachariah Branch",
+          "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "WR",
           "raw_xvar": -8.93,
           "sleeper_player_id": "13320",
-          "starter_weight_multiplier_current_year": 0.0,
-          "taxi_activation_cost": "requires_active_roster_spot_and_irreversible_taxi_loss"
+          "starter_weight_multiplier_current_year": 0.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -4608,14 +5573,14 @@
           "n_rostered": 3,
           "starter_xvar": 84.27,
           "surplus_label": "surplus",
-          "z_score": 1.613
+          "z_score": 1.764
         },
         "RB": {
           "depth_xvar_adj": 0.99,
           "n_rostered": 7,
           "starter_xvar": 110.36,
           "surplus_label": "neutral",
-          "z_score": 0.497
+          "z_score": 0.508
         },
         "TE": {
           "depth_xvar_adj": 0.0,
@@ -4629,7 +5594,7 @@
           "n_rostered": 9,
           "starter_xvar": 85.3,
           "surplus_label": "neutral",
-          "z_score": 0.437
+          "z_score": 0.451
         }
       },
       "posture": {
@@ -4652,85 +5617,211 @@
       "age_profile": {
         "median_age": 23.5,
         "pct_value_over_28": 0.0,
-        "value_weighted_age": 22.64
+        "value_weighted_age": 22.56
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 5,
+            "dynasty_value_score": null,
             "original_roster_id": 11,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           }
         ],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 11,
+            "dynasty_value_score": null,
             "original_roster_id": 11,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 11,
+            "dynasty_value_score": null,
             "original_roster_id": 11,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 11,
+            "dynasty_value_score": null,
             "original_roster_id": 11,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 11,
-            "original_roster_id": 11,
-            "pick_value_status": "deferred",
+            "dynasty_value_score": null,
+            "original_roster_id": 3,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2028
+            "season": 2028,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 11,
+            "dynasty_value_score": null,
             "original_roster_id": 11,
-            "pick_value_status": "deferred",
-            "reconstruction_method": "automated_sleeper_traded_picks",
-            "round": 3,
-            "season": 2028
-          },
-          {
-            "current_roster_id": 11,
-            "original_roster_id": 11,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2029
+            "season": 2028,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 11,
-            "original_roster_id": 11,
-            "pick_value_status": "deferred",
+            "dynasty_value_score": null,
+            "original_roster_id": 3,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2029
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 11,
+            "dynasty_value_score": null,
             "original_roster_id": 11,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2029
+            "season": 2028,
+            "xvar": 0.1076
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 11,
+            "dynasty_value_score": null,
+            "original_roster_id": 11,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2029,
+            "xvar": 11.1553
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 11,
+            "dynasty_value_score": null,
+            "original_roster_id": 11,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2029,
+            "xvar": 0.1076
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 11,
+            "dynasty_value_score": null,
+            "original_roster_id": 11,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 3,
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -4747,7 +5838,7 @@
           "FLEX",
           "SUPER_FLEX"
         ],
-        "starter_xvar": 124.01,
+        "starter_xvar": 153.31,
         "starters": [
           {
             "full_name": "Justin Herbert",
@@ -4771,18 +5862,18 @@
             "xvar": 2.17
           },
           {
+            "full_name": "Jaxon Smith-Njigba",
+            "position": "WR",
+            "sleeper_player_id": "9488",
+            "slot": "WR",
+            "xvar": 29.3
+          },
+          {
             "full_name": "KC Concepcion",
             "position": "WR",
             "sleeper_player_id": "13298",
             "slot": "WR",
             "xvar": 12.43
-          },
-          {
-            "full_name": "Jaylen Waddle",
-            "position": "WR",
-            "sleeper_player_id": "7526",
-            "slot": "WR",
-            "xvar": 4.4
           },
           {
             "full_name": "Tyler Warren",
@@ -4792,16 +5883,16 @@
             "xvar": 0.0
           },
           {
+            "full_name": "Jaylen Waddle",
+            "position": "WR",
+            "sleeper_player_id": "7526",
+            "slot": "FLEX",
+            "xvar": 4.4
+          },
+          {
             "full_name": "MarShawn Lloyd",
             "position": "RB",
             "sleeper_player_id": "11581",
-            "slot": "FLEX",
-            "xvar": 0.0
-          },
-          {
-            "full_name": "Jayden Higgins",
-            "position": "WR",
-            "sleeper_player_id": "12484",
             "slot": "FLEX",
             "xvar": 0.0
           },
@@ -4829,6 +5920,16 @@
           "position": "RB",
           "raw_xvar": 57.61,
           "sleeper_player_id": "13287",
+          "starter_weight_multiplier_current_year": 1.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
+          "full_name": "Jaxon Smith-Njigba",
+          "lineup_role": "starter",
+          "long_term_value_multiplier": 1.0,
+          "position": "WR",
+          "raw_xvar": 29.3,
+          "sleeper_player_id": "9488",
           "starter_weight_multiplier_current_year": 1.0
         },
         {
@@ -4862,17 +5963,7 @@
           "starter_weight_multiplier_current_year": 1.0
         },
         {
-          "depth_credit_xvar": 4.71,
-          "full_name": "Drake Maye",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "QB",
-          "raw_xvar": 9.42,
-          "sleeper_player_id": "11564",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 2.045,
+          "depth_credit_xvar": 4.09,
           "full_name": "Tua Tagovailoa",
           "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
@@ -4913,13 +6004,23 @@
         },
         {
           "depth_credit_xvar": 0.0,
+          "full_name": "Jonathon Brooks",
+          "lineup_role": "bench",
+          "long_term_value_multiplier": 1.0,
+          "position": "RB",
+          "raw_xvar": 0.0,
+          "sleeper_player_id": "11583",
+          "starter_weight_multiplier_current_year": 0.0
+        },
+        {
+          "depth_credit_xvar": 0.0,
           "full_name": "Jayden Higgins",
-          "lineup_role": "starter",
+          "lineup_role": "bench",
           "long_term_value_multiplier": 1.0,
           "position": "WR",
           "raw_xvar": 0.0,
           "sleeper_player_id": "12484",
-          "starter_weight_multiplier_current_year": 1.0
+          "starter_weight_multiplier_current_year": 0.0
         },
         {
           "depth_credit_xvar": 0.0,
@@ -4993,16 +6094,6 @@
         },
         {
           "depth_credit_xvar": 0.0,
-          "full_name": "Malachi Fields",
-          "lineup_role": "bench",
-          "long_term_value_multiplier": 1.0,
-          "position": "WR",
-          "raw_xvar": -7.53,
-          "sleeper_player_id": "13285",
-          "starter_weight_multiplier_current_year": 0.0
-        },
-        {
-          "depth_credit_xvar": 0.0,
           "full_name": "Eli Stowers",
           "lineup_role": "taxi",
           "long_term_value_multiplier": 1.0,
@@ -5046,32 +6137,32 @@
       ],
       "positional_summary": {
         "QB": {
-          "depth_xvar_adj": 6.755,
-          "n_rostered": 4,
+          "depth_xvar_adj": 4.09,
+          "n_rostered": 3,
           "starter_xvar": 47.4,
           "surplus_label": "neutral",
-          "z_score": 0.412
+          "z_score": 0.329
         },
         "RB": {
           "depth_xvar_adj": 0.0,
-          "n_rostered": 6,
+          "n_rostered": 7,
           "starter_xvar": 59.78,
           "surplus_label": "neutral",
-          "z_score": -0.552
+          "z_score": -0.527
         },
         "TE": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 4,
           "starter_xvar": 0.0,
           "surplus_label": "neutral",
-          "z_score": 0.06
+          "z_score": 0.055
         },
         "WR": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 8,
-          "starter_xvar": 16.83,
-          "surplus_label": "deficit",
-          "z_score": -1.425
+          "starter_xvar": 46.13,
+          "surplus_label": "neutral",
+          "z_score": -0.726
         }
       },
       "posture": {
@@ -5082,12 +6173,12 @@
       "roster_id": 11,
       "schema_version": "team_value.v1",
       "team_value_views": {
-        "depth_credit_xvar": 6.755,
-        "lineup_xvar": 124.01,
+        "depth_credit_xvar": 4.09,
+        "lineup_xvar": 153.31,
         "market_overlay_total": null,
-        "starter_weighted_xvar": 130.765,
-        "top_n_xvar": 141.61,
-        "total_xvar_capped": 141.61
+        "starter_weighted_xvar": 157.4,
+        "top_n_xvar": 161.49,
+        "total_xvar_capped": 161.49
       }
     },
     {
@@ -5096,82 +6187,172 @@
         "pct_value_over_28": 0.1772,
         "value_weighted_age": 24.11
       },
-      "captured_at": "2026-05-24T17:19:56.801257+00:00",
+      "captured_at": "2026-06-23T13:17:30.723485+00:00",
       "decision_supported": false,
       "future_picks": {
         "outgoing": [],
         "owned": [
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 12,
+            "dynasty_value_score": null,
             "original_roster_id": 12,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2027
+            "season": 2027,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 12,
+            "dynasty_value_score": null,
             "original_roster_id": 12,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 12,
+            "dynasty_value_score": null,
             "original_roster_id": 12,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2027
+            "season": 2027,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 12,
+            "dynasty_value_score": null,
             "original_roster_id": 12,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2028
+            "season": 2028,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 12,
+            "dynasty_value_score": null,
             "original_roster_id": 12,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 12,
+            "dynasty_value_score": null,
             "original_roster_id": 12,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2028
+            "season": 2028,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 12,
+            "dynasty_value_score": null,
             "original_roster_id": 12,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 1,
-            "season": 2029
+            "season": 2029,
+            "xvar": 11.1553
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 12,
+            "dynasty_value_score": null,
             "original_roster_id": 12,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 2,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           },
           {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
             "current_roster_id": 12,
+            "dynasty_value_score": null,
             "original_roster_id": 12,
-            "pick_value_status": "deferred",
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
             "reconstruction_method": "automated_sleeper_traded_picks",
             "round": 3,
-            "season": 2029
+            "season": 2029,
+            "xvar": 0.1076
           }
         ]
       },
@@ -5491,28 +6672,28 @@
           "n_rostered": 2,
           "starter_xvar": 49.76,
           "surplus_label": "neutral",
-          "z_score": 0.238
+          "z_score": 0.254
         },
         "RB": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 8,
           "starter_xvar": 129.83,
           "surplus_label": "surplus",
-          "z_score": 0.873
+          "z_score": 0.879
         },
         "TE": {
           "depth_xvar_adj": 0.0,
           "n_rostered": 4,
           "starter_xvar": 0.0,
           "surplus_label": "neutral",
-          "z_score": 0.06
+          "z_score": 0.055
         },
         "WR": {
           "depth_xvar_adj": 12.462,
           "n_rostered": 8,
           "starter_xvar": 60.1,
           "surplus_label": "neutral",
-          "z_score": -0.13
+          "z_score": -0.114
         }
       },
       "posture": {

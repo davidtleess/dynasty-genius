@@ -1,11 +1,11 @@
 {
   "counts_by_cohort": {
-    "EXCLUDED": 6032,
-    "FANTASY_RELEVANT": 4026,
-    "INACTIVE": 2130,
+    "EXCLUDED": 6030,
+    "FANTASY_RELEVANT": 4030,
+    "INACTIVE": 2140,
     "UNRESOLVED_IDENTITY": 1
   },
-  "david_roster_player_count": 28,
+  "david_roster_player_count": 27,
   "david_roster_players_missing_from_snapshot": [],
   "phase17_1_exit_criteria": {
     "every_rostered_player_present": true,
@@ -13,7 +13,7 @@
     "pvo_scoring_required": false,
     "unresolved_identity_list_exists": true
   },
-  "rostered_player_count": 279,
+  "rostered_player_count": 272,
   "rostered_players_missing_from_snapshot": [],
   "section19_defaults": {
     "bench_depth_decay": 0.5,
@@ -28,7 +28,7 @@
     "pick_reconstruction_mode": "automated_only",
     "player_level_value_decay_allowed": false
   },
-  "total_players": 12189,
+  "total_players": 12201,
   "unresolved_identity_count": 1,
   "unresolved_sleeper_player_ids": [
     "0"

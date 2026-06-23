@@ -1,15 +1,15 @@
 {
   "automated_trade_execution": false,
-  "captured_at": "2026-05-24T17:19:59.627275+00:00",
+  "captured_at": "2026-06-23T13:17:34.508685+00:00",
   "cards": [
     {
       "asset": {
-        "dg_player_id": "00-0030061",
-        "full_name": "Zach Ertz",
+        "dg_player_id": "00-0035644",
+        "full_name": "Noah Fant",
         "position": "TE",
-        "sleeper_player_id": "1339"
+        "sleeper_player_id": "5857"
       },
-      "card_id": "opp-0132",
+      "card_id": "opp-0138",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -17,23 +17,78 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.631,
+      "opportunity_score": 0.592,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.774,
+          "model_minus_market_delta": 0.662,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
-          "xvar": -1.75
+          "xvar": -8.94
         },
         "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
         "secondary": [
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
+      "recommended_drop": {
+        "cut_priority": 1,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "AJ Barner",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "TE",
+        "sleeper_player_id": "11603"
+      },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.774,
+        "divergence_score": 0.662,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "signal_status": "gates_passed"
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0033923",
+        "full_name": "Kareem Hunt",
+        "position": "RB",
+        "sleeper_player_id": "4098"
+      },
+      "card_id": "opp-0131",
+      "card_type": "WAIVER_CANDIDATE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "opportunity_score": 0.572,
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "model_minus_market_delta": 0.605,
+          "signal": "MODEL_HIGH_MARKET_LOW",
+          "signal_status": "gates_passed",
+          "xvar": 7.15
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "recommended_drop": {
+        "cut_priority": 9,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "Kaelon Black",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "RB",
+        "sleeper_player_id": "13414"
+      },
+      "schema_version": "opportunity.v1",
+      "score_components": {
+        "divergence_score": 0.605,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -46,7 +101,7 @@
         "position": "TE",
         "sleeper_player_id": "7694"
       },
-      "card_id": "opp-0153",
+      "card_id": "opp-0149",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -54,11 +109,11 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.582,
+      "opportunity_score": 0.572,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.634,
+          "model_minus_market_delta": 0.605,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
           "xvar": -16.98
@@ -68,46 +123,18 @@
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.634,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0035644",
-        "full_name": "Noah Fant",
+      "recommended_drop": {
+        "cut_priority": 1,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "AJ Barner",
+        "ir_compliance_status": "NOT_ON_IR",
         "position": "TE",
-        "sleeper_player_id": "5857"
-      },
-      "card_id": "opp-0144",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.576,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.616,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -8.94
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
+        "sleeper_player_id": "11603"
       },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.616,
+        "divergence_score": 0.605,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -120,7 +147,7 @@
         "position": "WR",
         "sleeper_player_id": "1479"
       },
-      "card_id": "opp-0134",
+      "card_id": "opp-0129",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -128,11 +155,11 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.572,
+      "opportunity_score": 0.567,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.606,
+          "model_minus_market_delta": 0.59,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
           "xvar": 13.5
@@ -142,9 +169,18 @@
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
+      "recommended_drop": {
+        "cut_priority": 2,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "Adonai Mitchell",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "WR",
+        "sleeper_player_id": "11625"
+      },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.606,
+        "divergence_score": 0.59,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -165,13 +201,13 @@
       "counterparty_roster_id": 9,
       "counterparty_team_name": "Seidmans Sasquatches",
       "decision_supported": false,
-      "opportunity_score": 0.561,
+      "opportunity_score": 0.556,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
           "asset_roster_id": 9,
-          "market_percentile": 0.094,
-          "model_minus_market_delta": 0.866,
+          "market_percentile": 0.107,
+          "model_minus_market_delta": 0.853,
           "model_percentile": 0.96,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed"
@@ -183,83 +219,9 @@
       },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.866,
+        "divergence_score": 0.853,
         "feasibility_score": 0.5,
         "fit_score": 0.35
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0034829",
-        "full_name": "Mike Gesicki",
-        "position": "TE",
-        "sleeper_player_id": "4993"
-      },
-      "card_id": "opp-0143",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.561,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.574,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -7.32
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.574,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0036290",
-        "full_name": "Cole Kmet",
-        "position": "TE",
-        "sleeper_player_id": "6826"
-      },
-      "card_id": "opp-0149",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.559,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.569,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -6.48
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.569,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
       },
       "signal_status": "gates_passed"
     },
@@ -282,9 +244,9 @@
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "counterparty_position_z": 2.291,
+          "counterparty_position_z": 2.299,
           "counterparty_surplus_label": "surplus",
-          "perspective_position_z": -1.76,
+          "perspective_position_z": -1.739,
           "perspective_surplus_label": "deficit",
           "position": "WR"
         },
@@ -303,12 +265,12 @@
     },
     {
       "asset": {
-        "dg_player_id": "00-0032775",
-        "full_name": "Demarcus Robinson",
-        "position": "WR",
-        "sleeper_player_id": "3286"
+        "dg_player_id": "00-0036290",
+        "full_name": "Cole Kmet",
+        "position": "TE",
+        "sleeper_player_id": "6826"
       },
-      "card_id": "opp-0135",
+      "card_id": "opp-0143",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -316,23 +278,32 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.517,
+      "opportunity_score": 0.55,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.449,
+          "model_minus_market_delta": 0.544,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
-          "xvar": -15.0
+          "xvar": -6.48
         },
         "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
         "secondary": [
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
+      "recommended_drop": {
+        "cut_priority": 1,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "AJ Barner",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "TE",
+        "sleeper_player_id": "11603"
+      },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.449,
+        "divergence_score": 0.544,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -340,12 +311,12 @@
     },
     {
       "asset": {
-        "dg_player_id": "00-0036988",
-        "full_name": "Joshua Palmer",
+        "dg_player_id": "00-0033908",
+        "full_name": "Cooper Kupp",
         "position": "WR",
-        "sleeper_player_id": "7670"
+        "sleeper_player_id": "4039"
       },
-      "card_id": "opp-0152",
+      "card_id": "opp-0130",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -353,23 +324,32 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.516,
+      "opportunity_score": 0.537,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.445,
+          "model_minus_market_delta": 0.505,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
-          "xvar": -10.2
+          "xvar": 11.8
         },
         "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
         "secondary": [
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
+      "recommended_drop": {
+        "cut_priority": 2,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "Adonai Mitchell",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "WR",
+        "sleeper_player_id": "11625"
+      },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.445,
+        "divergence_score": 0.505,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -382,7 +362,7 @@
         "position": "RB",
         "sleeper_player_id": "8143"
       },
-      "card_id": "opp-0157",
+      "card_id": "opp-0156",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -390,11 +370,11 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.513,
+      "opportunity_score": 0.533,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.437,
+          "model_minus_market_delta": 0.494,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
           "xvar": -1.73
@@ -404,9 +384,64 @@
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
+      "recommended_drop": {
+        "cut_priority": 9,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "Kaelon Black",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "RB",
+        "sleeper_player_id": "13414"
+      },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.437,
+        "divergence_score": 0.494,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "signal_status": "gates_passed"
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0034829",
+        "full_name": "Mike Gesicki",
+        "position": "TE",
+        "sleeper_player_id": "4993"
+      },
+      "card_id": "opp-0137",
+      "card_type": "WAIVER_CANDIDATE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "opportunity_score": 0.532,
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "model_minus_market_delta": 0.492,
+          "signal": "MODEL_HIGH_MARKET_LOW",
+          "signal_status": "gates_passed",
+          "xvar": -7.32
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "recommended_drop": {
+        "cut_priority": 1,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "AJ Barner",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "TE",
+        "sleeper_player_id": "11603"
+      },
+      "schema_version": "opportunity.v1",
+      "score_components": {
+        "divergence_score": 0.492,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -419,7 +454,7 @@
         "position": "WR",
         "sleeper_player_id": "7571"
       },
-      "card_id": "opp-0151",
+      "card_id": "opp-0147",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -427,11 +462,11 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.512,
+      "opportunity_score": 0.53,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.435,
+          "model_minus_market_delta": 0.485,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
           "xvar": 4.1
@@ -441,9 +476,18 @@
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
+      "recommended_drop": {
+        "cut_priority": 2,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "Adonai Mitchell",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "WR",
+        "sleeper_player_id": "11625"
+      },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.435,
+        "divergence_score": 0.485,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -456,7 +500,7 @@
         "position": "WR",
         "sleeper_player_id": "9501"
       },
-      "card_id": "opp-0163",
+      "card_id": "opp-0162",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -464,11 +508,11 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.508,
+      "opportunity_score": 0.53,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.422,
+          "model_minus_market_delta": 0.486,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
           "xvar": -1.2
@@ -478,9 +522,18 @@
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
+      "recommended_drop": {
+        "cut_priority": 2,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "Adonai Mitchell",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "WR",
+        "sleeper_player_id": "11625"
+      },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.422,
+        "divergence_score": 0.486,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -488,12 +541,12 @@
     },
     {
       "asset": {
-        "dg_player_id": "00-0038794",
-        "full_name": "Jaleel McLaughlin",
-        "position": "RB",
-        "sleeper_player_id": "11439"
+        "dg_player_id": "00-0036988",
+        "full_name": "Joshua Palmer",
+        "position": "WR",
+        "sleeper_player_id": "7670"
       },
-      "card_id": "opp-0122",
+      "card_id": "opp-0148",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -501,23 +554,162 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.505,
+      "opportunity_score": 0.519,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.415,
+          "model_minus_market_delta": 0.454,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
-          "xvar": -8.12
+          "xvar": -10.2
         },
         "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
         "secondary": [
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
+      "recommended_drop": {
+        "cut_priority": 2,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "Adonai Mitchell",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "WR",
+        "sleeper_player_id": "11625"
+      },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.415,
+        "divergence_score": 0.454,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "signal_status": "gates_passed"
+    },
+    {
+      "asset": {
+        "dg_player_id": null,
+        "full_name": "Lamar Jackson",
+        "position": "QB",
+        "sleeper_player_id": "4881"
+      },
+      "card_id": "opp-0008",
+      "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
+      "caveats": [
+        "future_pick_values_deferred"
+      ],
+      "counterparty_roster_id": 10,
+      "counterparty_team_name": "Kissane\u2019s Team",
+      "decision_supported": false,
+      "opportunity_score": 0.513,
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "counterparty_position_z": 1.764,
+          "counterparty_surplus_label": "surplus",
+          "perspective_position_z": -1.907,
+          "perspective_surplus_label": "deficit",
+          "position": "QB"
+        },
+        "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
+        "secondary": [
+          "PERSPECTIVE_POSITIONAL_DEFICIT"
+        ]
+      },
+      "schema_version": "opportunity.v1",
+      "score_components": {
+        "divergence_score": 0.0,
+        "feasibility_score": 0.5,
+        "fit_score": 0.918
+      },
+      "signal_status": "gates_blocked"
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0039021",
+        "full_name": "Roschon Johnson",
+        "position": "RB",
+        "sleeper_player_id": "10235"
+      },
+      "card_id": "opp-0119",
+      "card_type": "WAIVER_CANDIDATE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "opportunity_score": 0.513,
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "model_minus_market_delta": 0.436,
+          "signal": "MODEL_HIGH_MARKET_LOW",
+          "signal_status": "gates_passed",
+          "xvar": -7.04
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "recommended_drop": {
+        "cut_priority": 9,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "Kaelon Black",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "RB",
+        "sleeper_player_id": "13414"
+      },
+      "schema_version": "opportunity.v1",
+      "score_components": {
+        "divergence_score": 0.436,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "signal_status": "gates_passed"
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0036849",
+        "full_name": "Tutu Atwell",
+        "position": "WR",
+        "sleeper_player_id": "7562"
+      },
+      "card_id": "opp-0146",
+      "card_type": "WAIVER_CANDIDATE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "opportunity_score": 0.513,
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "model_minus_market_delta": 0.436,
+          "signal": "MODEL_HIGH_MARKET_LOW",
+          "signal_status": "gates_passed",
+          "xvar": -15.1
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "recommended_drop": {
+        "cut_priority": 2,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "Adonai Mitchell",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "WR",
+        "sleeper_player_id": "11625"
+      },
+      "schema_version": "opportunity.v1",
+      "score_components": {
+        "divergence_score": 0.436,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -530,7 +722,7 @@
         "position": "WR",
         "sleeper_player_id": "4981"
       },
-      "card_id": "opp-0142",
+      "card_id": "opp-0136",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -538,11 +730,11 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.501,
+      "opportunity_score": 0.502,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.403,
+          "model_minus_market_delta": 0.405,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
           "xvar": 8.1
@@ -552,9 +744,18 @@
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
+      "recommended_drop": {
+        "cut_priority": 2,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "Adonai Mitchell",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "WR",
+        "sleeper_player_id": "11625"
+      },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.403,
+        "divergence_score": 0.405,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -575,13 +776,13 @@
       "counterparty_roster_id": 9,
       "counterparty_team_name": "Seidmans Sasquatches",
       "decision_supported": false,
-      "opportunity_score": 0.499,
+      "opportunity_score": 0.498,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "counterparty_position_z": 0.827,
+          "counterparty_position_z": 0.821,
           "counterparty_surplus_label": "surplus",
-          "perspective_position_z": -2.722,
+          "perspective_position_z": -2.72,
           "perspective_surplus_label": "deficit",
           "position": "TE"
         },
@@ -594,18 +795,18 @@
       "score_components": {
         "divergence_score": 0.0,
         "feasibility_score": 0.5,
-        "fit_score": 0.887
+        "fit_score": 0.885
       },
       "signal_status": "gates_blocked"
     },
     {
       "asset": {
-        "dg_player_id": "00-0038115",
-        "full_name": "Daniel Bellinger",
-        "position": "TE",
-        "sleeper_player_id": "8225"
+        "dg_player_id": "00-0037666",
+        "full_name": "Jalen Tolbert",
+        "position": "WR",
+        "sleeper_player_id": "8117"
       },
-      "card_id": "opp-0159",
+      "card_id": "opp-0152",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -613,60 +814,32 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.494,
+      "opportunity_score": 0.493,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.384,
+          "model_minus_market_delta": 0.38,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
-          "xvar": -25.4
+          "xvar": -7.4
         },
         "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
         "secondary": [
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.384,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0039363",
-        "full_name": "Isaac Guerendo",
-        "position": "RB",
-        "sleeper_player_id": "11651"
-      },
-      "card_id": "opp-0127",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.488,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.367,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -6.17
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
+      "recommended_drop": {
+        "cut_priority": 2,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "Adonai Mitchell",
+        "ir_compliance_status": "NOT_ON_IR",
+        "position": "WR",
+        "sleeper_player_id": "11625"
       },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.367,
+        "divergence_score": 0.38,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -679,7 +852,7 @@
         "position": "TE",
         "sleeper_player_id": "8111"
       },
-      "card_id": "opp-0154",
+      "card_id": "opp-0151",
       "card_type": "WAIVER_CANDIDATE",
       "caveats": [
         "waiver_status_from_sleeper_snapshot"
@@ -687,11 +860,11 @@
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.483,
+      "opportunity_score": 0.491,
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.351,
+          "model_minus_market_delta": 0.373,
           "signal": "MODEL_HIGH_MARKET_LOW",
           "signal_status": "gates_passed",
           "xvar": 1.1
@@ -701,46 +874,18 @@
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.351,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0038558",
-        "full_name": "Darnell Washington",
+      "recommended_drop": {
+        "cut_priority": 1,
+        "cut_rationale": [],
+        "decision_supported": false,
+        "full_name": "AJ Barner",
+        "ir_compliance_status": "NOT_ON_IR",
         "position": "TE",
-        "sleeper_player_id": "9479"
-      },
-      "card_id": "opp-0161",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.481,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.346,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -20.09
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
+        "sleeper_player_id": "11603"
       },
       "schema_version": "opportunity.v1",
       "score_components": {
-        "divergence_score": 0.346,
+        "divergence_score": 0.373,
         "feasibility_score": 0.9,
         "fit_score": 0.4
       },
@@ -756,8 +901,8 @@
     "card_count": 20,
     "cards_by_type": {
       "DIVERGENCE_MODEL_HIGH": 1,
-      "ROSTER_SURPLUS_DEFICIT_MATCH": 2,
-      "WAIVER_CANDIDATE": 17
+      "ROSTER_SURPLUS_DEFICIT_MATCH": 3,
+      "WAIVER_CANDIDATE": 16
     },
     "cards_with_evidence_count": 20,
     "decision_supported_true_count": 0,
@@ -779,19 +924,19 @@
       "decision_supported": false,
       "evidence": {
         "counterparty_posture": "CONTENDER",
-        "divergence_row_count": 10,
+        "divergence_row_count": 12,
         "perspective_posture": "REBUILDING",
         "position_scores": {
-          "QB": 0.836
+          "QB": 0.918
         }
       },
       "matched_positions": [
         "QB"
       ],
-      "partner_score": 2.086,
+      "partner_score": 2.168,
       "score_components": {
         "activity_recency_score": 0.0,
-        "complementarity_score": 0.836,
+        "complementarity_score": 0.918,
         "divergence_density_score": 1.0,
         "posture_alignment_score": 0.25
       }
@@ -802,12 +947,12 @@
       "decision_supported": false,
       "evidence": {
         "counterparty_posture": "CONTENDER",
-        "divergence_row_count": 8,
+        "divergence_row_count": 7,
         "perspective_posture": "REBUILDING",
         "position_scores": {
-          "QB": 0.759,
-          "RB": 0.684,
-          "WR": 0.641
+          "QB": 0.834,
+          "RB": 0.734,
+          "WR": 0.639
         }
       },
       "matched_positions": [
@@ -815,10 +960,10 @@
         "RB",
         "WR"
       ],
-      "partner_score": 2.009,
+      "partner_score": 2.084,
       "score_components": {
         "activity_recency_score": 0.0,
-        "complementarity_score": 0.759,
+        "complementarity_score": 0.834,
         "divergence_density_score": 1.0,
         "posture_alignment_score": 0.25
       }
@@ -829,7 +974,7 @@
       "decision_supported": false,
       "evidence": {
         "counterparty_posture": "ASCENDING",
-        "divergence_row_count": 8,
+        "divergence_row_count": 9,
         "perspective_posture": "REBUILDING",
         "position_scores": {
           "WR": 1.0
@@ -855,18 +1000,41 @@
         "divergence_row_count": 9,
         "perspective_posture": "REBUILDING",
         "position_scores": {
-          "TE": 0.887
+          "TE": 0.885
         }
       },
       "matched_positions": [
         "TE"
       ],
-      "partner_score": 1.887,
+      "partner_score": 1.885,
       "score_components": {
         "activity_recency_score": 0.0,
-        "complementarity_score": 0.887,
+        "complementarity_score": 0.885,
         "divergence_density_score": 1.0,
         "posture_alignment_score": 0.0
+      }
+    },
+    {
+      "counterparty_roster_id": 4,
+      "counterparty_team_name": "Free Kelly",
+      "decision_supported": false,
+      "evidence": {
+        "counterparty_posture": "BALANCED",
+        "divergence_row_count": 10,
+        "perspective_posture": "REBUILDING",
+        "position_scores": {
+          "WR": 0.645
+        }
+      },
+      "matched_positions": [
+        "WR"
+      ],
+      "partner_score": 1.745,
+      "score_components": {
+        "activity_recency_score": 0.0,
+        "complementarity_score": 0.645,
+        "divergence_density_score": 1.0,
+        "posture_alignment_score": 0.1
       }
     },
     {
@@ -875,21 +1043,19 @@
       "decision_supported": false,
       "evidence": {
         "counterparty_posture": "BALANCED",
-        "divergence_row_count": 11,
+        "divergence_row_count": 10,
         "perspective_posture": "REBUILDING",
         "position_scores": {
-          "QB": 0.64,
-          "RB": 0.538
+          "RB": 0.59
         }
       },
       "matched_positions": [
-        "QB",
         "RB"
       ],
-      "partner_score": 1.74,
+      "partner_score": 1.69,
       "score_components": {
         "activity_recency_score": 0.0,
-        "complementarity_score": 0.64,
+        "complementarity_score": 0.59,
         "divergence_density_score": 1.0,
         "posture_alignment_score": 0.1
       }
@@ -900,21 +1066,40 @@
       "decision_supported": false,
       "evidence": {
         "counterparty_posture": "ASCENDING",
-        "divergence_row_count": 10,
+        "divergence_row_count": 9,
         "perspective_posture": "REBUILDING",
         "position_scores": {
-          "RB": 0.532
+          "RB": 0.584
         }
       },
       "matched_positions": [
         "RB"
       ],
-      "partner_score": 1.532,
+      "partner_score": 1.584,
       "score_components": {
         "activity_recency_score": 0.0,
-        "complementarity_score": 0.532,
+        "complementarity_score": 0.584,
         "divergence_density_score": 1.0,
         "posture_alignment_score": 0.0
+      }
+    },
+    {
+      "counterparty_roster_id": 3,
+      "counterparty_team_name": "MDEF",
+      "decision_supported": false,
+      "evidence": {
+        "counterparty_posture": "BALANCED",
+        "divergence_row_count": 11,
+        "perspective_posture": "REBUILDING",
+        "position_scores": {}
+      },
+      "matched_positions": [],
+      "partner_score": 1.1,
+      "score_components": {
+        "activity_recency_score": 0.0,
+        "complementarity_score": 0.0,
+        "divergence_density_score": 1.0,
+        "posture_alignment_score": 0.1
       }
     },
     {
@@ -923,26 +1108,7 @@
       "decision_supported": false,
       "evidence": {
         "counterparty_posture": "REBUILDING",
-        "divergence_row_count": 8,
-        "perspective_posture": "REBUILDING",
-        "position_scores": {}
-      },
-      "matched_positions": [],
-      "partner_score": 1.05,
-      "score_components": {
-        "activity_recency_score": 0.0,
-        "complementarity_score": 0.0,
-        "divergence_density_score": 1.0,
-        "posture_alignment_score": 0.05
-      }
-    },
-    {
-      "counterparty_roster_id": 11,
-      "counterparty_team_name": "jkazzz",
-      "decision_supported": false,
-      "evidence": {
-        "counterparty_posture": "REBUILDING",
-        "divergence_row_count": 8,
+        "divergence_row_count": 6,
         "perspective_posture": "REBUILDING",
         "position_scores": {}
       },
@@ -975,31 +1141,12 @@
       }
     },
     {
-      "counterparty_roster_id": 3,
-      "counterparty_team_name": "MDEF",
+      "counterparty_roster_id": 11,
+      "counterparty_team_name": "jkazzz",
       "decision_supported": false,
       "evidence": {
         "counterparty_posture": "ASCENDING",
-        "divergence_row_count": 8,
-        "perspective_posture": "REBUILDING",
-        "position_scores": {}
-      },
-      "matched_positions": [],
-      "partner_score": 1.0,
-      "score_components": {
-        "activity_recency_score": 0.0,
-        "complementarity_score": 0.0,
-        "divergence_density_score": 1.0,
-        "posture_alignment_score": 0.0
-      }
-    },
-    {
-      "counterparty_roster_id": 4,
-      "counterparty_team_name": "Free Kelly",
-      "decision_supported": false,
-      "evidence": {
-        "counterparty_posture": "ASCENDING",
-        "divergence_row_count": 9,
+        "divergence_row_count": 6,
         "perspective_posture": "REBUILDING",
         "position_scores": {}
       },
@@ -1016,11 +1163,11 @@
   "perspective_roster_id": 1,
   "schema_version": "league_opportunity.v1",
   "source_artifacts": {
-    "market_divergence_captured_at": "2026-05-24T17:19:57.800228+00:00",
+    "market_divergence_captured_at": "2026-06-23T13:17:31.948780+00:00",
     "market_divergence_schema_version": "universe_market_divergence.v1",
-    "team_matrix_captured_at": "2026-05-24T17:19:56.801257+00:00",
+    "team_matrix_captured_at": "2026-06-23T13:17:30.723485+00:00",
     "team_matrix_schema_version": "team_value_matrix.v1",
-    "team_posture_captured_at": "2026-05-24T17:19:56.964769+00:00",
+    "team_posture_captured_at": "2026-06-23T13:17:30.931850+00:00",
     "team_posture_schema_version": "team_posture.v1"
   }
 }

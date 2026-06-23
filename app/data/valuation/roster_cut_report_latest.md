@@ -1,10 +1,10 @@
-# Roster Cut Report — phase21-20260525T010425Z
+# Roster Cut Report — phase21-20260623T131730Z
 
 - **Roster ID:** 1
-- **Total players:** 28
+- **Total players:** 27
 - **Active slots:** 20
 - **Total capacity:** 26
-- **Cuts required:** 2
+- **Cuts required:** 1
 - **Reserve unrestricted:** True
 - **Decision supported:** False
 
@@ -20,21 +20,20 @@
 | 6 | Chris Bell | WR | 21.0 | A | 58.9 | 62.5 | NOT_ON_IR |  | — |
 | 7 | Xavier Legette | WR | 23.0 | A | 64.2 | 58.5 | NOT_ON_IR |  | — |
 | 8 | Rome Odunze | WR | 22.0 | A | 70.4 | 63.0 | NOT_ON_IR |  | — |
-| 9 | Tyrone Tracy | RB | 25.0 | A | 78.9 | 57.3 | NOT_ON_IR |  | — |
-| 10 | Kaelon Black | RB | 24.0 | A | 79.9 | 61.5 | NOT_ON_IR |  | — |
-| 11 | Rasheen Ali | RB | 23.0 | C | — | — | NOT_ON_IR |  | — |
-| 12 | J.J. McCarthy | QB | 23.0 | D | — | — | NOT_ON_IR |  | — |
-| 13 | Dillon Gabriel | QB | 25.0 | D | — | — | NOT_ON_IR |  | — |
-| 14 | Pat Bryant | WR | 23.0 | D | — | — | NOT_ON_IR |  | — |
-| 15 | Elic Ayomanor | WR | 22.0 | D | — | — | NOT_ON_IR |  | — |
-| 16 | Jaxson Dart | QB | 23.0 | D | — | — | NOT_ON_IR |  | — |
-| 17 | Tre' Harris | WR | 24.0 | D | — | — | NOT_ON_IR |  | — |
-| 18 | Luther Burden | WR | 22.0 | D | — | — | NOT_ON_IR |  | — |
-| 19 | Ashton Jeanty | RB | 22.0 | D | — | — | NOT_ON_IR |  | — |
-| 20 | TreVeyon Henderson | RB | 23.0 | D | — | — | NOT_ON_IR |  | — |
-| 21 | Chimere Dike | WR | 24.0 | D | — | — | NOT_ON_IR |  | — |
-| 22 | Kyle Williams | WR | 23.0 | D | — | — | NOT_ON_IR |  | — |
-| 23 | Tank Dell | WR | 26.0 | D | — | — | NOT_ON_IR |  | — |
+| 9 | Kaelon Black | RB | 24.0 | A | 79.9 | 61.5 | NOT_ON_IR |  | — |
+| 10 | Rasheen Ali | RB | 23.0 | C | — | — | NOT_ON_IR |  | — |
+| 11 | J.J. McCarthy | QB | 23.0 | D | — | — | NOT_ON_IR |  | — |
+| 12 | Dillon Gabriel | QB | 25.0 | D | — | — | NOT_ON_IR |  | — |
+| 13 | Pat Bryant | WR | 23.0 | D | — | — | NOT_ON_IR |  | — |
+| 14 | Elic Ayomanor | WR | 23.0 | D | — | — | NOT_ON_IR |  | — |
+| 15 | Jaxson Dart | QB | 23.0 | D | — | — | NOT_ON_IR |  | — |
+| 16 | Tre' Harris | WR | 24.0 | D | — | — | NOT_ON_IR |  | — |
+| 17 | Luther Burden | WR | 22.0 | D | — | — | NOT_ON_IR |  | — |
+| 18 | Ashton Jeanty | RB | 22.0 | D | — | — | NOT_ON_IR |  | — |
+| 19 | TreVeyon Henderson | RB | 23.0 | D | — | — | NOT_ON_IR |  | — |
+| 20 | Chimere Dike | WR | 24.0 | D | — | — | NOT_ON_IR |  | — |
+| 21 | Kyle Williams | WR | 23.0 | D | — | — | NOT_ON_IR |  | — |
+| 22 | Tank Dell | WR | 26.0 | D | — | — | NOT_ON_IR |  | — |
 
 ## Exempt Players
 
