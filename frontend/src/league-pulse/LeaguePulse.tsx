@@ -6,6 +6,8 @@ import { LeaguePulseHeader } from "./LeaguePulseHeader";
 import "./LeaguePulse.css";
 import { LoadingState, ParseErrorState, UnavailableState } from "./LeaguePulseStates";
 import { PartnerRankings } from "./PartnerRankings";
+import { TeamPostureTable } from "./TeamPostureTable";
+import { TeamValueOverview } from "./TeamValueOverview";
 
 // Read-only League Pulse surface over the frozen Inc1 GET /api/league/pulse contract.
 // State machine: loading -> ready / unavailable / parse-error. The backend is always
@@ -58,7 +60,9 @@ export function LeaguePulse() {
     >
       <LeaguePulseHeader data={state.data} />
       <PartnerRankings rankings={state.data.partner_rankings ?? []} />
-      {/* Postures + Values (T4), Opportunity Cards (T5) */}
+      <TeamPostureTable postures={state.data.team_postures ?? []} />
+      <TeamValueOverview values={state.data.team_values ?? []} />
+      {/* Opportunity Cards (T5) */}
     </section>
   );
 }
