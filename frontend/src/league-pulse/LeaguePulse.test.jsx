@@ -51,6 +51,18 @@ describe("LeaguePulse container", () => {
     expect(within(surface).getByText(/as of 2026-06-22T18:00:00Z/i)).toBeTruthy();
   });
 
+  it("renders partner rankings inside the ready region", async () => {
+    mockFetch(200, leaguePulseResponse());
+
+    render(<LeaguePulse />);
+
+    const surface = await screen.findByTestId("league-pulse-ready");
+    expect(
+      within(surface).getByRole("region", { name: /partner rankings/i }),
+    ).toBeTruthy();
+    expect(within(surface).getByText(/market-influenced context/i)).toBeTruthy();
+  });
+
   it("renders unavailable for every non-OK status, including 422", async () => {
     mockFetch(422, { detail: { error: "not_a_league_pulse_route_state" } });
 

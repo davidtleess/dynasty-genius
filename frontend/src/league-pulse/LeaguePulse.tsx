@@ -5,6 +5,7 @@ import { zLeaguePulseResponse } from "../lib/api/zod.gen";
 import { LeaguePulseHeader } from "./LeaguePulseHeader";
 import "./LeaguePulse.css";
 import { LoadingState, ParseErrorState, UnavailableState } from "./LeaguePulseStates";
+import { PartnerRankings } from "./PartnerRankings";
 
 // Read-only League Pulse surface over the frozen Inc1 GET /api/league/pulse contract.
 // State machine: loading -> ready / unavailable / parse-error. The backend is always
@@ -56,7 +57,8 @@ export function LeaguePulse() {
       data-status={state.data.status}
     >
       <LeaguePulseHeader data={state.data} />
-      {/* Partner Rankings (T3), Postures + Values (T4), Opportunity Cards (T5) */}
+      <PartnerRankings rankings={state.data.partner_rankings ?? []} />
+      {/* Postures + Values (T4), Opportunity Cards (T5) */}
     </section>
   );
 }
