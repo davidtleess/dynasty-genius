@@ -77,6 +77,24 @@ describe("LeaguePulse container", () => {
     ).toBeTruthy();
   });
 
+  it("renders opportunity cards inside the ready region", async () => {
+    mockFetch(200, leaguePulseResponse());
+
+    render(<LeaguePulse />);
+
+    const surface = await screen.findByTestId("league-pulse-ready");
+    expect(
+      within(surface).getByRole("region", {
+        name: /model-native opportunity cards/i,
+      }),
+    ).toBeTruthy();
+    expect(
+      within(surface).getByRole("region", {
+        name: /market overlay opportunity cards/i,
+      }),
+    ).toBeTruthy();
+  });
+
   it("renders unavailable for every non-OK status, including 422", async () => {
     mockFetch(422, { detail: { error: "not_a_league_pulse_route_state" } });
 

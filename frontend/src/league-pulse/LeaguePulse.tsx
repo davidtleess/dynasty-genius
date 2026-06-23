@@ -5,6 +5,7 @@ import { zLeaguePulseResponse } from "../lib/api/zod.gen";
 import { LeaguePulseHeader } from "./LeaguePulseHeader";
 import "./LeaguePulse.css";
 import { LoadingState, ParseErrorState, UnavailableState } from "./LeaguePulseStates";
+import { OpportunityCards } from "./OpportunityCards";
 import { PartnerRankings } from "./PartnerRankings";
 import { TeamPostureTable } from "./TeamPostureTable";
 import { TeamValueOverview } from "./TeamValueOverview";
@@ -62,7 +63,10 @@ export function LeaguePulse() {
       <PartnerRankings rankings={state.data.partner_rankings ?? []} />
       <TeamPostureTable postures={state.data.team_postures ?? []} />
       <TeamValueOverview values={state.data.team_values ?? []} />
-      {/* Opportunity Cards (T5) */}
+      <OpportunityCards
+        modelNativeCards={state.data.model_native_cards ?? []}
+        marketOverlayCards={state.data.market_overlay_cards ?? []}
+      />
     </section>
   );
 }
