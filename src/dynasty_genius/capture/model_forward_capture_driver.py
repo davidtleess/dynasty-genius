@@ -72,6 +72,61 @@ def _derived_training_cutoff(feature_csv_bytes: bytes) -> Optional[int]:
     return max(seasons) if seasons else None
 
 
+def resolve_provenance_subset(
+    pvo: dict,
+    *,
+    read_artifact: Callable[[Any], bytes],
+) -> dict[str, Any]:
+    """The vintage-defining lineage subset that feeds provenance_hash — SHARED by T2
+    capture and T4 refresh so both compute the identical hash. Reads model artifacts
+    READ-ONLY; raises FileNotFoundError on a missing REQUIRED artifact (per the engines
+    present among model-supported rows). EXCLUDES git_sha / artifact_sha256 / dates /
+    row_lineage (those are kept out of the vintage hash)."""
+    players = pvo.get("players") or []
+    engines = {
+        r.get("valuation", {}).get("engine_path")
+        for r in players
+        if r.get("valuation", {}).get("engine_path") in MODEL_SUPPORTED_ENGINE_PATHS
+    }
+    needs_b = bool(engines & {"ENGINE_B", "BLEND_AB"})
+    needs_a = bool(engines & {"ENGINE_A", "BLEND_AB"})
+
+    subset: dict[str, Any] = {
+        "pvo_schema_version": pvo.get("schema_version"),
+        "source_snapshot_captured_at": pvo.get("source_snapshot_captured_at"),
+        "pvo_producer_hash": _sha(read_artifact(PRODUCER_PATH)),
+    }
+    if needs_b:
+        manifest_bytes = read_artifact(ENGINE_B_MANIFEST_PATH)
+        manifest = json.loads(manifest_bytes)
+        feature_bytes = read_artifact(ENGINE_B_FEATURE_CSV_PATH)
+        subset["engine_b"] = {
+            "manifest_sha256": _sha(manifest_bytes),
+            "per_position": {
+                position: _sha(read_artifact(Path(pkl_path)))
+                for position, pkl_path in manifest.items()
+            },
+            "derived_training_cutoff": {
+                "value": _derived_training_cutoff(feature_bytes),
+                "status": "derived",
+            },
+            "feature_csv_sha256": _sha(feature_bytes),
+        }
+    if needs_a:
+        latest_bytes = read_artifact(ENGINE_A_LATEST_PATH)
+        latest = json.loads(latest_bytes)
+        head_a_bytes = read_artifact(HEAD_A_V3_MANIFEST_PATH)
+        head_a = json.loads(head_a_bytes)
+        te_meta_bytes = read_artifact(Path(head_a["TE"]).parent / "te_v3_metadata.json")
+        subset["engine_a"] = {
+            "pointer_model_version": latest.get("model_version"),
+            "pointer_sha256": _sha(latest_bytes),
+            "head_a_sha256": _sha(head_a_bytes),
+            "te_metadata_sha256": _sha(te_meta_bytes),
+        }
+    return subset
+
+
 def _resolve_provenance(
     players: list[dict],
     *,
@@ -98,12 +153,6 @@ def _resolve_provenance(
 
     producer_hash = _sha(read_artifact(PRODUCER_PATH))
 
-    # vintage-defining subset (provenance_hash) — excludes git_sha/artifact_sha256/dates
-    subset: dict[str, Any] = {
-        "pvo_schema_version": pvo.get("schema_version"),
-        "source_snapshot_captured_at": pvo.get("source_snapshot_captured_at"),
-        "pvo_producer_hash": producer_hash,
-    }
     block: dict[str, Any] = {
         "git_sha": git_sha_fn(),  # audit-only; NOT in provenance_hash
         "pvo_artifact_path": str(pvo_artifact_path),
@@ -142,12 +191,6 @@ def _resolve_provenance(
             "sha256": feature_hash,
             "max_training_season": cutoff,
         }
-        subset["engine_b"] = {
-            "manifest_sha256": _sha(manifest_bytes),
-            "per_position": {p: v["sha256"] for p, v in per_position.items()},
-            "derived_training_cutoff": derived_cutoff,
-            "feature_csv_sha256": feature_hash,
-        }
 
     if needs_a:
         latest_bytes = read_artifact(ENGINE_A_LATEST_PATH)
@@ -171,13 +214,8 @@ def _resolve_provenance(
             "sha256": _sha(te_meta_bytes),
         }
         block["engine_a_training_cutoff"] = {"value": None, "status": "unknown"}
-        subset["engine_a"] = {
-            "pointer_model_version": latest.get("model_version"),
-            "pointer_sha256": _sha(latest_bytes),
-            "head_a_sha256": _sha(head_a_bytes),
-            "te_metadata_sha256": _sha(te_meta_bytes),
-        }
 
+    subset = resolve_provenance_subset(pvo, read_artifact=read_artifact)
     return block, subset
 
 
