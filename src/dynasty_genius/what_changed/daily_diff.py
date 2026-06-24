@@ -95,6 +95,7 @@ def _build_market_section(
     if roster_ids is None:
         return {
             "status": "unavailable",
+            "decision_supported": False,
             "aborted_reason": "missing_sleeper_snapshot",
             "market_source": "fantasycalc_overlay",
         }
@@ -104,6 +105,7 @@ def _build_market_section(
     if len(dates) < 2:
         return {
             "status": "insufficient_history",
+            "decision_supported": False,
             "comparison_window": {"status": "insufficient_history"},
             "market_source": "fantasycalc_overlay",
         }
@@ -138,6 +140,7 @@ def _build_market_section(
 
     return {
         "status": "ok",
+        "decision_supported": False,
         "comparison_window": {"from_date": from_date, "to_date": to_date},
         "roster_deltas": roster_deltas,
         "top_movers": movers[:top_n],
@@ -186,6 +189,7 @@ def _build_model_section(*, model_db_path: Path) -> dict[str, Any]:
     if len(dates) < 2:
         return {
             "status": "insufficient_history",
+            "decision_supported": False,
             "comparison_window": {"status": "insufficient_history"},
             "deltas": [],
         }
@@ -209,6 +213,7 @@ def _build_model_section(*, model_db_path: Path) -> dict[str, Any]:
     if ambiguous_dates:
         return {
             "status": "model_multi_vintage_ambiguous",
+            "decision_supported": False,
             "comparison_window": {
                 "status": "model_multi_vintage_ambiguous",
                 "from_date": from_date,
@@ -241,6 +246,7 @@ def _build_model_section(*, model_db_path: Path) -> dict[str, Any]:
 
     return {
         "status": status,
+        "decision_supported": False,
         "vintage_changed": vintage_changed,
         "comparison_window": comparison_window,
         "deltas": deltas,
