@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Dual Daily PIT Capture (model side, T5) — local daily MODEL-OUTPUT refresh + capture.
+
+  Runs scripts/run_pvo_refresh.py daily (~09:30 local, staggered after the FC collector
+  at 09:00): refreshes the published PVO artifacts in place (Phase-17.2 PVO rebuild ONLY,
+  Option C — never auto-commits) and then captures the model-output PIT snapshot into the
+  append-only store app/data/model_forward_capture.db. Local-first; no Databricks.
+
+  Option C: a dirty working tree for universe_pvo_latest.json / coverage after a refresh
+  is EXPECTED operational state; committing a refreshed baseline is a David-gated action.
+  The runner mutates ONLY the two PVO artifacts + the gitignored capture store/reports.
+
+  Committed but LOADED MANUALLY BY DAVID — the agent does not load it. The launchctl
+  install/reload AND the first live refresh+capture are separately David-gated:
+    launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-model-pvo-refresh.plist
+  (symlink or copy this file there first).
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-model-pvo-refresh</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/run_pvo_refresh.py</string>
+        <string>--pvo-artifact-path</string>
+        <string>/Users/davidleess/dynasty-genius-product/app/data/valuation/universe_pvo_latest.json</string>
+        <string>--coverage-artifact-path</string>
+        <string>/Users/davidleess/dynasty-genius-product/app/data/valuation/universe_pvo_coverage_latest.json</string>
+        <string>--capture-db-path</string>
+        <string>/Users/davidleess/dynasty-genius-product/app/data/model_forward_capture.db</string>
+        <string>--report-path</string>
+        <string>/Users/davidleess/dynasty-genius-product/app/data/model_capture/pvo_refresh_latest_report.json</string>
+        <string>--capture-report-path</string>
+        <string>/Users/davidleess/dynasty-genius-product/app/data/model_capture/model_forward_capture_latest_report.json</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/pvo_refresh.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/pvo_refresh.err.log</string>
+</dict>
+</plist>
