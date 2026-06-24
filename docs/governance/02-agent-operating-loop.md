@@ -102,6 +102,7 @@ Agents must:
 - avoid hardcoded model cliffs for aging curves
 - treat RAS as risk/context unless validation proves positive lift
 - keep decision surfaces honest about experimental status
+- evaluate every build through the **compounding-product lens** (see Cockpit Process → Compounding-product lens): daily-login value, refresh-when-fresh-data-adds-value, and value that compounds via accumulated benchmarks — prefer capturing-and-accumulating over overwriting `_latest`, and never let "fresh/compounding" license overclaim
 - run relevant tests or explain why they were not run
 
 Agents are accelerators, not authorities. They may draft, analyze, implement, and review, but product rulings belong to the governance docs and David.
@@ -251,6 +252,16 @@ These rules are binding for non-trivial or fail-closed work. Trivial mechanical 
 7. **Reviewer lane calibration.** An agent whose reviews in a domain show a sustained pattern of uncited technical claims, premature consensus declarations, or non-adversarial rubber-stamping has its output in that domain treated as **non-binding** until it re-establishes reliability through evidence-cited falsification. This is behavior-based, domain-specific, recoverable — not a permanent demotion. *Current application (2026-05-30):* Gemini retains binding governance-review authority (leakage, `decision_supported`, banned language, frontend HOLD, scope discipline, audit trail, constitutional alignment); its technical assertions are welcome but non-binding unless backed by `file:line` / probe / repro; it may not declare technical clean/go or team consensus; recovery via a sustained run of evidence-cited falsification.
 
 8. **Robustness boundary in specs (up front).** Specs for modules consuming external or variable data must define the robustness boundary at design time: API-misuse (wrong argument types → fail loud), data-corruption (malformed contents → fail closed), and semantic/range/finiteness validation (the producer's responsibility). This prevents both missed hardening and unbounded whack-a-mole during adversarial sweeps.
+
+### Compounding-product lens
+
+David's standing directive (2026-06-24): Dynasty Genius is a **daily-login** product whose value must **compound** over time. Every non-trivial design or scope decision — by any agent and in cockpit review — is evaluated against three questions, and the answers belong in the spec/plan:
+
+1. **Daily-login value** — what does this give David on a daily login? If the honest answer is "nothing until some future event," ask whether it can deliver value incrementally instead.
+2. **Refresh cadence** — how often should it refresh to stay *valuably* fresh? Cadence is matched to the data's real rate of meaningful change (and is season-aware — in-season ≠ off-season), never an arbitrary or uniform interval.
+3. **Compounding** — does it accumulate into a growing benchmark / learning asset, or is it a discarded one-off? **Prefer capture-and-accumulate over overwrite-`_latest`.** A passive archive and a compounding benchmark are usually the same code with different framing; choose the compounding one. The 2026-06-24 "dual daily PIT capture" decision is the canonical example — capturing both market and model outputs forward (model snapshots stamped with version/training-cutoff/provenance) compounds value *and*, once coverage/power floors are met, builds the native vintage model-output series that forward-resolves the `MODEL_PIT_INADEQUATE` validation blocker (it does not by itself guarantee a powered or passing study).
+
+**Inseparable guardrail — compounding never licenses overclaim.** This lens is fused to the existing honesty discipline and may not be applied without it. Accumulated trend / benchmark / track-record data is a **descriptive overlay**, cordoned from Engine A/B decision mechanics, never folded into a buy/sell or composite score, and may not be promoted to a decision-grade signal until a **pre-registered validation** (e.g. Gate-4) earns it. `decision_supported=False`, the market-data-out-of-model-inputs wall, and banned-language discipline hold throughout. **"Daily refresh" must never become "daily false certainty"**: report a trajectory / structural edge over time, not a single over-promising number; tie structural/rookie updates to hard triggers, not hype. A reviewer who sees "make it compound / refresh daily" being used to relax any honesty guard treats that as a defect, not a feature. Roadmap: `docs/superpowers/plans/2026-06-24-war-room-compounding-roadmap.md` (the "War Room").
 
 ### Sprint-closeout tollgate
 
