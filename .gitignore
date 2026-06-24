@@ -67,6 +67,11 @@ app/data/league_snapshots/*_phase[0-9]*.json
 app/data/fc_snapshots.db
 app/data/fc_snapshots.db-journal
 
+# Dual Daily PIT Capture (T3) — forward-capture store + per-run capture reports (operational, not source)
+app/data/fc_forward_capture.db
+app/data/fc_forward_capture.db-journal
+app/data/capture/
+
 # Backtest run artifacts — large JSON, versioned by run_id
 app/data/backtest/runs/
 
