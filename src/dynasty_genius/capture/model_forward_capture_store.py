@@ -48,6 +48,12 @@ _DATA_COLUMNS = (
     "payload_hash",
 )
 _ALL_COLUMNS = _KEY_COLUMNS + _DATA_COLUMNS
+# Volatile columns are STORED but EXCLUDED from the immutability signature, so a same-key
+# re-append that differs only by a volatile field (e.g. a re-regenerated PVO's captured_at)
+# is an idempotent no-op rather than a false conflict (mirrors the FC store excluding
+# retrieved_at). Real model-output changes (DVS/xVAR/grade/...) still drive a conflict.
+_VOLATILE_COLUMNS = frozenset({"artifact_vintage"})
+_CONTENT_COLUMNS = tuple(c for c in _DATA_COLUMNS if c not in _VOLATILE_COLUMNS)
 _COLUMN_DDL = {
     "row_index": "INTEGER",
     "dynasty_value_score": "REAL",
@@ -163,13 +169,15 @@ class ModelForwardCaptureStore:
                 f"got {only_source!r}"
             )
 
-        # 3. collapse byte-identical in-batch duplicates; conflict on differing content
+        # 3. collapse in-batch duplicates that match on the immutability signature
+        # (key + content, excluding volatile fields); conflict only on differing content.
+        _sig_cols = _KEY_COLUMNS + _CONTENT_COLUMNS
         distinct: dict[str, dict] = {}
         for entry in entries:
             key = entry["player_key"]
-            signature = tuple(entry.get(col) for col in _ALL_COLUMNS)
+            signature = tuple(entry.get(col) for col in _sig_cols)
             if key in distinct:
-                if tuple(distinct[key].get(col) for col in _ALL_COLUMNS) != signature:
+                if tuple(distinct[key].get(col) for col in _sig_cols) != signature:
                     raise ModelForwardCaptureValidationError(
                         f"duplicate player_key with differing content: {key}"
                     )
@@ -180,13 +188,13 @@ class ModelForwardCaptureStore:
         with sqlite3.connect(self.db_path) as conn:
             for entry in distinct.values():
                 row = conn.execute(
-                    f"SELECT {', '.join(_DATA_COLUMNS)} FROM model_forward_capture_raw "
+                    f"SELECT {', '.join(_CONTENT_COLUMNS)} FROM model_forward_capture_raw "
                     f"WHERE {' AND '.join(f'{c}=?' for c in _KEY_COLUMNS)}",
                     [entry.get(c) for c in _KEY_COLUMNS],
                 ).fetchone()
                 if row is not None:
                     existing = tuple(row)
-                    incoming = tuple(entry.get(c) for c in _DATA_COLUMNS)
+                    incoming = tuple(entry.get(c) for c in _CONTENT_COLUMNS)
                     if existing != incoming:
                         raise ModelForwardCaptureConflictError(
                             f"immutable snapshot conflict for {entry['player_key']}"
