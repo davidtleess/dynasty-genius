@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Harness Trust Completion W2a.3 — local daily FantasyCalc snapshot scheduler.
+  Dual Daily PIT Capture (War Room #1, wr-dual-capture) — local daily FantasyCalc
+  forward-capture scheduler.
 
-  Starts the Gate-4 forward-collection clock: runs scripts/snapshot_fantasycalc.py
-  daily, writing immutable fc_native rows to app/data/fc_snapshots.db. Local-first
-  (no Databricks). Committed but LOADED MANUALLY BY DAVID — the agent does not load
-  it:  launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-fc-snapshot.plist
+  Runs scripts/run_fc_forward_capture.py daily (~09:00 local): fetches FantasyCalc
+  current values and appends an immutable, survivorship-complete point-in-time
+  snapshot to app/data/fc_forward_capture.db (source=fc_native), emitting a capture
+  report (decision_supported=false) to
+  app/data/capture/fc_forward_capture_latest_report.json. Local-first; no Databricks.
+
+  REPLACE + freeze-and-supersede: this entrypoint supersedes the legacy
+  scripts/snapshot_fantasycalc.py collector. The legacy app/data/fc_snapshots.db
+  remains a frozen, read-only archive — not rewritten or migrated here.
+
+  Committed but LOADED MANUALLY BY DAVID — the agent does not load it. The launchctl
+  reload (T3.4) and the first live FC fetch (T3.5) are separately David-gated:
+    launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-fc-snapshot.plist
   (symlink or copy this file there first).
 -->
 <plist version="1.0">
@@ -17,7 +27,11 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
-        <string>/Users/davidleess/dynasty-genius-product/scripts/snapshot_fantasycalc.py</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/run_fc_forward_capture.py</string>
+        <string>--db-path</string>
+        <string>/Users/davidleess/dynasty-genius-product/app/data/fc_forward_capture.db</string>
+        <string>--report-path</string>
+        <string>/Users/davidleess/dynasty-genius-product/app/data/capture/fc_forward_capture_latest_report.json</string>
     </array>
 
     <key>WorkingDirectory</key>
@@ -35,9 +49,9 @@
     <false/>
 
     <key>StandardOutPath</key>
-    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/fc_snapshot.out.log</string>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/fc_forward_capture.out.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/fc_snapshot.err.log</string>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/fc_forward_capture.err.log</string>
 </dict>
 </plist>
