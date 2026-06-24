@@ -8,8 +8,11 @@ separately David-gated.
 from __future__ import annotations
 
 import plistlib
+import shutil
 import subprocess
 from pathlib import Path
+
+import pytest
 
 PLIST = Path("ops/launchd/com.davidleess.dynasty-model-pvo-refresh.plist")
 ROOT = Path("/Users/davidleess/dynasty-genius-product")
@@ -62,6 +65,7 @@ def test_model_output_launchd_plist_runs_refresh_then_capture_runner() -> None:
     )
 
 
+@pytest.mark.skipif(shutil.which("plutil") is None, reason="plutil is macOS-only")
 def test_model_output_launchd_plist_is_valid_plist() -> None:
     result = subprocess.run(
         ["plutil", "-lint", str(PLIST)],
