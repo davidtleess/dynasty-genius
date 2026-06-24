@@ -376,6 +376,61 @@ def test_orchestrated_success_calls_capture_after_refresh_but_capture_cli_remain
     assert callable(model_cli.main)
 
 
+def test_capture_stage_exception_writes_abort_report_without_restoring_successful_refresh(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    runner = _load_runner()
+    pvo, coverage = _write_pair(tmp_path)
+    original_pvo = pvo.read_bytes()
+    original_coverage = coverage.read_bytes()
+    report_path = tmp_path / "reports" / "refresh.json"
+    bad_calls: list[list[str]] = []
+
+    def refresh_fn(*, pvo_artifact_path: Path, coverage_artifact_path: Path) -> None:
+        pvo_artifact_path.write_text(
+            pvo_artifact_path.read_text().replace("98.5", "99.1")
+        )
+        coverage_artifact_path.write_text(json.dumps({"raw_rows": 1, "suffix": "new"}))
+
+    def capture_fn(**_kwargs) -> dict:
+        raise RuntimeError("capture_conflict")
+
+    def fake_run(cmd, *_args, **_kwargs):
+        bad_calls.append(list(cmd))
+        raise AssertionError(f"runner must not auto-commit or run subprocesses: {cmd}")
+
+    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+
+    report = runner.run_pvo_refresh(
+        pvo_artifact_path=pvo,
+        coverage_artifact_path=coverage,
+        report_path=report_path,
+        refresh_fn=refresh_fn,
+        capture_fn=capture_fn,
+        capture_db_path=tmp_path / "model_forward.db",
+        capture_report_path=tmp_path / "model_capture" / "latest.json",
+        read_artifact=_fixture_reader(pvo, coverage),
+    )
+
+    assert report["status"] == "aborted"
+    assert report["aborted_stage"] == "capture"
+    assert report["aborted_reason"] == "capture_conflict"
+    assert report["decision_supported"] is False
+    assert report["commit_required_for_repo_baseline"] is True
+    assert report["restored_from_backup"] is False
+    assert report["pre"]["artifact_sha256"] != report["post"]["artifact_sha256"]
+    assert report["semantic_changed"] is True
+    assert isinstance(report["provenance_changed"], bool)
+    assert set(report["dirty_paths"]) == {str(pvo), str(coverage)}
+    assert report["capture_report"] is None
+    assert report["forbidden_commands_attempted"] == []
+    assert pvo.read_bytes() != original_pvo
+    assert coverage.read_bytes() != original_coverage
+    assert json.loads(report_path.read_text()) == report
+    assert bad_calls == []
+
+
 def test_runner_rejects_banned_refresh_commands_without_executing(tmp_path: Path) -> None:
     runner = _load_runner()
 

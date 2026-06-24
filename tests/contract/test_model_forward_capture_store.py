@@ -271,6 +271,48 @@ def test_identical_reappend_is_idempotent_changed_existing_key_conflicts(tmp_pat
     assert {row["dynasty_value_score"] for row in rows} == {98.5, 95.1}
 
 
+def test_same_day_reappend_with_only_new_artifact_vintage_is_idempotent(tmp_path) -> None:
+    store = ModelForwardCaptureStore(db_path=tmp_path / "model_forward.db")
+
+    assert store.append_entries(_entries()) == {
+        "raw_rows_written": 4,
+        "joinable_rows_written": 2,
+    }
+
+    rerun_same_model_vintage = [
+        {
+            **entry,
+            "artifact_vintage": "2026-06-24T15:30:00+00:00",
+        }
+        for entry in _entries()
+    ]
+    assert store.append_entries(rerun_same_model_vintage) == {
+        "raw_rows_written": 4,
+        "joinable_rows_written": 2,
+    }
+
+    raw = store.get_raw_entries(
+        CAPTURE_DATE, SOURCE, SEMANTIC_OUTPUT_HASH, PROVENANCE_HASH
+    )
+    assert len(raw) == 4
+    assert {row["artifact_vintage"] for row in raw} == {ARTIFACT_VINTAGE}
+
+    changed_score_same_key = [
+        {
+            **entry,
+            "artifact_vintage": "2026-06-24T16:00:00+00:00",
+            "dynasty_value_score": 99.9,
+        }
+        if entry["player_key"] == "sleeper:9509"
+        else entry
+        for entry in _entries()
+    ]
+    with pytest.raises(
+        ModelForwardCaptureConflictError, match="immutable snapshot conflict"
+    ):
+        store.append_entries(changed_score_same_key)
+
+
 def test_duplicate_player_key_in_batch_conflicts_unless_byte_identical(tmp_path) -> None:
     store = ModelForwardCaptureStore(db_path=tmp_path / "model_forward.db")
     duplicate_same = _entries() + [_entries()[0]]

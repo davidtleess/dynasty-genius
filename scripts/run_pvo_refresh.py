@@ -141,6 +141,7 @@ def run_pvo_refresh(
         return _persist(
             {
                 "status": "aborted",
+                "aborted_stage": "refresh",
                 "aborted_reason": reason,
                 "restored_from_backup": True,
                 "decision_supported": False,
@@ -173,29 +174,52 @@ def run_pvo_refresh(
     if post_coverage_bytes != pre_coverage_bytes:
         dirty_paths.append(str(coverage))
 
+    # Refresh SUCCEEDED — this metadata is preserved in BOTH the ok report and a
+    # capture-stage abort report.
+    refresh_meta = {
+        "pre": pre,
+        "post": post,
+        "semantic_changed": pre["semantic_output_hash"] != post["semantic_output_hash"],
+        "provenance_changed": pre["provenance_hash"] != post["provenance_hash"],
+        "dirty_paths": sorted(dirty_paths),
+    }
+
     # ── orchestrated capture (independent of refresh; capture CLI stays callable) ──
+    # The refresh already succeeded, so a capture-stage failure does NOT restore the PVO
+    # (Option C local freshness holds); it writes a capture-stage abort report instead.
     capture_report: Optional[dict] = None
     if capture_fn is not None:
-        capture_report = capture_fn(
-            db_path=capture_db_path,
-            report_path=capture_report_path,
-            pvo_artifact_path=pvo,
-            coverage_artifact_path=coverage,
-            read_artifact=read_artifact,
-            now_fn=lambda: datetime.now(timezone.utc),
-            git_sha_fn=lambda: _git_head_sha(),
-        )
+        try:
+            capture_report = capture_fn(
+                db_path=capture_db_path,
+                report_path=capture_report_path,
+                pvo_artifact_path=pvo,
+                coverage_artifact_path=coverage,
+                read_artifact=read_artifact,
+                now_fn=lambda: datetime.now(timezone.utc),
+                git_sha_fn=lambda: _git_head_sha(),
+            )
+        except Exception as exc:  # capture-stage failure: report, do NOT restore the PVO
+            return _persist(
+                {
+                    "status": "aborted",
+                    "aborted_stage": "capture",
+                    "aborted_reason": str(exc),
+                    "restored_from_backup": False,
+                    "decision_supported": False,
+                    "commit_required_for_repo_baseline": True,
+                    **refresh_meta,
+                    "capture_report": None,
+                    "forbidden_commands_attempted": [],
+                }
+            )
 
     return _persist(
         {
             "status": "ok",
             "decision_supported": False,
             "commit_required_for_repo_baseline": True,
-            "pre": pre,
-            "post": post,
-            "semantic_changed": pre["semantic_output_hash"] != post["semantic_output_hash"],
-            "provenance_changed": pre["provenance_hash"] != post["provenance_hash"],
-            "dirty_paths": sorted(dirty_paths),
+            **refresh_meta,
             "forbidden_commands_attempted": [],
             "capture_report": capture_report,
             "aborted_reason": None,
