@@ -72,6 +72,11 @@ app/data/fc_forward_capture.db
 app/data/fc_forward_capture.db-journal
 app/data/capture/
 
+# Dual Daily PIT Capture (model side, T5) — model-output capture store + refresh/capture reports (operational, not source)
+app/data/model_forward_capture.db
+app/data/model_forward_capture.db-journal
+app/data/model_capture/
+
 # Backtest run artifacts — large JSON, versioned by run_id
 app/data/backtest/runs/
 
