@@ -242,13 +242,17 @@ def test_cli_run_returns_nonzero_on_real_failure_without_partial_report(
     assert not (tmp_path / REPORT_RELATIVE).exists()
 
 
-def test_cli_loads_standalone_from_outside_repo() -> None:
+def test_cli_loads_standalone_from_outside_repo(tmp_path) -> None:
+    # Run from a portable out-of-repo dir (the pytest tmp_path), NOT a hardcoded
+    # macOS-only path: the CI Linux runner has no /private/tmp, so a hardcoded path
+    # fails the subprocess cwd before the import probe even runs.
+    outside = str(tmp_path)
     script_path = REPO_ROOT / "scripts" / "run_what_changed_report.py"
     code = f"""
 import importlib.util
 import os
 from pathlib import Path
-os.chdir('/private/tmp')
+os.chdir({outside!r})
 spec = importlib.util.spec_from_file_location('run_what_changed_report_standalone', {str(script_path)!r})
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
@@ -257,7 +261,7 @@ assert Path(module.ROOT) == Path({str(REPO_ROOT)!r})
 """
     result = subprocess.run(
         [sys.executable, "-c", code],
-        cwd="/private/tmp",
+        cwd=outside,
         capture_output=True,
         text=True,
         check=False,
