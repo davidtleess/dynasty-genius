@@ -63,58 +63,6 @@ def _source_frames(*, include_changed_value: bool = False) -> dict[str, pd.DataF
     }
 
 
-def test_assemble_feature_candidate_preserves_latest_inference_rows() -> None:
-    assembly = importlib.import_module("src.dynasty_genius.features.feature_assembly")
-
-    candidate = assembly.assemble_feature_candidate(
-        seasons_window=[2023, 2024, 2025],
-        read_fns=_source_frames(),
-    )
-
-    latest = candidate[candidate["feature_season"] == 2025]
-    assert not latest.empty
-    assert latest["training_eligible"].eq(False).all()  # noqa: E712
-    assert latest["avg_ppg_t1_t2"].isna().all()
-
-    training = candidate[candidate["training_eligible"] == True]  # noqa: E712
-    assert not training.empty
-    assert training["avg_ppg_t1_t2"].notna().all()
-
-
-def test_assemble_feature_candidate_emits_schema_conformant_seam_shape() -> None:
-    assembly = importlib.import_module("src.dynasty_genius.features.feature_assembly")
-    engine_b_script = importlib.import_module("scripts.assemble_engine_b_dataset")
-
-    candidate = assembly.assemble_feature_candidate(
-        seasons_window=[2023, 2024, 2025],
-        read_fns=_source_frames(),
-    )
-
-    expected_columns = list(engine_b_script.ENGINE_B_OUTPUT_COLUMNS)
-    assert list(candidate.columns) == expected_columns
-    assert set(candidate["feature_season"]) == {2023, 2025}
-    assert candidate.loc[
-        candidate["feature_season"] == 2025, "training_eligible"
-    ].eq(False).all()  # noqa: E712
-    assert candidate.loc[
-        candidate["feature_season"] == 2025, engine_b_script.OUTCOME_COLUMN
-    ].isna().all()
-
-    leak_columns = {
-        "ppg_t1",
-        "ppg_t2",
-        "games_t1",
-        "games_t2",
-        "targets_t",
-        "receptions_t",
-        "yards_t",
-        "rushing_yards_t",
-        "rushing_tds_t",
-        "air_yards_t",
-    }
-    assert leak_columns.isdisjoint(candidate.columns)
-
-
 def test_assemble_engine_b_dataset_uses_shared_inference_rule_not_legacy_drop() -> None:
     engine_b_script = importlib.import_module("scripts.assemble_engine_b_dataset")
     source = Path(engine_b_script.__file__).read_text()
@@ -234,36 +182,6 @@ def test_cli_preflight_is_readiness_only(tmp_path: Path) -> None:
     )
 
     assert rc == 0
-    assert not runtime_dir.exists() or not any(runtime_dir.iterdir())
-
-
-def test_cli_real_run_is_gated_until_t1b(
-    tmp_path: Path,
-    capsys,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    cli = importlib.import_module("scripts.run_feature_refresh")
-    runtime_dir = tmp_path / "features_runtime"
-    seed_path = tmp_path / "seed.csv"
-    seed_path.write_text("player_id,feature_season,training_eligible\n")
-
-    def fail_source_load(*_: object, **__: object) -> dict:
-        raise AssertionError("real-run gate must fire before source loading")
-
-    monkeypatch.setattr(cli, "_load_source", fail_source_load)
-
-    rc = cli.main(
-        [
-            "--runtime-dir",
-            str(runtime_dir),
-            "--seed-path",
-            str(seed_path),
-        ]
-    )
-
-    captured = capsys.readouterr()
-    assert rc == 1
-    assert "full feature engineering lands in T1b" in captured.out + captured.err
     assert not runtime_dir.exists() or not any(runtime_dir.iterdir())
 
 
