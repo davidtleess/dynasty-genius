@@ -10,6 +10,7 @@ from app.api.routes import (
     engine_b,
     internal_project_plan,
     league_pulse,
+    league_what_changed,
     players,
     rookies,
     roster,
@@ -36,6 +37,7 @@ app.include_router(trust_surface.router, prefix="/api")
 app.include_router(players.router, prefix="/api")
 app.include_router(internal_project_plan.router, prefix="/api")
 app.include_router(league_pulse.router, prefix="/api")
+app.include_router(league_what_changed.router, prefix="/api")
 
 
 # --- Frontend SPA static mount (Phase-12 surface 1; spec 2026-06-03-frontend-design-spec) ---

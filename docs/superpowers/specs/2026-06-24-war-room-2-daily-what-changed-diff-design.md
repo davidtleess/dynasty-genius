@@ -1,0 +1,49 @@
+# War Room #2 — Daily "What Changed" Diff — Design Spec (v2 for cockpit dual-CLEAR)
+
+**Status:** DRAFT v2 — integrates Codex C1–C6 (C1 model vintage = the `(semantic_output_hash, provenance_hash)` pair, not semantic alone; C2 roster membership from the current Sleeper snapshot; C3 delta sign conventions locked; C4 report path + gitignore; C5 per-artifact timestamp/caveat contracts; C6 D1–D3 closed) + Gemini governance CLEAR on v1. David-confirmed defaults: D1 N=25, D2 no watchlist in v1, D3 `/api/league/what-changed`. War Room roadmap #2 — the first CONSUMER of the dual-capture PIT series (War Room #1: FC market `559ca90` + model `616a040`, both live). A backend day-over-day "what changed since the prior snapshot" diff over the captured series + current structural context. **David rulings:** build now (market + structural; model-delta present but honestly quiet until the F-feature-refresh follow-up); **backend-first** (pure diff producer + machine-readable report + read-only API; frontend HOLD intact, UI a later increment). Governance: `02-agent-operating-loop.md` → Compounding-product lens.
+
+> **Banned-language note:** this spec does not spell the forbidden David-facing verdict/action terms; "banned tokens" = the set in `01-north-star-architecture.md` §"Banned David-Facing Output Patterns" + the capture-brick set, enforced by a literal-list contract test (not this doc).
+
+## 0. Compounding-product lens
+- **Daily-login value:** the digest IS the daily habit — what moved since the prior snapshot, without hunting across surfaces.
+- **Refresh cadence:** daily (consumes the daily PIT capture); a read producer, runs on demand / later wired into the daily refresh (no scheduler in this increment).
+- **Compounding:** richer the longer it runs — more history → longer trend context; and the model side gains real movement once F-feature-refresh ships.
+
+## 1. Scope (backend-first)
+A pure **day-over-day diff producer** over the dual-capture PIT stores + a **current structural context** assembler, emitting a machine-readable report and a read-only API over it. **Market + structural now; model-delta present-but-quiet.** No UI (frontend HOLD). No model/feature/PVO/training mutation; descriptive overlay only.
+
+## 2. Inputs / sources
+- **Market PIT:** `app/data/fc_forward_capture.db` (`fc_forward_capture_joinable`), day-over-day by `snapshot_date`.
+- **Model PIT:** `app/data/model_forward_capture.db` (`model_forward_capture_joinable`), day-over-day by `capture_date`; quiet until ≥2 distinct vintages.
+- **Structural CURRENT context (Codex Option A — labeled current, NOT day-over-day):** `sleeper_universe_snapshot_latest.json` + `team_posture_latest.json` + `team_value_matrix_latest.json` + `league_opportunity_latest.json` + `roster_cut_report_latest.json` (drop pressure). Each artifact carries a top-level **`captured_at`** (verified present in all four); the assembler stamps that per-artifact `captured_at` + a **staleness caveat** (artifact age vs the report `generated_at`) on each section (C5). A structural PIT diff is a SEPARATE future expansion (B), not v1.
+- **David-roster focus (C2):** roster MEMBERSHIP is read from the **current** `sleeper_universe_snapshot_latest.json` — its `rosters` entry for `david_roster_id` (the snapshot carries `david_roster_id` at top level) — so the roster reflects live changes, not a static config list. `resources/david_league_context.json` (`david_roster_id`/`david_user_id`) is the identity anchor/fallback.
+- DB paths/connections are **injected** (testable with fixture tmp dbs; no real-fs/clock coupling).
+
+## 3. Diff contract (day-over-day; partial-source degradation)
+- **Window (Codex Q4):** per source, the **latest complete capture date vs the prior complete capture date**. Since-last-login (last-seen marker) is deferred; it can later read these immutable daily diff outputs.
+- **Market deltas:** per-player FC `value`/`overall_rank`/`position_rank` deltas (latest vs prior). **Delta sign conventions LOCKED (C3):** `value_delta = latest.value − prior.value` (**positive = value rose**); `rank_delta = latest.rank − prior.rank` (**negative = improved / moved toward #1**, since rank 1 is best); each delta field carries an explicit `direction` label so the sign is never ambiguous. Presented as **focused slices** (Codex Q2): (a) David's roster, (b) **top-N absolute market movers, capped** (default **N=25**) + a `total_movers_count`. Top-movers ranked by `abs(value_delta)`. Compute over the joinable universe for ranking; **output is capped/filtered — never a whole-universe dump.** New/disappeared players (present in only one snapshot) are reported as `entered`/`exited`, not as a numeric delta.
+- **Model/xVAR deltas:** per-player DVS/xVAR deltas (latest vs prior model capture); same sign conventions as market. **A model vintage is the pair `(semantic_output_hash, provenance_hash)`; a model change = EITHER hash differing (C1)** (so a provenance/model-artifact change with unchanged scores is still a new vintage). Until ≥2 distinct `(semantic_output_hash, provenance_hash)` vintages exist, the model section reports `status=baseline_holding` (vintage unchanged → zero model movement, honest) or `status=insufficient_history` (<2 capture dates) — **never fabricated movement.**
+- **Structural current context:** current posture / team-value / opportunity / drop-pressure for David's roster + league, each with `captured_at`/source + artifact-state caveat. Explicitly **current context, NOT a delta.**
+- **Partial-source degradation (Codex):** each section independently emits deltas (≥2 dates) OR `insufficient_history`/`baseline_holding`; one source's insufficiency never blocks the others (FC may emit deltas with 2 FC dates while model has 1). Overall report status reflects per-section availability.
+
+## 4. Report (machine-readable, every run)
+`generated_at` (UTC); per-source `comparison_window` (`from_date`/`to_date` or `insufficient_history`); **market** section (`roster_deltas[]`, `top_movers[]` [capped] + `total_movers_count`, `market_source` caveat); **model** section (`status` ok/baseline_holding/insufficient_history, `deltas[]` when ok); **structural_context** section (current artifacts + `captured_at` + caveats, flagged current-not-delta); recursive **`decision_supported=false`**. Per-player rows allowed only for the focused slices (roster + top movers — this is David's personal decision-support digest, not public); per-section field **allowlists** (no raw object/evidence dumps). **Report path (C4):** overwrite-latest at `app/data/what_changed/what_changed_latest_report.json` (operational artifact) — gitignored (§6).
+
+## 5. API (read-only)
+`GET /api/league/what-changed` over the latest report. Typed leak-proof DTOs (`extra=forbid`), recursive `decision_supported=Literal[False]`; fail-closed (missing/malformed/wrong-root → 503; isolated section degraded → degraded-200 with caveat). Market content labeled overlay; **no market field reaches any model/PVO path.** OpenAPI/Zod regen. **Frontend HOLD: API only, no UI in this increment.** (Mirrors the League Pulse Inc1 contract pattern.)
+
+## 6. Guardrails
+Descriptive digest ONLY: market deltas are a descriptive market **overlay**; the model-vs-market divergence-over-time is **UNVALIDATED** (not promoted to a signal) until a pre-registered validation earns it; **no banned verdict/action/tier tokens** (literal-list contract test); `decision_supported=false` recursive; market deltas **never** enter model/feature/PVO/training paths (recursive contract test); honest **`insufficient_history`/`baseline_holding`** framing (never "nothing happened", never false freshness). **New-store-only** — legacy `fc_snapshots.db` backfill is a SEPARATE optional future adapter (if ever used: `legacy_backfill=true` + `source_contract=legacy_archive`, caveated, never silently merged into the canonical new-store series). **Gitignore (C4):** `app/data/what_changed/` (the overwrite-latest report is operational data, out of source control — consistent with the capture stores/reports).
+
+## 7. Build sequence (cockpit TDD: Codex RED → Claude GREEN → dual-CLEAR → David-authorized commit)
+1. **T1** — pure diff engine: day-over-day delta computation over the two PIT stores (injected db paths) + partial-source degradation + `insufficient_history`/`baseline_holding`; market focused slices (David roster + top-N capped movers); model quiet-state. Pure + fixture-tested.
+2. **T2** — report emitter + structural-context assembler (Option A: current-context with `captured_at`/caveats) + the §4 report schema (recursive `decision_supported=false`, field allowlists, banned-token + market-exclusion contract tests).
+3. **T3** — read-only API `GET /api/league/what-changed` over the report (typed DTOs, fail-closed, OpenAPI/Zod regen); no UI.
+
+## 8. Falsification matrix seeds
+<2 dates for a source → `insufficient_history` (no fabricated deltas); model vintage unchanged → `baseline_holding` (zero model movement); FC 2 dates + model 1 → market emits, model insufficient (partial degradation, not a whole-run abort); missing/malformed store or structural artifact → section fail-closed/degraded, not a crash; top-movers exceeds cap → truncated to N + `total_movers_count` honest (no silent whole-universe dump); structural artifact presented as a day-over-day delta (instead of current-context) → fail; any banned verdict/action/tier token in report/API/static strings → fail; `decision_supported` ≠ false anywhere → fail; a market field present in any model/PVO-bound structure → reject.
+
+## 9. Decisions — CLOSED (David-confirmed)
+- **D1 — top-N movers cap = 25.**
+- **D2 — no watchlist in v1** (David-roster + top-movers only; an explicit watchlist config is a future option).
+- **D3 — API route = `/api/league/what-changed`.**
