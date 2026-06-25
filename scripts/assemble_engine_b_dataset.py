@@ -29,8 +29,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
-from src.dynasty_genius.audit.te_archetype_taxonomy import derive_te_taxonomy_features
-from src.dynasty_genius.models.aging_curves import aging_curve_value
+from src.dynasty_genius.audit.te_archetype_taxonomy import (
+    derive_te_taxonomy_features,  # noqa: E402
+)
+from src.dynasty_genius.features.feature_assembly import (
+    apply_inference_partition,  # noqa: E402
+)
+from src.dynasty_genius.models.aging_curves import aging_curve_value  # noqa: E402
 from src.dynasty_genius.models.engine_b_contract import (
     DUAL_THREAT_RUSHING_THRESHOLD,
     OUTCOME_COLUMN,
@@ -83,7 +88,8 @@ ENGINE_B_OUTPUT_COLUMNS = (
 )
 
 def _to_pandas(df: Any) -> pd.DataFrame:
-    if df is None: return pd.DataFrame()
+    if df is None:
+        return pd.DataFrame()
     if hasattr(df, "to_pandas"):
         return df.to_pandas()
     return pd.DataFrame(df)
@@ -325,37 +331,21 @@ def main():
             pos = "QB_dual_threat" if row["is_dual_threat"] else "QB_pocket"
         try:
             return aging_curve_value(pos, row["age"]), pos
-        except:
+        except Exception:
             return 1.0, pos
             
     curve_results = df.apply(get_curve_details, axis=1)
     df["aging_curve_value"] = [r[0] for r in curve_results]
     df["aging_curve_position"] = [r[1] for r in curve_results]
     
-    # 10. Outcome Calculation (Audit Blocker 3)
-    print("Calculating outcomes and training eligibility...")
-    outcomes = df[["player_id", "feature_season", "ppg_t", "games_t"]].copy()
-    o_t1 = outcomes.rename(columns={"feature_season": "join_season", "ppg_t": "ppg_t1", "games_t": "games_t1"})
-    o_t1["join_season"] = o_t1["join_season"] - 1
-    o_t2 = outcomes.rename(columns={"feature_season": "join_season", "ppg_t": "ppg_t2", "games_t": "games_t2"})
-    o_t2["join_season"] = o_t2["join_season"] - 2
-    
-    df = df.merge(o_t1, left_on=["player_id", "feature_season"], right_on=["player_id", "join_season"], how="left").drop(columns="join_season")
-    df = df.merge(o_t2, left_on=["player_id", "feature_season"], right_on=["player_id", "join_season"], how="left").drop(columns="join_season")
-    
-    def calc_avg(row):
-        pts = []
-        if row["games_t1"] > 0: pts.append(row["ppg_t1"])
-        if row["games_t2"] > 0: pts.append(row["ppg_t2"])
-        return np.mean(pts) if pts else np.nan
-        
-    df[OUTCOME_COLUMN] = df.apply(calc_avg, axis=1)
-    
-    # Eligibility logic: must have complete 2-year window (unless inactive, but 2026 is unknown)
-    # feature_season 2024 needs T+2=2026 which is unknown.
-    df["training_eligible"] = df["feature_season"] < 2024
-    # Also drop rows with no outcome data at all
-    df = df.dropna(subset=[OUTCOME_COLUMN]).copy()
+    # 10. Outcome + inference partition (Audit Blocker 3) — shared with the
+    # F-feature-refresh seam (feature_assembly.assemble_feature_candidate) via
+    # apply_inference_partition / inference_season_rule. Training rows need a COMPLETE
+    # 2-year window; the single latest (inference) season is preserved with a null
+    # outcome; in-between incomplete-window seasons are dropped. No hardcoded <2024 and
+    # no unconditional outcome drop (which previously discarded the latest inference rows).
+    print("Calculating outcomes and inference partition (shared rule)...")
+    df = apply_inference_partition(df, seasons_window=SEASONS)
     
     # 11. Add Phase 13.3 TE role-risk feature
     print("Adding TE role risk feature...")
