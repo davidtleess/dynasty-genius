@@ -39,8 +39,8 @@
 |---|---|---|
 | `src/dynasty_genius/features/feature_refresh_runner.py` | Source-hash-gated regeneration to a temp candidate; status semantics; `--preflight`; no model writes | T1 |
 | `scripts/run_feature_refresh.py` | Thin cwd-independent CLI wrapper over the runner (`main(argv)->int`) | T1 |
-| `src/dynasty_genius/features/feature_assembly.py` (NEW helper, P4) | Hosts `inference_season_rule` + `assemble_feature_candidate` (preserve intended-inference-season rows `training_eligible=false`/null-outcome; explicit inference-season rule) | T1 |
-| `scripts/assemble_engine_b_dataset.py` (~lines 352–358) | Refactor the outcome-drop logic to call the new helper (training rows require outcomes; inference-season rows preserved). **Do NOT touch `app/data/pipeline/train_models.py`** — that is unrelated training code | T1 |
+| `src/dynasty_genius/features/feature_assembly.py` (NEW helper, P4) | T1: `inference_season_rule` + `assemble_feature_candidate` (seam — schema-conformant shape + inference partition). T1b: `build_engine_b_features` (real frame-injectable engineering) | T1, T1b |
+| `scripts/assemble_engine_b_dataset.py` | T1: refactor the outcome/drop block (~352–358) to the shared inference rule (no `<2024`/`dropna`). T1b: delegate the 11-step engineering to `build_engine_b_features` (keep module-level names for the 4 dependents). **Do NOT touch `app/data/pipeline/train_models.py`** | T1, T1b |
 | `src/dynasty_genius/features/feature_validation.py` | Fail-closed integrity gates (leakage/schema/identity/coverage/range/NaN); drift report-only telemetry | T2 |
 | `src/dynasty_genius/features/feature_publish.py` | Atomic temp→validate→rename; ready-marker/manifest; preserve/restore-on-failure | T2 |
 | `src/dynasty_genius/features/feature_source.py` | The ONE shared resolved-feature-source helper (runtime-if-present-else-seed) + source metadata | T3 |
@@ -59,15 +59,18 @@ Every task uses these verbatim (so steps are executable without guessing):
 - **Step 2 (run RED):** `.venv/bin/python3.14 -m pytest tests/contract/<task_test>.py -q` → expected **FAIL** (missing module/function/behavior).
 - **Step 4 (run GREEN):** same focused command → expected **PASS**; then `.venv/bin/python3.14 -m pytest tests/contract -q` → expected **all pass** (baseline 1078 + the task's new tests); then `.venv/bin/ruff check <touched paths>` → **All checks passed!**; then the literal-list **banned-token probe** over touched src/docs → **NONE**.
 - **Step 5 (commit, David-gated)** — exact per-task scope:
-  - **T1:** `src/dynasty_genius/features/feature_assembly.py` + `feature_refresh_runner.py` + `scripts/run_feature_refresh.py` + `scripts/assemble_engine_b_dataset.py` (refactor) + `.gitignore` + `tests/contract/test_feature_refresh_runner.py`
+  - **T1:** `src/dynasty_genius/features/feature_assembly.py` (seam) + `feature_refresh_runner.py` + `scripts/run_feature_refresh.py` (real-run gated) + `scripts/assemble_engine_b_dataset.py` (outcome/drop → shared inference rule) + `.gitignore` + `tests/contract/test_feature_refresh_runner.py`
+  - **T1b:** `src/dynasty_genius/features/feature_assembly.py` (`build_engine_b_features` extraction) + `scripts/assemble_engine_b_dataset.py` (delegate engineering) + `scripts/run_feature_refresh.py` (remove T1 gate) + `tests/contract/test_feature_engineering_extraction.py`
   - **T2:** `src/dynasty_genius/features/feature_validation.py` + `feature_publish.py` + runner wiring + `tests/contract/test_feature_validation.py` + `test_feature_publish.py`
   - **T3:** `src/dynasty_genius/features/feature_source.py` + the 4 consumer edits (`engine_b_service.py`, `build_universe_pvo_batch.py`, `model_forward_capture_driver.py`, `what_changed/report.py` + API route) + `frontend/openapi.json` (only if the API DTO changed) + `tests/contract/test_feature_source_resolver.py` (+ consumer-test additions)
   - **T4:** `ops/launchd/com.davidleess.dynasty-feature-refresh.plist` + `tests/contract/test_feature_refresh_ops_scheduler.py` + `docs/ARTIFACTS.md` + `docs/development/quick-reference.md`
   - Commit message: `feat(feature-refresh): T<N> — <summary>`, ending with the `Co-Authored-By: Claude Opus 4.8 (1M context)` trailer.
 
-## Task 1 — Refresh runner + candidate + inference-partition refactor + no-fit audit
+> **Scope split (cockpit-cleared, Option B):** the full frame-injectable feature-engineering extraction is its own task **T1b**, sequenced **before T2**. **T1 produces a SCHEMA-CONFORMANT SEAM candidate** (correct `ENGINE_B_OUTPUT_COLUMNS` shape + inference partition; uncomputable features may be null pre-T1b) — it is **NOT** a "full scoreable" candidate (that is T1b). T1's real-run is **gated** so it cannot publish a misleading seam artifact before T1b. (Codex's 5 conditions: T1b-before-T2; seam-not-scoreable wording; no misleading artifact; T1b RED verifies real values; T2 validates only the T1b candidate.)
 
-**Deliverable:** `scripts/run_feature_refresh.py` regenerates the engine_b feature set from current `nflreadpy` data to a temp **candidate** CSV (the latest available season preserved as an inference partition), source-hash-gated, with the model-write guardrail proven by an audit test. **No resolver, no production consumer reads runtime, no scheduler, no gates beyond a structural smoke check.**
+## Task 1 — Refresh runner + schema-conformant seam + inference-rule refactor + no-fit audit
+
+**Deliverable:** `scripts/run_feature_refresh.py` + `feature_assembly.assemble_feature_candidate` regenerate a temp **schema-conformant SEAM candidate** (exact `ENGINE_B_OUTPUT_COLUMNS` order; the single latest season preserved as the inference partition with `training_eligible=false`/null outcome; complete-window training rows; no helper/leak columns — feature *values* that need the full engineering may be null until T1b), source-hash-gated, with the model-write guardrail proven by an audit test. The legacy `scripts/assemble_engine_b_dataset.py` outcome/drop block is refactored to the shared `inference_season_rule`/`assemble_feature_candidate` path (no `<2024`, no unconditional `dropna`). **The CLI real-run is GATED (refuses with a clear "full feature engineering lands in T1b" error) so no seam artifact can be published before T1b.** No resolver, no production read of runtime, no scheduler, no validation gates.
 
 **Files:**
 - Create: `src/dynasty_genius/features/feature_refresh_runner.py`, `scripts/run_feature_refresh.py`
@@ -93,9 +96,12 @@ Every task uses these verbatim (so steps are executable without guessing):
 6. **No model writes (audit):** running the runner (and importing the runner module) performs NO `.fit()` call, imports/invokes NO training entrypoint, and writes NOTHING under `app/data/models/`. (Use a spy/monkeypatch on `.fit` + assert the models dir mtime/byte-identical + a static scan that the module does not import `train_engine_b`.)
 7. **Cwd-independent:** standalone out-of-repo load works (use pytest `tmp_path` for cwd, NOT a hardcoded path — the WR2 CI-portability lesson).
 8. **Gitignore:** `git check-ignore` passes for the runtime/candidate paths.
+9. **Schema-conformant seam shape (P7):** `assemble_feature_candidate` columns `== ENGINE_B_OUTPUT_COLUMNS` (exact order); inference partition correct (single latest season preserved with `training_eligible=False`/null outcome; complete-window training rows retain outcomes; in-between incomplete-window non-latest seasons dropped); NO helper/outcome-leak columns (`ppg_t1`/`ppg_t2`/`games_t1`/`games_t2`/…). Feature *values* needing the full engineering may be null pre-T1b (seam, not scoreable).
+10. **Legacy refactor (P7):** `scripts/assemble_engine_b_dataset.py` source no longer contains `df["training_eligible"] = df["feature_season"] < 2024` or `dropna(subset=[OUTCOME_COLUMN])`; it references `inference_season_rule` + `assemble_feature_candidate`.
+11. **CLI real-run gate (P7):** the non-`--preflight` CLI run REFUSES with a clear "full feature engineering lands in T1b" error (no seam artifact can be published before T1b).
 
-**Steps:**
-- [ ] **Step 1 — Codex authors the RED** `tests/contract/test_feature_refresh_runner.py` covering contract items 1–8 (injected `read_fns`/`now_fn`/dirs; fixture nflreadpy-shaped frames incl. a latest season with no outcome). Verify it is ruff-clean.
+**Steps:** (the RED step covers contract items 1–11)
+- [ ] **Step 1 — Codex authors the RED** `tests/contract/test_feature_refresh_runner.py` covering contract items 1–11 (injected `read_fns`/`now_fn`/dirs; fixture nflreadpy-shaped frames incl. a latest season with no outcome; schema-conformant seam shape; legacy-refactor source assertions; CLI real-run gate). Verify it is ruff-clean.
 - [ ] **Step 2 — Run RED:** `.venv/bin/python3.14 -m pytest tests/contract/test_feature_refresh_runner.py -q` → expect failures (module/functions absent).
 - [ ] **Step 3 — Claude GREEN:** implement `feature_refresh_runner.py` + `scripts/run_feature_refresh.py` + the extracted inference-partition rule + `.gitignore` entries; the `.fit`/model-write guardrail (the runner never imports training code; assert at runtime).
 - [ ] **Step 4 — Run GREEN:** the RED file passes; then `.venv/bin/python3.14 -m pytest tests/contract -q` (full regression) + `.venv/bin/ruff check` (touched files) + banned-token probe.
@@ -103,7 +109,27 @@ Every task uses these verbatim (so steps are executable without guessing):
 
 ---
 
+## Task 1b — Frame-injectable full Engine-B feature-engineering extraction
+
+**Deliverable:** Extract `scripts/assemble_engine_b_dataset.py`'s 11-step feature engineering (base stats, min-games filter, roster/age, snap share, PBP QB-efficiency [EPA/CPOE/DAKOTA], route metrics from participation, multi-year trends, QB archetype, aging curves, TE role-risk) into a **frame-injectable, testable** function `feature_assembly.build_engine_b_features(*, read_fns, seasons_window) -> pd.DataFrame`, so `assemble_feature_candidate` produces a **genuinely scoreable** candidate with REAL feature values. `scripts/assemble_engine_b_dataset.py` becomes a thin loader (nflreadpy → frames) that calls the shared function (no behavior change to its committed output; the 4 importing tests + `run_pvo_refresh` stay green). Removes the T1 real-run gate.
+
+**Files:**
+- Modify: `src/dynasty_genius/features/feature_assembly.py` (add `build_engine_b_features`; `assemble_feature_candidate` calls it)
+- Modify: `scripts/assemble_engine_b_dataset.py` (delegate engineering to the shared function; keep module-level names `ENGINE_B_OUTPUT_COLUMNS`/`OUTCOME_COLUMN`/`add_te_role_risk_feature*`/`fetch_and_agg_stats` for the 4 dependents)
+- Modify: `scripts/run_feature_refresh.py` (remove the T1 real-run gate)
+- Test: `tests/contract/test_feature_engineering_extraction.py`
+
+**Interfaces — Produces:** `build_engine_b_features(*, read_fns, seasons_window) -> pd.DataFrame` (full engineered features, pre-partition).
+
+**Falsification contract the RED (Codex) must prove (real values, not just shape):** injected `player_stats` + `rosters` + `snap_counts` + `pbp` + `participation` + TE artifacts → **non-null/expected** `snap_share`, `route_participation`, `yprr`/`tprr`, QB-efficiency fields (`epa_per_dropback`/`cpoe`/`dakota`), multi-year availability flags, `aging_curve_*`, `te_role_is_risk_profile`; exact `ENGINE_B_OUTPUT_COLUMNS` order; no helper/outcome-leak columns; inference-season rows preserved with null outcome; and `assemble_engine_b_dataset`'s committed output is byte-equivalent to pre-refactor (regression-guarded by the 4 dependent tests + the 1087 suite).
+
+**Steps:** Codex RED (real-value fixtures) → run RED → Claude GREEN (extract engineering, frame-injectable, robust) → full regression (esp. the 4 dependents + `run_pvo_refresh`) + ruff + banned probe → dual-CLEAR → David-authorized commit → post-commit audit. **T1b lands BEFORE T2.**
+
+---
+
 ## Task 2 — Validation gates + atomic publish + ready-marker
+
+> Validates and publishes ONLY the **T1b real candidate** (never the T1 seam).
 
 **Deliverable:** A fail-closed integrity gate module + an atomic publish that promotes a validated candidate to the gitignored runtime with a ready-marker; preserve/restore prior valid runtime on failure; drift as report-only telemetry.
 
@@ -192,7 +218,7 @@ Every task uses these verbatim (so steps are executable without guessing):
 
 ## Self-Review
 
-**Spec coverage:** Q1 (frozen weights / no-fit audit) → T1 step contract 6 + Global Constraints. Q2 (automated no-commit scheduler after gates + as_of labeling) → T4 + T3 freshness label. Q3 (seed-split, fail-closed, provenance stamps which) → T2 publish + T3 resolver. Q4 (integrity gates block / drift report-only) → T2 validation. C1 inference-partition → T1 contract 1–2. C2 shared resolver all consumers → T3 contract 1–2. C3 sequencing (resolver after gates) → task order T1→T2→T3. C4 source-hash set → T1 contract 3. C5 provenance/audit boundary → T1 contract 3 + T3 contract 5. C6 ready-marker → T2 + T3 contract 4 + T4 contract 4. C7 resolved-CSV wording → T3 resolution rule. One-time 2025 catch-up → T3 step 6. All covered.
+**Spec coverage:** Q1 (frozen weights / no-fit audit) → T1 step contract 6 + Global Constraints. Q2 (automated no-commit scheduler after gates + as_of labeling) → T4 + T3 freshness label. Q3 (seed-split, fail-closed, provenance stamps which) → T2 publish + T3 resolver. Q4 (integrity gates block / drift report-only) → T2 validation. C1 inference-partition → T1 contract 1–2. C2 shared resolver all consumers → T3 contract 1–2. C3 sequencing (resolver after gates) → task order T1→T1b→T2→T3. **Full scoreable candidate → T1b (frame-injectable engineering extraction, real-value RED), sequenced before T2; T1 produces only the schema-conformant seam (real-run gated). T2 validates ONLY the T1b candidate.** C4 source-hash set → T1 contract 3. C5 provenance/audit boundary → T1 contract 3 + T3 contract 5. C6 ready-marker → T2 + T3 contract 4 + T4 contract 4. C7 resolved-CSV wording → T3 resolution rule. One-time 2025 catch-up → T3 step 6. All covered.
 
 **Placeholder scan:** No TBD/TODO; representative test code is sketched in the falsification contracts (final RED authored by Codex per the cockpit-TDD workflow, which is this project's standing practice).
 
