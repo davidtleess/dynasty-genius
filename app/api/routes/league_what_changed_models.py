@@ -174,10 +174,14 @@ class WhatChangedStalenessCaveat(_Strict):
 class WhatChangedTeamValueSummary(_Strict):
     roster_id: Optional[int] = None
     team_name: Optional[str] = None
-    posture: Optional[str] = None
-    raw_total_xvar: Optional[float] = None
-    starter_xvar: Optional[float] = None
-    bench_xvar: Optional[float] = None
+    posture_label: Optional[str] = None
+    # Real team_value_views keys (market_overlay_total is excluded upstream — market
+    # stays overlay-only and never enters this summary).
+    depth_credit_xvar: Optional[float] = None
+    lineup_xvar: Optional[float] = None
+    starter_weighted_xvar: Optional[float] = None
+    top_n_xvar: Optional[float] = None
+    total_xvar_capped: Optional[float] = None
 
 
 class WhatChangedPartnerRanking(_Strict):

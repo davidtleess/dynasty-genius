@@ -4829,7 +4829,7 @@
       "WhatChangedTeamValueSummary": {
         "additionalProperties": false,
         "properties": {
-          "bench_xvar": {
+          "depth_credit_xvar": {
             "anyOf": [
               {
                 "type": "number"
@@ -4838,9 +4838,20 @@
                 "type": "null"
               }
             ],
-            "title": "Bench Xvar"
+            "title": "Depth Credit Xvar"
           },
-          "posture": {
+          "lineup_xvar": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lineup Xvar"
+          },
+          "posture_label": {
             "anyOf": [
               {
                 "type": "string"
@@ -4849,18 +4860,7 @@
                 "type": "null"
               }
             ],
-            "title": "Posture"
-          },
-          "raw_total_xvar": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Raw Total Xvar"
+            "title": "Posture Label"
           },
           "roster_id": {
             "anyOf": [
@@ -4873,7 +4873,7 @@
             ],
             "title": "Roster Id"
           },
-          "starter_xvar": {
+          "starter_weighted_xvar": {
             "anyOf": [
               {
                 "type": "number"
@@ -4882,7 +4882,7 @@
                 "type": "null"
               }
             ],
-            "title": "Starter Xvar"
+            "title": "Starter Weighted Xvar"
           },
           "team_name": {
             "anyOf": [
@@ -4894,6 +4894,28 @@
               }
             ],
             "title": "Team Name"
+          },
+          "top_n_xvar": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top N Xvar"
+          },
+          "total_xvar_capped": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Xvar Capped"
           }
         },
         "title": "WhatChangedTeamValueSummary",
