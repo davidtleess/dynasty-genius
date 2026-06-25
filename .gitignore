@@ -77,6 +77,9 @@ app/data/model_forward_capture.db
 app/data/model_forward_capture.db-journal
 app/data/model_capture/
 
+# War Room #2 — Daily What-Changed overwrite-latest report (operational, not source)
+app/data/what_changed/
+
 # Backtest run artifacts — large JSON, versioned by run_id
 app/data/backtest/runs/
 
