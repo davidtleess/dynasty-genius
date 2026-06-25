@@ -3830,6 +3830,1094 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "WhatChangedCard": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Name"
+          },
+          "card_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Card Id"
+          },
+          "card_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Card Type"
+          },
+          "opportunity_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opportunity Score"
+          },
+          "recommended_drop_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Drop Name"
+          }
+        },
+        "title": "WhatChangedCard",
+        "type": "object"
+      },
+      "WhatChangedCutCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "cut_priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cut Priority"
+          },
+          "dvs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs"
+          },
+          "player_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Player Name"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "sleeper_player_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sleeper Player Id"
+          },
+          "xvar_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xvar Pct"
+          }
+        },
+        "title": "WhatChangedCutCandidate",
+        "type": "object"
+      },
+      "WhatChangedDailyDiff": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "market": {
+            "$ref": "#/components/schemas/WhatChangedMarketSection"
+          },
+          "model": {
+            "$ref": "#/components/schemas/WhatChangedModelSection"
+          },
+          "overall_status": {
+            "title": "Overall Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision_supported",
+          "overall_status",
+          "market",
+          "model"
+        ],
+        "title": "WhatChangedDailyDiff",
+        "type": "object"
+      },
+      "WhatChangedDropSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "cuts_required": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cuts Required"
+          },
+          "roster_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roster Id"
+          },
+          "total_capacity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Capacity"
+          },
+          "total_players": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Players"
+          }
+        },
+        "title": "WhatChangedDropSummary",
+        "type": "object"
+      },
+      "WhatChangedEnteredExited": {
+        "additionalProperties": false,
+        "properties": {
+          "player_key": {
+            "title": "Player Key",
+            "type": "string"
+          },
+          "sleeper_id": {
+            "title": "Sleeper Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sleeper_id",
+          "player_key"
+        ],
+        "title": "WhatChangedEnteredExited",
+        "type": "object"
+      },
+      "WhatChangedMarketDelta": {
+        "additionalProperties": false,
+        "properties": {
+          "overall_rank_delta": {
+            "title": "Overall Rank Delta",
+            "type": "integer"
+          },
+          "overall_rank_delta_direction": {
+            "title": "Overall Rank Delta Direction",
+            "type": "string"
+          },
+          "player_key": {
+            "title": "Player Key",
+            "type": "string"
+          },
+          "player_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Player Name"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "position_rank_delta": {
+            "title": "Position Rank Delta",
+            "type": "integer"
+          },
+          "position_rank_delta_direction": {
+            "title": "Position Rank Delta Direction",
+            "type": "string"
+          },
+          "sleeper_id": {
+            "title": "Sleeper Id",
+            "type": "string"
+          },
+          "value_delta": {
+            "title": "Value Delta",
+            "type": "integer"
+          },
+          "value_delta_direction": {
+            "title": "Value Delta Direction",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sleeper_id",
+          "player_key",
+          "value_delta",
+          "value_delta_direction",
+          "overall_rank_delta",
+          "overall_rank_delta_direction",
+          "position_rank_delta",
+          "position_rank_delta_direction"
+        ],
+        "title": "WhatChangedMarketDelta",
+        "type": "object"
+      },
+      "WhatChangedMarketSection": {
+        "additionalProperties": false,
+        "properties": {
+          "aborted_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aborted Reason"
+          },
+          "comparison_window": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparison Window"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "entered": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WhatChangedEnteredExited"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entered"
+          },
+          "exited": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WhatChangedEnteredExited"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exited"
+          },
+          "market_source": {
+            "title": "Market Source",
+            "type": "string"
+          },
+          "roster_deltas": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WhatChangedMarketDelta"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roster Deltas"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "top_movers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WhatChangedMarketDelta"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top Movers"
+          },
+          "total_movers_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Movers Count"
+          }
+        },
+        "required": [
+          "status",
+          "decision_supported",
+          "market_source"
+        ],
+        "title": "WhatChangedMarketSection",
+        "type": "object"
+      },
+      "WhatChangedModelComparisonWindow": {
+        "additionalProperties": false,
+        "description": "Allowlisted, shape-closed model window \u2014 no market key can hide on it.\n\nAdmits ONLY the three honest model window shapes:\n1. ``{status: insufficient_history}`` \u2014 status alone.\n2. ``{status: model_multi_vintage_ambiguous, from_date, to_date, ambiguous_dates}``.\n3. ``{from_date, to_date, from_vintage, to_vintage}`` \u2014 clean two-date window, no status.\n\n``extra=\"forbid\"`` (via ``_Strict``) rejects unknown keys (incl. a nested\n``market_overlay``); the ``Literal`` status rejects unknown states; and the\npost-validator rejects mixed/partial combinations so the window is fully closed.",
+        "properties": {
+          "ambiguous_dates": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ambiguous Dates"
+          },
+          "from_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Date"
+          },
+          "from_vintage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatChangedVintage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "insufficient_history",
+                  "model_multi_vintage_ambiguous"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "to_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Date"
+          },
+          "to_vintage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatChangedVintage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "WhatChangedModelComparisonWindow",
+        "type": "object"
+      },
+      "WhatChangedModelDelta": {
+        "additionalProperties": false,
+        "properties": {
+          "dvs_pct_delta": {
+            "title": "Dvs Pct Delta",
+            "type": "number"
+          },
+          "dynasty_value_score_delta": {
+            "title": "Dynasty Value Score Delta",
+            "type": "number"
+          },
+          "dynasty_value_score_delta_direction": {
+            "title": "Dynasty Value Score Delta Direction",
+            "type": "string"
+          },
+          "player_key": {
+            "title": "Player Key",
+            "type": "string"
+          },
+          "player_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Player Name"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "sleeper_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sleeper Id"
+          },
+          "xvar_delta": {
+            "title": "Xvar Delta",
+            "type": "number"
+          }
+        },
+        "required": [
+          "player_key",
+          "dynasty_value_score_delta",
+          "dynasty_value_score_delta_direction",
+          "dvs_pct_delta",
+          "xvar_delta"
+        ],
+        "title": "WhatChangedModelDelta",
+        "type": "object"
+      },
+      "WhatChangedModelSection": {
+        "additionalProperties": false,
+        "properties": {
+          "comparison_window": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatChangedModelComparisonWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "deltas": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WhatChangedModelDelta"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deltas"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "vintage_changed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vintage Changed"
+          }
+        },
+        "required": [
+          "status",
+          "decision_supported"
+        ],
+        "title": "WhatChangedModelSection",
+        "type": "object"
+      },
+      "WhatChangedPartnerRanking": {
+        "additionalProperties": false,
+        "properties": {
+          "counterparty_roster_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterparty Roster Id"
+          },
+          "counterparty_team_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterparty Team Name"
+          },
+          "matched_positions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched Positions"
+          },
+          "partner_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Score"
+          }
+        },
+        "title": "WhatChangedPartnerRanking",
+        "type": "object"
+      },
+      "WhatChangedResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "daily_diff": {
+            "$ref": "#/components/schemas/WhatChangedDailyDiff"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "generated_at": {
+            "title": "Generated At",
+            "type": "string"
+          },
+          "overall_status": {
+            "title": "Overall Status",
+            "type": "string"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "structural_context": {
+            "$ref": "#/components/schemas/WhatChangedStructuralContext"
+          }
+        },
+        "required": [
+          "schema_version",
+          "generated_at",
+          "decision_supported",
+          "overall_status",
+          "daily_diff",
+          "structural_context"
+        ],
+        "title": "WhatChangedResponse",
+        "type": "object"
+      },
+      "WhatChangedStalenessCaveat": {
+        "additionalProperties": false,
+        "properties": {
+          "age_hours": {
+            "title": "Age Hours",
+            "type": "number"
+          },
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "is_stale": {
+            "title": "Is Stale",
+            "type": "boolean"
+          },
+          "report_generated_at": {
+            "title": "Report Generated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "basis",
+          "report_generated_at",
+          "age_hours",
+          "is_stale"
+        ],
+        "title": "WhatChangedStalenessCaveat",
+        "type": "object"
+      },
+      "WhatChangedStructuralContext": {
+        "additionalProperties": false,
+        "properties": {
+          "current_not_delta": {
+            "title": "Current Not Delta",
+            "type": "boolean"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "sections": {
+            "$ref": "#/components/schemas/WhatChangedStructuralSections"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "decision_supported",
+          "current_not_delta",
+          "sections"
+        ],
+        "title": "WhatChangedStructuralContext",
+        "type": "object"
+      },
+      "WhatChangedStructuralSection": {
+        "additionalProperties": false,
+        "properties": {
+          "aborted_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aborted Reason"
+          },
+          "captured_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
+          },
+          "current_not_delta": {
+            "title": "Current Not Delta",
+            "type": "boolean"
+          },
+          "david_posture": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "David Posture"
+          },
+          "david_roster_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "David Roster Id"
+          },
+          "david_roster_player_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "David Roster Player Count"
+          },
+          "david_team_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "David Team Name"
+          },
+          "david_value_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatChangedTeamValueSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "league_roster_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "League Roster Count"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path"
+          },
+          "staleness_caveat": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatChangedStalenessCaveat"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatChangedDropSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "team_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Count"
+          },
+          "top_candidates": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WhatChangedCutCandidate"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top Candidates"
+          },
+          "top_cards": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WhatChangedCard"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top Cards"
+          },
+          "top_partner_rankings": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WhatChangedPartnerRanking"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top Partner Rankings"
+          }
+        },
+        "required": [
+          "status",
+          "decision_supported",
+          "current_not_delta"
+        ],
+        "title": "WhatChangedStructuralSection",
+        "type": "object"
+      },
+      "WhatChangedStructuralSections": {
+        "additionalProperties": false,
+        "properties": {
+          "drop_pressure": {
+            "$ref": "#/components/schemas/WhatChangedStructuralSection"
+          },
+          "league_opportunity": {
+            "$ref": "#/components/schemas/WhatChangedStructuralSection"
+          },
+          "sleeper_snapshot": {
+            "$ref": "#/components/schemas/WhatChangedStructuralSection"
+          },
+          "team_posture": {
+            "$ref": "#/components/schemas/WhatChangedStructuralSection"
+          },
+          "team_value": {
+            "$ref": "#/components/schemas/WhatChangedStructuralSection"
+          }
+        },
+        "required": [
+          "team_posture",
+          "team_value",
+          "league_opportunity",
+          "drop_pressure",
+          "sleeper_snapshot"
+        ],
+        "title": "WhatChangedStructuralSections",
+        "type": "object"
+      },
+      "WhatChangedTeamValueSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "bench_xvar": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bench Xvar"
+          },
+          "posture": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posture"
+          },
+          "raw_total_xvar": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Total Xvar"
+          },
+          "roster_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roster Id"
+          },
+          "starter_xvar": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starter Xvar"
+          },
+          "team_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Name"
+          }
+        },
+        "title": "WhatChangedTeamValueSummary",
+        "type": "object"
+      },
+      "WhatChangedVintage": {
+        "additionalProperties": false,
+        "description": "A complete model vintage \u2014 both hashes required and non-blank.\n\nA vintage is the identity of a model output; a partial/empty vintage is never an\nhonest shape, so both fields are required (not Optional) and rejected if blank.",
+        "properties": {
+          "provenance_hash": {
+            "title": "Provenance Hash",
+            "type": "string"
+          },
+          "semantic_output_hash": {
+            "title": "Semantic Output Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "semantic_output_hash",
+          "provenance_hash"
+        ],
+        "title": "WhatChangedVintage",
+        "type": "object"
       }
     }
   },
@@ -3882,6 +4970,28 @@
         "summary": "League Pulse Surface",
         "tags": [
           "league-pulse"
+        ]
+      }
+    },
+    "/api/league/what-changed": {
+      "get": {
+        "description": "Read-only serve of the latest pre-built What-Changed report (artifact-state).",
+        "operationId": "what_changed_surface_api_league_what_changed_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatChangedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "What Changed Surface",
+        "tags": [
+          "league-what-changed"
         ]
       }
     },
