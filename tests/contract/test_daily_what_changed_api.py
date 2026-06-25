@@ -72,8 +72,8 @@ def _valid_report(*, overall_status: str = "degraded") -> dict[str, Any]:
                 "team_posture": _structural_section(
                     {
                         "david_roster_id": 1,
-                        "david_team_name": "David",
-                        "david_posture": "contender",
+                        "david_team_name": "Woodbury Riders",
+                        "david_posture": "REBUILDING",
                         "team_count": 12,
                     }
                 ),
@@ -81,11 +81,13 @@ def _valid_report(*, overall_status: str = "degraded") -> dict[str, Any]:
                     {
                         "david_value_summary": {
                             "roster_id": 1,
-                            "team_name": "David",
-                            "posture": "contender",
-                            "raw_total_xvar": 145.5,
-                            "starter_xvar": 102.25,
-                            "bench_xvar": 43.25,
+                            "team_name": "Woodbury Riders",
+                            "posture_label": "UNCLASSIFIED",
+                            "depth_credit_xvar": 11.5,
+                            "lineup_xvar": 88.25,
+                            "starter_weighted_xvar": 72.0,
+                            "top_n_xvar": 101.75,
+                            "total_xvar_capped": 129.5,
                         }
                     }
                 ),
@@ -103,9 +105,9 @@ def _valid_report(*, overall_status: str = "degraded") -> dict[str, Any]:
                             {
                                 "card_id": "waiver-1",
                                 "card_type": "WAIVER_CANDIDATE",
-                                "asset_name": "Depth RB",
+                                "asset_name": "Noah Fant",
                                 "opportunity_score": 42.0,
-                                "recommended_drop_name": "Bench WR",
+                                "recommended_drop_name": "AJ Barner",
                             }
                         ],
                     }

@@ -153,8 +153,8 @@ def _build_team_posture_section(
     section.update(
         {
             "david_roster_id": david_roster_id,
-            "david_team_name": david.get("owner") if david else None,
-            "david_posture": david.get("posture") if david else None,
+            "david_team_name": _team_name(david),
+            "david_posture": _posture_label(david),
             "team_count": len(teams),
         }
     )
@@ -170,13 +170,17 @@ def _build_team_value_section(
     section = _section_envelope(path, artifact, generated_at)
     david = _find_by_roster_id(artifact.get("teams") or [], david_roster_id)
     views = (david or {}).get("team_value_views") or {}
+    # Allowlisted real team_value_views keys; market_overlay_total is a MARKET field
+    # and is deliberately EXCLUDED (market stays overlay-only, out of this summary).
     section["david_value_summary"] = {
         "roster_id": david_roster_id,
-        "team_name": david.get("owner") if david else None,
-        "posture": david.get("posture") if david else None,
-        "raw_total_xvar": views.get("raw_total_xvar"),
-        "starter_xvar": views.get("starter_xvar"),
-        "bench_xvar": views.get("bench_xvar"),
+        "team_name": _team_name(david),
+        "posture_label": _posture_label(david),
+        "depth_credit_xvar": views.get("depth_credit_xvar"),
+        "lineup_xvar": views.get("lineup_xvar"),
+        "starter_weighted_xvar": views.get("starter_weighted_xvar"),
+        "top_n_xvar": views.get("top_n_xvar"),
+        "total_xvar_capped": views.get("total_xvar_capped"),
     }
     return section
 
@@ -203,9 +207,9 @@ def _build_league_opportunity_section(
         {
             "card_id": c.get("card_id"),
             "card_type": c.get("card_type"),
-            "asset_name": (c.get("asset") or {}).get("name"),
+            "asset_name": (c.get("asset") or {}).get("full_name"),
             "opportunity_score": c.get("opportunity_score"),
-            "recommended_drop_name": (c.get("recommended_drop") or {}).get("name"),
+            "recommended_drop_name": (c.get("recommended_drop") or {}).get("full_name"),
         }
         for c in cards[:_STRUCTURAL_TOP_K]
     ]
@@ -285,6 +289,30 @@ def _unavailable_section(path: Path | str) -> dict[str, Any]:
         "source_path": str(path),
         "aborted_reason": "missing_structural_artifact",
     }
+
+
+def _team_name(team: Optional[dict]) -> Optional[str]:
+    """David's team name from the real nested owner object (mirrors League Pulse).
+
+    Surfaces only the scalar ``owner.team_name`` — never the raw owner object (which
+    carries ``user_id``/``display_name``). Tolerates a plain-string owner defensively.
+    """
+    owner = (team or {}).get("owner")
+    if isinstance(owner, dict):
+        return owner.get("team_name")
+    return owner if isinstance(owner, str) else None
+
+
+def _posture_label(team: Optional[dict]) -> Optional[str]:
+    """David's posture LABEL only — never the raw posture object (allowlist).
+
+    The real posture is a nested object (``label``/``score``/``components``); only the
+    ``label`` scalar is surfaced (mirrors League Pulse's ``posture_label``).
+    """
+    posture = (team or {}).get("posture")
+    if isinstance(posture, dict):
+        return posture.get("label")
+    return posture if isinstance(posture, str) else None
 
 
 def _find_by_roster_id(entries: list[dict], roster_id: Any) -> Optional[dict]:

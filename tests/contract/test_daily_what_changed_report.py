@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.api.routes.league_what_changed_models import WhatChangedResponse
 from src.dynasty_genius.capture.fc_forward_capture_store import FCForwardCaptureStore
 from src.dynasty_genius.capture.model_forward_capture_store import (
     MODEL_PVO_SOURCE,
@@ -178,14 +179,23 @@ def _fixture_paths(tmp_path: Path) -> dict[str, Path]:
             "teams": [
                 {
                     "roster_id": 1,
-                    "owner": "David",
-                    "posture": "contender",
+                    "owner": {
+                        "display_name": "Dleess",
+                        "team_name": "Woodbury Riders",
+                        "user_id": "827345221493850112",
+                    },
+                    "posture": {
+                        "label": "REBUILDING",
+                        "score": -0.975,
+                        "components": {"starter_weighted_xvar_z": -2.258},
+                        "decision_supported": False,
+                    },
                     "decision_supported": False,
                 },
                 {
                     "roster_id": 2,
-                    "owner": "League Mate",
-                    "posture": "retooling",
+                    "owner": {"team_name": "League Mate"},
+                    "posture": {"label": "BALANCED", "score": 0.0},
                     "decision_supported": False,
                 },
             ],
@@ -198,13 +208,20 @@ def _fixture_paths(tmp_path: Path) -> dict[str, Path]:
             "teams": [
                 {
                     "roster_id": 1,
-                    "owner": "David",
-                    "posture": "contender",
+                    "owner": {
+                        "display_name": "Dleess",
+                        "team_name": "Woodbury Riders",
+                        "user_id": "827345221493850112",
+                    },
+                    "posture": {"label": "UNCLASSIFIED", "score": None},
                     "decision_supported": False,
                     "team_value_views": {
-                        "raw_total_xvar": 145.5,
-                        "starter_xvar": 102.25,
-                        "bench_xvar": 43.25,
+                        "depth_credit_xvar": 11.5,
+                        "lineup_xvar": 88.25,
+                        "starter_weighted_xvar": 72.0,
+                        "top_n_xvar": 101.75,
+                        "total_xvar_capped": 129.5,
+                        "market_overlay_total": 9999.0,
                     },
                     "players": [{"full_name": "raw player leak"}],
                     "lineup": {"starters": ["raw lineup leak"]},
@@ -232,9 +249,168 @@ def _fixture_paths(tmp_path: Path) -> dict[str, Path]:
                 {
                     "card_id": "waiver-1",
                     "card_type": "WAIVER_CANDIDATE",
-                    "asset": {"sleeper_id": "1234", "name": "Depth RB"},
+                    "asset": {
+                        "sleeper_player_id": "5857",
+                        "full_name": "Noah Fant",
+                        "position": "TE",
+                    },
                     "opportunity_score": 42.0,
-                    "recommended_drop": {"sleeper_id": "6786", "name": "Bench WR"},
+                    "recommended_drop": {
+                        "sleeper_player_id": "11603",
+                        "full_name": "AJ Barner",
+                        "position": "TE",
+                    },
+                    "rationale": ["raw rationale leak"],
+                    "score_components": {"raw": "leak"},
+                    "decision_supported": False,
+                }
+            ],
+        },
+    )
+    roster_cut_report = _write_json(
+        valuation / "roster_cut_report_latest.json",
+        {
+            "captured_at": captured_at,
+            "roster_cut_report": {
+                "roster_id": 1,
+                "total_players": 30,
+                "total_capacity": 28,
+                "cuts_required": 2,
+                "decision_supported": False,
+                "cut_candidates": [
+                    {
+                        "sleeper_player_id": "6786",
+                        "full_name": "CeeDee Lamb",
+                        "position": "WR",
+                        "cut_priority": 1,
+                        "dvs": 91.2,
+                        "xvar_pct": 97.0,
+                        "cut_rationale": ["raw rationale leak"],
+                        "decision_supported": False,
+                    }
+                ],
+            },
+        },
+    )
+    return {
+        "sleeper_snapshot_path": sleeper_snapshot,
+        "team_posture_path": team_posture,
+        "team_value_matrix_path": team_value_matrix,
+        "league_opportunity_path": league_opportunity,
+        "roster_cut_report_path": roster_cut_report,
+    }
+
+
+def _real_shape_fixture_paths(tmp_path: Path) -> dict[str, Path]:
+    """Structural fixture shaped like the live Phase-17/18 latest artifacts.
+
+    The synthetic T2 fixtures used scalar owner/posture names and legacy xVAR keys.
+    The real artifacts carry nested owner/posture objects, different xVAR view keys,
+    and nested card player names under ``full_name``. This fixture intentionally
+    mirrors those shapes so the report emitter is validated against the API DTO.
+    """
+
+    captured_at = "2026-06-23T13:17:30+00:00"
+    valuation = tmp_path / "valuation"
+    snapshots = tmp_path / "league_snapshots"
+
+    sleeper_snapshot = _write_json(
+        snapshots / "sleeper_universe_snapshot_latest.json",
+        {
+            "captured_at": captured_at,
+            "david_roster_id": 1,
+            "rosters": [
+                {
+                    "roster_id": 1,
+                    "players": ["9509", "6786"],
+                    "player_map": {"9509": {"full_name": "raw leak"}},
+                },
+                {"roster_id": 2, "players": ["9999"]},
+            ],
+            "players": {"9509": {"full_name": "raw player universe leak"}},
+        },
+    )
+    team_posture = _write_json(
+        valuation / "team_posture_latest.json",
+        {
+            "captured_at": captured_at,
+            "decision_supported": False,
+            "teams": [
+                {
+                    "roster_id": 1,
+                    "owner": {
+                        "display_name": "Dleess",
+                        "team_name": "Woodbury Riders",
+                        "user_id": "827345221493850112",
+                    },
+                    "posture": {
+                        "label": "REBUILDING",
+                        "score": -0.975,
+                        "components": {"starter_weighted_xvar_z": -2.258},
+                        "decision_supported": False,
+                    },
+                }
+            ],
+        },
+    )
+    team_value_matrix = _write_json(
+        valuation / "team_value_matrix_latest.json",
+        {
+            "captured_at": captured_at,
+            "teams": [
+                {
+                    "roster_id": 1,
+                    "owner": {
+                        "display_name": "Dleess",
+                        "team_name": "Woodbury Riders",
+                        "user_id": "827345221493850112",
+                    },
+                    "posture": {"label": "UNCLASSIFIED", "score": None},
+                    "team_value_views": {
+                        "depth_credit_xvar": 11.5,
+                        "lineup_xvar": 88.25,
+                        "starter_weighted_xvar": 72.0,
+                        "top_n_xvar": 101.75,
+                        "total_xvar_capped": 129.5,
+                        "market_overlay_total": 9999.0,
+                    },
+                    "players": [{"full_name": "raw player leak"}],
+                    "lineup": {"starters": ["raw lineup leak"]},
+                }
+            ],
+        },
+    )
+    league_opportunity = _write_json(
+        valuation / "league_opportunity_latest.json",
+        {
+            "captured_at": captured_at,
+            "decision_supported": False,
+            "partner_rankings": [
+                {
+                    "counterparty_roster_id": 2,
+                    "counterparty_team_name": "League Mate",
+                    "partner_score": 78.5,
+                    "matched_positions": ["RB"],
+                    "score_components": {"raw": "leak"},
+                    "evidence": [{"raw": "leak"}],
+                    "decision_supported": False,
+                }
+            ],
+            "cards": [
+                {
+                    "card_id": "waiver-1",
+                    "card_type": "WAIVER_CANDIDATE",
+                    "asset": {
+                        "sleeper_player_id": "5857",
+                        "full_name": "Noah Fant",
+                        "position": "TE",
+                    },
+                    "opportunity_score": 42.0,
+                    "recommended_drop": {
+                        "sleeper_player_id": "11603",
+                        "full_name": "AJ Barner",
+                        "position": "TE",
+                    },
                     "rationale": ["raw rationale leak"],
                     "score_components": {"raw": "leak"},
                     "decision_supported": False,
@@ -367,20 +543,23 @@ def test_report_emitter_composes_diff_and_allowlisted_structural_context(
             "is_stale": True,
         },
         "david_roster_id": 1,
-        "david_team_name": "David",
-        "david_posture": "contender",
+        "david_team_name": "Woodbury Riders",
+        "david_posture": "REBUILDING",
         "team_count": 2,
     }
 
     team_value = context["sections"]["team_value"]
     assert team_value["david_value_summary"] == {
         "roster_id": 1,
-        "team_name": "David",
-        "posture": "contender",
-        "raw_total_xvar": 145.5,
-        "starter_xvar": 102.25,
-        "bench_xvar": 43.25,
+        "team_name": "Woodbury Riders",
+        "posture_label": "UNCLASSIFIED",
+        "depth_credit_xvar": 11.5,
+        "lineup_xvar": 88.25,
+        "starter_weighted_xvar": 72.0,
+        "top_n_xvar": 101.75,
+        "total_xvar_capped": 129.5,
     }
+    assert "market_overlay_total" not in team_value["david_value_summary"]
 
     opportunity = context["sections"]["league_opportunity"]
     assert opportunity["top_partner_rankings"] == [
@@ -395,9 +574,9 @@ def test_report_emitter_composes_diff_and_allowlisted_structural_context(
         {
             "card_id": "waiver-1",
             "card_type": "WAIVER_CANDIDATE",
-            "asset_name": "Depth RB",
+            "asset_name": "Noah Fant",
             "opportunity_score": 42.0,
-            "recommended_drop_name": "Bench WR",
+            "recommended_drop_name": "AJ Barner",
         }
     ]
 
@@ -440,6 +619,97 @@ def test_report_emitter_composes_diff_and_allowlisted_structural_context(
             "cut_rationale",
         },
     )
+
+
+def test_structural_context_maps_real_phase_artifact_shapes_without_raw_objects(
+    tmp_path,
+) -> None:
+    paths = _real_shape_fixture_paths(tmp_path)
+
+    context = assemble_structural_context(
+        team_posture_path=paths["team_posture_path"],
+        team_value_matrix_path=paths["team_value_matrix_path"],
+        league_opportunity_path=paths["league_opportunity_path"],
+        roster_cut_report_path=paths["roster_cut_report_path"],
+        sleeper_snapshot_path=paths["sleeper_snapshot_path"],
+        generated_at=GENERATED_AT,
+    )
+
+    assert context["status"] == "ok"
+    posture = context["sections"]["team_posture"]
+    assert posture["david_team_name"] == "Woodbury Riders"
+    assert posture["david_posture"] == "REBUILDING"
+
+    team_value = context["sections"]["team_value"]
+    assert team_value["david_value_summary"] == {
+        "roster_id": 1,
+        "team_name": "Woodbury Riders",
+        "posture_label": "UNCLASSIFIED",
+        "depth_credit_xvar": 11.5,
+        "lineup_xvar": 88.25,
+        "starter_weighted_xvar": 72.0,
+        "top_n_xvar": 101.75,
+        "total_xvar_capped": 129.5,
+    }
+    assert "market_overlay_total" not in team_value["david_value_summary"]
+
+    opportunity = context["sections"]["league_opportunity"]
+    assert opportunity["top_cards"] == [
+        {
+            "card_id": "waiver-1",
+            "card_type": "WAIVER_CANDIDATE",
+            "asset_name": "Noah Fant",
+            "opportunity_score": 42.0,
+            "recommended_drop_name": "AJ Barner",
+        }
+    ]
+
+    _assert_absent_keys_recursive(
+        context,
+        {
+            "owner",
+            "posture",
+            "players",
+            "player_map",
+            "lineup",
+            "rosters",
+            "cards",
+            "partner_rankings",
+            "evidence",
+            "rationale",
+            "score_components",
+            "cut_rationale",
+            "components",
+            "market_overlay_total",
+        },
+    )
+
+
+def test_emitted_real_shape_report_validates_through_api_response_dto(
+    tmp_path,
+) -> None:
+    fc_db = tmp_path / "fc_forward.db"
+    model_db = tmp_path / "model_forward.db"
+    report_path = tmp_path / "what_changed" / "what_changed_latest_report.json"
+    paths = _real_shape_fixture_paths(tmp_path)
+    _seed_fc_store(fc_db)
+    _seed_one_day_model_store(model_db)
+
+    report = emit_daily_what_changed_report(
+        fc_db_path=fc_db,
+        model_db_path=model_db,
+        report_path=report_path,
+        now_fn=lambda: GENERATED_AT,
+        top_n=25,
+        **paths,
+    )
+
+    validated = WhatChangedResponse.model_validate(report)
+    assert validated.structural_context.sections.team_posture.david_team_name == (
+        "Woodbury Riders"
+    )
+    assert validated.structural_context.sections.team_value.david_value_summary
+    assert json.loads(report_path.read_text()) == report
 
 
 def test_missing_structural_artifact_degrades_only_that_section(tmp_path) -> None:
