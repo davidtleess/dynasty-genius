@@ -62,6 +62,13 @@ uvicorn app.main:app --reload
 
 # Draft state refresh — GATED: check AGENT_SYNC.md for the current run condition
 .venv/bin/python3.14 scripts/refresh_draft_state.py
+
+# What-Changed daily report — read-only producer over the capture stores; writes the
+# gitignored overwrite-latest report served by GET /api/league/what-changed.
+# Scheduled by ops/launchd/com.davidleess.dynasty-what-changed-report.plist (09:45, RunAtLoad=false);
+# launchctl load + first live generation are David-gated. decision_supported=false.
+.venv/bin/python3.14 scripts/run_what_changed_report.py --preflight   # readiness check (no write)
+.venv/bin/python3.14 scripts/run_what_changed_report.py               # generate the report
 ```
 
 ## Test Layout

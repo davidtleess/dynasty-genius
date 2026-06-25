@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  War Room #2 — Daily What-Changed operational refresh.
+
+  Runs scripts/run_what_changed_report.py daily (~09:45 local, staggered AFTER the
+  FC collector at 09:00 and the model PVO refresh+capture at 09:30) so the diff sees
+  the freshest captured PIT rows. The CLI is a read-only producer over the two
+  forward-capture stores + the structural *_latest artifacts; its ONLY write is the
+  gitignored overwrite-latest report app/data/what_changed/what_changed_latest_report.json,
+  which GET /api/league/what-changed then serves (decision_supported=false). It never
+  mutates a model/feature/PVO path and never auto-commits. Local-first; no Databricks.
+
+  The CLI resolves all of its own paths from the repo root, so ProgramArguments carries
+  no path flags.
+
+  Committed but LOADED MANUALLY BY DAVID — the agent does not load it. The launchctl
+  install/reload AND the first live report generation are separately David-gated:
+    launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-what-changed-report.plist
+  (symlink or copy this file there first).
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-what-changed-report</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/run_what_changed_report.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>45</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/what_changed_report.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/what_changed_report.err.log</string>
+</dict>
+</plist>
