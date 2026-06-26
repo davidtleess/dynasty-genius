@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from scripts.assemble_engine_b_dataset import (
     ENGINE_B_OUTPUT_COLUMNS,
@@ -97,6 +98,17 @@ def test_walkforward_te_alpha_is_100_for_model_change_validation():
     assert WalkForwardDriver.FIXED_ALPHA["TE"] == 100.0
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "te_role_is_risk_profile all-negative invariant was a Tyler-Conklin contamination "
+        "artifact: 128x duplicated NON-risk rows inflated the non-risk baseline. After the T2 "
+        "dedup the coef flips to 3/4 positive (see "
+        "docs/validation/2026-06-26-te-role-risk-contamination-finding.md). xfail until the "
+        "deferred feature-validity review resolves the invariant; strict=True forces a revisit "
+        "if it passes again. Do NOT flip the assertion to green."
+    ),
+)
 def test_te_run_records_negative_role_risk_coefficients():
     driver = WalkForwardDriver(position="TE")
     result = driver.run()
