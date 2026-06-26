@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  F-feature-refresh — local daily, source-hash-gated, NO-COMMIT feature refresh.
+
+  Runs scripts/run_feature_refresh.py daily at 09:15 local — BEFORE the 09:30 PVO
+  refresh window — so a freshly published engine_b feature runtime is available when
+  the PVO rebuild + model-output capture run. The CLI is source-hash-gated (honest
+  noop when the upstream source is unchanged), serializes on a feature_refresh.lock,
+  and on a changed source validates + atomically publishes the runtime
+  (engine_b_features_runtime.csv + .ready.json). decision_supported=false throughout.
+
+  NO auto-commit: the runtime CSV / ready marker / report live under the gitignored
+  app/data/features_runtime/ (seed-split — the committed seed is
+  app/data/training/engine_b_features_v2.csv). A dirty/regenerated runtime is EXPECTED
+  operational state; nothing here commits, trains a model, or writes a model artifact.
+
+  Committed but LOADED MANUALLY BY DAVID — the agent does not load it. The launchctl
+  install/reload AND the first live (2025-complete catch-up) run are David-gated:
+    launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-feature-refresh.plist
+  (symlink or copy this file there first).
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-feature-refresh</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/run_feature_refresh.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>15</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/feature_refresh.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/feature_refresh.err.log</string>
+</dict>
+</plist>

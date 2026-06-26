@@ -27,6 +27,9 @@ if str(ROOT) not in sys.path:
 from src.dynasty_genius.features.feature_assembly import (  # noqa: E402
     assemble_feature_candidate,
 )
+from src.dynasty_genius.features.feature_publish import (  # noqa: E402
+    publish_runtime,
+)
 from src.dynasty_genius.features.feature_refresh_runner import (  # noqa: E402
     compute_source_hash,
     run_feature_refresh,
@@ -34,6 +37,11 @@ from src.dynasty_genius.features.feature_refresh_runner import (  # noqa: E402
 
 _DEFAULT_RUNTIME_DIR = ROOT / "app" / "data" / "features_runtime"
 _DEFAULT_SEED = ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
+_LOCK_NAME = "feature_refresh.lock"
+# Integrity floors for the scheduled publish: a non-empty candidate with all four
+# positions present in the inference season. The validation gate does the rest.
+_MIN_TOTAL_ROWS = 4
+_MIN_POSITION_ROWS = {"QB": 1, "RB": 1, "WR": 1, "TE": 1}
 
 
 def _load_source(seasons_window: list[int] | None) -> dict:
@@ -147,22 +155,54 @@ def main(argv: list[str] | None = None) -> int:
         print(f"preflight ready={ready} seed_path={args.seed_path}")
         return 0 if ready else 1
 
-    # Full run: load the source frames, hash the source content, and delegate to the
-    # source-hash-gated runner. The runner writes a CANDIDATE only (no publish, no model
-    # writes in T1) and noops honestly when the source hash is unchanged.
-    seasons_window = list(range(args.season_start, args.season_end + 1))
-    read_fns = _load_source(seasons_window)
-    source_hash = compute_source_hash(**_source_provenance(read_fns, seasons_window))
-    result = run_feature_refresh(
-        runtime_dir=args.runtime_dir,
-        seed_path=args.seed_path,
-        now_fn=lambda: datetime.now(timezone.utc),
-        read_fns=read_fns,
-        source_inputs={"source_hash": source_hash, "seasons_window": seasons_window},
-        assemble_fn=assemble_feature_candidate,
-    )
-    print(result["status"])
-    return 0
+    # Serialize on a lock BEFORE any source load, so a still-running scheduled refresh is
+    # never doubled (which could corrupt the atomic publish). Refuse fast and cheaply —
+    # no nflreadpy load — if a prior run is (or appears) in progress.
+    runtime_dir = Path(args.runtime_dir)
+    lock_path = runtime_dir / _LOCK_NAME
+    if lock_path.exists():
+        print(
+            f"refusing to run: {lock_path} present — a prior feature refresh may be in "
+            f"progress (locked). Remove the lock if no run is active."
+        )
+        return 1
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    lock_path.write_text("locked by scripts/run_feature_refresh.py\n")
+    try:
+        # Full run: load source, hash content, then validate + ATOMICALLY PUBLISH the
+        # runtime (source-hash-gated; honest noop when the source is unchanged). NO commit,
+        # no model write — the runtime lands under the gitignored features_runtime/ dir.
+        seasons_window = list(range(args.season_start, args.season_end + 1))
+        read_fns = _load_source(seasons_window)
+        source_hash = compute_source_hash(**_source_provenance(read_fns, seasons_window))
+        inference_season = args.season_end
+
+        def publish_fn(candidate_path, **kwargs):
+            return publish_runtime(
+                candidate_path,
+                inference_season=inference_season,
+                min_total_rows=_MIN_TOTAL_ROWS,
+                min_position_rows=_MIN_POSITION_ROWS,
+                **kwargs,
+            )
+
+        result = run_feature_refresh(
+            runtime_dir=args.runtime_dir,
+            seed_path=args.seed_path,
+            now_fn=lambda: datetime.now(timezone.utc),
+            read_fns=read_fns,
+            source_inputs={"source_hash": source_hash, "seasons_window": seasons_window},
+            assemble_fn=assemble_feature_candidate,
+            publish_fn=publish_fn,
+        )
+        status = result.get("status")
+        print(status)
+        # Unattended-scheduler alertability: ok/noop are healthy (exit 0); a blocked
+        # publish (validation/write failure) or any other status is a real failure the
+        # launchd run must surface as nonzero.
+        return 0 if status in {"ok", "noop"} else 1
+    finally:
+        lock_path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

@@ -305,7 +305,11 @@ def test_feature_refresh_cli_real_run_gate_removed_for_t1b(
     )
 
     captured = capsys.readouterr()
-    assert rc == 0
+    # T1b's real-run gate is removed: the CLI reaches candidate generation. In T4, the
+    # same CLI also attempts validated publish; this fixture intentionally lacks full
+    # position coverage, so the publish gate blocks and the scheduler exit is nonzero.
+    assert rc == 1
+    assert "blocked" in captured.out
     assert "full feature engineering lands in T1b" not in captured.out + captured.err
     candidate = runtime_dir / "engine_b_features_candidate.csv"
     assert candidate.exists()
