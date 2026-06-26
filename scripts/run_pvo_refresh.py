@@ -82,7 +82,10 @@ def _phase17_2_refresh(*, pvo_artifact_path: Path, coverage_artifact_path: Path)
 
 
 def _artifact_hashes(
-    pvo_bytes: bytes, *, read_artifact: Callable[[Any], bytes]
+    pvo_bytes: bytes,
+    *,
+    read_artifact: Callable[[Any], bytes],
+    feature_source: Optional[Any] = None,
 ) -> dict[str, Optional[str]]:
     """3-hash snapshot of a PVO artifact: literal audit / semantic output / provenance.
 
@@ -90,6 +93,10 @@ def _artifact_hashes(
     per-position/feature hashes + derived cutoff + Engine-A pointers) so a model/feature/
     producer change is detected even when the scored output is unchanged. Raises
     FileNotFoundError if required model provenance is unresolvable (caller aborts+restores).
+
+    ``feature_source`` may pin a ``ResolvedFeatureSource`` so injected-artifact-reader tests
+    hash the seed/runtime they intend, independent of ambient gitignored runtime files after
+    a feature-refresh catch-up; when None the ambient resolver runs (the production path).
     """
     artifact_sha256 = _sha(pvo_bytes)
     try:
@@ -105,7 +112,11 @@ def _artifact_hashes(
         "artifact_sha256": artifact_sha256,
         "semantic_output_hash": _sha(_canon([_semantic_projection(r) for r in players])),
         "provenance_hash": _sha(
-            _canon(resolve_provenance_subset(pvo, read_artifact=read_artifact))
+            _canon(
+                resolve_provenance_subset(
+                    pvo, read_artifact=read_artifact, feature_source=feature_source
+                )
+            )
         ),
     }
 
@@ -120,8 +131,12 @@ def run_pvo_refresh(
     capture_db_path: Optional[Path] = None,
     capture_report_path: Optional[Path] = None,
     read_artifact: Optional[Callable[[Any], bytes]] = None,
+    feature_source: Optional[Any] = None,
 ) -> dict[str, Any]:
-    """Refresh the two PVO artifacts in place (Option C), then optionally capture."""
+    """Refresh the two PVO artifacts in place (Option C), then optionally capture.
+
+    ``feature_source`` may pin a ``ResolvedFeatureSource`` for hermetic tests; when None the
+    ambient resolver runs so a production refresh hashes the published runtime."""
     if read_artifact is None:
         read_artifact = lambda path: Path(path).read_bytes()  # noqa: E731
     pvo = Path(pvo_artifact_path)
@@ -151,7 +166,9 @@ def run_pvo_refresh(
 
     # ── pre-refresh lineage-grade hashes (unresolvable required provenance → abort) ──
     try:
-        pre = _artifact_hashes(pre_pvo_bytes, read_artifact=read_artifact)
+        pre = _artifact_hashes(
+            pre_pvo_bytes, read_artifact=read_artifact, feature_source=feature_source
+        )
     except FileNotFoundError as exc:
         return _restore_and_abort(f"required_provenance_missing:{exc}")
 
@@ -164,7 +181,9 @@ def run_pvo_refresh(
     post_pvo_bytes = pvo.read_bytes()
     post_coverage_bytes = coverage.read_bytes()
     try:
-        post = _artifact_hashes(post_pvo_bytes, read_artifact=read_artifact)
+        post = _artifact_hashes(
+            post_pvo_bytes, read_artifact=read_artifact, feature_source=feature_source
+        )
     except FileNotFoundError as exc:
         return _restore_and_abort(f"required_provenance_missing:{exc}")
 

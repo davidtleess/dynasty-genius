@@ -25,9 +25,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+from src.dynasty_genius.features.feature_source import (
+    FeatureSourceNotReadyError,
+    resolve_feature_source,
+)
 from src.dynasty_genius.what_changed.daily_diff import build_daily_what_changed_diff
 
 _SCHEMA_VERSION = "war_room_2_what_changed_v1"
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_ENGINE_B_FEATURE_SEED_PATH = (
+    _REPO_ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
+)
+_FEATURES_RUNTIME_DIR = _REPO_ROOT / "app" / "data" / "features_runtime"
 # Structural artifacts refresh on the daily cadence, so a full cadence-period (24h)
 # or older is "a prior day's context" — flagged stale for the daily-login product.
 _STALE_THRESHOLD_HOURS = 24.0
@@ -62,6 +71,11 @@ def emit_daily_what_changed_report(
         sleeper_snapshot_path=sleeper_snapshot_path,
         top_n=top_n,
     )
+    # Disclose engine_b feature freshness on the model section: which feature CSV backed the
+    # vintage (published runtime vs committed seed) + its hashes/as-of. Descriptive only.
+    model_feature_freshness = _model_feature_freshness()
+    if isinstance(diff.get("model"), dict):
+        diff["model"]["feature_freshness"] = model_feature_freshness
     structural_context = assemble_structural_context(
         team_posture_path=team_posture_path,
         team_value_matrix_path=team_value_matrix_path,
@@ -86,6 +100,37 @@ def emit_daily_what_changed_report(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(report, indent=2, sort_keys=True))
     return report
+
+
+def _model_feature_freshness() -> Optional[dict[str, Any]]:
+    """Resolved engine_b feature-source freshness for the model section (descriptive only).
+
+    Returns the resolver's metadata (source kind + hashes + as-of). The READ-ONLY daily
+    digest must not crash on a not-ready runtime, but it must NOT silently hide it either —
+    an unverified runtime is DISCLOSED as explicit ``not_ready`` metadata (honest-uncertainty
+    mandate), never omitted. ``decision_supported`` stays False and no market field appears.
+    """
+    try:
+        resolved = resolve_feature_source(
+            seed_path=_ENGINE_B_FEATURE_SEED_PATH,
+            runtime_dir=_FEATURES_RUNTIME_DIR,
+        )
+    except FeatureSourceNotReadyError as exc:
+        return {
+            "decision_supported": False,
+            "feature_source_status": "not_ready",
+            "feature_source_kind": None,
+            "aborted_reason": str(exc),
+        }
+    meta = resolved.metadata()
+    return {
+        "decision_supported": False,
+        "feature_source_kind": meta["feature_source_kind"],
+        "feature_csv_sha256": meta["feature_csv_sha256"],
+        "source_as_of": meta["source_as_of"],
+        "feature_csv_path": meta["feature_csv_path"],
+        "published_seed_sha256": meta["published_seed_sha256"],
+    }
 
 
 def _report_overall_status(diff_status: str, structural_status: str) -> str:

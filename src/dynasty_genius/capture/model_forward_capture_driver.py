@@ -28,10 +28,15 @@ from src.dynasty_genius.capture.model_forward_capture_store import (
     ModelForwardCaptureStore,
     build_model_player_key,
 )
+from src.dynasty_genius.features.feature_source import resolve_feature_source
 
 PRODUCER_PATH = Path("scripts/build_universe_pvo_batch.py")
 ENGINE_B_MANIFEST_PATH = Path("app/data/models/engine_b/v2_manifest.json")
-ENGINE_B_FEATURE_CSV_PATH = Path("app/data/training/engine_b_features_v2.csv")
+# The committed seed + the runtime publish dir; the resolver picks a verified runtime when
+# published, else the seed. The vintage-defining feature_csv_sha256 follows whichever is
+# served, so a published runtime yields a DISTINCT provenance_hash (the whole point of T3).
+ENGINE_B_FEATURE_SEED_PATH = Path("app/data/training/engine_b_features_v2.csv")
+ENGINE_B_FEATURES_RUNTIME_DIR = Path("app/data/features_runtime")
 ENGINE_A_LATEST_PATH = Path("app/data/models/latest.json")
 HEAD_A_V3_MANIFEST_PATH = Path("app/data/models/head_a/v3_manifest.json")
 
@@ -76,12 +81,17 @@ def resolve_provenance_subset(
     pvo: dict,
     *,
     read_artifact: Callable[[Any], bytes],
+    feature_source: Optional[Any] = None,
 ) -> dict[str, Any]:
     """The vintage-defining lineage subset that feeds provenance_hash — SHARED by T2
     capture and T4 refresh so both compute the identical hash. Reads model artifacts
     READ-ONLY; raises FileNotFoundError on a missing REQUIRED artifact (per the engines
     present among model-supported rows). EXCLUDES git_sha / artifact_sha256 / dates /
-    row_lineage (those are kept out of the vintage hash)."""
+    row_lineage (those are kept out of the vintage hash).
+
+    ``feature_source`` may be a pinned ``ResolvedFeatureSource`` so injected-artifact-reader
+    tests do not depend on ambient gitignored runtime files after a feature-refresh catch-up;
+    when None the ambient resolver is used (production picks up the published runtime)."""
     players = pvo.get("players") or []
     engines = {
         r.get("valuation", {}).get("engine_path")
@@ -99,7 +109,18 @@ def resolve_provenance_subset(
     if needs_b:
         manifest_bytes = read_artifact(ENGINE_B_MANIFEST_PATH)
         manifest = json.loads(manifest_bytes)
-        feature_bytes = read_artifact(ENGINE_B_FEATURE_CSV_PATH)
+        # Hash the RESOLVED feature source (runtime when published, else seed) so the
+        # vintage changes day-over-day once a refreshed runtime is published. Subset shape
+        # is unchanged — only the bytes behind feature_csv_sha256 follow the resolver.
+        resolved = (
+            feature_source
+            if feature_source is not None
+            else resolve_feature_source(
+                seed_path=ENGINE_B_FEATURE_SEED_PATH,
+                runtime_dir=ENGINE_B_FEATURES_RUNTIME_DIR,
+            )
+        )
+        feature_bytes = read_artifact(resolved.path)
         subset["engine_b"] = {
             "manifest_sha256": _sha(manifest_bytes),
             "per_position": {
@@ -140,9 +161,13 @@ def _resolve_provenance(
     artifact_vintage: Optional[str],
     capture_date: str,
     artifact_age_days: Optional[int],
+    feature_source: Optional[Any] = None,
 ) -> tuple[dict, dict]:
     """Resolve the §4 provenance block READ-ONLY. Raises FileNotFoundError on a
-    missing REQUIRED artifact (for the engines present among model-supported rows)."""
+    missing REQUIRED artifact (for the engines present among model-supported rows).
+
+    ``feature_source`` may pin a ``ResolvedFeatureSource`` (hermeticity seam); resolved
+    ONCE here so the audit block and the hashed subset agree on a single source."""
     engines = {
         r.get("valuation", {}).get("engine_path")
         for r in players
@@ -150,6 +175,17 @@ def _resolve_provenance(
     }
     needs_b = bool(engines & {"ENGINE_B", "BLEND_AB"})
     needs_a = bool(engines & {"ENGINE_A", "BLEND_AB"})
+
+    resolved_feature_source = None
+    if needs_b:
+        resolved_feature_source = (
+            feature_source
+            if feature_source is not None
+            else resolve_feature_source(
+                seed_path=ENGINE_B_FEATURE_SEED_PATH,
+                runtime_dir=ENGINE_B_FEATURES_RUNTIME_DIR,
+            )
+        )
 
     producer_hash = _sha(read_artifact(PRODUCER_PATH))
 
@@ -176,8 +212,9 @@ def _resolve_provenance(
                 "path": pkl_path,
                 "sha256": _sha(read_artifact(Path(pkl_path))),
             }
-        feature_bytes = read_artifact(ENGINE_B_FEATURE_CSV_PATH)
+        feature_bytes = read_artifact(resolved_feature_source.path)
         feature_hash = _sha(feature_bytes)
+        seed_hash = _sha(read_artifact(ENGINE_B_FEATURE_SEED_PATH))
         cutoff = _derived_training_cutoff(feature_bytes)
         derived_cutoff = {"value": cutoff, "status": "derived"}
         block["engine_b_manifest"] = {
@@ -186,9 +223,14 @@ def _resolve_provenance(
         }
         block["engine_b_per_position"] = per_position
         block["engine_b_derived_training_cutoff"] = derived_cutoff
+        # Audit-only (NOT in provenance_hash): which source served + the seed baseline, so
+        # an analyst can see whether a vintage came from a published runtime or the seed.
         block["feature_csv"] = {
-            "path": str(ENGINE_B_FEATURE_CSV_PATH),
+            "path": str(resolved_feature_source.path),
+            "feature_source_kind": resolved_feature_source.source_kind,
             "sha256": feature_hash,
+            "feature_csv_sha256": feature_hash,
+            "published_seed_sha256": seed_hash,
             "max_training_season": cutoff,
         }
 
@@ -215,7 +257,9 @@ def _resolve_provenance(
         }
         block["engine_a_training_cutoff"] = {"value": None, "status": "unknown"}
 
-    subset = resolve_provenance_subset(pvo, read_artifact=read_artifact)
+    subset = resolve_provenance_subset(
+        pvo, read_artifact=read_artifact, feature_source=resolved_feature_source
+    )
     return block, subset
 
 
@@ -228,8 +272,12 @@ def capture_model_pvo_snapshot(
     read_artifact: Callable[[Any], bytes],
     now_fn: Callable[[], datetime],
     git_sha_fn: Callable[[], str],
+    feature_source: Optional[Any] = None,
 ) -> dict[str, Any]:
-    """Capture one model-output PIT snapshot from the published PVO artifact."""
+    """Capture one model-output PIT snapshot from the published PVO artifact.
+
+    ``feature_source`` may pin a ``ResolvedFeatureSource`` for hermetic tests; when None the
+    ambient resolver runs so a production capture picks up the published runtime."""
     now = now_fn()
     capture_date = now.date().isoformat()
 
@@ -291,6 +339,7 @@ def capture_model_pvo_snapshot(
             artifact_vintage=artifact_vintage,
             capture_date=capture_date,
             artifact_age_days=artifact_age_days,
+            feature_source=feature_source,
         )
     except FileNotFoundError as exc:
         return abort(f"required_provenance_missing:{exc}")

@@ -148,12 +148,34 @@ class WhatChangedModelComparisonWindow(_Strict):
         return self
 
 
+class WhatChangedModelFeatureFreshness(_Strict):
+    """Descriptive engine_b feature-source freshness for the model section.
+
+    Discloses which feature CSV backed the model vintage (a published runtime vs the
+    committed seed) and its hashes/as-of label, so the daily digest can show that captured
+    vintages are genuinely moving. Carries NO market field and certifies no decision.
+    """
+
+    decision_supported: Literal[False]
+    feature_source_kind: Literal["runtime", "seed"] | None = None
+    feature_csv_sha256: Optional[str] = None
+    source_as_of: Optional[str] = None
+    feature_csv_path: Optional[str] = None
+    published_seed_sha256: Optional[str] = None
+    # Honest-disclosure shape: a present-but-unverified runtime surfaces as not_ready rather
+    # than being hidden (feature_source_kind is then None and aborted_reason explains why).
+    # Closed vocabularies so the API cannot report a phantom source kind/status.
+    feature_source_status: Literal["not_ready"] | None = None
+    aborted_reason: Optional[str] = None
+
+
 class WhatChangedModelSection(_Strict):
     status: str
     decision_supported: Literal[False]
     comparison_window: Optional[WhatChangedModelComparisonWindow] = None
     deltas: Optional[list[WhatChangedModelDelta]] = None
     vintage_changed: Optional[bool] = None
+    feature_freshness: WhatChangedModelFeatureFreshness | None = None
 
 
 class WhatChangedDailyDiff(_Strict):

@@ -14,6 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.services.engine_b_service import score_inference_partition  # noqa: E402
+from src.dynasty_genius.features.feature_source import (  # noqa: E402
+    resolve_feature_source,
+)
 from src.dynasty_genius.models.player_identity import PlayerIdentity  # noqa: E402
 from src.dynasty_genius.pvo_assembler import assemble_pvo  # noqa: E402
 from src.dynasty_genius.universe_pvo_batch import (  # noqa: E402
@@ -25,6 +28,7 @@ SNAPSHOT_PATH = ROOT / "app" / "data" / "league_snapshots" / "sleeper_universe_s
 PROSPECT_CARDS_PATH = ROOT / "resources" / "prospect_cards.json"
 FF_PLAYERIDS_PATH = ROOT / "app" / "data" / "identity" / "_runs" / "ff_playerids_20260516.json"
 ENGINE_B_FEATURES_PATH = ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
+FEATURES_RUNTIME_DIR = ROOT / "app" / "data" / "features_runtime"
 OUTPUT_DIR = ROOT / "app" / "data" / "valuation"
 
 
@@ -77,8 +81,14 @@ def _load_engine_b_feature_rows(path: Path = ENGINE_B_FEATURES_PATH) -> dict[str
 
 def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
     ff_by_gsis, _ = _load_ff_playerids()
-    feature_rows = _load_engine_b_feature_rows()
-    predictions = score_inference_partition()
+    # Resolve the feature source ONCE so the row-read and the predictions share a single,
+    # consistent feature CSV (published runtime when available, else the committed seed).
+    feature_source = resolve_feature_source(
+        seed_path=ENGINE_B_FEATURES_PATH, runtime_dir=FEATURES_RUNTIME_DIR
+    )
+    feature_meta = feature_source.metadata()
+    feature_rows = _load_engine_b_feature_rows(feature_source.path)
+    predictions = score_inference_partition(feature_source=feature_source)
     pvos: list[dict[str, Any]] = []
     seen_sleepers: set[str] = set()
 
@@ -113,7 +123,9 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
             features=features,
             is_prospect=False,
             source_versions={
-                "engine_b_features": str(ENGINE_B_FEATURES_PATH.relative_to(ROOT)),
+                "engine_b_features": str(feature_meta["feature_csv_path"]),
+                "engine_b_feature_source_kind": str(feature_meta["feature_source_kind"]),
+                "engine_b_feature_csv_sha256": str(feature_meta["feature_csv_sha256"]),
                 "ff_playerids": str(FF_PLAYERIDS_PATH.relative_to(ROOT)),
             },
         )
