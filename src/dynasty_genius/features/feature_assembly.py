@@ -160,8 +160,28 @@ def build_engine_b_features(
     snaps_agg = snaps_raw.groupby(["pfr_player_id", "season"])["offense_pct"].mean().reset_index(
         name="snap_share"
     )
-    crosswalk = rosters_raw[["gsis_id", "pfr_id"]].dropna().drop_duplicates()
-    snaps_agg = snaps_agg.merge(crosswalk, left_on="pfr_player_id", right_on="pfr_id", how="inner")
+    # Season-aware crosswalk: include `season` in the key. A seasonless crosswalk maps a
+    # single gsis_id to every pfr_id it was ever paired with (e.g. an upstream stale/wrong
+    # pfr_id in one season), so a snap row under the *other* pfr_id is double-attributed and
+    # fans out the join (and the later self-joins multiply it). Keying on season confines the
+    # mapping to the correct (gsis_id, pfr_id) pair per season.
+    crosswalk = (
+        rosters_raw[["gsis_id", "pfr_id", "season"]]
+        .dropna()
+        .drop_duplicates()
+        .rename(columns={"pfr_id": "pfr_player_id"})
+    )
+    snaps_agg = snaps_agg.merge(crosswalk, on=["pfr_player_id", "season"], how="inner")
+    # Fail-closed guard: even season-aware, a within-season 1:N collision (one gsis_id mapped
+    # to two pfr_ids in the SAME season, both carrying snaps) would still fan out. That is a
+    # new upstream data anomaly — surface it loudly rather than silently dropping or averaging
+    # conflicting rows.
+    if snaps_agg.duplicated(["gsis_id", "season"]).any():
+        n_dup = int(snaps_agg.duplicated(["gsis_id", "season"]).sum())
+        raise ValueError(
+            f"snap-share crosswalk produced {n_dup} duplicate (gsis_id, season) row(s): a "
+            "within-season gsis_id->pfr_id 1:N collision. Refusing to fan out or average snaps."
+        )
     df = df.merge(
         snaps_agg[["gsis_id", "season", "snap_share"]],
         left_on=["player_id", "feature_season"], right_on=["gsis_id", "season"], how="left",
