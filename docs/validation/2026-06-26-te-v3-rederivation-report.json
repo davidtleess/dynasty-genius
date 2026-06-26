@@ -1,0 +1,91 @@
+{
+  "provenance": {
+    "position": "TE",
+    "model_version": "engine_b_v3_te_rederived_clean",
+    "run_id": "20260626T165649Z",
+    "seed_sha256": "50a83ff016ae890607ab9265a6d0d8cccbe644cc6dc14e8a3120ee63e9d6d8b6",
+    "new_pkl_sha256": "e8f5d7451aa0524aeb17dbc80992c35bfa97f9428366085330643bbb3109389b",
+    "new_manifest_sha256": "86f199bd069823cc292f8d56553dadc91f07f78bd47ac26498a06f16440984bc",
+    "old_te_pkl": "app/data/models/engine_b/runs/20260516T164503Z/te_v3.pkl",
+    "feature_set": [
+      "age",
+      "aging_curve_value",
+      "games_t",
+      "ppg_t",
+      "ppg_t_minus_1",
+      "ppg_t_minus_1_available",
+      "ppg_t_minus_2",
+      "ppg_t_minus_2_available",
+      "snap_share",
+      "snap_share_t_minus_1",
+      "snap_share_t_minus_1_available",
+      "tprr",
+      "weighted_opportunity",
+      "yprr"
+    ]
+  },
+  "gates": {
+    "g1_rank_correlation_pass": true,
+    "g2_rmse_stability_pass": true,
+    "g2_rmse_max_deviation_pct": 10.26,
+    "g2_rmse_max_deviation_raw_fraction": 0.10261535827290554,
+    "g3_market_superiority_pass": "deferred",
+    "overall_grade": "ACTIVE_B",
+    "model_status": "VALIDATED"
+  },
+  "metrics": {
+    "current_full": {
+      "n_features": 15,
+      "alpha": 100.0,
+      "mean_rmse": 2.324,
+      "rmse_max_dev_pct": 14.68,
+      "mean_kendall": 0.57,
+      "mean_spearman": 0.7624
+    },
+    "rederived_14f_alpha100": {
+      "n_features": 14,
+      "alpha": 100.0,
+      "mean_rmse": 2.3182,
+      "rmse_max_dev_pct": 15.87,
+      "mean_kendall": 0.5711,
+      "mean_spearman": 0.7628
+    },
+    "legacy_te_v2": {
+      "n_features": 14,
+      "alpha": 1.0,
+      "mean_rmse": 2.3437,
+      "rmse_max_dev_pct": 26.21,
+      "mean_kendall": 0.5594,
+      "mean_spearman": 0.7551
+    }
+  },
+  "accuracy_vs_te_v2": {
+    "within_bca_noise": true,
+    "rmse_delta_bca_ci95": [
+      -0.1016,
+      0.0541
+    ],
+    "kendall_delta_bca_ci95": [
+      -0.0064,
+      0.0414
+    ],
+    "spearman_delta_bca_ci95": [
+      -0.0124,
+      0.0355
+    ],
+    "accuracy_lift_claimed": false,
+    "note": "ablated_v3 vs legacy_te_v2 paired BCa CIs all cross zero -> accuracy edge within noise."
+  },
+  "justification": {
+    "basis": "g2_stability_only",
+    "role_risk_dropped_as_contamination_artifact": true,
+    "accuracy_edge_beyond_noise": false,
+    "detail": "te_role_is_risk_profile null on the deduped seed (Phase-13.3 bake-off 2/4, passes_acceptance=False). The alpha=100 form passes G2 (10.26% < 25%) where legacy alpha=1.0 fails (26.21%). Justified by regularization stability only."
+  },
+  "decision_supported": false,
+  "caveats": [
+    "local_only_model_artifact",
+    "pvo_regen_deferred",
+    "g3_market_superiority_deferred"
+  ]
+}
