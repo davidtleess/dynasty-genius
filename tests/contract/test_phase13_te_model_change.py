@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import pickle
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from scripts.assemble_engine_b_dataset import (
     ENGINE_B_OUTPUT_COLUMNS,
@@ -21,11 +19,14 @@ from src.dynasty_genius.models.engine_b_contract import (
 )
 
 
-def test_te_role_risk_feature_is_te_only_contract_feature():
-    assert "te_role_is_risk_profile" in ENGINE_B_FEATURES_TE
-    assert "te_role_is_risk_profile" not in ENGINE_B_FEATURES_QB
-    assert "te_role_is_risk_profile" not in ENGINE_B_FEATURES_RB
-    assert "te_role_is_risk_profile" not in ENGINE_B_FEATURES_WR
+def test_te_role_risk_feature_is_not_a_model_contract_feature():
+    for feature_set in (
+        ENGINE_B_FEATURES_QB,
+        ENGINE_B_FEATURES_RB,
+        ENGINE_B_FEATURES_WR,
+        ENGINE_B_FEATURES_TE,
+    ):
+        assert "te_role_is_risk_profile" not in feature_set
 
 
 def test_add_te_role_risk_feature_defaults_missing_labels_to_zero():
@@ -98,30 +99,6 @@ def test_walkforward_te_alpha_is_100_for_model_change_validation():
     assert WalkForwardDriver.FIXED_ALPHA["TE"] == 100.0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "te_role_is_risk_profile all-negative invariant was a Tyler-Conklin contamination "
-        "artifact: 128x duplicated NON-risk rows inflated the non-risk baseline. After the T2 "
-        "dedup the coef flips to 3/4 positive (see "
-        "docs/validation/2026-06-26-te-role-risk-contamination-finding.md). xfail until the "
-        "deferred feature-validity review resolves the invariant; strict=True forces a revisit "
-        "if it passes again. Do NOT flip the assertion to green."
-    ),
-)
-def test_te_run_records_negative_role_risk_coefficients():
-    driver = WalkForwardDriver(position="TE")
-    result = driver.run()
-    assert result.ridge_alpha == 100.0
-    assert result.folds
-    coefficients = [
-        fold.feature_coefficients["te_role_is_risk_profile"]
-        for fold in result.folds
-    ]
-    assert len(coefficients) == 4
-    assert all(coef < 0.0 for coef in coefficients)
-
-
 def test_train_te_deployment_model_writes_only_te_artifact(tmp_path: Path):
     rows = []
     for season in range(2018, 2024):
@@ -161,7 +138,3 @@ def test_train_te_deployment_model_writes_only_te_artifact(tmp_path: Path):
         "te_v3.pkl",
         "validation_report_te.json",
     ]
-    with open(tmp_path / "te_v3.pkl", "rb") as f:
-        bundle = pickle.load(f)
-    feature_index = bundle["features"].index("te_role_is_risk_profile")
-    assert bundle["model"].coef_[feature_index] < 0.0
