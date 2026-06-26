@@ -867,6 +867,262 @@ export const zHttpValidationError = z.object({
 });
 
 /**
+ * WhatChangedCard
+ */
+export const zWhatChangedCard = z.object({
+    asset_name: z.string().nullish(),
+    card_id: z.string().nullish(),
+    card_type: z.string().nullish(),
+    opportunity_score: z.number().nullish(),
+    recommended_drop_name: z.string().nullish()
+});
+
+/**
+ * WhatChangedCutCandidate
+ */
+export const zWhatChangedCutCandidate = z.object({
+    cut_priority: z.int().nullish(),
+    dvs: z.number().nullish(),
+    player_name: z.string().nullish(),
+    position: z.string().nullish(),
+    sleeper_player_id: z.string().nullish(),
+    xvar_pct: z.number().nullish()
+});
+
+/**
+ * WhatChangedDropSummary
+ */
+export const zWhatChangedDropSummary = z.object({
+    cuts_required: z.int().nullish(),
+    roster_id: z.int().nullish(),
+    total_capacity: z.int().nullish(),
+    total_players: z.int().nullish()
+});
+
+/**
+ * WhatChangedEnteredExited
+ */
+export const zWhatChangedEnteredExited = z.object({
+    player_key: z.string(),
+    sleeper_id: z.string()
+});
+
+/**
+ * WhatChangedMarketDelta
+ */
+export const zWhatChangedMarketDelta = z.object({
+    overall_rank_delta: z.int(),
+    overall_rank_delta_direction: z.string(),
+    player_key: z.string(),
+    player_name: z.string().nullish(),
+    position: z.string().nullish(),
+    position_rank_delta: z.int(),
+    position_rank_delta_direction: z.string(),
+    sleeper_id: z.string(),
+    value_delta: z.int(),
+    value_delta_direction: z.string()
+});
+
+/**
+ * WhatChangedMarketSection
+ */
+export const zWhatChangedMarketSection = z.object({
+    aborted_reason: z.string().nullish(),
+    comparison_window: z.record(z.string(), z.unknown()).nullish(),
+    decision_supported: z.literal(false),
+    entered: z.array(zWhatChangedEnteredExited).nullish(),
+    exited: z.array(zWhatChangedEnteredExited).nullish(),
+    market_source: z.string(),
+    roster_deltas: z.array(zWhatChangedMarketDelta).nullish(),
+    status: z.string(),
+    top_movers: z.array(zWhatChangedMarketDelta).nullish(),
+    total_movers_count: z.int().nullish()
+});
+
+/**
+ * WhatChangedModelDelta
+ */
+export const zWhatChangedModelDelta = z.object({
+    dvs_pct_delta: z.number(),
+    dynasty_value_score_delta: z.number(),
+    dynasty_value_score_delta_direction: z.string(),
+    player_key: z.string(),
+    player_name: z.string().nullish(),
+    position: z.string().nullish(),
+    sleeper_id: z.string().nullish(),
+    xvar_delta: z.number()
+});
+
+/**
+ * WhatChangedModelFeatureFreshness
+ *
+ * Descriptive engine_b feature-source freshness for the model section.
+ *
+ * Discloses which feature CSV backed the model vintage (a published runtime vs the
+ * committed seed) and its hashes/as-of label, so the daily digest can show that captured
+ * vintages are genuinely moving. Carries NO market field and certifies no decision.
+ */
+export const zWhatChangedModelFeatureFreshness = z.object({
+    aborted_reason: z.string().nullish(),
+    decision_supported: z.literal(false),
+    feature_csv_path: z.string().nullish(),
+    feature_csv_sha256: z.string().nullish(),
+    feature_source_kind: z.enum(['runtime', 'seed']).nullish(),
+    feature_source_status: z.literal('not_ready').nullish(),
+    published_seed_sha256: z.string().nullish(),
+    source_as_of: z.string().nullish()
+});
+
+/**
+ * WhatChangedPartnerRanking
+ */
+export const zWhatChangedPartnerRanking = z.object({
+    counterparty_roster_id: z.int().nullish(),
+    counterparty_team_name: z.string().nullish(),
+    matched_positions: z.array(z.string()).nullish(),
+    partner_score: z.number().nullish()
+});
+
+/**
+ * WhatChangedStalenessCaveat
+ */
+export const zWhatChangedStalenessCaveat = z.object({
+    age_hours: z.number(),
+    basis: z.string(),
+    is_stale: z.boolean(),
+    report_generated_at: z.string()
+});
+
+/**
+ * WhatChangedTeamValueSummary
+ */
+export const zWhatChangedTeamValueSummary = z.object({
+    depth_credit_xvar: z.number().nullish(),
+    lineup_xvar: z.number().nullish(),
+    posture_label: z.string().nullish(),
+    roster_id: z.int().nullish(),
+    starter_weighted_xvar: z.number().nullish(),
+    team_name: z.string().nullish(),
+    top_n_xvar: z.number().nullish(),
+    total_xvar_capped: z.number().nullish()
+});
+
+/**
+ * WhatChangedStructuralSection
+ */
+export const zWhatChangedStructuralSection = z.object({
+    aborted_reason: z.string().nullish(),
+    captured_at: z.string().nullish(),
+    current_not_delta: z.boolean(),
+    david_posture: z.string().nullish(),
+    david_roster_id: z.int().nullish(),
+    david_roster_player_count: z.int().nullish(),
+    david_team_name: z.string().nullish(),
+    david_value_summary: zWhatChangedTeamValueSummary.nullish(),
+    decision_supported: z.literal(false),
+    league_roster_count: z.int().nullish(),
+    source_path: z.string().nullish(),
+    staleness_caveat: zWhatChangedStalenessCaveat.nullish(),
+    status: z.string(),
+    summary: zWhatChangedDropSummary.nullish(),
+    team_count: z.int().nullish(),
+    top_candidates: z.array(zWhatChangedCutCandidate).nullish(),
+    top_cards: z.array(zWhatChangedCard).nullish(),
+    top_partner_rankings: z.array(zWhatChangedPartnerRanking).nullish()
+});
+
+/**
+ * WhatChangedStructuralSections
+ */
+export const zWhatChangedStructuralSections = z.object({
+    drop_pressure: zWhatChangedStructuralSection,
+    league_opportunity: zWhatChangedStructuralSection,
+    sleeper_snapshot: zWhatChangedStructuralSection,
+    team_posture: zWhatChangedStructuralSection,
+    team_value: zWhatChangedStructuralSection
+});
+
+/**
+ * WhatChangedStructuralContext
+ */
+export const zWhatChangedStructuralContext = z.object({
+    current_not_delta: z.boolean(),
+    decision_supported: z.literal(false),
+    sections: zWhatChangedStructuralSections,
+    status: z.string()
+});
+
+/**
+ * WhatChangedVintage
+ *
+ * A complete model vintage — both hashes required and non-blank.
+ *
+ * A vintage is the identity of a model output; a partial/empty vintage is never an
+ * honest shape, so both fields are required (not Optional) and rejected if blank.
+ */
+export const zWhatChangedVintage = z.object({
+    provenance_hash: z.string(),
+    semantic_output_hash: z.string()
+});
+
+/**
+ * WhatChangedModelComparisonWindow
+ *
+ * Allowlisted, shape-closed model window — no market key can hide on it.
+ *
+ * Admits ONLY the three honest model window shapes:
+ * 1. ``{status: insufficient_history}`` — status alone.
+ * 2. ``{status: model_multi_vintage_ambiguous, from_date, to_date, ambiguous_dates}``.
+ * 3. ``{from_date, to_date, from_vintage, to_vintage}`` — clean two-date window, no status.
+ *
+ * ``extra="forbid"`` (via ``_Strict``) rejects unknown keys (incl. a nested
+ * ``market_overlay``); the ``Literal`` status rejects unknown states; and the
+ * post-validator rejects mixed/partial combinations so the window is fully closed.
+ */
+export const zWhatChangedModelComparisonWindow = z.object({
+    ambiguous_dates: z.array(z.string()).nullish(),
+    from_date: z.string().nullish(),
+    from_vintage: zWhatChangedVintage.nullish(),
+    status: z.enum(['insufficient_history', 'model_multi_vintage_ambiguous']).nullish(),
+    to_date: z.string().nullish(),
+    to_vintage: zWhatChangedVintage.nullish()
+});
+
+/**
+ * WhatChangedModelSection
+ */
+export const zWhatChangedModelSection = z.object({
+    comparison_window: zWhatChangedModelComparisonWindow.nullish(),
+    decision_supported: z.literal(false),
+    deltas: z.array(zWhatChangedModelDelta).nullish(),
+    feature_freshness: zWhatChangedModelFeatureFreshness.nullish(),
+    status: z.string(),
+    vintage_changed: z.boolean().nullish()
+});
+
+/**
+ * WhatChangedDailyDiff
+ */
+export const zWhatChangedDailyDiff = z.object({
+    decision_supported: z.literal(false),
+    market: zWhatChangedMarketSection,
+    model: zWhatChangedModelSection,
+    overall_status: z.string()
+});
+
+/**
+ * WhatChangedResponse
+ */
+export const zWhatChangedResponse = z.object({
+    daily_diff: zWhatChangedDailyDiff,
+    decision_supported: z.literal(false),
+    generated_at: z.string(),
+    overall_status: z.string(),
+    schema_version: z.string(),
+    structural_context: zWhatChangedStructuralContext
+});
+
+/**
  * Response Get Engine B Scores Api Engine B Scores Get
  *
  * Successful Response
@@ -877,6 +1133,11 @@ export const zGetEngineBScoresApiEngineBScoresGetResponse = z.record(z.string(),
  * Successful Response
  */
 export const zLeaguePulseSurfaceApiLeaguePulseGetResponse = zLeaguePulseResponse;
+
+/**
+ * Successful Response
+ */
+export const zWhatChangedSurfaceApiLeagueWhatChangedGetResponse = zWhatChangedResponse;
 
 export const zGetPlayerDetailApiPlayersSleeperIdGetPath = z.object({
     sleeper_id: z.string()

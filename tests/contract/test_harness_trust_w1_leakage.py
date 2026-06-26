@@ -20,6 +20,7 @@ ENGINE_MODEL_PATHS = (
     Path("src/dynasty_genius/features/feature_refresh_runner.py"),
     Path("src/dynasty_genius/features/feature_validation.py"),
     Path("src/dynasty_genius/features/feature_publish.py"),
+    Path("src/dynasty_genius/features/feature_source.py"),
     Path("scripts/assemble_engine_b_dataset.py"),
     Path("scripts/backtest_engine_a_cfbd_only.py"),
     Path("scripts/build_college_features.py"),

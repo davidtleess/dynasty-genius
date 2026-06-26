@@ -14,6 +14,7 @@ from typing import Any
 import pandas as pd
 from sklearn.impute import SimpleImputer
 
+from src.dynasty_genius.features.feature_source import resolve_feature_source
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_EXPERIMENTAL_POSITIONS,
     validate_no_prohibited_features,
@@ -24,6 +25,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 _MODELS_DIR = _ROOT / "app" / "data" / "models" / "engine_b"
 _RUNS_DIR = _MODELS_DIR / "runs"
 _DATASET_PATH = _ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
+_FEATURES_RUNTIME_DIR = _ROOT / "app" / "data" / "features_runtime"
 _V2_MANIFEST_PATH = _MODELS_DIR / "v2_manifest.json"
 
 
@@ -152,12 +154,23 @@ class EngineBService:
             "caveats": caveats,
         }
 
-    def score_inference_partition(self) -> list[dict[str, Any]]:
-        """Score all 2024 inference rows, routing each by position."""
-        if not _DATASET_PATH.exists():
-            return []
+    def score_inference_partition(self, feature_source=None) -> list[dict[str, Any]]:
+        """Score all inference rows, routing each by position.
 
-        df = pd.read_csv(_DATASET_PATH)
+        Reads the feature CSV through the shared resolver (published runtime when
+        available, else the committed seed). A caller may inject an already-resolved
+        ``feature_source`` so a single resolution backs both the rows and the predictions.
+        """
+        if feature_source is None:
+            if not _DATASET_PATH.exists() and not (
+                _FEATURES_RUNTIME_DIR / "engine_b_features_runtime.csv"
+            ).exists():
+                return []
+            feature_source = resolve_feature_source(
+                seed_path=_DATASET_PATH, runtime_dir=_FEATURES_RUNTIME_DIR
+            )
+
+        df = pd.read_csv(feature_source.path)
         inference_df = df[df["training_eligible"] == False].copy()  # noqa: E712 - preserve pandas mask semantics (CSV bool/int/object dtype)
 
         predictions = []
@@ -183,5 +196,5 @@ def predict_player_season(player_features: dict) -> dict:
     return service.predict_player_season(player_features)
 
 
-def score_inference_partition() -> list[dict]:
-    return service.score_inference_partition()
+def score_inference_partition(feature_source=None) -> list[dict]:
+    return service.score_inference_partition(feature_source=feature_source)

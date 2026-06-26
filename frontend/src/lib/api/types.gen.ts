@@ -2064,6 +2064,573 @@ export type ValidationError = {
     type: string;
 };
 
+/**
+ * WhatChangedCard
+ */
+export type WhatChangedCard = {
+    /**
+     * Asset Name
+     */
+    asset_name?: string | null;
+    /**
+     * Card Id
+     */
+    card_id?: string | null;
+    /**
+     * Card Type
+     */
+    card_type?: string | null;
+    /**
+     * Opportunity Score
+     */
+    opportunity_score?: number | null;
+    /**
+     * Recommended Drop Name
+     */
+    recommended_drop_name?: string | null;
+};
+
+/**
+ * WhatChangedCutCandidate
+ */
+export type WhatChangedCutCandidate = {
+    /**
+     * Cut Priority
+     */
+    cut_priority?: number | null;
+    /**
+     * Dvs
+     */
+    dvs?: number | null;
+    /**
+     * Player Name
+     */
+    player_name?: string | null;
+    /**
+     * Position
+     */
+    position?: string | null;
+    /**
+     * Sleeper Player Id
+     */
+    sleeper_player_id?: string | null;
+    /**
+     * Xvar Pct
+     */
+    xvar_pct?: number | null;
+};
+
+/**
+ * WhatChangedDailyDiff
+ */
+export type WhatChangedDailyDiff = {
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    market: WhatChangedMarketSection;
+    model: WhatChangedModelSection;
+    /**
+     * Overall Status
+     */
+    overall_status: string;
+};
+
+/**
+ * WhatChangedDropSummary
+ */
+export type WhatChangedDropSummary = {
+    /**
+     * Cuts Required
+     */
+    cuts_required?: number | null;
+    /**
+     * Roster Id
+     */
+    roster_id?: number | null;
+    /**
+     * Total Capacity
+     */
+    total_capacity?: number | null;
+    /**
+     * Total Players
+     */
+    total_players?: number | null;
+};
+
+/**
+ * WhatChangedEnteredExited
+ */
+export type WhatChangedEnteredExited = {
+    /**
+     * Player Key
+     */
+    player_key: string;
+    /**
+     * Sleeper Id
+     */
+    sleeper_id: string;
+};
+
+/**
+ * WhatChangedMarketDelta
+ */
+export type WhatChangedMarketDelta = {
+    /**
+     * Overall Rank Delta
+     */
+    overall_rank_delta: number;
+    /**
+     * Overall Rank Delta Direction
+     */
+    overall_rank_delta_direction: string;
+    /**
+     * Player Key
+     */
+    player_key: string;
+    /**
+     * Player Name
+     */
+    player_name?: string | null;
+    /**
+     * Position
+     */
+    position?: string | null;
+    /**
+     * Position Rank Delta
+     */
+    position_rank_delta: number;
+    /**
+     * Position Rank Delta Direction
+     */
+    position_rank_delta_direction: string;
+    /**
+     * Sleeper Id
+     */
+    sleeper_id: string;
+    /**
+     * Value Delta
+     */
+    value_delta: number;
+    /**
+     * Value Delta Direction
+     */
+    value_delta_direction: string;
+};
+
+/**
+ * WhatChangedMarketSection
+ */
+export type WhatChangedMarketSection = {
+    /**
+     * Aborted Reason
+     */
+    aborted_reason?: string | null;
+    /**
+     * Comparison Window
+     */
+    comparison_window?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Entered
+     */
+    entered?: Array<WhatChangedEnteredExited> | null;
+    /**
+     * Exited
+     */
+    exited?: Array<WhatChangedEnteredExited> | null;
+    /**
+     * Market Source
+     */
+    market_source: string;
+    /**
+     * Roster Deltas
+     */
+    roster_deltas?: Array<WhatChangedMarketDelta> | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Top Movers
+     */
+    top_movers?: Array<WhatChangedMarketDelta> | null;
+    /**
+     * Total Movers Count
+     */
+    total_movers_count?: number | null;
+};
+
+/**
+ * WhatChangedModelComparisonWindow
+ *
+ * Allowlisted, shape-closed model window — no market key can hide on it.
+ *
+ * Admits ONLY the three honest model window shapes:
+ * 1. ``{status: insufficient_history}`` — status alone.
+ * 2. ``{status: model_multi_vintage_ambiguous, from_date, to_date, ambiguous_dates}``.
+ * 3. ``{from_date, to_date, from_vintage, to_vintage}`` — clean two-date window, no status.
+ *
+ * ``extra="forbid"`` (via ``_Strict``) rejects unknown keys (incl. a nested
+ * ``market_overlay``); the ``Literal`` status rejects unknown states; and the
+ * post-validator rejects mixed/partial combinations so the window is fully closed.
+ */
+export type WhatChangedModelComparisonWindow = {
+    /**
+     * Ambiguous Dates
+     */
+    ambiguous_dates?: Array<string> | null;
+    /**
+     * From Date
+     */
+    from_date?: string | null;
+    from_vintage?: WhatChangedVintage | null;
+    /**
+     * Status
+     */
+    status?: 'insufficient_history' | 'model_multi_vintage_ambiguous' | null;
+    /**
+     * To Date
+     */
+    to_date?: string | null;
+    to_vintage?: WhatChangedVintage | null;
+};
+
+/**
+ * WhatChangedModelDelta
+ */
+export type WhatChangedModelDelta = {
+    /**
+     * Dvs Pct Delta
+     */
+    dvs_pct_delta: number;
+    /**
+     * Dynasty Value Score Delta
+     */
+    dynasty_value_score_delta: number;
+    /**
+     * Dynasty Value Score Delta Direction
+     */
+    dynasty_value_score_delta_direction: string;
+    /**
+     * Player Key
+     */
+    player_key: string;
+    /**
+     * Player Name
+     */
+    player_name?: string | null;
+    /**
+     * Position
+     */
+    position?: string | null;
+    /**
+     * Sleeper Id
+     */
+    sleeper_id?: string | null;
+    /**
+     * Xvar Delta
+     */
+    xvar_delta: number;
+};
+
+/**
+ * WhatChangedModelFeatureFreshness
+ *
+ * Descriptive engine_b feature-source freshness for the model section.
+ *
+ * Discloses which feature CSV backed the model vintage (a published runtime vs the
+ * committed seed) and its hashes/as-of label, so the daily digest can show that captured
+ * vintages are genuinely moving. Carries NO market field and certifies no decision.
+ */
+export type WhatChangedModelFeatureFreshness = {
+    /**
+     * Aborted Reason
+     */
+    aborted_reason?: string | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Feature Csv Path
+     */
+    feature_csv_path?: string | null;
+    /**
+     * Feature Csv Sha256
+     */
+    feature_csv_sha256?: string | null;
+    /**
+     * Feature Source Kind
+     */
+    feature_source_kind?: 'runtime' | 'seed' | null;
+    /**
+     * Feature Source Status
+     */
+    feature_source_status?: 'not_ready' | null;
+    /**
+     * Published Seed Sha256
+     */
+    published_seed_sha256?: string | null;
+    /**
+     * Source As Of
+     */
+    source_as_of?: string | null;
+};
+
+/**
+ * WhatChangedModelSection
+ */
+export type WhatChangedModelSection = {
+    comparison_window?: WhatChangedModelComparisonWindow | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Deltas
+     */
+    deltas?: Array<WhatChangedModelDelta> | null;
+    feature_freshness?: WhatChangedModelFeatureFreshness | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Vintage Changed
+     */
+    vintage_changed?: boolean | null;
+};
+
+/**
+ * WhatChangedPartnerRanking
+ */
+export type WhatChangedPartnerRanking = {
+    /**
+     * Counterparty Roster Id
+     */
+    counterparty_roster_id?: number | null;
+    /**
+     * Counterparty Team Name
+     */
+    counterparty_team_name?: string | null;
+    /**
+     * Matched Positions
+     */
+    matched_positions?: Array<string> | null;
+    /**
+     * Partner Score
+     */
+    partner_score?: number | null;
+};
+
+/**
+ * WhatChangedResponse
+ */
+export type WhatChangedResponse = {
+    daily_diff: WhatChangedDailyDiff;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Generated At
+     */
+    generated_at: string;
+    /**
+     * Overall Status
+     */
+    overall_status: string;
+    /**
+     * Schema Version
+     */
+    schema_version: string;
+    structural_context: WhatChangedStructuralContext;
+};
+
+/**
+ * WhatChangedStalenessCaveat
+ */
+export type WhatChangedStalenessCaveat = {
+    /**
+     * Age Hours
+     */
+    age_hours: number;
+    /**
+     * Basis
+     */
+    basis: string;
+    /**
+     * Is Stale
+     */
+    is_stale: boolean;
+    /**
+     * Report Generated At
+     */
+    report_generated_at: string;
+};
+
+/**
+ * WhatChangedStructuralContext
+ */
+export type WhatChangedStructuralContext = {
+    /**
+     * Current Not Delta
+     */
+    current_not_delta: boolean;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    sections: WhatChangedStructuralSections;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * WhatChangedStructuralSection
+ */
+export type WhatChangedStructuralSection = {
+    /**
+     * Aborted Reason
+     */
+    aborted_reason?: string | null;
+    /**
+     * Captured At
+     */
+    captured_at?: string | null;
+    /**
+     * Current Not Delta
+     */
+    current_not_delta: boolean;
+    /**
+     * David Posture
+     */
+    david_posture?: string | null;
+    /**
+     * David Roster Id
+     */
+    david_roster_id?: number | null;
+    /**
+     * David Roster Player Count
+     */
+    david_roster_player_count?: number | null;
+    /**
+     * David Team Name
+     */
+    david_team_name?: string | null;
+    david_value_summary?: WhatChangedTeamValueSummary | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * League Roster Count
+     */
+    league_roster_count?: number | null;
+    /**
+     * Source Path
+     */
+    source_path?: string | null;
+    staleness_caveat?: WhatChangedStalenessCaveat | null;
+    /**
+     * Status
+     */
+    status: string;
+    summary?: WhatChangedDropSummary | null;
+    /**
+     * Team Count
+     */
+    team_count?: number | null;
+    /**
+     * Top Candidates
+     */
+    top_candidates?: Array<WhatChangedCutCandidate> | null;
+    /**
+     * Top Cards
+     */
+    top_cards?: Array<WhatChangedCard> | null;
+    /**
+     * Top Partner Rankings
+     */
+    top_partner_rankings?: Array<WhatChangedPartnerRanking> | null;
+};
+
+/**
+ * WhatChangedStructuralSections
+ */
+export type WhatChangedStructuralSections = {
+    drop_pressure: WhatChangedStructuralSection;
+    league_opportunity: WhatChangedStructuralSection;
+    sleeper_snapshot: WhatChangedStructuralSection;
+    team_posture: WhatChangedStructuralSection;
+    team_value: WhatChangedStructuralSection;
+};
+
+/**
+ * WhatChangedTeamValueSummary
+ */
+export type WhatChangedTeamValueSummary = {
+    /**
+     * Depth Credit Xvar
+     */
+    depth_credit_xvar?: number | null;
+    /**
+     * Lineup Xvar
+     */
+    lineup_xvar?: number | null;
+    /**
+     * Posture Label
+     */
+    posture_label?: string | null;
+    /**
+     * Roster Id
+     */
+    roster_id?: number | null;
+    /**
+     * Starter Weighted Xvar
+     */
+    starter_weighted_xvar?: number | null;
+    /**
+     * Team Name
+     */
+    team_name?: string | null;
+    /**
+     * Top N Xvar
+     */
+    top_n_xvar?: number | null;
+    /**
+     * Total Xvar Capped
+     */
+    total_xvar_capped?: number | null;
+};
+
+/**
+ * WhatChangedVintage
+ *
+ * A complete model vintage — both hashes required and non-blank.
+ *
+ * A vintage is the identity of a model output; a partial/empty vintage is never an
+ * honest shape, so both fields are required (not Optional) and rejected if blank.
+ */
+export type WhatChangedVintage = {
+    /**
+     * Provenance Hash
+     */
+    provenance_hash: string;
+    /**
+     * Semantic Output Hash
+     */
+    semantic_output_hash: string;
+};
+
 export type GetEngineBScoresApiEngineBScoresGetData = {
     body?: never;
     path?: never;
@@ -2099,6 +2666,22 @@ export type LeaguePulseSurfaceApiLeaguePulseGetResponses = {
 };
 
 export type LeaguePulseSurfaceApiLeaguePulseGetResponse = LeaguePulseSurfaceApiLeaguePulseGetResponses[keyof LeaguePulseSurfaceApiLeaguePulseGetResponses];
+
+export type WhatChangedSurfaceApiLeagueWhatChangedGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/league/what-changed';
+};
+
+export type WhatChangedSurfaceApiLeagueWhatChangedGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: WhatChangedResponse;
+};
+
+export type WhatChangedSurfaceApiLeagueWhatChangedGetResponse = WhatChangedSurfaceApiLeagueWhatChangedGetResponses[keyof WhatChangedSurfaceApiLeagueWhatChangedGetResponses];
 
 export type GetPlayerDetailApiPlayersSleeperIdGetData = {
     body?: never;

@@ -4396,6 +4396,104 @@
         "title": "WhatChangedModelDelta",
         "type": "object"
       },
+      "WhatChangedModelFeatureFreshness": {
+        "additionalProperties": false,
+        "description": "Descriptive engine_b feature-source freshness for the model section.\n\nDiscloses which feature CSV backed the model vintage (a published runtime vs the\ncommitted seed) and its hashes/as-of label, so the daily digest can show that captured\nvintages are genuinely moving. Carries NO market field and certifies no decision.",
+        "properties": {
+          "aborted_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aborted Reason"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "feature_csv_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feature Csv Path"
+          },
+          "feature_csv_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feature Csv Sha256"
+          },
+          "feature_source_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "runtime",
+                  "seed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feature Source Kind"
+          },
+          "feature_source_status": {
+            "anyOf": [
+              {
+                "const": "not_ready",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feature Source Status"
+          },
+          "published_seed_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published Seed Sha256"
+          },
+          "source_as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source As Of"
+          }
+        },
+        "required": [
+          "decision_supported"
+        ],
+        "title": "WhatChangedModelFeatureFreshness",
+        "type": "object"
+      },
       "WhatChangedModelSection": {
         "additionalProperties": false,
         "properties": {
@@ -4427,6 +4525,16 @@
               }
             ],
             "title": "Deltas"
+          },
+          "feature_freshness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatChangedModelFeatureFreshness"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "status": {
             "title": "Status",
