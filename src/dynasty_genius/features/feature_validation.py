@@ -10,9 +10,10 @@ model output or decision. This module derives nothing from the market and trains
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
+import numpy as np
 import pandas as pd
 
 from src.dynasty_genius.models.engine_b_contract import (
@@ -27,8 +28,11 @@ _BOUNDED_UNIT_COLUMNS = (
     "snap_share_t_minus_1",
     "route_participation",
     "target_share_nfl",
-    "air_yards_share",
 )
+
+# air_yards_share is NOT a [0,1] unit share — it legitimately goes slightly negative (negative
+# air yards on screens). T4: gated separately with a football-plausibility + finiteness bound.
+_AIR_YARDS_SHARE_BOUNDS = (-0.5, 2.0)
 
 # Columns that are not model features (excluded from the temporal-leakage column scan; the
 # outcome column legitimately encodes T+1/T+2 and would otherwise trip the leakage pattern).
@@ -43,6 +47,8 @@ class ValidationResult:
     failures: list[str]
     drift: dict
     decision_supported: bool = False
+    null_rates: dict = field(default_factory=dict)
+    null_thresholds: dict = field(default_factory=dict)
 
 
 def _engine_b_output_columns() -> tuple[str, ...]:
@@ -177,16 +183,64 @@ def validate_feature_candidate(
                     f"range: {col} has {int(out_of_range.sum())} value(s) outside [0, 1]"
                 )
 
-    # Gate: NaN integrity — null rate per configured column must not exceed its threshold.
+    # Gate: air_yards_share plausibility — NOT a [0,1] unit share (negative air yards are
+    # legitimate). Football-semantic finite bound; a non-numeric / non-finite value FAILS
+    # EXPLICITLY — it must not silently coerce to NaN and bypass the gate.
+    if "air_yards_share" in columns:
+        raw = df["air_yards_share"]
+        numeric = pd.to_numeric(raw, errors="coerce")
+        lo, hi = _AIR_YARDS_SHARE_BOUNDS
+        # FINITE-required (Codex T4a catch + Gemini ruling): production air_yards_share is
+        # ALWAYS present (0 nulls, all positions — non-receivers are 0.0, not null), so a null,
+        # a non-numeric value coerced to NaN, or a non-finite ±inf is a data anomaly that must
+        # FAIL explicitly — never silently impute. ~np.isfinite catches all three.
+        non_finite = ~np.isfinite(numeric)
+        out_of_bound = ((numeric < lo) | (numeric > hi)) & numeric.notna()
+        n_bad = int((non_finite | out_of_bound).sum())
+        if n_bad:
+            failures.append(
+                f"range: air_yards_share has {n_bad} value(s) outside the plausibility "
+                f"bound [{lo}, {hi}] or non-finite/non-numeric/null"
+            )
+
+    # Gate: NaN integrity — null rate per configured column. snap_share is INFERENCE-SCOPED:
+    # the blocker applies only to the rows actually published/scored (feature_season ==
+    # inference_season), so a clean inference season is never masked by historical training
+    # nulls; its all-row + non-inference rates are DISCLOSED, never a blocker. Other columns
+    # stay whole-candidate.
+    null_rates: dict = {}
+    null_thresholds: dict = {}
+    non_inference_rows = (
+        df[df["feature_season"] != inference_season] if "feature_season" in columns
+        else df.iloc[0:0]
+    )
     for col, max_rate in (max_null_rate_by_column or {}).items():
         if col not in columns:
             failures.append(f"schema: null-rate column {col} is missing")
             continue
-        rate = float(df[col].isna().mean())
-        if rate > max_rate:
-            failures.append(
-                f"nan: {col} null rate {rate:.3f} exceeds max {max_rate}"
+        if col == "snap_share":
+            inf_rate = (
+                float(inference_rows[col].isna().mean()) if len(inference_rows) else 0.0
             )
+            null_rates[col] = {
+                "inference": inf_rate,
+                "all_rows": float(df[col].isna().mean()),
+                "non_inference": (
+                    float(non_inference_rows[col].isna().mean())
+                    if len(non_inference_rows) else 0.0
+                ),
+            }
+            null_thresholds[col] = {"scope": "inference", "max": max_rate}
+            if inf_rate > max_rate:
+                failures.append(
+                    f"nan: {col} inference null rate {inf_rate:.3f} exceeds max {max_rate}"
+                )
+        else:
+            rate = float(df[col].isna().mean())
+            if rate > max_rate:
+                failures.append(
+                    f"nan: {col} null rate {rate:.3f} exceeds max {max_rate}"
+                )
 
     drift = _compute_drift(df, prior_runtime)
     return ValidationResult(
@@ -194,4 +248,6 @@ def validate_feature_candidate(
         failures=failures,
         drift=drift,
         decision_supported=False,
+        null_rates=null_rates,
+        null_thresholds=null_thresholds,
     )
