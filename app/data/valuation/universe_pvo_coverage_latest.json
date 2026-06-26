@@ -11,9 +11,9 @@
   ],
   "counts_by_engine_path": {
     "ENGINE_A": 80,
-    "ENGINE_B": 373,
+    "ENGINE_B": 503,
     "INACTIVE": 2140,
-    "PRE_MODEL": 9607,
+    "PRE_MODEL": 9477,
     "UNRESOLVED_IDENTITY": 1
   },
   "decision_supported_true_count": 0,
@@ -32,6 +32,6 @@
   },
   "rostered_skill_players_missing_route": [],
   "total_players": 12201,
-  "xvar_percentile_overall_populated_count": 399,
+  "xvar_percentile_overall_populated_count": 469,
   "xvar_percentile_overall_without_xvar": []
 }

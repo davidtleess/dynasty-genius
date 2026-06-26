@@ -51,6 +51,8 @@ app/data/models/engine_b/v2_manifest.json
 app/data/models/engine_b/runs/20260513T012309Z/
 app/data/models/engine_b/runs/20260516T164503Z/
 app/data/models/engine_b/runs/v1_1_control/
+# te_v3 re-derivation 2026-06-26 (local-only)
+app/data/models/engine_b/runs/20260626T165649Z/
 
 # Head A v3 model artifacts — manifest and run outputs are local-only
 app/data/models/head_a/

@@ -1,7 +1,13 @@
 # Phase 13.3.3 TE Role-Risk Detector Decision
 
+> ⚠️ **SUPERSEDED (2026-06-26)** — the role-risk signal validated here was largely a **Tyler
+> Conklin data-contamination artifact** (one player = 35.3% of TE training rows). On the deduped
+> seed the feature is null (bake-off 2/4, `passes_acceptance=False`) and was DROPPED from the TE
+> model contract. See `docs/validation/2026-06-26-te-v3-rederivation-decision.md` (+ the
+> contamination finding). Preserved for history; do not act on this record.
+
 Date: 2026-05-16
-Status: APPROVED FOR CONTROLLED EXPERIMENT
+Status: APPROVED FOR CONTROLLED EXPERIMENT — **SUPERSEDED 2026-06-26**
 Owner: David
 
 ## Decision

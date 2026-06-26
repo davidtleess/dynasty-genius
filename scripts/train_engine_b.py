@@ -73,9 +73,12 @@ def _safe_spearman(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 def _gate(metrics_model: dict, metrics_baseline: dict) -> tuple[int, bool]:
     improvements = 0
-    if metrics_model["rmse"] < metrics_baseline["rmse"]: improvements += 1
-    if metrics_model["r2"] > metrics_baseline["r2"]:     improvements += 1
-    if metrics_model["spearman"] > metrics_baseline["spearman"]: improvements += 1
+    if metrics_model["rmse"] < metrics_baseline["rmse"]:
+        improvements += 1
+    if metrics_model["r2"] > metrics_baseline["r2"]:
+        improvements += 1
+    if metrics_model["spearman"] > metrics_baseline["spearman"]:
+        improvements += 1
     return improvements, improvements >= COMPOSITE_GATE_MIN_PASSING
 
 
@@ -111,7 +114,7 @@ def _fit_position_ridge(
 
 def train_te_deployment_model(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]:
     """Train only the deployable TE v3 artifact. Does not touch manifest or other positions."""
-    train_df = df[(df["training_eligible"] == True) & (df["position"] == "TE")].copy()
+    train_df = df[(df["training_eligible"] == True) & (df["position"] == "TE")].copy()  # noqa: E712  pandas boolean mask
     if len(train_df) < 10:
         return {"position": "TE", "skipped": True, "reason": "insufficient_rows"}
 
@@ -148,7 +151,8 @@ def train_te_deployment_model(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]
             "alpha": TE_MODEL_CHANGE_ALPHA,
         }, f)
 
-    feature_index = features.index("te_role_is_risk_profile")
+    # te_role_is_risk_profile dropped from the TE contract 2026-06-26 (contamination
+    # artifact); its coefficient is no longer reported. See the re-derivation spec.
     result = {
         "position": "TE",
         "skipped": False,
@@ -159,7 +163,6 @@ def train_te_deployment_model(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]
         "metrics_model": metrics_model,
         "metrics_baseline": metrics_baseline,
         "promotion_warranted": None,
-        "te_role_is_risk_profile_coefficient": float(model.coef_[feature_index]),
         "artifact_path": str(artifact_path),
     }
     with open(report_path, "w") as f:
@@ -171,7 +174,7 @@ def train_te_deployment_model(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]
 
 def train_v1_1_control(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]:
     """Unified Ridge with Phase 6 exclusions applied. Validation artifact only."""
-    train_df = df[df["training_eligible"] == True].copy()
+    train_df = df[df["training_eligible"] == True].copy()  # noqa: E712  pandas boolean mask
 
     available_features = [f for f in FEATURES_UNIFIED if f in train_df.columns]
 
@@ -299,7 +302,7 @@ def _load_v1_0_metrics_by_position(df: pd.DataFrame) -> dict[str, dict]:
     try:
         with open(v1_pkl, "rb") as f:
             bundle = pickle.load(f)
-        train_df = df[df["training_eligible"] == True].copy()
+        train_df = df[df["training_eligible"] == True].copy()  # noqa: E712  pandas boolean mask
         test_df = train_df[train_df["feature_season"].isin(HOLDOUT_SEASONS)]
         v1_features = [c for c in bundle["features"] if c in test_df.columns]
         imputer: SimpleImputer = bundle["imputer"]
@@ -319,7 +322,7 @@ def _load_v1_0_metrics_by_position(df: pd.DataFrame) -> dict[str, dict]:
 
 def train_v2_stratified(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]:
     """Train 4 independent RidgeCV models. Write per-position validation reports."""
-    train_df = df[df["training_eligible"] == True].copy()
+    train_df = df[df["training_eligible"] == True].copy()  # noqa: E712  pandas boolean mask
 
     # Load v1.0 per-position metrics for 3-way comparison
     v1_0_metrics = _load_v1_0_metrics_by_position(df)

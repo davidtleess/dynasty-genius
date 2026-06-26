@@ -1,7 +1,13 @@
 # Phase 13.3 TE Promotion Decision
 
+> ⚠️ **SUPERSEDED (2026-06-26)** — this promotion's evidence (incl. the all-negative role-risk
+> coefficients and the 760-row train set) was computed on a **contaminated seed** (one player =
+> 35.3% of TE training rows). te_v3 was RE-DERIVED as a 14-feature/alpha=100 model with
+> `te_role_is_risk_profile` dropped, justified by G2 stability only (accuracy within BCa noise).
+> See `docs/validation/2026-06-26-te-v3-rederivation-decision.md`. Preserved for history.
+
 **Date:** 2026-05-16
-**Status:** PROMOTED TO `ACTIVE_B`
+**Status:** PROMOTED TO `ACTIVE_B` — **SUPERSEDED 2026-06-26 (re-derived)**
 **Model:** TE v3 (`te_v3.pkl`)
 **Harness artifact:** `app/data/backtest/runs/eba2c2e4-9742-44ed-945a-8b46a0cb670f/backtest_result_TE.json`
 **Deployment artifact:** `app/data/models/engine_b/runs/20260516T164503Z/te_v3.pkl`

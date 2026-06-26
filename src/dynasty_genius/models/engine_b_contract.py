@@ -168,8 +168,11 @@ ENGINE_B_FEATURES_WR: frozenset[str] = ENGINE_B_BASE_FEATURES | frozenset({
 
 ENGINE_B_FEATURES_TE: frozenset[str] = ENGINE_B_BASE_FEATURES | frozenset({
     "weighted_opportunity", "yprr", "tprr",
-    # Phase 13.3: binary penalty from app/data/identity/te_archetype_rubric_20260516.json
-    "te_role_is_risk_profile",
+    # Phase 13.3 te_role_is_risk_profile DROPPED 2026-06-26 — its negative-coefficient
+    # promotion basis was a Tyler-Conklin contamination artifact (null on the deduped seed);
+    # re-derivation justified by G2 stability only. Still a computed column (ALLOWED_FEATURES /
+    # ENGINE_B_OUTPUT_COLUMNS), just not a TE model input. See
+    # docs/validation/2026-06-26-te-role-risk-contamination-finding.md + the re-derivation spec.
 })
 
 ENGINE_B_FEATURES_BY_POSITION: dict[str, frozenset[str]] = {

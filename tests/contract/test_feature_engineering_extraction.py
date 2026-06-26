@@ -4,6 +4,7 @@ import importlib
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -181,6 +182,79 @@ def _feature_frames() -> dict[str, pd.DataFrame]:
     }
 
 
+def _crosswalk_collision_frames() -> dict[str, pd.DataFrame]:
+    frames = _feature_frames()
+    rosters = frames["rosters"].copy()
+    snaps = frames["snap_counts"].copy()
+
+    # Same GSIS player, stale/wrong PFR id in a different season. The old seasonless
+    # crosswalk maps both pfr ids to wr1 for every season and fans out the snap join.
+    rosters.loc[
+        (rosters["gsis_id"] == "wr1") & (rosters["season"] == 2024),
+        "pfr_id",
+    ] = "pfr-wrong-wr1"
+    snaps = pd.concat(
+        [
+            snaps,
+            pd.DataFrame(
+                [
+                    {
+                        "pfr_player_id": "pfr-wrong-wr1",
+                        "season": 2025,
+                        "offense_pct": 0.20,
+                    }
+                ]
+            ),
+        ],
+        ignore_index=True,
+    )
+    frames["rosters"] = rosters
+    frames["snap_counts"] = snaps
+    return frames
+
+
+def _within_season_collision_frames() -> dict[str, pd.DataFrame]:
+    frames = _feature_frames()
+    rosters = frames["rosters"].copy()
+    snaps = frames["snap_counts"].copy()
+
+    rosters = pd.concat(
+        [
+            rosters,
+            pd.DataFrame(
+                [
+                    {
+                        "gsis_id": "wr1",
+                        "season": 2025,
+                        "birth_date": "2000-01-01",
+                        "depth_chart_position": "WR1",
+                        "pfr_id": "pfr-wr1-collision",
+                    }
+                ]
+            ),
+        ],
+        ignore_index=True,
+    )
+    snaps = pd.concat(
+        [
+            snaps,
+            pd.DataFrame(
+                [
+                    {
+                        "pfr_player_id": "pfr-wr1-collision",
+                        "season": 2025,
+                        "offense_pct": 0.25,
+                    }
+                ]
+            ),
+        ],
+        ignore_index=True,
+    )
+    frames["rosters"] = rosters
+    frames["snap_counts"] = snaps
+    return frames
+
+
 def test_build_engine_b_features_extracts_real_engineering_values() -> None:
     assembly = importlib.import_module("src.dynasty_genius.features.feature_assembly")
     engine_b_script = importlib.import_module("scripts.assemble_engine_b_dataset")
@@ -254,6 +328,67 @@ def test_assemble_feature_candidate_uses_full_engineering_after_t1b() -> None:
     assert wr_2025["snap_share"] == 0.80
     assert wr_2025["route_participation"] == 1.0
     assert wr_2025["yprr"] == 75.0
+
+
+def test_snap_share_crosswalk_is_season_aware_and_does_not_fan_out_rows() -> None:
+    assembly = importlib.import_module("src.dynasty_genius.features.feature_assembly")
+
+    candidate = assembly.build_engine_b_features(
+        seasons_window=[2023, 2024, 2025],
+        read_fns=_crosswalk_collision_frames(),
+    )
+    wr_rows = candidate[
+        (candidate["player_id"] == "wr1") & (candidate["feature_season"] == 2025)
+    ]
+
+    assert len(wr_rows) == 1
+    assert not candidate.duplicated(["player_id", "feature_season"]).any()
+
+
+def test_snap_share_crosswalk_keeps_correct_player_snap_not_wrong_pfr_or_average() -> None:
+    assembly = importlib.import_module("src.dynasty_genius.features.feature_assembly")
+
+    candidate = assembly.build_engine_b_features(
+        seasons_window=[2023, 2024, 2025],
+        read_fns=_crosswalk_collision_frames(),
+    )
+    wr_rows = candidate[
+        (candidate["player_id"] == "wr1") & (candidate["feature_season"] == 2025)
+    ]
+
+    assert wr_rows["snap_share"].tolist() == [0.80]
+
+
+def test_snap_share_crosswalk_raises_on_within_season_one_to_many_collision() -> None:
+    assembly = importlib.import_module("src.dynasty_genius.features.feature_assembly")
+
+    with pytest.raises(ValueError, match="snap.*crosswalk|duplicate.*snap"):
+        assembly.build_engine_b_features(
+            seasons_window=[2023, 2024, 2025],
+            read_fns=_within_season_collision_frames(),
+        )
+
+
+def test_snap_share_crosswalk_preserves_left_join_missing_snap_as_null() -> None:
+    assembly = importlib.import_module("src.dynasty_genius.features.feature_assembly")
+    frames = _feature_frames()
+    snaps = frames["snap_counts"]
+    frames["snap_counts"] = snaps[
+        ~(
+            (snaps["pfr_player_id"] == "pfr-te1")
+            & (snaps["season"] == 2025)
+        )
+    ].reset_index(drop=True)
+
+    candidate = assembly.build_engine_b_features(
+        seasons_window=[2023, 2024, 2025],
+        read_fns=frames,
+    )
+    te_2025 = candidate[
+        (candidate["player_id"] == "te1") & (candidate["feature_season"] == 2025)
+    ].iloc[0]
+
+    assert pd.isna(te_2025["snap_share"])
 
 
 def test_assemble_engine_b_dataset_delegates_to_shared_builder() -> None:

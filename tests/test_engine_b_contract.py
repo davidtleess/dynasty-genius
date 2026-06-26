@@ -225,6 +225,12 @@ def test_te_features_include_receiver_metrics():
         assert col in ENGINE_B_FEATURES_TE, f"TE contract missing {col}"
 
 
+def test_te_features_match_rederived_14_feature_contract():
+    expected = _BASE | {"weighted_opportunity", "yprr", "tprr"}
+    assert ENGINE_B_FEATURES_TE == expected
+    assert "te_role_is_risk_profile" not in ENGINE_B_FEATURES_TE
+
+
 def test_qb_efficiency_excluded_from_rb_wr_te():
     qb_only = {"epa_per_dropback", "cpoe", "dakota", "is_dual_threat"}
     for pos in ("RB", "WR", "TE"):
