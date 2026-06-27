@@ -28,7 +28,7 @@ def _clean_candidate() -> pd.DataFrame:
                 "total_points_t": 144.0,
                 "ppg_t_minus_2": 9.0,
                 "dakota": 0.11 if pos == "QB" else np.nan,
-                "air_yards_share": 0.28 if pos in {"WR", "TE"} else np.nan,
+                "air_yards_share": 0.28 if pos in {"WR", "TE"} else 0.0,
                 "aging_curve_value": 0.98,
                 "target_share_nfl": 0.24 if pos in {"WR", "TE"} else np.nan,
                 "yprr": 1.8 if pos in {"WR", "TE"} else np.nan,
@@ -69,6 +69,19 @@ def _validate(df: pd.DataFrame, **kwargs):
     )
 
 
+def _validate_large_candidate(df: pd.DataFrame, **kwargs):
+    validation = importlib.import_module("src.dynasty_genius.features.feature_validation")
+    return validation.validate_feature_candidate(
+        df,
+        inference_season=2025,
+        min_total_rows=4,
+        min_position_rows={"QB": 1, "RB": 1, "WR": 1, "TE": 1},
+        critical_features=("snap_share", "games_t", "ppg_t", "age"),
+        max_null_rate_by_column={"snap_share": 0.01, "games_t": 0.0, "ppg_t": 0.0},
+        prior_runtime=kwargs.get("prior_runtime"),
+    )
+
+
 def test_clean_feature_candidate_passes_and_reports_drift_without_blocking() -> None:
     candidate = _clean_candidate()
     prior = candidate.copy()
@@ -82,6 +95,87 @@ def test_clean_feature_candidate_passes_and_reports_drift_without_blocking() -> 
     assert result.drift["row_count"]["candidate"] == len(candidate)
     assert result.drift["row_count"]["prior_runtime"] == len(prior)
     assert "snap_share" in result.drift["numeric_mean_delta"]
+
+
+def test_air_yards_share_small_negative_passes_semantic_plausibility_gate() -> None:
+    candidate = _clean_candidate()
+    candidate.loc[candidate["position"].isin(["WR", "TE"]), "air_yards_share"] = -0.041
+
+    result = _validate(candidate)
+
+    assert result.ok is True
+    assert not any("air_yards_share" in failure for failure in result.failures)
+
+
+@pytest.mark.parametrize(
+    "bad_value",
+    [10.0, float("inf"), float("-inf"), float("nan"), np.nan, "not-a-number"],
+)
+def test_air_yards_share_garbage_fails_semantic_plausibility_gate(
+    bad_value: object,
+) -> None:
+    candidate = _clean_candidate()
+    if isinstance(bad_value, str):
+        candidate["air_yards_share"] = candidate["air_yards_share"].astype("object")
+    candidate.loc[candidate["position"].isin(["WR", "TE"]), "air_yards_share"] = bad_value
+
+    result = _validate(candidate)
+
+    assert result.ok is False
+    assert any(
+        "air_yards_share" in failure and "range" in failure.lower()
+        for failure in result.failures
+    )
+
+
+def _snap_null_candidate(
+    *,
+    inference_null_count: int,
+    non_inference_null_count: int,
+) -> pd.DataFrame:
+    rows = [_clean_candidate() for _ in range(25)]
+    candidate = pd.concat(rows, ignore_index=True)
+    candidate["player_id"] = [
+        f"{row.player_id}-{idx}" for idx, row in enumerate(candidate.itertuples())
+    ]
+
+    inference_idx = candidate.index[candidate["feature_season"] == 2025].tolist()
+    non_inference_idx = candidate.index[candidate["feature_season"] != 2025].tolist()
+    candidate.loc[inference_idx[:inference_null_count], "snap_share"] = np.nan
+    candidate.loc[non_inference_idx[:non_inference_null_count], "snap_share"] = np.nan
+    return candidate
+
+
+def test_snap_share_null_gate_uses_inference_rows_not_whole_candidate() -> None:
+    candidate = _snap_null_candidate(
+        inference_null_count=0,
+        non_inference_null_count=14,
+    )
+
+    result = _validate_large_candidate(candidate)
+
+    assert result.ok is True
+    assert result.decision_supported is False
+    assert result.null_rates["snap_share"]["inference"] == 0.0
+    assert result.null_rates["snap_share"]["all_rows"] > 0.05
+    assert result.null_rates["snap_share"]["non_inference"] > 0.1
+    assert result.null_thresholds["snap_share"] == {"scope": "inference", "max": 0.01}
+
+
+def test_snap_share_null_gate_fails_when_inference_rows_degrade() -> None:
+    candidate = _snap_null_candidate(
+        inference_null_count=3,
+        non_inference_null_count=0,
+    )
+
+    result = _validate_large_candidate(candidate)
+
+    assert result.ok is False
+    assert result.null_rates["snap_share"]["inference"] > 0.01
+    assert any(
+        "snap_share" in failure and "inference" in failure.lower()
+        for failure in result.failures
+    )
 
 
 @pytest.mark.parametrize(

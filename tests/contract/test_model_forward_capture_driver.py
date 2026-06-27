@@ -23,6 +23,7 @@ from src.dynasty_genius.capture.model_forward_capture_store import (
     MODEL_PVO_SOURCE,
     ModelForwardCaptureStore,
 )
+from src.dynasty_genius.features.feature_source import ResolvedFeatureSource
 
 PVO_PATH = Path("app/data/valuation/universe_pvo_latest.json")
 COVERAGE_PATH = Path("app/data/valuation/universe_pvo_coverage_latest.json")
@@ -194,6 +195,17 @@ def _reader(data: dict[Path, bytes]):
     return read_artifact
 
 
+def _fixture_feature_source() -> ResolvedFeatureSource:
+    return ResolvedFeatureSource(
+        path=ENGINE_B_FEATURE_CSV_PATH,
+        source_kind="seed",
+        sha256="fixture-feature-sha",
+        source_as_of=None,
+        ready=True,
+        published_seed_sha256="fixture-feature-sha",
+    )
+
+
 def _now(day: int = 24):
     return lambda: datetime(2026, 6, day, 15, 0, tzinfo=timezone.utc)
 
@@ -210,6 +222,7 @@ def test_capture_reads_artifacts_appends_store_and_emits_section5_report(tmp_pat
         read_artifact=_reader(artifacts),
         now_fn=_now(),
         git_sha_fn=lambda: "docs-only-sha",
+        feature_source=_fixture_feature_source(),
     )
 
     assert report["status"] == "ok"
@@ -316,6 +329,7 @@ def test_semantic_and_provenance_hashes_ignore_volatile_timestamps_and_git_sha(
         read_artifact=_reader(base),
         now_fn=_now(24),
         git_sha_fn=lambda: "git-sha-a",
+        feature_source=_fixture_feature_source(),
     )
     report2 = capture_model_pvo_snapshot(
         db_path=tmp_path / "model_forward.db",
@@ -325,6 +339,7 @@ def test_semantic_and_provenance_hashes_ignore_volatile_timestamps_and_git_sha(
         read_artifact=_reader({**base, PVO_PATH: changed_pvo}),
         now_fn=_now(25),
         git_sha_fn=lambda: "git-sha-b",
+        feature_source=_fixture_feature_source(),
     )
 
     assert report1["status"] == "ok"
@@ -356,6 +371,7 @@ def test_missing_malformed_or_empty_artifact_aborts_without_store_write(
         read_artifact=_reader(artifacts),
         now_fn=_now(),
         git_sha_fn=lambda: "git-sha",
+        feature_source=_fixture_feature_source(),
     )
 
     assert report["status"] == "aborted"
@@ -379,6 +395,7 @@ def test_required_model_provenance_missing_aborts_before_write(tmp_path) -> None
         read_artifact=_reader(artifacts),
         now_fn=_now(),
         git_sha_fn=lambda: "git-sha",
+        feature_source=_fixture_feature_source(),
     )
 
     assert report["status"] == "aborted"
@@ -414,6 +431,7 @@ def test_missing_model_supported_row_lineage_aborts_before_write(
         read_artifact=_reader(artifacts),
         now_fn=_now(),
         git_sha_fn=lambda: "git-sha",
+        feature_source=_fixture_feature_source(),
     )
 
     assert report["status"] == "aborted"

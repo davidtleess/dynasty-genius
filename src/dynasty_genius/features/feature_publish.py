@@ -31,7 +31,10 @@ _REPORT_NAME = "feature_refresh_latest_report.json"
 # committed seed satisfies.
 DEFAULT_CRITICAL_FEATURES: tuple[str, ...] = ("snap_share", "games_t", "ppg_t", "age")
 DEFAULT_MAX_NULL_RATE_BY_COLUMN: dict[str, float] = {
-    "snap_share": 0.0,
+    # T4: snap_share is INFERENCE-SCOPED in the gate (the blocker applies only to the rows
+    # actually published) — 1% floor, well above the ~0.2% real inference null rate; the
+    # historical/all-row rate is disclosed, not blocking.
+    "snap_share": 0.01,
     "games_t": 0.0,
     "ppg_t": 0.0,
 }
@@ -60,6 +63,10 @@ def _validation_payload(validation: ValidationResult) -> dict:
         "ok": validation.ok,
         "failures": validation.failures,
         "drift": validation.drift,
+        # T4: honest missing-data disclosure (inference-gated + all-row/non-inference rates)
+        # in BOTH the report and the ready marker — no false 100%-completeness certainty.
+        "null_rates": validation.null_rates,
+        "null_thresholds": validation.null_thresholds,
     }
 
 
