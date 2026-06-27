@@ -170,3 +170,96 @@ def test_git_status_porcelain_provider_handles_rename_records_from_z_output(
     lines = module._git_status_porcelain()
 
     assert lines == ["R  docs/strategies/new report.md"]
+
+
+def test_scan_gemini_ledger_violations_only_flags_banned_terms_in_gemini_sections():
+    module = _hygiene_module()
+    ledger_text = "\n".join(
+        [
+            "# Agent Ledger - 2026-06-27",
+            "",
+            "## 09:00 ET - Claude",
+            "- Governance CLEAR and unanimous are ignored outside Gemini.",
+            "",
+            "## 09:05 ET - Gemini (Product Manager)",
+            "- Product-edge note.",
+            "- Governance CLEAR should be flagged.",
+            "",
+            "## 09:10 ET - Codex",
+            "- the loop is closed is ignored outside Gemini.",
+        ]
+    )
+
+    violations = module.scan_gemini_ledger_violations(ledger_text)
+
+    assert violations == [
+        (8, "Governance CLEAR", "- Governance CLEAR should be flagged.")
+    ]
+
+
+def test_scan_gemini_ledger_violations_allows_clean_gemini_sections():
+    module = _hygiene_module()
+    ledger_text = "\n".join(
+        [
+            "# Agent Ledger - 2026-06-27",
+            "",
+            "## 09:05 ET - Gemini (Product Manager)",
+            "- Product-edge concern: this may overclaim user value.",
+            "- Recommendation: verify current NFL context before surfacing.",
+            "",
+            "## 09:10 ET - Claude",
+            "- consensus lock is ignored outside Gemini.",
+        ]
+    )
+
+    assert module.scan_gemini_ledger_violations(ledger_text) == []
+
+
+def test_gemini_ledger_scan_cli_reports_violations_and_returns_nonzero(
+    tmp_path,
+    capsys,
+):
+    module = _hygiene_module()
+    ledger_path = tmp_path / "2026-06-27.md"
+    ledger_path.write_text(
+        "\n".join(
+            [
+                "# Agent Ledger - 2026-06-27",
+                "",
+                "## 09:05 ET - Gemini (Product Manager)",
+                "- Status: APPROVED",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = module.main(["--gemini-ledger-scan", str(ledger_path)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert (
+        f"Gemini lane violation detected: {ledger_path}:4 "
+        "\u2014 Status: APPROVED"
+    ) in captured.err
+
+
+def test_gemini_ledger_scan_cli_returns_zero_for_clean_ledger(tmp_path, capsys):
+    module = _hygiene_module()
+    ledger_path = tmp_path / "2026-06-27.md"
+    ledger_path.write_text(
+        "\n".join(
+            [
+                "# Agent Ledger - 2026-06-27",
+                "",
+                "## 09:05 ET - Gemini (Product Manager)",
+                "- Product objection: quote the source before making this claim.",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = module.main(["--gemini-ledger-scan", str(ledger_path)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.err == ""
