@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from tests.contract.test_feature_validation import _clean_candidate
@@ -18,6 +19,22 @@ def _write_candidate(path: Path, frame: pd.DataFrame | None = None) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(path, index=False)
     return path
+
+
+def _snap_null_candidate(
+    *,
+    inference_null_count: int,
+    non_inference_null_count: int,
+) -> pd.DataFrame:
+    candidate = pd.concat([_clean_candidate() for _ in range(25)], ignore_index=True)
+    candidate["player_id"] = [
+        f"{row.player_id}-{idx}" for idx, row in enumerate(candidate.itertuples())
+    ]
+    inference_idx = candidate.index[candidate["feature_season"] == 2025].tolist()
+    non_inference_idx = candidate.index[candidate["feature_season"] != 2025].tolist()
+    candidate.loc[inference_idx[:inference_null_count], "snap_share"] = np.nan
+    candidate.loc[non_inference_idx[:non_inference_null_count], "snap_share"] = np.nan
+    return candidate
 
 
 def test_publish_runtime_valid_candidate_writes_runtime_ready_marker_and_report(
@@ -54,6 +71,101 @@ def test_publish_runtime_valid_candidate_writes_runtime_ready_marker_and_report(
     assert report["decision_supported"] is False
     assert report["validation"]["ok"] is True
     assert str(runtime_path) in result["dirty_paths"]
+
+
+def test_publish_runtime_defaults_snap_share_null_gate_to_inference_one_percent(
+    tmp_path: Path,
+) -> None:
+    publish = _publish_module()
+    runtime_dir = tmp_path / "features_runtime"
+    candidate = _snap_null_candidate(inference_null_count=0, non_inference_null_count=14)
+    candidate_path = _write_candidate(
+        runtime_dir / "engine_b_features_candidate.csv",
+        candidate,
+    )
+
+    result = publish.publish_runtime(
+        candidate_path,
+        runtime_dir=runtime_dir,
+        inference_season=2025,
+        min_total_rows=4,
+        min_position_rows={"QB": 1, "RB": 1, "WR": 1, "TE": 1},
+    )
+
+    assert result["status"] == "ok"
+    report = json.loads((runtime_dir / "feature_refresh_latest_report.json").read_text())
+    ready = json.loads((runtime_dir / "engine_b_features_runtime.ready.json").read_text())
+    for payload in (report, ready):
+        validation = payload["validation"]
+        assert validation["null_rates"]["snap_share"]["inference"] == 0.0
+        assert validation["null_rates"]["snap_share"]["all_rows"] > 0.05
+        assert validation["null_rates"]["snap_share"]["non_inference"] > 0.1
+        assert validation["null_thresholds"]["snap_share"] == {
+            "scope": "inference",
+            "max": 0.01,
+        }
+        assert payload["decision_supported"] is False
+
+
+def test_publish_runtime_allows_inference_snap_share_null_rate_at_one_percent(
+    tmp_path: Path,
+) -> None:
+    publish = _publish_module()
+    runtime_dir = tmp_path / "features_runtime"
+    candidate = _snap_null_candidate(inference_null_count=1, non_inference_null_count=0)
+    candidate_path = _write_candidate(
+        runtime_dir / "engine_b_features_candidate.csv",
+        candidate,
+    )
+
+    result = publish.publish_runtime(
+        candidate_path,
+        runtime_dir=runtime_dir,
+        inference_season=2025,
+        min_total_rows=4,
+        min_position_rows={"QB": 1, "RB": 1, "WR": 1, "TE": 1},
+    )
+
+    assert result["status"] == "ok"
+    ready = json.loads((runtime_dir / "engine_b_features_runtime.ready.json").read_text())
+    validation = ready["validation"]
+    assert 0.0 < validation["null_rates"]["snap_share"]["inference"] <= 0.01
+    assert validation["null_thresholds"]["snap_share"] == {
+        "scope": "inference",
+        "max": 0.01,
+    }
+
+
+def test_publish_runtime_blocks_when_inference_snap_share_null_rate_exceeds_one_percent(
+    tmp_path: Path,
+) -> None:
+    publish = _publish_module()
+    runtime_dir = tmp_path / "features_runtime"
+    candidate = _snap_null_candidate(inference_null_count=3, non_inference_null_count=0)
+    candidate_path = _write_candidate(
+        runtime_dir / "engine_b_features_candidate.csv",
+        candidate,
+    )
+
+    result = publish.publish_runtime(
+        candidate_path,
+        runtime_dir=runtime_dir,
+        inference_season=2025,
+        min_total_rows=4,
+        min_position_rows={"QB": 1, "RB": 1, "WR": 1, "TE": 1},
+    )
+
+    assert result["status"] == "blocked"
+    assert result["publish_performed"] is False
+    assert not (runtime_dir / "engine_b_features_runtime.ready.json").exists()
+    report = json.loads((runtime_dir / "feature_refresh_latest_report.json").read_text())
+    validation = report["validation"]
+    assert validation["null_rates"]["snap_share"]["inference"] > 0.01
+    assert validation["null_thresholds"]["snap_share"] == {
+        "scope": "inference",
+        "max": 0.01,
+    }
+    assert any("snap_share inference null rate" in failure for failure in validation["failures"])
 
 
 def test_publish_runtime_invalid_candidate_does_not_replace_prior_valid_runtime(
