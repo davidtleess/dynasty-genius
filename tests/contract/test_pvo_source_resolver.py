@@ -33,6 +33,9 @@ PVO_DIRECT_REFERENCE_ALLOWLIST = {
     "scripts/run_league_intelligence_refresh.py": (
         "legacy David-gated seed-writing orchestrator; consumer migration is out of scope"
     ),
+    "scripts/promote_pvo_seed.py": (
+        "David-gated tool that copies the verified runtime to the committed seed paths"
+    ),
 }
 
 _PVO_SEED_NAME = "universe_pvo_latest.json"
@@ -401,6 +404,7 @@ def test_pvo_direct_reference_allowlist_has_explicit_rationales() -> None:
         "scripts/run_pvo_refresh.py",
         "scripts/validate_surface3_regen_integrity.py",
         "scripts/run_league_intelligence_refresh.py",
+        "scripts/promote_pvo_seed.py",
     }
     assert set(PVO_DIRECT_REFERENCE_ALLOWLIST) == required_allowlist
     for rationale in PVO_DIRECT_REFERENCE_ALLOWLIST.values():
