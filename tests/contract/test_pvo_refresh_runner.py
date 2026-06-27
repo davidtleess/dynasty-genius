@@ -895,3 +895,31 @@ def test_refresh_runner_loads_standalone_from_outside_repo(tmp_path: Path) -> No
     )
 
     assert result.returncode == 0, result.stderr
+
+
+def test_pvo_seed_pair_is_tracked_and_runtime_dir_is_gitignored() -> None:
+    """T3: the PVO latest pair is the committed seed; runtime output is local-only."""
+    seed_paths = {
+        "app/data/valuation/universe_pvo_latest.json",
+        "app/data/valuation/universe_pvo_coverage_latest.json",
+    }
+    tracked = subprocess.run(
+        ["git", "ls-files", *sorted(seed_paths)],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
+    assert set(tracked) == seed_paths
+
+    ignored_runtime_paths = [
+        "app/data/valuation_runtime/universe_pvo_runtime.json",
+        "app/data/valuation_runtime/universe_pvo_coverage_runtime.json",
+        "app/data/valuation_runtime/universe_pvo_runtime.ready.json",
+        "app/data/valuation_runtime/pvo_refresh_latest_report.json",
+    ]
+    for runtime_path in ignored_runtime_paths:
+        ignored = subprocess.run(
+            ["git", "check-ignore", "--quiet", runtime_path],
+            check=False,
+        )
+        assert ignored.returncode == 0, f"{runtime_path} must be gitignored"
