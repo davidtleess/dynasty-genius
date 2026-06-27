@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from datetime import datetime, timezone
@@ -134,7 +135,18 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
     return pvos
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    # F-seed-split T2a: the output dir is now injectable so a scheduled refresh can steer the
+    # producer at a temp/runtime location instead of the tracked seed dir. Default stays
+    # OUTPUT_DIR for back-compat (a bare manual run still writes the tracked latest paths).
+    parser = argparse.ArgumentParser(
+        description="Build Phase 17.2 full-universe PVO batch artifacts."
+    )
+    parser.add_argument("--output-dir", default=None)
+    parser.add_argument("--run-id", default=None)
+    args = parser.parse_args(argv)
+
+    output_dir = Path(args.output_dir) if args.output_dir else OUTPUT_DIR
     snapshot = _load_json(SNAPSHOT_PATH)
     captured_at = datetime.now(timezone.utc).isoformat()
     batch = build_universe_pvo_batch(
@@ -143,11 +155,11 @@ def main() -> None:
         active_pvos=_active_pvos_from_engine_b(),
         captured_at=captured_at,
     )
-    run_id = datetime.now(timezone.utc).strftime("phase17-2-%Y%m%dT%H%M%SZ")
-    paths = write_universe_pvo_artifacts(batch, output_dir=OUTPUT_DIR, run_id=run_id)
+    run_id = args.run_id or datetime.now(timezone.utc).strftime("phase17-2-%Y%m%dT%H%M%SZ")
+    paths = write_universe_pvo_artifacts(batch, output_dir=output_dir, run_id=run_id)
     print(f"Wrote Phase 17.2 universe PVO batch: {paths['batch']}")
     print(f"Wrote Phase 17.2 PVO coverage report: {paths['coverage']}")
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

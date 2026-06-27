@@ -17,9 +17,12 @@ Spec: docs/superpowers/specs/2026-06-24-model-output-forward-capture-brick-desig
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -39,6 +42,16 @@ from src.dynasty_genius.capture.model_forward_capture_driver import (  # noqa: E
 DEFAULT_PVO_PATH = "app/data/valuation/universe_pvo_latest.json"
 DEFAULT_COVERAGE_PATH = "app/data/valuation/universe_pvo_coverage_latest.json"
 PHASE = "phase17_2_pvo_rebuild_only"
+
+# F-seed-split T2a: gitignored runtime artifact + marker names. MUST match the names the
+# resolver reads in src/dynasty_genius/pvo_source.py (single source of the runtime contract).
+_RUNTIME_PVO_NAME = "universe_pvo_runtime.json"
+_RUNTIME_COVERAGE_NAME = "universe_pvo_coverage_runtime.json"
+_RUNTIME_MARKER_NAME = "universe_pvo_runtime.ready.json"
+# Default gitignored runtime dir for the scheduled refresh, and the producer run-id whose
+# output filenames equal the publisher's candidate paths (universe_pvo_<run_id>.json).
+DEFAULT_RUNTIME_DIR = "app/data/valuation_runtime"
+_CANDIDATE_RUN_ID = "candidate"
 _FORBIDDEN_TOKENS = (
     "refresh_league_intelligence",
     "assemble_engine_b_dataset",
@@ -75,8 +88,20 @@ def _git_head_sha() -> str:
 
 
 def _phase17_2_refresh(*, pvo_artifact_path: Path, coverage_artifact_path: Path) -> None:
-    """Default refresh: run ONLY the Phase-17.2 PVO rebuild producer (no chain, no commit)."""
-    cmd = [sys.executable, str(ROOT / "scripts" / "build_universe_pvo_batch.py")]
+    """Run ONLY the Phase-17.2 PVO rebuild producer into the candidate paths' dir (no chain,
+    no commit). F-seed-split T2a: steer the producer at the CANDIDATE output dir via
+    --output-dir under the 'candidate' run-id, so it writes exactly the candidate pair the
+    publisher promotes (universe_pvo_candidate.json / universe_pvo_coverage_candidate.json) —
+    a temp/runtime location, never the tracked seed dir when called in runtime mode."""
+    out_dir = Path(pvo_artifact_path).parent
+    cmd = [
+        sys.executable,
+        str(ROOT / "scripts" / "build_universe_pvo_batch.py"),
+        "--output-dir",
+        str(out_dir),
+        "--run-id",
+        _CANDIDATE_RUN_ID,
+    ]
     assert_allowed_refresh_command(cmd)
     subprocess.run(cmd, cwd=str(ROOT), check=True)
 
@@ -121,24 +146,184 @@ def _artifact_hashes(
     }
 
 
+def _atomic_write_bytes(path: Path, data: bytes) -> None:
+    tmp = Path(f"{path}.tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, path)
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    tmp = Path(f"{path}.tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
+def _restore_bytes(path: Path, prior: Optional[bytes]) -> None:
+    """Restore a runtime path to its pre-publish bytes (or remove it if there were none)."""
+    if prior is not None:
+        path.write_bytes(prior)
+    elif path.exists():
+        path.unlink()
+
+
+def _publish_runtime(
+    *,
+    runtime_dir: Path,
+    refresh_fn: Callable[..., None],
+    report_path: Optional[Path],
+    capture_fn: Optional[Callable[..., dict]],
+    capture_db_path: Optional[Path],
+    capture_report_path: Optional[Path],
+    read_artifact: Callable[[Any], bytes],
+    now_fn: Callable[[], datetime],
+) -> dict[str, Any]:
+    """F-seed-split T2a: publish the PVO pair to the gitignored runtime dir (seed-split mode).
+
+    The producer writes a CANDIDATE pair into a temp dir OUTSIDE the runtime dir; we then
+    ATOMICALLY promote the pair (+ a both-hash ready marker) into ``runtime_dir`` via
+    temp-then-rename, backing up the prior runtime first and restoring it on ANY publish
+    failure (never a half-written runtime). The tracked seed path is NEVER written, so
+    ``dirty_paths`` is empty and a baseline commit is NOT required (Option C, no auto-commit)."""
+    runtime_dir = Path(runtime_dir)
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    runtime_pvo = runtime_dir / _RUNTIME_PVO_NAME
+    runtime_coverage = runtime_dir / _RUNTIME_COVERAGE_NAME
+    marker_path = runtime_dir / _RUNTIME_MARKER_NAME
+
+    def _persist(report: dict) -> dict:
+        if report_path is not None:
+            Path(report_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(report_path).write_text(json.dumps(report, indent=2, sort_keys=True))
+        return report
+
+    # 1. Producer writes the candidate pair into a temp dir OUTSIDE runtime_dir (so a producer
+    #    failure cannot touch the prior runtime, and the seed path is never a candidate target).
+    with tempfile.TemporaryDirectory(prefix="pvo_candidate_") as tmp:
+        cand_pvo = Path(tmp) / "universe_pvo_candidate.json"
+        cand_coverage = Path(tmp) / "universe_pvo_coverage_candidate.json"
+        try:
+            refresh_fn(pvo_artifact_path=cand_pvo, coverage_artifact_path=cand_coverage)
+            pvo_bytes = cand_pvo.read_bytes()
+            coverage_bytes = cand_coverage.read_bytes()
+        except Exception as exc:  # producer/candidate failure: runtime dir untouched
+            return _persist(
+                {
+                    "status": "aborted",
+                    "aborted_stage": "refresh",
+                    "aborted_reason": str(exc),
+                    "restored_from_backup": False,
+                    "decision_supported": False,
+                    "commit_required_for_repo_baseline": False,
+                    "dirty_paths": [],
+                }
+            )
+
+    # 2. Atomically promote the pair + marker, backing up the prior runtime for restore-on-fail.
+    prior = {
+        p: (p.read_bytes() if p.exists() else None)
+        for p in (runtime_pvo, runtime_coverage, marker_path)
+    }
+    pvo_sha = hashlib.sha256(pvo_bytes).hexdigest()
+    coverage_sha = hashlib.sha256(coverage_bytes).hexdigest()
+    marker = {
+        "status": "ok",
+        "pvo_sha256": pvo_sha,
+        "coverage_sha256": coverage_sha,
+        "source_as_of": now_fn().isoformat(),
+        "decision_supported": False,
+    }
+    try:
+        _atomic_write_bytes(runtime_pvo, pvo_bytes)
+        _atomic_write_bytes(runtime_coverage, coverage_bytes)
+        _atomic_write_text(marker_path, json.dumps(marker, sort_keys=True))
+    except Exception as exc:  # restore the prior runtime pair + marker byte-identical
+        for path, prior_bytes in prior.items():
+            _restore_bytes(path, prior_bytes)
+        return _persist(
+            {
+                "status": "aborted",
+                "aborted_stage": "publish",
+                "aborted_reason": str(exc),
+                "restored_from_backup": True,
+                "decision_supported": False,
+                "commit_required_for_repo_baseline": False,
+                "dirty_paths": [],
+            }
+        )
+
+    report: dict[str, Any] = {
+        "status": "ok",
+        "decision_supported": False,
+        "runtime": {
+            "pvo_path": str(runtime_pvo),
+            "coverage_path": str(runtime_coverage),
+            "ready_marker_path": str(marker_path),
+            "pvo_sha256": pvo_sha,
+            "coverage_sha256": coverage_sha,
+        },
+        "dirty_paths": [],
+        "commit_required_for_repo_baseline": False,
+    }
+
+    # 3. Optional capture stage over the published RUNTIME pair. A capture failure does NOT
+    #    restore the runtime (the refresh already succeeded) — it records a capture-stage abort.
+    if capture_fn is not None:
+        try:
+            report["capture_report"] = capture_fn(
+                db_path=capture_db_path,
+                report_path=capture_report_path,
+                pvo_artifact_path=runtime_pvo,
+                coverage_artifact_path=runtime_coverage,
+                read_artifact=read_artifact,
+                now_fn=now_fn,
+                git_sha_fn=lambda: _git_head_sha(),
+            )
+        except Exception as exc:
+            report.update(
+                {
+                    "status": "aborted",
+                    "aborted_stage": "capture",
+                    "aborted_reason": str(exc),
+                    "restored_from_backup": False,
+                }
+            )
+
+    return _persist(report)
+
+
 def run_pvo_refresh(
     *,
     pvo_artifact_path: Path,
     coverage_artifact_path: Path,
     report_path: Optional[Path],
     refresh_fn: Callable[..., None],
+    runtime_dir: Optional[Path | str] = None,
     capture_fn: Optional[Callable[..., dict]] = None,
     capture_db_path: Optional[Path] = None,
     capture_report_path: Optional[Path] = None,
     read_artifact: Optional[Callable[[Any], bytes]] = None,
     feature_source: Optional[Any] = None,
 ) -> dict[str, Any]:
-    """Refresh the two PVO artifacts in place (Option C), then optionally capture.
+    """Refresh the two PVO artifacts, then optionally capture.
 
-    ``feature_source`` may pin a ``ResolvedFeatureSource`` for hermetic tests; when None the
-    ambient resolver runs so a production refresh hashes the published runtime."""
+    ``runtime_dir`` (F-seed-split T2a): when given, publish into the gitignored runtime dir
+    (seed-split mode — the tracked seed path is never written); when None, the legacy in-place
+    Option-C refresh runs (back-compat). ``feature_source`` may pin a ``ResolvedFeatureSource``
+    for hermetic tests; when None the ambient resolver runs so a production refresh hashes the
+    published runtime."""
     if read_artifact is None:
         read_artifact = lambda path: Path(path).read_bytes()  # noqa: E731
+    if runtime_dir is not None:
+        return _publish_runtime(
+            runtime_dir=Path(runtime_dir),
+            refresh_fn=refresh_fn,
+            report_path=report_path,
+            capture_fn=capture_fn,
+            capture_db_path=capture_db_path,
+            capture_report_path=capture_report_path,
+            read_artifact=read_artifact,
+            now_fn=lambda: datetime.now(timezone.utc),
+        )
     pvo = Path(pvo_artifact_path)
     coverage = Path(coverage_artifact_path)
     pre_pvo_bytes = pvo.read_bytes()
@@ -252,6 +437,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     parser.add_argument("--pvo-artifact-path", default=DEFAULT_PVO_PATH)
     parser.add_argument("--coverage-artifact-path", default=DEFAULT_COVERAGE_PATH)
+    parser.add_argument(
+        "--runtime-dir",
+        default=DEFAULT_RUNTIME_DIR,
+        help="gitignored runtime dir to publish into (seed-split mode, the default — the "
+        "tracked seed paths are never written). Pass empty to fall back to legacy in-place.",
+    )
     parser.add_argument("--report-path", default=None)
     parser.add_argument("--capture-db-path", default=None)
     parser.add_argument("--capture-report-path", default=None)
@@ -273,6 +464,7 @@ def main(argv: list[str] | None = None) -> int:
                     "preflight": True,
                     "pvo_artifact_path": args.pvo_artifact_path,
                     "coverage_artifact_path": args.coverage_artifact_path,
+                    "runtime_dir": args.runtime_dir or None,
                     "report_path": args.report_path,
                     "capture_db_path": args.capture_db_path,
                     "phase": PHASE,
@@ -284,9 +476,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     capture_fn = capture_model_pvo_snapshot if args.capture_db_path else None
+    # Seed-split mode is the DEFAULT: a scheduled run publishes into the gitignored runtime
+    # dir and never mutates the tracked seed pair. An empty --runtime-dir opts into the
+    # legacy in-place refresh (back-compat for direct/manual callers only).
     report = run_pvo_refresh(
         pvo_artifact_path=Path(args.pvo_artifact_path),
         coverage_artifact_path=Path(args.coverage_artifact_path),
+        runtime_dir=Path(args.runtime_dir) if args.runtime_dir else None,
         report_path=Path(args.report_path) if args.report_path else None,
         refresh_fn=_phase17_2_refresh,
         capture_fn=capture_fn,
