@@ -191,6 +191,7 @@ def _install_cli_refresh_stubs(
     *,
     loaded_player_stat_seasons: list[int],
     blocked_inference_seasons: set[int] | None = None,
+    source_load_fail_seasons: set[int] | None = None,
 ) -> dict:
     cli = importlib.import_module("scripts.run_feature_refresh")
     captured: dict = {
@@ -199,9 +200,13 @@ def _install_cli_refresh_stubs(
         "source_inputs": [],
     }
     blocked_inference_seasons = blocked_inference_seasons or set()
+    source_load_fail_seasons = source_load_fail_seasons or set()
 
     def fake_load_source(seasons_window: list[int]) -> dict[str, pd.DataFrame]:
         captured["loaded_windows"].append(list(seasons_window))
+        if source_load_fail_seasons.intersection(seasons_window):
+            missing = max(source_load_fail_seasons.intersection(seasons_window))
+            raise ConnectionError(f"stats_player_week_{missing}.parquet not found")
         return {
             "player_stats": pd.DataFrame(
                 {
@@ -256,6 +261,17 @@ def _install_cli_refresh_stubs(
     return captured
 
 
+def _freeze_cli_calendar_year(monkeypatch: pytest.MonkeyPatch, *, year: int) -> None:
+    cli = importlib.import_module("scripts.run_feature_refresh")
+
+    class FrozenDateTime:
+        @staticmethod
+        def now(tz=None):
+            return datetime(year, 6, 27, 12, 0, tzinfo=tz)
+
+    monkeypatch.setattr(cli, "datetime", FrozenDateTime)
+
+
 def test_cli_derives_default_season_end_from_loaded_player_stats(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -276,6 +292,57 @@ def test_cli_derives_default_season_end_from_loaded_player_stats(
     assert 2026 in captured["loaded_windows"][0]
     assert captured["source_inputs"][0]["seasons_window"][-1] == 2025
     assert captured["publish_inference_seasons"] == [2025]
+
+
+def test_cli_default_bounded_probe_falls_back_one_year_when_latest_source_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cli = importlib.import_module("scripts.run_feature_refresh")
+    _freeze_cli_calendar_year(monkeypatch, year=2026)
+    runtime_dir = tmp_path / "features_runtime"
+    seed_path = tmp_path / "seed.csv"
+    seed_path.write_text("player_id,feature_season,training_eligible\n")
+    captured = _install_cli_refresh_stubs(
+        monkeypatch,
+        tmp_path,
+        loaded_player_stat_seasons=[2024, 2025],
+        source_load_fail_seasons={2026},
+    )
+
+    rc = cli.main(["--runtime-dir", str(runtime_dir), "--seed-path", str(seed_path)])
+
+    assert rc == 0
+    assert any(2026 in window for window in captured["loaded_windows"])
+    assert captured["loaded_windows"][-1][-1] == 2025
+    assert captured["source_inputs"][0]["seasons_window"][-1] == 2025
+    assert captured["publish_inference_seasons"] == [2025]
+
+
+def test_cli_default_bounded_probe_fails_closed_when_latest_and_fallback_sources_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cli = importlib.import_module("scripts.run_feature_refresh")
+    _freeze_cli_calendar_year(monkeypatch, year=2026)
+    runtime_dir = tmp_path / "features_runtime"
+    seed_path = tmp_path / "seed.csv"
+    seed_path.write_text("player_id,feature_season,training_eligible\n")
+    captured = _install_cli_refresh_stubs(
+        monkeypatch,
+        tmp_path,
+        loaded_player_stat_seasons=[],
+        source_load_fail_seasons={2025, 2026},
+    )
+
+    rc = cli.main(["--runtime-dir", str(runtime_dir), "--seed-path", str(seed_path)])
+
+    assert rc == 1
+    assert any(2026 in window for window in captured["loaded_windows"])
+    assert any(2025 in window for window in captured["loaded_windows"])
+    assert not (runtime_dir / "feature_refresh.lock").exists()
+    assert captured["source_inputs"] == []
+    assert captured["publish_inference_seasons"] == []
 
 
 def test_cli_explicit_season_end_overrides_dynamic_derivation(
