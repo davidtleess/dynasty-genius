@@ -29,6 +29,10 @@ from src.dynasty_genius.features.feature_source import (
     FeatureSourceNotReadyError,
     resolve_feature_source,
 )
+from src.dynasty_genius.pvo_source import (
+    PvoSourceNotReadyError,
+    resolve_pvo_source,
+)
 from src.dynasty_genius.what_changed.daily_diff import build_daily_what_changed_diff
 
 _SCHEMA_VERSION = "war_room_2_what_changed_v1"
@@ -37,6 +41,11 @@ _ENGINE_B_FEATURE_SEED_PATH = (
     _REPO_ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
 )
 _FEATURES_RUNTIME_DIR = _REPO_ROOT / "app" / "data" / "features_runtime"
+_PVO_SEED_PATH = _REPO_ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+_PVO_SEED_COVERAGE_PATH = (
+    _REPO_ROOT / "app" / "data" / "valuation" / "universe_pvo_coverage_latest.json"
+)
+_PVO_RUNTIME_DIR = _REPO_ROOT / "app" / "data" / "valuation_runtime"
 # Structural artifacts refresh on the daily cadence, so a full cadence-period (24h)
 # or older is "a prior day's context" — flagged stale for the daily-login product.
 _STALE_THRESHOLD_HOURS = 24.0
@@ -76,6 +85,12 @@ def emit_daily_what_changed_report(
     model_feature_freshness = _model_feature_freshness()
     if isinstance(diff.get("model"), dict):
         diff["model"]["feature_freshness"] = model_feature_freshness
+    # Disclose PVO source provenance on the model section (runtime vs committed seed) and,
+    # ONLY when the §3.6 drift tripwire recommends promotion, the passive seed_staleness
+    # block. Descriptive, decision_supported=False, never a decision/instruction.
+    model_pvo_staleness = _model_pvo_staleness()
+    if isinstance(diff.get("model"), dict):
+        diff["model"]["pvo_staleness"] = model_pvo_staleness
     structural_context = assemble_structural_context(
         team_posture_path=team_posture_path,
         team_value_matrix_path=team_value_matrix_path,
@@ -130,6 +145,47 @@ def _model_feature_freshness() -> Optional[dict[str, Any]]:
         "source_as_of": meta["source_as_of"],
         "feature_csv_path": meta["feature_csv_path"],
         "published_seed_sha256": meta["published_seed_sha256"],
+    }
+
+
+def _model_pvo_staleness() -> dict[str, Any]:
+    """Resolved PVO source provenance + (passive) seed-staleness for the model section.
+
+    Always discloses the PVO source provenance (kind/hashes/as-of/paths) so the digest can
+    show which artifact backed the vintage (DQ-A). The §3.6 ``seed_staleness`` drift block is
+    surfaced ONLY when ``promote_recommended`` is True (silent on quiet drift — no nagging).
+    A present-but-unverified runtime is DISCLOSED as ``not_ready`` (a fault, never silent —
+    DQ-D), mirroring the feature-freshness honest-uncertainty contract. The block reads the
+    pre-computed staleness O(1) from the resolver metadata (no PVO JSON diff here).
+    ``decision_supported`` stays False and no market field appears.
+    """
+    try:
+        resolved = resolve_pvo_source(
+            seed_paths={"pvo": _PVO_SEED_PATH, "coverage": _PVO_SEED_COVERAGE_PATH},
+            runtime_dir=_PVO_RUNTIME_DIR,
+        )
+    except PvoSourceNotReadyError as exc:
+        return {
+            "decision_supported": False,
+            "pvo_source_status": "not_ready",
+            "pvo_source_kind": None,
+            "aborted_reason": str(exc),
+        }
+    meta = resolved.metadata()
+    seed_staleness = meta.get("seed_staleness")
+    # Silent-unless-promote_recommended: only surface the drift metrics when the tripwire
+    # recommends a manual promotion review; otherwise quiet (None).
+    if not (isinstance(seed_staleness, dict) and seed_staleness.get("promote_recommended")):
+        seed_staleness = None
+    return {
+        "decision_supported": False,
+        "pvo_source_kind": meta["pvo_source_kind"],
+        "pvo_sha256": meta["pvo_sha256"],
+        "coverage_sha256": meta["coverage_sha256"],
+        "source_as_of": meta["source_as_of"],
+        "pvo_path": meta["pvo_path"],
+        "coverage_path": meta["coverage_path"],
+        "seed_staleness": seed_staleness,
     }
 
 

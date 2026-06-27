@@ -85,13 +85,27 @@ class RosterConfigError(ValueError):
     pass
 
 
-def _load_rostered_engine_a_universe_pvos(path: Path | None = None) -> dict[str, dict[str, Any]]:
-    """Return rostered current-draft Engine A universe rows by Sleeper id.
+def _universe_path_str(path: Path) -> str:
+    """Repo-relative path string when under the repo root, else the absolute string."""
+    try:
+        return str(path.relative_to(_ROOT))
+    except ValueError:
+        return str(path)
 
-    Missing artifacts degrade to the existing live roster-audit path. A present-but-
-    unverified runtime fails closed (``PvoSourceNotReadyError`` propagates) — corruption
-    is never masked by the seed.
+
+def _load_rostered_engine_a_universe_pvos(
+    path: Path | None = None,
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any] | None]:
+    """Return (rostered current-draft Engine A rows by Sleeper id, resolved provenance).
+
+    F-seed-split T4d: the provenance carries the RESOLVED ``universe_pvo_batch`` path +
+    ``pvo_source_kind`` (runtime vs seed) so per-row stamps reflect the actual source —
+    resolved ONCE here, never per row. Provenance is None when degraded or when an explicit
+    ``path`` override is injected. Missing artifacts degrade to the live roster-audit path.
+    A present-but-unverified runtime fails closed (``PvoSourceNotReadyError`` propagates) —
+    corruption is never masked by the seed.
     """
+    source_kind: str | None = None
     if path is None:
         try:
             resolved = resolve_pvo_source(
@@ -100,15 +114,20 @@ def _load_rostered_engine_a_universe_pvos(path: Path | None = None) -> dict[str,
             )
         except FileNotFoundError:
             # Total absence (no runtime, seed missing) → degrade like a missing artifact.
-            return {}
+            return {}, None
         path = resolved.pvo_path
+        source_kind = resolved.source_kind
     if not path.exists():
-        return {}
+        return {}, None
     try:
         payload = json.loads(path.read_text())
     except (OSError, json.JSONDecodeError):
-        return {}
+        return {}, None
 
+    provenance = {
+        "universe_pvo_batch": _universe_path_str(path),
+        "pvo_source_kind": source_kind,
+    }
     indexed: dict[str, dict[str, Any]] = {}
     for row in payload.get("players") or []:
         valuation = row.get("valuation") or {}
@@ -121,7 +140,7 @@ def _load_rostered_engine_a_universe_pvos(path: Path | None = None) -> dict[str,
             and context.get("in_current_draft") is True
         ):
             indexed[str(sleeper_id)] = row
-    return indexed
+    return indexed, provenance
 
 
 def _roster_audit_signals_from_player(player: dict) -> RosterAuditSignals | None:
@@ -142,7 +161,11 @@ def _roster_audit_signals_from_player(player: dict) -> RosterAuditSignals | None
     )
 
 
-def _pvo_from_universe_engine_a_row(row: dict[str, Any], live_player: dict) -> PlayerValueObject:
+def _pvo_from_universe_engine_a_row(
+    row: dict[str, Any],
+    live_player: dict,
+    provenance: dict[str, Any] | None = None,
+) -> PlayerValueObject:
     player = row.get("player") or {}
     valuation = row.get("valuation") or {}
     identity_ids = row.get("identity_ids") or {}
@@ -158,10 +181,19 @@ def _pvo_from_universe_engine_a_row(row: dict[str, Any], live_player: dict) -> P
                 caveats.append(caveat)
     top_drivers = list(roster_audit.signal_drivers) if roster_audit else []
 
-    try:
-        universe_path = str(PVO_SEED_PATH.relative_to(_ROOT))
-    except ValueError:
-        universe_path = str(PVO_SEED_PATH)
+    # F-seed-split T4d: stamp the RESOLVED universe source (path + kind) when available;
+    # fall back to the committed seed path only when no provenance was threaded in.
+    provenance = provenance or {}
+    universe_path = provenance.get("universe_pvo_batch") or _universe_path_str(PVO_SEED_PATH)
+    pvo_source_kind = provenance.get("pvo_source_kind")
+    # source_versions is typed dict[str, str] — include pvo_source_kind ONLY when it is a
+    # non-empty string (omit, never None, on the no-metadata fallback / explicit-path seam).
+    source_versions = {
+        "universe_pvo_batch": universe_path,
+        "sleeper_snapshot_hash": str(lineage.get("sleeper_snapshot_hash") or ""),
+    }
+    if isinstance(pvo_source_kind, str) and pvo_source_kind:
+        source_versions["pvo_source_kind"] = pvo_source_kind
 
     pvo = PlayerValueObject(
         player_id=str(row.get("dg_player_id") or row.get("sleeper_player_id")),
@@ -188,10 +220,7 @@ def _pvo_from_universe_engine_a_row(row: dict[str, Any], live_player: dict) -> P
         caveats=caveats,
         roster_audit=roster_audit,
         decision_supported=False,
-        source_versions={
-            "universe_pvo_batch": universe_path,
-            "sleeper_snapshot_hash": str(lineage.get("sleeper_snapshot_hash") or ""),
-        },
+        source_versions=source_versions,
     )
     pvo.counter_argument = generate_counter_argument(pvo)
     return pvo
@@ -586,7 +615,7 @@ async def run_audit_pvo() -> dict:
 
     # Engine B scores generated before any market data — architecture gate.
     engine_b_scores = {s["player_id"]: s for s in score_inference_partition()}
-    engine_a_rookie_pvos = _load_rostered_engine_a_universe_pvos()
+    engine_a_rookie_pvos, engine_a_provenance = _load_rostered_engine_a_universe_pvos()
 
     pvos = []
     for p in players:
@@ -595,7 +624,11 @@ async def run_audit_pvo() -> dict:
 
         universe_engine_a_row = engine_a_rookie_pvos.get(str(p.get("player_id")))
         if universe_engine_a_row is not None:
-            pvos.append(_pvo_from_universe_engine_a_row(universe_engine_a_row, p))
+            pvos.append(
+                _pvo_from_universe_engine_a_row(
+                    universe_engine_a_row, p, engine_a_provenance
+                )
+            )
             continue
 
         identity = PlayerIdentity(

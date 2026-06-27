@@ -974,6 +974,53 @@ export const zWhatChangedModelFeatureFreshness = z.object({
 });
 
 /**
+ * WhatChangedModelPvoSeedStaleness
+ *
+ * Descriptive seed-vs-runtime drift summary — the §3.6 manual-promotion tripwire.
+ *
+ * Surfaced ONLY when ``promote_recommended`` is True (silent on quiet drift). The count
+ * of model-supported players drifted >5% and the coverage-count change are the stable
+ * triggers; ``mean_abs_value_delta`` / ``p95_abs_value_delta`` are DISCLOSURE-only (never
+ * promotion triggers — market-noise-sensitive). Carries no market field; certifies no
+ * decision.
+ */
+export const zWhatChangedModelPvoSeedStaleness = z.object({
+    count_model_supported_players_drifted_gt_5pct: z.int(),
+    count_players_drifted_gt_5pct: z.int(),
+    coverage_count_deltas: z.record(z.string(), z.int()),
+    decision_supported: z.literal(false),
+    mean_abs_value_delta: z.number(),
+    p95_abs_value_delta: z.number(),
+    promote_recommended: z.boolean(),
+    seed_age_days: z.number().nullish(),
+    seed_as_of: z.string().nullish()
+});
+
+/**
+ * WhatChangedModelPvoStaleness
+ *
+ * Descriptive PVO source provenance for the model section + passive seed-staleness.
+ *
+ * Provenance (source kind / hashes / as-of / paths) is ALWAYS disclosed so the digest can
+ * show which artifact backed the vintage. The ``seed_staleness`` block appears only on the
+ * promotion tripwire. A present-but-unverified runtime surfaces as ``not_ready`` (kind None
+ * + ``aborted_reason``), never hidden. Closed vocabularies so the API cannot report a
+ * phantom source kind/status. Carries NO market field and certifies no decision.
+ */
+export const zWhatChangedModelPvoStaleness = z.object({
+    aborted_reason: z.string().nullish(),
+    coverage_path: z.string().nullish(),
+    coverage_sha256: z.string().nullish(),
+    decision_supported: z.literal(false),
+    pvo_path: z.string().nullish(),
+    pvo_sha256: z.string().nullish(),
+    pvo_source_kind: z.enum(['runtime', 'seed']).nullish(),
+    pvo_source_status: z.literal('not_ready').nullish(),
+    seed_staleness: zWhatChangedModelPvoSeedStaleness.nullish(),
+    source_as_of: z.string().nullish()
+});
+
+/**
  * WhatChangedPartnerRanking
  */
 export const zWhatChangedPartnerRanking = z.object({
@@ -1096,6 +1143,7 @@ export const zWhatChangedModelSection = z.object({
     decision_supported: z.literal(false),
     deltas: z.array(zWhatChangedModelDelta).nullish(),
     feature_freshness: zWhatChangedModelFeatureFreshness.nullish(),
+    pvo_staleness: zWhatChangedModelPvoStaleness.nullish(),
     status: z.string(),
     vintage_changed: z.boolean().nullish()
 });

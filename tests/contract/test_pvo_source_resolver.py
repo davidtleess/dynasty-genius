@@ -489,12 +489,219 @@ def test_roster_auditor_loads_verified_runtime_and_falls_back_to_seed_when_absen
     _write_runtime_api_pair(runtime_dir, "runtime-player", score=99.0)
     _configure_route_pvo_paths(monkeypatch, roster_auditor, root)
 
-    runtime_rows = roster_auditor._load_rostered_engine_a_universe_pvos()
+    # T4d: the loader now returns (rows, resolved-provenance) — unpack the rows map.
+    runtime_rows, _runtime_provenance = roster_auditor._load_rostered_engine_a_universe_pvos()
 
     assert set(runtime_rows) == {"runtime-player"}
 
     for path in runtime_dir.iterdir():
         path.unlink()
-    seed_rows = roster_auditor._load_rostered_engine_a_universe_pvos()
+    seed_rows, _seed_provenance = roster_auditor._load_rostered_engine_a_universe_pvos()
 
     assert set(seed_rows) == {"seed-player"}
+
+
+def test_what_changed_model_pvo_staleness_discloses_source_but_silences_quiet_drift(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """T4d: always disclose PVO provenance; do not nag on quiet seed drift."""
+    report = importlib.import_module("src.dynasty_genius.what_changed.report")
+    models = importlib.import_module("app.api.routes.league_what_changed_models")
+
+    class Resolved:
+        def metadata(self) -> dict:
+            return {
+                "decision_supported": False,
+                "pvo_source_kind": "runtime",
+                "pvo_sha256": "runtime-pvo-sha",
+                "coverage_sha256": "runtime-coverage-sha",
+                "source_as_of": "2026-06-27T13:30:00+00:00",
+                "pvo_path": "app/data/valuation_runtime/universe_pvo_runtime.json",
+                "coverage_path": (
+                    "app/data/valuation_runtime/universe_pvo_coverage_runtime.json"
+                ),
+                "seed_staleness": {
+                    "decision_supported": False,
+                    "promote_recommended": False,
+                    "count_players_drifted_gt_5pct": 1,
+                    "count_model_supported_players_drifted_gt_5pct": 0,
+                    "mean_abs_value_delta": 0.02,
+                    "p95_abs_value_delta": 0.05,
+                    "coverage_count_deltas": {"ENGINE_B": 0, "PRE_MODEL": 0},
+                    "seed_as_of": "2026-06-24T12:00:00+00:00",
+                    "seed_age_days": 3.0,
+                },
+            }
+
+    monkeypatch.setattr(
+        report, "resolve_pvo_source", lambda **_kwargs: Resolved(), raising=False
+    )
+
+    staleness = report._model_pvo_staleness()
+
+    assert staleness == {
+        "decision_supported": False,
+        "pvo_source_kind": "runtime",
+        "pvo_sha256": "runtime-pvo-sha",
+        "coverage_sha256": "runtime-coverage-sha",
+        "source_as_of": "2026-06-27T13:30:00+00:00",
+        "pvo_path": "app/data/valuation_runtime/universe_pvo_runtime.json",
+        "coverage_path": "app/data/valuation_runtime/universe_pvo_coverage_runtime.json",
+        "seed_staleness": None,
+    }
+    model = models.WhatChangedModelSection.model_validate(
+        {
+            "status": "insufficient_history",
+            "decision_supported": False,
+            "comparison_window": {"status": "insufficient_history"},
+            "pvo_staleness": staleness,
+        }
+    )
+    assert model.pvo_staleness is not None
+    assert model.pvo_staleness.decision_supported is False
+    assert model.pvo_staleness.seed_staleness is None
+
+
+def test_what_changed_model_pvo_staleness_surfaces_promote_recommended_metrics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """T4d: the passive staleness line appears only on the §3.6 promotion tripwire."""
+    report = importlib.import_module("src.dynasty_genius.what_changed.report")
+    models = importlib.import_module("app.api.routes.league_what_changed_models")
+    seed_staleness = {
+        "decision_supported": False,
+        "promote_recommended": True,
+        "count_players_drifted_gt_5pct": 22,
+        "count_model_supported_players_drifted_gt_5pct": 22,
+        "mean_abs_value_delta": 6.0,
+        "p95_abs_value_delta": 6.0,
+        "coverage_count_deltas": {"ENGINE_B": 0, "PRE_MODEL": 0},
+        "seed_as_of": "2026-06-24T12:00:00+00:00",
+        "seed_age_days": 3.0,
+    }
+
+    class Resolved:
+        def metadata(self) -> dict:
+            return {
+                "decision_supported": False,
+                "pvo_source_kind": "runtime",
+                "pvo_sha256": "runtime-pvo-sha",
+                "coverage_sha256": "runtime-coverage-sha",
+                "source_as_of": "2026-06-27T13:30:00+00:00",
+                "pvo_path": "app/data/valuation_runtime/universe_pvo_runtime.json",
+                "coverage_path": (
+                    "app/data/valuation_runtime/universe_pvo_coverage_runtime.json"
+                ),
+                "seed_staleness": seed_staleness,
+            }
+
+    monkeypatch.setattr(
+        report, "resolve_pvo_source", lambda **_kwargs: Resolved(), raising=False
+    )
+
+    staleness = report._model_pvo_staleness()
+
+    assert staleness["seed_staleness"] == seed_staleness
+    model = models.WhatChangedModelSection.model_validate(
+        {
+            "status": "insufficient_history",
+            "decision_supported": False,
+            "comparison_window": {"status": "insufficient_history"},
+            "pvo_staleness": staleness,
+        }
+    )
+    assert model.pvo_staleness is not None
+    assert model.pvo_staleness.seed_staleness is not None
+    assert model.pvo_staleness.seed_staleness.promote_recommended is True
+    assert model.pvo_staleness.seed_staleness.mean_abs_value_delta == 6.0
+    assert model.pvo_staleness.seed_staleness.p95_abs_value_delta == 6.0
+
+
+def test_what_changed_model_pvo_staleness_discloses_not_ready_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unverified runtime is a fault disclosure, not a quiet no-op."""
+    report = importlib.import_module("src.dynasty_genius.what_changed.report")
+    pvo_source = importlib.import_module("src.dynasty_genius.pvo_source")
+    models = importlib.import_module("app.api.routes.league_what_changed_models")
+
+    def not_ready(**_kwargs):
+        raise pvo_source.PvoSourceNotReadyError("runtime marker hash mismatch")
+
+    monkeypatch.setattr(report, "resolve_pvo_source", not_ready, raising=False)
+
+    staleness = report._model_pvo_staleness()
+
+    assert staleness == {
+        "decision_supported": False,
+        "pvo_source_status": "not_ready",
+        "pvo_source_kind": None,
+        "aborted_reason": "runtime marker hash mismatch",
+    }
+    model = models.WhatChangedModelSection.model_validate(
+        {
+            "status": "insufficient_history",
+            "decision_supported": False,
+            "comparison_window": {"status": "insufficient_history"},
+            "pvo_staleness": staleness,
+        }
+    )
+    assert model.pvo_staleness is not None
+    assert model.pvo_staleness.decision_supported is False
+
+
+def test_what_changed_model_pvo_staleness_dto_rejects_fabricated_or_market_fields() -> None:
+    """DTO is a closed, model-only provenance/staleness shape."""
+    models = importlib.import_module("app.api.routes.league_what_changed_models")
+
+    assert hasattr(models, "WhatChangedModelPvoStaleness")
+    assert hasattr(models, "WhatChangedModelPvoSeedStaleness")
+
+    with pytest.raises(Exception):
+        models.WhatChangedModelPvoStaleness.model_validate(
+            {
+                "decision_supported": False,
+                "pvo_source_kind": "invented",
+                "pvo_sha256": "abc123",
+            }
+        )
+    with pytest.raises(Exception):
+        models.WhatChangedModelPvoStaleness.model_validate(
+            {
+                "decision_supported": False,
+                "pvo_source_status": "maybe_ready",
+                "pvo_source_kind": None,
+                "aborted_reason": "marker mismatch",
+            }
+        )
+    with pytest.raises(Exception):
+        models.WhatChangedModelPvoSeedStaleness.model_validate(
+            {
+                "decision_supported": False,
+                "promote_recommended": True,
+                "count_players_drifted_gt_5pct": 22,
+                "count_model_supported_players_drifted_gt_5pct": 22,
+                "mean_abs_value_delta": 6.0,
+                "p95_abs_value_delta": 6.0,
+                "coverage_count_deltas": {"ENGINE_B": 0},
+                "seed_as_of": "2026-06-24T12:00:00+00:00",
+                "seed_age_days": 3.0,
+                "market_overlay": {"must": "not validate"},
+            }
+        )
+
+
+def test_what_changed_pvo_staleness_openapi_and_zod_snapshots_are_regenerated() -> None:
+    """T4d changes the public What-Changed DTO, so generated schema artifacts must move."""
+    openapi_snapshot = REPO_ROOT / "frontend" / "openapi.json"
+    zod_client = REPO_ROOT / "frontend" / "src" / "lib" / "api" / "zod.gen.ts"
+
+    openapi_text = openapi_snapshot.read_text(encoding="utf-8")
+    zod_text = zod_client.read_text(encoding="utf-8")
+
+    assert "WhatChangedModelPvoStaleness" in openapi_text
+    assert "WhatChangedModelPvoSeedStaleness" in openapi_text
+    assert "pvo_staleness" in openapi_text
+    assert "zWhatChangedModelPvoStaleness" in zod_text
+    assert "zWhatChangedModelPvoSeedStaleness" in zod_text
+    assert "pvo_staleness" in zod_text

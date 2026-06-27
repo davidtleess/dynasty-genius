@@ -2384,6 +2384,109 @@ export type WhatChangedModelFeatureFreshness = {
 };
 
 /**
+ * WhatChangedModelPvoSeedStaleness
+ *
+ * Descriptive seed-vs-runtime drift summary — the §3.6 manual-promotion tripwire.
+ *
+ * Surfaced ONLY when ``promote_recommended`` is True (silent on quiet drift). The count
+ * of model-supported players drifted >5% and the coverage-count change are the stable
+ * triggers; ``mean_abs_value_delta`` / ``p95_abs_value_delta`` are DISCLOSURE-only (never
+ * promotion triggers — market-noise-sensitive). Carries no market field; certifies no
+ * decision.
+ */
+export type WhatChangedModelPvoSeedStaleness = {
+    /**
+     * Count Model Supported Players Drifted Gt 5Pct
+     */
+    count_model_supported_players_drifted_gt_5pct: number;
+    /**
+     * Count Players Drifted Gt 5Pct
+     */
+    count_players_drifted_gt_5pct: number;
+    /**
+     * Coverage Count Deltas
+     */
+    coverage_count_deltas: {
+        [key: string]: number;
+    };
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Mean Abs Value Delta
+     */
+    mean_abs_value_delta: number;
+    /**
+     * P95 Abs Value Delta
+     */
+    p95_abs_value_delta: number;
+    /**
+     * Promote Recommended
+     */
+    promote_recommended: boolean;
+    /**
+     * Seed Age Days
+     */
+    seed_age_days?: number | null;
+    /**
+     * Seed As Of
+     */
+    seed_as_of?: string | null;
+};
+
+/**
+ * WhatChangedModelPvoStaleness
+ *
+ * Descriptive PVO source provenance for the model section + passive seed-staleness.
+ *
+ * Provenance (source kind / hashes / as-of / paths) is ALWAYS disclosed so the digest can
+ * show which artifact backed the vintage. The ``seed_staleness`` block appears only on the
+ * promotion tripwire. A present-but-unverified runtime surfaces as ``not_ready`` (kind None
+ * + ``aborted_reason``), never hidden. Closed vocabularies so the API cannot report a
+ * phantom source kind/status. Carries NO market field and certifies no decision.
+ */
+export type WhatChangedModelPvoStaleness = {
+    /**
+     * Aborted Reason
+     */
+    aborted_reason?: string | null;
+    /**
+     * Coverage Path
+     */
+    coverage_path?: string | null;
+    /**
+     * Coverage Sha256
+     */
+    coverage_sha256?: string | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Pvo Path
+     */
+    pvo_path?: string | null;
+    /**
+     * Pvo Sha256
+     */
+    pvo_sha256?: string | null;
+    /**
+     * Pvo Source Kind
+     */
+    pvo_source_kind?: 'runtime' | 'seed' | null;
+    /**
+     * Pvo Source Status
+     */
+    pvo_source_status?: 'not_ready' | null;
+    seed_staleness?: WhatChangedModelPvoSeedStaleness | null;
+    /**
+     * Source As Of
+     */
+    source_as_of?: string | null;
+};
+
+/**
  * WhatChangedModelSection
  */
 export type WhatChangedModelSection = {
@@ -2397,6 +2500,7 @@ export type WhatChangedModelSection = {
      */
     deltas?: Array<WhatChangedModelDelta> | null;
     feature_freshness?: WhatChangedModelFeatureFreshness | null;
+    pvo_staleness?: WhatChangedModelPvoStaleness | null;
     /**
      * Status
      */

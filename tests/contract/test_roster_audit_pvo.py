@@ -15,6 +15,7 @@ Verifies:
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 from unittest.mock import AsyncMock, patch
 
@@ -201,6 +202,66 @@ def _run_with_universe(tmp_path, universe_rows, roster=None, scores=None):
         return asyncio.run(run_audit_pvo())
 
 
+def _sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _run_with_runtime_universe(tmp_path, universe_rows, roster=None, scores=None):
+    runtime_dir = tmp_path / "valuation_runtime"
+    runtime_dir.mkdir(parents=True)
+    pvo_path = runtime_dir / "universe_pvo_runtime.json"
+    coverage_path = runtime_dir / "universe_pvo_coverage_runtime.json"
+    pvo_path.write_text(json.dumps({"players": universe_rows}))
+    coverage_path.write_text(
+        json.dumps(
+            {
+                "captured_at": "2026-06-27T13:30:00+00:00",
+                "decision_supported": False,
+                "counts_by_engine_path": {"ENGINE_A": len(universe_rows)},
+            },
+            sort_keys=True,
+        )
+    )
+    (runtime_dir / "universe_pvo_runtime.ready.json").write_text(
+        json.dumps(
+            {
+                "status": "ok",
+                "pvo_sha256": _sha256(pvo_path),
+                "coverage_sha256": _sha256(coverage_path),
+                "source_as_of": "2026-06-27T13:30:00+00:00",
+                "decision_supported": False,
+            },
+            sort_keys=True,
+        )
+    )
+    roster = roster if roster is not None else [_ROOKIE_PLAYER, _RB_PLAYER]
+    scores = scores if scores is not None else [_RB_ENGINE_B_SCORE]
+    with (
+        patch(
+            "app.services.roster_auditor.get_my_roster",
+            new_callable=AsyncMock,
+            return_value=roster,
+        ),
+        patch(
+            "app.services.roster_auditor.score_inference_partition",
+            return_value=scores,
+        ),
+        patch(
+            "app.services.roster_auditor.load_qb_identity_bridge",
+            return_value={"players": {}},
+        ),
+        patch(
+            "app.services.roster_auditor.PVO_RUNTIME_DIR",
+            runtime_dir,
+        ),
+        patch(
+            "src.dynasty_genius.services.market_overlay_service.enrich_pvo_list_with_market_overlay",
+            return_value=None,
+        ),
+    ):
+        return asyncio.run(run_audit_pvo()), pvo_path
+
+
 # ── Test 1: PVO-shaped players array ─────────────────────────────────────────
 
 def test_response_has_pvo_shaped_players():
@@ -319,6 +380,42 @@ def test_current_draft_rookie_uses_engine_a_universe_pvo(tmp_path):
     assert rookie["dynasty_value_score"] == 61.55
     assert rookie["xvar"] == 13.4
     assert rookie["decision_supported"] is False
+
+
+def test_current_draft_rookie_source_versions_stamp_resolved_runtime_pvo(tmp_path):
+    result, runtime_pvo_path = _run_with_runtime_universe(
+        tmp_path, [_universe_row_for_rookie()]
+    )
+    rookie = next(p for p in result["players"] if p["sleeper_id"] == "13414")
+
+    assert rookie["source_versions"]["universe_pvo_batch"] == str(runtime_pvo_path)
+    assert rookie["source_versions"]["pvo_source_kind"] == "runtime"
+
+
+def test_engine_a_row_without_resolved_source_kind_omits_pvo_source_kind():
+    """D1: no-metadata fallback / explicit override must not stamp a None source kind.
+
+    source_versions is typed dict[str, str]; pvo_source_kind is omitted (not None) when the
+    resolver provenance is absent, so the PlayerValueObject validates without crashing.
+    """
+    from app.services.roster_auditor import _pvo_from_universe_engine_a_row
+
+    row = _universe_row_for_rookie()
+    live_player = {"full_name": "Kaelon Black", "position": "RB", "age": 24}
+
+    # provenance=None (no resolver metadata threaded)
+    pvo_none = _pvo_from_universe_engine_a_row(row, live_player, provenance=None)
+    assert "pvo_source_kind" not in pvo_none.source_versions
+    assert pvo_none.source_versions["universe_pvo_batch"]
+
+    # provenance present but source_kind None (explicit-path seam)
+    pvo_kindless = _pvo_from_universe_engine_a_row(
+        row,
+        live_player,
+        provenance={"universe_pvo_batch": "app/data/valuation/universe_pvo_latest.json",
+                    "pvo_source_kind": None},
+    )
+    assert "pvo_source_kind" not in pvo_kindless.source_versions
 
 
 def test_engine_a_rookie_reconciliation_preserves_veteran_engine_b_path(tmp_path):

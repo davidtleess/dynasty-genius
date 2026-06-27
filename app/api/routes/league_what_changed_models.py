@@ -169,6 +169,51 @@ class WhatChangedModelFeatureFreshness(_Strict):
     aborted_reason: Optional[str] = None
 
 
+class WhatChangedModelPvoSeedStaleness(_Strict):
+    """Descriptive seed-vs-runtime drift summary — the §3.6 manual-promotion tripwire.
+
+    Surfaced ONLY when ``promote_recommended`` is True (silent on quiet drift). The count
+    of model-supported players drifted >5% and the coverage-count change are the stable
+    triggers; ``mean_abs_value_delta`` / ``p95_abs_value_delta`` are DISCLOSURE-only (never
+    promotion triggers — market-noise-sensitive). Carries no market field; certifies no
+    decision.
+    """
+
+    decision_supported: Literal[False]
+    promote_recommended: bool
+    count_players_drifted_gt_5pct: int
+    count_model_supported_players_drifted_gt_5pct: int
+    mean_abs_value_delta: float  # disclosure-only — NOT a promotion trigger
+    p95_abs_value_delta: float  # disclosure-only — NOT a promotion trigger
+    coverage_count_deltas: dict[str, int]
+    seed_as_of: Optional[str] = None
+    seed_age_days: Optional[float] = None
+
+
+class WhatChangedModelPvoStaleness(_Strict):
+    """Descriptive PVO source provenance for the model section + passive seed-staleness.
+
+    Provenance (source kind / hashes / as-of / paths) is ALWAYS disclosed so the digest can
+    show which artifact backed the vintage. The ``seed_staleness`` block appears only on the
+    promotion tripwire. A present-but-unverified runtime surfaces as ``not_ready`` (kind None
+    + ``aborted_reason``), never hidden. Closed vocabularies so the API cannot report a
+    phantom source kind/status. Carries NO market field and certifies no decision.
+    """
+
+    decision_supported: Literal[False]
+    pvo_source_kind: Literal["runtime", "seed"] | None = None
+    pvo_sha256: Optional[str] = None
+    coverage_sha256: Optional[str] = None
+    source_as_of: Optional[str] = None
+    pvo_path: Optional[str] = None
+    coverage_path: Optional[str] = None
+    seed_staleness: WhatChangedModelPvoSeedStaleness | None = None
+    # Honest-disclosure shape: a present-but-unverified runtime surfaces as not_ready rather
+    # than being hidden (pvo_source_kind is then None and aborted_reason explains why).
+    pvo_source_status: Literal["not_ready"] | None = None
+    aborted_reason: Optional[str] = None
+
+
 class WhatChangedModelSection(_Strict):
     status: str
     decision_supported: Literal[False]
@@ -176,6 +221,7 @@ class WhatChangedModelSection(_Strict):
     deltas: Optional[list[WhatChangedModelDelta]] = None
     vintage_changed: Optional[bool] = None
     feature_freshness: WhatChangedModelFeatureFreshness | None = None
+    pvo_staleness: WhatChangedModelPvoStaleness | None = None
 
 
 class WhatChangedDailyDiff(_Strict):
