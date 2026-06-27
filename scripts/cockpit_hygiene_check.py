@@ -23,7 +23,49 @@ import sys
 from dataclasses import dataclass
 from datetime import date
 from fnmatch import fnmatch
+from pathlib import Path
 from typing import Callable
+
+# Gemini lane re-scope (02-agent-operating-loop.md §Falsification #7): banned overreach
+# declarations. The tripwire flags these ONLY inside Gemini-attributed ledger sections —
+# a literal, case-insensitive substring flag, NOT an adjudicator of quoted/contextual use.
+BANNED_GEMINI_DECLARATIONS = [
+    "consensus lock",
+    "team consensus",
+    "unanimous",
+    "Status: APPROVED",
+    "Trust Consensus",
+    "Governance CLEAR",
+    "governance confirmed",
+    "post-merge confirmation",
+    "the loop is closed",
+]
+
+_GEMINI_ATTRIBUTION = "Gemini (Product Manager)"
+
+
+def scan_gemini_ledger_violations(ledger_text: str) -> list[tuple[int, str, str]]:
+    """Flag banned lane-overreach declarations inside Gemini-attributed ledger sections.
+
+    A Gemini section runs from a header shaped ``## HH:MM ET - Gemini (Product Manager)``
+    up to the next ``## `` header. Within those sections only, each banned-pattern hit
+    yields a ``(1-based file line number, canonical banned pattern, original line text)``
+    tuple. Match is literal + case-insensitive; this is a tripwire (it flags; it does not
+    adjudicate quoted or contextual use). Lines outside Gemini sections are ignored.
+    """
+    violations: list[tuple[int, str, str]] = []
+    in_gemini = False
+    for line_no, line in enumerate(ledger_text.splitlines(), start=1):
+        if line.startswith("## "):
+            in_gemini = _GEMINI_ATTRIBUTION in line
+            continue
+        if not in_gemini:
+            continue
+        lowered = line.lower()
+        for pattern in BANNED_GEMINI_DECLARATIONS:
+            if pattern.lower() in lowered:
+                violations.append((line_no, pattern, line))
+    return violations
 
 
 @dataclass(frozen=True)
@@ -121,7 +163,33 @@ def main(
         metavar="GLOB",
         help="Extra allowlist glob for a known in-flight batch (repeatable).",
     )
+    parser.add_argument(
+        "--gemini-ledger-scan",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="PATH",
+        help=(
+            "Gemini-lane tripwire: scan a ledger (default today's "
+            "docs/agent-ledger/<date>.md) for banned overreach declarations in "
+            "Gemini-attributed sections; print path:line — pattern to stderr, exit 1 if any."
+        ),
+    )
     args = parser.parse_args(argv)
+
+    if args.gemini_ledger_scan is not None:
+        resolved_today = today or date.today()
+        ledger_path = args.gemini_ledger_scan or (
+            f"docs/agent-ledger/{resolved_today.strftime('%Y-%m-%d')}.md"
+        )
+        ledger_text = Path(ledger_path).read_text(encoding="utf-8")
+        violations = scan_gemini_ledger_violations(ledger_text)
+        for line_no, pattern, _line_text in violations:
+            print(
+                f"Gemini lane violation detected: {ledger_path}:{line_no} — {pattern}",
+                file=sys.stderr,
+            )
+        return 1 if violations else 0
 
     provider = status_lines_provider or _git_status_porcelain
     resolved_today = today or date.today()
