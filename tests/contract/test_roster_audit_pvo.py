@@ -185,10 +185,13 @@ def _run_with_universe(tmp_path, universe_rows, roster=None, scores=None):
             "app.services.roster_auditor.load_qb_identity_bridge",
             return_value={"players": {}},
         ),
+        # F-seed-split T4: roster_auditor reads the PVO pair via resolve_pvo_source.
+        # Point the seed at the fixture and the runtime dir at a nonexistent path so
+        # the resolver serves the committed-seed fixture (runtime absent → seed).
+        patch("app.services.roster_auditor.PVO_SEED_PATH", path),
         patch(
-            "app.services.roster_auditor.UNIVERSE_PVO_LATEST_PATH",
-            path,
-            create=True,
+            "app.services.roster_auditor.PVO_RUNTIME_DIR",
+            tmp_path / "no_runtime",
         ),
         patch(
             "src.dynasty_genius.services.market_overlay_service.enrich_pvo_list_with_market_overlay",
@@ -372,7 +375,12 @@ def test_roster_audit_degrades_when_universe_artifact_absent(tmp_path):
         ),
         patch("app.services.roster_auditor.score_inference_partition", return_value=[]),
         patch("app.services.roster_auditor.load_qb_identity_bridge", return_value={"players": {}}),
-        patch("app.services.roster_auditor.UNIVERSE_PVO_LATEST_PATH", missing_path, create=True),
+        # F-seed-split T4: absent seed + absent runtime → resolver/loader degrade to {}.
+        patch("app.services.roster_auditor.PVO_SEED_PATH", missing_path),
+        patch(
+            "app.services.roster_auditor.PVO_RUNTIME_DIR",
+            tmp_path / "no_runtime",
+        ),
         patch(
             "src.dynasty_genius.services.market_overlay_service.enrich_pvo_list_with_market_overlay",
             return_value=None,

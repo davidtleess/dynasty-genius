@@ -7,6 +7,40 @@ from pathlib import Path
 
 import pytest
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+PVO_CONSUMER_FILES = {
+    "app/api/routes/players.py",
+    "app/api/routes/trade.py",
+    "app/api/routes/trade_market.py",
+    "app/services/roster_auditor.py",
+    "scripts/build_roster_cut_report.py",
+    "scripts/build_team_value_matrix.py",
+    "scripts/build_universe_market_divergence.py",
+    "scripts/run_model_forward_capture.py",
+}
+
+PVO_DIRECT_REFERENCE_ALLOWLIST = {
+    "src/dynasty_genius/pvo_source.py": (
+        "resolver owns the seed/runtime contract and runtime artifact names"
+    ),
+    "scripts/run_pvo_refresh.py": (
+        "publisher/orchestrator reads the committed seed as drift baseline and writes runtime"
+    ),
+    "scripts/validate_surface3_regen_integrity.py": (
+        "intentional seed-pinned pre/post regeneration integrity audit"
+    ),
+    "scripts/run_league_intelligence_refresh.py": (
+        "legacy David-gated seed-writing orchestrator; consumer migration is out of scope"
+    ),
+}
+
+_PVO_SEED_NAME = "universe_pvo_latest.json"
+_COVERAGE_SEED_NAME = "universe_pvo_coverage_latest.json"
+_PVO_RUNTIME_NAME = "universe_pvo_runtime.json"
+_COVERAGE_RUNTIME_NAME = "universe_pvo_coverage_runtime.json"
+_READY_MARKER_NAME = "universe_pvo_runtime.ready.json"
+
 
 def _write_json(path: Path, payload: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -49,6 +83,10 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _repo_text(relative_path: str) -> str:
+    return (REPO_ROOT / relative_path).read_text()
+
+
 def _write_ready_marker(
     runtime_dir: Path,
     *,
@@ -87,9 +125,107 @@ def _seed_paths(tmp_path: Path) -> tuple[Path, Path]:
 
 def _runtime_pair(tmp_path: Path) -> tuple[Path, Path, Path]:
     runtime_dir = tmp_path / "valuation_runtime"
-    pvo = _write_pvo(runtime_dir / "universe_pvo_runtime.json", "runtime-player")
-    coverage = _write_coverage(runtime_dir / "universe_pvo_coverage_runtime.json", 2)
+    pvo = _write_pvo(runtime_dir / _PVO_RUNTIME_NAME, "runtime-player")
+    coverage = _write_coverage(runtime_dir / _COVERAGE_RUNTIME_NAME, 2)
     return runtime_dir, pvo, coverage
+
+
+def _write_api_pvo(path: Path, sleeper_id: str, *, score: float = 42.0) -> Path:
+    return _write_json(
+        path,
+        {
+            "schema_version": "universe_pvo_batch.v1",
+            "captured_at": "2026-06-27T13:00:00+00:00",
+            "players": [
+                {
+                    "sleeper_player_id": sleeper_id,
+                    "dg_player_id": f"dg-{sleeper_id}",
+                    "identity_ids": {"sleeper_id": sleeper_id},
+                    "player": {
+                        "full_name": f"Player {sleeper_id}",
+                        "position": "RB",
+                        "team": "NYJ",
+                        "age": 22.0,
+                    },
+                    "league_context": {
+                        "rostered": True,
+                        "roster_id": 1,
+                        "in_current_draft": True,
+                    },
+                    "lineage": {
+                        "governance_version": "1.0.0",
+                        "sleeper_snapshot_hash": "snapshot-hash",
+                    },
+                    "valuation": {
+                        "engine_path": "ENGINE_A",
+                        "valuation_status": "MODEL_SUPPORTED",
+                        "dynasty_value_score": score,
+                        "xvar": score / 10,
+                        "model_grade": "PROSPECT_C",
+                        "feature_completeness": 0.5,
+                        "decision_supported": False,
+                    },
+                }
+            ],
+        },
+    )
+
+
+def _write_runtime_api_pair(
+    runtime_dir: Path,
+    sleeper_id: str,
+    *,
+    score: float = 99.0,
+) -> tuple[Path, Path]:
+    pvo = _write_api_pvo(runtime_dir / _PVO_RUNTIME_NAME, sleeper_id, score=score)
+    coverage = _write_coverage(runtime_dir / _COVERAGE_RUNTIME_NAME, 1)
+    _write_ready_marker(runtime_dir, pvo_path=pvo, coverage_path=coverage)
+    return pvo, coverage
+
+
+def _pvo_fixture_root(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
+    root = tmp_path / "repo"
+    seed_dir = root / "app" / "data" / "valuation"
+    runtime_dir = root / "app" / "data" / "valuation_runtime"
+    seed_pvo = _write_api_pvo(seed_dir / _PVO_SEED_NAME, "seed-player", score=11.0)
+    seed_coverage = _write_coverage(seed_dir / _COVERAGE_SEED_NAME, 1)
+    return root, seed_pvo, seed_coverage, runtime_dir
+
+
+def _configure_route_pvo_paths(monkeypatch: pytest.MonkeyPatch, module, root: Path) -> None:
+    seed_dir = root / "app" / "data" / "valuation"
+    monkeypatch.setattr(module, "_ROOT", root, raising=False)
+    monkeypatch.setattr(module, "ROOT", root, raising=False)
+    monkeypatch.setattr(module, "PVO_SEED_PATH", seed_dir / _PVO_SEED_NAME, raising=False)
+    monkeypatch.setattr(
+        module,
+        "PVO_SEED_COVERAGE_PATH",
+        seed_dir / _COVERAGE_SEED_NAME,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "PVO_RUNTIME_DIR",
+        root / "app" / "data" / "valuation_runtime",
+        raising=False,
+    )
+    # Current code still uses these direct constants; GREEN should stop relying on them.
+    monkeypatch.setattr(
+        module, "UNIVERSE_PVO_PATH", seed_dir / _PVO_SEED_NAME, raising=False
+    )
+    monkeypatch.setattr(
+        module,
+        "UNIVERSE_PVO_LATEST_PATH",
+        seed_dir / _PVO_SEED_NAME,
+        raising=False,
+    )
+
+
+def _write_sleeper_snapshot(root: Path) -> Path:
+    return _write_json(
+        root / "app" / "data" / "league_snapshots" / "sleeper_universe_snapshot_latest.json",
+        {"rosters": [], "players": {}, "david_roster_id": 1},
+    )
 
 
 def test_resolve_pvo_source_falls_back_to_seed_only_when_runtime_absent(
@@ -245,3 +381,120 @@ def test_resolve_pvo_source_passes_through_seed_staleness_without_diffing_json(
 
     assert resolved.seed_staleness == seed_staleness
     assert resolved.metadata()["seed_staleness"] == seed_staleness
+
+
+def test_pvo_producers_do_not_self_resolve_runtime_outputs() -> None:
+    """T4 guard: PVO producers write artifacts; they must never resolve their own output."""
+    for relative_path in (
+        "scripts/build_universe_pvo_batch.py",
+        "src/dynasty_genius/universe_pvo_batch.py",
+    ):
+        text = _repo_text(relative_path)
+        assert "resolve_pvo_source" not in text
+        assert "PvoSourceNotReadyError" not in text
+
+
+def test_pvo_direct_reference_allowlist_has_explicit_rationales() -> None:
+    """T4 map: every non-consumer direct seed/runtime reference needs a named rationale."""
+    required_allowlist = {
+        "src/dynasty_genius/pvo_source.py",
+        "scripts/run_pvo_refresh.py",
+        "scripts/validate_surface3_regen_integrity.py",
+        "scripts/run_league_intelligence_refresh.py",
+    }
+    assert set(PVO_DIRECT_REFERENCE_ALLOWLIST) == required_allowlist
+    for rationale in PVO_DIRECT_REFERENCE_ALLOWLIST.values():
+        assert len(rationale.split()) >= 6
+
+
+def test_t4_consumers_route_pvo_reads_through_resolver_not_committed_seed_paths() -> None:
+    """T4 RED: consumers must resolve the PVO pair instead of reading the seed directly."""
+    forbidden_markers = (
+        "app/data/valuation/universe_pvo_latest.json",
+        "app/data/valuation/universe_pvo_coverage_latest.json",
+        "UNIVERSE_PVO_PATH",
+        "UNIVERSE_PVO_LATEST_PATH",
+        "PVO_PATH",
+    )
+    offenders: dict[str, list[str]] = {}
+    for relative_path in sorted(PVO_CONSUMER_FILES):
+        text = _repo_text(relative_path)
+        missing_resolver = "resolve_pvo_source" not in text
+        direct_markers = [marker for marker in forbidden_markers if marker in text]
+        if missing_resolver or direct_markers:
+            offenders[relative_path] = [
+                *(["missing resolve_pvo_source"] if missing_resolver else []),
+                *direct_markers,
+            ]
+
+    assert offenders == {}
+
+
+def test_players_route_loads_verified_runtime_and_fails_closed_on_bad_runtime(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    players_route = importlib.import_module("app.api.routes.players")
+    root, _seed_pvo, _seed_coverage, runtime_dir = _pvo_fixture_root(tmp_path)
+    _write_runtime_api_pair(runtime_dir, "runtime-player", score=99.0)
+    _configure_route_pvo_paths(monkeypatch, players_route, root)
+    players_route._load_player_detail_artifacts.cache_clear()
+
+    runtime_payload = players_route._load_player_detail_artifacts()
+
+    assert runtime_payload["players"][0]["sleeper_player_id"] == "runtime-player"
+
+    (runtime_dir / _READY_MARKER_NAME).write_text(
+        json.dumps({"status": "blocked"}, sort_keys=True)
+    )
+    players_route._load_player_detail_artifacts.cache_clear()
+    with pytest.raises(Exception) as exc_info:
+        players_route._load_player_detail_artifacts()
+    assert getattr(exc_info.value, "status_code", None) == 503
+
+
+@pytest.mark.parametrize(
+    "module_name",
+    ["app.api.routes.trade", "app.api.routes.trade_market"],
+)
+def test_trade_routes_load_verified_runtime_and_fail_closed_on_bad_runtime(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    module_name: str,
+) -> None:
+    route_module = importlib.import_module(module_name)
+    root, _seed_pvo, _seed_coverage, runtime_dir = _pvo_fixture_root(tmp_path)
+    _write_sleeper_snapshot(root)
+    _write_runtime_api_pair(runtime_dir, "runtime-player", score=99.0)
+    _configure_route_pvo_paths(monkeypatch, route_module, root)
+
+    universe_pvo, _snapshot = route_module._load_reconcile_artifacts()
+
+    assert universe_pvo["players"][0]["sleeper_player_id"] == "runtime-player"
+
+    (runtime_dir / _READY_MARKER_NAME).write_text(
+        json.dumps({"status": "blocked"}, sort_keys=True)
+    )
+    with pytest.raises(Exception) as exc_info:
+        route_module._load_reconcile_artifacts()
+    assert getattr(exc_info.value, "status_code", None) == 503
+
+
+def test_roster_auditor_loads_verified_runtime_and_falls_back_to_seed_when_absent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    roster_auditor = importlib.import_module("app.services.roster_auditor")
+    root, _seed_pvo, _seed_coverage, runtime_dir = _pvo_fixture_root(tmp_path)
+    _write_runtime_api_pair(runtime_dir, "runtime-player", score=99.0)
+    _configure_route_pvo_paths(monkeypatch, roster_auditor, root)
+
+    runtime_rows = roster_auditor._load_rostered_engine_a_universe_pvos()
+
+    assert set(runtime_rows) == {"runtime-player"}
+
+    for path in runtime_dir.iterdir():
+        path.unlink()
+    seed_rows = roster_auditor._load_rostered_engine_a_universe_pvos()
+
+    assert set(seed_rows) == {"seed-player"}

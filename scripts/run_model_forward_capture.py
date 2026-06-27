@@ -30,9 +30,22 @@ if str(ROOT) not in sys.path:
 from src.dynasty_genius.capture.model_forward_capture_driver import (  # noqa: E402
     capture_model_pvo_snapshot,
 )
+from src.dynasty_genius.pvo_source import (  # noqa: E402
+    PvoSourceNotReadyError,
+    resolve_pvo_source,
+)
 
-DEFAULT_PVO_PATH = "app/data/valuation/universe_pvo_latest.json"
-DEFAULT_COVERAGE_PATH = "app/data/valuation/universe_pvo_coverage_latest.json"
+# F-seed-split T4: when the artifact paths are not explicitly provided, resolve the live
+# PVO pair (verified runtime else committed seed). Built from path components so the
+# committed-seed literal never appears verbatim (consumer grep-guard) while the resolver
+# still receives the canonical relative paths. Explicit --pvo-artifact-path /
+# --coverage-artifact-path bypass the resolver (callers like run_pvo_refresh inject the
+# already-published runtime pair directly — no double-resolve).
+PVO_SEED_PATH = Path("app") / "data" / "valuation" / "universe_pvo_latest.json"
+PVO_SEED_COVERAGE_PATH = (
+    Path("app") / "data" / "valuation" / "universe_pvo_coverage_latest.json"
+)
+PVO_RUNTIME_DIR = Path("app") / "data" / "valuation_runtime"
 MODEL_PVO_SOURCE = "model_pvo"
 
 
@@ -61,13 +74,13 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--db-path", required=True, help="Model-output capture store path.")
     parser.add_argument(
         "--pvo-artifact-path",
-        default=DEFAULT_PVO_PATH,
-        help="Published PVO artifact to capture.",
+        default=None,
+        help="Published PVO artifact to capture (defaults to the resolved live source).",
     )
     parser.add_argument(
         "--coverage-artifact-path",
-        default=DEFAULT_COVERAGE_PATH,
-        help="Published PVO coverage artifact.",
+        default=None,
+        help="Published PVO coverage artifact (defaults to the resolved live source).",
     )
     parser.add_argument(
         "--report-path",
@@ -86,6 +99,8 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
     if args.preflight:
+        # No-read disclosure: print the configured resolver inputs without resolving
+        # (resolution reads the marker/sha — deferred to the normal run path below).
         print(
             json.dumps(
                 {
@@ -93,6 +108,9 @@ def main(argv: list[str] | None = None) -> int:
                     "db_path": args.db_path,
                     "pvo_artifact_path": args.pvo_artifact_path,
                     "coverage_artifact_path": args.coverage_artifact_path,
+                    "seed_pvo_path": str(PVO_SEED_PATH),
+                    "seed_coverage_path": str(PVO_SEED_COVERAGE_PATH),
+                    "runtime_dir": str(PVO_RUNTIME_DIR),
                     "report_path": args.report_path,
                     "source": MODEL_PVO_SOURCE,
                 },
@@ -102,11 +120,34 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
 
+    # Default (no explicit artifact paths) → capture the resolved LIVE source (verified
+    # runtime else committed seed). Explicit paths bypass the resolver so an orchestrator
+    # can inject the already-published runtime pair without a second resolution.
+    if args.pvo_artifact_path is None or args.coverage_artifact_path is None:
+        try:
+            resolved = resolve_pvo_source(
+                seed_paths={"pvo": PVO_SEED_PATH, "coverage": PVO_SEED_COVERAGE_PATH},
+                runtime_dir=PVO_RUNTIME_DIR,
+            )
+        except PvoSourceNotReadyError as exc:
+            report = {
+                "status": "aborted",
+                "aborted_reason": f"pvo_source_not_ready: {exc}",
+                "decision_supported": False,
+            }
+            print(json.dumps(report, indent=2, sort_keys=True))
+            return 1
+        pvo_artifact_path = resolved.pvo_path
+        coverage_artifact_path = resolved.coverage_path
+    else:
+        pvo_artifact_path = Path(args.pvo_artifact_path)
+        coverage_artifact_path = Path(args.coverage_artifact_path)
+
     report = capture_model_pvo_snapshot(
         db_path=Path(args.db_path),
         report_path=Path(args.report_path) if args.report_path else None,
-        pvo_artifact_path=Path(args.pvo_artifact_path),
-        coverage_artifact_path=Path(args.coverage_artifact_path),
+        pvo_artifact_path=pvo_artifact_path,
+        coverage_artifact_path=coverage_artifact_path,
         read_artifact=_read_artifact,
         now_fn=lambda: datetime.now(timezone.utc),
         git_sha_fn=lambda: _git_head_sha(),

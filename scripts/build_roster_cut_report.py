@@ -17,13 +17,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from src.dynasty_genius.pvo_source import resolve_pvo_source  # noqa: E402
 from src.dynasty_genius.roster_cut_engine import (  # noqa: E402
     RosterCutResult,
     compute_roster_cut_candidates,
 )
 
 SNAPSHOT_PATH = ROOT / "app" / "data" / "league_snapshots" / "sleeper_universe_snapshot_latest.json"
-PVO_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+# F-seed-split T4: resolve the PVO pair (verified runtime else committed seed).
+PVO_SEED_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+PVO_SEED_COVERAGE_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_coverage_latest.json"
+PVO_RUNTIME_DIR = ROOT / "app" / "data" / "valuation_runtime"
 OUTPUT_DIR = ROOT / "app" / "data" / "valuation"
 
 
@@ -92,7 +96,11 @@ def main() -> None:
     args = parser.parse_args()
 
     snapshot = _load_json(SNAPSHOT_PATH)
-    pvo = _load_json(PVO_PATH)
+    resolved = resolve_pvo_source(
+        seed_paths={"pvo": PVO_SEED_PATH, "coverage": PVO_SEED_COVERAGE_PATH},
+        runtime_dir=PVO_RUNTIME_DIR,
+    )
+    pvo = _load_json(resolved.pvo_path)
 
     result = compute_roster_cut_candidates(pvo, snapshot, david_roster_id=args.roster_id)
 

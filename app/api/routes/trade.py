@@ -8,6 +8,10 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.services.trade_analyzer import analyze_trade_pvo
+from src.dynasty_genius.pvo_source import (
+    PvoSourceNotReadyError,
+    resolve_pvo_source,
+)
 from src.dynasty_genius.trade_lab.asset_catalog import (
     TradeAssetCatalogResponse,
     build_asset_catalog,
@@ -25,6 +29,13 @@ from src.dynasty_genius.trade_lab.reconciler import (
 )
 
 _ROOT = Path(__file__).resolve().parents[3]
+# F-seed-split T4: resolve the PVO pair (verified runtime else committed seed); the seed
+# is the absence fallback, a present-but-unverified runtime fails closed (503).
+PVO_SEED_PATH = _ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+PVO_SEED_COVERAGE_PATH = (
+    _ROOT / "app" / "data" / "valuation" / "universe_pvo_coverage_latest.json"
+)
+PVO_RUNTIME_DIR = _ROOT / "app" / "data" / "valuation_runtime"
 
 router = APIRouter(prefix="/trade", tags=["trade"])
 
@@ -45,13 +56,25 @@ class TradeReconcileRequest(BaseModel):
 
 
 def _load_reconcile_artifacts() -> tuple[dict, dict]:
-    pvo_path = _ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
     snapshot_path = (
         _ROOT / "app" / "data" / "league_snapshots" / "sleeper_universe_snapshot_latest.json"
     )
-    if not pvo_path.exists() or not snapshot_path.exists():
+    try:
+        resolved = resolve_pvo_source(
+            seed_paths={"pvo": PVO_SEED_PATH, "coverage": PVO_SEED_COVERAGE_PATH},
+            runtime_dir=PVO_RUNTIME_DIR,
+        )
+    except PvoSourceNotReadyError as exc:
+        raise HTTPException(
+            status_code=503, detail="PVO runtime present but unverified"
+        ) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=503, detail="Required reconciler artifacts not found"
+        ) from exc
+    if not snapshot_path.exists():
         raise HTTPException(status_code=503, detail="Required reconciler artifacts not found")
-    with open(pvo_path) as f:
+    with open(resolved.pvo_path) as f:
         universe_pvo = json.load(f)
     with open(snapshot_path) as f:
         sleeper_snapshot = json.load(f)

@@ -18,8 +18,20 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from src.dynasty_genius.pvo_source import (
+    PvoSourceNotReadyError,
+    resolve_pvo_source,
+)
+
 ROOT = Path(__file__).resolve().parents[3]
-UNIVERSE_PVO_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+# F-seed-split T4: read the PVO pair through resolve_pvo_source (verified runtime when
+# published, else the committed seed); never the seed path directly. The committed seed
+# is the absence fallback; a present-but-unverified runtime fails closed (503 below).
+PVO_SEED_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+PVO_SEED_COVERAGE_PATH = (
+    ROOT / "app" / "data" / "valuation" / "universe_pvo_coverage_latest.json"
+)
+PVO_RUNTIME_DIR = ROOT / "app" / "data" / "valuation_runtime"
 MARKET_DIVERGENCE_PATH = (
     ROOT / "app" / "data" / "valuation" / "universe_market_divergence_latest.json"
 )
@@ -116,7 +128,20 @@ class PlayerDetailResponse(BaseModel):
 # --- Artifact loaders (named monkeypatch seams) --------------------------------
 @lru_cache(maxsize=1)
 def _load_player_detail_artifacts() -> dict[str, Any]:
-    with open(UNIVERSE_PVO_PATH) as handle:
+    try:
+        resolved = resolve_pvo_source(
+            seed_paths={"pvo": PVO_SEED_PATH, "coverage": PVO_SEED_COVERAGE_PATH},
+            runtime_dir=PVO_RUNTIME_DIR,
+        )
+    except PvoSourceNotReadyError as exc:
+        raise HTTPException(
+            status_code=503, detail="PVO runtime present but unverified"
+        ) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=503, detail="Required PVO artifact not found"
+        ) from exc
+    with open(resolved.pvo_path) as handle:
         return json.load(handle)
 
 

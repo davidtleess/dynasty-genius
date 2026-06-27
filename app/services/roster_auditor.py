@@ -19,10 +19,18 @@ from src.dynasty_genius.models.player_value_object import (
     PlayerValueObject,
     RosterAuditSignals,
 )
+from src.dynasty_genius.pvo_source import resolve_pvo_source
 
 _ROOT = Path(__file__).resolve().parents[2]
 _QB_BRIDGE_PATH = _ROOT / "resources" / "nflreadpy_qb_id_map.json"
-UNIVERSE_PVO_LATEST_PATH = _ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+# F-seed-split T4: resolve the PVO pair (verified runtime else committed seed). The seed
+# is the absence fallback; a present-but-unverified runtime fails closed (raises) rather
+# than silently masking corruption with the seed.
+PVO_SEED_PATH = _ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+PVO_SEED_COVERAGE_PATH = (
+    _ROOT / "app" / "data" / "valuation" / "universe_pvo_coverage_latest.json"
+)
+PVO_RUNTIME_DIR = _ROOT / "app" / "data" / "valuation_runtime"
 
 QB_CONTEXT_SEASONS = [2024, 2023]
 QB_LOW_TD_INT_RATIO_THRESHOLD = 0.7
@@ -80,9 +88,20 @@ class RosterConfigError(ValueError):
 def _load_rostered_engine_a_universe_pvos(path: Path | None = None) -> dict[str, dict[str, Any]]:
     """Return rostered current-draft Engine A universe rows by Sleeper id.
 
-    Missing artifacts degrade to the existing live roster-audit path.
+    Missing artifacts degrade to the existing live roster-audit path. A present-but-
+    unverified runtime fails closed (``PvoSourceNotReadyError`` propagates) — corruption
+    is never masked by the seed.
     """
-    path = path or UNIVERSE_PVO_LATEST_PATH
+    if path is None:
+        try:
+            resolved = resolve_pvo_source(
+                seed_paths={"pvo": PVO_SEED_PATH, "coverage": PVO_SEED_COVERAGE_PATH},
+                runtime_dir=PVO_RUNTIME_DIR,
+            )
+        except FileNotFoundError:
+            # Total absence (no runtime, seed missing) → degrade like a missing artifact.
+            return {}
+        path = resolved.pvo_path
     if not path.exists():
         return {}
     try:
@@ -140,9 +159,9 @@ def _pvo_from_universe_engine_a_row(row: dict[str, Any], live_player: dict) -> P
     top_drivers = list(roster_audit.signal_drivers) if roster_audit else []
 
     try:
-        universe_path = str(UNIVERSE_PVO_LATEST_PATH.relative_to(_ROOT))
+        universe_path = str(PVO_SEED_PATH.relative_to(_ROOT))
     except ValueError:
-        universe_path = str(UNIVERSE_PVO_LATEST_PATH)
+        universe_path = str(PVO_SEED_PATH)
 
     pvo = PlayerValueObject(
         player_id=str(row.get("dg_player_id") or row.get("sleeper_player_id")),

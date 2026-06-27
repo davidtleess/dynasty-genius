@@ -16,6 +16,10 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.dynasty_genius.adapters.fantasycalc_adapter import fetch_with_cache
+from src.dynasty_genius.pvo_source import (
+    PvoSourceNotReadyError,
+    resolve_pvo_source,
+)
 from src.dynasty_genius.trade_lab.cross_lane_review import (
     evaluate_cross_lane_manual_review,
 )
@@ -32,6 +36,13 @@ from src.dynasty_genius.trade_lab.market_reconciler import (
 from src.dynasty_genius.trade_lab.reconciler import reconcile_trade_roster
 
 _ROOT = Path(__file__).resolve().parents[3]
+# F-seed-split T4: resolve the PVO pair (verified runtime else committed seed); the seed
+# is the absence fallback, a present-but-unverified runtime fails closed (503).
+PVO_SEED_PATH = _ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+PVO_SEED_COVERAGE_PATH = (
+    _ROOT / "app" / "data" / "valuation" / "universe_pvo_coverage_latest.json"
+)
+PVO_RUNTIME_DIR = _ROOT / "app" / "data" / "valuation_runtime"
 
 _DEFAULT_FORMAT_KEY = "dynasty_sf_ppr"
 _DEFAULT_DRAFT_YEAR = 2026
@@ -54,13 +65,25 @@ class MarketReconcileRequest(BaseModel):
 
 def _load_reconcile_artifacts() -> tuple[dict, dict]:
     """Load model-native artifacts. 503 if absent — W5a self-computes Phase 22 cuts."""
-    pvo_path = _ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
     snapshot_path = (
         _ROOT / "app" / "data" / "league_snapshots" / "sleeper_universe_snapshot_latest.json"
     )
-    if not pvo_path.exists() or not snapshot_path.exists():
+    try:
+        resolved = resolve_pvo_source(
+            seed_paths={"pvo": PVO_SEED_PATH, "coverage": PVO_SEED_COVERAGE_PATH},
+            runtime_dir=PVO_RUNTIME_DIR,
+        )
+    except PvoSourceNotReadyError as exc:
+        raise HTTPException(
+            status_code=503, detail="PVO runtime present but unverified"
+        ) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=503, detail="Required reconciler artifacts not found"
+        ) from exc
+    if not snapshot_path.exists():
         raise HTTPException(status_code=503, detail="Required reconciler artifacts not found")
-    with open(pvo_path) as f:
+    with open(resolved.pvo_path) as f:
         universe_pvo = json.load(f)
     with open(snapshot_path) as f:
         sleeper_snapshot = json.load(f)
