@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+from src.dynasty_genius.features.feature_source import ResolvedFeatureSource
+
 PRODUCER_PATH = Path("scripts/build_universe_pvo_batch.py")
 ENGINE_B_MANIFEST_PATH = Path("app/data/models/engine_b/v2_manifest.json")
 ENGINE_B_FEATURE_CSV_PATH = Path("app/data/training/engine_b_features_v2.csv")
@@ -141,6 +143,7 @@ def test_success_refreshes_only_two_artifacts_reports_hashes_and_never_commits(
         refresh_fn=fake_refresh,
         capture_fn=None,
         read_artifact=_fixture_reader(pvo, coverage),
+        feature_source=_fixture_feature_source(),
     )
 
     assert result["status"] == "ok"
@@ -204,6 +207,17 @@ def _fixture_reader(pvo: Path, coverage: Path, *, model_bytes: bytes = b"rb mode
     return read_artifact
 
 
+def _fixture_feature_source() -> ResolvedFeatureSource:
+    return ResolvedFeatureSource(
+        path=ENGINE_B_FEATURE_CSV_PATH,
+        source_kind="seed",
+        sha256="fixture-feature-sha",
+        source_as_of=None,
+        ready=True,
+        published_seed_sha256="fixture-feature-sha",
+    )
+
+
 def test_provenance_changed_tracks_lineage_artifact_change_with_same_semantic_output(
     tmp_path: Path,
 ) -> None:
@@ -244,6 +258,7 @@ def test_provenance_changed_tracks_lineage_artifact_change_with_same_semantic_ou
         refresh_fn=refresh_same_semantic_output,
         capture_fn=None,
         read_artifact=read_artifact,
+        feature_source=_fixture_feature_source(),
     )
 
     assert report["status"] == "ok"
@@ -288,6 +303,7 @@ def test_unresolvable_refresh_provenance_aborts_and_restores_artifacts(
         refresh_fn=refresh_fn,
         capture_fn=None,
         read_artifact=read_artifact,
+        feature_source=_fixture_feature_source(),
     )
 
     assert report["status"] == "aborted"
@@ -325,6 +341,7 @@ def test_refresh_failure_restores_both_artifacts_byte_identical_and_skips_captur
         capture_fn=fake_capture,
         capture_db_path=tmp_path / "model_forward.db",
         read_artifact=_fixture_reader(pvo, coverage),
+        feature_source=_fixture_feature_source(),
     )
 
     assert report["status"] == "aborted"
@@ -363,6 +380,7 @@ def test_orchestrated_success_calls_capture_after_refresh_but_capture_cli_remain
         capture_db_path=tmp_path / "model_forward.db",
         capture_report_path=tmp_path / "model_capture" / "latest.json",
         read_artifact=_fixture_reader(pvo, coverage),
+        feature_source=_fixture_feature_source(),
     )
 
     assert report["status"] == "ok"
@@ -411,6 +429,7 @@ def test_capture_stage_exception_writes_abort_report_without_restoring_successfu
         capture_db_path=tmp_path / "model_forward.db",
         capture_report_path=tmp_path / "model_capture" / "latest.json",
         read_artifact=_fixture_reader(pvo, coverage),
+        feature_source=_fixture_feature_source(),
     )
 
     assert report["status"] == "aborted"
