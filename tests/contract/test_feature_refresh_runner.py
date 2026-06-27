@@ -185,6 +185,150 @@ def test_cli_preflight_is_readiness_only(tmp_path: Path) -> None:
     assert not runtime_dir.exists() or not any(runtime_dir.iterdir())
 
 
+def _install_cli_refresh_stubs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    *,
+    loaded_player_stat_seasons: list[int],
+    blocked_inference_seasons: set[int] | None = None,
+) -> dict:
+    cli = importlib.import_module("scripts.run_feature_refresh")
+    captured: dict = {
+        "loaded_windows": [],
+        "publish_inference_seasons": [],
+        "source_inputs": [],
+    }
+    blocked_inference_seasons = blocked_inference_seasons or set()
+
+    def fake_load_source(seasons_window: list[int]) -> dict[str, pd.DataFrame]:
+        captured["loaded_windows"].append(list(seasons_window))
+        return {
+            "player_stats": pd.DataFrame(
+                {
+                    "season": loaded_player_stat_seasons,
+                    "player_id": [f"p-{season}" for season in loaded_player_stat_seasons],
+                }
+            )
+        }
+
+    def fake_publish_runtime(_candidate_path, **kwargs) -> dict:
+        inference_season = int(kwargs["inference_season"])
+        captured["publish_inference_seasons"].append(inference_season)
+        if inference_season in blocked_inference_seasons:
+            return {
+                "status": "blocked",
+                "publish_performed": False,
+                "decision_supported": False,
+                "validation": {"ok": False, "failures": ["empty inference season"]},
+                "blocked_reason": "empty inference season",
+                "dirty_paths": [],
+            }
+        return {
+            "status": "ok",
+            "publish_performed": True,
+            "decision_supported": False,
+            "runtime_path": str(tmp_path / "runtime.csv"),
+            "runtime_sha256": "runtime-sha",
+            "dirty_paths": [],
+        }
+
+    def fake_run_feature_refresh(**kwargs) -> dict:
+        captured["source_inputs"].append(dict(kwargs["source_inputs"]))
+        publish_result = kwargs["publish_fn"](
+            tmp_path / "candidate.csv",
+            runtime_dir=kwargs["runtime_dir"],
+        )
+        return {
+            "status": publish_result["status"],
+            "publish_performed": publish_result["publish_performed"],
+            "decision_supported": False,
+            "source_hash": kwargs["source_inputs"]["source_hash"],
+            "runtime_path": publish_result.get("runtime_path"),
+            "runtime_sha256": publish_result.get("runtime_sha256"),
+            "dirty_paths": publish_result.get("dirty_paths", []),
+        }
+
+    monkeypatch.setattr(cli, "_load_source", fake_load_source)
+    monkeypatch.setattr(cli, "_source_provenance", lambda read_fns, seasons_window: {})
+    monkeypatch.setattr(cli, "compute_source_hash", lambda **_: "source-hash")
+    monkeypatch.setattr(cli, "publish_runtime", fake_publish_runtime)
+    monkeypatch.setattr(cli, "run_feature_refresh", fake_run_feature_refresh)
+    return captured
+
+
+def test_cli_derives_default_season_end_from_loaded_player_stats(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cli = importlib.import_module("scripts.run_feature_refresh")
+    runtime_dir = tmp_path / "features_runtime"
+    seed_path = tmp_path / "seed.csv"
+    seed_path.write_text("player_id,feature_season,training_eligible\n")
+    captured = _install_cli_refresh_stubs(
+        monkeypatch,
+        tmp_path,
+        loaded_player_stat_seasons=[2024, 2025],
+    )
+
+    rc = cli.main(["--runtime-dir", str(runtime_dir), "--seed-path", str(seed_path)])
+
+    assert rc == 0
+    assert 2026 in captured["loaded_windows"][0]
+    assert captured["source_inputs"][0]["seasons_window"][-1] == 2025
+    assert captured["publish_inference_seasons"] == [2025]
+
+
+def test_cli_explicit_season_end_overrides_dynamic_derivation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cli = importlib.import_module("scripts.run_feature_refresh")
+    runtime_dir = tmp_path / "features_runtime"
+    seed_path = tmp_path / "seed.csv"
+    seed_path.write_text("player_id,feature_season,training_eligible\n")
+    captured = _install_cli_refresh_stubs(
+        monkeypatch,
+        tmp_path,
+        loaded_player_stat_seasons=[2024, 2025],
+    )
+
+    rc = cli.main(
+        [
+            "--runtime-dir",
+            str(runtime_dir),
+            "--seed-path",
+            str(seed_path),
+            "--season-end",
+            "2024",
+        ]
+    )
+
+    assert rc == 0
+    assert captured["source_inputs"][0]["seasons_window"][-1] == 2024
+    assert captured["publish_inference_seasons"] == [2024]
+
+
+def test_cli_default_preseason_window_does_not_publish_empty_calendar_year(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cli = importlib.import_module("scripts.run_feature_refresh")
+    runtime_dir = tmp_path / "features_runtime"
+    seed_path = tmp_path / "seed.csv"
+    seed_path.write_text("player_id,feature_season,training_eligible\n")
+    captured = _install_cli_refresh_stubs(
+        monkeypatch,
+        tmp_path,
+        loaded_player_stat_seasons=[2024, 2025],
+        blocked_inference_seasons={2026},
+    )
+
+    rc = cli.main(["--runtime-dir", str(runtime_dir), "--seed-path", str(seed_path)])
+
+    assert rc == 0
+    assert captured["publish_inference_seasons"] == [2025]
+
+
 def test_runner_static_and_runtime_audit_blocks_training_and_model_writes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

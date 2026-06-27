@@ -147,7 +147,14 @@ def main(argv: list[str] | None = None) -> int:
         help="readiness-only check; never assembles, writes, or creates the runtime dir",
     )
     parser.add_argument("--season-start", type=int, default=2018)
-    parser.add_argument("--season-end", type=int, default=datetime.now(timezone.utc).year)
+    parser.add_argument(
+        "--season-end",
+        type=int,
+        default=None,
+        help="inference/latest season; default None -> Option B dynamic derivation: the max "
+        "season actually present in loaded player_stats (avoids defaulting into an unplayed "
+        "calendar year, and auto-advances when real new-season data lands).",
+    )
     args = parser.parse_args(argv)
 
     if args.preflight:
@@ -172,10 +179,29 @@ def main(argv: list[str] | None = None) -> int:
         # Full run: load source, hash content, then validate + ATOMICALLY PUBLISH the
         # runtime (source-hash-gated; honest noop when the source is unchanged). NO commit,
         # no model write — the runtime lands under the gitignored features_runtime/ dir.
-        seasons_window = list(range(args.season_start, args.season_end + 1))
-        read_fns = _load_source(seasons_window)
+        # Option B — dynamic latest-available season. With --season-end UNSET, load a discovery
+        # window THROUGH the current calendar year, then derive season_end = the max season
+        # actually present in player_stats. So the daily arg-less scheduler resolves to the
+        # latest PLAYED season (e.g. 2025 in the offseason), never an unplayed calendar year,
+        # and auto-advances the moment real new-season data lands. An explicit --season-end
+        # overrides (back-compat). T4's inference-scoped publish gate still catches a degraded
+        # latest season, so this fixes the offseason block without masking a broken feed.
+        if args.season_end is None:
+            calendar_year = datetime.now(timezone.utc).year
+            read_fns = _load_source(list(range(args.season_start, calendar_year + 1)))
+            ps = read_fns["player_stats"]
+            season_end = (
+                int(ps["season"].max())
+                if (len(ps) and "season" in ps and ps["season"].notna().any())
+                else calendar_year  # no season data -> fail-closed downstream, never fabricate
+            )
+        else:
+            season_end = args.season_end
+            read_fns = _load_source(list(range(args.season_start, season_end + 1)))
+
+        seasons_window = list(range(args.season_start, season_end + 1))
         source_hash = compute_source_hash(**_source_provenance(read_fns, seasons_window))
-        inference_season = args.season_end
+        inference_season = season_end
 
         def publish_fn(candidate_path, **kwargs):
             return publish_runtime(
