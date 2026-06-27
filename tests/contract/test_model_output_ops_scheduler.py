@@ -29,17 +29,13 @@ def test_model_output_launchd_plist_runs_refresh_then_capture_runner() -> None:
     assert "scripts/build_universe_pvo_batch.py" not in args
     assert "scripts/run_model_forward_capture.py" not in args
 
+    # F-seed-split T2a switched the scheduler to seed-split mode: it publishes into the
+    # gitignored runtime dir (--runtime-dir) and NEVER passes the tracked seed paths, so a
+    # scheduled run cannot mutate the committed seed. (This assertion was stale from T2a; the
+    # T5b full-suite closeout surfaced it.)
     assert args[2:] == [
-        "--pvo-artifact-path",
-        str(ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"),
-        "--coverage-artifact-path",
-        str(
-            ROOT
-            / "app"
-            / "data"
-            / "valuation"
-            / "universe_pvo_coverage_latest.json"
-        ),
+        "--runtime-dir",
+        str(ROOT / "app" / "data" / "valuation_runtime"),
         "--capture-db-path",
         str(ROOT / "app" / "data" / "model_forward_capture.db"),
         "--report-path",

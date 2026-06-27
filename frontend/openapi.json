@@ -4494,6 +4494,221 @@
         "title": "WhatChangedModelFeatureFreshness",
         "type": "object"
       },
+      "WhatChangedModelPvoSeedStaleness": {
+        "additionalProperties": false,
+        "description": "Descriptive seed-vs-runtime drift summary \u2014 the \u00a73.6 manual-promotion tripwire.\n\nSurfaced ONLY when ``promote_recommended`` is True (silent on quiet drift). The count\nof model-supported players drifted >5% and the coverage-count change are the stable\ntriggers; ``mean_abs_value_delta`` / ``p95_abs_value_delta`` are DISCLOSURE-only (never\npromotion triggers \u2014 market-noise-sensitive). Carries no market field; certifies no\ndecision.",
+        "properties": {
+          "baseline_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Status"
+          },
+          "count_model_supported_players_drifted_gt_5pct": {
+            "title": "Count Model Supported Players Drifted Gt 5Pct",
+            "type": "integer"
+          },
+          "count_players_drifted_gt_5pct": {
+            "title": "Count Players Drifted Gt 5Pct",
+            "type": "integer"
+          },
+          "coverage_count_deltas": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Coverage Count Deltas",
+            "type": "object"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "mean_abs_value_delta": {
+            "title": "Mean Abs Value Delta",
+            "type": "number"
+          },
+          "p95_abs_value_delta": {
+            "title": "P95 Abs Value Delta",
+            "type": "number"
+          },
+          "promote_recommended": {
+            "title": "Promote Recommended",
+            "type": "boolean"
+          },
+          "recommendation_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommendation Reasons"
+          },
+          "seed_age_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed Age Days"
+          },
+          "seed_as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed As Of"
+          }
+        },
+        "required": [
+          "decision_supported",
+          "promote_recommended",
+          "count_players_drifted_gt_5pct",
+          "count_model_supported_players_drifted_gt_5pct",
+          "mean_abs_value_delta",
+          "p95_abs_value_delta",
+          "coverage_count_deltas"
+        ],
+        "title": "WhatChangedModelPvoSeedStaleness",
+        "type": "object"
+      },
+      "WhatChangedModelPvoStaleness": {
+        "additionalProperties": false,
+        "description": "Descriptive PVO source provenance for the model section + passive seed-staleness.\n\nProvenance (source kind / hashes / as-of / paths) is ALWAYS disclosed so the digest can\nshow which artifact backed the vintage. The ``seed_staleness`` block appears only on the\npromotion tripwire. A present-but-unverified runtime surfaces as ``not_ready`` (kind None\n+ ``aborted_reason``), never hidden. Closed vocabularies so the API cannot report a\nphantom source kind/status. Carries NO market field and certifies no decision.",
+        "properties": {
+          "aborted_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aborted Reason"
+          },
+          "coverage_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Path"
+          },
+          "coverage_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Sha256"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "pvo_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pvo Path"
+          },
+          "pvo_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pvo Sha256"
+          },
+          "pvo_source_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "runtime",
+                  "seed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pvo Source Kind"
+          },
+          "pvo_source_status": {
+            "anyOf": [
+              {
+                "const": "not_ready",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pvo Source Status"
+          },
+          "seed_staleness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatChangedModelPvoSeedStaleness"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source As Of"
+          }
+        },
+        "required": [
+          "decision_supported"
+        ],
+        "title": "WhatChangedModelPvoStaleness",
+        "type": "object"
+      },
       "WhatChangedModelSection": {
         "additionalProperties": false,
         "properties": {
@@ -4530,6 +4745,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/WhatChangedModelFeatureFreshness"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pvo_staleness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatChangedModelPvoStaleness"
               },
               {
                 "type": "null"

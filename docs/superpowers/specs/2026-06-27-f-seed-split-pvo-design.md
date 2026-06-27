@@ -1,0 +1,64 @@
+# Spec: F-seed-split — PVO seed/runtime split — v2 DRAFT
+
+**Status:** DRAFT for cockpit dual-CLEAR. Design 3-way converged (Claude + Codex + Gemini, independent reads). v1 dual-reviewed: Codex fixed 3 resolver/producer defects (folded); David surfaced the manual-promotion-needs-a-staleness-signal gap → v2 adds §3.6 seed-staleness drift signal (Gemini perf + metric fixes + Codex metric breadth folded). Build is David-authorized after CLEAR. Mirrors the shipped feature seed-split (`resolve_feature_source`) — same stance, applied to the PVO artifact pair.
+
+## 1. Problem
+`app/data/valuation/universe_pvo_latest.json` and its sidecar `universe_pvo_coverage_latest.json` are **tracked/committed**, but the daily 09:30 PVO refresh (`run_pvo_refresh.py`, Option C) rewrites them **in place**. Every scheduled run leaves a dirty worktree — the anti-compounding "overwrite a tracked artifact" pattern. It caused real friction this sprint (the ledger/runtime churn during F-feature-refresh) and makes scheduled refreshes, PR review, and rollback riskier than they should be. The feature side already solved this (committed seed + gitignored runtime + resolver); the PVO side has not.
+
+## 2. Goal
+End the daily dirty-worktree churn for the PVO pair by splitting a **committed last-known-good seed** from a **gitignored daily runtime**, served through one centralized fail-closed resolver — with **zero behavior change** for a healthy published runtime, and **graceful, honestly-stamped degradation** to the seed **only when the runtime is ABSENT** (not yet published). A **present-but-unverified** runtime (hash/marker mismatch) **fails closed** — it is never silently masked by the seed (Codex review §3.1). `decision_supported=false` and market-out-of-model hold throughout.
+
+## 3. Design (3-way converged)
+
+**3.1 — Paired resolver `resolve_pvo_source` (mirror `resolve_feature_source`).**
+Centralized resolver returns the artifact pair a consumer should read, with **three explicit outcomes** (Codex review — absent ≠ unverified):
+- **runtime absent** (no runtime pair published / runtime removed) → serve the **committed seed**, stamped `pvo_source_kind=seed`.
+- **runtime present AND verified** (ready marker present, status ok, both file shas match) → serve the **runtime**.
+- **runtime present BUT unverified** (ready marker missing/not-ok, or `pvo_sha256`/`coverage_sha256` ≠ file shas, or only one of the pair present) → **RAISE `PvoSourceNotReadyError` / fail closed.** A present-but-unverified runtime signals corruption (post-write tampering) and must NEVER silently fall back to the seed — the seed fallback is for *absence*, not *corruption*. (The atomic temp-then-rename publish in §3.2 means a present runtime is always byte-complete, so unverified ⇒ genuinely abnormal ⇒ fail loud.)
+
+The PVO and coverage artifacts are an **inseparable atomic pair** — the ready marker carries **both** hashes (`pvo_sha256` + `coverage_sha256`). Returns a `ResolvedPvoSource` dataclass with `source_kind` (`"runtime" | "seed"`), both paths, both shas, `source_as_of`, `ready`, and a `metadata()` stamp carrying `pvo_source_kind` + `decision_supported=False`.
+
+**3.2 — Runtime atomic publish (Option-C refactor).**
+`run_pvo_refresh.py` moves from in-place backup/restore to **write-to-temp-then-atomic-rename** into a gitignored runtime dir (`app/data/valuation_runtime/`), emitting the PVO + coverage + a ready marker covering both hashes. On any failure the **prior runtime is preserved** (never a half-written runtime); fail-closed report unchanged. No auto-commit (Option C discipline holds); the scheduler still touches only gitignored paths.
+
+**3.3 — Seed = last-known-good, promoted by acceptance (David-gated).**
+The committed seed is a **stable last-known-good PVO baseline** (the current `universe_pvo_latest.json` content becomes the initial seed), NOT a placeholder. If the runtime is **absent** (a refresh hasn't published yet, or a runtime was cleared), the resolver serves the seed so Trade / Players / Roster Audit stay up — degraded but accurate, stamped `pvo_source_kind=seed`. (A *corrupt* runtime does NOT fall back here — it fails closed per §3.1.) Promoting a **new** last-known-good seed is a deliberate, reviewed, **David-gated manual acceptance** (mirrors the feature seed + the D2 Option-C ruling that committing a refreshed baseline is David-gated). *(DECISION POINT — see §6 Q1: confirm David-gated manual promotion.)*
+
+**3.4 — Honest provenance stamp.**
+Seed fallback is **visibly stamped** (`pvo_source_kind=seed`, stale-ish `source_as_of`) wherever consumers expose metadata, and carried into the capture/report/What-Changed surfaces. It keeps the app alive; it must never pretend to be fresh.
+
+**3.5 — Producer / consumer split (Codex review — the producer must NOT resolve its own runtime).**
+The fan-out is NOT uniform; classifying each role is mandatory so the PVO **producer** never resolves its own prior runtime:
+
+- **PRODUCER (WRITES the runtime; does NOT call `resolve_pvo_source`):** `scripts/build_universe_pvo_batch.py` (+ its lib `src/dynasty_genius/universe_pvo_batch.py`). It generates the PVO/coverage pair and writes to the **runtime dir** (parameterized output path — see T2), NOT the tracked seed path. It must never read-back its own output through the resolver.
+- **ORCHESTRATORS:** `run_pvo_refresh.py` (drives the producer → atomic publish → ready marker) and `run_league_intelligence_refresh.py` (chain). They point the producer at the runtime dir; they don't *consume* PVO values for decisions.
+- **CONSUMERS (READ via `resolve_pvo_source`):** the 3 live API routes (`trade.py`, `trade_market.py`, `players.py`, + roster_auditor if it reads directly) and the read-only scripts (`build_roster_cut_report`, `build_team_value_matrix`, `build_universe_market_divergence`, `run_model_forward_capture`, `validate_surface3_regen_integrity`). Each routed through the resolver; the model-capture provenance resolver already pins via the same seam (consistency).
+
+No direct reads of the seed/runtime paths left in any **consumer**. T4 produces an explicit role-classified migration map; any ambiguous script (read-and-write) is resolved in the map before migration.
+
+**3.6 — Seed-staleness drift signal (closes the manual-promotion loop — David's gap).**
+Manual promotion (§3.3) needs a signal or it's flying blind. The signal is **drift-based, not age-based** (an old seed is fine in the quiet offseason; a 10-day seed can be stale mid-season — calendar age is a false trigger).
+
+- **Computed ONCE per refresh in `run_pvo_refresh.py`** when the new runtime is generated (data already loaded) — **NEVER in the resolver** (the resolver is the hot path for 3 API routes + read-only scripts; a per-serve 1MB JSON diff is a severe perf/memory regression — Gemini). The refresh diffs the fresh runtime vs the committed seed and **embeds a `seed_staleness` block in the runtime ready marker** — a SINGLE metadata location, no separate sidecar (Codex: a second `seed_drift.json` file has unclear absence/corruption semantics; embedding rides the same atomic publish + both-hash verification as the rest of the marker). The resolver does an **O(1) read** of `seed_staleness` from the **verified ready marker** and attaches it to `ResolvedPvoSource.metadata()`.
+- **Absolute metrics** (signed `mean_value_delta` washes out — positive/negative cancel — Gemini): `count_players_drifted_gt_5pct`, `count_model_supported_players_drifted_gt_5pct`, `mean_abs_value_delta`, `p95_abs_value_delta`, `coverage_count_deltas`, plus `seed_as_of` / `seed_age_days` (disclosure only).
+- **`promote_recommended = true`** (conservative OR; review-prompt ONLY, never auto-promote) if `count_model_supported_players_drifted_gt_5pct > 20` **OR** any modeled coverage/route count changes by ≥ 10. **`p95_abs_value_delta` and `mean_abs_value_delta` are DISCLOSURE metrics, NOT triggers** (v2 reconciliation): a value-delta percentile is market-noise-sensitive and would over-trigger; the stable signals are the absolute COUNT of model-supported players drifted >5% and structural coverage-count change. (CLEAR/acceptance status is tracked in the cockpit ledger, not asserted here.) Thresholds are initial recommendations, tunable post-build.
+- **Surfaced PASSIVELY** in the daily What-Changed digest as a single non-decision line, **silent unless `promote_recommended`** (no nagging when quiet). `decision_supported=false` attached throughout.
+- **Guided promotion:** a `promote_pvo_seed` step shows the drift block and promotes the current runtime to the committed seed **only on David's explicit confirm** (David-gated; the tool never auto-commits).
+
+## 4. Tasks (cockpit-TDD: Codex RED → Claude GREEN → dual-CLEAR → David commit)
+- **T1 — resolver core.** `resolve_pvo_source` + `ResolvedPvoSource` + paired ready-marker contract; fail-closed semantics; **O(1) read** of the pre-computed `seed_staleness` block from the verified ready marker into `metadata()` (no diff in the resolver). (new module, mirrors `feature_source.py`)
+- **T2 — producer output redirect + runtime atomic publish + drift compute.** (a) Parameterize `build_universe_pvo_batch.py` so its PVO/coverage **output path is injectable** and a scheduled refresh writes to the **runtime dir, never the tracked seed path** (defect-2 fix). (b) Refactor `run_pvo_refresh.py` to drive the producer into a temp location then **temp-then-rename** the pair into the gitignored runtime dir with a both-hashes ready marker + prior-runtime preservation; gitignore the runtime dir. (c) **Compute the §3.6 `seed_staleness` block once here** (fresh runtime vs committed seed) and **embed it in the runtime ready marker** (single metadata location — no separate sidecar).
+- **T3 — seed baseline + gitignore.** Establish the committed seed (current latest content) at its seed path; gitignore the runtime dir; confirm the seed path is no longer written by any scheduled job.
+- **T4 — consumer migration (role-classified) + staleness surfacing.** Produce the §3.5 producer/orchestrator/consumer map, route every **consumer** through the resolver, carry the provenance + `seed_staleness` stamp into surfaces, and add the **passive What-Changed staleness line** (silent unless `promote_recommended`). The **producer does NOT resolve** — verified by the no-self-resolve test in §5.
+- **T5 — guided promotion + full-suite + go-live smoke.** `promote_pvo_seed` David-gated tool (shows drift, commits only on explicit confirm). Real refresh writes runtime + ready marker with the embedded `seed_staleness` block, resolver serves it, API 200s, seed-fallback verified by moving the runtime aside (the exact check that caught the hermeticity bug last sprint).
+
+## 5. Acceptance / RED (Codex authors)
+Runtime-preferred (verified runtime served over seed); seed-fallback **on ABSENCE only** (no runtime pair → seed, stamped `seed`); **present-but-unverified fail-closed** (ready marker missing/not-ok → raise, NOT seed fallback); half-runtime fail-closed (PVO present, coverage missing → raise); hash-mismatch fail-closed (ready-marker sha ≠ file sha → raise); atomic-publish-failure preserves prior runtime; **producer no-self-resolve** (`build_universe_pvo_batch` writes the runtime and does NOT call `resolve_pvo_source` — guard test); every **consumer** resolves through the resolver (no direct path reads — grep-guard test); seed path not written by any scheduled job; provenance stamp present in report/ready/surfaces; **drift computed in `run_pvo_refresh`, NOT the resolver** (perf guard test — resolver does no JSON diff); **`promote_recommended` trips on the §3.6 OR-thresholds** and stays false on quiet/near-identical runtimes; **absolute drift metrics** (a sign-flipped synthetic runtime still trips the count, proving no signed cancellation); passive staleness line **silent when not recommended**; `promote_pvo_seed` is David-gated (no auto-commit); `decision_supported=false` everywhere.
+
+## 6. Open questions — RESOLVED (Gemini governance CLEAR; David to confirm Q1)
+- **Q1 (seed promotion gating):** **David-gated manual acceptance — CONFIRMED by David (2026-06-27).** Automated runtime→seed promotion is forbidden (re-introduces auto-commit of a tracked artifact). The §3.6 drift signal is the *prompt*; David is the *trigger*.
+- **Q2 (path strategy):** **Keep `universe_pvo_latest.json` as the seed path; add gitignored `app/data/valuation_runtime/` for the runtime.** Smallest blast radius; committed path remains the absence fallback.
+- **Q3 (coverage-only changes):** **Yes — atomic pair.** The ready marker invalidates if EITHER artifact changes.
+
+## 7. Guardrails (held)
+market-out-of-model · `decision_supported=false` · no-scheduler-commits (runtime is gitignored, scheduler args unchanged) · no model train/write · banned-language-clean · fail-closed over serve-unverified · divergence UNVALIDATED until Gate-4.

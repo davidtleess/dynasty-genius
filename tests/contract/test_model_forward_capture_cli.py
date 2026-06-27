@@ -48,15 +48,62 @@ def test_preflight_prints_resolved_config_without_reads_or_writes(
     assert out == {
         "preflight": True,
         "db_path": str(db_path),
-        "pvo_artifact_path": "app/data/valuation/universe_pvo_latest.json",
-        "coverage_artifact_path": (
-            "app/data/valuation/universe_pvo_coverage_latest.json"
-        ),
+        "pvo_artifact_path": None,
+        "coverage_artifact_path": None,
+        "seed_pvo_path": "app/data/valuation/universe_pvo_latest.json",
+        "seed_coverage_path": "app/data/valuation/universe_pvo_coverage_latest.json",
+        "runtime_dir": "app/data/valuation_runtime",
         "report_path": str(report_path),
         "source": "model_pvo",
     }
     assert not db_path.exists()
     assert not report_path.exists()
+
+
+def test_default_run_resolves_published_runtime_without_preflight_reads(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    """Default standalone capture should consume the resolved PVO source at run time only."""
+    cli = _load_cli()
+    runtime_pvo = tmp_path / "runtime" / "universe_pvo_runtime.json"
+    runtime_coverage = tmp_path / "runtime" / "universe_pvo_coverage_runtime.json"
+    db_path = tmp_path / "model_forward.db"
+    calls: list[dict] = []
+
+    class _Resolved:
+        pvo_path = runtime_pvo
+        coverage_path = runtime_coverage
+
+    def fake_resolve_pvo_source(**kwargs):
+        calls.append({"resolver": kwargs})
+        return _Resolved()
+
+    def fake_capture(**kwargs):
+        calls.append(kwargs)
+        return {
+            "status": "ok",
+            "capture_date": "2026-06-27",
+            "decision_supported": False,
+        }
+
+    monkeypatch.setattr(cli, "resolve_pvo_source", fake_resolve_pvo_source)
+    monkeypatch.setattr(cli, "capture_model_pvo_snapshot", fake_capture)
+    monkeypatch.setattr(cli, "_git_head_sha", lambda: "abcdef1234567890")
+
+    result = cli.main(["--db-path", str(db_path)])
+
+    assert result == 0
+    resolver_call, capture_call = calls
+    assert resolver_call["resolver"]["seed_paths"] == {
+        "pvo": Path("app/data/valuation/universe_pvo_latest.json"),
+        "coverage": Path("app/data/valuation/universe_pvo_coverage_latest.json"),
+    }
+    assert resolver_call["resolver"]["runtime_dir"] == Path("app/data/valuation_runtime")
+    assert capture_call["pvo_artifact_path"] == runtime_pvo
+    assert capture_call["coverage_artifact_path"] == runtime_coverage
+    assert json.loads(capsys.readouterr().out)["status"] == "ok"
 
 
 def test_success_wires_real_deps_prints_report_and_returns_zero(

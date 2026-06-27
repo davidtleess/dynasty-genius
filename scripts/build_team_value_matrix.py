@@ -11,12 +11,16 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from src.dynasty_genius.pvo_source import resolve_pvo_source  # noqa: E402
 from src.dynasty_genius.team_value_matrix import (  # noqa: E402
     build_team_value_matrix,
     write_team_value_matrix_artifacts,
 )
 
-UNIVERSE_PVO_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+# F-seed-split T4: resolve the PVO pair (verified runtime else committed seed).
+PVO_SEED_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+PVO_SEED_COVERAGE_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_coverage_latest.json"
+PVO_RUNTIME_DIR = ROOT / "app" / "data" / "valuation_runtime"
 LEAGUE_SNAPSHOT_PATH = ROOT / "app" / "data" / "league_snapshots" / "sleeper_universe_snapshot_latest.json"
 OUTPUT_DIR = ROOT / "app" / "data" / "valuation"
 
@@ -26,8 +30,12 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def main() -> None:
+    resolved = resolve_pvo_source(
+        seed_paths={"pvo": PVO_SEED_PATH, "coverage": PVO_SEED_COVERAGE_PATH},
+        runtime_dir=PVO_RUNTIME_DIR,
+    )
     matrix = build_team_value_matrix(
-        universe_pvo=_load_json(UNIVERSE_PVO_PATH),
+        universe_pvo=_load_json(resolved.pvo_path),
         league_snapshot=_load_json(LEAGUE_SNAPSHOT_PATH),
         captured_at=datetime.now(timezone.utc).isoformat(),
     )

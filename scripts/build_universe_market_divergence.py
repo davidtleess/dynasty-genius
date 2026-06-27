@@ -13,17 +13,25 @@ sys.path.insert(0, str(ROOT))
 from src.dynasty_genius.adapters.fantasycalc_adapter import (
     fetch_with_cache,  # noqa: E402
 )
+from src.dynasty_genius.pvo_source import resolve_pvo_source  # noqa: E402
 from src.dynasty_genius.universe_market_divergence import (  # noqa: E402
     build_universe_market_divergence,
     write_market_divergence_artifacts,
 )
 
-UNIVERSE_PVO_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+# F-seed-split T4: resolve the PVO pair (verified runtime else committed seed).
+PVO_SEED_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
+PVO_SEED_COVERAGE_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_coverage_latest.json"
+PVO_RUNTIME_DIR = ROOT / "app" / "data" / "valuation_runtime"
 OUTPUT_DIR = ROOT / "app" / "data" / "valuation"
 
 
 def main() -> None:
-    universe_pvo = json.loads(UNIVERSE_PVO_PATH.read_text())
+    resolved = resolve_pvo_source(
+        seed_paths={"pvo": PVO_SEED_PATH, "coverage": PVO_SEED_COVERAGE_PATH},
+        runtime_dir=PVO_RUNTIME_DIR,
+    )
+    universe_pvo = json.loads(resolved.pvo_path.read_text())
     fc_response, fetch_caveats = fetch_with_cache()
     captured_at = datetime.now(timezone.utc).isoformat()
     divergence = build_universe_market_divergence(
