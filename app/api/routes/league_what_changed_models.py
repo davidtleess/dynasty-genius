@@ -188,6 +188,12 @@ class WhatChangedModelPvoSeedStaleness(_Strict):
     coverage_count_deltas: dict[str, int]
     seed_as_of: Optional[str] = None
     seed_age_days: Optional[float] = None
+    # Real T2b marker fields (T5c-D1): baseline_status discloses whether a seed baseline
+    # existed; recommendation_reasons names the objective threshold(s) that tripped the
+    # promotion prompt (e.g. "count_model_supported_players_drifted_gt_5pct>20") — the honest
+    # "why". Both descriptive; no action-grade advice.
+    baseline_status: Optional[str] = None
+    recommendation_reasons: Optional[list[str]] = None
 
 
 class WhatChangedModelPvoStaleness(_Strict):

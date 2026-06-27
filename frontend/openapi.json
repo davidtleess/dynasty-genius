@@ -4498,6 +4498,17 @@
         "additionalProperties": false,
         "description": "Descriptive seed-vs-runtime drift summary \u2014 the \u00a73.6 manual-promotion tripwire.\n\nSurfaced ONLY when ``promote_recommended`` is True (silent on quiet drift). The count\nof model-supported players drifted >5% and the coverage-count change are the stable\ntriggers; ``mean_abs_value_delta`` / ``p95_abs_value_delta`` are DISCLOSURE-only (never\npromotion triggers \u2014 market-noise-sensitive). Carries no market field; certifies no\ndecision.",
         "properties": {
+          "baseline_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Status"
+          },
           "count_model_supported_players_drifted_gt_5pct": {
             "title": "Count Model Supported Players Drifted Gt 5Pct",
             "type": "integer"
@@ -4529,6 +4540,20 @@
           "promote_recommended": {
             "title": "Promote Recommended",
             "type": "boolean"
+          },
+          "recommendation_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommendation Reasons"
           },
           "seed_age_days": {
             "anyOf": [

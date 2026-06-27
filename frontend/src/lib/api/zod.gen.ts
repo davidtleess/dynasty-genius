@@ -985,6 +985,7 @@ export const zWhatChangedModelFeatureFreshness = z.object({
  * decision.
  */
 export const zWhatChangedModelPvoSeedStaleness = z.object({
+    baseline_status: z.string().nullish(),
     count_model_supported_players_drifted_gt_5pct: z.int(),
     count_players_drifted_gt_5pct: z.int(),
     coverage_count_deltas: z.record(z.string(), z.int()),
@@ -992,6 +993,7 @@ export const zWhatChangedModelPvoSeedStaleness = z.object({
     mean_abs_value_delta: z.number(),
     p95_abs_value_delta: z.number(),
     promote_recommended: z.boolean(),
+    recommendation_reasons: z.array(z.string()).nullish(),
     seed_age_days: z.number().nullish(),
     seed_as_of: z.string().nullish()
 });

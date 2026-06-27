@@ -2396,6 +2396,10 @@ export type WhatChangedModelFeatureFreshness = {
  */
 export type WhatChangedModelPvoSeedStaleness = {
     /**
+     * Baseline Status
+     */
+    baseline_status?: string | null;
+    /**
      * Count Model Supported Players Drifted Gt 5Pct
      */
     count_model_supported_players_drifted_gt_5pct: number;
@@ -2425,6 +2429,10 @@ export type WhatChangedModelPvoSeedStaleness = {
      * Promote Recommended
      */
     promote_recommended: boolean;
+    /**
+     * Recommendation Reasons
+     */
+    recommendation_reasons?: Array<string> | null;
     /**
      * Seed Age Days
      */

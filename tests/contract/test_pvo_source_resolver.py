@@ -621,6 +621,67 @@ def test_what_changed_model_pvo_staleness_surfaces_promote_recommended_metrics(
     assert model.pvo_staleness.seed_staleness.p95_abs_value_delta == 6.0
 
 
+def test_what_changed_model_pvo_staleness_accepts_real_marker_shape_in_public_dto(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """T5c-D1: real ready-marker seed_staleness must validate when promoted."""
+    report = importlib.import_module("src.dynasty_genius.what_changed.report")
+    models = importlib.import_module("app.api.routes.league_what_changed_models")
+    raw_real_seed_staleness = {
+        "decision_supported": False,
+        "promote_recommended": True,
+        "recommendation_reasons": [
+            "count_model_supported_players_drifted_gt_5pct>20"
+        ],
+        "baseline_status": "compared",
+        "count_players_drifted_gt_5pct": 22,
+        "count_model_supported_players_drifted_gt_5pct": 22,
+        "mean_abs_value_delta": 6.0,
+        "p95_abs_value_delta": 6.0,
+        "coverage_count_deltas": {"ENGINE_B": 0, "PRE_MODEL": 0},
+        "seed_as_of": "2026-06-24T12:00:00+00:00",
+        "seed_age_days": 3.0,
+    }
+
+    class Resolved:
+        def metadata(self) -> dict:
+            return {
+                "decision_supported": False,
+                "pvo_source_kind": "runtime",
+                "pvo_sha256": "runtime-pvo-sha",
+                "coverage_sha256": "runtime-coverage-sha",
+                "source_as_of": "2026-06-27T13:30:00+00:00",
+                "pvo_path": "app/data/valuation_runtime/universe_pvo_runtime.json",
+                "coverage_path": (
+                    "app/data/valuation_runtime/universe_pvo_coverage_runtime.json"
+                ),
+                "seed_staleness": raw_real_seed_staleness,
+            }
+
+    monkeypatch.setattr(
+        report, "resolve_pvo_source", lambda **_kwargs: Resolved(), raising=False
+    )
+
+    staleness = report._model_pvo_staleness()
+
+    assert staleness["seed_staleness"] == raw_real_seed_staleness
+    model = models.WhatChangedModelSection.model_validate(
+        {
+            "status": "insufficient_history",
+            "decision_supported": False,
+            "comparison_window": {"status": "insufficient_history"},
+            "pvo_staleness": staleness,
+        }
+    )
+    assert model.pvo_staleness is not None
+    assert model.pvo_staleness.seed_staleness is not None
+    assert model.pvo_staleness.seed_staleness.promote_recommended is True
+    assert model.pvo_staleness.seed_staleness.baseline_status == "compared"
+    assert model.pvo_staleness.seed_staleness.recommendation_reasons == [
+        "count_model_supported_players_drifted_gt_5pct>20"
+    ]
+
+
 def test_what_changed_model_pvo_staleness_discloses_not_ready_runtime(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -709,3 +770,7 @@ def test_what_changed_pvo_staleness_openapi_and_zod_snapshots_are_regenerated() 
     assert "zWhatChangedModelPvoStaleness" in zod_text
     assert "zWhatChangedModelPvoSeedStaleness" in zod_text
     assert "pvo_staleness" in zod_text
+    assert "baseline_status" in openapi_text
+    assert "recommendation_reasons" in openapi_text
+    assert "baseline_status" in zod_text
+    assert "recommendation_reasons" in zod_text
