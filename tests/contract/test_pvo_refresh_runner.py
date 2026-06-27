@@ -117,6 +117,43 @@ def _write_runtime_pair(runtime_dir: Path, *, suffix: str = "old") -> tuple[Path
     return pvo, coverage
 
 
+def _write_drift_pvo(path: Path, values: dict[str, float], *, modeled: bool = True) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    engine_path = "ENGINE_B" if modeled else "PRE_MODEL"
+    path.write_text(
+        json.dumps(
+            {
+                "captured_at": "2026-06-24T12:00:00+00:00",
+                "schema_version": "universe_pvo_batch.v1",
+                "players": [
+                    {
+                        "sleeper_player_id": player_id,
+                        "valuation": {
+                            "engine_path": engine_path,
+                            "dynasty_value_score": value,
+                            "decision_supported": False,
+                        },
+                    }
+                    for player_id, value in values.items()
+                ],
+            },
+            sort_keys=True,
+        )
+    )
+    return path
+
+
+def _write_drift_coverage(path: Path, *, engine_b: int, pre_model: int = 0) -> Path:
+    return _write_json(
+        path,
+        {
+            "total_players": engine_b + pre_model,
+            "counts_by_engine_path": {"ENGINE_B": engine_b, "PRE_MODEL": pre_model},
+            "decision_supported_true_count": 0,
+        },
+    )
+
+
 def _assert_runtime_marker(runtime_dir: Path, pvo: Path, coverage: Path) -> dict:
     marker = json.loads((runtime_dir / "universe_pvo_runtime.ready.json").read_text())
     assert marker["status"] == "ok"
@@ -125,6 +162,12 @@ def _assert_runtime_marker(runtime_dir: Path, pvo: Path, coverage: Path) -> dict
     assert marker["decision_supported"] is False
     assert marker["source_as_of"]
     return marker
+
+
+def _write_json(path: Path, payload: dict) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, sort_keys=True))
+    return path
 
 
 def test_preflight_prints_config_without_refresh_capture_or_writes(
@@ -163,6 +206,8 @@ def test_preflight_prints_config_without_refresh_capture_or_writes(
         "preflight": True,
         "pvo_artifact_path": str(pvo),
         "coverage_artifact_path": str(coverage),
+        "seed_pvo_path": "app/data/valuation/universe_pvo_latest.json",
+        "seed_coverage_path": "app/data/valuation/universe_pvo_coverage_latest.json",
         "runtime_dir": "app/data/valuation_runtime",
         "report_path": str(report_path),
         "capture_db_path": None,
@@ -302,6 +347,96 @@ def test_main_defaults_to_runtime_mode_and_never_mutates_tracked_seed(
     # The tracked seed paths are NEVER written in runtime mode.
     assert seed_sentinel.read_text() == "SEED-SENTINEL"
     assert coverage_sentinel.read_text() == "COVERAGE-SENTINEL"
+
+
+def test_runtime_ready_marker_embeds_seed_staleness_from_explicit_seed_baseline(
+    tmp_path: Path,
+) -> None:
+    """T2b: drift is computed once at publish time against explicit read-only seed paths.
+
+    Use absolute movement, not signed mean movement, so offsetting up/down value moves still
+    trip the player-count threshold and cannot wash out.
+    """
+    runner = _load_runner()
+    runtime_dir = tmp_path / "app" / "data" / "valuation_runtime"
+    seed_values = {f"player-{idx}": 100.0 for idx in range(22)}
+    runtime_values = {
+        player_id: (106.0 if idx % 2 == 0 else 94.0)
+        for idx, player_id in enumerate(seed_values)
+    }
+    seed_pvo = _write_drift_pvo(tmp_path / "seed" / "universe_pvo_latest.json", seed_values)
+    seed_coverage = _write_drift_coverage(
+        tmp_path / "seed" / "universe_pvo_coverage_latest.json",
+        engine_b=22,
+        pre_model=0,
+    )
+
+    def fake_refresh(*, pvo_artifact_path: Path, coverage_artifact_path: Path) -> None:
+        _write_drift_pvo(pvo_artifact_path, runtime_values)
+        _write_drift_coverage(coverage_artifact_path, engine_b=22, pre_model=0)
+
+    report = runner.run_pvo_refresh(
+        pvo_artifact_path=tmp_path / "legacy_ignored_pvo.json",
+        coverage_artifact_path=tmp_path / "legacy_ignored_coverage.json",
+        seed_pvo_path=seed_pvo,
+        seed_coverage_path=seed_coverage,
+        runtime_dir=runtime_dir,
+        report_path=None,
+        refresh_fn=fake_refresh,
+        capture_fn=None,
+        read_artifact=lambda path: Path(path).read_bytes(),
+        feature_source=_fixture_feature_source(),
+    )
+
+    assert report["status"] == "ok"
+    marker = json.loads((runtime_dir / "universe_pvo_runtime.ready.json").read_text())
+    drift = marker["seed_staleness"]
+    assert drift["decision_supported"] is False
+    assert drift["promote_recommended"] is True
+    assert drift["recommendation_reasons"] == [
+        "count_model_supported_players_drifted_gt_5pct>20"
+    ]
+    assert drift["count_players_drifted_gt_5pct"] == 22
+    assert drift["count_model_supported_players_drifted_gt_5pct"] == 22
+    assert drift["mean_abs_value_delta"] == pytest.approx(6.0)
+    assert drift["p95_abs_value_delta"] == pytest.approx(6.0)
+    assert drift["coverage_count_deltas"] == {"ENGINE_B": 0, "PRE_MODEL": 0}
+    assert drift["seed_as_of"] == "2026-06-24T12:00:00+00:00"
+    assert isinstance(drift["seed_age_days"], int | float)
+    assert report["runtime"]["seed_staleness"] == drift
+
+
+def test_runtime_publish_with_missing_seed_baseline_is_graceful_and_not_recommended(
+    tmp_path: Path,
+) -> None:
+    """A missing seed baseline must not crash publish; it should disclose no baseline."""
+    runner = _load_runner()
+    runtime_dir = tmp_path / "app" / "data" / "valuation_runtime"
+
+    def fake_refresh(*, pvo_artifact_path: Path, coverage_artifact_path: Path) -> None:
+        _write_drift_pvo(pvo_artifact_path, {"player-1": 100.0})
+        _write_drift_coverage(coverage_artifact_path, engine_b=1)
+
+    report = runner.run_pvo_refresh(
+        pvo_artifact_path=tmp_path / "legacy_ignored_pvo.json",
+        coverage_artifact_path=tmp_path / "legacy_ignored_coverage.json",
+        seed_pvo_path=tmp_path / "missing_seed_pvo.json",
+        seed_coverage_path=tmp_path / "missing_seed_coverage.json",
+        runtime_dir=runtime_dir,
+        report_path=None,
+        refresh_fn=fake_refresh,
+        capture_fn=None,
+        read_artifact=lambda path: Path(path).read_bytes(),
+        feature_source=_fixture_feature_source(),
+    )
+
+    assert report["status"] == "ok"
+    marker = json.loads((runtime_dir / "universe_pvo_runtime.ready.json").read_text())
+    drift = marker["seed_staleness"]
+    assert drift["decision_supported"] is False
+    assert drift["promote_recommended"] is False
+    assert drift["baseline_status"] == "no_seed_baseline"
+    assert drift["recommendation_reasons"] == []
 
 
 def test_phase17_2_refresh_drives_producer_with_output_dir_to_candidate_paths(
