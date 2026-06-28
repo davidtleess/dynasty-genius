@@ -1,7 +1,7 @@
 ---
 document: Dynasty Genius Product Constitution
 version: 1.0.0
-last_updated: 2026-05-07
+last_updated: 2026-06-27
 authority: highest
 source_documents:
   - docs/governance/archive/originals/DYNASTY_GENIUS_FRAMEWORK.original.md
@@ -133,6 +133,23 @@ Dynasty Genius must show whether its model beats or usefully diverges from the m
 Frontend polish comes last.
 
 No David-facing surface should imply decision-grade confidence before the underlying model, source freshness, and validation gates justify it.
+
+### In-Season Estimate Responsiveness And Model-Change Governance
+
+Two distinct things may "improve" over time, and they must never be conflated:
+
+1. A player's daily estimate (PVO) may update frequently and autonomously.
+2. The predictive model itself — its parameters, features, thresholds, and promotion gates — changes rarely and only by deliberate, human-gated promotion.
+
+Rulings:
+
+- Daily estimates update via a deterministic, versioned overlay on a frozen model artifact. The daily estimate-update path never retrains the model — deliberate, human-gated, pre-registered model promotion (see "The model is the anchor" below) is the only path to a model change. The estimate leads on usage/role signals (snaps, routes, targets, red-zone work, depth-chart and injury-driven role changes) and lags on noisy box-score outcomes (fantasy points, touchdowns, efficiency spikes), with shrinkage toward the prior and position-varying responsiveness: RB fastest; WR medium (move on a sustained multi-week trend, not one game); TE fast on route participation but slow on production (do not chase touchdown variance); QB slowest, reacting to job security and depth-chart status rather than weekly efficiency. For off-season player transfers, free-agency moves, or coaching/coordinator changes — where no new games have been played — the quantitative PVO remains stable until new in-season utilization accumulates; the transition's immediate impact is carried only as a qualitative team-context caveat, never a speculative quantitative PVO adjustment before snaps are played in the new offense.
+
+- Bias to stability. When the correct responsiveness is uncertain, prefer the more stable setting. The too-jumpy error (recency-driven panic acquisition or liquidation that mirrors market noise) destroys more dynasty value than the too-frozen error (an occasional missed acquisition window). [David-ratified 2026-06-27.]
+
+- The model is the anchor. The predictive model must not auto-adjust in-season. In-season monitors may detect, report, alert, and queue candidate changes (cohort-error reports, drift detection, candidate features, pre-registered bake-off jobs, proposed specs/patches). Feature promotion, coefficient or model-artifact replacement, threshold/half-life changes, and any change to model training behavior are human-gated and require pre-registered validation. Auto-tuning the model in-season is a defect: it introduces leakage, breaks reproducibility and auditability, and moves the very baseline used to measure model-vs-market divergence.
+
+- All daily-estimate overlay outputs are descriptive (`decision_supported=False`) until a pre-registered validation earns decision-grade status. Market data stays out of model inputs and out of the predictive overlay throughout (overlay-only, per the KTC ruling).
 
 ## Rookie Evaluation Rules
 
