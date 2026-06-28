@@ -15,8 +15,11 @@ Design spec: docs/superpowers/specs/2026-06-24-model-output-forward-capture-bric
 """
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import json
+import math
 import sqlite3
 from datetime import date, datetime
 from pathlib import Path
@@ -25,10 +28,20 @@ from typing import Any, Callable, Optional
 from src.dynasty_genius.capture.model_forward_capture_store import (
     MODEL_PVO_SOURCE,
     MODEL_SUPPORTED_ENGINE_PATHS,
+    ModelForwardCaptureConflictError,
     ModelForwardCaptureStore,
+    ModelForwardCaptureValidationError,
     build_model_player_key,
 )
+
+# Module-level so the capture driver can write the companion prediction snapshot in the
+# same transaction as the core row (and so tests can monkeypatch it).
+from src.dynasty_genius.capture.prediction_snapshot_store import (
+    CANONICAL_UTIL_FIELDS,
+    PredictionSnapshotStore,
+)
 from src.dynasty_genius.features.feature_source import resolve_feature_source
+from src.dynasty_genius.models.engine_b_contract import ENGINE_B_FEATURES_BY_POSITION
 
 PRODUCER_PATH = Path("scripts/build_universe_pvo_batch.py")
 ENGINE_B_MANIFEST_PATH = Path("app/data/models/engine_b/v2_manifest.json")
@@ -263,6 +276,91 @@ def _resolve_provenance(
     return block, subset
 
 
+def _util_role(field: str, position: Optional[str]) -> str:
+    """Position-AWARE role per the Engine B contract: a field is ``model_input`` only when
+    it is in that position's model matrix, else ``diagnostic_only``. ``route_participation``,
+    ``target_share_nfl`` and ``air_yards_share`` are in NO position set (excluded — collinear),
+    so they are always ``diagnostic_only``; ``weighted_opportunity``/``yprr``/``tprr`` are
+    ``model_input`` for WR/TE only; ``snap_share`` is ``model_input`` for all positions."""
+    matrix = ENGINE_B_FEATURES_BY_POSITION.get(position or "", frozenset())
+    return "model_input" if field in matrix else "diagnostic_only"
+
+
+def _parse_util_value(raw: Any) -> Optional[float]:
+    """Parse a feature-CSV cell to a finite float, else None (blank/unparseable/non-finite).
+    Feature cells are strings; a non-finite or non-numeric cell is recorded as a null value
+    rather than aborting the whole survivorship-complete capture."""
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if text == "":
+        return None
+    try:
+        value = float(text)
+    except ValueError:
+        return None
+    return value if math.isfinite(value) else None
+
+
+def _load_prediction_time_utilization(
+    provenance: dict, read_artifact: Callable[[Any], bytes]
+) -> tuple[dict[str, dict[str, str]], frozenset[str]]:
+    """Read the RESOLVED Engine B feature source (the same CSV the producer scored — the
+    ``training_eligible == False`` inference rows keyed by gsis ``player_id``) and return a
+    ``{player_id: row}`` map plus the set of canonical util columns actually present in the
+    header. When no Engine B feature source is in provenance (no model-supported B rows),
+    returns empty — every companion row then reads ``missing_feature_row``."""
+    feature_csv = provenance.get("feature_csv")
+    if not feature_csv or not feature_csv.get("path"):
+        return {}, frozenset()
+    raw = read_artifact(Path(feature_csv["path"]))
+    reader = csv.DictReader(io.StringIO(raw.decode()))
+    header = reader.fieldnames or []
+    present = frozenset(c for c in CANONICAL_UTIL_FIELDS if c in header)
+    by_player_id: dict[str, dict[str, str]] = {}
+    for record in reader:
+        if str(record.get("training_eligible", "")).strip().lower() != "false":
+            continue  # only inference rows carry the prediction-time utilization
+        player_id = record.get("player_id")
+        if player_id:
+            by_player_id[str(player_id)] = record
+    return by_player_id, present
+
+
+def _build_utilization_snapshot(
+    *,
+    dg_player_id: Optional[str],
+    position: Optional[str],
+    feature_rows_by_player_id: dict[str, dict[str, str]],
+    present_util_columns: frozenset[str],
+) -> tuple[dict[str, dict[str, Any]], str]:
+    """Build the role-tagged utilization snapshot for one captured row by joining its
+    ``dg_player_id`` (== gsis ``player_id`` for Engine B, set in ``build_universe_pvo_batch``)
+    onto the inference feature row. Fail-closed + survivorship-complete: an unmatched key →
+    all-null values + ``missing_feature_row``; a matched row missing some canonical columns →
+    those fields null + ``partial_missing_util_columns``. Roles are always position-aware,
+    even when a value is null, because position is known independent of the value."""
+    feature_row = (
+        feature_rows_by_player_id.get(str(dg_player_id))
+        if dg_player_id is not None
+        else None
+    )
+    if feature_row is None:
+        utilization = {
+            field: {"value": None, "role": _util_role(field, position)}
+            for field in CANONICAL_UTIL_FIELDS
+        }
+        return utilization, "missing_feature_row"
+
+    utilization = {}
+    for field in CANONICAL_UTIL_FIELDS:
+        value = _parse_util_value(feature_row.get(field)) if field in present_util_columns else None
+        utilization[field] = {"value": value, "role": _util_role(field, position)}
+    all_columns_present = set(CANONICAL_UTIL_FIELDS) <= present_util_columns
+    status = "complete" if all_columns_present else "partial_missing_util_columns"
+    return utilization, status
+
+
 def capture_model_pvo_snapshot(
     *,
     db_path: Path,
@@ -438,7 +536,54 @@ def capture_model_pvo_snapshot(
         ).fetchone()
     vintage_changed = prior is None
 
-    result = store.append_entries(entries)
+    # ── companion prediction snapshots (projection_2y + prediction-time util), 1:1 ──
+    # Prediction-time utilization is pulled from the SAME resolved Engine B feature source
+    # the producer scored (inference rows, joined on dg_player_id == gsis player_id), with
+    # position-aware role tags from the Engine B contract. source_hash is the resolved
+    # feature-CSV sha from provenance (NOT the injected feature_source, which is None on the
+    # real CLI path). No T2 identity bridge is needed: for Engine B, dg_player_id IS the gsis.
+    companion = PredictionSnapshotStore(db_path)
+    feature_rows_by_player_id, present_util_columns = _load_prediction_time_utilization(
+        provenance, read_artifact
+    )
+    source_hash = (provenance.get("feature_csv") or {}).get("sha256")
+    companion_rows: list[dict] = []
+    for entry, row in zip(entries, players):
+        projection_2y = row.get("projection_2y")
+        utilization, util_snapshot_status = _build_utilization_snapshot(
+            dg_player_id=entry.get("dg_player_id"),
+            position=entry.get("position"),
+            feature_rows_by_player_id=feature_rows_by_player_id,
+            present_util_columns=present_util_columns,
+        )
+        companion_rows.append(
+            {
+                "capture_date": entry["capture_date"],
+                "source": entry["source"],
+                "semantic_output_hash": entry["semantic_output_hash"],
+                "provenance_hash": entry["provenance_hash"],
+                "player_key": entry["player_key"],
+                "projection_2y": projection_2y,
+                "utilization": utilization,
+                "prediction_ppg_status": (
+                    "captured" if projection_2y is not None else "capture_incomplete"
+                ),
+                "util_snapshot_status": util_snapshot_status,
+                "schema_version": 1,
+                "source_hash": source_hash,
+            }
+        )
+
+    # ── atomic core + companion write: a companion failure rolls the core write back ──
+    try:
+        with sqlite3.connect(Path(db_path)) as conn:
+            result = store.append_entries(entries, conn=conn)
+            for companion_row in companion_rows:
+                companion.append_snapshot(companion_row, conn=conn)
+    except (ModelForwardCaptureConflictError, ModelForwardCaptureValidationError):
+        raise  # preserve core-store conflict/validation semantics (propagates, rolls back)
+    except Exception as exc:  # companion failure → abort, core already rolled back
+        return abort(f"companion_write_failed:{exc}")
 
     report = {
         "status": "ok",

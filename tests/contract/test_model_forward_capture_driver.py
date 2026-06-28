@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -48,15 +49,16 @@ def _sha(raw: bytes) -> str:
 def _model_row(
     *,
     sleeper_id: str | None,
-    dg_player_id: str | None,
     name: str,
     position: str | None,
     engine_path: str,
     score: float | None,
+    dg_player_id: str | None = "00-TEST-RB",
     row_captured_at: str = "2026-06-23T12:00:00+00:00",
     pipeline_run_id: str | None = "phase17-2-volatile-a",
     market_overlay: dict | None = None,
     divergence: dict | None = None,
+    projection_2y: float | None = 17.25,
 ) -> dict[str, Any]:
     return {
         "captured_at": row_captured_at,
@@ -80,6 +82,7 @@ def _model_row(
         "pipeline_run_id": pipeline_run_id,
         "market_overlay": market_overlay,
         "divergence": divergence,
+        "projection_2y": projection_2y,
     }
 
 
@@ -103,7 +106,7 @@ def _pvo_artifact(
         "players": [
             _model_row(
                 sleeper_id="9509",
-                dg_player_id="dg_bijan",
+                dg_player_id="00-TEST-RB",
                 name="Bijan Robinson",
                 position="RB",
                 engine_path="ENGINE_B",
@@ -160,10 +163,11 @@ def _artifact_bytes(overrides: dict[Path, bytes] | None = None) -> dict[Path, by
         PRODUCER_PATH: b"# fake pvo producer\nPHASE_17_2_ONLY = True\n",
         ENGINE_B_MANIFEST_PATH: _json_bytes(engine_b_manifest),
         ENGINE_B_FEATURE_CSV_PATH: (
-            b"season,training_eligible\n"
-            b"2018,true\n"
-            b"2023,true\n"
-            b"2024,false\n"
+            b"player_id,season,feature_season,position,training_eligible,snap_share,"
+            b"route_participation,target_share_nfl,air_yards_share,"
+            b"weighted_opportunity,yprr,tprr\n"
+            b"00-OLD,2023,2023,QB,true,0.10,0.20,0.30,0.40,0.50,0.60,0.70\n"
+            b"00-TEST-RB,2025,2025,RB,false,0.71,0.64,0.18,0.08,0.79,2.19,0.22\n"
         ),
         ENGINE_A_LATEST_PATH: _json_bytes(
             {
@@ -308,6 +312,317 @@ def test_capture_reads_artifacts_appends_store_and_emits_section5_report(tmp_pat
         for row in raw
     )
     assert all("market_overlay" not in row and "divergence" not in row for row in raw)
+
+
+def test_capture_writes_prediction_snapshot_companion_row_from_same_pvo_row(
+    tmp_path,
+) -> None:
+    from src.dynasty_genius.capture.prediction_snapshot_store import (
+        PredictionSnapshotStore,
+    )
+
+    artifacts = _artifact_bytes()
+    db_path = tmp_path / "model_forward.db"
+
+    report = capture_model_pvo_snapshot(
+        db_path=db_path,
+        report_path=None,
+        pvo_artifact_path=PVO_PATH,
+        coverage_artifact_path=COVERAGE_PATH,
+        read_artifact=_reader(artifacts),
+        now_fn=_now(),
+        git_sha_fn=lambda: "git-sha",
+        feature_source=_fixture_feature_source(),
+    )
+
+    assert report["status"] == "ok"
+    snapshot = PredictionSnapshotStore(db_path).read_snapshot(
+        {
+            "capture_date": "2026-06-24",
+            "source": MODEL_PVO_SOURCE,
+            "semantic_output_hash": report["semantic_output_hash"],
+            "provenance_hash": report["provenance_hash"],
+            "player_key": "sleeper:9509",
+        }
+    )
+    assert snapshot is not None
+    if hasattr(snapshot, "model_dump"):
+        snapshot = snapshot.model_dump()
+    elif not isinstance(snapshot, dict):
+        snapshot = dict(snapshot.__dict__)
+    assert snapshot["projection_2y"] == pytest.approx(17.25)
+    assert set(snapshot["utilization"]) == {
+        "snap_share",
+        "route_participation",
+        "target_share_nfl",
+        "air_yards_share",
+        "weighted_opportunity",
+        "yprr",
+        "tprr",
+    }
+    assert snapshot["utilization"]["snap_share"] == {
+        "value": pytest.approx(0.71),
+        "role": "model_input",
+    }
+    assert snapshot["utilization"]["route_participation"] == {
+        "value": pytest.approx(0.64),
+        "role": "diagnostic_only",
+    }
+    assert snapshot["utilization"]["weighted_opportunity"] == {
+        "value": pytest.approx(0.79),
+        "role": "diagnostic_only",
+    }
+    assert snapshot["utilization"]["yprr"] == {
+        "value": pytest.approx(2.19),
+        "role": "diagnostic_only",
+    }
+    assert snapshot["utilization"]["tprr"] == {
+        "value": pytest.approx(0.22),
+        "role": "diagnostic_only",
+    }
+    assert snapshot["utilization"]["target_share_nfl"] == {
+        "value": pytest.approx(0.18),
+        "role": "diagnostic_only",
+    }
+    assert snapshot["source_hash"] == report["provenance"]["feature_csv"]["sha256"]
+    assert snapshot["source_hash"] == _sha(artifacts[ENGINE_B_FEATURE_CSV_PATH])
+
+
+def test_prediction_snapshot_roles_are_position_aware_for_receiver_model_inputs(
+    tmp_path,
+) -> None:
+    from src.dynasty_genius.capture.prediction_snapshot_store import (
+        PredictionSnapshotStore,
+    )
+
+    wr_row = _model_row(
+        sleeper_id="1111",
+        dg_player_id="00-TEST-WR",
+        name="Wide Receiver",
+        position="WR",
+        engine_path="ENGINE_B",
+        score=77.7,
+        projection_2y=12.5,
+    )
+    pvo = _pvo_artifact()
+    pvo["players"] = [wr_row]
+    feature_csv = (
+        b"player_id,season,feature_season,position,training_eligible,snap_share,"
+        b"route_participation,target_share_nfl,air_yards_share,"
+        b"weighted_opportunity,yprr,tprr\n"
+        b"00-TEST-WR,2025,2025,WR,false,0.82,0.91,0.27,0.44,0.713,2.61,0.29\n"
+    )
+    artifacts = _artifact_bytes(
+        {
+            PVO_PATH: _json_bytes(pvo),
+            ENGINE_B_FEATURE_CSV_PATH: feature_csv,
+        }
+    )
+    db_path = tmp_path / "model_forward.db"
+
+    report = capture_model_pvo_snapshot(
+        db_path=db_path,
+        report_path=None,
+        pvo_artifact_path=PVO_PATH,
+        coverage_artifact_path=COVERAGE_PATH,
+        read_artifact=_reader(artifacts),
+        now_fn=_now(),
+        git_sha_fn=lambda: "git-sha",
+        feature_source=_fixture_feature_source(),
+    )
+
+    snapshot = PredictionSnapshotStore(db_path).read_snapshot(
+        {
+            "capture_date": "2026-06-24",
+            "source": MODEL_PVO_SOURCE,
+            "semantic_output_hash": report["semantic_output_hash"],
+            "provenance_hash": report["provenance_hash"],
+            "player_key": "sleeper:1111",
+        }
+    )
+    assert snapshot is not None
+    assert snapshot["utilization"]["weighted_opportunity"] == {
+        "value": pytest.approx(0.713),
+        "role": "model_input",
+    }
+    assert snapshot["utilization"]["yprr"]["role"] == "model_input"
+    assert snapshot["utilization"]["tprr"]["role"] == "model_input"
+    assert snapshot["utilization"]["route_participation"] == {
+        "value": pytest.approx(0.91),
+        "role": "diagnostic_only",
+    }
+
+
+def test_production_cli_path_threads_resolved_feature_source_hash_to_companion(
+    tmp_path, monkeypatch
+) -> None:
+    import src.dynasty_genius.capture.model_forward_capture_driver as driver
+    from src.dynasty_genius.capture.prediction_snapshot_store import (
+        PredictionSnapshotStore,
+    )
+
+    resolved = _fixture_feature_source()
+    monkeypatch.setattr(driver, "resolve_feature_source", lambda **_: resolved)
+    artifacts = _artifact_bytes()
+    db_path = tmp_path / "model_forward.db"
+
+    report = capture_model_pvo_snapshot(
+        db_path=db_path,
+        report_path=None,
+        pvo_artifact_path=PVO_PATH,
+        coverage_artifact_path=COVERAGE_PATH,
+        read_artifact=_reader(artifacts),
+        now_fn=_now(),
+        git_sha_fn=lambda: "git-sha",
+        feature_source=None,
+    )
+
+    snapshot = PredictionSnapshotStore(db_path).read_snapshot(
+        {
+            "capture_date": "2026-06-24",
+            "source": MODEL_PVO_SOURCE,
+            "semantic_output_hash": report["semantic_output_hash"],
+            "provenance_hash": report["provenance_hash"],
+            "player_key": "sleeper:9509",
+        }
+    )
+    assert snapshot is not None
+    assert snapshot["source_hash"] == report["provenance"]["feature_csv"]["sha256"]
+    assert snapshot["source_hash"] is not None
+
+
+def test_unmatched_feature_source_key_records_null_util_with_explicit_status(
+    tmp_path,
+) -> None:
+    from src.dynasty_genius.capture.prediction_snapshot_store import (
+        PredictionSnapshotStore,
+    )
+
+    pvo = _pvo_artifact()
+    pvo["players"][0]["dg_player_id"] = "dg-not-gsis-shaped"
+    artifacts = _artifact_bytes({PVO_PATH: _json_bytes(pvo)})
+    db_path = tmp_path / "model_forward.db"
+
+    report = capture_model_pvo_snapshot(
+        db_path=db_path,
+        report_path=None,
+        pvo_artifact_path=PVO_PATH,
+        coverage_artifact_path=COVERAGE_PATH,
+        read_artifact=_reader(artifacts),
+        now_fn=_now(),
+        git_sha_fn=lambda: "git-sha",
+        feature_source=_fixture_feature_source(),
+    )
+
+    snapshot = PredictionSnapshotStore(db_path).read_snapshot(
+        {
+            "capture_date": "2026-06-24",
+            "source": MODEL_PVO_SOURCE,
+            "semantic_output_hash": report["semantic_output_hash"],
+            "provenance_hash": report["provenance_hash"],
+            "player_key": "sleeper:9509",
+        }
+    )
+    assert snapshot is not None
+    assert snapshot["util_snapshot_status"] == "missing_feature_row"
+    assert all(
+        field_snapshot["value"] is None
+        for field_snapshot in snapshot["utilization"].values()
+    )
+
+
+def test_absent_feature_source_column_records_null_util_with_explicit_status(
+    tmp_path,
+) -> None:
+    from src.dynasty_genius.capture.prediction_snapshot_store import (
+        PredictionSnapshotStore,
+    )
+
+    feature_csv = (
+        b"player_id,season,feature_season,position,training_eligible,snap_share,"
+        b"target_share_nfl,air_yards_share,weighted_opportunity,yprr,tprr\n"
+        b"00-TEST-RB,2025,2025,RB,false,0.71,0.18,0.08,0.79,2.19,0.22\n"
+    )
+    artifacts = _artifact_bytes({ENGINE_B_FEATURE_CSV_PATH: feature_csv})
+    db_path = tmp_path / "model_forward.db"
+
+    report = capture_model_pvo_snapshot(
+        db_path=db_path,
+        report_path=None,
+        pvo_artifact_path=PVO_PATH,
+        coverage_artifact_path=COVERAGE_PATH,
+        read_artifact=_reader(artifacts),
+        now_fn=_now(),
+        git_sha_fn=lambda: "git-sha",
+        feature_source=_fixture_feature_source(),
+    )
+
+    snapshot = PredictionSnapshotStore(db_path).read_snapshot(
+        {
+            "capture_date": "2026-06-24",
+            "source": MODEL_PVO_SOURCE,
+            "semantic_output_hash": report["semantic_output_hash"],
+            "provenance_hash": report["provenance_hash"],
+            "player_key": "sleeper:9509",
+        }
+    )
+    assert snapshot is not None
+    assert snapshot["util_snapshot_status"] == "partial_missing_util_columns"
+    assert snapshot["utilization"]["snap_share"]["value"] == pytest.approx(0.71)
+    assert snapshot["utilization"]["route_participation"] == {
+        "value": None,
+        "role": "diagnostic_only",
+    }
+
+
+def test_companion_write_failure_rolls_back_core_capture_row(
+    tmp_path, monkeypatch
+) -> None:
+    import src.dynasty_genius.capture.model_forward_capture_driver as driver
+
+    class FailingPredictionSnapshotStore:
+        def __init__(self, db_path: Path) -> None:
+            self.db_path = db_path
+
+        def append_snapshot(self, row: dict[str, Any], *, conn=None) -> None:
+            assert conn is not None
+            raise RuntimeError("forced companion failure")
+
+    monkeypatch.setattr(
+        driver,
+        "PredictionSnapshotStore",
+        FailingPredictionSnapshotStore,
+        raising=False,
+    )
+    db_path = tmp_path / "model_forward.db"
+
+    try:
+        report = capture_model_pvo_snapshot(
+            db_path=db_path,
+            report_path=None,
+            pvo_artifact_path=PVO_PATH,
+            coverage_artifact_path=COVERAGE_PATH,
+            read_artifact=_reader(_artifact_bytes()),
+            now_fn=_now(),
+            git_sha_fn=lambda: "git-sha",
+            feature_source=_fixture_feature_source(),
+        )
+        assert report["status"] == "aborted"
+        assert "companion" in report["aborted_reason"]
+    except RuntimeError as exc:
+        assert "forced companion failure" in str(exc)
+
+    store = ModelForwardCaptureStore(db_path)
+    assert store.get_raw_entries(
+        "2026-06-24",
+        MODEL_PVO_SOURCE,
+        "semantic-output-does-not-matter",
+        "provenance-does-not-matter",
+    ) == []
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM model_forward_capture_raw"
+        ).fetchone()[0] == 0
 
 
 def test_semantic_and_provenance_hashes_ignore_volatile_timestamps_and_git_sha(
