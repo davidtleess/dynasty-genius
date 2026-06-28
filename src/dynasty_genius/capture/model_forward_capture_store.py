@@ -135,12 +135,22 @@ class ModelForwardCaptureStore:
                 f"model-output namespace accepts only {MODEL_PVO_SOURCE!r}, got {source!r}"
             )
 
-    def append_entries(self, entries: list[dict]) -> dict[str, int]:
+    def append_entries(
+        self,
+        entries: list[dict],
+        *,
+        conn: Optional[sqlite3.Connection] = None,
+    ) -> dict[str, int]:
         """Validate fail-closed, then append. Returns distinct raw/joinable counts.
 
         Idempotent on byte-identical re-append; a changed value at an existing key
         raises ``ModelForwardCaptureConflictError``; an in-batch duplicate player_key
         with differing content raises ``ModelForwardCaptureValidationError``.
+
+        ``conn``: when provided, the conflict-check + write run on the caller's connection
+        WITHOUT committing, so a companion writer (the capture driver) can make the core
+        write and its companion write one atomic transaction. When None, an own connection
+        is opened and committed (the standalone behaviour).
         """
         # 1. every entry needs a stable player_key + a complete composite key
         # (SQLite composite PKs admit NULLs, so reject blank/None key fields fail-closed
@@ -184,42 +194,50 @@ class ModelForwardCaptureStore:
                 continue
             distinct[key] = entry
 
-        # 4. conflict check vs existing immutable rows (before any write)
-        with sqlite3.connect(self.db_path) as conn:
-            for entry in distinct.values():
-                row = conn.execute(
-                    f"SELECT {', '.join(_CONTENT_COLUMNS)} FROM model_forward_capture_raw "
-                    f"WHERE {' AND '.join(f'{c}=?' for c in _KEY_COLUMNS)}",
-                    [entry.get(c) for c in _KEY_COLUMNS],
-                ).fetchone()
-                if row is not None:
-                    existing = tuple(row)
-                    incoming = tuple(entry.get(c) for c in _CONTENT_COLUMNS)
-                    if existing != incoming:
-                        raise ModelForwardCaptureConflictError(
-                            f"immutable snapshot conflict for {entry['player_key']}"
-                        )
+        # 4-5. conflict check + write, on the caller's connection (no commit) or an own one.
+        if conn is None:
+            with sqlite3.connect(self.db_path) as own:
+                return self._conflict_check_and_write(own, distinct)
+        return self._conflict_check_and_write(conn, distinct)
 
-            # 5. write (idempotent INSERT OR IGNORE)
-            raw_written = 0
-            joinable_written = 0
-            placeholders = ", ".join("?" for _ in _ALL_COLUMNS)
-            cols = ", ".join(_ALL_COLUMNS)
-            for entry in distinct.values():
-                values = [entry.get(c) for c in _ALL_COLUMNS]
+    def _conflict_check_and_write(
+        self, conn: sqlite3.Connection, distinct: dict[str, dict]
+    ) -> dict[str, int]:
+        # 4. conflict check vs existing immutable rows (before any write)
+        for entry in distinct.values():
+            row = conn.execute(
+                f"SELECT {', '.join(_CONTENT_COLUMNS)} FROM model_forward_capture_raw "
+                f"WHERE {' AND '.join(f'{c}=?' for c in _KEY_COLUMNS)}",
+                [entry.get(c) for c in _KEY_COLUMNS],
+            ).fetchone()
+            if row is not None:
+                existing = tuple(row)
+                incoming = tuple(entry.get(c) for c in _CONTENT_COLUMNS)
+                if existing != incoming:
+                    raise ModelForwardCaptureConflictError(
+                        f"immutable snapshot conflict for {entry['player_key']}"
+                    )
+
+        # 5. write (idempotent INSERT OR IGNORE)
+        raw_written = 0
+        joinable_written = 0
+        placeholders = ", ".join("?" for _ in _ALL_COLUMNS)
+        cols = ", ".join(_ALL_COLUMNS)
+        for entry in distinct.values():
+            values = [entry.get(c) for c in _ALL_COLUMNS]
+            conn.execute(
+                f"INSERT OR IGNORE INTO model_forward_capture_raw ({cols}) "
+                f"VALUES ({placeholders})",
+                values,
+            )
+            raw_written += 1
+            if _is_joinable(entry):
                 conn.execute(
-                    f"INSERT OR IGNORE INTO model_forward_capture_raw ({cols}) "
+                    f"INSERT OR IGNORE INTO model_forward_capture_joinable ({cols}) "
                     f"VALUES ({placeholders})",
                     values,
                 )
-                raw_written += 1
-                if _is_joinable(entry):
-                    conn.execute(
-                        f"INSERT OR IGNORE INTO model_forward_capture_joinable ({cols}) "
-                        f"VALUES ({placeholders})",
-                        values,
-                    )
-                    joinable_written += 1
+                joinable_written += 1
         return {"raw_rows_written": raw_written, "joinable_rows_written": joinable_written}
 
     def _get(

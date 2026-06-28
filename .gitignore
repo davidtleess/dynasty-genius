@@ -88,6 +88,9 @@ app/data/features_runtime/
 # F-seed-split — runtime PVO/coverage pair + ready-marker + refresh report (operational, not source; the committed seed is app/data/valuation/universe_pvo_latest.json + universe_pvo_coverage_latest.json)
 app/data/valuation_runtime/
 
+# Realized-Outcome Loop (T5) — gitignored weekly scorecard artifact (descriptive, decision_supported=false)
+app/data/realized_outcome/
+
 # Backtest run artifacts — large JSON, versioned by run_id
 app/data/backtest/runs/
 
