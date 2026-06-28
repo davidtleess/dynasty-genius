@@ -81,6 +81,16 @@ def _finite(value: Any, *, field: str) -> Optional[float]:
     return fvalue
 
 
+def _resolution_field(resolution: Any, field: str) -> Any:
+    """Read a bridge-resolution field tolerantly: the production T2 bridge returns a
+    ``BridgeResolution`` dataclass while injected test fakes return a plain dict."""
+    if resolution is None:
+        return None
+    if isinstance(resolution, dict):
+        return resolution.get(field)
+    return getattr(resolution, field, None)
+
+
 def compute_model_precision_at_k(
     model_top_k: set[str], realized_top_k: set[str], k: int
 ) -> dict[str, Any]:
@@ -211,10 +221,10 @@ def score(
         resolution = bridge.resolve(
             prediction.get("sleeper_id"), prediction.get("capture_date")
         )
-        if (resolution or {}).get("resolution_status") != "resolved":
+        if _resolution_field(resolution, "resolution_status") != "resolved":
             _exclude("identity_unresolved")
             continue
-        gsis_id = resolution.get("gsis_id")
+        gsis_id = _resolution_field(resolution, "gsis_id")
         entry = players_outcomes.get(gsis_id)
         if entry is None:
             _exclude("missing_outcome")

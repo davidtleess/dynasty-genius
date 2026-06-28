@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Realized-Outcome Loop (T5) — weekly in-season scorecard producer.
+
+  Runs scripts/run_realized_outcome_scoring.py weekly (Tuesday ~10:00 local, after Monday
+  Night Football finalizes the week) to score the FROZEN model's predictions against realized
+  NFL production and write the gitignored scorecard artifact
+  (app/data/realized_outcome/scorecard_latest.json). Read-only over the source stores; never
+  auto-commits; an off-season / not-finalized week is a healthy no-op (no artifact mutation).
+
+  Committed but LOADED MANUALLY BY DAVID — the agent does not load it. The launchctl
+  install/reload AND the first live finalized-week run are separately David-gated:
+    launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-realized-outcome-scoring.plist
+  (symlink or copy this file there first). Off-season, the first scheduled runs no-op until the
+  2026 season produces a finalized week.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-realized-outcome-scoring</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/run_realized_outcome_scoring.py</string>
+        <string>--report-path</string>
+        <string>/Users/davidleess/dynasty-genius-product/app/data/realized_outcome/scorecard_latest.json</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>2</integer>
+        <key>Hour</key>
+        <integer>10</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/realized_outcome_scoring.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/realized_outcome_scoring.err.log</string>
+</dict>
+</plist>
