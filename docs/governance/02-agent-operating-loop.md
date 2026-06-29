@@ -132,6 +132,14 @@ A cockpit cycle is NOT required for:
 
 When in doubt, route through the cockpit. The cost of an extra round-trip is small; the cost of a missed defect compounds.
 
+### Strategy/UX framing first (feature/design tasks)
+
+Open a feature or design task — anything shipping a new David-facing surface, output, artifact, scheduled report, or decision-adjacent contract — with a Gemini strategy/UX framing pass BEFORE the RED is authored. Task order: Gemini frames → Codex authors the RED → Claude GREENs → adversarial review → David authorizes. This front-loads product-truth and falsification seeds into the test contract instead of bolting them on after.
+
+The framing request asks Gemini for four things (its value-delivery contract lives in `GEMINI.md`): (1) the concrete user situation — the real dynasty manager's moment this surface serves; (2) where it could mislead or nudge — verdict-by-the-back-door risks; (3) candidate falsification seeds — specific behaviors and mathematical boundary/failure cases (empty pool, a range that crosses zero, stale input) Codex should consider for the RED; (4) an overclaim check — does any framing imply the current shipped model has already arrived (the No-Verdict Line cordon).
+
+This is problem-space framing, not solution selection: Gemini may propose risks and testable falsification seeds, but must not prescribe the architecture, implementation design, exact schema, or final RED contract unless David explicitly asks — Codex owns RED authorship and Claude/Codex own technical scope. Default to including the framing even for producer/CLI tasks (the Roster Capacity producer T4, 2026-06-28, got a framing pass that surfaced the stale-artifact freshness guard); skip only for purely mechanical work with no new David-facing surface, and say so. Claude and Codex still hold their own positions as principals; Gemini's framing is raw input for David, never a lock (§Falsification #7).
+
 ### Roles, default reviewers, and escalation
 
 The agent roles defined above carry into the cockpit. No agent has final authority over David or over the governance documents.
