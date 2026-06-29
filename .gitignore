@@ -91,6 +91,9 @@ app/data/valuation_runtime/
 # Realized-Outcome Loop (T5) — gitignored weekly scorecard artifact (descriptive, decision_supported=false)
 app/data/realized_outcome/
 
+# Roster Capacity Simulator (T4) — gitignored read-only capacity scorecard artifact (descriptive, decision_supported=false)
+app/data/roster_capacity/
+
 # Backtest run artifacts — large JSON, versioned by run_id
 app/data/backtest/runs/
 
