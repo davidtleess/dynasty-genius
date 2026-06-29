@@ -151,6 +151,26 @@ Rulings:
 
 - All daily-estimate overlay outputs are descriptive (`decision_supported=False`) until a pre-registered validation earns decision-grade status. Market data stays out of model inputs and out of the predictive overlay throughout (overlay-only, per the KTC ruling).
 
+### Descriptive Tools Issue No Verdicts (The No-Verdict Line)
+
+A descriptive tool surfaces facts, ranges, ranks, and risks so David can decide. It must not decide for him.
+
+This line governs running-software outputs — JSON payloads, API responses, stdout, written artifacts, and their caveats. It does not restrict design specs, roadmap plans, or strategy/PM briefs, which may discuss product-vision destinations (sell-timing, contrarian targets, transaction horizons) as where the product is headed — provided they never claim the current shipped model has already arrived.
+
+Rulings:
+
+- While a tool is classified as descriptive, every output carries `decision_supported=False` recursively — root and every nested model. A tool earns decision-grade status only through a pre-registered validation David ratifies; until then the no-verdict line holds.
+
+- Descriptive is not directive. A descriptive tool may report quantities, explicit sort orders, counts, ranks, value-at-risk ranges, deficits, gaps, caveats, and structural states. It may not emit a normative verdict, recommendation, or imperative — no "buy/sell/hold", "keep/cut", "must"/"do not", "safe to", "recommended", or equivalent. Banned-language scans over running-software output and artifacts are a legitimate enforcement mechanism. Enforcement tests may scan source code, templates, fixtures, or generated-client surfaces when those are direct proxies for running-software output; that is enforcement of runtime safety, not a ban on strategy, spec, or roadmap language.
+
+- Surface the arithmetic honestly, unclamped. Show gaps that cross zero (a cut that is a net upgrade reads negative), deficits as raw counts, and wide volatile ranges as wide ranges. Tightening, clamping, banding, or editorializing a number into a recommendation is the failure mode this line prevents. When inputs cannot be trusted — stale, missing, malformed, or low-coverage — report unavailable, block, or widen uncertainty; never fabricate a confident tidy number that reads as a verdict.
+
+- Ranks and tiers must disclose their basis, never nudge. A default sort or rank must be tied to a declared transparent metric or rule, and any composite ordering must disclose its components and not function as a hidden recommended action order. Present raw percentile position; avoid subjective static tier labels ("Elite", "Bust", "Starter Depth") that smuggle a value judgment into a descriptive category.
+
+- No nominated target by the back door. A tool may echo a David-supplied hypothesis (a proposed cut or trade) and display candidate rows — including player identifiers — under an explicit sort key. It may not select a player or action as the tool's own chosen target: a "next/marginal" cost is an index of the next increment in an existing order, not a recommendation, and carries no hidden "do this" payload.
+
+Precedent: Roster Capacity Scenario Simulator v1 (PR #91), built end-to-end against this line. This consolidates and broadens the Frontend ("no decision-grade confidence before validation"), In-Season ("descriptive overlay, `decision_supported=False`"), and KTC ("overlay-only") rulings into a single decision-surface rule. [David-ratified 2026-06-28.]
+
 ## Rookie Evaluation Rules
 
 NFL draft capital is the strongest single rookie predictor because it captures organizational commitment, opportunity runway, and role patience.
