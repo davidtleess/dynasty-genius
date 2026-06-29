@@ -16,6 +16,8 @@ from src.dynasty_genius.roster_capacity.models import (
     CapacityCandidate,
     CapacityHealth,
     PoolRange,
+    ScenarioRequest,
+    ScenarioResult,
 )
 from src.dynasty_genius.roster_cut_engine import compute_roster_cut_candidates
 
@@ -304,6 +306,166 @@ def _build_unrostered_pool_range(
     return pool_range
 
 
+def _value_at_risk(
+    player_value: float | None, pool: PoolRange | None
+) -> tuple[float, float] | None:
+    """Single-player value-at-risk range, pinned orientation, unclamped.
+
+    `[player − pool_max, player − pool_min]`: low = best-case recovery (the cut
+    is replaced by the best available), high = worst-case. Negative means the
+    replacement is better than the player (the cut is a net upgrade). None when
+    the pool has no usable range or the player carries no value.
+    """
+    if pool is None or pool.low is None or pool.high is None or player_value is None:
+        return None
+    return (player_value - pool.high, player_value - pool.low)
+
+
+def _resolve_cut_set(
+    request: ScenarioRequest,
+    candidates: list[CapacityCandidate],
+    cut_result: Any,
+    roster_ids: set[str],
+) -> tuple[list[str], list[str]]:
+    """Turn a request into a concrete cut set, caveating what it cannot honor."""
+    candidate_ids = {c.sleeper_player_id for c in candidates}
+    caveats: list[str] = []
+
+    if request.proposed_cuts is not None:
+        exempt_ids = {e.sleeper_player_id for e in cut_result.exempt_players}
+        cut_set: list[str] = []
+        for pid in request.proposed_cuts:
+            if pid in candidate_ids:
+                cut_set.append(pid)
+            elif pid in exempt_ids:
+                caveats.append(f"proposed_cut_exempt_skipped:{pid}")
+            elif pid in roster_ids:
+                caveats.append(f"proposed_cut_not_a_capacity_candidate_skipped:{pid}")
+            else:
+                caveats.append(f"proposed_cut_off_roster_skipped:{pid}")
+        return cut_set, caveats
+
+    requested = (
+        request.clear_n if request.clear_n is not None else cut_result.cuts_required
+    )
+    ordered_ids = [c.sleeper_player_id for c in candidates]
+    take = requested
+    if requested > len(ordered_ids):
+        caveats.append(
+            f"clear_n_exceeds_available_candidates:requested_{requested}"
+            f"_available_{len(ordered_ids)}"
+        )
+        take = len(ordered_ids)
+    take = max(0, take)
+    return ordered_ids[:take], caveats
+
+
+def _build_scenario(
+    request: ScenarioRequest,
+    candidates: list[CapacityCandidate],
+    cut_result: Any,
+    pool_range: dict[str, PoolRange],
+    roster_ids: set[str],
+) -> ScenarioResult:
+    candidate_by_id = {c.sleeper_player_id: c for c in candidates}
+    cut_set, caveats = _resolve_cut_set(request, candidates, cut_result, roster_ids)
+    cut_lookup = set(cut_set)
+
+    # Group the cut set per position with its raw value.
+    cut_values_by_position: dict[str, list[float]] = {}
+    for pid in cut_set:
+        candidate = candidate_by_id.get(pid)
+        if candidate is None:
+            continue
+        if candidate.raw_xvar is None:
+            caveats.append(f"cut_player_value_unavailable:{pid}")
+            continue
+        cut_values_by_position.setdefault(candidate.position, []).append(
+            candidate.raw_xvar
+        )
+
+    # Depletion-aware cumulative: per position, best case recovers the top-N of
+    # the retained pool, worst case the bottom-N of it. Slices cap at what
+    # exists, so deficit spots (no replacement) recover nothing. Summed across
+    # positions; unclamped, orientation cannot invert.
+    low_total = 0.0
+    high_total = 0.0
+    pool_deficits: dict[str, int] = {}
+    for position, cut_values in cut_values_by_position.items():
+        n_p = len(cut_values)
+        cut_sum = sum(cut_values)
+        pool = pool_range.get(position)
+
+        # Unavailable pool (stale / unverifiable / coverage failure): recovery is
+        # genuinely UNKNOWN, so widen to the full uncertainty band [0, cut_sum]
+        # and caveat — never a precise (cut_sum, cut_sum) that would read as a
+        # verified zero-recovery calc. Distinct from a deficit (valid-but-
+        # exhausted) and from a barren-but-valid `ok` pool (real zero recovery).
+        if pool is None or pool.status != "ok":
+            low_total += 0.0
+            high_total += cut_sum
+            caveats.append(
+                f"{position}_waiver_range_unavailable_recovery_unverifiable"
+            )
+            continue
+
+        retained = list(pool.top_k_values)
+        upper_recovery = sum(sorted(retained, reverse=True)[:n_p])
+        lower_recovery = sum(sorted(retained)[:n_p])
+        low_total += cut_sum - upper_recovery
+        high_total += cut_sum - lower_recovery
+
+        pool_size = pool.pool_size if pool.pool_size is not None else 0
+        if n_p > pool_size:
+            deficit = n_p - pool_size
+            pool_deficits[position] = deficit
+            caveats.append(
+                f"{position}_unrostered_pool_insufficient_to_replace_cuts"
+                f"_deficit_of_{deficit}"
+            )
+
+    # The next capacity-ordered candidate not in the cut set — the cost of going
+    # one deeper in the EXISTING forced order. No identifier; nominates no one.
+    marginal_next_candidate_cost: tuple[float, float] | None = None
+    for candidate in candidates:
+        if candidate.sleeper_player_id in cut_lookup:
+            continue
+        if candidate.candidate_source != "capacity_ordered":
+            continue
+        marginal_next_candidate_cost = _value_at_risk(
+            candidate.raw_xvar, pool_range.get(candidate.position)
+        )
+        break
+
+    # Descriptive depth after the cuts: active = cut-eligible candidates that
+    # remain, bench = exempt (taxi/IR) rows. Purely informational.
+    per_position_depth_impact: dict[str, dict[str, int]] = {}
+    for position in cut_values_by_position:
+        active_after = sum(
+            1
+            for c in candidates
+            if c.position == position and c.sleeper_player_id not in cut_lookup
+        )
+        bench_after = sum(
+            1
+            for e in cut_result.exempt_players
+            if e.position == position and e.sleeper_player_id not in cut_lookup
+        )
+        per_position_depth_impact[position] = {
+            "active_after": active_after,
+            "bench_after": bench_after,
+        }
+
+    return ScenarioResult(
+        cut_set=cut_set,
+        cumulative_value_at_risk=(low_total, high_total),
+        marginal_next_candidate_cost=marginal_next_candidate_cost,
+        per_position_depth_impact=per_position_depth_impact,
+        pool_deficits=pool_deficits,
+        caveats=caveats,
+    )
+
+
 def simulate_capacity_scenarios(
     universe_pvo: dict,
     sleeper_snapshot: dict,
@@ -400,6 +562,24 @@ def simulate_capacity_scenarios(
         unrostered_pool_range = _build_unrostered_pool_range(
             sleeper_snapshot, pvo_lookup, scenarios, excluded_counts
         )
+
+        # Scenario rollup: None -> a single default clear of the required cuts.
+        roster_ids = set(player_ids) | reserve_ids | taxi_ids
+        scenario_inputs = (
+            scenarios
+            if scenarios is not None
+            else [{"clear_n": cut_result.cuts_required}]
+        )
+        scenario_results = [
+            _build_scenario(
+                ScenarioRequest.model_validate(scenario_input),
+                candidates,
+                cut_result,
+                unrostered_pool_range,
+                roster_ids,
+            )
+            for scenario_input in scenario_inputs
+        ]
     except _DATA_CORRUPTION_ERRORS as exc:
         return CapacityAuditResult(
             status="blocked",
@@ -413,6 +593,7 @@ def simulate_capacity_scenarios(
         status="ok",
         capacity_health=capacity_health,
         candidates=candidates,
+        scenarios=scenario_results,
         unrostered_pool_range=unrostered_pool_range,
         excluded_counts=excluded_counts,
         caveats=[],

@@ -5,7 +5,7 @@ the simulator reports capacity and value-at-risk; it never recommends a move.
 """
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -76,6 +76,40 @@ class PoolRange(BaseModel):
     caveats: list[str] = Field(default_factory=list)
 
 
+class ScenarioRequest(BaseModel):
+    """A David-proposed cut hypothesis: clear N capacity, or specific cuts.
+
+    Exactly one mode is used per request; `proposed_cuts` takes precedence when
+    both are present. An empty/neither request falls back to the default
+    `clear_n = total_capacity_cuts_required`.
+    """
+
+    clear_n: int | None = None
+    proposed_cuts: list[str] | None = None
+
+
+class ScenarioResult(BaseModel):
+    """The descriptive consequences of one cut hypothesis — no verdict.
+
+    `cumulative_value_at_risk` is depletion-aware (NOT N x a single-player gap):
+    the wire depletes as you claim players, so the bound is summed per position
+    from N-deep pool slices. Orientation is pinned `(best_case, worst_case)` and
+    cannot invert; negatives are left UNCLAMPED (a cut that is a net upgrade
+    reads negative). `pool_deficits` records, per position, how many cut spots
+    have NO replacement candidate — a fact, never a do-not-cut verdict.
+    `marginal_next_candidate_cost` is the value-at-risk RANGE of the next
+    capacity-ordered candidate not in the cut set; it carries NO player
+    identifier (it nominates no target).
+    """
+
+    cut_set: list[str] = Field(default_factory=list)
+    cumulative_value_at_risk: tuple[float, float]
+    marginal_next_candidate_cost: tuple[float, float] | None
+    per_position_depth_impact: dict[str, dict[str, int]] = Field(default_factory=dict)
+    pool_deficits: dict[str, int] = Field(default_factory=dict)
+    caveats: list[str] = Field(default_factory=list)
+
+
 class CapacityAuditResult(BaseModel):
     """Top-level descriptive result.
 
@@ -87,7 +121,7 @@ class CapacityAuditResult(BaseModel):
     status: Literal["ok", "blocked"]
     capacity_health: CapacityHealth | None
     candidates: list[CapacityCandidate] = Field(default_factory=list)
-    scenarios: list[Any] = Field(default_factory=list)
+    scenarios: list[ScenarioResult] = Field(default_factory=list)
     unrostered_pool_range: dict[str, PoolRange] = Field(default_factory=dict)
     excluded_counts: dict[str, int] = Field(default_factory=dict)
     caveats: list[str] = Field(default_factory=list)

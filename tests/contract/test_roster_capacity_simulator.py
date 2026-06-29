@@ -14,6 +14,7 @@ def _snapshot(
     player_ids: list[str],
     *,
     snapshot_player_ids: list[str] | None = None,
+    positions: dict[str, str] | None = None,
     active_slots: int = 2,
     reserve_slots: int = 0,
     taxi_slots: int = 0,
@@ -46,7 +47,7 @@ def _snapshot(
         "players": [
             {
                 "sleeper_player_id": pid,
-                "player": {"position": "WR"},
+                "player": {"position": (positions or {}).get(pid, "WR")},
                 "league_context": {
                     "rostered": True,
                     "roster_id": 1,
@@ -111,6 +112,28 @@ def _decision_supported_true_count(value: object) -> int:
 
 def _pool(result: Any, position: str) -> Any:
     return result.unrostered_pool_range[position]
+
+
+def _scenario(result: Any, index: int = 0) -> Any:
+    return result.scenarios[index]
+
+
+def _strings(value: object) -> list[str]:
+    if hasattr(value, "model_dump"):
+        return _strings(value.model_dump())
+    if isinstance(value, dict):
+        out: list[str] = []
+        for key, item in value.items():
+            if isinstance(key, str):
+                out.append(key)
+            out.extend(_strings(item))
+        return out
+    if isinstance(value, list | tuple):
+        out: list[str] = []
+        for item in value:
+            out.extend(_strings(item))
+        return out
+    return [value] if isinstance(value, str) else []
 
 
 def test_capacity_health_reports_total_capacity_and_active_slot_pressure() -> None:
@@ -603,3 +626,239 @@ def test_unrostered_pool_empty_position_pool_unavailable_without_crash() -> None
     assert wr_pool.low is None
     assert wr_pool.high is None
     assert wr_pool.pool_size == 0
+
+
+def test_default_clear_n_scenario_uses_single_player_value_at_risk_orientation() -> None:
+    snapshot = _snapshot(
+        ["cut1", "next1"],
+        active_slots=1,
+        snapshot_player_ids=["cut1", "next1", *[f"wr{i}" for i in range(1, 9)]],
+    )
+    pvo = _pvo([
+        _pvo_player("cut1", xvar=5.0, xvar_pct=1.0),
+        _pvo_player("next1", xvar=8.0, xvar_pct=2.0),
+        _pvo_player("wr1", xvar=6.0),
+        _pvo_player("wr2", xvar=4.0),
+        _pvo_player("wr3", xvar=2.0),
+        _pvo_player("wr4", xvar=0.0),
+        *[_pvo_player(f"wr{i}", xvar=0.0) for i in range(5, 9)],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot)
+    scenario = _scenario(result)
+
+    assert scenario.cut_set == ["cut1"]
+    assert scenario.cumulative_value_at_risk == (-1.0, 5.0)
+    assert scenario.marginal_next_candidate_cost == (2.0, 8.0)
+    assert "marginal_next_candidate_id" not in scenario.model_dump()
+    assert "marginal_next_candidate_name" not in scenario.model_dump()
+
+
+def test_depletion_aware_cumulative_value_at_risk_uses_exact_n_deep_formula() -> None:
+    snapshot = _snapshot(
+        ["cut1", "cut2", "next1"],
+        active_slots=1,
+        snapshot_player_ids=["cut1", "cut2", "next1", *[f"wr{i}" for i in range(1, 9)]],
+    )
+    pvo = _pvo([
+        _pvo_player("cut1", xvar=10.0, xvar_pct=1.0),
+        _pvo_player("cut2", xvar=9.0, xvar_pct=2.0),
+        _pvo_player("next1", xvar=30.0, xvar_pct=99.0),
+        _pvo_player("wr1", xvar=8.0),
+        _pvo_player("wr2", xvar=7.0),
+        _pvo_player("wr3", xvar=6.0),
+        _pvo_player("wr4", xvar=5.0),
+        _pvo_player("wr5", xvar=4.0),
+        _pvo_player("wr6", xvar=3.0),
+        _pvo_player("wr7", xvar=2.0),
+        _pvo_player("wr8", xvar=1.0),
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot, scenarios=[{"clear_n": 2}])
+    scenario = _scenario(result)
+
+    assert scenario.cut_set == ["cut1", "cut2"]
+    assert scenario.cumulative_value_at_risk == (4.0, 16.0)
+    assert scenario.cumulative_value_at_risk != (2 * (10.0 - 8.0), 2 * (10.0 - 1.0))
+    assert scenario.cumulative_value_at_risk[0] <= scenario.cumulative_value_at_risk[1]
+
+
+@pytest.mark.parametrize("captured_at", ["2020-01-01T00:00:00+00:00", "not-a-date"])
+def test_unavailable_pool_widens_scenario_uncertainty_instead_of_zero_recovery(
+    captured_at: str,
+) -> None:
+    snapshot = _snapshot(
+        ["cut1", "cut2"],
+        active_slots=1,
+        snapshot_player_ids=["cut1", "cut2", *[f"wr{i}" for i in range(1, 9)]],
+    )
+    snapshot["captured_at"] = captured_at
+    pvo = _pvo([
+        _pvo_player("cut1", xvar=10.0, xvar_pct=1.0),
+        _pvo_player("cut2", xvar=9.0, xvar_pct=2.0),
+        *[_pvo_player(f"wr{i}", xvar=float(i)) for i in range(1, 9)],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot, scenarios=[{"clear_n": 2}])
+    scenario = _scenario(result)
+
+    assert result.status == "ok"
+    assert _pool(result, "WR").status == "waiver_range_unavailable"
+    assert scenario.cumulative_value_at_risk == (0.0, 19.0)
+    assert scenario.cumulative_value_at_risk != (19.0, 19.0)
+    assert scenario.pool_deficits == {}
+    assert any(
+        "WR_waiver_range_unavailable_recovery_unverifiable" in caveat
+        for caveat in scenario.caveats
+    )
+
+
+def test_pool_deficit_is_structured_when_cuts_exceed_valid_pool_size() -> None:
+    cut_ids = [f"cut{i}" for i in range(1, 7)]
+    snapshot = _snapshot(
+        cut_ids,
+        active_slots=1,
+        snapshot_player_ids=[*cut_ids, "wr1", "wr2", "wr3", "wr4"],
+    )
+    pvo = _pvo([
+        *[_pvo_player(pid, xvar=10.0, xvar_pct=float(i)) for i, pid in enumerate(cut_ids, 1)],
+        _pvo_player("wr1", xvar=8.0),
+        _pvo_player("wr2", xvar=7.0),
+        _pvo_player("wr3", xvar=6.0),
+        _pvo_player("wr4", xvar=5.0),
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot, scenarios=[{"clear_n": 6}])
+    scenario = _scenario(result)
+
+    assert _pool(result, "WR").status == "ok"
+    assert scenario.pool_deficits == {"WR": 2}
+    assert any("pool" in caveat and "deficit" in caveat for caveat in scenario.caveats)
+    assert not any("do not cut" in caveat.lower() for caveat in scenario.caveats)
+
+
+def test_depletion_uses_real_n_deep_pool_when_scenario_n_exceeds_display_k() -> None:
+    cut_ids = [f"cut{i}" for i in range(1, 11)]
+    waiver_ids = [f"wr{i}" for i in range(1, 13)]
+    snapshot = _snapshot(
+        cut_ids,
+        active_slots=1,
+        snapshot_player_ids=[*cut_ids, *waiver_ids],
+    )
+    pvo = _pvo([
+        *[_pvo_player(pid, xvar=20.0, xvar_pct=float(i)) for i, pid in enumerate(cut_ids, 1)],
+        *[_pvo_player(f"wr{i}", xvar=float(21 - i)) for i in range(1, 13)],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot, scenarios=[{"clear_n": 10}])
+    scenario = _scenario(result)
+
+    assert _pool(result, "WR").top_k_values == [20.0, 19.0, 18.0, 17.0, 16.0, 15.0, 14.0, 13.0, 12.0, 11.0]
+    assert scenario.pool_deficits == {}
+    assert scenario.cumulative_value_at_risk == (45.0, 45.0)
+
+
+def test_proposed_cuts_are_honored_with_exempt_and_off_roster_caveats() -> None:
+    snapshot = _snapshot(
+        ["valid", "taxi_player", "other"],
+        active_slots=1,
+        taxi=["taxi_player"],
+        taxi_slots=1,
+        snapshot_player_ids=["valid", "taxi_player", "other", *[f"wr{i}" for i in range(1, 9)]],
+    )
+    pvo = _pvo([
+        _pvo_player("valid", xvar=5.0, xvar_pct=1.0),
+        _pvo_player("taxi_player", xvar=2.0, xvar_pct=2.0),
+        _pvo_player("other", xvar=9.0, xvar_pct=3.0),
+        *[_pvo_player(f"wr{i}", xvar=float(i)) for i in range(1, 9)],
+    ])
+
+    result = simulate_capacity_scenarios(
+        pvo,
+        snapshot,
+        scenarios=[{"proposed_cuts": ["valid", "taxi_player", "ghost"]}],
+    )
+    scenario = _scenario(result)
+
+    assert scenario.cut_set == ["valid"]
+    assert any("taxi_player" in caveat for caveat in scenario.caveats)
+    assert any("ghost" in caveat for caveat in scenario.caveats)
+
+
+def test_clear_n_larger_than_available_candidates_caveats_without_crashing() -> None:
+    snapshot = _snapshot(
+        ["cut1", "cut2"],
+        active_slots=1,
+        snapshot_player_ids=["cut1", "cut2", *[f"wr{i}" for i in range(1, 9)]],
+    )
+    pvo = _pvo([
+        _pvo_player("cut1", xvar=5.0, xvar_pct=1.0),
+        _pvo_player("cut2", xvar=6.0, xvar_pct=2.0),
+        *[_pvo_player(f"wr{i}", xvar=float(i)) for i in range(1, 9)],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot, scenarios=[{"clear_n": 5}])
+    scenario = _scenario(result)
+
+    assert scenario.cut_set == ["cut1", "cut2"]
+    assert any("clear_n" in caveat or "available" in caveat for caveat in scenario.caveats)
+
+
+def test_mixed_position_zero_crossing_cumulative_range_is_unclamped() -> None:
+    positions = {
+        "wr_cut": "WR",
+        "rb_cut": "RB",
+        **{f"wr{i}": "WR" for i in range(1, 5)},
+        **{f"rb{i}": "RB" for i in range(1, 5)},
+    }
+    snapshot = _snapshot(
+        ["wr_cut", "rb_cut"],
+        active_slots=1,
+        snapshot_player_ids=["wr_cut", "rb_cut", *[f"wr{i}" for i in range(1, 5)], *[f"rb{i}" for i in range(1, 5)]],
+        positions=positions,
+    )
+    pvo = _pvo([
+        _pvo_player("wr_cut", position="WR", xvar=5.0, xvar_pct=1.0),
+        _pvo_player("rb_cut", position="RB", xvar=4.0, xvar_pct=2.0),
+        _pvo_player("wr1", position="WR", xvar=8.0),
+        _pvo_player("wr2", position="WR", xvar=6.0),
+        _pvo_player("wr3", position="WR", xvar=4.0),
+        _pvo_player("wr4", position="WR", xvar=3.0),
+        _pvo_player("rb1", position="RB", xvar=6.0),
+        _pvo_player("rb2", position="RB", xvar=3.0),
+        _pvo_player("rb3", position="RB", xvar=2.0),
+        _pvo_player("rb4", position="RB", xvar=1.0),
+    ])
+
+    result = simulate_capacity_scenarios(
+        pvo,
+        snapshot,
+        scenarios=[{"proposed_cuts": ["wr_cut", "rb_cut"]}],
+    )
+    scenario = _scenario(result)
+
+    assert scenario.cumulative_value_at_risk == (-5.0, 5.0)
+    assert scenario.cumulative_value_at_risk[0] < 0 < scenario.cumulative_value_at_risk[1]
+
+
+def test_scenario_results_are_decision_supported_false_and_verdict_free() -> None:
+    snapshot = _snapshot(
+        ["cut1", "cut2"],
+        active_slots=1,
+        snapshot_player_ids=["cut1", "cut2", *[f"wr{i}" for i in range(1, 9)]],
+    )
+    pvo = _pvo([
+        _pvo_player("cut1", xvar=5.0, xvar_pct=1.0),
+        _pvo_player("cut2", xvar=6.0, xvar_pct=2.0),
+        *[_pvo_player(f"wr{i}", xvar=float(i)) for i in range(1, 9)],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot, scenarios=[{"clear_n": 1}])
+
+    assert _decision_supported_true_count(result) == 0
+    dumped = result.model_dump()
+    assert "optimizer" not in dumped
+    forbidden_phrases = ("safe to cut", "must keep", "do not cut", "drop him", "sell now")
+    lowered_strings = [item.lower() for item in _strings(dumped)]
+    for phrase in forbidden_phrases:
+        assert all(phrase not in item for item in lowered_strings)
