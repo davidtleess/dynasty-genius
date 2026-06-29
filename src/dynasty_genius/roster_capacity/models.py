@@ -53,6 +53,29 @@ class CapacityCandidate(BaseModel):
     value_field_status: dict[str, str]
 
 
+class PoolRange(BaseModel):
+    """The unrostered (waiver) replacement range for one position.
+
+    Deliberately WIDE, not a confidence interval: `low`/`high` are the min/max of
+    the position's display top-K unrostered values — an honest band over a
+    volatile wire, never a tightened point estimate. `top_k_values` carries the
+    ordered (descending) raw values themselves, retained out to the largest
+    requested scenario so T3's depletion math has every per-member value it
+    needs (it may be LONGER than the K that low/high are computed over).
+
+    `status == "waiver_range_unavailable"` fails closed (stale snapshot,
+    incomplete roster coverage, pool below `min_pool`, valuation coverage below
+    floor); a genuinely barren-but-valid pool stays `ok` with a loud caveat.
+    """
+
+    status: Literal["ok", "waiver_range_unavailable"]
+    low: float | None
+    high: float | None
+    top_k_values: list[float] = Field(default_factory=list)
+    pool_size: int | None
+    caveats: list[str] = Field(default_factory=list)
+
+
 class CapacityAuditResult(BaseModel):
     """Top-level descriptive result.
 
@@ -65,7 +88,7 @@ class CapacityAuditResult(BaseModel):
     capacity_health: CapacityHealth | None
     candidates: list[CapacityCandidate] = Field(default_factory=list)
     scenarios: list[Any] = Field(default_factory=list)
-    unrostered_pool_range: Any = None
+    unrostered_pool_range: dict[str, PoolRange] = Field(default_factory=dict)
     excluded_counts: dict[str, int] = Field(default_factory=dict)
     caveats: list[str] = Field(default_factory=list)
     decision_supported: Literal[False] = False

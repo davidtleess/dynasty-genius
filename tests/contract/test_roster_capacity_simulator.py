@@ -13,6 +13,7 @@ from src.dynasty_genius.roster_capacity.scenario_simulator import (
 def _snapshot(
     player_ids: list[str],
     *,
+    snapshot_player_ids: list[str] | None = None,
     active_slots: int = 2,
     reserve_slots: int = 0,
     taxi_slots: int = 0,
@@ -53,7 +54,7 @@ def _snapshot(
                     "on_taxi": pid in set(taxi or []),
                 },
             }
-            for pid in player_ids
+            for pid in (snapshot_player_ids if snapshot_player_ids is not None else player_ids)
         ],
     }
 
@@ -106,6 +107,10 @@ def _decision_supported_true_count(value: object) -> int:
     if isinstance(value, list):
         return sum(_decision_supported_true_count(item) for item in value)
     return 0
+
+
+def _pool(result: Any, position: str) -> Any:
+    return result.unrostered_pool_range[position]
 
 
 def test_capacity_health_reports_total_capacity_and_active_slot_pressure() -> None:
@@ -316,3 +321,285 @@ def test_decision_supported_false_recursively() -> None:
 
     assert result.decision_supported is False
     assert _decision_supported_true_count(result) == 0
+
+
+def test_unrostered_pool_range_uses_wide_top_k_raw_xvar_ordered_descending() -> None:
+    rostered = ["rostered1", "rostered2"]
+    waiver_ids = [f"wr{i}" for i in range(1, 13)]
+    snapshot = _snapshot(
+        rostered,
+        active_slots=1,
+        snapshot_player_ids=rostered + waiver_ids,
+    )
+    pvo = _pvo(
+        [_pvo_player(pid, xvar=50.0, xvar_pct=80.0) for pid in rostered]
+        + [
+            _pvo_player("wr1", xvar=12.0),
+            _pvo_player("wr2", xvar=1.0),
+            _pvo_player("wr3", xvar=7.5),
+            _pvo_player("wr4", xvar=3.0),
+            _pvo_player("wr5", xvar=9.0),
+            _pvo_player("wr6", xvar=6.0),
+            _pvo_player("wr7", xvar=4.5),
+            _pvo_player("wr8", xvar=2.0),
+            _pvo_player("wr9", xvar=11.0),
+            _pvo_player("wr10", xvar=8.0),
+            _pvo_player("wr11", xvar=5.5),
+            _pvo_player("wr12", xvar=10.0),
+        ]
+    )
+
+    result = simulate_capacity_scenarios(pvo, snapshot)
+    wr_pool = _pool(result, "WR")
+
+    assert wr_pool.status == "ok"
+    assert wr_pool.top_k_values == [12.0, 11.0, 10.0, 9.0, 8.0, 7.5, 6.0, 5.5]
+    assert wr_pool.low == 5.5
+    assert wr_pool.high == 12.0
+    assert wr_pool.pool_size == 12
+    assert "median" not in wr_pool.model_dump()
+    assert "std" not in wr_pool.model_dump()
+
+
+def test_unrostered_pool_excludes_players_rostered_only_via_starters_taxi_or_reserve() -> None:
+    snapshot = _snapshot(
+        ["active"],
+        active_slots=1,
+        reserve=["reserve_only"],
+        taxi=["taxi_only"],
+        snapshot_player_ids=[
+            "active",
+            "starter_only",
+            "reserve_only",
+            "taxi_only",
+            "free1",
+            "free2",
+            "free3",
+            "free4",
+            "free5",
+            "free6",
+            "free7",
+            "free8",
+        ],
+    )
+    snapshot["rosters"][0]["starters"] = ["starter_only"]
+    pvo = _pvo([
+        _pvo_player("active", xvar=1.0),
+        _pvo_player("starter_only", xvar=99.0),
+        _pvo_player("reserve_only", xvar=98.0),
+        _pvo_player("taxi_only", xvar=97.0),
+        *[_pvo_player(f"free{i}", xvar=float(i)) for i in range(1, 9)],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot)
+    wr_pool = _pool(result, "WR")
+
+    assert wr_pool.status == "ok"
+    assert wr_pool.top_k_values == [8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0]
+    assert 99.0 not in wr_pool.top_k_values
+    assert 98.0 not in wr_pool.top_k_values
+    assert 97.0 not in wr_pool.top_k_values
+
+
+def test_unrostered_pool_retains_enough_values_for_largest_requested_scenario() -> None:
+    waiver_ids = [f"wr{i}" for i in range(1, 13)]
+    snapshot = _snapshot(
+        ["rostered"],
+        active_slots=1,
+        snapshot_player_ids=["rostered", *waiver_ids],
+    )
+    pvo = _pvo([
+        _pvo_player("rostered", xvar=30.0, xvar_pct=50.0),
+        *[_pvo_player(f"wr{i}", xvar=float(i)) for i in range(1, 13)],
+    ])
+
+    result = simulate_capacity_scenarios(
+        pvo,
+        snapshot,
+        scenarios=[{"clear_n": 10}],
+    )
+    wr_pool = _pool(result, "WR")
+
+    assert wr_pool.status == "ok"
+    assert wr_pool.top_k_values == [12.0, 11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0]
+    assert wr_pool.low == 5.0
+    assert wr_pool.high == 12.0
+
+
+def test_unrostered_pool_snapshot_staleness_fails_closed() -> None:
+    snapshot = _snapshot(
+        ["rostered"],
+        active_slots=1,
+        snapshot_player_ids=["rostered", *[f"wr{i}" for i in range(1, 9)]],
+    )
+    snapshot["captured_at"] = "2020-01-01T00:00:00+00:00"
+    pvo = _pvo([
+        _pvo_player("rostered", xvar=20.0),
+        *[_pvo_player(f"wr{i}", xvar=float(i)) for i in range(1, 9)],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot)
+    wr_pool = _pool(result, "WR")
+
+    assert wr_pool.status == "waiver_range_unavailable"
+    assert wr_pool.low is None
+    assert wr_pool.high is None
+    assert wr_pool.caveats
+
+
+@pytest.mark.parametrize("bad_captured_at", ["not-a-date", 12345])
+def test_unrostered_pool_present_malformed_captured_at_fails_closed(
+    bad_captured_at: object,
+) -> None:
+    snapshot = _snapshot(
+        ["rostered"],
+        active_slots=1,
+        snapshot_player_ids=["rostered", *[f"wr{i}" for i in range(1, 9)]],
+    )
+    snapshot["captured_at"] = bad_captured_at
+    pvo = _pvo([
+        _pvo_player("rostered", xvar=20.0),
+        *[_pvo_player(f"wr{i}", xvar=float(i)) for i in range(1, 9)],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot)
+    wr_pool = _pool(result, "WR")
+
+    assert result.status == "ok"
+    assert wr_pool.status == "waiver_range_unavailable"
+    assert wr_pool.low is None
+    assert wr_pool.high is None
+    assert any("snapshot_freshness_unverifiable" in caveat for caveat in wr_pool.caveats)
+
+
+def test_unrostered_pool_incomplete_roster_coverage_fails_closed() -> None:
+    snapshot = _snapshot(
+        ["rostered"],
+        active_slots=1,
+        snapshot_player_ids=["rostered", *[f"wr{i}" for i in range(1, 9)]],
+    )
+    snapshot["coverage"] = {"rostered_players_missing_from_snapshot": ["missing_rostered"]}
+    pvo = _pvo([
+        _pvo_player("rostered", xvar=20.0),
+        *[_pvo_player(f"wr{i}", xvar=float(i)) for i in range(1, 9)],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot)
+    wr_pool = _pool(result, "WR")
+
+    assert wr_pool.status == "waiver_range_unavailable"
+    assert wr_pool.low is None
+    assert wr_pool.high is None
+    assert any("coverage" in caveat for caveat in wr_pool.caveats)
+
+
+def test_unrostered_pool_thin_position_pool_fails_closed() -> None:
+    snapshot = _snapshot(
+        ["rostered"],
+        active_slots=1,
+        snapshot_player_ids=["rostered", "wr1", "wr2", "wr3"],
+    )
+    pvo = _pvo([
+        _pvo_player("rostered", xvar=20.0),
+        _pvo_player("wr1", xvar=1.0),
+        _pvo_player("wr2", xvar=2.0),
+        _pvo_player("wr3", xvar=3.0),
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot)
+    wr_pool = _pool(result, "WR")
+
+    assert wr_pool.status == "waiver_range_unavailable"
+    assert wr_pool.low is None
+    assert wr_pool.high is None
+    assert wr_pool.pool_size == 3
+
+
+def test_unrostered_pool_valuation_coverage_floor_fails_closed() -> None:
+    snapshot = _snapshot(
+        ["rostered"],
+        active_slots=1,
+        snapshot_player_ids=["rostered", *[f"wr{i}" for i in range(1, 11)]],
+    )
+    pvo = _pvo([
+        _pvo_player("rostered", xvar=20.0),
+        _pvo_player("wr1", xvar=10.0),
+        _pvo_player("wr2", xvar=9.0),
+        *[
+            _pvo_player(f"wr{i}", xvar=None, engine_path="PRE_MODEL")
+            for i in range(3, 11)
+        ],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot)
+    wr_pool = _pool(result, "WR")
+
+    assert wr_pool.status == "waiver_range_unavailable"
+    assert wr_pool.low is None
+    assert wr_pool.high is None
+    assert any("valuation_coverage" in caveat for caveat in wr_pool.caveats)
+    assert result.excluded_counts["unrostered_pool_value_unavailable"] == 8
+
+
+def test_unrostered_pool_barren_zero_value_pool_is_ok_with_caveat() -> None:
+    snapshot = _snapshot(
+        ["rostered"],
+        active_slots=1,
+        snapshot_player_ids=["rostered", *[f"wr{i}" for i in range(1, 9)]],
+    )
+    pvo = _pvo([
+        _pvo_player("rostered", xvar=20.0),
+        *[_pvo_player(f"wr{i}", xvar=0.0) for i in range(1, 9)],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot)
+    wr_pool = _pool(result, "WR")
+
+    assert wr_pool.status == "ok"
+    assert wr_pool.top_k_values == [0.0] * 8
+    assert wr_pool.low == 0.0
+    assert wr_pool.high == 0.0
+    assert any("depleted" in caveat or "barren" in caveat for caveat in wr_pool.caveats)
+
+
+def test_unrostered_pool_non_finite_and_missing_values_are_counted_and_excluded() -> None:
+    snapshot = _snapshot(
+        ["rostered"],
+        active_slots=1,
+        snapshot_player_ids=[
+            "rostered",
+            "bad_inf",
+            "bad_missing",
+            *[f"wr{i}" for i in range(1, 9)],
+        ],
+    )
+    pvo = _pvo([
+        _pvo_player("rostered", xvar=20.0),
+        _pvo_player("bad_inf", xvar=math.inf),
+        _pvo_player("bad_missing", xvar=None),
+        *[_pvo_player(f"wr{i}", xvar=float(i)) for i in range(1, 9)],
+    ])
+
+    result = simulate_capacity_scenarios(pvo, snapshot)
+    wr_pool = _pool(result, "WR")
+
+    assert wr_pool.status == "ok"
+    assert wr_pool.top_k_values == [8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0]
+    assert result.excluded_counts["unrostered_pool_value_unavailable"] == 2
+
+
+def test_unrostered_pool_empty_position_pool_unavailable_without_crash() -> None:
+    snapshot = _snapshot(
+        ["rostered"],
+        active_slots=1,
+        snapshot_player_ids=["rostered"],
+    )
+    pvo = _pvo([_pvo_player("rostered", xvar=20.0)])
+
+    result = simulate_capacity_scenarios(pvo, snapshot)
+    wr_pool = _pool(result, "WR")
+
+    assert wr_pool.status == "waiver_range_unavailable"
+    assert wr_pool.low is None
+    assert wr_pool.high is None
+    assert wr_pool.pool_size == 0

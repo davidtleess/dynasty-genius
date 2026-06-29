@@ -8,14 +8,23 @@ normative verdicts.
 from __future__ import annotations
 
 import math
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from src.dynasty_genius.roster_capacity.models import (
     CapacityAuditResult,
     CapacityCandidate,
     CapacityHealth,
+    PoolRange,
 )
 from src.dynasty_genius.roster_cut_engine import compute_roster_cut_candidates
+
+# Unrostered-pool builder constants (recorded in the producer report, spec §12).
+# Deliberately wide / fail-closed, never tightening or fabricating a range.
+_POOL_TOP_K = 8  # display top-K that low/high are min/max over
+_POOL_MIN_POOL = 4  # a same-position pool thinner than this is unusable
+_POOL_FRESHNESS_DAYS = 30  # snapshots older than this fail closed
+_POOL_VALUATION_COVERAGE_FLOOR = 0.5  # >=50% of the pool must carry usable values
 
 # Errors that signal corrupt/malformed DATA (right top-level type, wrong
 # content). These yield a blocked result so a producer can record the failure.
@@ -127,6 +136,174 @@ def _build_candidate(
     )
 
 
+def _pool_global_unavailable_reason(snapshot: dict) -> str | None:
+    """Snapshot-wide reasons the whole waiver pool cannot be trusted.
+
+    Returns a caveat string, or None when the snapshot is fresh and complete.
+    An absent freshness/coverage signal is treated as usable (the tests build
+    minimal snapshots without these keys).
+    """
+    # Absent captured_at: usable (minimal fixtures omit it). But a captured_at
+    # that is PRESENT yet uninterpretable as a datetime — an unparseable string
+    # OR a wrong type — means we cannot verify freshness, so fail closed rather
+    # than silently treat a corrupt freshness signal as fresh.
+    captured_at = snapshot.get("captured_at")
+    if captured_at is not None:
+        captured: datetime | None = None
+        if isinstance(captured_at, str):
+            try:
+                captured = datetime.fromisoformat(captured_at)
+            except ValueError:
+                captured = None
+        if captured is None:
+            return "snapshot_freshness_unverifiable"
+        if captured.tzinfo is None:
+            captured = captured.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) - captured > timedelta(days=_POOL_FRESHNESS_DAYS):
+            return f"snapshot_stale_beyond_{_POOL_FRESHNESS_DAYS}d"
+
+    coverage = snapshot.get("coverage") or {}
+    if coverage.get("rostered_players_missing_from_snapshot"):
+        return "incomplete_roster_coverage"
+    return None
+
+
+def _max_scenario_n(scenarios: list[dict] | None) -> int:
+    """Largest player count any requested scenario could draw from the pool.
+
+    The pool keeps top-max(K, this) values so it never under-serves T3.
+    """
+    largest = 0
+    for scenario in scenarios or []:
+        if not isinstance(scenario, dict):
+            continue
+        if "clear_n" in scenario:
+            try:
+                largest = max(largest, int(scenario["clear_n"]))
+            except (TypeError, ValueError):
+                continue
+        elif "proposed_cuts" in scenario:
+            largest = max(largest, len(scenario.get("proposed_cuts") or []))
+    return largest
+
+
+def _pool_for_position(
+    position: str,
+    pool_size: int,
+    values: list[float],
+    retention: int,
+    global_caveat: str | None,
+) -> PoolRange:
+    if global_caveat is not None:
+        return PoolRange(
+            status="waiver_range_unavailable",
+            low=None,
+            high=None,
+            top_k_values=[],
+            pool_size=pool_size,
+            caveats=[global_caveat],
+        )
+    if pool_size < _POOL_MIN_POOL:
+        return PoolRange(
+            status="waiver_range_unavailable",
+            low=None,
+            high=None,
+            top_k_values=[],
+            pool_size=pool_size,
+            caveats=[f"thin_unrostered_pool_below_min_{_POOL_MIN_POOL}"],
+        )
+    coverage_ratio = (len(values) / pool_size) if pool_size else 0.0
+    if coverage_ratio < _POOL_VALUATION_COVERAGE_FLOOR:
+        return PoolRange(
+            status="waiver_range_unavailable",
+            low=None,
+            high=None,
+            top_k_values=[],
+            pool_size=pool_size,
+            caveats=["valuation_coverage_below_floor"],
+        )
+
+    ordered = sorted(values, reverse=True)
+    # top_k_values retains out to the largest scenario (for T3 depletion);
+    # low/high are the min/max of the narrower DISPLAY top-K only.
+    top_k_values = ordered[:retention]
+    display = ordered[:_POOL_TOP_K]
+    caveats: list[str] = []
+    if display and all(value == 0.0 for value in display):
+        caveats.append(f"{position.lower()}_unrostered_pool_depleted_all_zero_value")
+    return PoolRange(
+        status="ok",
+        low=min(display),
+        high=max(display),
+        top_k_values=top_k_values,
+        pool_size=pool_size,
+        caveats=caveats,
+    )
+
+
+def _build_unrostered_pool_range(
+    sleeper_snapshot: dict,
+    pvo_lookup: dict[str, dict],
+    scenarios: list[dict] | None,
+    excluded_counts: dict[str, int],
+) -> dict[str, PoolRange]:
+    """Per-position replacement range over players on no roster.
+
+    Rostered set = the union players ∪ starters ∪ taxi ∪ reserve across EVERY
+    team (matches sleeper_universe._build_roster_context); unrostered = the
+    snapshot player universe minus that set, grouped by position and valued via
+    the PVO index. Wide, fail-closed, never fabricated.
+    """
+    rostered: set[str] = set()
+    for roster in sleeper_snapshot.get("rosters") or []:
+        for field in ("players", "starters", "taxi", "reserve"):
+            for pid in roster.get(field) or []:
+                if pid:
+                    rostered.add(str(pid))
+
+    # Group every snapshot position; an unrostered member is a snapshot player
+    # whose id is not in the rostered union. Positions with zero unrostered
+    # members still get a (fail-closed) entry so consumers find the key.
+    positions: set[str] = set()
+    unrostered_by_position: dict[str, list[str]] = {}
+    for row in sleeper_snapshot.get("players") or []:
+        if not isinstance(row, dict):
+            continue
+        position = (row.get("player") or {}).get("position")
+        if not position:
+            continue
+        positions.add(position)
+        pid = row.get("sleeper_player_id")
+        if pid is None or str(pid) in rostered:
+            continue
+        unrostered_by_position.setdefault(position, []).append(str(pid))
+
+    global_caveat = _pool_global_unavailable_reason(sleeper_snapshot)
+    retention = max(_POOL_TOP_K, _max_scenario_n(scenarios))
+
+    pool_range: dict[str, PoolRange] = {}
+    for position in sorted(positions):
+        members = unrostered_by_position.get(position, [])
+        values: list[float] = []
+        for pid in members:
+            entry = pvo_lookup.get(pid)
+            value = (
+                _finite((entry.get("valuation") or {}).get("xvar"))
+                if isinstance(entry, dict)
+                else None
+            )
+            if value is None:
+                excluded_counts["unrostered_pool_value_unavailable"] = (
+                    excluded_counts.get("unrostered_pool_value_unavailable", 0) + 1
+                )
+            else:
+                values.append(value)
+        pool_range[position] = _pool_for_position(
+            position, len(members), values, retention, global_caveat
+        )
+    return pool_range
+
+
 def simulate_capacity_scenarios(
     universe_pvo: dict,
     sleeper_snapshot: dict,
@@ -219,6 +396,10 @@ def simulate_capacity_scenarios(
             },
             reserve_unrestricted=cut_result.reserve_unrestricted,
         )
+
+        unrostered_pool_range = _build_unrostered_pool_range(
+            sleeper_snapshot, pvo_lookup, scenarios, excluded_counts
+        )
     except _DATA_CORRUPTION_ERRORS as exc:
         return CapacityAuditResult(
             status="blocked",
@@ -232,6 +413,7 @@ def simulate_capacity_scenarios(
         status="ok",
         capacity_health=capacity_health,
         candidates=candidates,
+        unrostered_pool_range=unrostered_pool_range,
         excluded_counts=excluded_counts,
         caveats=[],
     )
