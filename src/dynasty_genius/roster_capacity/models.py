@@ -131,3 +131,22 @@ class CapacityAuditResult(BaseModel):
     @classmethod
     def _lock_decision_supported(cls, _v: object) -> bool:
         return False
+
+
+class ProducerReport(BaseModel):
+    """The read-only producer's own exit/report envelope.
+
+    `producer_status` is DISTINCT from the core `CapacityAuditResult.status`
+    (`ok`/`blocked`): it adds `preflight_ready`, which never produces a
+    scorecard. A blocked or preflight run carries `scorecard=None` or a blocked
+    scorecard and writes no artifact; only an `ok` run writes one.
+    """
+
+    producer_status: Literal["ok", "blocked", "preflight_ready"]
+    scorecard: CapacityAuditResult | None
+    decision_supported: Literal[False] = False
+
+    @field_validator("decision_supported", mode="before")
+    @classmethod
+    def _lock_decision_supported(cls, _v: object) -> bool:
+        return False

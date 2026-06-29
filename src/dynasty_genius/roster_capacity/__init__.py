@@ -10,6 +10,7 @@ from src.dynasty_genius.roster_capacity.models import (
     CapacityCandidate,
     CapacityHealth,
     PoolRange,
+    ProducerReport,
     ScenarioRequest,
     ScenarioResult,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "CapacityCandidate",
     "CapacityHealth",
     "PoolRange",
+    "ProducerReport",
     "ScenarioRequest",
     "ScenarioResult",
     "simulate_capacity_scenarios",
