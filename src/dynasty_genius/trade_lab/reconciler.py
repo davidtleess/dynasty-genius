@@ -6,6 +6,7 @@ returns a TradeRosterReconciliation. No file I/O, no market data.
 from __future__ import annotations
 
 import copy
+from typing import Literal
 
 from pydantic import BaseModel, field_validator
 
@@ -24,8 +25,19 @@ class RosterPenaltySummary(BaseModel):
     post_trade_total_players: int
     post_trade_overflow: int
     forced_cut_candidates: list[dict]
+    # Legacy GROSS positive-only sum (an absolute-value-leaving display, not the
+    # net cost). The depletion-aware net + recovery ranges below are the truth.
     forced_cut_penalty_xvar: float
     penalty_caveats: list[str]
+    # Additive (T1): RC-v1 depletion-aware NET value-at-risk + recovery ranges.
+    # Default None here for additive legacy-constructor compatibility (a default
+    # object carries None ranges with penalty_status="ok"). The invariant
+    # "*_range is None only when blocked; unavailable still yields [0, cut_sum]"
+    # is enforced on POPULATED reconcile outputs in T2, not on bare constructors.
+    forced_cut_value_at_risk_range: tuple[float, float] | None = None
+    forced_cut_recovery_range: tuple[float, float] | None = None
+    pool_deficits: dict[str, int] = {}
+    penalty_status: Literal["ok", "uncertain_pool_unavailable", "blocked"] = "ok"
     decision_supported: bool = False
 
     @field_validator("decision_supported", mode="before")
@@ -37,10 +49,22 @@ class RosterPenaltySummary(BaseModel):
 class TradeRosterReconciliation(BaseModel):
     base_evaluation: TradeEvaluation
     roster_penalty: RosterPenaltySummary
+    # Legacy quantity scalars stay GROSS-derived (conservative, shown alongside
+    # the net ranges). adjusted_favors is frozen to base.favors in T3 (§10b).
     adjusted_david_received_value: float
     adjusted_fairness_delta: float
     adjusted_within_parity_band: bool
     adjusted_favors: str
+    # Additive (T1): range-native, capacity-aware truth. Default None here for
+    # legacy-constructor compatibility; populated reconcile outputs enforce the
+    # None-only-when-blocked invariant in T2. adjusted_favors_status carries the
+    # honest 4-state answer (incl. uncertain_range_crosses_parity) the legacy
+    # enum cannot.
+    adjusted_received_value_range: tuple[float, float] | None = None
+    adjusted_fairness_delta_range: tuple[float, float] | None = None
+    adjusted_favors_status: Literal[
+        "neutral", "david", "counterparty", "uncertain_range_crosses_parity"
+    ] = "neutral"
     decision_supported: bool = False
     caveats: list[str]
 
@@ -48,6 +72,61 @@ class TradeRosterReconciliation(BaseModel):
     @classmethod
     def _lock_decision_supported(cls, v: object) -> bool:
         return False
+
+
+# ── Pure range helpers (T1) ─────────────────────────────────────────────────────
+
+
+def _favors_status(
+    received_range: tuple[float, float],
+    sent_value: float,
+    parity_band: float,
+) -> Literal["neutral", "david", "counterparty", "uncertain_range_crosses_parity"]:
+    """Capacity-aware favors over the adjusted received RANGE.
+
+    Uses the evaluator's RELATIVE band `delta <= parity_band * max(sent, received)`
+    — the threshold varies across the range, so a fixed `sent * band` is wrong.
+    `favor(received)` is monotonic in received (counterparty → neutral → david),
+    so the two endpoints bound the whole interval: same favor → that state;
+    differing → the range straddles parity (`uncertain_range_crosses_parity`).
+    """
+
+    def _favor(received: float) -> str:
+        delta = abs(sent_value - received)
+        if delta <= parity_band * max(sent_value, received):
+            return "neutral"
+        return "david" if received > sent_value else "counterparty"
+
+    low, high = received_range
+    favor_low, favor_high = _favor(low), _favor(high)
+    if favor_low == favor_high:
+        return favor_low  # type: ignore[return-value]
+    return "uncertain_range_crosses_parity"
+
+
+def _fairness_delta_range(
+    sent_value: float, received_range: tuple[float, float]
+) -> tuple[float, float]:
+    """`abs(sent - received)` over the received interval — NON-MONOTONIC.
+
+    If `sent` lies inside the interval the minimum delta is 0; otherwise it is
+    the nearer endpoint. The max is always the farther endpoint.
+    """
+    low, high = received_range
+    if low <= sent_value <= high:
+        delta_low = 0.0
+    else:
+        delta_low = min(abs(sent_value - low), abs(sent_value - high))
+    delta_high = max(abs(sent_value - low), abs(sent_value - high))
+    return (delta_low, delta_high)
+
+
+def _recovery_range(
+    gross: float, net_range: tuple[float, float]
+) -> tuple[float, float]:
+    """The waiver recovery the wire provides = gross − net, bound-for-bound."""
+    net_low, net_high = net_range
+    return (gross - net_high, gross - net_low)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
