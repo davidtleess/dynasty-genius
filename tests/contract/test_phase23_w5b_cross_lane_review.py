@@ -18,6 +18,7 @@ BANNED_WARNING_TERMS = {
     "approve",
     "block",
     "buy",
+    "recommended",
     "fade",
     "sell",
     "target",
@@ -66,26 +67,26 @@ def _assert_no_warning(result) -> None:
         (
             "david",
             -20.0,
-            "Model favors David but Market favors Counterparty. Manual review "
-            "of the asset package is recommended.",
+            "Model favors David but Market favors Counterparty. The asset package "
+            "is flagged for manual review.",
         ),
         (
             "side_b",
             -20.0,
-            "Model favors David but Market favors Counterparty. Manual review "
-            "of the asset package is recommended.",
+            "Model favors David but Market favors Counterparty. The asset package "
+            "is flagged for manual review.",
         ),
         (
             "counterparty",
             20.0,
-            "Model favors Counterparty but Market favors David. Manual review "
-            "of the asset package is recommended.",
+            "Model favors Counterparty but Market favors David. The asset package "
+            "is flagged for manual review.",
         ),
         (
             "side_a",
             20.0,
-            "Model favors Counterparty but Market favors David. Manual review "
-            "of the asset package is recommended.",
+            "Model favors Counterparty but Market favors David. The asset package "
+            "is flagged for manual review.",
         ),
     ],
 )
@@ -132,6 +133,24 @@ def test_agreement_and_neutral_combinations_do_not_emit_under_q3_b(
     result = _evaluate(
         model_favors_raw=model_favors_raw,
         market_delta_for_david=market_delta_for_david,
+    )
+
+    _assert_no_warning(result)
+    assert result.suppressed_reason is None
+
+
+def test_uncertain_model_range_token_is_neutral_canonical_and_suppresses_warning():
+    from src.dynasty_genius.trade_lab.cross_lane_review import (
+        _DIRECTION_CODE,
+        _normalize_model_label,
+    )
+
+    assert _normalize_model_label("uncertain_range_crosses_parity") == "uncertain"
+    assert _DIRECTION_CODE["uncertain"] == 0.0
+
+    result = _evaluate(
+        model_favors_raw="uncertain_range_crosses_parity",
+        market_delta_for_david=-20.0,
     )
 
     _assert_no_warning(result)
@@ -255,11 +274,11 @@ def test_warning_metrics_are_float_only_and_reconstruct_decision():
     assert all(isinstance(value, float) for value in warning.metrics.values())
 
 
-def test_warning_message_excludes_banned_verdict_terms():
+def test_warning_message_and_caveats_exclude_banned_verdict_terms():
     result = _evaluate(model_favors_raw="david", market_delta_for_david=-20.0)
 
     warning = result.warning
     assert warning is not None
-    serialized = warning.message.lower()
+    serialized = f"{warning.message} {' '.join(warning.caveats)}".lower()
     for banned in BANNED_WARNING_TERMS:
         assert re.search(rf"\b{re.escape(banned)}\b", serialized) is None

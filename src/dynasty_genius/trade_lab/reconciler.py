@@ -309,7 +309,10 @@ def reconcile_trade_roster(
         adjusted_received_range, base.side_a.side_value, TRADE_PARITY_BAND
     )
 
-    # Legacy gross-derived scalars (conservative; adjusted_favors frozen in T3).
+    # Legacy gross-derived quantity scalars (conservative, shown alongside the
+    # net ranges). The verdict-shaped adjusted_favors is FROZEN to base.favors
+    # (§10b): it carries the capacity-UNAWARE base direction only — all
+    # capacity-aware truth lives in adjusted_favors_status.
     adjusted_received_value = max(0.0, base.side_b.side_value - gross)
     adjusted_delta = abs(base.side_a.side_value - adjusted_received_value)
     adjusted_max_side = max(base.side_a.side_value, adjusted_received_value)
@@ -318,12 +321,7 @@ def reconcile_trade_roster(
         if adjusted_max_side > 0
         else True
     )
-    if adjusted_within_band:
-        adjusted_favors = "neutral"
-    elif adjusted_received_value > base.side_a.side_value:
-        adjusted_favors = "david"
-    else:
-        adjusted_favors = "counterparty"
+    adjusted_favors = base.favors
 
     return TradeRosterReconciliation(
         base_evaluation=base,

@@ -445,6 +445,121 @@ def test_rc_v1_scenario_populates_net_recovery_and_adjusted_ranges(monkeypatch):
     _assert_no_verdict_tokens(result.model_dump())
 
 
+def test_legacy_adjusted_favors_freezes_to_base_direction_on_all_rc_paths(
+    monkeypatch,
+):
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [_make_pvo_player("PA", xvar=20.0), _make_pvo_player("PB", xvar=20.0)]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+    rc_modes: list[str] = []
+
+    def fake_rc(*_args, **_kwargs) -> CapacityAuditResult:
+        mode = rc_modes.pop(0)
+        if mode == "blocked":
+            return CapacityAuditResult(
+                status="blocked",
+                capacity_health=None,
+                candidates=[],
+                scenarios=[],
+                unrostered_pool_range={},
+                excluded_counts={},
+                caveats=["capacity_audit_blocked"],
+            )
+        if mode == "unvalued":
+            return _rc_result(net_range=(0.0, 0.0), cut_set=["P1"])
+        return _rc_result(net_range=(4.0, 16.0), cut_set=["P1"])
+
+    monkeypatch.setattr(reconciler, "simulate_capacity_scenarios", fake_rc, raising=False)
+
+    for mode in ("normal", "unvalued", "blocked"):
+        rc_modes.append(mode)
+        result = reconcile_trade_roster(
+            [_asset("P0", xvar=25.0)],
+            [_asset("PA", xvar=25.0), _asset("PB", xvar=15.0)],
+            pvo,
+            snapshot,
+        )
+
+        assert result.base_evaluation.favors == "side_b"
+        assert result.adjusted_favors == result.base_evaluation.favors
+        assert _count_ds_true(result.model_dump()) == 0
+
+
+def test_capacity_range_changes_status_without_changing_deprecated_favors(
+    monkeypatch,
+):
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [_make_pvo_player("PA", xvar=20.0), _make_pvo_player("PB", xvar=20.0)]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+    net_ranges = [(0.0, 0.0), (0.0, 20.0)]
+
+    def fake_rc(*_args, **_kwargs) -> CapacityAuditResult:
+        return _rc_result(net_range=net_ranges.pop(0), cut_set=["P1"])
+
+    monkeypatch.setattr(reconciler, "simulate_capacity_scenarios", fake_rc, raising=False)
+
+    first = reconcile_trade_roster(
+        [_asset("P0", xvar=25.0)],
+        [_asset("PA", xvar=25.0), _asset("PB", xvar=15.0)],
+        pvo,
+        snapshot,
+    )
+    second = reconcile_trade_roster(
+        [_asset("P0", xvar=25.0)],
+        [_asset("PA", xvar=25.0), _asset("PB", xvar=15.0)],
+        pvo,
+        snapshot,
+    )
+
+    assert first.base_evaluation.favors == "side_b"
+    assert second.base_evaluation.favors == "side_b"
+    assert first.adjusted_favors == "side_b"
+    assert second.adjusted_favors == "side_b"
+    assert first.adjusted_favors_status != second.adjusted_favors_status
+
+
+def test_parity_straddling_range_keeps_legacy_favors_base_only(monkeypatch):
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [_make_pvo_player("PA", xvar=20.0), _make_pvo_player("PB", xvar=20.0)]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+
+    def fake_straddling_rc(*_args, **_kwargs) -> CapacityAuditResult:
+        return _rc_result(net_range=(0.0, 40.0), cut_set=["P1"])
+
+    monkeypatch.setattr(
+        reconciler, "simulate_capacity_scenarios", fake_straddling_rc, raising=False
+    )
+
+    result = reconcile_trade_roster(
+        [_asset("P0", xvar=100.0)],
+        [_asset("PA", xvar=70.0), _asset("PB", xvar=50.0)],
+        pvo,
+        snapshot,
+    )
+
+    assert result.base_evaluation.favors == "side_b"
+    assert result.adjusted_received_value_range is not None
+    assert (
+        result.adjusted_received_value_range[0]
+        < result.base_evaluation.side_a.side_value
+        < result.adjusted_received_value_range[1]
+    )
+    assert result.adjusted_favors_status == "uncertain_range_crosses_parity"
+    assert result.adjusted_favors == "side_b"
+
+
 def test_rc_v1_blocked_result_returns_blocked_ranges_without_fabricated_zero(
     monkeypatch,
 ):
