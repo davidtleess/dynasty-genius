@@ -81,10 +81,10 @@ _CAPACITY_POOL_KEYS = (
 _MODEL_NATIVE_CARD_TYPES = frozenset({"ROSTER_SURPLUS_DEFICIT_MATCH"})
 _OVERLAY_CARD_TYPES = frozenset(
     {
-        "WAIVER_CANDIDATE",
+        "UNROSTERED_MODEL_MARKET_DIVERGENCE",
         "DIVERGENCE_MODEL_HIGH",
         "DIVERGENCE_MARKET_HIGH",
-        "TAXI_ACTIVATION_CANDIDATE",
+        "TAXI_LONG_TERM_VALUE_PRESENT",
     }
 )
 
@@ -164,12 +164,19 @@ def _map_capacity_pool(raw_card: dict[str, Any]) -> Optional[LeaguePulseCapacity
 
 def map_card(raw: dict[str, Any]) -> Optional[tuple[str, Any]]:
     """Route + sanitize one opportunity card. Returns (lane, dto) or None (drop)."""
+    # Stale league_opportunity.v1 cards (old action-shaped card types, the
+    # removed composite score, and the legacy signal field) are normalized into
+    # the v2 contract by the compat shim, which is the sole home for the
+    # cordoned legacy tokens.
+    raw = league_pulse_v1_compat.normalize_legacy_card(raw)
     card_type = raw.get("card_type")
     rationale = raw.get("rationale") or {}
     common = {
         "card_id": raw.get("card_id"),
         "card_type": card_type,
-        "opportunity_score": raw.get("opportunity_score"),
+        "evidence_status": raw.get("evidence_status"),
+        "sort_key": raw.get("sort_key"),
+        "sort_value": raw.get("sort_value"),
         "rationale_primary": neutral_label_for_token(rationale.get("primary") or ""),
         "rationale_secondary": [
             neutral_label_for_token(t) for t in (rationale.get("secondary") or [])
@@ -288,6 +295,9 @@ def assemble_league_pulse(
     model_native_cards: list[LeaguePulseCard] = []
     market_overlay_cards: list[LeaguePulseMarketCard] = []
     for raw_card in opportunity_artifact.get("cards") or []:
+        # Normalize stale v1 cards once so the drop-count + pool-source checks
+        # below see v2 card types (map_card normalizes again, idempotently).
+        raw_card = league_pulse_v1_compat.normalize_legacy_card(raw_card)
         result = map_card(raw_card)
         if result is None:
             if raw_card.get("card_type") in _OVERLAY_CARD_TYPES:

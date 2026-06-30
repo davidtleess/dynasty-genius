@@ -104,9 +104,8 @@ def _valid_report(*, overall_status: str = "degraded") -> dict[str, Any]:
                         "top_cards": [
                             {
                                 "card_id": "waiver-1",
-                                "card_type": "WAIVER_CANDIDATE",
+                                "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
                                 "asset_name": "Noah Fant",
-                                "opportunity_score": 42.0,
                                 "recommended_drop_name": "AJ Barner",
                             }
                         ],

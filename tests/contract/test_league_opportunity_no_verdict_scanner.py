@@ -224,20 +224,22 @@ def test_current_known_debt_allowlist_enumerates_real_phase1_surface_debt() -> N
             "recommended_drop",
             "transitional stale league_opportunity.v1 compatibility read; removed at Phase 1 T4 when v1 support is dropped",
         ),
+        # T3 removed the composite score + action-shaped card-type enums from the
+        # producer/DTO/assembler and regenerated openapi (now free of
+        # opportunity_score / WAIVER_CANDIDATE / TAXI_ACTIVATION_CANDIDATE). The
+        # surviving legacy card-type / score references are in the v1-compat shim.
         (
-            "src/dynasty_genius/league_opportunity_map.py",
-            "WAIVER_CANDIDATE",
-            "preexisting action-shaped card type renamed by Phase 1 T3",
-        ),
-        (
-            "src/dynasty_genius/league_opportunity_map.py",
+            "app/api/routes/league_pulse_v1_compat.py",
             "opportunity_score",
-            "preexisting action-order score renamed by Phase 1 T3",
+            "transitional stale league_opportunity.v1 card normalization (drops the removed composite score); removed at Phase 1 T4",
         ),
-        # openapi.json regenerated to v2 in T2 → its LeaguePulseRecommendedDrop /
-        # recommended_drop / recommended_drops entries are gone (no longer real
-        # findings). The still-stale generated FE clients (types.gen/zod.gen,
-        # node codegen) remain T4 and are still pinned below.
+        (
+            "app/api/routes/league_pulse_v1_compat.py",
+            "WAIVER_CANDIDATE",
+            "transitional stale league_opportunity.v1 card-type mapping to the v2 neutral name; removed at Phase 1 T4",
+        ),
+        # The still-stale generated FE clients (types.gen/zod.gen, node codegen)
+        # remain T4 and are still pinned below.
         (
             "frontend/src/lib/api/types.gen.ts",
             "recommended_drop",
@@ -347,14 +349,15 @@ def test_what_changed_consumes_league_opportunity_renames_in_league_pulse_bucket
         (entry.path, entry.token) for entry in scanner.LEAGUE_PULSE_PHASE_1_DEBT
     }
 
+    # T3 removed the What-Changed opportunity_score consumption field + report.py
+    # assignment + regenerated openapi, so opportunity_score survives only in the
+    # still-stale generated FE clients (types.gen/zod.gen, T4). recommended_drop /
+    # recommended_drop_name consumption remains T4.
     assert {
         ("src/dynasty_genius/what_changed/report.py", "recommended_drop"),
         ("src/dynasty_genius/what_changed/report.py", "recommended_drop_name"),
-        ("src/dynasty_genius/what_changed/report.py", "opportunity_score"),
         ("app/api/routes/league_what_changed_models.py", "recommended_drop_name"),
-        ("app/api/routes/league_what_changed_models.py", "opportunity_score"),
         ("frontend/openapi.json", "recommended_drop_name"),
-        ("frontend/openapi.json", "opportunity_score"),
         ("frontend/src/lib/api/types.gen.ts", "recommended_drop_name"),
         ("frontend/src/lib/api/types.gen.ts", "opportunity_score"),
         ("frontend/src/lib/api/zod.gen.ts", "recommended_drop_name"),

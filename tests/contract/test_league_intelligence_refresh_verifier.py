@@ -87,13 +87,16 @@ def _valid_response() -> dict:
                 "decision_supported": False,
                 "card_id": "roster-fit",
                 "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
-                "opportunity_score": 0.4,
+                "evidence_status": "evidence_gated",
+                "sort_key": "positional_z_differential_desc",
+                "sort_value": 2.0,
                 "rationale_primary": "opportunity_signal",
                 "rationale_secondary": [],
                 "evidence": {
                     "position": "WR",
                     "perspective_position_z": -0.9,
                     "counterparty_position_z": 1.1,
+                    "positional_z_differential": 2.0,
                     "perspective_surplus_label": "deficit",
                     "counterparty_surplus_label": "surplus",
                 },
@@ -105,15 +108,17 @@ def _valid_response() -> dict:
             {
                 "decision_supported": False,
                 "card_id": "waiver",
-                "card_type": "WAIVER_CANDIDATE",
-                "opportunity_score": 0.7,
+                "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+                "evidence_status": "evidence_complete",
+                "sort_key": "absolute_model_market_delta_desc",
+                "sort_value": 0.4,
                 "rationale_primary": "market_divergence_context",
                 "rationale_secondary": [],
                 "evidence": {
                     "signal": "MODEL_HIGH_MARKET_LOW",
-                    "signal_status": "available",
+                    "evidence_status": "evidence_complete",
                     "model_minus_market_delta": 0.4,
-                    "xvar": 1.1,
+                    "asset_xvar": 1.1,
                 },
                 "score_components": {
                     "fit_score": 0.4,
@@ -283,7 +288,7 @@ def test_physical_shape_gate_calls_app_route_and_validates_response(monkeypatch)
     body = v.verify_league_pulse_route_shape(TestClient(app))
 
     assert body["decision_supported"] is False
-    assert body["market_overlay_cards"][0]["card_type"] == "WAIVER_CANDIDATE"
+    assert body["market_overlay_cards"][0]["card_type"] == "UNROSTERED_MODEL_MARKET_DIVERGENCE"
 
 
 @pytest.mark.parametrize(
@@ -314,7 +319,7 @@ def test_physical_shape_gate_calls_app_route_and_validates_response(monkeypatch)
             ),
             "market-bleed",
         ),
-        (lambda body: body.update({"market_overlay_cards": []}), "WAIVER_CANDIDATE"),
+        (lambda body: body.update({"market_overlay_cards": []}), "UNROSTERED_MODEL_MARKET_DIVERGENCE"),
         (
             lambda body: body["market_overlay_cards"][0].update(
                 {"roster_capacity_candidates": None}

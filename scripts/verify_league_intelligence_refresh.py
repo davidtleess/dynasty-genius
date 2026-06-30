@@ -226,17 +226,18 @@ def verify_acceptance(
                 f"market-bleed: partner_rankings carries raw market keys {sorted(leaked)}"
             )
 
-    # Non-vacuous drop-pairing (F4).
+    # Non-vacuous capacity-pairing (F4). T3 renamed the waiver card type to the
+    # neutral UNROSTERED_MODEL_MARKET_DIVERGENCE (unrostered model/market gap).
     waiver_cards = [
         c
         for c in response.get("market_overlay_cards", [])
-        if c.get("card_type") == "WAIVER_CANDIDATE"
+        if c.get("card_type") == "UNROSTERED_MODEL_MARKET_DIVERGENCE"
     ]
     if not waiver_cards:
         raise RefreshVerificationError(
-            "drop-pairing: zero WAIVER_CANDIDATE cards (manual review required)"
+            "capacity-pairing: zero UNROSTERED_MODEL_MARKET_DIVERGENCE cards (manual review required)"
         )
-    # T2 No-Verdict reconcile: every WAIVER_CANDIDATE pairs with the descriptive
+    # T2 No-Verdict reconcile: every such card pairs with the descriptive
     # roster-capacity pool (which replaced the tool-selected single-drop field).
     # The pool is always present when a roster-cut result is wired; an empty pool
     # ("no_safe_capacity_candidates") is still a valid, non-vacuous pairing.
@@ -244,7 +245,7 @@ def verify_acceptance(
     for card in waiver_cards:
         if card.get("roster_capacity_candidates") is None:
             raise RefreshVerificationError(
-                "capacity-pairing: WAIVER_CANDIDATE missing roster_capacity_candidates"
+                "capacity-pairing: UNROSTERED_MODEL_MARKET_DIVERGENCE card missing roster_capacity_candidates"
             )
         waiver_capacity_pools += 1
 

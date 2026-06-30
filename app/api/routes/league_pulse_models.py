@@ -66,6 +66,7 @@ _MODEL_NATIVE_EVIDENCE = frozenset(
         "position",
         "perspective_position_z",
         "counterparty_position_z",
+        "positional_z_differential",
         "perspective_surplus_label",
         "counterparty_surplus_label",
     }
@@ -77,8 +78,8 @@ _OVERLAY_EVIDENCE = frozenset(
         "model_minus_market_delta",
         "model_percentile",
         "signal",
-        "signal_status",
-        "xvar",
+        "evidence_status",
+        "asset_xvar",
         "asset_roster_id",
         "raw_xvar",
         "lineup_role",
@@ -168,7 +169,9 @@ class LeaguePulseCard(_DSBase):
 
     card_id: str
     card_type: Literal["ROSTER_SURPLUS_DEFICIT_MATCH"]
-    opportunity_score: float
+    evidence_status: Literal["evidence_complete", "evidence_gated", "inputs_unavailable"]
+    sort_key: str
+    sort_value: float
     rationale_primary: str
     rationale_secondary: list[str] = []
     evidence: dict[str, Any]
@@ -241,12 +244,14 @@ class LeaguePulseMarketCard(_DSBase):
 
     card_id: str
     card_type: Literal[
-        "WAIVER_CANDIDATE",
+        "UNROSTERED_MODEL_MARKET_DIVERGENCE",
         "DIVERGENCE_MODEL_HIGH",
         "DIVERGENCE_MARKET_HIGH",
-        "TAXI_ACTIVATION_CANDIDATE",
+        "TAXI_LONG_TERM_VALUE_PRESENT",
     ]
-    opportunity_score: float
+    evidence_status: Literal["evidence_complete", "evidence_gated", "inputs_unavailable"]
+    sort_key: str
+    sort_value: float
     rationale_primary: str
     rationale_secondary: list[str] = []
     evidence: dict[str, Any]

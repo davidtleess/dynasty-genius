@@ -269,7 +269,6 @@ class WhatChangedCard(_Strict):
     card_id: Optional[str] = None
     card_type: Optional[str] = None
     asset_name: Optional[str] = None
-    opportunity_score: Optional[float] = None
     recommended_drop_name: Optional[str] = None
 
 

@@ -248,13 +248,12 @@ def _fixture_paths(tmp_path: Path) -> dict[str, Path]:
             "cards": [
                 {
                     "card_id": "waiver-1",
-                    "card_type": "WAIVER_CANDIDATE",
+                    "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
                     "asset": {
                         "sleeper_player_id": "5857",
                         "full_name": "Noah Fant",
                         "position": "TE",
                     },
-                    "opportunity_score": 42.0,
                     "recommended_drop": {
                         "sleeper_player_id": "11603",
                         "full_name": "AJ Barner",
@@ -399,13 +398,12 @@ def _real_shape_fixture_paths(tmp_path: Path) -> dict[str, Path]:
             "cards": [
                 {
                     "card_id": "waiver-1",
-                    "card_type": "WAIVER_CANDIDATE",
+                    "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
                     "asset": {
                         "sleeper_player_id": "5857",
                         "full_name": "Noah Fant",
                         "position": "TE",
                     },
-                    "opportunity_score": 42.0,
                     "recommended_drop": {
                         "sleeper_player_id": "11603",
                         "full_name": "AJ Barner",
@@ -573,9 +571,8 @@ def test_report_emitter_composes_diff_and_allowlisted_structural_context(
     assert opportunity["top_cards"] == [
         {
             "card_id": "waiver-1",
-            "card_type": "WAIVER_CANDIDATE",
+            "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
             "asset_name": "Noah Fant",
-            "opportunity_score": 42.0,
             "recommended_drop_name": "AJ Barner",
         }
     ]
@@ -657,9 +654,8 @@ def test_structural_context_maps_real_phase_artifact_shapes_without_raw_objects(
     assert opportunity["top_cards"] == [
         {
             "card_id": "waiver-1",
-            "card_type": "WAIVER_CANDIDATE",
+            "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
             "asset_name": "Noah Fant",
-            "opportunity_score": 42.0,
             "recommended_drop_name": "AJ Barner",
         }
     ]

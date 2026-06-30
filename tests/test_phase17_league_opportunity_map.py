@@ -167,13 +167,15 @@ def test_opportunity_map_emits_evidence_backed_cards_without_decision_support():
         "ROSTER_SURPLUS_DEFICIT_MATCH",
         "DIVERGENCE_MODEL_HIGH",
         "DIVERGENCE_MARKET_HIGH",
-        "WAIVER_CANDIDATE",
-        "TAXI_ACTIVATION_CANDIDATE",
+        "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+        "TAXI_LONG_TERM_VALUE_PRESENT",
     }
     for card in result["cards"]:
         assert card["decision_supported"] is False
         assert card["rationale"]["evidence"]
-        assert "opportunity_score" in card
+        assert "opportunity_score" not in card
+        assert card["sort_key"]
+        assert "sort_value" in card
 
 
 def test_partner_ranking_prioritizes_counterparty_surplus_matching_david_deficit():

@@ -309,7 +309,6 @@ def _build_league_opportunity_section(
             "card_id": c.get("card_id"),
             "card_type": c.get("card_type"),
             "asset_name": (c.get("asset") or {}).get("full_name"),
-            "opportunity_score": c.get("opportunity_score"),
             "recommended_drop_name": (c.get("recommended_drop") or {}).get("full_name"),
         }
         for c in cards[:_STRUCTURAL_TOP_K]

@@ -828,9 +828,14 @@
             "title": "Evidence",
             "type": "object"
           },
-          "opportunity_score": {
-            "title": "Opportunity Score",
-            "type": "number"
+          "evidence_status": {
+            "enum": [
+              "evidence_complete",
+              "evidence_gated",
+              "inputs_unavailable"
+            ],
+            "title": "Evidence Status",
+            "type": "string"
           },
           "rationale_primary": {
             "title": "Rationale Primary",
@@ -850,12 +855,22 @@
             },
             "title": "Score Components",
             "type": "object"
+          },
+          "sort_key": {
+            "title": "Sort Key",
+            "type": "string"
+          },
+          "sort_value": {
+            "title": "Sort Value",
+            "type": "number"
           }
         },
         "required": [
           "card_id",
           "card_type",
-          "opportunity_score",
+          "evidence_status",
+          "sort_key",
+          "sort_value",
           "rationale_primary",
           "evidence",
           "score_components"
@@ -916,10 +931,10 @@
           },
           "card_type": {
             "enum": [
-              "WAIVER_CANDIDATE",
+              "UNROSTERED_MODEL_MARKET_DIVERGENCE",
               "DIVERGENCE_MODEL_HIGH",
               "DIVERGENCE_MARKET_HIGH",
-              "TAXI_ACTIVATION_CANDIDATE"
+              "TAXI_LONG_TERM_VALUE_PRESENT"
             ],
             "title": "Card Type",
             "type": "string"
@@ -943,9 +958,14 @@
             "title": "Evidence",
             "type": "object"
           },
-          "opportunity_score": {
-            "title": "Opportunity Score",
-            "type": "number"
+          "evidence_status": {
+            "enum": [
+              "evidence_complete",
+              "evidence_gated",
+              "inputs_unavailable"
+            ],
+            "title": "Evidence Status",
+            "type": "string"
           },
           "rationale_primary": {
             "title": "Rationale Primary",
@@ -975,12 +995,22 @@
             },
             "title": "Score Components",
             "type": "object"
+          },
+          "sort_key": {
+            "title": "Sort Key",
+            "type": "string"
+          },
+          "sort_value": {
+            "title": "Sort Value",
+            "type": "number"
           }
         },
         "required": [
           "card_id",
           "card_type",
-          "opportunity_score",
+          "evidence_status",
+          "sort_key",
+          "sort_value",
           "rationale_primary",
           "evidence",
           "score_components"
@@ -4131,17 +4161,6 @@
               }
             ],
             "title": "Card Type"
-          },
-          "opportunity_score": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Opportunity Score"
           },
           "recommended_drop_name": {
             "anyOf": [

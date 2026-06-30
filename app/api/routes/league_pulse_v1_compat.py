@@ -60,3 +60,78 @@ def extract_legacy_capacity_pool(raw_card: dict[str, Any]) -> Optional[dict[str,
         "items": [item],
         "caveats": ["legacy_v1_artifact_migrated"],
     }
+
+
+# T3 No-Verdict reconcile: a stale league_opportunity.v1 card carries the old
+# action-shaped card types, the hidden opportunity_score composite, and a
+# signal_status field. This shim migrates such a card into the v2 contract
+# (neutral card types, transparent sort_key/sort_value, mechanical
+# evidence_status), so the assembler — which the cordon scans — never references
+# these legacy tokens directly. REMOVE AT T4 with the rest of this module.
+_LEGACY_CARD_TYPE_MAP = {
+    "WAIVER_CANDIDATE": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+    "TAXI_ACTIVATION_CANDIDATE": "TAXI_LONG_TERM_VALUE_PRESENT",
+}
+_LEGACY_EVIDENCE_STATUS = {
+    "gates_passed": "evidence_complete",
+    "gates_blocked": "evidence_gated",
+    "unavailable": "inputs_unavailable",
+}
+_MARKET_DELTA_SORT_KEY = "absolute_model_market_delta_desc"
+_POSITIONAL_SORT_KEY = "positional_z_differential_desc"
+_TAXI_SORT_KEY = "taxi_long_term_value_desc"
+
+
+def _legacy_evidence_status(signal_status: Any) -> str:
+    return _LEGACY_EVIDENCE_STATUS.get(str(signal_status or "unavailable"), "inputs_unavailable")
+
+
+def normalize_legacy_card(raw_card: dict[str, Any]) -> dict[str, Any]:
+    """Return a v2-contract card. v2 cards (which always carry ``sort_key``) pass
+    through unchanged; stale v1 cards are migrated in place to the v2 shape."""
+    if not isinstance(raw_card, dict) or "sort_key" in raw_card:
+        return raw_card
+
+    card = dict(raw_card)
+    legacy_type = card.get("card_type")
+    new_type = _LEGACY_CARD_TYPE_MAP.get(legacy_type, legacy_type)
+    card["card_type"] = new_type
+
+    rationale = dict(card.get("rationale") or {})
+    evidence = dict(rationale.get("evidence") or {})
+    legacy_signal_status = card.get("signal_status") or evidence.get("signal_status")
+    evidence_status = _legacy_evidence_status(legacy_signal_status)
+
+    # Migrate evidence keys to the v2 names.
+    if "signal_status" in evidence:
+        evidence.pop("signal_status")
+        evidence["evidence_status"] = evidence_status
+    if "xvar" in evidence:
+        evidence["asset_xvar"] = evidence.pop("xvar")
+
+    # Derive the transparent, per-category sort the v2 producer would emit.
+    if new_type == _LEGACY_CARD_TYPE_MAP["TAXI_ACTIVATION_CANDIDATE"]:
+        sort_key = _TAXI_SORT_KEY
+        sort_value = float(evidence.get("raw_xvar") or 0.0)
+    elif new_type == "ROSTER_SURPLUS_DEFICIT_MATCH":
+        sort_key = _POSITIONAL_SORT_KEY
+        z_diff = round(
+            abs(float(evidence.get("perspective_position_z") or 0.0))
+            + float(evidence.get("counterparty_position_z") or 0.0),
+            3,
+        )
+        evidence["positional_z_differential"] = z_diff
+        sort_value = z_diff
+    else:
+        sort_key = _MARKET_DELTA_SORT_KEY
+        sort_value = abs(float(evidence.get("model_minus_market_delta") or 0.0))
+
+    rationale["evidence"] = evidence
+    card["rationale"] = rationale
+    card["evidence_status"] = evidence_status
+    card["sort_key"] = sort_key
+    card["sort_value"] = round(float(sort_value), 3)
+    # Drop the removed verdict-shaped fields.
+    card.pop("opportunity_score", None)
+    card.pop("signal_status", None)
+    return card

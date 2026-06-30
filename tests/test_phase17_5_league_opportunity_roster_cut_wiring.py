@@ -229,7 +229,7 @@ def test_script_wiring_adds_roster_capacity_candidate_pool_to_waiver_cards(
     waiver_cards = [
         card
         for card in written["payload"]["cards"]
-        if card["card_type"] == "WAIVER_CANDIDATE"
+        if card["card_type"] == "UNROSTERED_MODEL_MARKET_DIVERGENCE"
     ]
     assert waiver_cards
     assert "recommended_drop" not in waiver_cards[0]

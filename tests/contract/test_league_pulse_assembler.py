@@ -77,7 +77,9 @@ def _roster_card(**overrides: object) -> dict:
     card = {
         "card_id": "opp-roster",
         "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
-        "opportunity_score": 0.28,
+        "evidence_status": "evidence_gated",
+        "sort_key": "positional_z_differential_desc",
+        "sort_value": 2.2,
         "rationale": {
             "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
             "secondary": ["PERSPECTIVE_POSITIONAL_DEFICIT"],
@@ -85,6 +87,7 @@ def _roster_card(**overrides: object) -> dict:
                 "position": "WR",
                 "perspective_position_z": -1.0,
                 "counterparty_position_z": 1.2,
+                "positional_z_differential": 2.2,
                 "perspective_surplus_label": "deficit",
                 "counterparty_surplus_label": "surplus",
             },
@@ -104,16 +107,18 @@ def _roster_card(**overrides: object) -> dict:
 def _waiver_card(**overrides: object) -> dict:
     card = {
         "card_id": "opp-waiver",
-        "card_type": "WAIVER_CANDIDATE",
-        "opportunity_score": 0.58,
+        "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+        "evidence_status": "evidence_complete",
+        "sort_key": "absolute_model_market_delta_desc",
+        "sort_value": 0.4,
         "rationale": {
             "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
             "secondary": ["FANTASYCALC_PERCENTILE_DIVERGENCE"],
             "evidence": {
                 "signal": "MODEL_HIGH_MARKET_LOW",
-                "signal_status": "available",
+                "evidence_status": "evidence_complete",
                 "model_minus_market_delta": 0.4,
-                "xvar": 1.2,
+                "asset_xvar": 1.2,
             },
         },
         "score_components": {
@@ -154,8 +159,10 @@ def _waiver_card(**overrides: object) -> dict:
 def _taxi_card() -> dict:
     return {
         "card_id": "opp-taxi",
-        "card_type": "TAXI_ACTIVATION_CANDIDATE",
-        "opportunity_score": 0.32,
+        "card_type": "TAXI_LONG_TERM_VALUE_PRESENT",
+        "evidence_status": "evidence_gated",
+        "sort_key": "taxi_long_term_value_desc",
+        "sort_value": 8.0,
         "rationale": {
             "primary": "TAXI_LONG_TERM_VALUE_PRESENT",
             "secondary": ["ACTIVATION_COST_REPRESENTED", "URGENT_TARGET_FOR_CONTENDER"],
@@ -226,7 +233,7 @@ def test_card_mapper_routes_and_sanitizes_model_native_and_overlay_cards() -> No
     assert model_card.decision_supported is False
 
     assert overlay_lane == "market_overlay_cards"
-    assert overlay_card.card_type == "WAIVER_CANDIDATE"
+    assert overlay_card.card_type == "UNROSTERED_MODEL_MARKET_DIVERGENCE"
     assert overlay_card.rationale_primary == "market_divergence_context"
     assert "market_overlay_unvalidated_divergence" in overlay_card.caveats
     assert overlay_card.roster_capacity_candidates is not None
@@ -240,7 +247,7 @@ def test_card_mapper_routes_and_sanitizes_model_native_and_overlay_cards() -> No
     assert "market_value" not in pool.items[0].model_dump()
 
     assert taxi_lane == "market_overlay_cards"
-    assert taxi_card.card_type == "TAXI_ACTIVATION_CANDIDATE"
+    assert taxi_card.card_type == "TAXI_LONG_TERM_VALUE_PRESENT"
     assert taxi_card.rationale_primary == "taxi_long_term_value_present"
     assert taxi_card.rationale_secondary == [
         "activation_cost_represented",
