@@ -156,7 +156,7 @@ def test_opportunity_map_emits_evidence_backed_cards_without_decision_support():
     team_matrix, market_divergence = _fixtures()
     result = build_league_opportunity_map(team_matrix, market_divergence, perspective_roster_id=1)
 
-    assert result["schema_version"] == "league_opportunity.v1"
+    assert result["schema_version"] == "league_opportunity.v2"
     assert result["decision_supported"] is False
     assert result["coverage"]["decision_supported_true_count"] == 0
     assert result["coverage"]["cards_with_evidence_count"] == len(result["cards"])

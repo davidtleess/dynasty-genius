@@ -10,7 +10,7 @@ from typing import Any
 from src.dynasty_genius.roster_cut_engine import RosterCutCandidate, RosterCutResult
 from src.dynasty_genius.team_posture import apply_team_postures
 
-SCHEMA_VERSION = "league_opportunity.v1"
+SCHEMA_VERSION = "league_opportunity.v2"
 BANNED_LANGUAGE = frozenset({"buy", "sell", "target", "fade"})
 SKILL_POSITIONS = ("QB", "RB", "WR", "TE")
 SURPLUS_THRESHOLD = 0.75
@@ -94,7 +94,7 @@ def _base_card(
         3,
     )
     return {
-        "schema_version": "opportunity.v1",
+        "schema_version": "opportunity.v2",
         "card_id": card_id,
         "card_type": card_type,
         "perspective_roster_id": perspective_roster_id,
@@ -328,31 +328,73 @@ def _divergence_cards(
     return cards
 
 
-def _drop_summary(candidate: RosterCutCandidate) -> dict[str, Any]:
+# Descriptive capacity pool: the No-Verdict reconcile replaces the old
+# tool-selected single-drop field (which nominated a single cut target via
+# position-matching + priority fallback) with the FULL set of capacity
+# candidates, ordered transparently and never narrowed to one "the tool picks".
+# The pool exposes roster constraints (hard rules conflicts, single-candidate
+# pressure, empty) without nominating an action. ``decision_supported`` is False
+# at every level.
+_CAPACITY_POOL_SORT_KEY = "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+_CAPACITY_POOL_SELECTION_RULE = "descriptive_candidate_pool_no_tool_selection"
+
+
+def _capacity_candidate_item(candidate: RosterCutCandidate) -> dict[str, Any]:
+    valued = candidate.xvar_pct is not None
+    hard_conflict = candidate.cut_priority == 0
+    item_caveats: list[str] = []
+    if not valued:
+        item_caveats.append("valuation_unavailable")
     return {
         "sleeper_player_id": candidate.sleeper_player_id,
         "full_name": candidate.full_name,
         "position": candidate.position,
-        "cut_priority": candidate.cut_priority,
-        "ir_compliance_status": candidate.ir_compliance_status,
-        "cut_rationale": list(candidate.cut_rationale),
+        "value_status": "valued" if valued else "unvalued",
+        "xvar_pct": candidate.xvar_pct,
+        "dvs": candidate.dvs,
+        "capacity_conflict_status": (
+            "hard_roster_rules_conflict" if hard_conflict else "roster_capacity_pressure"
+        ),
+        "rule_conflict_label": "IR compliance violation" if hard_conflict else None,
+        "caveats": item_caveats,
         "decision_supported": False,
     }
 
 
-def _select_recommended_drop(
-    waiver_position: str,
+def _roster_capacity_candidate_pool(
     cut_candidates: list[RosterCutCandidate],
-) -> dict[str, Any] | None:
-    if not cut_candidates:
-        return None
-    forced = [c for c in cut_candidates if c.cut_priority == 0]
-    if forced:
-        return _drop_summary(forced[0])
-    same_pos = [c for c in cut_candidates if c.position == waiver_position]
-    if same_pos:
-        return _drop_summary(same_pos[0])
-    return _drop_summary(cut_candidates[0])
+) -> dict[str, Any]:
+    ordered = sorted(
+        cut_candidates,
+        key=lambda c: (
+            c.xvar_pct is None,
+            c.xvar_pct if c.xvar_pct is not None else 0.0,
+            c.full_name,
+            c.sleeper_player_id,
+        ),
+    )
+    items = [_capacity_candidate_item(c) for c in ordered]
+    if not items:
+        pool_status = "empty"
+        narrowing_rule = "no_safe_capacity_candidates"
+        pool_caveats = ["capacity_blocks_move_unless_protected_player_cut"]
+    elif len(items) == 1:
+        pool_status = "constrained_single_candidate"
+        narrowing_rule = "only_one_capacity_candidate_available"
+        pool_caveats = []
+    else:
+        pool_status = "available"
+        narrowing_rule = "all_capacity_candidates"
+        pool_caveats = []
+    return {
+        "decision_supported": False,
+        "pool_status": pool_status,
+        "selection_rule": _CAPACITY_POOL_SELECTION_RULE,
+        "narrowing_rule": narrowing_rule,
+        "sort_key": _CAPACITY_POOL_SORT_KEY,
+        "items": items,
+        "caveats": pool_caveats,
+    }
 
 
 def _waiver_cards(
@@ -392,9 +434,8 @@ def _waiver_cards(
             caveats=["waiver_status_from_sleeper_snapshot"],
         )
         if roster_cut_result is not None:
-            waiver_position = (row.get("player") or {}).get("position") or ""
-            card["recommended_drop"] = _select_recommended_drop(
-                waiver_position, roster_cut_result.cut_candidates
+            card["roster_capacity_candidates"] = _roster_capacity_candidate_pool(
+                roster_cut_result.cut_candidates
             )
         cards.append(card)
         card_no += 1

@@ -121,14 +121,27 @@ def _valid_response() -> dict:
                     "feasibility_score": 0.8,
                 },
                 "caveats": ["market_overlay_unvalidated_divergence"],
-                "recommended_drop": {
+                "roster_capacity_candidates": {
                     "decision_supported": False,
-                    "sleeper_player_id": "drop-1",
-                    "full_name": "Drop Candidate",
-                    "position": "WR",
-                    "cut_priority": 0,
-                    "ir_compliance_status": "eligible",
-                    "cut_rationale": ["waiver_status_from_sleeper_snapshot"],
+                    "pool_status": "constrained_single_candidate",
+                    "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+                    "narrowing_rule": "only_one_capacity_candidate_available",
+                    "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id",
+                    "items": [
+                        {
+                            "decision_supported": False,
+                            "sleeper_player_id": "drop-1",
+                            "full_name": "Drop Candidate",
+                            "position": "WR",
+                            "value_status": "valued",
+                            "xvar_pct": 12.0,
+                            "dvs": 30.0,
+                            "capacity_conflict_status": "hard_roster_rules_conflict",
+                            "rule_conflict_label": "IR compliance violation",
+                            "caveats": [],
+                        }
+                    ],
+                    "caveats": [],
                 },
             }
         ],
@@ -139,7 +152,7 @@ def _valid_response() -> dict:
             "partner_rankings": 0,
             "model_native_cards": 0,
             "market_overlay_cards": 0,
-            "recommended_drops": 0,
+            "roster_capacity_candidate_pools": 0,
         },
         "decision_supported": False,
     }
@@ -303,8 +316,10 @@ def test_physical_shape_gate_calls_app_route_and_validates_response(monkeypatch)
         ),
         (lambda body: body.update({"market_overlay_cards": []}), "WAIVER_CANDIDATE"),
         (
-            lambda body: body["market_overlay_cards"][0].update({"recommended_drop": None}),
-            "recommended_drop",
+            lambda body: body["market_overlay_cards"][0].update(
+                {"roster_capacity_candidates": None}
+            ),
+            "capacity-pairing",
         ),
         (
             lambda body: body["team_values"][0].update({"decision_supported": True}),
@@ -350,7 +365,7 @@ def test_acceptance_contract_passes_and_reports_counts_and_hashes(tmp_path: Path
     assert report.status == "passed"
     assert report.counts["team_count"] == 1
     assert report.counts["waiver_cards"] == 1
-    assert report.counts["waiver_recommended_drops"] == 1
+    assert report.counts["waiver_capacity_pools"] == 1
     assert report.artifacts[0]["path"].endswith("league_opportunity_latest.json")
     assert len(report.artifacts[0]["sha256"]) == 64
     assert report.artifacts[0]["byte_size"] > 0
@@ -365,7 +380,7 @@ def test_acceptance_report_schema_is_locked_and_rejects_missing_audit_fields() -
         "market_source": {"status": "live"},
         "artifacts": [{"path": "app/data/valuation/a.json", "sha256": "a" * 64, "byte_size": 2}],
         "captured_at_delta": {"before": "2026-05-24", "after": "2026-06-22"},
-        "counts": {"team_count": 12, "waiver_cards": 1, "waiver_recommended_drops": 1},
+        "counts": {"team_count": 12, "waiver_cards": 1, "waiver_capacity_pools": 1},
         "checks": {
             "shape_drift": "passed",
             "market_bleed": "passed",

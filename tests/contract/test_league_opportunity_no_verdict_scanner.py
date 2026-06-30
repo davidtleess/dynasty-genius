@@ -216,10 +216,13 @@ def test_current_known_debt_allowlist_enumerates_real_phase1_surface_debt() -> N
     }
 
     expected_entries = {
+        # T2 removed the producer/DTO/assembler recommendation-language tokens
+        # (_select_recommended_drop, LeaguePulseRecommendedDrop, recommended_drop);
+        # the sole surviving legacy reference is the T4-removed v1-compat shim.
         (
-            "src/dynasty_genius/league_opportunity_map.py",
-            "_select_recommended_drop",
-            "preexisting league_opportunity.v1 tool-selected drop debt removed by Phase 1 T2",
+            "app/api/routes/league_pulse_v1_compat.py",
+            "recommended_drop",
+            "transitional stale league_opportunity.v1 compatibility read; removed at Phase 1 T4 when v1 support is dropped",
         ),
         (
             "src/dynasty_genius/league_opportunity_map.py",
@@ -231,21 +234,10 @@ def test_current_known_debt_allowlist_enumerates_real_phase1_surface_debt() -> N
             "opportunity_score",
             "preexisting action-order score renamed by Phase 1 T3",
         ),
-        (
-            "app/api/routes/league_pulse_models.py",
-            "LeaguePulseRecommendedDrop",
-            "preexisting DTO name debt removed by Phase 1 T2/T4",
-        ),
-        (
-            "app/api/routes/league_pulse_assembler.py",
-            "recommended_drop",
-            "preexisting assembler field debt removed by Phase 1 T2/T4",
-        ),
-        (
-            "frontend/openapi.json",
-            "LeaguePulseRecommendedDrop",
-            "preexisting generated schema debt removed by Phase 1 T4",
-        ),
+        # openapi.json regenerated to v2 in T2 → its LeaguePulseRecommendedDrop /
+        # recommended_drop / recommended_drops entries are gone (no longer real
+        # findings). The still-stale generated FE clients (types.gen/zod.gen,
+        # node codegen) remain T4 and are still pinned below.
         (
             "frontend/src/lib/api/types.gen.ts",
             "recommended_drop",
@@ -276,6 +268,7 @@ def test_current_phase1_surfaces_scan_clean_after_exact_known_debt_allowlist() -
         Path("src/dynasty_genius/league_opportunity_map.py"),
         Path("app/api/routes/league_pulse_models.py"),
         Path("app/api/routes/league_pulse_assembler.py"),
+        Path("app/api/routes/league_pulse_v1_compat.py"),
         Path("frontend/openapi.json"),
         Path("frontend/src/lib/api/types.gen.ts"),
         Path("frontend/src/lib/api/zod.gen.ts"),
@@ -367,8 +360,6 @@ def test_what_changed_consumes_league_opportunity_renames_in_league_pulse_bucket
         ("frontend/src/lib/api/zod.gen.ts", "recommended_drop_name"),
         ("frontend/src/lib/api/zod.gen.ts", "opportunity_score"),
     } <= league_pulse_entries
-
-    assert ("app/api/routes/league_pulse_models.py", "recommended_drops") in league_pulse_entries
 
 
 def test_scanner_reports_debt_bucket_for_allowlisted_tokens() -> None:

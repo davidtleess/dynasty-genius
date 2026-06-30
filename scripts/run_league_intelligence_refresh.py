@@ -426,7 +426,7 @@ def run(*, preflight_only: bool) -> int:
             "[accept] team_count="
             f"{report['counts'].get('team_count')} "
             f"waiver_cards={report['counts'].get('waiver_cards')} "
-            f"waiver_drops={report['counts'].get('waiver_recommended_drops')}"
+            f"waiver_capacity_pools={report['counts'].get('waiver_capacity_pools')}"
         )
         print("[done] artifacts refreshed in place. Commit is a SEPARATE, David-authorized step.")
         # Full PASS — pre-run backups are no longer needed.

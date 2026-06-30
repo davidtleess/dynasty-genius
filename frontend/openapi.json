@@ -648,6 +648,154 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "LeaguePulseCapacityCandidate": {
+        "additionalProperties": false,
+        "description": "One descriptive roster-capacity candidate. No nomination: the surface\nlists every candidate that could free capacity; it never selects one.",
+        "properties": {
+          "capacity_conflict_status": {
+            "enum": [
+              "hard_roster_rules_conflict",
+              "roster_capacity_pressure"
+            ],
+            "title": "Capacity Conflict Status",
+            "type": "string"
+          },
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "dvs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "rule_conflict_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Conflict Label"
+          },
+          "sleeper_player_id": {
+            "title": "Sleeper Player Id",
+            "type": "string"
+          },
+          "value_status": {
+            "enum": [
+              "valued",
+              "unvalued"
+            ],
+            "title": "Value Status",
+            "type": "string"
+          },
+          "xvar_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xvar Pct"
+          }
+        },
+        "required": [
+          "sleeper_player_id",
+          "full_name",
+          "position",
+          "value_status",
+          "capacity_conflict_status"
+        ],
+        "title": "LeaguePulseCapacityCandidate",
+        "type": "object"
+      },
+      "LeaguePulseCapacityCandidatePool": {
+        "additionalProperties": false,
+        "description": "Descriptive pool that replaces the old tool-selected single-drop field.\nExposes roster-capacity constraints (full candidate set, hard-rule\nconflicts, single-candidate pressure, empty) without nominating an action.\n``selection_rule`` is fixed to a no-tool-selection marker; the legacy\n``legacy_*`` values mark a stale league_opportunity.v1 artifact migrated for\ncompatibility during the T2/T3 transition.",
+        "properties": {
+          "caveats": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "items": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LeaguePulseCapacityCandidate"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "narrowing_rule": {
+            "title": "Narrowing Rule",
+            "type": "string"
+          },
+          "pool_status": {
+            "enum": [
+              "available",
+              "constrained_single_candidate",
+              "empty",
+              "legacy_single_candidate"
+            ],
+            "title": "Pool Status",
+            "type": "string"
+          },
+          "selection_rule": {
+            "title": "Selection Rule",
+            "type": "string"
+          },
+          "sort_key": {
+            "title": "Sort Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pool_status",
+          "selection_rule",
+          "narrowing_rule",
+          "sort_key"
+        ],
+        "title": "LeaguePulseCapacityCandidatePool",
+        "type": "object"
+      },
       "LeaguePulseCard": {
         "additionalProperties": false,
         "description": "Model-native opportunity card. Rejects market evidence/score keys.",
@@ -739,9 +887,9 @@
             "title": "Partner Rankings",
             "type": "integer"
           },
-          "recommended_drops": {
+          "roster_capacity_candidate_pools": {
             "default": 0,
-            "title": "Recommended Drops",
+            "title": "Roster Capacity Candidate Pools",
             "type": "integer"
           },
           "team_postures": {
@@ -811,10 +959,10 @@
             "title": "Rationale Secondary",
             "type": "array"
           },
-          "recommended_drop": {
+          "roster_capacity_candidates": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/LeaguePulseRecommendedDrop"
+                "$ref": "#/components/schemas/LeaguePulseCapacityCandidatePool"
               },
               {
                 "type": "null"
@@ -911,54 +1059,6 @@
           "evidence"
         ],
         "title": "LeaguePulsePartnerRanking",
-        "type": "object"
-      },
-      "LeaguePulseRecommendedDrop": {
-        "additionalProperties": false,
-        "properties": {
-          "cut_priority": {
-            "title": "Cut Priority",
-            "type": "integer"
-          },
-          "cut_rationale": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Cut Rationale",
-            "type": "array"
-          },
-          "decision_supported": {
-            "const": false,
-            "default": false,
-            "title": "Decision Supported",
-            "type": "boolean"
-          },
-          "full_name": {
-            "title": "Full Name",
-            "type": "string"
-          },
-          "ir_compliance_status": {
-            "title": "Ir Compliance Status",
-            "type": "string"
-          },
-          "position": {
-            "title": "Position",
-            "type": "string"
-          },
-          "sleeper_player_id": {
-            "title": "Sleeper Player Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "sleeper_player_id",
-          "full_name",
-          "position",
-          "cut_priority",
-          "ir_compliance_status"
-        ],
-        "title": "LeaguePulseRecommendedDrop",
         "type": "object"
       },
       "LeaguePulseResponse": {

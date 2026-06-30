@@ -236,13 +236,17 @@ def verify_acceptance(
         raise RefreshVerificationError(
             "drop-pairing: zero WAIVER_CANDIDATE cards (manual review required)"
         )
-    waiver_drops = 0
+    # T2 No-Verdict reconcile: every WAIVER_CANDIDATE pairs with the descriptive
+    # roster-capacity pool (which replaced the tool-selected single-drop field).
+    # The pool is always present when a roster-cut result is wired; an empty pool
+    # ("no_safe_capacity_candidates") is still a valid, non-vacuous pairing.
+    waiver_capacity_pools = 0
     for card in waiver_cards:
-        if card.get("recommended_drop") is None:
+        if card.get("roster_capacity_candidates") is None:
             raise RefreshVerificationError(
-                "drop-pairing: WAIVER_CANDIDATE missing recommended_drop"
+                "capacity-pairing: WAIVER_CANDIDATE missing roster_capacity_candidates"
             )
-        waiver_drops += 1
+        waiver_capacity_pools += 1
 
     # Decision framing.
     if _iter_decision_supported_true(response):
@@ -274,7 +278,7 @@ def verify_acceptance(
     counts = {
         "team_count": len(response.get("team_values", [])),
         "waiver_cards": len(waiver_cards),
-        "waiver_recommended_drops": waiver_drops,
+        "waiver_capacity_pools": waiver_capacity_pools,
     }
     return AcceptanceReport(status="passed", counts=counts, artifacts=artifacts)
 

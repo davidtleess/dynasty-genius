@@ -118,13 +118,26 @@ def test_response_dtos_lock_decision_supported_false_recursively() -> None:
                     "feasibility_score": 0.9,
                 },
                 caveats=["market_overlay_unvalidated_divergence"],
-                recommended_drop=m.LeaguePulseRecommendedDrop(
-                    sleeper_player_id="drop-1",
-                    full_name="Drop Candidate",
-                    position="WR",
-                    cut_priority=1,
-                    ir_compliance_status="eligible",
-                    cut_rationale=["waiver_status_from_sleeper_snapshot"],
+                roster_capacity_candidates=m.LeaguePulseCapacityCandidatePool(
+                    pool_status="constrained_single_candidate",
+                    selection_rule="descriptive_candidate_pool_no_tool_selection",
+                    narrowing_rule="only_one_capacity_candidate_available",
+                    sort_key="xvar_pct_ascending_then_full_name_then_sleeper_player_id",
+                    items=[
+                        m.LeaguePulseCapacityCandidate(
+                            sleeper_player_id="drop-1",
+                            full_name="Drop Candidate",
+                            position="WR",
+                            value_status="valued",
+                            xvar_pct=12.0,
+                            dvs=30.0,
+                            capacity_conflict_status="roster_capacity_pressure",
+                            rule_conflict_label=None,
+                            caveats=[],
+                            decision_supported=True,
+                        )
+                    ],
+                    caveats=[],
                     decision_supported=True,
                 ),
                 decision_supported=True,
@@ -136,7 +149,7 @@ def test_response_dtos_lock_decision_supported_false_recursively() -> None:
             partner_rankings=0,
             model_native_cards=0,
             market_overlay_cards=0,
-            recommended_drops=0,
+            roster_capacity_candidate_pools=0,
             decision_supported=True,
         ),
         decision_supported=True,
@@ -275,35 +288,32 @@ def test_market_card_accepts_taxi_and_requires_overlay_caveat() -> None:
         )
 
 
-def test_recommended_drop_filters_rationale_and_forbids_unknown_fields() -> None:
-    """Nested recommended_drop has its own typed fail-closed boundary."""
+def test_capacity_candidate_item_forbids_unknown_fields_and_forces_decision_supported() -> None:
+    """The descriptive capacity-candidate item has its own typed fail-closed boundary."""
     m = _models()
 
-    drop = m.LeaguePulseRecommendedDrop(
+    item = m.LeaguePulseCapacityCandidate(
         sleeper_player_id="drop-1",
         full_name="Drop Candidate",
         position="WR",
-        cut_priority=0,
-        ir_compliance_status="eligible",
-        cut_rationale=[
-            "waiver_status_from_sleeper_snapshot",
-            "SELL_THIS_PLAYER_NOW",
-            "totally_unknown",
-        ],
+        value_status="valued",
+        xvar_pct=12.0,
+        dvs=30.0,
+        capacity_conflict_status="hard_roster_rules_conflict",
+        rule_conflict_label="IR compliance violation",
+        caveats=["valuation_unavailable"],
         decision_supported=True,
     )
 
-    assert drop.decision_supported is False
-    assert drop.cut_rationale == ["waiver_status_from_sleeper_snapshot"]
+    assert item.decision_supported is False
 
     with pytest.raises(ValidationError):
-        m.LeaguePulseRecommendedDrop(
+        m.LeaguePulseCapacityCandidate(
             sleeper_player_id="drop-1",
             full_name="Drop Candidate",
             position="WR",
-            cut_priority=0,
-            ir_compliance_status="eligible",
-            cut_rationale=[],
+            value_status="valued",
+            capacity_conflict_status="roster_capacity_pressure",
             market_value=100,
         )
 

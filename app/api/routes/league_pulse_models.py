@@ -197,19 +197,43 @@ class LeaguePulseCard(_DSBase):
         return v
 
 
-class LeaguePulseRecommendedDrop(_DSBase):
+class LeaguePulseCapacityCandidate(_DSBase):
+    """One descriptive roster-capacity candidate. No nomination: the surface
+    lists every candidate that could free capacity; it never selects one."""
+
     sleeper_player_id: str
     full_name: str
     position: str
-    cut_priority: int
-    ir_compliance_status: str
-    cut_rationale: list[str] = []
+    value_status: Literal["valued", "unvalued"]
+    xvar_pct: Optional[float] = None
+    dvs: Optional[float] = None
+    capacity_conflict_status: Literal[
+        "hard_roster_rules_conflict",
+        "roster_capacity_pressure",
+    ]
+    rule_conflict_label: Optional[str] = None
+    caveats: list[str] = []
 
-    @field_validator("cut_rationale")
-    @classmethod
-    def _filter_rationale(cls, v: list[str]) -> list[str]:
-        clean, _ = validate_tokens(v)
-        return clean
+
+class LeaguePulseCapacityCandidatePool(_DSBase):
+    """Descriptive pool that replaces the old tool-selected single-drop field.
+    Exposes roster-capacity constraints (full candidate set, hard-rule
+    conflicts, single-candidate pressure, empty) without nominating an action.
+    ``selection_rule`` is fixed to a no-tool-selection marker; the legacy
+    ``legacy_*`` values mark a stale league_opportunity.v1 artifact migrated for
+    compatibility during the T2/T3 transition."""
+
+    pool_status: Literal[
+        "available",
+        "constrained_single_candidate",
+        "empty",
+        "legacy_single_candidate",
+    ]
+    selection_rule: str
+    narrowing_rule: str
+    sort_key: str
+    items: list[LeaguePulseCapacityCandidate] = []
+    caveats: list[str] = []
 
 
 class LeaguePulseMarketCard(_DSBase):
@@ -228,7 +252,7 @@ class LeaguePulseMarketCard(_DSBase):
     evidence: dict[str, Any]
     score_components: dict[str, float]
     caveats: list[str] = []
-    recommended_drop: Optional[LeaguePulseRecommendedDrop] = None
+    roster_capacity_candidates: Optional[LeaguePulseCapacityCandidatePool] = None
 
     @model_validator(mode="after")
     def _ensure_overlay_caveat(self) -> "LeaguePulseMarketCard":
@@ -266,7 +290,7 @@ class LeaguePulseDropCounts(_DSBase):
     partner_rankings: int = 0
     model_native_cards: int = 0
     market_overlay_cards: int = 0
-    recommended_drops: int = 0
+    roster_capacity_candidate_pools: int = 0
 
 
 # ── Envelope ─────────────────────────────────────────────────────────────────

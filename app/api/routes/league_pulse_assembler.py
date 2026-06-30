@@ -15,13 +15,15 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from app.api.routes import league_pulse_v1_compat
 from app.api.routes.league_pulse_models import (
     _MODEL_NATIVE_SCORE,
+    LeaguePulseCapacityCandidate,
+    LeaguePulseCapacityCandidatePool,
     LeaguePulseCard,
     LeaguePulseDropCounts,
     LeaguePulseMarketCard,
     LeaguePulsePartnerRanking,
-    LeaguePulseRecommendedDrop,
     LeaguePulseResponse,
     LeaguePulseSources,
     LeaguePulseTeamPosture,
@@ -40,8 +42,14 @@ def _safe_caveats(raw: list[str] | None) -> list[str]:
 _EXPECTED_SCHEMAS = {
     "team_posture": "team_posture.v1",
     "team_value_matrix": "team_value_matrix.v1",
-    "league_opportunity": "league_opportunity.v1",
 }
+
+# League Pulse tolerates both league_opportunity schema versions during the
+# Phase 1 T2/T3 migration: v2 cards carry the descriptive capacity pool natively;
+# stale v1 cards are migrated via league_pulse_v1_compat. T4 drops v1 acceptance.
+ACCEPTED_LEAGUE_OPPORTUNITY_SCHEMAS = frozenset(
+    {"league_opportunity.v1", "league_opportunity.v2"}
+)
 
 _VALUE_VIEW_KEYS = (
     "starter_weighted_xvar",
@@ -50,13 +58,25 @@ _VALUE_VIEW_KEYS = (
     "total_xvar_capped",
     "top_n_xvar",
 )
-_RECOMMENDED_DROP_KEYS = (
+_CAPACITY_ITEM_KEYS = (
     "sleeper_player_id",
     "full_name",
     "position",
-    "cut_priority",
-    "ir_compliance_status",
-    "cut_rationale",
+    "value_status",
+    "xvar_pct",
+    "dvs",
+    "capacity_conflict_status",
+    "rule_conflict_label",
+    "caveats",
+    "decision_supported",
+)
+_CAPACITY_POOL_KEYS = (
+    "pool_status",
+    "selection_rule",
+    "narrowing_rule",
+    "sort_key",
+    "caveats",
+    "decision_supported",
 )
 _MODEL_NATIVE_CARD_TYPES = frozenset({"ROSTER_SURPLUS_DEFICIT_MATCH"})
 _OVERLAY_CARD_TYPES = frozenset(
@@ -115,14 +135,29 @@ def map_partner_ranking(raw: dict[str, Any]) -> LeaguePulsePartnerRanking:
     )
 
 
-def _map_recommended_drop(raw: dict[str, Any] | None) -> Optional[LeaguePulseRecommendedDrop]:
-    """Allowlist-select the nested drop; drop the block (not the card) if malformed."""
-    if not raw:
+def _map_capacity_item(raw: dict[str, Any]) -> LeaguePulseCapacityCandidate:
+    """Allowlist-select one capacity candidate row into its typed DTO."""
+    return LeaguePulseCapacityCandidate(
+        **{k: raw[k] for k in _CAPACITY_ITEM_KEYS if k in raw}
+    )
+
+
+def _map_capacity_pool(raw_card: dict[str, Any]) -> Optional[LeaguePulseCapacityCandidatePool]:
+    """Map the descriptive capacity pool; drop the block (not the card) if malformed.
+
+    Prefers the native v2 ``roster_capacity_candidates`` pool. Falls back to the
+    transitional v1-compat shim, which migrates a stale ``league_opportunity.v1``
+    card's legacy single-drop field into the same pool shape.
+    """
+    pool = raw_card.get("roster_capacity_candidates")
+    if pool is None:
+        pool = league_pulse_v1_compat.extract_legacy_capacity_pool(raw_card)
+    if pool is None:
         return None
     try:
-        return LeaguePulseRecommendedDrop(
-            **{k: raw[k] for k in _RECOMMENDED_DROP_KEYS if k in raw}
-        )
+        fields = {k: pool[k] for k in _CAPACITY_POOL_KEYS if k in pool}
+        fields["items"] = [_map_capacity_item(it) for it in pool.get("items") or []]
+        return LeaguePulseCapacityCandidatePool(**fields)
     except Exception:
         return None
 
@@ -164,7 +199,7 @@ def map_card(raw: dict[str, Any]) -> Optional[tuple[str, Any]]:
         try:
             card = LeaguePulseMarketCard(
                 score_components=score,
-                recommended_drop=_map_recommended_drop(raw.get("recommended_drop")),
+                roster_capacity_candidates=_map_capacity_pool(raw),
                 **common,
             )
         except Exception:
@@ -185,6 +220,15 @@ def _require_schema(artifact: dict[str, Any], key: str) -> None:
         )
 
 
+def _require_league_opportunity_schema(artifact: dict[str, Any]) -> None:
+    schema_version = (artifact or {}).get("schema_version")
+    if schema_version not in ACCEPTED_LEAGUE_OPPORTUNITY_SCHEMAS:
+        raise LeaguePulseDependencyError(
+            "league_opportunity schema_version mismatch: expected one of "
+            f"{sorted(ACCEPTED_LEAGUE_OPPORTUNITY_SCHEMAS)}, got {schema_version!r}"
+        )
+
+
 def assemble_league_pulse(
     posture_artifact: dict[str, Any],
     value_artifact: dict[str, Any],
@@ -193,7 +237,7 @@ def assemble_league_pulse(
     """Assemble the read-only League Pulse response, fail-closed."""
     _require_schema(posture_artifact, "team_posture")
     _require_schema(value_artifact, "team_value_matrix")
-    _require_schema(opportunity_artifact, "league_opportunity")
+    _require_league_opportunity_schema(opportunity_artifact)
 
     posture_teams = posture_artifact.get("teams") or []
     value_teams = value_artifact.get("teams") or []
@@ -210,7 +254,7 @@ def assemble_league_pulse(
         "partner_rankings": 0,
         "model_native_cards": 0,
         "market_overlay_cards": 0,
-        "recommended_drops": 0,
+        "roster_capacity_candidate_pools": 0,
     }
 
     team_postures: list[LeaguePulseTeamPosture] = []
@@ -256,6 +300,15 @@ def assemble_league_pulse(
             model_native_cards.append(card)
         else:
             market_overlay_cards.append(card)
+            # dropped-count semantics (matches every sibling in `dropped`): a
+            # capacity pool PRESENT in the source artifact that failed to map
+            # (malformed) is a DROP. An absent pool is not a drop.
+            pool_source_present = (
+                raw_card.get("roster_capacity_candidates") is not None
+                or league_pulse_v1_compat.extract_legacy_capacity_pool(raw_card) is not None
+            )
+            if pool_source_present and card.roster_capacity_candidates is None:
+                dropped["roster_capacity_candidate_pools"] += 1
 
     captured_at = max(
         a.get("captured_at") or ""
