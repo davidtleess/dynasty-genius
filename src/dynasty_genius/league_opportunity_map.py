@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -10,7 +11,7 @@ from typing import Any
 from src.dynasty_genius.roster_cut_engine import RosterCutCandidate, RosterCutResult
 from src.dynasty_genius.team_posture import apply_team_postures
 
-SCHEMA_VERSION = "league_opportunity.v1"
+SCHEMA_VERSION = "league_opportunity.v2"
 BANNED_LANGUAGE = frozenset({"buy", "sell", "target", "fade"})
 SKILL_POSITIONS = ("QB", "RB", "WR", "TE")
 SURPLUS_THRESHOLD = 0.75
@@ -71,6 +72,23 @@ def _asset_from_market_row(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# No-Verdict T3: the hidden weighted composite score (a blended grade used as a
+# cross-type priority ranking) is removed. Cards instead carry a
+# transparent, per-category sort metric — exposed via a named `sort_key` + the
+# raw `sort_value` — so the surface is "sorted by X" not "the tool ranked your
+# moves". `evidence_status` describes the mechanical evidence gate (NOT a
+# calibration/trust verdict on the unvalidated divergence).
+_EVIDENCE_STATUS_BY_SIGNAL = {
+    "gates_passed": "evidence_complete",
+    "gates_blocked": "evidence_gated",
+    "unavailable": "inputs_unavailable",
+}
+
+
+def _evidence_status(signal_status: str | None) -> str:
+    return _EVIDENCE_STATUS_BY_SIGNAL.get(str(signal_status or "unavailable"), "inputs_unavailable")
+
+
 def _base_card(
     *,
     card_id: str,
@@ -83,18 +101,18 @@ def _base_card(
     evidence: dict[str, Any],
     score_components: dict[str, float],
     signal_status: str,
+    sort_key: str,
+    sort_value: float,
     caveats: list[str] | None = None,
 ) -> dict[str, Any]:
-    opportunity_score = round(
-        (
-            score_components.get("fit_score", 0.0) * 0.45
-            + score_components.get("divergence_score", 0.0) * 0.35
-            + score_components.get("feasibility_score", 0.0) * 0.20
-        ),
-        3,
-    )
+    # Normalize an overlay evidence dict's mechanical gate key to the neutral name.
+    rationale_evidence = dict(evidence)
+    if "signal_status" in rationale_evidence:
+        rationale_evidence["evidence_status"] = _evidence_status(
+            rationale_evidence.pop("signal_status")
+        )
     return {
-        "schema_version": "opportunity.v1",
+        "schema_version": "opportunity.v2",
         "card_id": card_id,
         "card_type": card_type,
         "perspective_roster_id": perspective_roster_id,
@@ -105,11 +123,12 @@ def _base_card(
         "rationale": {
             "primary": primary,
             "secondary": secondary,
-            "evidence": evidence,
+            "evidence": rationale_evidence,
         },
         "score_components": score_components,
-        "opportunity_score": opportunity_score,
-        "signal_status": signal_status,
+        "evidence_status": _evidence_status(signal_status),
+        "sort_key": sort_key,
+        "sort_value": round(float(sort_value), 3),
         "decision_supported": False,
         "caveats": caveats or [],
     }
@@ -244,6 +263,9 @@ def _fit_cards(
             if david_z > DEFICIT_THRESHOLD or counterparty_z < SURPLUS_THRESHOLD:
                 continue
             fit_score = _safe_score((abs(david_z) + counterparty_z) / 4.0)
+            # Transparent roster-fit sort: positional z-score differential
+            # (deficit magnitude on our side + surplus on theirs). No blend.
+            z_differential = round(abs(david_z) + counterparty_z, 3)
             asset = _counterparty_best_player(team, position)
             cards.append(
                 _base_card(
@@ -258,6 +280,7 @@ def _fit_cards(
                         "position": position,
                         "perspective_position_z": david_z,
                         "counterparty_position_z": counterparty_z,
+                        "positional_z_differential": z_differential,
                         "counterparty_surplus_label": _position_label(team, position),
                         "perspective_surplus_label": _position_label(perspective, position),
                     },
@@ -267,6 +290,8 @@ def _fit_cards(
                         "feasibility_score": 0.5,
                     },
                     signal_status="gates_blocked",
+                    sort_key="positional_z_differential_desc",
+                    sort_value=z_differential,
                     caveats=_fit_card_caveats(perspective, team),
                 )
             )
@@ -311,6 +336,7 @@ def _divergence_cards(
                     "signal": signal,
                     "signal_status": divergence.get("signal_status"),
                     "model_minus_market_delta": delta,
+                    "asset_xvar": (row.get("valuation") or {}).get("xvar"),
                     "model_percentile": divergence.get("model_percentile"),
                     "market_percentile": divergence.get("market_percentile"),
                     "asset_roster_id": roster_id,
@@ -321,6 +347,8 @@ def _divergence_cards(
                     "feasibility_score": 0.5,
                 },
                 signal_status=str(divergence.get("signal_status") or "unavailable"),
+                sort_key="absolute_model_market_delta_desc",
+                sort_value=abs(delta),
                 caveats=["market_overlay_context_only"],
             )
         )
@@ -328,31 +356,73 @@ def _divergence_cards(
     return cards
 
 
-def _drop_summary(candidate: RosterCutCandidate) -> dict[str, Any]:
+# Descriptive capacity pool: the No-Verdict reconcile replaces the old
+# tool-selected single-drop field (which nominated a single cut target via
+# position-matching + priority fallback) with the FULL set of capacity
+# candidates, ordered transparently and never narrowed to one "the tool picks".
+# The pool exposes roster constraints (hard rules conflicts, single-candidate
+# pressure, empty) without nominating an action. ``decision_supported`` is False
+# at every level.
+_CAPACITY_POOL_SORT_KEY = "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+_CAPACITY_POOL_SELECTION_RULE = "descriptive_candidate_pool_no_tool_selection"
+
+
+def _capacity_candidate_item(candidate: RosterCutCandidate) -> dict[str, Any]:
+    valued = candidate.xvar_pct is not None
+    hard_conflict = candidate.cut_priority == 0
+    item_caveats: list[str] = []
+    if not valued:
+        item_caveats.append("valuation_unavailable")
     return {
         "sleeper_player_id": candidate.sleeper_player_id,
         "full_name": candidate.full_name,
         "position": candidate.position,
-        "cut_priority": candidate.cut_priority,
-        "ir_compliance_status": candidate.ir_compliance_status,
-        "cut_rationale": list(candidate.cut_rationale),
+        "value_status": "valued" if valued else "unvalued",
+        "xvar_pct": candidate.xvar_pct,
+        "dvs": candidate.dvs,
+        "capacity_conflict_status": (
+            "hard_roster_rules_conflict" if hard_conflict else "roster_capacity_pressure"
+        ),
+        "rule_conflict_label": "IR compliance violation" if hard_conflict else None,
+        "caveats": item_caveats,
         "decision_supported": False,
     }
 
 
-def _select_recommended_drop(
-    waiver_position: str,
+def _roster_capacity_candidate_pool(
     cut_candidates: list[RosterCutCandidate],
-) -> dict[str, Any] | None:
-    if not cut_candidates:
-        return None
-    forced = [c for c in cut_candidates if c.cut_priority == 0]
-    if forced:
-        return _drop_summary(forced[0])
-    same_pos = [c for c in cut_candidates if c.position == waiver_position]
-    if same_pos:
-        return _drop_summary(same_pos[0])
-    return _drop_summary(cut_candidates[0])
+) -> dict[str, Any]:
+    ordered = sorted(
+        cut_candidates,
+        key=lambda c: (
+            c.xvar_pct is None,
+            c.xvar_pct if c.xvar_pct is not None else 0.0,
+            c.full_name,
+            c.sleeper_player_id,
+        ),
+    )
+    items = [_capacity_candidate_item(c) for c in ordered]
+    if not items:
+        pool_status = "empty"
+        narrowing_rule = "no_safe_capacity_candidates"
+        pool_caveats = ["capacity_blocks_move_unless_protected_player_cut"]
+    elif len(items) == 1:
+        pool_status = "constrained_single_candidate"
+        narrowing_rule = "only_one_capacity_candidate_available"
+        pool_caveats = []
+    else:
+        pool_status = "available"
+        narrowing_rule = "all_capacity_candidates"
+        pool_caveats = []
+    return {
+        "decision_supported": False,
+        "pool_status": pool_status,
+        "selection_rule": _CAPACITY_POOL_SELECTION_RULE,
+        "narrowing_rule": narrowing_rule,
+        "sort_key": _CAPACITY_POOL_SORT_KEY,
+        "items": items,
+        "caveats": pool_caveats,
+    }
 
 
 def _waiver_cards(
@@ -371,7 +441,7 @@ def _waiver_cards(
         delta = float(divergence.get("model_minus_market_delta") or 0.0)
         card = _base_card(
             card_id=f"opp-{card_no:04d}",
-            card_type="WAIVER_CANDIDATE",
+            card_type="UNROSTERED_MODEL_MARKET_DIVERGENCE",
             perspective_roster_id=perspective_roster_id,
             counterparty_team=None,
             asset=_asset_from_market_row(row),
@@ -381,7 +451,7 @@ def _waiver_cards(
                 "signal": divergence.get("signal"),
                 "signal_status": divergence.get("signal_status"),
                 "model_minus_market_delta": delta,
-                "xvar": (row.get("valuation") or {}).get("xvar"),
+                "asset_xvar": (row.get("valuation") or {}).get("xvar"),
             },
             score_components={
                 "fit_score": 0.4,
@@ -389,12 +459,13 @@ def _waiver_cards(
                 "feasibility_score": 0.9,
             },
             signal_status=str(divergence.get("signal_status") or "unavailable"),
+            sort_key="absolute_model_market_delta_desc",
+            sort_value=abs(delta),
             caveats=["waiver_status_from_sleeper_snapshot"],
         )
         if roster_cut_result is not None:
-            waiver_position = (row.get("player") or {}).get("position") or ""
-            card["recommended_drop"] = _select_recommended_drop(
-                waiver_position, roster_cut_result.cut_candidates
+            card["roster_capacity_candidates"] = _roster_capacity_candidate_pool(
+                roster_cut_result.cut_candidates
             )
         cards.append(card)
         card_no += 1
@@ -421,7 +492,7 @@ def _taxi_cards(
         cards.append(
             _base_card(
                 card_id=f"opp-{card_no:04d}",
-                card_type="TAXI_ACTIVATION_CANDIDATE",
+                card_type="TAXI_LONG_TERM_VALUE_PRESENT",
                 perspective_roster_id=perspective_roster_id,
                 counterparty_team=None,
                 asset={
@@ -444,6 +515,8 @@ def _taxi_cards(
                     "feasibility_score": 0.4,
                 },
                 signal_status=str(divergence.get("signal_status") or "gates_blocked"),
+                sort_key="taxi_long_term_value_desc",
+                sort_value=raw_xvar,
                 caveats=["taxi_activation_cost_requires_manual_review"],
             )
         )
@@ -458,7 +531,7 @@ def _coverage(cards: list[dict[str, Any]], partner_rankings: list[dict[str, Any]
             "primary": (card.get("rationale") or {}).get("primary"),
             "secondary": (card.get("rationale") or {}).get("secondary"),
             "caveats": card.get("caveats"),
-            "signal_status": card.get("signal_status"),
+            "evidence_status": card.get("evidence_status"),
         }
         for card in cards
     ]
@@ -520,7 +593,38 @@ def build_league_opportunity_map(
     cards.extend(_divergence_cards(divergence_source, teams, perspective_roster_id, len(cards) + 1))
     cards.extend(_waiver_cards(divergence_source, perspective_roster_id, len(cards) + 1, roster_cut_result))
     cards.extend(_taxi_cards(teams, player_index, perspective_roster_id, len(cards) + 1))
-    cards = sorted(cards, key=lambda card: card["opportunity_score"], reverse=True)[:max_cards]
+    # Transparent grouped sort (No-Verdict T3): group by the per-category
+    # sort_key, then descending sort_value WITHIN each group (card_id as a stable
+    # tie-break). No hidden cross-type composite ranking; categories are not
+    # blended onto one scale.
+    #
+    # Per-section caps (No-Verdict T4a): each section is capped INDEPENDENTLY at
+    # max_cards rather than a single global truncation. This makes the T3
+    # category-order debt structurally impossible — no section can be silently
+    # dropped by alphabetical position when the total exceeds the cap. Per-section
+    # counts are emitted so a consumer can render a non-binding "showing X of Y".
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for card in sorted(
+        cards,
+        key=lambda card: (card["sort_key"], -card["sort_value"], card["card_id"]),
+    ):
+        grouped.setdefault(card["sort_key"], []).append(card)
+    capped_cards: list[dict[str, Any]] = []
+    card_section_counts: list[dict[str, Any]] = []
+    for sort_key in sorted(grouped):
+        section = grouped[sort_key]
+        shown = section[:max_cards]
+        capped_cards.extend(shown)
+        card_section_counts.append(
+            {
+                "sort_key": sort_key,
+                "total_count": len(section),
+                "shown_count": len(shown),
+                "section_cap": max_cards,
+                "decision_supported": False,
+            }
+        )
+    cards = capped_cards
 
     result = {
         "schema_version": SCHEMA_VERSION,
@@ -537,6 +641,7 @@ def build_league_opportunity_map(
         "perspective_roster_id": perspective_roster_id,
         "partner_rankings": partner_rankings,
         "cards": cards,
+        "card_section_counts": card_section_counts,
         "decision_supported": False,
         "automated_trade_execution": False,
         "caveats": [
@@ -571,10 +676,25 @@ def _markdown(opportunity_map: dict[str, Any]) -> str:
         asset_name = asset.get("full_name") or asset.get("sleeper_player_id") or "asset unavailable"
         lines.append(
             f"- {card.get('card_id')} | {card.get('card_type')} | {asset_name} | "
-            f"score {card.get('opportunity_score')} | decision_supported: false"
+            f"sorted by {card.get('sort_key')}={card.get('sort_value')} | decision_supported: false"
         )
     lines.append("")
     return "\n".join(lines)
+
+
+def _atomic_write_text(path: Path, data: str) -> None:
+    """Publish ``data`` to ``path`` atomically: write a same-directory temp then
+    ``os.replace`` (atomic on the same filesystem). A concurrent reader of ``path``
+    — e.g. the live League Pulse / What-Changed route — therefore observes either
+    the prior bytes or the fully-written new bytes, never a partial/malformed write.
+    """
+    tmp_path = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+    tmp_path.write_text(data)
+    try:
+        os.replace(tmp_path, path)
+    except BaseException:
+        tmp_path.unlink(missing_ok=True)
+        raise
 
 
 def write_league_opportunity_artifacts(
@@ -592,10 +712,12 @@ def write_league_opportunity_artifacts(
 
     payload = json.dumps(opportunity_map, indent=2, sort_keys=True) + "\n"
     markdown_payload = _markdown(opportunity_map)
+    # Unique per-run PIT files write directly; the shared *_latest pointers that
+    # live request paths read are published atomically (No-Verdict T4c go-live).
     batch_path.write_text(payload)
-    latest_path.write_text(payload)
     markdown_path.write_text(markdown_payload)
-    markdown_latest_path.write_text(markdown_payload)
+    _atomic_write_text(latest_path, payload)
+    _atomic_write_text(markdown_latest_path, markdown_payload)
     return {
         "batch": batch_path,
         "batch_latest": latest_path,

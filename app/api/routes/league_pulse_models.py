@@ -66,6 +66,7 @@ _MODEL_NATIVE_EVIDENCE = frozenset(
         "position",
         "perspective_position_z",
         "counterparty_position_z",
+        "positional_z_differential",
         "perspective_surplus_label",
         "counterparty_surplus_label",
     }
@@ -77,8 +78,8 @@ _OVERLAY_EVIDENCE = frozenset(
         "model_minus_market_delta",
         "model_percentile",
         "signal",
-        "signal_status",
-        "xvar",
+        "evidence_status",
+        "asset_xvar",
         "asset_roster_id",
         "raw_xvar",
         "lineup_role",
@@ -168,7 +169,9 @@ class LeaguePulseCard(_DSBase):
 
     card_id: str
     card_type: Literal["ROSTER_SURPLUS_DEFICIT_MATCH"]
-    opportunity_score: float
+    evidence_status: Literal["evidence_complete", "evidence_gated", "inputs_unavailable"]
+    sort_key: str
+    sort_value: float
     rationale_primary: str
     rationale_secondary: list[str] = []
     evidence: dict[str, Any]
@@ -197,19 +200,41 @@ class LeaguePulseCard(_DSBase):
         return v
 
 
-class LeaguePulseRecommendedDrop(_DSBase):
+class LeaguePulseCapacityCandidate(_DSBase):
+    """One descriptive roster-capacity candidate. No nomination: the surface
+    lists every candidate that could free capacity; it never selects one."""
+
     sleeper_player_id: str
     full_name: str
     position: str
-    cut_priority: int
-    ir_compliance_status: str
-    cut_rationale: list[str] = []
+    value_status: Literal["valued", "unvalued"]
+    xvar_pct: Optional[float] = None
+    dvs: Optional[float] = None
+    capacity_conflict_status: Literal[
+        "hard_roster_rules_conflict",
+        "roster_capacity_pressure",
+    ]
+    rule_conflict_label: Optional[str] = None
+    caveats: list[str] = []
 
-    @field_validator("cut_rationale")
-    @classmethod
-    def _filter_rationale(cls, v: list[str]) -> list[str]:
-        clean, _ = validate_tokens(v)
-        return clean
+
+class LeaguePulseCapacityCandidatePool(_DSBase):
+    """Descriptive pool that replaces the old tool-selected single-drop field.
+    Exposes roster-capacity constraints (full candidate set, hard-rule
+    conflicts, single-candidate pressure, empty) without nominating an action.
+    ``selection_rule`` is fixed to a no-tool-selection marker (v2-only: T4c
+    dropped the transitional v1-compat migration state)."""
+
+    pool_status: Literal[
+        "available",
+        "constrained_single_candidate",
+        "empty",
+    ]
+    selection_rule: str
+    narrowing_rule: str
+    sort_key: str
+    items: list[LeaguePulseCapacityCandidate] = []
+    caveats: list[str] = []
 
 
 class LeaguePulseMarketCard(_DSBase):
@@ -217,18 +242,20 @@ class LeaguePulseMarketCard(_DSBase):
 
     card_id: str
     card_type: Literal[
-        "WAIVER_CANDIDATE",
+        "UNROSTERED_MODEL_MARKET_DIVERGENCE",
         "DIVERGENCE_MODEL_HIGH",
         "DIVERGENCE_MARKET_HIGH",
-        "TAXI_ACTIVATION_CANDIDATE",
+        "TAXI_LONG_TERM_VALUE_PRESENT",
     ]
-    opportunity_score: float
+    evidence_status: Literal["evidence_complete", "evidence_gated", "inputs_unavailable"]
+    sort_key: str
+    sort_value: float
     rationale_primary: str
     rationale_secondary: list[str] = []
     evidence: dict[str, Any]
     score_components: dict[str, float]
     caveats: list[str] = []
-    recommended_drop: Optional[LeaguePulseRecommendedDrop] = None
+    roster_capacity_candidates: Optional[LeaguePulseCapacityCandidatePool] = None
 
     @model_validator(mode="after")
     def _ensure_overlay_caveat(self) -> "LeaguePulseMarketCard":
@@ -266,10 +293,21 @@ class LeaguePulseDropCounts(_DSBase):
     partner_rankings: int = 0
     model_native_cards: int = 0
     market_overlay_cards: int = 0
-    recommended_drops: int = 0
+    roster_capacity_candidate_pools: int = 0
 
 
 # ── Envelope ─────────────────────────────────────────────────────────────────
+
+
+class LeaguePulseCardSectionCount(_DSBase):
+    # Per-section render-completeness metadata (No-Verdict T4a): exposes how many
+    # cards a section holds vs how many are shown under the per-section cap, so a
+    # consumer can render a non-binding "showing X of Y" without any ranked-action
+    # implication. Descriptive only.
+    sort_key: str
+    total_count: int
+    shown_count: int
+    section_cap: int
 
 
 class LeaguePulseResponse(_DSBase):
@@ -283,4 +321,5 @@ class LeaguePulseResponse(_DSBase):
     partner_rankings: list[LeaguePulsePartnerRanking] = []
     model_native_cards: list[LeaguePulseCard] = []
     market_overlay_cards: list[LeaguePulseMarketCard] = []
+    card_section_counts: list[LeaguePulseCardSectionCount]
     dropped: LeaguePulseDropCounts

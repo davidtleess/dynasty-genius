@@ -226,23 +226,28 @@ def verify_acceptance(
                 f"market-bleed: partner_rankings carries raw market keys {sorted(leaked)}"
             )
 
-    # Non-vacuous drop-pairing (F4).
+    # Non-vacuous capacity-pairing (F4). T3 renamed the waiver card type to the
+    # neutral UNROSTERED_MODEL_MARKET_DIVERGENCE (unrostered model/market gap).
     waiver_cards = [
         c
         for c in response.get("market_overlay_cards", [])
-        if c.get("card_type") == "WAIVER_CANDIDATE"
+        if c.get("card_type") == "UNROSTERED_MODEL_MARKET_DIVERGENCE"
     ]
     if not waiver_cards:
         raise RefreshVerificationError(
-            "drop-pairing: zero WAIVER_CANDIDATE cards (manual review required)"
+            "capacity-pairing: zero UNROSTERED_MODEL_MARKET_DIVERGENCE cards (manual review required)"
         )
-    waiver_drops = 0
+    # T2 No-Verdict reconcile: every such card pairs with the descriptive
+    # roster-capacity pool (which replaced the tool-selected single-drop field).
+    # The pool is always present when a roster-cut result is wired; an empty pool
+    # ("no_safe_capacity_candidates") is still a valid, non-vacuous pairing.
+    waiver_capacity_pools = 0
     for card in waiver_cards:
-        if card.get("recommended_drop") is None:
+        if card.get("roster_capacity_candidates") is None:
             raise RefreshVerificationError(
-                "drop-pairing: WAIVER_CANDIDATE missing recommended_drop"
+                "capacity-pairing: UNROSTERED_MODEL_MARKET_DIVERGENCE card missing roster_capacity_candidates"
             )
-        waiver_drops += 1
+        waiver_capacity_pools += 1
 
     # Decision framing.
     if _iter_decision_supported_true(response):
@@ -274,7 +279,7 @@ def verify_acceptance(
     counts = {
         "team_count": len(response.get("team_values", [])),
         "waiver_cards": len(waiver_cards),
-        "waiver_recommended_drops": waiver_drops,
+        "waiver_capacity_pools": waiver_capacity_pools,
     }
     return AcceptanceReport(status="passed", counts=counts, artifacts=artifacts)
 

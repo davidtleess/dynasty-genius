@@ -189,7 +189,7 @@ def test_league_opportunity_script_passes_unwrapped_roster_cut_result(
     assert captured["roster_cut_result"].cut_candidates[0].sleeper_player_id == "cut-1"
 
 
-def test_script_wiring_adds_recommended_drop_to_waiver_cards(
+def test_script_wiring_adds_roster_capacity_candidate_pool_to_waiver_cards(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -229,7 +229,10 @@ def test_script_wiring_adds_recommended_drop_to_waiver_cards(
     waiver_cards = [
         card
         for card in written["payload"]["cards"]
-        if card["card_type"] == "WAIVER_CANDIDATE"
+        if card["card_type"] == "UNROSTERED_MODEL_MARKET_DIVERGENCE"
     ]
     assert waiver_cards
-    assert waiver_cards[0]["recommended_drop"]["sleeper_player_id"] == "cut-1"
+    assert "recommended_drop" not in waiver_cards[0]
+    pool = waiver_cards[0]["roster_capacity_candidates"]
+    assert pool["selection_rule"] == "descriptive_candidate_pool_no_tool_selection"
+    assert pool["items"][0]["sleeper_player_id"] == "cut-1"

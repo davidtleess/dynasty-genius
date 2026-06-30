@@ -56,6 +56,48 @@ export const zEvidenceListField = z.object({
 });
 
 /**
+ * LeaguePulseCapacityCandidate
+ *
+ * One descriptive roster-capacity candidate. No nomination: the surface
+ * lists every candidate that could free capacity; it never selects one.
+ */
+export const zLeaguePulseCapacityCandidate = z.object({
+    capacity_conflict_status: z.enum(['hard_roster_rules_conflict', 'roster_capacity_pressure']),
+    caveats: z.array(z.string()).optional().default([]),
+    decision_supported: z.literal(false).optional().default(false),
+    dvs: z.number().nullish(),
+    full_name: z.string(),
+    position: z.string(),
+    rule_conflict_label: z.string().nullish(),
+    sleeper_player_id: z.string(),
+    value_status: z.enum(['valued', 'unvalued']),
+    xvar_pct: z.number().nullish()
+});
+
+/**
+ * LeaguePulseCapacityCandidatePool
+ *
+ * Descriptive pool that replaces the old tool-selected single-drop field.
+ * Exposes roster-capacity constraints (full candidate set, hard-rule
+ * conflicts, single-candidate pressure, empty) without nominating an action.
+ * ``selection_rule`` is fixed to a no-tool-selection marker (v2-only: T4c
+ * dropped the transitional v1-compat migration state).
+ */
+export const zLeaguePulseCapacityCandidatePool = z.object({
+    caveats: z.array(z.string()).optional().default([]),
+    decision_supported: z.literal(false).optional().default(false),
+    items: z.array(zLeaguePulseCapacityCandidate).optional().default([]),
+    narrowing_rule: z.string(),
+    pool_status: z.enum([
+        'available',
+        'constrained_single_candidate',
+        'empty'
+    ]),
+    selection_rule: z.string(),
+    sort_key: z.string()
+});
+
+/**
  * LeaguePulseCard
  *
  * Model-native opportunity card. Rejects market evidence/score keys.
@@ -66,10 +108,27 @@ export const zLeaguePulseCard = z.object({
     caveats: z.array(z.string()).optional().default([]),
     decision_supported: z.literal(false).optional().default(false),
     evidence: z.record(z.string(), z.unknown()),
-    opportunity_score: z.number(),
+    evidence_status: z.enum([
+        'evidence_complete',
+        'evidence_gated',
+        'inputs_unavailable'
+    ]),
     rationale_primary: z.string(),
     rationale_secondary: z.array(z.string()).optional().default([]),
-    score_components: z.record(z.string(), z.number())
+    score_components: z.record(z.string(), z.number()),
+    sort_key: z.string(),
+    sort_value: z.number()
+});
+
+/**
+ * LeaguePulseCardSectionCount
+ */
+export const zLeaguePulseCardSectionCount = z.object({
+    decision_supported: z.literal(false).optional().default(false),
+    section_cap: z.int(),
+    shown_count: z.int(),
+    sort_key: z.string(),
+    total_count: z.int()
 });
 
 /**
@@ -80,9 +139,38 @@ export const zLeaguePulseDropCounts = z.object({
     market_overlay_cards: z.int().optional().default(0),
     model_native_cards: z.int().optional().default(0),
     partner_rankings: z.int().optional().default(0),
-    recommended_drops: z.int().optional().default(0),
+    roster_capacity_candidate_pools: z.int().optional().default(0),
     team_postures: z.int().optional().default(0),
     team_values: z.int().optional().default(0)
+});
+
+/**
+ * LeaguePulseMarketCard
+ *
+ * Labeled market-overlay card (Q3=B). Admits market evidence/score keys.
+ */
+export const zLeaguePulseMarketCard = z.object({
+    card_id: z.string(),
+    card_type: z.enum([
+        'UNROSTERED_MODEL_MARKET_DIVERGENCE',
+        'DIVERGENCE_MODEL_HIGH',
+        'DIVERGENCE_MARKET_HIGH',
+        'TAXI_LONG_TERM_VALUE_PRESENT'
+    ]),
+    caveats: z.array(z.string()).optional().default([]),
+    decision_supported: z.literal(false).optional().default(false),
+    evidence: z.record(z.string(), z.unknown()),
+    evidence_status: z.enum([
+        'evidence_complete',
+        'evidence_gated',
+        'inputs_unavailable'
+    ]),
+    rationale_primary: z.string(),
+    rationale_secondary: z.array(z.string()).optional().default([]),
+    roster_capacity_candidates: zLeaguePulseCapacityCandidatePool.nullish(),
+    score_components: z.record(z.string(), z.number()),
+    sort_key: z.string(),
+    sort_value: z.number()
 });
 
 /**
@@ -97,42 +185,6 @@ export const zLeaguePulsePartnerRanking = z.object({
     market_influenced: z.literal(true).optional().default(true),
     matched_positions: z.array(z.string()),
     partner_score: z.number(),
-    score_components: z.record(z.string(), z.number())
-});
-
-/**
- * LeaguePulseRecommendedDrop
- */
-export const zLeaguePulseRecommendedDrop = z.object({
-    cut_priority: z.int(),
-    cut_rationale: z.array(z.string()).optional().default([]),
-    decision_supported: z.literal(false).optional().default(false),
-    full_name: z.string(),
-    ir_compliance_status: z.string(),
-    position: z.string(),
-    sleeper_player_id: z.string()
-});
-
-/**
- * LeaguePulseMarketCard
- *
- * Labeled market-overlay card (Q3=B). Admits market evidence/score keys.
- */
-export const zLeaguePulseMarketCard = z.object({
-    card_id: z.string(),
-    card_type: z.enum([
-        'WAIVER_CANDIDATE',
-        'DIVERGENCE_MODEL_HIGH',
-        'DIVERGENCE_MARKET_HIGH',
-        'TAXI_ACTIVATION_CANDIDATE'
-    ]),
-    caveats: z.array(z.string()).optional().default([]),
-    decision_supported: z.literal(false).optional().default(false),
-    evidence: z.record(z.string(), z.unknown()),
-    opportunity_score: z.number(),
-    rationale_primary: z.string(),
-    rationale_secondary: z.array(z.string()).optional().default([]),
-    recommended_drop: zLeaguePulseRecommendedDrop.nullish(),
     score_components: z.record(z.string(), z.number())
 });
 
@@ -195,6 +247,7 @@ export const zLeaguePulseTeamValue = z.object({
  */
 export const zLeaguePulseResponse = z.object({
     captured_at: z.string(),
+    card_section_counts: z.array(zLeaguePulseCardSectionCount),
     caveats: z.array(z.string()).optional().default([]),
     decision_supported: z.literal(false).optional().default(false),
     dropped: zLeaguePulseDropCounts,
@@ -890,17 +943,6 @@ export const zHttpValidationError = z.object({
 });
 
 /**
- * WhatChangedCard
- */
-export const zWhatChangedCard = z.object({
-    asset_name: z.string().nullish(),
-    card_id: z.string().nullish(),
-    card_type: z.string().nullish(),
-    opportunity_score: z.number().nullish(),
-    recommended_drop_name: z.string().nullish()
-});
-
-/**
  * WhatChangedCutCandidate
  */
 export const zWhatChangedCutCandidate = z.object({
@@ -1053,6 +1095,25 @@ export const zWhatChangedPartnerRanking = z.object({
     counterparty_team_name: z.string().nullish(),
     matched_positions: z.array(z.string()).nullish(),
     partner_score: z.number().nullish()
+});
+
+/**
+ * WhatChangedRosterCapacityContext
+ */
+export const zWhatChangedRosterCapacityContext = z.object({
+    candidate_count: z.int().nullish(),
+    hard_conflict_count: z.int().nullish(),
+    pool_status: z.string().nullish()
+});
+
+/**
+ * WhatChangedCard
+ */
+export const zWhatChangedCard = z.object({
+    asset_name: z.string().nullish(),
+    card_id: z.string().nullish(),
+    card_type: z.string().nullish(),
+    roster_capacity_context: zWhatChangedRosterCapacityContext.nullish()
 });
 
 /**

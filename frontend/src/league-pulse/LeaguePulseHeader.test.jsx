@@ -11,7 +11,7 @@ function headerResponse() {
       market_overlay_cards: 2,
       model_native_cards: 1,
       partner_rankings: 0,
-      recommended_drops: 1,
+      roster_capacity_candidate_pools: 1,
       team_postures: 0,
       team_values: 0,
       decision_supported: false,
@@ -37,7 +37,7 @@ describe("LeaguePulseHeader", () => {
     for (const version of [
       "team_posture.v1",
       "team_value_matrix.v1",
-      "league_opportunity.v1",
+      "league_opportunity.v2",
     ]) {
       expect(within(banner).getByText(version)).toBeTruthy();
     }

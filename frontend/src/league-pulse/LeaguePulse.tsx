@@ -64,6 +64,7 @@ export function LeaguePulse() {
       <TeamPostureTable postures={state.data.team_postures ?? []} />
       <TeamValueOverview values={state.data.team_values ?? []} />
       <OpportunityCards
+        cardSectionCounts={state.data.card_section_counts ?? []}
         modelNativeCards={state.data.model_native_cards ?? []}
         marketOverlayCards={state.data.market_overlay_cards ?? []}
       />

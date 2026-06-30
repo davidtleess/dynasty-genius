@@ -248,17 +248,20 @@ def _fixture_paths(tmp_path: Path) -> dict[str, Path]:
             "cards": [
                 {
                     "card_id": "waiver-1",
-                    "card_type": "WAIVER_CANDIDATE",
+                    "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
                     "asset": {
                         "sleeper_player_id": "5857",
                         "full_name": "Noah Fant",
                         "position": "TE",
                     },
-                    "opportunity_score": 42.0,
-                    "recommended_drop": {
-                        "sleeper_player_id": "11603",
-                        "full_name": "AJ Barner",
-                        "position": "TE",
+                    "roster_capacity_candidates": {
+                        "pool_status": "available",
+                        "items": [
+                            {
+                                "full_name": "AJ Barner",
+                                "capacity_conflict_status": "roster_capacity_pressure",
+                            }
+                        ],
                     },
                     "rationale": ["raw rationale leak"],
                     "score_components": {"raw": "leak"},
@@ -399,17 +402,20 @@ def _real_shape_fixture_paths(tmp_path: Path) -> dict[str, Path]:
             "cards": [
                 {
                     "card_id": "waiver-1",
-                    "card_type": "WAIVER_CANDIDATE",
+                    "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
                     "asset": {
                         "sleeper_player_id": "5857",
                         "full_name": "Noah Fant",
                         "position": "TE",
                     },
-                    "opportunity_score": 42.0,
-                    "recommended_drop": {
-                        "sleeper_player_id": "11603",
-                        "full_name": "AJ Barner",
-                        "position": "TE",
+                    "roster_capacity_candidates": {
+                        "pool_status": "available",
+                        "items": [
+                            {
+                                "full_name": "AJ Barner",
+                                "capacity_conflict_status": "roster_capacity_pressure",
+                            }
+                        ],
                     },
                     "rationale": ["raw rationale leak"],
                     "score_components": {"raw": "leak"},
@@ -573,10 +579,13 @@ def test_report_emitter_composes_diff_and_allowlisted_structural_context(
     assert opportunity["top_cards"] == [
         {
             "card_id": "waiver-1",
-            "card_type": "WAIVER_CANDIDATE",
+            "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
             "asset_name": "Noah Fant",
-            "opportunity_score": 42.0,
-            "recommended_drop_name": "AJ Barner",
+            "roster_capacity_context": {
+                "pool_status": "available",
+                "candidate_count": 1,
+                "hard_conflict_count": 0,
+            },
         }
     ]
 
@@ -657,10 +666,13 @@ def test_structural_context_maps_real_phase_artifact_shapes_without_raw_objects(
     assert opportunity["top_cards"] == [
         {
             "card_id": "waiver-1",
-            "card_type": "WAIVER_CANDIDATE",
+            "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
             "asset_name": "Noah Fant",
-            "opportunity_score": 42.0,
-            "recommended_drop_name": "AJ Barner",
+            "roster_capacity_context": {
+                "pool_status": "available",
+                "candidate_count": 1,
+                "hard_conflict_count": 0,
+            },
         }
     ]
 

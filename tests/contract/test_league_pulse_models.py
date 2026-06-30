@@ -95,7 +95,9 @@ def test_response_dtos_lock_decision_supported_false_recursively() -> None:
             m.LeaguePulseCard(
                 card_id="opp-0001",
                 card_type="ROSTER_SURPLUS_DEFICIT_MATCH",
-                opportunity_score=0.25,
+                evidence_status="evidence_gated",
+                sort_key="positional_z_differential_desc",
+                sort_value=2.2,
                 rationale_primary="positional_surplus_match",
                 rationale_secondary=["perspective_positional_deficit"],
                 evidence={"position": "WR"},
@@ -107,26 +109,50 @@ def test_response_dtos_lock_decision_supported_false_recursively() -> None:
         market_overlay_cards=[
             m.LeaguePulseMarketCard(
                 card_id="opp-0002",
-                card_type="WAIVER_CANDIDATE",
-                opportunity_score=0.58,
+                card_type="UNROSTERED_MODEL_MARKET_DIVERGENCE",
+                evidence_status="evidence_complete",
+                sort_key="absolute_model_market_delta_desc",
+                sort_value=0.4,
                 rationale_primary="opportunity_signal",
                 rationale_secondary=["market_divergence_context"],
-                evidence={"model_minus_market_delta": 0.4, "xvar": 1.2},
+                evidence={"model_minus_market_delta": 0.4, "asset_xvar": 1.2},
                 score_components={
                     "fit_score": 0.4,
                     "divergence_score": 0.7,
                     "feasibility_score": 0.9,
                 },
                 caveats=["market_overlay_unvalidated_divergence"],
-                recommended_drop=m.LeaguePulseRecommendedDrop(
-                    sleeper_player_id="drop-1",
-                    full_name="Drop Candidate",
-                    position="WR",
-                    cut_priority=1,
-                    ir_compliance_status="eligible",
-                    cut_rationale=["waiver_status_from_sleeper_snapshot"],
+                roster_capacity_candidates=m.LeaguePulseCapacityCandidatePool(
+                    pool_status="constrained_single_candidate",
+                    selection_rule="descriptive_candidate_pool_no_tool_selection",
+                    narrowing_rule="only_one_capacity_candidate_available",
+                    sort_key="xvar_pct_ascending_then_full_name_then_sleeper_player_id",
+                    items=[
+                        m.LeaguePulseCapacityCandidate(
+                            sleeper_player_id="drop-1",
+                            full_name="Drop Candidate",
+                            position="WR",
+                            value_status="valued",
+                            xvar_pct=12.0,
+                            dvs=30.0,
+                            capacity_conflict_status="roster_capacity_pressure",
+                            rule_conflict_label=None,
+                            caveats=[],
+                            decision_supported=True,
+                        )
+                    ],
+                    caveats=[],
                     decision_supported=True,
                 ),
+                decision_supported=True,
+            )
+        ],
+        card_section_counts=[
+            m.LeaguePulseCardSectionCount(
+                sort_key="absolute_model_market_delta_desc",
+                total_count=5,
+                shown_count=2,
+                section_cap=2,
                 decision_supported=True,
             )
         ],
@@ -136,7 +162,7 @@ def test_response_dtos_lock_decision_supported_false_recursively() -> None:
             partner_rankings=0,
             model_native_cards=0,
             market_overlay_cards=0,
-            recommended_drops=0,
+            roster_capacity_candidate_pools=0,
             decision_supported=True,
         ),
         decision_supported=True,
@@ -198,7 +224,9 @@ def test_model_native_card_rejects_market_overlay_fields() -> None:
     clean = m.LeaguePulseCard(
         card_id="opp-0001",
         card_type="ROSTER_SURPLUS_DEFICIT_MATCH",
-        opportunity_score=0.25,
+        evidence_status="evidence_gated",
+        sort_key="positional_z_differential_desc",
+        sort_value=2.2,
         rationale_primary="positional_surplus_match",
         rationale_secondary=["perspective_positional_deficit"],
         evidence={"position": "WR"},
@@ -211,7 +239,9 @@ def test_model_native_card_rejects_market_overlay_fields() -> None:
         m.LeaguePulseCard(
             card_id="opp-0001",
             card_type="ROSTER_SURPLUS_DEFICIT_MATCH",
-            opportunity_score=0.25,
+            evidence_status="evidence_gated",
+            sort_key="positional_z_differential_desc",
+            sort_value=2.2,
             rationale_primary="positional_surplus_match",
             rationale_secondary=[],
             evidence={"position": "WR", "market_percentile": 0.1},
@@ -230,8 +260,10 @@ def test_market_card_accepts_taxi_and_requires_overlay_caveat() -> None:
 
     overlay = m.LeaguePulseMarketCard(
         card_id="opp-taxi",
-        card_type="TAXI_ACTIVATION_CANDIDATE",
-        opportunity_score=0.32,
+        card_type="TAXI_LONG_TERM_VALUE_PRESENT",
+        evidence_status="evidence_gated",
+        sort_key="taxi_long_term_value_desc",
+        sort_value=8.0,
         rationale_primary="taxi_long_term_value_present",
         rationale_secondary=["activation_cost_represented"],
         evidence={
@@ -246,18 +278,20 @@ def test_market_card_accepts_taxi_and_requires_overlay_caveat() -> None:
         },
         caveats=["market_overlay_unvalidated_divergence"],
     )
-    assert overlay.card_type == "TAXI_ACTIVATION_CANDIDATE"
+    assert overlay.card_type == "TAXI_LONG_TERM_VALUE_PRESENT"
 
     # DTO backstop: an overlay card built WITHOUT the caveat still carries it
     # (forced like PartnerRanking.market_influenced) — the DTO is the
     # impenetrable label, not the mapper.
     overlay_no_caveat = m.LeaguePulseMarketCard(
         card_id="opp-waiver",
-        card_type="WAIVER_CANDIDATE",
-        opportunity_score=0.5,
+        card_type="UNROSTERED_MODEL_MARKET_DIVERGENCE",
+        evidence_status="evidence_complete",
+        sort_key="absolute_model_market_delta_desc",
+        sort_value=0.3,
         rationale_primary="opportunity_signal",
         rationale_secondary=[],
-        evidence={"model_minus_market_delta": 0.3, "xvar": 1.0},
+        evidence={"model_minus_market_delta": 0.3, "asset_xvar": 1.0},
         score_components={"fit_score": 0.4, "divergence_score": 0.3, "feasibility_score": 0.9},
     )
     assert "market_overlay_unvalidated_divergence" in overlay_no_caveat.caveats
@@ -265,8 +299,10 @@ def test_market_card_accepts_taxi_and_requires_overlay_caveat() -> None:
     with pytest.raises(ValidationError):
         m.LeaguePulseCard(
             card_id="opp-taxi",
-            card_type="TAXI_ACTIVATION_CANDIDATE",
-            opportunity_score=0.32,
+            card_type="TAXI_LONG_TERM_VALUE_PRESENT",
+            evidence_status="evidence_gated",
+            sort_key="taxi_long_term_value_desc",
+            sort_value=8.0,
             rationale_primary="taxi_long_term_value_present",
             rationale_secondary=["activation_cost_represented"],
             evidence={"model_minus_market_delta": 0.4},
@@ -275,35 +311,32 @@ def test_market_card_accepts_taxi_and_requires_overlay_caveat() -> None:
         )
 
 
-def test_recommended_drop_filters_rationale_and_forbids_unknown_fields() -> None:
-    """Nested recommended_drop has its own typed fail-closed boundary."""
+def test_capacity_candidate_item_forbids_unknown_fields_and_forces_decision_supported() -> None:
+    """The descriptive capacity-candidate item has its own typed fail-closed boundary."""
     m = _models()
 
-    drop = m.LeaguePulseRecommendedDrop(
+    item = m.LeaguePulseCapacityCandidate(
         sleeper_player_id="drop-1",
         full_name="Drop Candidate",
         position="WR",
-        cut_priority=0,
-        ir_compliance_status="eligible",
-        cut_rationale=[
-            "waiver_status_from_sleeper_snapshot",
-            "SELL_THIS_PLAYER_NOW",
-            "totally_unknown",
-        ],
+        value_status="valued",
+        xvar_pct=12.0,
+        dvs=30.0,
+        capacity_conflict_status="hard_roster_rules_conflict",
+        rule_conflict_label="IR compliance violation",
+        caveats=["valuation_unavailable"],
         decision_supported=True,
     )
 
-    assert drop.decision_supported is False
-    assert drop.cut_rationale == ["waiver_status_from_sleeper_snapshot"]
+    assert item.decision_supported is False
 
     with pytest.raises(ValidationError):
-        m.LeaguePulseRecommendedDrop(
+        m.LeaguePulseCapacityCandidate(
             sleeper_player_id="drop-1",
             full_name="Drop Candidate",
             position="WR",
-            cut_priority=0,
-            ir_compliance_status="eligible",
-            cut_rationale=[],
+            value_status="valued",
+            capacity_conflict_status="roster_capacity_pressure",
             market_value=100,
         )
 

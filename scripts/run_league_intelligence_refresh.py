@@ -109,7 +109,7 @@ EXPECTED_SCHEMA_VERSIONS: dict[str, str] = {
     "matrix": "team_value_matrix.v1",
     "posture": "team_posture.v1",
     "divergence": "universe_market_divergence.v1",
-    "opportunity": "league_opportunity.v1",
+    "opportunity": "league_opportunity.v2",
 }
 
 REPORT_DIR = VALUATION
@@ -426,7 +426,7 @@ def run(*, preflight_only: bool) -> int:
             "[accept] team_count="
             f"{report['counts'].get('team_count')} "
             f"waiver_cards={report['counts'].get('waiver_cards')} "
-            f"waiver_drops={report['counts'].get('waiver_recommended_drops')}"
+            f"waiver_capacity_pools={report['counts'].get('waiver_capacity_pools')}"
         )
         print("[done] artifacts refreshed in place. Commit is a SEPARATE, David-authorized step.")
         # Full PASS — pre-run backups are no longer needed.

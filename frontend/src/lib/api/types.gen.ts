@@ -359,6 +359,95 @@ export type HttpValidationError = {
 };
 
 /**
+ * LeaguePulseCapacityCandidate
+ *
+ * One descriptive roster-capacity candidate. No nomination: the surface
+ * lists every candidate that could free capacity; it never selects one.
+ */
+export type LeaguePulseCapacityCandidate = {
+    /**
+     * Capacity Conflict Status
+     */
+    capacity_conflict_status: 'hard_roster_rules_conflict' | 'roster_capacity_pressure';
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Dvs
+     */
+    dvs?: number | null;
+    /**
+     * Full Name
+     */
+    full_name: string;
+    /**
+     * Position
+     */
+    position: string;
+    /**
+     * Rule Conflict Label
+     */
+    rule_conflict_label?: string | null;
+    /**
+     * Sleeper Player Id
+     */
+    sleeper_player_id: string;
+    /**
+     * Value Status
+     */
+    value_status: 'valued' | 'unvalued';
+    /**
+     * Xvar Pct
+     */
+    xvar_pct?: number | null;
+};
+
+/**
+ * LeaguePulseCapacityCandidatePool
+ *
+ * Descriptive pool that replaces the old tool-selected single-drop field.
+ * Exposes roster-capacity constraints (full candidate set, hard-rule
+ * conflicts, single-candidate pressure, empty) without nominating an action.
+ * ``selection_rule`` is fixed to a no-tool-selection marker (v2-only: T4c
+ * dropped the transitional v1-compat migration state).
+ */
+export type LeaguePulseCapacityCandidatePool = {
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Items
+     */
+    items?: Array<LeaguePulseCapacityCandidate>;
+    /**
+     * Narrowing Rule
+     */
+    narrowing_rule: string;
+    /**
+     * Pool Status
+     */
+    pool_status: 'available' | 'constrained_single_candidate' | 'empty';
+    /**
+     * Selection Rule
+     */
+    selection_rule: string;
+    /**
+     * Sort Key
+     */
+    sort_key: string;
+};
+
+/**
  * LeaguePulseCard
  *
  * Model-native opportunity card. Rejects market evidence/score keys.
@@ -387,9 +476,9 @@ export type LeaguePulseCard = {
         [key: string]: unknown;
     };
     /**
-     * Opportunity Score
+     * Evidence Status
      */
-    opportunity_score: number;
+    evidence_status: 'evidence_complete' | 'evidence_gated' | 'inputs_unavailable';
     /**
      * Rationale Primary
      */
@@ -404,6 +493,40 @@ export type LeaguePulseCard = {
     score_components: {
         [key: string]: number;
     };
+    /**
+     * Sort Key
+     */
+    sort_key: string;
+    /**
+     * Sort Value
+     */
+    sort_value: number;
+};
+
+/**
+ * LeaguePulseCardSectionCount
+ */
+export type LeaguePulseCardSectionCount = {
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Section Cap
+     */
+    section_cap: number;
+    /**
+     * Shown Count
+     */
+    shown_count: number;
+    /**
+     * Sort Key
+     */
+    sort_key: string;
+    /**
+     * Total Count
+     */
+    total_count: number;
 };
 
 /**
@@ -427,9 +550,9 @@ export type LeaguePulseDropCounts = {
      */
     partner_rankings?: number;
     /**
-     * Recommended Drops
+     * Roster Capacity Candidate Pools
      */
-    recommended_drops?: number;
+    roster_capacity_candidate_pools?: number;
     /**
      * Team Postures
      */
@@ -453,7 +576,7 @@ export type LeaguePulseMarketCard = {
     /**
      * Card Type
      */
-    card_type: 'WAIVER_CANDIDATE' | 'DIVERGENCE_MODEL_HIGH' | 'DIVERGENCE_MARKET_HIGH' | 'TAXI_ACTIVATION_CANDIDATE';
+    card_type: 'UNROSTERED_MODEL_MARKET_DIVERGENCE' | 'DIVERGENCE_MODEL_HIGH' | 'DIVERGENCE_MARKET_HIGH' | 'TAXI_LONG_TERM_VALUE_PRESENT';
     /**
      * Caveats
      */
@@ -469,9 +592,9 @@ export type LeaguePulseMarketCard = {
         [key: string]: unknown;
     };
     /**
-     * Opportunity Score
+     * Evidence Status
      */
-    opportunity_score: number;
+    evidence_status: 'evidence_complete' | 'evidence_gated' | 'inputs_unavailable';
     /**
      * Rationale Primary
      */
@@ -480,13 +603,21 @@ export type LeaguePulseMarketCard = {
      * Rationale Secondary
      */
     rationale_secondary?: Array<string>;
-    recommended_drop?: LeaguePulseRecommendedDrop | null;
+    roster_capacity_candidates?: LeaguePulseCapacityCandidatePool | null;
     /**
      * Score Components
      */
     score_components: {
         [key: string]: number;
     };
+    /**
+     * Sort Key
+     */
+    sort_key: string;
+    /**
+     * Sort Value
+     */
+    sort_value: number;
 };
 
 /**
@@ -536,40 +667,6 @@ export type LeaguePulsePartnerRanking = {
 };
 
 /**
- * LeaguePulseRecommendedDrop
- */
-export type LeaguePulseRecommendedDrop = {
-    /**
-     * Cut Priority
-     */
-    cut_priority: number;
-    /**
-     * Cut Rationale
-     */
-    cut_rationale?: Array<string>;
-    /**
-     * Decision Supported
-     */
-    decision_supported?: false;
-    /**
-     * Full Name
-     */
-    full_name: string;
-    /**
-     * Ir Compliance Status
-     */
-    ir_compliance_status: string;
-    /**
-     * Position
-     */
-    position: string;
-    /**
-     * Sleeper Player Id
-     */
-    sleeper_player_id: string;
-};
-
-/**
  * LeaguePulseResponse
  */
 export type LeaguePulseResponse = {
@@ -577,6 +674,10 @@ export type LeaguePulseResponse = {
      * Captured At
      */
     captured_at: string;
+    /**
+     * Card Section Counts
+     */
+    card_section_counts: Array<LeaguePulseCardSectionCount>;
     /**
      * Caveats
      */
@@ -2140,14 +2241,7 @@ export type WhatChangedCard = {
      * Card Type
      */
     card_type?: string | null;
-    /**
-     * Opportunity Score
-     */
-    opportunity_score?: number | null;
-    /**
-     * Recommended Drop Name
-     */
-    recommended_drop_name?: string | null;
+    roster_capacity_context?: WhatChangedRosterCapacityContext | null;
 };
 
 /**
@@ -2623,6 +2717,24 @@ export type WhatChangedResponse = {
      */
     schema_version: string;
     structural_context: WhatChangedStructuralContext;
+};
+
+/**
+ * WhatChangedRosterCapacityContext
+ */
+export type WhatChangedRosterCapacityContext = {
+    /**
+     * Candidate Count
+     */
+    candidate_count?: number | null;
+    /**
+     * Hard Conflict Count
+     */
+    hard_conflict_count?: number | null;
+    /**
+     * Pool Status
+     */
+    pool_status?: string | null;
 };
 
 /**
