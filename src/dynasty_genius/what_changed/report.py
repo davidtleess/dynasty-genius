@@ -86,7 +86,7 @@ def emit_daily_what_changed_report(
     if isinstance(diff.get("model"), dict):
         diff["model"]["feature_freshness"] = model_feature_freshness
     # Disclose PVO source provenance on the model section (runtime vs committed seed) and,
-    # ONLY when the §3.6 drift tripwire recommends promotion, the passive seed_staleness
+    # ONLY when the §3.6 drift tripwire flags promotion, the passive seed_staleness
     # block. Descriptive, decision_supported=False, never a decision/instruction.
     model_pvo_staleness = _model_pvo_staleness()
     if isinstance(diff.get("model"), dict):
@@ -174,7 +174,7 @@ def _model_pvo_staleness() -> dict[str, Any]:
     meta = resolved.metadata()
     seed_staleness = meta.get("seed_staleness")
     # Silent-unless-promote_recommended: only surface the drift metrics when the tripwire
-    # recommends a manual promotion review; otherwise quiet (None).
+    # flags a manual promotion review; otherwise quiet (None).
     if not (isinstance(seed_staleness, dict) and seed_staleness.get("promote_recommended")):
         seed_staleness = None
     return {
