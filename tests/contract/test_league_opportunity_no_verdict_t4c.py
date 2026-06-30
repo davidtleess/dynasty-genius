@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
 ROOT = Path(__file__).resolve().parents[2]
 HEADER_COPY = (
@@ -234,7 +233,6 @@ def test_t4c_assembler_is_v2_only_and_stale_v1_fails_closed() -> None:
 
 
 def test_t4c_go_live_artifacts_and_refresh_verifier_are_v2() -> None:
-    from app.main import app
     from scripts import run_league_intelligence_refresh, run_what_changed_report
 
     artifact_path = ROOT / "app" / "data" / "valuation" / "league_opportunity_latest.json"
@@ -254,12 +252,13 @@ def test_t4c_go_live_artifacts_and_refresh_verifier_are_v2() -> None:
         run_what_changed_report._resolve_inputs()["league_opportunity_path"]
         == artifact_path
     )
-
-    response = TestClient(app).get("/api/league/what-changed")
-    assert response.status_code == 200
-    body = response.json()
-    assert body["schema_version"] == "war_room_2_what_changed_v1"
-    assert "recommended_drop_name" not in json.dumps(body, sort_keys=True)
+    # NOTE: the /api/league/what-changed route's 200/503 behavior is owned by
+    # test_daily_what_changed_api.py (it monkeypatches _REPORT_PATH to a tmp
+    # fixture — the gitignored runtime report is absent in CI / on a fresh deploy,
+    # so the route fail-closes to 503 by design). recommended_drop_name absence is
+    # owned by test_league_opportunity_no_verdict_t4a.py (WhatChangedCard dropped it
+    # + extra=forbid). This test stays focused on the tracked v2 artifact + verifier
+    # wiring + the What-Changed input resolver.
 
 
 def test_t4c_header_copy_is_scanner_clean_under_full_no_verdict_rules() -> None:
