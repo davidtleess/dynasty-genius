@@ -51,6 +51,7 @@ def _base_reconciliation(sent_ids: list[str], received_ids: list[str], values: d
             _fc_player_row(sid, value, f"Player {sid}")
             for sid, value in values.items()
         ],
+        sleeper_snapshot={"rosters": []},
         current_draft_year=2026,
         format_key="dynasty_sf_ppr",
     )

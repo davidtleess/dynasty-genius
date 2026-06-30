@@ -278,6 +278,7 @@ def reconcile_trade_market_endpoint(
         fc_entries,
         request.current_draft_year,
         request.format_key,
+        sleeper_snapshot=sleeper_snapshot,
         counterparty_roster_penalty=cp_penalty_input,
         counterparty_market_penalty_status=cp_status,
         counterparty_caveats=cp_caveats,

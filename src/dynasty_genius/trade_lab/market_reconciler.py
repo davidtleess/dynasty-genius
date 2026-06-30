@@ -102,8 +102,15 @@ class MarketRosterPenalty(BaseModel):
     roster_id: int
     post_trade_overflow: int
     forced_cut_candidates: list[MarketAssetOverlay]
+    # Legacy FantasyCalc GROSS scalar (sum of resolved cut values).
     penalty_market_value: int
     unresolved_cut_count: int
+    # Additive (T4): FC-scale depletion-aware NET + recovery ranges — the market
+    # mirror of the model lane (T2), in FantasyCalc scale ONLY (never xVAR).
+    # *_range is None only when market_penalty_status == "blocked".
+    forced_cut_market_value_at_risk_range: tuple[float, float] | None = None
+    forced_cut_market_recovery_range: tuple[float, float] | None = None
+    market_penalty_status: Literal["ok", "uncertain_pool_unavailable", "blocked"] = "ok"
     caveats: list[str]
     decision_supported: bool = False
 
@@ -377,21 +384,61 @@ def resolve_market_assets(
 # ── Trade market reconciliation (W2) ────────────────────────────────────────
 
 
+# FC-scale depletion constants (T4) — the market mirror of the model lane.
+_MARKET_TOP_K = 8
+_MARKET_MIN_POOL = 1
+_MARKET_COVERAGE_FLOOR = 0.5
+
+
+def _fc_rostered_union(sleeper_snapshot: dict) -> set[str]:
+    """Rostered = players ∪ starters ∪ taxi ∪ reserve across ALL teams (matches
+    the model lane / sleeper_universe). The market lane uses the SAME definition."""
+    rostered: set[str] = set()
+    for roster in sleeper_snapshot.get("rosters") or []:
+        for field in ("players", "starters", "taxi", "reserve"):
+            for pid in roster.get(field) or []:
+                if pid:
+                    rostered.add(str(pid))
+    return rostered
+
+
+def _fc_unrostered_pool_by_position(
+    fantasycalc_entries: list[dict], rostered: set[str]
+) -> dict[str, list[float]]:
+    """Per-position FC values of players on no roster — the market's replacement
+    pool. FC NEVER selects cuts; this only prices the available wire."""
+    pool: dict[str, list[float]] = {}
+    for row in fantasycalc_entries:
+        player = row.get("player") or {}
+        pid = player.get("sleeperId")
+        position = player.get("position")
+        value = row.get("value")
+        if pid is None or str(pid) in rostered or not position:
+            continue
+        if not isinstance(value, (int, float)):
+            continue
+        pool.setdefault(position, []).append(float(value))
+    return pool
+
+
 def _price_forced_cuts(
     david_roster_penalty: dict,
     fantasycalc_entries: list[dict],
     current_draft_year: int,
     format_key: str,
     source_timestamp: Optional[str],
+    sleeper_snapshot: dict,
 ) -> MarketRosterPenalty:
-    """Price an already-selected, model-native forced-cut set at raw FC value.
+    """Price an already-selected, model-native forced-cut set at raw FC value and
+    compute the FC-scale depletion-aware NET + recovery range.
 
     The cut set comes from Phase 22 RosterCutEngine output (passed in); this
-    function never selects or reorders cuts — it only resolves their market
-    value. Unresolved cuts are preserved as overlays and counted, never imputed.
+    function never selects or reorders cuts — it only resolves their market value
+    and prices an FC-scale replacement range. Unresolved cuts are preserved as
+    overlays and counted, never imputed; any unresolved cut blocks the net range.
     """
     cut_overlays: list[MarketAssetOverlay] = []
-    penalty_caveats: list[str] = []
+    penalty_caveats: list[str] = ["fantasycalc_raw_scale_not_xvar", "market_overlay_display_only"]
 
     for cut in david_roster_penalty.get("forced_cut_candidates", []):
         ref = MarketAssetRef(
@@ -414,12 +461,98 @@ def _price_forced_cuts(
     )
     unresolved_cut_count = sum(1 for o in cut_overlays if o.market_value is None)
 
+    # FC-scale depletion: group the model-selected cuts by position with their FC
+    # value, recover against the FC unrostered pool at the same position.
+    fc_value_by_id = {
+        str((row.get("player") or {}).get("sleeperId")): row.get("value")
+        for row in fantasycalc_entries
+        if (row.get("player") or {}).get("sleeperId") is not None
+    }
+    rostered = _fc_rostered_union(sleeper_snapshot)
+    pool_by_position = _fc_unrostered_pool_by_position(fantasycalc_entries, rostered)
+
+    # FC valuation-coverage floor (parity with the model lane): the denominator
+    # is the unrostered player UNIVERSE per position (snapshot["players"], same
+    # source RC uses). A player with no FC row is otherwise invisible. When the
+    # snapshot carries no universe (minimal fixtures), the floor is skipped.
+    universe_total_by_position: dict[str, int] = {}
+    universe_covered_by_position: dict[str, int] = {}
+    for row in sleeper_snapshot.get("players") or []:
+        position = (row.get("player") or {}).get("position")
+        pid = row.get("sleeper_player_id")
+        if not position or pid is None or str(pid) in rostered:
+            continue
+        universe_total_by_position[position] = (
+            universe_total_by_position.get(position, 0) + 1
+        )
+        if fc_value_by_id.get(str(pid)) is not None:
+            universe_covered_by_position[position] = (
+                universe_covered_by_position.get(position, 0) + 1
+            )
+
+    cut_values_by_position: dict[str, list[float]] = {}
+    for cut in david_roster_penalty.get("forced_cut_candidates", []):
+        position = cut.get("position")
+        value = fc_value_by_id.get(str(cut.get("sleeper_player_id")))
+        if position and isinstance(value, (int, float)):
+            cut_values_by_position.setdefault(position, []).append(float(value))
+
+    market_penalty_status = "ok"
+    net_low_total = 0.0
+    net_high_total = 0.0
+    for position, cut_values in cut_values_by_position.items():
+        n_p = len(cut_values)
+        cut_sum = sum(cut_values)
+        total_universe = universe_total_by_position.get(position, 0)
+        if total_universe >= 1 and (
+            universe_covered_by_position.get(position, 0) / total_universe
+            < _MARKET_COVERAGE_FLOOR
+        ):
+            # Too few of the unrostered universe carry FC values to trust the
+            # range — honest uncertainty, not a precise zero.
+            net_low_total += 0.0
+            net_high_total += cut_sum
+            market_penalty_status = "uncertain_pool_unavailable"
+            penalty_caveats.append(f"{position}_market_valuation_coverage_below_floor")
+            continue
+        pool = sorted(pool_by_position.get(position, []), reverse=True)
+        if len(pool) < _MARKET_MIN_POOL:
+            # Unavailable wire at that position: honest uncertainty, not a zero.
+            # Caveated and distinct from the coverage-floor reason above.
+            net_low_total += 0.0
+            net_high_total += cut_sum
+            market_penalty_status = "uncertain_pool_unavailable"
+            penalty_caveats.append(f"{position}_market_pool_unavailable")
+            continue
+        retained = pool[: max(_MARKET_TOP_K, n_p)]
+        upper_recovery = sum(sorted(retained, reverse=True)[:n_p])
+        lower_recovery = sum(sorted(retained)[:n_p])
+        net_low_total += cut_sum - upper_recovery
+        net_high_total += cut_sum - lower_recovery
+        if n_p > len(pool):
+            penalty_caveats.append(f"{position}_market_pool_deficit")
+
+    if unresolved_cut_count > 0:
+        # An unresolved cut leaves the net incomplete — block, never fabricate.
+        market_penalty_status = "blocked"
+        net_range: tuple[float, float] | None = None
+        recovery_range: tuple[float, float] | None = None
+    else:
+        net_range = (net_low_total, net_high_total)
+        recovery_range = (
+            penalty_market_value - net_high_total,
+            penalty_market_value - net_low_total,
+        )
+
     return MarketRosterPenalty(
         roster_id=int(david_roster_penalty.get("roster_id", 0)),
         post_trade_overflow=int(david_roster_penalty.get("post_trade_overflow", 0)),
         forced_cut_candidates=cut_overlays,
         penalty_market_value=penalty_market_value,
         unresolved_cut_count=unresolved_cut_count,
+        forced_cut_market_value_at_risk_range=net_range,
+        forced_cut_market_recovery_range=recovery_range,
+        market_penalty_status=market_penalty_status,
         caveats=penalty_caveats,
     )
 
@@ -431,6 +564,7 @@ def reconcile_trade_market(
     fantasycalc_entries: list[dict],
     current_draft_year: int,
     format_key: str,
+    sleeper_snapshot: dict,
     source_timestamp: Optional[str] = None,
     counterparty_roster_penalty: Optional[dict] = None,
     counterparty_market_penalty_status: Literal[
@@ -469,7 +603,12 @@ def reconcile_trade_market(
     )
 
     david_penalty = _price_forced_cuts(
-        david_roster_penalty, fantasycalc_entries, current_draft_year, format_key, source_timestamp
+        david_roster_penalty,
+        fantasycalc_entries,
+        current_draft_year,
+        format_key,
+        source_timestamp,
+        sleeper_snapshot,
     )
     adjusted_market_received = max(
         0, market_received_raw - david_penalty.penalty_market_value
@@ -488,6 +627,7 @@ def reconcile_trade_market(
             current_draft_year,
             format_key,
             source_timestamp,
+            sleeper_snapshot,
         )
         adjusted_market_sent = max(
             0, market_sent_raw - counterparty_penalty.penalty_market_value

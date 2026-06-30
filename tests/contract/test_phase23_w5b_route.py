@@ -414,6 +414,37 @@ def test_market_route_sources_model_favors_from_range_native_status(monkeypatch)
     ]
 
 
+def test_market_route_passes_sleeper_snapshot_to_market_reconciler(monkeypatch):
+    events: list[str] = []
+    reconcile_calls: list[dict] = []
+    value_pick_calls: list[dict] = []
+    market_calls: list[dict[str, Any]] = []
+    snapshot = _snapshot()
+    _install_common_route_mocks(monkeypatch, events)
+    monkeypatch.setattr(
+        trade_market_route,
+        "_load_reconcile_artifacts",
+        lambda: (_universe_pvo(), snapshot),
+    )
+    _install_reconcile_spy(monkeypatch, events, reconcile_calls)
+    _install_pick_value_spies(monkeypatch, value_pick_calls)
+
+    original_reconcile_market = trade_market_route.reconcile_trade_market
+
+    def market_spy(*args, **kwargs):
+        events.append("market")
+        market_calls.append(kwargs)
+        return original_reconcile_market(*args, **kwargs)
+
+    monkeypatch.setattr(trade_market_route, "reconcile_trade_market", market_spy)
+
+    response = client.post("/api/trade/reconcile/market", json=_payload_with_priced_picks())
+
+    assert response.status_code == 200
+    assert market_calls
+    assert market_calls[0]["sleeper_snapshot"] is snapshot
+
+
 def test_market_route_bucket_pick_fails_closed_with_specific_caveats(monkeypatch):
     events: list[str] = []
     reconcile_calls: list[dict] = []
