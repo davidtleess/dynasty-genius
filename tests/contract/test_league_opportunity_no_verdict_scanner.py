@@ -11,8 +11,6 @@ from __future__ import annotations
 from importlib import import_module
 from pathlib import Path
 
-import pytest
-
 
 def _scanner():
     try:
@@ -216,38 +214,31 @@ def test_current_known_debt_allowlist_enumerates_real_phase1_surface_debt() -> N
     }
 
     expected_entries = {
-        # T2 removed the producer/DTO/assembler recommendation-language tokens
-        # (_select_recommended_drop, LeaguePulseRecommendedDrop, recommended_drop);
-        # the sole surviving legacy reference is the T4-removed v1-compat shim.
+        # T4c emptied the League Pulse bucket: the v1-compat shim was deleted (its
+        # legacy-token entries gone), the header band reworded, and the 4 generated
+        # Recommendation/Recommended titles reclassified into the What-Changed
+        # bucket. The surviving real debt is the What-Changed governance tripwire
+        # (its own separate ticket): the snake_case source fields plus their
+        # generated title-case forms.
         (
-            "app/api/routes/league_pulse_v1_compat.py",
-            "recommended_drop",
-            "transitional stale league_opportunity.v1 compatibility read; removed at Phase 1 T4c when v1 support is dropped",
-        ),
-        # T3 removed the composite score + action-shaped card-type enums from the
-        # producer/DTO/assembler and regenerated openapi (now free of
-        # opportunity_score / WAIVER_CANDIDATE / TAXI_ACTIVATION_CANDIDATE). The
-        # surviving legacy card-type / score references are in the v1-compat shim.
-        (
-            "app/api/routes/league_pulse_v1_compat.py",
-            "opportunity_score",
-            "transitional stale league_opportunity.v1 card normalization (drops the removed composite score); removed at Phase 1 T4c",
+            "app/api/routes/league_what_changed_models.py",
+            "promote_recommended",
+            "What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)",
         ),
         (
-            "app/api/routes/league_pulse_v1_compat.py",
-            "WAIVER_CANDIDATE",
-            "transitional stale league_opportunity.v1 card-type mapping to the v2 neutral name; removed at Phase 1 T4c",
+            "src/dynasty_genius/what_changed/report.py",
+            "promote_recommended",
+            "What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)",
         ),
-        # T4b regenerated the FE client (types.gen / zod.gen) from the v2 OpenAPI
-        # and rewrote the visible FE render (OpportunityCards / LeaguePulseHeader),
-        # so the stale FE recommendation-language / score / action-enum entries are
-        # GONE. The remaining FE debt is residual generated Recommendation /
-        # Recommended language (not league_opportunity-specific), still pinned for
-        # the T4c closeout.
         (
             "frontend/src/lib/api/types.gen.ts",
             "Recommendation",
-            "residual generated recommendation-language (not league_opportunity-specific); resolved at Phase 1 T4c",
+            "generated title-case form of What-Changed recommendation_reasons; separate governance ticket, NOT removed by Phase 1",
+        ),
+        (
+            "frontend/openapi.json",
+            "Recommended",
+            "generated title-case form of What-Changed promote_recommended; separate governance ticket, NOT removed by Phase 1",
         ),
     }
 
@@ -264,7 +255,6 @@ def test_current_phase1_surfaces_scan_clean_after_exact_known_debt_allowlist() -
         Path("src/dynasty_genius/league_opportunity_map.py"),
         Path("app/api/routes/league_pulse_models.py"),
         Path("app/api/routes/league_pulse_assembler.py"),
-        Path("app/api/routes/league_pulse_v1_compat.py"),
         Path("frontend/openapi.json"),
         Path("frontend/src/lib/api/types.gen.ts"),
         Path("frontend/src/lib/api/zod.gen.ts"),
@@ -292,14 +282,15 @@ def test_empty_whitespace_and_case_insensitive_tokens(tmp_path: Path) -> None:
 
 
 def test_allowlist_buckets_are_disjoint_and_union_to_known_debt() -> None:
-    """T4 empties only League Pulse debt; What-Changed own debt remains ticketed."""
+    """T4c empties the League Pulse bucket (cordon ENFORCING); What-Changed own debt
+    remains ticketed separately, so the union is exactly the What-Changed bucket."""
     scanner = _scanner()
 
     league_pulse = set(scanner.LEAGUE_PULSE_PHASE_1_DEBT)
     what_changed = set(scanner.WHAT_CHANGED_GOVERNANCE_DEBT)
     known = set(scanner.KNOWN_DEBT_ALLOWLIST)
 
-    assert league_pulse
+    assert league_pulse == set()
     assert what_changed
     assert league_pulse.isdisjoint(what_changed)
     assert known == league_pulse | what_changed
@@ -314,9 +305,14 @@ def test_what_changed_own_debt_bucket_contains_only_independent_tripwire_tokens(
     }
     what_changed_tokens = {token for _, token in what_changed_entries}
 
+    # The snake_case source fields plus the title-case forms openapi-ts generates
+    # for them ("Promote Recommended" / "Recommendation Reasons"), reclassified into
+    # this bucket at T4c because they are What-Changed-owned, not League Pulse residue.
     assert what_changed_tokens == {
         "promote_recommended",
         "recommendation_reasons",
+        "Recommendation",
+        "Recommended",
     }
     assert {
         ("src/dynasty_genius/what_changed/report.py", "promote_recommended"),
@@ -324,8 +320,12 @@ def test_what_changed_own_debt_bucket_contains_only_independent_tripwire_tokens(
         ("app/api/routes/league_what_changed_models.py", "recommendation_reasons"),
         ("frontend/openapi.json", "promote_recommended"),
         ("frontend/openapi.json", "recommendation_reasons"),
+        ("frontend/openapi.json", "Recommendation"),
+        ("frontend/openapi.json", "Recommended"),
         ("frontend/src/lib/api/types.gen.ts", "promote_recommended"),
         ("frontend/src/lib/api/types.gen.ts", "recommendation_reasons"),
+        ("frontend/src/lib/api/types.gen.ts", "Recommendation"),
+        ("frontend/src/lib/api/types.gen.ts", "Recommended"),
         ("frontend/src/lib/api/zod.gen.ts", "promote_recommended"),
         ("frontend/src/lib/api/zod.gen.ts", "recommendation_reasons"),
     } <= what_changed_entries
@@ -386,9 +386,8 @@ def test_scanner_reports_debt_bucket_for_allowlisted_tokens() -> None:
     )
 
 
-def test_allowlist_empty_assertion_is_deferred_to_t4_closeout() -> None:
-    """T4 flips this to enforce only the Phase 1 bucket; What-Changed remains ticketed."""
-    pytest.skip("Phase 1 T4 closeout flips this to assert LEAGUE_PULSE_PHASE_1_DEBT == []")
-
+def test_league_pulse_phase_1_debt_is_empty_at_t4_closeout() -> None:
+    """T4c enforces only the Phase 1 bucket; What-Changed remains ticketed."""
     scanner = _scanner()
+
     assert scanner.LEAGUE_PULSE_PHASE_1_DEBT == []

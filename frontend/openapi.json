@@ -740,7 +740,7 @@
       },
       "LeaguePulseCapacityCandidatePool": {
         "additionalProperties": false,
-        "description": "Descriptive pool that replaces the old tool-selected single-drop field.\nExposes roster-capacity constraints (full candidate set, hard-rule\nconflicts, single-candidate pressure, empty) without nominating an action.\n``selection_rule`` is fixed to a no-tool-selection marker; the legacy\n``legacy_*`` values mark a stale league_opportunity.v1 artifact migrated for\ncompatibility during the T2/T3 transition.",
+        "description": "Descriptive pool that replaces the old tool-selected single-drop field.\nExposes roster-capacity constraints (full candidate set, hard-rule\nconflicts, single-candidate pressure, empty) without nominating an action.\n``selection_rule`` is fixed to a no-tool-selection marker (v2-only: T4c\ndropped the transitional v1-compat migration state).",
         "properties": {
           "caveats": {
             "default": [],
@@ -772,8 +772,7 @@
             "enum": [
               "available",
               "constrained_single_candidate",
-              "empty",
-              "legacy_single_candidate"
+              "empty"
             ],
             "title": "Pool Status",
             "type": "string"

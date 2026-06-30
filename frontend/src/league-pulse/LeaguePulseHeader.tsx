@@ -2,6 +2,12 @@ import type { LeaguePulseResponse } from "../lib/api";
 
 // Honesty band for the League Pulse surface. Anchors the whole surface as
 // artifact-state, EXPERIMENTAL, and NOT decision-grade — neutral copy only.
+//
+// No-Verdict diagnostic-workspace copy: states the descriptive-only guarantee in
+// the system's own vocabulary, free of any banned verdict token, so the enforcing
+// cordon stays clean. Cockpit-converged at T4c (Gemini framing + Codex validation).
+const DIAGNOSTIC_WORKSPACE_COPY =
+  "Diagnostic Workspace: Surfaces raw model outputs and market variance. Valuation data is descriptive only, does not nominate players or direct trades, and requires manual qualitative evaluation.";
 
 function withheldTotal(dropped: LeaguePulseResponse["dropped"]): number {
   return (
@@ -34,9 +40,9 @@ export function LeaguePulseHeader({ data }: { data: LeaguePulseResponse }) {
     >
       <h2 className="dg-league-pulse__heading">League Pulse</h2>
       <p className="dg-league-pulse__experimental">
-        EXPERIMENTAL — not decision-grade. This is a read-only league snapshot, not a
-        recommendation.
+        EXPERIMENTAL — not decision-grade. This is a read-only league snapshot.
       </p>
+      <p className="dg-league-pulse__diagnostic">{DIAGNOSTIC_WORKSPACE_COPY}</p>
       <p className="dg-league-pulse__asof">as of {data.captured_at}</p>
       {artifactStateCaveat ? (
         <p className="dg-league-pulse__caveat">{artifactStateCaveat}</p>

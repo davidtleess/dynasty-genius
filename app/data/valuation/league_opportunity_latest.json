@@ -1,191 +1,30 @@
 {
   "automated_trade_execution": false,
-  "captured_at": "2026-06-23T13:17:34.508685+00:00",
+  "captured_at": "2026-06-30T18:55:08.407630+00:00",
+  "card_section_counts": [
+    {
+      "decision_supported": false,
+      "section_cap": 20,
+      "shown_count": 20,
+      "sort_key": "absolute_model_market_delta_desc",
+      "total_count": 153
+    },
+    {
+      "decision_supported": false,
+      "section_cap": 20,
+      "shown_count": 9,
+      "sort_key": "positional_z_differential_desc",
+      "total_count": 9
+    },
+    {
+      "decision_supported": false,
+      "section_cap": 20,
+      "shown_count": 2,
+      "sort_key": "taxi_long_term_value_desc",
+      "total_count": 2
+    }
+  ],
   "cards": [
-    {
-      "asset": {
-        "dg_player_id": "00-0035644",
-        "full_name": "Noah Fant",
-        "position": "TE",
-        "sleeper_player_id": "5857"
-      },
-      "card_id": "opp-0138",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.592,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.662,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -8.94
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 1,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "AJ Barner",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "TE",
-        "sleeper_player_id": "11603"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.662,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0033923",
-        "full_name": "Kareem Hunt",
-        "position": "RB",
-        "sleeper_player_id": "4098"
-      },
-      "card_id": "opp-0131",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.572,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.605,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": 7.15
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 9,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "Kaelon Black",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "RB",
-        "sleeper_player_id": "13414"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.605,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0037005",
-        "full_name": "Tommy Tremble",
-        "position": "TE",
-        "sleeper_player_id": "7694"
-      },
-      "card_id": "opp-0149",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.572,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.605,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -16.98
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 1,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "AJ Barner",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "TE",
-        "sleeper_player_id": "11603"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.605,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0030279",
-        "full_name": "Keenan Allen",
-        "position": "WR",
-        "sleeper_player_id": "1479"
-      },
-      "card_id": "opp-0129",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.567,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.59,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": 13.5
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 2,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "Adonai Mitchell",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "WR",
-        "sleeper_player_id": "11625"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.59,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
     {
       "asset": {
         "dg_player_id": "00-0033858",
@@ -201,29 +40,4077 @@
       "counterparty_roster_id": 9,
       "counterparty_team_name": "Seidmans Sasquatches",
       "decision_supported": false,
-      "opportunity_score": 0.556,
+      "evidence_status": "evidence_complete",
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
           "asset_roster_id": 9,
+          "asset_xvar": 2.85,
+          "evidence_status": "evidence_complete",
           "market_percentile": 0.107,
           "model_minus_market_delta": 0.853,
           "model_percentile": 0.96,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed"
+          "signal": "MODEL_HIGH_MARKET_LOW"
         },
         "primary": "MODEL_MARKET_ASYMMETRY",
         "secondary": [
           "FANTASYCALC_PERCENTILE_DIVERGENCE"
         ]
       },
-      "schema_version": "opportunity.v1",
+      "schema_version": "opportunity.v2",
       "score_components": {
         "divergence_score": 0.853,
         "feasibility_score": 0.5,
         "fit_score": 0.35
       },
-      "signal_status": "gates_passed"
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.853
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0035644",
+        "full_name": "Noah Fant",
+        "position": "TE",
+        "sleeper_player_id": "5857"
+      },
+      "card_id": "opp-0138",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_xvar": -8.94,
+          "evidence_status": "evidence_complete",
+          "model_minus_market_delta": 0.662,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 60.4,
+            "full_name": "AJ Barner",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11603",
+            "value_status": "valued",
+            "xvar_pct": 34.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 40.4,
+            "full_name": "Adonai Mitchell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11625",
+            "value_status": "valued",
+            "xvar_pct": 37.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 50.4,
+            "full_name": "Mac Jones",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "7527",
+            "value_status": "valued",
+            "xvar_pct": 39.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 69.6,
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11597",
+            "value_status": "valued",
+            "xvar_pct": 43.6
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 47.1,
+            "full_name": "Parker Washington",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9487",
+            "value_status": "valued",
+            "xvar_pct": 48.1
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 62.46,
+            "full_name": "Chris Bell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13311",
+            "value_status": "valued",
+            "xvar_pct": 58.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 58.5,
+            "full_name": "Xavier Legette",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11626",
+            "value_status": "valued",
+            "xvar_pct": 64.2
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 63.0,
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11620",
+            "value_status": "valued",
+            "xvar_pct": 70.4
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 61.55,
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13414",
+            "value_status": "valued",
+            "xvar_pct": 79.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Ashton Jeanty",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12527",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Chimere Dike",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12540",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12486",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12499",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11565",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Jaxson Dart",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12508",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Luther Burden",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12519",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12492",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tank Dell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9502",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tre' Harris",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12509",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "TreVeyon Henderson",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12529",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.662,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.662
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0033923",
+        "full_name": "Kareem Hunt",
+        "position": "RB",
+        "sleeper_player_id": "4098"
+      },
+      "card_id": "opp-0131",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_xvar": 7.15,
+          "evidence_status": "evidence_complete",
+          "model_minus_market_delta": 0.605,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 60.4,
+            "full_name": "AJ Barner",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11603",
+            "value_status": "valued",
+            "xvar_pct": 34.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 40.4,
+            "full_name": "Adonai Mitchell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11625",
+            "value_status": "valued",
+            "xvar_pct": 37.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 50.4,
+            "full_name": "Mac Jones",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "7527",
+            "value_status": "valued",
+            "xvar_pct": 39.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 69.6,
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11597",
+            "value_status": "valued",
+            "xvar_pct": 43.6
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 47.1,
+            "full_name": "Parker Washington",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9487",
+            "value_status": "valued",
+            "xvar_pct": 48.1
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 62.46,
+            "full_name": "Chris Bell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13311",
+            "value_status": "valued",
+            "xvar_pct": 58.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 58.5,
+            "full_name": "Xavier Legette",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11626",
+            "value_status": "valued",
+            "xvar_pct": 64.2
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 63.0,
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11620",
+            "value_status": "valued",
+            "xvar_pct": 70.4
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 61.55,
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13414",
+            "value_status": "valued",
+            "xvar_pct": 79.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Ashton Jeanty",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12527",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Chimere Dike",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12540",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12486",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12499",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11565",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Jaxson Dart",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12508",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Luther Burden",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12519",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12492",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tank Dell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9502",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tre' Harris",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12509",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "TreVeyon Henderson",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12529",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.605,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.605
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0037005",
+        "full_name": "Tommy Tremble",
+        "position": "TE",
+        "sleeper_player_id": "7694"
+      },
+      "card_id": "opp-0149",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_xvar": -16.98,
+          "evidence_status": "evidence_complete",
+          "model_minus_market_delta": 0.605,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 60.4,
+            "full_name": "AJ Barner",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11603",
+            "value_status": "valued",
+            "xvar_pct": 34.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 40.4,
+            "full_name": "Adonai Mitchell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11625",
+            "value_status": "valued",
+            "xvar_pct": 37.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 50.4,
+            "full_name": "Mac Jones",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "7527",
+            "value_status": "valued",
+            "xvar_pct": 39.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 69.6,
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11597",
+            "value_status": "valued",
+            "xvar_pct": 43.6
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 47.1,
+            "full_name": "Parker Washington",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9487",
+            "value_status": "valued",
+            "xvar_pct": 48.1
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 62.46,
+            "full_name": "Chris Bell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13311",
+            "value_status": "valued",
+            "xvar_pct": 58.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 58.5,
+            "full_name": "Xavier Legette",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11626",
+            "value_status": "valued",
+            "xvar_pct": 64.2
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 63.0,
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11620",
+            "value_status": "valued",
+            "xvar_pct": 70.4
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 61.55,
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13414",
+            "value_status": "valued",
+            "xvar_pct": 79.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Ashton Jeanty",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12527",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Chimere Dike",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12540",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12486",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12499",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11565",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Jaxson Dart",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12508",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Luther Burden",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12519",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12492",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tank Dell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9502",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tre' Harris",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12509",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "TreVeyon Henderson",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12529",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.605,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.605
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0030279",
+        "full_name": "Keenan Allen",
+        "position": "WR",
+        "sleeper_player_id": "1479"
+      },
+      "card_id": "opp-0129",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_xvar": 13.5,
+          "evidence_status": "evidence_complete",
+          "model_minus_market_delta": 0.59,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 60.4,
+            "full_name": "AJ Barner",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11603",
+            "value_status": "valued",
+            "xvar_pct": 34.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 40.4,
+            "full_name": "Adonai Mitchell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11625",
+            "value_status": "valued",
+            "xvar_pct": 37.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 50.4,
+            "full_name": "Mac Jones",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "7527",
+            "value_status": "valued",
+            "xvar_pct": 39.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 69.6,
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11597",
+            "value_status": "valued",
+            "xvar_pct": 43.6
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 47.1,
+            "full_name": "Parker Washington",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9487",
+            "value_status": "valued",
+            "xvar_pct": 48.1
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 62.46,
+            "full_name": "Chris Bell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13311",
+            "value_status": "valued",
+            "xvar_pct": 58.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 58.5,
+            "full_name": "Xavier Legette",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11626",
+            "value_status": "valued",
+            "xvar_pct": 64.2
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 63.0,
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11620",
+            "value_status": "valued",
+            "xvar_pct": 70.4
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 61.55,
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13414",
+            "value_status": "valued",
+            "xvar_pct": 79.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Ashton Jeanty",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12527",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Chimere Dike",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12540",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12486",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12499",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11565",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Jaxson Dart",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12508",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Luther Burden",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12519",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12492",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tank Dell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9502",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tre' Harris",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12509",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "TreVeyon Henderson",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12529",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.59,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.59
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0036637",
+        "full_name": "Noah Gray",
+        "position": "TE",
+        "sleeper_player_id": "7828"
+      },
+      "card_id": "opp-0099",
+      "card_type": "DIVERGENCE_MODEL_HIGH",
+      "caveats": [
+        "market_overlay_context_only"
+      ],
+      "counterparty_roster_id": 6,
+      "counterparty_team_name": "Drew P. Bauls",
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_roster_id": 6,
+          "asset_xvar": -10.5,
+          "evidence_status": "evidence_complete",
+          "market_percentile": 0.179,
+          "model_minus_market_delta": 0.563,
+          "model_percentile": 0.742,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.563,
+        "feasibility_score": 0.5,
+        "fit_score": 0.35
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.563
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0036290",
+        "full_name": "Cole Kmet",
+        "position": "TE",
+        "sleeper_player_id": "6826"
+      },
+      "card_id": "opp-0143",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_xvar": -6.48,
+          "evidence_status": "evidence_complete",
+          "model_minus_market_delta": 0.544,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 60.4,
+            "full_name": "AJ Barner",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11603",
+            "value_status": "valued",
+            "xvar_pct": 34.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 40.4,
+            "full_name": "Adonai Mitchell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11625",
+            "value_status": "valued",
+            "xvar_pct": 37.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 50.4,
+            "full_name": "Mac Jones",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "7527",
+            "value_status": "valued",
+            "xvar_pct": 39.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 69.6,
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11597",
+            "value_status": "valued",
+            "xvar_pct": 43.6
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 47.1,
+            "full_name": "Parker Washington",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9487",
+            "value_status": "valued",
+            "xvar_pct": 48.1
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 62.46,
+            "full_name": "Chris Bell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13311",
+            "value_status": "valued",
+            "xvar_pct": 58.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 58.5,
+            "full_name": "Xavier Legette",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11626",
+            "value_status": "valued",
+            "xvar_pct": 64.2
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 63.0,
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11620",
+            "value_status": "valued",
+            "xvar_pct": 70.4
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 61.55,
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13414",
+            "value_status": "valued",
+            "xvar_pct": 79.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Ashton Jeanty",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12527",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Chimere Dike",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12540",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12486",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12499",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11565",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Jaxson Dart",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12508",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Luther Burden",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12519",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12492",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tank Dell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9502",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tre' Harris",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12509",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "TreVeyon Henderson",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12529",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.544,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.544
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0036894",
+        "full_name": "Pat Freiermuth",
+        "position": "TE",
+        "sleeper_player_id": "7600"
+      },
+      "card_id": "opp-0098",
+      "card_type": "DIVERGENCE_MODEL_HIGH",
+      "caveats": [
+        "market_overlay_context_only"
+      ],
+      "counterparty_roster_id": 9,
+      "counterparty_team_name": "Seidmans Sasquatches",
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_roster_id": 9,
+          "asset_xvar": 2.85,
+          "evidence_status": "evidence_complete",
+          "market_percentile": 0.421,
+          "model_minus_market_delta": 0.539,
+          "model_percentile": 0.96,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.539,
+        "feasibility_score": 0.5,
+        "fit_score": 0.35
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.539
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0033908",
+        "full_name": "Cooper Kupp",
+        "position": "WR",
+        "sleeper_player_id": "4039"
+      },
+      "card_id": "opp-0130",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_xvar": 11.8,
+          "evidence_status": "evidence_complete",
+          "model_minus_market_delta": 0.505,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 60.4,
+            "full_name": "AJ Barner",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11603",
+            "value_status": "valued",
+            "xvar_pct": 34.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 40.4,
+            "full_name": "Adonai Mitchell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11625",
+            "value_status": "valued",
+            "xvar_pct": 37.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 50.4,
+            "full_name": "Mac Jones",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "7527",
+            "value_status": "valued",
+            "xvar_pct": 39.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 69.6,
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11597",
+            "value_status": "valued",
+            "xvar_pct": 43.6
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 47.1,
+            "full_name": "Parker Washington",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9487",
+            "value_status": "valued",
+            "xvar_pct": 48.1
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 62.46,
+            "full_name": "Chris Bell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13311",
+            "value_status": "valued",
+            "xvar_pct": 58.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 58.5,
+            "full_name": "Xavier Legette",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11626",
+            "value_status": "valued",
+            "xvar_pct": 64.2
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 63.0,
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11620",
+            "value_status": "valued",
+            "xvar_pct": 70.4
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 61.55,
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13414",
+            "value_status": "valued",
+            "xvar_pct": 79.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Ashton Jeanty",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12527",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Chimere Dike",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12540",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12486",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12499",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11565",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Jaxson Dart",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12508",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Luther Burden",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12519",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12492",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tank Dell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9502",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tre' Harris",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12509",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "TreVeyon Henderson",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12529",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.505,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.505
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0039738",
+        "full_name": "Blake Corum",
+        "position": "RB",
+        "sleeper_player_id": "11586"
+      },
+      "card_id": "opp-0019",
+      "card_type": "DIVERGENCE_MARKET_HIGH",
+      "caveats": [
+        "market_overlay_context_only"
+      ],
+      "counterparty_roster_id": 4,
+      "counterparty_team_name": "Free Kelly",
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_roster_id": 4,
+          "asset_xvar": -21.88,
+          "evidence_status": "evidence_complete",
+          "market_percentile": 0.687,
+          "model_minus_market_delta": -0.504,
+          "model_percentile": 0.183,
+          "signal": "MODEL_LOW_MARKET_HIGH"
+        },
+        "primary": "MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.504,
+        "feasibility_score": 0.5,
+        "fit_score": 0.35
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.504
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0037267",
+        "full_name": "Jerome Ford",
+        "position": "RB",
+        "sleeper_player_id": "8143"
+      },
+      "card_id": "opp-0156",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_xvar": -1.73,
+          "evidence_status": "evidence_complete",
+          "model_minus_market_delta": 0.494,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 60.4,
+            "full_name": "AJ Barner",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11603",
+            "value_status": "valued",
+            "xvar_pct": 34.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 40.4,
+            "full_name": "Adonai Mitchell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11625",
+            "value_status": "valued",
+            "xvar_pct": 37.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 50.4,
+            "full_name": "Mac Jones",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "7527",
+            "value_status": "valued",
+            "xvar_pct": 39.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 69.6,
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11597",
+            "value_status": "valued",
+            "xvar_pct": 43.6
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 47.1,
+            "full_name": "Parker Washington",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9487",
+            "value_status": "valued",
+            "xvar_pct": 48.1
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 62.46,
+            "full_name": "Chris Bell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13311",
+            "value_status": "valued",
+            "xvar_pct": 58.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 58.5,
+            "full_name": "Xavier Legette",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11626",
+            "value_status": "valued",
+            "xvar_pct": 64.2
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 63.0,
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11620",
+            "value_status": "valued",
+            "xvar_pct": 70.4
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 61.55,
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13414",
+            "value_status": "valued",
+            "xvar_pct": 79.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Ashton Jeanty",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12527",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Chimere Dike",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12540",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12486",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12499",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11565",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Jaxson Dart",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12508",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Luther Burden",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12519",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12492",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tank Dell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9502",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tre' Harris",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12509",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "TreVeyon Henderson",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12529",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.494,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.494
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0034829",
+        "full_name": "Mike Gesicki",
+        "position": "TE",
+        "sleeper_player_id": "4993"
+      },
+      "card_id": "opp-0137",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_xvar": -7.32,
+          "evidence_status": "evidence_complete",
+          "model_minus_market_delta": 0.492,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 60.4,
+            "full_name": "AJ Barner",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11603",
+            "value_status": "valued",
+            "xvar_pct": 34.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 40.4,
+            "full_name": "Adonai Mitchell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11625",
+            "value_status": "valued",
+            "xvar_pct": 37.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 50.4,
+            "full_name": "Mac Jones",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "7527",
+            "value_status": "valued",
+            "xvar_pct": 39.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 69.6,
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11597",
+            "value_status": "valued",
+            "xvar_pct": 43.6
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 47.1,
+            "full_name": "Parker Washington",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9487",
+            "value_status": "valued",
+            "xvar_pct": 48.1
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 62.46,
+            "full_name": "Chris Bell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13311",
+            "value_status": "valued",
+            "xvar_pct": 58.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 58.5,
+            "full_name": "Xavier Legette",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11626",
+            "value_status": "valued",
+            "xvar_pct": 64.2
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 63.0,
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11620",
+            "value_status": "valued",
+            "xvar_pct": 70.4
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 61.55,
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13414",
+            "value_status": "valued",
+            "xvar_pct": 79.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Ashton Jeanty",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12527",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Chimere Dike",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12540",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12486",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12499",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11565",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Jaxson Dart",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12508",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Luther Burden",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12519",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12492",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tank Dell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9502",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tre' Harris",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12509",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "TreVeyon Henderson",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12529",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.492,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.492
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0038621",
+        "full_name": "Demario Douglas",
+        "position": "WR",
+        "sleeper_player_id": "9501"
+      },
+      "card_id": "opp-0162",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_xvar": -1.2,
+          "evidence_status": "evidence_complete",
+          "model_minus_market_delta": 0.486,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 60.4,
+            "full_name": "AJ Barner",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11603",
+            "value_status": "valued",
+            "xvar_pct": 34.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 40.4,
+            "full_name": "Adonai Mitchell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11625",
+            "value_status": "valued",
+            "xvar_pct": 37.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 50.4,
+            "full_name": "Mac Jones",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "7527",
+            "value_status": "valued",
+            "xvar_pct": 39.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 69.6,
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11597",
+            "value_status": "valued",
+            "xvar_pct": 43.6
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 47.1,
+            "full_name": "Parker Washington",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9487",
+            "value_status": "valued",
+            "xvar_pct": 48.1
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 62.46,
+            "full_name": "Chris Bell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13311",
+            "value_status": "valued",
+            "xvar_pct": 58.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 58.5,
+            "full_name": "Xavier Legette",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11626",
+            "value_status": "valued",
+            "xvar_pct": 64.2
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 63.0,
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11620",
+            "value_status": "valued",
+            "xvar_pct": 70.4
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 61.55,
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13414",
+            "value_status": "valued",
+            "xvar_pct": 79.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Ashton Jeanty",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12527",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Chimere Dike",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12540",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12486",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12499",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11565",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Jaxson Dart",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12508",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Luther Burden",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12519",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12492",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tank Dell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9502",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tre' Harris",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12509",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "TreVeyon Henderson",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12529",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.486,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.486
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0036550",
+        "full_name": "Rashod Bateman",
+        "position": "WR",
+        "sleeper_player_id": "7571"
+      },
+      "card_id": "opp-0147",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_xvar": 4.1,
+          "evidence_status": "evidence_complete",
+          "model_minus_market_delta": 0.485,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 60.4,
+            "full_name": "AJ Barner",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11603",
+            "value_status": "valued",
+            "xvar_pct": 34.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 40.4,
+            "full_name": "Adonai Mitchell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11625",
+            "value_status": "valued",
+            "xvar_pct": 37.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 50.4,
+            "full_name": "Mac Jones",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "7527",
+            "value_status": "valued",
+            "xvar_pct": 39.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 69.6,
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11597",
+            "value_status": "valued",
+            "xvar_pct": 43.6
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 47.1,
+            "full_name": "Parker Washington",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9487",
+            "value_status": "valued",
+            "xvar_pct": 48.1
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 62.46,
+            "full_name": "Chris Bell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13311",
+            "value_status": "valued",
+            "xvar_pct": 58.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 58.5,
+            "full_name": "Xavier Legette",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11626",
+            "value_status": "valued",
+            "xvar_pct": 64.2
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 63.0,
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11620",
+            "value_status": "valued",
+            "xvar_pct": 70.4
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 61.55,
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13414",
+            "value_status": "valued",
+            "xvar_pct": 79.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Ashton Jeanty",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12527",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Chimere Dike",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12540",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12486",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12499",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11565",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Jaxson Dart",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12508",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Luther Burden",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12519",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12492",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tank Dell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9502",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tre' Harris",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12509",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "TreVeyon Henderson",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12529",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.485,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.485
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0036971",
+        "full_name": "Trevor Lawrence",
+        "position": "QB",
+        "sleeper_player_id": "7523"
+      },
+      "card_id": "opp-0093",
+      "card_type": "DIVERGENCE_MARKET_HIGH",
+      "caveats": [
+        "market_overlay_context_only"
+      ],
+      "counterparty_roster_id": 4,
+      "counterparty_team_name": "Free Kelly",
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_roster_id": 4,
+          "asset_xvar": 0.14,
+          "evidence_status": "evidence_complete",
+          "market_percentile": 0.846,
+          "model_minus_market_delta": -0.462,
+          "model_percentile": 0.384,
+          "signal": "MODEL_LOW_MARKET_HIGH"
+        },
+        "primary": "MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.462,
+        "feasibility_score": 0.5,
+        "fit_score": 0.35
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.462
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0033906",
+        "full_name": "Alvin Kamara",
+        "position": "RB",
+        "sleeper_player_id": "4035"
+      },
+      "card_id": "opp-0062",
+      "card_type": "DIVERGENCE_MODEL_HIGH",
+      "caveats": [
+        "market_overlay_context_only"
+      ],
+      "counterparty_roster_id": 6,
+      "counterparty_team_name": "Drew P. Bauls",
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_roster_id": 6,
+          "asset_xvar": 47.54,
+          "evidence_status": "evidence_complete",
+          "market_percentile": 0.463,
+          "model_minus_market_delta": 0.454,
+          "model_percentile": 0.917,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.454,
+        "feasibility_score": 0.5,
+        "fit_score": 0.35
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.454
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0036988",
+        "full_name": "Joshua Palmer",
+        "position": "WR",
+        "sleeper_player_id": "7670"
+      },
+      "card_id": "opp-0148",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot"
+      ],
+      "counterparty_roster_id": null,
+      "counterparty_team_name": null,
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_xvar": -10.2,
+          "evidence_status": "evidence_complete",
+          "model_minus_market_delta": 0.454,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 60.4,
+            "full_name": "AJ Barner",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11603",
+            "value_status": "valued",
+            "xvar_pct": 34.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 40.4,
+            "full_name": "Adonai Mitchell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11625",
+            "value_status": "valued",
+            "xvar_pct": 37.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 50.4,
+            "full_name": "Mac Jones",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "7527",
+            "value_status": "valued",
+            "xvar_pct": 39.3
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 69.6,
+            "full_name": "Theo Johnson",
+            "position": "TE",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11597",
+            "value_status": "valued",
+            "xvar_pct": 43.6
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 47.1,
+            "full_name": "Parker Washington",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9487",
+            "value_status": "valued",
+            "xvar_pct": 48.1
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 62.46,
+            "full_name": "Chris Bell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13311",
+            "value_status": "valued",
+            "xvar_pct": 58.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 58.5,
+            "full_name": "Xavier Legette",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11626",
+            "value_status": "valued",
+            "xvar_pct": 64.2
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 63.0,
+            "full_name": "Rome Odunze",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11620",
+            "value_status": "valued",
+            "xvar_pct": 70.4
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 61.55,
+            "full_name": "Kaelon Black",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "13414",
+            "value_status": "valued",
+            "xvar_pct": 79.9
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Ashton Jeanty",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12527",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Chimere Dike",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12540",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Dillon Gabriel",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12486",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Elic Ayomanor",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12499",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "J.J. McCarthy",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11565",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Jaxson Dart",
+            "position": "QB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12508",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Luther Burden",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12519",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Pat Bryant",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12492",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tank Dell",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "9502",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "Tre' Harris",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12509",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [
+              "valuation_unavailable"
+            ],
+            "decision_supported": false,
+            "dvs": null,
+            "full_name": "TreVeyon Henderson",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12529",
+            "value_status": "unvalued",
+            "xvar_pct": null
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.454,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.454
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0033077",
+        "full_name": "Dak Prescott",
+        "position": "QB",
+        "sleeper_player_id": "3294"
+      },
+      "card_id": "opp-0059",
+      "card_type": "DIVERGENCE_MARKET_HIGH",
+      "caveats": [
+        "market_overlay_context_only"
+      ],
+      "counterparty_roster_id": 4,
+      "counterparty_team_name": "Free Kelly",
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_roster_id": 4,
+          "asset_xvar": -3.88,
+          "evidence_status": "evidence_complete",
+          "market_percentile": 0.787,
+          "model_minus_market_delta": -0.45,
+          "model_percentile": 0.337,
+          "signal": "MODEL_LOW_MARKET_HIGH"
+        },
+        "primary": "MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.45,
+        "feasibility_score": 0.5,
+        "fit_score": 0.35
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.45
+    },
+    {
+      "asset": {
+        "dg_player_id": "00-0033040",
+        "full_name": "Tyreek Hill",
+        "position": "WR",
+        "sleeper_player_id": "3321"
+      },
+      "card_id": "opp-0060",
+      "card_type": "DIVERGENCE_MODEL_HIGH",
+      "caveats": [
+        "market_overlay_context_only"
+      ],
+      "counterparty_roster_id": 9,
+      "counterparty_team_name": "Seidmans Sasquatches",
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_roster_id": 9,
+          "asset_xvar": 24.4,
+          "evidence_status": "evidence_complete",
+          "market_percentile": 0.426,
+          "model_minus_market_delta": 0.445,
+          "model_percentile": 0.871,
+          "signal": "MODEL_HIGH_MARKET_LOW"
+        },
+        "primary": "MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.445,
+        "feasibility_score": 0.5,
+        "fit_score": 0.35
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.445
+    },
+    {
+      "asset": {
+        "dg_player_id": "kaytron_allen_rb",
+        "full_name": "Kaytron Allen",
+        "position": "RB",
+        "sleeper_player_id": "13405"
+      },
+      "card_id": "opp-0049",
+      "card_type": "DIVERGENCE_MARKET_HIGH",
+      "caveats": [
+        "market_overlay_context_only"
+      ],
+      "counterparty_roster_id": 3,
+      "counterparty_team_name": "MDEF",
+      "decision_supported": false,
+      "evidence_status": "evidence_complete",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "asset_roster_id": 3,
+          "asset_xvar": -28.8,
+          "evidence_status": "evidence_complete",
+          "market_percentile": 0.565,
+          "model_minus_market_delta": -0.437,
+          "model_percentile": 0.128,
+          "signal": "MODEL_LOW_MARKET_HIGH"
+        },
+        "primary": "MODEL_MARKET_ASYMMETRY",
+        "secondary": [
+          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.437,
+        "feasibility_score": 0.5,
+        "fit_score": 0.35
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.437
     },
     {
       "asset": {
@@ -240,7 +4127,7 @@
       "counterparty_roster_id": 8,
       "counterparty_team_name": "jspringe88",
       "decision_supported": false,
-      "opportunity_score": 0.55,
+      "evidence_status": "evidence_gated",
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
@@ -248,342 +4135,22 @@
           "counterparty_surplus_label": "surplus",
           "perspective_position_z": -1.739,
           "perspective_surplus_label": "deficit",
-          "position": "WR"
+          "position": "WR",
+          "positional_z_differential": 4.038
         },
         "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
         "secondary": [
           "PERSPECTIVE_POSITIONAL_DEFICIT"
         ]
       },
-      "schema_version": "opportunity.v1",
+      "schema_version": "opportunity.v2",
       "score_components": {
         "divergence_score": 0.0,
         "feasibility_score": 0.5,
         "fit_score": 1.0
       },
-      "signal_status": "gates_blocked"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0036290",
-        "full_name": "Cole Kmet",
-        "position": "TE",
-        "sleeper_player_id": "6826"
-      },
-      "card_id": "opp-0143",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.55,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.544,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -6.48
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 1,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "AJ Barner",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "TE",
-        "sleeper_player_id": "11603"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.544,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0033908",
-        "full_name": "Cooper Kupp",
-        "position": "WR",
-        "sleeper_player_id": "4039"
-      },
-      "card_id": "opp-0130",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.537,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.505,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": 11.8
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 2,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "Adonai Mitchell",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "WR",
-        "sleeper_player_id": "11625"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.505,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0037267",
-        "full_name": "Jerome Ford",
-        "position": "RB",
-        "sleeper_player_id": "8143"
-      },
-      "card_id": "opp-0156",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.533,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.494,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -1.73
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 9,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "Kaelon Black",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "RB",
-        "sleeper_player_id": "13414"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.494,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0034829",
-        "full_name": "Mike Gesicki",
-        "position": "TE",
-        "sleeper_player_id": "4993"
-      },
-      "card_id": "opp-0137",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.532,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.492,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -7.32
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 1,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "AJ Barner",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "TE",
-        "sleeper_player_id": "11603"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.492,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0036550",
-        "full_name": "Rashod Bateman",
-        "position": "WR",
-        "sleeper_player_id": "7571"
-      },
-      "card_id": "opp-0147",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.53,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.485,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": 4.1
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 2,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "Adonai Mitchell",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "WR",
-        "sleeper_player_id": "11625"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.485,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0038621",
-        "full_name": "Demario Douglas",
-        "position": "WR",
-        "sleeper_player_id": "9501"
-      },
-      "card_id": "opp-0162",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.53,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.486,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -1.2
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 2,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "Adonai Mitchell",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "WR",
-        "sleeper_player_id": "11625"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.486,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0036988",
-        "full_name": "Joshua Palmer",
-        "position": "WR",
-        "sleeper_player_id": "7670"
-      },
-      "card_id": "opp-0148",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.519,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.454,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -10.2
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 2,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "Adonai Mitchell",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "WR",
-        "sleeper_player_id": "11625"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.454,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
+      "sort_key": "positional_z_differential_desc",
+      "sort_value": 4.038
     },
     {
       "asset": {
@@ -600,7 +4167,7 @@
       "counterparty_roster_id": 10,
       "counterparty_team_name": "Kissane\u2019s Team",
       "decision_supported": false,
-      "opportunity_score": 0.513,
+      "evidence_status": "evidence_gated",
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
@@ -608,158 +4175,22 @@
           "counterparty_surplus_label": "surplus",
           "perspective_position_z": -1.907,
           "perspective_surplus_label": "deficit",
-          "position": "QB"
+          "position": "QB",
+          "positional_z_differential": 3.671
         },
         "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
         "secondary": [
           "PERSPECTIVE_POSITIONAL_DEFICIT"
         ]
       },
-      "schema_version": "opportunity.v1",
+      "schema_version": "opportunity.v2",
       "score_components": {
         "divergence_score": 0.0,
         "feasibility_score": 0.5,
         "fit_score": 0.918
       },
-      "signal_status": "gates_blocked"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0039021",
-        "full_name": "Roschon Johnson",
-        "position": "RB",
-        "sleeper_player_id": "10235"
-      },
-      "card_id": "opp-0119",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.513,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.436,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -7.04
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 9,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "Kaelon Black",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "RB",
-        "sleeper_player_id": "13414"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.436,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0036849",
-        "full_name": "Tutu Atwell",
-        "position": "WR",
-        "sleeper_player_id": "7562"
-      },
-      "card_id": "opp-0146",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.513,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.436,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -15.1
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 2,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "Adonai Mitchell",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "WR",
-        "sleeper_player_id": "11625"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.436,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
-    },
-    {
-      "asset": {
-        "dg_player_id": "00-0034837",
-        "full_name": "Calvin Ridley",
-        "position": "WR",
-        "sleeper_player_id": "4981"
-      },
-      "card_id": "opp-0136",
-      "card_type": "WAIVER_CANDIDATE",
-      "caveats": [
-        "waiver_status_from_sleeper_snapshot"
-      ],
-      "counterparty_roster_id": null,
-      "counterparty_team_name": null,
-      "decision_supported": false,
-      "opportunity_score": 0.502,
-      "perspective_roster_id": 1,
-      "rationale": {
-        "evidence": {
-          "model_minus_market_delta": 0.405,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": 8.1
-        },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-        "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
-        ]
-      },
-      "recommended_drop": {
-        "cut_priority": 2,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "Adonai Mitchell",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "WR",
-        "sleeper_player_id": "11625"
-      },
-      "schema_version": "opportunity.v1",
-      "score_components": {
-        "divergence_score": 0.405,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
-      },
-      "signal_status": "gates_passed"
+      "sort_key": "positional_z_differential_desc",
+      "sort_value": 3.671
     },
     {
       "asset": {
@@ -776,7 +4207,7 @@
       "counterparty_roster_id": 9,
       "counterparty_team_name": "Seidmans Sasquatches",
       "decision_supported": false,
-      "opportunity_score": 0.498,
+      "evidence_status": "evidence_gated",
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
@@ -784,112 +4215,338 @@
           "counterparty_surplus_label": "surplus",
           "perspective_position_z": -2.72,
           "perspective_surplus_label": "deficit",
-          "position": "TE"
+          "position": "TE",
+          "positional_z_differential": 3.541
         },
         "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
         "secondary": [
           "PERSPECTIVE_POSITIONAL_DEFICIT"
         ]
       },
-      "schema_version": "opportunity.v1",
+      "schema_version": "opportunity.v2",
       "score_components": {
         "divergence_score": 0.0,
         "feasibility_score": 0.5,
         "fit_score": 0.885
       },
-      "signal_status": "gates_blocked"
+      "sort_key": "positional_z_differential_desc",
+      "sort_value": 3.541
     },
     {
       "asset": {
-        "dg_player_id": "00-0037666",
-        "full_name": "Jalen Tolbert",
-        "position": "WR",
-        "sleeper_player_id": "8117"
+        "dg_player_id": null,
+        "full_name": "Jayden Daniels",
+        "position": "QB",
+        "sleeper_player_id": "11566"
       },
-      "card_id": "opp-0152",
-      "card_type": "WAIVER_CANDIDATE",
+      "card_id": "opp-0003",
+      "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
       "caveats": [
-        "waiver_status_from_sleeper_snapshot"
+        "future_pick_values_deferred"
+      ],
+      "counterparty_roster_id": 7,
+      "counterparty_team_name": "YippeKiYay MarshalFaulker",
+      "decision_supported": false,
+      "evidence_status": "evidence_gated",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "counterparty_position_z": 1.428,
+          "counterparty_surplus_label": "surplus",
+          "perspective_position_z": -1.907,
+          "perspective_surplus_label": "deficit",
+          "position": "QB",
+          "positional_z_differential": 3.335
+        },
+        "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
+        "secondary": [
+          "PERSPECTIVE_POSITIONAL_DEFICIT"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.0,
+        "feasibility_score": 0.5,
+        "fit_score": 0.834
+      },
+      "sort_key": "positional_z_differential_desc",
+      "sort_value": 3.335
+    },
+    {
+      "asset": {
+        "dg_player_id": null,
+        "full_name": "Jahmyr Gibbs",
+        "position": "RB",
+        "sleeper_player_id": "9221"
+      },
+      "card_id": "opp-0004",
+      "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
+      "caveats": [
+        "future_pick_values_deferred"
+      ],
+      "counterparty_roster_id": 7,
+      "counterparty_team_name": "YippeKiYay MarshalFaulker",
+      "decision_supported": false,
+      "evidence_status": "evidence_gated",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "counterparty_position_z": 1.479,
+          "counterparty_surplus_label": "surplus",
+          "perspective_position_z": -1.457,
+          "perspective_surplus_label": "deficit",
+          "position": "RB",
+          "positional_z_differential": 2.936
+        },
+        "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
+        "secondary": [
+          "PERSPECTIVE_POSITIONAL_DEFICIT"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.0,
+        "feasibility_score": 0.5,
+        "fit_score": 0.734
+      },
+      "sort_key": "positional_z_differential_desc",
+      "sort_value": 2.936
+    },
+    {
+      "asset": {
+        "dg_player_id": null,
+        "full_name": "CeeDee Lamb",
+        "position": "WR",
+        "sleeper_player_id": "6786"
+      },
+      "card_id": "opp-0001",
+      "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
+      "caveats": [
+        "future_pick_values_deferred"
+      ],
+      "counterparty_roster_id": 4,
+      "counterparty_team_name": "Free Kelly",
+      "decision_supported": false,
+      "evidence_status": "evidence_gated",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "counterparty_position_z": 0.841,
+          "counterparty_surplus_label": "surplus",
+          "perspective_position_z": -1.739,
+          "perspective_surplus_label": "deficit",
+          "position": "WR",
+          "positional_z_differential": 2.58
+        },
+        "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
+        "secondary": [
+          "PERSPECTIVE_POSITIONAL_DEFICIT"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.0,
+        "feasibility_score": 0.5,
+        "fit_score": 0.645
+      },
+      "sort_key": "positional_z_differential_desc",
+      "sort_value": 2.58
+    },
+    {
+      "asset": {
+        "dg_player_id": null,
+        "full_name": "Puka Nacua",
+        "position": "WR",
+        "sleeper_player_id": "9493"
+      },
+      "card_id": "opp-0005",
+      "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
+      "caveats": [
+        "future_pick_values_deferred"
+      ],
+      "counterparty_roster_id": 7,
+      "counterparty_team_name": "YippeKiYay MarshalFaulker",
+      "decision_supported": false,
+      "evidence_status": "evidence_gated",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "counterparty_position_z": 0.818,
+          "counterparty_surplus_label": "surplus",
+          "perspective_position_z": -1.739,
+          "perspective_surplus_label": "deficit",
+          "position": "WR",
+          "positional_z_differential": 2.557
+        },
+        "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
+        "secondary": [
+          "PERSPECTIVE_POSITIONAL_DEFICIT"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.0,
+        "feasibility_score": 0.5,
+        "fit_score": 0.639
+      },
+      "sort_key": "positional_z_differential_desc",
+      "sort_value": 2.557
+    },
+    {
+      "asset": {
+        "dg_player_id": null,
+        "full_name": "Josh Jacobs",
+        "position": "RB",
+        "sleeper_player_id": "5850"
+      },
+      "card_id": "opp-0002",
+      "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
+      "caveats": [
+        "future_pick_values_deferred"
+      ],
+      "counterparty_roster_id": 6,
+      "counterparty_team_name": "Drew P. Bauls",
+      "decision_supported": false,
+      "evidence_status": "evidence_gated",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "counterparty_position_z": 0.903,
+          "counterparty_surplus_label": "surplus",
+          "perspective_position_z": -1.457,
+          "perspective_surplus_label": "deficit",
+          "position": "RB",
+          "positional_z_differential": 2.36
+        },
+        "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
+        "secondary": [
+          "PERSPECTIVE_POSITIONAL_DEFICIT"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.0,
+        "feasibility_score": 0.5,
+        "fit_score": 0.59
+      },
+      "sort_key": "positional_z_differential_desc",
+      "sort_value": 2.36
+    },
+    {
+      "asset": {
+        "dg_player_id": null,
+        "full_name": "Jadarian Price",
+        "position": "RB",
+        "sleeper_player_id": "13286"
+      },
+      "card_id": "opp-0009",
+      "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
+      "caveats": [
+        "future_pick_values_deferred"
+      ],
+      "counterparty_roster_id": 12,
+      "counterparty_team_name": "Florida Man",
+      "decision_supported": false,
+      "evidence_status": "evidence_gated",
+      "perspective_roster_id": 1,
+      "rationale": {
+        "evidence": {
+          "counterparty_position_z": 0.879,
+          "counterparty_surplus_label": "surplus",
+          "perspective_position_z": -1.457,
+          "perspective_surplus_label": "deficit",
+          "position": "RB",
+          "positional_z_differential": 2.336
+        },
+        "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
+        "secondary": [
+          "PERSPECTIVE_POSITIONAL_DEFICIT"
+        ]
+      },
+      "schema_version": "opportunity.v2",
+      "score_components": {
+        "divergence_score": 0.0,
+        "feasibility_score": 0.5,
+        "fit_score": 0.584
+      },
+      "sort_key": "positional_z_differential_desc",
+      "sort_value": 2.336
+    },
+    {
+      "asset": {
+        "dg_player_id": "fernando_mendoza_qb",
+        "full_name": "Fernando Mendoza",
+        "position": "QB",
+        "sleeper_player_id": "13269"
+      },
+      "card_id": "opp-0163",
+      "card_type": "TAXI_LONG_TERM_VALUE_PRESENT",
+      "caveats": [
+        "taxi_activation_cost_requires_manual_review"
       ],
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.493,
+      "evidence_status": "evidence_complete",
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.38,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": -7.4
+          "lineup_role": "taxi",
+          "model_minus_market_delta": -0.231,
+          "raw_xvar": 10.31,
+          "signal": "MODEL_LOW_MARKET_HIGH"
         },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "primary": "TAXI_LONG_TERM_VALUE_PRESENT",
         "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+          "ACTIVATION_COST_REPRESENTED"
         ]
       },
-      "recommended_drop": {
-        "cut_priority": 2,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "Adonai Mitchell",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "WR",
-        "sleeper_player_id": "11625"
-      },
-      "schema_version": "opportunity.v1",
+      "schema_version": "opportunity.v2",
       "score_components": {
-        "divergence_score": 0.38,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
+        "divergence_score": 0.231,
+        "feasibility_score": 0.4,
+        "fit_score": 0.412
       },
-      "signal_status": "gates_passed"
+      "sort_key": "taxi_long_term_value_desc",
+      "sort_value": 10.31
     },
     {
       "asset": {
-        "dg_player_id": "00-0038129",
-        "full_name": "Cade Otton",
-        "position": "TE",
-        "sleeper_player_id": "8111"
+        "dg_player_id": "omar_cooper_wr",
+        "full_name": "Omar Cooper Jr.",
+        "position": "WR",
+        "sleeper_player_id": "13276"
       },
-      "card_id": "opp-0151",
-      "card_type": "WAIVER_CANDIDATE",
+      "card_id": "opp-0164",
+      "card_type": "TAXI_LONG_TERM_VALUE_PRESENT",
       "caveats": [
-        "waiver_status_from_sleeper_snapshot"
+        "taxi_activation_cost_requires_manual_review"
       ],
       "counterparty_roster_id": null,
       "counterparty_team_name": null,
       "decision_supported": false,
-      "opportunity_score": 0.491,
+      "evidence_status": "evidence_complete",
       "perspective_roster_id": 1,
       "rationale": {
         "evidence": {
-          "model_minus_market_delta": 0.373,
-          "signal": "MODEL_HIGH_MARKET_LOW",
-          "signal_status": "gates_passed",
-          "xvar": 1.1
+          "lineup_role": "taxi",
+          "model_minus_market_delta": -0.115,
+          "raw_xvar": 1.79,
+          "signal": "MODEL_LOW_MARKET_HIGH"
         },
-        "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
+        "primary": "TAXI_LONG_TERM_VALUE_PRESENT",
         "secondary": [
-          "FANTASYCALC_PERCENTILE_DIVERGENCE"
+          "ACTIVATION_COST_REPRESENTED"
         ]
       },
-      "recommended_drop": {
-        "cut_priority": 1,
-        "cut_rationale": [],
-        "decision_supported": false,
-        "full_name": "AJ Barner",
-        "ir_compliance_status": "NOT_ON_IR",
-        "position": "TE",
-        "sleeper_player_id": "11603"
-      },
-      "schema_version": "opportunity.v1",
+      "schema_version": "opportunity.v2",
       "score_components": {
-        "divergence_score": 0.373,
-        "feasibility_score": 0.9,
-        "fit_score": 0.4
+        "divergence_score": 0.115,
+        "feasibility_score": 0.4,
+        "fit_score": 0.072
       },
-      "signal_status": "gates_passed"
+      "sort_key": "taxi_long_term_value_desc",
+      "sort_value": 1.79
     }
   ],
   "caveats": [
@@ -898,13 +4555,15 @@
   ],
   "coverage": {
     "banned_language_present": [],
-    "card_count": 20,
+    "card_count": 31,
     "cards_by_type": {
-      "DIVERGENCE_MODEL_HIGH": 1,
-      "ROSTER_SURPLUS_DEFICIT_MATCH": 3,
-      "WAIVER_CANDIDATE": 16
+      "DIVERGENCE_MARKET_HIGH": 4,
+      "DIVERGENCE_MODEL_HIGH": 5,
+      "ROSTER_SURPLUS_DEFICIT_MATCH": 9,
+      "TAXI_LONG_TERM_VALUE_PRESENT": 2,
+      "UNROSTERED_MODEL_MARKET_DIVERGENCE": 11
     },
-    "cards_with_evidence_count": 20,
+    "cards_with_evidence_count": 31,
     "decision_supported_true_count": 0,
     "partner_count": 11,
     "phase17_5_exit_criteria": {
@@ -1161,7 +4820,7 @@
     }
   ],
   "perspective_roster_id": 1,
-  "schema_version": "league_opportunity.v1",
+  "schema_version": "league_opportunity.v2",
   "source_artifacts": {
     "market_divergence_captured_at": "2026-06-23T13:17:31.948780+00:00",
     "market_divergence_schema_version": "universe_market_divergence.v1",

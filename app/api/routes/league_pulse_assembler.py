@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from app.api.routes import league_pulse_v1_compat
 from app.api.routes.league_pulse_models import (
     _MODEL_NATIVE_SCORE,
     LeaguePulseCapacityCandidate,
@@ -45,12 +44,10 @@ _EXPECTED_SCHEMAS = {
     "team_value_matrix": "team_value_matrix.v1",
 }
 
-# League Pulse tolerates both league_opportunity schema versions during the
-# Phase 1 T2/T3 migration: v2 cards carry the descriptive capacity pool natively;
-# stale v1 cards are migrated via league_pulse_v1_compat. T4 drops v1 acceptance.
-ACCEPTED_LEAGUE_OPPORTUNITY_SCHEMAS = frozenset(
-    {"league_opportunity.v1", "league_opportunity.v2"}
-)
+# League Pulse accepts only league_opportunity.v2 (Phase 1 T4c go-live): v2 cards
+# carry the descriptive capacity pool natively. The transitional v1 shim was
+# removed at T4c; a stale v1 artifact now fails closed (503) rather than migrating.
+ACCEPTED_LEAGUE_OPPORTUNITY_SCHEMAS = frozenset({"league_opportunity.v2"})
 
 _VALUE_VIEW_KEYS = (
     "starter_weighted_xvar",
@@ -144,15 +141,9 @@ def _map_capacity_item(raw: dict[str, Any]) -> LeaguePulseCapacityCandidate:
 
 
 def _map_capacity_pool(raw_card: dict[str, Any]) -> Optional[LeaguePulseCapacityCandidatePool]:
-    """Map the descriptive capacity pool; drop the block (not the card) if malformed.
-
-    Prefers the native v2 ``roster_capacity_candidates`` pool. Falls back to the
-    transitional v1-compat shim, which migrates a stale ``league_opportunity.v1``
-    card's legacy single-drop field into the same pool shape.
-    """
+    """Map the descriptive v2 ``roster_capacity_candidates`` pool; drop the block
+    (not the card) if absent or malformed."""
     pool = raw_card.get("roster_capacity_candidates")
-    if pool is None:
-        pool = league_pulse_v1_compat.extract_legacy_capacity_pool(raw_card)
     if pool is None:
         return None
     try:
@@ -164,12 +155,7 @@ def _map_capacity_pool(raw_card: dict[str, Any]) -> Optional[LeaguePulseCapacity
 
 
 def map_card(raw: dict[str, Any]) -> Optional[tuple[str, Any]]:
-    """Route + sanitize one opportunity card. Returns (lane, dto) or None (drop)."""
-    # Stale league_opportunity.v1 cards (old action-shaped card types, the
-    # removed composite score, and the legacy signal field) are normalized into
-    # the v2 contract by the compat shim, which is the sole home for the
-    # cordoned legacy tokens.
-    raw = league_pulse_v1_compat.normalize_legacy_card(raw)
+    """Route + sanitize one v2 opportunity card. Returns (lane, dto) or None (drop)."""
     card_type = raw.get("card_type")
     rationale = raw.get("rationale") or {}
     common = {
@@ -296,9 +282,6 @@ def assemble_league_pulse(
     model_native_cards: list[LeaguePulseCard] = []
     market_overlay_cards: list[LeaguePulseMarketCard] = []
     for raw_card in opportunity_artifact.get("cards") or []:
-        # Normalize stale v1 cards once so the drop-count + pool-source checks
-        # below see v2 card types (map_card normalizes again, idempotently).
-        raw_card = league_pulse_v1_compat.normalize_legacy_card(raw_card)
         result = map_card(raw_card)
         if result is None:
             if raw_card.get("card_type") in _OVERLAY_CARD_TYPES:
@@ -316,7 +299,6 @@ def assemble_league_pulse(
             # (malformed) is a DROP. An absent pool is not a drop.
             pool_source_present = (
                 raw_card.get("roster_capacity_candidates") is not None
-                or league_pulse_v1_compat.extract_legacy_capacity_pool(raw_card) is not None
             )
             if pool_source_present and card.roster_capacity_candidates is None:
                 dropped["roster_capacity_candidate_pools"] += 1

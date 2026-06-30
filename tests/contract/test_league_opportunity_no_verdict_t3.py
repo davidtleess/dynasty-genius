@@ -280,40 +280,12 @@ def test_dto_and_assembler_accept_new_contract_and_reject_old_score_field() -> N
     assert "opportunity_score" not in card.model_dump()
 
 
-def test_assembler_maps_stale_v1_card_types_and_scores_to_v2_dto_shape() -> None:
-    raw = {
-        "card_id": "opp-legacy",
-        "card_type": "WAIVER_CANDIDATE",
-        "opportunity_score": 0.77,
-        "signal_status": "gates_passed",
-        "rationale": {
-            "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-            "secondary": ["FANTASYCALC_PERCENTILE_DIVERGENCE"],
-            "evidence": {
-                "signal": "MODEL_HIGH_MARKET_LOW",
-                "signal_status": "gates_passed",
-                "model_minus_market_delta": 0.42,
-                "xvar": 4.0,
-            },
-        },
-        "score_components": {
-            "fit_score": 0.4,
-            "divergence_score": 0.42,
-            "feasibility_score": 0.9,
-        },
-        "caveats": ["waiver_status_from_sleeper_snapshot"],
-    }
-
-    lane, card = league_pulse_assembler.map_card(raw)
-
-    assert lane == "market_overlay_cards"
-    assert card.card_type == "UNROSTERED_MODEL_MARKET_DIVERGENCE"
-    assert card.evidence_status == "evidence_complete"
-    assert card.sort_key == "absolute_model_market_delta_desc"
-    assert card.sort_value == 0.42
-    dumped = card.model_dump()
-    assert "opportunity_score" not in dumped
-    assert "signal_status" not in dumped
+# RETIRED AT T4c: test_assembler_maps_stale_v1_card_types_and_scores_to_v2_dto_shape
+# exercised map_card's normalization of legacy v1 card types/scores via the
+# league_pulse_v1_compat shim, which T4c deleted (map_card is now v2-only). The
+# replacement guard — stale v1 fails closed — lives in
+# tests/contract/test_league_opportunity_no_verdict_t4c.py
+# (test_t4c_assembler_is_v2_only_and_stale_v1_fails_closed).
 
 
 def test_t3_shrinks_cordon_for_backend_openapi_score_and_candidate_enum_debt() -> None:

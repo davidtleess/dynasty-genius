@@ -183,7 +183,7 @@ def _taxi_card() -> dict:
     }
 
 
-def _opportunity_artifact(*, schema_version: str = "league_opportunity.v1") -> dict:
+def _opportunity_artifact(*, schema_version: str = "league_opportunity.v2") -> dict:
     return {
         "schema_version": schema_version,
         "captured_at": "2026-05-24T17:19:59Z",
@@ -362,8 +362,8 @@ def test_assembler_isolated_bad_records_drop_and_degrade() -> None:
 @pytest.mark.parametrize(
     ("posture_version", "value_version", "opportunity_version"),
     [
-        ("wrong", "team_value_matrix.v1", "league_opportunity.v1"),
-        ("team_posture.v1", "wrong", "league_opportunity.v1"),
+        ("wrong", "team_value_matrix.v1", "league_opportunity.v2"),
+        ("team_posture.v1", "wrong", "league_opportunity.v2"),
         ("team_posture.v1", "team_value_matrix.v1", "wrong"),
     ],
 )

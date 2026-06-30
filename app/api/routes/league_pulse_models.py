@@ -222,15 +222,13 @@ class LeaguePulseCapacityCandidatePool(_DSBase):
     """Descriptive pool that replaces the old tool-selected single-drop field.
     Exposes roster-capacity constraints (full candidate set, hard-rule
     conflicts, single-candidate pressure, empty) without nominating an action.
-    ``selection_rule`` is fixed to a no-tool-selection marker; the legacy
-    ``legacy_*`` values mark a stale league_opportunity.v1 artifact migrated for
-    compatibility during the T2/T3 transition."""
+    ``selection_rule`` is fixed to a no-tool-selection marker (v2-only: T4c
+    dropped the transitional v1-compat migration state)."""
 
     pool_status: Literal[
         "available",
         "constrained_single_candidate",
         "empty",
-        "legacy_single_candidate",
     ]
     selection_rule: str
     narrowing_rule: str

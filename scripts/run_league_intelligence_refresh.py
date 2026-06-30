@@ -109,7 +109,7 @@ EXPECTED_SCHEMA_VERSIONS: dict[str, str] = {
     "matrix": "team_value_matrix.v1",
     "posture": "team_posture.v1",
     "divergence": "universe_market_divergence.v1",
-    "opportunity": "league_opportunity.v1",
+    "opportunity": "league_opportunity.v2",
 }
 
 REPORT_DIR = VALUATION

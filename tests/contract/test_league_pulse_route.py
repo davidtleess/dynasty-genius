@@ -69,9 +69,11 @@ def _value_artifact() -> dict:
 
 def _opportunity_artifact() -> dict:
     return {
-        "schema_version": "league_opportunity.v1",
+        "schema_version": "league_opportunity.v2",
         "captured_at": "2026-05-24T17:19:59Z",
         "perspective_roster_id": 1,
+        "decision_supported": False,
+        "card_section_counts": [],
         "partner_rankings": [
             {
                 "counterparty_roster_id": 2,
@@ -86,7 +88,9 @@ def _opportunity_artifact() -> dict:
             {
                 "card_id": "opp-roster",
                 "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
-                "opportunity_score": 0.28,
+                "evidence_status": "evidence_complete",
+                "sort_key": "positional_z_differential_desc",
+                "sort_value": 2.2,
                 "rationale": {
                     "primary": "POSITIONAL_SURPLUS_ON_COUNTERPARTY",
                     "secondary": ["PERSPECTIVE_POSITIONAL_DEFICIT"],
@@ -107,16 +111,18 @@ def _opportunity_artifact() -> dict:
             },
             {
                 "card_id": "opp-waiver",
-                "card_type": "WAIVER_CANDIDATE",
-                "opportunity_score": 0.58,
+                "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+                "evidence_status": "evidence_complete",
+                "sort_key": "absolute_model_market_delta_desc",
+                "sort_value": 0.4,
                 "rationale": {
                     "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
                     "secondary": ["FANTASYCALC_PERCENTILE_DIVERGENCE"],
                     "evidence": {
                         "signal": "MODEL_HIGH_MARKET_LOW",
-                        "signal_status": "available",
+                        "evidence_status": "evidence_complete",
                         "model_minus_market_delta": 0.4,
-                        "xvar": 1.2,
+                        "asset_xvar": 1.2,
                     },
                 },
                 "score_components": {
@@ -124,13 +130,27 @@ def _opportunity_artifact() -> dict:
                     "divergence_score": 0.7,
                     "feasibility_score": 0.9,
                 },
-                "recommended_drop": {
-                    "sleeper_player_id": "drop-1",
-                    "full_name": "Drop Candidate",
-                    "position": "WR",
-                    "cut_priority": 0,
-                    "ir_compliance_status": "eligible",
-                    "cut_rationale": ["waiver_status_from_sleeper_snapshot"],
+                "roster_capacity_candidates": {
+                    "decision_supported": False,
+                    "pool_status": "available",
+                    "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+                    "narrowing_rule": "all_safe_candidates",
+                    "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id",
+                    "items": [
+                        {
+                            "sleeper_player_id": "drop-1",
+                            "full_name": "Drop Candidate",
+                            "position": "WR",
+                            "value_status": "unvalued",
+                            "xvar_pct": None,
+                            "dvs": None,
+                            "capacity_conflict_status": "hard_roster_rules_conflict",
+                            "rule_conflict_label": "IR compliance violation",
+                            "caveats": ["valuation_unavailable"],
+                            "decision_supported": False,
+                        }
+                    ],
+                    "caveats": [],
                 },
                 "caveats": ["waiver_status_from_sleeper_snapshot"],
             },

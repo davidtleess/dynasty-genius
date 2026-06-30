@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -681,6 +682,21 @@ def _markdown(opportunity_map: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _atomic_write_text(path: Path, data: str) -> None:
+    """Publish ``data`` to ``path`` atomically: write a same-directory temp then
+    ``os.replace`` (atomic on the same filesystem). A concurrent reader of ``path``
+    — e.g. the live League Pulse / What-Changed route — therefore observes either
+    the prior bytes or the fully-written new bytes, never a partial/malformed write.
+    """
+    tmp_path = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+    tmp_path.write_text(data)
+    try:
+        os.replace(tmp_path, path)
+    except BaseException:
+        tmp_path.unlink(missing_ok=True)
+        raise
+
+
 def write_league_opportunity_artifacts(
     opportunity_map: dict[str, Any],
     *,
@@ -696,10 +712,12 @@ def write_league_opportunity_artifacts(
 
     payload = json.dumps(opportunity_map, indent=2, sort_keys=True) + "\n"
     markdown_payload = _markdown(opportunity_map)
+    # Unique per-run PIT files write directly; the shared *_latest pointers that
+    # live request paths read are published atomically (No-Verdict T4c go-live).
     batch_path.write_text(payload)
-    latest_path.write_text(payload)
     markdown_path.write_text(markdown_payload)
-    markdown_latest_path.write_text(markdown_payload)
+    _atomic_write_text(latest_path, payload)
+    _atomic_write_text(markdown_latest_path, markdown_payload)
     return {
         "batch": batch_path,
         "batch_latest": latest_path,

@@ -200,65 +200,18 @@ def scan_paths(
 # It is out of Phase 1 scope, tracked under a separate governance ticket, and is REPORTED
 # but NOT counted toward the T4 empty assertion (so we never claim a false generated-
 # client zero).
-LEAGUE_PULSE_PHASE_1_DEBT: list[AllowlistEntry] = [
-    # T2 removed the recommendation-language tokens from the producer, DTO, and
-    # assembler. T3 removed the composite score (opportunity_score) and the
-    # action-shaped card-type enums (WAIVER_CANDIDATE / TAXI_ACTIVATION_CANDIDATE)
-    # from those same files. T4a removed the backend What-Changed consumption.
-    # T4b regenerated the FE client (types.gen / zod.gen) from the v2 OpenAPI and
-    # rewrote the visible FE render (OpportunityCards / LeaguePulseHeader),
-    # removing ALL stale FE render/codegen tokens — those entries are gone.
-    # The remaining debt below is genuinely T4c:
-    #   - the transitional v1-compat shim (removed when v1 support is dropped);
-    #   - residual generated/openapi Recommendation / Recommended language that is
-    #     not league_opportunity-specific (resolved at the T4c closeout);
-    #   - the LeaguePulseHeader honesty-band prose "not a recommendation".
-    AllowlistEntry(
-        path='app/api/routes/league_pulse_v1_compat.py',
-        token='recommended_drop',
-        reason='transitional stale league_opportunity.v1 compatibility read; removed at Phase 1 T4c when v1 support is dropped',
-    ),
-    AllowlistEntry(
-        path='app/api/routes/league_pulse_v1_compat.py',
-        token='opportunity_score',
-        reason='transitional stale league_opportunity.v1 card normalization (drops the removed composite score); removed at Phase 1 T4c',
-    ),
-    AllowlistEntry(
-        path='app/api/routes/league_pulse_v1_compat.py',
-        token='WAIVER_CANDIDATE',
-        reason='transitional stale league_opportunity.v1 card-type mapping to the v2 neutral name; removed at Phase 1 T4c',
-    ),
-    AllowlistEntry(
-        path='app/api/routes/league_pulse_v1_compat.py',
-        token='TAXI_ACTIVATION_CANDIDATE',
-        reason='transitional stale league_opportunity.v1 card-type mapping to the v2 neutral name; removed at Phase 1 T4c',
-    ),
-    AllowlistEntry(
-        path='frontend/openapi.json',
-        token='Recommendation',
-        reason='residual generated recommendation-language (not league_opportunity-specific); resolved at Phase 1 T4c',
-    ),
-    AllowlistEntry(
-        path='frontend/openapi.json',
-        token='Recommended',
-        reason='residual generated recommendation-language (not league_opportunity-specific); resolved at Phase 1 T4c',
-    ),
-    AllowlistEntry(
-        path='frontend/src/league-pulse/LeaguePulseHeader.tsx',
-        token='recommendation',
-        reason='honesty-band prose "not a recommendation" (neutral, descriptive); reviewed at Phase 1 T4c',
-    ),
-    AllowlistEntry(
-        path='frontend/src/lib/api/types.gen.ts',
-        token='Recommendation',
-        reason='residual generated recommendation-language (not league_opportunity-specific); resolved at Phase 1 T4c',
-    ),
-    AllowlistEntry(
-        path='frontend/src/lib/api/types.gen.ts',
-        token='Recommended',
-        reason='residual generated recommendation-language (not league_opportunity-specific); resolved at Phase 1 T4c',
-    ),
-]
+# T4c closed out the League Pulse bucket. Earlier tasks cleared the producer/DTO/
+# assembler (T2/T3), the backend What-Changed consumption (T4a), and the FE client +
+# visible render (T4b). T4c then: (1) dropped the transitional v1-compat shim
+# (league_pulse_v1_compat.py deleted, so its 4 legacy-token entries are gone),
+# (2) reworded the LeaguePulseHeader honesty band to the neutral diagnostic-workspace
+# copy (no "recommend" token), and (3) RECLASSIFIED the 4 residual capital
+# Recommendation/Recommended generated entries into WHAT_CHANGED_GOVERNANCE_DEBT below
+# — they are the title-case generated forms of What-Changed's promote_recommended /
+# recommendation_reasons fields, not League Pulse residue. The bucket is therefore
+# empty and the cordon is ENFORCING: any newly-introduced No-Verdict token on the
+# League Pulse surface fails immediately.
+LEAGUE_PULSE_PHASE_1_DEBT: list[AllowlistEntry] = []
 
 WHAT_CHANGED_GOVERNANCE_DEBT: list[AllowlistEntry] = [
     AllowlistEntry(
@@ -305,6 +258,31 @@ WHAT_CHANGED_GOVERNANCE_DEBT: list[AllowlistEntry] = [
         path='src/dynasty_genius/what_changed/report.py',
         token='promote_recommended',
         reason='What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)',
+    ),
+    # T4c reclassification: these capital Recommendation/Recommended generated tokens
+    # are the title-case forms ("Promote Recommended" / "Recommendation Reasons") that
+    # openapi-ts emits for the What-Changed promote_recommended / recommendation_reasons
+    # fields above — NOT League Pulse residue. They move here with their owning fields
+    # and are resolved by the same separate What-Changed governance ticket.
+    AllowlistEntry(
+        path='frontend/openapi.json',
+        token='Recommendation',
+        reason='generated title-case form of What-Changed recommendation_reasons; separate governance ticket, NOT removed by Phase 1',
+    ),
+    AllowlistEntry(
+        path='frontend/openapi.json',
+        token='Recommended',
+        reason='generated title-case form of What-Changed promote_recommended; separate governance ticket, NOT removed by Phase 1',
+    ),
+    AllowlistEntry(
+        path='frontend/src/lib/api/types.gen.ts',
+        token='Recommendation',
+        reason='generated title-case form of What-Changed recommendation_reasons; separate governance ticket, NOT removed by Phase 1',
+    ),
+    AllowlistEntry(
+        path='frontend/src/lib/api/types.gen.ts',
+        token='Recommended',
+        reason='generated title-case form of What-Changed promote_recommended; separate governance ticket, NOT removed by Phase 1',
     ),
 ]
 

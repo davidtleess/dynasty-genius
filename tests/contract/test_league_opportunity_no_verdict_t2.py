@@ -152,13 +152,15 @@ def _waiver_card(opportunity: dict[str, Any]) -> dict[str, Any]:
     return cards[0]
 
 
-def test_t2_bumps_producer_to_v2_and_assembler_accepts_v1_and_v2() -> None:
-    """T2 flips the producer contract, while League Pulse tolerates stale v1."""
+def test_t2_bumps_producer_to_v2_and_assembler_accepts_v2() -> None:
+    """T2 flipped the producer to v2. T4c then dropped the transitional v1 tolerance,
+    so the assembler now accepts only v2 (stale v1 fails closed — see the T4c slice)."""
     from src.dynasty_genius import league_opportunity_map as producer
 
     assert producer.SCHEMA_VERSION == "league_opportunity.v2"
-    assert "league_opportunity.v1" in league_pulse_assembler.ACCEPTED_LEAGUE_OPPORTUNITY_SCHEMAS
-    assert "league_opportunity.v2" in league_pulse_assembler.ACCEPTED_LEAGUE_OPPORTUNITY_SCHEMAS
+    assert league_pulse_assembler.ACCEPTED_LEAGUE_OPPORTUNITY_SCHEMAS == frozenset(
+        {"league_opportunity.v2"}
+    )
 
 
 def test_producer_emits_descriptive_pool_not_tool_selected_drop() -> None:
@@ -254,18 +256,19 @@ def test_dto_and_assembler_use_pool_shape_with_recursive_decision_supported_fals
         "partner_rankings": [],
         "cards": [
             {
-                "schema_version": "opportunity.v2",
                 "card_id": "opp-0001",
-                "card_type": "WAIVER_CANDIDATE",
-                "opportunity_score": 0.5,
+                "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+                "evidence_status": "evidence_complete",
+                "sort_key": "absolute_model_market_delta_desc",
+                "sort_value": 0.25,
                 "rationale": {
                     "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
                     "secondary": ["FANTASYCALC_PERCENTILE_DIVERGENCE"],
                     "evidence": {
                         "signal": "MODEL_HIGH_MARKET_LOW",
-                        "signal_status": "gates_passed",
+                        "evidence_status": "evidence_complete",
                         "model_minus_market_delta": 0.25,
-                        "xvar": 10.0,
+                        "asset_xvar": 10.0,
                     },
                 },
                 "score_components": {
@@ -313,58 +316,12 @@ def test_dto_and_assembler_use_pool_shape_with_recursive_decision_supported_fals
     assert _decision_supported_true_count(response) == 0
 
 
-def test_assembler_maps_stale_v1_recommended_drop_into_pool_shape() -> None:
-    """Stale on-disk v1 artifacts keep League Pulse live during the T2/T3 migration."""
-    opportunity_v1 = {
-        "schema_version": "league_opportunity.v1",
-        "captured_at": "2026-06-23T13:17:35+00:00",
-        "perspective_roster_id": 1,
-        "partner_rankings": [],
-        "cards": [
-            {
-                "card_id": "opp-0001",
-                "card_type": "WAIVER_CANDIDATE",
-                "opportunity_score": 0.5,
-                "rationale": {
-                    "primary": "UNROSTERED_MODEL_MARKET_ASYMMETRY",
-                    "secondary": ["FANTASYCALC_PERCENTILE_DIVERGENCE"],
-                    "evidence": {
-                        "signal": "MODEL_HIGH_MARKET_LOW",
-                        "signal_status": "gates_passed",
-                        "model_minus_market_delta": 0.25,
-                        "xvar": 10.0,
-                    },
-                },
-                "score_components": {
-                    "fit_score": 0.4,
-                    "divergence_score": 0.25,
-                    "feasibility_score": 0.9,
-                },
-                "caveats": ["waiver_status_from_sleeper_snapshot"],
-                "recommended_drop": {
-                    "sleeper_player_id": "legacy-cut",
-                    "full_name": "Legacy Cut",
-                    "position": "WR",
-                    "cut_priority": 1,
-                    "ir_compliance_status": "NOT_ON_IR",
-                    "cut_rationale": [],
-                    "decision_supported": False,
-                },
-            }
-        ],
-    }
-
-    response = league_pulse_assembler.assemble_league_pulse(
-        _team_posture(),
-        _team_value(),
-        opportunity_v1,
-    )
-
-    pool = response.market_overlay_cards[0].roster_capacity_candidates
-    assert pool.pool_status == "legacy_single_candidate"
-    assert pool.selection_rule == "legacy_v1_field_migrated_no_tool_selection"
-    assert pool.narrowing_rule == "stale_v1_artifact_compatibility"
-    assert pool.items[0].sleeper_player_id == "legacy-cut"
+# RETIRED AT T4c: test_assembler_maps_stale_v1_recommended_drop_into_pool_shape
+# exercised the transitional league_pulse_v1_compat migration shim, which T4c
+# deleted (the assembler is now v2-only). The replacement guard — stale v1 now
+# fails closed with LeaguePulseDependencyError — lives in
+# tests/contract/test_league_opportunity_no_verdict_t4c.py
+# (test_t4c_assembler_is_v2_only_and_stale_v1_fails_closed).
 
 
 def test_t2_shrinks_league_pulse_allowlist_for_recommended_tokens_in_touched_files() -> None:
