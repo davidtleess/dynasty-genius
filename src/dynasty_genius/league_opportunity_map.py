@@ -596,10 +596,34 @@ def build_league_opportunity_map(
     # sort_key, then descending sort_value WITHIN each group (card_id as a stable
     # tie-break). No hidden cross-type composite ranking; categories are not
     # blended onto one scale.
-    cards = sorted(
+    #
+    # Per-section caps (No-Verdict T4a): each section is capped INDEPENDENTLY at
+    # max_cards rather than a single global truncation. This makes the T3
+    # category-order debt structurally impossible — no section can be silently
+    # dropped by alphabetical position when the total exceeds the cap. Per-section
+    # counts are emitted so a consumer can render a non-binding "showing X of Y".
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for card in sorted(
         cards,
         key=lambda card: (card["sort_key"], -card["sort_value"], card["card_id"]),
-    )[:max_cards]
+    ):
+        grouped.setdefault(card["sort_key"], []).append(card)
+    capped_cards: list[dict[str, Any]] = []
+    card_section_counts: list[dict[str, Any]] = []
+    for sort_key in sorted(grouped):
+        section = grouped[sort_key]
+        shown = section[:max_cards]
+        capped_cards.extend(shown)
+        card_section_counts.append(
+            {
+                "sort_key": sort_key,
+                "total_count": len(section),
+                "shown_count": len(shown),
+                "section_cap": max_cards,
+                "decision_supported": False,
+            }
+        )
+    cards = capped_cards
 
     result = {
         "schema_version": SCHEMA_VERSION,
@@ -616,6 +640,7 @@ def build_league_opportunity_map(
         "perspective_roster_id": perspective_roster_id,
         "partner_rankings": partner_rankings,
         "cards": cards,
+        "card_section_counts": card_section_counts,
         "decision_supported": False,
         "automated_trade_execution": False,
         "caveats": [

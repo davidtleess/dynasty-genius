@@ -287,11 +287,20 @@ def _build_team_value_section(
 
 
 def _build_league_opportunity_section(
-    path: Path | str, generated_at: datetime
+    source: Path | str | dict[str, Any], generated_at: datetime | None = None
 ) -> dict[str, Any]:
-    artifact = _load_json(path)
+    # Testability refactor (T4a): `source` may be an already-loaded artifact dict
+    # (build in isolation, no I/O) or a path (load as before). generated_at is
+    # optional — when absent the envelope omits the captured-vs-generated
+    # staleness computation; the descriptive top_cards build is unaffected.
+    if isinstance(source, dict):
+        artifact: dict[str, Any] | None = source
+        path: Path | str | None = None
+    else:
+        artifact = _load_json(source)
+        path = source
     if artifact is None:
-        return _unavailable_section(path)
+        return _unavailable_section(source)
     section = _section_envelope(path, artifact, generated_at)
     partners = artifact.get("partner_rankings") or []
     cards = artifact.get("cards") or []
@@ -309,11 +318,33 @@ def _build_league_opportunity_section(
             "card_id": c.get("card_id"),
             "card_type": c.get("card_type"),
             "asset_name": (c.get("asset") or {}).get("full_name"),
-            "recommended_drop_name": (c.get("recommended_drop") or {}).get("full_name"),
+            "roster_capacity_context": _roster_capacity_context(
+                c.get("roster_capacity_candidates")
+            ),
         }
         for c in cards[:_STRUCTURAL_TOP_K]
     ]
     return section
+
+
+def _roster_capacity_context(pool: dict | None) -> dict[str, Any]:
+    """Non-nominating capacity-pressure context (No-Verdict T4a).
+
+    Aggregate counts only — NEVER an individual candidate name. Replaces the dead
+    single-drop-name field (v2 league_opportunity cards carry a descriptive
+    ``roster_capacity_candidates`` pool, not a tool-selected single drop).
+    """
+    pool = pool or {}
+    items = pool.get("items") or []
+    return {
+        "pool_status": pool.get("pool_status"),
+        "candidate_count": len(items),
+        "hard_conflict_count": sum(
+            1
+            for item in items
+            if (item or {}).get("capacity_conflict_status") == "hard_roster_rules_conflict"
+        ),
+    }
 
 
 def _build_drop_pressure_section(
@@ -361,9 +392,21 @@ def _build_sleeper_snapshot_section(
 
 # ── section helpers ──────────────────────────────────────────────────────────
 def _section_envelope(
-    path: Path | str, artifact: dict, generated_at: datetime
+    path: Path | str | None, artifact: dict, generated_at: datetime | None = None
 ) -> dict[str, Any]:
     """Standard current-context envelope: provenance + staleness caveat (no summary)."""
+    captured_at = artifact.get("captured_at")
+    if captured_at is None or generated_at is None:
+        # Decoupled dict-source build (T4a): no captured_at / report-generated
+        # context available → provenance only, no staleness computation.
+        return {
+            "status": "ok",
+            "decision_supported": False,
+            "current_not_delta": True,
+            "source_path": str(path) if path is not None else None,
+            "captured_at": captured_at,
+            "staleness_caveat": None,
+        }
     captured_dt = datetime.fromisoformat(artifact["captured_at"])
     age_hours = round((generated_at - captured_dt).total_seconds() / 3600.0, 1)
     return {

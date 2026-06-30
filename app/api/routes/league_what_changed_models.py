@@ -265,11 +265,21 @@ class WhatChangedPartnerRanking(_Strict):
     matched_positions: Optional[list[str]] = None
 
 
+class WhatChangedRosterCapacityContext(_Strict):
+    # Non-nominating capacity-pressure context (No-Verdict T4a): aggregate counts
+    # only — NEVER an individual cut-candidate name. Replaces the dead single-drop
+    # name field (v2 league_opportunity cards carry a descriptive pool, not a
+    # tool-selected single drop).
+    pool_status: Optional[str] = None
+    candidate_count: Optional[int] = None
+    hard_conflict_count: Optional[int] = None
+
+
 class WhatChangedCard(_Strict):
     card_id: Optional[str] = None
     card_type: Optional[str] = None
     asset_name: Optional[str] = None
-    recommended_drop_name: Optional[str] = None
+    roster_capacity_context: Optional[WhatChangedRosterCapacityContext] = None
 
 
 class WhatChangedDropSummary(_Strict):

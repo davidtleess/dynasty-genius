@@ -350,19 +350,28 @@ def test_what_changed_consumes_league_opportunity_renames_in_league_pulse_bucket
     }
 
     # T3 removed the What-Changed opportunity_score consumption field + report.py
-    # assignment + regenerated openapi, so opportunity_score survives only in the
-    # still-stale generated FE clients (types.gen/zod.gen, T4). recommended_drop /
-    # recommended_drop_name consumption remains T4.
+    # assignment + regenerated openapi. T4a removed the BACKEND recommended_drop /
+    # recommended_drop_name consumption (report.py now emits a non-nominating
+    # roster_capacity_context; the WhatChangedCard field + openapi were dropped),
+    # so those tokens survive ONLY in the still-stale generated FE clients
+    # (types.gen/zod.gen), which T4b regenerates.
     assert {
-        ("src/dynasty_genius/what_changed/report.py", "recommended_drop"),
-        ("src/dynasty_genius/what_changed/report.py", "recommended_drop_name"),
-        ("app/api/routes/league_what_changed_models.py", "recommended_drop_name"),
-        ("frontend/openapi.json", "recommended_drop_name"),
         ("frontend/src/lib/api/types.gen.ts", "recommended_drop_name"),
         ("frontend/src/lib/api/types.gen.ts", "opportunity_score"),
         ("frontend/src/lib/api/zod.gen.ts", "recommended_drop_name"),
         ("frontend/src/lib/api/zod.gen.ts", "opportunity_score"),
     } <= league_pulse_entries
+
+    # T4a backend cordon shrink: these backend consumption entries are GONE.
+    assert not (
+        {
+            ("src/dynasty_genius/what_changed/report.py", "recommended_drop"),
+            ("src/dynasty_genius/what_changed/report.py", "recommended_drop_name"),
+            ("app/api/routes/league_what_changed_models.py", "recommended_drop_name"),
+            ("frontend/openapi.json", "recommended_drop_name"),
+        }
+        & league_pulse_entries
+    )
 
 
 def test_scanner_reports_debt_bucket_for_allowlisted_tokens() -> None:

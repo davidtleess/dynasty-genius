@@ -878,6 +878,41 @@
         "title": "LeaguePulseCard",
         "type": "object"
       },
+      "LeaguePulseCardSectionCount": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "section_cap": {
+            "title": "Section Cap",
+            "type": "integer"
+          },
+          "shown_count": {
+            "title": "Shown Count",
+            "type": "integer"
+          },
+          "sort_key": {
+            "title": "Sort Key",
+            "type": "string"
+          },
+          "total_count": {
+            "title": "Total Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sort_key",
+          "total_count",
+          "shown_count",
+          "section_cap"
+        ],
+        "title": "LeaguePulseCardSectionCount",
+        "type": "object"
+      },
       "LeaguePulseDropCounts": {
         "additionalProperties": false,
         "properties": {
@@ -1098,6 +1133,13 @@
             "title": "Captured At",
             "type": "string"
           },
+          "card_section_counts": {
+            "items": {
+              "$ref": "#/components/schemas/LeaguePulseCardSectionCount"
+            },
+            "title": "Card Section Counts",
+            "type": "array"
+          },
           "caveats": {
             "default": [],
             "items": {
@@ -1176,6 +1218,7 @@
           "perspective_roster_id",
           "source_artifacts",
           "captured_at",
+          "card_section_counts",
           "dropped"
         ],
         "title": "LeaguePulseResponse",
@@ -4162,16 +4205,15 @@
             ],
             "title": "Card Type"
           },
-          "recommended_drop_name": {
+          "roster_capacity_context": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/WhatChangedRosterCapacityContext"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Recommended Drop Name"
+            ]
           }
         },
         "title": "WhatChangedCard",
@@ -5158,6 +5200,46 @@
           "structural_context"
         ],
         "title": "WhatChangedResponse",
+        "type": "object"
+      },
+      "WhatChangedRosterCapacityContext": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Count"
+          },
+          "hard_conflict_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hard Conflict Count"
+          },
+          "pool_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pool Status"
+          }
+        },
+        "title": "WhatChangedRosterCapacityContext",
         "type": "object"
       },
       "WhatChangedStalenessCaveat": {

@@ -150,6 +150,15 @@ def _valid_response() -> dict:
                 },
             }
         ],
+        "card_section_counts": [
+            {
+                "sort_key": "absolute_model_market_delta_desc",
+                "total_count": 1,
+                "shown_count": 1,
+                "section_cap": 20,
+                "decision_supported": False,
+            }
+        ],
         "dropped": {
             "decision_supported": False,
             "team_postures": 0,

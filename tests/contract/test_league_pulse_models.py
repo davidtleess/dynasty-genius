@@ -147,6 +147,15 @@ def test_response_dtos_lock_decision_supported_false_recursively() -> None:
                 decision_supported=True,
             )
         ],
+        card_section_counts=[
+            m.LeaguePulseCardSectionCount(
+                sort_key="absolute_model_market_delta_desc",
+                total_count=5,
+                shown_count=2,
+                section_cap=2,
+                decision_supported=True,
+            )
+        ],
         dropped=m.LeaguePulseDropCounts(
             team_postures=0,
             team_values=0,

@@ -106,7 +106,11 @@ def _valid_report(*, overall_status: str = "degraded") -> dict[str, Any]:
                                 "card_id": "waiver-1",
                                 "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
                                 "asset_name": "Noah Fant",
-                                "recommended_drop_name": "AJ Barner",
+                                "roster_capacity_context": {
+                                    "pool_status": "available",
+                                    "candidate_count": 1,
+                                    "hard_conflict_count": 0,
+                                },
                             }
                         ],
                     }

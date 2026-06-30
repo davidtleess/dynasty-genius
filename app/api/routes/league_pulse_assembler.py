@@ -21,6 +21,7 @@ from app.api.routes.league_pulse_models import (
     LeaguePulseCapacityCandidate,
     LeaguePulseCapacityCandidatePool,
     LeaguePulseCard,
+    LeaguePulseCardSectionCount,
     LeaguePulseDropCounts,
     LeaguePulseMarketCard,
     LeaguePulsePartnerRanking,
@@ -328,6 +329,13 @@ def assemble_league_pulse(
     # with a descriptive artifact-state caveat (graceful-degrade, not 503).
     artifact_state_caveat = f"league_pulse_artifact_state_{captured_at[:10]}"
 
+    # Per-section render-completeness metadata (No-Verdict T4a). Absent on stale
+    # v1 artifacts → empty list (no section disclosure available, never a verdict).
+    card_section_counts = [
+        LeaguePulseCardSectionCount(**section_count)
+        for section_count in opportunity_artifact.get("card_section_counts") or []
+    ]
+
     sources = LeaguePulseSources(
         team_posture={
             "schema_version": posture_artifact.get("schema_version"),
@@ -354,5 +362,6 @@ def assemble_league_pulse(
         partner_rankings=partner_rankings,
         model_native_cards=model_native_cards,
         market_overlay_cards=market_overlay_cards,
+        card_section_counts=card_section_counts,
         dropped=LeaguePulseDropCounts(**dropped),
     )

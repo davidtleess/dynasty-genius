@@ -301,6 +301,17 @@ class LeaguePulseDropCounts(_DSBase):
 # ── Envelope ─────────────────────────────────────────────────────────────────
 
 
+class LeaguePulseCardSectionCount(_DSBase):
+    # Per-section render-completeness metadata (No-Verdict T4a): exposes how many
+    # cards a section holds vs how many are shown under the per-section cap, so a
+    # consumer can render a non-binding "showing X of Y" without any ranked-action
+    # implication. Descriptive only.
+    sort_key: str
+    total_count: int
+    shown_count: int
+    section_cap: int
+
+
 class LeaguePulseResponse(_DSBase):
     status: Literal["active", "degraded"]
     perspective_roster_id: int
@@ -312,4 +323,5 @@ class LeaguePulseResponse(_DSBase):
     partner_rankings: list[LeaguePulsePartnerRanking] = []
     model_native_cards: list[LeaguePulseCard] = []
     market_overlay_cards: list[LeaguePulseMarketCard] = []
+    card_section_counts: list[LeaguePulseCardSectionCount]
     dropped: LeaguePulseDropCounts
