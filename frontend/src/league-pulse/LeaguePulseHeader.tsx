@@ -8,7 +8,7 @@ function withheldTotal(dropped: LeaguePulseResponse["dropped"]): number {
     (dropped.market_overlay_cards ?? 0) +
     (dropped.model_native_cards ?? 0) +
     (dropped.partner_rankings ?? 0) +
-    (dropped.recommended_drops ?? 0) +
+    (dropped.roster_capacity_candidate_pools ?? 0) +
     (dropped.team_postures ?? 0) +
     (dropped.team_values ?? 0)
   );

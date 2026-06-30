@@ -222,7 +222,7 @@ def test_current_known_debt_allowlist_enumerates_real_phase1_surface_debt() -> N
         (
             "app/api/routes/league_pulse_v1_compat.py",
             "recommended_drop",
-            "transitional stale league_opportunity.v1 compatibility read; removed at Phase 1 T4 when v1 support is dropped",
+            "transitional stale league_opportunity.v1 compatibility read; removed at Phase 1 T4c when v1 support is dropped",
         ),
         # T3 removed the composite score + action-shaped card-type enums from the
         # producer/DTO/assembler and regenerated openapi (now free of
@@ -231,29 +231,23 @@ def test_current_known_debt_allowlist_enumerates_real_phase1_surface_debt() -> N
         (
             "app/api/routes/league_pulse_v1_compat.py",
             "opportunity_score",
-            "transitional stale league_opportunity.v1 card normalization (drops the removed composite score); removed at Phase 1 T4",
+            "transitional stale league_opportunity.v1 card normalization (drops the removed composite score); removed at Phase 1 T4c",
         ),
         (
             "app/api/routes/league_pulse_v1_compat.py",
             "WAIVER_CANDIDATE",
-            "transitional stale league_opportunity.v1 card-type mapping to the v2 neutral name; removed at Phase 1 T4",
+            "transitional stale league_opportunity.v1 card-type mapping to the v2 neutral name; removed at Phase 1 T4c",
         ),
-        # The still-stale generated FE clients (types.gen/zod.gen, node codegen)
-        # remain T4 and are still pinned below.
+        # T4b regenerated the FE client (types.gen / zod.gen) from the v2 OpenAPI
+        # and rewrote the visible FE render (OpportunityCards / LeaguePulseHeader),
+        # so the stale FE recommendation-language / score / action-enum entries are
+        # GONE. The remaining FE debt is residual generated Recommendation /
+        # Recommended language (not league_opportunity-specific), still pinned for
+        # the T4c closeout.
         (
             "frontend/src/lib/api/types.gen.ts",
-            "recommended_drop",
-            "preexisting generated client debt removed by Phase 1 T4",
-        ),
-        (
-            "frontend/src/lib/api/zod.gen.ts",
-            "recommended_drop",
-            "preexisting generated validator debt removed by Phase 1 T4",
-        ),
-        (
-            "frontend/src/league-pulse/OpportunityCards.tsx",
-            "recommended_drop",
-            "preexisting visible label debt removed by Phase 1 T4",
+            "Recommendation",
+            "residual generated recommendation-language (not league_opportunity-specific); resolved at Phase 1 T4c",
         ),
     }
 
@@ -352,23 +346,24 @@ def test_what_changed_consumes_league_opportunity_renames_in_league_pulse_bucket
     # T3 removed the What-Changed opportunity_score consumption field + report.py
     # assignment + regenerated openapi. T4a removed the BACKEND recommended_drop /
     # recommended_drop_name consumption (report.py now emits a non-nominating
-    # roster_capacity_context; the WhatChangedCard field + openapi were dropped),
-    # so those tokens survive ONLY in the still-stale generated FE clients
-    # (types.gen/zod.gen), which T4b regenerates.
-    assert {
-        ("frontend/src/lib/api/types.gen.ts", "recommended_drop_name"),
-        ("frontend/src/lib/api/types.gen.ts", "opportunity_score"),
-        ("frontend/src/lib/api/zod.gen.ts", "recommended_drop_name"),
-        ("frontend/src/lib/api/zod.gen.ts", "opportunity_score"),
-    } <= league_pulse_entries
-
-    # T4a backend cordon shrink: these backend consumption entries are GONE.
+    # roster_capacity_context; the WhatChangedCard field + openapi were dropped).
+    # T4b regenerated the FE client (types.gen / zod.gen) from the v2 OpenAPI and
+    # rewrote the visible FE render, so the FE codegen + render tokens are GONE.
     assert not (
         {
+            # T4a backend cordon shrink:
             ("src/dynasty_genius/what_changed/report.py", "recommended_drop"),
             ("src/dynasty_genius/what_changed/report.py", "recommended_drop_name"),
             ("app/api/routes/league_what_changed_models.py", "recommended_drop_name"),
             ("frontend/openapi.json", "recommended_drop_name"),
+            # T4b FE codegen + render cordon shrink:
+            ("frontend/src/lib/api/types.gen.ts", "recommended_drop_name"),
+            ("frontend/src/lib/api/types.gen.ts", "opportunity_score"),
+            ("frontend/src/lib/api/zod.gen.ts", "recommended_drop_name"),
+            ("frontend/src/lib/api/zod.gen.ts", "opportunity_score"),
+            ("frontend/src/league-pulse/OpportunityCards.tsx", "opportunity_score"),
+            ("frontend/src/league-pulse/OpportunityCards.tsx", "recommended_drop"),
+            ("frontend/src/league-pulse/LeaguePulseHeader.tsx", "recommended_drops"),
         }
         & league_pulse_entries
     )

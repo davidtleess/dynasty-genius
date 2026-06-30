@@ -309,11 +309,16 @@ def test_t4a_shrinks_backend_recommended_drop_name_cordon_entries_only() -> None
     }
     assert not (backend_entries & current_lp_entries)
 
-    # FE codegen/render are explicitly T4b/T4c and remain tracked debt for now.
-    assert {
-        ("frontend/src/lib/api/types.gen.ts", "recommended_drop_name"),
-        ("frontend/src/lib/api/zod.gen.ts", "recommended_drop_name"),
-    } <= current_lp_entries
+    # T4a left the FE codegen entries in place; T4b subsequently regenerated the
+    # FE client + rewrote the render, so those FE recommended_drop_name entries are
+    # now GONE too (verified here so the T4a contract stays consistent post-T4b).
+    assert not (
+        {
+            ("frontend/src/lib/api/types.gen.ts", "recommended_drop_name"),
+            ("frontend/src/lib/api/zod.gen.ts", "recommended_drop_name"),
+        }
+        & current_lp_entries
+    )
 
     findings = scanner.scan_paths(
         [
