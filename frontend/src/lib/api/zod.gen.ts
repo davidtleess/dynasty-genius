@@ -306,6 +306,13 @@ export const zMarketRosterPenalty = z.object({
     caveats: z.array(z.string()),
     decision_supported: z.boolean().optional().default(false),
     forced_cut_candidates: z.array(zMarketAssetOverlay),
+    forced_cut_market_recovery_range: z.tuple([z.number(), z.number()]).nullish(),
+    forced_cut_market_value_at_risk_range: z.tuple([z.number(), z.number()]).nullish(),
+    market_penalty_status: z.enum([
+        'ok',
+        'uncertain_pool_unavailable',
+        'blocked'
+    ]).optional().default('ok'),
     penalty_market_value: z.int(),
     post_trade_overflow: z.int(),
     roster_id: z.int(),
@@ -538,7 +545,15 @@ export const zRosterPenaltySummary = z.object({
     decision_supported: z.boolean().optional().default(false),
     forced_cut_candidates: z.array(z.record(z.string(), z.unknown())),
     forced_cut_penalty_xvar: z.number(),
+    forced_cut_recovery_range: z.tuple([z.number(), z.number()]).nullish(),
+    forced_cut_value_at_risk_range: z.tuple([z.number(), z.number()]).nullish(),
     penalty_caveats: z.array(z.string()),
+    penalty_status: z.enum([
+        'ok',
+        'uncertain_pool_unavailable',
+        'blocked'
+    ]).optional().default('ok'),
+    pool_deficits: z.record(z.string(), z.int()).optional().default({}),
     post_trade_overflow: z.int(),
     post_trade_total_players: z.int()
 });
@@ -794,7 +809,15 @@ export const zTradeEvaluation = z.object({
 export const zTradeRosterReconciliation = z.object({
     adjusted_david_received_value: z.number(),
     adjusted_fairness_delta: z.number(),
+    adjusted_fairness_delta_range: z.tuple([z.number(), z.number()]).nullish(),
     adjusted_favors: z.string(),
+    adjusted_favors_status: z.enum([
+        'neutral',
+        'david',
+        'counterparty',
+        'uncertain_range_crosses_parity'
+    ]).optional().default('neutral'),
+    adjusted_received_value_range: z.tuple([z.number(), z.number()]).nullish(),
     adjusted_within_parity_band: z.boolean(),
     base_evaluation: zTradeEvaluation,
     caveats: z.array(z.string()),
