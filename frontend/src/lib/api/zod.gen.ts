@@ -1043,11 +1043,12 @@ export const zWhatChangedModelFeatureFreshness = z.object({
  *
  * Descriptive seed-vs-runtime drift summary — the §3.6 manual-promotion tripwire.
  *
- * Surfaced ONLY when ``promote_recommended`` is True (silent on quiet drift). The count
- * of model-supported players drifted >5% and the coverage-count change are the stable
- * triggers; ``mean_abs_value_delta`` / ``p95_abs_value_delta`` are DISCLOSURE-only (never
- * promotion triggers — market-noise-sensitive). Carries no market field; certifies no
- * decision.
+ * Surfaced ONLY when ``promotion_review_threshold_crossed`` is True (silent on quiet drift).
+ * The field states the descriptive FACT that drift crossed the model-promotion review
+ * threshold — it directs no action (David, the operator, decides). The count of
+ * model-supported players drifted >5% and the coverage-count change are the stable triggers;
+ * ``mean_abs_value_delta`` / ``p95_abs_value_delta`` are DISCLOSURE-only (never promotion
+ * triggers — market-noise-sensitive). Carries no market field; certifies no decision.
  */
 export const zWhatChangedModelPvoSeedStaleness = z.object({
     baseline_status: z.string().nullish(),
@@ -1057,8 +1058,8 @@ export const zWhatChangedModelPvoSeedStaleness = z.object({
     decision_supported: z.literal(false),
     mean_abs_value_delta: z.number(),
     p95_abs_value_delta: z.number(),
-    promote_recommended: z.boolean(),
-    recommendation_reasons: z.array(z.string()).nullish(),
+    promotion_review_threshold_crossed: z.boolean(),
+    review_triggers: z.array(z.string()).nullish(),
     seed_age_days: z.number().nullish(),
     seed_as_of: z.string().nullish()
 });

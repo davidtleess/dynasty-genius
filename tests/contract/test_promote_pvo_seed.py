@@ -72,9 +72,10 @@ def _write_runtime_pair(
             if seed_staleness is not None
             else {
                 "decision_supported": False,
-                "promote_recommended": True,
+                "promotion_review_threshold_crossed": True,
                 "count_players_drifted_gt_5pct": 22,
                 "count_model_supported_players_drifted_gt_5pct": 22,
+                "review_triggers": ["count_model_supported_players_drifted_gt_5pct>20"],
                 "coverage_count_deltas": {"ENGINE_B": 0},
                 "mean_abs_value_delta": 6.0,
                 "p95_abs_value_delta": 6.0,
@@ -158,7 +159,12 @@ def test_promote_pvo_seed_dry_run_shows_drift_and_never_writes(
     assert report["runtime"]["pvo_sha256"] == _sha(runtime_pvo)
     assert report["runtime"]["coverage_sha256"] == _sha(runtime_coverage)
     assert report["seed_staleness"]["decision_supported"] is False
-    assert report["seed_staleness"]["promote_recommended"] is True
+    assert report["seed_staleness"]["promotion_review_threshold_crossed"] is True
+    assert report["seed_staleness"]["review_triggers"] == [
+        "count_model_supported_players_drifted_gt_5pct>20"
+    ]
+    assert "promote_recommended" not in report["seed_staleness"]
+    assert "recommendation_reasons" not in report["seed_staleness"]
     assert seed_pvo.read_bytes() == before[0]
     assert seed_coverage.read_bytes() == before[1]
 

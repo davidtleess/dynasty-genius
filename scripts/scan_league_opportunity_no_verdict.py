@@ -23,14 +23,15 @@ Structural scanner failures fail loud, never silently: a path outside ``root`` y
 The known-debt allowlist is split into two exact (path + token + reason) buckets — never
 a glob, so a newly introduced violation anywhere fails immediately even mid-migration:
 
-- ``LEAGUE_PULSE_PHASE_1_DEBT`` is removed by Phase 1 (T2-T4), incl. What-Changed's
-  *consumption* of renamed league_opportunity fields; the T4 closeout asserts it is empty.
-- ``WHAT_CHANGED_GOVERNANCE_DEBT`` is What-Changed's *own* independent tripwire language
-  (``promote_recommended`` / ``recommendation_reasons``) — out of Phase 1 scope, tracked
-  under a separate governance ticket, and reported (via :func:`allowlist_by_bucket`) but
-  not counted toward the T4 empty assertion, so the cordon never claims a false zero.
+- ``LEAGUE_PULSE_PHASE_1_DEBT`` was removed by Phase 1 (T2-T4), incl. What-Changed's
+  *consumption* of renamed league_opportunity fields; the closeout asserts it is empty.
+- ``WHAT_CHANGED_GOVERNANCE_DEBT`` held What-Changed's *own* model-ops tripwire field names,
+  which the governance reconcile renamed to descriptive threshold-crossing language; that
+  bucket is now empty too.
 
-``KNOWN_DEBT_ALLOWLIST`` is the union of both buckets.
+Both buckets are now empty, so the cordon is FULLY ENFORCING across the whole surface: any
+newly introduced No-Verdict token fails immediately. ``KNOWN_DEBT_ALLOWLIST`` (their union)
+is empty; :func:`allowlist_by_bucket` still reports per-bucket so the contract is explicit.
 """
 
 from __future__ import annotations
@@ -187,104 +188,20 @@ def scan_paths(
     return findings
 
 
-# Pre-existing No-Verdict debt across the live Phase 1 surface, split into two buckets.
-# Each entry is exact (path + token + reason) — never a glob — so a newly introduced
-# violation anywhere fails immediately even while the surface is mid-migration.
+# No-Verdict debt allowlist, split into two exact (path + token + reason) buckets — never a
+# glob, so a newly introduced violation anywhere fails immediately. BOTH buckets are now empty:
 #
-# LEAGUE_PULSE_PHASE_1_DEBT is removed by Phase 1 tasks T2-T4 (incl. What-Changed's
-# CONSUMPTION of renamed league_opportunity fields, which moves with the contract);
-# the T4 closeout asserts this bucket is empty.
+# LEAGUE_PULSE_PHASE_1_DEBT was emptied by Phase 1 (T2-T4): the producer/DTO/assembler renames
+# (T2/T3), the backend What-Changed consumption (T4a), the FE client + visible render (T4b), and
+# T4c's enforce/go-live (v1-compat shim deleted, header reworded, generated title-case residue
+# reclassified out).
 #
-# WHAT_CHANGED_GOVERNANCE_DEBT is What-Changed's OWN independent recommendation-language
-# (the model-ops seed-staleness tripwire promote_recommended + recommendation_reasons).
-# It is out of Phase 1 scope, tracked under a separate governance ticket, and is REPORTED
-# but NOT counted toward the T4 empty assertion (so we never claim a false generated-
-# client zero).
-# T4c closed out the League Pulse bucket. Earlier tasks cleared the producer/DTO/
-# assembler (T2/T3), the backend What-Changed consumption (T4a), and the FE client +
-# visible render (T4b). T4c then: (1) dropped the transitional v1-compat shim
-# (league_pulse_v1_compat.py deleted, so its 4 legacy-token entries are gone),
-# (2) reworded the LeaguePulseHeader honesty band to the neutral diagnostic-workspace
-# copy (no "recommend" token), and (3) RECLASSIFIED the 4 residual capital
-# Recommendation/Recommended generated entries into WHAT_CHANGED_GOVERNANCE_DEBT below
-# — they are the title-case generated forms of What-Changed's promote_recommended /
-# recommendation_reasons fields, not League Pulse residue. The bucket is therefore
-# empty and the cordon is ENFORCING: any newly-introduced No-Verdict token on the
-# League Pulse surface fails immediately.
+# WHAT_CHANGED_GOVERNANCE_DEBT held What-Changed's own model-ops seed-staleness tripwire field
+# names, which the governance reconcile renamed to descriptive threshold-crossing language; the
+# bucket is now empty too. The cordon is FULLY ENFORCING across the entire live surface.
 LEAGUE_PULSE_PHASE_1_DEBT: list[AllowlistEntry] = []
 
-WHAT_CHANGED_GOVERNANCE_DEBT: list[AllowlistEntry] = [
-    AllowlistEntry(
-        path='app/api/routes/league_what_changed_models.py',
-        token='promote_recommended',
-        reason='What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)',
-    ),
-    AllowlistEntry(
-        path='app/api/routes/league_what_changed_models.py',
-        token='recommendation_reasons',
-        reason='What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)',
-    ),
-    AllowlistEntry(
-        path='frontend/openapi.json',
-        token='promote_recommended',
-        reason='What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)',
-    ),
-    AllowlistEntry(
-        path='frontend/openapi.json',
-        token='recommendation_reasons',
-        reason='What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)',
-    ),
-    AllowlistEntry(
-        path='frontend/src/lib/api/types.gen.ts',
-        token='promote_recommended',
-        reason='What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)',
-    ),
-    AllowlistEntry(
-        path='frontend/src/lib/api/types.gen.ts',
-        token='recommendation_reasons',
-        reason='What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)',
-    ),
-    AllowlistEntry(
-        path='frontend/src/lib/api/zod.gen.ts',
-        token='promote_recommended',
-        reason='What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)',
-    ),
-    AllowlistEntry(
-        path='frontend/src/lib/api/zod.gen.ts',
-        token='recommendation_reasons',
-        reason='What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)',
-    ),
-    AllowlistEntry(
-        path='src/dynasty_genius/what_changed/report.py',
-        token='promote_recommended',
-        reason='What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)',
-    ),
-    # T4c reclassification: these capital Recommendation/Recommended generated tokens
-    # are the title-case forms ("Promote Recommended" / "Recommendation Reasons") that
-    # openapi-ts emits for the What-Changed promote_recommended / recommendation_reasons
-    # fields above — NOT League Pulse residue. They move here with their owning fields
-    # and are resolved by the same separate What-Changed governance ticket.
-    AllowlistEntry(
-        path='frontend/openapi.json',
-        token='Recommendation',
-        reason='generated title-case form of What-Changed recommendation_reasons; separate governance ticket, NOT removed by Phase 1',
-    ),
-    AllowlistEntry(
-        path='frontend/openapi.json',
-        token='Recommended',
-        reason='generated title-case form of What-Changed promote_recommended; separate governance ticket, NOT removed by Phase 1',
-    ),
-    AllowlistEntry(
-        path='frontend/src/lib/api/types.gen.ts',
-        token='Recommendation',
-        reason='generated title-case form of What-Changed recommendation_reasons; separate governance ticket, NOT removed by Phase 1',
-    ),
-    AllowlistEntry(
-        path='frontend/src/lib/api/types.gen.ts',
-        token='Recommended',
-        reason='generated title-case form of What-Changed promote_recommended; separate governance ticket, NOT removed by Phase 1',
-    ),
-]
+WHAT_CHANGED_GOVERNANCE_DEBT: list[AllowlistEntry] = []
 
 # Union of both buckets — the full known-debt the cordon allows on the live surface.
 KNOWN_DEBT_ALLOWLIST: list[AllowlistEntry] = (

@@ -2542,11 +2542,12 @@ export type WhatChangedModelFeatureFreshness = {
  *
  * Descriptive seed-vs-runtime drift summary — the §3.6 manual-promotion tripwire.
  *
- * Surfaced ONLY when ``promote_recommended`` is True (silent on quiet drift). The count
- * of model-supported players drifted >5% and the coverage-count change are the stable
- * triggers; ``mean_abs_value_delta`` / ``p95_abs_value_delta`` are DISCLOSURE-only (never
- * promotion triggers — market-noise-sensitive). Carries no market field; certifies no
- * decision.
+ * Surfaced ONLY when ``promotion_review_threshold_crossed`` is True (silent on quiet drift).
+ * The field states the descriptive FACT that drift crossed the model-promotion review
+ * threshold — it directs no action (David, the operator, decides). The count of
+ * model-supported players drifted >5% and the coverage-count change are the stable triggers;
+ * ``mean_abs_value_delta`` / ``p95_abs_value_delta`` are DISCLOSURE-only (never promotion
+ * triggers — market-noise-sensitive). Carries no market field; certifies no decision.
  */
 export type WhatChangedModelPvoSeedStaleness = {
     /**
@@ -2580,13 +2581,13 @@ export type WhatChangedModelPvoSeedStaleness = {
      */
     p95_abs_value_delta: number;
     /**
-     * Promote Recommended
+     * Promotion Review Threshold Crossed
      */
-    promote_recommended: boolean;
+    promotion_review_threshold_crossed: boolean;
     /**
-     * Recommendation Reasons
+     * Review Triggers
      */
-    recommendation_reasons?: Array<string> | null;
+    review_triggers?: Array<string> | null;
     /**
      * Seed Age Days
      */

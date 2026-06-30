@@ -205,47 +205,12 @@ def test_missing_expected_surface_file_fails_loud(tmp_path: Path) -> None:
 
 
 def test_current_known_debt_allowlist_enumerates_real_phase1_surface_debt() -> None:
-    """The temporary allowlist must be real inventory, not an empty or broad rule."""
+    """The temporary allowlist is fully discharged after What-Changed cleanup."""
     scanner = _scanner()
 
-    entries = {
-        (entry.path, entry.token, entry.reason)
-        for entry in scanner.KNOWN_DEBT_ALLOWLIST
-    }
-
-    expected_entries = {
-        # T4c emptied the League Pulse bucket: the v1-compat shim was deleted (its
-        # legacy-token entries gone), the header band reworded, and the 4 generated
-        # Recommendation/Recommended titles reclassified into the What-Changed
-        # bucket. The surviving real debt is the What-Changed governance tripwire
-        # (its own separate ticket): the snake_case source fields plus their
-        # generated title-case forms.
-        (
-            "app/api/routes/league_what_changed_models.py",
-            "promote_recommended",
-            "What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)",
-        ),
-        (
-            "src/dynasty_genius/what_changed/report.py",
-            "promote_recommended",
-            "What-Changed independent recommendation-language tripwire; separate tracked governance ticket, NOT removed by Phase 1 (see follow-up)",
-        ),
-        (
-            "frontend/src/lib/api/types.gen.ts",
-            "Recommendation",
-            "generated title-case form of What-Changed recommendation_reasons; separate governance ticket, NOT removed by Phase 1",
-        ),
-        (
-            "frontend/openapi.json",
-            "Recommended",
-            "generated title-case form of What-Changed promote_recommended; separate governance ticket, NOT removed by Phase 1",
-        ),
-    }
-
-    assert expected_entries <= entries
-    assert scanner.KNOWN_DEBT_ALLOWLIST
-    assert all(entry.reason.strip() for entry in scanner.KNOWN_DEBT_ALLOWLIST)
-    assert all("*" not in entry.path for entry in scanner.KNOWN_DEBT_ALLOWLIST)
+    assert scanner.LEAGUE_PULSE_PHASE_1_DEBT == []
+    assert scanner.WHAT_CHANGED_GOVERNANCE_DEBT == []
+    assert scanner.KNOWN_DEBT_ALLOWLIST == []
 
 
 def test_current_phase1_surfaces_scan_clean_after_exact_known_debt_allowlist() -> None:
@@ -282,8 +247,7 @@ def test_empty_whitespace_and_case_insensitive_tokens(tmp_path: Path) -> None:
 
 
 def test_allowlist_buckets_are_disjoint_and_union_to_known_debt() -> None:
-    """T4c empties the League Pulse bucket (cordon ENFORCING); What-Changed own debt
-    remains ticketed separately, so the union is exactly the What-Changed bucket."""
+    """Both buckets are empty after the final No-Verdict rename."""
     scanner = _scanner()
 
     league_pulse = set(scanner.LEAGUE_PULSE_PHASE_1_DEBT)
@@ -291,48 +255,26 @@ def test_allowlist_buckets_are_disjoint_and_union_to_known_debt() -> None:
     known = set(scanner.KNOWN_DEBT_ALLOWLIST)
 
     assert league_pulse == set()
-    assert what_changed
+    assert what_changed == set()
     assert league_pulse.isdisjoint(what_changed)
     assert known == league_pulse | what_changed
 
 
-def test_what_changed_own_debt_bucket_contains_only_independent_tripwire_tokens() -> None:
-    """What-Changed's own recommendation-language debt is ticketed separately."""
+def test_what_changed_governance_debt_bucket_is_empty_after_descriptive_rename() -> None:
+    """What-Changed's former directive field names are reconciled, not carved out."""
     scanner = _scanner()
 
-    what_changed_entries = {
-        (entry.path, entry.token) for entry in scanner.WHAT_CHANGED_GOVERNANCE_DEBT
-    }
-    what_changed_tokens = {token for _, token in what_changed_entries}
+    assert scanner.WHAT_CHANGED_GOVERNANCE_DEBT == []
 
-    # The snake_case source fields plus the title-case forms openapi-ts generates
-    # for them ("Promote Recommended" / "Recommendation Reasons"), reclassified into
-    # this bucket at T4c because they are What-Changed-owned, not League Pulse residue.
-    assert what_changed_tokens == {
-        "promote_recommended",
-        "recommendation_reasons",
-        "Recommendation",
-        "Recommended",
-    }
-    assert {
-        ("src/dynasty_genius/what_changed/report.py", "promote_recommended"),
-        ("app/api/routes/league_what_changed_models.py", "promote_recommended"),
-        ("app/api/routes/league_what_changed_models.py", "recommendation_reasons"),
-        ("frontend/openapi.json", "promote_recommended"),
-        ("frontend/openapi.json", "recommendation_reasons"),
-        ("frontend/openapi.json", "Recommendation"),
-        ("frontend/openapi.json", "Recommended"),
-        ("frontend/src/lib/api/types.gen.ts", "promote_recommended"),
-        ("frontend/src/lib/api/types.gen.ts", "recommendation_reasons"),
-        ("frontend/src/lib/api/types.gen.ts", "Recommendation"),
-        ("frontend/src/lib/api/types.gen.ts", "Recommended"),
-        ("frontend/src/lib/api/zod.gen.ts", "promote_recommended"),
-        ("frontend/src/lib/api/zod.gen.ts", "recommendation_reasons"),
-    } <= what_changed_entries
 
-    assert all("recommended_drops" != token for _, token in what_changed_entries)
-    assert all("recommended_drop_name" != token for _, token in what_changed_entries)
-    assert all("opportunity_score" != token for _, token in what_changed_entries)
+def test_scanner_source_no_longer_pins_old_what_changed_field_names() -> None:
+    """The cordon cannot carry its own stale What-Changed allowlist prose."""
+    scanner_source = Path("scripts/scan_league_opportunity_no_verdict.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "promote_recommended" not in scanner_source
+    assert "recommendation_reasons" not in scanner_source
 
 
 def test_what_changed_consumes_league_opportunity_renames_in_league_pulse_bucket() -> None:
@@ -370,7 +312,7 @@ def test_what_changed_consumes_league_opportunity_renames_in_league_pulse_bucket
 
 
 def test_scanner_reports_debt_bucket_for_allowlisted_tokens() -> None:
-    """Allowlisted debt can be reported by bucket without claiming full generated-client zero."""
+    """Bucket reporting remains available when both buckets are empty."""
     scanner = _scanner()
     by_bucket = scanner.allowlist_by_bucket()
 
@@ -387,7 +329,9 @@ def test_scanner_reports_debt_bucket_for_allowlisted_tokens() -> None:
 
 
 def test_league_pulse_phase_1_debt_is_empty_at_t4_closeout() -> None:
-    """T4c enforces only the Phase 1 bucket; What-Changed remains ticketed."""
+    """The final No-Verdict cordon is enforcing across both buckets."""
     scanner = _scanner()
 
     assert scanner.LEAGUE_PULSE_PHASE_1_DEBT == []
+    assert scanner.WHAT_CHANGED_GOVERNANCE_DEBT == []
+    assert scanner.KNOWN_DEBT_ALLOWLIST == []

@@ -34,6 +34,9 @@ from src.dynasty_genius.pvo_source import (
     resolve_pvo_source,
 )
 from src.dynasty_genius.what_changed.daily_diff import build_daily_what_changed_diff
+from src.dynasty_genius.what_changed.pvo_seed_staleness_compat import (
+    normalize_seed_staleness,
+)
 
 _SCHEMA_VERSION = "war_room_2_what_changed_v1"
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -153,10 +156,10 @@ def _model_pvo_staleness() -> dict[str, Any]:
 
     Always discloses the PVO source provenance (kind/hashes/as-of/paths) so the digest can
     show which artifact backed the vintage (DQ-A). The §3.6 ``seed_staleness`` drift block is
-    surfaced ONLY when ``promote_recommended`` is True (silent on quiet drift — no nagging).
-    A present-but-unverified runtime is DISCLOSED as ``not_ready`` (a fault, never silent —
-    DQ-D), mirroring the feature-freshness honest-uncertainty contract. The block reads the
-    pre-computed staleness O(1) from the resolver metadata (no PVO JSON diff here).
+    surfaced ONLY when ``promotion_review_threshold_crossed`` is True (silent on quiet drift —
+    no nagging). A present-but-unverified runtime is DISCLOSED as ``not_ready`` (a fault, never
+    silent — DQ-D), mirroring the feature-freshness honest-uncertainty contract. The block reads
+    the pre-computed staleness O(1) from the resolver metadata (no PVO JSON diff here).
     ``decision_supported`` stays False and no market field appears.
     """
     try:
@@ -172,10 +175,13 @@ def _model_pvo_staleness() -> dict[str, Any]:
             "aborted_reason": str(exc),
         }
     meta = resolved.metadata()
-    seed_staleness = meta.get("seed_staleness")
-    # Silent-unless-promote_recommended: only surface the drift metrics when the tripwire
-    # flags a manual promotion review; otherwise quiet (None).
-    if not (isinstance(seed_staleness, dict) and seed_staleness.get("promote_recommended")):
+    seed_staleness = normalize_seed_staleness(meta.get("seed_staleness"))
+    # Silent-unless-threshold-crossed: only surface the drift metrics when the tripwire flags
+    # that drift crossed the manual model-promotion review threshold; otherwise quiet (None).
+    if not (
+        isinstance(seed_staleness, dict)
+        and seed_staleness.get("promotion_review_threshold_crossed")
+    ):
         seed_staleness = None
     return {
         "decision_supported": False,
