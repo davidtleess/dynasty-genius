@@ -163,25 +163,12 @@ def _stale_v1_opportunity_artifact() -> dict:
     }
 
 
-def test_t4c_scanner_bucket_is_enforcing_and_reclassifies_what_changed_titles() -> None:
+def test_t4c_scanner_bucket_is_enforcing_with_no_remaining_known_debt() -> None:
     import scripts.scan_league_opportunity_no_verdict as scanner
 
-    league_pulse_entries = {
-        (entry.path, entry.token) for entry in scanner.LEAGUE_PULSE_PHASE_1_DEBT
-    }
-    what_changed_entries = {
-        (entry.path, entry.token) for entry in scanner.WHAT_CHANGED_GOVERNANCE_DEBT
-    }
-    reclassified = {
-        ("frontend/openapi.json", "Recommendation"),
-        ("frontend/openapi.json", "Recommended"),
-        ("frontend/src/lib/api/types.gen.ts", "Recommendation"),
-        ("frontend/src/lib/api/types.gen.ts", "Recommended"),
-    }
-
     assert scanner.LEAGUE_PULSE_PHASE_1_DEBT == []
-    assert reclassified <= what_changed_entries
-    assert not (reclassified & league_pulse_entries)
+    assert scanner.WHAT_CHANGED_GOVERNANCE_DEBT == []
+    assert scanner.KNOWN_DEBT_ALLOWLIST == []
 
     surfaces = [
         Path("src/dynasty_genius/league_opportunity_map.py"),
@@ -196,11 +183,8 @@ def test_t4c_scanner_bucket_is_enforcing_and_reclassifies_what_changed_titles() 
         Path("app/api/routes/league_what_changed_models.py"),
     ]
     raw = scanner.scan_paths(surfaces, allowlist=[])
-    raw_pairs = {(finding.path, finding.token) for finding in raw}
-    allow_pairs = {(entry.path, entry.token) for entry in scanner.KNOWN_DEBT_ALLOWLIST}
 
-    assert scanner.scan_paths(surfaces, allowlist=scanner.KNOWN_DEBT_ALLOWLIST) == []
-    assert raw_pairs == allow_pairs
+    assert raw == []
 
 
 def test_t4c_assembler_is_v2_only_and_stale_v1_fails_closed() -> None:

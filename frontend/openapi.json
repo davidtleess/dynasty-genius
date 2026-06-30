@@ -4821,7 +4821,7 @@
       },
       "WhatChangedModelPvoSeedStaleness": {
         "additionalProperties": false,
-        "description": "Descriptive seed-vs-runtime drift summary \u2014 the \u00a73.6 manual-promotion tripwire.\n\nSurfaced ONLY when ``promote_recommended`` is True (silent on quiet drift). The count\nof model-supported players drifted >5% and the coverage-count change are the stable\ntriggers; ``mean_abs_value_delta`` / ``p95_abs_value_delta`` are DISCLOSURE-only (never\npromotion triggers \u2014 market-noise-sensitive). Carries no market field; certifies no\ndecision.",
+        "description": "Descriptive seed-vs-runtime drift summary \u2014 the \u00a73.6 manual-promotion tripwire.\n\nSurfaced ONLY when ``promotion_review_threshold_crossed`` is True (silent on quiet drift).\nThe field states the descriptive FACT that drift crossed the model-promotion review\nthreshold \u2014 it directs no action (David, the operator, decides). The count of\nmodel-supported players drifted >5% and the coverage-count change are the stable triggers;\n``mean_abs_value_delta`` / ``p95_abs_value_delta`` are DISCLOSURE-only (never promotion\ntriggers \u2014 market-noise-sensitive). Carries no market field; certifies no decision.",
         "properties": {
           "baseline_status": {
             "anyOf": [
@@ -4862,11 +4862,11 @@
             "title": "P95 Abs Value Delta",
             "type": "number"
           },
-          "promote_recommended": {
-            "title": "Promote Recommended",
+          "promotion_review_threshold_crossed": {
+            "title": "Promotion Review Threshold Crossed",
             "type": "boolean"
           },
-          "recommendation_reasons": {
+          "review_triggers": {
             "anyOf": [
               {
                 "items": {
@@ -4878,7 +4878,7 @@
                 "type": "null"
               }
             ],
-            "title": "Recommendation Reasons"
+            "title": "Review Triggers"
           },
           "seed_age_days": {
             "anyOf": [
@@ -4905,7 +4905,7 @@
         },
         "required": [
           "decision_supported",
-          "promote_recommended",
+          "promotion_review_threshold_crossed",
           "count_players_drifted_gt_5pct",
           "count_model_supported_players_drifted_gt_5pct",
           "mean_abs_value_delta",

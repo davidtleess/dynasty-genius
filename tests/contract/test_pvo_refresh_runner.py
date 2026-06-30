@@ -392,10 +392,12 @@ def test_runtime_ready_marker_embeds_seed_staleness_from_explicit_seed_baseline(
     marker = json.loads((runtime_dir / "universe_pvo_runtime.ready.json").read_text())
     drift = marker["seed_staleness"]
     assert drift["decision_supported"] is False
-    assert drift["promote_recommended"] is True
-    assert drift["recommendation_reasons"] == [
+    assert drift["promotion_review_threshold_crossed"] is True
+    assert drift["review_triggers"] == [
         "count_model_supported_players_drifted_gt_5pct>20"
     ]
+    assert "promote_recommended" not in drift
+    assert "recommendation_reasons" not in drift
     assert drift["count_players_drifted_gt_5pct"] == 22
     assert drift["count_model_supported_players_drifted_gt_5pct"] == 22
     assert drift["mean_abs_value_delta"] == pytest.approx(6.0)
@@ -434,9 +436,11 @@ def test_runtime_publish_with_missing_seed_baseline_is_graceful_and_not_recommen
     marker = json.loads((runtime_dir / "universe_pvo_runtime.ready.json").read_text())
     drift = marker["seed_staleness"]
     assert drift["decision_supported"] is False
-    assert drift["promote_recommended"] is False
+    assert drift["promotion_review_threshold_crossed"] is False
     assert drift["baseline_status"] == "no_seed_baseline"
-    assert drift["recommendation_reasons"] == []
+    assert drift["review_triggers"] == []
+    assert "promote_recommended" not in drift
+    assert "recommendation_reasons" not in drift
 
 
 def test_phase17_2_refresh_drives_producer_with_output_dir_to_candidate_paths(

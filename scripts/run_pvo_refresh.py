@@ -58,8 +58,9 @@ DEFAULT_SEED_COVERAGE_PATH = "app/data/valuation/universe_pvo_coverage_latest.js
 # F-seed-split T2b: seed-staleness drift. Engine paths that count as MODEL-SUPPORTED.
 _MODELED_ENGINE_PATHS = frozenset({"ENGINE_A", "ENGINE_B", "BLEND_AB"})
 _DRIFT_PCT = 0.05  # a player "drifted" when |Δvalue| / seed_value exceeds 5%
-# promote_recommended triggers (review-prompt only; conservative; tunable post-build). p95/mean
-# are DISCLOSURE metrics, not triggers (the T2b RED pins p95=6.0 as NON-triggering).
+# promotion_review_threshold_crossed triggers (review-prompt only; conservative; tunable
+# post-build). p95/mean are DISCLOSURE metrics, not triggers (the T2b RED pins p95=6.0 as
+# NON-triggering).
 _COUNT_MODEL_SUPPORTED_DRIFT_THRESHOLD = 20
 _COVERAGE_COUNT_DELTA_THRESHOLD = 10
 
@@ -109,12 +110,13 @@ def _compute_seed_staleness(
     """F-seed-split T2b: ONE per-publish drift diff of the fresh runtime vs the committed seed.
 
     Uses ABSOLUTE movement (not signed mean) so offsetting up/down moves still trip the
-    player-count thresholds and cannot wash out. ``promote_recommended`` is a REVIEW PROMPT
-    only (David-gated promotion); ``decision_supported`` is always False. This is the one place
-    the pipeline parses PVO JSON for drift — the resolver never does (hot-path perf)."""
+    player-count thresholds and cannot wash out. ``promotion_review_threshold_crossed`` states
+    the descriptive FACT that drift crossed the David-gated model-promotion review threshold (no
+    action directed); ``decision_supported`` is always False. This is the one place the pipeline
+    parses PVO JSON for drift — the resolver never does (hot-path perf)."""
     base = {
-        "promote_recommended": False,
-        "recommendation_reasons": [],
+        "promotion_review_threshold_crossed": False,
+        "review_triggers": [],
         "decision_supported": False,
     }
     seed_pvo_path = Path(seed_pvo_path) if seed_pvo_path else None
@@ -170,8 +172,8 @@ def _compute_seed_staleness(
 
     seed_as_of = seed_pvo.get("captured_at")
     return {
-        "promote_recommended": bool(reasons),
-        "recommendation_reasons": reasons,
+        "promotion_review_threshold_crossed": bool(reasons),
+        "review_triggers": reasons,
         "baseline_status": "ok",
         "count_players_drifted_gt_5pct": n_drift,
         "count_model_supported_players_drifted_gt_5pct": n_drift_modeled,

@@ -107,7 +107,7 @@ def _write_ready_marker(
         "source_as_of": "2026-06-27T13:00:00+00:00",
         "seed_staleness": seed_staleness
         or {
-            "promote_recommended": False,
+            "promotion_review_threshold_crossed": False,
             "count_players_drifted_gt_5pct": 0,
             "count_model_supported_players_drifted_gt_5pct": 0,
         },
@@ -269,7 +269,8 @@ def test_resolve_pvo_source_prefers_verified_runtime_pair_and_stamps_metadata(
     seed_pvo, seed_coverage = _seed_paths(tmp_path)
     runtime_dir, runtime_pvo, runtime_coverage = _runtime_pair(tmp_path)
     seed_staleness = {
-        "promote_recommended": True,
+        "promotion_review_threshold_crossed": True,
+        "review_triggers": ["count_model_supported_players_drifted_gt_5pct>20"],
         "count_players_drifted_gt_5pct": 21,
         "count_model_supported_players_drifted_gt_5pct": 21,
     }
@@ -355,7 +356,8 @@ def test_resolve_pvo_source_passes_through_seed_staleness_without_diffing_json(
     seed_pvo, seed_coverage = _seed_paths(tmp_path)
     runtime_dir, runtime_pvo, runtime_coverage = _runtime_pair(tmp_path)
     seed_staleness = {
-        "promote_recommended": True,
+        "promotion_review_threshold_crossed": True,
+        "review_triggers": ["count_model_supported_players_drifted_gt_5pct>20"],
         "count_players_drifted_gt_5pct": 22,
         "count_model_supported_players_drifted_gt_5pct": 22,
         "mean_abs_value_delta": 0.4,
@@ -526,7 +528,8 @@ def test_what_changed_model_pvo_staleness_discloses_source_but_silences_quiet_dr
                 ),
                 "seed_staleness": {
                     "decision_supported": False,
-                    "promote_recommended": False,
+                    "promotion_review_threshold_crossed": False,
+                    "review_triggers": [],
                     "count_players_drifted_gt_5pct": 1,
                     "count_model_supported_players_drifted_gt_5pct": 0,
                     "mean_abs_value_delta": 0.02,
@@ -566,15 +569,15 @@ def test_what_changed_model_pvo_staleness_discloses_source_but_silences_quiet_dr
     assert model.pvo_staleness.seed_staleness is None
 
 
-def test_what_changed_model_pvo_staleness_surfaces_promote_recommended_metrics(
+def test_what_changed_model_pvo_staleness_surfaces_threshold_crossed_metrics(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """T4d: the passive staleness line appears only on the §3.6 promotion tripwire."""
+    """T4d: the passive staleness line appears only on the §3.6 review tripwire."""
     report = importlib.import_module("src.dynasty_genius.what_changed.report")
     models = importlib.import_module("app.api.routes.league_what_changed_models")
     seed_staleness = {
         "decision_supported": False,
-        "promote_recommended": True,
+        "promotion_review_threshold_crossed": True,
         "count_players_drifted_gt_5pct": 22,
         "count_model_supported_players_drifted_gt_5pct": 22,
         "mean_abs_value_delta": 6.0,
@@ -606,6 +609,8 @@ def test_what_changed_model_pvo_staleness_surfaces_promote_recommended_metrics(
     staleness = report._model_pvo_staleness()
 
     assert staleness["seed_staleness"] == seed_staleness
+    assert "promote_recommended" not in json.dumps(staleness, sort_keys=True)
+    assert "recommendation_reasons" not in json.dumps(staleness, sort_keys=True)
     model = models.WhatChangedModelSection.model_validate(
         {
             "status": "insufficient_history",
@@ -616,18 +621,20 @@ def test_what_changed_model_pvo_staleness_surfaces_promote_recommended_metrics(
     )
     assert model.pvo_staleness is not None
     assert model.pvo_staleness.seed_staleness is not None
-    assert model.pvo_staleness.seed_staleness.promote_recommended is True
+    assert (
+        model.pvo_staleness.seed_staleness.promotion_review_threshold_crossed is True
+    )
     assert model.pvo_staleness.seed_staleness.mean_abs_value_delta == 6.0
     assert model.pvo_staleness.seed_staleness.p95_abs_value_delta == 6.0
 
 
-def test_what_changed_model_pvo_staleness_accepts_real_marker_shape_in_public_dto(
+def test_what_changed_model_pvo_staleness_normalizes_legacy_marker_shape(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """T5c-D1: real ready-marker seed_staleness must validate when promoted."""
+    """A stale gitignored marker is normalized to the descriptive T4c+ field names."""
     report = importlib.import_module("src.dynasty_genius.what_changed.report")
     models = importlib.import_module("app.api.routes.league_what_changed_models")
-    raw_real_seed_staleness = {
+    legacy_seed_staleness = {
         "decision_supported": False,
         "promote_recommended": True,
         "recommendation_reasons": [
@@ -655,7 +662,7 @@ def test_what_changed_model_pvo_staleness_accepts_real_marker_shape_in_public_dt
                 "coverage_path": (
                     "app/data/valuation_runtime/universe_pvo_coverage_runtime.json"
                 ),
-                "seed_staleness": raw_real_seed_staleness,
+                "seed_staleness": legacy_seed_staleness,
             }
 
     monkeypatch.setattr(
@@ -664,7 +671,21 @@ def test_what_changed_model_pvo_staleness_accepts_real_marker_shape_in_public_dt
 
     staleness = report._model_pvo_staleness()
 
-    assert staleness["seed_staleness"] == raw_real_seed_staleness
+    assert staleness["seed_staleness"] == {
+        "decision_supported": False,
+        "promotion_review_threshold_crossed": True,
+        "review_triggers": ["count_model_supported_players_drifted_gt_5pct>20"],
+        "baseline_status": "compared",
+        "count_players_drifted_gt_5pct": 22,
+        "count_model_supported_players_drifted_gt_5pct": 22,
+        "mean_abs_value_delta": 6.0,
+        "p95_abs_value_delta": 6.0,
+        "coverage_count_deltas": {"ENGINE_B": 0, "PRE_MODEL": 0},
+        "seed_as_of": "2026-06-24T12:00:00+00:00",
+        "seed_age_days": 3.0,
+    }
+    assert "promote_recommended" not in json.dumps(staleness, sort_keys=True)
+    assert "recommendation_reasons" not in json.dumps(staleness, sort_keys=True)
     model = models.WhatChangedModelSection.model_validate(
         {
             "status": "insufficient_history",
@@ -675,11 +696,56 @@ def test_what_changed_model_pvo_staleness_accepts_real_marker_shape_in_public_dt
     )
     assert model.pvo_staleness is not None
     assert model.pvo_staleness.seed_staleness is not None
-    assert model.pvo_staleness.seed_staleness.promote_recommended is True
+    assert (
+        model.pvo_staleness.seed_staleness.promotion_review_threshold_crossed is True
+    )
     assert model.pvo_staleness.seed_staleness.baseline_status == "compared"
-    assert model.pvo_staleness.seed_staleness.recommendation_reasons == [
+    assert model.pvo_staleness.seed_staleness.review_triggers == [
         "count_model_supported_players_drifted_gt_5pct>20"
     ]
+
+
+def test_what_changed_model_pvo_staleness_suppresses_legacy_false_marker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Old false markers remain quiet while compatibility is retained."""
+    report = importlib.import_module("src.dynasty_genius.what_changed.report")
+    seed_staleness = {
+        "decision_supported": False,
+        "promote_recommended": False,
+        "recommendation_reasons": [],
+        "baseline_status": "compared",
+        "count_players_drifted_gt_5pct": 1,
+        "count_model_supported_players_drifted_gt_5pct": 0,
+        "mean_abs_value_delta": 0.02,
+        "p95_abs_value_delta": 0.05,
+        "coverage_count_deltas": {"ENGINE_B": 0, "PRE_MODEL": 0},
+        "seed_as_of": "2026-06-24T12:00:00+00:00",
+        "seed_age_days": 3.0,
+    }
+
+    class Resolved:
+        def metadata(self) -> dict:
+            return {
+                "decision_supported": False,
+                "pvo_source_kind": "runtime",
+                "pvo_sha256": "runtime-pvo-sha",
+                "coverage_sha256": "runtime-coverage-sha",
+                "source_as_of": "2026-06-27T13:30:00+00:00",
+                "pvo_path": "app/data/valuation_runtime/universe_pvo_runtime.json",
+                "coverage_path": (
+                    "app/data/valuation_runtime/universe_pvo_coverage_runtime.json"
+                ),
+                "seed_staleness": seed_staleness,
+            }
+
+    monkeypatch.setattr(
+        report, "resolve_pvo_source", lambda **_kwargs: Resolved(), raising=False
+    )
+
+    staleness = report._model_pvo_staleness()
+
+    assert staleness["seed_staleness"] is None
 
 
 def test_what_changed_model_pvo_staleness_discloses_not_ready_runtime(
@@ -743,7 +809,7 @@ def test_what_changed_model_pvo_staleness_dto_rejects_fabricated_or_market_field
         models.WhatChangedModelPvoSeedStaleness.model_validate(
             {
                 "decision_supported": False,
-                "promote_recommended": True,
+                "promotion_review_threshold_crossed": True,
                 "count_players_drifted_gt_5pct": 22,
                 "count_model_supported_players_drifted_gt_5pct": 22,
                 "mean_abs_value_delta": 6.0,
@@ -754,14 +820,33 @@ def test_what_changed_model_pvo_staleness_dto_rejects_fabricated_or_market_field
                 "market_overlay": {"must": "not validate"},
             }
         )
+    with pytest.raises(Exception):
+        models.WhatChangedModelPvoSeedStaleness.model_validate(
+            {
+                "decision_supported": False,
+                "promote_recommended": True,
+                "recommendation_reasons": [
+                    "count_model_supported_players_drifted_gt_5pct>20"
+                ],
+                "count_players_drifted_gt_5pct": 22,
+                "count_model_supported_players_drifted_gt_5pct": 22,
+                "mean_abs_value_delta": 6.0,
+                "p95_abs_value_delta": 6.0,
+                "coverage_count_deltas": {"ENGINE_B": 0},
+                "seed_as_of": "2026-06-24T12:00:00+00:00",
+                "seed_age_days": 3.0,
+            }
+        )
 
 
 def test_what_changed_pvo_staleness_openapi_and_zod_snapshots_are_regenerated() -> None:
     """T4d changes the public What-Changed DTO, so generated schema artifacts must move."""
     openapi_snapshot = REPO_ROOT / "frontend" / "openapi.json"
+    types_client = REPO_ROOT / "frontend" / "src" / "lib" / "api" / "types.gen.ts"
     zod_client = REPO_ROOT / "frontend" / "src" / "lib" / "api" / "zod.gen.ts"
 
     openapi_text = openapi_snapshot.read_text(encoding="utf-8")
+    types_text = types_client.read_text(encoding="utf-8")
     zod_text = zod_client.read_text(encoding="utf-8")
 
     assert "WhatChangedModelPvoStaleness" in openapi_text
@@ -771,6 +856,23 @@ def test_what_changed_pvo_staleness_openapi_and_zod_snapshots_are_regenerated() 
     assert "zWhatChangedModelPvoSeedStaleness" in zod_text
     assert "pvo_staleness" in zod_text
     assert "baseline_status" in openapi_text
-    assert "recommendation_reasons" in openapi_text
+    assert "promotion_review_threshold_crossed" in openapi_text
+    assert "review_triggers" in openapi_text
+    assert "promote_recommended" not in openapi_text
+    assert "recommendation_reasons" not in openapi_text
+    assert "Promote Recommended" not in openapi_text
+    assert "Recommendation Reasons" not in openapi_text
+    assert "WhatChangedModelPvoSeedStaleness" in types_text
+    assert "promotion_review_threshold_crossed" in types_text
+    assert "review_triggers" in types_text
+    assert "promote_recommended" not in types_text
+    assert "recommendation_reasons" not in types_text
+    assert "Promote Recommended" not in types_text
+    assert "Recommendation Reasons" not in types_text
     assert "baseline_status" in zod_text
-    assert "recommendation_reasons" in zod_text
+    assert "promotion_review_threshold_crossed" in zod_text
+    assert "review_triggers" in zod_text
+    assert "promote_recommended" not in zod_text
+    assert "recommendation_reasons" not in zod_text
+    assert "Promote Recommended" not in zod_text
+    assert "Recommendation Reasons" not in zod_text
