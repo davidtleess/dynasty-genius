@@ -31,16 +31,26 @@ _MODEL_FAVOR_NORMALIZATION = {
     "side_a": "counterparty",
     "counterparty": "counterparty",
     "neutral": "neutral",
+    # RC-v1 range-native status: a capacity-adjusted range that straddles parity
+    # is honest non-consensus, not a direction. It maps to "uncertain" and never
+    # opposes a market label, so it suppresses the disagreement warning rather
+    # than asserting a false directional read.
+    "uncertain_range_crosses_parity": "uncertain",
 }
 
-_DIRECTION_CODE = {"david": 1.0, "neutral": 0.0, "counterparty": -1.0}
+_DIRECTION_CODE = {
+    "david": 1.0,
+    "neutral": 0.0,
+    "counterparty": -1.0,
+    "uncertain": 0.0,
+}
 
 # Locked message template (G3): fixed substitution set {David, Counterparty}; no
 # dynamic per-asset prose. Symmetric naming — never asserts the model is correct.
 _LABEL_DISPLAY = {"david": "David", "counterparty": "Counterparty"}
 _MESSAGE_TEMPLATE = (
     "Model favors {model_label} but Market favors {market_label}. "
-    "Manual review of the asset package is recommended."
+    "The asset package is flagged for manual review."
 )
 
 _WARNING_CAVEATS = [

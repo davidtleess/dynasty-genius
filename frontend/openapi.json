@@ -1646,6 +1646,58 @@
             "title": "Forced Cut Candidates",
             "type": "array"
           },
+          "forced_cut_market_recovery_range": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forced Cut Market Recovery Range"
+          },
+          "forced_cut_market_value_at_risk_range": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forced Cut Market Value At Risk Range"
+          },
+          "market_penalty_status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "uncertain_pool_unavailable",
+              "blocked"
+            ],
+            "title": "Market Penalty Status",
+            "type": "string"
+          },
           "penalty_market_value": {
             "title": "Penalty Market Value",
             "type": "integer"
@@ -2858,12 +2910,72 @@
             "title": "Forced Cut Penalty Xvar",
             "type": "number"
           },
+          "forced_cut_recovery_range": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forced Cut Recovery Range"
+          },
+          "forced_cut_value_at_risk_range": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forced Cut Value At Risk Range"
+          },
           "penalty_caveats": {
             "items": {
               "type": "string"
             },
             "title": "Penalty Caveats",
             "type": "array"
+          },
+          "penalty_status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "uncertain_pool_unavailable",
+              "blocked"
+            ],
+            "title": "Penalty Status",
+            "type": "string"
+          },
+          "pool_deficits": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "default": {},
+            "title": "Pool Deficits",
+            "type": "object"
           },
           "post_trade_overflow": {
             "title": "Post Trade Overflow",
@@ -3558,9 +3670,62 @@
             "title": "Adjusted Fairness Delta",
             "type": "number"
           },
+          "adjusted_fairness_delta_range": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adjusted Fairness Delta Range"
+          },
           "adjusted_favors": {
             "title": "Adjusted Favors",
             "type": "string"
+          },
+          "adjusted_favors_status": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "david",
+              "counterparty",
+              "uncertain_range_crosses_parity"
+            ],
+            "title": "Adjusted Favors Status",
+            "type": "string"
+          },
+          "adjusted_received_value_range": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adjusted Received Value Range"
           },
           "adjusted_within_parity_band": {
             "title": "Adjusted Within Parity Band",

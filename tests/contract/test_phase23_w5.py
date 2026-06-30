@@ -7,6 +7,7 @@ GREEN -> separate market route returns an enriched TradeMarketReconciliation
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from fastapi import HTTPException
@@ -19,6 +20,14 @@ from app.main import app
 client = TestClient(app)
 
 BANNED_OUTPUT_TERMS = {
+    "accept",
+    "do not",
+    "hold",
+    "must",
+    "recommendation",
+    "recommended",
+    "safe to",
+    "safe-to",
     "buy",
     "sell",
     "target",
@@ -189,6 +198,27 @@ def _decision_supported_true_count(value: object) -> int:
     return 0
 
 
+def _assert_market_penalty_range_contract(penalty: dict[str, Any]) -> None:
+    assert set(penalty) >= {
+        "penalty_market_value",
+        "unresolved_cut_count",
+        "forced_cut_market_value_at_risk_range",
+        "forced_cut_market_recovery_range",
+        "market_penalty_status",
+    }
+    ranges = (
+        penalty["forced_cut_market_value_at_risk_range"],
+        penalty["forced_cut_market_recovery_range"],
+    )
+    if penalty["market_penalty_status"] == "blocked":
+        assert all(value is None for value in ranges)
+        return
+    for value in ranges:
+        assert isinstance(value, list)
+        assert len(value) == 2
+        assert all(isinstance(bound, int | float) for bound in value)
+
+
 def test_market_reconcile_route_is_separate_file_and_mounted(monkeypatch):
     """W5 must use a separate route module and expose POST /api/trade/reconcile/market."""
     assert trade_market_route.__file__ is not None
@@ -216,6 +246,7 @@ def test_market_reconcile_route_is_separate_file_and_mounted(monkeypatch):
     assert data["market_received_raw"] == 6300
     assert data["david_forced_cut_penalty"]["post_trade_overflow"] == 1
     assert data["david_forced_cut_penalty"]["penalty_market_value"] == 900
+    _assert_market_penalty_range_contract(data["david_forced_cut_penalty"])
     assert data["david_forced_cut_penalty"]["forced_cut_candidates"][0]["asset_ref"]["sleeper_id"] == "P1"
     assert data["sent_assets"][0]["divergence_context"]["signal_label"] == (
         "model_higher_than_market"
@@ -273,7 +304,8 @@ def test_market_reconcile_api_output_excludes_banned_language(monkeypatch):
     assert response.status_code == 200
     serialized = json.dumps(response.json(), sort_keys=True).lower()
     for banned in BANNED_OUTPUT_TERMS:
-        assert banned not in serialized
+        pattern = r"\b" + re.escape(banned).replace(r"\ ", r"\s+") + r"\b"
+        assert re.search(pattern, serialized) is None
 
 
 def test_market_reconcile_decision_supported_false_on_all_market_rows(monkeypatch):

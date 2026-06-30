@@ -947,6 +947,24 @@ export type MarketRosterPenalty = {
      */
     forced_cut_candidates: Array<MarketAssetOverlay>;
     /**
+     * Forced Cut Market Recovery Range
+     */
+    forced_cut_market_recovery_range?: [
+        number,
+        number
+    ] | null;
+    /**
+     * Forced Cut Market Value At Risk Range
+     */
+    forced_cut_market_value_at_risk_range?: [
+        number,
+        number
+    ] | null;
+    /**
+     * Market Penalty Status
+     */
+    market_penalty_status?: 'ok' | 'uncertain_pool_unavailable' | 'blocked';
+    /**
      * Penalty Market Value
      */
     penalty_market_value: number;
@@ -1521,9 +1539,33 @@ export type RosterPenaltySummary = {
      */
     forced_cut_penalty_xvar: number;
     /**
+     * Forced Cut Recovery Range
+     */
+    forced_cut_recovery_range?: [
+        number,
+        number
+    ] | null;
+    /**
+     * Forced Cut Value At Risk Range
+     */
+    forced_cut_value_at_risk_range?: [
+        number,
+        number
+    ] | null;
+    /**
      * Penalty Caveats
      */
     penalty_caveats: Array<string>;
+    /**
+     * Penalty Status
+     */
+    penalty_status?: 'ok' | 'uncertain_pool_unavailable' | 'blocked';
+    /**
+     * Pool Deficits
+     */
+    pool_deficits?: {
+        [key: string]: number;
+    };
     /**
      * Post Trade Overflow
      */
@@ -1911,9 +1953,27 @@ export type TradeRosterReconciliation = {
      */
     adjusted_fairness_delta: number;
     /**
+     * Adjusted Fairness Delta Range
+     */
+    adjusted_fairness_delta_range?: [
+        number,
+        number
+    ] | null;
+    /**
      * Adjusted Favors
      */
     adjusted_favors: string;
+    /**
+     * Adjusted Favors Status
+     */
+    adjusted_favors_status?: 'neutral' | 'david' | 'counterparty' | 'uncertain_range_crosses_parity';
+    /**
+     * Adjusted Received Value Range
+     */
+    adjusted_received_value_range?: [
+        number,
+        number
+    ] | null;
     /**
      * Adjusted Within Parity Band
      */

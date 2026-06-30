@@ -20,6 +20,9 @@ function modelReconciliation(overrides = {}) {
     adjusted_david_received_value: 36,
     adjusted_fairness_delta: 2.1,
     adjusted_favors: "david",
+    adjusted_favors_status: "uncertain_range_crosses_parity",
+    adjusted_fairness_delta_range: [78912.34, 89123.45],
+    adjusted_received_value_range: [56789.12, 67891.23],
     adjusted_within_parity_band: true,
     base_evaluation: {
       caveats: [],
@@ -36,8 +39,12 @@ function modelReconciliation(overrides = {}) {
     roster_penalty: {
       decision_supported: false,
       forced_cut_candidates: [],
+      forced_cut_recovery_range: [34567.89, 45678.91],
+      forced_cut_value_at_risk_range: [12345.67, 23456.78],
       forced_cut_penalty_xvar: 3.1,
       penalty_caveats: [],
+      penalty_status: "uncertain_pool_unavailable",
+      pool_deficits: { WR: 99 },
       post_trade_overflow: 1,
       post_trade_total_players: 25,
     },
@@ -113,6 +120,27 @@ function assertNoFavorsVerdictText(text) {
   expect(text).not.toMatch(/favors/i);
   expect(text).not.toMatch(/\bdavid\b/i);
   expect(text).not.toMatch(/\bcounterparty\b/i);
+  expect(text).not.toMatch(/uncertain_range_crosses_parity/i);
+}
+
+function assertNoBackendOnlyRangeTextThisIncrement(text) {
+  // These range/status fields are intentionally backend-only in this increment.
+  // Future UI work may render them behind a separate RED.
+  for (const sentinel of [
+    "12345.67",
+    "23456.78",
+    "34567.89",
+    "45678.91",
+    "56789.12",
+    "67891.23",
+    "78912.34",
+    "89123.45",
+    "uncertain_pool_unavailable",
+    "WR",
+    "99",
+  ]) {
+    expect(text).not.toContain(sentinel);
+  }
 }
 
 describe("Trade Lab favors non-render guard", () => {
@@ -129,7 +157,9 @@ describe("Trade Lab favors non-render guard", () => {
   it("keeps backend favors fields out of ModelLanePanel DOM text", () => {
     render(<ModelLanePanel reconciliation={modelReconciliation()} />);
 
-    assertNoFavorsVerdictText(screen.getByTestId("model-lane").textContent ?? "");
+    const text = screen.getByTestId("model-lane").textContent ?? "";
+    assertNoFavorsVerdictText(text);
+    assertNoBackendOnlyRangeTextThisIncrement(text);
   });
 
   it("keeps backend favors fields out of rendered TradeLab result surfaces", async () => {
@@ -162,6 +192,9 @@ describe("Trade Lab favors non-render guard", () => {
 
     assertNoFavorsVerdictText(screen.getByTestId("model-lane").textContent ?? "");
     assertNoFavorsVerdictText(screen.getByTestId("divergence-strip").textContent ?? "");
+    assertNoBackendOnlyRangeTextThisIncrement(
+      screen.getByTestId("model-lane").textContent ?? "",
+    );
     expect(within(screen.getByTestId("model-lane")).getByText("41.2")).toBeTruthy();
   });
 });

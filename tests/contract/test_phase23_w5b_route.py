@@ -181,6 +181,7 @@ def _payload_with_bucket_pick() -> dict[str, Any]:
 def _fake_roster_reconciliation(
     *,
     favors: str = "side_b",
+    favors_status: str = "david",
     forced_cut_candidates: list[dict[str, Any]] | None = None,
     post_trade_overflow: int = 0,
 ) -> SimpleNamespace:
@@ -197,6 +198,7 @@ def _fake_roster_reconciliation(
         ),
         adjusted_david_received_value=45.0,
         adjusted_favors=favors,
+        adjusted_favors_status=favors_status,
     )
 
 
@@ -302,8 +304,8 @@ def test_market_route_hydrates_model_assets_and_appends_cross_lane_warning(
         warning_type="market_package_requires_manual_review",
         severity="advisory",
         message=(
-            "Model favors David but Market favors Counterparty. Manual review "
-            "of the asset package is recommended."
+            "Model favors David but Market favors Counterparty. The asset package "
+            "is flagged for manual review."
         ),
         metrics={
             "model_delta_signed": 15.0,
@@ -358,7 +360,7 @@ def test_market_route_hydrates_model_assets_and_appends_cross_lane_warning(
     ]
     assert producer_calls == [
         {
-            "model_favors_raw": "side_b",
+            "model_favors_raw": "david",
             "model_coverage_complete": True,
             "model_delta_signed": 15.0,
             "adjusted_model_sent": 30.0,
@@ -371,6 +373,76 @@ def test_market_route_hydrates_model_assets_and_appends_cross_lane_warning(
     ]
     assert events.index("hydrated_reconcile") > events.index("w4")
     assert events.index("producer") > events.index("hydrated_reconcile")
+
+
+def test_market_route_sources_model_favors_from_range_native_status(monkeypatch):
+    events: list[str] = []
+    reconcile_calls: list[dict] = []
+    producer_calls: list[dict] = []
+    value_pick_calls: list[dict] = []
+    _install_common_route_mocks(monkeypatch, events)
+    _install_reconcile_spy(
+        monkeypatch,
+        events,
+        reconcile_calls,
+        hydrated_reconciliation=_fake_roster_reconciliation(
+            favors="side_b",
+            favors_status="uncertain_range_crosses_parity",
+        ),
+    )
+    _install_pick_value_spies(monkeypatch, value_pick_calls)
+
+    def producer_spy(**kwargs):
+        events.append("producer")
+        producer_calls.append(kwargs)
+        return CrossLaneReviewResult(warning=None, suppressed_reason=None)
+
+    monkeypatch.setattr(
+        trade_market_route,
+        "evaluate_cross_lane_manual_review",
+        producer_spy,
+        raising=False,
+    )
+
+    response = client.post("/api/trade/reconcile/market", json=_payload_with_priced_picks())
+
+    assert response.status_code == 200
+    assert producer_calls[0]["model_favors_raw"] == "uncertain_range_crosses_parity"
+    assert [call["label"] for call in reconcile_calls] == [
+        "cut_reconcile",
+        "hydrated_reconcile",
+    ]
+
+
+def test_market_route_passes_sleeper_snapshot_to_market_reconciler(monkeypatch):
+    events: list[str] = []
+    reconcile_calls: list[dict] = []
+    value_pick_calls: list[dict] = []
+    market_calls: list[dict[str, Any]] = []
+    snapshot = _snapshot()
+    _install_common_route_mocks(monkeypatch, events)
+    monkeypatch.setattr(
+        trade_market_route,
+        "_load_reconcile_artifacts",
+        lambda: (_universe_pvo(), snapshot),
+    )
+    _install_reconcile_spy(monkeypatch, events, reconcile_calls)
+    _install_pick_value_spies(monkeypatch, value_pick_calls)
+
+    original_reconcile_market = trade_market_route.reconcile_trade_market
+
+    def market_spy(*args, **kwargs):
+        events.append("market")
+        market_calls.append(kwargs)
+        return original_reconcile_market(*args, **kwargs)
+
+    monkeypatch.setattr(trade_market_route, "reconcile_trade_market", market_spy)
+
+    response = client.post("/api/trade/reconcile/market", json=_payload_with_priced_picks())
+
+    assert response.status_code == 200
+    assert market_calls
+    assert market_calls[0]["sleeper_snapshot"] is snapshot
 
 
 def test_market_route_bucket_pick_fails_closed_with_specific_caveats(monkeypatch):
@@ -527,7 +599,7 @@ def test_market_route_forced_cut_gaps_fail_closed_with_specific_caveats(
     assert "fantasycalc_uncovered" in data["coverage_gaps"]
     assert producer_calls == [
         {
-            "model_favors_raw": "side_b",
+            "model_favors_raw": "david",
             "model_coverage_complete": False,
             "model_delta_signed": 15.0,
             "adjusted_model_sent": 30.0,

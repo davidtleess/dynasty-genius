@@ -7,6 +7,12 @@ from __future__ import annotations
 
 import pytest
 
+from src.dynasty_genius.roster_capacity.models import (
+    CapacityAuditResult,
+    CapacityHealth,
+    ScenarioResult,
+)
+from src.dynasty_genius.trade_lab import reconciler
 from src.dynasty_genius.trade_lab.evaluator import (
     TradeAsset,
     TradeEvaluation,
@@ -106,6 +112,51 @@ def _count_ds_true(obj: object) -> int:
     if isinstance(obj, list):
         return sum(_count_ds_true(item) for item in obj)
     return 0
+
+
+def _capacity_health(*, required_cuts: int) -> CapacityHealth:
+    return CapacityHealth(
+        total_players=21,
+        total_capacity=20,
+        total_capacity_cuts_required=required_cuts,
+        active_slot_overflow=0,
+        by_slot_class={"active": 20, "reserve": 0, "taxi": 0},
+        reserve_unrestricted=False,
+    )
+
+
+def _rc_result(
+    *,
+    net_range: tuple[float, float],
+    cut_set: list[str] | None = None,
+    caveats: list[str] | None = None,
+    pool_deficits: dict[str, int] | None = None,
+    required_cuts: int = 1,
+) -> CapacityAuditResult:
+    return CapacityAuditResult(
+        status="ok",
+        capacity_health=_capacity_health(required_cuts=required_cuts),
+        candidates=[],
+        scenarios=[
+            ScenarioResult(
+                cut_set=list(cut_set or ["P1"]),
+                cumulative_value_at_risk=net_range,
+                marginal_next_candidate_cost=None,
+                per_position_depth_impact={},
+                pool_deficits=dict(pool_deficits or {}),
+                caveats=list(caveats or []),
+            )
+        ],
+        unrostered_pool_range={},
+        excluded_counts={},
+        caveats=[],
+    )
+
+
+def _assert_no_verdict_tokens(obj: object) -> None:
+    serialized = str(obj).lower()
+    for token in ("buy", "sell", "hold", "accept", "reject", "recommended"):
+        assert token not in serialized
 
 
 # ── Tests 11, 12 — coercion-lock on existing Trade Lab models ────────────────
@@ -258,7 +309,7 @@ def test_forced_compliance_player_surfaces_in_penalty():
     first_cut = result.roster_penalty.forced_cut_candidates[0]
     assert first_cut["sleeper_player_id"] == pid_ir
     assert first_cut["cut_priority"] == 0
-    assert first_cut["ir_compliance_status"] == "ILLEGAL_RESERVE"
+    assert first_cut["candidate_source"] == "forced_review"
 
 
 def test_pre_model_penalty_candidate_caveat():
@@ -323,6 +374,380 @@ def test_no_overflow_adjusted_equals_base():
 
     assert result.roster_penalty.post_trade_overflow == 0
     assert result.adjusted_david_received_value == result.base_evaluation.side_b.side_value
+
+
+def test_rc_v1_scenario_populates_net_recovery_and_adjusted_ranges(monkeypatch):
+    """T2: reconciler calls RC v1 with scenarios=None and reads default scenario."""
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [_make_pvo_player("PA", xvar=20.0), _make_pvo_player("PB", xvar=20.0)]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+    calls: list[dict] = []
+
+    def fake_simulate_capacity_scenarios(
+        universe_pvo: dict,
+        post_trade_snapshot: dict,
+        david_roster_id: int,
+        *,
+        scenarios: list[dict] | None = None,
+    ) -> CapacityAuditResult:
+        calls.append(
+            {
+                "scenarios": scenarios,
+                "players": list(post_trade_snapshot["rosters"][0]["players"]),
+                "taxi": list(post_trade_snapshot["rosters"][0].get("taxi") or []),
+                "reserve": list(post_trade_snapshot["rosters"][0].get("reserve") or []),
+                "roster_id": david_roster_id,
+            }
+        )
+        return _rc_result(net_range=(4.0, 16.0), cut_set=["P1"])
+
+    monkeypatch.setattr(
+        reconciler, "simulate_capacity_scenarios", fake_simulate_capacity_scenarios, raising=False
+    )
+
+    result = reconcile_trade_roster(
+        [_asset("P0", xvar=25.0)],
+        [_asset("PA", xvar=15.0), _asset("PB", xvar=12.0)],
+        pvo,
+        snapshot,
+    )
+
+    assert calls == [
+        {
+            "scenarios": None,
+            "players": [*pids[1:], "PA", "PB"],
+            "taxi": [],
+            "reserve": [],
+            "roster_id": 1,
+        }
+    ]
+    assert result.roster_penalty.forced_cut_penalty_xvar == pytest.approx(20.0)
+    assert result.roster_penalty.forced_cut_value_at_risk_range == (4.0, 16.0)
+    assert result.roster_penalty.forced_cut_recovery_range == (4.0, 16.0)
+    assert result.roster_penalty.pool_deficits == {}
+    assert result.roster_penalty.penalty_status == "ok"
+    assert result.adjusted_received_value_range == (
+        pytest.approx(result.base_evaluation.side_b.side_value - 16.0),
+        pytest.approx(result.base_evaluation.side_b.side_value - 4.0),
+    )
+    assert result.adjusted_fairness_delta_range is not None
+    assert result.adjusted_favors_status in {
+        "neutral",
+        "david",
+        "counterparty",
+        "uncertain_range_crosses_parity",
+    }
+    assert _count_ds_true(result.model_dump()) == 0
+    _assert_no_verdict_tokens(result.model_dump())
+
+
+def test_legacy_adjusted_favors_freezes_to_base_direction_on_all_rc_paths(
+    monkeypatch,
+):
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [_make_pvo_player("PA", xvar=20.0), _make_pvo_player("PB", xvar=20.0)]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+    rc_modes: list[str] = []
+
+    def fake_rc(*_args, **_kwargs) -> CapacityAuditResult:
+        mode = rc_modes.pop(0)
+        if mode == "blocked":
+            return CapacityAuditResult(
+                status="blocked",
+                capacity_health=None,
+                candidates=[],
+                scenarios=[],
+                unrostered_pool_range={},
+                excluded_counts={},
+                caveats=["capacity_audit_blocked"],
+            )
+        if mode == "unvalued":
+            return _rc_result(net_range=(0.0, 0.0), cut_set=["P1"])
+        return _rc_result(net_range=(4.0, 16.0), cut_set=["P1"])
+
+    monkeypatch.setattr(reconciler, "simulate_capacity_scenarios", fake_rc, raising=False)
+
+    for mode in ("normal", "unvalued", "blocked"):
+        rc_modes.append(mode)
+        result = reconcile_trade_roster(
+            [_asset("P0", xvar=25.0)],
+            [_asset("PA", xvar=25.0), _asset("PB", xvar=15.0)],
+            pvo,
+            snapshot,
+        )
+
+        assert result.base_evaluation.favors == "side_b"
+        assert result.adjusted_favors == result.base_evaluation.favors
+        assert _count_ds_true(result.model_dump()) == 0
+
+
+def test_capacity_range_changes_status_without_changing_deprecated_favors(
+    monkeypatch,
+):
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [_make_pvo_player("PA", xvar=20.0), _make_pvo_player("PB", xvar=20.0)]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+    net_ranges = [(0.0, 0.0), (0.0, 20.0)]
+
+    def fake_rc(*_args, **_kwargs) -> CapacityAuditResult:
+        return _rc_result(net_range=net_ranges.pop(0), cut_set=["P1"])
+
+    monkeypatch.setattr(reconciler, "simulate_capacity_scenarios", fake_rc, raising=False)
+
+    first = reconcile_trade_roster(
+        [_asset("P0", xvar=25.0)],
+        [_asset("PA", xvar=25.0), _asset("PB", xvar=15.0)],
+        pvo,
+        snapshot,
+    )
+    second = reconcile_trade_roster(
+        [_asset("P0", xvar=25.0)],
+        [_asset("PA", xvar=25.0), _asset("PB", xvar=15.0)],
+        pvo,
+        snapshot,
+    )
+
+    assert first.base_evaluation.favors == "side_b"
+    assert second.base_evaluation.favors == "side_b"
+    assert first.adjusted_favors == "side_b"
+    assert second.adjusted_favors == "side_b"
+    assert first.adjusted_favors_status != second.adjusted_favors_status
+
+
+def test_parity_straddling_range_keeps_legacy_favors_base_only(monkeypatch):
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [_make_pvo_player("PA", xvar=20.0), _make_pvo_player("PB", xvar=20.0)]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+
+    def fake_straddling_rc(*_args, **_kwargs) -> CapacityAuditResult:
+        return _rc_result(net_range=(0.0, 40.0), cut_set=["P1"])
+
+    monkeypatch.setattr(
+        reconciler, "simulate_capacity_scenarios", fake_straddling_rc, raising=False
+    )
+
+    result = reconcile_trade_roster(
+        [_asset("P0", xvar=100.0)],
+        [_asset("PA", xvar=70.0), _asset("PB", xvar=50.0)],
+        pvo,
+        snapshot,
+    )
+
+    assert result.base_evaluation.favors == "side_b"
+    assert result.adjusted_received_value_range is not None
+    assert (
+        result.adjusted_received_value_range[0]
+        < result.base_evaluation.side_a.side_value
+        < result.adjusted_received_value_range[1]
+    )
+    assert result.adjusted_favors_status == "uncertain_range_crosses_parity"
+    assert result.adjusted_favors == "side_b"
+
+
+def test_rc_v1_blocked_result_returns_blocked_ranges_without_fabricated_zero(
+    monkeypatch,
+):
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [_make_pvo_player("PA", xvar=20.0), _make_pvo_player("PB", xvar=20.0)]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+
+    def fake_blocked(*_args, **_kwargs) -> CapacityAuditResult:
+        return CapacityAuditResult(
+            status="blocked",
+            capacity_health=None,
+            candidates=[],
+            scenarios=[],
+            unrostered_pool_range={},
+            excluded_counts={},
+            caveats=["capacity_audit_blocked: duplicate sleeper_player_id"],
+        )
+
+    monkeypatch.setattr(reconciler, "simulate_capacity_scenarios", fake_blocked, raising=False)
+
+    result = reconcile_trade_roster([_asset("P0")], [_asset("PA"), _asset("PB")], pvo, snapshot)
+
+    assert result.roster_penalty.penalty_status == "blocked"
+    assert result.roster_penalty.forced_cut_value_at_risk_range is None
+    assert result.roster_penalty.forced_cut_recovery_range is None
+    assert result.adjusted_received_value_range is None
+    assert result.adjusted_fairness_delta_range is None
+    assert "capacity_audit_blocked" in " ".join(result.caveats)
+    assert _count_ds_true(result.model_dump()) == 0
+    _assert_no_verdict_tokens(result.model_dump())
+
+
+def test_unavailable_pre_model_wire_yields_uncertain_range_not_zero(monkeypatch):
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [
+            _make_pvo_player("PA", xvar=20.0),
+            _make_pvo_player("PB", xvar=20.0),
+        ]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+
+    def fake_unavailable(*_args, **_kwargs) -> CapacityAuditResult:
+        return _rc_result(
+            net_range=(0.0, 20.0),
+            cut_set=["P1"],
+            caveats=[
+                "valuation_coverage_below_floor",
+                "WR_waiver_range_unavailable_recovery_unverifiable",
+                "best_case_recovery",
+                "worst_case_recovery",
+            ],
+        )
+
+    monkeypatch.setattr(reconciler, "simulate_capacity_scenarios", fake_unavailable, raising=False)
+
+    result = reconcile_trade_roster([_asset("P0")], [_asset("PA"), _asset("PB")], pvo, snapshot)
+
+    assert result.roster_penalty.penalty_status == "uncertain_pool_unavailable"
+    assert result.roster_penalty.forced_cut_value_at_risk_range == (0.0, 20.0)
+    assert result.roster_penalty.forced_cut_recovery_range == (0.0, 20.0)
+    caveats = " ".join(result.roster_penalty.penalty_caveats + result.caveats)
+    assert "valuation_coverage_below_floor" in caveats
+    assert "best_case_recovery" in caveats
+    assert "worst_case_recovery" in caveats
+    assert _count_ds_true(result.model_dump()) == 0
+    _assert_no_verdict_tokens(result.model_dump())
+
+
+def test_barren_pool_and_deficit_are_preserved_from_rc_scenario(monkeypatch):
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [_make_pvo_player("PA", xvar=20.0), _make_pvo_player("PB", xvar=20.0)]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+
+    def fake_deficit(*_args, **_kwargs) -> CapacityAuditResult:
+        return _rc_result(
+            net_range=(20.0, 20.0),
+            cut_set=["P1"],
+            pool_deficits={"WR": 1},
+            caveats=["wr_unrostered_pool_depleted_all_zero_value"],
+        )
+
+    monkeypatch.setattr(reconciler, "simulate_capacity_scenarios", fake_deficit, raising=False)
+
+    result = reconcile_trade_roster([_asset("P0")], [_asset("PA"), _asset("PB")], pvo, snapshot)
+
+    assert result.roster_penalty.forced_cut_penalty_xvar == pytest.approx(20.0)
+    assert result.roster_penalty.forced_cut_value_at_risk_range == (20.0, 20.0)
+    assert result.roster_penalty.forced_cut_recovery_range == (0.0, 0.0)
+    assert result.roster_penalty.pool_deficits == {"WR": 1}
+    assert "depleted_all_zero_value" in " ".join(result.caveats)
+
+
+def test_unvalued_cut_candidate_marks_net_range_incomplete(monkeypatch):
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [
+            _make_pvo_player("P0", xvar=20.0),
+            _make_pvo_player("P1", xvar=None, xvar_pct=5.0, engine_path="PRE_MODEL"),
+            _make_pvo_player("PA", xvar=20.0),
+        ]
+    )
+    snapshot = _make_snapshot(["P0", "P1"], roster_positions=["QB", "BN"], settings=settings)
+
+    def fake_unvalued_cut(*_args, **_kwargs) -> CapacityAuditResult:
+        return _rc_result(net_range=(0.0, 0.0), cut_set=["P1"])
+
+    monkeypatch.setattr(reconciler, "simulate_capacity_scenarios", fake_unvalued_cut, raising=False)
+
+    result = reconcile_trade_roster([_asset("P0")], [_asset("PA")], pvo, snapshot)
+
+    caveats = " ".join(result.roster_penalty.penalty_caveats + result.caveats)
+    assert result.roster_penalty.forced_cut_penalty_xvar == 0.0
+    assert result.roster_penalty.forced_cut_value_at_risk_range is None
+    assert result.roster_penalty.penalty_status == "blocked"
+    assert "cut_player_value_unavailable:P1" in caveats
+
+
+def test_legacy_overflow_and_rc_required_cut_divergence_is_caveated(monkeypatch):
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [_make_pvo_player("PA", xvar=20.0), _make_pvo_player("PB", xvar=20.0)]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+
+    def fake_divergence(*_args, **_kwargs) -> CapacityAuditResult:
+        return _rc_result(net_range=(4.0, 16.0), cut_set=["P1"], required_cuts=2)
+
+    monkeypatch.setattr(reconciler, "simulate_capacity_scenarios", fake_divergence, raising=False)
+
+    result = reconcile_trade_roster([_asset("P0")], [_asset("PA"), _asset("PB")], pvo, snapshot)
+
+    assert result.roster_penalty.post_trade_overflow == 1
+    assert "legacy_overflow_rc_required_cuts_divergence" in " ".join(result.caveats)
+
+
+def test_base_trade_caveats_are_preserved_on_all_rc_paths(monkeypatch):
+    pids = [f"P{i}" for i in range(20)]
+    settings = dict(_STANDARD_SETTINGS, reserve_slots=0, taxi_slots=0)
+    pvo = _make_pvo(
+        [_make_pvo_player(pid, xvar=20.0) for pid in pids]
+        + [_make_pvo_player("PA", xvar=20.0), _make_pvo_player("PB", xvar=20.0)]
+    )
+    snapshot = _make_snapshot(pids, roster_positions=_STANDARD_POSITIONS, settings=settings)
+    base_caveat = "custom_base_trade_caveat"
+    rc_modes: list[str] = []
+
+    def fake_rc(*_args, **_kwargs) -> CapacityAuditResult:
+        mode = rc_modes.pop(0)
+        if mode == "blocked":
+            return CapacityAuditResult(
+                status="blocked",
+                capacity_health=None,
+                candidates=[],
+                scenarios=[],
+                unrostered_pool_range={},
+                excluded_counts={},
+                caveats=["capacity_audit_blocked"],
+            )
+        if mode == "unvalued":
+            return _rc_result(net_range=(0.0, 0.0), cut_set=["P1"])
+        return _rc_result(net_range=(4.0, 16.0), cut_set=["P1"], caveats=["rc_caveat"])
+
+    monkeypatch.setattr(reconciler, "simulate_capacity_scenarios", fake_rc, raising=False)
+
+    for mode in ("normal", "unvalued", "blocked"):
+        rc_modes.append(mode)
+        result = reconcile_trade_roster(
+            [TradeAsset(player_id="P0", xvar=25.0, position="WR", caveat=base_caveat)],
+            [_asset("PA"), _asset("PB")],
+            pvo,
+            snapshot,
+        )
+
+        assert base_caveat in result.base_evaluation.caveats
+        assert base_caveat in result.caveats
 
 
 def test_decision_supported_false_throughout():

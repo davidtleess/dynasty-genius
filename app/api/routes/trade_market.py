@@ -278,6 +278,7 @@ def reconcile_trade_market_endpoint(
         fc_entries,
         request.current_draft_year,
         request.format_key,
+        sleeper_snapshot=sleeper_snapshot,
         counterparty_roster_penalty=cp_penalty_input,
         counterparty_market_penalty_status=cp_status,
         counterparty_caveats=cp_caveats,
@@ -348,7 +349,9 @@ def reconcile_trade_market_endpoint(
     adjusted_model_received = hydrated_recon.adjusted_david_received_value
     adjusted_model_sent = hydrated_recon.base_evaluation.side_a.side_value
     cross_lane = evaluate_cross_lane_manual_review(
-        model_favors_raw=hydrated_recon.adjusted_favors,
+        # Range-native, capacity-aware status (§10b) — the deprecated legacy
+        # adjusted_favors is base-only and must not feed the cross-lane review.
+        model_favors_raw=hydrated_recon.adjusted_favors_status,
         model_coverage_complete=model_coverage_complete,
         model_delta_signed=adjusted_model_received - adjusted_model_sent,
         adjusted_model_sent=adjusted_model_sent,

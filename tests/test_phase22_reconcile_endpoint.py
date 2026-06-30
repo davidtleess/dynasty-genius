@@ -5,6 +5,9 @@ GREEN → after route is wired in app/api/routes/trade.py.
 """
 from __future__ import annotations
 
+import json
+import re
+
 from fastapi.testclient import TestClient
 
 import app.api.routes.trade as trade_route
@@ -70,6 +73,52 @@ def _mock_snapshot(player_ids: list[str]) -> dict:
     }
 
 
+def _decision_supported_true_count(value: object) -> int:
+    if isinstance(value, dict):
+        here = 1 if value.get("decision_supported") is True else 0
+        return here + sum(_decision_supported_true_count(v) for v in value.values())
+    if isinstance(value, list):
+        return sum(_decision_supported_true_count(item) for item in value)
+    return 0
+
+
+def _assert_model_ranges_match_status(data: dict) -> None:
+    penalty = data["roster_penalty"]
+    range_fields = (
+        penalty["forced_cut_value_at_risk_range"],
+        penalty["forced_cut_recovery_range"],
+        data["adjusted_received_value_range"],
+        data["adjusted_fairness_delta_range"],
+    )
+    if penalty["penalty_status"] == "blocked":
+        assert all(value is None for value in range_fields)
+        return
+    for value in range_fields:
+        assert isinstance(value, list)
+        assert len(value) == 2
+        assert all(isinstance(bound, int | float) for bound in value)
+
+
+def _assert_no_verdict_language(value: object) -> None:
+    serialized = json.dumps(value, sort_keys=True).lower()
+    banned = (
+        "buy",
+        "sell",
+        "hold",
+        "accept",
+        "reject",
+        "recommended",
+        "recommendation",
+        "must",
+        "safe to",
+        "safe-to",
+        "do not",
+    )
+    for token in banned:
+        pattern = r"\b" + re.escape(token).replace(r"\ ", r"\s+") + r"\b"
+        assert re.search(pattern, serialized) is None
+
+
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 
@@ -93,8 +142,20 @@ def test_reconcile_endpoint_balanced_trade(monkeypatch):
     assert data["decision_supported"] is False
     assert data["roster_penalty"]["post_trade_overflow"] == 0
     assert data["roster_penalty"]["forced_cut_penalty_xvar"] == 0.0
+    assert data["roster_penalty"]["penalty_status"] in {
+        "ok",
+        "uncertain_pool_unavailable",
+        "blocked",
+    }
+    assert "forced_cut_value_at_risk_range" in data["roster_penalty"]
+    assert "forced_cut_recovery_range" in data["roster_penalty"]
+    assert "pool_deficits" in data["roster_penalty"]
     assert "base_evaluation" in data
     assert "adjusted_david_received_value" in data
+    assert "adjusted_received_value_range" in data
+    assert "adjusted_fairness_delta_range" in data
+    assert "adjusted_favors_status" in data
+    _assert_model_ranges_match_status(data)
 
 
 def test_reconcile_endpoint_overflow_reduces_adjusted_value(monkeypatch):
@@ -118,6 +179,8 @@ def test_reconcile_endpoint_overflow_reduces_adjusted_value(monkeypatch):
     assert resp.status_code == 200
     data = resp.json()
     assert data["roster_penalty"]["post_trade_overflow"] == 1
+    assert data["roster_penalty"]["forced_cut_penalty_xvar"] >= 0
+    _assert_model_ranges_match_status(data)
     base_received = data["base_evaluation"]["side_b"]["side_value"]
     assert data["adjusted_david_received_value"] < base_received
 
@@ -146,6 +209,42 @@ def test_reconcile_endpoint_picks_only_deal_no_overflow(monkeypatch):
     data = resp.json()
     assert data["roster_penalty"]["post_trade_overflow"] == 0
     assert data["roster_penalty"]["forced_cut_penalty_xvar"] == 0.0
+    _assert_model_ranges_match_status(data)
+
+
+def test_reconcile_endpoint_rc_blocked_payload_returns_200_without_fabricated_ranges(
+    monkeypatch,
+):
+    """Malformed PVO blocks the capacity audit in-payload, not the HTTP route."""
+    pids = [f"P{i}" for i in range(20)]
+    duplicate_pvo = _mock_pvo(pids, ["PA", "PB"])
+    duplicate_pvo["players"].append(duplicate_pvo["players"][0])
+    monkeypatch.setattr(
+        trade_route,
+        "_load_reconcile_artifacts",
+        lambda: (duplicate_pvo, _mock_snapshot(pids)),
+    )
+
+    payload = {
+        "david_assets": [{"player_id": "P0", "xvar": 30.0, "position": "WR"}],
+        "received_assets": [
+            {"player_id": "PA", "xvar": 15.0, "position": "WR"},
+            {"player_id": "PB", "xvar": 12.0, "position": "WR"},
+        ],
+    }
+    resp = client.post("/api/trade/reconcile", json=payload)
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["decision_supported"] is False
+    assert data["roster_penalty"]["penalty_status"] == "blocked"
+    assert data["roster_penalty"]["forced_cut_penalty_xvar"] == 0.0
+    assert data["roster_penalty"]["forced_cut_candidates"] == []
+    assert data["roster_penalty"]["forced_cut_value_at_risk_range"] is None
+    assert data["roster_penalty"]["forced_cut_recovery_range"] is None
+    assert data["adjusted_received_value_range"] is None
+    assert data["adjusted_fairness_delta_range"] is None
+    assert "duplicate sleeper_player_id" in " ".join(data["caveats"])
 
 
 def test_reconcile_endpoint_decision_supported_false_throughout(monkeypatch):
@@ -169,12 +268,26 @@ def test_reconcile_endpoint_decision_supported_false_throughout(monkeypatch):
 
     assert resp.status_code == 200
 
-    def _count_ds_true(obj: object) -> int:
-        if isinstance(obj, dict):
-            here = 1 if obj.get("decision_supported") is True else 0
-            return here + sum(_count_ds_true(v) for v in obj.values())
-        if isinstance(obj, list):
-            return sum(_count_ds_true(item) for item in obj)
-        return 0
+    assert _decision_supported_true_count(resp.json()) == 0
 
-    assert _count_ds_true(resp.json()) == 0
+
+def test_reconcile_endpoint_api_output_excludes_verdict_language(monkeypatch):
+    """Serialized API JSON stays descriptive; status fields are structural only."""
+    pids = [f"P{i}" for i in range(20)]
+    monkeypatch.setattr(
+        trade_route,
+        "_load_reconcile_artifacts",
+        lambda: (_mock_pvo(pids, ["PA", "PB"]), _mock_snapshot(pids)),
+    )
+
+    payload = {
+        "david_assets": [{"player_id": "P0", "xvar": 20.0, "position": "WR"}],
+        "received_assets": [
+            {"player_id": "PA", "xvar": 15.0, "position": "WR"},
+            {"player_id": "PB", "xvar": 12.0, "position": "WR"},
+        ],
+    }
+    resp = client.post("/api/trade/reconcile", json=payload)
+
+    assert resp.status_code == 200
+    _assert_no_verdict_language(resp.json())
