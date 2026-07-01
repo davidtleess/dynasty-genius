@@ -1,0 +1,56 @@
+/* Realized-Outcome diagnostic scorecard scaffolding — neutral grayscale only. A
+   diagnostic accuracy/fidelity surface must never color a result as good/bad, so
+   there is no red/green here; the empty/off-season state is the primary layout. */
+
+.dg-ro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  color: #1f2430;
+}
+
+.dg-ro__eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7a828e;
+}
+
+.dg-ro__title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.dg-ro__state {
+  border: 1px dashed #d5d9e0;
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+  background: #fafbfc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dg-ro__lead {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.dg-ro__meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #55606f;
+  font-variant-numeric: tabular-nums;
+}
+
+.dg-ro__note {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #55606f;
+}
+
+.dg-ro__notice {
+  color: #55606f;
+}

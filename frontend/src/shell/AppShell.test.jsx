@@ -12,6 +12,7 @@ const NAV_LABELS = [
   "Trade Lab",
   "Roster Capacity",
   "Daily What-Changed",
+  "Accuracy Tracker",
   "Waiver Radar",
   "League Pulse",
   "Model Trust",
@@ -268,5 +269,33 @@ describe("AppShell", () => {
       expect(screen.getByRole("region", { name: /daily what-changed/i })).toBeTruthy(),
     );
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/league/what-changed");
+  });
+
+  it("renders the Accuracy Tracker diagnostic scorecard when its nav item is selected", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        status: "inactive",
+        status_reason: "awaiting_first_finalized_week",
+        as_of_week: null,
+        settlement_status: "unsettled",
+        maturity_pct: null,
+        cohort_metrics: {},
+        tracking_rows: [],
+        excluded_counts: {},
+        decision_supported: false,
+      }),
+    });
+
+    render(<AppShell />);
+    fireEvent.click(screen.getByRole("button", { name: "Accuracy Tracker" }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /diagnostic scorecard/i }),
+      ).toBeTruthy(),
+    );
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/realized-outcome/scorecard");
   });
 });

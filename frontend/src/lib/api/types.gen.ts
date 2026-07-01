@@ -100,6 +100,31 @@ export type CapacityHealth = {
 };
 
 /**
+ * CohortMetric
+ *
+ * Within-position rank-accuracy metrics for one position cohort. ``status`` is
+ * ``power_floor_not_met`` (correlations suppressed) or ``ok``.
+ */
+export type CohortMetric = {
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Eligible Count
+     */
+    eligible_count?: number | null;
+    kendall: RankStat;
+    ndcg: NdcgStat;
+    precision_at_k: PrecisionAtK;
+    spearman: RankStat;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
  * CounterArgumentField
  */
 export type CounterArgumentField = {
@@ -1179,6 +1204,24 @@ export type MarketRosterPenalty = {
 };
 
 /**
+ * MifField
+ *
+ * Model Input Fidelity for one utilization field — a diagnostic audit of a
+ * model INPUT (does realized usage match the model's assumption), NOT a player
+ * verdict. ``delta`` is only populated when ``status == "ok"``.
+ */
+export type MifField = {
+    /**
+     * Delta
+     */
+    delta?: number | null;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
  * ModelCardResponse
  *
  * Curated PUBLIC model-card contract — the 8 safety/identity fields only.
@@ -1244,6 +1287,16 @@ export type ModelReliability = {
      * Spearman Rho Mean
      */
     spearman_rho_mean?: number | null;
+};
+
+/**
+ * NdcgStat
+ */
+export type NdcgStat = {
+    /**
+     * Value
+     */
+    value?: number | null;
 };
 
 /**
@@ -1448,6 +1501,28 @@ export type PoolRange = {
 };
 
 /**
+ * PrecisionAtK
+ */
+export type PrecisionAtK = {
+    /**
+     * Hits
+     */
+    hits?: number | null;
+    /**
+     * K
+     */
+    k?: number | null;
+    /**
+     * Truth Def
+     */
+    truth_def?: string | null;
+    /**
+     * Value
+     */
+    value?: number | null;
+};
+
+/**
  * ProspectRequest
  */
 export type ProspectRequest = {
@@ -1551,6 +1626,99 @@ export type QbContextCard = {
      * Source Qb Context Annotations
      */
     source_qb_context_annotations: string;
+};
+
+/**
+ * RankStat
+ *
+ * A rank-correlation statistic with its BCa confidence interval (both nullable
+ * until a cohort clears the statistical power floor).
+ */
+export type RankStat = {
+    /**
+     * Bca Ci
+     */
+    bca_ci?: Array<number> | null;
+    /**
+     * Value
+     */
+    value?: number | null;
+};
+
+/**
+ * RealizedOutcomeScorecardErrorResponse
+ *
+ * Structured 503 body: the scorecard artifact is present but could not be
+ * served (malformed, wrong-root, wrong-schema, non-finite, or verdict-shaped).
+ *
+ * Absent artifact is NOT an error — it is the healthy off-season ``inactive`` 200.
+ */
+export type RealizedOutcomeScorecardErrorResponse = {
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Error
+     */
+    error: string;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * RealizedOutcomeScorecardResponse
+ *
+ * Read-only serve of the latest realized-outcome scorecard.
+ *
+ * ``status`` is ``inactive`` (no artifact yet — the healthy off-season state) or
+ * ``ok`` (a produced scorecard). ``settlement_status`` is ``unsettled`` until the
+ * 2-year horizon. Leads with within-position rank accuracy + Model Input Fidelity;
+ * market data is excluded from scoring.
+ */
+export type RealizedOutcomeScorecardResponse = {
+    /**
+     * As Of Week
+     */
+    as_of_week?: number | null;
+    /**
+     * Cohort Metrics
+     */
+    cohort_metrics?: {
+        [key: string]: CohortMetric;
+    };
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Excluded Counts
+     */
+    excluded_counts?: {
+        [key: string]: number;
+    };
+    /**
+     * Maturity Pct
+     */
+    maturity_pct?: number | null;
+    /**
+     * Settlement Status
+     */
+    settlement_status: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Status Reason
+     */
+    status_reason?: string | null;
+    /**
+     * Tracking Rows
+     */
+    tracking_rows?: Array<TrackingRow>;
 };
 
 /**
@@ -2058,6 +2226,56 @@ export type TopKResult = {
      * Model Hit Rate
      */
     model_hit_rate: number;
+};
+
+/**
+ * TrackingRow
+ *
+ * One player's predicted vs realized PPG plus its input-fidelity audit.
+ */
+export type TrackingRow = {
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Gsis Id
+     */
+    gsis_id: string;
+    /**
+     * Maturity Pct
+     */
+    maturity_pct?: number | null;
+    /**
+     * Model Input Fidelity
+     */
+    model_input_fidelity?: {
+        [key: string]: MifField;
+    };
+    /**
+     * Position
+     */
+    position?: string | null;
+    /**
+     * Predicted Ppg
+     */
+    predicted_ppg?: number | null;
+    /**
+     * Realized Outcome Status
+     */
+    realized_outcome_status: string;
+    /**
+     * Realized Ppg To Date
+     */
+    realized_ppg_to_date?: number | null;
+    /**
+     * Realized Vs Expected Delta
+     */
+    realized_vs_expected_delta?: number | null;
+    /**
+     * Settlement Status
+     */
+    settlement_status: string;
 };
 
 /**
@@ -3270,6 +3488,31 @@ export type GetPlayerDetailApiPlayersSleeperIdGetResponses = {
 };
 
 export type GetPlayerDetailApiPlayersSleeperIdGetResponse = GetPlayerDetailApiPlayersSleeperIdGetResponses[keyof GetPlayerDetailApiPlayersSleeperIdGetResponses];
+
+export type RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/realized-outcome/scorecard';
+};
+
+export type RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetErrors = {
+    /**
+     * Service Unavailable
+     */
+    503: RealizedOutcomeScorecardErrorResponse;
+};
+
+export type RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetError = RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetErrors[keyof RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetErrors];
+
+export type RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: RealizedOutcomeScorecardResponse;
+};
+
+export type RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetResponse = RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetResponses[keyof RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetResponses];
 
 export type ScoreSingleApiRookiesScorePostData = {
     body: ProspectRequest;

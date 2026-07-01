@@ -416,6 +416,18 @@ export const zMarketRosterPenalty = z.object({
 });
 
 /**
+ * MifField
+ *
+ * Model Input Fidelity for one utilization field — a diagnostic audit of a
+ * model INPUT (does realized usage match the model's assumption), NOT a player
+ * verdict. ``delta`` is only populated when ``status == "ok"``.
+ */
+export const zMifField = z.object({
+    delta: z.number().nullish(),
+    status: z.string()
+});
+
+/**
  * ModelCardResponse
  *
  * Curated PUBLIC model-card contract — the 8 safety/identity fields only.
@@ -445,6 +457,13 @@ export const zModelReliability = z.object({
     position: z.string(),
     r2_oos_mean: z.number().nullish(),
     spearman_rho_mean: z.number().nullish()
+});
+
+/**
+ * NdcgStat
+ */
+export const zNdcgStat = z.object({
+    value: z.number().nullish()
 });
 
 /**
@@ -542,6 +561,16 @@ export const zPoolRange = z.object({
 });
 
 /**
+ * PrecisionAtK
+ */
+export const zPrecisionAtK = z.object({
+    hits: z.int().nullish(),
+    k: z.int().nullish(),
+    truth_def: z.string().nullish(),
+    value: z.number().nullish()
+});
+
+/**
  * ProspectRequest
  */
 export const zProspectRequest = z.object({
@@ -580,6 +609,47 @@ export const zQbContextCard = z.object({
     qb_context_annotations: z.array(z.string()).optional(),
     qb_context_caveats: z.array(z.string()).optional(),
     source_qb_context_annotations: z.string()
+});
+
+/**
+ * RankStat
+ *
+ * A rank-correlation statistic with its BCa confidence interval (both nullable
+ * until a cohort clears the statistical power floor).
+ */
+export const zRankStat = z.object({
+    bca_ci: z.array(z.number()).nullish(),
+    value: z.number().nullish()
+});
+
+/**
+ * CohortMetric
+ *
+ * Within-position rank-accuracy metrics for one position cohort. ``status`` is
+ * ``power_floor_not_met`` (correlations suppressed) or ``ok``.
+ */
+export const zCohortMetric = z.object({
+    decision_supported: z.literal(false),
+    eligible_count: z.int().nullish(),
+    kendall: zRankStat,
+    ndcg: zNdcgStat,
+    precision_at_k: zPrecisionAtK,
+    spearman: zRankStat,
+    status: z.string()
+});
+
+/**
+ * RealizedOutcomeScorecardErrorResponse
+ *
+ * Structured 503 body: the scorecard artifact is present but could not be
+ * served (malformed, wrong-root, wrong-schema, non-finite, or verdict-shaped).
+ *
+ * Absent artifact is NOT an error — it is the healthy off-season ``inactive`` 200.
+ */
+export const zRealizedOutcomeScorecardErrorResponse = z.object({
+    decision_supported: z.literal(false).optional().default(false),
+    error: z.string(),
+    message: z.string()
 });
 
 /**
@@ -868,6 +938,46 @@ export const zFoldResult = z.object({
     spearman_rho_bca_ci95: z.tuple([z.number(), z.number()]),
     test_year: z.int(),
     train_years: z.array(z.int())
+});
+
+/**
+ * TrackingRow
+ *
+ * One player's predicted vs realized PPG plus its input-fidelity audit.
+ */
+export const zTrackingRow = z.object({
+    decision_supported: z.literal(false),
+    gsis_id: z.string(),
+    maturity_pct: z.number().nullish(),
+    model_input_fidelity: z.record(z.string(), zMifField).optional(),
+    position: z.string().nullish(),
+    predicted_ppg: z.number().nullish(),
+    realized_outcome_status: z.string(),
+    realized_ppg_to_date: z.number().nullish(),
+    realized_vs_expected_delta: z.number().nullish(),
+    settlement_status: z.string()
+});
+
+/**
+ * RealizedOutcomeScorecardResponse
+ *
+ * Read-only serve of the latest realized-outcome scorecard.
+ *
+ * ``status`` is ``inactive`` (no artifact yet — the healthy off-season state) or
+ * ``ok`` (a produced scorecard). ``settlement_status`` is ``unsettled`` until the
+ * 2-year horizon. Leads with within-position rank accuracy + Model Input Fidelity;
+ * market data is excluded from scoring.
+ */
+export const zRealizedOutcomeScorecardResponse = z.object({
+    as_of_week: z.int().nullish(),
+    cohort_metrics: z.record(z.string(), zCohortMetric).optional(),
+    decision_supported: z.literal(false),
+    excluded_counts: z.record(z.string(), z.int()).optional(),
+    maturity_pct: z.number().nullish(),
+    settlement_status: z.string(),
+    status: z.string(),
+    status_reason: z.string().nullish(),
+    tracking_rows: z.array(zTrackingRow).optional()
 });
 
 /**
@@ -1416,6 +1526,11 @@ export const zGetPlayerDetailApiPlayersSleeperIdGetPath = z.object({
  * Successful Response
  */
 export const zGetPlayerDetailApiPlayersSleeperIdGetResponse = zPlayerDetailResponse;
+
+/**
+ * Successful Response
+ */
+export const zRealizedOutcomeScorecardApiRealizedOutcomeScorecardGetResponse = zRealizedOutcomeScorecardResponse;
 
 export const zScoreSingleApiRookiesScorePostBody = zProspectRequest;
 

@@ -137,6 +137,54 @@
         "title": "CapacityHealth",
         "type": "object"
       },
+      "CohortMetric": {
+        "additionalProperties": false,
+        "description": "Within-position rank-accuracy metrics for one position cohort. ``status`` is\n``power_floor_not_met`` (correlations suppressed) or ``ok``.",
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "eligible_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligible Count"
+          },
+          "kendall": {
+            "$ref": "#/components/schemas/RankStat"
+          },
+          "ndcg": {
+            "$ref": "#/components/schemas/NdcgStat"
+          },
+          "precision_at_k": {
+            "$ref": "#/components/schemas/PrecisionAtK"
+          },
+          "spearman": {
+            "$ref": "#/components/schemas/RankStat"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "spearman",
+          "kendall",
+          "ndcg",
+          "precision_at_k",
+          "status",
+          "decision_supported"
+        ],
+        "title": "CohortMetric",
+        "type": "object"
+      },
       "CounterArgumentField": {
         "properties": {
           "caveats": {
@@ -2034,6 +2082,32 @@
         "title": "MarketRosterPenalty",
         "type": "object"
       },
+      "MifField": {
+        "additionalProperties": false,
+        "description": "Model Input Fidelity for one utilization field \u2014 a diagnostic audit of a\nmodel INPUT (does realized usage match the model's assumption), NOT a player\nverdict. ``delta`` is only populated when ``status == \"ok\"``.",
+        "properties": {
+          "delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "MifField",
+        "type": "object"
+      },
       "ModelCardResponse": {
         "description": "Curated PUBLIC model-card contract \u2014 the 8 safety/identity fields only.\n\nProvenance fields (model_version / model_artifact_hash / git_sha) live on the\naudit-internal PublishedModelCardSource artifact and are deliberately NOT exposed\nhere, so the public surface never leaks the 9-section ModelCard internals.",
         "properties": {
@@ -2145,6 +2219,24 @@
           "caveat"
         ],
         "title": "ModelReliability",
+        "type": "object"
+      },
+      "NdcgStat": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "title": "NdcgStat",
         "type": "object"
       },
       "PlayerDetailResponse": {
@@ -2625,6 +2717,57 @@
         "title": "PoolRange",
         "type": "object"
       },
+      "PrecisionAtK": {
+        "additionalProperties": false,
+        "properties": {
+          "hits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hits"
+          },
+          "k": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "K"
+          },
+          "truth_def": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Truth Def"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "title": "PrecisionAtK",
+        "type": "object"
+      },
       "ProspectRequest": {
         "properties": {
           "age": {
@@ -2827,6 +2970,144 @@
           "source_qb_context_annotations"
         ],
         "title": "QBContextCard",
+        "type": "object"
+      },
+      "RankStat": {
+        "additionalProperties": false,
+        "description": "A rank-correlation statistic with its BCa confidence interval (both nullable\nuntil a cohort clears the statistical power floor).",
+        "properties": {
+          "bca_ci": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bca Ci"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "title": "RankStat",
+        "type": "object"
+      },
+      "RealizedOutcomeScorecardErrorResponse": {
+        "description": "Structured 503 body: the scorecard artifact is present but could not be\nserved (malformed, wrong-root, wrong-schema, non-finite, or verdict-shaped).\n\nAbsent artifact is NOT an error \u2014 it is the healthy off-season ``inactive`` 200.",
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "RealizedOutcomeScorecardErrorResponse",
+        "type": "object"
+      },
+      "RealizedOutcomeScorecardResponse": {
+        "additionalProperties": false,
+        "description": "Read-only serve of the latest realized-outcome scorecard.\n\n``status`` is ``inactive`` (no artifact yet \u2014 the healthy off-season state) or\n``ok`` (a produced scorecard). ``settlement_status`` is ``unsettled`` until the\n2-year horizon. Leads with within-position rank accuracy + Model Input Fidelity;\nmarket data is excluded from scoring.",
+        "properties": {
+          "as_of_week": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of Week"
+          },
+          "cohort_metrics": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CohortMetric"
+            },
+            "title": "Cohort Metrics",
+            "type": "object"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "excluded_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Excluded Counts",
+            "type": "object"
+          },
+          "maturity_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maturity Pct"
+          },
+          "settlement_status": {
+            "title": "Settlement Status",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
+          },
+          "tracking_rows": {
+            "items": {
+              "$ref": "#/components/schemas/TrackingRow"
+            },
+            "title": "Tracking Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "settlement_status",
+          "decision_supported"
+        ],
+        "title": "RealizedOutcomeScorecardResponse",
         "type": "object"
       },
       "RosterAuditPlayer": {
@@ -3769,6 +4050,99 @@
           "diff_wilson_ci95"
         ],
         "title": "TopKResult",
+        "type": "object"
+      },
+      "TrackingRow": {
+        "additionalProperties": false,
+        "description": "One player's predicted vs realized PPG plus its input-fidelity audit.",
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "gsis_id": {
+            "title": "Gsis Id",
+            "type": "string"
+          },
+          "maturity_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maturity Pct"
+          },
+          "model_input_fidelity": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MifField"
+            },
+            "title": "Model Input Fidelity",
+            "type": "object"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "predicted_ppg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicted Ppg"
+          },
+          "realized_outcome_status": {
+            "title": "Realized Outcome Status",
+            "type": "string"
+          },
+          "realized_ppg_to_date": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Ppg To Date"
+          },
+          "realized_vs_expected_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vs Expected Delta"
+          },
+          "settlement_status": {
+            "title": "Settlement Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "gsis_id",
+          "realized_outcome_status",
+          "settlement_status",
+          "decision_supported"
+        ],
+        "title": "TrackingRow",
         "type": "object"
       },
       "TradeAsset": {
@@ -6164,6 +6538,38 @@
         "summary": "Get Player Detail",
         "tags": [
           "players"
+        ]
+      }
+    },
+    "/api/realized-outcome/scorecard": {
+      "get": {
+        "description": "Read-only serve of the latest realized-outcome scorecard artifact.",
+        "operationId": "realized_outcome_scorecard_api_realized_outcome_scorecard_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RealizedOutcomeScorecardResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RealizedOutcomeScorecardErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Realized Outcome Scorecard",
+        "tags": [
+          "realized-outcome"
         ]
       }
     },
