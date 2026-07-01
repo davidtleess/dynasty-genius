@@ -104,3 +104,36 @@
 .dg-wc__notice {
   color: #55606f;
 }
+
+/* Structural current-state baseline — deliberately subordinate to the deltas:
+   lighter, indented, and visually set apart so it reads as grounding context,
+   not a co-equal change surface. Neutral grayscale only. */
+.dg-wc__baseline {
+  border: 1px dashed #d5d9e0;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin-top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: #fafbfc;
+}
+
+.dg-wc__baseline-section {
+  border-top: 1px solid #eef0f3;
+  padding-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.dg-wc__baseline-meta,
+.dg-wc__baseline-line {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #55606f;
+}
+
+.dg-wc__meta-label {
+  color: #7a828e;
+}

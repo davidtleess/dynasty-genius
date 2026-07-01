@@ -16,11 +16,15 @@ type ResponseOverrides = Partial<
   };
 };
 
-function structuralSection() {
+type StructuralSection =
+  WhatChangedResponse["structural_context"]["sections"]["team_posture"];
+
+function structuralSection(overrides: Partial<StructuralSection> = {}) {
   return {
     status: "ok",
     decision_supported: false,
     current_not_delta: true,
+    ...overrides,
   };
 }
 
@@ -136,21 +140,92 @@ function whatChangedResponse(overrides: ResponseOverrides = {}): WhatChangedResp
       decision_supported: false,
       current_not_delta: true,
       sections: {
-        team_posture: structuralSection(),
-        team_value: structuralSection(),
-        league_opportunity: structuralSection(),
+        team_posture: structuralSection({
+          david_roster_id: 1,
+          david_team_name: "David",
+          david_posture: "Contender",
+          team_count: 12,
+          staleness_caveat: {
+            basis: "team_posture_snapshot",
+            report_generated_at: "2026-07-01T12:00:00+00:00",
+            age_hours: 1.5,
+            is_stale: true,
+          },
+        }),
+        team_value: structuralSection({
+          david_value_summary: {
+            roster_id: 1,
+            team_name: "David",
+            posture_label: "Contender",
+            lineup_xvar: 31.4,
+            starter_weighted_xvar: 42.75,
+            top_n_xvar: 88.2,
+            total_xvar_capped: 104.6,
+          },
+        }),
+        league_opportunity: structuralSection({
+          status: "degraded",
+          aborted_reason: "league_opportunity_partial_source",
+          top_partner_rankings: [
+            {
+              counterparty_roster_id: 7,
+              counterparty_team_name: "Partner One",
+              partner_score: 0.82,
+              matched_positions: ["WR", "RB"],
+            },
+            {
+              counterparty_roster_id: 8,
+              counterparty_team_name: "Partner Two",
+              partner_score: 0.64,
+              matched_positions: ["TE"],
+            },
+          ],
+          top_cards: [
+            {
+              card_id: "card-1",
+              card_type: "DIVERGENCE_MODEL_HIGH",
+              asset_name: "Hidden Divergence Asset One",
+            },
+            {
+              card_id: "card-2",
+              card_type: "DIVERGENCE_MODEL_HIGH",
+              asset_name: "Hidden Divergence Asset Two",
+            },
+            {
+              card_id: "card-3",
+              card_type: "DEPTH_CONTEXT",
+              asset_name: "Hidden Depth Asset",
+            },
+          ],
+        }),
         drop_pressure: {
-          ...structuralSection(),
+          ...structuralSection({
+            summary: {
+              roster_id: 1,
+              total_players: 30,
+              total_capacity: 28,
+              cuts_required: 2,
+            },
+          }),
           top_candidates: [
             {
               sleeper_player_id: "hidden-current-context",
-              player_name: "Deferred Structural Player",
+              player_name: "Hidden Cut Candidate",
               position: "WR",
-              cut_priority: 1,
+              cut_priority: 97,
+            },
+            {
+              sleeper_player_id: "hidden-current-context-2",
+              player_name: "Second Hidden Cut Candidate",
+              position: "RB",
+              cut_priority: 98,
             },
           ],
         },
-        sleeper_snapshot: structuralSection(),
+        sleeper_snapshot: structuralSection({
+          david_roster_player_count: 30,
+          league_roster_count: 12,
+        }),
       },
     },
   };
@@ -194,7 +269,9 @@ describe("DailyWhatChanged", () => {
     );
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/league/what-changed");
     expect(screen.getByRole("heading", { name: /daily change log/i })).toBeTruthy();
-    expect(screen.getByText(/decision_supported=false/i)).toBeTruthy();
+    expect(
+      screen.getAllByText(/decision_supported=false/i).length,
+    ).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/delta surface/i)).toBeTruthy();
     expect(screen.getByText(/generated: 2026-07-01T12:00:00\+00:00/i)).toBeTruthy();
     expect(screen.getByText(/captured 2026-06-30 vs 2026-07-01/i)).toBeTruthy();
@@ -210,8 +287,8 @@ describe("DailyWhatChanged", () => {
     expect(within(market).queryByText("Model Delta")).toBeNull();
     expect(within(model).getByText("Model Delta")).toBeTruthy();
     expect(within(model).queryByText("Market Mover")).toBeNull();
-    expect(screen.queryByText("Deferred Structural Player")).toBeNull();
-    expect(screen.queryByText(/team posture|team value|drop pressure/i)).toBeNull();
+    expect(within(market).queryByText("Hidden Cut Candidate")).toBeNull();
+    expect(within(model).queryByText("Hidden Cut Candidate")).toBeNull();
   });
 
   it("renders signed deltas neutrally without directive language or fabricated arrows", async () => {
@@ -224,7 +301,7 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByText("-1.25")).toBeTruthy();
     expect(screen.getByText("+0.04")).toBeTruthy();
     expect(screen.getByText("-0.75")).toBeTruthy();
-    expect(screen.queryByText(/buy|sell|hold|start|sit/i)).toBeNull();
+    expect(screen.queryByText(/\b(buy|sell|hold|start|sit)\b/i)).toBeNull();
     expect(screen.queryByText(/optimizer|recommender|trend optimizer/i)).toBeNull();
     expect(screen.queryByText(/transaction recommender/i)).toBeNull();
     expect(screen.queryByText(/[▲▼⬆⬇]/u)).toBeNull();
@@ -268,7 +345,9 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByText(/market_snapshot_stale/i)).toBeTruthy();
     expect(screen.getByText(/feature_source_unverifiable/i)).toBeTruthy();
     expect(screen.getByText(/pvo_seed_stale/i)).toBeTruthy();
-    expect(screen.getByText(/decision_supported=false/i)).toBeTruthy();
+    expect(
+      screen.getAllByText(/decision_supported=false/i).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it("renders honest empty and quiet states without manufacturing signal", async () => {
@@ -371,6 +450,86 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByText(/model window 2026-06-30 vs 2026-07-01/i)).toBeTruthy();
     expect(screen.getByText(/semantic-old/i)).toBeTruthy();
     expect(screen.getByText(/semantic-new/i)).toBeTruthy();
+  });
+
+  it("renders structural current-state baseline summaries without named candidate or card lists", async () => {
+    mockFetch(200, whatChangedResponse());
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /structural current-state baseline/i }),
+      ).toBeTruthy(),
+    );
+    expect(screen.getByText(/current-state baseline, not today's delta/i)).toBeTruthy();
+    expect(screen.getByText(/current_not_delta=true/i)).toBeTruthy();
+
+    const baseline = screen.getByRole("region", {
+      name: /structural current-state baseline/i,
+    });
+    for (const label of [
+      "Team Posture",
+      "Team Value",
+      "League Opportunity",
+      "Drop Pressure",
+      "Sleeper Snapshot",
+    ]) {
+      const section = within(baseline).getByRole("region", { name: label });
+      expect(within(section).getByText(/status:/i)).toBeTruthy();
+      expect(within(section).getByText(/decision_supported=false/i)).toBeTruthy();
+    }
+
+    const posture = within(baseline).getByRole("region", { name: "Team Posture" });
+    expect(within(posture).getByText(/contender/i)).toBeTruthy();
+    expect(within(posture).getByText(/team count: 12/i)).toBeTruthy();
+    expect(within(posture).getByText(/team_posture_snapshot/i)).toBeTruthy();
+    expect(within(posture).getByText(/stale/i)).toBeTruthy();
+
+    const teamValue = within(baseline).getByRole("region", { name: "Team Value" });
+    expect(within(teamValue).getByText(/lineup xvar: 31.4/i)).toBeTruthy();
+    expect(within(teamValue).getByText(/starter weighted xvar: 42.75/i)).toBeTruthy();
+    expect(within(teamValue).getByText(/top n xvar: 88.2/i)).toBeTruthy();
+    expect(within(teamValue).getByText(/total xvar capped: 104.6/i)).toBeTruthy();
+
+    const opportunity = within(baseline).getByRole("region", {
+      name: "League Opportunity",
+    });
+    expect(within(opportunity).getByText(/partner ranking count: 2/i)).toBeTruthy();
+    expect(within(opportunity).getByText(/card count: 3/i)).toBeTruthy();
+    expect(within(opportunity).getByText(/DIVERGENCE_MODEL_HIGH: 2/i)).toBeTruthy();
+    expect(within(opportunity).getByText(/DEPTH_CONTEXT: 1/i)).toBeTruthy();
+    expect(
+      within(opportunity).getByText(/league_opportunity_partial_source/i),
+    ).toBeTruthy();
+
+    const dropPressure = within(baseline).getByRole("region", {
+      name: "Drop Pressure",
+    });
+    expect(within(dropPressure).getByText(/cuts required: 2/i)).toBeTruthy();
+    expect(within(dropPressure).getByText(/total players: 30/i)).toBeTruthy();
+    expect(within(dropPressure).getByText(/total capacity: 28/i)).toBeTruthy();
+
+    const sleeper = within(baseline).getByRole("region", { name: "Sleeper Snapshot" });
+    expect(within(sleeper).getByText(/david roster player count: 30/i)).toBeTruthy();
+    expect(within(sleeper).getByText(/league roster count: 12/i)).toBeTruthy();
+
+    expect(screen.queryByText("Hidden Cut Candidate")).toBeNull();
+    expect(screen.queryByText("Second Hidden Cut Candidate")).toBeNull();
+    expect(screen.queryByText("97")).toBeNull();
+    expect(screen.queryByText("98")).toBeNull();
+    expect(screen.queryByText("Hidden Divergence Asset One")).toBeNull();
+    expect(screen.queryByText("Hidden Divergence Asset Two")).toBeNull();
+    expect(screen.queryByText("Hidden Depth Asset")).toBeNull();
+    expect(
+      screen.queryByText(/recommended|target|drop list|opportunity ranking/i),
+    ).toBeNull();
+    expect(screen.queryByText(/\b(best|should|buy|sell|start|sit)\b/i)).toBeNull();
+    expect(screen.queryByText(/[▲▼⬆⬇]/u)).toBeNull();
+
+    for (const section of within(baseline).getAllByRole("region")) {
+      expect(section.className).not.toMatch(/red|green|success|danger/);
+    }
   });
 
   it("renders unavailable for non-OK responses and parse-error for invalid 200 bodies", async () => {
