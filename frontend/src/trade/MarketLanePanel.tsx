@@ -1,6 +1,7 @@
 import type { z } from "zod";
 
 import type { zTradeMarketReconciliation } from "../lib/api/zod.gen";
+import { humanizeToken, RangeRow } from "./forcedCutRange";
 
 type MarketReconciliation = z.infer<typeof zTradeMarketReconciliation>;
 
@@ -20,6 +21,8 @@ export function MarketLanePanel({
 }: {
   reconciliation: MarketReconciliation;
 }) {
+  const penalty = reconciliation.david_forced_cut_penalty;
+
   return (
     <section
       className="dg-lane dg-lane--market"
@@ -35,6 +38,40 @@ export function MarketLanePanel({
         <dt>Market side difference</dt>
         <dd>{reconciliation.market_delta_for_david}</dd>
       </dl>
+
+      {/* FantasyCalc-native forced-cut capacity ranges. Scale-isolated from the
+          model lane (never blended with xVAR); the old scalar penalty value is
+          not displayed. Descriptive overlay only. */}
+      {penalty === null || penalty === undefined ? (
+        <p className="dg-forced-cut-none">No capacity penalty.</p>
+      ) : penalty.market_penalty_status === "blocked" ? (
+        <p className="dg-forced-cut-blocked">
+          Roster rules conflict: transaction blocked.
+        </p>
+      ) : (
+        <div className="dg-forced-cut-ranges">
+          <RangeRow
+            label="FantasyCalc capacity value-at-risk range"
+            range={penalty.forced_cut_market_value_at_risk_range}
+          />
+          <RangeRow
+            label="FantasyCalc recovery range"
+            range={penalty.forced_cut_market_recovery_range}
+          />
+          {penalty.market_penalty_status === "uncertain_pool_unavailable" && (
+            <p className="dg-forced-cut-caveat">
+              Market replacement data stale — showing the widest possible range.
+            </p>
+          )}
+          {penalty.caveats.length > 0 && (
+            <ul className="dg-lane__caveats" aria-label="Capacity caveats">
+              {penalty.caveats.map((caveat) => (
+                <li key={caveat}>{humanizeToken(caveat)}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       <ul className="dg-lane__assets">
         {reconciliation.sent_assets.map((asset) => (
           <li key={asset.label}>

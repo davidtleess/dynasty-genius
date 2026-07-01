@@ -123,10 +123,10 @@ function assertNoFavorsVerdictText(text) {
   expect(text).not.toMatch(/uncertain_range_crosses_parity/i);
 }
 
-function assertNoBackendOnlyRangeTextThisIncrement(text) {
-  // These range/status fields are intentionally backend-only in this increment.
-  // Future UI work may render them behind a separate RED.
-  for (const sentinel of [
+function assertForcedCutRangesAreRenderedWithoutVerdictText(text) {
+  // PR #92's net range fields are now the visible facts; the old gross scalar is
+  // a backend compatibility field and must not be displayed as the penalty.
+  for (const required of [
     "12345.67",
     "23456.78",
     "34567.89",
@@ -135,10 +135,18 @@ function assertNoBackendOnlyRangeTextThisIncrement(text) {
     "67891.23",
     "78912.34",
     "89123.45",
-    "uncertain_pool_unavailable",
-    "WR",
-    "99",
   ]) {
+    expect(text).toContain(required);
+  }
+
+  expect(text).toMatch(/value-at-risk range/i);
+  expect(text).toMatch(/recovery range/i);
+  expect(text).toMatch(/adjusted fairness delta range/i);
+  expect(text).toMatch(/data stale/i);
+  expect(text).not.toContain("3.1");
+
+  // Raw backend enum/pool-deficit facts are not display copy.
+  for (const sentinel of ["uncertain_pool_unavailable", "WR", "99"]) {
     expect(text).not.toContain(sentinel);
   }
 }
@@ -159,7 +167,7 @@ describe("Trade Lab favors non-render guard", () => {
 
     const text = screen.getByTestId("model-lane").textContent ?? "";
     assertNoFavorsVerdictText(text);
-    assertNoBackendOnlyRangeTextThisIncrement(text);
+    assertForcedCutRangesAreRenderedWithoutVerdictText(text);
   });
 
   it("keeps backend favors fields out of rendered TradeLab result surfaces", async () => {
@@ -192,7 +200,7 @@ describe("Trade Lab favors non-render guard", () => {
 
     assertNoFavorsVerdictText(screen.getByTestId("model-lane").textContent ?? "");
     assertNoFavorsVerdictText(screen.getByTestId("divergence-strip").textContent ?? "");
-    assertNoBackendOnlyRangeTextThisIncrement(
+    assertForcedCutRangesAreRenderedWithoutVerdictText(
       screen.getByTestId("model-lane").textContent ?? "",
     );
     expect(within(screen.getByTestId("model-lane")).getByText("41.2")).toBeTruthy();

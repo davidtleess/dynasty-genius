@@ -21,7 +21,10 @@ function modelReconciliation(overrides = {}) {
   return {
     adjusted_david_received_value: 36,
     adjusted_fairness_delta: 2.1,
+    adjusted_fairness_delta_range: [-1.4, 4.2],
     adjusted_favors: "david",
+    adjusted_favors_status: "uncertain_range_crosses_parity",
+    adjusted_received_value_range: [34.8, 40.4],
     adjusted_within_parity_band: true,
     base_evaluation: {
       caveats: [],
@@ -38,8 +41,12 @@ function modelReconciliation(overrides = {}) {
     roster_penalty: {
       decision_supported: false,
       forced_cut_candidates: [],
+      forced_cut_recovery_range: [1.2, 2.3],
+      forced_cut_value_at_risk_range: [0.8, 1.9],
       forced_cut_penalty_xvar: 3.1,
       penalty_caveats: [],
+      penalty_status: "ok",
+      pool_deficits: {},
       post_trade_overflow: 1,
       post_trade_total_players: 25,
     },
@@ -149,16 +156,23 @@ function okJson(body) {
 }
 
 describe("Trade Lab lane panels", () => {
-  it("renders model lane values and forced-cut penalty without backend favors fields", () => {
+  it("renders model lane values and forced-cut ranges without backend favors fields", () => {
     render(<ModelLanePanel reconciliation={modelReconciliation()} />);
 
     const lane = screen.getByTestId("model-lane");
+    const text = lane.textContent ?? "";
     expect(lane.getAttribute("data-lane")).toBe("model");
     expect(within(lane).getByText("41.2")).toBeTruthy();
     expect(within(lane).getByText("39.1")).toBeTruthy();
-    expect(within(lane).getByText("3.1")).toBeTruthy();
-    expect(lane.textContent).not.toMatch(/favors/i);
-    expect(lane.textContent).not.toContain("david");
+    expect(within(lane).getByText(/value-at-risk range/i)).toBeTruthy();
+    expect(within(lane).getByText(/recovery range/i)).toBeTruthy();
+    expect(within(lane).getByText(/adjusted fairness delta range/i)).toBeTruthy();
+    for (const required of ["0.8", "1.9", "1.2", "2.3", "-1.4", "4.2"]) {
+      expect(text).toContain(required);
+    }
+    expect(text).not.toContain("Forced-cut penalty3.1");
+    expect(text).not.toMatch(/favors/i);
+    expect(text).not.toContain("david");
   });
 
   it("renders market lane backend values and neutral per-asset divergence labels", () => {
@@ -185,8 +199,12 @@ describe("Trade Lab lane panels", () => {
             forced_cut_candidates: [
               { decision_supported: false, full_name: "Bench WR", position: "WR" },
             ],
+            forced_cut_recovery_range: [1.2, 2.3],
+            forced_cut_value_at_risk_range: [0.8, 1.9],
             forced_cut_penalty_xvar: 3.1,
             penalty_caveats: [],
+            penalty_status: "ok",
+            pool_deficits: {},
             post_trade_overflow: 1,
             post_trade_total_players: 25,
           },

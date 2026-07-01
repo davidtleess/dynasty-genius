@@ -60,3 +60,35 @@
 .dg-lane--degraded {
   opacity: 0.7;
 }
+
+.dg-forced-cut-ranges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Both bounds carry equal visual weight — no color-coding that would nudge the
+   reader toward the best case (low end) or alarm them at the worst case (high
+   end). Deliberately no --positive / --negative directional modifiers. */
+.dg-forced-cut-range {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: inherit;
+}
+
+.dg-forced-cut-range__label {
+  opacity: 0.8;
+}
+
+.dg-forced-cut-range__value {
+  font-variant-numeric: tabular-nums;
+}
+
+.dg-forced-cut-blocked,
+.dg-forced-cut-caveat,
+.dg-forced-cut-none {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
