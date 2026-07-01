@@ -1,0 +1,106 @@
+/* Daily What-Changed — neutral, grayscale tokens only. A delta surface must not
+   color changes as good/bad (no red/green), so direction is carried by the signed
+   value alone, never by hue or arrow glyphs. Market and model regions are visually
+   separated to reinforce the price-discovery-vs-model-output boundary. */
+
+.dg-wc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  color: #1f2430;
+}
+
+.dg-wc__title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.dg-wc__disclaimer {
+  font-size: 0.85rem;
+  color: #55606f;
+  border-left: 3px solid #c7ccd6;
+  padding-left: 0.6rem;
+  margin: 0;
+}
+
+.dg-wc__status,
+.dg-wc__generated,
+.dg-wc__window {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #55606f;
+}
+
+.dg-wc__vintage {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #7a828e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-all;
+}
+
+.dg-wc__region {
+  border: 1px solid #e2e5ea;
+  border-radius: 6px;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dg-wc__region-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.dg-wc__overlay-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #7a828e;
+  font-style: italic;
+}
+
+.dg-wc__group {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #7a828e;
+}
+
+.dg-wc__caveat,
+.dg-wc__empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #55606f;
+}
+
+.dg-wc__list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+
+.dg-wc__table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.dg-wc__row {
+  border-bottom: 1px solid #eef0f3;
+}
+
+.dg-wc__table td {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.dg-wc__delta {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+.dg-wc__notice {
+  color: #55606f;
+}
