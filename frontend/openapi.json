@@ -1,6 +1,142 @@
 {
   "components": {
     "schemas": {
+      "CapacityCandidate": {
+        "description": "One roster player surfaced in the capacity-ordered review list.\n\nRaw value fields are re-joined from the universe PVO (the cut engine exposes\nonly percentile/dvs). Each field carries a provenance status so a consumer\ncan tell an \"ok\" join from an \"unavailable\"/\"pre_model\"/\"unknown_position\"\none without guessing from a null.",
+        "properties": {
+          "candidate_source": {
+            "enum": [
+              "forced_review",
+              "capacity_ordered"
+            ],
+            "title": "Candidate Source",
+            "type": "string"
+          },
+          "cut_priority": {
+            "title": "Cut Priority",
+            "type": "integer"
+          },
+          "dvs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "median_projection_2y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Projection 2Y"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "raw_xvar": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Xvar"
+          },
+          "sleeper_player_id": {
+            "title": "Sleeper Player Id",
+            "type": "string"
+          },
+          "value_field_status": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Value Field Status",
+            "type": "object"
+          },
+          "xvar_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xvar Pct"
+          }
+        },
+        "required": [
+          "sleeper_player_id",
+          "full_name",
+          "position",
+          "cut_priority",
+          "candidate_source",
+          "raw_xvar",
+          "dvs",
+          "xvar_pct",
+          "median_projection_2y",
+          "value_field_status"
+        ],
+        "title": "CapacityCandidate",
+        "type": "object"
+      },
+      "CapacityHealth": {
+        "description": "League-shape capacity summary for David's roster.\n\n`total_capacity_cuts_required` and `active_slot_overflow` are DISTINCT:\nthe former is roster-wide (players over total capacity, incl. reserve/taxi),\nthe latter is active-slot pressure (non-reserve, non-taxi players over the\nactive starter slots). A roster can be active-slot heavy while total-capacity\ncompliant (stash slots absorb the excess).",
+        "properties": {
+          "active_slot_overflow": {
+            "title": "Active Slot Overflow",
+            "type": "integer"
+          },
+          "by_slot_class": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "By Slot Class",
+            "type": "object"
+          },
+          "reserve_unrestricted": {
+            "title": "Reserve Unrestricted",
+            "type": "boolean"
+          },
+          "total_capacity": {
+            "title": "Total Capacity",
+            "type": "integer"
+          },
+          "total_capacity_cuts_required": {
+            "title": "Total Capacity Cuts Required",
+            "type": "integer"
+          },
+          "total_players": {
+            "title": "Total Players",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_players",
+          "total_capacity",
+          "total_capacity_cuts_required",
+          "active_slot_overflow",
+          "by_slot_class",
+          "reserve_unrestricted"
+        ],
+        "title": "CapacityHealth",
+        "type": "object"
+      },
       "CounterArgumentField": {
         "properties": {
           "caveats": {
@@ -2421,6 +2557,74 @@
         "title": "PlayerModelLane",
         "type": "object"
       },
+      "PoolRange": {
+        "description": "The unrostered (waiver) replacement range for one position.\n\nDeliberately WIDE, not a confidence interval: `low`/`high` are the min/max of\nthe position's display top-K unrostered values \u2014 an honest band over a\nvolatile wire, never a tightened point estimate. `top_k_values` carries the\nordered (descending) raw values themselves, retained out to the largest\nrequested scenario so T3's depletion math has every per-member value it\nneeds (it may be LONGER than the K that low/high are computed over).\n\n`status == \"waiver_range_unavailable\"` fails closed (stale snapshot,\nincomplete roster coverage, pool below `min_pool`, valuation coverage below\nfloor); a genuinely barren-but-valid pool stays `ok` with a loud caveat.",
+        "properties": {
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "pool_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pool Size"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "waiver_range_unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "top_k_values": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Top K Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "low",
+          "high",
+          "pool_size"
+        ],
+        "title": "PoolRange",
+        "type": "object"
+      },
       "ProspectRequest": {
         "properties": {
           "age": {
@@ -3063,6 +3267,135 @@
         "title": "RosterAuditSignalsView",
         "type": "object"
       },
+      "RosterCapacityErrorResponse": {
+        "description": "Structured 503 body: the artifact could not be served.\n\nEven the failure is descriptive \u2014 `decision_supported` stays False so a\nconsumer never reads an error as a directive.",
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "RosterCapacityErrorResponse",
+        "type": "object"
+      },
+      "RosterCapacityResponse": {
+        "description": "Read-only serve of the enriched capacity scorecard artifact.\n\n`artifact_status` is the route's own read of the served state\n(`ok` / `degraded` / `blocked`), DISTINCT from the core `status`. No field\naverages, tightens, or nominates: ranges pass through unclamped and signed,\nand `marginal_next_candidate_cost` stays a range with no player identifier.",
+        "properties": {
+          "artifact_status": {
+            "enum": [
+              "ok",
+              "degraded",
+              "blocked"
+            ],
+            "title": "Artifact Status",
+            "type": "string"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CapacityCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "capacity_health": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CapacityHealth"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "excluded_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Excluded Counts",
+            "type": "object"
+          },
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioResult"
+            },
+            "title": "Scenarios",
+            "type": "array"
+          },
+          "sleeper_snapshot_captured_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sleeper Snapshot Captured At"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "blocked"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unrostered_pool_range": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PoolRange"
+            },
+            "title": "Unrostered Pool Range",
+            "type": "object"
+          }
+        },
+        "required": [
+          "status",
+          "artifact_status",
+          "capacity_health",
+          "created_at",
+          "sleeper_snapshot_captured_at"
+        ],
+        "title": "RosterCapacityResponse",
+        "type": "object"
+      },
       "RosterPenaltySummary": {
         "properties": {
           "decision_supported": {
@@ -3166,6 +3499,83 @@
           "penalty_caveats"
         ],
         "title": "RosterPenaltySummary",
+        "type": "object"
+      },
+      "ScenarioResult": {
+        "description": "The descriptive consequences of one cut hypothesis \u2014 no verdict.\n\n`cumulative_value_at_risk` is depletion-aware (NOT N x a single-player gap):\nthe wire depletes as you claim players, so the bound is summed per position\nfrom N-deep pool slices. Orientation is pinned `(best_case, worst_case)` and\ncannot invert; negatives are left UNCLAMPED (a cut that is a net upgrade\nreads negative). `pool_deficits` records, per position, how many cut spots\nhave NO replacement candidate \u2014 a fact, never a do-not-cut verdict.\n`marginal_next_candidate_cost` is the value-at-risk RANGE of the next\ncapacity-ordered candidate not in the cut set; it carries NO player\nidentifier (it nominates no target).",
+        "properties": {
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "cumulative_value_at_risk": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Cumulative Value At Risk",
+            "type": "array"
+          },
+          "cut_set": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cut Set",
+            "type": "array"
+          },
+          "marginal_next_candidate_cost": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marginal Next Candidate Cost"
+          },
+          "per_position_depth_impact": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "Per Position Depth Impact",
+            "type": "object"
+          },
+          "pool_deficits": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Pool Deficits",
+            "type": "object"
+          }
+        },
+        "required": [
+          "cumulative_value_at_risk",
+          "marginal_next_candidate_cost"
+        ],
+        "title": "ScenarioResult",
         "type": "object"
       },
       "StabilityResult": {
@@ -5868,6 +6278,38 @@
         "summary": "Audit Roster",
         "tags": [
           "roster"
+        ]
+      }
+    },
+    "/api/roster/capacity": {
+      "get": {
+        "description": "Read-only serve of the latest enriched capacity scorecard artifact.",
+        "operationId": "roster_capacity_surface_api_roster_capacity_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterCapacityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterCapacityErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Roster Capacity Surface",
+        "tags": [
+          "roster-capacity"
         ]
       }
     },

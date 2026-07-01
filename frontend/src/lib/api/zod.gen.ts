@@ -3,6 +3,49 @@
 import * as z from 'zod';
 
 /**
+ * CapacityCandidate
+ *
+ * One roster player surfaced in the capacity-ordered review list.
+ *
+ * Raw value fields are re-joined from the universe PVO (the cut engine exposes
+ * only percentile/dvs). Each field carries a provenance status so a consumer
+ * can tell an "ok" join from an "unavailable"/"pre_model"/"unknown_position"
+ * one without guessing from a null.
+ */
+export const zCapacityCandidate = z.object({
+    candidate_source: z.enum(['forced_review', 'capacity_ordered']),
+    cut_priority: z.int(),
+    dvs: z.number().nullable(),
+    full_name: z.string(),
+    median_projection_2y: z.number().nullable(),
+    position: z.string(),
+    raw_xvar: z.number().nullable(),
+    sleeper_player_id: z.string(),
+    value_field_status: z.record(z.string(), z.string()),
+    xvar_pct: z.number().nullable()
+});
+
+/**
+ * CapacityHealth
+ *
+ * League-shape capacity summary for David's roster.
+ *
+ * `total_capacity_cuts_required` and `active_slot_overflow` are DISTINCT:
+ * the former is roster-wide (players over total capacity, incl. reserve/taxi),
+ * the latter is active-slot pressure (non-reserve, non-taxi players over the
+ * active starter slots). A roster can be active-slot heavy while total-capacity
+ * compliant (stash slots absorb the excess).
+ */
+export const zCapacityHealth = z.object({
+    active_slot_overflow: z.int(),
+    by_slot_class: z.record(z.string(), z.int()),
+    reserve_unrestricted: z.boolean(),
+    total_capacity: z.int(),
+    total_capacity_cuts_required: z.int(),
+    total_players: z.int()
+});
+
+/**
  * CounterArgumentField
  */
 export const zCounterArgumentField = z.object({
@@ -474,6 +517,31 @@ export const zPlayerDetailResponse = z.object({
 });
 
 /**
+ * PoolRange
+ *
+ * The unrostered (waiver) replacement range for one position.
+ *
+ * Deliberately WIDE, not a confidence interval: `low`/`high` are the min/max of
+ * the position's display top-K unrostered values — an honest band over a
+ * volatile wire, never a tightened point estimate. `top_k_values` carries the
+ * ordered (descending) raw values themselves, retained out to the largest
+ * requested scenario so T3's depletion math has every per-member value it
+ * needs (it may be LONGER than the K that low/high are computed over).
+ *
+ * `status == "waiver_range_unavailable"` fails closed (stale snapshot,
+ * incomplete roster coverage, pool below `min_pool`, valuation coverage below
+ * floor); a genuinely barren-but-valid pool stays `ok` with a loud caveat.
+ */
+export const zPoolRange = z.object({
+    caveats: z.array(z.string()).optional(),
+    high: z.number().nullable(),
+    low: z.number().nullable(),
+    pool_size: z.int().nullable(),
+    status: z.enum(['ok', 'waiver_range_unavailable']),
+    top_k_values: z.array(z.number()).optional()
+});
+
+/**
  * ProspectRequest
  */
 export const zProspectRequest = z.object({
@@ -592,6 +660,20 @@ export const zRosterAuditResponse = z.object({
 });
 
 /**
+ * RosterCapacityErrorResponse
+ *
+ * Structured 503 body: the artifact could not be served.
+ *
+ * Even the failure is descriptive — `decision_supported` stays False so a
+ * consumer never reads an error as a directive.
+ */
+export const zRosterCapacityErrorResponse = z.object({
+    decision_supported: z.literal(false).optional().default(false),
+    error: z.string(),
+    message: z.string()
+});
+
+/**
  * RosterPenaltySummary
  */
 export const zRosterPenaltySummary = z.object({
@@ -609,6 +691,58 @@ export const zRosterPenaltySummary = z.object({
     pool_deficits: z.record(z.string(), z.int()).optional().default({}),
     post_trade_overflow: z.int(),
     post_trade_total_players: z.int()
+});
+
+/**
+ * ScenarioResult
+ *
+ * The descriptive consequences of one cut hypothesis — no verdict.
+ *
+ * `cumulative_value_at_risk` is depletion-aware (NOT N x a single-player gap):
+ * the wire depletes as you claim players, so the bound is summed per position
+ * from N-deep pool slices. Orientation is pinned `(best_case, worst_case)` and
+ * cannot invert; negatives are left UNCLAMPED (a cut that is a net upgrade
+ * reads negative). `pool_deficits` records, per position, how many cut spots
+ * have NO replacement candidate — a fact, never a do-not-cut verdict.
+ * `marginal_next_candidate_cost` is the value-at-risk RANGE of the next
+ * capacity-ordered candidate not in the cut set; it carries NO player
+ * identifier (it nominates no target).
+ */
+export const zScenarioResult = z.object({
+    caveats: z.array(z.string()).optional(),
+    cumulative_value_at_risk: z.tuple([z.number(), z.number()]),
+    cut_set: z.array(z.string()).optional(),
+    marginal_next_candidate_cost: z.tuple([z.number(), z.number()]).nullable(),
+    per_position_depth_impact: z.record(z.string(), z.record(z.string(), z.int())).optional(),
+    pool_deficits: z.record(z.string(), z.int()).optional()
+});
+
+/**
+ * RosterCapacityResponse
+ *
+ * Read-only serve of the enriched capacity scorecard artifact.
+ *
+ * `artifact_status` is the route's own read of the served state
+ * (`ok` / `degraded` / `blocked`), DISTINCT from the core `status`. No field
+ * averages, tightens, or nominates: ranges pass through unclamped and signed,
+ * and `marginal_next_candidate_cost` stays a range with no player identifier.
+ */
+export const zRosterCapacityResponse = z.object({
+    artifact_status: z.enum([
+        'ok',
+        'degraded',
+        'blocked'
+    ]),
+    candidates: z.array(zCapacityCandidate).optional(),
+    capacity_health: zCapacityHealth.nullable(),
+    caveats: z.array(z.string()).optional(),
+    created_at: z.string().nullable(),
+    decision_supported: z.literal(false).optional().default(false),
+    excluded_counts: z.record(z.string(), z.int()).optional(),
+    scenarios: z.array(zScenarioResult).optional(),
+    sleeper_snapshot_captured_at: z.string().nullable(),
+    status: z.enum(['ok', 'blocked']),
+    unrostered_pool_range: z.record(z.string(), zPoolRange).optional()
 });
 
 /**
@@ -1308,6 +1442,11 @@ export const zScoreClassApiRookiesScoreClassPostResponse = z.array(z.record(z.st
  * Successful Response
  */
 export const zAuditRosterApiRosterAuditGetResponse = zRosterAuditResponse;
+
+/**
+ * Successful Response
+ */
+export const zRosterCapacitySurfaceApiRosterCapacityGetResponse = zRosterCapacityResponse;
 
 export const zAnalyzeApiTradeAnalyzePostBody = zTradeRequest;
 

@@ -5,6 +5,101 @@ export type ClientOptions = {
 };
 
 /**
+ * CapacityCandidate
+ *
+ * One roster player surfaced in the capacity-ordered review list.
+ *
+ * Raw value fields are re-joined from the universe PVO (the cut engine exposes
+ * only percentile/dvs). Each field carries a provenance status so a consumer
+ * can tell an "ok" join from an "unavailable"/"pre_model"/"unknown_position"
+ * one without guessing from a null.
+ */
+export type CapacityCandidate = {
+    /**
+     * Candidate Source
+     */
+    candidate_source: 'forced_review' | 'capacity_ordered';
+    /**
+     * Cut Priority
+     */
+    cut_priority: number;
+    /**
+     * Dvs
+     */
+    dvs: number | null;
+    /**
+     * Full Name
+     */
+    full_name: string;
+    /**
+     * Median Projection 2Y
+     */
+    median_projection_2y: number | null;
+    /**
+     * Position
+     */
+    position: string;
+    /**
+     * Raw Xvar
+     */
+    raw_xvar: number | null;
+    /**
+     * Sleeper Player Id
+     */
+    sleeper_player_id: string;
+    /**
+     * Value Field Status
+     */
+    value_field_status: {
+        [key: string]: string;
+    };
+    /**
+     * Xvar Pct
+     */
+    xvar_pct: number | null;
+};
+
+/**
+ * CapacityHealth
+ *
+ * League-shape capacity summary for David's roster.
+ *
+ * `total_capacity_cuts_required` and `active_slot_overflow` are DISTINCT:
+ * the former is roster-wide (players over total capacity, incl. reserve/taxi),
+ * the latter is active-slot pressure (non-reserve, non-taxi players over the
+ * active starter slots). A roster can be active-slot heavy while total-capacity
+ * compliant (stash slots absorb the excess).
+ */
+export type CapacityHealth = {
+    /**
+     * Active Slot Overflow
+     */
+    active_slot_overflow: number;
+    /**
+     * By Slot Class
+     */
+    by_slot_class: {
+        [key: string]: number;
+    };
+    /**
+     * Reserve Unrestricted
+     */
+    reserve_unrestricted: boolean;
+    /**
+     * Total Capacity
+     */
+    total_capacity: number;
+    /**
+     * Total Capacity Cuts Required
+     */
+    total_capacity_cuts_required: number;
+    /**
+     * Total Players
+     */
+    total_players: number;
+};
+
+/**
  * CounterArgumentField
  */
 export type CounterArgumentField = {
@@ -1310,6 +1405,49 @@ export type PlayerModelLane = {
 };
 
 /**
+ * PoolRange
+ *
+ * The unrostered (waiver) replacement range for one position.
+ *
+ * Deliberately WIDE, not a confidence interval: `low`/`high` are the min/max of
+ * the position's display top-K unrostered values — an honest band over a
+ * volatile wire, never a tightened point estimate. `top_k_values` carries the
+ * ordered (descending) raw values themselves, retained out to the largest
+ * requested scenario so T3's depletion math has every per-member value it
+ * needs (it may be LONGER than the K that low/high are computed over).
+ *
+ * `status == "waiver_range_unavailable"` fails closed (stale snapshot,
+ * incomplete roster coverage, pool below `min_pool`, valuation coverage below
+ * floor); a genuinely barren-but-valid pool stays `ok` with a loud caveat.
+ */
+export type PoolRange = {
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * High
+     */
+    high: number | null;
+    /**
+     * Low
+     */
+    low: number | null;
+    /**
+     * Pool Size
+     */
+    pool_size: number | null;
+    /**
+     * Status
+     */
+    status: 'ok' | 'waiver_range_unavailable';
+    /**
+     * Top K Values
+     */
+    top_k_values?: Array<number>;
+};
+
+/**
  * ProspectRequest
  */
 export type ProspectRequest = {
@@ -1622,6 +1760,87 @@ export type RosterAuditSignalsView = {
 };
 
 /**
+ * RosterCapacityErrorResponse
+ *
+ * Structured 503 body: the artifact could not be served.
+ *
+ * Even the failure is descriptive — `decision_supported` stays False so a
+ * consumer never reads an error as a directive.
+ */
+export type RosterCapacityErrorResponse = {
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Error
+     */
+    error: string;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * RosterCapacityResponse
+ *
+ * Read-only serve of the enriched capacity scorecard artifact.
+ *
+ * `artifact_status` is the route's own read of the served state
+ * (`ok` / `degraded` / `blocked`), DISTINCT from the core `status`. No field
+ * averages, tightens, or nominates: ranges pass through unclamped and signed,
+ * and `marginal_next_candidate_cost` stays a range with no player identifier.
+ */
+export type RosterCapacityResponse = {
+    /**
+     * Artifact Status
+     */
+    artifact_status: 'ok' | 'degraded' | 'blocked';
+    /**
+     * Candidates
+     */
+    candidates?: Array<CapacityCandidate>;
+    capacity_health: CapacityHealth | null;
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Excluded Counts
+     */
+    excluded_counts?: {
+        [key: string]: number;
+    };
+    /**
+     * Scenarios
+     */
+    scenarios?: Array<ScenarioResult>;
+    /**
+     * Sleeper Snapshot Captured At
+     */
+    sleeper_snapshot_captured_at: string | null;
+    /**
+     * Status
+     */
+    status: 'ok' | 'blocked';
+    /**
+     * Unrostered Pool Range
+     */
+    unrostered_pool_range?: {
+        [key: string]: PoolRange;
+    };
+};
+
+/**
  * RosterPenaltySummary
  */
 export type RosterPenaltySummary = {
@@ -1675,6 +1894,60 @@ export type RosterPenaltySummary = {
      * Post Trade Total Players
      */
     post_trade_total_players: number;
+};
+
+/**
+ * ScenarioResult
+ *
+ * The descriptive consequences of one cut hypothesis — no verdict.
+ *
+ * `cumulative_value_at_risk` is depletion-aware (NOT N x a single-player gap):
+ * the wire depletes as you claim players, so the bound is summed per position
+ * from N-deep pool slices. Orientation is pinned `(best_case, worst_case)` and
+ * cannot invert; negatives are left UNCLAMPED (a cut that is a net upgrade
+ * reads negative). `pool_deficits` records, per position, how many cut spots
+ * have NO replacement candidate — a fact, never a do-not-cut verdict.
+ * `marginal_next_candidate_cost` is the value-at-risk RANGE of the next
+ * capacity-ordered candidate not in the cut set; it carries NO player
+ * identifier (it nominates no target).
+ */
+export type ScenarioResult = {
+    /**
+     * Caveats
+     */
+    caveats?: Array<string>;
+    /**
+     * Cumulative Value At Risk
+     */
+    cumulative_value_at_risk: [
+        number,
+        number
+    ];
+    /**
+     * Cut Set
+     */
+    cut_set?: Array<string>;
+    /**
+     * Marginal Next Candidate Cost
+     */
+    marginal_next_candidate_cost: [
+        number,
+        number
+    ] | null;
+    /**
+     * Per Position Depth Impact
+     */
+    per_position_depth_impact?: {
+        [key: string]: {
+            [key: string]: number;
+        };
+    };
+    /**
+     * Pool Deficits
+     */
+    pool_deficits?: {
+        [key: string]: number;
+    };
 };
 
 /**
@@ -3074,6 +3347,31 @@ export type AuditRosterApiRosterAuditGetResponses = {
 };
 
 export type AuditRosterApiRosterAuditGetResponse = AuditRosterApiRosterAuditGetResponses[keyof AuditRosterApiRosterAuditGetResponses];
+
+export type RosterCapacitySurfaceApiRosterCapacityGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/roster/capacity';
+};
+
+export type RosterCapacitySurfaceApiRosterCapacityGetErrors = {
+    /**
+     * Service Unavailable
+     */
+    503: RosterCapacityErrorResponse;
+};
+
+export type RosterCapacitySurfaceApiRosterCapacityGetError = RosterCapacitySurfaceApiRosterCapacityGetErrors[keyof RosterCapacitySurfaceApiRosterCapacityGetErrors];
+
+export type RosterCapacitySurfaceApiRosterCapacityGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: RosterCapacityResponse;
+};
+
+export type RosterCapacitySurfaceApiRosterCapacityGetResponse = RosterCapacitySurfaceApiRosterCapacityGetResponses[keyof RosterCapacitySurfaceApiRosterCapacityGetResponses];
 
 export type AnalyzeApiTradeAnalyzePostData = {
     body: TradeRequest;
