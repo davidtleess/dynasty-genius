@@ -12,6 +12,7 @@ from app.api.routes import (
     league_pulse,
     league_what_changed,
     players,
+    realized_outcome_scorecard,
     rookies,
     roster,
     roster_capacity,
@@ -32,6 +33,7 @@ app = FastAPI(title="Dynasty Genius")
 app.include_router(rookies.router, prefix="/api")
 app.include_router(roster.router, prefix="/api")
 app.include_router(roster_capacity.router, prefix="/api")
+app.include_router(realized_outcome_scorecard.router, prefix="/api")
 app.include_router(trade.router, prefix="/api")
 app.include_router(trade_market.router, prefix="/api")
 app.include_router(engine_b.router, prefix="/api")

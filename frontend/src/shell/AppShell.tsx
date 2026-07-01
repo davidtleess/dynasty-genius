@@ -5,6 +5,7 @@ import { LeaguePulse } from "../league-pulse/LeaguePulse";
 import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { PlayerInspector } from "../player/PlayerInspector";
 import { ProjectTracker } from "../project/ProjectTracker";
+import { RealizedOutcomeScorecard } from "../realized-outcome/RealizedOutcomeScorecard";
 import { RosterAudit } from "../roster/RosterAudit";
 import { RosterCapacitySandbox } from "../roster-capacity/RosterCapacitySandbox";
 import { TradeLab } from "../trade/TradeLab";
@@ -36,6 +37,7 @@ const SURFACES = [
   "Trade Lab",
   "Roster Capacity",
   "Daily What-Changed",
+  "Accuracy Tracker",
   "Waiver Radar",
   "League Pulse",
   "Model Trust",
@@ -114,6 +116,7 @@ export function AppShell() {
             {activeSurface === "Roster Audit" && <RosterAudit />}
             {activeSurface === "Roster Capacity" && <RosterCapacitySandbox />}
             {activeSurface === "Daily What-Changed" && <DailyWhatChanged />}
+            {activeSurface === "Accuracy Tracker" && <RealizedOutcomeScorecard />}
             {activeSurface === "Trade Lab" && (
               <TradeLab onSelectPlayer={selectPlayer} />
             )}
