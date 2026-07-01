@@ -6,6 +6,7 @@ import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { PlayerInspector } from "../player/PlayerInspector";
 import { ProjectTracker } from "../project/ProjectTracker";
 import { RosterAudit } from "../roster/RosterAudit";
+import { RosterCapacitySandbox } from "../roster-capacity/RosterCapacitySandbox";
 import { TradeLab } from "../trade/TradeLab";
 import type { CatalogEntry } from "../trade/tradeState";
 import { TrustConsole } from "../trust/TrustConsole";
@@ -32,6 +33,7 @@ const SURFACES = [
   "Rookie Board",
   "Roster Audit",
   "Trade Lab",
+  "Roster Capacity",
   "Waiver Radar",
   "League Pulse",
   "Model Trust",
@@ -108,6 +110,7 @@ export function AppShell() {
           <>
             <h1 className="dg-shell__title">{activeSurface}</h1>
             {activeSurface === "Roster Audit" && <RosterAudit />}
+            {activeSurface === "Roster Capacity" && <RosterCapacitySandbox />}
             {activeSurface === "Trade Lab" && (
               <TradeLab onSelectPlayer={selectPlayer} />
             )}

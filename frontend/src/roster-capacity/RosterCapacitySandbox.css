@@ -1,0 +1,94 @@
+/* Roster Capacity Sandbox — deliberately neutral, grayscale tokens only.
+   No red/green (or other value-laden) coloring: a descriptive surface must not
+   signal a cut combination as "good" or "bad". Ranges render as plain spans. */
+
+.dg-rc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  color: #1f2430;
+}
+
+.dg-rc__disclaimer {
+  font-size: 0.85rem;
+  color: #55606f;
+  border-left: 3px solid #c7ccd6;
+  padding-left: 0.6rem;
+  margin: 0;
+}
+
+.dg-rc__status {
+  font-weight: 600;
+  margin: 0;
+}
+
+.dg-rc__caveats,
+.dg-rc__pools {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dg-rc__caveat,
+.dg-rc__pool {
+  font-size: 0.85rem;
+  color: #55606f;
+}
+
+.dg-rc__sort-basis,
+.dg-rc__empty,
+.dg-rc__blocked {
+  font-size: 0.85rem;
+  color: #55606f;
+  margin: 0;
+}
+
+.dg-rc__health {
+  display: flex;
+  gap: 1.5rem;
+  margin: 0;
+}
+
+.dg-rc__health dt {
+  font-size: 0.75rem;
+  color: #55606f;
+}
+
+.dg-rc__health dd {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.dg-rc__table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.dg-rc__row {
+  border-bottom: 1px solid #e2e5ea;
+  text-align: left;
+}
+
+.dg-rc__table th,
+.dg-rc__table td {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.dg-rc__range {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.dg-rc__range-unavailable {
+  color: #55606f;
+  font-style: italic;
+}
+
+.dg-rc__notice {
+  color: #55606f;
+}
