@@ -10,6 +10,7 @@ const NAV_LABELS = [
   "Rookie Board",
   "Roster Audit",
   "Trade Lab",
+  "Roster Capacity",
   "Waiver Radar",
   "League Pulse",
   "Model Trust",
@@ -149,5 +150,42 @@ describe("AppShell", () => {
       expect(screen.getByRole("region", { name: /league pulse/i })).toBeTruthy(),
     );
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/league/pulse");
+  });
+
+  it("renders the Roster Capacity sandbox when its nav item is selected", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        artifact_status: "ok",
+        status: "ok",
+        capacity_health: {
+          total_players: 29,
+          total_capacity: 28,
+          total_capacity_cuts_required: 1,
+          active_slot_overflow: 2,
+          by_slot_class: { active: 22, reserve: 4, taxi: 3 },
+          reserve_unrestricted: false,
+        },
+        candidates: [],
+        scenarios: [],
+        unrostered_pool_range: {},
+        excluded_counts: {},
+        caveats: [],
+        created_at: "2026-06-30T12:00:00+00:00",
+        sleeper_snapshot_captured_at: "2026-06-30T11:00:00+00:00",
+        decision_supported: false,
+      }),
+    });
+
+    render(<AppShell />);
+    fireEvent.click(screen.getByRole("button", { name: "Roster Capacity" }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /roster capacity sandbox/i }),
+      ).toBeTruthy(),
+    );
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/roster/capacity");
   });
 });
