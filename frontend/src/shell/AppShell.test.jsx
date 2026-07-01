@@ -11,6 +11,7 @@ const NAV_LABELS = [
   "Roster Audit",
   "Trade Lab",
   "Roster Capacity",
+  "Daily What-Changed",
   "Waiver Radar",
   "League Pulse",
   "Model Trust",
@@ -187,5 +188,85 @@ describe("AppShell", () => {
       ).toBeTruthy(),
     );
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/roster/capacity");
+  });
+
+  it("renders the Daily What-Changed surface when its nav item is selected", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        schema_version: "war_room_2_what_changed_v1",
+        generated_at: "2026-07-01T12:00:00+00:00",
+        decision_supported: false,
+        overall_status: "ok",
+        daily_diff: {
+          decision_supported: false,
+          overall_status: "ok",
+          market: {
+            status: "ok",
+            decision_supported: false,
+            market_source: "keeptradecut",
+            comparison_window: {
+              from_date: "2026-06-30",
+              to_date: "2026-07-01",
+            },
+            roster_deltas: [],
+            top_movers: [],
+            total_movers_count: 0,
+            entered: [],
+            exited: [],
+          },
+          model: {
+            status: "ok",
+            decision_supported: false,
+            comparison_window: { status: "insufficient_history" },
+            deltas: [],
+            vintage_changed: false,
+            feature_freshness: null,
+            pvo_staleness: null,
+          },
+        },
+        structural_context: {
+          status: "ok",
+          decision_supported: false,
+          current_not_delta: true,
+          sections: {
+            team_posture: {
+              status: "ok",
+              decision_supported: false,
+              current_not_delta: true,
+            },
+            team_value: {
+              status: "ok",
+              decision_supported: false,
+              current_not_delta: true,
+            },
+            league_opportunity: {
+              status: "ok",
+              decision_supported: false,
+              current_not_delta: true,
+            },
+            drop_pressure: {
+              status: "ok",
+              decision_supported: false,
+              current_not_delta: true,
+            },
+            sleeper_snapshot: {
+              status: "ok",
+              decision_supported: false,
+              current_not_delta: true,
+            },
+          },
+        },
+      }),
+    });
+
+    render(<AppShell />);
+    fireEvent.click(screen.getByRole("button", { name: "Daily What-Changed" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: /daily what-changed/i })).toBeTruthy(),
+    );
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/league/what-changed");
   });
 });
