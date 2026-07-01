@@ -18,7 +18,10 @@ function modelReconciliation(overrides = {}) {
   return {
     adjusted_david_received_value: 36,
     adjusted_fairness_delta: 2.1,
+    adjusted_fairness_delta_range: [-1.4, 4.2],
     adjusted_favors: "david",
+    adjusted_favors_status: "uncertain_range_crosses_parity",
+    adjusted_received_value_range: [34.8, 40.4],
     adjusted_within_parity_band: true,
     base_evaluation: {
       caveats: [],
@@ -35,8 +38,12 @@ function modelReconciliation(overrides = {}) {
     roster_penalty: {
       decision_supported: false,
       forced_cut_candidates: [],
+      forced_cut_recovery_range: [1.2, 2.3],
+      forced_cut_value_at_risk_range: [0.8, 1.9],
       forced_cut_penalty_xvar: 3.1,
       penalty_caveats: [],
+      penalty_status: "ok",
+      pool_deficits: {},
       post_trade_overflow: 1,
       post_trade_total_players: 25,
     },
