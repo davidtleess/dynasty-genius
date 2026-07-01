@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import type {
   WhatChangedMarketDelta,
@@ -6,6 +6,8 @@ import type {
   WhatChangedModelDelta,
   WhatChangedModelSection,
   WhatChangedResponse,
+  WhatChangedStructuralContext,
+  WhatChangedStructuralSection,
 } from "../lib/api/types.gen";
 import { zWhatChangedResponse } from "../lib/api/zod.gen";
 import "./DailyWhatChanged.css";
@@ -16,12 +18,13 @@ type State =
   | { status: "unavailable" }
   | { status: "parse-error" };
 
-// Read-only Daily What-Changed surface (Slice 1: daily_diff only). It reports the
-// day-over-day market and model DELTAS — what changed since the prior snapshot — and
-// issues no verdict. Market (price-discovery overlay) and model (output changes) are
-// kept in structurally isolated regions so a market price swing never reads as a
-// model signal. structural_context is deferred (it duplicates League Pulse / Roster
-// Audit) and is never rendered here.
+// Read-only Daily What-Changed surface. It reports the day-over-day market and model
+// DELTAS — what changed since the prior snapshot — and issues no verdict. Market
+// (price-discovery overlay) and model (output changes) are kept in structurally
+// isolated regions so a market price swing never reads as a model signal. Slice 2
+// appends a SUBORDINATE structural current-state baseline (summaries/counts only) to
+// ground the deltas ("compared to what?") without duplicating League Pulse / Roster
+// Audit or nominating any target (see StructuralBaseline).
 export function DailyWhatChanged() {
   const [state, setState] = useState<State>({ status: "loading" });
 
@@ -93,6 +96,7 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
       )}
       <MarketRegion market={daily.market} />
       <ModelRegion model={daily.model} />
+      <StructuralBaseline ctx={data.structural_context} />
     </section>
   );
 }
@@ -220,4 +224,164 @@ function ModelDeltaTable({ rows }: { rows: WhatChangedModelDelta[] }) {
       </tbody>
     </table>
   );
+}
+
+// Structural current-state baseline (Slice 2). Deliberately SUBORDINATE to the
+// deltas above — it is CURRENT-STATE context (current_not_delta=true), not a
+// day-over-day change, and exists only to make the deltas legible ("compared to
+// what?"). Per the No-Verdict Line + the three-way-ruled v1 scope, it renders
+// section SUMMARIES/COUNTS only. The producer artifact carries named, cut_priority-
+// ranked drop candidates and named divergence cards; those are DELIBERATELY not
+// rendered here — a static named/ranked cut list reads as a drop directive and
+// duplicates the interactive Roster Capacity sandbox. That deferral is the whole
+// point of this slice, so it is enforced by the RED's suppression assertions.
+function StructuralBaseline({ ctx }: { ctx: WhatChangedStructuralContext }) {
+  const s = ctx.sections;
+  return (
+    <section className="dg-wc__baseline" aria-label="Structural current-state baseline">
+      <h3 className="dg-wc__region-title">Current-state baseline, not today's delta</h3>
+      <p className="dg-wc__overlay-note">
+        current_not_delta=true — absolute snapshot values that ground the deltas above;
+        not day-over-day changes.
+      </p>
+
+      <BaselineSection label="Team Posture" sec={s.team_posture}>
+        {s.team_posture.david_posture != null && (
+          <p className="dg-wc__baseline-line">
+            Posture: {s.team_posture.david_posture}
+          </p>
+        )}
+        {s.team_posture.team_count != null && (
+          <p className="dg-wc__baseline-line">
+            Team count: {s.team_posture.team_count}
+          </p>
+        )}
+      </BaselineSection>
+
+      <BaselineSection label="Team Value" sec={s.team_value}>
+        <TeamValueLines sec={s.team_value} />
+      </BaselineSection>
+
+      <BaselineSection label="League Opportunity" sec={s.league_opportunity}>
+        <p className="dg-wc__baseline-line">
+          Partner ranking count:{" "}
+          {s.league_opportunity.top_partner_rankings?.length ?? 0}
+        </p>
+        <p className="dg-wc__baseline-line">
+          Card count: {s.league_opportunity.top_cards?.length ?? 0}
+        </p>
+        {cardTypeCounts(s.league_opportunity.top_cards).map(([type, count]) => (
+          <p className="dg-wc__baseline-line" key={type}>
+            {type}: {count}
+          </p>
+        ))}
+        <p className="dg-wc__caveat">
+          Divergence card counts are an unvalidated descriptive overlay (Gate-4
+          deferred); a tally of card types, not a proven edge.
+        </p>
+      </BaselineSection>
+
+      <BaselineSection label="Drop Pressure" sec={s.drop_pressure}>
+        {s.drop_pressure.summary?.cuts_required != null && (
+          <p className="dg-wc__baseline-line">
+            Cuts required: {s.drop_pressure.summary.cuts_required}
+          </p>
+        )}
+        {s.drop_pressure.summary?.total_players != null && (
+          <p className="dg-wc__baseline-line">
+            Total players: {s.drop_pressure.summary.total_players}
+          </p>
+        )}
+        {s.drop_pressure.summary?.total_capacity != null && (
+          <p className="dg-wc__baseline-line">
+            Total capacity: {s.drop_pressure.summary.total_capacity}
+          </p>
+        )}
+      </BaselineSection>
+
+      <BaselineSection label="Sleeper Snapshot" sec={s.sleeper_snapshot}>
+        {s.sleeper_snapshot.david_roster_player_count != null && (
+          <p className="dg-wc__baseline-line">
+            David roster player count: {s.sleeper_snapshot.david_roster_player_count}
+          </p>
+        )}
+        {s.sleeper_snapshot.league_roster_count != null && (
+          <p className="dg-wc__baseline-line">
+            League roster count: {s.sleeper_snapshot.league_roster_count}
+          </p>
+        )}
+      </BaselineSection>
+    </section>
+  );
+}
+
+// Per-section shell: accessible-named region + status/decision_supported honesty
+// stamp + staleness caveat + aborted reason. The status label and value are kept
+// in separate nodes so the section's "Status: <value>" never collapses into one
+// text node (which would let a section status collide with the top-level status).
+function BaselineSection({
+  label,
+  sec,
+  children,
+}: {
+  label: string;
+  sec: WhatChangedStructuralSection;
+  children: ReactNode;
+}) {
+  return (
+    <section className="dg-wc__baseline-section" aria-label={label}>
+      <h4 className="dg-wc__group">{label}</h4>
+      <p className="dg-wc__baseline-meta">
+        <span className="dg-wc__meta-label">Status:</span>{" "}
+        <span className="dg-wc__meta-value">{sec.status}</span>
+      </p>
+      <p className="dg-wc__baseline-meta">decision_supported=false</p>
+      {sec.staleness_caveat && (
+        <p className="dg-wc__caveat">
+          {sec.staleness_caveat.basis} —{" "}
+          {sec.staleness_caveat.is_stale ? "stale" : "fresh"} (age{" "}
+          {sec.staleness_caveat.age_hours}h)
+        </p>
+      )}
+      {sec.aborted_reason && <p className="dg-wc__caveat">{sec.aborted_reason}</p>}
+      {children}
+    </section>
+  );
+}
+
+function TeamValueLines({ sec }: { sec: WhatChangedStructuralSection }) {
+  const v = sec.david_value_summary;
+  if (!v) {
+    return <p className="dg-wc__empty">No team value summary.</p>;
+  }
+  return (
+    <>
+      {v.lineup_xvar != null && (
+        <p className="dg-wc__baseline-line">Lineup xvar: {v.lineup_xvar}</p>
+      )}
+      {v.starter_weighted_xvar != null && (
+        <p className="dg-wc__baseline-line">
+          Starter weighted xvar: {v.starter_weighted_xvar}
+        </p>
+      )}
+      {v.top_n_xvar != null && (
+        <p className="dg-wc__baseline-line">Top n xvar: {v.top_n_xvar}</p>
+      )}
+      {v.total_xvar_capped != null && (
+        <p className="dg-wc__baseline-line">Total xvar capped: {v.total_xvar_capped}</p>
+      )}
+    </>
+  );
+}
+
+// Count cards by type, preserving first-seen order for stable rendering.
+function cardTypeCounts(
+  cards: WhatChangedStructuralSection["top_cards"],
+): Array<[string, number]> {
+  const counts = new Map<string, number>();
+  for (const card of cards ?? []) {
+    const type = card.card_type ?? "UNKNOWN";
+    counts.set(type, (counts.get(type) ?? 0) + 1);
+  }
+  return [...counts.entries()];
 }
