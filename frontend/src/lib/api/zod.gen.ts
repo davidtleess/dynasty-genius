@@ -3,6 +3,44 @@
 import * as z from 'zod';
 
 /**
+ * ArtifactProvenance
+ */
+export const zArtifactProvenance = z.object({
+    artifact_id: z.string(),
+    decision_supported: z.literal(false),
+    expected_kind: z.enum(['tracked_seed', 'local_operational']),
+    load_verification_status: z.enum(['not_verified', 'verified']),
+    observed_status: z.enum([
+        'ok',
+        'local_override',
+        'unregistered_local',
+        'hash_mismatch',
+        'missing_required',
+        'local_artifact_missing_ci',
+        'expected_hash_missing'
+    ]),
+    path: z.string(),
+    pointer_status: z.enum([
+        'referenced',
+        'pointer_missing',
+        'pointer_malformed',
+        'pointer_mismatch',
+        'not_applicable'
+    ]),
+    promotion_status: z.enum([
+        'active',
+        'candidate',
+        'parked'
+    ]),
+    serving_allowed: z.boolean(),
+    severity: z.enum([
+        'info',
+        'caveat',
+        'integrity'
+    ])
+});
+
+/**
  * CapacityCandidate
  *
  * One roster player surfaced in the capacity-ordered review list.
@@ -445,6 +483,35 @@ export const zModelCardResponse = z.object({
     known_failure_modes: z.array(z.string()),
     out_of_scope_uses: z.array(z.string()),
     position: z.string()
+});
+
+/**
+ * ModelProvenanceErrorResponse
+ */
+export const zModelProvenanceErrorResponse = z.object({
+    decision_supported: z.literal(false),
+    error: z.string(),
+    message: z.string()
+});
+
+/**
+ * ModelProvenanceResponse
+ */
+export const zModelProvenanceResponse = z.object({
+    artifacts: z.array(zArtifactProvenance),
+    decision_supported: z.literal(false),
+    environment: z.enum([
+        'development',
+        'ci',
+        'serving',
+        'production'
+    ]),
+    overall_status: z.enum([
+        'ok',
+        'degraded',
+        'blocked'
+    ]),
+    registry_version: z.int()
 });
 
 /**
@@ -1562,6 +1629,11 @@ export const zAuditRosterApiRosterAuditGetResponse = zRosterAuditResponse;
  * Successful Response
  */
 export const zRosterCapacitySurfaceApiRosterCapacityGetResponse = zRosterCapacityResponse;
+
+/**
+ * Successful Response
+ */
+export const zGetModelProvenanceApiSystemModelProvenanceGetResponse = zModelProvenanceResponse;
 
 export const zAnalyzeApiTradeAnalyzePostBody = zTradeRequest;
 

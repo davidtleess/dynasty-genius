@@ -168,11 +168,28 @@ def load_model_registry(*, registry_path: Path) -> ModelRegistry:
         ) from exc
 
     try:
-        return ModelRegistry.model_validate(raw)
+        registry = ModelRegistry.model_validate(raw)
     except ValidationError as exc:
         raise ModelRegistryLoadError(
             f"model registry schema invalid at {registry_path}: {exc}"
         ) from exc
+
+    # A schema-valid registry can still be unusable as a source of truth: zero
+    # declared artifacts is a vacuous all-clear (T4 cockpit-converged → 503),
+    # and duplicate ids would silently last-win.
+    if not registry.artifacts:
+        raise ModelRegistryLoadError(
+            f"model registry declares no artifacts at {registry_path}"
+        )
+    seen_ids: set[str] = set()
+    for entry in registry.artifacts:
+        if entry.artifact_id in seen_ids:
+            raise ModelRegistryLoadError(
+                f"model registry has duplicate artifact_id {entry.artifact_id!r} "
+                f"at {registry_path}"
+            )
+        seen_ids.add(entry.artifact_id)
+    return registry
 
 
 # --- environment resolution --------------------------------------------------

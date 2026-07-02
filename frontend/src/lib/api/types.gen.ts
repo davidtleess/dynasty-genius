@@ -5,6 +5,52 @@ export type ClientOptions = {
 };
 
 /**
+ * ArtifactProvenance
+ */
+export type ArtifactProvenance = {
+    /**
+     * Artifact Id
+     */
+    artifact_id: string;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Expected Kind
+     */
+    expected_kind: 'tracked_seed' | 'local_operational';
+    /**
+     * Load Verification Status
+     */
+    load_verification_status: 'not_verified' | 'verified';
+    /**
+     * Observed Status
+     */
+    observed_status: 'ok' | 'local_override' | 'unregistered_local' | 'hash_mismatch' | 'missing_required' | 'local_artifact_missing_ci' | 'expected_hash_missing';
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Pointer Status
+     */
+    pointer_status: 'referenced' | 'pointer_missing' | 'pointer_malformed' | 'pointer_mismatch' | 'not_applicable';
+    /**
+     * Promotion Status
+     */
+    promotion_status: 'active' | 'candidate' | 'parked';
+    /**
+     * Serving Allowed
+     */
+    serving_allowed: boolean;
+    /**
+     * Severity
+     */
+    severity: 'info' | 'caveat' | 'integrity';
+};
+
+/**
  * CapacityCandidate
  *
  * One roster player surfaced in the capacity-ordered review list.
@@ -1263,6 +1309,50 @@ export type ModelCardResponse = {
      * Position
      */
     position: string;
+};
+
+/**
+ * ModelProvenanceErrorResponse
+ */
+export type ModelProvenanceErrorResponse = {
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Error
+     */
+    error: string;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * ModelProvenanceResponse
+ */
+export type ModelProvenanceResponse = {
+    /**
+     * Artifacts
+     */
+    artifacts: Array<ArtifactProvenance>;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Environment
+     */
+    environment: 'development' | 'ci' | 'serving' | 'production';
+    /**
+     * Overall Status
+     */
+    overall_status: 'ok' | 'degraded' | 'blocked';
+    /**
+     * Registry Version
+     */
+    registry_version: number;
 };
 
 /**
@@ -3615,6 +3705,31 @@ export type RosterCapacitySurfaceApiRosterCapacityGetResponses = {
 };
 
 export type RosterCapacitySurfaceApiRosterCapacityGetResponse = RosterCapacitySurfaceApiRosterCapacityGetResponses[keyof RosterCapacitySurfaceApiRosterCapacityGetResponses];
+
+export type GetModelProvenanceApiSystemModelProvenanceGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/system/model-provenance';
+};
+
+export type GetModelProvenanceApiSystemModelProvenanceGetErrors = {
+    /**
+     * Service Unavailable
+     */
+    503: ModelProvenanceErrorResponse;
+};
+
+export type GetModelProvenanceApiSystemModelProvenanceGetError = GetModelProvenanceApiSystemModelProvenanceGetErrors[keyof GetModelProvenanceApiSystemModelProvenanceGetErrors];
+
+export type GetModelProvenanceApiSystemModelProvenanceGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ModelProvenanceResponse;
+};
+
+export type GetModelProvenanceApiSystemModelProvenanceGetResponse = GetModelProvenanceApiSystemModelProvenanceGetResponses[keyof GetModelProvenanceApiSystemModelProvenanceGetResponses];
 
 export type AnalyzeApiTradeAnalyzePostData = {
     body: TradeRequest;
