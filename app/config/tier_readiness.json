@@ -1,0 +1,50 @@
+{
+  "registry_version": 1,
+  "surfaces": [
+    {
+      "surface_id": "roster_capacity",
+      "display_name": "Roster Capacity",
+      "declared_tier": "tier_1_candidate",
+      "route_ids": ["/api/roster/capacity"],
+      "producer_artifacts": ["app/data/roster_capacity/roster_capacity_latest.json"],
+      "live_preconditions": ["model_provenance_ok", "capture_health_ok"],
+      "gate_components": [
+        {
+          "component": "audit_hygiene",
+          "evidence": [
+            "tests/contract/test_roster_capacity_route.py",
+            "scripts/scan_league_opportunity_no_verdict.py"
+          ],
+          "expectation": "route contract fail-closed (nested undeclared fields rejected at any depth) and the No-Verdict cordon enforcing on this path",
+          "optional": false
+        },
+        {
+          "component": "deterministic_range_disclosure",
+          "evidence": [
+            "tests/contract/test_roster_capacity_route.py",
+            "tests/contract/test_roster_capacity_simulator.py"
+          ],
+          "expectation": "ranges signed + unclamped + basis-disclosed; deterministic envelope bounds, never presented as calibrated statistical uncertainty",
+          "optional": false
+        },
+        {
+          "component": "mif_breaker",
+          "evidence": [
+            "src/dynasty_genius/outcome_loop/realized_outcome_scorer.py",
+            "tests/unit/test_realized_outcome_scorer.py"
+          ],
+          "expectation": "model-input-fidelity machinery wired; active-role deviation < 15% when evaluable; off-season = presence probe reporting insufficient_data, never a default pass",
+          "optional": false
+        },
+        {
+          "component": "no_directive_copy",
+          "evidence": ["frontend/scripts/check-banned-language.mjs"],
+          "expectation": "zero directive tokens on the graduated path",
+          "optional": false
+        }
+      ],
+      "ratified_by": "David",
+      "ratified_date": "2026-07-02"
+    }
+  ]
+}

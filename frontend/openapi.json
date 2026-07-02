@@ -346,6 +346,42 @@
         "title": "CohortMetric",
         "type": "object"
       },
+      "ComponentReadiness": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "component": {
+            "title": "Component",
+            "type": "string"
+          },
+          "component_status": {
+            "enum": [
+              "pass",
+              "insufficient_data",
+              "fail",
+              "not_applicable"
+            ],
+            "title": "Component Status",
+            "type": "string"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "component",
+          "component_status",
+          "basis",
+          "decision_supported"
+        ],
+        "title": "ComponentReadiness",
+        "type": "object"
+      },
       "CounterArgumentField": {
         "properties": {
           "caveats": {
@@ -4516,6 +4552,145 @@
         "title": "StoreTimeline",
         "type": "object"
       },
+      "SurfaceReadiness": {
+        "additionalProperties": false,
+        "description": "Runtime readiness for one surface. Root-level dormancy disclosure is\nmandatory (R2): the headline `_limited` status plus machine-readable\ncounts, so a UI can never render an unqualified badge over dormant\ncomponents.",
+        "properties": {
+          "all_components_evaluable": {
+            "title": "All Components Evaluable",
+            "type": "boolean"
+          },
+          "basis": {
+            "minLength": 1,
+            "title": "Basis",
+            "type": "string"
+          },
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/ComponentReadiness"
+            },
+            "title": "Components",
+            "type": "array"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "insufficient_data_components": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Insufficient Data Components",
+            "type": "array"
+          },
+          "insufficient_data_count": {
+            "title": "Insufficient Data Count",
+            "type": "integer"
+          },
+          "live_preconditions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Live Preconditions",
+            "type": "object"
+          },
+          "surface_id": {
+            "title": "Surface Id",
+            "type": "string"
+          },
+          "tier_status": {
+            "enum": [
+              "diagnostic_grade_active",
+              "diagnostic_grade_active_limited",
+              "preconditions_degraded",
+              "not_graduated"
+            ],
+            "title": "Tier Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "surface_id",
+          "display_name",
+          "tier_status",
+          "basis",
+          "components",
+          "insufficient_data_count",
+          "insufficient_data_components",
+          "all_components_evaluable",
+          "live_preconditions",
+          "decision_supported"
+        ],
+        "title": "SurfaceReadiness",
+        "type": "object"
+      },
+      "TierReadinessErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "decision_supported"
+        ],
+        "title": "TierReadinessErrorResponse",
+        "type": "object"
+      },
+      "TierReadinessResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "overall_status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Overall Status",
+            "type": "string"
+          },
+          "registry_version": {
+            "title": "Registry Version",
+            "type": "integer"
+          },
+          "surfaces": {
+            "items": {
+              "$ref": "#/components/schemas/SurfaceReadiness"
+            },
+            "title": "Surfaces",
+            "type": "array"
+          }
+        },
+        "required": [
+          "overall_status",
+          "registry_version",
+          "surfaces",
+          "decision_supported"
+        ],
+        "title": "TierReadinessResponse",
+        "type": "object"
+      },
       "TopKResult": {
         "properties": {
           "diff_wilson_ci95": {
@@ -7278,6 +7453,37 @@
           }
         },
         "summary": "Get Model Provenance",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/system/tier-readiness": {
+      "get": {
+        "operationId": "get_tier_readiness_api_system_tier_readiness_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TierReadinessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TierReadinessErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Tier Readiness",
         "tags": [
           "system"
         ]

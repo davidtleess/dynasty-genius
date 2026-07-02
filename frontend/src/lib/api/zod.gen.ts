@@ -93,6 +93,21 @@ export const zCaptureHealthErrorResponse = z.object({
 });
 
 /**
+ * ComponentReadiness
+ */
+export const zComponentReadiness = z.object({
+    basis: z.string(),
+    component: z.string(),
+    component_status: z.enum([
+        'pass',
+        'insufficient_data',
+        'fail',
+        'not_applicable'
+    ]),
+    decision_supported: z.literal(false)
+});
+
+/**
  * CounterArgumentField
  */
 export const zCounterArgumentField = z.object({
@@ -1055,6 +1070,51 @@ export const zCaptureHealthResponse = z.object({
 });
 
 /**
+ * SurfaceReadiness
+ *
+ * Runtime readiness for one surface. Root-level dormancy disclosure is
+ * mandatory (R2): the headline `_limited` status plus machine-readable
+ * counts, so a UI can never render an unqualified badge over dormant
+ * components.
+ */
+export const zSurfaceReadiness = z.object({
+    all_components_evaluable: z.boolean(),
+    basis: z.string().min(1),
+    components: z.array(zComponentReadiness),
+    decision_supported: z.literal(false),
+    display_name: z.string(),
+    insufficient_data_components: z.array(z.string()),
+    insufficient_data_count: z.int(),
+    live_preconditions: z.record(z.string(), z.string()),
+    surface_id: z.string(),
+    tier_status: z.enum([
+        'diagnostic_grade_active',
+        'diagnostic_grade_active_limited',
+        'preconditions_degraded',
+        'not_graduated'
+    ])
+});
+
+/**
+ * TierReadinessErrorResponse
+ */
+export const zTierReadinessErrorResponse = z.object({
+    decision_supported: z.literal(false),
+    error: z.string(),
+    message: z.string()
+});
+
+/**
+ * TierReadinessResponse
+ */
+export const zTierReadinessResponse = z.object({
+    decision_supported: z.literal(false),
+    overall_status: z.enum(['ok', 'degraded']),
+    registry_version: z.int(),
+    surfaces: z.array(zSurfaceReadiness)
+});
+
+/**
  * TopKResult
  */
 export const zTopKResult = z.object({
@@ -1731,6 +1791,11 @@ export const zGetCaptureHealthApiSystemCaptureHealthGetResponse = zCaptureHealth
  * Successful Response
  */
 export const zGetModelProvenanceApiSystemModelProvenanceGetResponse = zModelProvenanceResponse;
+
+/**
+ * Successful Response
+ */
+export const zGetTierReadinessApiSystemTierReadinessGetResponse = zTierReadinessResponse;
 
 export const zAnalyzeApiTradeAnalyzePostBody = zTradeRequest;
 
