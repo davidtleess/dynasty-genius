@@ -248,6 +248,33 @@ def test_local_operational_active_required_serving_mismatch_blocks_unapproved_re
     )
 
 
+def test_local_operational_active_required_serving_mismatch_blocks_even_with_override_flag() -> None:
+    entry = _artifact(
+        {
+            "artifact_id": "engine_b:qb_v2",
+            "path": "app/data/models/engine_b/runs/run/qb_v2.pkl",
+            "kind": "local_operational",
+            "required_by_env": ["serving", "production"],
+            "allow_local_override": True,
+        }
+    )
+
+    provenance = _classify(
+        entry=entry,
+        artifact_present=True,
+        observed_hash="b" * 64,
+        environment="serving",
+    )
+
+    _assert_provenance(
+        provenance,
+        entry=entry,
+        observed_status="local_override",
+        severity="integrity",
+        serving_allowed=False,
+    )
+
+
 @pytest.mark.parametrize("promotion_status", ["candidate", "parked"])
 def test_local_operational_non_active_serving_mismatch_is_caveat_not_blocking(
     promotion_status: str,
@@ -410,6 +437,19 @@ def test_broken_pointer_blocks_active_required_serving_even_when_hash_matches(
         severity="integrity",
         serving_allowed=False,
     )
+
+
+def test_classifier_rejects_invalid_environment_before_hash_ok_classification() -> None:
+    models = _models()
+    entry = _artifact()
+
+    with pytest.raises(models.RuntimeEnvironmentError):
+        _classify(
+            entry=entry,
+            artifact_present=True,
+            observed_hash="a" * 64,
+            environment="prod",
+        )
 
 
 def test_not_applicable_pointer_allows_hash_ok_artifact_to_remain_clean() -> None:
