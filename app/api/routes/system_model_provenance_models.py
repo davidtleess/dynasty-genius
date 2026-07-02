@@ -248,7 +248,7 @@ def _observed_severity(
         # serving reality (integrity) only for an active+required serving model.
         if environment == "development":
             return "info", True
-        if _serving_active_required(entry, environment) and not entry.allow_local_override:
+        if _serving_active_required(entry, environment):
             return "integrity", False
         return "caveat", True
     if observed_status == "expected_hash_missing":
@@ -280,6 +280,15 @@ def classify_artifact(
     even when ``observed_status == "ok"``. ``load_verification_status`` is always
     ``"not_verified"`` in Slice 1 (pointer provenance, not proven resolver load).
     """
+
+    # Fail closed on a bad caller: an invalid environment must not classify as
+    # healthy (T1's resolver guards the HTTP path, but this pure function is
+    # public and must guard itself — Codex T2 R8).
+    if environment not in _VALID_ENVIRONMENTS:
+        raise RuntimeEnvironmentError(
+            f"classify_artifact received an invalid environment {environment!r}; "
+            f"expected one of {sorted(_VALID_ENVIRONMENTS)}"
+        )
 
     # observed_status — the technical fact
     if entry.sha256 is None:
