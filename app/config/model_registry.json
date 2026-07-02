@@ -1,0 +1,166 @@
+{
+  "registry_version": 1,
+  "artifacts": [
+    {
+      "artifact_id": "engine_a:QB",
+      "path": "QB_model.pkl",
+      "path_resolution": "latest_run_dir",
+      "governing_pointer": "app/data/models/latest.json",
+      "sha256": "2e55c31e7609f5647a36246ac529c689668eaf9dcedfd736451fa29054fcb49a",
+      "kind": "tracked_seed",
+      "promotion_status": "active",
+      "required_by_env": [
+        "development",
+        "ci",
+        "serving",
+        "production"
+      ],
+      "allow_local_override": false,
+      "approved_by": "David",
+      "approved_date": "2026-07-02",
+      "updated_by_commit": "bda777b"
+    },
+    {
+      "artifact_id": "engine_a:RB",
+      "path": "RB_model.pkl",
+      "path_resolution": "latest_run_dir",
+      "governing_pointer": "app/data/models/latest.json",
+      "sha256": "3f390cb1de362ad79ae868cbe06b03a248a5e27472bbaf1f4240cabe58a5f99b",
+      "kind": "tracked_seed",
+      "promotion_status": "active",
+      "required_by_env": [
+        "development",
+        "ci",
+        "serving",
+        "production"
+      ],
+      "allow_local_override": false,
+      "approved_by": "David",
+      "approved_date": "2026-07-02",
+      "updated_by_commit": "bda777b"
+    },
+    {
+      "artifact_id": "engine_a:TE",
+      "path": "TE_model.pkl",
+      "path_resolution": "latest_run_dir",
+      "governing_pointer": "app/data/models/latest.json",
+      "sha256": "4a70aa48429c7355eb4dac48f45328da6be81ab81217e3871e553fcd1d1b76cc",
+      "kind": "tracked_seed",
+      "promotion_status": "active",
+      "required_by_env": [
+        "development",
+        "ci",
+        "serving",
+        "production"
+      ],
+      "allow_local_override": false,
+      "approved_by": "David",
+      "approved_date": "2026-07-02",
+      "updated_by_commit": "bda777b"
+    },
+    {
+      "artifact_id": "engine_a:WR",
+      "path": "WR_model.pkl",
+      "path_resolution": "latest_run_dir",
+      "governing_pointer": "app/data/models/latest.json",
+      "sha256": "bd51c69a522643593af7c7b4726b537c2c32690d851c76103f2373bb64b9444d",
+      "kind": "tracked_seed",
+      "promotion_status": "active",
+      "required_by_env": [
+        "development",
+        "ci",
+        "serving",
+        "production"
+      ],
+      "allow_local_override": false,
+      "approved_by": "David",
+      "approved_date": "2026-07-02",
+      "updated_by_commit": "bda777b"
+    },
+    {
+      "artifact_id": "engine_b:qb_v2",
+      "path": "app/data/models/engine_b/runs/20260513T012309Z/qb_v2.pkl",
+      "path_resolution": "literal",
+      "governing_pointer": "app/data/models/engine_b/v2_manifest.json",
+      "sha256": "d7acb6808e4a6caf412ec05b41aa90324e04f90ef219bbf78f680f66ea7d304f",
+      "kind": "local_operational",
+      "promotion_status": "active",
+      "required_by_env": [
+        "serving",
+        "production"
+      ],
+      "allow_local_override": false,
+      "approved_by": "David",
+      "approved_date": "2026-07-02",
+      "updated_by_commit": "e1c76e0"
+    },
+    {
+      "artifact_id": "engine_b:rb_v2",
+      "path": "app/data/models/engine_b/runs/20260513T012309Z/rb_v2.pkl",
+      "path_resolution": "literal",
+      "governing_pointer": "app/data/models/engine_b/v2_manifest.json",
+      "sha256": "5507e37feda9ba9d8f2bda7f1f259df5a59edcb2880e7ff7af6938d34401c4f9",
+      "kind": "local_operational",
+      "promotion_status": "active",
+      "required_by_env": [
+        "serving",
+        "production"
+      ],
+      "allow_local_override": false,
+      "approved_by": "David",
+      "approved_date": "2026-07-02",
+      "updated_by_commit": "e1c76e0"
+    },
+    {
+      "artifact_id": "engine_b:wr_v2",
+      "path": "app/data/models/engine_b/runs/20260513T012309Z/wr_v2.pkl",
+      "path_resolution": "literal",
+      "governing_pointer": "app/data/models/engine_b/v2_manifest.json",
+      "sha256": "3b83bbf98118d272196a0942a4190cc539b08409cbb3b23da570ed42b4ec873e",
+      "kind": "local_operational",
+      "promotion_status": "active",
+      "required_by_env": [
+        "serving",
+        "production"
+      ],
+      "allow_local_override": false,
+      "approved_by": "David",
+      "approved_date": "2026-07-02",
+      "updated_by_commit": "e1c76e0"
+    },
+    {
+      "artifact_id": "engine_b:te_v3",
+      "path": "app/data/models/engine_b/runs/20260626T165649Z/te_v3.pkl",
+      "path_resolution": "literal",
+      "governing_pointer": "app/data/models/engine_b/v2_manifest.json",
+      "sha256": "e8f5d7451aa0524aeb17dbc80992c35bfa97f9428366085330643bbb3109389b",
+      "kind": "local_operational",
+      "promotion_status": "active",
+      "required_by_env": [
+        "serving",
+        "production"
+      ],
+      "allow_local_override": false,
+      "approved_by": "David",
+      "approved_date": "2026-07-02",
+      "updated_by_commit": "e1c76e0"
+    },
+    {
+      "artifact_id": "head_a:te_v3",
+      "path": "app/data/models/head_a/runs/20260524T140748Z/te_v3.pkl",
+      "path_resolution": "literal",
+      "governing_pointer": "app/data/models/head_a/v3_manifest.json",
+      "sha256": "9e1b0b7fc7f707fba9831662fd792067f26e37370fb5aa5fd6532c02cf3e8618",
+      "kind": "local_operational",
+      "promotion_status": "active",
+      "required_by_env": [
+        "serving",
+        "production"
+      ],
+      "allow_local_override": false,
+      "approved_by": "David",
+      "approved_date": "2026-07-02",
+      "updated_by_commit": "e1c76e0"
+    }
+  ]
+}

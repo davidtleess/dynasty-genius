@@ -121,7 +121,13 @@ A new **runtime policy artifact**, checked in, updated ONLY inside a David-autho
 ```
 
 ### 3.1 Environment resolution
-`environment` is read from env var `DG_RUNTIME_ENV ∈ {development, ci, serving, production}`. If unset: infer `ci` when a `CI` truthy env var is present, else `development`. `serving`/`production` are set explicitly by the deploy host. (RED locks the resolution precedence; env is injectable in tests.)
+`environment` is read from env var `DG_RUNTIME_ENV ∈ {development, ci, serving, production}`. Resolution precedence:
+- **Explicit `DG_RUNTIME_ENV` present and valid** → use it (wins over `CI`).
+- **Explicit `DG_RUNTIME_ENV` present but NOT one of the four valid values** (incl empty string) → **raise a typed config error (fail-closed)** — an explicitly-set-but-invalid runtime env is configuration corruption; it must NOT silently demote to `development` (Codex T1 R7), which would mask a misconfigured serving host (local overrides → info, local_operational absence → expected-dev-absence).
+- **Unset + a `CI` var PRESENT (any value — presence-based, not truthiness)** → `ci`. Fail-closed-safe: an ambiguous env resolves to `ci`, marking `local_operational` artifacts expected-absent rather than unexpectedly-missing.
+- **Unset + no `CI`** → `development`.
+
+`serving`/`production` are set explicitly by the deploy host. (RED locks the precedence + the invalid-env error; env is injectable in tests.)
 
 ### 3.2 `observed_status` — the technical fact (per artifact)
 The on-disk path is first resolved per `path_resolution` (§2 — `latest_run_dir` for Engine A). Then computed by streaming the file's sha256 at request time and comparing to the registry `sha256`:
@@ -140,7 +146,7 @@ The on-disk path is first resolved per `path_resolution` (§2 — `latest_run_di
 - `local_override` → `info` in `development` (or for non-active `candidate` work); **`integrity` in `serving`/`production` for an `active`+required artifact** (Codex R4 — a mismatch from David-approved bytes in serving is *unapproved serving reality*, not a caveat), unless an explicit env-scoped `allow_local_override: true` exists. `caveat` only for non-required/candidate serving artifacts.
 - `local_artifact_missing_ci` → `caveat` (degraded, **never** a test failure)
 - `expected_hash_missing` → `integrity` for `active`+required in `serving`/`production` (§3.4); `caveat` for `local_operational` absent-in-CI with null hash; `info`/`caveat` for `candidate`/`parked` (never overall-blocking).
-- `unregistered_local` → `info` when NOT on a pointer-resolved serving path (stray/old run); `integrity` when it sits at a pointer-resolved path in `serving`/`production` (§3.5)
+- `unregistered_local` → `info` when NOT referenced by any governing pointer (stray/old run, or an unreferenced sibling inside a referenced run dir); `integrity` when a governing pointer REFERENCES the exact file path and the registry does not declare it, in `serving`/`production` (`caveat` in `ci`/`development` — visible, not blocking) (§3.5, clarified 2026-07-02)
 - `hash_mismatch` → `integrity` **always** (see fail-closed §3.4)
 - `missing_required` → `integrity`
 
@@ -149,7 +155,7 @@ The on-disk path is first resolved per `path_resolution` (§2 — `latest_run_di
 - `local_override` on an `active`+required artifact in `serving`/`production` → `serving_allowed=false`, `blocked` (Codex R4), unless `allow_local_override: true`.
 - `expected_hash_missing` on an `active`+required artifact in `serving`/`production` → `serving_allowed=false`, `blocked` (an unverifiable expected hash is not a pass). In `ci`/`development`, `expected_hash_missing` for a `local_operational` absent artifact → `serving_allowed=true`, contributes at most `degraded`.
 - `missing_required` → `serving_allowed=false`, contributes `blocked`.
-- `unregistered_local` at a pointer-resolved serving path in `serving`/`production` → `serving_allowed=false`, `blocked`.
+- `unregistered_local` at a pointer-REFERENCED file path in `serving`/`production` → `serving_allowed=false`, `blocked`.
 - `pointer_status ∈ {pointer_missing, pointer_malformed, pointer_mismatch}` on an `active`+required artifact in `serving`/`production` → `serving_allowed=false`, `blocked` (even if `observed_status=ok`); in `ci`/`development` a missing gitignored governing manifest → `caveat`/200.
 - `local_artifact_missing_ci`, `local_override`(dev / candidate), `ok` → `serving_allowed=true`.
 - An artifact contributes `ok` to `overall_status` **only if `observed_status=ok` AND `pointer_status ∈ {referenced, not_applicable}`** (Codex R6).
@@ -164,12 +170,12 @@ This scope is sufficient for the core goal: the gitignored-artifact divergence i
 - `referenced` — pointer file present, parseable, and references this artifact's resolved path/run.
 - `pointer_missing` — governing_pointer file absent.
 - `pointer_malformed` — present but unparseable / schema-invalid.
-- `pointer_mismatch` — parseable but references a different run/path than the registry entry (e.g. `latest.json.run_dir` ≠ the entry's expected run).
+- `pointer_mismatch` — parseable but does not reference this entry's path (strict case-sensitive string comparison against manifest values). Applies to literal-path entries only: post-R6b filename-only `latest_run_dir` entries declare no expected run, so a repointed `latest.json` is NOT a mismatch — resolution follows the current run dir and divergence surfaces as `hash_mismatch` against the approved sha256 (clarified 2026-07-02).
 - `not_applicable` — no `governing_pointer` declared.
 
 Severity/fail-closed for `pointer_status` mirrors the artifact rules: for an `active`+required artifact in `serving`/`production`, `pointer_missing`/`pointer_malformed`/`pointer_mismatch` → `integrity`/`serving_allowed=false`/`blocked`. In `ci`/`development` a missing **gitignored** manifest (Engine B/Head A) → `caveat`/200 (matches the gitignored-artifact discipline — CI legitimately lacks it). An artifact is reported clean (contributes `ok`) **only if `observed_status=ok` AND `pointer_status ∈ {referenced, not_applicable}`** (§3.4).
 
-The pointer set is used only to scope `unregistered_local` severity: an `unregistered_local` `.pkl` at a pointer-resolved path in serving/production → `integrity`; an orphaned off-path `.pkl` → `info`. Reads are read-only; a missing gitignored manifest is handled as a `local_artifact_missing_ci`-class signal on that engine, not a crash.
+The pointer set is used only to scope `unregistered_local` severity, and it keys on pointer-REFERENCED FILE paths, not directory containment (**clarified 2026-07-02, cockpit-converged** — Claude finding over the REAL `engine_b/runs/20260513T012309Z/te_v2.pkl` stale sibling, Codex CONCUR as ambiguity clarification, Gemini no-objection: a run dir legitimately accumulates unreferenced leftovers, and blocking on containment would false-block the real serving host): a governing pointer that references an exact `.pkl` path absent from the registry → `integrity` in serving/production (the pointer is actively selecting untracked bytes), `caveat` in ci/development; an unreferenced `.pkl` — off-path OR an unreferenced sibling inside a referenced run dir → strictly `info`, never degrades `overall_status`. Reads are read-only; a missing gitignored manifest is handled as a `local_artifact_missing_ci`-class signal on that engine, not a crash.
 
 **Reverse-scan scope (Codex R5):** scan ONLY the known served roots and pointer-resolved run dirs (`app/data/models/` top level, the active `latest.json` run dir, the `v2_manifest`/`v3_manifest` run dirs) — NOT a blanket `app/data/models/**` walk (which would flag every historical run pkl). Any old off-path `.pkl` that is scanned is **strictly `info`, never degrades `overall_status`**. The scan must not walk `tests/` fixtures.
 
@@ -197,18 +203,18 @@ All via injected temp registry + temp artifact paths + injected environment (DI)
 6. local_operational present, hash differs, env=development → `local_override`/`info` (no false alarm on David's local research).
 7. local_operational present, hash differs, **active+required, env=serving → `local_override`/`integrity`/`serving_allowed=false`/`blocked`** (Codex R4 — unapproved serving reality, NOT a caveat); with `allow_local_override=true` → downgraded. Non-required/candidate serving mismatch → `caveat`.
 8. local_operational absent, env=serving, required_by_env includes serving → `missing_required`/`integrity`/`blocked`.
-9. stray `.pkl` under a served root, not in registry, NOT at a pointer-resolved path → `unregistered_local`/`info`; assert it does NOT degrade `overall_status`.
-10. stray `.pkl` at a pointer-resolved path, env=production → `unregistered_local`/`integrity`/`serving_allowed=false`/`blocked`.
+9. stray `.pkl` under a served root, not in registry, NOT referenced by any governing pointer → `unregistered_local`/`info`; assert it does NOT degrade `overall_status`.
+10. a governing pointer references a `.pkl` path absent from the registry, env=production → `unregistered_local`/`integrity`/`serving_allowed=false`/`blocked`; an UNREFERENCED sibling inside a referenced run dir → `info` even in production (clarified 2026-07-02 — file-reference keying, not directory containment).
 11. registry file absent → **503**. registry malformed JSON → **503**. registry schema-invalid → **503**.
 12. every artifact node and the root carry `decision_supported=false`; `extra="forbid"` rejects any unknown field (verdict-field fail-closed).
-13. environment resolution: `DG_RUNTIME_ENV` explicit wins; unset + `CI` set → `ci`; unset + no `CI` → `development`.
+13. environment resolution: valid explicit `DG_RUNTIME_ENV` wins (over `CI`); **present-but-invalid `DG_RUNTIME_ENV` (incl `""`) → typed config error, NOT a silent demote to development** (Codex T1 R7); unset + `CI` present (any value, presence-based incl `CI=false`) → `ci`; unset + no `CI` → `development`.
 14. registry `sha256: null`, active+required, env=serving → `expected_hash_missing`/`integrity`/`serving_allowed=false`/`blocked` (Codex R3 — unverifiable expected hash is never `ok`).
 15. registry `sha256: null`, local_operational absent, env=ci → `expected_hash_missing`/`caveat`/**200** (not 503, not a test failure).
 16. registry `sha256: null`, `candidate`/`parked` → `info`/`caveat`, never `overall_status=blocked`.
 17. Engine A entry with `path_resolution: latest_run_dir` (Codex R1): `path` is the filename `QB_model.pkl`; the endpoint hashes `<latest.json.run_dir>/QB_model.pkl`, matches → `ok`; a root-level `app/data/models/QB_model.pkl` with different bytes must NOT be classified `ok`-active (off the served path → `unregistered_local`/`info` at most). Assert certifying the root pkl cannot mask a run-dir divergence.
 18. every artifact node carries `load_verification_status: not_verified` in Slice 1 (Codex R2 — pointer provenance, no false claim of resolver selection).
 19. **pointer health (Codex R6):** Head A `te_v3.pkl` present + hash-matches, but `head_a/v3_manifest.json` absent → `observed_status=ok` BUT `pointer_status=pointer_missing`; active+required serving → `integrity`/`serving_allowed=false`/`blocked` (NOT overall `ok`); ci/dev with the gitignored manifest absent → `caveat`/200.
-20. Engine A run pkl hash-matches, but `latest.json` absent → `pointer_status=pointer_missing` (can't resolve); malformed `latest.json` → `pointer_malformed`; `latest.json.run_dir` points to a different run than the entry's expected run → `pointer_mismatch`. Active+required serving → integrity/blocked; hash-ok must not certify `ok`-active while the pointer is broken.
+20. Engine A run pkl hash-matches, but `latest.json` absent → `pointer_status=pointer_missing` (can't resolve); malformed `latest.json` → `pointer_malformed`. (Clarified 2026-07-02, Codex-concurred: the pre-R6b "different run than the entry's expected run → `pointer_mismatch`" clause is DEAD — filename-only entries declare no expected run; a repointed `latest.json` resolves to the current run dir and the divergence surfaces as `hash_mismatch` against the approved sha256.) Active+required serving → integrity/blocked; hash-ok must not certify `ok`-active while the pointer is broken.
 21. an artifact with no `governing_pointer` → `pointer_status=not_applicable`; hash-ok → contributes `ok` normally.
 
 ---

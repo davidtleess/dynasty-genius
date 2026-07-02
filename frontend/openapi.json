@@ -1,6 +1,100 @@
 {
   "components": {
     "schemas": {
+      "ArtifactProvenance": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "expected_kind": {
+            "enum": [
+              "tracked_seed",
+              "local_operational"
+            ],
+            "title": "Expected Kind",
+            "type": "string"
+          },
+          "load_verification_status": {
+            "enum": [
+              "not_verified",
+              "verified"
+            ],
+            "title": "Load Verification Status",
+            "type": "string"
+          },
+          "observed_status": {
+            "enum": [
+              "ok",
+              "local_override",
+              "unregistered_local",
+              "hash_mismatch",
+              "missing_required",
+              "local_artifact_missing_ci",
+              "expected_hash_missing"
+            ],
+            "title": "Observed Status",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "pointer_status": {
+            "enum": [
+              "referenced",
+              "pointer_missing",
+              "pointer_malformed",
+              "pointer_mismatch",
+              "not_applicable"
+            ],
+            "title": "Pointer Status",
+            "type": "string"
+          },
+          "promotion_status": {
+            "enum": [
+              "active",
+              "candidate",
+              "parked"
+            ],
+            "title": "Promotion Status",
+            "type": "string"
+          },
+          "serving_allowed": {
+            "title": "Serving Allowed",
+            "type": "boolean"
+          },
+          "severity": {
+            "enum": [
+              "info",
+              "caveat",
+              "integrity"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "path",
+          "expected_kind",
+          "promotion_status",
+          "observed_status",
+          "pointer_status",
+          "severity",
+          "load_verification_status",
+          "serving_allowed",
+          "decision_supported"
+        ],
+        "title": "ArtifactProvenance",
+        "type": "object"
+      },
       "CapacityCandidate": {
         "description": "One roster player surfaced in the capacity-ordered review list.\n\nRaw value fields are re-joined from the universe PVO (the cut engine exposes\nonly percentile/dvs). Each field carries a provenance status so a consumer\ncan tell an \"ok\" join from an \"unavailable\"/\"pre_model\"/\"unknown_position\"\none without guessing from a null.",
         "properties": {
@@ -2178,6 +2272,80 @@
           "known_failure_modes"
         ],
         "title": "ModelCardResponse",
+        "type": "object"
+      },
+      "ModelProvenanceErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "decision_supported"
+        ],
+        "title": "ModelProvenanceErrorResponse",
+        "type": "object"
+      },
+      "ModelProvenanceResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactProvenance"
+            },
+            "title": "Artifacts",
+            "type": "array"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "environment": {
+            "enum": [
+              "development",
+              "ci",
+              "serving",
+              "production"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "overall_status": {
+            "enum": [
+              "ok",
+              "degraded",
+              "blocked"
+            ],
+            "title": "Overall Status",
+            "type": "string"
+          },
+          "registry_version": {
+            "title": "Registry Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "overall_status",
+          "environment",
+          "registry_version",
+          "artifacts",
+          "decision_supported"
+        ],
+        "title": "ModelProvenanceResponse",
         "type": "object"
       },
       "ModelReliability": {
@@ -6716,6 +6884,37 @@
         "summary": "Roster Capacity Surface",
         "tags": [
           "roster-capacity"
+        ]
+      }
+    },
+    "/api/system/model-provenance": {
+      "get": {
+        "operationId": "get_model_provenance_api_system_model_provenance_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelProvenanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelProvenanceErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Model Provenance",
+        "tags": [
+          "system"
         ]
       }
     },
