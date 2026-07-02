@@ -285,6 +285,7 @@ def test_response_models_lock_status_enums_root_disclosures_and_recursive_false(
             "surface_id": "roster_capacity",
             "display_name": "Roster Capacity",
             "tier_status": "diagnostic_grade_active_limited",
+            "basis": "readiness_active_with_insufficient_data",
             "components": [component.model_dump()],
             "insufficient_data_count": 1,
             "insufficient_data_components": ["mif_breaker"],
@@ -327,6 +328,12 @@ def test_response_models_lock_status_enums_root_disclosures_and_recursive_false(
         models.SurfaceReadiness.model_validate(
             surface.model_dump() | {"tier_status": "certified"}
         )
+    without_basis = surface.model_dump()
+    without_basis.pop("basis")
+    with pytest.raises(ValidationError):
+        models.SurfaceReadiness.model_validate(without_basis)
+    with pytest.raises(ValidationError):
+        models.SurfaceReadiness.model_validate(surface.model_dump() | {"basis": ""})
     with pytest.raises(ValidationError):
         models.TierReadinessResponse.model_validate(
             response.model_dump() | {"decision_supported": True}

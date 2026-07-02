@@ -1,10 +1,10 @@
 """BUILD-1 Increment 1 — tier-readiness registry models and fail-closed loader.
 
-T1 scope: strict Pydantic models (registry + response; no field or status value
+T1: strict Pydantic models (registry + response; no field or status value
 can express `decision_supported=true`, and the R10 vocabulary ban applies to
 model field/enum names themselves) and the fail-closed registry loader. The
-readiness evaluator (T2), live adapters + route (T3), and CI tripwire + real
-registry + OpenAPI (T4) are later tasks.
+live adapters + route (T3) and CI tripwire + real registry + OpenAPI (T4)
+are later tasks. T2: the pure readiness evaluator.
 
 Tier-1 is DIAGNOSTIC grade: it never flips `decision_supported` — there is no
 Tier-2 pathway constructible from these models by design.
@@ -19,7 +19,7 @@ import json
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 ComponentStatus = Literal["pass", "insufficient_data", "fail", "not_applicable"]
 TierStatus = Literal[
@@ -107,6 +107,10 @@ class SurfaceReadiness(_Strict):
     surface_id: str
     display_name: str
     tier_status: TierStatus
+    # Surface-level rollup reason — REQUIRED and non-empty (Codex T2 redline):
+    # awaiting_david_ratification / precondition / defect reasons are
+    # load-bearing and must never be omittable.
+    basis: str = Field(min_length=1)
     components: list[ComponentReadiness]
     insufficient_data_count: int
     insufficient_data_components: list[str]
@@ -258,3 +262,113 @@ def load_tier_readiness(
                         f"path {evidence!r} resolves outside the repo root"
                     )
     return registry
+
+
+# --- T2: pure readiness evaluator (spec §3.1–§3.3, DECIDE-1 option (a)-as-amended)
+
+_KNOWN_COMPONENT_STATUSES: frozenset[str] = frozenset(
+    ("pass", "insufficient_data", "fail", "not_applicable")
+)
+
+
+def evaluate_surface_readiness(
+    *,
+    surface_config: TierSurfaceConfig,
+    live_precondition_statuses: dict[str, str],
+    component_states: dict[str, dict[str, str]],
+) -> SurfaceReadiness:
+    """Evaluate one surface's runtime tier status (pure — no disk, no adapters).
+
+    Precedence (spec §3.1–§3.2b):
+    1. Integrity cascade — ANY live precondition not ``ok`` wins outright:
+       no diagnostic-grade metrics on top of degraded substrate.
+    2. Component defects — first declared component that resolves to ``fail``
+       (explicit fail, required ``not_applicable``, unknown status, or missing
+       state — all fail-closed) drives ``not_graduated`` with a named basis.
+    3. Ratification gate — ``ratified_date: null`` blocks activation even when
+       every check passes (David's DECIDE-1 stamp is structurally required).
+    4. Dormancy — any ``insufficient_data`` forces the ``_limited`` headline
+       with root disclosure; plain active requires all components evaluable.
+    """
+
+    components: list[ComponentReadiness] = []
+    first_defect_basis: str | None = None
+    insufficient: list[str] = []
+
+    for declared in surface_config.gate_components:
+        state = component_states.get(declared.component)
+        if state is None:
+            status, basis = "fail", "component_state_missing"
+            defect = f"component_state_missing:{declared.component}"
+        else:
+            raw_status = state.get("component_status", "")
+            basis = state.get("basis", "")
+            if raw_status not in _KNOWN_COMPONENT_STATUSES:
+                status = "fail"
+                basis = f"unknown component status {raw_status!r}: {basis}"
+                defect = f"unknown_component_status:{declared.component}"
+            elif raw_status == "not_applicable" and not declared.optional:
+                # R6: not_applicable is legal only on optional components.
+                status = "fail"
+                defect = (
+                    f"required_component_not_applicable:{declared.component}"
+                )
+            elif raw_status == "fail":
+                status = "fail"
+                defect = f"component_failed:{declared.component}"
+            else:
+                status = raw_status
+                defect = None
+        if status == "insufficient_data":
+            insufficient.append(declared.component)
+        if status == "fail" and first_defect_basis is None:
+            first_defect_basis = defect
+        components.append(
+            ComponentReadiness(
+                component=declared.component,
+                component_status=status,  # type: ignore[arg-type]
+                basis=basis,
+                decision_supported=False,
+            )
+        )
+
+    degraded_precondition = next(
+        (
+            name
+            for name in surface_config.live_preconditions
+            if live_precondition_statuses.get(name) != "ok"
+        ),
+        None,
+    )
+
+    if degraded_precondition is not None:
+        observed = live_precondition_statuses.get(degraded_precondition)
+        tier_status = "preconditions_degraded"
+        surface_basis = (
+            f"live_precondition_not_ok:{degraded_precondition}={observed}"
+        )
+    elif first_defect_basis is not None:
+        tier_status = "not_graduated"
+        surface_basis = first_defect_basis
+    elif surface_config.ratified_date is None:
+        tier_status = "not_graduated"
+        surface_basis = "awaiting_david_ratification"
+    elif insufficient:
+        tier_status = "diagnostic_grade_active_limited"
+        surface_basis = "readiness_active_with_insufficient_data"
+    else:
+        tier_status = "diagnostic_grade_active"
+        surface_basis = "all_readiness_checks_passed"
+
+    return SurfaceReadiness(
+        surface_id=surface_config.surface_id,
+        display_name=surface_config.display_name,
+        tier_status=tier_status,  # type: ignore[arg-type]
+        basis=surface_basis,
+        components=components,
+        insufficient_data_count=len(insufficient),
+        insufficient_data_components=insufficient,
+        all_components_evaluable=not insufficient,
+        live_preconditions=dict(live_precondition_statuses),
+        decision_supported=False,
+    )
