@@ -196,3 +196,127 @@ def resolve_runtime_environment(*, environ: Mapping[str, str]) -> str:
     if "CI" in environ:
         return "ci"
     return "development"
+
+
+# --- classifier (pure; spec §3.2–§3.4) ---------------------------------------
+
+_SEVERITY_ORDER: dict[str, int] = {"info": 0, "caveat": 1, "integrity": 2}
+_SERVING_ENVS: frozenset[str] = frozenset(("serving", "production"))
+_BROKEN_POINTER: frozenset[str] = frozenset(
+    ("pointer_missing", "pointer_malformed", "pointer_mismatch")
+)
+
+
+def _max_severity(a: str, b: str) -> str:
+    return a if _SEVERITY_ORDER[a] >= _SEVERITY_ORDER[b] else b
+
+
+def _serving_active_required(entry: RegistryArtifact, environment: str) -> bool:
+    """True when this artifact is the ACTIVE, required model in a serving env.
+
+    The only context where a deviation must hard-block: a mismatched/absent/
+    unverifiable/pointer-broken *active* model that a serving host is required to
+    load is unapproved serving reality, not a caveat.
+    """
+
+    return (
+        entry.promotion_status == "active"
+        and environment in _SERVING_ENVS
+        and environment in entry.required_by_env
+    )
+
+
+def _observed_severity(
+    entry: RegistryArtifact, observed_status: str, environment: str
+) -> tuple[str, bool]:
+    """Map an observed_status to (severity, serving_allowed) — the env's judgment."""
+
+    if observed_status == "ok":
+        return "info", True
+    if observed_status == "hash_mismatch":
+        # Tracked bytes differ from the approved hash: block even in dev, unless
+        # an explicit dev-only override is set (the only tracked escape).
+        if entry.allow_local_override and environment == "development":
+            return "caveat", True
+        return "integrity", False
+    if observed_status == "missing_required":
+        return "integrity", False
+    if observed_status == "local_artifact_missing_ci":
+        return "caveat", True
+    if observed_status == "local_override":
+        # Local bytes differ from last-promoted expected. Info in dev; unapproved
+        # serving reality (integrity) only for an active+required serving model.
+        if environment == "development":
+            return "info", True
+        if _serving_active_required(entry, environment) and not entry.allow_local_override:
+            return "integrity", False
+        return "caveat", True
+    if observed_status == "expected_hash_missing":
+        # No approved hash to verify against: never ok. Blocks an active+required
+        # serving model; a caveat elsewhere (candidate/parked, ci/dev absence).
+        if _serving_active_required(entry, environment):
+            return "integrity", False
+        return "caveat", True
+    # Defensive: an unmapped status must fail closed, not silently pass.
+    return "integrity", False
+
+
+def classify_artifact(
+    *,
+    entry: RegistryArtifact,
+    artifact_present: bool,
+    observed_hash: str | None,
+    pointer_status: str = "referenced",
+    environment: str,
+) -> ArtifactProvenance:
+    """Classify one registered artifact into provenance (pure — no disk I/O).
+
+    Derives ``observed_status`` (the technical fact) from the registry entry and
+    the observed file facts, then maps ``severity`` + ``serving_allowed`` (the
+    environment's judgment) with the fail-closed overlays of spec §3.4. The
+    governing-pointer health (``pointer_status``) is supplied by the T3 readers;
+    here it only gates severity: a broken pointer means the bytes may be valid
+    but unreachable/misselected, so an active+required serving artifact blocks
+    even when ``observed_status == "ok"``. ``load_verification_status`` is always
+    ``"not_verified"`` in Slice 1 (pointer provenance, not proven resolver load).
+    """
+
+    # observed_status — the technical fact
+    if entry.sha256 is None:
+        observed_status = "expected_hash_missing"
+    elif not artifact_present:
+        if entry.kind == "tracked_seed" or environment in entry.required_by_env:
+            observed_status = "missing_required"
+        else:
+            observed_status = "local_artifact_missing_ci"
+    elif observed_hash == entry.sha256:
+        observed_status = "ok"
+    elif entry.kind == "tracked_seed":
+        observed_status = "hash_mismatch"
+    else:
+        observed_status = "local_override"
+
+    # severity + serving_allowed — the environment's judgment
+    severity, serving_allowed = _observed_severity(entry, observed_status, environment)
+
+    # pointer clean-gate overlay (§3.4): valid bytes behind a broken governing
+    # pointer are not clean. Hard-block only for an active+required serving model;
+    # elsewhere a broken (typically gitignored, ci/dev-absent) manifest is a caveat.
+    if pointer_status in _BROKEN_POINTER:
+        if _serving_active_required(entry, environment):
+            severity, serving_allowed = "integrity", False
+        else:
+            severity = _max_severity(severity, "caveat")
+
+    return ArtifactProvenance(
+        artifact_id=entry.artifact_id,
+        path=entry.path,
+        expected_kind=entry.kind,
+        promotion_status=entry.promotion_status,
+        observed_status=observed_status,  # type: ignore[arg-type]
+        pointer_status=pointer_status,  # type: ignore[arg-type]
+        severity=severity,  # type: ignore[arg-type]
+        load_verification_status="not_verified",
+        serving_allowed=serving_allowed,
+        decision_supported=False,
+    )
