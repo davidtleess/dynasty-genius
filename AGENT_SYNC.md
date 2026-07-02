@@ -7,7 +7,7 @@ Last updated: 2026-07-01
 
 ## DEBT-6 Slice 1 — IN PROGRESS (checkpoint 2026-07-02)
 
-Branch `feature/debt6-model-provenance` (local, UNPUSHED — push is David-gated, planned as one PR at the T4 closeout). Spec `docs/superpowers/specs/2026-07-01-debt6-model-provenance-slice1-design.md`; plan `...-plan.md`. Cockpit-TDD (Codex RED → Claude GREEN → Codex CLEAR).
+Branch `feature/debt6-model-provenance` — **pushed; DRAFT PR #107 open** (WIP: T1+T2; not merge-ready until T4 closeout). CI runs on the partial slice. Spec `docs/superpowers/specs/2026-07-01-debt6-model-provenance-slice1-design.md`; plan `...-plan.md`. Cockpit-TDD (Codex RED → Claude GREEN → Codex CLEAR).
 
 - **T1 CLEAR** (`1e5dfbe` RED → `40ad2e7` GREEN → `68627f4` RED-amend → `c475d9c` R7): `app/api/routes/system_model_provenance_models.py` — Pydantic v2 `extra=forbid` models (all `decision_supported: Literal[False]`), fail-closed `load_model_registry` (`ModelRegistryLoadError`), `resolve_runtime_environment` (presence-based CI; invalid explicit `DG_RUNTIME_ENV` → `RuntimeEnvironmentError`, both under `ProvenanceConfigError`).
 - **T2 CLEAR** (`5697419` RED → `1bb019d` GREEN → `977387a` RED-harden → `8140325` R8): pure `classify_artifact(entry, artifact_present, observed_hash, pointer_status, environment) → ArtifactProvenance` — observed_status precedence (`sha256=None`→`expected_hash_missing` first), env-aware severity, fail-closed `serving_allowed`, pointer clean-gate overlay. R8: classify validates environment (fail-closed); `allow_local_override` is DEV-ONLY.
