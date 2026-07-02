@@ -231,6 +231,73 @@
         "title": "CapacityHealth",
         "type": "object"
       },
+      "CaptureHealthErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "decision_supported"
+        ],
+        "title": "CaptureHealthErrorResponse",
+        "type": "object"
+      },
+      "CaptureHealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "checked_at": {
+            "title": "Checked At",
+            "type": "string"
+          },
+          "config_version": {
+            "title": "Config Version",
+            "type": "integer"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "overall_status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Overall Status",
+            "type": "string"
+          },
+          "stores": {
+            "items": {
+              "$ref": "#/components/schemas/StoreHealth"
+            },
+            "title": "Stores",
+            "type": "array"
+          }
+        },
+        "required": [
+          "overall_status",
+          "config_version",
+          "checked_at",
+          "stores",
+          "decision_supported"
+        ],
+        "title": "CaptureHealthResponse",
+        "type": "object"
+      },
       "CohortMetric": {
         "additionalProperties": false,
         "description": "Within-position rank-accuracy metrics for one position cohort. ``status`` is\n``power_floor_not_met`` (correlations suppressed) or ``ok``.",
@@ -2200,6 +2267,31 @@
           "status"
         ],
         "title": "MifField",
+        "type": "object"
+      },
+      "MissingRange": {
+        "additionalProperties": false,
+        "description": "One contiguous missing-date range; display list is capped, totals never.",
+        "properties": {
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "from": {
+            "title": "From",
+            "type": "string"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "days"
+        ],
+        "title": "MissingRange",
         "type": "object"
       },
       "ModelCardResponse": {
@@ -4180,6 +4272,248 @@
           }
         },
         "title": "StatusExplanation",
+        "type": "object"
+      },
+      "StoreDensity": {
+        "additionalProperties": false,
+        "properties": {
+          "baseline_median_rows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Median Rows"
+          },
+          "baseline_window": {
+            "title": "Baseline Window",
+            "type": "integer"
+          },
+          "floor_pct": {
+            "title": "Floor Pct",
+            "type": "integer"
+          },
+          "sub_floor_dates": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sub Floor Dates",
+            "type": "array"
+          }
+        },
+        "required": [
+          "floor_pct",
+          "baseline_median_rows",
+          "baseline_window",
+          "sub_floor_dates"
+        ],
+        "title": "StoreDensity",
+        "type": "object"
+      },
+      "StoreFlags": {
+        "additionalProperties": false,
+        "properties": {
+          "warn_basis": {
+            "title": "Warn Basis",
+            "type": "string"
+          },
+          "warn_missing": {
+            "title": "Warn Missing",
+            "type": "boolean"
+          },
+          "window_risk": {
+            "title": "Window Risk",
+            "type": "boolean"
+          },
+          "window_risk_basis": {
+            "title": "Window Risk Basis",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warn_missing",
+          "warn_basis",
+          "window_risk",
+          "window_risk_basis"
+        ],
+        "title": "StoreFlags",
+        "type": "object"
+      },
+      "StoreHealth": {
+        "additionalProperties": false,
+        "properties": {
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "density": {
+            "$ref": "#/components/schemas/StoreDensity"
+          },
+          "flags": {
+            "$ref": "#/components/schemas/StoreFlags"
+          },
+          "staleness": {
+            "$ref": "#/components/schemas/StoreStaleness"
+          },
+          "store_id": {
+            "title": "Store Id",
+            "type": "string"
+          },
+          "store_presence": {
+            "enum": [
+              "present",
+              "absent"
+            ],
+            "title": "Store Presence",
+            "type": "string"
+          },
+          "store_status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Store Status",
+            "type": "string"
+          },
+          "timeline": {
+            "$ref": "#/components/schemas/StoreTimeline"
+          }
+        },
+        "required": [
+          "store_id",
+          "store_status",
+          "store_presence",
+          "timeline",
+          "staleness",
+          "density",
+          "flags",
+          "caveats",
+          "decision_supported"
+        ],
+        "title": "StoreHealth",
+        "type": "object"
+      },
+      "StoreStaleness": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_by": {
+            "title": "Expected By",
+            "type": "string"
+          },
+          "grace_hours": {
+            "title": "Grace Hours",
+            "type": "integer"
+          },
+          "last_capture_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Capture Date"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "last_capture_date",
+          "expected_by",
+          "stale",
+          "grace_hours"
+        ],
+        "title": "StoreStaleness",
+        "type": "object"
+      },
+      "StoreTimeline": {
+        "additionalProperties": false,
+        "properties": {
+          "capture_start_date": {
+            "title": "Capture Start Date",
+            "type": "string"
+          },
+          "consecutive_days_current": {
+            "title": "Consecutive Days Current",
+            "type": "integer"
+          },
+          "expected_days": {
+            "title": "Expected Days",
+            "type": "integer"
+          },
+          "first_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Date"
+          },
+          "last_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Date"
+          },
+          "max_contiguous_gap_days": {
+            "title": "Max Contiguous Gap Days",
+            "type": "integer"
+          },
+          "missing_dates_count": {
+            "title": "Missing Dates Count",
+            "type": "integer"
+          },
+          "missing_ranges": {
+            "items": {
+              "$ref": "#/components/schemas/MissingRange"
+            },
+            "title": "Missing Ranges",
+            "type": "array"
+          },
+          "missing_ranges_total": {
+            "title": "Missing Ranges Total",
+            "type": "integer"
+          },
+          "present_days": {
+            "title": "Present Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "capture_start_date",
+          "first_date",
+          "last_date",
+          "expected_days",
+          "present_days",
+          "missing_dates_count",
+          "missing_ranges",
+          "missing_ranges_total",
+          "max_contiguous_gap_days",
+          "consecutive_days_current"
+        ],
+        "title": "StoreTimeline",
         "type": "object"
       },
       "TopKResult": {
@@ -6884,6 +7218,37 @@
         "summary": "Roster Capacity Surface",
         "tags": [
           "roster-capacity"
+        ]
+      }
+    },
+    "/api/system/capture-health": {
+      "get": {
+        "operationId": "get_capture_health_api_system_capture_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptureHealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptureHealthErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Capture Health",
+        "tags": [
+          "system"
         ]
       }
     },

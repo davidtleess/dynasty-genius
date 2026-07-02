@@ -16,6 +16,7 @@ from app.api.routes import (
     rookies,
     roster,
     roster_capacity,
+    system_capture_health,
     system_model_provenance,
     trade,
     trade_market,
@@ -44,6 +45,7 @@ app.include_router(internal_project_plan.router, prefix="/api")
 app.include_router(league_pulse.router, prefix="/api")
 app.include_router(league_what_changed.router, prefix="/api")
 app.include_router(system_model_provenance.router, prefix="/api")
+app.include_router(system_capture_health.router, prefix="/api")
 
 
 # --- Frontend SPA static mount (Phase-12 surface 1; spec 2026-06-03-frontend-design-spec) ---

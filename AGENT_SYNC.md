@@ -3,7 +3,11 @@
 Doctrine version: 1.0.0
 Last updated: 2026-07-02
 
-> **READ FIRST → `docs/governance/04-strategic-execution-charter.md`.** You are a member of a cohesive team executing a strategic priority list, not a worker-bee taking tickets. The charter holds the macroscopic objective, the team + workflow, the systematic checks and balances, and the microscopic next action together. Read it after the bootstrap files (00–03) and before starting work. Current next action: **DEBT-6 Slice 1 is SHIPPED + LIVE on main (PR #107 merged `28c0a43`, 2026-07-02). No open build thread. Next DEBT-6 increment when David prioritizes = Slice 1b (`fc_forward_capture.db` capture-health/gap detector — separate contract, needs framing + spec before RED).** See the DEBT-6 block below.
+> **READ FIRST → `docs/governance/04-strategic-execution-charter.md`.** You are a member of a cohesive team executing a strategic priority list, not a worker-bee taking tickets. The charter holds the macroscopic objective, the team + workflow, the systematic checks and balances, and the microscopic next action together. Read it after the bootstrap files (00–03) and before starting work. Current next action: **DEBT-6 Slice 1b (capture-health/gap detector) T1–T4 COMPLETE on branch `feature/debt6-capture-health` — in the David-authorized ship sequence (push → PR → merge on CI green). Slice 1 (model provenance) already LIVE on main (PR #107 `28c0a43`).** See the DEBT-6 blocks below.
+
+## DEBT-6 Slice 1b — SHIP SEQUENCE IN FLIGHT (2026-07-02)
+
+Branch `feature/debt6-capture-health`: spec `fd393cd` (three-way CLEAR: Gemini framing seeds A–E + Codex R1–R8, R7 two-class caveat compromise) → T1 `6765580` config loader/models (+ `7046149` RED-file correction, Codex-caught) → T2 `b9b02b0` pure analyzer → T3 `85689c6` read-only SQLite reader → T4 (route `GET /api/system/capture-health` + REAL `app/config/capture_cadence.json` + OpenAPI codegen). 48 tests, closeout ENFORCE PASS ×2 (Claude + independent Codex run). Live: dev AND serving-env → 200 `overall=ok`, both PIT stores 9/9 streak 9. Each task dual-CLEAR; adversarial catches: T1 backslash-path + lax-coercion holds (Codex), T2 3 self-caught load-time validation gaps, T3 zero-count-date semantics, T2-commit RED-file omission (Codex zero-divergence audit). David authorized: commit T4 → push → PR → merge on CI green.
 
 ## DEBT-6 Slice 1 — SHIPPED + LIVE (MERGED to main via PR #107, merge `28c0a43`, 2026-07-02)
 
