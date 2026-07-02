@@ -121,7 +121,13 @@ A new **runtime policy artifact**, checked in, updated ONLY inside a David-autho
 ```
 
 ### 3.1 Environment resolution
-`environment` is read from env var `DG_RUNTIME_ENV ∈ {development, ci, serving, production}`. If unset: infer `ci` when a `CI` truthy env var is present, else `development`. `serving`/`production` are set explicitly by the deploy host. (RED locks the resolution precedence; env is injectable in tests.)
+`environment` is read from env var `DG_RUNTIME_ENV ∈ {development, ci, serving, production}`. Resolution precedence:
+- **Explicit `DG_RUNTIME_ENV` present and valid** → use it (wins over `CI`).
+- **Explicit `DG_RUNTIME_ENV` present but NOT one of the four valid values** (incl empty string) → **raise a typed config error (fail-closed)** — an explicitly-set-but-invalid runtime env is configuration corruption; it must NOT silently demote to `development` (Codex T1 R7), which would mask a misconfigured serving host (local overrides → info, local_operational absence → expected-dev-absence).
+- **Unset + a `CI` var PRESENT (any value — presence-based, not truthiness)** → `ci`. Fail-closed-safe: an ambiguous env resolves to `ci`, marking `local_operational` artifacts expected-absent rather than unexpectedly-missing.
+- **Unset + no `CI`** → `development`.
+
+`serving`/`production` are set explicitly by the deploy host. (RED locks the precedence + the invalid-env error; env is injectable in tests.)
 
 ### 3.2 `observed_status` — the technical fact (per artifact)
 The on-disk path is first resolved per `path_resolution` (§2 — `latest_run_dir` for Engine A). Then computed by streaming the file's sha256 at request time and comparing to the registry `sha256`:
@@ -201,7 +207,7 @@ All via injected temp registry + temp artifact paths + injected environment (DI)
 10. stray `.pkl` at a pointer-resolved path, env=production → `unregistered_local`/`integrity`/`serving_allowed=false`/`blocked`.
 11. registry file absent → **503**. registry malformed JSON → **503**. registry schema-invalid → **503**.
 12. every artifact node and the root carry `decision_supported=false`; `extra="forbid"` rejects any unknown field (verdict-field fail-closed).
-13. environment resolution: `DG_RUNTIME_ENV` explicit wins; unset + `CI` set → `ci`; unset + no `CI` → `development`.
+13. environment resolution: valid explicit `DG_RUNTIME_ENV` wins (over `CI`); **present-but-invalid `DG_RUNTIME_ENV` (incl `""`) → typed config error, NOT a silent demote to development** (Codex T1 R7); unset + `CI` present (any value, presence-based incl `CI=false`) → `ci`; unset + no `CI` → `development`.
 14. registry `sha256: null`, active+required, env=serving → `expected_hash_missing`/`integrity`/`serving_allowed=false`/`blocked` (Codex R3 — unverifiable expected hash is never `ok`).
 15. registry `sha256: null`, local_operational absent, env=ci → `expected_hash_missing`/`caveat`/**200** (not 503, not a test failure).
 16. registry `sha256: null`, `candidate`/`parked` → `info`/`caveat`, never `overall_status=blocked`.

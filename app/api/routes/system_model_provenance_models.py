@@ -119,11 +119,28 @@ class ModelProvenanceErrorResponse(_Strict):
 # --- loader (fail-closed) ----------------------------------------------------
 
 
-class ModelRegistryLoadError(Exception):
+class ProvenanceConfigError(Exception):
+    """Base for provenance configuration failures (registry + runtime env).
+
+    One family so the route (T4) can map any of them to a fail-closed 503: a
+    provenance endpoint whose own configuration is broken must not report health.
+    """
+
+
+class ModelRegistryLoadError(ProvenanceConfigError):
     """Raised when the checked-in registry is missing, malformed, or invalid.
 
     The route maps this to a 503: a provenance endpoint with no source of truth
     must not report health (spec §3.6).
+    """
+
+
+class RuntimeEnvironmentError(ProvenanceConfigError):
+    """Raised when ``DG_RUNTIME_ENV`` is set to a value outside the valid set.
+
+    An explicitly-set-but-invalid runtime env is configuration corruption, not
+    "unset": it must fail closed rather than silently demote a misconfigured
+    serving host to ``development`` (spec §3.1, Codex T1 R7).
     """
 
 
@@ -168,8 +185,13 @@ def resolve_runtime_environment(*, environ: Mapping[str, str]) -> str:
     unexpectedly-missing; otherwise ``development``.
     """
 
-    explicit = environ.get("DG_RUNTIME_ENV")
-    if explicit in _VALID_ENVIRONMENTS:
+    if "DG_RUNTIME_ENV" in environ:
+        explicit = environ["DG_RUNTIME_ENV"]
+        if explicit not in _VALID_ENVIRONMENTS:
+            raise RuntimeEnvironmentError(
+                "DG_RUNTIME_ENV is set to an invalid value "
+                f"{explicit!r}; expected one of {sorted(_VALID_ENVIRONMENTS)}"
+            )
         return explicit
     if "CI" in environ:
         return "ci"
