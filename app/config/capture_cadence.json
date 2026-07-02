@@ -1,0 +1,47 @@
+{
+  "config_version": 1,
+  "timezone": "America/New_York",
+  "season_windows": { "in_season_months": [9, 10, 11, 12, 1] },
+  "stores": [
+    {
+      "store_id": "fc_forward_capture",
+      "db_path": "app/data/fc_forward_capture.db",
+      "table": "fc_forward_capture_raw",
+      "date_column": "snapshot_date",
+      "source_filter": "fc_native",
+      "expected_settings_hash": "e27351d720e9fcf0",
+      "capture_start_date": "2026-06-24",
+      "expected_cadence": "daily",
+      "scheduled_time_local": "09:00",
+      "grace_hours": 3,
+      "density_floor_pct": 50,
+      "density_baseline_window": 14,
+      "warn_consecutive_missing": { "in_season": 1, "off_season": 3 },
+      "window_risk_contiguous_days": 7,
+      "companion_tables": []
+    },
+    {
+      "store_id": "model_forward_capture",
+      "db_path": "app/data/model_forward_capture.db",
+      "table": "model_forward_capture_raw",
+      "date_column": "capture_date",
+      "source_filter": null,
+      "expected_settings_hash": null,
+      "capture_start_date": "2026-06-24",
+      "expected_cadence": "daily",
+      "scheduled_time_local": "09:45",
+      "grace_hours": 3,
+      "density_floor_pct": 50,
+      "density_baseline_window": 14,
+      "warn_consecutive_missing": { "in_season": 1, "off_season": 3 },
+      "window_risk_contiguous_days": 7,
+      "companion_tables": [
+        {
+          "table": "model_forward_prediction_snapshot",
+          "date_column": "capture_date",
+          "capture_start_date": "2026-06-28"
+        }
+      ]
+    }
+  ]
+}

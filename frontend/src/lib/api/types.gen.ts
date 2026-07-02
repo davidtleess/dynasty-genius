@@ -146,6 +146,50 @@ export type CapacityHealth = {
 };
 
 /**
+ * CaptureHealthErrorResponse
+ */
+export type CaptureHealthErrorResponse = {
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Error
+     */
+    error: string;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * CaptureHealthResponse
+ */
+export type CaptureHealthResponse = {
+    /**
+     * Checked At
+     */
+    checked_at: string;
+    /**
+     * Config Version
+     */
+    config_version: number;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Overall Status
+     */
+    overall_status: 'ok' | 'degraded';
+    /**
+     * Stores
+     */
+    stores: Array<StoreHealth>;
+};
+
+/**
  * CohortMetric
  *
  * Within-position rank-accuracy metrics for one position cohort. ``status`` is
@@ -1268,6 +1312,26 @@ export type MifField = {
 };
 
 /**
+ * MissingRange
+ *
+ * One contiguous missing-date range; display list is capped, totals never.
+ */
+export type MissingRange = {
+    /**
+     * Days
+     */
+    days: number;
+    /**
+     * From
+     */
+    from: string;
+    /**
+     * To
+     */
+    to: string;
+};
+
+/**
  * ModelCardResponse
  *
  * Curated PUBLIC model-card contract — the 8 safety/identity fields only.
@@ -2291,6 +2355,148 @@ export type StatusExplanation = {
      * Reason
      */
     reason?: string;
+};
+
+/**
+ * StoreDensity
+ */
+export type StoreDensity = {
+    /**
+     * Baseline Median Rows
+     */
+    baseline_median_rows: number | null;
+    /**
+     * Baseline Window
+     */
+    baseline_window: number;
+    /**
+     * Floor Pct
+     */
+    floor_pct: number;
+    /**
+     * Sub Floor Dates
+     */
+    sub_floor_dates: Array<string>;
+};
+
+/**
+ * StoreFlags
+ */
+export type StoreFlags = {
+    /**
+     * Warn Basis
+     */
+    warn_basis: string;
+    /**
+     * Warn Missing
+     */
+    warn_missing: boolean;
+    /**
+     * Window Risk
+     */
+    window_risk: boolean;
+    /**
+     * Window Risk Basis
+     */
+    window_risk_basis: string;
+};
+
+/**
+ * StoreHealth
+ */
+export type StoreHealth = {
+    /**
+     * Caveats
+     */
+    caveats: Array<string>;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    density: StoreDensity;
+    flags: StoreFlags;
+    staleness: StoreStaleness;
+    /**
+     * Store Id
+     */
+    store_id: string;
+    /**
+     * Store Presence
+     */
+    store_presence: 'present' | 'absent';
+    /**
+     * Store Status
+     */
+    store_status: 'ok' | 'degraded';
+    timeline: StoreTimeline;
+};
+
+/**
+ * StoreStaleness
+ */
+export type StoreStaleness = {
+    /**
+     * Expected By
+     */
+    expected_by: string;
+    /**
+     * Grace Hours
+     */
+    grace_hours: number;
+    /**
+     * Last Capture Date
+     */
+    last_capture_date: string | null;
+    /**
+     * Stale
+     */
+    stale: boolean;
+};
+
+/**
+ * StoreTimeline
+ */
+export type StoreTimeline = {
+    /**
+     * Capture Start Date
+     */
+    capture_start_date: string;
+    /**
+     * Consecutive Days Current
+     */
+    consecutive_days_current: number;
+    /**
+     * Expected Days
+     */
+    expected_days: number;
+    /**
+     * First Date
+     */
+    first_date: string | null;
+    /**
+     * Last Date
+     */
+    last_date: string | null;
+    /**
+     * Max Contiguous Gap Days
+     */
+    max_contiguous_gap_days: number;
+    /**
+     * Missing Dates Count
+     */
+    missing_dates_count: number;
+    /**
+     * Missing Ranges
+     */
+    missing_ranges: Array<MissingRange>;
+    /**
+     * Missing Ranges Total
+     */
+    missing_ranges_total: number;
+    /**
+     * Present Days
+     */
+    present_days: number;
 };
 
 /**
@@ -3705,6 +3911,31 @@ export type RosterCapacitySurfaceApiRosterCapacityGetResponses = {
 };
 
 export type RosterCapacitySurfaceApiRosterCapacityGetResponse = RosterCapacitySurfaceApiRosterCapacityGetResponses[keyof RosterCapacitySurfaceApiRosterCapacityGetResponses];
+
+export type GetCaptureHealthApiSystemCaptureHealthGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/system/capture-health';
+};
+
+export type GetCaptureHealthApiSystemCaptureHealthGetErrors = {
+    /**
+     * Service Unavailable
+     */
+    503: CaptureHealthErrorResponse;
+};
+
+export type GetCaptureHealthApiSystemCaptureHealthGetError = GetCaptureHealthApiSystemCaptureHealthGetErrors[keyof GetCaptureHealthApiSystemCaptureHealthGetErrors];
+
+export type GetCaptureHealthApiSystemCaptureHealthGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: CaptureHealthResponse;
+};
+
+export type GetCaptureHealthApiSystemCaptureHealthGetResponse = GetCaptureHealthApiSystemCaptureHealthGetResponses[keyof GetCaptureHealthApiSystemCaptureHealthGetResponses];
 
 export type GetModelProvenanceApiSystemModelProvenanceGetData = {
     body?: never;

@@ -84,6 +84,15 @@ export const zCapacityHealth = z.object({
 });
 
 /**
+ * CaptureHealthErrorResponse
+ */
+export const zCaptureHealthErrorResponse = z.object({
+    decision_supported: z.literal(false),
+    error: z.string(),
+    message: z.string()
+});
+
+/**
  * CounterArgumentField
  */
 export const zCounterArgumentField = z.object({
@@ -463,6 +472,17 @@ export const zMarketRosterPenalty = z.object({
 export const zMifField = z.object({
     delta: z.number().nullish(),
     status: z.string()
+});
+
+/**
+ * MissingRange
+ *
+ * One contiguous missing-date range; display list is capped, totals never.
+ */
+export const zMissingRange = z.object({
+    days: z.int(),
+    from: z.string(),
+    to: z.string()
 });
 
 /**
@@ -960,6 +980,78 @@ export const zGateResult = z.object({
     validity_r2_pass: z.boolean().optional().default(false),
     validity_rmse_stability_pass: z.boolean().optional().default(false),
     validity_spearman_pass: z.boolean().optional().default(false)
+});
+
+/**
+ * StoreDensity
+ */
+export const zStoreDensity = z.object({
+    baseline_median_rows: z.int().nullable(),
+    baseline_window: z.int(),
+    floor_pct: z.int(),
+    sub_floor_dates: z.array(z.string())
+});
+
+/**
+ * StoreFlags
+ */
+export const zStoreFlags = z.object({
+    warn_basis: z.string(),
+    warn_missing: z.boolean(),
+    window_risk: z.boolean(),
+    window_risk_basis: z.string()
+});
+
+/**
+ * StoreStaleness
+ */
+export const zStoreStaleness = z.object({
+    expected_by: z.string(),
+    grace_hours: z.int(),
+    last_capture_date: z.string().nullable(),
+    stale: z.boolean()
+});
+
+/**
+ * StoreTimeline
+ */
+export const zStoreTimeline = z.object({
+    capture_start_date: z.string(),
+    consecutive_days_current: z.int(),
+    expected_days: z.int(),
+    first_date: z.string().nullable(),
+    last_date: z.string().nullable(),
+    max_contiguous_gap_days: z.int(),
+    missing_dates_count: z.int(),
+    missing_ranges: z.array(zMissingRange),
+    missing_ranges_total: z.int(),
+    present_days: z.int()
+});
+
+/**
+ * StoreHealth
+ */
+export const zStoreHealth = z.object({
+    caveats: z.array(z.string()),
+    decision_supported: z.literal(false),
+    density: zStoreDensity,
+    flags: zStoreFlags,
+    staleness: zStoreStaleness,
+    store_id: z.string(),
+    store_presence: z.enum(['present', 'absent']),
+    store_status: z.enum(['ok', 'degraded']),
+    timeline: zStoreTimeline
+});
+
+/**
+ * CaptureHealthResponse
+ */
+export const zCaptureHealthResponse = z.object({
+    checked_at: z.string(),
+    config_version: z.int(),
+    decision_supported: z.literal(false),
+    overall_status: z.enum(['ok', 'degraded']),
+    stores: z.array(zStoreHealth)
 });
 
 /**
@@ -1629,6 +1721,11 @@ export const zAuditRosterApiRosterAuditGetResponse = zRosterAuditResponse;
  * Successful Response
  */
 export const zRosterCapacitySurfaceApiRosterCapacityGetResponse = zRosterCapacityResponse;
+
+/**
+ * Successful Response
+ */
+export const zGetCaptureHealthApiSystemCaptureHealthGetResponse = zCaptureHealthResponse;
 
 /**
  * Successful Response
