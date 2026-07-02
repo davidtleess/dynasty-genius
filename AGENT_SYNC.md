@@ -3,7 +3,18 @@
 Doctrine version: 1.0.0
 Last updated: 2026-07-01
 
-> **READ FIRST → `docs/governance/04-strategic-execution-charter.md`.** You are a member of a cohesive team executing a strategic priority list, not a worker-bee taking tickets. The charter holds the macroscopic objective, the team + workflow, the systematic checks and balances, and the microscopic next action together. Read it after the bootstrap files (00–03) and before starting work. Current next action: DEBT-6 Slice 1 (model-provenance endpoint) is spec+plan CLEAR, awaiting David's authorization for branch + Codex T1 RED.
+> **READ FIRST → `docs/governance/04-strategic-execution-charter.md`.** You are a member of a cohesive team executing a strategic priority list, not a worker-bee taking tickets. The charter holds the macroscopic objective, the team + workflow, the systematic checks and balances, and the microscopic next action together. Read it after the bootstrap files (00–03) and before starting work. Current next action: **DEBT-6 Slice 1 T1+T2 are CLEAR and committed on local branch `feature/debt6-model-provenance` (unpushed); resume at T3.** See the DEBT-6 checkpoint block below.
+
+## DEBT-6 Slice 1 — IN PROGRESS (checkpoint 2026-07-02)
+
+Branch `feature/debt6-model-provenance` (local, UNPUSHED — push is David-gated, planned as one PR at the T4 closeout). Spec `docs/superpowers/specs/2026-07-01-debt6-model-provenance-slice1-design.md`; plan `...-plan.md`. Cockpit-TDD (Codex RED → Claude GREEN → Codex CLEAR).
+
+- **T1 CLEAR** (`1e5dfbe` RED → `40ad2e7` GREEN → `68627f4` RED-amend → `c475d9c` R7): `app/api/routes/system_model_provenance_models.py` — Pydantic v2 `extra=forbid` models (all `decision_supported: Literal[False]`), fail-closed `load_model_registry` (`ModelRegistryLoadError`), `resolve_runtime_environment` (presence-based CI; invalid explicit `DG_RUNTIME_ENV` → `RuntimeEnvironmentError`, both under `ProvenanceConfigError`).
+- **T2 CLEAR** (`5697419` RED → `1bb019d` GREEN → `977387a` RED-harden → `8140325` R8): pure `classify_artifact(entry, artifact_present, observed_hash, pointer_status, environment) → ArtifactProvenance` — observed_status precedence (`sha256=None`→`expected_hash_missing` first), env-aware severity, fail-closed `serving_allowed`, pointer clean-gate overlay. R8: classify validates environment (fail-closed); `allow_local_override` is DEV-ONLY.
+- **Tests:** 46 green (T1 26 + T2 20), ruff clean. `tests/contract/test_system_model_provenance_t1.py` + `_t2.py`.
+- **NEXT = T3** (Codex RED → Claude GREEN): pointer readers (`latest.json` / `v2_manifest.json` / `v3_manifest.json` → `pointer_status`), scoped unregistered-local reverse scan, real streamed sha256 hashing, `latest_run_dir` disk resolution. `classify_artifact` takes `pointer_status` as an INPUT — T3 produces it. Boundary + 21 seeds in the spec/plan.
+- **Then T4** (route `GET /api/system/model-provenance` + OpenAPI codegen + full closeout) — the push/PR checkpoint. **T5** = David-authorized registry hash-seeding.
+- Real-shape note for T3: registry must key Engine A on the run-dir-resolved path (Codex R1); Engine B v2 + Head A te_v3 are GITIGNORED (fresh clone falls back silently) — the divergence T3's readers must surface.
 
 ## Session Close → Next-Session Cockpit Operating Model (2026-06-29, David-directed)
 
