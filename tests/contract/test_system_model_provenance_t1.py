@@ -119,6 +119,13 @@ def test_registry_loader_raises_typed_error_for_missing_malformed_or_schema_inva
     assert message_fragment in str(exc_info.value).lower()
 
 
+def test_registry_and_environment_errors_share_config_error_base() -> None:
+    models = _models()
+
+    assert issubclass(models.ModelRegistryLoadError, models.ProvenanceConfigError)
+    assert issubclass(models.RuntimeEnvironmentError, models.ProvenanceConfigError)
+
+
 @pytest.mark.parametrize(
     ("environ", "expected"),
     [
@@ -132,13 +139,32 @@ def test_registry_loader_raises_typed_error_for_missing_malformed_or_schema_inva
         ({}, "development"),
     ],
 )
-def test_environment_resolution_uses_explicit_runtime_then_truthy_ci_else_development(
+def test_environment_resolution_uses_explicit_runtime_then_ci_presence_else_development(
     environ: dict[str, str],
     expected: str,
 ) -> None:
     models = _models()
 
     assert models.resolve_runtime_environment(environ=environ) == expected
+
+
+@pytest.mark.parametrize(
+    "environ",
+    [
+        {"DG_RUNTIME_ENV": "prod"},
+        {"DG_RUNTIME_ENV": ""},
+        {"DG_RUNTIME_ENV": "prod", "CI": "true"},
+    ],
+)
+def test_environment_resolution_rejects_invalid_explicit_runtime_before_ci_fallback(
+    environ: dict[str, str],
+) -> None:
+    models = _models()
+
+    with pytest.raises(models.RuntimeEnvironmentError) as exc_info:
+        models.resolve_runtime_environment(environ=environ)
+
+    assert "DG_RUNTIME_ENV" in str(exc_info.value)
 
 
 def test_registry_artifact_locks_defaults_nullable_hash_and_enums() -> None:
