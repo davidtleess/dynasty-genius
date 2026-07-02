@@ -1,9 +1,11 @@
-"""DEBT-6 Slice 1 — model-provenance registry models, loader, and env resolver.
+"""DEBT-6 Slice 1 — model-provenance models, loader, classifier, and disk layer.
 
-T1 scope: Pydantic v2 schema (all ``extra="forbid"`` so verdict-fields fail
-closed), the checked-in-registry loader (fail-closed on missing/malformed/
-schema-invalid), and runtime-environment resolution. Classifier, pointer
-health, route wiring, and OpenAPI generation belong to later tasks.
+T1: Pydantic v2 schema (all ``extra="forbid"`` so verdict-fields fail closed),
+the checked-in-registry loader (fail-closed on missing/malformed/schema-invalid),
+and runtime-environment resolution. T2: the pure ``classify_artifact`` engine.
+T3: the disk-truth layer — governing-pointer health (``pointer_status``),
+``latest_run_dir`` resolution, streamed sha256 hashing, and the scoped
+unregistered-local reverse scan. Route wiring and OpenAPI generation are T4.
 
 Spec: docs/superpowers/specs/2026-07-01-debt6-model-provenance-slice1-design.md
 Plan: docs/superpowers/plans/2026-07-01-debt6-model-provenance-slice1-plan.md
@@ -11,10 +13,11 @@ Plan: docs/superpowers/plans/2026-07-01-debt6-model-provenance-slice1-plan.md
 
 from __future__ import annotations
 
+import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -329,3 +332,280 @@ def classify_artifact(
         serving_allowed=serving_allowed,
         decision_supported=False,
     )
+
+
+# --- T3: disk-truth layer (pointer health, hashing, scoped scan; §3.5) --------
+
+_HASH_CHUNK_BYTES = 1024 * 1024
+_MODEL_ROOT_PARTS = ("app", "data", "models")
+
+HashFile = Callable[[Path], str]
+LoadJson = Callable[[Path], Any]
+
+
+def hash_file_sha256(path: Path, *, chunk_size: int = _HASH_CHUNK_BYTES) -> str:
+    """Stream a file's sha256 in bounded chunks (never one full-file read)."""
+
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(chunk_size)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _load_json_file(path: Path) -> Any:
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _model_root(repo_root: Path) -> Path:
+    return repo_root.joinpath(*_MODEL_ROOT_PARTS)
+
+
+def _within_model_root(path: Path, repo_root: Path) -> bool:
+    """Traversal guard: resolution never escapes the served model root."""
+
+    try:
+        return path.resolve().is_relative_to(_model_root(repo_root).resolve())
+    except OSError:
+        return False
+
+
+def _valid_run_dir(run_dir: object, repo_root: Path) -> bool:
+    if not isinstance(run_dir, str) or not run_dir:
+        return False
+    return _within_model_root(repo_root / run_dir, repo_root)
+
+
+def _read_pointer(
+    entry: RegistryArtifact, repo_root: Path, load_json: LoadJson
+) -> tuple[str, dict[str, Any] | None]:
+    """Read an entry's governing pointer → (pointer_status, parsed body).
+
+    Exception-driven so an injected loader controls the outcome: absent →
+    ``pointer_missing``; unreadable (permissions), undecodable, non-object, or
+    an unusable ``run_dir`` (missing/empty/escaping the model root) →
+    ``pointer_malformed``; parseable but not referencing this entry →
+    ``pointer_mismatch``. Manifest reference comparison is a strict
+    case-sensitive string match — a case-drifted path that happens to resolve
+    on macOS must still surface before it breaks on a case-sensitive host.
+    """
+
+    if entry.governing_pointer is None:
+        return "not_applicable", None
+    pointer_path = repo_root / entry.governing_pointer
+    try:
+        if not pointer_path.resolve().is_relative_to(repo_root.resolve()):
+            return "pointer_malformed", None
+    except OSError:
+        return "pointer_malformed", None
+    try:
+        body = load_json(pointer_path)
+    except FileNotFoundError:
+        return "pointer_missing", None
+    except (OSError, ValueError, UnicodeDecodeError):
+        return "pointer_malformed", None
+    if not isinstance(body, dict):
+        return "pointer_malformed", None
+    if entry.path_resolution == "latest_run_dir":
+        if not _valid_run_dir(body.get("run_dir"), repo_root):
+            return "pointer_malformed", None
+        return "referenced", body
+    values = [value for value in body.values() if isinstance(value, str)]
+    if entry.path in values:
+        return "referenced", body
+    return "pointer_mismatch", body
+
+
+def derive_pointer_status(
+    *,
+    entry: RegistryArtifact,
+    repo_root: Path,
+    load_json: LoadJson | None = None,
+) -> str:
+    """Governing-pointer health for one registry entry (spec §3.5, Codex R6)."""
+
+    status, _body = _read_pointer(entry, repo_root, load_json or _load_json_file)
+    return status
+
+
+def _resolve_artifact_path(
+    entry: RegistryArtifact,
+    repo_root: Path,
+    pointer_status: str,
+    pointer_body: dict[str, Any] | None,
+) -> tuple[str, Path | None]:
+    """Resolve (repo-relative display path, absolute path or None).
+
+    ``latest_run_dir`` entries resolve only through a healthy pointer — with the
+    pointer broken the run dir is unknown, so the artifact is unresolvable
+    (reported by its raw filename) rather than guessed. The FINAL resolved path
+    must stay under the model root in BOTH resolution modes (Codex T3 R9): a
+    registry ``path`` that normalizes outside it (`../` in a filename, or a
+    literal like ``app/data/models/../x.pkl``) is unresolvable (fail-closed),
+    never hashed — otherwise escaped bytes could hash-match and report ``ok``.
+    """
+
+    if entry.path_resolution == "latest_run_dir":
+        if pointer_status == "referenced" and pointer_body is not None:
+            run_dir = pointer_body["run_dir"]
+            absolute = repo_root / run_dir / entry.path
+            if not _within_model_root(absolute, repo_root):
+                return entry.path, None
+            display = f"{run_dir.rstrip('/')}/{entry.path}"
+            return display, absolute
+        return entry.path, None
+    absolute = repo_root / entry.path
+    if not _within_model_root(absolute, repo_root):
+        return entry.path, None
+    return entry.path, absolute
+
+
+def inspect_registered_artifact(
+    *,
+    entry: RegistryArtifact,
+    repo_root: Path,
+    environment: str,
+    hash_file: HashFile | None = None,
+    load_json: LoadJson | None = None,
+) -> ArtifactProvenance:
+    """Inspect one registered artifact on disk and classify its provenance.
+
+    The T3 disk layer: derives ``pointer_status``, resolves the served path
+    (``latest_run_dir`` via the pointer's run dir — Codex R1/R6b), establishes
+    presence + streamed observed hash, then delegates the meaning to the pure
+    T2 ``classify_artifact``. Disk anomalies fail closed as absence: a
+    directory squatting on the artifact path, a dangling symlink, or an
+    unreadable file (PermissionError) all classify as missing rather than
+    crashing or passing.
+    """
+
+    if environment not in _VALID_ENVIRONMENTS:
+        raise RuntimeEnvironmentError(
+            f"inspect_registered_artifact received an invalid environment "
+            f"{environment!r}; expected one of {sorted(_VALID_ENVIRONMENTS)}"
+        )
+    hasher = hash_file or hash_file_sha256
+    loader = load_json or _load_json_file
+
+    pointer_status, pointer_body = _read_pointer(entry, repo_root, loader)
+    display_path, absolute_path = _resolve_artifact_path(
+        entry, repo_root, pointer_status, pointer_body
+    )
+
+    artifact_present = False
+    observed_hash: str | None = None
+    if absolute_path is not None and absolute_path.is_file():
+        try:
+            observed_hash = hasher(absolute_path)
+            artifact_present = True
+        except OSError:
+            artifact_present = False
+            observed_hash = None
+
+    provenance = classify_artifact(
+        entry=entry,
+        artifact_present=artifact_present,
+        observed_hash=observed_hash,
+        pointer_status=pointer_status,
+        environment=environment,
+    )
+    if provenance.path != display_path:
+        provenance = provenance.model_copy(update={"path": display_path})
+    return provenance
+
+
+def scan_unregistered_local_artifacts(
+    *,
+    registry: ModelRegistry,
+    repo_root: Path,
+    environment: str,
+    load_json: LoadJson | None = None,
+) -> list[ArtifactProvenance]:
+    """Scoped reverse scan for ``.pkl`` bytes the registry does not declare.
+
+    Scan roots (Codex R5 — never a blanket walk, never ``tests/`` fixtures):
+    the served model root's top level, plus pointer-referenced run dirs and
+    registered artifacts' parent dirs, all confined to the model root.
+
+    Severity keys on pointer-REFERENCED file paths, not directory containment
+    (cockpit-converged 2026-07-02 over the real ``te_v2.pkl`` stale sibling): a
+    pointer naming bytes the registry does not know is unapproved serving
+    reality → ``integrity``/blocked in serving/production (``caveat`` in
+    dev/ci — visible, not blocking); an unreferenced sibling or off-path
+    leftover is inert to the resolvers → ``info``, never degrading anything.
+    """
+
+    if environment not in _VALID_ENVIRONMENTS:
+        raise RuntimeEnvironmentError(
+            f"scan_unregistered_local_artifacts received an invalid environment "
+            f"{environment!r}; expected one of {sorted(_VALID_ENVIRONMENTS)}"
+        )
+    loader = load_json or _load_json_file
+
+    registered: set[str] = set()
+    referenced: set[str] = set()
+    scan_dirs: set[Path] = set()
+    root = _model_root(repo_root)
+    if root.is_dir():
+        scan_dirs.add(root)
+
+    for entry in registry.artifacts:
+        pointer_status, pointer_body = _read_pointer(entry, repo_root, loader)
+        display_path, absolute_path = _resolve_artifact_path(
+            entry, repo_root, pointer_status, pointer_body
+        )
+        registered.add(display_path)
+        if absolute_path is not None and _within_model_root(
+            absolute_path.parent, repo_root
+        ):
+            scan_dirs.add(absolute_path.parent)
+        if pointer_body is None:
+            continue
+        if entry.path_resolution == "latest_run_dir":
+            if pointer_status == "referenced":
+                referenced.add(display_path)
+        else:
+            for value in pointer_body.values():
+                if not isinstance(value, str) or not value.endswith(".pkl"):
+                    continue
+                referenced.add(value)
+                parent = (repo_root / value).parent
+                if _within_model_root(parent, repo_root):
+                    scan_dirs.add(parent)
+
+    found: set[str] = set()
+    for directory in scan_dirs:
+        if not directory.is_dir():
+            continue
+        for candidate in directory.glob("*.pkl"):
+            if candidate.is_file():
+                found.add(str(candidate.relative_to(repo_root)))
+
+    rows: list[ArtifactProvenance] = []
+    for rel_path in sorted(found - registered):
+        is_referenced = rel_path in referenced
+        if is_referenced and environment in _SERVING_ENVS:
+            severity, serving_allowed = "integrity", False
+        elif is_referenced:
+            severity, serving_allowed = "caveat", True
+        else:
+            severity, serving_allowed = "info", True
+        rows.append(
+            ArtifactProvenance(
+                artifact_id=f"unregistered:{rel_path}",
+                path=rel_path,
+                expected_kind="local_operational",
+                promotion_status="active" if is_referenced else "parked",
+                observed_status="unregistered_local",
+                pointer_status="referenced" if is_referenced else "not_applicable",
+                severity=severity,  # type: ignore[arg-type]
+                load_verification_status="not_verified",
+                serving_allowed=serving_allowed,
+                decision_supported=False,
+            )
+        )
+    return rows
