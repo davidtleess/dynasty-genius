@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import re
+import sqlite3
 from collections.abc import Mapping
 from datetime import date, datetime, time, timedelta
 from pathlib import Path, PurePosixPath
@@ -372,7 +373,11 @@ def analyze_store_health(
         if parsed > today:
             has_future = True
             continue
-        observed[parsed] = row_count
+        # A zero-count observation means no canonical rows landed that day
+        # (e.g. only wrong-settings-hash rows): the date is ABSENT, not an
+        # empty shell — but its metadata flags above still surface.
+        if row_count > 0:
+            observed[parsed] = row_count
 
     last_capture = max(observed) if observed else None
 
@@ -500,4 +505,154 @@ def analyze_store_health(
         ),
         caveats=caveats,
         decision_supported=False,
+    )
+
+
+# --- T3: read-only SQLite reader + assembly (spec §3, seeds 12-13, 17-18, 21-22)
+
+
+def _empty_observation_health(
+    *,
+    store_config: CadenceStoreConfig,
+    now: datetime,
+    timezone: str,
+    season_windows: SeasonWindows,
+    presence: StorePresence,
+    caveat: str,
+) -> StoreHealth:
+    """Health for a store we could not read: honest window facts, one caveat.
+
+    The timeline still reports what was EXPECTED (missing days, staleness) so
+    an absent/corrupt store never looks quieter than a healthy one; the single
+    Class-B caveat names the reason and forces ``degraded``.
+    """
+
+    health = analyze_store_health(
+        store_config=store_config,
+        date_row_counts={},
+        companion_date_sets={},
+        now=now,
+        timezone=timezone,
+        season_windows=season_windows,
+    )
+    return health.model_copy(
+        update={
+            "store_presence": presence,
+            "store_status": "degraded",
+            "caveats": [caveat],
+        }
+    )
+
+
+def _read_capture_store(
+    db_path: Path, store_config: CadenceStoreConfig
+) -> tuple[dict[str, Any], dict[str, set[str]]]:
+    """Read per-date observations + companion date sets (strictly read-only).
+
+    Identifiers are loader-validated (R3); values are parameterized. When
+    ``expected_settings_hash`` is set, only matching rows count as canonical —
+    other hashes surface as per-date metadata so they can never mask a missing
+    canonical day (seed 22).
+    """
+
+    connection = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        source_where = ""
+        params: list[str] = []
+        if store_config.source_filter is not None:
+            source_where = " WHERE source = ?"
+            params.append(store_config.source_filter)
+
+        observations: dict[str, Any] = {}
+        if store_config.expected_settings_hash is None:
+            rows = connection.execute(
+                f"SELECT {store_config.date_column}, COUNT(*) "  # noqa: S608 — identifiers loader-validated
+                f"FROM {store_config.table}{source_where} "
+                f"GROUP BY {store_config.date_column}",
+                params,
+            ).fetchall()
+            for day, count in rows:
+                observations[day] = count
+        else:
+            rows = connection.execute(
+                f"SELECT {store_config.date_column}, settings_hash, COUNT(*) "  # noqa: S608
+                f"FROM {store_config.table}{source_where} "
+                f"GROUP BY {store_config.date_column}, settings_hash",
+                params,
+            ).fetchall()
+            per_date: dict[Any, dict[str, int]] = {}
+            for day, settings_hash, count in rows:
+                per_date.setdefault(day, {})[settings_hash] = count
+            for day, hash_counts in per_date.items():
+                canonical = hash_counts.get(store_config.expected_settings_hash, 0)
+                unexpected = sorted(
+                    h
+                    for h in hash_counts
+                    if h != store_config.expected_settings_hash
+                )
+                if unexpected:
+                    observations[day] = {
+                        "row_count": canonical,
+                        "unexpected_settings_hashes": unexpected,
+                    }
+                elif canonical > 0:
+                    observations[day] = canonical
+
+        companion_date_sets: dict[str, set[str]] = {}
+        for companion in store_config.companion_tables:
+            companion_rows = connection.execute(
+                f"SELECT DISTINCT {companion.date_column} FROM {companion.table}"  # noqa: S608
+            ).fetchall()
+            companion_date_sets[companion.table] = {
+                row[0] for row in companion_rows if isinstance(row[0], str)
+            }
+        return observations, companion_date_sets
+    finally:
+        connection.close()
+
+
+def inspect_capture_store(
+    *,
+    store_config: CadenceStoreConfig,
+    repo_root: Path,
+    now: datetime,
+    timezone: str,
+    season_windows: SeasonWindows,
+) -> StoreHealth:
+    """Inspect one capture store on disk and analyze its health (read-only).
+
+    An absent db file is a first-class ``store_absent`` state — the file is
+    NEVER created by the health check (mode=ro open + presence check first).
+    Any SQLite-level failure (0-byte file, missing table/column, non-database
+    bytes) degrades as ``store_unreadable`` rather than raising to the client.
+    """
+
+    db_path = repo_root / store_config.db_path
+    if not db_path.is_file():
+        return _empty_observation_health(
+            store_config=store_config,
+            now=now,
+            timezone=timezone,
+            season_windows=season_windows,
+            presence="absent",
+            caveat="store_absent",
+        )
+    try:
+        observations, companion_date_sets = _read_capture_store(db_path, store_config)
+    except sqlite3.Error:
+        return _empty_observation_health(
+            store_config=store_config,
+            now=now,
+            timezone=timezone,
+            season_windows=season_windows,
+            presence="present",
+            caveat="store_unreadable",
+        )
+    return analyze_store_health(
+        store_config=store_config,
+        date_row_counts=observations,
+        companion_date_sets=companion_date_sets,
+        now=now,
+        timezone=timezone,
+        season_windows=season_windows,
     )
