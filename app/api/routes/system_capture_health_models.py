@@ -16,8 +16,11 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
+from datetime import date, datetime, time, timedelta
 from pathlib import Path, PurePosixPath
-from typing import Literal
+from statistics import median_low
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -244,9 +247,257 @@ def load_capture_cadence(*, config_path: Path) -> CaptureCadenceConfig:
         _validate_db_path(store.store_id, store.db_path)
         _validate_identifier(store.store_id, "table", store.table)
         _validate_identifier(store.store_id, "date_column", store.date_column)
+        # Values the analyzer consumes at request time must be provably usable
+        # at LOAD time — a malformed schedule or start date is config
+        # corruption (503), never a request-time crash.
+        if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", store.scheduled_time_local):
+            raise _reject(
+                f"schema invalid for store {store.store_id!r}: "
+                f"scheduled_time_local {store.scheduled_time_local!r} is not HH:MM"
+            )
+        if _parse_date(store.capture_start_date) is None:
+            raise _reject(
+                f"schema invalid for store {store.store_id!r}: "
+                f"capture_start_date {store.capture_start_date!r} is not an ISO date"
+            )
         for companion in store.companion_tables:
             _validate_identifier(store.store_id, "companion table", companion.table)
             _validate_identifier(
                 store.store_id, "companion date_column", companion.date_column
             )
+            if _parse_date(companion.capture_start_date) is None:
+                raise _reject(
+                    f"schema invalid for store {store.store_id!r}: companion "
+                    f"capture_start_date {companion.capture_start_date!r} is not "
+                    "an ISO date"
+                )
     return config
+
+
+# --- T2: pure timeline/gap/density/staleness analyzer (spec §3, seeds 1-11,16,20-27)
+
+# Class A is a CLOSED list (spec §3 R7): healthy-but-immature caveats that may
+# coexist with ok. Any caveat not listed here — including future additions —
+# degrades by default (fail-closed); extending Class A requires a
+# cockpit-cleared spec amendment.
+_CLASS_A_CAVEATS: frozenset[str] = frozenset(
+    ("density_baseline_insufficient", "pre_capture_window")
+)
+_MISSING_RANGES_DISPLAY_CAP = 20
+_MIN_DENSITY_BASELINE_DATES = 3
+
+
+def _parse_date(value: str) -> date | None:
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _contiguous_ranges(missing: list[date]) -> list[list[date]]:
+    ranges: list[list[date]] = []
+    for day in missing:
+        if ranges and (day - ranges[-1][-1]).days == 1:
+            ranges[-1].append(day)
+        else:
+            ranges.append([day])
+    return ranges
+
+
+def _ordered_unique(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            out.append(value)
+    return out
+
+
+def analyze_store_health(
+    *,
+    store_config: CadenceStoreConfig,
+    date_row_counts: Mapping[str, Any],
+    companion_date_sets: Mapping[str, set[str]],
+    now: datetime,
+    timezone: str,
+    season_windows: SeasonWindows,
+) -> StoreHealth:
+    """Analyze one store's captured-date observations into StoreHealth (pure).
+
+    ``date_row_counts`` values are plain row counts, or reader-metadata dicts
+    ``{"row_count", "unexpected_settings_hashes", "caveats"}``. No disk here:
+    the T3 reader produces these observations; this function owns their
+    meaning. Facts (missing dates, gaps, staleness) are always reported;
+    season-awareness modulates only the warn flag. Sub-floor "empty-shell"
+    dates count as missing. The density baseline uses prior eligible dates
+    only (never the date under evaluation, never future/invalid/sub-floor
+    dates) so early empty shells cannot self-normalize the floor down.
+    """
+
+    # API misuse fails loud: a naive `now` would silently assume the system
+    # zone and skew every deadline (robustness boundary — caller bug, not data).
+    if now.tzinfo is None:
+        raise ValueError("analyze_store_health requires a timezone-aware `now`")
+
+    tz = ZoneInfo(timezone)
+    now_local = now.astimezone(tz)
+    today = now_local.date()
+
+    hour, minute = (int(part) for part in store_config.scheduled_time_local.split(":"))
+    deadline = datetime.combine(today, time(hour, minute), tzinfo=tz) + timedelta(
+        hours=store_config.grace_hours
+    )
+    end_date = today if now_local >= deadline else today - timedelta(days=1)
+    start_date = date.fromisoformat(store_config.capture_start_date)
+
+    # Normalize observations; classify invalid / future keys out of the math.
+    observed: dict[date, int] = {}
+    external_caveats: list[str] = []
+    has_invalid = False
+    has_future = False
+    has_unexpected_hash = False
+    for key, value in date_row_counts.items():
+        parsed = _parse_date(key)
+        if parsed is None:
+            has_invalid = True
+            continue
+        if isinstance(value, Mapping):
+            row_count = int(value.get("row_count", 0))
+            if value.get("unexpected_settings_hashes"):
+                has_unexpected_hash = True
+            external_caveats.extend(value.get("caveats", ()))
+        else:
+            row_count = int(value)
+        if parsed > today:
+            has_future = True
+            continue
+        observed[parsed] = row_count
+
+    last_capture = max(observed) if observed else None
+
+    caveats: list[str] = []
+    if end_date < start_date:
+        caveats.append("pre_capture_window")
+        expected_dates: list[date] = []
+    else:
+        expected_dates = [
+            start_date + timedelta(days=offset)
+            for offset in range((end_date - start_date).days + 1)
+        ]
+
+    present_raw = sorted(day for day in expected_dates if day in observed)
+
+    # Density pass (ascending): evaluate each present date against the median
+    # of PRIOR eligible dates only; sub-floor dates never join the baseline.
+    eligible: list[date] = []
+    sub_floor: list[date] = []
+    for day in present_raw:
+        if len(eligible) >= _MIN_DENSITY_BASELINE_DATES:
+            baseline = median_low(observed[prior] for prior in eligible)
+            if observed[day] < baseline * store_config.density_floor_pct / 100:
+                sub_floor.append(day)
+                continue
+        eligible.append(day)
+    baseline_median = (
+        median_low(observed[day] for day in eligible)
+        if len(eligible) >= _MIN_DENSITY_BASELINE_DATES
+        else None
+    )
+    if expected_dates and baseline_median is None:
+        caveats.append("density_baseline_insufficient")
+
+    effective_present = set(present_raw) - set(sub_floor)
+    missing = [day for day in expected_dates if day not in effective_present]
+    ranges = _contiguous_ranges(missing)
+    max_gap = max((len(r) for r in ranges), default=0)
+
+    streak = 0
+    cursor = end_date
+    while cursor >= start_date and cursor in effective_present:
+        streak += 1
+        cursor -= timedelta(days=1)
+
+    stale = bool(expected_dates) and end_date == today and today not in effective_present
+
+    in_season = now_local.month in season_windows.in_season_months
+    season_label = "in_season" if in_season else "off_season"
+    warn_threshold = (
+        store_config.warn_consecutive_missing.in_season
+        if in_season
+        else store_config.warn_consecutive_missing.off_season
+    )
+
+    if has_future:
+        caveats.append("future_dates_detected")
+    if has_invalid:
+        caveats.append("invalid_dates_detected")
+    if has_unexpected_hash:
+        caveats.append("unexpected_settings_hash_detected")
+
+    for companion in store_config.companion_tables:
+        companion_start = max(date.fromisoformat(companion.capture_start_date), start_date)
+        companion_dates = companion_date_sets.get(companion.table, set())
+        if any(
+            day >= companion_start and day.isoformat() not in companion_dates
+            for day in present_raw
+        ):
+            caveats.append("companion_rows_missing")
+
+    if len(ranges) > _MISSING_RANGES_DISPLAY_CAP:
+        caveats.append("missing_ranges_truncated")
+    caveats = _ordered_unique(caveats + list(external_caveats))
+
+    has_class_b_caveat = any(c not in _CLASS_A_CAVEATS for c in caveats)
+    status: StoreStatus = (
+        "ok"
+        if not missing and not stale and not sub_floor and not has_class_b_caveat
+        else "degraded"
+    )
+
+    return StoreHealth(
+        store_id=store_config.store_id,
+        store_status=status,
+        store_presence="present",
+        timeline=StoreTimeline(
+            capture_start_date=store_config.capture_start_date,
+            first_date=min(present_raw).isoformat() if present_raw else None,
+            last_date=max(present_raw).isoformat() if present_raw else None,
+            expected_days=len(expected_dates),
+            present_days=len(effective_present),
+            missing_dates_count=len(missing),
+            missing_ranges=[
+                MissingRange(
+                    from_date=r[0].isoformat(), to_date=r[-1].isoformat(), days=len(r)
+                )
+                for r in ranges[:_MISSING_RANGES_DISPLAY_CAP]
+            ],
+            missing_ranges_total=len(ranges),
+            max_contiguous_gap_days=max_gap,
+            consecutive_days_current=streak,
+        ),
+        staleness=StoreStaleness(
+            last_capture_date=last_capture.isoformat() if last_capture else None,
+            expected_by=deadline.isoformat(),
+            stale=stale,
+            grace_hours=store_config.grace_hours,
+        ),
+        density=StoreDensity(
+            floor_pct=store_config.density_floor_pct,
+            baseline_median_rows=int(baseline_median)
+            if baseline_median is not None
+            else None,
+            baseline_window=store_config.density_baseline_window,
+            sub_floor_dates=[day.isoformat() for day in sub_floor],
+        ),
+        flags=StoreFlags(
+            warn_missing=max_gap >= warn_threshold and bool(missing),
+            warn_basis=f"{season_label}>={warn_threshold} consecutive",
+            window_risk=max_gap >= store_config.window_risk_contiguous_days,
+            window_risk_basis=(
+                f">={store_config.window_risk_contiguous_days} contiguous missing days"
+            ),
+        ),
+        caveats=caveats,
+        decision_supported=False,
+    )
