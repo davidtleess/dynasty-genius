@@ -755,6 +755,33 @@ export const zRealizedOutcomeScorecardErrorResponse = z.object({
 });
 
 /**
+ * ReportHealth
+ */
+export const zReportHealth = z.object({
+    age_seconds: z.int().nullable(),
+    artifact_id: z.string(),
+    artifact_path: z.string(),
+    basis: z.string(),
+    decision_supported: z.literal(false),
+    disclosures: z.array(z.string()),
+    observed_at: z.string().nullable(),
+    producer: z.string(),
+    status: z.enum([
+        'fresh',
+        'freshness_overdue',
+        'stale',
+        'corrupt_or_empty',
+        'dormant',
+        'missing'
+    ]),
+    tier: z.enum([
+        'core_substrate',
+        'daily_diagnostics',
+        'auxiliary'
+    ])
+});
+
+/**
  * RosterAuditSignalsView
  *
  * F3: curated signals view; nested decision_supported can never leak true.
@@ -1070,6 +1097,25 @@ export const zCaptureHealthResponse = z.object({
 });
 
 /**
+ * SubsystemHealth
+ */
+export const zSubsystemHealth = z.object({
+    basis: z.string(),
+    decision_supported: z.literal(false),
+    status: z.enum([
+        'ok',
+        'degraded',
+        'unavailable'
+    ]),
+    subsystem_id: z.string(),
+    tier: z.enum([
+        'core_substrate',
+        'daily_diagnostics',
+        'auxiliary'
+    ])
+});
+
+/**
  * SurfaceReadiness
  *
  * Runtime readiness for one surface. Root-level dormancy disclosure is
@@ -1093,6 +1139,33 @@ export const zSurfaceReadiness = z.object({
         'preconditions_degraded',
         'not_graduated'
     ])
+});
+
+/**
+ * SystemHealthErrorResponse
+ */
+export const zSystemHealthErrorResponse = z.object({
+    decision_supported: z.literal(false),
+    error: z.string(),
+    message: z.string()
+});
+
+/**
+ * SystemHealthResponse
+ */
+export const zSystemHealthResponse = z.object({
+    checked_at: z.string(),
+    config_version: z.int(),
+    decision_supported: z.literal(false),
+    disclaimer: z.literal('System health reflects pipeline completion, artifact freshness, and model provenance verification. It does not evaluate model accuracy or guarantee trade edge.'),
+    overall_status: z.enum(['ok', 'degraded']),
+    reports: z.array(zReportHealth),
+    subsystems: z.array(zSubsystemHealth),
+    worst_affected_tier: z.enum([
+        'core_substrate',
+        'daily_diagnostics',
+        'auxiliary'
+    ]).nullable()
 });
 
 /**
@@ -1726,6 +1799,11 @@ export const zWhatChangedResponse = z.object({
  * Successful Response
  */
 export const zGetEngineBScoresApiEngineBScoresGetResponse = z.record(z.string(), z.unknown());
+
+/**
+ * Successful Response
+ */
+export const zGetSystemHealthApiHealthGetResponse = zSystemHealthResponse;
 
 /**
  * Successful Response

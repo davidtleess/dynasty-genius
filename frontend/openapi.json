@@ -3406,6 +3406,96 @@
         "title": "RealizedOutcomeScorecardResponse",
         "type": "object"
       },
+      "ReportHealth": {
+        "additionalProperties": false,
+        "properties": {
+          "age_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Seconds"
+          },
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "artifact_path": {
+            "title": "Artifact Path",
+            "type": "string"
+          },
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "disclosures": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Disclosures",
+            "type": "array"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "producer": {
+            "title": "Producer",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "fresh",
+              "freshness_overdue",
+              "stale",
+              "corrupt_or_empty",
+              "dormant",
+              "missing"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "core_substrate",
+              "daily_diagnostics",
+              "auxiliary"
+            ],
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "status",
+          "tier",
+          "basis",
+          "artifact_path",
+          "producer",
+          "observed_at",
+          "age_seconds",
+          "disclosures",
+          "decision_supported"
+        ],
+        "title": "ReportHealth",
+        "type": "object"
+      },
       "RosterAuditPlayer": {
         "properties": {
           "age": {
@@ -4552,6 +4642,51 @@
         "title": "StoreTimeline",
         "type": "object"
       },
+      "SubsystemHealth": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subsystem_id": {
+            "title": "Subsystem Id",
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "core_substrate",
+              "daily_diagnostics",
+              "auxiliary"
+            ],
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subsystem_id",
+          "status",
+          "basis",
+          "tier",
+          "decision_supported"
+        ],
+        "title": "SubsystemHealth",
+        "type": "object"
+      },
       "SurfaceReadiness": {
         "additionalProperties": false,
         "description": "Runtime readiness for one surface. Root-level dormancy disclosure is\nmandatory (R2): the headline `_limited` status plus machine-readable\ncounts, so a UI can never render an unqualified badge over dormant\ncomponents.",
@@ -4627,6 +4762,104 @@
           "decision_supported"
         ],
         "title": "SurfaceReadiness",
+        "type": "object"
+      },
+      "SystemHealthErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "decision_supported"
+        ],
+        "title": "SystemHealthErrorResponse",
+        "type": "object"
+      },
+      "SystemHealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "checked_at": {
+            "title": "Checked At",
+            "type": "string"
+          },
+          "config_version": {
+            "title": "Config Version",
+            "type": "integer"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "disclaimer": {
+            "const": "System health reflects pipeline completion, artifact freshness, and model provenance verification. It does not evaluate model accuracy or guarantee trade edge.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "overall_status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Overall Status",
+            "type": "string"
+          },
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/ReportHealth"
+            },
+            "title": "Reports",
+            "type": "array"
+          },
+          "subsystems": {
+            "items": {
+              "$ref": "#/components/schemas/SubsystemHealth"
+            },
+            "title": "Subsystems",
+            "type": "array"
+          },
+          "worst_affected_tier": {
+            "anyOf": [
+              {
+                "enum": [
+                  "core_substrate",
+                  "daily_diagnostics",
+                  "auxiliary"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worst Affected Tier"
+          }
+        },
+        "required": [
+          "overall_status",
+          "worst_affected_tier",
+          "checked_at",
+          "config_version",
+          "subsystems",
+          "reports",
+          "disclaimer",
+          "decision_supported"
+        ],
+        "title": "SystemHealthResponse",
         "type": "object"
       },
       "TierReadinessErrorResponse": {
@@ -7129,6 +7362,37 @@
         "summary": "Get Engine B Scores",
         "tags": [
           "engine-b"
+        ]
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "get_system_health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemHealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemHealthErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get System Health",
+        "tags": [
+          "system"
         ]
       }
     },

@@ -1898,6 +1898,52 @@ export type RealizedOutcomeScorecardResponse = {
 };
 
 /**
+ * ReportHealth
+ */
+export type ReportHealth = {
+    /**
+     * Age Seconds
+     */
+    age_seconds: number | null;
+    /**
+     * Artifact Id
+     */
+    artifact_id: string;
+    /**
+     * Artifact Path
+     */
+    artifact_path: string;
+    /**
+     * Basis
+     */
+    basis: string;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Disclosures
+     */
+    disclosures: Array<string>;
+    /**
+     * Observed At
+     */
+    observed_at: string | null;
+    /**
+     * Producer
+     */
+    producer: string;
+    /**
+     * Status
+     */
+    status: 'fresh' | 'freshness_overdue' | 'stale' | 'corrupt_or_empty' | 'dormant' | 'missing';
+    /**
+     * Tier
+     */
+    tier: 'core_substrate' | 'daily_diagnostics' | 'auxiliary';
+};
+
+/**
  * RosterAuditPlayer
  */
 export type RosterAuditPlayer = {
@@ -2522,6 +2568,32 @@ export type StoreTimeline = {
 };
 
 /**
+ * SubsystemHealth
+ */
+export type SubsystemHealth = {
+    /**
+     * Basis
+     */
+    basis: string;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Status
+     */
+    status: 'ok' | 'degraded' | 'unavailable';
+    /**
+     * Subsystem Id
+     */
+    subsystem_id: string;
+    /**
+     * Tier
+     */
+    tier: 'core_substrate' | 'daily_diagnostics' | 'auxiliary';
+};
+
+/**
  * SurfaceReadiness
  *
  * Runtime readiness for one surface. Root-level dormancy disclosure is
@@ -2572,6 +2644,62 @@ export type SurfaceReadiness = {
      * Tier Status
      */
     tier_status: 'diagnostic_grade_active' | 'diagnostic_grade_active_limited' | 'preconditions_degraded' | 'not_graduated';
+};
+
+/**
+ * SystemHealthErrorResponse
+ */
+export type SystemHealthErrorResponse = {
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Error
+     */
+    error: string;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * SystemHealthResponse
+ */
+export type SystemHealthResponse = {
+    /**
+     * Checked At
+     */
+    checked_at: string;
+    /**
+     * Config Version
+     */
+    config_version: number;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Disclaimer
+     */
+    disclaimer: 'System health reflects pipeline completion, artifact freshness, and model provenance verification. It does not evaluate model accuracy or guarantee trade edge.';
+    /**
+     * Overall Status
+     */
+    overall_status: 'ok' | 'degraded';
+    /**
+     * Reports
+     */
+    reports: Array<ReportHealth>;
+    /**
+     * Subsystems
+     */
+    subsystems: Array<SubsystemHealth>;
+    /**
+     * Worst Affected Tier
+     */
+    worst_affected_tier: 'core_substrate' | 'daily_diagnostics' | 'auxiliary' | null;
 };
 
 /**
@@ -3837,6 +3965,31 @@ export type GetEngineBScoresApiEngineBScoresGetResponses = {
 };
 
 export type GetEngineBScoresApiEngineBScoresGetResponse = GetEngineBScoresApiEngineBScoresGetResponses[keyof GetEngineBScoresApiEngineBScoresGetResponses];
+
+export type GetSystemHealthApiHealthGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/health';
+};
+
+export type GetSystemHealthApiHealthGetErrors = {
+    /**
+     * Service Unavailable
+     */
+    503: SystemHealthErrorResponse;
+};
+
+export type GetSystemHealthApiHealthGetError = GetSystemHealthApiHealthGetErrors[keyof GetSystemHealthApiHealthGetErrors];
+
+export type GetSystemHealthApiHealthGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SystemHealthResponse;
+};
+
+export type GetSystemHealthApiHealthGetResponse = GetSystemHealthApiHealthGetResponses[keyof GetSystemHealthApiHealthGetResponses];
 
 export type LeaguePulseSurfaceApiLeaguePulseGetData = {
     body?: never;

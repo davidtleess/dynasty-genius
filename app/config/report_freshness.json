@@ -1,0 +1,132 @@
+{
+  "config_version": 1,
+  "timezone": "America/New_York",
+  "artifacts": [
+    {
+      "artifact_id": "pvo_refresh",
+      "path": "app/data/model_capture/pvo_refresh_latest_report.json",
+      "producer": "scripts/run_pvo_refresh.py",
+      "cadence": "daily",
+      "scheduled_time_local": "09:30",
+      "grace_hours": 3,
+      "tier": "core_substrate",
+      "min_size_bytes": 64,
+      "timestamp_field": null,
+      "dormant_ok": false,
+      "season_windows": {
+        "in_season_months": [
+          9,
+          10,
+          11,
+          12,
+          1
+        ]
+      }
+    },
+    {
+      "artifact_id": "feature_refresh",
+      "path": "app/data/features_runtime/feature_refresh_latest_report.json",
+      "producer": "scripts/run_feature_refresh.py",
+      "cadence": "daily",
+      "scheduled_time_local": "09:15",
+      "grace_hours": 3,
+      "tier": "daily_diagnostics",
+      "min_size_bytes": 64,
+      "timestamp_field": "generated_at",
+      "dormant_ok": false,
+      "season_windows": {
+        "in_season_months": [
+          9,
+          10,
+          11,
+          12,
+          1
+        ]
+      }
+    },
+    {
+      "artifact_id": "what_changed",
+      "path": "app/data/what_changed/what_changed_latest_report.json",
+      "producer": "scripts/run_what_changed_report.py",
+      "cadence": "daily",
+      "scheduled_time_local": "09:45",
+      "grace_hours": 3,
+      "tier": "daily_diagnostics",
+      "min_size_bytes": 64,
+      "timestamp_field": "generated_at",
+      "dormant_ok": false,
+      "season_windows": {
+        "in_season_months": [
+          9,
+          10,
+          11,
+          12,
+          1
+        ]
+      }
+    },
+    {
+      "artifact_id": "roster_capacity",
+      "path": "app/data/roster_capacity/roster_capacity_latest.json",
+      "producer": "scripts/run_roster_capacity_audit.py",
+      "cadence": "daily",
+      "scheduled_time_local": "10:00",
+      "grace_hours": 3,
+      "tier": "daily_diagnostics",
+      "min_size_bytes": 64,
+      "timestamp_field": "created_at",
+      "dormant_ok": false,
+      "season_windows": {
+        "in_season_months": [
+          9,
+          10,
+          11,
+          12,
+          1
+        ]
+      }
+    },
+    {
+      "artifact_id": "league_opportunity",
+      "path": "app/data/valuation/league_opportunity_latest.json",
+      "producer": "scripts/build_league_opportunity_map.py",
+      "cadence": "daily",
+      "scheduled_time_local": "09:35",
+      "grace_hours": 3,
+      "tier": "auxiliary",
+      "min_size_bytes": 64,
+      "timestamp_field": "captured_at",
+      "dormant_ok": false,
+      "season_windows": {
+        "in_season_months": [
+          9,
+          10,
+          11,
+          12,
+          1
+        ]
+      }
+    },
+    {
+      "artifact_id": "realized_outcome",
+      "path": "app/data/realized_outcome/scorecard_latest.json",
+      "producer": "scripts/run_realized_outcome_scoring.py",
+      "cadence": "weekly",
+      "scheduled_time_local": "10:00",
+      "grace_hours": 3,
+      "tier": "auxiliary",
+      "min_size_bytes": 64,
+      "timestamp_field": null,
+      "dormant_ok": true,
+      "season_windows": {
+        "in_season_months": [
+          9,
+          10,
+          11,
+          12,
+          1
+        ]
+      }
+    }
+  ]
+}
