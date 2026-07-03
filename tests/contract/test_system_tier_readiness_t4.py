@@ -14,6 +14,7 @@ import os
 import re
 import subprocess
 import sys
+import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -199,32 +200,52 @@ def _clean_room_app_route_payload() -> dict[str, Any]:
         if env.get("PYTHONPATH")
         else str(REPO_ROOT)
     )
+    script = textwrap.dedent(
+        """
+        import json
+        import sys
+
+        import fastapi
+        import starlette
+        from fastapi.testclient import TestClient
+
+        import app.main as app_main
+        from app.api.routes import rookies
+        from app.main import app
+
+        with TestClient(app):
+            paths = sorted(
+                route.path for route in app.routes if hasattr(route, "path")
+            )
+
+        print(
+            json.dumps(
+                {
+                    "paths": paths,
+                    "diagnostics": {
+                        "app_main_file": getattr(app_main, "__file__", None),
+                        "sys_executable": sys.executable,
+                        "sys_version": sys.version,
+                        "fastapi_version": fastapi.__version__,
+                        "starlette_version": starlette.__version__,
+                        "route_count": len(app.routes),
+                        "api_route_count": sum(
+                            1 for path in paths if path.startswith("/api/")
+                        ),
+                        "routes_repr": paths,
+                        "rookies_router_route_count": len(rookies.router.routes),
+                    },
+                },
+                sort_keys=True,
+            )
+        )
+        """
+    )
     result = subprocess.run(
         [
             sys.executable,
             "-c",
-            (
-                "import json, sys; "
-                "import fastapi, starlette; "
-                "from app.api.routes import rookies; "
-                "from app.main import app; "
-                "import app.main as app_main; "
-                "paths = sorted(route.path for route in app.routes if hasattr(route, 'path')); "
-                "print(json.dumps({"
-                "'paths': paths, "
-                "'diagnostics': {"
-                "'app_main_file': getattr(app_main, '__file__', None), "
-                "'sys_executable': sys.executable, "
-                "'sys_version': sys.version, "
-                "'fastapi_version': fastapi.__version__, "
-                "'starlette_version': starlette.__version__, "
-                "'route_count': len(app.routes), "
-                "'api_route_count': sum(1 for path in paths if path.startswith('/api/')), "
-                "'routes_repr': paths, "
-                "'rookies_router_route_count': len(rookies.router.routes), "
-                "}"
-                "}, sort_keys=True))"
-            ),
+            script,
         ],
         cwd=REPO_ROOT,
         env=env,
