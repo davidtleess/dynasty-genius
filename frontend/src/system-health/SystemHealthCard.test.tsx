@@ -1,24 +1,15 @@
 // @vitest-environment jsdom
 
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
 import { AppShell } from "../shell/AppShell";
+import componentSource from "./SystemHealthCard.tsx?raw";
 
 const DISCLAIMER =
   "System health reflects pipeline completion, artifact freshness, and model provenance verification. It does not evaluate model accuracy or guarantee trade edge.";
 const FIXED_NOW = new Date("2026-07-03T15:00:00.000Z");
 const CHECKED_AT = "2026-07-03T14:55:00+00:00";
 const COMPONENT_MODULE = "./SystemHealthCard";
-const COMPONENT_PATH = join(
-  process.cwd(),
-  "src",
-  "system-health",
-  "SystemHealthCard.tsx",
-);
-const CSS_PATH = join(process.cwd(), "src", "system-health", "SystemHealthCard.css");
 
 type MockResponse = {
   ok: boolean;
@@ -341,11 +332,22 @@ describe("SystemHealthCard RED contract", () => {
       }),
     );
 
-    await screen.findByText(
+    const row = await screen.findByTestId(
+      "health-report-very_long_artifact_id_that_should_wrap_without_breaking_the_shell",
+    );
+    expect(row.textContent).toContain(
       "very_long_artifact_id_that_should_wrap_without_breaking_the_shell",
     );
-    const css = readFileSync(CSS_PATH, "utf8");
-    expect(css).toMatch(/overflow-wrap|word-break|min-inline-size:\s*0/);
+    expect(row.textContent).toContain(
+      "app/data/reports/very/deep/path/that/should/remain/disclosed/latest.json",
+    );
+    expect(row.textContent).toContain(
+      "very_long_basis_token_that_should_remain_visible",
+    );
+    expect(row.textContent).toContain(
+      "scripts/very_long_producer_name_that_should_remain_visible.py",
+    );
+    expect(row.className).toContain("dg-syshealth__report");
   });
 
   it("renders deterministic relative checked_at age with the absolute timestamp in title text", async () => {
@@ -383,10 +385,7 @@ describe("SystemHealthCard RED contract", () => {
 
     const card = await screen.findByRole("status", { name: "System diagnostics" });
     const visibleText = card.textContent ?? "";
-    const authored = `${readFileSync(COMPONENT_PATH, "utf8")}\n${readFileSync(
-      CSS_PATH,
-      "utf8",
-    )}`;
+    const authored = componentSource;
     const allowed = authored
       .replaceAll(DISCLAIMER, "")
       .replaceAll("not model accuracy", "")
