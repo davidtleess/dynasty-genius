@@ -52,18 +52,26 @@ EXPECTED_ARTIFACTS: dict[str, dict[str, Any]] = {
     "roster_capacity": {
         "path": "app/data/roster_capacity/roster_capacity_latest.json",
         "producer": "scripts/run_roster_capacity_audit.py",
-        "cadence": "daily",
+        "cadence": "weekly",
+        "scheduled_time_local": "10:00",
+        "grace_hours": 3,
         "tier": "daily_diagnostics",
+        "min_size_bytes": 64,
         "timestamp_field": "created_at",
         "dormant_ok": False,
+        "season_windows": {"in_season_months": [9, 10, 11, 12, 1]},
     },
     "league_opportunity": {
         "path": "app/data/valuation/league_opportunity_latest.json",
         "producer": "scripts/build_league_opportunity_map.py",
-        "cadence": "daily",
+        "cadence": "weekly",
+        "scheduled_time_local": "09:35",
+        "grace_hours": 3,
         "tier": "auxiliary",
+        "min_size_bytes": 64,
         "timestamp_field": "captured_at",
         "dormant_ok": False,
+        "season_windows": {"in_season_months": [9, 10, 11, 12, 1]},
     },
     "realized_outcome": {
         # Real-shape source of truth: the route, producer default, and LaunchAgent

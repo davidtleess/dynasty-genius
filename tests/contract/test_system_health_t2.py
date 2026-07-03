@@ -186,6 +186,29 @@ def test_malformed_embedded_timestamp_degrades_without_silent_mtime_fallback() -
     assert "timestamp_source:mtime_fallback" not in report.disclosures
 
 
+def test_future_embedded_timestamp_is_corrupt_and_discloses_negative_age() -> None:
+    models = _models()
+    artifact = _artifact(
+        models,
+        {"tier": "daily_diagnostics", "timestamp_field": "generated_at"},
+    )
+    report = _evaluate(
+        models,
+        artifact,
+        _fact(
+            models,
+            mtime=datetime(2026, 7, 2, 9, 45, tzinfo=NY),
+            embedded_timestamp_value="2026-07-02T10:05:00-04:00",
+        ),
+        now=datetime(2026, 7, 2, 10, 0, tzinfo=NY),
+    )
+
+    assert report.status == "corrupt_or_empty"
+    assert report.basis == "future_timestamp:embedded_timestamp"
+    assert report.observed_at == "2026-07-02T10:05:00-04:00"
+    assert report.age_seconds == -300
+
+
 def test_dormant_ok_offseason_missing_artifact_reports_dormant_not_missing() -> None:
     models = _models()
     artifact = _artifact(
