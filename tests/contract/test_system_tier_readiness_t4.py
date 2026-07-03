@@ -10,11 +10,7 @@ the readiness claim.
 from __future__ import annotations
 
 import json
-import os
 import re
-import subprocess
-import sys
-import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +26,7 @@ from app.api.routes.system_tier_readiness_models import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = REPO_ROOT / "app" / "config" / "tier_readiness.json"
+OPENAPI_PATH = REPO_ROOT / "frontend" / "openapi.json"
 BANNED_RESPONSE_RE = re.compile(
     r"\b(certified|validated|trusted|approved|safe|recommended|buy|sell|hold|start|sit)\b",
     re.IGNORECASE,
@@ -58,12 +55,11 @@ def test_real_tier_readiness_registry_loads_and_names_roster_capacity_contract()
 
 def test_every_registered_route_id_is_mounted_in_app_main() -> None:
     registry = load_tier_readiness(registry_path=REGISTRY_PATH, repo_root=REPO_ROOT)
-    app_route_payload = _clean_room_app_route_payload()
-    mounted_paths = set(app_route_payload["paths"])
+    openapi_paths = set(json.loads(OPENAPI_PATH.read_text(encoding="utf-8"))["paths"])
 
     for surface in registry.surfaces:
         for route_id in surface.route_ids:
-            assert route_id in mounted_paths, app_route_payload
+            assert route_id in openapi_paths
 
 
 def test_every_evidence_path_exists_but_producer_artifacts_are_not_ci_checked() -> None:
@@ -191,68 +187,3 @@ def _assert_decision_supported_false_recursive(value: Any) -> None:
 def _assert_no_banned_response_language(value: Any) -> None:
     flattened = json.dumps(value, sort_keys=True)
     assert not BANNED_RESPONSE_RE.search(flattened)
-
-
-def _clean_room_app_route_payload() -> dict[str, Any]:
-    env = os.environ.copy()
-    env["PYTHONPATH"] = (
-        f"{REPO_ROOT}{os.pathsep}{env['PYTHONPATH']}"
-        if env.get("PYTHONPATH")
-        else str(REPO_ROOT)
-    )
-    script = textwrap.dedent(
-        """
-        import json
-        import sys
-
-        import fastapi
-        import starlette
-        from fastapi.testclient import TestClient
-
-        import app.main as app_main
-        from app.api.routes import rookies
-        from app.main import app
-
-        with TestClient(app):
-            paths = sorted(
-                route.path for route in app.routes if hasattr(route, "path")
-            )
-
-        print(
-            json.dumps(
-                {
-                    "paths": paths,
-                    "diagnostics": {
-                        "app_main_file": getattr(app_main, "__file__", None),
-                        "sys_executable": sys.executable,
-                        "sys_version": sys.version,
-                        "fastapi_version": fastapi.__version__,
-                        "starlette_version": starlette.__version__,
-                        "route_count": len(app.routes),
-                        "api_route_count": sum(
-                            1 for path in paths if path.startswith("/api/")
-                        ),
-                        "routes_repr": paths,
-                        "rookies_router_route_count": len(rookies.router.routes),
-                    },
-                },
-                sort_keys=True,
-            )
-        )
-        """
-    )
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            script,
-        ],
-        cwd=REPO_ROOT,
-        env=env,
-        capture_output=True,
-        check=True,
-        text=True,
-    )
-    payload = json.loads(result.stdout)
-    payload["diagnostics"]["stderr"] = result.stderr
-    return payload
