@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -239,3 +240,180 @@ def load_report_freshness(*, config_path: Path) -> ReportFreshnessConfig:
                 f"scheduled_time_local {artifact.scheduled_time_local!r} is not HH:MM"
             )
     return config
+
+
+# --- T2: pure freshness evaluator + tier rollup (spec §2–§3) --------------------
+
+_DEGRADING_STATUSES: frozenset[str] = frozenset(
+    ("stale", "corrupt_or_empty", "missing")
+)
+_TIER_SEVERITY: dict[str, int] = {"core_substrate": 2, "daily_diagnostics": 1}
+
+
+class ReportArtifactFact(_Strict):
+    """Observed disk facts for one report artifact (produced by the T3 reader)."""
+
+    exists: bool
+    size_bytes: int | None
+    mtime: datetime | None
+    embedded_timestamp_value: str | None
+
+
+def _last_scheduled(artifact: ReportArtifactConfig, now_local: datetime) -> datetime:
+    hour, minute = (int(p) for p in artifact.scheduled_time_local.split(":"))
+    anchor = now_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if anchor > now_local:
+        anchor -= timedelta(days=1)
+    return anchor
+
+
+def _freshness_window_start(
+    artifact: ReportArtifactConfig, anchor: datetime
+) -> datetime:
+    # Daily: the artifact must postdate the latest scheduled run. Weekly: any
+    # run within the trailing cadence period counts (no weekday anchor in
+    # config by design — the period is the contract, not the weekday).
+    if artifact.cadence == "weekly":
+        return anchor - timedelta(days=6)
+    return anchor
+
+
+def evaluate_report_freshness(
+    *,
+    config: ReportFreshnessConfig,
+    artifact_facts: dict[str, ReportArtifactFact],
+    now: datetime,
+) -> list[ReportHealth]:
+    """Evaluate configured artifacts against observed facts (pure — no disk).
+
+    Honesty rules (spec §2): dormancy is explicit config; a missing artifact
+    degrades unless dormant; the size floor catches empty shells regardless of
+    a fresh timestamp; a declared-but-malformed embedded timestamp degrades and
+    NEVER silently falls back to mtime; past-schedule-within-grace reports
+    ``freshness_overdue`` — never a flat healthy over yesterday's data.
+    """
+
+    if now.tzinfo is None:
+        raise ValueError("evaluate_report_freshness requires a timezone-aware `now`")
+    tz = ZoneInfo(config.timezone)
+    now_local = now.astimezone(tz)
+
+    reports: list[ReportHealth] = []
+    for artifact in config.artifacts:
+        fact = artifact_facts.get(artifact.artifact_id)
+        status: str
+        basis: str
+        observed_at: str | None = None
+        age_seconds: int | None = None
+        disclosures: list[str] = []
+
+        off_season = now_local.month not in artifact.season_windows.in_season_months
+        if artifact.dormant_ok and off_season:
+            status, basis = "dormant", "dormant_ok_offseason"
+        elif fact is None or not fact.exists:
+            status, basis = "missing", "artifact_absent"
+        elif fact.size_bytes is not None and fact.size_bytes < artifact.min_size_bytes:
+            status, basis = (
+                "corrupt_or_empty",
+                f"below_min_size:{fact.size_bytes}<{artifact.min_size_bytes}",
+            )
+        else:
+            timestamp: datetime | None = None
+            if artifact.timestamp_field is not None:
+                raw = fact.embedded_timestamp_value
+                if raw is None:
+                    timestamp = None
+                else:
+                    try:
+                        timestamp = datetime.fromisoformat(raw)
+                    except ValueError:
+                        timestamp = None
+                if timestamp is None:
+                    status, basis = (
+                        "corrupt_or_empty",
+                        f"malformed_embedded_timestamp:{artifact.timestamp_field}",
+                    )
+                    reports.append(
+                        _report(artifact, status, basis, None, None, disclosures)
+                    )
+                    continue
+                timestamp_basis = "embedded_timestamp"
+            else:
+                timestamp = fact.mtime
+                disclosures.append("timestamp_source:mtime_fallback")
+                timestamp_basis = "mtime"
+            if timestamp is None:
+                status, basis = "corrupt_or_empty", "no_observable_timestamp"
+            else:
+                if timestamp.tzinfo is None:
+                    timestamp = timestamp.replace(tzinfo=tz)
+                observed_at = timestamp.isoformat()
+                age_seconds = int((now_local - timestamp).total_seconds())
+                anchor = _last_scheduled(artifact, now_local)
+                if timestamp > now_local:
+                    # Clock-skew guard (Codex T2 defect; the capture-health
+                    # future-dates lesson): a timestamp from the future is an
+                    # anomaly, never "fresh" — negative age stays disclosed.
+                    status, basis = (
+                        "corrupt_or_empty",
+                        f"future_timestamp:{timestamp_basis}",
+                    )
+                elif timestamp >= _freshness_window_start(artifact, anchor):
+                    status, basis = "fresh", f"{timestamp_basis}_fresh"
+                elif now_local <= anchor + timedelta(hours=artifact.grace_hours):
+                    status, basis = "freshness_overdue", "within_grace"
+                else:
+                    status, basis = "stale", "past_grace"
+
+        if artifact.tier == "auxiliary" and status in _DEGRADING_STATUSES:
+            disclosures.append("auxiliary_info_only")
+        reports.append(
+            _report(artifact, status, basis, observed_at, age_seconds, disclosures)
+        )
+    return reports
+
+
+def _report(
+    artifact: ReportArtifactConfig,
+    status: str,
+    basis: str,
+    observed_at: str | None,
+    age_seconds: int | None,
+    disclosures: list[str],
+) -> ReportHealth:
+    return ReportHealth(
+        artifact_id=artifact.artifact_id,
+        status=status,  # type: ignore[arg-type]
+        tier=artifact.tier,
+        basis=basis,
+        artifact_path=artifact.path,
+        producer=artifact.producer,
+        observed_at=observed_at,
+        age_seconds=age_seconds,
+        disclosures=disclosures,
+        decision_supported=False,
+    )
+
+
+def rollup_health_status(
+    *, reports: list[ReportHealth]
+) -> tuple[str, str | None]:
+    """Aggregate report statuses to (overall_status, worst_affected_tier).
+
+    Auxiliary-tier degradation is quiet info and NEVER degrades the root (the
+    amber-blindness guard); ``freshness_overdue`` and ``dormant`` never degrade
+    anything. There is no blocked state — the health light observes.
+    """
+
+    worst: str | None = None
+    worst_rank = 0
+    for report in reports:
+        if report.status not in _DEGRADING_STATUSES:
+            continue
+        rank = _TIER_SEVERITY.get(report.tier, 0)
+        if rank > worst_rank:
+            worst_rank = rank
+            worst = report.tier
+    if worst is None:
+        return "ok", None
+    return "degraded", worst
