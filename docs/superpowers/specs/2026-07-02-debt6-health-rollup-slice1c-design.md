@@ -19,7 +19,7 @@ Mirrors the capture-cadence pattern (strict loader, fail-closed 503 family: abse
 | what_changed | `app/data/what_changed/what_changed_latest_report.json` | `scripts/run_what_changed_report.py` | daily 09:45, B | `generated_at` |
 | roster_capacity | `app/data/roster_capacity/roster_capacity_latest.json` | `scripts/run_roster_capacity_audit.py` | daily, B | `created_at` |
 | league_opportunity | `app/data/valuation/league_opportunity_latest.json` (TRACKED — corrected path) | league-opportunity producer | daily, **C** | `captured_at` |
-| realized_outcome | `app/data/realized_outcome/realized_outcome_scorecard_latest.json` | `scripts/run_realized_outcome_scoring.py` | weekly Tue, C, `dormant_ok` off-season | none — mtime only when present |
+| realized_outcome | `app/data/realized_outcome/scorecard_latest.json` (corrected at T4 — the route/producer/LaunchAgent truth; the draft table guessed a stale filename) | `scripts/run_realized_outcome_scoring.py` | weekly Tue, C, `dormant_ok` off-season | none — mtime only when present |
 
 ## 2. Freshness semantics (pure evaluator)
 - **Timestamp precedence (Codex):** embedded `timestamp_field` wins when present+valid; absent → file mtime with `mtime_fallback` disclosed; present-but-malformed → `degraded` for that artifact (never a silent fallback).
