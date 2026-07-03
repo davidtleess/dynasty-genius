@@ -57,11 +57,12 @@ def test_real_tier_readiness_registry_loads_and_names_roster_capacity_contract()
 
 def test_every_registered_route_id_is_mounted_in_app_main() -> None:
     registry = load_tier_readiness(registry_path=REGISTRY_PATH, repo_root=REPO_ROOT)
-    mounted_paths = _clean_room_app_route_paths()
+    app_route_payload = _clean_room_app_route_payload()
+    mounted_paths = set(app_route_payload["paths"])
 
     for surface in registry.surfaces:
         for route_id in surface.route_ids:
-            assert route_id in mounted_paths
+            assert route_id in mounted_paths, app_route_payload
 
 
 def test_every_evidence_path_exists_but_producer_artifacts_are_not_ci_checked() -> None:
@@ -191,7 +192,7 @@ def _assert_no_banned_response_language(value: Any) -> None:
     assert not BANNED_RESPONSE_RE.search(flattened)
 
 
-def _clean_room_app_route_paths() -> set[str]:
+def _clean_room_app_route_payload() -> dict[str, Any]:
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         f"{REPO_ROOT}{os.pathsep}{env['PYTHONPATH']}"
@@ -203,11 +204,26 @@ def _clean_room_app_route_paths() -> set[str]:
             sys.executable,
             "-c",
             (
-                "import json; "
+                "import json, sys; "
+                "import fastapi, starlette; "
+                "from app.api.routes import rookies; "
                 "from app.main import app; "
-                "print(json.dumps(sorted("
-                "route.path for route in app.routes if hasattr(route, 'path')"
-                ")))"
+                "import app.main as app_main; "
+                "paths = sorted(route.path for route in app.routes if hasattr(route, 'path')); "
+                "print(json.dumps({"
+                "'paths': paths, "
+                "'diagnostics': {"
+                "'app_main_file': getattr(app_main, '__file__', None), "
+                "'sys_executable': sys.executable, "
+                "'sys_version': sys.version, "
+                "'fastapi_version': fastapi.__version__, "
+                "'starlette_version': starlette.__version__, "
+                "'route_count': len(app.routes), "
+                "'api_route_count': sum(1 for path in paths if path.startswith('/api/')), "
+                "'routes_repr': paths, "
+                "'rookies_router_route_count': len(rookies.router.routes), "
+                "}"
+                "}, sort_keys=True))"
             ),
         ],
         cwd=REPO_ROOT,
@@ -216,4 +232,6 @@ def _clean_room_app_route_paths() -> set[str]:
         check=True,
         text=True,
     )
-    return set(json.loads(result.stdout))
+    payload = json.loads(result.stdout)
+    payload["diagnostics"]["stderr"] = result.stderr
+    return payload
