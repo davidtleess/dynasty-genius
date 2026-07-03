@@ -37,10 +37,9 @@ def test_real_tier_readiness_registry_loads_and_names_roster_capacity_contract()
     registry = load_tier_readiness(registry_path=REGISTRY_PATH, repo_root=REPO_ROOT)
 
     assert registry.registry_version == 1
-    assert [surface.surface_id for surface in registry.surfaces] == [
-        "roster_capacity"
-    ]
-    surface = registry.surfaces[0]
+    surfaces = {surface.surface_id: surface for surface in registry.surfaces}
+    assert "roster_capacity" in surfaces
+    surface = surfaces["roster_capacity"]
     assert surface.ratified_by == "David"
     assert surface.ratified_date == "2026-07-02"
     assert surface.route_ids == ["/api/roster/capacity"]

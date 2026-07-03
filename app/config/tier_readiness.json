@@ -5,9 +5,16 @@
       "surface_id": "roster_capacity",
       "display_name": "Roster Capacity",
       "declared_tier": "tier_1_candidate",
-      "route_ids": ["/api/roster/capacity"],
-      "producer_artifacts": ["app/data/roster_capacity/roster_capacity_latest.json"],
-      "live_preconditions": ["model_provenance_ok", "capture_health_ok"],
+      "route_ids": [
+        "/api/roster/capacity"
+      ],
+      "producer_artifacts": [
+        "app/data/roster_capacity/roster_capacity_latest.json"
+      ],
+      "live_preconditions": [
+        "model_provenance_ok",
+        "capture_health_ok"
+      ],
       "gate_components": [
         {
           "component": "audit_hygiene",
@@ -38,7 +45,127 @@
         },
         {
           "component": "no_directive_copy",
-          "evidence": ["frontend/scripts/check-banned-language.mjs"],
+          "evidence": [
+            "frontend/scripts/check-banned-language.mjs"
+          ],
+          "expectation": "zero directive tokens on the graduated path",
+          "optional": false
+        }
+      ],
+      "ratified_by": "David",
+      "ratified_date": "2026-07-02"
+    },
+    {
+      "surface_id": "daily_what_changed",
+      "display_name": "Daily What-Changed",
+      "declared_tier": "tier_1_candidate",
+      "route_ids": [
+        "/api/league/what-changed"
+      ],
+      "producer_artifacts": [
+        "app/data/what_changed/what_changed_latest_report.json"
+      ],
+      "live_preconditions": [
+        "model_provenance_ok",
+        "capture_health_ok"
+      ],
+      "gate_components": [
+        {
+          "component": "audit_hygiene",
+          "evidence": [
+            "tests/contract/test_daily_what_changed_api.py",
+            "scripts/scan_league_opportunity_no_verdict.py"
+          ],
+          "expectation": "fail-closed route contract and the No-Verdict cordon enforcing on this path",
+          "optional": false
+        },
+        {
+          "component": "deterministic_range_disclosure",
+          "evidence": [
+            "frontend/src/what-changed/DailyWhatChanged.test.tsx",
+            "tests/contract/test_daily_what_changed_diff_engine.py"
+          ],
+          "expectation": "signed neutral deltas with -0 preserved (Object.is); comparison-window dates + semantic_output_hash vintages disclosed; a stale model side reports its window honestly, never a fabricated flat zero delta; gap-dilated deltas guarded by the capture_health_ok live precondition",
+          "optional": false
+        },
+        {
+          "component": "mif_breaker",
+          "evidence": [
+            "src/dynasty_genius/outcome_loop/realized_outcome_scorer.py",
+            "tests/unit/test_realized_outcome_scorer.py"
+          ],
+          "expectation": "model-input-fidelity machinery wired; active-role deviation < 15% when evaluable; off-season = presence probe reporting insufficient_data, never a default pass",
+          "optional": false
+        },
+        {
+          "component": "no_directive_copy",
+          "evidence": [
+            "frontend/scripts/check-banned-language.mjs"
+          ],
+          "expectation": "zero directive tokens on the graduated path",
+          "optional": false
+        }
+      ],
+      "ratified_by": "David",
+      "ratified_date": "2026-07-02"
+    },
+    {
+      "surface_id": "model_trust_console",
+      "display_name": "Model Trust Console",
+      "declared_tier": "tier_1_candidate",
+      "route_ids": [
+        "/api/trust-surface/{position}",
+        "/api/trust-surface/{position}/model-card"
+      ],
+      "producer_artifacts": [
+        "app/data/backtest/trust_surface/latest/backtest_result_QB.json",
+        "app/data/backtest/trust_surface/latest/backtest_result_RB.json",
+        "app/data/backtest/trust_surface/latest/backtest_result_TE.json",
+        "app/data/backtest/trust_surface/latest/backtest_result_WR.json",
+        "app/data/backtest/trust_surface/latest/manifest.json",
+        "app/data/backtest/trust_surface/latest/model_card_source_QB.json",
+        "app/data/backtest/trust_surface/latest/model_card_source_RB.json",
+        "app/data/backtest/trust_surface/latest/model_card_source_TE.json",
+        "app/data/backtest/trust_surface/latest/model_card_source_WR.json"
+      ],
+      "live_preconditions": [
+        "model_provenance_ok",
+        "capture_health_ok"
+      ],
+      "gate_components": [
+        {
+          "component": "audit_hygiene",
+          "evidence": [
+            "tests/contract/test_trust_surface_route.py",
+            "tests/contract/test_trust_publication_audit.py"
+          ],
+          "expectation": "trust route contract + publication audit enforcing on this path",
+          "optional": false
+        },
+        {
+          "component": "deterministic_range_disclosure",
+          "evidence": [
+            "tests/contract/test_harness_trust_w3_modelcard.py",
+            "tests/contract/test_trust_surface_v2.py"
+          ],
+          "expectation": "uncertainty disclosed-or-null, never fabricated (nullable R-squared, BCa CIs with bounds shown); displayed CIs tie to their artifact run \u2014 run-mismatch vs the served model guarded by the model_provenance_ok live precondition",
+          "optional": false
+        },
+        {
+          "component": "mif_breaker",
+          "evidence": [
+            "src/dynasty_genius/outcome_loop/realized_outcome_scorer.py",
+            "tests/unit/test_realized_outcome_scorer.py"
+          ],
+          "expectation": "model-input-fidelity machinery wired; active-role deviation < 15% when evaluable; off-season = presence probe reporting insufficient_data, never a default pass",
+          "optional": false
+        },
+        {
+          "component": "no_directive_copy",
+          "evidence": [
+            "frontend/scripts/check-banned-language.mjs",
+            "frontend/src/trust/ProvenanceFooter.test.jsx"
+          ],
           "expectation": "zero directive tokens on the graduated path",
           "optional": false
         }
