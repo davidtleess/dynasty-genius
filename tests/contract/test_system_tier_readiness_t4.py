@@ -10,7 +10,10 @@ the readiness claim.
 from __future__ import annotations
 
 import json
+import os
 import re
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -53,10 +56,8 @@ def test_real_tier_readiness_registry_loads_and_names_roster_capacity_contract()
 
 
 def test_every_registered_route_id_is_mounted_in_app_main() -> None:
-    from app.main import app
-
     registry = load_tier_readiness(registry_path=REGISTRY_PATH, repo_root=REPO_ROOT)
-    mounted_paths = {route.path for route in app.routes if hasattr(route, "path")}
+    mounted_paths = _clean_room_app_route_paths()
 
     for surface in registry.surfaces:
         for route_id in surface.route_ids:
@@ -188,3 +189,31 @@ def _assert_decision_supported_false_recursive(value: Any) -> None:
 def _assert_no_banned_response_language(value: Any) -> None:
     flattened = json.dumps(value, sort_keys=True)
     assert not BANNED_RESPONSE_RE.search(flattened)
+
+
+def _clean_room_app_route_paths() -> set[str]:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = (
+        f"{REPO_ROOT}{os.pathsep}{env['PYTHONPATH']}"
+        if env.get("PYTHONPATH")
+        else str(REPO_ROOT)
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import json; "
+                "from app.main import app; "
+                "print(json.dumps(sorted("
+                "route.path for route in app.routes if hasattr(route, 'path')"
+                ")))"
+            ),
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    return set(json.loads(result.stdout))
