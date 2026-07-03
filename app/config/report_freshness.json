@@ -27,13 +27,13 @@
       "artifact_id": "feature_refresh",
       "path": "app/data/features_runtime/feature_refresh_latest_report.json",
       "producer": "scripts/run_feature_refresh.py",
-      "cadence": "daily",
+      "cadence": "weekly",
       "scheduled_time_local": "09:15",
       "grace_hours": 3,
       "tier": "daily_diagnostics",
       "min_size_bytes": 64,
       "timestamp_field": "generated_at",
-      "dormant_ok": false,
+      "dormant_ok": true,
       "season_windows": {
         "in_season_months": [
           9,

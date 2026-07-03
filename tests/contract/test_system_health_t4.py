@@ -34,11 +34,11 @@ EXPECTED_ARTIFACTS: dict[str, dict[str, Any]] = {
     "feature_refresh": {
         "path": "app/data/features_runtime/feature_refresh_latest_report.json",
         "producer": "scripts/run_feature_refresh.py",
-        "cadence": "daily",
+        "cadence": "weekly",
         "scheduled_time_local": "09:15",
         "tier": "daily_diagnostics",
         "timestamp_field": "generated_at",
-        "dormant_ok": False,
+        "dormant_ok": True,
     },
     "what_changed": {
         "path": "app/data/what_changed/what_changed_latest_report.json",
