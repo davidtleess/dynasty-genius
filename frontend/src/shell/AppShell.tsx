@@ -8,6 +8,7 @@ import { ProjectTracker } from "../project/ProjectTracker";
 import { RealizedOutcomeScorecard } from "../realized-outcome/RealizedOutcomeScorecard";
 import { RosterAudit } from "../roster/RosterAudit";
 import { RosterCapacitySandbox } from "../roster-capacity/RosterCapacitySandbox";
+import { SystemHealthCard } from "../system-health/SystemHealthCard";
 import { TradeLab } from "../trade/TradeLab";
 import type { CatalogEntry } from "../trade/tradeState";
 import { TrustConsole } from "../trust/TrustConsole";
@@ -105,6 +106,9 @@ export function AppShell() {
           contract test queries; <div role="banner"> trips useSemanticElements instead. */}
       <header className="dg-shell__trust" role="banner" aria-label="Trust strip">
         <TrustStrip position="QB" />
+        {/* Whole-app operational trust (pipeline/data freshness) — a different
+            trust axis from the model-grade TrustStrip; adjacent, never merged. */}
+        <SystemHealthCard />
       </header>
 
       <main className="dg-shell__main">
