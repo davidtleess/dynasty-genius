@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -417,3 +417,57 @@ def rollup_health_status(
     if worst is None:
         return "ok", None
     return "degraded", worst
+
+
+# --- T3: report artifact-facts reader (read-only; spec §2) ----------------------
+
+
+def read_report_artifact_facts(
+    *, config: ReportFreshnessConfig, repo_root: Path
+) -> dict[str, ReportArtifactFact]:
+    """Observe disk facts for each configured artifact (strictly read-only).
+
+    The embedded timestamp is extracted ONLY for artifacts that declare a
+    ``timestamp_field`` — undeclared artifacts are never parsed (their content
+    is not this layer's business). A declared-but-unparseable file yields
+    ``embedded_timestamp_value=None``, which the evaluator fails closed as a
+    malformed embedded timestamp (degrading the report, never the route).
+    """
+
+    facts: dict[str, ReportArtifactFact] = {}
+    for artifact in config.artifacts:
+        path = repo_root / artifact.path
+        # Defense in depth: configs built without the loader (or a compromised
+        # one) still cannot walk outside the repo root.
+        try:
+            if not path.resolve().is_relative_to(repo_root.resolve()):
+                raise _reject(
+                    f"invalid for artifact {artifact.artifact_id!r}: path "
+                    f"{artifact.path!r} resolves outside the repo root"
+                )
+        except OSError as exc:
+            raise _reject(
+                f"invalid for artifact {artifact.artifact_id!r}: path "
+                f"{artifact.path!r} cannot be resolved"
+            ) from exc
+        if not path.is_file():
+            facts[artifact.artifact_id] = ReportArtifactFact(
+                exists=False, size_bytes=None, mtime=None, embedded_timestamp_value=None
+            )
+            continue
+        stat = path.stat()
+        embedded: str | None = None
+        if artifact.timestamp_field is not None:
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                value = payload.get(artifact.timestamp_field)
+                embedded = value if isinstance(value, str) else None
+            except (OSError, ValueError, UnicodeDecodeError):
+                embedded = None
+        facts[artifact.artifact_id] = ReportArtifactFact(
+            exists=True,
+            size_bytes=stat.st_size,
+            mtime=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
+            embedded_timestamp_value=embedded,
+        )
+    return facts
