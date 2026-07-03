@@ -178,10 +178,10 @@ describe("SystemHealthCard RED contract", () => {
 
     const dormant = screen.getByTestId("health-report-feature_refresh");
     const overdue = screen.getByTestId("health-report-what_changed");
-    expect(dormant).toHaveAttribute("data-health-status", "dormant");
-    expect(dormant).not.toHaveAttribute("data-severity", "degraded");
-    expect(overdue).toHaveAttribute("data-health-status", "freshness_overdue");
-    expect(overdue).not.toHaveAttribute("data-severity", "degraded");
+    expect(dormant.getAttribute("data-health-status")).toBe("dormant");
+    expect(dormant.getAttribute("data-severity")).toBeNull();
+    expect(overdue.getAttribute("data-health-status")).toBe("freshness_overdue");
+    expect(overdue.getAttribute("data-severity")).toBeNull();
     expect(within(overdue).getByText(/within grace/i)).toBeTruthy();
   });
 
@@ -216,22 +216,18 @@ describe("SystemHealthCard RED contract", () => {
     );
 
     await screen.findByText(/degraded/i);
-    expect(screen.getByTestId("health-report-core_stale")).toHaveAttribute(
-      "data-severity",
-      "degraded",
-    );
-    expect(screen.getByTestId("health-report-daily_missing")).toHaveAttribute(
-      "data-severity",
-      "degraded",
-    );
-    expect(screen.getByTestId("health-report-aux_stale")).not.toHaveAttribute(
-      "data-severity",
-      "degraded",
-    );
-    expect(screen.getByTestId("health-report-feature_refresh")).not.toHaveAttribute(
-      "data-severity",
-      "degraded",
-    );
+    expect(
+      screen.getByTestId("health-report-core_stale").getAttribute("data-severity"),
+    ).toBe("degraded");
+    expect(
+      screen.getByTestId("health-report-daily_missing").getAttribute("data-severity"),
+    ).toBe("degraded");
+    expect(
+      screen.getByTestId("health-report-aux_stale").getAttribute("data-severity"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("health-report-feature_refresh").getAttribute("data-severity"),
+    ).toBeNull();
   });
 
   it("leads degraded collapsed copy with the worst affected tier and exposes tier severity attributes", async () => {
@@ -245,8 +241,8 @@ describe("SystemHealthCard RED contract", () => {
 
     const card = await screen.findByRole("status", { name: "System diagnostics" });
     expect(within(card).getByText(/degraded.*core_substrate affected/i)).toBeTruthy();
-    expect(card).toHaveAttribute("data-health-status", "degraded");
-    expect(card).toHaveAttribute("data-affected-tier", "core_substrate");
+    expect(card.getAttribute("data-health-status")).toBe("degraded");
+    expect(card.getAttribute("data-affected-tier")).toBe("core_substrate");
   });
 
   it("renders absent, empty, duplicate, and unknown subsystem rows without silent winners", async () => {
@@ -317,9 +313,9 @@ describe("SystemHealthCard RED contract", () => {
     expect(screen.getByText(/no observable timestamp/i)).toBeTruthy();
     expect(screen.getByText("still-not-a-date")).toBeTruthy();
     expect(screen.getByText("2026-07-03T16:00:00+00:00")).toBeTruthy();
-    expect(document.body.textContent).not.toMatch(
-      /Invalid Date|NaN|-\d+\s*(s|m|h|sec|min|hour)/i,
-    );
+    expect(document.body.textContent).not.toMatch(/Invalid Date/i);
+    expect(document.body.textContent).not.toMatch(/NaN/);
+    expect(document.body.textContent).not.toMatch(/-\d+\s*(s|m|h|sec|min|hour)/i);
   });
 
   it("renders the exact disclaimer and decision_supported=false in accessible text", async () => {
@@ -357,7 +353,7 @@ describe("SystemHealthCard RED contract", () => {
 
     const checkedAt = await screen.findByTitle(CHECKED_AT);
     expect(checkedAt.textContent).toMatch(/5\s*(minutes|min|m)/i);
-    expect(checkedAt).toHaveAttribute("title", CHECKED_AT);
+    expect(checkedAt.getAttribute("title")).toBe(CHECKED_AT);
   });
 
   it("mounts in the AppShell header alongside the existing TrustStrip", async () => {
