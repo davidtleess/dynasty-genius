@@ -1,10 +1,11 @@
-fastapi
+fastapi==0.136.1
+starlette==1.0.0
 uvicorn[standard]
-httpx
+httpx==0.28.1
 beautifulsoup4
 playwright
 python-dotenv
-pydantic>=2.0,<3.0
+pydantic==2.13.4
 jellyfish>=1.0,<2.0
 rapidfuzz>=3.0,<4.0
 requests
@@ -12,5 +13,5 @@ nflreadpy
 polars
 pyarrow
 pandas
-scikit-learn
+scikit-learn==1.8.0
 pytest==8.4.2
