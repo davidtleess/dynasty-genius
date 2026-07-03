@@ -215,6 +215,28 @@ export type CohortMetric = {
 };
 
 /**
+ * ComponentReadiness
+ */
+export type ComponentReadiness = {
+    /**
+     * Basis
+     */
+    basis: string;
+    /**
+     * Component
+     */
+    component: string;
+    /**
+     * Component Status
+     */
+    component_status: 'pass' | 'insufficient_data' | 'fail' | 'not_applicable';
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+};
+
+/**
  * CounterArgumentField
  */
 export type CounterArgumentField = {
@@ -2500,6 +2522,99 @@ export type StoreTimeline = {
 };
 
 /**
+ * SurfaceReadiness
+ *
+ * Runtime readiness for one surface. Root-level dormancy disclosure is
+ * mandatory (R2): the headline `_limited` status plus machine-readable
+ * counts, so a UI can never render an unqualified badge over dormant
+ * components.
+ */
+export type SurfaceReadiness = {
+    /**
+     * All Components Evaluable
+     */
+    all_components_evaluable: boolean;
+    /**
+     * Basis
+     */
+    basis: string;
+    /**
+     * Components
+     */
+    components: Array<ComponentReadiness>;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Insufficient Data Components
+     */
+    insufficient_data_components: Array<string>;
+    /**
+     * Insufficient Data Count
+     */
+    insufficient_data_count: number;
+    /**
+     * Live Preconditions
+     */
+    live_preconditions: {
+        [key: string]: string;
+    };
+    /**
+     * Surface Id
+     */
+    surface_id: string;
+    /**
+     * Tier Status
+     */
+    tier_status: 'diagnostic_grade_active' | 'diagnostic_grade_active_limited' | 'preconditions_degraded' | 'not_graduated';
+};
+
+/**
+ * TierReadinessErrorResponse
+ */
+export type TierReadinessErrorResponse = {
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Error
+     */
+    error: string;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * TierReadinessResponse
+ */
+export type TierReadinessResponse = {
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Overall Status
+     */
+    overall_status: 'ok' | 'degraded';
+    /**
+     * Registry Version
+     */
+    registry_version: number;
+    /**
+     * Surfaces
+     */
+    surfaces: Array<SurfaceReadiness>;
+};
+
+/**
  * TopKResult
  */
 export type TopKResult = {
@@ -3961,6 +4076,31 @@ export type GetModelProvenanceApiSystemModelProvenanceGetResponses = {
 };
 
 export type GetModelProvenanceApiSystemModelProvenanceGetResponse = GetModelProvenanceApiSystemModelProvenanceGetResponses[keyof GetModelProvenanceApiSystemModelProvenanceGetResponses];
+
+export type GetTierReadinessApiSystemTierReadinessGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/system/tier-readiness';
+};
+
+export type GetTierReadinessApiSystemTierReadinessGetErrors = {
+    /**
+     * Service Unavailable
+     */
+    503: TierReadinessErrorResponse;
+};
+
+export type GetTierReadinessApiSystemTierReadinessGetError = GetTierReadinessApiSystemTierReadinessGetErrors[keyof GetTierReadinessApiSystemTierReadinessGetErrors];
+
+export type GetTierReadinessApiSystemTierReadinessGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: TierReadinessResponse;
+};
+
+export type GetTierReadinessApiSystemTierReadinessGetResponse = GetTierReadinessApiSystemTierReadinessGetResponses[keyof GetTierReadinessApiSystemTierReadinessGetResponses];
 
 export type AnalyzeApiTradeAnalyzePostData = {
     body: TradeRequest;
