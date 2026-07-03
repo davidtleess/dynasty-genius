@@ -59,7 +59,6 @@ EXPECTED_ARTIFACTS: dict[str, dict[str, Any]] = {
         "min_size_bytes": 64,
         "timestamp_field": "created_at",
         "dormant_ok": False,
-        "season_windows": {"in_season_months": [9, 10, 11, 12, 1]},
     },
     "league_opportunity": {
         "path": "app/data/valuation/league_opportunity_latest.json",
@@ -71,7 +70,6 @@ EXPECTED_ARTIFACTS: dict[str, dict[str, Any]] = {
         "min_size_bytes": 64,
         "timestamp_field": "captured_at",
         "dormant_ok": False,
-        "season_windows": {"in_season_months": [9, 10, 11, 12, 1]},
     },
     "realized_outcome": {
         # Real-shape source of truth: the route, producer default, and LaunchAgent
