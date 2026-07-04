@@ -169,6 +169,14 @@ def test_observability_window_excludes_unobservable_horizons_not_denominator_row
     ]
 
 
+def test_empty_role_source_fails_closed_instead_of_fabricating_observability() -> None:
+    with pytest.raises(ValueError, match="role.*source.*empty"):
+        _compute(
+            rosters=[_roster("old_qb", entry_year=2018, draft_number=1)],
+            roles=[],
+        )
+
+
 def test_games_only_fallback_counts_basis_and_absent_role_row_is_negative() -> None:
     artifact = _compute(
         rosters=[
@@ -202,6 +210,29 @@ def test_roster_repeats_collapse_but_conflicting_draft_metadata_fails_closed() -
             ],
             roles=[],
         )
+
+
+def test_roster_sparse_na_draft_numbers_coalesce_to_known_slot_without_order_dependence() -> None:
+    artifact_na_first = _compute(
+        rosters=[
+            _roster("sparse_qb", entry_year=2020, draft_number=None, season=2020),
+            _roster("sparse_qb", entry_year=2020, draft_number=12, season=2021),
+        ],
+        roles=[_role("sparse_qb", season=2021, games=8, snap_share=0.5)],
+    )
+    artifact_slot_first = _compute(
+        rosters=[
+            _roster("sparse_qb", entry_year=2020, draft_number=12, season=2021),
+            _roster("sparse_qb", entry_year=2020, draft_number=None, season=2020),
+        ],
+        roles=[_role("sparse_qb", season=2021, games=8, snap_share=0.5)],
+    )
+
+    assert _row(artifact_na_first, "round_1_picks_1_32", 1)["n"] == 1
+    assert _row(artifact_na_first, "undrafted", 1)["n"] == 0
+    assert _row(artifact_slot_first, "round_1_picks_1_32", 1)["n"] == 1
+    assert _row(artifact_slot_first, "undrafted", 1)["n"] == 0
+    assert artifact_na_first["rows"] == artifact_slot_first["rows"]
 
 
 def test_identity_failures_are_quarantined_not_counted_as_negative() -> None:
@@ -240,16 +271,59 @@ def test_artifact_schema_and_prediction_check_are_report_only() -> None:
     assert artifact["decision_supported"] is False
     assert artifact["prediction_check"]["status"] == "report_only"
     assert artifact["prediction_check"]["gating"] is False
+    expected_checks = {
+        ("round_1_picks_1_32", 1),
+        ("round_2_picks_33_64", 1),
+        ("day3_picks_65_plus", 2),
+        ("undrafted", 1),
+    }
+    observed_checks = {
+        (check["capital_band"], check["horizon"])
+        for check in artifact["prediction_check"]["checks"]
+    }
+    assert observed_checks == expected_checks
     assert any(
         check["status"] == "outside_pre_registered_range"
         for check in artifact["prediction_check"]["checks"]
     )
 
 
-def test_validate_prior_table_fails_duplicate_cells_and_null_consumed_h1() -> None:
+def test_pre_registered_prediction_ranges_are_defaulted_for_real_run() -> None:
+    module = _module()
+    artifact = module.compute_rookie_qb_unconditioned_priors(
+        rosters=pd.DataFrame([_roster("round1_qb", entry_year=2020, draft_number=1)]),
+        role_rows=pd.DataFrame([_role("round1_qb", season=2021, games=8, snap_share=0.5)]),
+        generated_at=GENERATED_AT,
+        generation_command=GENERATION_COMMAND,
+        machinery_repo_sha=MACHINERY_SHA,
+        source_caveat=SOURCE_CAVEAT,
+        cohort_entry_years=tuple(range(2018, 2024)),
+        horizons=(1, 2, 3),
+    )
+
+    observed_checks = {
+        (check["capital_band"], check["horizon"])
+        for check in artifact["prediction_check"]["checks"]
+    }
+    assert observed_checks == {
+        ("round_1_picks_1_32", 1),
+        ("round_2_picks_33_64", 1),
+        ("day3_picks_65_plus", 2),
+        ("undrafted", 1),
+    }
+    assert artifact["prediction_check"]["status"] == "report_only"
+    assert artifact["prediction_check"]["gating"] is False
+
+
+def test_validate_prior_table_fails_duplicate_cells_and_requires_all_h1_bands() -> None:
     module = _module()
     artifact = _compute(
-        rosters=[_roster("round1_qb", entry_year=2020, draft_number=1)],
+        rosters=[
+            _roster("round1_qb", entry_year=2020, draft_number=1),
+            _roster("round2_qb", entry_year=2020, draft_number=40),
+            _roster("day3_qb", entry_year=2020, draft_number=100),
+            _roster("udfa_qb", entry_year=2020, draft_number=None),
+        ],
         roles=[_role("round1_qb", season=2021, games=8, snap_share=0.5)],
     )
     module.validate_rookie_qb_prior_table(artifact)
@@ -267,7 +341,7 @@ def test_validate_prior_table_fails_duplicate_cells_and_null_consumed_h1() -> No
             for row in artifact["rows"]
         ],
     }
-    with pytest.raises(ValueError, match="runtime-consumed H1.*n > 0"):
+    with pytest.raises(ValueError, match="runtime-consumed H1.*all capital bands"):
         module.validate_rookie_qb_prior_table(null_h1)
 
 
