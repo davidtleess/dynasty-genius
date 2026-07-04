@@ -20,6 +20,19 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+# The registered posture-signal weights (League Pulse graduation contract,
+# league_pulse_fe_mitigation_v1): the FE mitigation basis mirrors this
+# constant, and the graduation RED source-reads it — a weight change that
+# falsifies the David-facing disclosure fails tests. Behavior-preserving
+# export of the previously inline arithmetic.
+POSTURE_SIGNAL_WEIGHTS = {
+    "starter_weighted_model_value": 0.60,
+    "roster_age_profile": 0.20,
+    "early_draft_pick_balance": 0.15,
+    "taxi_development_stash": 0.05,
+}
+
+
 def _team_strength(team: dict[str, Any]) -> float:
     return _safe_float((team.get("team_value_views") or {}).get("starter_weighted_xvar"))
 
@@ -114,7 +127,13 @@ def build_team_posture_artifact(
             pick_score=pick_score,
             stash_score=stash_score,
         )
-        posture_score = round((strength_z * 0.60) + (age_score * 0.20) + (pick_score * 0.15) + (stash_score * 0.05), 3)
+        posture_score = round(
+            (strength_z * POSTURE_SIGNAL_WEIGHTS["starter_weighted_model_value"])
+            + (age_score * POSTURE_SIGNAL_WEIGHTS["roster_age_profile"])
+            + (pick_score * POSTURE_SIGNAL_WEIGHTS["early_draft_pick_balance"])
+            + (stash_score * POSTURE_SIGNAL_WEIGHTS["taxi_development_stash"]),
+            3,
+        )
         posture_rows.append(
             {
                 "roster_id": int(team["roster_id"]),
