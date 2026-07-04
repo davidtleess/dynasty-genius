@@ -1,0 +1,540 @@
+{
+  "evidence_metadata": {
+    "generated_at": "2026-07-04T11:36:09.780073+00:00",
+    "machinery_repo_sha": "0c304f2d3008e5808e1ee64068d132e4c9dc391c",
+    "generation_command": ".venv/bin/python3.14 scripts/assemble_qb_v3_validation_evidence.py",
+    "reproducible_from": "the T5 decision-record commit (which adds this script) or later",
+    "random_state": 20260703,
+    "source_caveat": "nflreadpy source snapshot as of generation date; 2025-season data may still shift as the season finalizes \u2014 this evidence is a point-in-time record, not a live feed.",
+    "artifact_status": "validation_evidence_snapshot \u2014 not a deployment artifact",
+    "label_row_count": 743,
+    "decision_supported": false
+  },
+  "validation_report": {
+    "candidate_head": "qb_v3_candidate",
+    "model_family": "regularized_logistic_regression",
+    "top_k": 12,
+    "test_years": [
+      2020,
+      2021,
+      2022,
+      2023
+    ],
+    "n_bootstrap": 500,
+    "random_state": 20260703,
+    "fold_horizon_metrics": [
+      {
+        "fold_index": 3,
+        "test_year": 2022,
+        "horizon": 1,
+        "model_family": "regularized_logistic_regression",
+        "n_test_rows": 32,
+        "brier_score": 0.17468576689064613,
+        "baseline_brier_score": 0.2243861454046639,
+        "brier_delta": 0.0497003785140178,
+        "roc_auc": 0.7818181818181817,
+        "auc_delta": 0.28181818181818175,
+        "top_k": 12,
+        "top_k_precision": 0.9166666666666666,
+        "brier_delta_bca_ci": {
+          "lower": -0.015842552707243593,
+          "upper": 0.13113656296025777,
+          "method": "BCa"
+        },
+        "auc_delta_bca_ci": {
+          "lower": 0.07229871084341763,
+          "upper": 0.40625,
+          "method": "BCa"
+        },
+        "decision_supported": false
+      },
+      {
+        "fold_index": 1,
+        "test_year": 2020,
+        "horizon": 2,
+        "model_family": "regularized_logistic_regression",
+        "n_test_rows": 35,
+        "brier_score": 0.22278365348747883,
+        "baseline_brier_score": 0.21575915730515866,
+        "brier_delta": -0.007024496182320182,
+        "roc_auc": 0.6704545454545454,
+        "auc_delta": 0.17045454545454541,
+        "top_k": 12,
+        "top_k_precision": 0.8333333333333334,
+        "brier_delta_bca_ci": {
+          "lower": -0.11579604467020438,
+          "upper": 0.0639918592527958,
+          "method": "BCa"
+        },
+        "auc_delta_bca_ci": {
+          "lower": -0.0746153567401185,
+          "upper": 0.3239436619227001,
+          "method": "BCa"
+        },
+        "decision_supported": false
+      },
+      {
+        "fold_index": 2,
+        "test_year": 2021,
+        "horizon": 2,
+        "model_family": "regularized_logistic_regression",
+        "n_test_rows": 33,
+        "brier_score": 0.2251428102583105,
+        "baseline_brier_score": 0.2468543567159484,
+        "brier_delta": 0.021711546457637933,
+        "roc_auc": 0.7346153846153847,
+        "auc_delta": 0.23461538461538467,
+        "top_k": 12,
+        "top_k_precision": 0.8333333333333334,
+        "brier_delta_bca_ci": {
+          "lower": -0.08546954436111191,
+          "upper": 0.09614804524548136,
+          "method": "BCa"
+        },
+        "auc_delta_bca_ci": {
+          "lower": 0.007726268548034032,
+          "upper": 0.3782608695652174,
+          "method": "BCa"
+        },
+        "decision_supported": false
+      },
+      {
+        "fold_index": 4,
+        "test_year": 2023,
+        "horizon": 2,
+        "model_family": "regularized_logistic_regression",
+        "n_test_rows": 36,
+        "brier_score": 0.2125910946679469,
+        "baseline_brier_score": 0.24276994912370867,
+        "brier_delta": 0.030178854455761787,
+        "roc_auc": 0.7207792207792207,
+        "auc_delta": 0.22077922077922074,
+        "top_k": 12,
+        "top_k_precision": 1.0,
+        "brier_delta_bca_ci": {
+          "lower": -0.07061500537777027,
+          "upper": 0.10294480199362824,
+          "method": "BCa"
+        },
+        "auc_delta_bca_ci": {
+          "lower": -0.027923782871163615,
+          "upper": 0.35161439049697785,
+          "method": "BCa"
+        },
+        "decision_supported": false
+      },
+      {
+        "fold_index": 1,
+        "test_year": 2020,
+        "horizon": 3,
+        "model_family": "regularized_logistic_regression",
+        "n_test_rows": 35,
+        "brier_score": 0.2662798478926619,
+        "baseline_brier_score": 0.25908411036501927,
+        "brier_delta": -0.0071957375276426715,
+        "roc_auc": 0.696078431372549,
+        "auc_delta": 0.196078431372549,
+        "top_k": 12,
+        "top_k_precision": 0.75,
+        "brier_delta_bca_ci": {
+          "lower": -0.10596771047123667,
+          "upper": 0.09101719540664452,
+          "method": "BCa"
+        },
+        "auc_delta_bca_ci": {
+          "lower": -0.029773833454733507,
+          "upper": 0.3398694381280591,
+          "method": "BCa"
+        },
+        "decision_supported": false
+      },
+      {
+        "fold_index": 2,
+        "test_year": 2021,
+        "horizon": 3,
+        "model_family": "regularized_logistic_regression",
+        "n_test_rows": 33,
+        "brier_score": 0.24641028570588927,
+        "baseline_brier_score": 0.23903393799587574,
+        "brier_delta": -0.007376347710013567,
+        "roc_auc": 0.742063492063492,
+        "auc_delta": 0.24206349206349198,
+        "top_k": 12,
+        "top_k_precision": 0.9166666666666666,
+        "brier_delta_bca_ci": {
+          "lower": -0.11891037494741885,
+          "upper": 0.07815851079665409,
+          "method": "BCa"
+        },
+        "auc_delta_bca_ci": {
+          "lower": 0.019778420488664877,
+          "upper": 0.37159212303128514,
+          "method": "BCa"
+        },
+        "decision_supported": false
+      },
+      {
+        "fold_index": 3,
+        "test_year": 2022,
+        "horizon": 3,
+        "model_family": "regularized_logistic_regression",
+        "n_test_rows": 32,
+        "brier_score": 0.20605359277604826,
+        "baseline_brier_score": 0.23296124828532233,
+        "brier_delta": 0.026907655509274105,
+        "roc_auc": 0.7662337662337662,
+        "auc_delta": 0.26623376623376616,
+        "top_k": 12,
+        "top_k_precision": 1.0,
+        "brier_delta_bca_ci": {
+          "lower": -0.0855657680975185,
+          "upper": 0.09784957302859967,
+          "method": "BCa"
+        },
+        "auc_delta_bca_ci": {
+          "lower": 0.03877943475149728,
+          "upper": 0.3833333333333333,
+          "method": "BCa"
+        },
+        "decision_supported": false
+      }
+    ],
+    "exclusions": [
+      {
+        "fold_index": 1,
+        "test_year": 2020,
+        "horizon": 1,
+        "reason": "low_sample_qb_holdout"
+      },
+      {
+        "fold_index": 2,
+        "test_year": 2021,
+        "horizon": 1,
+        "reason": "low_sample_qb_holdout"
+      },
+      {
+        "fold_index": 4,
+        "test_year": 2023,
+        "horizon": 1,
+        "reason": "low_sample_qb_holdout"
+      },
+      {
+        "fold_index": 3,
+        "test_year": 2022,
+        "horizon": 2,
+        "reason": "low_sample_qb_holdout"
+      }
+    ],
+    "horizon_summary": {
+      "1": {
+        "structural_fold_count": 4,
+        "minimum_evaluable_folds": 3,
+        "evaluable_fold_count": 1,
+        "metric_average_fold_count": 1,
+        "excluded_fold_count": 3,
+        "promotion_eligible": false,
+        "non_promotion_reason": "insufficient_evaluable_structural_folds",
+        "decision_supported": false,
+        "avg_brier_delta": 0.0497003785140178
+      },
+      "2": {
+        "structural_fold_count": 4,
+        "minimum_evaluable_folds": 3,
+        "evaluable_fold_count": 3,
+        "metric_average_fold_count": 3,
+        "excluded_fold_count": 1,
+        "promotion_eligible": false,
+        "non_promotion_reason": "bca_ci_lower_not_above_zero",
+        "decision_supported": false,
+        "avg_brier_delta": 0.014955301577026514
+      },
+      "3": {
+        "structural_fold_count": 3,
+        "minimum_evaluable_folds": 2,
+        "evaluable_fold_count": 3,
+        "metric_average_fold_count": 3,
+        "excluded_fold_count": 0,
+        "promotion_eligible": false,
+        "non_promotion_reason": "bca_ci_lower_not_above_zero",
+        "decision_supported": false,
+        "avg_brier_delta": 0.004111856757205956
+      }
+    },
+    "decision_supported": false,
+    "label_diagnostics": {
+      "quarantined_player_ids": [
+        "00-0021206",
+        "00-0022787",
+        "00-0023645",
+        "00-0023662",
+        "00-0025708",
+        "00-0026300",
+        "00-0026898",
+        "00-0027796",
+        "00-0027854",
+        "00-0029623",
+        "00-0029668",
+        "00-0029677",
+        "00-0029682",
+        "00-0029857",
+        "00-0030151",
+        "00-0030533",
+        "00-0031076",
+        "00-0031288",
+        "00-0031395",
+        "00-0031407",
+        "00-0031589",
+        "00-0032245",
+        "00-0032436",
+        "00-0032792",
+        "00-0033104",
+        "00-0033550",
+        "00-0033597",
+        "00-0033899",
+        "00-0033958",
+        "00-0034131",
+        "00-0034177",
+        "00-0034369",
+        "00-0034412",
+        "00-0034899",
+        "00-0034955",
+        "00-0035040",
+        "00-0035146",
+        "00-0035251",
+        "00-0035264",
+        "00-0035282",
+        "00-0035577",
+        "00-0035652",
+        "00-0035752",
+        "00-0035939",
+        "00-0036197",
+        "00-0036226",
+        "00-0036312",
+        "00-0036384",
+        "00-0036433",
+        "00-0036679",
+        "00-0036879",
+        "00-0036928",
+        "00-0036929",
+        "00-0036946",
+        "00-0037077",
+        "00-0037175",
+        "00-0037324",
+        "00-0037327",
+        "00-0038391",
+        "00-0038476",
+        "00-0038550",
+        "00-0038598",
+        "00-0038658",
+        "00-0038998",
+        "00-0039577",
+        "00-0040673"
+      ],
+      "quarantine_reasons": {
+        "00-0021206": "unknown_player_id",
+        "00-0022787": "unknown_player_id",
+        "00-0023645": "unknown_player_id",
+        "00-0023662": "unknown_player_id",
+        "00-0025708": "unknown_player_id",
+        "00-0026300": "unknown_player_id",
+        "00-0026898": "unknown_player_id",
+        "00-0027796": "unknown_player_id",
+        "00-0027854": "unknown_player_id",
+        "00-0029623": "unknown_player_id",
+        "00-0029668": "unknown_player_id",
+        "00-0029677": "unknown_player_id",
+        "00-0029682": "unknown_player_id",
+        "00-0029857": "unknown_player_id",
+        "00-0030151": "unknown_player_id",
+        "00-0030533": "unknown_player_id",
+        "00-0031076": "unknown_player_id",
+        "00-0031288": "unknown_player_id",
+        "00-0031395": "unknown_player_id",
+        "00-0031407": "unknown_player_id",
+        "00-0031589": "unknown_player_id",
+        "00-0032245": "unknown_player_id",
+        "00-0032436": "unknown_player_id",
+        "00-0032792": "unknown_player_id",
+        "00-0033104": "unknown_player_id",
+        "00-0033550": "unknown_player_id",
+        "00-0033597": "unknown_player_id",
+        "00-0033899": "unknown_player_id",
+        "00-0033958": "unknown_player_id",
+        "00-0034131": "unknown_player_id",
+        "00-0034177": "unknown_player_id",
+        "00-0034369": "unknown_player_id",
+        "00-0034412": "unknown_player_id",
+        "00-0034899": "unknown_player_id",
+        "00-0034955": "unknown_player_id",
+        "00-0035040": "unknown_player_id",
+        "00-0035146": "unknown_player_id",
+        "00-0035251": "unknown_player_id",
+        "00-0035264": "unknown_player_id",
+        "00-0035282": "unknown_player_id",
+        "00-0035577": "unknown_player_id",
+        "00-0035652": "unknown_player_id",
+        "00-0035752": "unknown_player_id",
+        "00-0035939": "unknown_player_id",
+        "00-0036197": "unknown_player_id",
+        "00-0036226": "unknown_player_id",
+        "00-0036312": "unknown_player_id",
+        "00-0036384": "unknown_player_id",
+        "00-0036433": "unknown_player_id",
+        "00-0036679": "unknown_player_id",
+        "00-0036879": "unknown_player_id",
+        "00-0036928": "unknown_player_id",
+        "00-0036929": "unknown_player_id",
+        "00-0036946": "unknown_player_id",
+        "00-0037077": "unknown_player_id",
+        "00-0037175": "unknown_player_id",
+        "00-0037324": "unknown_player_id",
+        "00-0037327": "unknown_player_id",
+        "00-0038391": "unknown_player_id",
+        "00-0038476": "unknown_player_id",
+        "00-0038550": "unknown_player_id",
+        "00-0038598": "unknown_player_id",
+        "00-0038658": "unknown_player_id",
+        "00-0038998": "unknown_player_id",
+        "00-0039577": "unknown_player_id",
+        "00-0040673": "unknown_player_id"
+      },
+      "games_only_share_by_season": {
+        "2019": {
+          "share": 0.08108108108108109,
+          "status": "fail"
+        },
+        "2020": {
+          "share": 0.07692307692307693,
+          "status": "fail"
+        },
+        "2021": {
+          "share": 0.05357142857142857,
+          "status": "fail"
+        },
+        "2022": {
+          "share": 0.04310344827586207,
+          "status": "ok"
+        },
+        "2023": {
+          "share": 0.0,
+          "status": "ok"
+        },
+        "2024": {
+          "share": 0.0078125,
+          "status": "ok"
+        },
+        "2025": {
+          "share": 0.0,
+          "status": "ok"
+        }
+      },
+      "decision_supported": false
+    },
+    "abstention_diagnostics": {
+      "candidate_head": "qb_v3_candidate",
+      "excluded_non_qb_count": 0,
+      "draft_capital_prior_basis": "fixed_pre_registered_rule",
+      "abstention_counts": {
+        "small_sample_qb": 72,
+        "day3_rookie": 13,
+        "undrafted_rookie": 3
+      },
+      "label_rows": 743,
+      "decision_supported": false
+    }
+  },
+  "cohort_prior_table": {
+    "population": "labeled QB feature-seasons with NFL year 1-3 at feature time (the fork-A prior window), 2018-2023 feature seasons \u2014 CONDITIONED on the games>=4 feature floor: these are young QBs who actually played, not a full draft class; survival rates therefore embed an opportunity/selection effect",
+    "band_definition": "draft_number 1-32 / 33-64 / 65+ / undrafted (the registered fork-A pick bands)",
+    "label_basis": "startable_role_occupancy@H (games >= 8 AND snap_share >= 0.50; games_only fallback and conflations disclosed in the label diagnostics)",
+    "note": "evidence/baseline context \u2014 does NOT silently replace the registered T4 rookie-filter v1 priors (a different, unconditioned population); any prior update is a separate David-gated change",
+    "rows": [
+      {
+        "capital_band": "day3_picks_65_plus",
+        "horizon": 1,
+        "n": 18,
+        "positives": 9,
+        "survival_rate": 0.5
+      },
+      {
+        "capital_band": "day3_picks_65_plus",
+        "horizon": 2,
+        "n": 18,
+        "positives": 2,
+        "survival_rate": 0.111
+      },
+      {
+        "capital_band": "day3_picks_65_plus",
+        "horizon": 3,
+        "n": 12,
+        "positives": 4,
+        "survival_rate": 0.333
+      },
+      {
+        "capital_band": "round_1_picks_1_32",
+        "horizon": 1,
+        "n": 56,
+        "positives": 51,
+        "survival_rate": 0.911
+      },
+      {
+        "capital_band": "round_1_picks_1_32",
+        "horizon": 2,
+        "n": 56,
+        "positives": 45,
+        "survival_rate": 0.804
+      },
+      {
+        "capital_band": "round_1_picks_1_32",
+        "horizon": 3,
+        "n": 48,
+        "positives": 36,
+        "survival_rate": 0.75
+      },
+      {
+        "capital_band": "round_2_picks_33_64",
+        "horizon": 1,
+        "n": 7,
+        "positives": 5,
+        "survival_rate": 0.714
+      },
+      {
+        "capital_band": "round_2_picks_33_64",
+        "horizon": 2,
+        "n": 7,
+        "positives": 3,
+        "survival_rate": 0.429
+      },
+      {
+        "capital_band": "round_2_picks_33_64",
+        "horizon": 3,
+        "n": 6,
+        "positives": 3,
+        "survival_rate": 0.5
+      },
+      {
+        "capital_band": "undrafted",
+        "horizon": 1,
+        "n": 6,
+        "positives": 0,
+        "survival_rate": 0.0
+      },
+      {
+        "capital_band": "undrafted",
+        "horizon": 2,
+        "n": 6,
+        "positives": 1,
+        "survival_rate": 0.167
+      },
+      {
+        "capital_band": "undrafted",
+        "horizon": 3,
+        "n": 5,
+        "positives": 0,
+        "survival_rate": 0.0
+      }
+    ],
+    "decision_supported": false
+  },
+  "decision_supported": false
+}
