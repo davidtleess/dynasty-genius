@@ -102,6 +102,15 @@ S3_INVIOLATE_SHA256 = {
 # (any other new, unlisted eval file still fails this audit). All permanent S4 guardrails
 # remain UNCHANGED: S4-module isolation, S3 byte-locks, AST anti-laundering, mock/market
 # isolation, banned-language/decision_supported, and the Engine A/B leakage wall.
+#
+# ADDENDUM (2026-07-03, David-authorized — BUILD-4 T3 Superflex-QB candidate validation):
+# qb_v3_walk_forward.py is added to AUTHORIZED_EVAL_FILES below. It is a pre-registered
+# diagnostic/eval module per the ratified BUILD-4 spec
+# docs/superpowers/specs/2026-07-03-build4-superflex-qb-design.md (df64699): the qb_v3
+# classification walk-forward validation driver. No Engine A/B active artifact change,
+# no PVO/scoring/UI change, market wall unchanged, decision_supported=False throughout.
+# This EXTENDS the authorized set only; the exact-set allowlist semantics are preserved
+# (any other new, unlisted eval file still fails this audit).
 AUTHORIZED_EVAL_FILES = {
     "__init__.py",
     "backtest_artifact.py",
@@ -116,6 +125,7 @@ AUTHORIZED_EVAL_FILES = {
     "gate4_divergence_edge.py",
     "market_snapshot_store.py",
     "model_card.py",
+    "qb_v3_walk_forward.py",
     "subpopulation_landscape.py",
     "te_archetype_bakeoff.py",
     "te_regularization_bakeoff.py",
