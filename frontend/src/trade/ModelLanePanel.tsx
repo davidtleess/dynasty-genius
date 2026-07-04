@@ -26,6 +26,7 @@ export function ModelLanePanel({
       className="dg-lane dg-lane--model"
       data-lane="model"
       data-testid="model-lane"
+      data-visual-weight="equal"
     >
       <h3 className="dg-lane__title">Model view (xVAR)</h3>
       <dl className="dg-lane__metrics">
