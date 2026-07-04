@@ -143,14 +143,24 @@ def _build_candidate(
 
 def test_existing_qb_v2_contract_is_untouched_and_rejects_candidate_columns() -> None:
     module = _matrix_module()
-    candidate_cols = sorted(module.ENGINE_B_FEATURES_QB_V3_CANDIDATE)
+    candidate_cols = list(module.ENGINE_B_FEATURES_QB_V3_CANDIDATE)
 
     assert "draft_capital_prior" not in ENGINE_B_FEATURES_QB
     assert "dual_threat_x_age" not in ENGINE_B_FEATURES_QB
     with pytest.raises(ValueError, match="not in allowed"):
-        validate_position_feature_contract("QB", candidate_cols)
+        validate_position_feature_contract("QB", sorted(candidate_cols))
 
     module.validate_qb_v3_candidate_feature_contract(candidate_cols)
+
+
+def test_candidate_feature_columns_have_deterministic_order() -> None:
+    module = _matrix_module()
+
+    assert list(module.ENGINE_B_FEATURES_QB_V3_CANDIDATE) == [
+        *sorted(ENGINE_B_FEATURES_QB),
+        "draft_capital_prior",
+        "dual_threat_x_age",
+    ]
 
 
 def test_candidate_validator_rejects_market_and_raw_draft_columns() -> None:
@@ -312,6 +322,47 @@ def test_abstention_mask_precedes_scoring_and_discloses_day3_and_small_sample() 
         "small_sample_qb": 1,
     }
     assert "candidate_probability" not in set(_candidate_matrix(result).columns)
+
+
+def test_undrafted_rookie_keeps_prior_but_abstains_before_scoring() -> None:
+    result = _build_candidate(
+        _feature_rows(_qb_feature_row("udfa_rookie", 2025, games_t=8)),
+        _draft_rows(
+            {
+                "player_id": "udfa_rookie",
+                "draft_number": pd.NA,
+                "entry_year": 2025,
+                "round": pd.NA,
+                "pick": pd.NA,
+                "draft_year": 2025,
+                "college": "Undrafted U",
+            }
+        ),
+    )
+
+    matrix = _candidate_matrix(result).set_index("player_id")
+    mask = _eligibility_mask(result).set_index(["player_id", "feature_season"])
+
+    assert matrix.loc["udfa_rookie", "draft_capital_prior"] == pytest.approx(0.05)
+    assert bool(mask.loc[("udfa_rookie", 2025), "eligible_for_qb_v3_candidate"]) is False
+    assert mask.loc[("udfa_rookie", 2025), "abstention_reason"] == "undrafted_rookie"
+    assert _diagnostics(result)["abstention_counts"] == {"undrafted_rookie": 1}
+
+
+def test_missing_draft_prior_row_fails_closed_through_mask_metadata() -> None:
+    result = _build_candidate(
+        _feature_rows(_qb_feature_row("missing_prior_qb", 2025, games_t=8)),
+        _draft_rows(),
+    )
+
+    matrix = _candidate_matrix(result).set_index("player_id")
+    mask = _eligibility_mask(result).set_index(["player_id", "feature_season"])
+
+    assert matrix.loc["missing_prior_qb", "draft_capital_prior"] == pytest.approx(0.0)
+    assert pd.isna(mask.loc[("missing_prior_qb", 2025), "nfl_year_at_feature"])
+    assert bool(mask.loc[("missing_prior_qb", 2025), "eligible_for_qb_v3_candidate"]) is False
+    assert mask.loc[("missing_prior_qb", 2025), "abstention_reason"] == "draft_prior_missing"
+    assert _diagnostics(result)["abstention_counts"] == {"draft_prior_missing": 1}
 
 
 def test_dual_threat_age_interaction_exists_without_hardcoded_age_cliff() -> None:
