@@ -191,16 +191,22 @@ Closes when:
 
 Closes when David has tested every decision surface against a real recent decision (a real rookie pick he made, a real trade he was offered) and the system's outputs are auditable end-to-end.
 
-## Current measured status (as of 2026-04-30)
+## Current measured status (as of 2026-05-02; table reconciled 2026-07-04)
 
-Latest validation report: `app/data/models/runs/20260430T211956Z/validation_report.json`
+Latest validation report: `app/data/models/runs/20260502T153931Z/validation_report.json`
 
 | Position | Train rows | Holdout rows | R² | Spearman | Top-K hit | RMSE stability | Null coverage | Model grade | Caveats |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | WR | 193 | 35 | 0.408 | tbd | tbd | n/a (1 fold) | 1.0 within training | C | — |
-| RB | 129 | 19 | 0.509 | tbd | tbd | n/a (1 fold) | 1.0 | C | — |
-| TE | 87 | 11 | 0.197 | tbd | tbd | n/a (1 fold) | 1.0 | C | `low_sample_holdout` |
-| QB | 68 | 10 | -0.208 | tbd | tbd | n/a (1 fold) | 1.0 | D — production-gated | `low_sample_holdout`, `negative_r2_lower_bound` |
+| RB | 129 | 19 | 0.509 | tbd | tbd | n/a (1 fold) | 1.0 | C | `rb_career_arc_capped_by_aging_cliff`, `low_sample_holdout` |
+| TE | 87 | 11 | 0.197 | tbd | tbd | n/a (1 fold) | 1.0 | C | `te_population_per_class_small`, `low_sample_holdout` |
+| QB | 68 | 10 | -0.208 | tbd | tbd | n/a (1 fold) | 1.0 | D — production-gated | `qb_rookie_signal_inherently_low_ceiling`, `low_sample_holdout`, `negative_r2_lower_bound` |
+
+RB carries `low_sample_holdout` because its 19 holdout rows sit below the <30-row
+threshold (`app/data/pipeline/train_models.py`) — the caveat is a disclosure, and per
+the ruling below it does not and must not demote RB from `C` (sample size alone never
+demotes). This row was reconciled 2026-07-04: the prior table omitted the code-emitted
+caveats for RB and the position-specific caveats for TE/QB.
 
 TE is currently graded `C` with a `low_sample_holdout` caveat — its R² is positive and the modeling-backend review treated it as decision-usable with caveats, not production-gated. QB remains `D` because its R² lower bound is below zero. A position is demoted from `C` to `D` only when the composite gate explicitly fires (e.g., negative R² lower bound, Spearman below 0.30, top-K hit rate below 0.5), not because of sample size alone.
 
