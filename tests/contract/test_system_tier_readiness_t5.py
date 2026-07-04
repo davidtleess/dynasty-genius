@@ -24,6 +24,7 @@ EXPECTED_SURFACES = [
     "roster_capacity",
     "daily_what_changed",
     "model_trust_console",
+    "trade_lab",
 ]
 EXPECTED_NEW_ROUTES = {
     "daily_what_changed": ["/api/league/what-changed"],
@@ -45,7 +46,7 @@ EXPECTED_TRUST_PRODUCERS = {
 }
 
 
-def test_increment2_registry_names_three_surfaces_and_routes_exist_in_openapi() -> None:
+def test_registry_names_ratified_surfaces_and_routes_exist_in_openapi() -> None:
     registry = load_tier_readiness(registry_path=REGISTRY_PATH, repo_root=REPO_ROOT)
     openapi_paths = set(json.loads(OPENAPI_PATH.read_text(encoding="utf-8"))["paths"])
 

@@ -33,13 +33,9 @@
   flex-direction: column;
 }
 
-.dg-lane--model {
-  border-left: 3px solid var(--dg-model, oklch(0.6 0.13 250));
-}
-
-.dg-lane--market {
-  border-left: 3px solid var(--dg-market, oklch(0.75 0.13 75));
-}
+/* Equal visual weight (inc-3 mitigation contract): the lane containers carry
+   NO lane-specific border/background/color/font treatment — labels, not
+   styling, distinguish the views. */
 
 .dg-divergence {
   display: flex;
@@ -49,6 +45,13 @@
 .dg-divergence__fact {
   display: flex;
   flex-direction: column;
+}
+
+.dg-trade-lab__mitigation {
+  margin: 0.25rem 0 0.5rem;
+  color: oklch(0.45 0 0);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
 }
 
 .dg-trade-lab__banner {

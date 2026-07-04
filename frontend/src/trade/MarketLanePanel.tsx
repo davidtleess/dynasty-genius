@@ -28,6 +28,7 @@ export function MarketLanePanel({
       className="dg-lane dg-lane--market"
       data-lane="market"
       data-testid="market-lane"
+      data-visual-weight="equal"
     >
       <h3 className="dg-lane__title">Market snapshot (FantasyCalc)</h3>
       <dl className="dg-lane__metrics">

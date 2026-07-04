@@ -27,6 +27,14 @@ from app.api.routes.system_tier_readiness_models import (
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = REPO_ROOT / "app" / "config" / "tier_readiness.json"
 OPENAPI_PATH = REPO_ROOT / "frontend" / "openapi.json"
+TRADE_LAB_MITIGATION_CONTRACT_ID = "trade_lab_fe_mitigation_v1"
+TRADE_LAB_MITIGATION_TEST = "frontend/src/trade/TradeLabMitigation.test.jsx"
+EXPECTED_POST_INC3_SURFACES = [
+    "roster_capacity",
+    "daily_what_changed",
+    "model_trust_console",
+    "trade_lab",
+]
 BANNED_RESPONSE_RE = re.compile(
     r"\b(certified|validated|trusted|approved|safe|recommended|buy|sell|hold|start|sit)\b",
     re.IGNORECASE,
@@ -45,6 +53,33 @@ def test_real_tier_readiness_registry_loads_and_names_roster_capacity_contract()
     assert surface.route_ids == ["/api/roster/capacity"]
     assert surface.live_preconditions == ["model_provenance_ok", "capture_health_ok"]
     assert [component.component for component in surface.gate_components] == [
+        "audit_hygiene",
+        "deterministic_range_disclosure",
+        "mif_breaker",
+        "no_directive_copy",
+    ]
+
+
+def test_real_registry_names_trade_lab_after_fe_mitigation_gate() -> None:
+    registry = load_tier_readiness(registry_path=REGISTRY_PATH, repo_root=REPO_ROOT)
+
+    surfaces = {surface.surface_id: surface for surface in registry.surfaces}
+    assert list(surfaces) == EXPECTED_POST_INC3_SURFACES
+
+    trade_lab = surfaces["trade_lab"]
+    assert trade_lab.display_name == "Trade Lab"
+    assert trade_lab.ratified_by == "David"
+    assert trade_lab.ratified_date == "2026-07-04"
+    assert trade_lab.route_ids == [
+        "/api/trade/reconcile",
+        "/api/trade/reconcile/market",
+        "/api/trade/assets",
+    ]
+    assert trade_lab.live_preconditions == [
+        "model_provenance_ok",
+        "capture_health_ok",
+    ]
+    assert [component.component for component in trade_lab.gate_components] == [
         "audit_hygiene",
         "deterministic_range_disclosure",
         "mif_breaker",
@@ -112,6 +147,42 @@ def test_roster_capacity_evidence_names_semantic_contract_tests() -> None:
     assert "marginal_next_candidate_id" in simulator_test
     assert "scenario.cumulative_value_at_risk[0] < 0" in simulator_test
     assert "_decision_supported_true_count(result) == 0" in simulator_test
+
+
+def test_trade_lab_evidence_pins_routes_and_fe_mitigation_contract() -> None:
+    registry = load_tier_readiness(registry_path=REGISTRY_PATH, repo_root=REPO_ROOT)
+    surface = {surface.surface_id: surface for surface in registry.surfaces}[
+        "trade_lab"
+    ]
+    openapi_paths = set(json.loads(OPENAPI_PATH.read_text(encoding="utf-8"))["paths"])
+
+    assert set(surface.route_ids) == {
+        "/api/trade/reconcile",
+        "/api/trade/reconcile/market",
+        "/api/trade/assets",
+    }
+    assert set(surface.route_ids).issubset(openapi_paths)
+    assert surface.live_preconditions == ["model_provenance_ok", "capture_health_ok"]
+
+    evidence_by_component = {
+        component.component: component for component in surface.gate_components
+    }
+    mitigation_component = evidence_by_component["deterministic_range_disclosure"]
+    assert TRADE_LAB_MITIGATION_TEST in mitigation_component.evidence
+    mitigation_test_path = REPO_ROOT / TRADE_LAB_MITIGATION_TEST
+    assert mitigation_test_path.exists()
+    mitigation_test_source = mitigation_test_path.read_text(encoding="utf-8")
+    assert (
+        TRADE_LAB_MITIGATION_CONTRACT_ID in mitigation_component.expectation
+        or TRADE_LAB_MITIGATION_CONTRACT_ID in mitigation_test_source
+    )
+    assert "frontend/src/trade/lanes.test.jsx" in mitigation_component.evidence
+    assert "frontend/src/trade/forced_cut_range.test.jsx" in (
+        mitigation_component.evidence
+    )
+    assert "frontend/src/trade/favors_guard.test.jsx" in (
+        evidence_by_component["no_directive_copy"].evidence
+    )
 
 
 def test_response_models_remain_strict_recursive_false_and_verdict_free() -> None:

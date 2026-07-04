@@ -99,6 +99,67 @@ def _surface(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
     return surface
 
 
+def _trade_lab_surface(
+    overrides: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    surface = {
+        "surface_id": "trade_lab",
+        "display_name": "Trade Lab",
+        "declared_tier": "tier_1_candidate",
+        "route_ids": [
+            "/api/trade/reconcile",
+            "/api/trade/reconcile/market",
+            "/api/trade/assets",
+        ],
+        "producer_artifacts": [
+            "app/data/valuation/universe_pvo_latest.json",
+            "app/data/league_snapshots/sleeper_universe_snapshot_latest.json",
+        ],
+        "live_preconditions": ["model_provenance_ok", "capture_health_ok"],
+        "gate_components": [
+            _component(
+                "audit_hygiene",
+                [
+                    "tests/contract/test_phase15_trade_lab.py",
+                    "tests/contract/test_phase23_w5.py",
+                    "tests/contract/test_phase23_w5b_route.py",
+                ],
+            ),
+            _component(
+                "deterministic_range_disclosure",
+                [
+                    "frontend/src/trade/TradeLabMitigation.test.jsx",
+                    "frontend/src/trade/lanes.test.jsx",
+                    "frontend/src/trade/forced_cut_range.test.jsx",
+                ],
+            )
+            | {
+                "expectation": (
+                    "trade_lab_fe_mitigation_v1: exact mitigation copy, equal "
+                    "model/market visual weight, separate result lanes, and "
+                    "range-native no blended delta"
+                )
+            },
+            _component(
+                "mif_breaker",
+                ["src/dynasty_genius/outcome_loop/realized_outcome_scorer.py"],
+            ),
+            _component(
+                "no_directive_copy",
+                [
+                    "frontend/scripts/check-banned-language.mjs",
+                    "frontend/src/trade/favors_guard.test.jsx",
+                ],
+            ),
+        ],
+        "ratified_by": "David",
+        "ratified_date": "2026-07-04",
+    }
+    if overrides:
+        surface.update(overrides)
+    return surface
+
+
 def _registry_body(surfaces: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     return {
         "registry_version": 1,
@@ -373,3 +434,62 @@ def test_route_is_wired_in_app_main_and_uses_no_banned_response_vocabulary(
 
     assert response.status_code == 200
     _assert_no_banned_response_language(response.json())
+
+
+def test_trade_lab_ratification_gate_and_single_precondition_degradation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    trade_lab = _trade_lab_surface({"ratified_date": None})
+    _prepare_all_declared_files(tmp_path, trade_lab)
+    registry_path = _write_json(
+        tmp_path / "tier_readiness.json", _registry_body([trade_lab])
+    )
+    client = _client_with_temp_registry(
+        monkeypatch,
+        registry_path=registry_path,
+        repo_root=tmp_path,
+    )
+
+    response = client.get("/api/system/tier-readiness")
+
+    assert response.status_code == 200
+    surface = response.json()["surfaces"][0]
+    assert surface["surface_id"] == "trade_lab"
+    assert surface["tier_status"] == "not_graduated"
+    assert surface["basis"] == "awaiting_david_ratification"
+    assert surface["live_preconditions"] == {
+        "model_provenance_ok": "ok",
+        "capture_health_ok": "ok",
+    }
+
+    stamped = _trade_lab_surface({"ratified_date": "2026-07-04"})
+    _prepare_all_declared_files(tmp_path, stamped)
+    _write_json(registry_path, _registry_body([stamped]))
+
+    response = client.get("/api/system/tier-readiness")
+
+    assert response.status_code == 200
+    surface = response.json()["surfaces"][0]
+    assert surface["tier_status"] == "diagnostic_grade_active_limited"
+    assert surface["basis"] == "readiness_active_with_insufficient_data"
+    assert surface["insufficient_data_components"] == ["mif_breaker"]
+
+    for precondition in ("model_provenance_ok", "capture_health_ok"):
+        degraded_client = _client_with_temp_registry(
+            monkeypatch,
+            registry_path=registry_path,
+            repo_root=tmp_path,
+            model_provenance_status="degraded"
+            if precondition == "model_provenance_ok"
+            else "ok",
+            capture_health_status="degraded"
+            if precondition == "capture_health_ok"
+            else "ok",
+        )
+        degraded = degraded_client.get("/api/system/tier-readiness").json()[
+            "surfaces"
+        ][0]
+        assert degraded["tier_status"] == "preconditions_degraded"
+        assert degraded["basis"] == f"live_precondition_not_ok:{precondition}=degraded"
+        assert degraded["live_preconditions"][precondition] == "degraded"

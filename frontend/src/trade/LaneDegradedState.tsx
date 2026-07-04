@@ -5,6 +5,7 @@ export function LaneDegradedState({ label }: { label: string }) {
   return (
     <section
       className="dg-lane dg-lane--degraded"
+      data-visual-weight="equal"
       data-lane="degraded"
       role="status"
       aria-label={`${label} unavailable`}

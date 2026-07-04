@@ -121,6 +121,15 @@ export function TradeLab({
       <p className="dg-trade-lab__banner">
         Not decision-grade — decision support only.
       </p>
+      {/* The binding inc-3 mitigation contract (trade_lab_fe_mitigation_v1):
+          exact, non-state-claiming copy — true in every panel state — rendered
+          on initial load, always before the lane pair in DOM order. */}
+      <p className="dg-trade-lab__mitigation">
+        This diagnostic panel does not calculate whether you win or lose this trade, and
+        it does not judge if this transaction fits your team. It keeps the model and
+        market views separate and surfaces stale or unavailable data as caveats, so you
+        can evaluate the numbers yourself.
+      </p>
       <AssetSearch onSelect={select} />
       <div className="dg-trade-lab__sides">
         <TradeSideBuilder
@@ -147,7 +156,7 @@ export function TradeLab({
       />
       {hasRun && (
         <>
-          <div className="dg-trade-lab__lanes">
+          <div className="dg-trade-lab__lanes" data-testid="trade-lane-pair">
             {modelLane.status === "ready" && (
               <ModelLanePanel reconciliation={modelLane.data} />
             )}
