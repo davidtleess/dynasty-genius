@@ -71,6 +71,7 @@ def _build_labels(
     horizons: tuple[int, ...] = (1,),
     available_label_seasons: tuple[int, ...] = (2021, 2022, 2023, 2024, 2025),
     max_games_only_share: float = 0.05,
+    inference_season: int | None = None,
 ) -> Any:
     module = _labels_module()
     return module.build_qb_role_occupancy_labels(
@@ -79,6 +80,7 @@ def _build_labels(
         horizons=horizons,
         available_label_seasons=available_label_seasons,
         max_games_only_share=max_games_only_share,
+        inference_season=inference_season,
     )
 
 
@@ -232,6 +234,35 @@ def test_pit_labels_use_only_future_horizons_and_exclude_2025_inference_rows() -
     }
 
 
+def test_inference_season_rows_never_label_even_when_future_window_exists() -> None:
+    result = _build_labels(
+        pd.DataFrame(
+            [
+                {
+                    "player_id": "future_qb",
+                    "position": "QB",
+                    "feature_season": 2025,
+                    "games_t": 8,
+                    "training_eligible": False,
+                }
+            ]
+        ),
+        _role_rows(
+            {
+                "player_id": "future_qb",
+                "season": 2026,
+                "position": "QB",
+                "games": 8,
+                "snap_share": 0.99,
+            }
+        ),
+        available_label_seasons=(2026,),
+        inference_season=2025,
+    )
+
+    assert _labels(result).empty
+
+
 @pytest.mark.parametrize(
     ("mutate", "expected"),
     [
@@ -345,6 +376,39 @@ def test_duplicate_source_rows_are_rejected_before_aggregation() -> None:
 
     with pytest.raises(ValueError, match="duplicate"):
         module.aggregate_qb_role_source(player_stats=player_stats, snap_counts=snap_counts)
+
+
+def test_duplicate_role_rows_are_rejected_before_label_lookup() -> None:
+    with pytest.raises(ValueError, match="duplicate"):
+        _build_labels(
+            pd.DataFrame(
+                [
+                    {
+                        "player_id": "dup_qb",
+                        "position": "QB",
+                        "feature_season": 2020,
+                        "games_t": 8,
+                        "training_eligible": True,
+                    }
+                ]
+            ),
+            _role_rows(
+                {
+                    "player_id": "dup_qb",
+                    "season": 2021,
+                    "position": "QB",
+                    "games": 7,
+                    "snap_share": 0.99,
+                },
+                {
+                    "player_id": "dup_qb",
+                    "season": 2021,
+                    "position": "QB",
+                    "games": 8,
+                    "snap_share": 0.99,
+                },
+            ),
+        )
 
 
 def test_games_only_fallback_discloses_basis_and_fails_share_tolerance() -> None:
