@@ -29,11 +29,16 @@ REGISTRY_PATH = REPO_ROOT / "app" / "config" / "tier_readiness.json"
 OPENAPI_PATH = REPO_ROOT / "frontend" / "openapi.json"
 TRADE_LAB_MITIGATION_CONTRACT_ID = "trade_lab_fe_mitigation_v1"
 TRADE_LAB_MITIGATION_TEST = "frontend/src/trade/TradeLabMitigation.test.jsx"
-EXPECTED_POST_INC3_SURFACES = [
+LEAGUE_PULSE_MITIGATION_CONTRACT_ID = "league_pulse_fe_mitigation_v1"
+LEAGUE_PULSE_MITIGATION_TEST = (
+    "frontend/src/league-pulse/LeaguePulseMitigation.test.jsx"
+)
+EXPECTED_POST_LEAGUE_PULSE_SURFACES = [
     "roster_capacity",
     "daily_what_changed",
     "model_trust_console",
     "trade_lab",
+    "league_pulse",
 ]
 BANNED_RESPONSE_RE = re.compile(
     r"\b(certified|validated|trusted|approved|safe|recommended|buy|sell|hold|start|sit)\b",
@@ -64,7 +69,7 @@ def test_real_registry_names_trade_lab_after_fe_mitigation_gate() -> None:
     registry = load_tier_readiness(registry_path=REGISTRY_PATH, repo_root=REPO_ROOT)
 
     surfaces = {surface.surface_id: surface for surface in registry.surfaces}
-    assert list(surfaces) == EXPECTED_POST_INC3_SURFACES
+    assert list(surfaces) == EXPECTED_POST_LEAGUE_PULSE_SURFACES
 
     trade_lab = surfaces["trade_lab"]
     assert trade_lab.display_name == "Trade Lab"
@@ -80,6 +85,34 @@ def test_real_registry_names_trade_lab_after_fe_mitigation_gate() -> None:
         "capture_health_ok",
     ]
     assert [component.component for component in trade_lab.gate_components] == [
+        "audit_hygiene",
+        "deterministic_range_disclosure",
+        "mif_breaker",
+        "no_directive_copy",
+    ]
+
+
+def test_real_registry_names_league_pulse_after_fe_mitigation_gate() -> None:
+    registry = load_tier_readiness(registry_path=REGISTRY_PATH, repo_root=REPO_ROOT)
+
+    surfaces = {surface.surface_id: surface for surface in registry.surfaces}
+    assert list(surfaces) == EXPECTED_POST_LEAGUE_PULSE_SURFACES
+
+    league_pulse = surfaces["league_pulse"]
+    assert league_pulse.display_name == "League Pulse"
+    assert league_pulse.ratified_by == "David"
+    assert league_pulse.ratified_date == "2026-07-04"
+    assert league_pulse.route_ids == ["/api/league/pulse"]
+    assert league_pulse.producer_artifacts == [
+        "app/data/valuation/team_posture_latest.json",
+        "app/data/valuation/team_value_matrix_latest.json",
+        "app/data/valuation/league_opportunity_latest.json",
+    ]
+    assert league_pulse.live_preconditions == [
+        "model_provenance_ok",
+        "capture_health_ok",
+    ]
+    assert [component.component for component in league_pulse.gate_components] == [
         "audit_hygiene",
         "deterministic_range_disclosure",
         "mif_breaker",
@@ -181,6 +214,48 @@ def test_trade_lab_evidence_pins_routes_and_fe_mitigation_contract() -> None:
         mitigation_component.evidence
     )
     assert "frontend/src/trade/favors_guard.test.jsx" in (
+        evidence_by_component["no_directive_copy"].evidence
+    )
+
+
+def test_league_pulse_evidence_pins_route_artifacts_and_fe_mitigation_contract() -> None:
+    registry = load_tier_readiness(registry_path=REGISTRY_PATH, repo_root=REPO_ROOT)
+    surface = {surface.surface_id: surface for surface in registry.surfaces}[
+        "league_pulse"
+    ]
+    openapi_paths = set(json.loads(OPENAPI_PATH.read_text(encoding="utf-8"))["paths"])
+
+    assert surface.route_ids == ["/api/league/pulse"]
+    assert set(surface.route_ids).issubset(openapi_paths)
+    assert surface.live_preconditions == ["model_provenance_ok", "capture_health_ok"]
+    assert surface.producer_artifacts == [
+        "app/data/valuation/team_posture_latest.json",
+        "app/data/valuation/team_value_matrix_latest.json",
+        "app/data/valuation/league_opportunity_latest.json",
+    ]
+
+    evidence_by_component = {
+        component.component: component for component in surface.gate_components
+    }
+    mitigation_component = evidence_by_component["deterministic_range_disclosure"]
+    assert LEAGUE_PULSE_MITIGATION_TEST in mitigation_component.evidence
+    mitigation_test_path = REPO_ROOT / LEAGUE_PULSE_MITIGATION_TEST
+    assert mitigation_test_path.exists()
+    mitigation_test_source = mitigation_test_path.read_text(encoding="utf-8")
+    assert (
+        LEAGUE_PULSE_MITIGATION_CONTRACT_ID in mitigation_component.expectation
+        or LEAGUE_PULSE_MITIGATION_CONTRACT_ID in mitigation_test_source
+    )
+    assert "tests/contract/test_league_pulse_route.py" in (
+        evidence_by_component["audit_hygiene"].evidence
+    )
+    assert "tests/contract/test_league_pulse_assembler.py" in (
+        evidence_by_component["audit_hygiene"].evidence
+    )
+    assert "scripts/scan_league_opportunity_no_verdict.py" in (
+        evidence_by_component["audit_hygiene"].evidence
+    )
+    assert "frontend/scripts/check-banned-language.mjs" in (
         evidence_by_component["no_directive_copy"].evidence
     )
 

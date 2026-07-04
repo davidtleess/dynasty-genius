@@ -20,7 +20,9 @@ function PostureCard({ posture }: { posture: LeaguePulseTeamPosture }) {
         {posture.team_name ?? "Unknown team"}
       </h4>
       <p className="dg-league-pulse__posture-roster">Roster {posture.roster_id}</p>
-      <p className="dg-league-pulse__posture-label">{posture.posture_label}</p>
+      <p className="dg-league-pulse__posture-label" data-posture-neutral="true">
+        {posture.posture_label}
+      </p>
       <p className="dg-league-pulse__posture-score">{posture.score.toFixed(3)}</p>
       <dl className="dg-league-pulse__posture-components">
         {COMPONENT_KEYS.map((k) => {
