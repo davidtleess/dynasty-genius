@@ -254,6 +254,127 @@ def test_research_output_contract_fails_closed_on_bad_inputs() -> None:
         )
 
 
+def test_research_output_fails_closed_when_required_cohort_priors_are_missing() -> None:
+    module = _packaging_module()
+
+    with pytest.raises(ValueError, match="missing cohort prior"):
+        module.build_qb_v3_research_output(
+            candidate_matrix=_candidate_matrix(),
+            eligibility_mask=_eligibility_mask(),
+            probabilities=_probabilities(),
+            cohort_priors=_cohort_priors().query(
+                "not (capital_band == 'round_1' and horizon == 2)"
+            ),
+            validation_report=_validation_report(),
+            label_basis_disclosure=LABEL_BASIS_DISCLOSURE,
+        )
+
+    with pytest.raises(ValueError, match="headline.*cohort prior"):
+        module.build_qb_v3_research_output(
+            candidate_matrix=_candidate_matrix(),
+            eligibility_mask=_eligibility_mask(),
+            probabilities=_probabilities(),
+            cohort_priors=_cohort_priors().query(
+                "not (capital_band == 'day3' and horizon == 1)"
+            ),
+            validation_report=_validation_report(),
+            label_basis_disclosure=LABEL_BASIS_DISCLOSURE,
+        )
+
+
+def test_research_output_resolves_registered_prior_scalar_with_tolerance() -> None:
+    module = _packaging_module()
+    candidate_matrix = _candidate_matrix().iloc[[0]].copy()
+    candidate_matrix.loc[candidate_matrix.index[0], "draft_capital_prior"] = (
+        0.7000000000000001
+    )
+    eligibility_mask = _eligibility_mask().iloc[[0]].copy()
+    probabilities = _probabilities().query("player_id == 'eligible_qb' and horizon == 1")
+    cohort_priors = pd.DataFrame(
+        [
+            {
+                "capital_band": "round_2",
+                "horizon": 1,
+                "base_rate_survival_prior": 0.44,
+            }
+        ]
+    )
+
+    output = module.build_qb_v3_research_output(
+        candidate_matrix=candidate_matrix,
+        eligibility_mask=eligibility_mask,
+        probabilities=probabilities,
+        cohort_priors=cohort_priors,
+        validation_report=_validation_report(),
+        label_basis_disclosure=LABEL_BASIS_DISCLOSURE,
+    )
+
+    row = output["rows"][0]
+    assert row["capital_band"] == "round_2"
+    assert row["survival_probabilities_by_horizon"][1][
+        "cohort_prior_baseline"
+    ] == pytest.approx(0.44)
+
+
+def test_research_output_rejects_unknown_prior_scalar_instead_of_defaulting() -> None:
+    module = _packaging_module()
+    candidate_matrix = _candidate_matrix().copy()
+    candidate_matrix.loc[candidate_matrix.index[0], "draft_capital_prior"] = 0.42
+
+    with pytest.raises(ValueError, match="unknown draft_capital_prior"):
+        module.build_qb_v3_research_output(
+            candidate_matrix=candidate_matrix,
+            eligibility_mask=_eligibility_mask(),
+            probabilities=_probabilities(),
+            cohort_priors=_cohort_priors(),
+            validation_report=_validation_report(),
+            label_basis_disclosure=LABEL_BASIS_DISCLOSURE,
+        )
+
+
+@pytest.mark.parametrize(
+    "mutate_report",
+    [
+        lambda report: {**report, "decision_supported": True},
+        lambda report: {
+            **report,
+            "horizon_summary": {
+                **report["horizon_summary"],
+                1: {**report["horizon_summary"][1], "promotion_eligible": True},
+            },
+        },
+    ],
+)
+def test_research_output_rejects_promoted_or_decision_supported_report(
+    mutate_report: Any,
+) -> None:
+    module = _packaging_module()
+
+    with pytest.raises(ValueError, match="decision_supported|promotion-eligible"):
+        module.build_qb_v3_research_output(
+            candidate_matrix=_candidate_matrix(),
+            eligibility_mask=_eligibility_mask(),
+            probabilities=_probabilities(),
+            cohort_priors=_cohort_priors(),
+            validation_report=mutate_report(_validation_report()),
+            label_basis_disclosure=LABEL_BASIS_DISCLOSURE,
+        )
+
+
+def test_research_output_rejects_eligible_row_with_no_probability_horizons() -> None:
+    module = _packaging_module()
+
+    with pytest.raises(ValueError, match="no probability horizons"):
+        module.build_qb_v3_research_output(
+            candidate_matrix=_candidate_matrix(),
+            eligibility_mask=_eligibility_mask(),
+            probabilities=_probabilities().iloc[0:0],
+            cohort_priors=_cohort_priors(),
+            validation_report=_validation_report(),
+            label_basis_disclosure=LABEL_BASIS_DISCLOSURE,
+        )
+
+
 def test_research_output_is_deterministic() -> None:
     assert _build_research_output() == _build_research_output()
 
