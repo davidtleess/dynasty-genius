@@ -25,6 +25,7 @@ EXPECTED_SURFACES = [
     "daily_what_changed",
     "model_trust_console",
     "trade_lab",
+    "league_pulse",
 ]
 EXPECTED_NEW_ROUTES = {
     "daily_what_changed": ["/api/league/what-changed"],
@@ -32,6 +33,7 @@ EXPECTED_NEW_ROUTES = {
         "/api/trust-surface/{position}",
         "/api/trust-surface/{position}/model-card",
     ],
+    "league_pulse": ["/api/league/pulse"],
 }
 EXPECTED_TRUST_PRODUCERS = {
     "app/data/backtest/trust_surface/latest/backtest_result_QB.json",
