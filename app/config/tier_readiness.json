@@ -172,6 +172,66 @@
       ],
       "ratified_by": "David",
       "ratified_date": "2026-07-02"
+    },
+    {
+      "surface_id": "trade_lab",
+      "display_name": "Trade Lab",
+      "declared_tier": "tier_1_candidate",
+      "route_ids": [
+        "/api/trade/reconcile",
+        "/api/trade/reconcile/market",
+        "/api/trade/assets"
+      ],
+      "producer_artifacts": [
+        "app/data/valuation/universe_pvo_latest.json",
+        "app/data/league_snapshots/sleeper_universe_snapshot_latest.json"
+      ],
+      "live_preconditions": [
+        "model_provenance_ok",
+        "capture_health_ok"
+      ],
+      "gate_components": [
+        {
+          "component": "audit_hygiene",
+          "evidence": [
+            "tests/contract/test_phase15_trade_lab.py",
+            "tests/contract/test_phase23_w5.py",
+            "tests/contract/test_phase23_w5b_route.py"
+          ],
+          "expectation": "trade routes fail-closed with recursive decision_supported=false; the No-Verdict cordon enforcing on this path",
+          "optional": false
+        },
+        {
+          "component": "deterministic_range_disclosure",
+          "evidence": [
+            "frontend/src/trade/TradeLabMitigation.test.jsx",
+            "frontend/src/trade/lanes.test.jsx",
+            "frontend/src/trade/forced_cut_range.test.jsx"
+          ],
+          "expectation": "trade_lab_fe_mitigation_v1: exact mitigation copy, equal model/market visual weight, separate result lanes, and range-native no blended delta",
+          "optional": false
+        },
+        {
+          "component": "mif_breaker",
+          "evidence": [
+            "src/dynasty_genius/outcome_loop/realized_outcome_scorer.py",
+            "tests/unit/test_realized_outcome_scorer.py"
+          ],
+          "expectation": "model-input-fidelity machinery wired; active-role deviation < 15% when evaluable; off-season = presence probe reporting insufficient_data, never a default pass",
+          "optional": false
+        },
+        {
+          "component": "no_directive_copy",
+          "evidence": [
+            "frontend/scripts/check-banned-language.mjs",
+            "frontend/src/trade/favors_guard.test.jsx"
+          ],
+          "expectation": "no directive/verdict vocabulary in rendered trade surfaces; favors fields never rendered; banned-language gate enforcing",
+          "optional": false
+        }
+      ],
+      "ratified_by": "David",
+      "ratified_date": "2026-07-04"
     }
   ]
 }
