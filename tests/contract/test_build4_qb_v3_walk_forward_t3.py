@@ -210,6 +210,9 @@ def test_fold_metrics_include_brier_auc_top_k_and_bca_ci_gate_inputs() -> None:
     ci = _value(metrics, "brier_delta_bca_ci")
     assert set(ci) == {"lower", "upper", "method"}
     assert ci["method"] == "BCa"
+    auc_ci = _value(metrics, "auc_delta_bca_ci")
+    assert set(auc_ci) == {"lower", "upper", "method"}
+    assert auc_ci["method"] == "BCa"
 
 
 def test_small_n_holdouts_are_excluded_from_averages_but_count_against_eligibility() -> None:
@@ -239,6 +242,30 @@ def test_small_n_holdouts_are_excluded_from_averages_but_count_against_eligibili
     assert h1["non_promotion_reason"] == "insufficient_evaluable_structural_folds"
     assert h3["structural_fold_count"] == 3
     assert h3["minimum_evaluable_folds"] == 2
+
+
+def test_brier_ci_passing_without_auc_ci_does_not_make_promotion_case() -> None:
+    module = _wf_module()
+    fold_metrics = [
+        {
+            "horizon": 1,
+            "fold_index": fold_index,
+            "brier_delta": 0.10,
+            "auc_delta": -0.20,
+            "brier_delta_bca_ci": {"lower": 0.01, "upper": 0.20, "method": "BCa"},
+            "auc_delta_bca_ci": {"lower": -0.02, "upper": 0.05, "method": "BCa"},
+        }
+        for fold_index in (1, 2, 3)
+    ]
+
+    summary = module.summarize_qb_v3_horizon_gates(
+        fold_metrics=fold_metrics,
+        exclusions=[],
+        horizons=(1,),
+    )
+
+    assert summary[1]["promotion_eligible"] is False
+    assert summary[1]["non_promotion_reason"] == "bca_ci_lower_not_above_zero"
 
 
 def test_empty_eligible_fold_is_reported_as_exclusion_not_crash() -> None:
