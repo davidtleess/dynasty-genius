@@ -1,0 +1,383 @@
+{
+  "metadata": {
+    "config_version": 2,
+    "generated_at": "2026-07-04T13:42:39.276961+00:00",
+    "generation_command": ".venv/bin/python3.14 scripts/compute_rookie_qb_unconditioned_priors.py",
+    "machinery_repo_sha": "07f48adaca4fd8534d6cc4838891a25a628dd9c0",
+    "source_caveat": "nflreadpy rosters/stats/snaps snapshot as of generation date; cohort covers QBs who received a roster entry \u2014 a camp-cut draftee appears via the draft-year roster; 2025-season data may still shift.",
+    "cohort_entry_years": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023
+    ],
+    "max_available_role_season": 2025,
+    "decision_supported": false
+  },
+  "rows": [
+    {
+      "capital_band": "round_1_picks_1_32",
+      "horizon": 1,
+      "n": 21,
+      "positives": 17,
+      "rate": 0.8095238095238095,
+      "basis": {
+        "games_and_snap": 21,
+        "games_only": 0,
+        "absent_role_row": 0
+      }
+    },
+    {
+      "capital_band": "round_1_picks_1_32",
+      "horizon": 2,
+      "n": 21,
+      "positives": 15,
+      "rate": 0.7142857142857143,
+      "basis": {
+        "games_and_snap": 18,
+        "games_only": 0,
+        "absent_role_row": 3
+      }
+    },
+    {
+      "capital_band": "round_1_picks_1_32",
+      "horizon": 3,
+      "n": 18,
+      "positives": 13,
+      "rate": 0.7222222222222222,
+      "basis": {
+        "games_and_snap": 16,
+        "games_only": 0,
+        "absent_role_row": 2
+      }
+    },
+    {
+      "capital_band": "round_2_picks_33_64",
+      "horizon": 1,
+      "n": 4,
+      "positives": 3,
+      "rate": 0.75,
+      "basis": {
+        "games_and_snap": 4,
+        "games_only": 0,
+        "absent_role_row": 0
+      }
+    },
+    {
+      "capital_band": "round_2_picks_33_64",
+      "horizon": 2,
+      "n": 4,
+      "positives": 1,
+      "rate": 0.25,
+      "basis": {
+        "games_and_snap": 3,
+        "games_only": 0,
+        "absent_role_row": 1
+      }
+    },
+    {
+      "capital_band": "round_2_picks_33_64",
+      "horizon": 3,
+      "n": 3,
+      "positives": 1,
+      "rate": 0.3333333333333333,
+      "basis": {
+        "games_and_snap": 2,
+        "games_only": 0,
+        "absent_role_row": 1
+      }
+    },
+    {
+      "capital_band": "day3_picks_65_plus",
+      "horizon": 1,
+      "n": 43,
+      "positives": 8,
+      "rate": 0.18604651162790697,
+      "basis": {
+        "games_and_snap": 21,
+        "games_only": 0,
+        "absent_role_row": 22
+      }
+    },
+    {
+      "capital_band": "day3_picks_65_plus",
+      "horizon": 2,
+      "n": 43,
+      "positives": 1,
+      "rate": 0.023255813953488372,
+      "basis": {
+        "games_and_snap": 15,
+        "games_only": 0,
+        "absent_role_row": 28
+      }
+    },
+    {
+      "capital_band": "day3_picks_65_plus",
+      "horizon": 3,
+      "n": 33,
+      "positives": 1,
+      "rate": 0.030303030303030304,
+      "basis": {
+        "games_and_snap": 10,
+        "games_only": 0,
+        "absent_role_row": 23
+      }
+    },
+    {
+      "capital_band": "undrafted",
+      "horizon": 1,
+      "n": 70,
+      "positives": 1,
+      "rate": 0.014285714285714285,
+      "basis": {
+        "games_and_snap": 3,
+        "games_only": 6,
+        "absent_role_row": 61
+      }
+    },
+    {
+      "capital_band": "undrafted",
+      "horizon": 2,
+      "n": 70,
+      "positives": 1,
+      "rate": 0.014285714285714285,
+      "basis": {
+        "games_and_snap": 1,
+        "games_only": 9,
+        "absent_role_row": 60
+      }
+    },
+    {
+      "capital_band": "undrafted",
+      "horizon": 3,
+      "n": 61,
+      "positives": 0,
+      "rate": 0.0,
+      "basis": {
+        "games_and_snap": 1,
+        "games_only": 6,
+        "absent_role_row": 54
+      }
+    }
+  ],
+  "diagnostics": {
+    "structural_exclusions": [
+      {
+        "player_id": "00-0038365",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038385",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038391",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038400",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038416",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038476",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038550",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038579",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038582",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038583",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038598",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038637",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038658",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038683",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038744",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038749",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038911",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0038998",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0039107",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0039150",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0039152",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0039163",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      },
+      {
+        "player_id": "00-0039164",
+        "entry_year": 2023,
+        "horizon": 3,
+        "target_season": 2026,
+        "reason": "target_season_unavailable"
+      }
+    ],
+    "quarantined_entries": [
+      {
+        "player_id": null,
+        "reason": "identity_unresolved"
+      }
+    ]
+  },
+  "prediction_check": {
+    "status": "report_only",
+    "gating": false,
+    "checks": [
+      {
+        "capital_band": "round_1_picks_1_32",
+        "horizon": 1,
+        "pre_registered_range": [
+          0.8,
+          0.88
+        ],
+        "actual_rate": 0.8095238095238095,
+        "status": "within_pre_registered_range"
+      },
+      {
+        "capital_band": "round_2_picks_33_64",
+        "horizon": 1,
+        "pre_registered_range": [
+          0.45,
+          0.5
+        ],
+        "actual_rate": 0.75,
+        "status": "outside_pre_registered_range"
+      },
+      {
+        "capital_band": "day3_picks_65_plus",
+        "horizon": 2,
+        "pre_registered_range": [
+          0.05,
+          0.08
+        ],
+        "actual_rate": 0.023255813953488372,
+        "status": "outside_pre_registered_range"
+      },
+      {
+        "capital_band": "undrafted",
+        "horizon": 1,
+        "pre_registered_range": [
+          0.01,
+          0.02
+        ],
+        "actual_rate": 0.014285714285714285,
+        "status": "within_pre_registered_range"
+      }
+    ]
+  },
+  "decision_supported": false
+}
