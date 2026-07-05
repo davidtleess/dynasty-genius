@@ -11,6 +11,9 @@ FRONTEND_ROOT = REPO_ROOT / "frontend"
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 
 EXPECTED_DEPENDENCIES = {
+    "@fontsource/archivo": "5.2.8",
+    "@fontsource/ibm-plex-mono": "5.2.7",
+    "@fontsource/ibm-plex-sans": "5.2.8",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "zod": "4.4.3",
