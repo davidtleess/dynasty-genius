@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  H0-0a Offsite Backup of Irreplaceable Data (finding F1, board 2026-07-04).
+
+  Runs scripts/backup_irreplaceable_data.py daily (~10:15 local, after the
+  09:00/09:15/09:30/09:45/10:00 job train): snapshots the manifest-enumerated
+  irreplaceable set (PIT capture DBs via sqlite .backup, training data, model
+  artifacts) into an immutable, append-only GCS run prefix
+  (gs://dynasty-genius-backup-dtl/dynasty-genius/runs/<run_id>/), then runs the
+  full restore-drill verification (download + sha256 vs the staging inventory)
+  before advancing the latest.json pointer. Status marker (operational only,
+  decision_supported not applicable):
+  app/data/ops/backup_status_latest.json (gitignored).
+
+  Design spec: docs/superpowers/specs/2026-07-04-h0-0a-offsite-backup-design.md
+  (v2, cockpit-cleared). Auth = gcloud user credentials (David's one-time
+  gcloud auth login); the script preflights non-interactively and fails loudly
+  (never hangs) if credentials are absent.
+
+  Committed AND loaded per David's explicit 2026-07-05 authorization
+  ("commit and load the launchagent"):
+    launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-backup-irreplaceable.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-backup-irreplaceable</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/backup_irreplaceable_data.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>10</integer>
+        <key>Minute</key>
+        <integer>15</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/backup_irreplaceable.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/backup_irreplaceable.err.log</string>
+</dict>
+</plist>
