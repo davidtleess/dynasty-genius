@@ -126,7 +126,9 @@ class PlayerDetailResponse(BaseModel):
 
 
 # --- Artifact loaders (named monkeypatch seams) --------------------------------
-@lru_cache(maxsize=1)
+# The PVO and market-divergence artifacts are rewritten by the daily 09:15/09:45
+# jobs while the server stays up, so these two loaders read per request (H0-0b,
+# finding F2). Only the static committed banned-vocabulary file is cached.
 def _load_player_detail_artifacts() -> dict[str, Any]:
     try:
         resolved = resolve_pvo_source(
@@ -145,7 +147,6 @@ def _load_player_detail_artifacts() -> dict[str, Any]:
         return json.load(handle)
 
 
-@lru_cache(maxsize=1)
 def _load_market_divergence_artifact() -> dict[str, Any]:
     with open(MARKET_DIVERGENCE_PATH) as handle:
         return json.load(handle)

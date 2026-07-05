@@ -444,7 +444,6 @@ def test_players_route_loads_verified_runtime_and_fails_closed_on_bad_runtime(
     root, _seed_pvo, _seed_coverage, runtime_dir = _pvo_fixture_root(tmp_path)
     _write_runtime_api_pair(runtime_dir, "runtime-player", score=99.0)
     _configure_route_pvo_paths(monkeypatch, players_route, root)
-    players_route._load_player_detail_artifacts.cache_clear()
 
     runtime_payload = players_route._load_player_detail_artifacts()
 
@@ -453,7 +452,6 @@ def test_players_route_loads_verified_runtime_and_fails_closed_on_bad_runtime(
     (runtime_dir / _READY_MARKER_NAME).write_text(
         json.dumps({"status": "blocked"}, sort_keys=True)
     )
-    players_route._load_player_detail_artifacts.cache_clear()
     with pytest.raises(Exception) as exc_info:
         players_route._load_player_detail_artifacts()
     assert getattr(exc_info.value, "status_code", None) == 503

@@ -7,6 +7,7 @@ The TE experimental caveat remains until te_v2.pkl passes its promotion gate.
 from __future__ import annotations
 
 import json
+import logging
 import pickle
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,8 @@ from src.dynasty_genius.models.engine_b_contract import (
 )
 
 _ROOT = Path(__file__).resolve().parents[2]
+
+logger = logging.getLogger(__name__)
 _MODELS_DIR = _ROOT / "app" / "data" / "models" / "engine_b"
 _RUNS_DIR = _MODELS_DIR / "runs"
 _DATASET_PATH = _ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
@@ -36,7 +39,14 @@ def _validate_bundle(bundle: dict[str, Any], source: str) -> bool:
         validate_no_temporal_leakage(features)
         return True
     except ValueError as e:
-        print(f"CRITICAL: Engine B contract violation in {source}: {e}")
+        # H0-0c (finding F3): structured logging, never print — a violating
+        # bundle is refused and the refusal must be observable.
+        logger.error(
+            "Engine B contract violation in %s: %s",
+            source,
+            e,
+            extra={"source": source},
+        )
         return False
 
 
@@ -71,7 +81,7 @@ class EngineBService:
             with open(_V2_MANIFEST_PATH) as f:
                 manifest: dict[str, str | None] = json.load(f)
         except Exception as e:
-            print(f"Engine B: failed to read v2 manifest: {e}")
+            logger.error("Engine B: failed to read v2 manifest: %s", e)
             return {}
 
         bundles: dict[str, Any] = {}
@@ -80,7 +90,9 @@ class EngineBService:
                 continue
             full_path = _ROOT / artifact_path
             if not full_path.exists():
-                print(f"Engine B: v2 artifact missing for {pos}: {full_path}")
+                logger.warning(
+                    "Engine B: v2 artifact missing for %s: %s", pos, full_path
+                )
                 continue
             try:
                 with open(full_path, "rb") as f:
@@ -88,7 +100,9 @@ class EngineBService:
                 if _validate_bundle(bundle, str(full_path)):
                     bundles[pos] = bundle
             except Exception as e:
-                print(f"Engine B: failed to load v2 artifact for {pos}: {e}")
+                logger.error(
+                    "Engine B: failed to load v2 artifact for %s: %s", pos, e
+                )
         return bundles
 
     def _load_v1_bundle(self) -> dict[str, Any]:
@@ -109,7 +123,7 @@ class EngineBService:
             if _validate_bundle(bundle, str(model_path)):
                 return bundle
         except Exception as e:
-            print(f"Engine B: failed to load v1 bundle: {e}")
+            logger.error("Engine B: failed to load v1 bundle: %s", e)
         return {}
 
     # ── Prediction ────────────────────────────────────────────────────────────

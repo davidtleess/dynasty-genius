@@ -7,6 +7,7 @@ Scores and projections are left None until the relevant engine is validated.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -40,6 +41,8 @@ from src.dynasty_genius.scoring.engine_a import (
     score_prospect,
     score_prospect_v3,
 )
+
+logger = logging.getLogger(__name__)
 
 # ── Position-specific required signal sets ────────────────────────────────────
 # These match the feature contracts defined in the North Star Architecture.
@@ -284,7 +287,21 @@ def assemble_pvo(
                         {**features, "position": identity.position}
                     )
                 except Exception:
+                    # H0-0c (finding F3): a single-player scoring failure degrades
+                    # that player only — but it must be observable and caveated,
+                    # never a silent fallback.
+                    logger.exception(
+                        "Engine B single-player scoring failed",
+                        extra={
+                            "player_id": identity.dg_id,
+                            "player_name": identity.full_name,
+                            "position": identity.position,
+                            "feature_season": features.get("feature_season"),
+                        },
+                    )
                     engine_b_resolved = None
+                    if "engine_b_single_player_scoring_failed" not in caveats:
+                        caveats.append("engine_b_single_player_scoring_failed")
         if engine_b_resolved and "error" in engine_b_resolved:
             engine_b_resolved = None
 
