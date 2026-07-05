@@ -124,3 +124,6 @@ app/data/backtest/phase20/
 # (The two pre-existing tracked PDFs in docs/strategies/ are unaffected.)
 # Use `git add -f some.pdf` to override intentionally.
 *.pdf
+
+# H0-0a backup operational outputs — never committed, never part of the protected payload
+app/data/ops/
