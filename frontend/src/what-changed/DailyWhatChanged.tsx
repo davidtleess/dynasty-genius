@@ -10,6 +10,7 @@ import type {
   WhatChangedStructuralSection,
 } from "../lib/api/types.gen";
 import { zWhatChangedResponse } from "../lib/api/zod.gen";
+import { formatCaptureTimestamp } from "../lib/copy";
 import "./DailyWhatChanged.css";
 
 type State =
@@ -83,12 +84,15 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
   return (
     <section className="dg-wc" aria-label="Daily What-Changed">
       <h2 className="dg-wc__title">Daily Change Log</h2>
+      <p className="dg-wc__disclaimer">Descriptive only — not decision-grade.</p>
       <p className="dg-wc__disclaimer">
-        Descriptive only — decision_supported=false. A daily delta surface (what changed
-        since the prior snapshot); no verdict, no nominated move.
+        A daily delta surface (what changed since the prior snapshot); no verdict, no
+        nominated move.
       </p>
       <p className="dg-wc__status">Status: {data.overall_status}</p>
-      <p className="dg-wc__generated">Generated: {data.generated_at}</p>
+      <p className="dg-wc__generated" title={data.generated_at}>
+        Generated: {formatCaptureTimestamp(data.generated_at)}
+      </p>
       {comparisonWindow?.from_date && comparisonWindow?.to_date && (
         <p className="dg-wc__window">
           Captured {comparisonWindow.from_date} vs {comparisonWindow.to_date}
@@ -335,7 +339,7 @@ function BaselineSection({
         <span className="dg-wc__meta-label">Status:</span>{" "}
         <span className="dg-wc__meta-value">{sec.status}</span>
       </p>
-      <p className="dg-wc__baseline-meta">decision_supported=false</p>
+      <p className="dg-wc__baseline-meta">Descriptive only — not decision-grade.</p>
       {sec.staleness_caveat && (
         <p className="dg-wc__caveat">
           {sec.staleness_caveat.basis} —{" "}

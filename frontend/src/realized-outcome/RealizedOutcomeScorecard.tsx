@@ -92,9 +92,13 @@ function ReadyView({ data }: { data: RealizedOutcomeScorecardResponse }) {
         </div>
       )}
 
-      <p className="dg-ro__meta">settlement_status: {data.settlement_status}</p>
-      <p className="dg-ro__meta">maturity_pct: {maturity}</p>
-      <p className="dg-ro__meta">decision_supported=false</p>
+      <p className="dg-ro__meta">Settlement status: {data.settlement_status}</p>
+      <p className="dg-ro__meta">
+        {maturity === "unset"
+          ? "Data maturity: not yet started"
+          : `Data maturity: ${maturity}% of tracked weeks finalized`}
+      </p>
+      <p className="dg-ro__meta">Descriptive only — not decision-grade.</p>
 
       <p className="dg-ro__note">
         Model Input Fidelity is an input/fidelity audit — it checks whether realized NFL

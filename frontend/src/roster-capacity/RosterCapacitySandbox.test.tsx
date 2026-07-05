@@ -118,10 +118,10 @@ describe("RosterCapacitySandbox", () => {
       ).toBeTruthy(),
     );
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/roster/capacity");
-    expect(screen.getByText(/decision_supported=false/i)).toBeTruthy();
-    expect(screen.getByText(/descriptive only/i)).toBeTruthy();
+    expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
+    expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
     expect(
-      screen.getByText(/sorted by cut_priority as diagnostic order/i),
+      screen.getByText(/sorted by cut exposure rank as diagnostic order/i),
     ).toBeTruthy();
 
     const cumulative = screen.getByText("-27.83 to -12.50");
@@ -156,9 +156,11 @@ describe("RosterCapacitySandbox", () => {
     await waitFor(() =>
       expect(screen.getByText(/artifact status: degraded/i)).toBeTruthy(),
     );
-    expect(screen.getByText(/freshness_unverifiable/i)).toBeTruthy();
-    expect(screen.getByText(/stale_snapshot/i)).toBeTruthy();
-    expect(screen.getByText(/decision_supported=false/i)).toBeTruthy();
+    expect(screen.getByText(/Freshness unverifiable/i)).toBeTruthy();
+    expect(
+      screen.getByText(/Waiver range unavailable \(stale_snapshot\)/i),
+    ).toBeTruthy();
+    expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
   });
 
   it("renders blocked artifacts as blocked state without stale numbers", async () => {
@@ -180,10 +182,12 @@ describe("RosterCapacitySandbox", () => {
     await waitFor(() =>
       expect(screen.getByText(/capacity audit blocked/i)).toBeTruthy(),
     );
-    expect(screen.getByText(/capacity_audit_blocked/i)).toBeTruthy();
+    expect(
+      screen.getByText(/Capacity audit blocked \(malformed_snapshot\)/i),
+    ).toBeTruthy();
     expect(screen.queryByText("-27.83 to -12.50")).toBeNull();
     expect(screen.queryByRole("table")).toBeNull();
-    expect(screen.getByText(/decision_supported=false/i)).toBeTruthy();
+    expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
   });
 
   it("renders unavailable on non-OK response and parse error on invalid 200", async () => {
@@ -232,7 +236,9 @@ describe("RosterCapacitySandbox", () => {
       expect(screen.getByText(/no capacity candidates/i)).toBeTruthy(),
     );
     expect(screen.getByText(/RB range unavailable/i)).toBeTruthy();
-    expect(screen.getByText(/coverage_floor/i)).toBeTruthy();
+    expect(
+      screen.getByText(/Waiver range unavailable \(coverage_floor\)/i),
+    ).toBeTruthy();
     expect(screen.queryByText("0.00 to 0.00")).toBeNull();
   });
 

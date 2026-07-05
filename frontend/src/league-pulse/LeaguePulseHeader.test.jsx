@@ -27,12 +27,17 @@ describe("LeaguePulseHeader", () => {
     expect(within(banner).getByRole("heading", { name: "League Pulse" })).toBeTruthy();
     expect(within(banner).getByText(/experimental/i)).toBeTruthy();
     expect(within(banner).getByText(/not decision-grade/i)).toBeTruthy();
-    expect(within(banner).getByText(/as of 2026-06-22T18:00:00Z/i)).toBeTruthy();
+    const capturedAt = within(banner).getByText("as of Jun 22, 2026, 2:00 PM EDT");
+    expect(capturedAt).toBeTruthy();
+    expect(capturedAt.getAttribute("title")).toBe("2026-06-22T18:00:00Z");
     expect(
-      within(banner).getByText("league_pulse_artifact_state_2026-06-22"),
+      within(banner).getByText("League Pulse artifact state (2026-06-22)"),
     ).toBeTruthy();
     expect(within(banner).getByText(/4 records withheld/i)).toBeTruthy();
-    expect(within(banner).getByText(/decision_supported=false/i)).toBeTruthy();
+    expect(
+      within(banner).getByText("Descriptive only — not decision-grade."),
+    ).toBeTruthy();
+    expect(within(banner).queryByText(/decision_supported=false/i)).toBeNull();
 
     for (const version of [
       "team_posture.v1",

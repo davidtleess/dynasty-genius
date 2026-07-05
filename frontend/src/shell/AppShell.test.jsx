@@ -7,16 +7,16 @@ import { leaguePulseResponse } from "../league-pulse/fixtures";
 import { AppShell } from "./AppShell";
 
 const NAV_LABELS = [
-  "Rookie Board",
+  "Daily What-Changed",
   "Roster Audit",
   "Trade Lab",
   "Roster Capacity",
-  "Daily What-Changed",
-  "Accuracy Tracker",
-  "Waiver Radar",
   "League Pulse",
   "Model Trust",
-  "Research Assistant",
+  "Accuracy Tracker",
+  "Rookie Board (Parked)",
+  "Waiver Radar (Parked)",
+  "Research Assistant (Parked)",
 ];
 
 afterEach(() => vi.restoreAllMocks());
@@ -32,9 +32,14 @@ describe("AppShell", () => {
     ).toBeTruthy();
 
     const navigation = screen.getByRole("navigation", { name: "Primary surfaces" });
-    for (const label of NAV_LABELS) {
-      expect(within(navigation).getByRole("button", { name: label })).toBeTruthy();
-    }
+    expect(
+      within(navigation)
+        .getAllByRole("button")
+        .map((button) => button.textContent.replace(/\s+/g, " ").trim()),
+    ).toEqual(NAV_LABELS);
+    expect(
+      within(navigation).queryByRole("button", { name: "Project Tracker" }),
+    ).toBeNull();
     expect(
       within(navigation).queryByRole("button", { name: "Backtest Harness" }),
     ).toBeNull();
@@ -117,6 +122,8 @@ describe("AppShell", () => {
       status: 200,
       json: async () => ({
         source: "resources/project_plan.json",
+        schema_version: "project_plan.v1",
+        updated_at: "2026-07-05",
         status: "ok",
         phases: [
           {
@@ -133,9 +140,11 @@ describe("AppShell", () => {
     });
 
     render(<AppShell />);
-    fireEvent.click(screen.getByRole("button", { name: "Project Tracker" }));
+    const developer = screen.getByRole("navigation", { name: /Developer/i });
+    fireEvent.click(within(developer).getByRole("button", { name: "Project Tracker" }));
 
     await waitFor(() => expect(screen.getByText("Phase 1")).toBeTruthy());
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/internal/project-plan");
   });
 
   it("renders the League Pulse surface when its nav item is selected", async () => {

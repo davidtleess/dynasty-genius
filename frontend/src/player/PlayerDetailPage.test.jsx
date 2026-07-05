@@ -159,7 +159,9 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     const card = await screen.findByRole("article", {
       name: /player detail for chase/i,
     });
-    expect(within(card).getByText("Decision support only")).toBeTruthy();
+    expect(
+      within(card).getByText("Descriptive only — not decision-grade."),
+    ).toBeTruthy();
     expect(within(card).queryByRole("button", { name: /dismiss/i })).toBeNull();
 
     const modelLane = within(card).getByTestId("player-model-lane");

@@ -14,6 +14,7 @@ import type { CatalogEntry } from "../trade/tradeState";
 import { TrustConsole } from "../trust/TrustConsole";
 import { DailyWhatChanged } from "../what-changed/DailyWhatChanged";
 import "./AppShell.css";
+import { ParkedSurfaceCard } from "./ParkedSurfaceCard";
 import { TrustStrip } from "./TrustStrip";
 
 type SelectedPlayer = { sleeperId: string; label: string };
@@ -30,26 +31,43 @@ function readSleeperId(entry: CatalogEntry): string | null {
   return typeof direct === "string" ? direct : null;
 }
 
-// North-star Decision Surfaces (01-north-star-architecture.md). Slots only in T3;
-// each surface gets real content in later tasks.
-const SURFACES = [
-  "Rookie Board",
+// North-star Decision Surfaces (01-north-star-architecture.md), H1 daily-login
+// order (spec 2026-07-05 §1a/1b): active surfaces first, parked last (visible
+// with a "Parked" badge — hiding them would hide honest gaps), and the
+// Project Tracker dev utility in a separated Developer zone, out of the
+// primary rail.
+const ACTIVE_SURFACES = [
+  "Daily What-Changed",
   "Roster Audit",
   "Trade Lab",
   "Roster Capacity",
-  "Daily What-Changed",
-  "Accuracy Tracker",
-  "Waiver Radar",
   "League Pulse",
   "Model Trust",
+  "Accuracy Tracker",
+] as const;
+
+const PARKED_SURFACE_NAMES = [
+  "Rookie Board",
+  "Waiver Radar",
   "Research Assistant",
-  "Project Tracker",
+] as const;
+
+const DEVELOPER_SURFACES = ["Project Tracker"] as const;
+
+const SURFACES = [
+  ...ACTIVE_SURFACES,
+  ...PARKED_SURFACE_NAMES,
+  ...DEVELOPER_SURFACES,
 ] as const;
 
 type Surface = (typeof SURFACES)[number];
 
+function isParked(surface: Surface): boolean {
+  return (PARKED_SURFACE_NAMES as readonly string[]).includes(surface);
+}
+
 export function AppShell() {
-  const [activeSurface, setActiveSurface] = useState<Surface>(SURFACES[0]);
+  const [activeSurface, setActiveSurface] = useState<Surface>(ACTIVE_SURFACES[0]);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer | null>(null);
   // When set, the main view shows the full Decision-Evidence-Card page for this
@@ -83,22 +101,47 @@ export function AppShell() {
 
   return (
     <div className="dg-shell">
-      <nav className="dg-shell__rail" aria-label="Primary surfaces">
-        {SURFACES.map((surface) => (
-          <button
-            key={surface}
-            type="button"
-            className="dg-shell__nav-item"
-            aria-current={activeSurface === surface ? "page" : undefined}
-            onClick={() => {
-              setActiveSurface(surface);
-              setFullDetailSleeperId(null);
-            }}
-          >
-            {surface}
-          </button>
-        ))}
-      </nav>
+      <div className="dg-shell__rail">
+        <nav className="dg-shell__rail-primary" aria-label="Primary surfaces">
+          {[...ACTIVE_SURFACES, ...PARKED_SURFACE_NAMES].map((surface) => (
+            <button
+              key={surface}
+              type="button"
+              className="dg-shell__nav-item"
+              data-parked={isParked(surface) ? "true" : undefined}
+              aria-current={activeSurface === surface ? "page" : undefined}
+              onClick={() => {
+                setActiveSurface(surface);
+                setFullDetailSleeperId(null);
+              }}
+            >
+              {surface}
+              {isParked(surface) && (
+                <span className="dg-shell__parked-badge"> (Parked)</span>
+              )}
+            </button>
+          ))}
+        </nav>
+        {/* Dev utility zone — visually separated, out of the primary rail
+            (H1 §1b): the primary rail is David-facing surfaces only. */}
+        <nav className="dg-shell__developer" aria-label="Developer">
+          <span className="dg-shell__developer-label">Developer</span>
+          {DEVELOPER_SURFACES.map((surface) => (
+            <button
+              key={surface}
+              type="button"
+              className="dg-shell__nav-item dg-shell__nav-item--developer"
+              aria-current={activeSurface === surface ? "page" : undefined}
+              onClick={() => {
+                setActiveSurface(surface);
+                setFullDetailSleeperId(null);
+              }}
+            >
+              {surface}
+            </button>
+          ))}
+        </nav>
+      </div>
 
       {/* biome-ignore lint/a11y/noInteractiveElementToNoninteractiveRole: a <header>
           is a banner landmark, not an interactive element — Biome mis-models it.
@@ -117,6 +160,7 @@ export function AppShell() {
         ) : (
           <>
             <h1 className="dg-shell__title">{activeSurface}</h1>
+            {isParked(activeSurface) && <ParkedSurfaceCard surface={activeSurface} />}
             {activeSurface === "Roster Audit" && <RosterAudit />}
             {activeSurface === "Roster Capacity" && <RosterCapacitySandbox />}
             {activeSurface === "Daily What-Changed" && <DailyWhatChanged />}

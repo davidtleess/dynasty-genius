@@ -269,11 +269,14 @@ describe("DailyWhatChanged", () => {
     );
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/league/what-changed");
     expect(screen.getByRole("heading", { name: /daily change log/i })).toBeTruthy();
-    expect(
-      screen.getAllByText(/decision_supported=false/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Descriptive only — not decision-grade.").length).toBe(
+      6,
+    );
+    expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
     expect(screen.getByText(/delta surface/i)).toBeTruthy();
-    expect(screen.getByText(/generated: 2026-07-01T12:00:00\+00:00/i)).toBeTruthy();
+    const generatedAt = screen.getByText("Generated: Jul 1, 2026, 8:00 AM EDT");
+    expect(generatedAt).toBeTruthy();
+    expect(generatedAt.getAttribute("title")).toBe("2026-07-01T12:00:00+00:00");
     expect(screen.getByText(/captured 2026-06-30 vs 2026-07-01/i)).toBeTruthy();
 
     const market = screen.getByRole("region", {
@@ -345,9 +348,10 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByText(/market_snapshot_stale/i)).toBeTruthy();
     expect(screen.getByText(/feature_source_unverifiable/i)).toBeTruthy();
     expect(screen.getByText(/pvo_seed_stale/i)).toBeTruthy();
-    expect(
-      screen.getAllByText(/decision_supported=false/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Descriptive only — not decision-grade.").length).toBe(
+      6,
+    );
+    expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
   });
 
   it("renders honest empty and quiet states without manufacturing signal", async () => {
@@ -477,7 +481,9 @@ describe("DailyWhatChanged", () => {
     ]) {
       const section = within(baseline).getByRole("region", { name: label });
       expect(within(section).getByText(/status:/i)).toBeTruthy();
-      expect(within(section).getByText(/decision_supported=false/i)).toBeTruthy();
+      expect(
+        within(section).getByText("Descriptive only — not decision-grade."),
+      ).toBeTruthy();
     }
 
     const posture = within(baseline).getByRole("region", { name: "Team Posture" });

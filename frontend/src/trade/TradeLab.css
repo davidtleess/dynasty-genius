@@ -47,16 +47,23 @@
   flex-direction: column;
 }
 
-.dg-trade-lab__mitigation {
-  margin: 0.25rem 0 0.5rem;
-  color: oklch(0.45 0 0);
+/* H1 §1d standard region caveat block: high-contrast-neutral border,
+   immediately below the region header, single instance per region. */
+.dg-caveat-note {
+  margin: 0.25rem 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid oklch(0.55 0 0);
+  border-radius: 4px;
   font-size: 0.875rem;
   overflow-wrap: anywhere;
 }
 
-.dg-trade-lab__banner {
+.dg-caveat-note p {
   margin: 0;
-  font-size: 0.85rem;
+}
+
+.dg-caveat-note__disclosure {
+  margin-block-start: 0.35rem;
   opacity: 0.8;
 }
 

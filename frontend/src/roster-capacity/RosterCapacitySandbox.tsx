@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { RosterCapacityResponse } from "../lib/api/types.gen";
 import { zRosterCapacityResponse } from "../lib/api/zod.gen";
+import { describeStatusToken } from "../lib/copy";
 import "./RosterCapacitySandbox.css";
 
 type State =
@@ -100,9 +101,9 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
 
   return (
     <section className="dg-rc" aria-label="Roster Capacity Sandbox">
+      <p className="dg-rc__disclaimer">Descriptive only — not decision-grade.</p>
       <p className="dg-rc__disclaimer">
-        Descriptive only — decision_supported=false. Capacity facts and value-at-risk
-        ranges; no verdict, no nominated cut.
+        Capacity facts and value-at-risk ranges; no verdict, no nominated cut.
       </p>
       <p className="dg-rc__status">Artifact status: {data.artifact_status}</p>
 
@@ -110,7 +111,7 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
         <ul className="dg-rc__caveats" aria-label="Caveats">
           {caveats.map((caveat) => (
             <li key={caveat} className="dg-rc__caveat">
-              {caveat}
+              {describeStatusToken(caveat)}
             </li>
           ))}
         </ul>
@@ -118,7 +119,7 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
 
       {blocked ? (
         <p className="dg-rc__blocked">
-          Capacity audit blocked — no capacity numbers are shown for a blocked artifact.
+          No capacity numbers are shown for a blocked artifact.
         </p>
       ) : (
         <>
@@ -136,7 +137,8 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
           )}
 
           <p className="dg-rc__sort-basis">
-            Candidates sorted by cut_priority as diagnostic order — not a cut sequence.
+            Candidates sorted by cut exposure rank as diagnostic order — not a cut
+            sequence.
           </p>
 
           {(data.candidates ?? []).length === 0 ? (
@@ -147,7 +149,7 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
                 <tr className="dg-rc__row">
                   <th scope="col">Player</th>
                   <th scope="col">Pos</th>
-                  <th scope="col">cut_priority</th>
+                  <th scope="col">Cut exposure rank</th>
                   <th scope="col">xVAR</th>
                 </tr>
               </thead>
