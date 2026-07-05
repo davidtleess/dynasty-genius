@@ -127,3 +127,7 @@ app/data/backtest/phase20/
 
 # H0-0a backup operational outputs — never committed, never part of the protected payload
 app/data/ops/
+
+# Browser evidence bundles — generated per run, reviewed by eyes, never tracked
+frontend/artifacts/
+frontend/test-results/

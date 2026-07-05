@@ -1,5 +1,5 @@
 {
-  "schema_version": "backup_manifest.v1",
+  "schema_version": "backup_manifest.v2",
   "required": [
     {"path": "app/data/fc_forward_capture.db", "required": true, "kind": "sqlite"},
     {"path": "app/data/model_forward_capture.db", "required": true, "kind": "sqlite"},
@@ -39,5 +39,15 @@
   "exclude_paths": [
     "app/data/ops/backup_status_latest.json",
     "app/data/ops/backup_staging"
+  ],
+  "exclusions": [
+    {
+      "path": "app/data/ops/backup_status_latest.json",
+      "reason": "The backup's own status marker — backing it up would make backup state part of the protected payload and churn every run."
+    },
+    {
+      "path": "app/data/ops/backup_staging",
+      "reason": "Transient staging directory cleaned every run; contents are copies of already-covered sources."
+    }
   ]
 }

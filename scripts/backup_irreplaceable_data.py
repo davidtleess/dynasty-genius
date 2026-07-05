@@ -33,10 +33,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-SCHEMA_VERSION = "backup_manifest.v1"
+# v2 adds the anti-rot `exclusions` section (path + reason objects) enforced
+# by tests/contract/test_backup_manifest_anti_rot_red.py; v1 manifests stay
+# loadable so the committed backup test fixtures remain valid.
+ACCEPTED_SCHEMA_VERSIONS = {"backup_manifest.v1", "backup_manifest.v2"}
 MARKER_REL_PATH = "app/data/ops/backup_status_latest.json"
 ALLOWED_ROOTS = ("app/data", "app/config")
-_MANIFEST_KEYS = {"schema_version", "required", "optional", "exclude_paths"}
+_MANIFEST_KEYS = {"schema_version", "required", "optional", "exclude_paths", "exclusions"}
 _ENTRY_KEYS = {"path", "required", "kind"}
 _ENTRY_KINDS = {"sqlite", "file"}
 _STABILITY_ATTEMPTS = 2
@@ -55,7 +58,7 @@ def _validate_manifest_shape(payload: Any) -> dict[str, Any]:
     unknown = set(payload) - _MANIFEST_KEYS
     if unknown:
         raise BackupError(f"manifest_malformed:unknown_keys:{sorted(unknown)}")
-    if payload.get("schema_version") != SCHEMA_VERSION:
+    if payload.get("schema_version") not in ACCEPTED_SCHEMA_VERSIONS:
         raise BackupError("manifest_malformed:schema_version")
     for section in ("required", "optional", "exclude_paths"):
         if section not in payload:
@@ -64,6 +67,18 @@ def _validate_manifest_shape(payload: Any) -> dict[str, Any]:
         isinstance(item, str) for item in payload["exclude_paths"]
     ):
         raise BackupError("manifest_malformed:exclude_paths")
+    if "exclusions" in payload:
+        if not isinstance(payload["exclusions"], list):
+            raise BackupError("manifest_malformed:exclusions")
+        for item in payload["exclusions"]:
+            if (
+                not isinstance(item, dict)
+                or not isinstance(item.get("path"), str)
+                or not item["path"]
+                or not isinstance(item.get("reason"), str)
+                or not item["reason"].strip()
+            ):
+                raise BackupError("manifest_malformed:exclusions_entry")
     entries: list[dict[str, Any]] = []
     for section in ("required", "optional"):
         section_entries = payload[section]

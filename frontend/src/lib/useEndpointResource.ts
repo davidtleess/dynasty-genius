@@ -41,6 +41,9 @@ export function useEndpointResource<T>({
         }
         const parsed = schema.safeParse(body);
         if (!parsed.success) {
+          // Observability, not copy: the boundary rejecting a payload should
+          // say so where an agent or dev can see it (never in the DOM).
+          console.warn("Endpoint parse-error", url, parsed.error.issues.slice(0, 3));
           setState({ status: "parse-error" });
           return;
         }

@@ -20,8 +20,10 @@ EXPECTED_DEPENDENCIES = {
 }
 
 EXPECTED_DEV_DEPENDENCIES = {
+    "@axe-core/playwright": "4.12.1",
     "@biomejs/biome": "2.4.16",
     "@hey-api/openapi-ts": "0.98.1",
+    "@playwright/test": "1.61.1",
     "@testing-library/dom": "10.4.1",
     "@testing-library/react": "16.3.2",
     "@types/react": "19.2.16",
@@ -37,9 +39,11 @@ EXPECTED_SCRIPTS = {
     "build": "vite build",
     "lint": "biome check .",
     "openapi-gen": "../.venv/bin/python3.14 ../scripts/dump_openapi.py && openapi-ts",
+    "preview": "vite preview --host 127.0.0.1 --strictPort --port 4173",
     "test": "vitest run --passWithNoTests",
     "test:governance": "npm run banned-language",
     "typecheck": "tsc --noEmit",
+    "visual:smoke": "playwright test --config playwright.config.ts",
 }
 
 BANNED_DEPENDENCIES = {
