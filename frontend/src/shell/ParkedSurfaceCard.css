@@ -1,0 +1,28 @@
+.dg-parked-card {
+  max-width: 44rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--dg-border, #3a3f4a);
+  border-radius: 6px;
+}
+
+.dg-parked-card__heading {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.dg-parked-card__body {
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+.dg-parked-card__unpark {
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+.dg-parked-card__evidence {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  font-family: var(--dg-mono, ui-monospace, monospace);
+}

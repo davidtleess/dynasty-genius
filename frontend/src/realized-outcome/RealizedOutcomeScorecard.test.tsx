@@ -51,9 +51,10 @@ describe("RealizedOutcomeScorecard", () => {
     expect(screen.getByText(/loop inactive/i)).toBeTruthy();
     expect(screen.getByText(/2026 data accrues from sept/i)).toBeTruthy();
     expect(screen.getByText(/awaiting_first_finalized_week/i)).toBeTruthy();
-    expect(screen.getByText(/settlement_status: unsettled/i)).toBeTruthy();
-    expect(screen.getByText(/maturity_pct: unset/i)).toBeTruthy();
-    expect(screen.getByText(/decision_supported=false/i)).toBeTruthy();
+    expect(screen.getByText(/Settlement status: unsettled/i)).toBeTruthy();
+    expect(screen.getByText(/Data maturity: not yet started/i)).toBeTruthy();
+    expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
+    expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
     expect(screen.getByText(/model input fidelity/i)).toBeTruthy();
     expect(screen.getByText(/input\/fidelity audit/i)).toBeTruthy();
     expect(screen.getByText(/not a player verdict/i)).toBeTruthy();
@@ -104,7 +105,9 @@ describe("RealizedOutcomeScorecard", () => {
     expect(
       screen.getByText(/rich metric rendering waits for real artifact validation/i),
     ).toBeTruthy();
-    expect(screen.getByText(/maturity_pct: 2.94/i)).toBeTruthy();
+    expect(
+      screen.getByText(/Data maturity: 2.94% of tracked weeks finalized/i),
+    ).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
   });
 });

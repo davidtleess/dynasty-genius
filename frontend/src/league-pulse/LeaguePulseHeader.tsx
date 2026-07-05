@@ -1,4 +1,5 @@
 import type { LeaguePulseResponse } from "../lib/api";
+import { describeStatusToken, formatCaptureTimestamp } from "../lib/copy";
 
 // Honesty band for the League Pulse surface. Anchors the whole surface as
 // artifact-state, EXPERIMENTAL, and NOT decision-grade — neutral copy only.
@@ -39,18 +40,24 @@ export function LeaguePulseHeader({ data }: { data: LeaguePulseResponse }) {
       className="dg-league-pulse__header"
     >
       <h2 className="dg-league-pulse__heading">League Pulse</h2>
+      {/* The not-decision-grade phrase lives ONLY in the standard disclosure
+          line below — singular queries on it must stay unambiguous. */}
       <p className="dg-league-pulse__experimental">
-        EXPERIMENTAL — not decision-grade. This is a read-only league snapshot.
+        EXPERIMENTAL — a read-only league snapshot.
       </p>
       <p className="dg-league-pulse__diagnostic">{DIAGNOSTIC_WORKSPACE_COPY}</p>
-      <p className="dg-league-pulse__asof">as of {data.captured_at}</p>
+      <p className="dg-league-pulse__asof" title={data.captured_at}>
+        as of {formatCaptureTimestamp(data.captured_at)}
+      </p>
       {artifactStateCaveat ? (
-        <p className="dg-league-pulse__caveat">{artifactStateCaveat}</p>
+        <p className="dg-league-pulse__caveat">
+          {describeStatusToken(artifactStateCaveat)}
+        </p>
       ) : null}
       {withheld > 0 ? (
         <p className="dg-league-pulse__withheld">{withheld} records withheld</p>
       ) : null}
-      <p className="dg-league-pulse__grade">decision_supported=false</p>
+      <p className="dg-league-pulse__grade">Descriptive only — not decision-grade.</p>
       <ul className="dg-league-pulse__sources">
         <li>{schemaVersion(sources.team_posture)}</li>
         <li>{schemaVersion(sources.team_value_matrix)}</li>

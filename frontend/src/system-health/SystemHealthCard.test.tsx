@@ -309,11 +309,12 @@ describe("SystemHealthCard RED contract", () => {
     expect(document.body.textContent).not.toMatch(/-\d+\s*(s|m|h|sec|min|hour)/i);
   });
 
-  it("renders the exact disclaimer and decision_supported=false in accessible text", async () => {
+  it("renders the exact disclaimer and descriptive disclosure in accessible text", async () => {
     await renderCard(healthResponse());
 
     await screen.findByText(DISCLAIMER);
-    expect(screen.getByText(/decision_supported=false/i)).toBeTruthy();
+    expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
+    expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
   });
 
   it("keeps long report metadata contained by CSS rather than truncating disclosed text", async () => {

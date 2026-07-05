@@ -116,20 +116,21 @@ export function TradeLab({
 
   return (
     <section className="dg-trade-lab" aria-label="Trade Lab">
-      {/* Universal, non-dismissible: this surface is decision support, not a
-          decision-grade output. Avoids banned verdict wording. */}
-      <p className="dg-trade-lab__banner">
-        Not decision-grade — decision support only.
-      </p>
-      {/* The binding inc-3 mitigation contract (trade_lab_fe_mitigation_v1):
-          exact, non-state-claiming copy — true in every panel state — rendered
-          on initial load, always before the lane pair in DOM order. */}
-      <p className="dg-trade-lab__mitigation">
-        This diagnostic panel does not calculate whether you win or lose this trade, and
-        it does not judge if this transaction fits your team. It keeps the model and
-        market views separate and surfaces stale or unavailable data as caveats, so you
-        can evaluate the numbers yourself.
-      </p>
+      {/* H1 §1d: ONE standard region caveat block. The inner paragraph is the
+          binding inc-3 mitigation contract (trade_lab_fe_mitigation_v1) —
+          exact, non-state-claiming copy, byte-untouched, always before the
+          lane pair in DOM order. Only its container changed. */}
+      <aside className="dg-caveat-note" role="note" aria-label="Trade Lab caveat">
+        <p data-mitigation-contract>
+          This diagnostic panel does not calculate whether you win or lose this trade,
+          and it does not judge if this transaction fits your team. It keeps the model
+          and market views separate and surfaces stale or unavailable data as caveats,
+          so you can evaluate the numbers yourself.
+        </p>
+        <p className="dg-caveat-note__disclosure">
+          Descriptive only — not decision-grade.
+        </p>
+      </aside>
       <AssetSearch onSelect={select} />
       <div className="dg-trade-lab__sides">
         <TradeSideBuilder

@@ -25,8 +25,11 @@ export function PlayerDetailCard({ detail }: { detail: PlayerDetail }) {
           {detail.identity.position} · {detail.identity.team} · age{" "}
           {detail.identity.age}
         </p>
-        {/* Universal, non-dismissible decision_supported=false state. */}
-        <p className="dg-player-detail__banner">Decision support only</p>
+        {/* Universal, non-dismissible non-decision-grade disclosure (the API
+            decision_supported=false contract, in manager language). */}
+        <p className="dg-player-detail__banner">
+          Descriptive only — not decision-grade.
+        </p>
       </header>
 
       {!modeled && (

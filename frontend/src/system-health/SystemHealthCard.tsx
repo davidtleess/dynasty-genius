@@ -141,7 +141,9 @@ function HealthBody({ data, now }: { data: SystemHealth; now: Date }) {
       </details>
       <footer className="dg-syshealth__footer">
         <span className="dg-syshealth__disclaimer">{data.disclaimer}</span>
-        <span className="dg-syshealth__decision">decision_supported=false</span>
+        <span className="dg-syshealth__decision">
+          Descriptive only — not decision-grade.
+        </span>
       </footer>
     </div>
   );

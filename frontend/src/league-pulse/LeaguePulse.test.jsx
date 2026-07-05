@@ -48,7 +48,9 @@ describe("LeaguePulse container", () => {
       within(surface).getByRole("banner", { name: /league pulse status/i }),
     ).toBeTruthy();
     expect(within(surface).getByText(/not decision-grade/i)).toBeTruthy();
-    expect(within(surface).getByText(/as of 2026-06-22T18:00:00Z/i)).toBeTruthy();
+    const capturedAt = within(surface).getByText("as of Jun 22, 2026, 2:00 PM EDT");
+    expect(capturedAt).toBeTruthy();
+    expect(capturedAt.getAttribute("title")).toBe("2026-06-22T18:00:00Z");
   });
 
   it("renders partner rankings inside the ready region", async () => {
