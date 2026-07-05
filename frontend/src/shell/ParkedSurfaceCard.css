@@ -1,7 +1,7 @@
 .dg-parked-card {
   max-width: 44rem;
   padding: 1rem 1.25rem;
-  border: 1px solid var(--dg-border, #3a3f4a);
+  border: 1px solid var(--dg-border-strong);
   border-radius: 6px;
 }
 

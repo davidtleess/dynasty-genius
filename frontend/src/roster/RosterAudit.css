@@ -67,8 +67,8 @@
   gap: 1rem;
   align-items: center;
   padding: 0.5rem 0;
-  background: var(--dg-surface, #fff);
-  border-bottom: 1px solid var(--dg-border, #ddd);
+  background: var(--dg-surface, oklch(1 0 255));
+  border-bottom: 1px solid var(--dg-border, oklch(0.92 0.005 255));
 }
 
 .dg-roster__controls-disclaimer {

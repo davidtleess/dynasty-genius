@@ -41,7 +41,7 @@
   gap: var(--dg-space-1);
   margin-block-start: auto;
   padding-block-start: var(--dg-space-3);
-  border-block-start: 1px solid var(--dg-border, #3a3f4a);
+  border-block-start: 1px solid var(--dg-border-strong);
 }
 
 .dg-shell__developer-label {

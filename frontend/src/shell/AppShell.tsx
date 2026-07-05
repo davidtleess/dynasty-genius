@@ -16,6 +16,7 @@ import { DailyWhatChanged } from "../what-changed/DailyWhatChanged";
 import "./AppShell.css";
 import { ParkedSurfaceCard } from "./ParkedSurfaceCard";
 import { TrustStrip } from "./TrustStrip";
+import { useUrlSurfaceState } from "./useUrlSurfaceState";
 
 type SelectedPlayer = { sleeperId: string; label: string };
 
@@ -67,7 +68,9 @@ function isParked(surface: Surface): boolean {
 }
 
 export function AppShell() {
-  const [activeSurface, setActiveSurface] = useState<Surface>(ACTIVE_SURFACES[0]);
+  // H2 I1: surface selection lives in the URL (?surface=<slug>) — one
+  // navigateSurface path shared by the rail and the command palette.
+  const { activeSurface, navigateSurface } = useUrlSurfaceState();
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer | null>(null);
   // When set, the main view shows the full Decision-Evidence-Card page for this
@@ -94,7 +97,7 @@ export function AppShell() {
     id: surface.toLowerCase().replace(/\s+/g, "-"),
     label: surface,
     run: () => {
-      setActiveSurface(surface);
+      navigateSurface(surface);
       setFullDetailSleeperId(null);
     },
   }));
@@ -111,7 +114,7 @@ export function AppShell() {
               data-parked={isParked(surface) ? "true" : undefined}
               aria-current={activeSurface === surface ? "page" : undefined}
               onClick={() => {
-                setActiveSurface(surface);
+                navigateSurface(surface);
                 setFullDetailSleeperId(null);
               }}
             >
@@ -133,7 +136,7 @@ export function AppShell() {
               className="dg-shell__nav-item dg-shell__nav-item--developer"
               aria-current={activeSurface === surface ? "page" : undefined}
               onClick={() => {
-                setActiveSurface(surface);
+                navigateSurface(surface);
                 setFullDetailSleeperId(null);
               }}
             >

@@ -6,6 +6,20 @@
  * palette test enforces that no token lands in the banned warm-low or mid hue arcs.
  */
 :root {
+  /* H2 I1 semantic aliases (vision spec §3). Values map to TODAY'S rendered
+     pixels — activation of the dark visual identity is I2's, David-previewed.
+     Every legacy var() fallback for these names is string-identical to the
+     root value (the pixel-identity contract in tokensI1.test.js). */
+  --dg-bg: oklch(1 0 255);
+  --dg-surface: oklch(1 0 255);
+  --dg-surface-raised: oklch(0.98 0.003 255);
+  --dg-border: oklch(0.92 0.005 255);
+  --dg-border-strong: oklch(0.35 0.012 255);
+  --dg-text: oklch(0.25 0.01 255);
+  --dg-text-muted: oklch(0.55 0.02 260);
+  --dg-focus: oklch(0.5 0.16 255);
+  --dg-caveat: oklch(0.7 0.15 72);
+
   /* Model axis: cool blue. DG-computed valuation signal. */
   --dg-model: oklch(0.55 0.15 255);
   --dg-model-emphasis: oklch(0.45 0.18 255);
@@ -41,4 +55,20 @@
   --dg-space-2: 0.5rem;
   --dg-space-3: 0.75rem;
   --dg-space-4: 1rem;
+}
+
+/* H2 I1: the film-room dark scope (vision spec §3) lands INERT — nothing sets
+   data-theme in I1 (guarded by tokensI1.test.js); the toggle ships with I2's
+   David-previewed visual flip. Hue meaning never changes between themes —
+   only lightness/chroma. */
+[data-theme="dark"] {
+  --dg-bg: oklch(0.16 0.01 250);
+  --dg-surface: oklch(0.2 0.012 250);
+  --dg-surface-raised: oklch(0.24 0.014 250);
+  --dg-border: oklch(0.32 0.012 250);
+  --dg-border-strong: oklch(0.48 0.014 250);
+  --dg-text: oklch(0.92 0.005 250);
+  --dg-text-muted: oklch(0.68 0.008 250);
+  --dg-focus: oklch(0.72 0.14 255);
+  --dg-caveat: oklch(0.72 0.14 72);
 }

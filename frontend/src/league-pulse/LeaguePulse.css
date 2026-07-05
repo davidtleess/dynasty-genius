@@ -6,12 +6,12 @@
 }
 
 .dg-league-pulse__state {
-  color: var(--dg-text-muted, #6b7280);
+  color: var(--dg-text-muted, oklch(0.55 0.02 260));
   padding: 1rem 0;
 }
 
 .dg-league-pulse__header {
-  border-bottom: 1px solid var(--dg-border, #e5e7eb);
+  border-bottom: 1px solid var(--dg-border, oklch(0.92 0.005 255));
   padding-bottom: 0.75rem;
 }
 
@@ -24,7 +24,7 @@
 .dg-league-pulse__caveat,
 .dg-league-pulse__withheld,
 .dg-league-pulse__grade {
-  color: var(--dg-text-muted, #6b7280);
+  color: var(--dg-text-muted, oklch(0.55 0.02 260));
   font-size: 0.85rem;
 }
 
@@ -34,7 +34,7 @@
   list-style: none;
   padding: 0;
   margin: 0.25rem 0 0;
-  color: var(--dg-text-muted, #6b7280);
+  color: var(--dg-text-muted, oklch(0.55 0.02 260));
   font-size: 0.8rem;
 }
 
