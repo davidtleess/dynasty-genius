@@ -1,136 +1,224 @@
 /* Daily What-Changed — neutral, grayscale tokens only. A delta surface must not
    color changes as good/bad (no red/green), so direction is carried by the signed
    value alone, never by hue or arrow glyphs. Market and model regions are visually
-   separated to reinforce the price-discovery-vs-model-output boundary. */
+   separated to reinforce the price-discovery-vs-model-output boundary.
+
+   H2 reset Task 5: the surface is a desk — one dated masthead with the tape, a
+   primary change feed, and a subordinate right rail for feed diagnostics and
+   receipts. Row/metric/identity/series treatments come from the governed
+   primitive library (frontend/src/ui); this file owns only the desk composition,
+   on the 8px grid at the 32px-row density constant. */
 
 .dg-wc {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--dg-space-4);
   color: var(--dg-text);
-}
-
-.dg-wc__title {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.dg-wc__disclaimer {
-  font-size: 0.85rem;
-  color: var(--dg-text-muted);
-  border-left: 3px solid var(--dg-border-strong);
-  padding-left: 0.6rem;
-  margin: 0;
-}
-
-.dg-wc__status,
-.dg-wc__generated,
-.dg-wc__window {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--dg-text-muted);
-}
-
-.dg-wc__vintage {
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--dg-text-muted);
-  font-family: var(--dg-font-mono);
-  word-break: break-all;
-}
-
-.dg-wc__region {
-  border: 1px solid var(--dg-border);
-  border-radius: 6px;
-  padding: 0.75rem 0.9rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.dg-wc__region-title {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.dg-wc__overlay-note {
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--dg-text-muted);
-  font-style: italic;
-}
-
-.dg-wc__group {
-  margin: 0.4rem 0 0;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--dg-text-muted);
-}
-
-.dg-wc__caveat,
-.dg-wc__empty {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--dg-text-muted);
-}
-
-.dg-wc__list {
-  margin: 0;
-  padding-left: 1.1rem;
-  font-size: 0.85rem;
-}
-
-.dg-wc__table {
-  border-collapse: collapse;
-  width: 100%;
-}
-
-.dg-wc__row {
-  border-bottom: 1px solid var(--dg-border);
-}
-
-.dg-wc__table td {
-  padding: 0.3rem 0.6rem;
-  font-size: 0.85rem;
-}
-
-.dg-wc__delta {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  text-align: right;
 }
 
 .dg-wc__notice {
   color: var(--dg-text-muted);
 }
 
-/* Structural current-state baseline — deliberately subordinate to the deltas:
-   lighter, indented, and visually set apart so it reads as grounding context,
-   not a co-equal change surface. Neutral grayscale only. */
-.dg-wc__baseline {
-  border: 1px dashed var(--dg-border-strong);
-  border-radius: 6px;
-  padding: 0.6rem 0.8rem;
-  margin-top: 0.25rem;
+/* ── Masthead: the daily-login moment ─────────────────────────────────────── */
+
+.dg-wc__desk-header {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--dg-space-2);
+  padding-bottom: var(--dg-space-3);
+  border-bottom: 1px solid var(--dg-border-strong);
+}
+
+.dg-wc__masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--dg-space-4);
+  flex-wrap: wrap;
+}
+
+.dg-wc__title {
+  margin: 0;
+  font-family: var(--dg-font-display, inherit);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.dg-wc__disclaimer {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  border-left: 1px solid var(--dg-border-strong);
+  padding-left: var(--dg-space-2);
+}
+
+/* ── Desk layout: feed + subordinate right rail ───────────────────────────── */
+
+.dg-wc__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18rem;
+  gap: var(--dg-space-4);
+  align-items: start;
+}
+
+.dg-wc__feed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-3);
+  min-width: 0;
+}
+
+.dg-wc__rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-3);
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+@media (max-width: 768px) {
+  .dg-wc__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dg-wc__diagnostics,
+.dg-wc__receipts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-1);
+  padding: var(--dg-space-2) var(--dg-space-3);
+  border: 1px solid var(--dg-border);
+  border-radius: 6px;
+  background: var(--dg-surface-raised);
+}
+
+.dg-wc__rail-title {
+  margin: 0;
+  font-family: var(--dg-font-display, inherit);
+  font-size: var(--dg-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dg-text);
+}
+
+.dg-wc__rail-line {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── Change feed regions ──────────────────────────────────────────────────── */
+
+.dg-wc__region {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+  padding: var(--dg-space-3) var(--dg-space-4);
+  border: 1px solid var(--dg-border);
+  border-radius: 6px;
+  background: var(--dg-surface);
+}
+
+.dg-wc__region-title {
+  margin: 0;
+  font-family: var(--dg-font-display, inherit);
+  font-size: var(--dg-text-lg);
+}
+
+.dg-wc__overlay-note {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  font-style: italic;
+}
+
+.dg-wc__group {
+  margin: var(--dg-space-2) 0 0;
+  font-size: var(--dg-text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dg-text-muted);
+}
+
+.dg-wc__quiet {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  font-style: italic;
+}
+
+.dg-wc__list {
+  margin: 0;
+  padding-left: var(--dg-space-4);
+  font-size: var(--dg-text-sm);
+}
+
+/* Player rows: identity leads, signed metric cells trail, honest pending slot
+   last. 32px minimum row height is the density constant (benchmark parity);
+   hairline dividers, hover as a quiet scanning aid — state, never verdict. */
+.dg-wc__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.dg-wc__player-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--dg-space-2) var(--dg-space-4);
+  min-height: 32px;
+  padding: var(--dg-space-1) 0;
+  border-bottom: 1px solid var(--dg-border);
+}
+
+.dg-wc__player-row:last-child {
+  border-bottom: none;
+}
+
+.dg-wc__player-row:hover {
+  background: var(--dg-surface-raised);
+}
+
+.dg-wc__player-row > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dg-wc__delta-cell {
+  flex: none;
+}
+
+/* ── Structural current-state baseline — deliberately subordinate ─────────── */
+
+.dg-wc__baseline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+  padding: var(--dg-space-2) var(--dg-space-3);
+  margin-top: var(--dg-space-1);
+  border: 1px dashed var(--dg-border-strong);
+  border-radius: 6px;
   background: var(--dg-surface-raised);
 }
 
 .dg-wc__baseline-section {
-  border-top: 1px solid var(--dg-border);
-  padding-top: 0.4rem;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: var(--dg-space-1);
+  padding-top: var(--dg-space-2);
+  border-top: 1px solid var(--dg-border);
 }
 
 .dg-wc__baseline-meta,
 .dg-wc__baseline-line {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--dg-text-sm);
   color: var(--dg-text-muted);
 }
 
@@ -138,60 +226,31 @@
   color: var(--dg-text-muted);
 }
 
-/* ── H2 I2a: the daily open ──────────────────────────────────────────────── */
-
-.dg-wc__title {
-  font-family: var(--dg-font-display, inherit);
-  letter-spacing: 0.01em;
+.dg-wc__meta-value {
+  color: var(--dg-text);
 }
 
-.dg-wc__tape {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 1.25rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--dg-border);
-  border-radius: 4px;
-  font-family: var(--dg-font-mono);
-  font-size: 0.78rem;
-}
+/* ── The single orchestrated daily-open moment ─────────────────────────────
+   Gated on the Task-4 .dg-motion-daily-open class the surface root carries:
+   feed regions settle top-down, once, on open. Tokens from motion.css. */
 
-.dg-wc__tape-fact {
-  white-space: nowrap;
-}
-
-.dg-wc__mover-row {
-  height: 32px;
-}
-
-.dg-wc__value {
-  font-family: var(--dg-font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
-.dg-wc__series-slot {
-  min-width: 64px;
-  font-size: 0.72rem;
-  font-style: italic;
-  opacity: 0.55;
-}
-
-/* The single orchestrated daily-open moment: regions settle top-down. */
 @media (prefers-reduced-motion: no-preference) {
-  .dg-wc__region {
+  .dg-motion-daily-open .dg-wc__region,
+  .dg-motion-daily-open .dg-wc__baseline {
     animation: dg-wc-settle var(--dg-duration-moderate-01)
       var(--dg-ease-productive-entrance) backwards;
   }
-  .dg-wc__region:nth-of-type(2) {
+  .dg-motion-daily-open .dg-wc__region:nth-of-type(2) {
     animation-delay: 0.05s;
   }
-  .dg-wc__region:nth-of-type(3) {
+  .dg-motion-daily-open .dg-wc__baseline {
     animation-delay: 0.1s;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dg-wc__region {
+  .dg-motion-daily-open .dg-wc__region,
+  .dg-motion-daily-open .dg-wc__baseline {
     animation: none;
   }
 }

@@ -6,16 +6,18 @@
  */
 .dg-trust {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--dg-space-3);
+  gap: var(--dg-space-1) var(--dg-space-3);
   font-size: var(--dg-text-sm);
   font-family: var(--dg-font-sans);
 }
 
 .dg-trust__body {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--dg-space-2);
+  gap: var(--dg-space-1) var(--dg-space-2);
 }
 
 .dg-trust__label {

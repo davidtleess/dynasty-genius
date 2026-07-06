@@ -364,9 +364,11 @@ describe("DailyWhatChanged", () => {
       expect(screen.getByRole("region", { name: /daily what-changed/i })).toBeTruthy(),
     );
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/league/what-changed");
-    expect(screen.getByRole("heading", { name: /daily change log/i })).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { level: 2, name: /Wednesday, July 1/i }),
+    ).toBeTruthy();
     expect(screen.getAllByText("Descriptive only — not decision-grade.").length).toBe(
-      6,
+      7,
     );
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
     expect(screen.getByText(/delta surface/i)).toBeTruthy();
@@ -393,7 +395,7 @@ describe("DailyWhatChanged", () => {
   it("renders signed deltas neutrally without directive language or fabricated arrows", async () => {
     mockFetch(200, whatChangedResponse());
 
-    render(<DailyWhatChanged />);
+    const { container } = render(<DailyWhatChanged />);
 
     await waitFor(() => expect(screen.getByText("-8")).toBeTruthy());
     expect(screen.getByText("+11")).toBeTruthy();
@@ -405,7 +407,7 @@ describe("DailyWhatChanged", () => {
     expect(screen.queryByText(/transaction recommender/i)).toBeNull();
     expect(screen.queryByText(/[▲▼⬆⬇]/u)).toBeNull();
 
-    for (const row of screen.getAllByRole("row")) {
+    for (const row of container.querySelectorAll(".dg-wc__player-row")) {
       expect(row.className).not.toMatch(
         /buy|sell|positive|negative|success|danger|green|red/,
       );
@@ -445,7 +447,7 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByText(/feature_source_unverifiable/i)).toBeTruthy();
     expect(screen.getByText(/pvo_seed_stale/i)).toBeTruthy();
     expect(screen.getAllByText("Descriptive only — not decision-grade.").length).toBe(
-      6,
+      7,
     );
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
   });
@@ -475,11 +477,13 @@ describe("DailyWhatChanged", () => {
 
     render(<DailyWhatChanged />);
 
-    await waitFor(() => expect(screen.getByText(/no market top movers/i)).toBeTruthy());
-    expect(screen.getByText(/no roster market deltas/i)).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByText(/market values held steady overnight/i)).toBeTruthy(),
+    );
+    expect(screen.getByText(/Your roster's market values held steady/i)).toBeTruthy();
     expect(screen.getByText(/no entered assets/i)).toBeTruthy();
     expect(screen.getByText(/no exited assets/i)).toBeTruthy();
-    expect(screen.getByText(/model no change/i)).toBeTruthy();
+    expect(screen.getByText(/Projections held steady/i)).toBeTruthy();
     expect(screen.getByText(/insufficient_history/i)).toBeTruthy();
     expect(screen.queryByText(/top mover unavailable/i)).toBeNull();
     expect(screen.queryByText(/0\.00/i)).toBeNull();
@@ -548,8 +552,13 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByText("Second Model Delta")).toBeTruthy();
     expect(screen.getByText("-0")).toBeTruthy();
     expect(screen.getByText(/model window 2026-06-30 vs 2026-07-01/i)).toBeTruthy();
-    expect(screen.getByText(/semantic-old/i)).toBeTruthy();
-    expect(screen.getByText(/semantic-new/i)).toBeTruthy();
+    expect(screen.queryByText(/semantic-old/i)).toBeNull();
+    expect(screen.queryByText(/semantic-new/i)).toBeNull();
+    expect(
+      screen
+        .getByText(/Projection basis changed within this window/i)
+        .getAttribute("title"),
+    ).toContain("semantic-old → semantic-new");
   });
 
   it("renders structural current-state baseline summaries without named candidate or card lists", async () => {
@@ -562,8 +571,8 @@ describe("DailyWhatChanged", () => {
         screen.getByRole("region", { name: /structural current-state baseline/i }),
       ).toBeTruthy(),
     );
-    expect(screen.getByText(/current-state baseline, not today's delta/i)).toBeTruthy();
-    expect(screen.getByText(/current_not_delta=true/i)).toBeTruthy();
+    expect(screen.getByText(/backdrop for today's movement/i)).toBeTruthy();
+    expect(screen.queryByText(/current_not_delta=true/i)).toBeNull();
 
     const baseline = screen.getByRole("region", {
       name: /structural current-state baseline/i,
@@ -589,10 +598,12 @@ describe("DailyWhatChanged", () => {
     expect(within(posture).getByText(/stale/i)).toBeTruthy();
 
     const teamValue = within(baseline).getByRole("region", { name: "Team Value" });
-    expect(within(teamValue).getByText(/lineup xvar: 31.4/i)).toBeTruthy();
-    expect(within(teamValue).getByText(/starter weighted xvar: 42.75/i)).toBeTruthy();
-    expect(within(teamValue).getByText(/top n xvar: 88.2/i)).toBeTruthy();
-    expect(within(teamValue).getByText(/total xvar capped: 104.6/i)).toBeTruthy();
+    expect(within(teamValue).getByText(/Starting lineup value: 31.4/i)).toBeTruthy();
+    expect(within(teamValue).getByText(/Weekly lineup strength: 42.75/i)).toBeTruthy();
+    expect(within(teamValue).getByText(/Top-asset core value: 88.2/i)).toBeTruthy();
+    expect(
+      within(teamValue).getByText(/Whole-roster value, capped: 104.6/i),
+    ).toBeTruthy();
 
     const opportunity = within(baseline).getByRole("region", {
       name: "League Opportunity",
@@ -741,7 +752,11 @@ describe("DailyWhatChanged", () => {
 
     await screen.findByText("Market Mover");
     expect(screen.getAllByText(/series pending/i).length).toBeGreaterThanOrEqual(3);
-    expect(container.querySelectorAll(".dg-wc__series-slot path")).toHaveLength(0);
+    expect(
+      container.querySelectorAll(
+        ".dg-ui-series__line, .dg-ui-series__gap, .dg-ui-series__edge",
+      ),
+    ).toHaveLength(0);
     expect(screen.queryByLabelText(/sparkline|trend/i)).toBeNull();
   });
 });

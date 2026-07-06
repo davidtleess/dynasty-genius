@@ -31,9 +31,11 @@ export function PlayerIdentity({
         </span>
       ) : null}
       <span className="dg-ui-player-id__name">{name}</span>
-      <span className="dg-ui-player-id__team" data-team-color-basis={team}>
-        {team}
-      </span>
+      {team !== "" ? (
+        <span className="dg-ui-player-id__team" data-team-color-basis={team}>
+          {team}
+        </span>
+      ) : null}
       <span className="dg-ui-player-id__position">{position}</span>
     </span>
   );

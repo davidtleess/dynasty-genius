@@ -104,3 +104,38 @@
   cursor: pointer;
   color: var(--dg-market);
 }
+
+/* Below 768px the cockpit stacks: nav flows as a wrapped row on top, then the
+   trust strip, then the main column at full width. The fixed 14rem rail column
+   otherwise crushes the content to a sliver (the Task-1 mobile debt finding).
+   Full icon-mode rail collapse remains I5 scope; this is the honest stack. */
+@media (max-width: 768px) {
+  .dg-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+      "rail"
+      "trust"
+      "main"
+      "inspector";
+  }
+
+  .dg-shell__rail {
+    flex-flow: row wrap;
+    align-items: baseline;
+    border-block-end: 1px solid var(--dg-border);
+  }
+
+  .dg-shell__rail-primary {
+    flex-flow: row wrap;
+    column-gap: var(--dg-space-1);
+  }
+
+  .dg-shell__developer {
+    margin-block-start: 0;
+    padding-block-start: 0;
+    border-block-start: 0;
+    flex-flow: row wrap;
+    align-items: baseline;
+  }
+}

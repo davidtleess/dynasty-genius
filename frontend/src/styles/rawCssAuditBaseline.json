@@ -77,7 +77,7 @@
       "raw_hex": 0,
       "raw_oklch": 0,
       "raw_rgb": 0,
-      "raw_spacing_values": 0,
+      "raw_spacing_values": 1,
       "raw_radius_values": 0,
       "raw_font_size_values": 0,
       "non_token_font_families": 0
@@ -167,9 +167,9 @@
       "raw_hex": 0,
       "raw_oklch": 0,
       "raw_rgb": 0,
-      "raw_spacing_values": 7,
+      "raw_spacing_values": 6,
       "raw_radius_values": 3,
-      "raw_font_size_values": 13,
+      "raw_font_size_values": 1,
       "non_token_font_families": 0
     }
   ],
@@ -179,7 +179,7 @@
     "raw_rgb": 0,
     "raw_spacing_values": 51,
     "raw_radius_values": 21,
-    "raw_font_size_values": 54,
+    "raw_font_size_values": 42,
     "non_token_font_families": 0
   }
 }
