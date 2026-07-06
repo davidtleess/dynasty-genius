@@ -99,6 +99,7 @@ Weaknesses to correct:
 9. **Strength and equity are different products.** Lineup strength answers "who can beat me now?" Franchise equity answers "who owns the best dynasty balance sheet?" Valued owned draft picks may share the same value yardstick as players, but they must not be silently folded into current-strength rankings.
 10. **The shipped app is the design artifact.** Static mockups can inform direction, but craft is earned by screenshotting, inspecting, and iterating on the actual running app over a small governed token vocabulary.
 11. **The benchmark is concrete.** David's Dynasty Nerds screenshots are the visual parity floor. DG must match the density, hierarchy, identity, group totals, first-class pick treatment, profile grammar, and hero moments while exceeding DN with two-lane model/market truth, receipts, real uncertainty, and the Hard Right Edge.
+12. **Visual audit is mandatory.** David's standing directive is binding: "always visually audit the work and raise the bar until a truly exceptional standard is met." A visual GREEN without the implementer's own final screenshot audit is a process violation.
 
 ## Principles First, Practical Next, Spectacular Last
 
@@ -111,6 +112,8 @@ Weaknesses to correct:
 **Spectacular last:** only after the primitive layer, visual evidence gate, and voice layer exist should DG spend boldness on motion, chart choreography, deep-dark palette tuning, daily-open sequencing, and signature chart primitives. Spectacular here means unmistakably credible, not louder.
 
 **Benchmark floor:** spectacular is not abstract. David's Dynasty Nerds screenshots define the minimum professional density and hierarchy: player identity everywhere, value numbers as focal objects, row-level uncertainty, team/group rank context, first-class valued picks, tabbed profile pages, graded bars with basis, and prose beside the numbers. DG's job is to translate that grammar into its stricter constitution, not to ignore it.
+
+**Visual audit loop:** every visual change follows capture -> direct audit -> fix -> recapture until the implementing agent cannot name a remaining visual defect. The audit reads the screenshots like a design lead: hierarchy, contrast, alignment, spacing rhythm, wrapping, overlap, dead space, density, focus visibility, and benchmark parity. Passing DOM tests or axe smoke is not enough.
 
 ## Tooling Decisions
 
@@ -201,6 +204,7 @@ No visual increment can route for GREEN CLEAR without:
 4. axe or documented manual a11y check
 5. CSS/token audit delta
 6. David preview evidence for broad visual flips
+7. implementer-written final screenshot audit with no named defect
 ```
 
 - [ ] **Step 3: Restart the visual flip and treat I2a as a parts donor**
@@ -337,6 +341,31 @@ cd frontend && npm run visual:smoke
 ```
 
 Expected result: screenshots produced as artifacts, no axe violations for tested regions. No visual GREEN may be routed without these artifacts unless the change is proven non-visual.
+
+- [ ] **Step 4b: RED for implementer visual-audit artifact**
+
+Every visual GREEN must include a final-state audit note beside the screenshot bundle:
+
+```text
+artifacts/visual/visual-audit.md
+```
+
+Required sections:
+
+```text
+Screenshots reviewed
+Hierarchy
+Contrast
+Alignment
+Spacing rhythm
+Wraps and overlap
+Dead space and density
+Focus visibility
+Benchmark parity
+Named defects remaining
+```
+
+Acceptance: `Named defects remaining` must be `None` before routing a visual GREEN. If the implementer can name any defect, the next step is fix -> recapture -> re-audit, not cockpit CLEAR.
 
 - [ ] **Step 5: Observe flake before CI hard gate**
 
@@ -904,6 +933,9 @@ Every visual cockpit CLEAR must include screenshot evidence or a clear reason th
 23. A profile page lacks persistent player identity header, tabs/section navigation, or basis-disclosed graded bars when implementing the DN-profile parity class. Expected: fail.
 24. Headshots/team chips/college logos hotlink live assets in committed tests or runtime code before David ratifies the asset-pipeline policy. Expected: fail; use fixtures/fallbacks until policy exists.
 25. A visual CLEAR lacks `benchmark-delta.md` or equivalent notes explaining how the DG screenshot compares to the relevant Dynasty Nerds screenshot. Expected: fail for Daily Open and I4 visual surfaces.
+26. A visual GREEN lacks the implementer's final screenshot audit artifact. Expected: fail; screenshot capture without direct visual judgment is not enough.
+27. The final visual audit names any remaining defect and the work routes anyway. Expected: fail; iterate fix -> recapture -> re-audit until no named defect remains.
+28. A visual change is contract-correct but does not reach parity-or-better against the relevant Dynasty Nerds benchmark. Expected: fail; the acceptance bar is truly exceptional, not merely passing.
 
 ## Cockpit Routing Request
 

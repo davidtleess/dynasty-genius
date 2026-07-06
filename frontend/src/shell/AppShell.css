@@ -30,7 +30,7 @@
 }
 
 .dg-shell__parked-badge {
-  font-size: var(--dg-text-xs, 0.75rem);
+  font-size: var(--dg-text-sm);
   opacity: 0.65;
 }
 
@@ -46,7 +46,7 @@
 
 .dg-shell__developer-label {
   padding-inline: var(--dg-space-3);
-  font-size: var(--dg-text-xs, 0.75rem);
+  font-size: var(--dg-text-sm);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   opacity: 0.55;

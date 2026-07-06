@@ -9,11 +9,11 @@
   min-inline-size: 0;
   max-inline-size: 28rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid oklch(0.85 0 0);
+  border: 1px solid var(--dg-border);
   border-radius: 6px;
   font-size: var(--dg-text-sm, 0.8125rem);
-  color: oklch(0.35 0 0);
-  background: oklch(0.985 0 0);
+  color: var(--dg-text);
+  background: var(--dg-surface-raised);
 }
 
 .dg-syshealth__body {
@@ -36,7 +36,7 @@
 }
 
 .dg-syshealth__subtitle {
-  color: oklch(0.55 0 0);
+  color: var(--dg-text-muted);
   font-size: 0.9em;
 }
 
@@ -46,7 +46,7 @@
 
 /* Degraded root: the one severity hue, prominent for core, muted for daily. */
 .dg-syshealth[data-health-status="degraded"] .dg-syshealth__overall {
-  color: var(--dg-cliff, oklch(0.68 0.16 70));
+  color: var(--dg-cliff);
 }
 
 .dg-syshealth[data-affected-tier="daily_diagnostics"] .dg-syshealth__overall {
@@ -55,14 +55,14 @@
 
 .dg-syshealth__counts,
 .dg-syshealth__checked {
-  color: oklch(0.5 0 0);
+  color: var(--dg-text-muted);
 }
 
 .dg-syshealth__unavailable {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  color: oklch(0.45 0 0);
+  color: var(--dg-text-muted);
 }
 
 .dg-syshealth__subsystems,
@@ -86,47 +86,48 @@
    tier maps to intensity (core prominent, daily muted); auxiliary never gets it. */
 .dg-syshealth__subsystem[data-severity="degraded"],
 .dg-syshealth__report[data-severity="degraded"] {
-  border-inline-start: 3px solid var(--dg-cliff, oklch(0.68 0.16 70));
+  border-inline-start: 3px solid var(--dg-cliff);
   padding-inline-start: 0.4rem;
 }
 
 .dg-syshealth__report[data-severity="degraded"][data-tier="daily_diagnostics"],
 .dg-syshealth__subsystem[data-severity="degraded"][data-tier="daily_diagnostics"] {
-  border-inline-start-color: oklch(0.78 0.09 70);
+  border-inline-start-width: 2px;
+  border-inline-start-color: var(--dg-cliff);
 }
 
 /* Dormant is the calm expected off-season state — plain gray, no accent. */
 .dg-syshealth__report[data-health-status="dormant"] {
-  color: oklch(0.6 0 0);
+  color: var(--dg-text-muted);
 }
 
 /* Overdue-within-grace is pending: distinct from both fresh-neutral and
    degraded-amber. */
 .dg-syshealth__report[data-health-status="freshness_overdue"] {
-  color: oklch(0.5 0.03 260);
+  color: var(--dg-text-muted);
 }
 
 .dg-syshealth__meta {
-  color: oklch(0.6 0 0);
+  color: var(--dg-text-muted);
   font-size: 0.9em;
   overflow-wrap: anywhere;
 }
 
 .dg-syshealth__details-summary {
   cursor: pointer;
-  color: oklch(0.5 0 0);
+  color: var(--dg-text-muted);
 }
 
 .dg-syshealth__footer {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  border-block-start: 1px solid oklch(0.9 0 0);
+  border-block-start: 1px solid var(--dg-border);
   padding-block-start: 0.3rem;
 }
 
 .dg-syshealth__disclaimer,
 .dg-syshealth__decision {
-  color: oklch(0.55 0 0);
+  color: var(--dg-text-muted);
   font-size: 0.85em;
 }

@@ -1,0 +1,175 @@
+{
+  "schema_version": "h2_raw_css_audit.v1",
+  "generated_for": "H2 reset Task 3 CSS token debt audit",
+  "files": [
+    {
+      "path": "command/CommandPalette.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 0,
+      "raw_radius_values": 2,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "league-pulse/LeaguePulse.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 3,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 3,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "player/PlayerDetail.css",
+      "raw_hex": 0,
+      "raw_oklch": 2,
+      "raw_rgb": 0,
+      "raw_spacing_values": 3,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 1,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "project/ProjectTracker.css",
+      "raw_hex": 1,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 3,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 2,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "realized-outcome/RealizedOutcomeScorecard.css",
+      "raw_hex": 7,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 0,
+      "raw_radius_values": 1,
+      "raw_font_size_values": 5,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "roster-capacity/RosterCapacitySandbox.css",
+      "raw_hex": 9,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 4,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 6,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "roster/RosterAudit.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 4,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 3,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "shell/AppShell.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 0,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "shell/ParkedSurfaceCard.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 2,
+      "raw_radius_values": 1,
+      "raw_font_size_values": 2,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "shell/TrustStrip.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 0,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "styles/tokens.css",
+      "raw_hex": 0,
+      "raw_oklch": 40,
+      "raw_rgb": 0,
+      "raw_spacing_values": 0,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "system-health/SystemHealthCard.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 1,
+      "raw_radius_values": 1,
+      "raw_font_size_values": 3,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "trade/TradeLab.css",
+      "raw_hex": 0,
+      "raw_oklch": 1,
+      "raw_rgb": 0,
+      "raw_spacing_values": 5,
+      "raw_radius_values": 1,
+      "raw_font_size_values": 2,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "trust/TrustConsole.css",
+      "raw_hex": 0,
+      "raw_oklch": 26,
+      "raw_rgb": 0,
+      "raw_spacing_values": 6,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 14,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "ui/ui.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 13,
+      "raw_radius_values": 12,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "what-changed/DailyWhatChanged.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 7,
+      "raw_radius_values": 3,
+      "raw_font_size_values": 13,
+      "non_token_font_families": 0
+    }
+  ],
+  "totals": {
+    "raw_hex": 17,
+    "raw_oklch": 69,
+    "raw_rgb": 0,
+    "raw_spacing_values": 51,
+    "raw_radius_values": 21,
+    "raw_font_size_values": 54,
+    "non_token_font_families": 0
+  }
+}

@@ -3,7 +3,11 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { WhatChangedResponse } from "../lib/api/types.gen";
+import type {
+  CaptureHealthResponse,
+  ModelProvenanceResponse,
+  WhatChangedResponse,
+} from "../lib/api/types.gen";
 import { zWhatChangedResponse } from "../lib/api/zod.gen";
 import { DailyWhatChanged } from "./DailyWhatChanged";
 
@@ -253,6 +257,98 @@ function mockFetch(status: number, body: unknown) {
     ok: status === 200,
     status,
     json: async () => body,
+  });
+}
+
+function captureHealthResponse(
+  overrides: Partial<CaptureHealthResponse> = {},
+): CaptureHealthResponse {
+  return {
+    checked_at: "2026-07-05T09:00:00-04:00",
+    config_version: 3,
+    decision_supported: false,
+    overall_status: "ok",
+    stores: [
+      {
+        caveats: [],
+        decision_supported: false,
+        density: {
+          baseline_median_rows: 7400,
+          baseline_window: 7,
+          floor_pct: 80,
+          sub_floor_dates: [],
+        },
+        flags: {
+          warn_basis: "ok",
+          warn_missing: false,
+          window_risk: false,
+          window_risk_basis: "ok",
+        },
+        staleness: {
+          expected_by: "2026-07-05T10:00:00-04:00",
+          grace_hours: 24,
+          last_capture_date: "2026-07-05",
+          stale: false,
+        },
+        store_id: "fc_forward_capture",
+        store_presence: "present",
+        store_status: "ok",
+        timeline: {
+          capture_start_date: "2026-06-24",
+          consecutive_days_current: 12,
+          expected_days: 12,
+          first_date: "2026-06-24",
+          last_date: "2026-07-05",
+          max_contiguous_gap_days: 0,
+          missing_dates_count: 0,
+          missing_ranges: [],
+          missing_ranges_total: 0,
+          present_days: 12,
+        },
+      },
+    ],
+    ...overrides,
+  };
+}
+
+function modelProvenanceResponse(
+  overrides: Partial<ModelProvenanceResponse> = {},
+): ModelProvenanceResponse {
+  return {
+    artifacts: [
+      {
+        artifact_id: "engine_b_v2",
+        decision_supported: false,
+        expected_kind: "tracked_seed",
+        load_verification_status: "verified",
+        observed_status: "ok",
+        path: "app/data/models/engine_b/latest.pkl",
+        pointer_status: "referenced",
+        promotion_status: "active",
+        serving_allowed: true,
+        severity: "info",
+      },
+    ],
+    decision_supported: false,
+    environment: "serving",
+    overall_status: "ok",
+    registry_version: 4,
+    ...overrides,
+  };
+}
+
+function mockFetchByUrl(responses: Record<string, { status: number; body: unknown }>) {
+  globalThis.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+    const url = typeof input === "string" ? input : input.toString();
+    const response = responses[url];
+    if (!response) {
+      return Promise.reject(new Error(`unmocked fetch ${url}`));
+    }
+    return Promise.resolve({
+      ok: response.status >= 200 && response.status < 300,
+      status: response.status,
+      json: async () => response.body,
+    });
   });
 }
 
@@ -556,5 +652,96 @@ describe("DailyWhatChanged", () => {
     await waitFor(() =>
       expect(screen.getByText(/could not read daily what-changed/i)).toBeTruthy(),
     );
+  });
+
+  it("renders the I2a daily tape from capture-health and model-provenance substrate facts", async () => {
+    mockFetchByUrl({
+      "/api/league/what-changed": { status: 200, body: whatChangedResponse() },
+      "/api/system/capture-health": { status: 200, body: captureHealthResponse() },
+      "/api/system/model-provenance": {
+        status: 200,
+        body: modelProvenanceResponse(),
+      },
+    });
+
+    render(<DailyWhatChanged />);
+
+    const tape = await screen.findByRole("region", { name: /daily tape/i });
+    expect(
+      within(tape).getByText(/market sync active: 12 consecutive days tracked/i),
+    ).toBeTruthy();
+    expect(within(tape).getByText(/projection update: july 5, current/i)).toBeTruthy();
+    expect(within(tape).getByText(/status: synced/i)).toBeTruthy();
+    expect(
+      within(tape).queryByText(
+        /capture streak|last capture|model vintage|registry version/i,
+      ),
+    ).toBeNull();
+    expect(
+      within(tape)
+        .getByText(/market sync active/i)
+        .getAttribute("title"),
+    ).toContain("consecutive_days=12");
+    expect(
+      within(tape)
+        .getByText(/projection update/i)
+        .getAttribute("title"),
+    ).toContain("registry_version=4");
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/system/capture-health",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/system/model-provenance",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("degrades the daily tape honestly when substrate endpoints are unavailable", async () => {
+    mockFetchByUrl({
+      "/api/league/what-changed": { status: 200, body: whatChangedResponse() },
+      "/api/system/capture-health": {
+        status: 503,
+        body: { detail: { message: "capture health unavailable" } },
+      },
+      "/api/system/model-provenance": {
+        status: 200,
+        body: { invalid: true },
+      },
+    });
+
+    render(<DailyWhatChanged />);
+
+    const tape = await screen.findByRole("region", { name: /daily tape/i });
+    expect(
+      within(tape).getByText(/partial market sync: some inputs are being verified/i),
+    ).toBeTruthy();
+    expect(
+      within(tape).getByText(/projections active using the latest verified data/i),
+    ).toBeTruthy();
+    expect(within(tape).getByText(/status: degraded/i)).toBeTruthy();
+    expect(
+      within(tape).queryByText(
+        /capture health|model provenance|capture streak|model vintage|registry version/i,
+      ),
+    ).toBeNull();
+  });
+
+  it("reserves honest empty chart slots without rendering I2b sparkline paths", async () => {
+    mockFetchByUrl({
+      "/api/league/what-changed": { status: 200, body: whatChangedResponse() },
+      "/api/system/capture-health": { status: 200, body: captureHealthResponse() },
+      "/api/system/model-provenance": {
+        status: 200,
+        body: modelProvenanceResponse(),
+      },
+    });
+
+    const { container } = render(<DailyWhatChanged />);
+
+    await screen.findByText("Market Mover");
+    expect(screen.getAllByText(/series pending/i).length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll(".dg-wc__series-slot path")).toHaveLength(0);
+    expect(screen.queryByLabelText(/sparkline|trend/i)).toBeNull();
   });
 });

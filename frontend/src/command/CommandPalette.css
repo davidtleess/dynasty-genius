@@ -13,6 +13,11 @@
   gap: var(--dg-space-2);
   padding: var(--dg-space-3);
   font-family: var(--dg-font-sans);
+  background: var(--dg-surface-raised);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: 8px;
+  color: var(--dg-text);
+  z-index: 50;
 }
 
 .dg-cmdk__search {
@@ -20,6 +25,15 @@
   padding: var(--dg-space-2) var(--dg-space-3);
   font: inherit;
   font-size: var(--dg-text-lg);
+  background: var(--dg-surface);
+  border: 1px solid var(--dg-border);
+  border-radius: 4px;
+  color: var(--dg-text);
+}
+
+.dg-cmdk__search:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 1px;
 }
 
 .dg-cmdk__list {

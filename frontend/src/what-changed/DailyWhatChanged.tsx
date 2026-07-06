@@ -9,8 +9,14 @@ import type {
   WhatChangedStructuralContext,
   WhatChangedStructuralSection,
 } from "../lib/api/types.gen";
-import { zWhatChangedResponse } from "../lib/api/zod.gen";
+import {
+  zCaptureHealthResponse,
+  zModelProvenanceResponse,
+  zWhatChangedResponse,
+} from "../lib/api/zod.gen";
 import { formatCaptureTimestamp } from "../lib/copy";
+import { useEndpointResource } from "../lib/useEndpointResource";
+import { DailyTape as UiDailyTape } from "../ui/DailyTape";
 import "./DailyWhatChanged.css";
 
 type State =
@@ -84,6 +90,7 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
   return (
     <section className="dg-wc" aria-label="Daily What-Changed">
       <h2 className="dg-wc__title">Daily Change Log</h2>
+      <DailyTape />
       <p className="dg-wc__disclaimer">Descriptive only — not decision-grade.</p>
       <p className="dg-wc__disclaimer">
         A daily delta surface (what changed since the prior snapshot); no verdict, no
@@ -165,14 +172,65 @@ function MarketDeltaTable({ rows }: { rows: WhatChangedMarketDelta[] }) {
     <table className="dg-wc__table">
       <tbody>
         {rows.map((r, i) => (
-          <tr key={r.sleeper_id ?? i} className="dg-wc__row">
+          <tr key={r.sleeper_id ?? i} className="dg-wc__row dg-wc__mover-row">
             <td>{r.player_name ?? r.player_key}</td>
             <td>{r.position}</td>
-            <td className="dg-wc__delta">{fmtSigned(r.value_delta)}</td>
+            <td className="dg-wc__delta dg-wc__value">{fmtSigned(r.value_delta)}</td>
+            {/* I2a: the sparkline cell is reserved but HONEST-EMPTY — no path
+                renders until the I2b PIT-series contract delivers real data. */}
+            <td className="dg-wc__series-slot">series pending</td>
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+// H2 I2a daily tape: substrate facts ONLY (capture streak / last capture /
+// model vintage / registry version) — never movement or trend claims. Each
+// endpoint degrades independently to an honest unavailable line.
+function DailyTape() {
+  const capture = useEndpointResource({
+    url: "/api/system/capture-health",
+    schema: zCaptureHealthResponse,
+  });
+  const provenance = useEndpointResource({
+    url: "/api/system/model-provenance",
+    schema: zModelProvenanceResponse,
+  });
+
+  // The tape appears only once both substrate endpoints have settled — a
+  // half-loaded tape would juxtapose facts with placeholders. Ready facts and
+  // honest unavailable lines are the only two voices it has.
+  if (capture.status === "loading" || provenance.status === "loading") {
+    return null;
+  }
+
+  const firstStore = capture.status === "ready" ? capture.data.stores[0] : undefined;
+
+  // The surface maps endpoint truth onto the voice-guide tape primitive:
+  // manager prose on screen, raw values in the title layer (prose principle).
+  return (
+    <UiDailyTape
+      capture={
+        capture.status === "ready" && firstStore
+          ? {
+              consecutiveDays: firstStore.timeline.consecutive_days_current,
+              lastCaptureAt: firstStore.staleness.last_capture_date ?? "",
+              status: capture.data.overall_status === "ok" ? "ok" : "degraded",
+            }
+          : { consecutiveDays: 0, lastCaptureAt: "", status: "unavailable" }
+      }
+      provenance={
+        provenance.status === "ready"
+          ? {
+              registryVersion: provenance.data.registry_version,
+              modelVintage: provenance.data.overall_status,
+              status: provenance.data.overall_status === "ok" ? "ok" : "degraded",
+            }
+          : { registryVersion: 0, modelVintage: "unavailable", status: "unavailable" }
+      }
+    />
   );
 }
 
@@ -217,12 +275,15 @@ function ModelDeltaTable({ rows }: { rows: WhatChangedModelDelta[] }) {
     <table className="dg-wc__table">
       <tbody>
         {rows.map((r, i) => (
-          <tr key={r.sleeper_id ?? i} className="dg-wc__row">
+          <tr key={r.sleeper_id ?? i} className="dg-wc__row dg-wc__mover-row">
             <td>{r.player_name ?? r.player_key}</td>
             <td>{r.position}</td>
-            <td className="dg-wc__delta">{fmtSigned(r.dynasty_value_score_delta)}</td>
-            <td className="dg-wc__delta">{fmtSigned(r.dvs_pct_delta)}</td>
-            <td className="dg-wc__delta">{fmtSigned(r.xvar_delta)}</td>
+            <td className="dg-wc__delta dg-wc__value">
+              {fmtSigned(r.dynasty_value_score_delta)}
+            </td>
+            <td className="dg-wc__delta dg-wc__value">{fmtSigned(r.dvs_pct_delta)}</td>
+            <td className="dg-wc__delta dg-wc__value">{fmtSigned(r.xvar_delta)}</td>
+            <td className="dg-wc__series-slot">series pending</td>
           </tr>
         ))}
       </tbody>

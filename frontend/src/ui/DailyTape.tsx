@@ -10,7 +10,11 @@ const TAPE_DATE = new Intl.DateTimeFormat("en-US", {
 });
 
 function tapeDate(iso: string): string {
-  const parsed = Date.parse(iso);
+  // Date-only strings are CALENDAR dates: parsing them raw lands at UTC
+  // midnight, which America/New_York renders as the PREVIOUS evening —
+  // an off-by-one day on the tape. Anchor them to noon before formatting.
+  const anchored = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00` : iso;
+  const parsed = Date.parse(anchored);
   return Number.isNaN(parsed) ? iso : TAPE_DATE.format(new Date(parsed));
 }
 

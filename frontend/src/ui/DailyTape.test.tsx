@@ -34,4 +34,26 @@ describe("DailyTape", () => {
       "registry_version=4",
     );
   });
+
+  it("treats date-only capture values as local calendar dates", async () => {
+    const { DailyTape } = await import("./DailyTape");
+
+    render(
+      <DailyTape
+        capture={{
+          consecutiveDays: 12,
+          lastCaptureAt: "2026-07-05",
+          status: "ok",
+        }}
+        provenance={{
+          registryVersion: 4,
+          modelVintage: "ok",
+          status: "ok",
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/projection update: july 5, current/i)).toBeTruthy();
+    expect(screen.queryByText(/projection update: july 4/i)).toBeNull();
+  });
 });

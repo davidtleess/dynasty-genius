@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  color: #1f2430;
+  color: var(--dg-text);
 }
 
 .dg-wc__title {
@@ -17,8 +17,8 @@
 
 .dg-wc__disclaimer {
   font-size: 0.85rem;
-  color: #55606f;
-  border-left: 3px solid #c7ccd6;
+  color: var(--dg-text-muted);
+  border-left: 3px solid var(--dg-border-strong);
   padding-left: 0.6rem;
   margin: 0;
 }
@@ -28,19 +28,19 @@
 .dg-wc__window {
   margin: 0;
   font-size: 0.85rem;
-  color: #55606f;
+  color: var(--dg-text-muted);
 }
 
 .dg-wc__vintage {
   margin: 0;
   font-size: 0.78rem;
-  color: #7a828e;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--dg-text-muted);
+  font-family: var(--dg-font-mono);
   word-break: break-all;
 }
 
 .dg-wc__region {
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--dg-border);
   border-radius: 6px;
   padding: 0.75rem 0.9rem;
   display: flex;
@@ -56,7 +56,7 @@
 .dg-wc__overlay-note {
   margin: 0;
   font-size: 0.78rem;
-  color: #7a828e;
+  color: var(--dg-text-muted);
   font-style: italic;
 }
 
@@ -65,14 +65,14 @@
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #7a828e;
+  color: var(--dg-text-muted);
 }
 
 .dg-wc__caveat,
 .dg-wc__empty {
   margin: 0;
   font-size: 0.85rem;
-  color: #55606f;
+  color: var(--dg-text-muted);
 }
 
 .dg-wc__list {
@@ -87,7 +87,7 @@
 }
 
 .dg-wc__row {
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--dg-border);
 }
 
 .dg-wc__table td {
@@ -102,25 +102,25 @@
 }
 
 .dg-wc__notice {
-  color: #55606f;
+  color: var(--dg-text-muted);
 }
 
 /* Structural current-state baseline — deliberately subordinate to the deltas:
    lighter, indented, and visually set apart so it reads as grounding context,
    not a co-equal change surface. Neutral grayscale only. */
 .dg-wc__baseline {
-  border: 1px dashed #d5d9e0;
+  border: 1px dashed var(--dg-border-strong);
   border-radius: 6px;
   padding: 0.6rem 0.8rem;
   margin-top: 0.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  background: #fafbfc;
+  background: var(--dg-surface-raised);
 }
 
 .dg-wc__baseline-section {
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--dg-border);
   padding-top: 0.4rem;
   display: flex;
   flex-direction: column;
@@ -131,9 +131,77 @@
 .dg-wc__baseline-line {
   margin: 0;
   font-size: 0.82rem;
-  color: #55606f;
+  color: var(--dg-text-muted);
 }
 
 .dg-wc__meta-label {
-  color: #7a828e;
+  color: var(--dg-text-muted);
+}
+
+/* ── H2 I2a: the daily open ──────────────────────────────────────────────── */
+
+.dg-wc__title {
+  font-family: var(--dg-font-display, inherit);
+  letter-spacing: 0.01em;
+}
+
+.dg-wc__tape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--dg-border);
+  border-radius: 4px;
+  font-family: var(--dg-font-mono);
+  font-size: 0.78rem;
+}
+
+.dg-wc__tape-fact {
+  white-space: nowrap;
+}
+
+.dg-wc__mover-row {
+  height: 32px;
+}
+
+.dg-wc__value {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.dg-wc__series-slot {
+  min-width: 64px;
+  font-size: 0.72rem;
+  font-style: italic;
+  opacity: 0.55;
+}
+
+/* The single orchestrated daily-open moment: regions settle top-down. */
+@media (prefers-reduced-motion: no-preference) {
+  .dg-wc__region {
+    animation: dg-wc-settle 0.15s ease-out backwards;
+  }
+  .dg-wc__region:nth-of-type(2) {
+    animation-delay: 0.05s;
+  }
+  .dg-wc__region:nth-of-type(3) {
+    animation-delay: 0.1s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dg-wc__region {
+    animation: none;
+  }
+}
+
+@keyframes dg-wc-settle {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

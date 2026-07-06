@@ -35,6 +35,7 @@ These rules hold through the reset:
 6. Magic/21st is inspiration-only. Generated UI may not land without DG token conversion, accessibility review, screenshot evidence, banned-language scan, and cockpit review.
 7. Mitigation tripwires, System Health token isolation, and generated-client boundaries stay locked.
 8. Broad visual flips require David preview evidence before commit.
+9. David's standing directive is binding: "always visually audit the work and raise the bar until a truly exceptional standard is met."
 
 ## 4. Root-Cause Diagnosis
 
@@ -117,6 +118,14 @@ Role split:
 
 - **Chrome DevTools MCP:** interactive screenshot/DOM/CSS/network/performance debugging during iteration. Costs are explicit: Chrome-only, tool-token overhead, and local-preview maturity risk. It is MCP/tooling infrastructure, not a runtime dependency and not a CI gate.
 - **Playwright + axe:** repeatable screenshot/a11y evidence bundle for cockpit review. This is the ship gate for visual work.
+
+Visual-audit gate:
+
+- every visual change captures desktop and mobile evidence from the final running state;
+- the implementing agent must read the screenshots directly before routing GREEN, using a design-lead checklist: hierarchy, contrast, alignment, spacing rhythm, wraps, overlap, dead space, density, focus visibility, and benchmark parity;
+- if the agent can name a visual defect, the work is not GREEN: fix it, recapture, and audit again;
+- the acceptance bar is truly exceptional, meaning parity-or-better against the relevant Dynasty Nerds benchmark after DG's constitutional translations, not merely contract-pass;
+- routing a visual GREEN without the implementer's own final screenshot audit is a process violation.
 
 The current audit shows no governed focus grammar, so the first focus pass is expected to expose failures. Task 1 records those failures into the debt register. Pass gates for keyboard-visible focus begin when Task 2 primitives and Task 3 migration work create the governed focus system.
 
@@ -236,6 +245,7 @@ Acceptance:
 - tape facts render from route mocks and live-smoke data;
 - Dynasty Nerds benchmark parity rows that apply to the daily open are checked at David preview: value numbers have hierarchy, table/list rows carry identity where player rows appear, updated stamps are visible, empty chart slots stay honest, and the screenshot bundle is compared against the relevant benchmark screenshot rather than judged from DOM tests alone;
 - screenshot bundle reviewed before GREEN CLEAR;
+- implementer final-state visual audit records no named defect across hierarchy, contrast, alignment, rhythm, wraps, dead space, focus visibility, and benchmark parity; any named defect triggers fix -> recapture -> re-audit before routing;
 - David preview happens before commit;
 - the parked I2a code is copied selectively, never merged wholesale.
 
@@ -309,6 +319,9 @@ Trend extension:
 26. Headshots, team chips, or college logos hotlink external assets without the ratified asset-pipeline policy. Expected: RED fails; image identity requires the David-gated cache/hotlink decision and accessible fallbacks.
 27. A profile page lacks persistent player identity header, tabs/section navigation, or basis-disclosed graded bars when implementing the DN-profile parity class. Expected: RED fails.
 28. A visual CLEAR lacks `benchmark-delta.md` or equivalent notes explaining how the DG screenshot compares to the relevant Dynasty Nerds screenshot. Expected: cockpit does not accept the CLEAR for Daily Open or I4 visual surfaces.
+29. A visual GREEN routes with screenshot artifacts but no implementer-written direct visual audit on the final state. Expected: process violation; GREEN is invalid until the agent audits the final screenshots.
+30. The implementer's visual audit names a defect in hierarchy, contrast, alignment, spacing rhythm, wrapping, dead space, focus visibility, density, or benchmark parity and routes anyway. Expected: fail; fix -> recapture -> re-audit until no named defect remains.
+31. A visual change meets DOM/type/a11y contracts but remains merely acceptable rather than parity-or-better against the relevant Dynasty Nerds benchmark. Expected: visual GREEN blocked; the bar is truly exceptional, not contract-pass.
 
 ## 8. Open Decisions For David
 
