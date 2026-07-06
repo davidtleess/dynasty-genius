@@ -7,6 +7,7 @@ import "@fontsource/archivo/latin.css";
 import "@fontsource/ibm-plex-mono/latin.css";
 import "@fontsource/ibm-plex-sans/latin.css";
 import { App } from "./App";
+import "./styles/motion.css";
 import "./styles/tokens.css";
 
 const rootElement = document.getElementById("root");

@@ -179,7 +179,8 @@
 /* The single orchestrated daily-open moment: regions settle top-down. */
 @media (prefers-reduced-motion: no-preference) {
   .dg-wc__region {
-    animation: dg-wc-settle 0.15s ease-out backwards;
+    animation: dg-wc-settle var(--dg-duration-moderate-01)
+      var(--dg-ease-productive-entrance) backwards;
   }
   .dg-wc__region:nth-of-type(2) {
     animation-delay: 0.05s;

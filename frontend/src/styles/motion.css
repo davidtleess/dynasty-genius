@@ -1,0 +1,99 @@
+/*
+ * DG motion system (reset spec Task 4). Carbon-derived, plain self-hosted CSS
+ * — zero runtime dependency; every value verified against @carbon/motion and
+ * the Heer & Robertson (InfoVis 2007) staged-transition findings.
+ *
+ * Policy (ratified): PRODUCTIVE motion for all data surfaces — subtle and out
+ * of the way. ONE expressive moment: the daily-open entrance. Chart stages
+ * run ~1s under the Congruence rule (every intermediate frame a valid data
+ * graphic) and NOTHING animates past the Hard Right Edge. No pulses, no
+ * urgency, no motion that implies confidence or a move.
+ */
+
+:root {
+  /* Carbon duration set (70–700ms) + the chart-stage class (~1s, Congruence). */
+  --dg-duration-fast-01: 70ms;
+  --dg-duration-fast-02: 110ms;
+  --dg-duration-moderate-01: 150ms;
+  --dg-duration-moderate-02: 240ms;
+  --dg-duration-slow-01: 400ms;
+  --dg-duration-slow-02: 700ms;
+  --dg-duration-chart-stage: 1000ms;
+
+  /* Carbon productive easings — no bounce, no stretch, ever. */
+  --dg-ease-productive-standard: cubic-bezier(0.2, 0, 0.38, 0.9);
+  --dg-ease-productive-entrance: cubic-bezier(0, 0, 0.38, 0.9);
+  --dg-ease-productive-exit: cubic-bezier(0.2, 0, 1, 0.9);
+}
+
+/* ── Productive micro-feedback: hover/focus state changes (70–110ms). ── */
+.dg-motion-feedback {
+  transition:
+    color var(--dg-duration-fast-01) var(--dg-ease-productive-standard),
+    background-color var(--dg-duration-fast-01) var(--dg-ease-productive-standard),
+    border-color var(--dg-duration-fast-02) var(--dg-ease-productive-standard);
+}
+
+/* ── Receipt reveal: disclosure open/close (110ms in, exit curve out). ── */
+.dg-motion-receipt {
+  transition:
+    opacity var(--dg-duration-fast-02) var(--dg-ease-productive-entrance),
+    transform var(--dg-duration-fast-02) var(--dg-ease-productive-entrance);
+}
+
+/* ── Drawer / inspector open-close (240ms, entrance/exit pairing). ── */
+.dg-motion-drawer {
+  transition: transform var(--dg-duration-moderate-02) var(--dg-ease-productive-exit);
+}
+
+/* ── Row sort/filter settle (150ms standard). ── */
+.dg-motion-row-settle {
+  transition:
+    opacity var(--dg-duration-moderate-01) var(--dg-ease-productive-standard),
+    transform var(--dg-duration-moderate-01) var(--dg-ease-productive-standard);
+}
+
+/* ── THE one expressive moment: the daily-open entrance (David-previewed). ── */
+.dg-motion-daily-open {
+  animation: dg-motion-settle var(--dg-duration-moderate-01)
+    var(--dg-ease-productive-entrance) backwards;
+}
+
+/* ── Chart stages: substrate → marks → labels, ~1s each, Congruence-bounded.
+   The final rendered frame keeps its [data-hard-right-edge] terminus static:
+   history ends where the data ends, and no stage may animate a mark beyond
+   that boundary. ── */
+.dg-motion-chart-stage {
+  transition:
+    opacity var(--dg-duration-chart-stage) var(--dg-ease-productive-standard),
+    transform var(--dg-duration-chart-stage) var(--dg-ease-productive-standard);
+}
+
+.dg-motion-chart-stage [data-hard-right-edge="true"] {
+  transition: none;
+}
+
+@keyframes dg-motion-settle {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Reduced motion: every class collapses to instant state changes. ── */
+@media (prefers-reduced-motion: reduce) {
+  .dg-motion-feedback,
+  .dg-motion-receipt,
+  .dg-motion-drawer,
+  .dg-motion-row-settle,
+  .dg-motion-daily-open,
+  .dg-motion-chart-stage,
+  .dg-motion-chart-stage [data-hard-right-edge="true"] {
+    transition: none;
+    animation: none;
+  }
+}
