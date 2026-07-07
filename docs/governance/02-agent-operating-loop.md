@@ -62,9 +62,10 @@ Every session begins in this order:
 2. Read `docs/governance/00-product-constitution.md`.
 3. Read `docs/governance/01-north-star-architecture.md` when doing implementation, architecture, model, pipeline, API, or data work.
 4. Read `docs/governance/03-code-hygiene-policy.md` when doing Python, lint, or code-hygiene work.
-5. Read `AGENT_SYNC.md`.
-6. Read today's ledger if it exists: `docs/agent-ledger/YYYY-MM-DD.md`.
-7. Read only the task-relevant code and docs after the governance pass.
+5. Read the design foundation — root `PRODUCT.md` + `DESIGN.md` — when doing frontend, UI, CSS, component, or any visual-surface work. It is the ratified visual-design source of record (honesty is the substrate; fantasy-native legibility is the aesthetic; the surface must never look like a developer diagnostics console in a fantasy skin). Claude Code loads it via the `impeccable` skill; Codex, Gemini, and other agents read the two files directly. **Contract-green is never a visual GREEN** — the whole viewport (not the diff) is the review unit, and an independent, unanchored fresh-agent visual audit (mid-scroll captures mandatory) is the standing pre-David gate.
+6. Read `AGENT_SYNC.md`.
+7. Read today's ledger if it exists: `docs/agent-ledger/YYYY-MM-DD.md`.
+8. Read only the task-relevant code and docs after the governance pass.
 
 ## Authority Order
 
@@ -207,7 +208,7 @@ Before sending the cockpit a finding ("X is wrong because Y"), do the arithmetic
 
 ### Bootstrap-first and discipline reset
 
-Every agent MUST run the bootstrap reading order (this file, then `00-product-constitution.md`, `01-north-star-architecture.md`, `03-code-hygiene-policy.md`, `AGENT_SYNC.md`, and today's ledger) before substantive analysis or mutation at session start. Light read-only inspection (e.g., a single `ls` or `git status` to orient) does not require bootstrap, but any spec, plan, code, governance, or contract decision does.
+Every agent MUST run the bootstrap reading order (this file, then `00-product-constitution.md`, `01-north-star-architecture.md`, `03-code-hygiene-policy.md`, the design foundation `PRODUCT.md` + `DESIGN.md` for visual-surface work, `AGENT_SYNC.md`, and today's ledger) before substantive analysis or mutation at session start. Light read-only inspection (e.g., a single `ls` or `git status` to orient) does not require bootstrap, but any spec, plan, code, governance, or contract decision does.
 
 Mid-session, when discipline drift is detected (cockpit converging too quickly, complimentary attestations without adversarial bite, repeated single-pass PASSes), **any agent in the cockpit — Codex, Gemini, or Claude — has the authority and the duty to call a discipline reset.** A discipline reset is:
 1. Pause all in-flight work.
@@ -369,7 +370,7 @@ At the start of every Claude Code session:
 
 1. Read `CLAUDE.md`.
 2. Read `.clauderules` if present.
-3. Follow this file's required reading order.
+3. Follow this file's required reading order (including the design foundation `PRODUCT.md` + `DESIGN.md` for visual-surface work).
 4. Read `AGENT_SYNC.md`.
 5. Log intended work before making broad implementation changes.
 

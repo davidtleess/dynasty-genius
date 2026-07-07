@@ -12,7 +12,8 @@ You do not rely on prior chat memory. You do not rely on summaries. Before execu
 2. `docs/governance/00-product-constitution.md` (The immutable football rules)
 3. `docs/governance/01-north-star-architecture.md` (The codebase structure)
 4. `docs/governance/03-code-hygiene-policy.md` (Lint scope, enforcement, and unsafe-change guardrails — for Python work)
-5. `AGENT_SYNC.md` (The current sprint state — contains active blockers and script run gates)
+5. **The design foundation — root `PRODUCT.md` + `DESIGN.md` — only if your task touches the frontend / UI / any visual surface** (anything under `frontend/`, React/TS, CSS, a route, or a component). It is the ratified visual-design source of record (honesty is the substrate; fantasy-native legibility is the aesthetic; the product must never look like a developer diagnostics console in a fantasy skin). Claude Code loads it via the `impeccable` skill; it is also item 5 of governance 02's Required Reading Order (Codex, Gemini, and other agents read the two files directly). **Contract-green is never a visual GREEN** — the whole viewport (not the diff) is the review unit, and an independent, unanchored fresh-agent visual audit with mid-scroll captures is the standing pre-David gate.
+6. `AGENT_SYNC.md` (The current sprint state — contains active blockers and script run gates)
 
 If you attempt to write code or analyze players without logging your work in `docs/agent-ledger/` and adhering to the governance files, you are failing your prime directive.
 
