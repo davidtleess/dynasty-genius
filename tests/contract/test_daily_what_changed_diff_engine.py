@@ -298,11 +298,26 @@ def test_market_day_over_day_uses_latest_prior_window_and_focused_slices(tmp_pat
     assert len(result["market"]["top_movers"]) == 1
     assert result["market"]["top_movers"][0]["sleeper_id"] == "6786"
     assert "all_movers" not in result["market"]
+    # Increment-1 worklist #2: entered/exited rows carry identity (name /
+    # position / team_id) so the UI renders people, not bare ids. team_id is
+    # None here because this fixture supplies no roster team map.
     assert result["market"]["entered"] == [
-        {"sleeper_id": "2222", "player_key": "sleeper:2222"}
+        {
+            "sleeper_id": "2222",
+            "player_key": "sleeper:2222",
+            "player_name": "Entered Player",
+            "position": "TE",
+            "team_id": None,
+        }
     ]
     assert result["market"]["exited"] == [
-        {"sleeper_id": "1111", "player_key": "sleeper:1111"}
+        {
+            "sleeper_id": "1111",
+            "player_key": "sleeper:1111",
+            "player_name": "Exited Player",
+            "position": "RB",
+            "team_id": None,
+        }
     ]
 
 

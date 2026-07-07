@@ -1519,13 +1519,17 @@ export const zWhatChangedDropSummary = z.object({
  */
 export const zWhatChangedEnteredExited = z.object({
     player_key: z.string(),
-    sleeper_id: z.string()
+    player_name: z.string().nullish(),
+    position: z.string().nullish(),
+    sleeper_id: z.string(),
+    team_id: z.string().nullish()
 });
 
 /**
  * WhatChangedMarketDelta
  */
 export const zWhatChangedMarketDelta = z.object({
+    current_value: z.int().nullish(),
     market_series: z.record(z.string(), z.unknown()).nullish(),
     model_series: z.record(z.string(), z.unknown()).nullish(),
     overall_rank_delta: z.int(),
@@ -1561,6 +1565,7 @@ export const zWhatChangedMarketSection = z.object({
  * WhatChangedModelDelta
  */
 export const zWhatChangedModelDelta = z.object({
+    current_value: z.number().nullish(),
     dvs_pct_delta: z.number(),
     dynasty_value_score_delta: z.number(),
     dynasty_value_score_delta_direction: z.string(),

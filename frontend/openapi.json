@@ -6131,9 +6131,42 @@
             "title": "Player Key",
             "type": "string"
           },
+          "player_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Player Name"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
           "sleeper_id": {
             "title": "Sleeper Id",
             "type": "string"
+          },
+          "team_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Id"
           }
         },
         "required": [
@@ -6146,6 +6179,17 @@
       "WhatChangedMarketDelta": {
         "additionalProperties": false,
         "properties": {
+          "current_value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Value"
+          },
           "market_series": {
             "anyOf": [
               {
@@ -6446,6 +6490,17 @@
       "WhatChangedModelDelta": {
         "additionalProperties": false,
         "properties": {
+          "current_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Value"
+          },
           "dvs_pct_delta": {
             "title": "Dvs Pct Delta",
             "type": "number"

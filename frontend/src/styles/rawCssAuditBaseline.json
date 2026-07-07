@@ -103,6 +103,16 @@
       "non_token_font_families": 0
     },
     {
+      "path": "shell/ShellStatusDrawer.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 3,
+      "raw_radius_values": 2,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
       "path": "shell/TrustStrip.css",
       "raw_hex": 0,
       "raw_oklch": 0,
@@ -167,7 +177,7 @@
       "raw_hex": 0,
       "raw_oklch": 0,
       "raw_rgb": 0,
-      "raw_spacing_values": 17,
+      "raw_spacing_values": 18,
       "raw_radius_values": 14,
       "raw_font_size_values": 0,
       "non_token_font_families": 0
@@ -177,8 +187,8 @@
       "raw_hex": 0,
       "raw_oklch": 0,
       "raw_rgb": 0,
-      "raw_spacing_values": 8,
-      "raw_radius_values": 4,
+      "raw_spacing_values": 9,
+      "raw_radius_values": 5,
       "raw_font_size_values": 1,
       "non_token_font_families": 0
     }
@@ -187,8 +197,8 @@
     "raw_hex": 17,
     "raw_oklch": 69,
     "raw_rgb": 0,
-    "raw_spacing_values": 59,
-    "raw_radius_values": 24,
+    "raw_spacing_values": 64,
+    "raw_radius_values": 27,
     "raw_font_size_values": 42,
     "non_token_font_families": 0
   }

@@ -147,6 +147,10 @@
   stroke-width: 2;
 }
 
+.dg-ui-series__endpoint {
+  fill: var(--dg-model);
+}
+
 /* ── Spread bar: uncertainty with numeric sigma + basis. ── */
 .dg-ui-spread {
   display: inline-flex;
@@ -222,8 +226,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 1px solid var(--dg-border-strong);
   background: var(--dg-surface-raised);
@@ -357,8 +361,8 @@
    by the DB team id — never a row background, never a status hue, never a
    left-border stripe (impeccable ban). ── */
 .dg-ui-player-id__headshot {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
   flex: none;

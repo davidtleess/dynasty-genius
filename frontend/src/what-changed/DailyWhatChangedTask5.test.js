@@ -59,11 +59,22 @@ describe("H2 reset Task 5 Daily What-Changed restart", () => {
     const source = stripComments(readSurface());
 
     expect(source).toContain("<PlayerIdentity");
-    expect(source).toContain('imageStatus={sleeperId ? "available" : "missing"}');
+    // Fail-safe headshot contract (discipline-reset finding #3): one helper is
+    // the single source of truth. A present sleeper id claims the cached image;
+    // a null/blank id degrades to the PlayerIdentity fallback chain — no row
+    // type may hardcode an image or build a literal `undefined.jpg` request.
+    expect(source).toContain("function headshotProps(");
+    // Whitespace-safe: the id is trimmed before it is trusted (a blank/space-only
+    // id degrades to the fallback, never a `/assets/headshots/   .jpg` request).
+    expect(source).toContain("const id = sleeperId?.trim();");
     expect(source).toContain(
-      'imageSrc={sleeperId ? `/assets/headshots/${sleeperId}.jpg` : undefined}',
+      "imageStatus: \"available\", imageSrc: `/assets/headshots/${id}.jpg`",
     );
+    expect(source).toContain('imageStatus: "missing", imageSrc: undefined');
+    expect(source).toContain("{...headshotProps(");
     expect(source).not.toContain('imageStatus="missing"');
+    expect(source).not.toContain('imageStatus="available"');
+    expect(source).not.toContain("${e.sleeper_id}.jpg");
     expect(source).toContain("<MetricCell");
     expect(source).toContain("<SeriesSlot");
     expect(source).toContain('status="pending"');

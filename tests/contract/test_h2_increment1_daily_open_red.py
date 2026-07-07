@@ -113,7 +113,9 @@ def test_what_changed_delta_dtos_accept_increment1_optional_row_fields() -> None
     assert model.model_series["points"][-1]["date"] == "2026-07-06"
 
 
-def test_what_changed_series_schema_rejects_malformed_and_future_dated_points() -> None:
+def test_what_changed_series_schema_rejects_structurally_malformed_points() -> None:
+    # Intrinsic series checks (shape, ordering, count, numeric) are enforced at
+    # the field level and hold regardless of when validation runs — no wall-clock.
     base = {
         "sleeper_id": "9509",
         "player_key": "sleeper:9509",
@@ -136,17 +138,104 @@ def test_what_changed_series_schema_rejects_malformed_and_future_dated_points() 
                 {"date": "2026-07-05", "value": 2.0},
             ],
         },
-        {
-            "basis": "fc",
-            "points": [
-                {"date": "2026-07-05", "value": 1.0},
-                {"date": "2026-07-07", "value": 2.0},
-            ],
-        },
         {"basis": "", "points": [{"date": "2026-07-05", "value": 1.0}] * 31},
     ]:
         with pytest.raises(ValidationError):
             WhatChangedMarketDelta.model_validate({**base, "market_series": bad_series})
+
+
+def _minimal_response_with_market_series(
+    *, generated_at: str, series: dict[str, Any]
+) -> dict[str, Any]:
+    """A valid What-Changed payload carrying one market roster delta + series."""
+    return {
+        "schema_version": "war_room_2_what_changed_v1",
+        "generated_at": generated_at,
+        "decision_supported": False,
+        "overall_status": "ok",
+        "daily_diff": {
+            "decision_supported": False,
+            "overall_status": "ok",
+            "market": {
+                "status": "ok",
+                "decision_supported": False,
+                "market_source": "fantasycalc_overlay",
+                "roster_deltas": [
+                    {
+                        "sleeper_id": "9509",
+                        "player_key": "sleeper:9509",
+                        "market_series": series,
+                        "value_delta": 8,
+                        "value_delta_direction": "rose",
+                        "overall_rank_delta": -2,
+                        "overall_rank_delta_direction": "improved",
+                        "position_rank_delta": -1,
+                        "position_rank_delta_direction": "improved",
+                    }
+                ],
+                "top_movers": [],
+                "entered": [],
+                "exited": [],
+            },
+            "model": {
+                "status": "baseline_holding",
+                "decision_supported": False,
+                "comparison_window": {"status": "insufficient_history"},
+                "deltas": [],
+            },
+        },
+        "structural_context": {
+            "status": "ok",
+            "decision_supported": False,
+            "current_not_delta": True,
+            "sections": {
+                name: {
+                    "status": "ok",
+                    "decision_supported": False,
+                    "current_not_delta": True,
+                }
+                for name in (
+                    "team_posture",
+                    "team_value",
+                    "league_opportunity",
+                    "drop_pressure",
+                    "sleeper_snapshot",
+                )
+            },
+        },
+    }
+
+
+def test_series_hard_right_edge_is_anchored_on_report_date_not_wall_clock() -> None:
+    # Finding F3: the "no point past the edge" invariant is enforced at the
+    # response root against generated_at, so the same artifact validates the
+    # same way on any machine on any day. A point ON the report date is fine;
+    # a point AFTER it is a producer defect.
+    on_edge = {
+        "basis": "fc",
+        "points": [
+            {"date": "2026-07-05", "value": 1.0},
+            {"date": "2026-07-06", "value": 2.0},
+        ],
+    }
+    past_edge = {
+        "basis": "fc",
+        "points": [
+            {"date": "2026-07-05", "value": 1.0},
+            {"date": "2026-07-07", "value": 2.0},
+        ],
+    }
+    generated_at = "2026-07-06T14:30:00+00:00"
+
+    WhatChangedResponse.model_validate(
+        _minimal_response_with_market_series(generated_at=generated_at, series=on_edge)
+    )
+    with pytest.raises(ValidationError):
+        WhatChangedResponse.model_validate(
+            _minimal_response_with_market_series(
+                generated_at=generated_at, series=past_edge
+            )
+        )
 
 
 def _model_entry(

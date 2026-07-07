@@ -3383,15 +3383,31 @@ export type WhatChangedEnteredExited = {
      */
     player_key: string;
     /**
+     * Player Name
+     */
+    player_name?: string | null;
+    /**
+     * Position
+     */
+    position?: string | null;
+    /**
      * Sleeper Id
      */
     sleeper_id: string;
+    /**
+     * Team Id
+     */
+    team_id?: string | null;
 };
 
 /**
  * WhatChangedMarketDelta
  */
 export type WhatChangedMarketDelta = {
+    /**
+     * Current Value
+     */
+    current_value?: number | null;
     /**
      * Market Series
      */
@@ -3537,6 +3553,10 @@ export type WhatChangedModelComparisonWindow = {
  * WhatChangedModelDelta
  */
 export type WhatChangedModelDelta = {
+    /**
+     * Current Value
+     */
+    current_value?: number | null;
     /**
      * Dvs Pct Delta
      */

@@ -164,15 +164,28 @@ def _build_market_section(
         "roster_deltas": roster_deltas,
         "top_movers": movers[:top_n],
         "total_movers_count": len(movers),
+        # Increment-1 worklist #2 (fresh-agent reviews): entered/exited carry the
+        # identity the source row already knows — raw ids were "a literal
+        # database dump in the UI". Fields optional-nullable; old artifacts load.
         "entered": [
-            {"sleeper_id": sid, "player_key": latest[sid]["player_key"]}
+            _entered_exited_row(latest[sid], (team_ids or {}).get(sid))
             for sid in sorted(entered_ids)
         ],
         "exited": [
-            {"sleeper_id": sid, "player_key": prior[sid]["player_key"]}
+            _entered_exited_row(prior[sid], (team_ids or {}).get(sid))
             for sid in sorted(exited_ids)
         ],
         "market_source": "fantasycalc_overlay",
+    }
+
+
+def _entered_exited_row(row: dict, team_id: Optional[str]) -> dict[str, Any]:
+    return {
+        "sleeper_id": row.get("sleeper_id"),
+        "player_key": row.get("player_key"),
+        "player_name": row.get("player_name"),
+        "position": row.get("position"),
+        "team_id": team_id,
     }
 
 
@@ -193,6 +206,9 @@ def _market_delta_row(
         "player_name": latest.get("player_name"),
         "position": latest.get("position"),
         "team_id": team_id,
+        # Worklist #3 (fresh-agent reviews): a delta without its level is
+        # unanswerable ("+109 of what?") — the current value rides along.
+        "current_value": _int(latest.get("value")),
         "market_series": market_series,
         "model_series": None,
         "value_delta": value_delta,
@@ -346,6 +362,7 @@ def _model_score_deltas(
                 "player_name": latest[key].get("player_name"),
                 "position": latest[key].get("position"),
                 "team_id": (team_ids or {}).get(str(sleeper_id)) if sleeper_id else None,
+                "current_value": _float(latest[key].get("dynasty_value_score")),
                 "model_series": (model_series_by_id or {}).get(str(sleeper_id))
                 if sleeper_id
                 else None,

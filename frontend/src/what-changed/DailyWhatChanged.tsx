@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 
 import type {
+  WhatChangedEnteredExited,
   WhatChangedMarketDelta,
   WhatChangedMarketSection,
   WhatChangedModelDelta,
@@ -14,6 +15,7 @@ import {
   zModelProvenanceResponse,
   zWhatChangedResponse,
 } from "../lib/api/zod.gen";
+import { TEAM_COLORS } from "../generated/teamColors";
 import { formatCaptureTimestamp } from "../lib/copy";
 import { useEndpointResource } from "../lib/useEndpointResource";
 import { CaveatBlock } from "../ui/CaveatBlock";
@@ -106,18 +108,23 @@ function DeltaCell({
   label,
   value,
   emphasis,
+  labelHidden,
 }: {
   label: string;
   value: number;
   emphasis?: "row-focal" | undefined;
+  /** Worklist #3: the column header carries the label once; per-row labels
+   *  move to the accessibility layer (52 repeats ≈ 100 wasted words). */
+  labelHidden?: boolean | undefined;
 }) {
   const text = formatZeroDelta(value);
   return (
     <span
       className="dg-wc__delta-cell"
+      aria-label={labelHidden ? label : undefined}
       title={text === NEUTRAL_DASH ? EXACT_ZERO_NOTE : undefined}
     >
-      <MetricCell label={label} value={text} emphasis={emphasis} />
+      <MetricCell label={labelHidden ? "" : label} value={text} emphasis={emphasis} />
     </span>
   );
 }
@@ -148,6 +155,30 @@ function usableSeriesPoints(
     });
   }
   return mapped;
+}
+
+function teamAccentFor(teamId: string | null | undefined): string | undefined {
+  if (!teamId) return undefined;
+  return TEAM_COLORS[teamId]?.primary;
+}
+
+// Fail-safe headshot contract (discipline-reset finding #3): only claim an
+// image when a sleeper id actually exists. A null/blank id degrades to the
+// PlayerIdentity headshot→initials fallback chain — it must never build a
+// literal `/assets/headshots/undefined.jpg` request. One source of truth for
+// every row type (asset rows, universe chips, baseline rows) so the divergence
+// cannot reappear on one surface.
+function headshotProps(sleeperId: string | null | undefined): {
+  imageStatus: "available" | "missing";
+  imageSrc: string | undefined;
+} {
+  // Trim before the truthiness check (Codex boundary finding): a whitespace-only
+  // id is as blank as null and must degrade to the fallback — never build a
+  // `/assets/headshots/   .jpg` request. The URL uses the trimmed id.
+  const id = sleeperId?.trim();
+  return id
+    ? { imageStatus: "available", imageSrc: `/assets/headshots/${id}.jpg` }
+    : { imageStatus: "missing", imageSrc: undefined };
 }
 
 function lastSeriesDate(series: unknown): string | null {
@@ -189,6 +220,8 @@ function AssetRow({
   children,
   seriesLabel,
   series,
+  rank,
+  currentValue,
 }: {
   sleeperId: string | null | undefined;
   name: string;
@@ -198,19 +231,27 @@ function AssetRow({
   children: React.ReactNode;
   seriesLabel: string;
   series: unknown;
+  rank?: number | undefined;
+  currentValue?: string | undefined;
 }) {
   const otherLane = lane === "model" ? "market" : "model";
   return (
     <li data-asset-row data-row-density="32px" className="dg-wc__player-row">
+      {rank !== undefined && <span className="dg-wc__rank">{rank}</span>}
       <PlayerIdentity
         name={name}
         team={teamId ?? ""}
         position={position}
-        imageStatus={sleeperId ? "available" : "missing"}
-        imageSrc={sleeperId ? `/assets/headshots/${sleeperId}.jpg` : undefined}
+        {...headshotProps(sleeperId)}
         teamId={teamId ?? undefined}
+        teamAccent={teamAccentFor(teamId)}
       />
       <span data-lane={lane} className="dg-wc__lane">
+        {currentValue !== undefined && (
+          <span className="dg-wc__current-value" title="current value (level, not movement)">
+            {currentValue}
+          </span>
+        )}
         {children}
         <LaneSeriesSlot series={series} label={seriesLabel} />
         <ReceiptTrigger
@@ -301,7 +342,6 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
             . The tape below reflects the last verified capture, not this morning.
           </p>
         )}
-        <DailyTape />
         <p className="dg-wc__disclaimer">
           A daily delta surface (what changed since the prior snapshot); no verdict, no
           nominated move.
@@ -352,6 +392,7 @@ function ContextRail({
 
   return (
     <aside className="dg-wc__rail" aria-label="Report context">
+      <DailyTape />
       <section className="dg-wc__diagnostics" aria-label="Feed diagnostics">
         <h3 className="dg-wc__rail-title">Feed diagnostics</h3>
         <p className="dg-wc__rail-line">Feed status: {data.overall_status}</p>
@@ -409,7 +450,7 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
 
   return (
     <section className="dg-wc__region" aria-label="Market price-discovery overlay">
-      <h3 className="dg-wc__region-title">Market price-discovery overlay</h3>
+      <h3 className="dg-wc__region-title">Market movement</h3>
       <p className="dg-wc__overlay-note">
         Price-discovery deltas — market overlay only, isolated from model output.
       </p>
@@ -421,16 +462,7 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
         />
       )}
 
-      <h4 className="dg-wc__group">Top movers</h4>
-      {topMovers.length === 0 ? (
-        <p className="dg-wc__quiet">
-          No player movement on this tape — market values held steady overnight.
-        </p>
-      ) : (
-        <MarketRows rows={topMovers} />
-      )}
-
-      <h4 className="dg-wc__group">Roster market deltas</h4>
+      <h4 className="dg-wc__group">Your roster</h4>
       {rosterDeltas.length === 0 ? (
         <p className="dg-wc__quiet">
           Your roster's market values held steady — no movement on this tape.
@@ -439,28 +471,52 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
         <MarketRows rows={rosterDeltas} />
       )}
 
-      <h4 className="dg-wc__group">Entered</h4>
-      {entered.length === 0 ? (
-        <p className="dg-wc__quiet">No entered assets.</p>
+      <h4 className="dg-wc__group">Around the league</h4>
+      {topMovers.length === 0 ? (
+        <p className="dg-wc__quiet">
+          No player movement on this tape — market values held steady overnight.
+        </p>
       ) : (
-        <ul className="dg-wc__list">
-          {entered.map((e, i) => (
-            <li key={e.sleeper_id ?? i}>{humanAssetKey(e.player_key)}</li>
-          ))}
-        </ul>
+        <MarketRows rows={topMovers} />
       )}
 
+      <h4 className="dg-wc__group">Entered</h4>
+      <UniverseChipList items={entered} emptyLabel="No entered assets." />
+
       <h4 className="dg-wc__group">Exited</h4>
-      {exited.length === 0 ? (
-        <p className="dg-wc__quiet">No exited assets.</p>
-      ) : (
-        <ul className="dg-wc__list">
-          {exited.map((e, i) => (
-            <li key={e.sleeper_id ?? i}>{humanAssetKey(e.player_key)}</li>
-          ))}
-        </ul>
-      )}
+      <UniverseChipList items={exited} emptyLabel="No exited assets." />
     </section>
+  );
+}
+
+// Entered/exited universe chips: these rows are exactly where identity is most
+// likely partial (a just-appeared/just-departed asset), so they ride the same
+// fail-safe headshot contract as every other row — a missing sleeper id draws
+// the initials fallback, never a broken `undefined.jpg` face-hole.
+function UniverseChipList({
+  items,
+  emptyLabel,
+}: {
+  items: WhatChangedEnteredExited[];
+  emptyLabel: string;
+}) {
+  if (items.length === 0) {
+    return <p className="dg-wc__quiet">{emptyLabel}</p>;
+  }
+  return (
+    <ul className="dg-wc__list">
+      {items.map((e, i) => (
+        <li key={e.sleeper_id ?? i} className="dg-wc__universe-chip">
+          <PlayerIdentity
+            name={e.player_name ?? humanAssetKey(e.player_key)}
+            team={e.team_id ?? ""}
+            position={e.position ?? ""}
+            {...headshotProps(e.sleeper_id)}
+            teamId={e.team_id ?? undefined}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -468,24 +524,54 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
 // player, the signed delta, and an honest pending slot where that player's
 // series will land once enough daily captures accrue. No table semantics —
 // each row is one player's line on the tape.
+const ROW_CAP = 10;
+
 function MarketRows({ rows }: { rows: WhatChangedMarketDelta[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? rows : rows.slice(0, ROW_CAP);
   return (
-    <ul className="dg-wc__rows">
-      {rows.map((r, i) => (
-        <AssetRow
-          key={r.sleeper_id ?? i}
-          sleeperId={r.sleeper_id}
-          name={r.player_name ?? r.player_key}
-          position={r.position ?? ""}
-          teamId={(r as { team_id?: string | null }).team_id}
-          lane="market"
-          seriesLabel={`${r.player_name ?? r.player_key} market series`}
-          series={(r as { market_series?: unknown }).market_series}
+    <>
+      <div className="dg-wc__col-header" aria-hidden="true">
+        <span>Player</span>
+        <span>Value · Δ · 30-day</span>
+      </div>
+      <ul className="dg-wc__rows">
+        {visible.map((r, i) => (
+          <AssetRow
+            key={r.sleeper_id ?? i}
+            rank={i + 1}
+            sleeperId={r.sleeper_id}
+            name={r.player_name ?? r.player_key}
+            position={r.position ?? ""}
+            teamId={(r as { team_id?: string | null }).team_id}
+            currentValue={
+              (r as { current_value?: number | null }).current_value != null
+                ? String((r as { current_value?: number | null }).current_value)
+                : undefined
+            }
+            lane="market"
+            seriesLabel={`${r.player_name ?? r.player_key} market series`}
+            series={(r as { market_series?: unknown }).market_series}
+          >
+            <DeltaCell
+              label="Market value change"
+              value={r.value_delta}
+              emphasis="row-focal"
+              labelHidden
+            />
+          </AssetRow>
+        ))}
+      </ul>
+      {rows.length > ROW_CAP && (
+        <button
+          type="button"
+          className="dg-wc__expand"
+          onClick={() => setExpanded((v) => !v)}
         >
-          <DeltaCell label="Market value" value={r.value_delta} emphasis="row-focal" />
-        </AssetRow>
-      ))}
-    </ul>
+          {expanded ? "Show top 10" : `Show all ${rows.length}`}
+        </button>
+      )}
+    </>
   );
 }
 
@@ -568,18 +654,25 @@ function ModelRows({ rows }: { rows: WhatChangedModelDelta[] }) {
       {rows.map((r, i) => (
         <AssetRow
           key={r.sleeper_id ?? i}
+          rank={i + 1}
           sleeperId={r.sleeper_id}
           name={r.player_name ?? r.player_key}
           position={r.position ?? ""}
           teamId={(r as { team_id?: string | null }).team_id}
+          currentValue={
+            (r as { current_value?: number | null }).current_value != null
+              ? String((r as { current_value?: number | null }).current_value)
+              : undefined
+          }
           lane="model"
           seriesLabel={`${r.player_name ?? r.player_key} model series`}
           series={(r as { model_series?: unknown }).model_series}
         >
           <DeltaCell
-            label="Model value"
+            label="Model value change"
             value={r.dynasty_value_score_delta}
             emphasis="row-focal"
+            labelHidden
           />
           <DeltaCell label="Percentile" value={r.dvs_pct_delta} />
           <DeltaCell label="Above replacement" value={r.xvar_delta} />
@@ -615,8 +708,7 @@ function BaselineRosterRows({
             name={r.player_name ?? r.sleeper_id}
             team={r.team_id ?? ""}
             position={r.position ?? ""}
-            imageStatus="available"
-            imageSrc={`/assets/headshots/${r.sleeper_id}.jpg`}
+            {...headshotProps(r.sleeper_id)}
             teamId={r.team_id ?? undefined}
           />
           <span data-lane="model" className="dg-wc__lane dg-wc__lane--flat">

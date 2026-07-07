@@ -152,3 +152,20 @@
     position: static;
   }
 }
+
+/* Worklist #1: the bar is the product's — wordmark left, status pill right. */
+.dg-shell__trust {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--dg-space-4);
+}
+
+.dg-shell__wordmark {
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-lg);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--dg-text);
+  white-space: nowrap;
+}

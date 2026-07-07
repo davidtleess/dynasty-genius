@@ -462,13 +462,57 @@ describe("DailyWhatChanged", () => {
     expect(within(model).queryByText("Hidden Cut Candidate")).toBeNull();
   });
 
+  it("degrades a whitespace-only sleeper id to the initials fallback, never a broken headshot request", async () => {
+    mockFetch(
+      200,
+      whatChangedResponse({
+        daily_diff: {
+          market: {
+            roster_deltas: [
+              {
+                sleeper_id: "   ",
+                player_key: "blank-id",
+                player_name: "Blank Id Row",
+                position: "WR",
+                value_delta: 3,
+                value_delta_direction: "up",
+                overall_rank_delta: -1,
+                overall_rank_delta_direction: "up",
+                position_rank_delta: 0,
+                position_rank_delta_direction: "flat",
+              },
+            ],
+            top_movers: [],
+            entered: [],
+            exited: [],
+          },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+
+    // The blank-id row renders its initials fallback, not a headshot…
+    expect(
+      await screen.findByLabelText("Blank Id Row headshot unavailable"),
+    ).toBeTruthy();
+    expect(screen.queryByRole("img", { name: "Blank Id Row" })).toBeNull();
+    // …and no image on the page was built from a blank id (no src carries a space).
+    for (const img of Array.from(document.querySelectorAll("img"))) {
+      expect(img.getAttribute("src") ?? "").not.toContain(" ");
+    }
+  });
+
   it("renders signed deltas neutrally without directive language or fabricated arrows", async () => {
     mockFetch(200, whatChangedResponse());
 
     const { container } = render(<DailyWhatChanged />);
 
     await waitFor(() => expect(screen.getByText("-8")).toBeTruthy());
-    expect(screen.getByText("+11")).toBeTruthy();
+    const market = screen.getByRole("region", {
+      name: /market price-discovery overlay/i,
+    });
+    expect(within(market).getByText("+11")).toBeTruthy();
     expect(screen.getByText("-1.25")).toBeTruthy();
     expect(screen.getByText("+0.04")).toBeTruthy();
     expect(screen.getByText("-0.75")).toBeTruthy();
@@ -820,7 +864,7 @@ describe("DailyWhatChanged", () => {
 
     const { container } = render(<DailyWhatChanged />);
 
-    await screen.findByText("Market Mover");
+    await waitFor(() => expect(screen.getAllByText("Market Mover").length).toBeGreaterThan(0));
     expect(screen.getAllByText(/series pending/i).length).toBeGreaterThanOrEqual(3);
     expect(
       container.querySelectorAll(

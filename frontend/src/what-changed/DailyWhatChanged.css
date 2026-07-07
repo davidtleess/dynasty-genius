@@ -308,3 +308,69 @@
 .dg-wc__lane[data-lane="market"] .dg-ui-series__line {
   stroke: var(--dg-market);
 }
+
+/* Entered/exited: people, not ids (worklist #2). Chips flow horizontally. */
+.dg-wc__universe-chip {
+  display: inline-flex;
+  margin-inline-end: var(--dg-space-4);
+}
+
+/* Market-lane endpoint dot follows the lane, like the line. */
+.dg-wc__lane[data-lane="market"] .dg-ui-series__endpoint {
+  fill: var(--dg-market);
+}
+
+/* Worklist #3: rank numeral + lane-colored deltas + column header line. */
+.dg-wc__rank {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--dg-text-base);
+  color: var(--dg-text-muted);
+  min-width: 2ch;
+  text-align: right;
+  flex: none;
+}
+
+.dg-wc__lane[data-lane="market"] .dg-ui-metric__value--emphasis {
+  color: var(--dg-market);
+}
+
+.dg-wc__lane[data-lane="model"] .dg-ui-metric__value--emphasis {
+  color: var(--dg-model);
+}
+
+.dg-wc__current-value {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--dg-text);
+}
+
+.dg-wc__col-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--dg-text-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dg-text-muted);
+  padding: var(--dg-space-1) 0;
+  border-block-end: 1px solid var(--dg-border);
+}
+
+.dg-wc__expand {
+  appearance: none;
+  border: 1px solid var(--dg-border);
+  background: var(--dg-surface);
+  color: var(--dg-text-muted);
+  font: inherit;
+  font-size: var(--dg-text-sm);
+  padding: var(--dg-space-1) var(--dg-space-3);
+  border-radius: 4px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.dg-wc__expand:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+

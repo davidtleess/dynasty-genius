@@ -1,0 +1,52 @@
+/* Status pill + in-flow drawer (worklist #1). No fixed/absolute layers:
+   expansion pushes content, so overlap is impossible by construction. */
+.dg-status-drawer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--dg-space-2);
+}
+
+.dg-status-drawer__pill {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dg-space-2);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: 999px;
+  background: var(--dg-surface-raised);
+  color: var(--dg-text);
+  font: inherit;
+  font-size: var(--dg-text-sm);
+  padding: var(--dg-space-1) var(--dg-space-3);
+  cursor: pointer;
+}
+
+.dg-status-drawer__pill:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+.dg-status-drawer__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dg-text-muted);
+}
+
+/* Degraded/unavailable use the structural caveat amber — never a verdict hue. */
+.dg-status-drawer__pill[data-pill-status="degraded"] .dg-status-drawer__dot,
+.dg-status-drawer__pill[data-pill-status="unavailable"] .dg-status-drawer__dot {
+  background: var(--dg-caveat);
+}
+
+.dg-status-drawer__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+  width: 100%;
+}
+
+.dg-status-drawer__panel[data-open="false"] {
+  display: none;
+}

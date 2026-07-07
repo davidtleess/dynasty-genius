@@ -29,6 +29,7 @@ export function PlayerIdentity({
   imageSrc,
   teamId,
   positionRank,
+  teamAccent,
 }: {
   name: string;
   team: string;
@@ -39,6 +40,10 @@ export function PlayerIdentity({
   /** Canonical DB team id — drives the identity mark, never the image. */
   teamId?: string | undefined;
   positionRank?: string | undefined;
+  /** Identity accent from the GENERATED team-color module (consumer-supplied;
+   *  ui.css stays token-only and the mark stays identity-only — never a
+   *  status/lane/verdict carrier). */
+  teamAccent?: string | undefined;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const showImage = imageStatus === "available" && imageSrc !== undefined && !imageFailed;
@@ -69,6 +74,7 @@ export function PlayerIdentity({
           className="dg-ui-player-id__team-mark"
           data-team-id={teamId}
           aria-hidden="true"
+          {...(teamAccent !== undefined ? { style: { background: teamAccent } } : {})}
         />
       ) : null}
       {team !== "" ? (

@@ -95,6 +95,17 @@ export function SeriesSlot({
           ),
       )}
       {lastDrawn && lastDrawn.y !== null && (
+        <circle
+          // Endpoint dot (fresh-agent reviews): the last verified capture is a
+          // POINT the eye can land on; the edge tick alone read as an artifact.
+          data-series-endpoint="true"
+          className="dg-ui-series__endpoint"
+          cx={lastDrawn.x}
+          cy={lastDrawn.y}
+          r={2.5}
+        />
+      )}
+      {lastDrawn && lastDrawn.y !== null && (
         <line
           data-hard-right-edge="true"
           className="dg-ui-series__edge"

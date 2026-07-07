@@ -16,8 +16,8 @@ Design spec: docs/superpowers/specs/2026-06-24-war-room-2-daily-what-changed-dif
 """
 from __future__ import annotations
 
-from datetime import date
-from typing import Any, Literal, Optional
+from datetime import date, datetime
+from typing import Any, Iterator, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
@@ -33,8 +33,16 @@ class _Strict(BaseModel):
 # ── Increment-1 per-lane series (spec v3 §2, pinned schema) ──────────────────
 # Kept as a validated dict (not a nested model): consumers and the report
 # artifact treat a series as plain JSON. 2–30 strictly-ascending dated points;
-# the Hard Right Edge is the LAST point; a future-dated point is a producer
-# defect and fails closed (never a fabricated line past the edge).
+# the Hard Right Edge is the LAST point.
+#
+# These per-field checks are INTRINSIC to a series (shape, ordering, numeric
+# values) and hold regardless of when validation runs. The "no point past the
+# Hard Right Edge" invariant is deliberately NOT enforced here: a series has no
+# knowledge of the report it belongs to, and anchoring the edge on the machine
+# wall-clock (``date.today()``) made validation non-deterministic — the same
+# artifact could pass today and fail tomorrow (discipline-reset finding F3).
+# That edge is a cross-field invariant against the report's own ``generated_at``
+# and is enforced once, at the response root (``_no_series_point_postdates_report``).
 def validate_lane_series(series: Any) -> Any:
     if series is None:
         return None
@@ -56,9 +64,39 @@ def validate_lane_series(series: Any) -> Any:
         dates.append(date.fromisoformat(point["date"]))
     if any(b <= a for a, b in zip(dates, dates[1:])):
         raise ValueError("series dates must be strictly ascending")
-    if dates[-1] > date.today():
-        raise ValueError("future-dated series point is a producer defect")
     return series
+
+
+def _report_anchor_date(generated_at: str) -> Optional[date]:
+    """The report's own Hard Right Edge date, parsed from ``generated_at``.
+
+    Deterministic anchor (finding F3): the edge is the report's date, not the
+    validator's wall-clock. Returns ``None`` when ``generated_at`` is unparseable
+    — with no readable anchor there is nothing to compare against, and the
+    intrinsic series checks have already run.
+    """
+    if not isinstance(generated_at, str):
+        return None
+    try:
+        return datetime.fromisoformat(generated_at.replace("Z", "+00:00")).date()
+    except ValueError:
+        return None
+
+
+def _series_last_date(series: Any) -> Optional[date]:
+    """Last point's date of an already-structurally-validated series, or None."""
+    if not isinstance(series, dict):
+        return None
+    points = series.get("points")
+    if not isinstance(points, list) or not points:
+        return None
+    last = points[-1]
+    if not isinstance(last, dict) or not isinstance(last.get("date"), str):
+        return None
+    try:
+        return date.fromisoformat(last["date"])
+    except ValueError:
+        return None
 
 
 # ── market section ───────────────────────────────────────────────────────────
@@ -68,6 +106,7 @@ class WhatChangedMarketDelta(_Strict):
     player_name: Optional[str] = None
     position: Optional[str] = None
     team_id: Optional[str] = None
+    current_value: Optional[int] = None
     market_series: Optional[dict[str, Any]] = None
     model_series: Optional[dict[str, Any]] = None
     value_delta: int
@@ -85,6 +124,11 @@ class WhatChangedMarketDelta(_Strict):
 class WhatChangedEnteredExited(_Strict):
     sleeper_id: str
     player_key: str
+    # Increment-1 worklist #2: identity fields so the UI renders people, not
+    # ids. Optional-nullable — old artifacts stay loadable.
+    player_name: Optional[str] = None
+    position: Optional[str] = None
+    team_id: Optional[str] = None
 
 
 class WhatChangedMarketSection(_Strict):
@@ -107,6 +151,7 @@ class WhatChangedModelDelta(_Strict):
     player_name: Optional[str] = None
     position: Optional[str] = None
     team_id: Optional[str] = None
+    current_value: Optional[float] = None
     model_series: Optional[dict[str, Any]] = None
     market_series: Optional[dict[str, Any]] = None
     dynasty_value_score_delta: float
@@ -399,6 +444,19 @@ class WhatChangedStructuralContext(_Strict):
 
 
 # ── top-level response ───────────────────────────────────────────────────────
+def _all_lane_series(diff: WhatChangedDailyDiff) -> Iterator[dict[str, Any]]:
+    """Every present lane series across both sections, in a flat stream."""
+    for group in (diff.market.roster_deltas or [], diff.market.top_movers or []):
+        for row in group:
+            for series in (row.market_series, row.model_series):
+                if series is not None:
+                    yield series
+    for row in diff.model.deltas or []:
+        for series in (row.model_series, row.market_series):
+            if series is not None:
+                yield series
+
+
 class WhatChangedResponse(_Strict):
     schema_version: str
     generated_at: str
@@ -406,3 +464,24 @@ class WhatChangedResponse(_Strict):
     overall_status: str
     daily_diff: WhatChangedDailyDiff
     structural_context: WhatChangedStructuralContext
+
+    @model_validator(mode="after")
+    def _no_series_point_postdates_report(self) -> "WhatChangedResponse":
+        """The Hard Right Edge holds against the report's own date (finding F3).
+
+        A series point dated after ``generated_at`` is a producer defect — a
+        line drawn past the report's edge. This is the one place both the
+        report date and every series coexist, so the invariant lives here and
+        is deterministic (report-relative), never wall-clock-relative.
+        """
+        anchor = _report_anchor_date(self.generated_at)
+        if anchor is None:
+            return self
+        for series in _all_lane_series(self.daily_diff):
+            last = _series_last_date(series)
+            if last is not None and last > anchor:
+                raise ValueError(
+                    "series point postdates the report generated_at "
+                    "(future-dated producer defect past the Hard Right Edge)"
+                )
+        return self
