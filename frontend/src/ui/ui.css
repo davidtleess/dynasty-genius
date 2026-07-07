@@ -175,7 +175,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--dg-model);
+  background: var(--dg-spread-accent);
 }
 
 .dg-ui-spread__sigma {
@@ -341,4 +341,64 @@
 .dg-ui-band-divider__basis {
   font-size: var(--dg-text-sm);
   color: var(--dg-text-muted);
+}
+
+/* ── Increment 0: SpreadBar lane isolation (rethink v3 §5, Codex R3). The
+   accent property is set per lane so a market spread can never inherit the
+   model hue; the lane blocks are deliberately separated in this file — the
+   CSS contract test reads a 500-char window after each selector and asserts
+   the other lane's token family never appears inside it. ── */
+.dg-ui-spread[data-lane="model"] {
+  --dg-spread-accent: var(--dg-model);
+}
+
+/* ── Increment 0: player identity extensions (asset pipeline). The cached
+   headshot is a small circle; the team mark is an identity-only dot driven
+   by the DB team id — never a row background, never a status hue, never a
+   left-border stripe (impeccable ban). ── */
+.dg-ui-player-id__headshot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+
+.dg-ui-player-id__team-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+  /* Increment 0 renders the mark as a neutral ring: the team-color binding is
+     deliberately deferred (the frontend may not read the checked-in team map
+     yet — RED ban); Increment 1's consumer supplies the identity color inline. */
+  border: 2px solid var(--dg-border-strong);
+  background: var(--dg-surface-raised);
+}
+
+.dg-ui-player-id__pos-rank {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+/* The one focal number per row (Codex R2): MetricCell carries row emphasis —
+   one step larger and heavier than sibling values, never sentiment-colored. */
+.dg-ui-metric__value--emphasis {
+  font-size: var(--dg-text-lg);
+  font-weight: 600;
+  color: var(--dg-text);
+}
+
+.dg-ui-spread[data-lane="market"] {
+  --dg-spread-accent: var(--dg-market);
+}
+
+/* Mobile: tape facts wrap instead of forcing horizontal page overflow
+   (fresh-agent review #2: scrollWidth 396 vs 390 driven by nowrap facts). */
+@media (max-width: 768px) {
+  .dg-ui-tape__fact {
+    white-space: normal;
+  }
 }

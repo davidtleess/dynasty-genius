@@ -1479,6 +1479,20 @@ export const zHttpValidationError = z.object({
 });
 
 /**
+ * WhatChangedBaselineRosterRow
+ *
+ * Increment-1 quiet-day row: identity + flat lanes (0 by definition).
+ */
+export const zWhatChangedBaselineRosterRow = z.object({
+    market_lane_value: z.literal(0),
+    model_lane_value: z.literal(0),
+    player_name: z.string().nullish(),
+    position: z.string().nullish(),
+    sleeper_id: z.string(),
+    team_id: z.string().nullish()
+});
+
+/**
  * WhatChangedCutCandidate
  */
 export const zWhatChangedCutCandidate = z.object({
@@ -1512,6 +1526,8 @@ export const zWhatChangedEnteredExited = z.object({
  * WhatChangedMarketDelta
  */
 export const zWhatChangedMarketDelta = z.object({
+    market_series: z.record(z.string(), z.unknown()).nullish(),
+    model_series: z.record(z.string(), z.unknown()).nullish(),
     overall_rank_delta: z.int(),
     overall_rank_delta_direction: z.string(),
     player_key: z.string(),
@@ -1520,6 +1536,7 @@ export const zWhatChangedMarketDelta = z.object({
     position_rank_delta: z.int(),
     position_rank_delta_direction: z.string(),
     sleeper_id: z.string(),
+    team_id: z.string().nullish(),
     value_delta: z.int(),
     value_delta_direction: z.string()
 });
@@ -1547,10 +1564,13 @@ export const zWhatChangedModelDelta = z.object({
     dvs_pct_delta: z.number(),
     dynasty_value_score_delta: z.number(),
     dynasty_value_score_delta_direction: z.string(),
+    market_series: z.record(z.string(), z.unknown()).nullish(),
+    model_series: z.record(z.string(), z.unknown()).nullish(),
     player_key: z.string(),
     player_name: z.string().nullish(),
     position: z.string().nullish(),
     sleeper_id: z.string().nullish(),
+    team_id: z.string().nullish(),
     xvar_delta: z.number()
 });
 
@@ -1716,6 +1736,7 @@ export const zWhatChangedStructuralSections = z.object({
  * WhatChangedStructuralContext
  */
 export const zWhatChangedStructuralContext = z.object({
+    baseline_roster_rows: z.array(zWhatChangedBaselineRosterRow).nullish(),
     current_not_delta: z.boolean(),
     decision_supported: z.literal(false),
     sections: zWhatChangedStructuralSections,

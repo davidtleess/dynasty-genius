@@ -16,6 +16,7 @@ Design spec: docs/superpowers/specs/2026-06-24-war-room-2-daily-what-changed-dif
 """
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
@@ -29,13 +30,51 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+# ── Increment-1 per-lane series (spec v3 §2, pinned schema) ──────────────────
+# Kept as a validated dict (not a nested model): consumers and the report
+# artifact treat a series as plain JSON. 2–30 strictly-ascending dated points;
+# the Hard Right Edge is the LAST point; a future-dated point is a producer
+# defect and fails closed (never a fabricated line past the edge).
+def validate_lane_series(series: Any) -> Any:
+    if series is None:
+        return None
+    if not isinstance(series, dict) or set(series) != {"basis", "points"}:
+        raise ValueError("series must be {basis, points}")
+    basis, points = series["basis"], series["points"]
+    if not isinstance(basis, str) or not basis.strip():
+        raise ValueError("series basis must be non-blank")
+    if not isinstance(points, list) or not 2 <= len(points) <= 30:
+        raise ValueError("series requires 2-30 points (30-day named window)")
+    dates: list[date] = []
+    for point in points:
+        if not isinstance(point, dict) or set(point) != {"date", "value"}:
+            raise ValueError("series point must be {date, value}")
+        if not isinstance(point["value"], (int, float)) or isinstance(
+            point["value"], bool
+        ):
+            raise ValueError("series point value must be numeric")
+        dates.append(date.fromisoformat(point["date"]))
+    if any(b <= a for a, b in zip(dates, dates[1:])):
+        raise ValueError("series dates must be strictly ascending")
+    if dates[-1] > date.today():
+        raise ValueError("future-dated series point is a producer defect")
+    return series
+
+
 # ── market section ───────────────────────────────────────────────────────────
 class WhatChangedMarketDelta(_Strict):
     sleeper_id: str
     player_key: str
     player_name: Optional[str] = None
     position: Optional[str] = None
+    team_id: Optional[str] = None
+    market_series: Optional[dict[str, Any]] = None
+    model_series: Optional[dict[str, Any]] = None
     value_delta: int
+
+    _validate_series = field_validator("market_series", "model_series")(
+        validate_lane_series
+    )
     value_delta_direction: str
     overall_rank_delta: int
     overall_rank_delta_direction: str
@@ -67,7 +106,14 @@ class WhatChangedModelDelta(_Strict):
     player_key: str
     player_name: Optional[str] = None
     position: Optional[str] = None
+    team_id: Optional[str] = None
+    model_series: Optional[dict[str, Any]] = None
+    market_series: Optional[dict[str, Any]] = None
     dynasty_value_score_delta: float
+
+    _validate_series = field_validator("model_series", "market_series")(
+        validate_lane_series
+    )
     dynasty_value_score_delta_direction: str
     dvs_pct_delta: float
     xvar_delta: float
@@ -333,11 +379,23 @@ class WhatChangedStructuralSections(_Strict):
     sleeper_snapshot: WhatChangedStructuralSection
 
 
+class WhatChangedBaselineRosterRow(_Strict):
+    """Increment-1 quiet-day row: identity + flat lanes (0 by definition)."""
+
+    sleeper_id: str
+    player_name: Optional[str] = None
+    position: Optional[str] = None
+    team_id: Optional[str] = None
+    model_lane_value: Literal[0]
+    market_lane_value: Literal[0]
+
+
 class WhatChangedStructuralContext(_Strict):
     status: str
     decision_supported: Literal[False]
     current_not_delta: bool
     sections: WhatChangedStructuralSections
+    baseline_roster_rows: Optional[list[WhatChangedBaselineRosterRow]] = None
 
 
 # ── top-level response ───────────────────────────────────────────────────────

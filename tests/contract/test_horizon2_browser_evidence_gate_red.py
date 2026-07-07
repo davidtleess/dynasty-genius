@@ -70,6 +70,24 @@ def test_h2_visual_smoke_captures_daily_open_evidence_without_goldens() -> None:
     assert "page.screenshot" in spec
 
 
+def test_h2_visual_smoke_captures_asset_primitive_page_in_same_contract() -> None:
+    spec = _read(VISUAL_SMOKE_SPEC)
+    spec_without_comments = _without_line_comments(spec)
+
+    assert "asset-primitive-capture" in spec
+    assert "Asset primitive capture" in spec
+    assert "asset-primitive-capture-desktop.png" in spec
+    assert "asset-primitive-capture-mobile.png" in spec
+    assert "asset-primitive-capture-focus.png" in spec
+    assert "asset-primitive-capture-axe-report.json" in spec
+    assert "readFile" not in spec
+    assert "existsSync" not in spec
+    assert "app/data/assets" not in spec
+    assert "headshot_manifest.json" not in spec
+    assert "toHaveScreenshot" not in spec_without_comments
+    assert "toMatchSnapshot" not in spec_without_comments
+
+
 def test_h2_visual_smoke_records_focus_capture_and_axe_main_smoke() -> None:
     spec = _read(VISUAL_SMOKE_SPEC)
 
@@ -77,6 +95,14 @@ def test_h2_visual_smoke_records_focus_capture_and_axe_main_smoke() -> None:
     assert "AxeBuilder" in spec
     assert '.include("main")' in spec or ".include('main')" in spec
     assert "violations" in spec
-    assert "focus-capture" in spec
-    assert "keyboard" in spec.lower() or "Tab" in spec
-    assert "not a pass gate" in spec.lower() or "capture only" in spec.lower()
+    assert "daily-open-primitive-focus-capture.png" in spec
+    assert 'getByRole("button", { name: /provenance for/i })' in spec
+    assert "toBeFocused()" in spec
+    assert "expect(axeResults.violations).toEqual([])" in spec
+
+
+def test_h2_asset_primitive_capture_asserts_axe_zero() -> None:
+    spec = _read(VISUAL_SMOKE_SPEC)
+
+    assert "asset-primitive-capture-axe-report.json" in spec
+    assert "expect(axeResults.violations).toEqual([])" in spec

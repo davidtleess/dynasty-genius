@@ -352,7 +352,77 @@ function mockFetchByUrl(responses: Record<string, { status: number; body: unknow
   });
 }
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
+
+function increment1Response(overrides: Record<string, unknown> = {}) {
+  const body = JSON.parse(JSON.stringify(whatChangedResponse())) as any;
+  body.generated_at = "2026-07-06T14:00:00+00:00";
+  body.daily_diff.market.roster_deltas = [
+    {
+      sleeper_id: "12519",
+      player_key: "sleeper:12519",
+      player_name: "Luther Burden",
+      position: "WR",
+      team_id: "CHI",
+      value_delta: 99,
+      value_delta_direction: "rose",
+      overall_rank_delta: -2,
+      overall_rank_delta_direction: "improved",
+      position_rank_delta: 0,
+      position_rank_delta_direction: "unchanged",
+      model_series: null,
+      market_series: {
+        basis: "fc_forward_capture_joinable.value",
+        points: [
+          { date: "2026-07-05", value: 4110 },
+          { date: "2026-07-06", value: 4209 },
+        ],
+      },
+    },
+  ];
+  body.daily_diff.market.top_movers = [];
+  body.daily_diff.market.entered = [];
+  body.daily_diff.market.exited = [];
+  body.daily_diff.model.deltas = [
+    {
+      sleeper_id: "9509",
+      player_key: "sleeper:9509",
+      player_name: "Bijan Robinson",
+      position: "RB",
+      team_id: "ATL",
+      dynasty_value_score_delta: 2.5,
+      dynasty_value_score_delta_direction: "rose",
+      dvs_pct_delta: 0.02,
+      xvar_delta: 0.7,
+      market_series: null,
+      model_series: {
+        basis: "model_forward_capture_joinable.dynasty_value_score",
+        points: [
+          { date: "2026-07-05", value: 96 },
+          { date: "2026-07-06", value: 98.5 },
+        ],
+      },
+    },
+  ];
+  body.structural_context.baseline_roster_rows = [
+    {
+      sleeper_id: "13269",
+      player_key: "sleeper:13269",
+      player_name: "Tetairoa McMillan",
+      position: "WR",
+      team_id: null,
+      image_status: "missing",
+      model_lane_value: 0,
+      market_lane_value: 0,
+      model_series: null,
+      market_series: null,
+    },
+  ];
+  return { ...body, ...overrides };
+}
 
 describe("DailyWhatChanged", () => {
   it("renders a daily delta surface with isolated market and model regions", async () => {
@@ -758,5 +828,91 @@ describe("DailyWhatChanged", () => {
       ),
     ).toHaveLength(0);
     expect(screen.queryByLabelText(/sparkline|trend/i)).toBeNull();
+  });
+
+  it("renders Increment-1 model-first AssetRows with real identity assets and lane symmetry", async () => {
+    mockFetch(200, increment1Response());
+
+    const { container } = render(<DailyWhatChanged />);
+
+    await waitFor(() => expect(screen.getByText("Bijan Robinson")).toBeTruthy());
+    const model = screen.getByRole("region", { name: /model output/i });
+    const market = screen.getByRole("region", { name: /market price/i });
+    expect(
+      model.compareDocumentPosition(market) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    const modelRow = within(model).getByText("Bijan Robinson").closest("[data-asset-row]");
+    expect(modelRow).toBeTruthy();
+    expect(modelRow?.getAttribute("data-row-density")).toBe("32px");
+    expect(
+      within(modelRow as HTMLElement).getByRole("img", { name: "Bijan Robinson" })
+        .getAttribute("src"),
+    ).toBe("/assets/headshots/9509.jpg");
+    expect(
+      (within(modelRow as HTMLElement).getByText("ATL").parentElement ?? modelRow)
+        ?.querySelector("[data-team-id='ATL']"),
+    ).toBeTruthy();
+    expect(within(modelRow as HTMLElement).getByText("+2.5")).toBeTruthy();
+    expect(within(modelRow as HTMLElement).getByText("—")).toBeTruthy();
+    expect(
+      within(modelRow as HTMLElement).getByRole("img", {
+        name: /model series.*hard right edge/i,
+      }),
+    ).toBeTruthy();
+
+    const marketRow = within(market).getByText("Luther Burden").closest("[data-asset-row]");
+    expect(marketRow).toBeTruthy();
+    expect(within(marketRow as HTMLElement).getByText("—")).toBeTruthy();
+    expect(container.querySelector("[data-lane='market'] [data-lane='model']")).toBeNull();
+  });
+
+  it("renders stale generated_at as a non-urgent header badge and desaturates rows", async () => {
+    const body = increment1Response();
+    body.generated_at = new Date(Date.now() - 27.5 * 60 * 60 * 1000).toISOString();
+    mockFetch(200, body);
+
+    const { container } = render(<DailyWhatChanged />);
+
+    await waitFor(() => expect(screen.getByText(/stale data caveat/i)).toBeTruthy());
+    expect(screen.getByText(/2[67](\.\d)? hours/i)).toBeTruthy();
+    expect(container.querySelector(".dg-wc--stale")).toBeTruthy();
+    expect(container.querySelector("[data-stale='true'] [data-asset-row]")).toBeTruthy();
+  });
+
+  it("renders quiet-day baseline roster rows only when the producer supplies them", async () => {
+    const body = increment1Response();
+    body.daily_diff.market.roster_deltas = [];
+    body.daily_diff.market.top_movers = [];
+    body.daily_diff.model.deltas = [];
+    mockFetch(200, body);
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() =>
+      expect(screen.getByText(/No valuation deltas observed since the last capture/i)),
+    );
+    expect(screen.getByText("Tetairoa McMillan")).toBeTruthy();
+    const row = screen.getByText("Tetairoa McMillan").closest("[data-asset-row]");
+    expect(row).toBeTruthy();
+    expect(within(row as HTMLElement).getAllByText("—").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("falls back to pending series and neutral team ring on malformed Increment-1 row data", async () => {
+    const body = increment1Response();
+    body.daily_diff.model.deltas[0].team_id = null;
+    body.daily_diff.model.deltas[0].model_series = {
+      basis: "model_forward_capture_joinable.dynasty_value_score",
+      points: [{ date: "2026-07-06", value: 98.5 }],
+    };
+    mockFetch(200, body);
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() => expect(screen.getByText("Bijan Robinson")).toBeTruthy());
+    const row = screen.getByText("Bijan Robinson").closest("[data-asset-row]");
+    expect(row).toBeTruthy();
+    expect((row as HTMLElement).querySelector("[data-team-id]")).toBeNull();
+    expect(within(row as HTMLElement).getByText(/series pending/i)).toBeTruthy();
   });
 });

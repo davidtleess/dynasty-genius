@@ -1,40 +1,168 @@
 {
   "schema_version": "backup_manifest.v2",
   "required": [
-    {"path": "app/data/fc_forward_capture.db", "required": true, "kind": "sqlite"},
-    {"path": "app/data/model_forward_capture.db", "required": true, "kind": "sqlite"},
-    {"path": "app/data/fc_snapshots.db", "required": true, "kind": "sqlite"},
-    {"path": "app/data/training/engine_b_features_v1.csv", "required": true, "kind": "file"},
-    {"path": "app/data/training/engine_b_features_v2.csv", "required": true, "kind": "file"},
-    {"path": "app/data/training/expected_ppg_curves_v3.json", "required": true, "kind": "file"},
-    {"path": "app/data/training/prospects_with_outcomes.csv", "required": true, "kind": "file"},
-    {"path": "app/data/training/prospects_with_outcomes_v2.csv", "required": true, "kind": "file"},
-    {"path": "app/data/training/prospects_with_outcomes_v3.csv", "required": true, "kind": "file"},
-    {"path": "app/data/training/prospects_with_outcomes_cfbd_partial.csv", "required": true, "kind": "file"},
-    {"path": "app/data/training/prospects_with_outcomes_phase16.csv", "required": true, "kind": "file"},
-    {"path": "app/config/model_registry.json", "required": true, "kind": "file"},
-    {"path": "app/data/models/latest.json", "required": true, "kind": "file"},
-    {"path": "app/data/models/head_a/v3_manifest.json", "required": true, "kind": "file"},
-    {"path": "app/data/models/engine_b/v2_manifest.json", "required": true, "kind": "file"},
-    {"path": "app/data/models/WR_model.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/QB_model.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/RB_model.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/TE_model.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/runs/20260502T153931Z/WR_model.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/runs/20260502T153931Z/QB_model.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/runs/20260502T153931Z/RB_model.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/runs/20260502T153931Z/TE_model.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/runs/20260502T153931Z/validation_report.json", "required": true, "kind": "file"},
-    {"path": "app/data/models/engine_b/runs/20260513T012309Z/qb_v2.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/engine_b/runs/20260513T012309Z/rb_v2.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/engine_b/runs/20260513T012309Z/wr_v2.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/engine_b/runs/20260626T165649Z/te_v3.pkl", "required": true, "kind": "file"},
-    {"path": "app/data/models/head_a/runs/20260524T140748Z/te_v3.pkl", "required": true, "kind": "file"}
+    {
+      "path": "app/data/fc_forward_capture.db",
+      "required": true,
+      "kind": "sqlite"
+    },
+    {
+      "path": "app/data/model_forward_capture.db",
+      "required": true,
+      "kind": "sqlite"
+    },
+    {
+      "path": "app/data/fc_snapshots.db",
+      "required": true,
+      "kind": "sqlite"
+    },
+    {
+      "path": "app/data/training/engine_b_features_v1.csv",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/training/engine_b_features_v2.csv",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/training/expected_ppg_curves_v3.json",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/training/prospects_with_outcomes.csv",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/training/prospects_with_outcomes_v2.csv",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/training/prospects_with_outcomes_v3.csv",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/training/prospects_with_outcomes_cfbd_partial.csv",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/training/prospects_with_outcomes_phase16.csv",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/config/model_registry.json",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/latest.json",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/head_a/v3_manifest.json",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/engine_b/v2_manifest.json",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/WR_model.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/QB_model.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/RB_model.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/TE_model.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/runs/20260502T153931Z/WR_model.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/runs/20260502T153931Z/QB_model.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/runs/20260502T153931Z/RB_model.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/runs/20260502T153931Z/TE_model.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/runs/20260502T153931Z/validation_report.json",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/engine_b/runs/20260513T012309Z/qb_v2.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/engine_b/runs/20260513T012309Z/rb_v2.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/engine_b/runs/20260513T012309Z/wr_v2.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/engine_b/runs/20260626T165649Z/te_v3.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/models/head_a/runs/20260524T140748Z/te_v3.pkl",
+      "required": true,
+      "kind": "file"
+    }
   ],
   "optional": [
-    {"path": "app/data/features_runtime/engine_b_features_runtime.csv", "required": false, "kind": "file"},
-    {"path": "app/data/features_runtime/engine_b_features_runtime.ready.json", "required": false, "kind": "file"},
-    {"path": "app/data/features_runtime/feature_refresh_latest_report.json", "required": false, "kind": "file"}
+    {
+      "path": "app/data/features_runtime/engine_b_features_runtime.csv",
+      "required": false,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/features_runtime/engine_b_features_runtime.ready.json",
+      "required": false,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/features_runtime/feature_refresh_latest_report.json",
+      "required": false,
+      "kind": "file"
+    }
   ],
   "exclude_paths": [
     "app/data/ops/backup_status_latest.json",
@@ -43,11 +171,15 @@
   "exclusions": [
     {
       "path": "app/data/ops/backup_status_latest.json",
-      "reason": "The backup's own status marker — backing it up would make backup state part of the protected payload and churn every run."
+      "reason": "The backup's own status marker \u2014 backing it up would make backup state part of the protected payload and churn every run."
     },
     {
       "path": "app/data/ops/backup_staging",
       "reason": "Transient staging directory cleaned every run; contents are copies of already-covered sources."
+    },
+    {
+      "path": "app/data/assets/",
+      "reason": "Rebuildable from public Sleeper CDN; not irreplaceable (Increment-0 spec s1A)."
     }
   ]
 }

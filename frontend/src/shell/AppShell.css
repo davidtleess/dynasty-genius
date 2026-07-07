@@ -73,6 +73,12 @@
   position: sticky;
   inset-block-start: 0;
   padding: var(--dg-space-2) var(--dg-space-4);
+  /* Fresh-agent review #2 shipping-blocker: a sticky header with no painted
+     surface lets content scroll THROUGH it. The strip is an opaque layer with
+     a real boundary at every scroll position, both breakpoints. */
+  background: var(--dg-bg);
+  border-block-end: 1px solid var(--dg-border);
+  z-index: 3;
 }
 
 .dg-shell__main {
@@ -137,5 +143,12 @@
     border-block-start: 0;
     flex-flow: row wrap;
     align-items: baseline;
+  }
+
+  /* Mobile: the trust strip scrolls away with the page — a pinned panel
+     eating ~45% of a phone viewport was fresh-agent review #2's mobile 1/10.
+     The strip stays first in the information order; it just doesn't squat. */
+  .dg-shell__trust {
+    position: static;
   }
 }

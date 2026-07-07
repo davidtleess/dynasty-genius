@@ -51,12 +51,17 @@ def build_daily_what_changed_diff(
     section degrades independently: one source's insufficiency never aborts another.
     Returns a plain dict; emits no files (the report writer is T2).
     """
+    # Increment 1 (spec v3 §2): identity/team enrichment is fail-soft — a missing
+    # or malformed snapshot yields an empty map (team_id: null → neutral ring),
+    # never an aborted section.
+    team_ids = _load_team_ids(Path(sleeper_snapshot_path))
     market = _build_market_section(
         fc_db_path=Path(fc_db_path),
         sleeper_snapshot_path=Path(sleeper_snapshot_path),
         top_n=top_n,
+        team_ids=team_ids,
     )
-    model = _build_model_section(model_db_path=Path(model_db_path))
+    model = _build_model_section(model_db_path=Path(model_db_path), team_ids=team_ids)
 
     if market["status"] == "unavailable":
         overall_status = "unavailable"
@@ -84,6 +89,7 @@ def _build_market_section(
     fc_db_path: Path,
     sleeper_snapshot_path: Path,
     top_n: int,
+    team_ids: Optional[dict[str, str]] = None,
 ) -> dict[str, Any]:
     """Day-over-day FC market deltas, focused on David's roster + capped top movers.
 
@@ -118,8 +124,21 @@ def _build_market_section(
     entered_ids = set(latest) - set(prior)
     exited_ids = set(prior) - set(latest)
 
+    series_by_id = _lane_series_by_player(
+        rows,
+        date_key="snapshot_date",
+        value_key="value",
+        basis=f"{_FC_JOINABLE_TABLE}.value",
+    )
     deltas_by_id = {
-        sid: _market_delta_row(sid, prior[sid], latest[sid]) for sid in in_both
+        sid: _market_delta_row(
+            sid,
+            prior[sid],
+            latest[sid],
+            team_id=(team_ids or {}).get(sid),
+            market_series=series_by_id.get(sid),
+        )
+        for sid in in_both
     }
 
     # Roster focus: every roster player present in both snapshots, even if flat.
@@ -157,7 +176,14 @@ def _build_market_section(
     }
 
 
-def _market_delta_row(sleeper_id: str, prior: dict, latest: dict) -> dict[str, Any]:
+def _market_delta_row(
+    sleeper_id: str,
+    prior: dict,
+    latest: dict,
+    *,
+    team_id: Optional[str] = None,
+    market_series: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     value_delta = _int(latest.get("value")) - _int(prior.get("value"))
     overall_rank_delta = _int(latest.get("overall_rank")) - _int(prior.get("overall_rank"))
     position_rank_delta = _int(latest.get("position_rank")) - _int(prior.get("position_rank"))
@@ -166,6 +192,9 @@ def _market_delta_row(sleeper_id: str, prior: dict, latest: dict) -> dict[str, A
         "player_key": latest.get("player_key"),
         "player_name": latest.get("player_name"),
         "position": latest.get("position"),
+        "team_id": team_id,
+        "market_series": market_series,
+        "model_series": None,
         "value_delta": value_delta,
         "value_delta_direction": _value_direction(value_delta),
         "overall_rank_delta": overall_rank_delta,
@@ -176,7 +205,9 @@ def _market_delta_row(sleeper_id: str, prior: dict, latest: dict) -> dict[str, A
 
 
 # ── model (PVO/DVS/xVAR — quiet until distinct vintages exist) ────────────────
-def _build_model_section(*, model_db_path: Path) -> dict[str, Any]:
+def _build_model_section(
+    *, model_db_path: Path, team_ids: Optional[dict[str, str]] = None
+) -> dict[str, Any]:
     """Day-over-day model deltas, honest about vintage-driven quiet states.
 
     The model only "moves" when a new ``(semantic_output_hash, provenance_hash)``
@@ -234,7 +265,22 @@ def _build_model_section(*, model_db_path: Path) -> dict[str, Any]:
         "to_vintage": dict(zip(("semantic_output_hash", "provenance_hash"), to_vintage)),
     }
 
-    deltas = _model_score_deltas(prior_rows, latest_rows) if vintage_changed else []
+    model_series_by_id = _lane_series_by_player(
+        rows,
+        date_key="capture_date",
+        value_key="dynasty_value_score",
+        basis=f"{_MODEL_JOINABLE_TABLE}.dynasty_value_score",
+    )
+    deltas = (
+        _model_score_deltas(
+            prior_rows,
+            latest_rows,
+            team_ids=team_ids or {},
+            model_series_by_id=model_series_by_id,
+        )
+        if vintage_changed
+        else []
+    )
 
     if not vintage_changed:
         status = "baseline_holding"
@@ -269,7 +315,13 @@ def _date_vintage(rows: list[dict]) -> tuple[Optional[str], Optional[str]]:
     return min(pairs) if pairs else (None, None)
 
 
-def _model_score_deltas(prior_rows: list[dict], latest_rows: list[dict]) -> list[dict]:
+def _model_score_deltas(
+    prior_rows: list[dict],
+    latest_rows: list[dict],
+    *,
+    team_ids: Optional[dict[str, str]] = None,
+    model_series_by_id: Optional[dict[str, dict[str, Any]]] = None,
+) -> list[dict]:
     """Per-player model score deltas for players present in both captures.
 
     Empty when no score actually moved (so a new vintage with identical scores is
@@ -286,12 +338,18 @@ def _model_score_deltas(prior_rows: list[dict], latest_rows: list[dict]) -> list
         xvar_delta = _float(latest[key].get("xvar")) - _float(prior[key].get("xvar"))
         if dvs_delta == 0 and dvs_pct_delta == 0 and xvar_delta == 0:
             continue
+        sleeper_id = latest[key].get("sleeper_id")
         deltas.append(
             {
-                "sleeper_id": latest[key].get("sleeper_id"),
+                "sleeper_id": sleeper_id,
                 "player_key": key,
                 "player_name": latest[key].get("player_name"),
                 "position": latest[key].get("position"),
+                "team_id": (team_ids or {}).get(str(sleeper_id)) if sleeper_id else None,
+                "model_series": (model_series_by_id or {}).get(str(sleeper_id))
+                if sleeper_id
+                else None,
+                "market_series": None,
                 "dynasty_value_score_delta": dvs_delta,
                 "dynasty_value_score_delta_direction": _value_direction(dvs_delta),
                 "dvs_pct_delta": dvs_pct_delta,
@@ -302,6 +360,63 @@ def _model_score_deltas(prior_rows: list[dict], latest_rows: list[dict]) -> list
 
 
 # ── shared helpers ───────────────────────────────────────────────────────────
+def _load_team_ids(sleeper_snapshot_path: Path) -> dict[str, str]:
+    """sleeper_player_id → NFL team abbreviation from the injected snapshot.
+
+    Fail-soft: missing/malformed snapshot or fields yield an empty/partial map —
+    a row without a team renders the neutral identity ring, never an abort.
+    """
+    if not sleeper_snapshot_path.exists():
+        return {}
+    try:
+        snapshot = json.loads(sleeper_snapshot_path.read_text())
+    except (ValueError, OSError):
+        return {}
+    team_ids: dict[str, str] = {}
+    for entry in snapshot.get("players") or []:
+        if not isinstance(entry, dict):
+            continue
+        sleeper_id = entry.get("sleeper_player_id")
+        team = (entry.get("player") or {}).get("team") if isinstance(entry.get("player"), dict) else None
+        if isinstance(sleeper_id, str) and sleeper_id and isinstance(team, str) and team:
+            team_ids[sleeper_id] = team
+    return team_ids
+
+
+def _lane_series_by_player(
+    rows: list[dict[str, Any]],
+    *,
+    date_key: str,
+    value_key: str,
+    basis: str,
+) -> dict[str, dict[str, Any]]:
+    """Per-player single-lane PIT series (spec v3 §2 pinned schema).
+
+    2–30 strictly-ascending dated points, newest-30 window; a player with fewer
+    than 2 dated values gets NO series (null downstream → SeriesSlot pending),
+    never a fabricated line. The Hard Right Edge is the last captured point.
+    """
+    by_player: dict[str, dict[str, float]] = {}
+    for row in rows:
+        sleeper_id = row.get("sleeper_id")
+        row_date = row.get(date_key)
+        value = row.get(value_key)
+        if not sleeper_id or not row_date or not isinstance(value, (int, float)):
+            continue
+        # Last write per (player, date) wins — joinable stores are append-only
+        # per date, so duplicates only occur on legitimate re-captures.
+        by_player.setdefault(str(sleeper_id), {})[str(row_date)] = float(value)
+    series: dict[str, dict[str, Any]] = {}
+    for sleeper_id, dated in by_player.items():
+        if len(dated) < 2:
+            continue
+        points = [
+            {"date": d, "value": dated[d]} for d in sorted(dated)[-30:]
+        ]
+        series[sleeper_id] = {"basis": basis, "points": points}
+    return series
+
+
 def _load_david_roster_ids(sleeper_snapshot_path: Path) -> Optional[set[str]]:
     """David's current roster sleeper-ids from the injected snapshot, or None.
 

@@ -3256,6 +3256,38 @@ export type ValidationError = {
 };
 
 /**
+ * WhatChangedBaselineRosterRow
+ *
+ * Increment-1 quiet-day row: identity + flat lanes (0 by definition).
+ */
+export type WhatChangedBaselineRosterRow = {
+    /**
+     * Market Lane Value
+     */
+    market_lane_value: 0;
+    /**
+     * Model Lane Value
+     */
+    model_lane_value: 0;
+    /**
+     * Player Name
+     */
+    player_name?: string | null;
+    /**
+     * Position
+     */
+    position?: string | null;
+    /**
+     * Sleeper Id
+     */
+    sleeper_id: string;
+    /**
+     * Team Id
+     */
+    team_id?: string | null;
+};
+
+/**
  * WhatChangedCard
  */
 export type WhatChangedCard = {
@@ -3361,6 +3393,18 @@ export type WhatChangedEnteredExited = {
  */
 export type WhatChangedMarketDelta = {
     /**
+     * Market Series
+     */
+    market_series?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Model Series
+     */
+    model_series?: {
+        [key: string]: unknown;
+    } | null;
+    /**
      * Overall Rank Delta
      */
     overall_rank_delta: number;
@@ -3392,6 +3436,10 @@ export type WhatChangedMarketDelta = {
      * Sleeper Id
      */
     sleeper_id: string;
+    /**
+     * Team Id
+     */
+    team_id?: string | null;
     /**
      * Value Delta
      */
@@ -3502,6 +3550,18 @@ export type WhatChangedModelDelta = {
      */
     dynasty_value_score_delta_direction: string;
     /**
+     * Market Series
+     */
+    market_series?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Model Series
+     */
+    model_series?: {
+        [key: string]: unknown;
+    } | null;
+    /**
      * Player Key
      */
     player_key: string;
@@ -3517,6 +3577,10 @@ export type WhatChangedModelDelta = {
      * Sleeper Id
      */
     sleeper_id?: string | null;
+    /**
+     * Team Id
+     */
+    team_id?: string | null;
     /**
      * Xvar Delta
      */
@@ -3794,6 +3858,10 @@ export type WhatChangedStalenessCaveat = {
  * WhatChangedStructuralContext
  */
 export type WhatChangedStructuralContext = {
+    /**
+     * Baseline Roster Rows
+     */
+    baseline_roster_rows?: Array<WhatChangedBaselineRosterRow> | null;
     /**
      * Current Not Delta
      */

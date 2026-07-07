@@ -29,4 +29,22 @@ describe("MetricCell", () => {
       }),
     ).toBeTruthy();
   });
+
+  it("supports the compact row-focal emphasis variant without using ValueHero", async () => {
+    const { MetricCell } = await import("./MetricCell");
+    const Increment0MetricCell = MetricCell as any;
+
+    render(
+      <Increment0MetricCell
+        label="model value percentile"
+        value="94%"
+        emphasis="row-focal"
+      />,
+    );
+
+    const value = screen.getByText("94%");
+    expect(value.getAttribute("data-emphasis")).toBe("row-focal");
+    expect(value.className).toContain("dg-ui-metric__value--emphasis");
+    expect(screen.queryByText(/basis:/i)).toBeNull();
+  });
 });

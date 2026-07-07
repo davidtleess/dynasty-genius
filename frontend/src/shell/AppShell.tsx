@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { type Command, CommandPalette } from "../command/CommandPalette";
+import { AssetPrimitiveCapture } from "../dev/AssetPrimitiveCapture";
 import { LeaguePulse } from "../league-pulse/LeaguePulse";
 import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { PlayerInspector } from "../player/PlayerInspector";
@@ -61,9 +62,7 @@ const SURFACES = [
   ...DEVELOPER_SURFACES,
 ] as const;
 
-type Surface = (typeof SURFACES)[number];
-
-function isParked(surface: Surface): boolean {
+function isParked(surface: string): boolean {
   return (PARKED_SURFACE_NAMES as readonly string[]).includes(surface);
 }
 
@@ -164,6 +163,7 @@ export function AppShell() {
           <>
             <h1 className="dg-shell__title">{activeSurface}</h1>
             {isParked(activeSurface) && <ParkedSurfaceCard surface={activeSurface} />}
+            {activeSurface === "Asset Primitive Capture" && <AssetPrimitiveCapture />}
             {activeSurface === "Roster Audit" && <RosterAudit />}
             {activeSurface === "Roster Capacity" && <RosterCapacitySandbox />}
             {activeSurface === "Daily What-Changed" && <DailyWhatChanged />}

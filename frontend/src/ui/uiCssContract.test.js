@@ -25,4 +25,28 @@ describe("DG primitive CSS contract", () => {
     expect(withoutVarUsages).not.toMatch(/\boklch\(/i);
     expect(withoutVarUsages).not.toMatch(/\brgba?\(/i);
   });
+
+  it("keeps SpreadBar model and market lane tokens isolated", () => {
+    const css = readUiCss();
+    const marketLane = css.match(
+      /\.dg-ui-spread\[data-lane="market"\][\s\S]{0,500}/,
+    );
+    const modelLane = css.match(/\.dg-ui-spread\[data-lane="model"\][\s\S]{0,500}/);
+
+    expect(marketLane, "market lane CSS block missing").not.toBeNull();
+    expect(modelLane, "model lane CSS block missing").not.toBeNull();
+    expect(marketLane?.[0]).toContain("--dg-market");
+    expect(marketLane?.[0]).not.toContain("--dg-model");
+    expect(modelLane?.[0]).toContain("--dg-model");
+    expect(modelLane?.[0]).not.toContain("--dg-market");
+  });
+
+  it("keeps team colors identity-only and out of row backgrounds/status lanes", () => {
+    const css = readUiCss();
+
+    expect(css).toContain("dg-ui-player-id__team-mark");
+    expect(css).not.toMatch(/background(?:-color)?:\s*var\(--dg-team/i);
+    expect(css).not.toMatch(/\.dg-ui-[^{]*(status|delta|market|model)[^{]*--team/i);
+    expect(css).not.toMatch(/border-left:\s*(?:2|3|4|5|6|7|8|9)\d*px/i);
+  });
 });

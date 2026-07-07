@@ -59,7 +59,11 @@ describe("H2 reset Task 5 Daily What-Changed restart", () => {
     const source = stripComments(readSurface());
 
     expect(source).toContain("<PlayerIdentity");
-    expect(source).toContain('imageStatus="missing"');
+    expect(source).toContain('imageStatus={sleeperId ? "available" : "missing"}');
+    expect(source).toContain(
+      'imageSrc={sleeperId ? `/assets/headshots/${sleeperId}.jpg` : undefined}',
+    );
+    expect(source).not.toContain('imageStatus="missing"');
     expect(source).toContain("<MetricCell");
     expect(source).toContain("<SeriesSlot");
     expect(source).toContain('status="pending"');

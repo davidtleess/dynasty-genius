@@ -1,0 +1,45 @@
+# The Fresh-Agent Review Experiment — 2026-07-06 (David-run)
+
+**What David did:** after ruling the Increment-1 live surface "still not even close" — a surface the entire cockpit had just dual-reviewed (Codex NOT-CLEAR on 3 contract findings but suites green; Gemini advisory "cleared for visual review"; Claude self-critique passed) — David opened fresh terminals and had TWO zero-context agents review the live page with no project history, no prior framing, no relationship to the team. Prompt: score 0–10 per dimension against the Sleeper/DynastyNerds/KTC production bar, whole viewport, brutal, no curve.
+
+**What happened:** both agents independently converged on David's verdict, on each other, and on defects the whole cockpit missed — including a SHIPPING-BLOCKER rendering bug (verified by Claude with mid-scroll captures after the fact: the sticky `dg-shell__trust` header has no opaque background, content scrolls THROUGH the provenance strip and diagnostics card on both breakpoints; mobile scrollWidth 396px vs 390px viewport). Scores: Review #1 gave 2–5/10 across ten dimensions; Review #2 gave 1–4/10 with mobile at 1/10. Both final verdicts: **NO — not close.**
+
+**Why the cockpit missed what they caught (initial diagnosis, for team reflection):**
+- Claude's evidence process used full-page screenshots, which flatten sticky elements — the scroll-collision class of bug was structurally invisible to it.
+- Every cockpit reviewer validated CONTRACTS (tests, law, spec conformance) and then let contract-green stand in for design quality.
+- Anchoring: everyone in the loop knew the history, the constraints, the effort — and graded the diff, not the screen. The fresh agents graded the screen.
+- "Out of scope" reasoning let the worst elements on the page (the shell chrome) escape every review because no increment owned them.
+
+---
+
+## Review #1 (verbatim)
+
+> 1. First impression: this feels like a developer diagnostics console wearing a dark fantasy-sports skin. The data is real, the headshots help, and the amber sparklines are a meaningful step, but the first five seconds are dominated by status chrome, caveats, monospace metadata, and undifferentiated rows. A paying user would believe a serious engineer shipped it; they would not believe a product/design team at the Sleeper/DynastyNerds/KTC bar shipped this as a daily ritual surface.
+>
+> Scores: first-viewport hierarchy 3/10 (opens on MODEL GRADE/System Diagnostics/caveats; the focal point should be the overnight movement story); header/shell 3/10 (plain blue text nav, diagnostic sentence as top header, stray "Inspector" label — reads internal); player identity 5/10 (real headshots help but tiny, inconsistent, no team identity doing recognizability work); color system 4/10 (mostly charcoal/gray/white; position/team accents almost absent); data-row craft 5/10 ("Market value" repeats every row; icon clutter; density exhausting); sparklines 5/10 (tiny, uncaptioned, same-weight, no endpoints — "a debug sparkline component dropped into a table"); typography 3/10 (uppercase/small/gray/italic/monospace label soup; strongest typographic element is the diagnostics card); quiet states 2/10 (ENTERED/EXITED raw numeric IDs "break trust"); mobile 4/10 (nav link cloud, diagnostics consume the top, endless scroll); overall trust 4/10 ("I would trust that the pipeline exists. I would not want to enter my league here daily for fun.")
+>
+> Five highest-impact changes: (1) diagnostics out of the hero — first viewport = "Daily What-Changed," date, 52 moves, compact sync badges; (2) production player rows — 40–48px, larger headshots, team-color micro-accent, right-aligned tabular deltas, no repeated labels; (3) designed states replacing implementation debris — IDs hidden or resolved to names, "Series pending" as compact designed state; (4) a real color system within the constraints — blue frames model objects, amber frames market objects, team/position accents as identity marks; (5) rebuilt mobile information order.
+>
+> Verdict: no — not close. "The screen still organizes itself around system provenance and debug visibility instead of a designed fantasy-sports user story."
+
+## Review #2 (verbatim)
+
+> First impression: in the first five seconds this reads as an internal data-pipeline monitoring console, not a consumer product. The single most prominent element is a "System Diagnostics" panel above a monospace debug strip. The actual product starts a third of the way down. "No paying user would believe a professional consumer team shipped this; they would believe an engineer left the admin view on." And there is a genuine rendering defect: the top strip and diagnostics card are fixed-position and content scrolls THROUGH them — at mid-scroll "Kaelon Black" renders directly on top of "MODEL GRADE ACTIVE_B"; on mobile three layers of text stack in the first viewport.
+>
+> Scores: first-viewport hierarchy 2/10; header/shell 2/10 (no product header at all — no wordmark, no league identity; "(Parked)" roadmap status leaking into nav; "DEVELOPER" section in the rail; plus the fixed-overlay collision, "a shipping-blocker on its own"); player identity 3/10 (~20px headshots too small to recognize; ~a third of rows fall back to initials; colorless identical team chips; ENTERED/EXITED "a literal database dump in the UI"); color system 3/10 (near-monochrome; the blue model lane spent on nav links and debug strips, "ironically the Model output changes card contains no blue at all"; the two-lane system "is a good idea that is not actually visible as a system"); data-row craft 4/10 ("Market value" repeated ~52 times ≈ 100 wasted words; "+109 of what?" unanswerable — no current value; two unexplained ghost buttons; no rank numbers, no magnitude tiers); sparklines 3/10 (same size/weight whether +109 or −3; terminal tick reads as a rendering artifact; no baseline/endpoints/scale — "52 near-identical squiggles"); typography 4/10 (the headline block "genuinely good" but italic caveat wallpaper ×8 and raw constants in body copy — `captured_at_vs_report_generated_at`, `DIVERGENCE_MODEL_HIGH: 1`; "law says visible, not wallpaper"); quiet states 3/10 (two states genuinely well-written; undone by the raw-ID dump and five consecutive `Status: ok` plumbing sections); mobile 1/10 (first full screen is wrapped nav ending in "DEVELOPER"; three overlapping text layers; pinned card occupying ~45% of viewport; real horizontal overflow 396 vs 390; ~7000px tall — "not a weak mobile layout; a broken one"); overall trust 2/10 ("I'd open it out of obligation, the way you open a Grafana dashboard").
+>
+> Five highest-impact changes: (1) fix the shell — kill the fixed-layer collision; one 56px top bar with a compact status pill ("● Synced · Jul 6, 8:14 PM") expanding to a drawer holding everything currently in the diagnostics chrome; nothing in the shell may overlap content at any scroll position; (2) resolve ENTERED/EXITED into human beings — player chips with 32px headshots and names, "(id — name pending)" only on genuine resolution failure ("the single most credibility-destroying element on the page"); (3) rebuild the mover row and cap the list — rank numeral, 40px headshot, team-color accent, current value + delta together ("4,812 / +109 · +2.3%"), one column-header row, 96px sparkline with endpoint dot and faint fill, top 10 with expand; (4) translate roster context from plumbing to prose — compact stat cards, freshness as a designed clock element, the Gate-4 caveat as one styled footnote; (5) rebuild mobile as a first-class layout — collapsed nav, hero first, status pill replacing pinned panels, single-line row cards.
+>
+> Verdict: **No.** "The system's internals ARE the interface… The information architecture underneath (receipts, capture windows, honest quiet states) is better than what KTC ships; the presentation is a developer tool wearing a dark theme — that phrase is not a metaphor here, it is a description."
+
+---
+
+## Claude verification addendum
+
+The overlay bug is CONFIRMED live (mid-scroll captures in the session scratchpad; sticky header without opaque background; 396 vs 390 overflow measured). The Increment-1 completion worklist is locked from the merged five-changes lists + Codex F1–F3. Note one law adjustment to their advice: row-level team-color left-stripes are banned by the design system — team accents apply as ring/chip marks.
+
+## Questions David wants each team member to think about
+
+1. Why did zero-context agents outperform the entire cockpit on design judgment — and what does that say about what our review process actually measures?
+2. What, structurally, should change so that contract-green can never again be mistaken for ready? (Claude's proposals on record: whole-viewport review unit; scored critique + benchmark-delta as the design instrument; fresh-agent unanchored review as the standing pre-David gate; mid-scroll captures in every evidence bundle. Challenge or extend these.)
+3. What is each lane's honest one-sentence miss accounting for today's dual review?

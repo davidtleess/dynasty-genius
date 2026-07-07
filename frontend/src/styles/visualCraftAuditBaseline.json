@@ -19,6 +19,15 @@
       "card_treatment_selectors": 0
     },
     {
+      "path": "dev/AssetPrimitiveCapture.css",
+      "focus_visible_selectors": 0,
+      "focus_token_consumers": 0,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 1,
+      "card_treatment_selectors": 0
+    },
+    {
       "path": "league-pulse/LeaguePulse.css",
       "focus_visible_selectors": 0,
       "focus_token_consumers": 0,
@@ -168,7 +177,7 @@
     "focus_token_consumers": 2,
     "hover_selectors": 1,
     "elevation_consumers": 0,
-    "row_treatment_selectors": 25,
+    "row_treatment_selectors": 26,
     "card_treatment_selectors": 9
   }
 }

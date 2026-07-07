@@ -52,6 +52,18 @@ app.include_router(system_tier_readiness.router, prefix="/api")
 app.include_router(system_health.router, prefix="/api")
 
 
+# --- Increment-1 headshot cache mount (spec v3 §2; rebuildable, gitignored) ---
+# Registered BEFORE the /assets bundle mount so the longer prefix wins. CONDITIONAL
+# on the local cache existing: a fresh checkout/CI has no cache and simply 404s —
+# the frontend's onError fallback chain renders initials, never a broken image.
+_HEADSHOT_CACHE = Path("app/data/assets/headshots")
+if _HEADSHOT_CACHE.is_dir():
+    app.mount(
+        "/assets/headshots",
+        StaticFiles(directory=_HEADSHOT_CACHE),
+        name="headshot-assets",
+    )
+
 # --- Frontend SPA static mount (Phase-12 surface 1; spec 2026-06-03-frontend-design-spec) ---
 # Serve the built Stack-A bundle (`frontend/dist/`) as a SCOPED fallback, registered LAST so it
 # never shadows the API/docs namespace. The mount is CONDITIONAL on a built dist existing, so

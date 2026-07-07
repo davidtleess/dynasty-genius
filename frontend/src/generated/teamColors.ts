@@ -1,0 +1,46 @@
+// GENERATED FILE — do not edit by hand.
+// Source: the checked-in team map under app/config (single source of
+// truth); regenerate with scripts/generate_team_color_module.py.
+// A contract test fails on any divergence between source and module.
+export const TEAM_COLORS_META = {
+  schema_version: "team_colors.v1",
+  source_sha256: "83925144b87be31ffdfabc7a6de8a765e60f7d8f99fc1f63898d96cb0513b52f",
+} as const;
+
+export const TEAM_COLORS: Record<
+  string,
+  { primary: string; secondary: string }
+> = {
+  ARI: { primary: "oklch(0.45 0.16 15)", secondary: "oklch(0.85 0.06 90)" },
+  ATL: { primary: "oklch(0.50 0.19 25)", secondary: "oklch(0.25 0.01 260)" },
+  BAL: { primary: "oklch(0.35 0.14 295)", secondary: "oklch(0.75 0.13 85)" },
+  BUF: { primary: "oklch(0.45 0.16 260)", secondary: "oklch(0.55 0.20 25)" },
+  CAR: { primary: "oklch(0.60 0.13 230)", secondary: "oklch(0.30 0.01 260)" },
+  CHI: { primary: "oklch(0.30 0.07 260)", secondary: "oklch(0.60 0.15 45)" },
+  CIN: { primary: "oklch(0.62 0.19 45)", secondary: "oklch(0.22 0.01 260)" },
+  CLE: { primary: "oklch(0.45 0.13 55)", secondary: "oklch(0.35 0.09 45)" },
+  DAL: { primary: "oklch(0.40 0.10 260)", secondary: "oklch(0.75 0.02 260)" },
+  DEN: { primary: "oklch(0.55 0.17 40)", secondary: "oklch(0.32 0.08 260)" },
+  DET: { primary: "oklch(0.60 0.12 235)", secondary: "oklch(0.78 0.02 260)" },
+  GB: { primary: "oklch(0.40 0.09 165)", secondary: "oklch(0.80 0.12 95)" },
+  HOU: { primary: "oklch(0.30 0.06 250)", secondary: "oklch(0.50 0.18 25)" },
+  IND: { primary: "oklch(0.45 0.15 260)", secondary: "oklch(0.80 0.02 260)" },
+  JAX: { primary: "oklch(0.55 0.10 195)", secondary: "oklch(0.70 0.12 85)" },
+  KC: { primary: "oklch(0.50 0.19 25)", secondary: "oklch(0.78 0.13 85)" },
+  LAC: { primary: "oklch(0.60 0.14 240)", secondary: "oklch(0.80 0.13 90)" },
+  LAR: { primary: "oklch(0.45 0.16 260)", secondary: "oklch(0.80 0.11 90)" },
+  LV: { primary: "oklch(0.25 0.00 260)", secondary: "oklch(0.78 0.02 260)" },
+  MIA: { primary: "oklch(0.65 0.11 190)", secondary: "oklch(0.62 0.15 40)" },
+  MIN: { primary: "oklch(0.42 0.14 300)", secondary: "oklch(0.75 0.13 85)" },
+  NE: { primary: "oklch(0.32 0.08 260)", secondary: "oklch(0.55 0.18 25)" },
+  NO: { primary: "oklch(0.70 0.09 90)", secondary: "oklch(0.25 0.01 260)" },
+  NYG: { primary: "oklch(0.40 0.13 262)", secondary: "oklch(0.52 0.17 25)" },
+  NYJ: { primary: "oklch(0.42 0.10 160)", secondary: "oklch(0.95 0.00 260)" },
+  PHI: { primary: "oklch(0.38 0.07 195)", secondary: "oklch(0.75 0.02 260)" },
+  PIT: { primary: "oklch(0.75 0.14 85)", secondary: "oklch(0.22 0.01 260)" },
+  SEA: { primary: "oklch(0.30 0.07 250)", secondary: "oklch(0.65 0.15 140)" },
+  SF: { primary: "oklch(0.45 0.16 25)", secondary: "oklch(0.72 0.10 85)" },
+  TB: { primary: "oklch(0.48 0.17 25)", secondary: "oklch(0.35 0.04 40)" },
+  TEN: { primary: "oklch(0.55 0.13 235)", secondary: "oklch(0.32 0.06 250)" },
+  WAS: { primary: "oklch(0.40 0.12 20)", secondary: "oklch(0.75 0.13 85)" },
+};

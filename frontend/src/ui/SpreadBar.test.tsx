@@ -51,4 +51,41 @@ describe("SpreadBar", () => {
     expect(screen.getByText(/range unavailable/i)).toBeTruthy();
     expect(container.querySelector(".dg-ui-spread__bar")).toBeNull();
   });
+
+  it("keeps model and market lanes visually isolated", async () => {
+    const { SpreadBar } = await import("./SpreadBar");
+    const Increment0SpreadBar = SpreadBar as any;
+
+    const { container, rerender } = render(
+      <Increment0SpreadBar
+        label="Market range"
+        value={8.4}
+        basis="market percentile spread"
+        pct={44}
+        lane="market"
+      />,
+    );
+
+    const marketSpread = screen.getByRole("img", { name: /market range/i });
+    expect(marketSpread.getAttribute("data-lane")).toBe("market");
+    expect(container.querySelector(".dg-ui-spread__dot")?.getAttribute("data-lane")).toBe(
+      "market",
+    );
+
+    rerender(
+      <Increment0SpreadBar
+        label="Model range"
+        value={8.4}
+        basis="model fold CI"
+        pct={44}
+        lane="model"
+      />,
+    );
+
+    const modelSpread = screen.getByRole("img", { name: /model range/i });
+    expect(modelSpread.getAttribute("data-lane")).toBe("model");
+    expect(container.querySelector(".dg-ui-spread__dot")?.getAttribute("data-lane")).toBe(
+      "model",
+    );
+  });
 });

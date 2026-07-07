@@ -5,7 +5,7 @@
 // register (D3 semantics). No goldens, no toHaveScreenshot, no CI wiring.
 // Route mocks only: no gitignored artifact is ever read.
 import AxeBuilder from "@axe-core/playwright";
-import { test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const ARTIFACT_DIR = "artifacts/visual";
@@ -35,6 +35,15 @@ const whatChanged = {
           player_key: "player-1",
           player_name: "Delta Receiver",
           position: "WR",
+          team_id: "SEA",
+          model_series: null,
+          market_series: {
+            basis: "fc_forward_capture_joinable.value",
+            points: [
+              { date: "2026-07-04", value: 100 },
+              { date: "2026-07-05", value: 92 },
+            ],
+          },
           value_delta: -8,
           value_delta_direction: "down",
           overall_rank_delta: 14,
@@ -49,6 +58,15 @@ const whatChanged = {
           player_key: "player-2",
           player_name: "Market Mover",
           position: "RB",
+          team_id: "ATL",
+          model_series: null,
+          market_series: {
+            basis: "fc_forward_capture_joinable.value",
+            points: [
+              { date: "2026-07-04", value: 100 },
+              { date: "2026-07-05", value: 111 },
+            ],
+          },
           value_delta: 11,
           value_delta_direction: "up",
           overall_rank_delta: -9,
@@ -71,6 +89,15 @@ const whatChanged = {
           player_key: "player-5",
           player_name: "Model Delta",
           position: "QB",
+          team_id: "BUF",
+          model_series: {
+            basis: "model_forward_capture_joinable.dynasty_value_score",
+            points: [
+              { date: "2026-07-04", value: 81.25 },
+              { date: "2026-07-05", value: 80 },
+            ],
+          },
+          market_series: null,
           dynasty_value_score_delta: -1.25,
           dynasty_value_score_delta_direction: "down",
           dvs_pct_delta: 0.04,
@@ -252,15 +279,18 @@ test("daily open evidence bundle: desktop, mobile, focus capture, axe report", a
     fullPage: true,
   });
 
-  // Keyboard focus capture — capture only, not a pass gate: three Tab stops,
-  // then a screenshot showing wherever (or whether) focus is visible today.
-  await page.keyboard.press("Tab");
-  await page.keyboard.press("Tab");
-  await page.keyboard.press("Tab");
-  await page.screenshot({ path: `${ARTIFACT_DIR}/daily-open-focus-capture.png` });
+  // Increment 1: primitive-specific focus evidence. Focus must land on an
+  // AssetRow receipt control, not merely the shell rail.
+  const firstReceipt = page.getByRole("button", { name: /provenance for/i }).first();
+  await expect(firstReceipt).toBeVisible({ timeout: 1500 });
+  await firstReceipt.focus();
+  await expect(firstReceipt).toBeFocused();
+  await page.screenshot({
+    path: `${ARTIFACT_DIR}/daily-open-primitive-focus-capture.png`,
+  });
 
-  // Axe accessibility smoke over the main region — violations are RECORDED
-  // as evidence (the debt register), not asserted empty in Task 1.
+  // Axe accessibility smoke over the main region. Increment 1 hardens this
+  // evidence surface: the report is still written, but violations fail RED.
   const axeResults = await new AxeBuilder({ page }).include("main").analyze();
   writeFileSync(
     `${ARTIFACT_DIR}/axe-report.json`,
@@ -274,6 +304,7 @@ test("daily open evidence bundle: desktop, mobile, focus capture, axe report", a
       2,
     ),
   );
+  expect(axeResults.violations).toEqual([]);
 
   // Mobile evidence.
   await page.setViewportSize({ width: 390, height: 844 });
@@ -281,6 +312,48 @@ test("daily open evidence bundle: desktop, mobile, focus capture, axe report", a
   await page.getByText("Market Mover").waitFor();
   await page.screenshot({
     path: `${ARTIFACT_DIR}/daily-open-mobile.png`,
+    fullPage: true,
+  });
+});
+
+test("asset primitive capture evidence bundle asserts axe zero", async ({ page }) => {
+  mkdirSync(ARTIFACT_DIR, { recursive: true });
+
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await page.goto("/?surface=asset-primitive-capture");
+  await page.getByText("Asset primitive capture").waitFor();
+  await page.screenshot({
+    path: `${ARTIFACT_DIR}/asset-primitive-capture-desktop.png`,
+    fullPage: true,
+  });
+
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await page.screenshot({
+    path: `${ARTIFACT_DIR}/asset-primitive-capture-focus.png`,
+  });
+
+  const axeResults = await new AxeBuilder({ page }).include("main").analyze();
+  writeFileSync(
+    `${ARTIFACT_DIR}/asset-primitive-capture-axe-report.json`,
+    JSON.stringify(
+      {
+        captured_at: "run-time artifact",
+        violation_count: axeResults.violations.length,
+        violations: axeResults.violations,
+      },
+      null,
+      2,
+    ),
+  );
+  expect(axeResults.violations).toEqual([]);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?surface=asset-primitive-capture");
+  await page.getByText("Asset primitive capture").waitFor();
+  await page.screenshot({
+    path: `${ARTIFACT_DIR}/asset-primitive-capture-mobile.png`,
     fullPage: true,
   });
 });

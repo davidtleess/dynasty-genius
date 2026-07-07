@@ -5862,6 +5862,66 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "WhatChangedBaselineRosterRow": {
+        "additionalProperties": false,
+        "description": "Increment-1 quiet-day row: identity + flat lanes (0 by definition).",
+        "properties": {
+          "market_lane_value": {
+            "const": 0,
+            "title": "Market Lane Value",
+            "type": "integer"
+          },
+          "model_lane_value": {
+            "const": 0,
+            "title": "Model Lane Value",
+            "type": "integer"
+          },
+          "player_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Player Name"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "sleeper_id": {
+            "title": "Sleeper Id",
+            "type": "string"
+          },
+          "team_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Id"
+          }
+        },
+        "required": [
+          "sleeper_id",
+          "model_lane_value",
+          "market_lane_value"
+        ],
+        "title": "WhatChangedBaselineRosterRow",
+        "type": "object"
+      },
       "WhatChangedCard": {
         "additionalProperties": false,
         "properties": {
@@ -6086,6 +6146,30 @@
       "WhatChangedMarketDelta": {
         "additionalProperties": false,
         "properties": {
+          "market_series": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Series"
+          },
+          "model_series": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Series"
+          },
           "overall_rank_delta": {
             "title": "Overall Rank Delta",
             "type": "integer"
@@ -6131,6 +6215,17 @@
           "sleeper_id": {
             "title": "Sleeper Id",
             "type": "string"
+          },
+          "team_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Id"
           },
           "value_delta": {
             "title": "Value Delta",
@@ -6363,6 +6458,30 @@
             "title": "Dynasty Value Score Delta Direction",
             "type": "string"
           },
+          "market_series": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Series"
+          },
+          "model_series": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Series"
+          },
           "player_key": {
             "title": "Player Key",
             "type": "string"
@@ -6399,6 +6518,17 @@
               }
             ],
             "title": "Sleeper Id"
+          },
+          "team_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Id"
           },
           "xvar_delta": {
             "title": "Xvar Delta",
@@ -6967,6 +7097,20 @@
       "WhatChangedStructuralContext": {
         "additionalProperties": false,
         "properties": {
+          "baseline_roster_rows": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WhatChangedBaselineRosterRow"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Roster Rows"
+          },
           "current_not_delta": {
             "title": "Current Not Delta",
             "type": "boolean"

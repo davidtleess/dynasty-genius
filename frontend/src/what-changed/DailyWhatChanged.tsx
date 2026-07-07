@@ -18,6 +18,7 @@ import { formatCaptureTimestamp } from "../lib/copy";
 import { useEndpointResource } from "../lib/useEndpointResource";
 import { CaveatBlock } from "../ui/CaveatBlock";
 import { ChartFrame } from "../ui/ChartFrame";
+import { ReceiptTrigger } from "../ui/ReceiptTrigger";
 import { DailyTape as UiDailyTape } from "../ui/DailyTape";
 import { DisclosureLine } from "../ui/DisclosureLine";
 import { MetricCell } from "../ui/MetricCell";
@@ -101,15 +102,131 @@ function formatZeroDelta(value: number): string {
   return fmtSigned(value);
 }
 
-function DeltaCell({ label, value }: { label: string; value: number }) {
+function DeltaCell({
+  label,
+  value,
+  emphasis,
+}: {
+  label: string;
+  value: number;
+  emphasis?: "row-focal" | undefined;
+}) {
   const text = formatZeroDelta(value);
   return (
     <span
       className="dg-wc__delta-cell"
       title={text === NEUTRAL_DASH ? EXACT_ZERO_NOTE : undefined}
     >
-      <MetricCell label={label} value={text} />
+      <MetricCell label={label} value={text} emphasis={emphasis} />
     </span>
+  );
+}
+
+// ── Increment 1: the AssetRow tape (rethink v3 §5 / Increment-1 spec v3) ─────
+// Lenient client-side series read: anything that is not a 2+-point dated
+// series renders the pending slot — a malformed producer row degrades to
+// honesty, never to a fabricated line (fail-safe, spec seed 6).
+function usableSeriesPoints(
+  series: unknown,
+): { capturedAt: string; value: number }[] | null {
+  if (series === null || typeof series !== "object") return null;
+  const points = (series as { points?: unknown }).points;
+  if (!Array.isArray(points) || points.length < 2) return null;
+  const mapped: { capturedAt: string; value: number }[] = [];
+  for (const point of points) {
+    if (
+      point === null ||
+      typeof point !== "object" ||
+      typeof (point as { date?: unknown }).date !== "string" ||
+      typeof (point as { value?: unknown }).value !== "number"
+    ) {
+      return null;
+    }
+    mapped.push({
+      capturedAt: (point as { date: string }).date,
+      value: (point as { value: number }).value,
+    });
+  }
+  return mapped;
+}
+
+function lastSeriesDate(series: unknown): string | null {
+  const points = usableSeriesPoints(series);
+  return points === null ? null : (points[points.length - 1]?.capturedAt ?? null);
+}
+
+function seriesBasis(series: unknown): string | null {
+  if (series === null || typeof series !== "object") return null;
+  const basis = (series as { basis?: unknown }).basis;
+  return typeof basis === "string" && basis.trim() !== "" ? basis : null;
+}
+
+function LaneSeriesSlot({
+  series,
+  label,
+}: {
+  series: unknown;
+  label: string;
+}) {
+  const points = usableSeriesPoints(series);
+  return points === null ? (
+    <SeriesSlot status="pending" label={label} />
+  ) : (
+    <SeriesSlot status="ready" label={label} points={points} />
+  );
+}
+
+// One player's line on the tape: identity (real cached headshot, DB-driven
+// team mark), the row-focal signed delta in its OWN lane, the other lane an
+// explicit neutral dash (lane symmetry: silence is shown, never implied), and
+// the PIT series ending at the Hard Right Edge.
+function AssetRow({
+  sleeperId,
+  name,
+  position,
+  teamId,
+  lane,
+  children,
+  seriesLabel,
+  series,
+}: {
+  sleeperId: string | null | undefined;
+  name: string;
+  position: string;
+  teamId: string | null | undefined;
+  lane: "model" | "market";
+  children: React.ReactNode;
+  seriesLabel: string;
+  series: unknown;
+}) {
+  const otherLane = lane === "model" ? "market" : "model";
+  return (
+    <li data-asset-row data-row-density="32px" className="dg-wc__player-row">
+      <PlayerIdentity
+        name={name}
+        team={teamId ?? ""}
+        position={position}
+        imageStatus={sleeperId ? "available" : "missing"}
+        imageSrc={sleeperId ? `/assets/headshots/${sleeperId}.jpg` : undefined}
+        teamId={teamId ?? undefined}
+      />
+      <span data-lane={lane} className="dg-wc__lane">
+        {children}
+        <LaneSeriesSlot series={series} label={seriesLabel} />
+        <ReceiptTrigger
+          label={name}
+          capturedAt={lastSeriesDate(series) ?? "capture date unavailable"}
+          source={seriesBasis(series) ?? `${lane} lane — series pending`}
+        />
+      </span>
+      <span
+        data-lane={otherLane}
+        className="dg-wc__lane dg-wc__lane--flat"
+        title={`no ${otherLane} movement on this row's tape`}
+      >
+        {NEUTRAL_DASH}
+      </span>
+    </li>
   );
 }
 
@@ -127,6 +244,17 @@ function deskDate(iso: string): string {
   return Number.isNaN(parsed) ? "Today's report" : DESK_DATE.format(new Date(parsed));
 }
 
+// Staleness basis (spec v3 key-state 3): the report judges its OWN data truth
+// via generated_at; ≥26h (the 02 backup-law interval + grace) or unparseable
+// → stale. System-level capture health stays the shell's separate trust axis.
+const STALE_HOURS_THRESHOLD = 26;
+
+function staleHours(generatedAt: string): number | null {
+  const parsed = Date.parse(generatedAt);
+  if (Number.isNaN(parsed)) return null;
+  return (Date.now() - parsed) / 3_600_000;
+}
+
 function ReadyView({ data }: { data: WhatChangedResponse }) {
   const daily = data.daily_diff;
   const marketWindow = (daily.market.comparison_window ?? null) as {
@@ -138,8 +266,23 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
     (daily.market.roster_deltas?.length ?? 0) +
     (daily.model.deltas?.length ?? 0);
 
+  const hours = staleHours(data.generated_at);
+  const isStale = hours === null || hours >= STALE_HOURS_THRESHOLD;
+
+  const baselineRows = (
+    data.structural_context as {
+      baseline_roster_rows?:
+        | { sleeper_id: string; player_name?: string | null; position?: string | null; team_id?: string | null }[]
+        | null;
+    }
+  ).baseline_roster_rows;
+  const quietDay = moveCount === 0;
+
   return (
-    <section className="dg-wc dg-motion-daily-open" aria-label="Daily What-Changed">
+    <section
+      className={`dg-wc dg-motion-daily-open${isStale ? " dg-wc--stale" : ""}`}
+      aria-label="Daily What-Changed"
+    >
       <header className="dg-wc__desk-header">
         <div className="dg-wc__masthead">
           <h2 className="dg-wc__title">{deskDate(data.generated_at)}</h2>
@@ -149,6 +292,15 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
             basis="market and model changes since the prior snapshot"
           />
         </div>
+        {isStale && (
+          <p className="dg-wc__stale-badge">
+            Stale data caveat —{" "}
+            {hours === null
+              ? "the capture time could not be read"
+              : `the capture is ${hours.toFixed(1)} hours old`}
+            . The tape below reflects the last verified capture, not this morning.
+          </p>
+        )}
         <DailyTape />
         <p className="dg-wc__disclaimer">
           A daily delta surface (what changed since the prior snapshot); no verdict, no
@@ -157,9 +309,23 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
         <DisclosureLine />
       </header>
       <div className="dg-wc__layout">
-        <div className="dg-wc__feed">
-          <MarketRegion market={daily.market} />
+        {/* Model movement FIRST (spec v3 §2, Gemini nudge finding): the model
+            is the rational anchor; market-first would anchor the morning read
+            on crowd noise before the model's evaluation. */}
+        <div className="dg-wc__feed" data-stale={isStale ? "true" : undefined}>
+          {quietDay && (
+            <div className="dg-wc__quiet-day">
+              <p className="dg-wc__quiet">
+                No valuation deltas observed since the last capture (checked{" "}
+                {deskDate(data.generated_at)}). The roster holds its baseline below.
+              </p>
+              {baselineRows && baselineRows.length > 0 && (
+                <BaselineRosterRows rows={baselineRows} />
+              )}
+            </div>
+          )}
           <ModelRegion model={daily.model} />
+          <MarketRegion market={daily.market} />
           <StructuralBaseline ctx={data.structural_context} />
         </div>
         <ContextRail data={data} marketWindow={marketWindow} />
@@ -228,9 +394,16 @@ function ContextRail({
   );
 }
 
+function humanAssetKey(key: string): string {
+  return key.startsWith("sleeper:") ? key.slice("sleeper:".length) : key;
+}
+
 function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
   const topMovers = market.top_movers ?? [];
   const rosterDeltas = market.roster_deltas ?? [];
+  // Voice: strip the raw backend key prefix from entered/exited ids — full
+  // name resolution for these rows rides the identity slice (residual debt,
+  // recorded in the Increment-1 delta doc).
   const entered = market.entered ?? [];
   const exited = market.exited ?? [];
 
@@ -272,7 +445,7 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
       ) : (
         <ul className="dg-wc__list">
           {entered.map((e, i) => (
-            <li key={e.sleeper_id ?? i}>{e.player_key}</li>
+            <li key={e.sleeper_id ?? i}>{humanAssetKey(e.player_key)}</li>
           ))}
         </ul>
       )}
@@ -283,7 +456,7 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
       ) : (
         <ul className="dg-wc__list">
           {exited.map((e, i) => (
-            <li key={e.sleeper_id ?? i}>{e.player_key}</li>
+            <li key={e.sleeper_id ?? i}>{humanAssetKey(e.player_key)}</li>
           ))}
         </ul>
       )}
@@ -299,19 +472,18 @@ function MarketRows({ rows }: { rows: WhatChangedMarketDelta[] }) {
   return (
     <ul className="dg-wc__rows">
       {rows.map((r, i) => (
-        <li key={r.sleeper_id ?? i} className="dg-wc__player-row">
-          <PlayerIdentity
-            name={r.player_name ?? r.player_key}
-            team=""
-            position={r.position ?? ""}
-            imageStatus="missing"
-          />
-          <DeltaCell label="Market value" value={r.value_delta} />
-          <SeriesSlot
-            status="pending"
-            label={`${r.player_name ?? r.player_key} market value history`}
-          />
-        </li>
+        <AssetRow
+          key={r.sleeper_id ?? i}
+          sleeperId={r.sleeper_id}
+          name={r.player_name ?? r.player_key}
+          position={r.position ?? ""}
+          teamId={(r as { team_id?: string | null }).team_id}
+          lane="market"
+          seriesLabel={`${r.player_name ?? r.player_key} market series`}
+          series={(r as { market_series?: unknown }).market_series}
+        >
+          <DeltaCell label="Market value" value={r.value_delta} emphasis="row-focal" />
+        </AssetRow>
       ))}
     </ul>
   );
@@ -394,20 +566,65 @@ function ModelRows({ rows }: { rows: WhatChangedModelDelta[] }) {
   return (
     <ul className="dg-wc__rows">
       {rows.map((r, i) => (
-        <li key={r.sleeper_id ?? i} className="dg-wc__player-row">
-          <PlayerIdentity
-            name={r.player_name ?? r.player_key}
-            team=""
-            position={r.position ?? ""}
-            imageStatus="missing"
+        <AssetRow
+          key={r.sleeper_id ?? i}
+          sleeperId={r.sleeper_id}
+          name={r.player_name ?? r.player_key}
+          position={r.position ?? ""}
+          teamId={(r as { team_id?: string | null }).team_id}
+          lane="model"
+          seriesLabel={`${r.player_name ?? r.player_key} model series`}
+          series={(r as { model_series?: unknown }).model_series}
+        >
+          <DeltaCell
+            label="Model value"
+            value={r.dynasty_value_score_delta}
+            emphasis="row-focal"
           />
-          <DeltaCell label="Model value" value={r.dynasty_value_score_delta} />
           <DeltaCell label="Percentile" value={r.dvs_pct_delta} />
           <DeltaCell label="Above replacement" value={r.xvar_delta} />
-          <SeriesSlot
-            status="pending"
-            label={`${r.player_name ?? r.player_key} model value history`}
+        </AssetRow>
+      ))}
+    </ul>
+  );
+}
+
+// Quiet-day baseline (spec v3 key-state 1): David's roster locked flat —
+// rendered ONLY when the producer supplies baseline_roster_rows; both lanes
+// are honest dashes (0 delta by definition), series pending.
+function BaselineRosterRows({
+  rows,
+}: {
+  rows: {
+    sleeper_id: string;
+    player_name?: string | null;
+    position?: string | null;
+    team_id?: string | null;
+  }[];
+}) {
+  return (
+    <ul className="dg-wc__rows">
+      {rows.map((r) => (
+        <li
+          key={r.sleeper_id}
+          data-asset-row
+          data-row-density="32px"
+          className="dg-wc__player-row"
+        >
+          <PlayerIdentity
+            name={r.player_name ?? r.sleeper_id}
+            team={r.team_id ?? ""}
+            position={r.position ?? ""}
+            imageStatus="available"
+            imageSrc={`/assets/headshots/${r.sleeper_id}.jpg`}
+            teamId={r.team_id ?? undefined}
           />
+          <span data-lane="model" className="dg-wc__lane dg-wc__lane--flat">
+            {NEUTRAL_DASH}
+          </span>
+          <span data-lane="market" className="dg-wc__lane dg-wc__lane--flat">
+            {NEUTRAL_DASH}
+          </span>
         </li>
       ))}
     </ul>

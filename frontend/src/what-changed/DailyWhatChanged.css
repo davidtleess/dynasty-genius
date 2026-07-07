@@ -265,3 +265,46 @@
     transform: none;
   }
 }
+
+/* ── Increment 1: the AssetRow tape ── */
+.dg-wc__lane {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dg-space-2);
+}
+
+.dg-wc__lane--flat {
+  color: var(--dg-text-muted);
+  font-family: var(--dg-font-mono);
+  min-width: 2ch;
+  justify-content: center;
+}
+
+.dg-wc__stale-badge {
+  margin: 0;
+  padding: var(--dg-space-1) var(--dg-space-3);
+  border: 1px solid var(--dg-caveat);
+  border-radius: 4px;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text);
+  max-width: 65ch;
+}
+
+/* Stale tape: rows desaturate (stale-degrades law) — information stays
+   readable; only the freshness claim is visually withdrawn. */
+.dg-wc--stale [data-asset-row] {
+  filter: saturate(0.35);
+}
+
+.dg-wc__quiet-day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+}
+
+/* Lane-true sparklines: a market-lane series must never draw in model blue
+   (the SeriesSlot default stroke is the model hue; this scope corrects it
+   inside the market lane only — found by the Increment-1 critique pass). */
+.dg-wc__lane[data-lane="market"] .dg-ui-series__line {
+  stroke: var(--dg-market);
+}

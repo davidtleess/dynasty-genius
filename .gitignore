@@ -131,3 +131,6 @@ app/data/ops/
 # Browser evidence bundles — generated per run, reviewed by eyes, never tracked
 frontend/artifacts/
 frontend/test-results/
+
+# H2 Increment 0: rebuildable player asset cache (backup-manifest exclusions entry; never committed)
+app/data/assets/

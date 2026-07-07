@@ -9,6 +9,7 @@ export function SpreadBar({
   sigma,
   basis,
   pct,
+  lane = "model",
 }: {
   label: string;
   value: number | null;
@@ -18,6 +19,9 @@ export function SpreadBar({
    *  does not render — a decoratively-placed dot would be miniature fiction
    *  (visual-audit finding F1, 2026-07-05). */
   pct?: number | undefined;
+  /** Lane isolation (Increment 0, Codex R3): a market spread must never
+   *  inherit model blue. Default stays model for every existing call site. */
+  lane?: "model" | "market";
 }) {
   if (value === null || !Number.isFinite(value)) {
     return (
@@ -36,12 +40,13 @@ export function SpreadBar({
       : `${label} — basis: ${basis}`;
 
   return (
-    <span className="dg-ui-spread" role="img" aria-label={ariaLabel}>
+    <span className="dg-ui-spread" role="img" aria-label={ariaLabel} data-lane={lane}>
       <span className="dg-ui-spread__bar">
         {dotPct !== null && (
           <span
             className="dg-ui-spread__dot"
             data-pct={dotPct}
+            data-lane={lane}
             style={{ left: `${dotPct}%` }}
           />
         )}
