@@ -98,6 +98,10 @@ Agents must:
 - keep edits scoped to the requested task and active phase
 - avoid unrelated refactors
 - preserve user and other-agent changes
+- keep harness-local enablement local: active tool/hook configs such as `.codex/hooks.json`
+  or `.cursor/hooks.json` are per-developer state and must never be tracked. The
+  repo may vendor the underlying scripts; it does not silently enable them for every
+  fresh clone.
 - verify current player facts before player analysis
 - keep KTC and market data out of model inputs
 - avoid hardcoded model cliffs for aging curves

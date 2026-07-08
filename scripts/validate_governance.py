@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -19,10 +20,14 @@ REQUIRED_FILES = [
     "docs/governance/archive/originals/DYNASTY_GENIUS_PRODUCT_DESIGN.original.md",
     "docs/governance/reviews/gemini-product-signoff-2026-05-07.md",
     "docs/governance/platform/databricks-lineage-plan.md",
+    "docs/governance/04-strategic-execution-charter.md",
+    "docs/design-audits/README.md",
     "AGENT_SYNC.md",
     "AGENTS.md",
     "GEMINI.md",
     "CLAUDE.md",
+    "PRODUCT.md",
+    "DESIGN.md",
     ".clauderules",
     "# DYNASTY GENIUS — SESSION STARTER.md",
     "AI_CONTEXT.md",
@@ -43,8 +48,13 @@ BOOTSTRAP_FILES = [
 ]
 
 REQUIRED_BOOTSTRAP_TARGETS = [
+    "docs/governance/00-product-constitution.md",
+    "docs/governance/01-north-star-architecture.md",
     "docs/governance/02-agent-operating-loop.md",
     "docs/governance/03-code-hygiene-policy.md",
+    "PRODUCT.md",
+    "DESIGN.md",
+    "AGENT_SYNC.md",
 ]
 
 REQUIRED_GOVERNANCE_PHRASES = {
@@ -63,13 +73,25 @@ REQUIRED_GOVERNANCE_PHRASES = {
         "Preflight: Session Start",
         "Execution: During Work",
         "Postflight: Session End",
-        "It does not have permission to bypass failing tests",
+        "Contract-green is never a visual GREEN",
+        "fresh-agent visual audit",
+        "keep harness-local enablement local",
     ],
     "GEMINI.md": [
         "Product Vision owner and Product Manager",
         "shell is prompt-gated",
         "native file writes are prohibited by mandate",
         "Bootstrap is read-only",
+    ],
+    "PRODUCT.md": [
+        "The scaffolding-hide law.",
+        "No system-nominated single-player hero",
+        "Shape before code:",
+    ],
+    "DESIGN.md": [
+        "Shape before code (pre-build).",
+        "The unanchored scored audit",
+        "mid-scroll captures",
     ],
 }
 
@@ -93,6 +115,17 @@ ALLOWLIST_MARKET_CONTEXT_RE = re.compile(
     r"market_overlay|market.*overlay|market.*sanity|price discovery",
     re.IGNORECASE,
 )
+
+LOCAL_ONLY_TRACKED_PATHS = {
+    ".codex/hooks.json": (
+        "Active Codex hooks are local enablement, not repo state. "
+        "Keep .codex/hooks.json ignored/untracked."
+    ),
+    ".cursor/hooks.json": (
+        "Active Cursor hooks are local enablement, not repo state. "
+        "Keep .cursor/hooks.json ignored/untracked."
+    ),
+}
 
 
 def rel(path: Path) -> str:
@@ -142,6 +175,23 @@ def validate_governance_phrases(failures: list[str]) -> None:
                 fail(f"{file_name} is missing required phrase: {phrase}", failures)
 
 
+def path_is_tracked(relative_path: str) -> bool:
+    result = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", relative_path],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def validate_local_only_paths(failures: list[str]) -> None:
+    for relative_path, reason in LOCAL_ONLY_TRACKED_PATHS.items():
+        if path_is_tracked(relative_path):
+            fail(f"{relative_path} is tracked unexpectedly. {reason}", failures)
+
+
 def model_feature_paths() -> list[Path]:
     paths = {ROOT / name for name in MODEL_FEATURE_FILES}
     for pattern in MODEL_FEATURE_GLOBS:
@@ -168,6 +218,7 @@ def main() -> int:
     validate_required_files(failures)
     validate_bootstrap_files(failures)
     validate_governance_phrases(failures)
+    validate_local_only_paths(failures)
     validate_market_feature_leakage(failures)
 
     if failures:

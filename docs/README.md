@@ -8,7 +8,8 @@ All agents start with:
 2. `docs/governance/00-product-constitution.md`
 3. `docs/governance/01-north-star-architecture.md`
 4. `docs/governance/03-code-hygiene-policy.md`
-5. `AGENT_SYNC.md`
+5. `PRODUCT.md` and `DESIGN.md` when the task touches frontend, UI, CSS, components, or any visual surface
+6. `AGENT_SYNC.md`
 
 ## Canonical Governance
 

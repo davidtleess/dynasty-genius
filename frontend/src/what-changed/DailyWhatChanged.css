@@ -82,6 +82,15 @@
   .dg-wc__layout {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* Mobile: a model lane can carry multiple metric cells plus the 120px
+     series slot. Without wrapping, the lane becomes one unbreakable 500px
+     strip and blows past a 390px viewport (the visual-smoke overflow catch). */
+  .dg-wc__lane {
+    display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
 }
 
 .dg-wc__diagnostics,

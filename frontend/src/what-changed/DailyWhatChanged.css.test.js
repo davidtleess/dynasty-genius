@@ -15,6 +15,9 @@ describe("DailyWhatChanged I2a CSS contract", () => {
 
     expect(css).toMatch(/\.dg-wc__player-row[\s\S]*\b(?:min-)?height:\s*32px/);
     expect(css).toMatch(/font-family:\s*var\(--dg-font-display/);
+    expect(css).toMatch(
+      /@media\s*\(\s*max-width:\s*768px\s*\)[\s\S]*\.dg-wc__lane[\s\S]*flex-wrap:\s*wrap/,
+    );
     expect(css).toMatch(/@media\s*\(\s*prefers-reduced-motion:\s*reduce\s*\)/);
     expect(css).toMatch(/animation:\s*none/);
   });

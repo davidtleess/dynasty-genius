@@ -115,6 +115,7 @@ app/data/pff_exports/
 # local state managed by `/impeccable hooks on|off`, not a repo artifact — the
 # committed skill lives under .claude/ and .github/, not in a harness hook config.
 .codex/hooks.json
+.cursor/hooks.json
 
 # Dependencies
 node_modules/
