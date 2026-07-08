@@ -118,12 +118,14 @@ function DeltaCell({
 }) {
   const text = formatZeroDelta(value);
   return (
-    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-label supplies the hidden column label to assistive tech on this non-semantic delta-cell wrapper; the label is otherwise carried once by the column header
     <span
       className="dg-wc__delta-cell"
-      aria-label={labelHidden ? label : undefined}
       title={text === NEUTRAL_DASH ? EXACT_ZERO_NOTE : undefined}
     >
+      {/* When the column header carries the visible label, the per-row label
+          moves to a screen-reader-only element so assistive tech still names
+          the cell — a genuine hidden label, not an aria prop on a generic span. */}
+      {labelHidden ? <span className="dg-wc__sr-only">{label}</span> : null}
       <MetricCell label={labelHidden ? "" : label} value={text} emphasis={emphasis} />
     </span>
   );

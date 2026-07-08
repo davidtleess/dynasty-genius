@@ -187,7 +187,7 @@
       "raw_hex": 0,
       "raw_oklch": 0,
       "raw_rgb": 0,
-      "raw_spacing_values": 9,
+      "raw_spacing_values": 11,
       "raw_radius_values": 5,
       "raw_font_size_values": 1,
       "non_token_font_families": 0
@@ -197,7 +197,7 @@
     "raw_hex": 17,
     "raw_oklch": 69,
     "raw_rgb": 0,
-    "raw_spacing_values": 64,
+    "raw_spacing_values": 66,
     "raw_radius_values": 27,
     "raw_font_size_values": 42,
     "non_token_font_families": 0

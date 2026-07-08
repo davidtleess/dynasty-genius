@@ -111,6 +111,11 @@ app/data/pff_exports/
 .agents/
 .antigravitycli/
 
+# Local per-developer active-hook wiring (impeccable design hook). Enablement is
+# local state managed by `/impeccable hooks on|off`, not a repo artifact — the
+# committed skill lives under .claude/ and .github/, not in a harness hook config.
+.codex/hooks.json
+
 # Dependencies
 node_modules/
 __pycache__/

@@ -7,7 +7,10 @@ export const TEAM_COLORS_META = {
   source_sha256: "83925144b87be31ffdfabc7a6de8a765e60f7d8f99fc1f63898d96cb0513b52f",
 } as const;
 
-export const TEAM_COLORS: Record<string, { primary: string; secondary: string }> = {
+export const TEAM_COLORS: Record<
+  string,
+  { primary: string; secondary: string }
+> = {
   ARI: { primary: "oklch(0.45 0.16 15)", secondary: "oklch(0.85 0.06 90)" },
   ATL: { primary: "oklch(0.50 0.19 25)", secondary: "oklch(0.25 0.01 260)" },
   BAL: { primary: "oklch(0.35 0.14 295)", secondary: "oklch(0.75 0.13 85)" },
