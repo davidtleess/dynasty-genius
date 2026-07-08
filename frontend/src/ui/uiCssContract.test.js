@@ -28,9 +28,7 @@ describe("DG primitive CSS contract", () => {
 
   it("keeps SpreadBar model and market lane tokens isolated", () => {
     const css = readUiCss();
-    const marketLane = css.match(
-      /\.dg-ui-spread\[data-lane="market"\][\s\S]{0,500}/,
-    );
+    const marketLane = css.match(/\.dg-ui-spread\[data-lane="market"\][\s\S]{0,500}/);
     const modelLane = css.match(/\.dg-ui-spread\[data-lane="model"\][\s\S]{0,500}/);
 
     expect(marketLane, "market lane CSS block missing").not.toBeNull();

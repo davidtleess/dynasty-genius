@@ -19,9 +19,9 @@ export function AssetPrimitiveCapture() {
   return (
     <section className="dg-asset-capture" aria-label="Primitive capture states">
       <p className="dg-asset-capture__intro">
-        Increment-0 primitive states for the evidence bundle: identity fallback
-        chain, lane-isolated spreads, and the row-focal value. Capture only —
-        not a pass gate on its own; the recorded axe result is the gate.
+        Increment-0 primitive states for the evidence bundle: identity fallback chain,
+        lane-isolated spreads, and the row-focal value. Capture only — not a pass gate
+        on its own; the recorded axe result is the gate.
       </p>
 
       <h2 className="dg-asset-capture__heading">Identity fallback chain</h2>

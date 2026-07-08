@@ -83,7 +83,9 @@ describe("PlayerIdentity", () => {
       "dg-ui-player-id__headshot--fallback",
     );
 
-    rerender(<PlayerIdentity name="Neymar" team="" position="WR" imageStatus="missing" />);
+    rerender(
+      <PlayerIdentity name="Neymar" team="" position="WR" imageStatus="missing" />,
+    );
     expect(screen.getByText("NE").className).toContain(
       "dg-ui-player-id__headshot--fallback",
     );

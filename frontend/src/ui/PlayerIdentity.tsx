@@ -46,7 +46,8 @@ export function PlayerIdentity({
   teamAccent?: string | undefined;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const showImage = imageStatus === "available" && imageSrc !== undefined && !imageFailed;
+  const showImage =
+    imageStatus === "available" && imageSrc !== undefined && !imageFailed;
   const showFallback = imageStatus === "missing" || imageFailed;
 
   return (

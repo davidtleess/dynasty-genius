@@ -68,9 +68,9 @@ describe("SpreadBar", () => {
 
     const marketSpread = screen.getByRole("img", { name: /market range/i });
     expect(marketSpread.getAttribute("data-lane")).toBe("market");
-    expect(container.querySelector(".dg-ui-spread__dot")?.getAttribute("data-lane")).toBe(
-      "market",
-    );
+    expect(
+      container.querySelector(".dg-ui-spread__dot")?.getAttribute("data-lane"),
+    ).toBe("market");
 
     rerender(
       <Increment0SpreadBar
@@ -84,8 +84,8 @@ describe("SpreadBar", () => {
 
     const modelSpread = screen.getByRole("img", { name: /model range/i });
     expect(modelSpread.getAttribute("data-lane")).toBe("model");
-    expect(container.querySelector(".dg-ui-spread__dot")?.getAttribute("data-lane")).toBe(
-      "model",
-    );
+    expect(
+      container.querySelector(".dg-ui-spread__dot")?.getAttribute("data-lane"),
+    ).toBe("model");
   });
 });

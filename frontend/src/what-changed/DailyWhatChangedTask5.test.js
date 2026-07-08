@@ -68,7 +68,7 @@ describe("H2 reset Task 5 Daily What-Changed restart", () => {
     // id degrades to the fallback, never a `/assets/headshots/   .jpg` request).
     expect(source).toContain("const id = sleeperId?.trim();");
     expect(source).toContain(
-      "imageStatus: \"available\", imageSrc: `/assets/headshots/${id}.jpg`",
+      'imageStatus: "available", imageSrc: `/assets/headshots/${id}.jpg`',
     );
     expect(source).toContain('imageStatus: "missing", imageSrc: undefined');
     expect(source).toContain("{...headshotProps(");

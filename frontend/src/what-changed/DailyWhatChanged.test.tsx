@@ -864,7 +864,9 @@ describe("DailyWhatChanged", () => {
 
     const { container } = render(<DailyWhatChanged />);
 
-    await waitFor(() => expect(screen.getAllByText("Market Mover").length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(screen.getAllByText("Market Mover").length).toBeGreaterThan(0),
+    );
     expect(screen.getAllByText(/series pending/i).length).toBeGreaterThanOrEqual(3);
     expect(
       container.querySelectorAll(
@@ -886,16 +888,20 @@ describe("DailyWhatChanged", () => {
       model.compareDocumentPosition(market) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
-    const modelRow = within(model).getByText("Bijan Robinson").closest("[data-asset-row]");
+    const modelRow = within(model)
+      .getByText("Bijan Robinson")
+      .closest("[data-asset-row]");
     expect(modelRow).toBeTruthy();
     expect(modelRow?.getAttribute("data-row-density")).toBe("32px");
     expect(
-      within(modelRow as HTMLElement).getByRole("img", { name: "Bijan Robinson" })
+      within(modelRow as HTMLElement)
+        .getByRole("img", { name: "Bijan Robinson" })
         .getAttribute("src"),
     ).toBe("/assets/headshots/9509.jpg");
     expect(
-      (within(modelRow as HTMLElement).getByText("ATL").parentElement ?? modelRow)
-        ?.querySelector("[data-team-id='ATL']"),
+      (
+        within(modelRow as HTMLElement).getByText("ATL").parentElement ?? modelRow
+      )?.querySelector("[data-team-id='ATL']"),
     ).toBeTruthy();
     expect(within(modelRow as HTMLElement).getByText("+2.5")).toBeTruthy();
     expect(within(modelRow as HTMLElement).getByText("—")).toBeTruthy();
@@ -905,10 +911,14 @@ describe("DailyWhatChanged", () => {
       }),
     ).toBeTruthy();
 
-    const marketRow = within(market).getByText("Luther Burden").closest("[data-asset-row]");
+    const marketRow = within(market)
+      .getByText("Luther Burden")
+      .closest("[data-asset-row]");
     expect(marketRow).toBeTruthy();
     expect(within(marketRow as HTMLElement).getByText("—")).toBeTruthy();
-    expect(container.querySelector("[data-lane='market'] [data-lane='model']")).toBeNull();
+    expect(
+      container.querySelector("[data-lane='market'] [data-lane='model']"),
+    ).toBeNull();
   });
 
   it("renders stale generated_at as a non-urgent header badge and desaturates rows", async () => {
@@ -921,7 +931,9 @@ describe("DailyWhatChanged", () => {
     await waitFor(() => expect(screen.getByText(/stale data caveat/i)).toBeTruthy());
     expect(screen.getByText(/2[67](\.\d)? hours/i)).toBeTruthy();
     expect(container.querySelector(".dg-wc--stale")).toBeTruthy();
-    expect(container.querySelector("[data-stale='true'] [data-asset-row]")).toBeTruthy();
+    expect(
+      container.querySelector("[data-stale='true'] [data-asset-row]"),
+    ).toBeTruthy();
   });
 
   it("renders quiet-day baseline roster rows only when the producer supplies them", async () => {
@@ -939,7 +951,9 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByText("Tetairoa McMillan")).toBeTruthy();
     const row = screen.getByText("Tetairoa McMillan").closest("[data-asset-row]");
     expect(row).toBeTruthy();
-    expect(within(row as HTMLElement).getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    expect(within(row as HTMLElement).getAllByText("—").length).toBeGreaterThanOrEqual(
+      2,
+    );
   });
 
   it("falls back to pending series and neutral team ring on malformed Increment-1 row data", async () => {

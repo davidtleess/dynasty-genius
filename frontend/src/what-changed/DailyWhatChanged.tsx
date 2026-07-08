@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useState } from "react";
-
+import { TEAM_COLORS } from "../generated/teamColors";
 import type {
   WhatChangedEnteredExited,
   WhatChangedMarketDelta,
@@ -15,16 +15,15 @@ import {
   zModelProvenanceResponse,
   zWhatChangedResponse,
 } from "../lib/api/zod.gen";
-import { TEAM_COLORS } from "../generated/teamColors";
 import { formatCaptureTimestamp } from "../lib/copy";
 import { useEndpointResource } from "../lib/useEndpointResource";
 import { CaveatBlock } from "../ui/CaveatBlock";
 import { ChartFrame } from "../ui/ChartFrame";
-import { ReceiptTrigger } from "../ui/ReceiptTrigger";
 import { DailyTape as UiDailyTape } from "../ui/DailyTape";
 import { DisclosureLine } from "../ui/DisclosureLine";
 import { MetricCell } from "../ui/MetricCell";
 import { PlayerIdentity } from "../ui/PlayerIdentity";
+import { ReceiptTrigger } from "../ui/ReceiptTrigger";
 import { SeriesSlot } from "../ui/SeriesSlot";
 import { ValueHero } from "../ui/ValueHero";
 import { projectionBasisTitle } from "./projectionBasis";
@@ -119,6 +118,7 @@ function DeltaCell({
 }) {
   const text = formatZeroDelta(value);
   return (
+    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-label supplies the hidden column label to assistive tech on this non-semantic delta-cell wrapper; the label is otherwise carried once by the column header
     <span
       className="dg-wc__delta-cell"
       aria-label={labelHidden ? label : undefined}
@@ -192,13 +192,7 @@ function seriesBasis(series: unknown): string | null {
   return typeof basis === "string" && basis.trim() !== "" ? basis : null;
 }
 
-function LaneSeriesSlot({
-  series,
-  label,
-}: {
-  series: unknown;
-  label: string;
-}) {
+function LaneSeriesSlot({ series, label }: { series: unknown; label: string }) {
   const points = usableSeriesPoints(series);
   return points === null ? (
     <SeriesSlot status="pending" label={label} />
@@ -248,7 +242,10 @@ function AssetRow({
       />
       <span data-lane={lane} className="dg-wc__lane">
         {currentValue !== undefined && (
-          <span className="dg-wc__current-value" title="current value (level, not movement)">
+          <span
+            className="dg-wc__current-value"
+            title="current value (level, not movement)"
+          >
             {currentValue}
           </span>
         )}
@@ -313,7 +310,12 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
   const baselineRows = (
     data.structural_context as {
       baseline_roster_rows?:
-        | { sleeper_id: string; player_name?: string | null; position?: string | null; team_id?: string | null }[]
+        | {
+            sleeper_id: string;
+            player_name?: string | null;
+            position?: string | null;
+            team_id?: string | null;
+          }[]
         | null;
     }
   ).baseline_roster_rows;
