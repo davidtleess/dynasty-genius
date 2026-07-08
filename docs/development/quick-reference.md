@@ -71,6 +71,16 @@ uvicorn app.main:app --reload
 .venv/bin/python3.14 scripts/run_what_changed_report.py               # generate the report
 ```
 
+### Frontend — run the gate before every push
+
+CI's Frontend job runs `typecheck → lint (Biome) → test (Vitest) → banned-language → build`. A green `tsc`/`vitest` is **not** a green CI: Biome (`npm run lint`) enforces formatting + a11y/correctness rules that TypeScript and Vitest never check, and it is not part of the typecheck/vitest/ruff gate. Run the combined gate from `frontend/` before pushing any frontend change — exit 0 means the CI Frontend job will pass:
+
+```bash
+cd frontend
+npm run gate    # typecheck && lint (Biome) && test && banned-language && build — mirrors CI's Frontend job
+npm run visual:smoke   # Playwright desktop/mobile/focus/axe evidence bundle (read the captures — contract-green ≠ visual-green)
+```
+
 ## Test Layout
 
 - `tests/` — unit and integration tests, one file per module

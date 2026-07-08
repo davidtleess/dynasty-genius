@@ -37,6 +37,7 @@ EXPECTED_DEV_DEPENDENCIES = {
 EXPECTED_SCRIPTS = {
     "banned-language": "node scripts/check-banned-language.mjs",
     "build": "vite build",
+    "gate": "npm run typecheck && npm run lint && npm run test && npm run banned-language && npm run build",
     "lint": "biome check .",
     "openapi-gen": "../.venv/bin/python3.14 ../scripts/dump_openapi.py && openapi-ts",
     "preview": "vite preview --host 127.0.0.1 --strictPort --port 4173",

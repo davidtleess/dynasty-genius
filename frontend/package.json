@@ -7,6 +7,7 @@
   "scripts": {
     "banned-language": "node scripts/check-banned-language.mjs",
     "build": "vite build",
+    "gate": "npm run typecheck && npm run lint && npm run test && npm run banned-language && npm run build",
     "lint": "biome check .",
     "openapi-gen": "../.venv/bin/python3.14 ../scripts/dump_openapi.py && openapi-ts",
     "test": "vitest run --passWithNoTests",

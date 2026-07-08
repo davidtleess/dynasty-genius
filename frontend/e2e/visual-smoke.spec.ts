@@ -5,10 +5,63 @@
 // register (D3 semantics). No goldens, no toHaveScreenshot, no CI wiring.
 // Route mocks only: no gitignored artifact is ever read.
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const ARTIFACT_DIR = "artifacts/visual";
+
+async function captureMidScroll(page: Page, path: string) {
+  await page.evaluate(() => {
+    const maxY = Math.max(
+      document.documentElement.scrollHeight - window.innerHeight,
+      0,
+    );
+    window.scrollTo(0, Math.floor(maxY * 0.45));
+  });
+  await page.screenshot({ path });
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  const metrics = await page.evaluate(() => ({
+    innerWidth: window.innerWidth,
+    docWidth: document.documentElement.scrollWidth,
+    bodyWidth: document.body.scrollWidth,
+  }));
+
+  expect(
+    metrics.docWidth,
+    `documentElement overflowed the viewport (${metrics.docWidth} > ${metrics.innerWidth})`,
+  ).toBeLessThanOrEqual(metrics.innerWidth);
+  expect(
+    metrics.bodyWidth,
+    `body overflowed the viewport (${metrics.bodyWidth} > ${metrics.innerWidth})`,
+  ).toBeLessThanOrEqual(metrics.innerWidth);
+}
+
+async function expectTrustStripPainted(page: Page) {
+  const strip = page.getByRole("banner", { name: "Trust strip" });
+  await expect(strip).toBeVisible();
+
+  const styles = await strip.evaluate((node: HTMLElement) => {
+    const computed = window.getComputedStyle(node);
+    return {
+      backgroundColor: computed.backgroundColor,
+      backgroundImage: computed.backgroundImage,
+      borderBottomColor: computed.borderBottomColor,
+    };
+  });
+
+  expect(
+    styles.backgroundColor,
+    "Trust strip must paint an opaque surface; transparent sticky chrome lets content scroll through it.",
+  ).not.toMatch(/rgba?\(\s*0\s*,\s*0\s*,\s*0\s*(?:,\s*0(?:\.0+)?)?\s*\)/i);
+  expect(
+    styles.backgroundColor,
+    "Trust strip must not be transparent.",
+  ).not.toMatch(/rgba\([^)]*,\s*0(?:\.0+)?\s*\)$/i);
+  expect(styles.backgroundImage).toBe("none");
+  expect(styles.borderBottomColor).not.toBe("rgba(0, 0, 0, 0)");
+}
 
 const structuralSection = {
   status: "ok",
@@ -274,10 +327,13 @@ test("daily open evidence bundle: desktop, mobile, focus capture, axe report", a
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.goto("/?surface=what-changed");
   await page.getByText("Market Mover").waitFor();
+  await expectNoHorizontalOverflow(page);
+  await expectTrustStripPainted(page);
   await page.screenshot({
     path: `${ARTIFACT_DIR}/daily-open-desktop.png`,
     fullPage: true,
   });
+  await captureMidScroll(page, `${ARTIFACT_DIR}/daily-open-desktop-mid-scroll.png`);
 
   // Increment 1: primitive-specific focus evidence. Focus must land on an
   // AssetRow receipt control, not merely the shell rail.
@@ -310,10 +366,13 @@ test("daily open evidence bundle: desktop, mobile, focus capture, axe report", a
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?surface=what-changed");
   await page.getByText("Market Mover").waitFor();
+  await expectNoHorizontalOverflow(page);
+  await expectTrustStripPainted(page);
   await page.screenshot({
     path: `${ARTIFACT_DIR}/daily-open-mobile.png`,
     fullPage: true,
   });
+  await captureMidScroll(page, `${ARTIFACT_DIR}/daily-open-mobile-mid-scroll.png`);
 });
 
 test("asset primitive capture evidence bundle asserts axe zero", async ({ page }) => {
@@ -322,10 +381,16 @@ test("asset primitive capture evidence bundle asserts axe zero", async ({ page }
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.goto("/?surface=asset-primitive-capture");
   await page.getByText("Asset primitive capture").waitFor();
+  await expectNoHorizontalOverflow(page);
+  await expectTrustStripPainted(page);
   await page.screenshot({
     path: `${ARTIFACT_DIR}/asset-primitive-capture-desktop.png`,
     fullPage: true,
   });
+  await captureMidScroll(
+    page,
+    `${ARTIFACT_DIR}/asset-primitive-capture-desktop-mid-scroll.png`,
+  );
 
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
@@ -352,8 +417,14 @@ test("asset primitive capture evidence bundle asserts axe zero", async ({ page }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?surface=asset-primitive-capture");
   await page.getByText("Asset primitive capture").waitFor();
+  await expectNoHorizontalOverflow(page);
+  await expectTrustStripPainted(page);
   await page.screenshot({
     path: `${ARTIFACT_DIR}/asset-primitive-capture-mobile.png`,
     fullPage: true,
   });
+  await captureMidScroll(
+    page,
+    `${ARTIFACT_DIR}/asset-primitive-capture-mobile-mid-scroll.png`,
+  );
 });
