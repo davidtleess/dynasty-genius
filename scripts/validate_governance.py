@@ -76,6 +76,7 @@ REQUIRED_GOVERNANCE_PHRASES = {
         "Contract-green is never a visual GREEN",
         "fresh-agent visual audit",
         "keep harness-local enablement local",
+        "material visual-direction change",
     ],
     "GEMINI.md": [
         "Product Vision owner and Product Manager",

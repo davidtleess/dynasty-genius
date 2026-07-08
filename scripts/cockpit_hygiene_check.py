@@ -29,6 +29,12 @@ from typing import Callable
 # Gemini lane re-scope (02-agent-operating-loop.md §Falsification #7): banned overreach
 # declarations. The tripwire flags these ONLY inside Gemini-attributed ledger sections —
 # a literal, case-insensitive substring flag, NOT an adjudicator of quoted/contextual use.
+# DELIBERATELY NARROW: only multi-word gate/consensus PHRASES are listed. The raw
+# authorization words (clear, cleared, clearance, go, approved) are excluded on purpose —
+# they appear in legitimate Gemini prose ("cleared with David", "David's go", "approved
+# by David") and a per-line in-section scan would false-flag them. Add only multi-word
+# gate/authorization forms with a real observed-overreach basis; never a bare
+# authorization word as a raw substring. (GOV-02 #1.)
 BANNED_GEMINI_DECLARATIONS = [
     "consensus lock",
     "team consensus",
