@@ -145,6 +145,29 @@ The framing request asks Gemini for four things (its value-delivery contract liv
 
 This is problem-space framing, not solution selection: Gemini may propose risks and testable falsification seeds, but must not prescribe the architecture, implementation design, exact schema, or final RED contract; if David asks Gemini for product-shape alternatives, they remain non-binding input and Claude/Codex retain technical design and RED authority. Codex owns RED authorship and Claude/Codex own technical scope. Default to including the framing even for producer/CLI tasks (the Roster Capacity producer T4, 2026-06-28, got a framing pass that surfaced the stale-artifact freshness guard); skip only for purely mechanical work with no new David-facing surface, and say so. Claude and Codex still hold their own positions as principals; Gemini's framing is raw input for David, never a lock (§Falsification #7).
 
+### Material visual-direction changes route through framing (existing surfaces)
+
+The framing-first rule above triggers on a *new* David-facing surface. It also applies to a **material visual-direction change** to an existing surface — a change to what David notices first. Such a change must route through a cockpit framing pass + a pre-code composition artifact (the `DESIGN.md` shape-before-code gate) before implementation.
+
+A change is material when it alters any of:
+
+- the first-viewport story or the 5-second answer
+- information architecture, or row/section order
+- section naming or surface labeling
+- the hero / emphasis model (what is visually foregrounded)
+- lane semantics (model/market framing, lane symmetry, what a lane means)
+- typography scale or weight in a primary content region
+- row or layout density, or row format (e.g. swapping 32px tabular rows for cards, changing the desktop two-pane split, or the row-height scale)
+- component substitution in a primary content region
+- motion that changes what is foregrounded, or its timing/character
+- responsive breakpoint or mobile composition
+- color-palette, position-hue, or accent mappings (anything touching the model-blue / market-amber lane axis or the position-hue families)
+- David-facing value-band lexicon or tier/grade thresholds (new labels or changed model-grade thresholds alter the manager-voice prose and must not be solo-drifted)
+
+**Preservation clause.** An otherwise-mechanical change is STILL material if it alters the existing 5-second answer, focal hierarchy, or first-viewport order / lane symmetry.
+
+A change is **not** material — and does not require a framing pass — only when it is mechanical AND preserves the 5-second answer and focal hierarchy: a copy typo fix (no lexicon/tier/label change), an accessibility-attribute fix that changes no visible composition, a token-compliant sub-pixel alignment that changes no density/hierarchy/color mapping, or a like-for-like refactor with zero visible change. When unsure, route it — the cost of a framing round-trip is small; a solo-drifted visual direction is exactly the failure the design foundation exists to prevent. This is a bounded extension of the framing-first mechanism, not a new authority.
+
 ### Roles, default reviewers, and escalation
 
 The agent roles defined above carry into the cockpit. No agent has final authority over David or over the governance documents.
@@ -270,7 +293,7 @@ These rules are binding for non-trivial or fail-closed work. Trivial mechanical 
    3. **Non-binding (no clear/authorize).** No action may be authorized or cleared by Gemini output. A **source-cited Gemini CONCERN may PAUSE** an action for Claude/Codex/David triage — but Gemini alone cannot close, clear, or permanently block. Binding verification = Claude/Codex with cited evidence, or David.
    4. **Evidence by claim-type.** Football/NFL/NCAA → primary/current source or named evidence basis; governance → doc path/section; repo-state → prohibited unless flagged unverified and handed to Claude/Codex. Code/spec critique uses falsification rows (claim · evidence · falsification-attempt · result · residual-uncertainty) or it is commentary, not a clearance.
    5. **Banned declarations (auto-void).** "consensus lock", "team consensus", "unanimous", "Status: APPROVED", "Trust Consensus", "Governance CLEAR"/"governance confirmed" as a binding gate, "post-merge confirmation"/"the loop is closed" without a cited merge SHA, and directives ordering Claude/Codex to halt/act. Gemini MAY raise "governance concern" / "product objection" (→ triage).
-   6. **Enforcement = void + visible (not hidden).** Claude/Codex mark a violating statement VOID / non-binding and never use it as evidence; any violation that touched a decision path is **logged/relayed to David plainly** (no silent drop — David keeps auditability). A narrow tripwire in `cockpit_hygiene_check.py` (follow-up) flags the §5 patterns in Gemini's ledger appends with path/line; it only flags, it does not adjudicate. **Note: `GEMINI.md` is a mandate the Antigravity (`agy`) platform does NOT config-enforce — so real enforcement lives on the Claude/Codex side by design, not in the charter text.**
+   6. **Enforcement = void + visible (not hidden).** Claude/Codex mark a violating statement VOID / non-binding and never use it as evidence; any violation that touched a decision path is **logged/relayed to David plainly** (no silent drop — David keeps auditability). A narrow tripwire in `cockpit_hygiene_check.py` (follow-up) flags the §5 patterns in Gemini's ledger appends with path/line; it only flags, it does not adjudicate. The tripwire is deliberately scoped to multi-word gate/authorization and consensus-lock phrases; the raw authorization words (`clear`, `cleared`, `clearance`, `go`, `approved`) are intentionally excluded to avoid false-flagging legitimate prose, and must not be added as raw substrings. **Note: `GEMINI.md` is a mandate the Antigravity (`agy`) platform does NOT config-enforce — so real enforcement lives on the Claude/Codex side by design, not in the charter text.**
    7. **Restoration (never automatic).** Broader authority returns ONLY by explicit David approval, and not before ≥5 consecutive clean cockpit cycles (source-cited reviews, zero voided declarations, no unsupported repo-state claims, no write/process violations). Metrics only make David's reinstatement eligible; they never auto-restore. Escalation: a violation of this narrower lane after codification makes full removal from the critical path the next structural step.
    8. **No consensus-lock ceremony (whole cockpit, not Gemini-specific).** Strategy/design briefs are **raw inputs for David's decision, never "cockpit-converged/locked" authority**. The cockpit surfaces options + disagreement; "alignment" is not a decision artifact. David ratifies product/strategy; code/tests/CI/post-action audits ratify implementation state.
 

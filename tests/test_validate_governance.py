@@ -43,6 +43,7 @@ def test_governance_validator_requires_design_foundation_bootstrap_and_audit_con
     assert "Contract-green is never a visual GREEN" in operating_loop_phrases
     assert "fresh-agent visual audit" in operating_loop_phrases
     assert "keep harness-local enablement local" in operating_loop_phrases
+    assert "material visual-direction change" in operating_loop_phrases
 
     product_phrases = validate_governance.REQUIRED_GOVERNANCE_PHRASES["PRODUCT.md"]
     assert "The scaffolding-hide law." in product_phrases
