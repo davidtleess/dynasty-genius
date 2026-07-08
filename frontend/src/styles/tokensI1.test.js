@@ -5,7 +5,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const srcDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const frontendRoot = resolve(srcDir, "..");
 const tokensPath = resolve(srcDir, "styles", "tokens.css");
+const indexPath = resolve(frontendRoot, "index.html");
 
 const SEMANTIC_TOKENS = [
   "--dg-bg",
@@ -87,6 +89,29 @@ function cssFiles() {
       if (entry.isDirectory()) {
         stack.push(fullPath);
       } else if (entry.isFile() && fullPath.endsWith(".css")) {
+        files.push(fullPath);
+      }
+    }
+  }
+
+  return files;
+}
+
+function sourceFilesForThemeActivation() {
+  const files = [indexPath];
+  const stack = [srcDir];
+
+  while (stack.length > 0) {
+    const dir = stack.pop();
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = resolve(dir, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+      } else if (
+        entry.isFile() &&
+        /\.(css|tsx?|jsx?)$/.test(fullPath) &&
+        !/\.test\.[tj]sx?$/.test(fullPath)
+      ) {
         files.push(fullPath);
       }
     }
@@ -194,12 +219,26 @@ describe("H2 I1 token foundation", () => {
     expect(mismatches, "I1 aliases must be pixel-identical on activation").toEqual([]);
   });
 
-  it("ships no theme toggle or dark-scope activation in I1", () => {
-    const filesWithThemeActivation = cssFiles()
-      .concat([resolve(srcDir, "main.tsx")])
+  it("permits only the I2a static dark boot attribute and no theme toggle", () => {
+    const filesWithThemeActivation = sourceFilesForThemeActivation()
       .filter((filePath) => filePath !== tokensPath)
-      .filter((filePath) => readFileSync(filePath, "utf8").includes("data-theme"));
+      .filter((filePath) => readFileSync(filePath, "utf8").includes("data-theme"))
+      .map((filePath) => relative(frontendRoot, filePath));
 
-    expect(filesWithThemeActivation).toEqual([]);
+    expect(filesWithThemeActivation).toEqual(["index.html"]);
+    expect(readFileSync(indexPath, "utf8")).toMatch(/<html[^>]+data-theme="dark"/);
+
+    const toggleSites = sourceFilesForThemeActivation()
+      .filter((filePath) => filePath !== tokensPath)
+      .flatMap((filePath) => {
+        const text = readFileSync(filePath, "utf8");
+        return /localStorage\..*theme|setAttribute\(["']data-theme|theme toggle/i.test(
+          text,
+        )
+          ? [relative(frontendRoot, filePath)]
+          : [];
+      });
+
+    expect(toggleSites).toEqual([]);
   });
 });

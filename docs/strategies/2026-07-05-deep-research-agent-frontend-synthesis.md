@@ -1,0 +1,29 @@
+# Deep-Research Synthesis — World-Class Agent-Built Frontend (verified)
+
+**Date:** 2026-07-05 · **Producer:** Claude deep-research workflow `wf_3b3d2e23-56e` — 107 agents, 581 tool uses; every claim below survived 3-vote adversarial verification against primary sources (votes noted). Feeds the reset package: capability plan + `2026-07-05-h2-frontend-reset-design.md`.
+
+## Verified findings
+
+1. **Linear's craft model (3-0 ×3).** Design mockups are reference material, never deliverables — *the shipped app is the design artifact*. Linear's designers iterate by screenshotting the live app and drawing on top, over a deliberately minimal design system ("mostly colors, type and some basic components"). Direct precedent: agent screenshot-iterate loops over a small token vocabulary are the native mode for agent-built craft — not exhaustive component libraries, not design-file pipelines. (Karri Saarinen, primary tweets + Config 2025, verifier-corroborated.)
+2. **Carbon two-tier motion policy (3-0 ×2).** Exactly two motion styles — productive and expressive; expressive rationed to rare significant moments; **data tables, visualizations, dropdowns, and disclosure micro-interactions are explicitly productive** ("subtle and out of the way"). Direct design-system evidence that spectacle harms data-focused work.
+3. **Carbon motion tokens are plain CSS (3-0 ×2, verified in docs AND the @carbon/motion package source).** Six durations 70ms→700ms; micro-interaction feedback 90–120ms ease-out; role beziers — productive standard `cubic-bezier(0.2,0,0.38,0.9)`, entrance `(0,0,0.38,0.9)`, exit `(0.2,0,1,0.9)`; duration scales non-linearly with distance/size; bounce/stretch explicitly banned. **Fully implementable self-hosted with zero dependencies, token strings jsdom-assertable** — satisfies every DG constraint simultaneously.
+4. **When animation helps data (3-0; Heer & Robertson, IEEE InfoVis 2007).** Animated transitions between statistical graphics measurably improve graphical perception (object tracking p<0.001) **only under Congruence: intermediate frames must remain valid data graphics**; when start/end states share no data dimension, animate nothing (static/dissolve cut — morphing conveys false relations). Timing: slow-in/slow-out, **~1s per transition stage** (chart transitions are their own duration class, distinct from micro-interactions). Peer-reviewed grounding for the semantic-identity motion contract already in the reset spec.
+5. **Motion library cost (verified, vendor against-interest).** framer-motion/Motion's declarative `motion` component has a hard ~34kb floor; LazyMotion `m`-component gets ~4.6kb initial. Verdict for DG: **defer entirely** — CSS tokens cover the ratified motion scope; LazyMotion only if imperative orchestration is ever proven necessary.
+6. **Agent eyes — Chrome DevTools MCP (3-0 ×5; Google Chrome team, Sept 2025).** The verified state of the art for agent browser perception: 51 tools — screenshots/DOM snapshots, DOM/CSS inspection, console access, network inspection (incl. CORS diagnosis), interactions, device/CPU/network emulation, performance tracing with LCP/TBT extraction. Google's own framing: agents were "programming with a blindfold on." Costs: Chrome-only; ~18K token tool overhead; local-preview maturity still settling.
+7. **Lost Pixel is dead (3-0 ×2).** Repo archived read-only 2026-04-22 (team joined Figma). Must not be adopted. For self-host-constrained visual regression, Playwright's built-in snapshots remain the path (unverified here) — consistent with the package's evidence-artifacts-before-goldens posture.
+8. **Dense-UI craft mechanics (3-0 ×3, medium confidence).** Data-dense UI wants a *tighter* spacing system than consumer UI: 4/8/12px paddings on a 4px grid. Dense tables: sticky headers/columns, sortable columns, **human-readable dates** ("3 weeks ago", "12 Jun 2025" — never ISO), and **right-aligned numerals** (numbers compare right-to-left digit by digit) with text left-aligned.
+
+## Ranked adoptions (research verdicts → package reconciliation)
+
+1. **Chrome DevTools MCP** — the agent-eyes *iteration* loop + debugging depth. Reconciliation: joins the stack with a distinct role — DevTools MCP = interactive design iteration (the Linear screenshot-iterate mode); Playwright+axe = the repeatable *evidence gate* + a11y. Agent tooling (MCP config), not a runtime dependency — Stack-A wall untouched.
+2. **Carbon-derived motion token set in plain CSS** — replaces the draft motion values in the reset spec Task 4 with the verified six-duration/role-bezier set; adds the ~1s Congruence-bounded chart-transition class.
+3. **Linear-style screenshot-iterate over a minimal token vocabulary** — process discipline, zero tooling cost; becomes an explicit reset principle ("the shipped app is the design artifact").
+4. **Codified dense-table conventions** — 4px-grid paddings, right-aligned numerals, sticky/sortable, human-readable dates → into the primitives task (`MetricCell`/table primitives).
+5. **Anti-adoptions (verified):** Lost Pixel (dead); framer-motion (34kb floor, unneeded); LazyMotion noted as the only acceptable fallback if imperative orchestration is ever proven necessary.
+
+## Reconciliation notes for the reset spec
+
+- Task 1 (browser evidence): add Chrome DevTools MCP alongside Playwright with the role split above; note its costs honestly (Chrome-only, token overhead).
+- Task 4 (motion): swap draft duration values for the verified Carbon set; keep the DG forbidden list (urgency/pulse/verdict motion) layered on Carbon's bounce/stretch ban; chart transitions get the ~1s Congruence class referencing seed 13.
+- Task 2 (primitives): fold dense-table conventions into `MetricCell` and row primitives; right-aligned numerals join the CSS contract tests.
+- Principles: add the Linear line; the existing minimal-token direction is now externally validated.

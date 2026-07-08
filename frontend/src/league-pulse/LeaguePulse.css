@@ -16,7 +16,7 @@
 }
 
 .dg-league-pulse__experimental {
-  color: var(--dg-warn, #b45309);
+  color: var(--dg-caveat);
   font-weight: 600;
 }
 

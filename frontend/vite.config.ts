@@ -9,5 +9,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     globals: true,
+    // Playwright evidence specs run under `npm run visual:smoke`, never under
+    // Vitest — importing @playwright/test inside a Vitest worker throws.
+    exclude: ["**/node_modules/**", "e2e/**"],
   },
 });

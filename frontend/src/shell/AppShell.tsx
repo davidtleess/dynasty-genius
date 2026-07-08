@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { type Command, CommandPalette } from "../command/CommandPalette";
+import { AssetPrimitiveCapture } from "../dev/AssetPrimitiveCapture";
 import { LeaguePulse } from "../league-pulse/LeaguePulse";
 import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { PlayerInspector } from "../player/PlayerInspector";
@@ -8,14 +9,13 @@ import { ProjectTracker } from "../project/ProjectTracker";
 import { RealizedOutcomeScorecard } from "../realized-outcome/RealizedOutcomeScorecard";
 import { RosterAudit } from "../roster/RosterAudit";
 import { RosterCapacitySandbox } from "../roster-capacity/RosterCapacitySandbox";
-import { SystemHealthCard } from "../system-health/SystemHealthCard";
 import { TradeLab } from "../trade/TradeLab";
 import type { CatalogEntry } from "../trade/tradeState";
 import { TrustConsole } from "../trust/TrustConsole";
 import { DailyWhatChanged } from "../what-changed/DailyWhatChanged";
 import "./AppShell.css";
 import { ParkedSurfaceCard } from "./ParkedSurfaceCard";
-import { TrustStrip } from "./TrustStrip";
+import { ShellStatusDrawer } from "./ShellStatusDrawer";
 import { useUrlSurfaceState } from "./useUrlSurfaceState";
 
 type SelectedPlayer = { sleeperId: string; label: string };
@@ -61,9 +61,7 @@ const SURFACES = [
   ...DEVELOPER_SURFACES,
 ] as const;
 
-type Surface = (typeof SURFACES)[number];
-
-function isParked(surface: Surface): boolean {
+function isParked(surface: string): boolean {
   return (PARKED_SURFACE_NAMES as readonly string[]).includes(surface);
 }
 
@@ -151,10 +149,12 @@ export function AppShell() {
           Explicit role="banner" + aria-label gives the named landmark the AppShell
           contract test queries; <div role="banner"> trips useSemanticElements instead. */}
       <header className="dg-shell__trust" role="banner" aria-label="Trust strip">
-        <TrustStrip position="QB" />
-        {/* Whole-app operational trust (pipeline/data freshness) — a different
-            trust axis from the model-grade TrustStrip; adjacent, never merged. */}
-        <SystemHealthCard />
+        {/* Worklist #1 (fresh-agent reviews): the product owns the bar — a
+            wordmark and ONE status pill; the model-grade strip and the
+            diagnostics card live inside the pill's in-flow drawer, mounted
+            and live but out of the first viewport. */}
+        <span className="dg-shell__wordmark">Dynasty Genius</span>
+        <ShellStatusDrawer />
       </header>
 
       <main className="dg-shell__main">
@@ -164,6 +164,7 @@ export function AppShell() {
           <>
             <h1 className="dg-shell__title">{activeSurface}</h1>
             {isParked(activeSurface) && <ParkedSurfaceCard surface={activeSurface} />}
+            {activeSurface === "Asset Primitive Capture" && <AssetPrimitiveCapture />}
             {activeSurface === "Roster Audit" && <RosterAudit />}
             {activeSurface === "Roster Capacity" && <RosterCapacitySandbox />}
             {activeSurface === "Daily What-Changed" && <DailyWhatChanged />}

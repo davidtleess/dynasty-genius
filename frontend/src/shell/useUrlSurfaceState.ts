@@ -16,6 +16,9 @@ export const SURFACE_SLUGS = {
   "Waiver Radar": "waiver-radar",
   "Research Assistant": "research-assistant",
   "Project Tracker": "project-tracker",
+  // Increment-0 evidence surface: URL-only (no rail button, no palette
+  // command) — a developer capture target, not a David surface.
+  "Asset Primitive Capture": "asset-primitive-capture",
 } as const;
 
 export type Surface = keyof typeof SURFACE_SLUGS;

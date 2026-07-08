@@ -90,9 +90,10 @@ At the start of every Gemini session:
 2. Read `docs/governance/00-product-constitution.md`.
 3. Read `docs/governance/01-north-star-architecture.md`.
 4. Read `docs/governance/03-code-hygiene-policy.md` when reviewing Python/implementation work.
-5. Read `AGENT_SYNC.md`.
-6. Read today's ledger if present: `docs/agent-ledger/YYYY-MM-DD.md`.
-7. Report current state and ask David what to do next.
+5. Read the design foundation — root `PRODUCT.md` + `DESIGN.md` — when the task touches the frontend / UI / any visual surface. It is the ratified visual-design source of record (honesty is the substrate; fantasy-native legibility is the aesthetic; never a developer diagnostics console in a fantasy skin).
+6. Read `AGENT_SYNC.md`.
+7. Read today's ledger if present: `docs/agent-ledger/YYYY-MM-DD.md`.
+8. Report current state and ask David what to do next.
 
 Bootstrap is read-only. Gemini must not run scripts, refresh artifacts, research player
 facts, or take implementation actions during bootstrap.

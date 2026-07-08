@@ -30,7 +30,7 @@
 }
 
 .dg-shell__parked-badge {
-  font-size: var(--dg-text-xs, 0.75rem);
+  font-size: var(--dg-text-sm);
   opacity: 0.65;
 }
 
@@ -46,7 +46,7 @@
 
 .dg-shell__developer-label {
   padding-inline: var(--dg-space-3);
-  font-size: var(--dg-text-xs, 0.75rem);
+  font-size: var(--dg-text-sm);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   opacity: 0.55;
@@ -73,6 +73,12 @@
   position: sticky;
   inset-block-start: 0;
   padding: var(--dg-space-2) var(--dg-space-4);
+  /* Fresh-agent review #2 shipping-blocker: a sticky header with no painted
+     surface lets content scroll THROUGH it. The strip is an opaque layer with
+     a real boundary at every scroll position, both breakpoints. */
+  background: var(--dg-bg);
+  border-block-end: 1px solid var(--dg-border);
+  z-index: 3;
 }
 
 .dg-shell__main {
@@ -103,4 +109,63 @@
   font: inherit;
   cursor: pointer;
   color: var(--dg-market);
+}
+
+/* Below 768px the cockpit stacks: nav flows as a wrapped row on top, then the
+   trust strip, then the main column at full width. The fixed 14rem rail column
+   otherwise crushes the content to a sliver (the Task-1 mobile debt finding).
+   Full icon-mode rail collapse remains I5 scope; this is the honest stack. */
+@media (max-width: 768px) {
+  .dg-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+      "rail"
+      "trust"
+      "main"
+      "inspector";
+  }
+
+  .dg-shell__rail {
+    flex-flow: row wrap;
+    align-items: baseline;
+    border-block-end: 1px solid var(--dg-border);
+  }
+
+  .dg-shell__rail-primary {
+    flex-flow: row wrap;
+    column-gap: var(--dg-space-1);
+  }
+
+  .dg-shell__developer {
+    margin-block-start: 0;
+    padding-block-start: 0;
+    border-block-start: 0;
+    flex-flow: row wrap;
+    align-items: baseline;
+  }
+
+  /* Mobile: the trust strip scrolls away with the page — a pinned panel
+     eating ~45% of a phone viewport was fresh-agent review #2's mobile 1/10.
+     The strip stays first in the information order; it just doesn't squat. */
+  .dg-shell__trust {
+    position: static;
+  }
+}
+
+/* Worklist #1: the bar is the product's — wordmark left, status pill right. */
+.dg-shell__trust {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--dg-space-4);
+}
+
+.dg-shell__wordmark {
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-lg);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--dg-text);
+  white-space: nowrap;
 }

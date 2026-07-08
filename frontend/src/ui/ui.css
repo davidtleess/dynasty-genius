@@ -1,0 +1,408 @@
+/*
+ * DG primitive system (reset spec Task 2). TOKENS ONLY from day one — the
+ * uiCssContract test bans raw hex/oklch/rgb outside var() in this file.
+ * This is also where the focus grammar finally consumes --dg-focus.
+ */
+
+/* ── Focus grammar: one visible keyboard-position language, everywhere. ── */
+.dg-ui-receipt__trigger:focus-visible,
+.dg-ui-caveat a:focus-visible,
+.dg-ui-band-divider:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ── Receipt ── */
+.dg-ui-receipt {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dg-ui-receipt__trigger {
+  appearance: none;
+  border: 1px solid var(--dg-border);
+  background: var(--dg-surface);
+  color: var(--dg-text-muted);
+  font: inherit;
+  font-size: var(--dg-text-sm);
+  line-height: 1;
+  padding: 0 var(--dg-space-1);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dg-ui-receipt__trigger[aria-expanded="true"] {
+  color: var(--dg-text);
+  border-color: var(--dg-border-strong);
+}
+
+.dg-ui-receipt__panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-1);
+  min-width: 14rem;
+  padding: var(--dg-space-2) var(--dg-space-3);
+  background: var(--dg-surface-raised);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: 4px;
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text);
+}
+
+/* ── Caveat block: high-contrast neutral / structural amber, no nesting. ── */
+.dg-ui-caveat {
+  display: block;
+  padding: var(--dg-space-2) var(--dg-space-3);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: 4px;
+  color: var(--dg-text);
+}
+
+.dg-ui-caveat[data-tone="structural"] {
+  border-color: var(--dg-caveat);
+}
+
+.dg-ui-caveat__title {
+  font-weight: 600;
+  font-size: var(--dg-text-sm);
+}
+
+.dg-ui-caveat__items {
+  margin: var(--dg-space-1) 0 0;
+  padding-inline-start: var(--dg-space-4);
+  font-size: var(--dg-text-sm);
+}
+
+/* ── Metric cell: mono, tabular, right-aligned numerals. ── */
+.dg-ui-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--dg-space-2);
+}
+
+.dg-ui-metric__label {
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+}
+
+.dg-ui-metric__value {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 4ch;
+  color: var(--dg-text);
+}
+
+/* ── Disclosure line ── */
+.dg-ui-disclosure {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+/* ── Daily tape ── */
+.dg-ui-tape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dg-space-1) var(--dg-space-4);
+  padding: var(--dg-space-2) var(--dg-space-3);
+  border: 1px solid var(--dg-border);
+  border-radius: 4px;
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text);
+}
+
+.dg-ui-tape__fact {
+  white-space: nowrap;
+}
+
+/* ── Series slot: pending prose or Hard-Right-Edge SVG. ── */
+.dg-ui-series--pending {
+  font-size: var(--dg-text-sm);
+  font-style: italic;
+  color: var(--dg-text-muted);
+}
+
+.dg-ui-series__line {
+  stroke: var(--dg-model);
+  stroke-width: 1.75;
+}
+
+.dg-ui-series__gap {
+  stroke: var(--dg-border-strong);
+  stroke-dasharray: 2 2;
+  stroke-width: 1;
+}
+
+.dg-ui-series__edge {
+  stroke: var(--dg-text);
+  stroke-width: 2;
+}
+
+.dg-ui-series__endpoint {
+  fill: var(--dg-model);
+}
+
+/* ── Spread bar: uncertainty with numeric sigma + basis. ── */
+.dg-ui-spread {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dg-space-2);
+  font-size: var(--dg-text-sm);
+}
+
+.dg-ui-spread--unavailable {
+  color: var(--dg-text-muted);
+  font-style: italic;
+}
+
+.dg-ui-spread__bar {
+  position: relative;
+  width: 72px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--dg-border);
+}
+
+.dg-ui-spread__dot {
+  position: absolute;
+  top: -2px;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dg-spread-accent);
+}
+
+.dg-ui-spread__sigma {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--dg-text);
+}
+
+.dg-ui-spread__basis {
+  color: var(--dg-text-muted);
+}
+
+/* ── Chart frame ── */
+.dg-ui-chart-frame {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+  padding: var(--dg-space-3);
+  border: 1px solid var(--dg-border);
+  border-radius: 4px;
+}
+
+.dg-ui-chart-frame__title {
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-lg);
+  color: var(--dg-text);
+}
+
+.dg-ui-chart-frame__summary {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+/* ── Player identity ── */
+.dg-ui-player-id {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dg-space-2);
+}
+
+.dg-ui-player-id__headshot--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--dg-border-strong);
+  background: var(--dg-surface-raised);
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+  font-weight: 600;
+}
+
+.dg-ui-player-id__name {
+  font-weight: 600;
+  color: var(--dg-text);
+}
+
+.dg-ui-player-id__team {
+  font-size: var(--dg-text-sm);
+  font-weight: 600;
+  padding: 0 var(--dg-space-1);
+  border-radius: 3px;
+  border: 1px solid var(--dg-border-strong);
+  color: var(--dg-text);
+}
+
+.dg-ui-player-id__position {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+/* ── Value hero ── */
+.dg-ui-value-hero {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--dg-space-1);
+}
+
+.dg-ui-value-hero__label {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+.dg-ui-value-hero__number {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--dg-text-lg);
+  font-weight: 700;
+  color: var(--dg-text);
+}
+
+.dg-ui-value-hero__basis {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+/* ── Graded bar ── */
+.dg-ui-graded {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dg-space-2);
+  font-size: var(--dg-text-sm);
+}
+
+.dg-ui-graded__label {
+  color: var(--dg-text);
+}
+
+.dg-ui-graded__meter {
+  position: relative;
+  width: 96px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--dg-border);
+  overflow: hidden;
+}
+
+.dg-ui-graded__fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  background: var(--dg-dvs-ceiling);
+}
+
+.dg-ui-graded__value {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--dg-text);
+}
+
+.dg-ui-graded__basis {
+  color: var(--dg-text-muted);
+}
+
+/* ── Value band divider ── */
+.dg-ui-band-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--dg-space-2);
+  padding: var(--dg-space-1) 0;
+}
+
+.dg-ui-band-divider__tick {
+  width: 3px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--dg-model);
+}
+
+.dg-ui-band-divider__label {
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dg-text);
+}
+
+.dg-ui-band-divider__basis {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+/* ── Increment 0: SpreadBar lane isolation (rethink v3 §5, Codex R3). The
+   accent property is set per lane so a market spread can never inherit the
+   model hue; the lane blocks are deliberately separated in this file — the
+   CSS contract test reads a 500-char window after each selector and asserts
+   the other lane's token family never appears inside it. ── */
+.dg-ui-spread[data-lane="model"] {
+  --dg-spread-accent: var(--dg-model);
+}
+
+/* ── Increment 0: player identity extensions (asset pipeline). The cached
+   headshot is a small circle; the team mark is an identity-only dot driven
+   by the DB team id — never a row background, never a status hue, never a
+   left-border stripe (impeccable ban). ── */
+.dg-ui-player-id__headshot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+
+.dg-ui-player-id__team-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+  /* Increment 0 renders the mark as a neutral ring: the team-color binding is
+     deliberately deferred (the frontend may not read the checked-in team map
+     yet — RED ban); Increment 1's consumer supplies the identity color inline. */
+  border: 2px solid var(--dg-border-strong);
+  background: var(--dg-surface-raised);
+}
+
+.dg-ui-player-id__pos-rank {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+/* The one focal number per row (Codex R2): MetricCell carries row emphasis —
+   one step larger and heavier than sibling values, never sentiment-colored. */
+.dg-ui-metric__value--emphasis {
+  font-size: var(--dg-text-lg);
+  font-weight: 600;
+  color: var(--dg-text);
+}
+
+.dg-ui-spread[data-lane="market"] {
+  --dg-spread-accent: var(--dg-market);
+}
+
+/* Mobile: tape facts wrap instead of forcing horizontal page overflow
+   (fresh-agent review #2: scrollWidth 396 vs 390 driven by nowrap facts). */
+@media (max-width: 768px) {
+  .dg-ui-tape__fact {
+    white-space: normal;
+  }
+}

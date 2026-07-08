@@ -51,16 +51,20 @@ describe("H2 I1 font pipeline", () => {
     }
   });
 
-  it("packages the font pipeline without globally activating the fonts in I1", () => {
+  it("activates only the sanctioned latin font pipeline for I2a", () => {
     const main = readFileSync(resolve(frontendRoot, "src", "main.tsx"), "utf8");
     const tokens = readFileSync(
       resolve(frontendRoot, "src", "styles", "tokens.css"),
       "utf8",
     );
 
-    expect(main).not.toMatch(/font/i);
-    expect(tokens).not.toMatch(/Archivo|IBM Plex/i);
-    expect(tokens).toContain("--dg-font-sans: system-ui");
-    expect(tokens).toContain("--dg-font-mono: ui-monospace");
+    expect(main).toContain("@fontsource/archivo/latin.css");
+    expect(main).toContain("@fontsource/ibm-plex-sans/latin.css");
+    expect(main).toContain("@fontsource/ibm-plex-mono/latin.css");
+    expect(main).not.toMatch(/@fontsource\/[^"']+\/(?!latin\.css)[^"']+/);
+
+    expect(tokens).toContain('--dg-font-display: "Archivo"');
+    expect(tokens).toContain('--dg-font-sans: "IBM Plex Sans"');
+    expect(tokens).toContain('--dg-font-mono: "IBM Plex Mono"');
   });
 });

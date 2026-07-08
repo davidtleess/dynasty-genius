@@ -111,6 +111,11 @@ app/data/pff_exports/
 .agents/
 .antigravitycli/
 
+# Local per-developer active-hook wiring (impeccable design hook). Enablement is
+# local state managed by `/impeccable hooks on|off`, not a repo artifact — the
+# committed skill lives under .claude/ and .github/, not in a harness hook config.
+.codex/hooks.json
+
 # Dependencies
 node_modules/
 __pycache__/
@@ -127,3 +132,10 @@ app/data/backtest/phase20/
 
 # H0-0a backup operational outputs — never committed, never part of the protected payload
 app/data/ops/
+
+# Browser evidence bundles — generated per run, reviewed by eyes, never tracked
+frontend/artifacts/
+frontend/test-results/
+
+# H2 Increment 0: rebuildable player asset cache (backup-manifest exclusions entry; never committed)
+app/data/assets/

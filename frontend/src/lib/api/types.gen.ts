@@ -3256,6 +3256,38 @@ export type ValidationError = {
 };
 
 /**
+ * WhatChangedBaselineRosterRow
+ *
+ * Increment-1 quiet-day row: identity + flat lanes (0 by definition).
+ */
+export type WhatChangedBaselineRosterRow = {
+    /**
+     * Market Lane Value
+     */
+    market_lane_value: 0;
+    /**
+     * Model Lane Value
+     */
+    model_lane_value: 0;
+    /**
+     * Player Name
+     */
+    player_name?: string | null;
+    /**
+     * Position
+     */
+    position?: string | null;
+    /**
+     * Sleeper Id
+     */
+    sleeper_id: string;
+    /**
+     * Team Id
+     */
+    team_id?: string | null;
+};
+
+/**
  * WhatChangedCard
  */
 export type WhatChangedCard = {
@@ -3351,15 +3383,43 @@ export type WhatChangedEnteredExited = {
      */
     player_key: string;
     /**
+     * Player Name
+     */
+    player_name?: string | null;
+    /**
+     * Position
+     */
+    position?: string | null;
+    /**
      * Sleeper Id
      */
     sleeper_id: string;
+    /**
+     * Team Id
+     */
+    team_id?: string | null;
 };
 
 /**
  * WhatChangedMarketDelta
  */
 export type WhatChangedMarketDelta = {
+    /**
+     * Current Value
+     */
+    current_value?: number | null;
+    /**
+     * Market Series
+     */
+    market_series?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Model Series
+     */
+    model_series?: {
+        [key: string]: unknown;
+    } | null;
     /**
      * Overall Rank Delta
      */
@@ -3392,6 +3452,10 @@ export type WhatChangedMarketDelta = {
      * Sleeper Id
      */
     sleeper_id: string;
+    /**
+     * Team Id
+     */
+    team_id?: string | null;
     /**
      * Value Delta
      */
@@ -3490,6 +3554,10 @@ export type WhatChangedModelComparisonWindow = {
  */
 export type WhatChangedModelDelta = {
     /**
+     * Current Value
+     */
+    current_value?: number | null;
+    /**
      * Dvs Pct Delta
      */
     dvs_pct_delta: number;
@@ -3501,6 +3569,18 @@ export type WhatChangedModelDelta = {
      * Dynasty Value Score Delta Direction
      */
     dynasty_value_score_delta_direction: string;
+    /**
+     * Market Series
+     */
+    market_series?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Model Series
+     */
+    model_series?: {
+        [key: string]: unknown;
+    } | null;
     /**
      * Player Key
      */
@@ -3517,6 +3597,10 @@ export type WhatChangedModelDelta = {
      * Sleeper Id
      */
     sleeper_id?: string | null;
+    /**
+     * Team Id
+     */
+    team_id?: string | null;
     /**
      * Xvar Delta
      */
@@ -3794,6 +3878,10 @@ export type WhatChangedStalenessCaveat = {
  * WhatChangedStructuralContext
  */
 export type WhatChangedStructuralContext = {
+    /**
+     * Baseline Roster Rows
+     */
+    baseline_roster_rows?: Array<WhatChangedBaselineRosterRow> | null;
     /**
      * Current Not Delta
      */

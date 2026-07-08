@@ -1,0 +1,31 @@
+/* Increment-0 capture page — layout only; every color comes from tokens via
+   the primitives themselves. */
+.dg-asset-capture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-3);
+  max-width: 48rem;
+}
+
+.dg-asset-capture__intro {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  max-width: 65ch;
+}
+
+.dg-asset-capture__heading {
+  margin: var(--dg-space-2) 0 0;
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-lg);
+  color: var(--dg-text);
+}
+
+.dg-asset-capture__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+}

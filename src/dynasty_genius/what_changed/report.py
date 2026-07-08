@@ -245,7 +245,46 @@ def assemble_structural_context(
         "decision_supported": False,
         "current_not_delta": True,
         "sections": sections,
+        # Increment 1 (spec v3, quiet-day state): David's roster as flat AssetRow-
+        # shape rows — identity only, lanes at 0 (no deltas by definition). Absent
+        # (None) when the snapshot cannot support it; the UI then renders the
+        # message-only quiet state, never fabricated rows.
+        "baseline_roster_rows": _build_baseline_roster_rows(snapshot, david_roster_id),
     }
+
+
+def _build_baseline_roster_rows(
+    snapshot: Optional[dict[str, Any]], david_roster_id: Any
+) -> Optional[list[dict[str, Any]]]:
+    if not snapshot or david_roster_id is None:
+        return None
+    roster_ids: Optional[set[str]] = None
+    for roster in snapshot.get("rosters") or []:
+        if isinstance(roster, dict) and roster.get("roster_id") == david_roster_id:
+            roster_ids = {str(p) for p in roster.get("players") or []}
+            break
+    if roster_ids is None:
+        return None
+    rows: list[dict[str, Any]] = []
+    for entry in snapshot.get("players") or []:
+        if not isinstance(entry, dict):
+            continue
+        sleeper_id = entry.get("sleeper_player_id")
+        if not isinstance(sleeper_id, str) or sleeper_id not in roster_ids:
+            continue
+        player = entry.get("player") if isinstance(entry.get("player"), dict) else {}
+        rows.append(
+            {
+                "sleeper_id": sleeper_id,
+                "player_name": player.get("full_name"),
+                "position": player.get("position"),
+                "team_id": player.get("team"),
+                "model_lane_value": 0,
+                "market_lane_value": 0,
+            }
+        )
+    rows.sort(key=lambda r: (r.get("player_name") or "", r["sleeper_id"]))
+    return rows
 
 
 def _build_team_posture_section(

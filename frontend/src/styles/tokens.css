@@ -43,9 +43,10 @@
   --dg-dvs-floor: oklch(0.32 0.02 255);
   --dg-dvs-ceiling: oklch(0.88 0.03 255);
 
-  /* Typography. */
-  --dg-font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --dg-font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", monospace;
+  /* Typography (H2 I2a activation: Archivo display / IBM Plex body + data). */
+  --dg-font-display: "Archivo", "Archivo Narrow", system-ui, sans-serif;
+  --dg-font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --dg-font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
   --dg-text-sm: 0.8125rem;
   --dg-text-base: 0.9375rem;
   --dg-text-lg: 1.125rem;
@@ -61,6 +62,15 @@
    data-theme in I1 (guarded by tokensI1.test.js); the toggle ships with I2's
    David-previewed visual flip. Hue meaning never changes between themes —
    only lightness/chroma. */
+/* H2 I2a base layer: the page consumes the semantic aliases so the theme
+   attribute governs the whole canvas. */
+body {
+  margin: 0;
+  background: var(--dg-bg);
+  color: var(--dg-text);
+  font-family: var(--dg-font-sans);
+}
+
 [data-theme="dark"] {
   --dg-bg: oklch(0.16 0.01 250);
   --dg-surface: oklch(0.2 0.012 250);
@@ -71,4 +81,17 @@
   --dg-text-muted: oklch(0.68 0.008 250);
   --dg-focus: oklch(0.72 0.14 255);
   --dg-caveat: oklch(0.72 0.14 72);
+
+  /* Brand axes re-tuned for the dark canvas: LIGHTNESS/CHROMA ONLY — hue
+     meaning is constitutional and identical in both themes (Codex-4 rule;
+     the light-theme emphasis values were the dimmest pixels on dark). */
+  --dg-model: oklch(0.72 0.11 255);
+  --dg-model-emphasis: oklch(0.8 0.13 255);
+  --dg-model-muted: oklch(0.62 0.07 255);
+  --dg-market: oklch(0.76 0.13 75);
+  --dg-market-emphasis: oklch(0.82 0.14 75);
+  --dg-market-muted: oklch(0.66 0.08 75);
+  --dg-cliff: oklch(0.74 0.15 70);
+  --dg-dvs-floor: oklch(0.45 0.02 255);
+  --dg-dvs-ceiling: oklch(0.88 0.03 255);
 }
