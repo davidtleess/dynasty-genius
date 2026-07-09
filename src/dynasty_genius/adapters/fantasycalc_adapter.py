@@ -47,16 +47,33 @@ def _current_ttl_hours() -> int:
     return 6 if in_season else 24
 
 
+class _CacheReadFailure(Exception):
+    """The cache file exists but could not be read or parsed."""
+
+
 def _load_cache() -> dict | None:
+    """Return the cached payload, or None when there is simply no cache.
+
+    An ABSENT cache is an ordinary state and says nothing. A cache that exists but
+    cannot be read or parsed is CORRUPTION, and it must not be silently indistinguishable
+    from absence — that is the swallow this contract removes. It is raised, not returned,
+    so the caller cannot forget to caveat it.
+    """
+    if not CACHE_FILE.exists():
+        return None
     try:
-        if CACHE_FILE.exists():
-            return json.loads(CACHE_FILE.read_text())
-    except Exception:
-        pass
-    return None
+        return json.loads(CACHE_FILE.read_text())
+    except Exception as exc:
+        raise _CacheReadFailure(str(CACHE_FILE)) from exc
 
 
-def _save_cache(data: list[dict], ttl_hours: int) -> None:
+def _save_cache(data: list[dict], ttl_hours: int) -> bool:
+    """Write the cache. Returns False on failure — never swallows it silently.
+
+    A failed write means the next reader serves older data than the caller believes it
+    wrote. Per `01-north-star-architecture.md` (Source Adapter Rules) that must surface
+    downstream as a caveat, not be hidden behind a bare `except: pass`.
+    """
     try:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         CACHE_FILE.write_text(json.dumps({
@@ -64,14 +81,22 @@ def _save_cache(data: list[dict], ttl_hours: int) -> None:
             "ttl_hours": ttl_hours,
             "data": data,
         }))
+        return True
     except Exception:
-        pass
+        return False
 
 
 def fetch_with_cache() -> tuple[list[dict], list[str]]:
     """Returns (raw_fc_entries, caveats). Never raises."""
     ttl_hours = _current_ttl_hours()
-    cached = _load_cache()
+    # A corrupt cache degrades to a live fetch, but never silently: the caveat rides on
+    # EVERY return path below, including the cold-fail one.
+    read_caveats: list[str] = []
+    try:
+        cached = _load_cache()
+    except _CacheReadFailure:
+        cached = None
+        read_caveats.append("market_cache_read_failed")
 
     if cached:
         try:
@@ -92,8 +117,10 @@ def fetch_with_cache() -> tuple[list[dict], list[str]]:
             data = data["players"]
         if not isinstance(data, list):
             data = []
-        _save_cache(_sanitize_entries_for_cache(data), ttl_hours)
-        return data, ["source_timestamp_is_fetch_time_not_publish_time"]
+        caveats = ["source_timestamp_is_fetch_time_not_publish_time", *read_caveats]
+        if not _save_cache(_sanitize_entries_for_cache(data), ttl_hours):
+            caveats.append("market_cache_write_failed")
+        return data, caveats
     except Exception:
         pass
 
@@ -112,8 +139,9 @@ def fetch_with_cache() -> tuple[list[dict], list[str]]:
             "source_timestamp_is_fetch_time_not_publish_time",
         ]
 
-    # Stage 3: cold fail
-    return [], ["market_data_unavailable"]
+    # Stage 3: cold fail. If the cache was corrupt rather than absent, say so — otherwise
+    # a corrupted store is indistinguishable from having never captured anything.
+    return [], ["market_data_unavailable", *read_caveats]
 
 
 def fetch_fantasycalc_market_values() -> list[dict[str, Any]]:

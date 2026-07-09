@@ -47,6 +47,10 @@ def _fc_entry(
         "trend_30day": 0,
         "retrieved_at": f"{snapshot_date}T13:00:00+00:00",
         "payload_hash": f"{player_key}:{snapshot_date}:{value}",
+        # Phase-0b: the store requires every entry to declare what its volatility
+        # field means. These fixtures carry no volatility, which is `source_omitted`.
+        "market_volatility": None,
+        "market_volatility_status": "source_omitted",
     }
 
 

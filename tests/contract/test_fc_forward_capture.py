@@ -35,6 +35,8 @@ def _entry(
     payload_hash: str = "hash-bijan-v1",
     source: str = SOURCE,
     settings_hash: str = SETTINGS_HASH,
+    market_volatility: float | None = 0.0,
+    market_volatility_status: str = "captured",
 ) -> dict:
     return {
         "snapshot_date": SNAPSHOT_DATE,
@@ -50,6 +52,8 @@ def _entry(
         "trend_30day": -50,
         "retrieved_at": RETRIEVED_AT,
         "payload_hash": payload_hash,
+        "market_volatility": market_volatility,
+        "market_volatility_status": market_volatility_status,
     }
 
 
@@ -267,3 +271,56 @@ def test_changed_immutable_field_conflicts_even_if_payload_hash_matches(
     rows = store.get_raw_entries(SNAPSHOT_DATE, SOURCE, SETTINGS_HASH)
     assert len(rows) == 1
     assert rows[0]["value"] == 10500
+
+
+def test_phase0b_volatility_status_columns_are_persisted_and_typed(tmp_path) -> None:
+    store = FCForwardCaptureStore(db_path=tmp_path / "forward.db")
+
+    with sqlite3.connect(tmp_path / "forward.db") as conn:
+        raw_columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(fc_forward_capture_raw)")
+        }
+        joinable_columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(fc_forward_capture_joinable)")
+        }
+
+    assert {"market_volatility", "market_volatility_status"} <= raw_columns
+    assert {"market_volatility", "market_volatility_status"} <= joinable_columns
+
+    store.append_entries(
+        [
+            _entry(market_volatility=1.25, market_volatility_status="captured"),
+            _entry(
+                player_key="sleeper:6786",
+                sleeper_id="6786",
+                player_name="CeeDee Lamb",
+                position="WR",
+                value=9000,
+                overall_rank=5,
+                position_rank=1,
+                payload_hash="hash-ceedee-v1",
+                market_volatility=None,
+                market_volatility_status="source_omitted",
+            ),
+        ]
+    )
+
+    rows = store.get_joinable_entries(SNAPSHOT_DATE, SOURCE, SETTINGS_HASH)
+    by_id = {row["sleeper_id"]: row for row in rows}
+    assert by_id["9509"]["market_volatility"] == 1.25
+    assert by_id["9509"]["market_volatility_status"] == "captured"
+    assert by_id["6786"]["market_volatility"] is None
+    assert by_id["6786"]["market_volatility_status"] == "source_omitted"
+
+
+def test_phase0b_volatility_status_enum_fails_closed_before_write(tmp_path) -> None:
+    store = FCForwardCaptureStore(db_path=tmp_path / "forward.db")
+
+    with pytest.raises(FCForwardCaptureValidationError, match="market_volatility_status"):
+        store.append_entries(
+            [_entry(market_volatility=None, market_volatility_status="silent_null")]
+        )
+
+    assert store.get_raw_entries(SNAPSHOT_DATE, SOURCE, SETTINGS_HASH) == []

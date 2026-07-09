@@ -8,6 +8,13 @@
   (09:30) and before the what-changed report (09:45). Reads captured state only;
   never live-fetches, never commits. The allow-seed flag is deliberately absent: a
   scheduled run must fail closed rather than silently publish a seed-PVO margin.
+
+  Phase-0b: the market side is read from the OWNED fc_forward_capture PIT store written
+  by the 09:00 snapshot job. The market-cache-path flag is deliberately absent: that cache
+  has no scheduled owner and would age into a daily fail-close. The fc-settings-hash flag
+  pins the settings family, so a day carrying two families aborts on ambiguity instead of
+  the runner silently picking one.
+  (XML comments may not contain a double hyphen, so flags are named without their dashes.)
 -->
 <plist version="1.0">
 <dict>
@@ -34,6 +41,12 @@
     <string>/Users/davidleess/dynasty-genius-product/app/data/valuation/universe_market_divergence_coverage_latest.json</string>
     <string>--history-db-path</string>
     <string>/Users/davidleess/dynasty-genius-product/app/data/market_divergence_history.db</string>
+    <string>--fc-forward-capture-db-path</string>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/fc_forward_capture.db</string>
+    <string>--fc-source</string>
+    <string>fc_native</string>
+    <string>--fc-settings-hash</string>
+    <string>e27351d720e9fcf0</string>
     <string>--marker-path</string>
     <string>/Users/davidleess/dynasty-genius-product/app/data/valuation_runtime/market_divergence_refresh_status_latest.json</string>
     <string>--report-path</string>

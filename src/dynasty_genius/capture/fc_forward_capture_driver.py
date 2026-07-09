@@ -52,6 +52,13 @@ def map_fantasycalc_payload_to_entries(
         player = row["player"]
         sleeper_id = player.get("sleeperId")
         player_key = f"sleeper:{sleeper_id}" if sleeper_id else f"fc:{player['id']}"
+        # Phase-0b: volatility is captured forward. A missing value means FantasyCalc
+        # published none (`source_omitted`) — never a bare NULL, which would be
+        # indistinguishable from a row predating the schema.
+        market_volatility = row.get("maybeMovingStandardDeviation")
+        market_volatility_status = (
+            "captured" if market_volatility is not None else "source_omitted"
+        )
         content = {
             "sleeper_id": sleeper_id,
             "player_name": player.get("name"),
@@ -60,6 +67,8 @@ def map_fantasycalc_payload_to_entries(
             "overall_rank": row.get("overallRank"),
             "position_rank": row.get("positionRank"),
             "trend_30day": row.get("trend30Day"),
+            "market_volatility": market_volatility,
+            "market_volatility_status": market_volatility_status,
         }
         entries.append(
             {
@@ -76,6 +85,8 @@ def map_fantasycalc_payload_to_entries(
                 "trend_30day": row.get("trend30Day"),
                 "retrieved_at": retrieved_iso,
                 "payload_hash": _content_hash(content),
+                "market_volatility": market_volatility,
+                "market_volatility_status": market_volatility_status,
             }
         )
     return entries

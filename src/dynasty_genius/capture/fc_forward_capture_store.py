@@ -36,8 +36,29 @@ _COLUMNS = (
     "trend_30day",
     "retrieved_at",
     "payload_hash",
+    # Phase-0b: volatility is captured forward. `market_volatility_status` distinguishes
+    # a value we stored, a value FantasyCalc never published, and a row that predates the
+    # schema. A bare NULL cannot tell those apart, and a silent null is the defect.
+    "market_volatility",
+    "market_volatility_status",
 )
 _KEY_COLUMNS = ("snapshot_date", "source", "settings_hash", "player_key")
+_REAL_COLUMNS = ("market_volatility",)
+_INTEGER_COLUMNS = ("value", "overall_rank", "position_rank", "trend_30day")
+
+# Phase-0b volatility fidelity enum. `structurally_unavailable` is reserved for rows
+# written before the volatility schema landed; it can never be backfilled, because the
+# immutable-snapshot rule rejects re-capturing an existing date with differing content.
+VOLATILITY_STATUS_CAPTURED = "captured"
+VOLATILITY_STATUS_SOURCE_OMITTED = "source_omitted"
+VOLATILITY_STATUS_STRUCTURALLY_UNAVAILABLE = "structurally_unavailable"
+VOLATILITY_STATUSES = frozenset(
+    {
+        VOLATILITY_STATUS_CAPTURED,
+        VOLATILITY_STATUS_SOURCE_OMITTED,
+        VOLATILITY_STATUS_STRUCTURALLY_UNAVAILABLE,
+    }
+)
 # Immutable content signature = every stored field EXCEPT retrieved_at (the run
 # timestamp may differ on a same-day re-run and must not, by itself, conflict).
 # A changed value with a stale/identical payload_hash still conflicts (Codex).
@@ -66,19 +87,38 @@ class FCForwardCaptureStore:
         self._init_schema()
 
     # ── schema ────────────────────────────────────────────────────────────
+    @staticmethod
+    def _sql_type(column: str) -> str:
+        if column in _INTEGER_COLUMNS:
+            return "INTEGER"
+        if column in _REAL_COLUMNS:
+            return "REAL"
+        return "TEXT"
+
     def _init_schema(self) -> None:
-        cols = ",\n    ".join(
-            f"{c} {'INTEGER' if c in ('value', 'overall_rank', 'position_rank', 'trend_30day') else 'TEXT'}"
-            for c in _COLUMNS
-        )
+        cols = ",\n    ".join(f"{c} {self._sql_type(c)}" for c in _COLUMNS)
         pk = ", ".join(_KEY_COLUMNS)
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                f"CREATE TABLE IF NOT EXISTS fc_forward_capture_raw (\n    {cols},\n    PRIMARY KEY ({pk})\n)"
-            )
-            conn.execute(
-                f"CREATE TABLE IF NOT EXISTS fc_forward_capture_joinable (\n    {cols},\n    PRIMARY KEY ({pk})\n)"
-            )
+            for table in ("fc_forward_capture_raw", "fc_forward_capture_joinable"):
+                conn.execute(
+                    f"CREATE TABLE IF NOT EXISTS {table} (\n    {cols},\n    PRIMARY KEY ({pk})\n)"
+                )
+                self._migrate_add_missing_columns(conn, table)
+
+    def _migrate_add_missing_columns(self, conn: sqlite3.Connection, table: str) -> None:
+        """Additive-only migration for pre-Phase-0b stores.
+
+        Existing rows keep NULL volatility. They are NOT `source_omitted` — nobody asked
+        FantasyCalc for a value we then failed to get. Consumers must read a NULL status on
+        a pre-migration row as `structurally_unavailable`; see `run_market_divergence_refresh`.
+        Backfilling a value here is impossible by design: it would mutate an immutable snapshot.
+        """
+        existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        for column in _COLUMNS:
+            if column not in existing:
+                conn.execute(
+                    f"ALTER TABLE {table} ADD COLUMN {column} {self._sql_type(column)}"
+                )
 
     # ── source-family guard ───────────────────────────────────────────────
     def assert_single_source_family(self, source: str) -> None:
@@ -101,6 +141,13 @@ class FCForwardCaptureStore:
             if not str(entry.get("player_key") or "").strip():
                 raise FCForwardCaptureValidationError(
                     "entry missing a stable player_key (fail-closed before write)"
+                )
+            status = entry.get("market_volatility_status")
+            if status not in VOLATILITY_STATUSES:
+                raise FCForwardCaptureValidationError(
+                    f"market_volatility_status must be one of {sorted(VOLATILITY_STATUSES)}, "
+                    f"got {status!r} for player_key {entry.get('player_key')!r} "
+                    "(fail-closed before write)"
                 )
         sources = {e["source"] for e in entries}
         if len(sources) > 1:
