@@ -51,12 +51,26 @@ def _model_cohorts(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
     return cohorts
 
 
+def _volatility_status(entry: dict[str, Any]) -> str:
+    """Classify why a volatility value is present or absent. Never a bare NULL.
+
+    An explicit status from the capture store wins. Otherwise a value means `captured`
+    and its absence means the source published none (`source_omitted`). Rows that predate
+    the volatility schema are stamped `structurally_unavailable` upstream by the runner.
+    """
+    explicit = entry.get("marketVolatilityStatus")
+    if explicit:
+        return str(explicit)
+    return "captured" if entry.get("maybeMovingStandardDeviation") is not None else "source_omitted"
+
+
 def _market_overlay(entry: dict[str, Any], *, source_timestamp: str, fetch_caveats: list[str]) -> dict[str, Any]:
     return {
         "source": "fantasycalc",
         "market_value": entry.get("value"),
         "trend_delta": entry.get("trend30Day"),
         "market_volatility": entry.get("maybeMovingStandardDeviation"),
+        "market_volatility_status": _volatility_status(entry),
         "position_rank": entry.get("positionRank"),
         "overall_rank": entry.get("overallRank"),
         "source_timestamp": source_timestamp,
@@ -119,6 +133,9 @@ def build_universe_market_divergence(
     *,
     fetch_caveats: list[str] | None = None,
     captured_at: str | None = None,
+    market_source_timestamp: str | None = None,
+    market_snapshot_date: str | None = None,
+    volatility_schema_effective_date: str | None = None,
     min_cohort_size: int = DEFAULT_MIN_COHORT_SIZE,
     volatility_threshold: float = DEFAULT_VOLATILITY_THRESHOLD,
 ) -> dict[str, Any]:
@@ -131,7 +148,14 @@ def build_universe_market_divergence(
 
     captured = captured_at or datetime.now(timezone.utc).isoformat()
     fetch_notes = list(fetch_caveats or [])
-    source_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # `source_timestamp` is the MARKET SOURCE VINTAGE, never the build clock. Stamping
+    # build time here (the pre-Phase-0b behaviour) made the overlay's own
+    # `source_timestamp_is_fetch_time_not_publish_time` caveat assert something false.
+    # Falling back to build time is retained only for callers that cannot supply a
+    # vintage; the scheduled runner always supplies one.
+    source_timestamp = market_source_timestamp or datetime.now(timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
     result = copy.deepcopy(universe_pvo_batch)
     rows = result.get("players") or []
     fc_by_sleeper, market_cohorts = _market_lookup(fc_response)
@@ -167,6 +191,9 @@ def build_universe_market_divergence(
             source_timestamp=source_timestamp,
             fetch_caveats=fetch_notes,
         )
+        # Carried per-row so a PIT history payload (which stores the row, not the batch)
+        # is self-describing about what its volatility field means.
+        row["volatility_schema_effective_date"] = volatility_schema_effective_date
 
         if not _is_model_backed(row) or valuation.get("engine_path") in INACTIVE_OR_CONTEXT_ROUTES:
             row["divergence"] = _empty_divergence(
@@ -225,7 +252,12 @@ def build_universe_market_divergence(
 
     result["schema_version"] = SCHEMA_VERSION
     result["source_schema_version"] = universe_pvo_batch.get("schema_version")
+    # `captured_at` is BUILD time. The market vintage is a separate, distinct field —
+    # conflating them is what let the artifact misreport how old its market data was.
     result["captured_at"] = captured
+    result["market_source_timestamp"] = source_timestamp
+    result["market_snapshot_date"] = market_snapshot_date
+    result["volatility_schema_effective_date"] = volatility_schema_effective_date
     result["coverage"] = build_market_divergence_coverage(result)
     return result
 

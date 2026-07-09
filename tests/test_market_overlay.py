@@ -249,6 +249,39 @@ def test_fetch_with_cache_stage2_stale_serve(tmp_path, monkeypatch):
     assert any("fetched_at=" in c for c in caveats)
 
 
+def test_fetch_with_cache_surfaces_cache_write_failure(tmp_path, monkeypatch):
+    """A live fetch whose cache write fails must carry an explicit caveat."""
+
+    class _Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return _load_fixture()
+
+    cache_dir = tmp_path / "fantasycalc"
+    cache_dir.mkdir()
+    cache_file_as_directory = cache_dir / "market_values.json"
+    cache_file_as_directory.mkdir()
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_DIR",
+        cache_dir,
+    )
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_FILE",
+        cache_file_as_directory,
+    )
+
+    with patch("httpx.get", return_value=_Response()):
+        from src.dynasty_genius.adapters import fantasycalc_adapter
+
+        data, caveats = fantasycalc_adapter.fetch_with_cache()
+
+    assert len(data) == 6
+    assert "market_cache_write_failed" in caveats
+    assert "source_timestamp_is_fetch_time_not_publish_time" in caveats
+
+
 # ── Phase 9 divergence engine tests ──────────────────────────────────────────
 
 from src.dynasty_genius.models.player_value_object import (

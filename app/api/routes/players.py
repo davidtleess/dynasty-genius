@@ -301,7 +301,10 @@ def get_player_detail(sleeper_id: str) -> PlayerDetailResponse:
         degradation=degradation,
         source_timestamps={
             "pvo": pvo.get("captured_at"),
-            "market": divergence_artifact.get("captured_at"),
+            # The MARKET vintage, not the artifact's build clock. `captured_at` remains the
+            # fallback only for pre-Phase-0b artifacts that carry no market vintage at all.
+            "market": divergence_artifact.get("market_source_timestamp")
+            or divergence_artifact.get("captured_at"),
         },
         caveats=[],
         decision_supported=False,

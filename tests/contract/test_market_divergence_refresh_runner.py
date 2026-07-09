@@ -171,9 +171,12 @@ def _divergence_batch(
                 "source": "fantasycalc",
                 "source_timestamp": "2026-07-08T13:00:00Z",
                 "position_rank": 12,
+                "market_volatility": None,
+                "market_volatility_status": "source_omitted",
                 "caveats": ["source_timestamp_is_fetch_time_not_publish_time"]
                 + stale_notes,
             },
+            "volatility_schema_effective_date": "2026-07-08",
             "divergence": {
                 "signal": (
                     "SUPPRESSED_STALE_MARKET"
@@ -196,9 +199,12 @@ def _divergence_batch(
                 "source": "fantasycalc",
                 "source_timestamp": "2026-07-08T13:00:00Z",
                 "position_rank": 18,
+                "market_volatility": None,
+                "market_volatility_status": "source_omitted",
                 "caveats": ["source_timestamp_is_fetch_time_not_publish_time"]
                 + stale_notes,
             },
+            "volatility_schema_effective_date": "2026-07-08",
             "divergence": {
                 "signal": "INSIDE_BAND",
                 "signal_status": "inside_band",
@@ -214,6 +220,9 @@ def _divergence_batch(
     return {
         "schema_version": "universe_market_divergence.v1",
         "captured_at": captured_at,
+        "market_snapshot_date": "2026-07-08",
+        "market_source_timestamp": "2026-07-08T13:00:00Z",
+        "volatility_schema_effective_date": "2026-07-08",
         "players": rows,
         "coverage": {
             "total_players": len(rows),
@@ -400,7 +409,7 @@ def test_unverified_runtime_fails_closed_before_latest_or_history_write(
 @pytest.mark.parametrize(
     ("cache_setup", "expected_reason"),
     [
-        ("stale", "market_cache_stale"),
+        ("stale", "market_source_prior_date"),
         ("missing", "market_cache_missing"),
     ],
 )
@@ -434,6 +443,44 @@ def test_stale_or_cold_market_cache_aborts_before_build_or_latest_write(
     marker = _read_marker(kwargs["marker_path"])
     assert marker["status"] == "degraded"
     assert marker["reason"] == expected_reason
+
+
+def test_same_date_market_cache_outside_code_owned_bound_is_stale_not_prior_date(
+    tmp_path: Path,
+) -> None:
+    runner = _load_runner()
+    kwargs = _base_kwargs(tmp_path)
+    _write_json(
+        kwargs["market_cache_path"],
+        {
+            "fetched_at": "2026-09-01T00:00:00Z",
+            "ttl_hours": 99999,
+            "data": [],
+        },
+    )
+    original_latest = kwargs["latest_path"].read_bytes()
+    original_coverage = kwargs["coverage_latest_path"].read_bytes()
+
+    def build_fn(*_args, **_kwargs):
+        raise AssertionError("code-owned stale market source must not reach build")
+
+    report = runner.run_market_divergence_refresh(
+        **{
+            **kwargs,
+            "build_fn": build_fn,
+            "now_fn": lambda: datetime(2026, 9, 1, 13, 40, tzinfo=UTC),
+        }
+    )
+
+    assert report["status"] == "aborted"
+    assert report["aborted_stage"] == "market_source"
+    assert report["aborted_reason"] == "market_cache_stale"
+    assert kwargs["latest_path"].read_bytes() == original_latest
+    assert kwargs["coverage_latest_path"].read_bytes() == original_coverage
+    assert not kwargs["history_db_path"].exists()
+    marker = _read_marker(kwargs["marker_path"])
+    assert marker["status"] == "degraded"
+    assert marker["reason"] == "market_cache_stale"
 
 
 def test_builder_stale_market_caveat_rows_are_rejected_before_publish(

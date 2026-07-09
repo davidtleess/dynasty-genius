@@ -124,13 +124,17 @@ def _pvo(*rows: dict[str, Any]) -> dict[str, Any]:
 def _divergence(
     sleeper_id: str = "13269",
     *,
+    captured_at: str = "2026-05-24T17:19:52Z",
+    market_source_timestamp: str = "2026-05-24T17:19:52Z",
     delta: float | None = 0.27,
+    overlay_source_timestamp: str | None = None,
     signal: str = "MODEL_HIGH_MARKET_LOW",
 ) -> dict[str, Any]:
     # Mirrors the real universe_market_divergence artifact shape: market_overlay uses
     # `market_value`; divergence carries `signal` (direction) + `signal_status` (gate state).
     return {
-        "captured_at": "2026-05-24T17:19:52Z",
+        "captured_at": captured_at,
+        "market_source_timestamp": market_source_timestamp,
         "players": [
             {
                 "sleeper_player_id": sleeper_id,
@@ -139,7 +143,8 @@ def _divergence(
                     "market_value": 4100,
                     "overall_rank": 42,
                     "position_rank": 8,
-                    "source_timestamp": "2026-05-24T17:19:52Z",
+                    "source_timestamp": overlay_source_timestamp
+                    or market_source_timestamp,
                     "caveats": ["source_timestamp_is_fetch_time_not_publish_time"],
                 },
                 "divergence": {
@@ -202,6 +207,30 @@ def test_modeled_player_returns_full_shell_with_mapped_model_market_and_evidence
     assert data["divergence"]["delta"] == 0.27
     # status maps from divergence.signal (direction), NOT signal_status (gate state)
     assert data["divergence"]["status"] == "model_higher_than_market"
+
+
+def test_player_detail_exposes_market_vintage_not_artifact_build_time(
+    monkeypatch,
+) -> None:
+    market_vintage = "2026-07-08T02:28:19Z"
+    build_time = "2026-07-08T19:43:56Z"
+    client = _client(
+        monkeypatch,
+        pvo=_pvo(_pvo_row()),
+        divergence=_divergence(
+            captured_at=build_time,
+            market_source_timestamp=market_vintage,
+            overlay_source_timestamp=market_vintage,
+        ),
+    )
+
+    response = client.get("/api/players/13269")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["market"]["source_timestamp"] == market_vintage
+    assert data["source_timestamps"]["market"] == market_vintage
+    assert data["source_timestamps"]["market"] != build_time
 
 
 def test_response_never_leaks_raw_pvo_keys_or_banned_engine_a_fields(monkeypatch) -> None:

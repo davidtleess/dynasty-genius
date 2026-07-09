@@ -14,9 +14,12 @@ from pathlib import Path
 
 import pytest
 
+from src.dynasty_genius.capture.fc_forward_capture_driver import SETTINGS_HASH
+
 ROOT = Path("/Users/davidleess/dynasty-genius-product")
 PLIST = Path("ops/launchd/com.davidleess.dynasty-market-divergence-refresh.plist")
 HISTORY_DB = "app/data/market_divergence_history.db"
+FC_FORWARD_CAPTURE_DB = "app/data/fc_forward_capture.db"
 STATUS_MARKER = (
     "app/data/valuation_runtime/market_divergence_refresh_status_latest.json"
 )
@@ -46,6 +49,15 @@ def test_market_divergence_launchd_plist_runs_refresh_wrapper_only() -> None:
     )
     assert "--history-db-path" in args
     assert args[args.index("--history-db-path") + 1] == str(ROOT / HISTORY_DB)
+    assert "--fc-forward-capture-db-path" in args
+    assert args[args.index("--fc-forward-capture-db-path") + 1] == str(
+        ROOT / FC_FORWARD_CAPTURE_DB
+    )
+    assert "--fc-source" in args
+    assert args[args.index("--fc-source") + 1] == "fc_native"
+    assert "--fc-settings-hash" in args
+    assert args[args.index("--fc-settings-hash") + 1] == SETTINGS_HASH
+    assert "--market-cache-path" not in args
     assert "--marker-path" in args
     assert args[args.index("--marker-path") + 1] == str(ROOT / STATUS_MARKER)
     assert "--report-path" in args

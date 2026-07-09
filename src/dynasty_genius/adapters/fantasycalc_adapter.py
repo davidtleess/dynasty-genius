@@ -56,7 +56,13 @@ def _load_cache() -> dict | None:
     return None
 
 
-def _save_cache(data: list[dict], ttl_hours: int) -> None:
+def _save_cache(data: list[dict], ttl_hours: int) -> bool:
+    """Write the cache. Returns False on failure — never swallows it silently.
+
+    A failed write means the next reader serves older data than the caller believes it
+    wrote. Per `01-north-star-architecture.md` (Source Adapter Rules) that must surface
+    downstream as a caveat, not be hidden behind a bare `except: pass`.
+    """
     try:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         CACHE_FILE.write_text(json.dumps({
@@ -64,8 +70,9 @@ def _save_cache(data: list[dict], ttl_hours: int) -> None:
             "ttl_hours": ttl_hours,
             "data": data,
         }))
+        return True
     except Exception:
-        pass
+        return False
 
 
 def fetch_with_cache() -> tuple[list[dict], list[str]]:
@@ -92,8 +99,10 @@ def fetch_with_cache() -> tuple[list[dict], list[str]]:
             data = data["players"]
         if not isinstance(data, list):
             data = []
-        _save_cache(_sanitize_entries_for_cache(data), ttl_hours)
-        return data, ["source_timestamp_is_fetch_time_not_publish_time"]
+        caveats = ["source_timestamp_is_fetch_time_not_publish_time"]
+        if not _save_cache(_sanitize_entries_for_cache(data), ttl_hours):
+            caveats.append("market_cache_write_failed")
+        return data, caveats
     except Exception:
         pass
 
