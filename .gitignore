@@ -88,6 +88,12 @@ app/data/features_runtime/
 # F-seed-split — runtime PVO/coverage pair + ready-marker + refresh report (operational, not source; the committed seed is app/data/valuation/universe_pvo_latest.json + universe_pvo_coverage_latest.json)
 app/data/valuation_runtime/
 
+# Phase 0 daily margin recompute — compounding PIT history (gitignored SQLite; the tracked baseline is universe_market_divergence_latest.json) + refresh logs. Status marker + report live under app/data/valuation_runtime/ (above).
+app/data/market_divergence_history.db
+app/data/market_divergence_history.db-journal
+app/data/logs/market_divergence_refresh.out.log
+app/data/logs/market_divergence_refresh.err.log
+
 # Realized-Outcome Loop (T5) — gitignored weekly scorecard artifact (descriptive, decision_supported=false)
 app/data/realized_outcome/
 

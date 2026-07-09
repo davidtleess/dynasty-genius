@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Daily market-divergence refresh (Phase 0 — the daily margin recompute).
+
+  Committable configuration ONLY. Installing/reloading this with launchctl is a
+  separate David-gated machine change. Runs at 09:40 local, after the PVO refresh
+  (09:30) and before the what-changed report (09:45). Reads captured state only;
+  never live-fetches, never commits. The allow-seed flag is deliberately absent: a
+  scheduled run must fail closed rather than silently publish a seed-PVO margin.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.davidleess.dynasty-market-divergence-refresh</string>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>WorkingDirectory</key>
+  <string>/Users/davidleess/dynasty-genius-product</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>40</integer>
+  </dict>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+    <string>/Users/davidleess/dynasty-genius-product/scripts/run_market_divergence_refresh.py</string>
+    <string>--latest-path</string>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/valuation/universe_market_divergence_latest.json</string>
+    <string>--coverage-latest-path</string>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/valuation/universe_market_divergence_coverage_latest.json</string>
+    <string>--history-db-path</string>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/market_divergence_history.db</string>
+    <string>--marker-path</string>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/valuation_runtime/market_divergence_refresh_status_latest.json</string>
+    <string>--report-path</string>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/valuation_runtime/market_divergence_refresh_latest_report.json</string>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/davidleess/dynasty-genius-product/app/data/logs/market_divergence_refresh.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/davidleess/dynasty-genius-product/app/data/logs/market_divergence_refresh.err.log</string>
+</dict>
+</plist>

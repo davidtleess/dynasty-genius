@@ -2,6 +2,11 @@
   "schema_version": "backup_manifest.v2",
   "required": [
     {
+      "path": "app/data/market_divergence_history.db",
+      "required": true,
+      "kind": "sqlite"
+    },
+    {
       "path": "app/data/fc_forward_capture.db",
       "required": true,
       "kind": "sqlite"
