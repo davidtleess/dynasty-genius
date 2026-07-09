@@ -282,6 +282,106 @@ def test_fetch_with_cache_surfaces_cache_write_failure(tmp_path, monkeypatch):
     assert "source_timestamp_is_fetch_time_not_publish_time" in caveats
 
 
+def test_fetch_with_cache_surfaces_cache_read_failure_on_live_fetch(tmp_path, monkeypatch):
+    """A corrupt existing cache is not the same as an absent cache."""
+
+    class _UnreadableCacheFile:
+        def exists(self):
+            return True
+
+        def read_text(self):
+            raise OSError("read failed")
+
+        def write_text(self, _text):
+            return None
+
+    class _Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return _load_fixture()
+
+    cache_dir = tmp_path / "fantasycalc"
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_DIR",
+        cache_dir,
+    )
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_FILE",
+        _UnreadableCacheFile(),
+    )
+
+    with patch("httpx.get", return_value=_Response()):
+        from src.dynasty_genius.adapters import fantasycalc_adapter
+
+        data, caveats = fantasycalc_adapter.fetch_with_cache()
+
+    assert len(data) == 6
+    assert "market_cache_read_failed" in caveats
+    assert "market_cache_write_failed" not in caveats
+
+
+def test_fetch_with_cache_surfaces_cache_read_failure_on_cold_fail(tmp_path, monkeypatch):
+    """If both cache read and live fetch fail, both facts must be visible."""
+
+    class _UnreadableCacheFile:
+        def exists(self):
+            return True
+
+        def read_text(self):
+            raise OSError("read failed")
+
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_DIR",
+        tmp_path / "fantasycalc",
+    )
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_FILE",
+        _UnreadableCacheFile(),
+    )
+
+    with patch("httpx.get", side_effect=Exception("network error")):
+        from src.dynasty_genius.adapters import fantasycalc_adapter
+
+        data, caveats = fantasycalc_adapter.fetch_with_cache()
+
+    assert data == []
+    assert "market_data_unavailable" in caveats
+    assert "market_cache_read_failed" in caveats
+
+
+def test_fetch_with_cache_absent_cache_does_not_emit_read_failure(tmp_path, monkeypatch):
+    """A missing cache file is an ordinary cold-start state, not corruption."""
+
+    class _Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return _load_fixture()
+
+    cache_dir = tmp_path / "fantasycalc"
+    cache_file = cache_dir / "market_values.json"
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_DIR",
+        cache_dir,
+    )
+    monkeypatch.setattr(
+        "src.dynasty_genius.adapters.fantasycalc_adapter.CACHE_FILE",
+        cache_file,
+    )
+
+    with patch("httpx.get", return_value=_Response()):
+        from src.dynasty_genius.adapters import fantasycalc_adapter
+
+        data, caveats = fantasycalc_adapter.fetch_with_cache()
+
+    assert len(data) == 6
+    assert "source_timestamp_is_fetch_time_not_publish_time" in caveats
+    assert "market_cache_read_failed" not in caveats
+
+
 # ── Phase 9 divergence engine tests ──────────────────────────────────────────
 
 from src.dynasty_genius.models.player_value_object import (

@@ -1,11 +1,10 @@
 ---
 document: Phase-0b — Scheduled Market-Source Ownership + Market-Vintage Provenance
-version: 1.4.0 (v5 — uncommitted; DAVID-RATIFIED rulings pinned)
+version: 1.4.1 (v6 — PR #133 correction; DAVID-RATIFIED rulings pinned)
 author: Claude Code
 date: 2026-07-09
-status: Codex CLEAR (technical, enumerated checks). Gemini advisory concerns closed.
-        DAVID RULED 2026-07-09 — see §0.1. NEXT ACTOR: Codex authors the RED from §5 + §6.
-        Nothing committed or pushed. No runner run. No LaunchAgent.
+status: PR #133 open. Merge held for the post-commit §5.5 cache-read correction.
+        Codex authored the missing RED. No runner run. No LaunchAgent.
 review_history: |
   v1 → Codex NOT-CLEAR, 5 defects (Option-B/§5.2 contradiction; §5.1 pre-decides the fork; §8
   missing the A′ post-migration capture; duplicate-conflict seed conflated model PIT with FC PIT;
@@ -409,11 +408,13 @@ whether the data is fresh.**
 2. ~~Cockpit re-review of v2~~ → **done**: Codex NOT-CLEAR (2 new blockers), fixed in v3;
    **Codex CLEAR on v3** with enumerated checks, and RED authorship accepted.
 3. **David rules the fork** (A′ vs B, §4) and the served-baseline disposition (§7.3).
-4. **Codex authors the RED** from a stable §5 + §6. *(Codex accepted RED authorship.)*
-5. Claude GREENs.
-6. Adversarial dual-CLEAR — falsification matrix re-run on the changed surface (§Falsification #5:
-   a fix is a new state machine, not old code plus a guard).
-7. David authorizes commit → push → PR → CI → merge.
+4. ~~Codex authors the RED from stable §5 + §6~~ → **done**; post-commit audit added the missing
+   §5.5 cache-read RED.
+5. ~~Claude GREENs~~ → **done**; correction commit in progress for the §5.5 read-swallow miss.
+6. ~~Adversarial dual-CLEAR~~ → **done for the initial build**; correction re-clear required
+   before merge (§Falsification #5: a fix is a new state machine, not old code plus a guard).
+7. David authorized commit/push/PR. **Merge is held** pending correction commit, green CI, and
+   David's merge word.
 
 **Operational sequence — DO NOT COLLAPSE INTO THE BUILD SEQUENCE.**
 
