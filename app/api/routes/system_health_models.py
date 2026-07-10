@@ -37,6 +37,11 @@ ReportFreshnessStatus = Literal[
     "corrupt_or_empty",
     "dormant",
     "missing",
+    # The producer ran and declared terminal failure. Distinct from `stale` (the
+    # producer never ran) and from `corrupt_or_empty` (we cannot read what it wrote).
+    # A fresh timestamp NEVER launders this away — see the status gate in
+    # `evaluate_report_freshness`.
+    "producer_failed",
 ]
 SubsystemStatus = Literal["ok", "degraded", "unavailable"]
 
@@ -63,6 +68,13 @@ class ReportArtifactConfig(_Strict):
     the amber-blindness guard); ``dormant_ok`` + ``season_windows`` make
     dormancy explicit config, never inference; ``timestamp_field`` names an
     embedded top-level timestamp (absent → disclosed mtime fallback).
+
+    ``status_field`` is opt-in: only a producer that writes a terminal-state
+    status on EVERY exit path may declare it. A producer that writes a fresh
+    file on failure (the common case) is indistinguishable from success on
+    mtime alone, so declaring ``status_field`` is what makes failure legible.
+    ``success_status`` and ``failure_reason_field`` are meaningless without it
+    and are rejected at load.
     """
 
     artifact_id: str
@@ -76,6 +88,9 @@ class ReportArtifactConfig(_Strict):
     timestamp_field: str | None
     dormant_ok: bool
     season_windows: SeasonWindows
+    status_field: str | None = None
+    success_status: str | None = None
+    failure_reason_field: str | None = None
 
 
 class ReportFreshnessConfig(_Strict):
@@ -239,13 +254,43 @@ def load_report_freshness(*, config_path: Path) -> ReportFreshnessConfig:
                 f"schema invalid for artifact {artifact.artifact_id!r}: "
                 f"scheduled_time_local {artifact.scheduled_time_local!r} is not HH:MM"
             )
+        # Opt-in status parsing: the dependent fields are inert without
+        # `status_field`, and an inert `success_status` reads as a guarantee the
+        # evaluator never enforces. Fail closed rather than silently no-op.
+        if artifact.status_field is None:
+            for dependent in ("success_status", "failure_reason_field"):
+                if getattr(artifact, dependent) is not None:
+                    raise _reject(
+                        f"schema invalid for artifact {artifact.artifact_id!r}: "
+                        f"{dependent} requires status_field"
+                    )
+        else:
+            if artifact.success_status is None:
+                raise _reject(
+                    f"schema invalid for artifact {artifact.artifact_id!r}: "
+                    "status_field requires success_status"
+                )
+            # Value-bounds vacuum guards, same family as the min_size_bytes /
+            # empty-identifier checks above (Codex NOT-CLEAR). A blank
+            # `success_status` is the dangerous one: no producer ever writes the
+            # empty string, so EVERY healthy run would report `producer_failed`
+            # forever — a permanent false alarm that config alone could strand.
+            # A blank `failure_reason_field` names no key and can only ever
+            # resolve to `unreported`, silently discarding the producer's reason.
+            for field_name in ("status_field", "success_status", "failure_reason_field"):
+                value = getattr(artifact, field_name)
+                if value is not None and not value.strip():
+                    raise _reject(
+                        f"schema invalid for artifact {artifact.artifact_id!r}: "
+                        f"empty {field_name}"
+                    )
     return config
 
 
 # --- T2: pure freshness evaluator + tier rollup (spec §2–§3) --------------------
 
 _DEGRADING_STATUSES: frozenset[str] = frozenset(
-    ("stale", "corrupt_or_empty", "missing")
+    ("stale", "corrupt_or_empty", "missing", "producer_failed")
 )
 _TIER_SEVERITY: dict[str, int] = {"core_substrate": 2, "daily_diagnostics": 1}
 
@@ -257,6 +302,11 @@ class ReportArtifactFact(_Strict):
     size_bytes: int | None
     mtime: datetime | None
     embedded_timestamp_value: str | None
+    # Populated only for artifacts declaring `status_field`. `None` means the
+    # producer reported no readable status — absent, or present but not a string.
+    # Both fail closed at the status gate; neither may reach the freshness gate.
+    status_value: str | None = None
+    failure_reason: str | None = None
 
 
 def _last_scheduled(artifact: ReportArtifactConfig, now_local: datetime) -> datetime:
@@ -317,6 +367,29 @@ def evaluate_report_freshness(
                 "corrupt_or_empty",
                 f"below_min_size:{fact.size_bytes}<{artifact.min_size_bytes}",
             )
+        # ── status gate: strictly BEFORE the freshness gate ──────────────────
+        # A producer that declared terminal failure is `producer_failed` no matter
+        # how fresh its clock reads. Ordering is the whole contract: a failed run
+        # rewrites its artifact, so a fresh timestamp is exactly what a failure
+        # looks like on disk. Freshness may only speak for a producer that
+        # reported success.
+        elif artifact.status_field is not None and fact.status_value is None:
+            # Absent, or present but not a string (e.g. `123`). Never coerced —
+            # strict mode everywhere else, strict here.
+            status, basis = (
+                "corrupt_or_empty",
+                f"malformed_status:{artifact.status_field}",
+            )
+        elif (
+            artifact.status_field is not None
+            and fact.status_value != artifact.success_status
+        ):
+            status, basis = (
+                "producer_failed",
+                f"producer_failure:{fact.failure_reason or 'unreported'}",
+            )
+            if fact.embedded_timestamp_value is not None:
+                observed_at = fact.embedded_timestamp_value
         else:
             timestamp: datetime | None = None
             if artifact.timestamp_field is not None:
@@ -457,17 +530,33 @@ def read_report_artifact_facts(
             continue
         stat = path.stat()
         embedded: str | None = None
-        if artifact.timestamp_field is not None:
+        status_value: str | None = None
+        failure_reason: str | None = None
+        # One read serves both gates. An unreadable payload leaves every derived
+        # fact at its closed default, so the evaluator degrades rather than guesses.
+        if artifact.timestamp_field is not None or artifact.status_field is not None:
             try:
                 payload = json.loads(path.read_text(encoding="utf-8"))
-                value = payload.get(artifact.timestamp_field)
-                embedded = value if isinstance(value, str) else None
             except (OSError, ValueError, UnicodeDecodeError):
-                embedded = None
+                payload = None
+            if isinstance(payload, dict):
+                if artifact.timestamp_field is not None:
+                    value = payload.get(artifact.timestamp_field)
+                    embedded = value if isinstance(value, str) else None
+                if artifact.status_field is not None:
+                    raw_status = payload.get(artifact.status_field)
+                    status_value = raw_status if isinstance(raw_status, str) else None
+                    if artifact.failure_reason_field is not None:
+                        raw_reason = payload.get(artifact.failure_reason_field)
+                        failure_reason = (
+                            raw_reason if isinstance(raw_reason, str) else None
+                        )
         facts[artifact.artifact_id] = ReportArtifactFact(
             exists=True,
             size_bytes=stat.st_size,
             mtime=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
             embedded_timestamp_value=embedded,
+            status_value=status_value,
+            failure_reason=failure_reason,
         )
     return facts

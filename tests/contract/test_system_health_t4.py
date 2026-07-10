@@ -83,13 +83,27 @@ EXPECTED_ARTIFACTS: dict[str, dict[str, Any]] = {
         "timestamp_field": None,
         "dormant_ok": True,
     },
+    "market_divergence": {
+        "path": "app/data/valuation_runtime/market_divergence_refresh_status_latest.json",
+        "producer": "scripts/run_market_divergence_refresh.py",
+        "cadence": "daily",
+        "scheduled_time_local": "09:40",
+        "grace_hours": 3,
+        "tier": "core_substrate",
+        "min_size_bytes": 64,
+        "timestamp_field": "finished_at",
+        "status_field": "status",
+        "success_status": "ok",
+        "failure_reason_field": "reason",
+        "dormant_ok": False,
+    },
 }
 
 
-def test_real_report_freshness_config_loads_and_pins_the_six_report_artifacts() -> None:
+def test_real_report_freshness_config_loads_and_pins_the_seven_report_artifacts() -> None:
     config = load_report_freshness(config_path=CONFIG_PATH)
 
-    assert config.config_version == 1
+    assert config.config_version == 2
     assert config.timezone == "America/New_York"
     artifacts = {artifact.artifact_id: artifact for artifact in config.artifacts}
     assert artifacts.keys() == EXPECTED_ARTIFACTS.keys()

@@ -3466,7 +3466,8 @@
               "stale",
               "corrupt_or_empty",
               "dormant",
-              "missing"
+              "missing",
+              "producer_failed"
             ],
             "title": "Status",
             "type": "string"
