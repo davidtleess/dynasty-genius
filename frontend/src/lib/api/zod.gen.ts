@@ -772,7 +772,8 @@ export const zReportHealth = z.object({
         'stale',
         'corrupt_or_empty',
         'dormant',
-        'missing'
+        'missing',
+        'producer_failed'
     ]),
     tier: z.enum([
         'core_substrate',

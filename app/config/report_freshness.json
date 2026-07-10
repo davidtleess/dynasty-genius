@@ -1,5 +1,5 @@
 {
-  "config_version": 1,
+  "config_version": 2,
   "timezone": "America/New_York",
   "artifacts": [
     {
@@ -118,6 +118,30 @@
       "min_size_bytes": 64,
       "timestamp_field": null,
       "dormant_ok": true,
+      "season_windows": {
+        "in_season_months": [
+          9,
+          10,
+          11,
+          12,
+          1
+        ]
+      }
+    },
+    {
+      "artifact_id": "market_divergence",
+      "path": "app/data/valuation_runtime/market_divergence_refresh_status_latest.json",
+      "producer": "scripts/run_market_divergence_refresh.py",
+      "cadence": "daily",
+      "scheduled_time_local": "09:40",
+      "grace_hours": 3,
+      "tier": "core_substrate",
+      "min_size_bytes": 64,
+      "timestamp_field": "finished_at",
+      "status_field": "status",
+      "success_status": "ok",
+      "failure_reason_field": "reason",
+      "dormant_ok": false,
       "season_windows": {
         "in_season_months": [
           9,

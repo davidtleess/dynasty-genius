@@ -1936,7 +1936,7 @@ export type ReportHealth = {
     /**
      * Status
      */
-    status: 'fresh' | 'freshness_overdue' | 'stale' | 'corrupt_or_empty' | 'dormant' | 'missing';
+    status: 'fresh' | 'freshness_overdue' | 'stale' | 'corrupt_or_empty' | 'dormant' | 'missing' | 'producer_failed';
     /**
      * Tier
      */
