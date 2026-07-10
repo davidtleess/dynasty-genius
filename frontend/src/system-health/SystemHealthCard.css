@@ -82,18 +82,56 @@
   overflow-wrap: anywhere;
 }
 
-/* Severity accent — only rows the rollup itself treats as degrading carry it;
-   tier maps to intensity (core prominent, daily muted); auxiliary never gets it. */
+/* Severity treatment — a full contained border in the single warning hue, never
+   a side-stripe accent (the recognizable AI-UI tell). A full border keeps the row
+   background plain, so the amber status text and the muted receipt keep their AA
+   contrast — a background tint lightens the row and fails small-text contrast.
+   Tier maps to intensity: core solid, daily muted; auxiliary never carries it. */
 .dg-syshealth__subsystem[data-severity="degraded"],
 .dg-syshealth__report[data-severity="degraded"] {
-  border-inline-start: 3px solid var(--dg-cliff);
-  padding-inline-start: 0.4rem;
+  border: 1px solid var(--dg-cliff);
+  border-radius: 4px;
+  padding: 0.3rem 0.45rem;
 }
 
 .dg-syshealth__report[data-severity="degraded"][data-tier="daily_diagnostics"],
 .dg-syshealth__subsystem[data-severity="degraded"][data-tier="daily_diagnostics"] {
-  border-inline-start-width: 2px;
-  border-inline-start-color: var(--dg-cliff);
+  border-color: color-mix(in oklab, var(--dg-cliff) 55%, var(--dg-border));
+}
+
+/* The degraded row's status phrase carries the warning hue so severity reads
+   without relying on the tint alone (color is never the sole signal). */
+.dg-syshealth__report[data-severity="degraded"] .dg-syshealth__report-status {
+  color: var(--dg-cliff);
+}
+
+/* Report and subsystem rows layer a manager-readable status line above a muted
+   receipt line; the receipt keeps every disclosed token visible (honesty is
+   designed, not dumped — the provenance rides next to the status, never hidden
+   behind hover). */
+.dg-syshealth__report,
+.dg-syshealth__subsystem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.dg-syshealth__report-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-inline-size: 0;
+}
+
+.dg-syshealth__report-name {
+  font-weight: 600;
+}
+
+.dg-syshealth__receipt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
 /* Dormant is the calm expected off-season state — plain gray, no accent. */

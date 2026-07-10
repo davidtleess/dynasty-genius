@@ -117,7 +117,7 @@ describe("SystemHealthCard RED contract", () => {
       }),
     );
 
-    await screen.findByText(/system diagnostics unavailable/i);
+    await screen.findByText(/data freshness unavailable/i);
     expect(screen.getByText("system health configuration unavailable")).toBeTruthy();
     expect(screen.queryByText(/traceback|stack|exception/i)).toBeNull();
   });
@@ -134,11 +134,11 @@ describe("SystemHealthCard RED contract", () => {
     const { SystemHealthCard } = await import(/* @vite-ignore */ COMPONENT_MODULE);
 
     const { rerender } = render(<SystemHealthCard now={FIXED_NOW} />);
-    await screen.findByText(/system diagnostics unavailable/i);
+    await screen.findByText(/data freshness unavailable/i);
     expect(screen.queryByText(/not json|network down/i)).toBeNull();
 
     rerender(<SystemHealthCard now={FIXED_NOW} />);
-    await screen.findByText(/system diagnostics unavailable/i);
+    await screen.findByText(/data freshness unavailable/i);
     expect(screen.queryByText(/not json|network down/i)).toBeNull();
   });
 
@@ -151,7 +151,7 @@ describe("SystemHealthCard RED contract", () => {
       reports: [report({ age_seconds: "300" })],
     });
 
-    await screen.findByText(/system diagnostics unavailable/i);
+    await screen.findByText(/data freshness unavailable/i);
     expect(screen.queryByText("excellent")).toBeNull();
     expect(screen.queryByText("pvo_refresh")).toBeNull();
   });
@@ -159,12 +159,12 @@ describe("SystemHealthCard RED contract", () => {
   it("renders ok with mandatory collapsed counts while keeping dormant and overdue distinct", async () => {
     await renderCard(healthResponse());
 
-    await screen.findByRole("status", { name: "System diagnostics" });
+    await screen.findByRole("status", { name: "Data freshness" });
     expect(screen.getByText("ok")).toBeTruthy();
     expect(screen.getByText(/3 reports/i)).toBeTruthy();
     expect(screen.getByText(/1 fresh/i)).toBeTruthy();
     expect(screen.getByText(/1 dormant/i)).toBeTruthy();
-    expect(screen.getByText(/1 freshness_overdue|1 overdue/i)).toBeTruthy();
+    expect(screen.getByText(/1 pending/i)).toBeTruthy();
     expect(screen.queryByText(/all systems fresh/i)).toBeNull();
 
     const dormant = screen.getByTestId("health-report-feature_refresh");
@@ -221,6 +221,38 @@ describe("SystemHealthCard RED contract", () => {
     ).toBeNull();
   });
 
+  it("renders producer_failed as a degrading manager-prose row, not a raw enum", async () => {
+    await renderCard(
+      healthResponse({
+        overall_status: "degraded",
+        reports: [
+          report({
+            artifact_id: "market_divergence",
+            artifact_path:
+              "app/data/valuation_runtime/market_divergence_refresh_status_latest.json",
+            basis: "producer_failure:market_source_prior_date",
+            producer: "scripts/run_market_divergence_refresh.py",
+            status: "producer_failed",
+            tier: "core_substrate",
+          }),
+        ],
+        worst_affected_tier: "core_substrate",
+      }),
+    );
+
+    const card = await screen.findByRole("status", { name: "Data freshness" });
+    expect(within(card).getByText(/1 daily divergence sync failed/i)).toBeTruthy();
+    expect(card.textContent).not.toContain("producer_failed");
+    const row = await screen.findByTestId("health-report-market_divergence");
+    expect(row.getAttribute("data-health-status")).toBe("producer_failed");
+    expect(row.getAttribute("data-severity")).toBe("degraded");
+    expect(
+      within(row).getByText(
+        "Daily divergence sync failed. Showing margins from the last successful sync.",
+      ),
+    ).toBeTruthy();
+  });
+
   it("leads degraded collapsed copy with the worst affected tier and exposes tier severity attributes", async () => {
     await renderCard(
       healthResponse({
@@ -230,8 +262,8 @@ describe("SystemHealthCard RED contract", () => {
       }),
     );
 
-    const card = await screen.findByRole("status", { name: "System diagnostics" });
-    expect(within(card).getByText(/degraded.*core_substrate affected/i)).toBeTruthy();
+    const card = await screen.findByRole("status", { name: "Data freshness" });
+    expect(within(card).getByText(/degraded.*core data affected/i)).toBeTruthy();
     expect(card.getAttribute("data-health-status")).toBe("degraded");
     expect(card.getAttribute("data-affected-tier")).toBe("core_substrate");
   });
@@ -251,13 +283,15 @@ describe("SystemHealthCard RED contract", () => {
       }),
     );
 
-    await screen.findByText("new_guard");
+    await screen.findAllByText("new_guard");
     expect(
       screen.getByText(/model_provenance.*not reported.*unverified/i),
     ).toBeTruthy();
     expect(screen.getByText(/tier_readiness.*not reported.*unverified/i)).toBeTruthy();
     expect(screen.getAllByText("capture_health")).toHaveLength(2);
-    expect(screen.getByText("new_guard")).toBeTruthy();
+    // An unknown subsystem has no display name, so its raw id renders in both the
+    // name slot (fallback) and the disclosed receipt — surfaced, never dropped.
+    expect(screen.getAllByText("new_guard")).toHaveLength(2);
   });
 
   it("renders empty report and subsystem collections without fabricating healthy rows", async () => {
@@ -376,7 +410,7 @@ describe("SystemHealthCard RED contract", () => {
     ).toBeTruthy();
     await waitFor(() =>
       expect(
-        within(banner).getByRole("status", { name: "System diagnostics" }),
+        within(banner).getByRole("status", { name: "Data freshness" }),
       ).toBeTruthy(),
     );
   });
@@ -384,7 +418,7 @@ describe("SystemHealthCard RED contract", () => {
   it("keeps authored labels free of affirmative trust, accuracy, verdict, green, and success language", async () => {
     await renderCard(healthResponse());
 
-    const card = await screen.findByRole("status", { name: "System diagnostics" });
+    const card = await screen.findByRole("status", { name: "Data freshness" });
     const visibleText = card.textContent ?? "";
     const authored = componentSource;
     const allowed = authored
