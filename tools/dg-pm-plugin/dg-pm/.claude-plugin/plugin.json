@@ -1,0 +1,8 @@
+{
+  "name": "dg-pm",
+  "version": "0.1.0",
+  "description": "Dynasty Genius product-management skills: DG spec-of-record authoring, AGENT_SYNC/roadmap maintenance, research-lane synthesis, descriptive model/operational metrics review, and David-facing updates. Reframed from Anthropic's product-management plugin around DG governance, the No-Verdict Line, and cockpit-TDD.",
+  "author": {
+    "name": "David Leess"
+  }
+}

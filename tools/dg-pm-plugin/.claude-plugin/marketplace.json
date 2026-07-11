@@ -1,0 +1,14 @@
+{
+  "name": "dynasty-genius",
+  "owner": {
+    "name": "David Leess"
+  },
+  "plugins": [
+    {
+      "name": "dg-pm",
+      "displayName": "Dynasty Genius — Product Management",
+      "source": "./dg-pm",
+      "description": "Product-management skills reframed for Dynasty Genius: author DG spec-of-record docs, maintain AGENT_SYNC and the priority board, synthesize research lanes, review model/operational metrics descriptively, and produce David-facing updates — all inside the No-Verdict Line and cockpit-TDD discipline."
+    }
+  ]
+}
