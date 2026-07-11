@@ -47,6 +47,18 @@ _STABILITY_INTERVAL_SECONDS = 2.0
 
 DEFAULT_BUCKET_URI = "gs://dynasty-genius-backup-dtl"
 
+# launchd runs this job with a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin) that
+# excludes the Homebrew / Cloud SDK bin dirs, so a bare ``gcloud`` invocation dies
+# with FileNotFoundError before any file is staged. The runner resolves gcloud to
+# an absolute path — PATH first (honors an explicit env), then these well-known
+# install locations — so the job is PATH-independent, and a truly absent binary is
+# a named ``gcloud_not_found`` marker reason, never an opaque ``unexpected:*``.
+DEFAULT_GCLOUD_CANDIDATES = (
+    "/usr/local/bin/gcloud",  # Intel Homebrew / Cloud SDK (this machine)
+    "/opt/homebrew/bin/gcloud",  # Apple Silicon Homebrew
+    "/usr/local/google-cloud-sdk/bin/gcloud",
+)
+
 
 class BackupError(Exception):
     """A named, fail-closed backup failure. str(exc) is the marker reason."""
@@ -148,7 +160,8 @@ def run_backup(
     manifest_path: Path,
     bucket_uri: str,
     staging_root: Path,
-    gcloud_runner: Callable[[list[str]], Any],
+    gcloud_runner: Callable[[list[str]], Any] | None = None,
+    gcloud_runner_factory: Callable[[], Callable[[list[str]], Any]] | None = None,
     sqlite_backup_runner: Callable[[Path, Path], None],
     file_fingerprint: Callable[[Path], tuple[int, str]],
     upload_verifier: Callable[..., bool],
@@ -179,6 +192,15 @@ def run_backup(
                 failures.append(f"missing_optional:{entry['path']}")
                 continue
             resolved.append((entry, source))
+
+        # Resolve the gcloud runner only after required-source validation, so a
+        # gcloud_not_found failure can never mask a missing_required:* reason. A
+        # resolution failure raises BackupError here, inside the terminal-marker
+        # try, and is written as a named failed marker — never a pre-marker crash.
+        if gcloud_runner is None:
+            if gcloud_runner_factory is None:
+                raise BackupError("gcloud_runner_unconfigured")
+            gcloud_runner = gcloud_runner_factory()
 
         auth = gcloud_runner(["auth", "print-access-token"])
         if getattr(auth, "returncode", 1) != 0:
@@ -303,11 +325,39 @@ def run_backup(
 # ── Real runners (bound only by main(); tests inject fakes) ───────────────────
 
 
-def _real_gcloud_runner(args: list[str]) -> subprocess.CompletedProcess[str]:
-    env = {**os.environ, "CLOUDSDK_CORE_DISABLE_PROMPTS": "1"}
-    return subprocess.run(
-        ["gcloud", *args], capture_output=True, text=True, env=env, check=False
-    )
+def _resolve_gcloud_binary(
+    *,
+    which: Callable[[str], str | None] = shutil.which,
+    is_file: Callable[[str], bool] = os.path.isfile,
+    candidates: tuple[str, ...] = DEFAULT_GCLOUD_CANDIDATES,
+) -> str:
+    """Resolve gcloud to an absolute path, PATH first then well-known locations.
+
+    Raises ``BackupError("gcloud_not_found")`` when the binary is absent, so the
+    launchd minimal-PATH miss surfaces as a named marker reason instead of a bare
+    FileNotFoundError flattened to ``unexpected:*``.
+    """
+    found = which("gcloud")
+    if found:
+        return found
+    for candidate in candidates:
+        if is_file(candidate):
+            return candidate
+    raise BackupError("gcloud_not_found")
+
+
+def _real_gcloud_runner_factory() -> Callable[[list[str]], subprocess.CompletedProcess[str]]:
+    # ``shutil.which`` / ``os.path.isfile`` are read here at call time so the seam
+    # honors monkeypatching and a live PATH; resolution happens once per run.
+    gcloud_bin = _resolve_gcloud_binary(which=shutil.which, is_file=os.path.isfile)
+
+    def _runner(args: list[str]) -> subprocess.CompletedProcess[str]:
+        env = {**os.environ, "CLOUDSDK_CORE_DISABLE_PROMPTS": "1"}
+        return subprocess.run(
+            [gcloud_bin, *args], capture_output=True, text=True, env=env, check=False
+        )
+
+    return _runner
 
 
 def _real_sqlite_backup(source: Path, destination: Path) -> None:
@@ -385,7 +435,7 @@ def main(argv: list[str] | None = None) -> int:
         manifest_path=args.manifest,
         bucket_uri=args.bucket,
         staging_root=args.staging,
-        gcloud_runner=_real_gcloud_runner,
+        gcloud_runner_factory=_real_gcloud_runner_factory,
         sqlite_backup_runner=_real_sqlite_backup,
         file_fingerprint=_real_fingerprint,
         upload_verifier=_real_upload_verifier,

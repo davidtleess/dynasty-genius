@@ -200,6 +200,246 @@ def _run_backup(
     )
 
 
+def test_gcloud_resolver_prefers_explicit_path_binary() -> None:
+    backup = _backup_module()
+    which_calls: list[str] = []
+
+    def which(binary: str) -> str:
+        which_calls.append(binary)
+        return "/custom/google-cloud-sdk/bin/gcloud"
+
+    def is_file(_path: str) -> bool:
+        raise AssertionError("candidate fallback must not run when PATH resolves gcloud")
+
+    assert (
+        backup._resolve_gcloud_binary(
+            which=which,
+            is_file=is_file,
+            candidates=("/usr/local/bin/gcloud",),
+        )
+        == "/custom/google-cloud-sdk/bin/gcloud"
+    )
+    assert which_calls == ["gcloud"]
+
+
+@pytest.mark.parametrize(
+    ("present_candidate", "expected"),
+    [
+        ("/usr/local/bin/gcloud", "/usr/local/bin/gcloud"),
+        ("/opt/homebrew/bin/gcloud", "/opt/homebrew/bin/gcloud"),
+    ],
+)
+def test_gcloud_resolver_falls_back_to_well_known_candidate_paths(
+    present_candidate: str, expected: str
+) -> None:
+    backup = _backup_module()
+    candidates = (
+        "/usr/local/bin/gcloud",
+        "/opt/homebrew/bin/gcloud",
+        "/usr/local/google-cloud-sdk/bin/gcloud",
+    )
+    checked: list[str] = []
+
+    def is_file(path: str) -> bool:
+        checked.append(path)
+        return path == present_candidate
+
+    assert (
+        backup._resolve_gcloud_binary(
+            which=lambda _binary: None,
+            is_file=is_file,
+            candidates=candidates,
+        )
+        == expected
+    )
+    assert checked == list(candidates[: candidates.index(expected) + 1])
+
+
+def test_gcloud_resolver_names_absent_binary_without_filenotfound() -> None:
+    backup = _backup_module()
+
+    with pytest.raises(backup.BackupError, match="^gcloud_not_found$"):
+        backup._resolve_gcloud_binary(
+            which=lambda _binary: None,
+            is_file=lambda _path: False,
+            candidates=("/usr/local/bin/gcloud", "/opt/homebrew/bin/gcloud"),
+        )
+
+
+def test_missing_gcloud_factory_failure_writes_named_marker_before_staging(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    backup = _backup_module()
+    repo, db, non_db = _seed_repo(tmp_path)
+    manifest = _write_manifest(repo, _entries(db, non_db, repo))
+    staging_root = tmp_path / "staging"
+    sqlite_calls: list[tuple[Path, Path]] = []
+    factory_calls = 0
+    monkeypatch.setenv("PATH", "/usr/bin:/bin:/usr/sbin:/sbin")
+
+    def missing_factory():
+        nonlocal factory_calls
+        factory_calls += 1
+        raise backup.BackupError("gcloud_not_found")
+
+    result = backup.run_backup(
+        repo_root=repo,
+        manifest_path=manifest,
+        bucket_uri=BUCKET,
+        staging_root=staging_root,
+        gcloud_runner_factory=missing_factory,
+        sqlite_backup_runner=_sqlite_backup(sqlite_calls),
+        file_fingerprint=Fingerprints(),
+        upload_verifier=lambda *_args, **_kwargs: True,
+        sleep=lambda _seconds: None,
+        now_utc=lambda: datetime(2026, 7, 4, 15, 15, tzinfo=timezone.utc),
+    )
+
+    _assert_failed(result)
+    assert factory_calls == 1
+    assert _value(result, "failures") == ["gcloud_not_found"]
+    assert "unexpected:FileNotFoundError" not in _value(result, "failures")
+    assert _value(result, "files") == 0
+    assert _value(result, "bytes") == 0
+    assert _value(result, "run_prefix") is None
+    assert not sqlite_calls
+    assert not staging_root.exists() or not any(staging_root.iterdir())
+    marker = json.loads((repo / "app/data/ops/backup_status_latest.json").read_text())
+    assert marker["failures"] == ["gcloud_not_found"]
+    assert marker["sha256_verified"] is False
+
+
+def test_gcloud_factory_is_not_resolved_before_required_sources_validate(
+    tmp_path: Path,
+) -> None:
+    backup = _backup_module()
+    repo, db, non_db = _seed_repo(tmp_path)
+    missing = repo / "app" / "data" / "missing_required.csv"
+    manifest = _write_manifest(
+        repo,
+        [
+            *_entries(db, non_db, repo),
+            {
+                "path": missing.relative_to(repo).as_posix(),
+                "required": True,
+                "kind": "file",
+            },
+        ],
+    )
+    factory_calls = 0
+
+    def factory_must_not_run() -> FakeGcloud:
+        nonlocal factory_calls
+        factory_calls += 1
+        raise AssertionError("gcloud must not resolve before source validation")
+
+    result = backup.run_backup(
+        repo_root=repo,
+        manifest_path=manifest,
+        bucket_uri=BUCKET,
+        staging_root=repo / "tmp" / "backup-staging",
+        gcloud_runner_factory=factory_must_not_run,
+        sqlite_backup_runner=_sqlite_backup([]),
+        file_fingerprint=Fingerprints(),
+        upload_verifier=lambda *_args, **_kwargs: True,
+        sleep=lambda _seconds: None,
+        now_utc=lambda: datetime(2026, 7, 4, 15, 15, tzinfo=timezone.utc),
+    )
+
+    _assert_failed(result)
+    assert factory_calls == 0
+    assert _value(result, "failures") == [
+        "missing_required:app/data/missing_required.csv"
+    ]
+
+
+def test_real_gcloud_runner_factory_invokes_resolved_absolute_binary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    backup = _backup_module()
+    subprocess_calls: list[list[str]] = []
+
+    def fake_run(argv: list[str], **_kwargs: Any) -> SimpleNamespace:
+        subprocess_calls.append([str(part) for part in argv])
+        return SimpleNamespace(returncode=0, stdout="fake-token\n", stderr="")
+
+    monkeypatch.setattr(backup.shutil, "which", lambda binary: "/usr/local/bin/gcloud")
+    monkeypatch.setattr(backup.subprocess, "run", fake_run)
+
+    runner = backup._real_gcloud_runner_factory()
+    result = runner(["auth", "print-access-token"])
+
+    assert result.returncode == 0
+    assert subprocess_calls == [
+        ["/usr/local/bin/gcloud", "auth", "print-access-token"]
+    ]
+    assert subprocess_calls[0][0] != "gcloud"
+
+
+def test_run_backup_uses_injected_gcloud_factory_once_and_preserves_fake_seam(
+    tmp_path: Path,
+) -> None:
+    backup = _backup_module()
+    repo, db, non_db = _seed_repo(tmp_path)
+    manifest = _write_manifest(repo, _entries(db, non_db, repo))
+    gcloud = FakeGcloud()
+    factory_calls = 0
+
+    def fake_factory() -> FakeGcloud:
+        nonlocal factory_calls
+        factory_calls += 1
+        return gcloud
+
+    result = backup.run_backup(
+        repo_root=repo,
+        manifest_path=manifest,
+        bucket_uri=BUCKET,
+        staging_root=repo / "tmp" / "backup-staging",
+        gcloud_runner_factory=fake_factory,
+        sqlite_backup_runner=_sqlite_backup([]),
+        file_fingerprint=Fingerprints(),
+        upload_verifier=lambda *_args, **_kwargs: True,
+        sleep=lambda _seconds: None,
+        now_utc=lambda: datetime(2026, 7, 4, 15, 15, tzinfo=timezone.utc),
+    )
+
+    assert _value(result, "status") == "completed"
+    assert factory_calls == 1
+    assert any(call == ["auth", "print-access-token"] for call in gcloud.calls)
+    assert gcloud.latest_pointer_calls()
+
+
+def test_main_binds_real_gcloud_runner_factory_not_bare_runner(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    backup = _backup_module()
+    captured_kwargs: dict[str, Any] = {}
+
+    def fake_run_backup(**kwargs: Any) -> dict[str, Any]:
+        captured_kwargs.update(kwargs)
+        return {"exit_code": 0, "status": "completed", "failures": []}
+
+    monkeypatch.setattr(backup, "run_backup", fake_run_backup)
+
+    exit_code = backup.main(
+        [
+            "--repo-root",
+            str(tmp_path),
+            "--manifest",
+            str(tmp_path / "manifest.json"),
+            "--bucket",
+            BUCKET,
+            "--staging",
+            str(tmp_path / "staging"),
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured_kwargs["gcloud_runner_factory"] is backup._real_gcloud_runner_factory
+    assert "gcloud_runner" not in captured_kwargs
+    assert json.loads(capsys.readouterr().out)["exit_code"] == 0
+
+
 @pytest.mark.parametrize(
     "bad_entry",
     [
