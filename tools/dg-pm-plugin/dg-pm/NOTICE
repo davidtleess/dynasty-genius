@@ -1,0 +1,31 @@
+Dynasty Genius — Product Management plugin (dg-pm)
+
+This plugin is a derivative work reframed from the "product-management" plugin
+in Anthropic's knowledge-work-plugins repository
+(https://github.com/anthropics/knowledge-work-plugins), which is licensed under
+the Apache License, Version 2.0.
+
+Modifications from the original (2026-07-10):
+- Rescoped from a multi-user SaaS product-management workflow to Dynasty Genius,
+  a single-user, local-first ML asset-management project.
+- Replaced external SaaS connectors (Slack, Linear, Notion, Figma, Amplitude,
+  Intercom, Fireflies) with DG's own repo artifacts (AGENT_SYNC, agent ledger,
+  governance files, spec/plan dirs, memory, GitHub via gh, the Codex/Gemini
+  cockpit). See SOURCES.md.
+- Bound every skill to DG working law: the No-Verdict Line
+  (decision_supported=false; no verdicts/directives/nominated targets in
+  running-software output), cockpit-TDD (Claude spec -> Codex RED -> Claude
+  GREEN -> dual-CLEAR [Claude + Codex binding; Gemini advisory/non-binding] ->
+  David authorizes), and David-authorizes-every-action.
+- Rewrote write-spec to emit a DG spec of record (falsification seeds / RED
+  matrix, cockpit-TDD sequence) instead of a generic PRD.
+- Reframed roadmap-update onto AGENT_SYNC + the David-sequenced priority board;
+  stakeholder-update onto a single-audience David update / session closeout;
+  metrics-review onto descriptive model/operational telemetry (never a verdict);
+  synthesize-research onto DG's adversarial research-lane pattern.
+- Dropped sprint-planning, product-brainstorming, competitive-brief, and the
+  brainstorm command (brainstorming is served by the existing
+  superpowers:brainstorming skill).
+
+A copy of the Apache License 2.0 is available at:
+http://www.apache.org/licenses/LICENSE-2.0
