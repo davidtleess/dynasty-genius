@@ -13,7 +13,7 @@ Produce a **design spec of record** at `docs/superpowers/specs/YYYY-MM-DD-<slug>
 ## Before you write
 
 1. **Complete the governance bootstrap first — do not shortcut it.** Per `CLAUDE.md`/`AGENTS.md`, the full Required Reading Order precedes any spec authoring, code, PR review, or analytical recommendation: governance `02-agent-operating-loop` → `00-product-constitution` → `01-north-star-architecture` → `03-code-hygiene-policy` → root `PRODUCT.md`/`DESIGN.md` (if the surface is visual) → `AGENT_SYNC.md` → today's ledger. For *this* spec specifically, ground hardest in `00` (immutable football rules + the No-Verdict Line) and `AGENT_SYNC.md` (current thread); load `PRODUCT.md`/`DESIGN.md` via the `impeccable` skill for any visual surface.
-2. **Measure the problem — do not infer it.** Reproduce it. Read the actual code at `file:line`. Quote the real marker/output/test. A spec that opens with a reproduced failure and exact line references is worth ten that open with a hunch.
+2. **Measure the problem — do not infer it.** Reproduce it. Read the actual code at `file:line`. Quote the real marker/output/test. A spec that opens with a reproduced failure and exact line references is worth ten that open with a hunch. **The reproduction is a gate, not a formality:** the `Reproduced` block must contain a real command and its captured output. If you genuinely cannot reproduce yet, you must **label the section `Reproduction pending` (never `Reproduced`)** and mark the spec **NOT a spec of record — it cannot go to cockpit CLEAR until a real command + output is pasted.** A `Reproduced` heading over a placeholder is the exact failure this skill exists to prevent.
 3. **Name the authoring lane.** Claude authors the spec; **Codex authors the RED**; Gemini is advisory/non-binding. State this so the reader knows who does what next.
 
 ## Spec structure
@@ -25,7 +25,7 @@ Write these sections. Keep it scannable — a busy reviewer should get the gist 
 
 ### 1. Problem (measured, not inferred)
 - The user/system problem in 2–3 sentences, grounded in evidence (a reproduced failure, a real marker, a metric, a David directive quoted verbatim).
-- **Root cause** at `file:line`. **Reproduced (not asserted)** — show the command and the exact output. **Consequence** — what is actually at risk today.
+- **Root cause** at `file:line`. **Reproduced (not asserted)** — show the command and the exact output (or, if not yet reproduced, label it **`Reproduction pending`** and flag the spec as not-yet-a-spec-of-record per step 2 — never a `Reproduced` heading over a placeholder). **Consequence** — what is actually at risk today.
 
 ### 2. Design
 - The change, concretely. Prefer **injectable seams** so the RED can be hermetic (no network, no gitignored artifact, no real external effect). Show the key function signatures / data shapes.
