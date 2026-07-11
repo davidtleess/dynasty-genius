@@ -11,6 +11,7 @@ from __future__ import annotations
 import gc
 import importlib
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -607,3 +608,112 @@ def test_f15_preflight_writes_neither_scorecard_nor_job_marker(
     assert body["status"] == "ready"
     assert not report_path.exists()
     assert not marker_path.exists()
+
+
+@pytest.mark.parametrize("preexisting_report", [False, True])
+def test_f16_unwritable_marker_on_full_scoring_path_preserves_scorecard_and_cleans_temp(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    preexisting_report: bool,
+) -> None:
+    cli = _load_cli()
+    report_dir = tmp_path / "reports"
+    report_dir.mkdir()
+    report_path = report_dir / "scorecard.json"
+    if preexisting_report:
+        report_path.write_text(
+            json.dumps({"status": "prior", "decision_supported": False}),
+            encoding="utf-8",
+        )
+        before = report_path.read_text(encoding="utf-8")
+    else:
+        before = None
+    marker_path = tmp_path / "marker-as-directory"
+    marker_path.mkdir()
+
+    monkeypatch.setattr(
+        cli,
+        "_default_schedule_loader",
+        lambda *_args, **_kwargs: _final_schedule(),
+    )
+    monkeypatch.setattr(cli, "_default_stat_loader", lambda *_args, **_kwargs: _stat_rows())
+    monkeypatch.setattr(cli, "_default_util_loader", lambda *_args, **_kwargs: _util_rows())
+    monkeypatch.setattr(
+        cli,
+        "_default_prediction_loader",
+        lambda *_args, **_kwargs: _prediction_rows(),
+    )
+    monkeypatch.setattr(
+        cli,
+        "_default_identity_snapshot_loader",
+        lambda *_args, **_kwargs: _identity_snapshots(),
+    )
+
+    result = _run_main(
+        cli,
+        [
+            "--report-path",
+            str(report_path),
+            "--marker-path",
+            str(marker_path),
+            "--season",
+            "2026",
+            "--week",
+            "1",
+        ],
+    )
+
+    captured = capsys.readouterr()
+    assert result != 0
+    assert "marker" in captured.err.lower()
+    if preexisting_report:
+        assert report_path.read_text(encoding="utf-8") == before
+        expected_files = ["scorecard.json"]
+    else:
+        assert not report_path.exists()
+        expected_files = []
+    assert sorted(path.name for path in report_dir.iterdir()) == expected_files
+
+
+def test_f17_scorecard_publish_failure_rewrites_failed_marker_and_preserves_report(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cli = _load_cli()
+    report_dir = tmp_path / "reports"
+    report_dir.mkdir()
+    report_path = report_dir / "scorecard.json"
+    report_path.write_text(
+        json.dumps({"status": "prior", "decision_supported": False}),
+        encoding="utf-8",
+    )
+    before = report_path.read_text(encoding="utf-8")
+    marker_path = tmp_path / "status.json"
+
+    def fail_replace(*_args: Any, **_kwargs: Any) -> None:
+        raise OSError("publish boom")
+
+    monkeypatch.setattr(os, "replace", fail_replace)
+
+    result = cli.run_scoring(
+        season=2026,
+        week=1,
+        report_path=report_path,
+        marker_path=marker_path,
+        schedule_loader=lambda *_args, **_kwargs: _final_schedule(),
+        stat_loader=lambda *_args, **_kwargs: _stat_rows(),
+        util_loader=lambda *_args, **_kwargs: _util_rows(),
+        prediction_loader=lambda *_args, **_kwargs: _prediction_rows(),
+        identity_snapshot_loader=lambda *_args, **_kwargs: _identity_snapshots(),
+        now_fn=lambda: datetime(2026, 9, 20, tzinfo=timezone.utc),
+    )
+
+    assert result["status"] == "failed"
+    assert result["failure_reason"].startswith("scorecard_publish_failed")
+    assert report_path.read_text(encoding="utf-8") == before
+    marker = _read_json(marker_path)
+    assert marker["status"] == "failed"
+    assert marker["failure_reason"].startswith("scorecard_publish_failed")
+    assert marker["decision_supported"] is False
+    assert sorted(path.name for path in report_dir.iterdir()) == ["scorecard.json"]
