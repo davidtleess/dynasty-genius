@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import math
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from statistics import fmean
 from typing import Any, Optional
@@ -132,7 +133,9 @@ class OutcomeForwardCaptureStore:
             f"{c} {_COLUMN_DDL.get(c, 'TEXT')}" for c in _ALL_COLUMNS
         )
         pk = ", ".join(KEY_COLUMNS)
-        with sqlite3.connect(self.db_path) as conn:
+        # closing() is load-bearing: sqlite3's connection context manager ends the
+        # TRANSACTION, never the connection — an unclosed connection holds an fd.
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.execute(
                 f"CREATE TABLE IF NOT EXISTS {TABLE} (\n    {cols},\n    PRIMARY KEY ({pk})\n)"
             )
@@ -267,7 +270,7 @@ class OutcomeForwardCaptureStore:
 
     def _write(self, facts: list[dict[str, Any]]) -> int:
         rows_written = 0
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             # Conflict pass first: a single differing fact aborts the whole ingest (no write).
             for fact in facts:
                 existing = conn.execute(
@@ -300,7 +303,7 @@ class OutcomeForwardCaptureStore:
         ``games_played``/PPG count only played weeks; realized-util reflects the latest
         ingested week (fail-closed per field). Returns None when the player has no facts.
         Rolling windows are order-independent (computed over week-ordered played facts)."""
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             rows = conn.execute(
                 f"SELECT {', '.join(_ALL_COLUMNS)} FROM {TABLE} "
                 "WHERE season=? AND gsis_id=? ORDER BY week",

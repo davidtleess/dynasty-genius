@@ -144,6 +144,9 @@ def test_offseason_no_finalized_week_noops_without_artifact_mutation(tmp_path):
 
 
 def test_week_not_finalized_noops_before_loading_or_writing(tmp_path):
+    # AMENDED (spec 2026-07-11, F5/Codex R4): the predictions gate now runs FIRST by
+    # design, so the prediction loader is legitimately called before the finality no-op;
+    # stat/util/identity loaders must still stay dark on a not-finalized week.
     cli = _load_cli()
     report_path = tmp_path / "scorecard.json"
 
@@ -157,7 +160,7 @@ def test_week_not_finalized_noops_before_loading_or_writing(tmp_path):
         schedule_loader=lambda *_args, **_kwargs: _not_final_schedule(),
         stat_loader=fail_loader,
         util_loader=fail_loader,
-        prediction_loader=fail_loader,
+        prediction_loader=lambda *_args, **_kwargs: _prediction_rows(),
         identity_snapshot_loader=fail_loader,
     )
 
@@ -286,12 +289,22 @@ def test_main_default_offseason_path_noops_without_artifact_mutation(
     def fail_loader(*_args, **_kwargs):
         raise AssertionError("off-season default no-op must not load source rows")
 
+    # AMENDED (spec 2026-07-11): the prediction loader now legitimately runs first —
+    # off-season it returns [] (unwired/no snapshots), which IS the honest no-op trigger.
+    # A hermetic --marker-path keeps the new terminal marker off the live default path.
     monkeypatch.setattr(cli, "_default_stat_loader", fail_loader)
     monkeypatch.setattr(cli, "_default_util_loader", fail_loader)
-    monkeypatch.setattr(cli, "_default_prediction_loader", fail_loader)
+    monkeypatch.setattr(cli, "_default_prediction_loader", lambda *_args, **_kwargs: [])
     monkeypatch.setattr(cli, "_default_identity_snapshot_loader", fail_loader)
 
-    result = cli.main(["--report-path", str(report_path)])
+    result = cli.main(
+        [
+            "--report-path",
+            str(report_path),
+            "--marker-path",
+            str(tmp_path / "status.json"),
+        ]
+    )
 
     assert result == 0
     assert report_path.read_text() == before
