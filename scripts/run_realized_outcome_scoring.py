@@ -23,9 +23,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess  # noqa: F401 — guarded seam: this tool must NEVER invoke git (tests patch subprocess.run to forbid)
 import sys
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional
 
@@ -47,6 +49,58 @@ from src.dynasty_genius.outcome_loop.realized_outcome_scorer import score  # noq
 
 # Default gitignored artifact location (mirrors the other capture bricks).
 DEFAULT_REPORT_PATH = ROOT / "app" / "data" / "realized_outcome" / "scorecard_latest.json"
+
+# Terminal status marker: written on EVERY terminal state (ok/noop/failed) so a scheduled
+# run can never fail silently again. Execution state ONLY — never model performance.
+DEFAULT_MARKER_PATH = (
+    ROOT / "app" / "data" / "valuation_runtime" / "realized_outcome_scoring_status_latest.json"
+)
+
+# Scheduled-target freshness window (spec §2.2): the no-arg resolver path refuses a target
+# whose last game is older than this — schedule-date-anchored, never calendar heuristics.
+# Explicit --season/--week invocations bypass (a human-named target is intentional backfill).
+SCHEDULED_TARGET_MAX_AGE_DAYS = 14
+
+
+class MarkerWriteError(RuntimeError):
+    """The terminal status marker could not be written — the run must fail LOUD."""
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _write_marker(marker_path: Path | str, payload: dict[str, Any]) -> None:
+    try:
+        path = Path(marker_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    except OSError as exc:
+        raise MarkerWriteError(
+            f"terminal status marker write failed at {marker_path}: {exc}"
+        ) from exc
+
+
+def _read_marker(marker_path: Path | str) -> Optional[dict[str, Any]]:
+    """Absent/corrupt marker reads as None — it never blocks a run; this run's terminal
+    state overwrites it (the marker is operational state, not compounding history)."""
+    try:
+        loaded = json.loads(Path(marker_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return loaded if isinstance(loaded, dict) else None
+
+
+def _latest_gameday(schedule: dict[str, Any], season: int, week: int):
+    """Max parseable YYYY-MM-DD gameday among the target week's games; None when absent."""
+    dates = []
+    for game in schedule.get("games") or []:
+        if game.get("season") == season and game.get("week") == week:
+            try:
+                dates.append(datetime.strptime(str(game.get("gameday")), "%Y-%m-%d").date())
+            except (TypeError, ValueError):
+                continue
+    return max(dates) if dates else None
 
 _REALIZED_UTIL_FIELDS = (
     "snap_share_realized",
@@ -128,49 +182,156 @@ def run_scoring(
     util_loader: Callable[..., list[dict[str, Any]]],
     prediction_loader: Callable[..., list[dict[str, Any]]],
     identity_snapshot_loader: Callable[..., list[dict[str, Any]]],
+    marker_path: Path | str | None = None,
+    enforce_target_freshness: bool = False,
+    target_max_age_days: int = SCHEDULED_TARGET_MAX_AGE_DAYS,
+    now_fn: Callable[[], datetime] | None = None,
 ) -> dict[str, Any]:
     """Score the frozen model's predictions vs realized outcomes for one finalized week.
 
-    Finality is gated on the queried week's INJECTED schedule FIRST — a not-finalized week is a
-    healthy no-op that loads no source rows and mutates no artifact. Writes only the scorecard;
-    never invokes git."""
+    Gate order (spec 2026-07-11, each gate a marker-recorded terminal no-op/fail):
+    1. predictions FIRST (local/cheap) — empty -> ``no_predictions_for_target``; an ok
+       scorecard REQUIRES real frozen predictions by construction, and no network loader
+       is touched before this gate.
+    2. the marker is the target ledger — same (season, week) already ``ok`` (or already
+       recorded ``already_scored``) -> ``already_scored``, never a summer of re-scores.
+    3. finality on the injected schedule (existing law) -> ``week_not_finalized``.
+    4. scheduled-target freshness (``enforce_target_freshness=True`` on the no-arg
+       resolver path only) — target's last gameday older than ``target_max_age_days``
+       -> ``stale_target``; unparseable gamedays fail LOUD (``target_freshness_indeterminate``).
+
+    Every terminal state writes the status marker when ``marker_path`` is given; a marker
+    write failure raises :class:`MarkerWriteError` (the run must fail loud, never silent).
+    Writes only the scorecard + marker; never invokes git."""
     report_path = Path(report_path)
-    schedule = schedule_loader(season, week)
+    now = (now_fn or _utc_now)()
+
+    def _terminal(result: dict[str, Any]) -> dict[str, Any]:
+        if marker_path is not None:
+            marker = {
+                "status": result["status"],
+                "finished_at": now.isoformat(),
+                "season": season,
+                "week": week,
+                "decision_supported": False,
+            }
+            for key in ("noop_reason", "failure_reason", "week_status"):
+                if key in result:
+                    marker[key] = result[key]
+            _write_marker(marker_path, marker)
+        return result
+
+    def _noop(reason: str, **extra: Any) -> dict[str, Any]:
+        return _terminal(
+            {
+                "status": "noop",
+                "noop_reason": reason,
+                "decision_supported": False,
+                "git_commit_performed": False,
+                **extra,
+            }
+        )
+
+    def _failed(reason: str) -> dict[str, Any]:
+        return _terminal(
+            {
+                "status": "failed",
+                "failure_reason": reason,
+                "decision_supported": False,
+                "git_commit_performed": False,
+            }
+        )
+
+    try:
+        predictions = prediction_loader(season, week)
+    except MarkerWriteError:  # pragma: no cover — loaders never raise this
+        raise
+    except Exception as exc:
+        return _failed(f"predictions_load_failed:{type(exc).__name__}")
+    if not predictions:
+        return _noop("no_predictions_for_target")
+
+    if marker_path is not None:
+        prior = _read_marker(marker_path)
+        if (
+            prior is not None
+            and prior.get("season") == season
+            and prior.get("week") == week
+            and (
+                prior.get("status") == "ok"
+                or prior.get("noop_reason") == "already_scored"
+            )
+        ):
+            return _noop("already_scored")
+
+    try:
+        schedule = schedule_loader(season, week)
+    except Exception as exc:
+        return _failed(f"schedule_load_failed:{type(exc).__name__}")
     status = week_status(season, week, schedule=schedule)
     if status != "finalized":
-        return {
-            "status": "noop",
-            "noop_reason": "week_not_finalized",
-            "week_status": status,
-            "decision_supported": False,
-            "git_commit_performed": False,
-        }
+        return _noop("week_not_finalized", week_status=status)
 
-    predictions = prediction_loader(season, week)
-    bridge = OutcomeIdentityBridge.from_identity_snapshots(
-        identity_snapshot_loader(season, week)
-    )
-    outcomes = _build_outcomes(
-        season,
-        week,
-        schedule_loader=schedule_loader,
-        stat_loader=stat_loader,
-        util_loader=util_loader,
-    )
-    scorecard = score(predictions, outcomes, bridge, as_of_week=week)
+    if enforce_target_freshness:
+        latest = _latest_gameday(schedule, season, week)
+        if latest is None:
+            return _failed("target_freshness_indeterminate")
+        if (now.date() - latest).days > target_max_age_days:
+            return _noop("stale_target")
 
-    # Stamp the successful run status onto the written artifact (the scorecard body is the
-    # pure score() output; a written scorecard always reflects a completed run).
-    artifact = {**scorecard, "status": "ok"}
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(json.dumps(artifact, indent=2, sort_keys=True))
-    return {
+    try:
+        bridge = OutcomeIdentityBridge.from_identity_snapshots(
+            identity_snapshot_loader(season, week)
+        )
+    except Exception as exc:
+        return _failed(f"identity_bridge_failed:{type(exc).__name__}")
+    try:
+        outcomes = _build_outcomes(
+            season,
+            week,
+            schedule_loader=schedule_loader,
+            stat_loader=stat_loader,
+            util_loader=util_loader,
+        )
+    except Exception as exc:
+        return _failed(f"outcome_build_failed:{type(exc).__name__}")
+
+    try:
+        scorecard = score(predictions, outcomes, bridge, as_of_week=week)
+        # Stamp the successful run status onto the written artifact (the scorecard body is
+        # the pure score() output; a written scorecard always reflects a completed run).
+        artifact = {**scorecard, "status": "ok"}
+    except Exception as exc:
+        return _failed(f"scoring_failed:{type(exc).__name__}")
+
+    # Publish coupling (F16/F17): temp scorecard -> ok MARKER -> atomic publish. A marker
+    # write failure leaves the report byte-unchanged (temp discarded, MarkerWriteError
+    # propagates loud); a publish failure rewrites the marker to failed so the marker can
+    # never vouch for a scorecard that was not actually published.
+    try:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_report = report_path.with_name(report_path.name + ".tmp")
+        tmp_report.write_text(json.dumps(artifact, indent=2, sort_keys=True))
+    except OSError as exc:
+        return _failed(f"scorecard_write_failed:{type(exc).__name__}")
+    result = {
         "status": "ok",
         "decision_supported": False,
         "git_commit_performed": False,
         "scorecard_path": str(report_path),
         "week_status": status,
     }
+    try:
+        _terminal(result)
+    except MarkerWriteError:
+        tmp_report.unlink(missing_ok=True)
+        raise
+    try:
+        os.replace(tmp_report, report_path)
+    except OSError as exc:
+        tmp_report.unlink(missing_ok=True)
+        return _failed(f"scorecard_publish_failed:{type(exc).__name__}")
+    return result
 
 
 # ── default production loaders (lazy nflreadpy / store-backed; validated at the David-gated
@@ -180,18 +341,26 @@ def _default_schedule_loader(season: int, week: int) -> dict[str, Any]:
 
     frame = nfl.load_schedules([season]).to_pandas()
     games = frame[frame["week"] == week]
-    statuses = [
-        "final" if str(row.get("home_score")) not in {"", "None", "nan"} else "scheduled"
-        for _, row in games.iterrows()
-    ]
+    game_rows = []
+    for _, row in games.iterrows():
+        status = (
+            "final" if str(row.get("home_score")) not in {"", "None", "nan"} else "scheduled"
+        )
+        game_rows.append(
+            {
+                "season": season,
+                "week": week,
+                "game_id": row.get("game_id"),
+                "status": status,
+                # gameday feeds the scheduled-target freshness guard (spec §2.2).
+                "gameday": row.get("gameday"),
+            }
+        )
     return {
         "season": season,
         "week": week,
         "expected_game_count": len(games),
-        "games": [
-            {"season": season, "week": week, "game_id": gid, "status": status}
-            for gid, status in zip(games.get("game_id", []), statuses)
-        ],
+        "games": game_rows,
     }
 
 
@@ -232,19 +401,29 @@ def _default_identity_snapshot_loader(season: int, week: int) -> list[dict[str, 
     return []
 
 
-def _resolve_season_week() -> tuple[int, int]:
-    """Resolve a CONCRETE (season, week) for an unattended/no-arg scheduled run — NEVER None,
-    so ``run_scoring`` always receives real values and off-season deterministically no-ops.
+def _resolve_season_week(
+    *,
+    season_provider: Callable[[], Any] | None = None,
+    week_provider: Callable[[], Any] | None = None,
+) -> tuple[int, int]:
+    """Resolve a CONCRETE (season, week) for an unattended/no-arg scheduled run — NEVER None.
 
-    Uses nflreadpy's date-derived current season + week (cheap, no schedule download). Off-season
-    the current week sits past the played weeks, so the week's finality gate yields the honest
-    no-op. ``get_current_week`` is wrapped fail-safe (CI/offline) so a no-arg run never crashes.
-    Validated at the David-gated first live finalized-week run."""
-    import nflreadpy as nfl  # lazy: keep module import standalone-clean + fast
+    The resolver is deliberately DUMB: nflreadpy's date-derived values keep returning the
+    COMPLETED season (e.g. 2025 week 22 in July 2026), so a resolved target is NOT evidence
+    of live work. Honesty lives in ``run_scoring``'s gates: predictions-first, the marker
+    target ledger, finality, and the scheduled-target freshness guard (spec 2026-07-11 —
+    this replaces the disproven "off-season resolves past the played weeks" assumption).
+    Providers are injectable so tests probe rollover cases without live nflreadpy.
+    ``week_provider`` is wrapped fail-safe (CI/offline) so a no-arg run never crashes."""
+    if season_provider is None or week_provider is None:
+        import nflreadpy as nfl  # lazy: keep module import standalone-clean + fast
 
-    season = int(nfl.get_current_season())
+        season_provider = season_provider or nfl.get_current_season
+        week_provider = week_provider or nfl.get_current_week
+
+    season = int(season_provider())
     try:
-        week = int(nfl.get_current_week())
+        week = int(week_provider())
     except Exception:
         week = 1
     return season, week
@@ -259,6 +438,11 @@ def _parse_args(argv: Optional[list[str]]) -> argparse.Namespace:
         default=str(DEFAULT_REPORT_PATH),
         help="Gitignored scorecard artifact path.",
     )
+    parser.add_argument(
+        "--marker-path",
+        default=str(DEFAULT_MARKER_PATH),
+        help="Gitignored terminal status marker path (execution state only).",
+    )
     parser.add_argument("--season", type=int, default=None, help="Season to score.")
     parser.add_argument("--week", type=int, default=None, help="Latest finalized week to score.")
     parser.add_argument(
@@ -269,7 +453,11 @@ def _parse_args(argv: Optional[list[str]]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(
+    argv: Optional[list[str]] = None,
+    *,
+    now_fn: Callable[[], datetime] | None = None,
+) -> int:
     args = _parse_args(argv)
     report_path = Path(args.report_path)
     if args.preflight:
@@ -286,20 +474,31 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
 
     season, week = args.season, args.week
-    if season is None or week is None:
+    explicit_target = season is not None and week is not None
+    if not explicit_target:
         # No-arg scheduled (LaunchAgent) run: resolve concrete values — never pass None onward.
+        # The resolver may return a stale completed-season target; the freshness guard
+        # (enforced ONLY on this path) refuses it. Explicit targets are intentional backfills.
         season, week = _resolve_season_week()
 
-    result = run_scoring(
-        season=season,
-        week=week,
-        report_path=report_path,
-        schedule_loader=_default_schedule_loader,
-        stat_loader=_default_stat_loader,
-        util_loader=_default_util_loader,
-        prediction_loader=_default_prediction_loader,
-        identity_snapshot_loader=_default_identity_snapshot_loader,
-    )
+    try:
+        result = run_scoring(
+            season=season,
+            week=week,
+            report_path=report_path,
+            marker_path=Path(args.marker_path),
+            enforce_target_freshness=not explicit_target,
+            now_fn=now_fn,
+            schedule_loader=_default_schedule_loader,
+            stat_loader=_default_stat_loader,
+            util_loader=_default_util_loader,
+            prediction_loader=_default_prediction_loader,
+            identity_snapshot_loader=_default_identity_snapshot_loader,
+        )
+    except MarkerWriteError as exc:
+        # The one sanctioned stderr-only path: the truth surface itself is unwritable.
+        print(f"FATAL: status marker write failed: {exc}", file=sys.stderr)
+        return 1
     print(json.dumps(result, default=str))
     return 0 if result.get("status") in {"ok", "noop"} else 1
 
