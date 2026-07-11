@@ -9,15 +9,15 @@
     "te_not_suppressed_by_position_alone": true
   },
   "signal_status_counts": {
-    "gates_passed": 184,
-    "inside_band": 150,
-    "unavailable": 11867
+    "gates_passed": 191,
+    "inside_band": 149,
+    "unavailable": 11861
   },
   "signals_by_type": {
-    "INSIDE_BAND": 150,
-    "MODEL_HIGH_MARKET_LOW": 138,
+    "INSIDE_BAND": 149,
+    "MODEL_HIGH_MARKET_LOW": 145,
     "MODEL_LOW_MARKET_HIGH": 46,
-    "UNAVAILABLE": 11866,
+    "UNAVAILABLE": 11860,
     "UNRESOLVED_IDENTITY": 1
   },
   "te_position_suppressed_count": 0,
