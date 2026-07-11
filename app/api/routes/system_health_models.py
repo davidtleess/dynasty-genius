@@ -16,7 +16,7 @@ import json
 import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
-from typing import Literal
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -89,7 +89,12 @@ class ReportArtifactConfig(_Strict):
     dormant_ok: bool
     season_windows: SeasonWindows
     status_field: str | None = None
-    success_status: str | None = None
+    # A scalar for single-success producers; a list for producers with several
+    # healthy terminal states (e.g. the realized-outcome scorer's ok AND noop).
+    # Typed list[Any] deliberately: member-type/blank/duplicate rejection lives
+    # in load-time validation with NAMED HealthConfigError reasons, not in an
+    # anonymous pydantic union error.
+    success_status: str | list[Any] | None = None
     failure_reason_field: str | None = None
 
 
@@ -277,14 +282,54 @@ def load_report_freshness(*, config_path: Path) -> ReportFreshnessConfig:
             # forever — a permanent false alarm that config alone could strand.
             # A blank `failure_reason_field` names no key and can only ever
             # resolve to `unreported`, silently discarding the producer's reason.
-            for field_name in ("status_field", "success_status", "failure_reason_field"):
+            for field_name in ("status_field", "failure_reason_field"):
                 value = getattr(artifact, field_name)
                 if value is not None and not value.strip():
                     raise _reject(
                         f"schema invalid for artifact {artifact.artifact_id!r}: "
                         f"empty {field_name}"
                     )
+            success = artifact.success_status
+            if isinstance(success, str):
+                if not success.strip():
+                    raise _reject(
+                        f"schema invalid for artifact {artifact.artifact_id!r}: "
+                        "empty success_status"
+                    )
+            elif isinstance(success, list):
+                if not success:
+                    raise _reject(
+                        f"schema invalid for artifact {artifact.artifact_id!r}: "
+                        "success_status list must be non-empty"
+                    )
+                seen: set[str] = set()
+                for member in success:
+                    if not isinstance(member, str):
+                        raise _reject(
+                            f"schema invalid for artifact {artifact.artifact_id!r}: "
+                            "success_status list members must be strings"
+                        )
+                    if not member.strip():
+                        raise _reject(
+                            f"schema invalid for artifact {artifact.artifact_id!r}: "
+                            "empty success_status list member"
+                        )
+                    if member in seen:
+                        raise _reject(
+                            f"schema invalid for artifact {artifact.artifact_id!r}: "
+                            "duplicate success_status"
+                        )
+                    seen.add(member)
     return config
+
+
+def _success_statuses(success_status: str | list[Any] | None) -> tuple[str, ...]:
+    """Normalize the scalar-or-list config shape to a tuple for membership tests."""
+    if success_status is None:
+        return ()
+    if isinstance(success_status, str):
+        return (success_status,)
+    return tuple(success_status)
 
 
 # --- T2: pure freshness evaluator + tier rollup (spec §2–§3) --------------------
@@ -358,9 +403,12 @@ def evaluate_report_freshness(
         disclosures: list[str] = []
 
         off_season = now_local.month not in artifact.season_windows.in_season_months
-        if artifact.dormant_ok and off_season:
-            status, basis = "dormant", "dormant_ok_offseason"
-        elif fact is None or not fact.exists:
+        # Dormancy is applied as a FLOOR after evaluation (see below), never as a
+        # pre-emptive short-circuit: an EXISTING artifact's content must always be
+        # read — a failed marker stays producer_failed and a fresh one stays fresh
+        # even off-season. Only time-based degradation (missing/stale/overdue) is
+        # what "the season is over" legitimately explains away.
+        if fact is None or not fact.exists:
             status, basis = "missing", "artifact_absent"
         elif fact.size_bytes is not None and fact.size_bytes < artifact.min_size_bytes:
             status, basis = (
@@ -382,7 +430,7 @@ def evaluate_report_freshness(
             )
         elif (
             artifact.status_field is not None
-            and fact.status_value != artifact.success_status
+            and fact.status_value not in _success_statuses(artifact.success_status)
         ):
             status, basis = (
                 "producer_failed",
@@ -437,6 +485,17 @@ def evaluate_report_freshness(
                     status, basis = "freshness_overdue", "within_grace"
                 else:
                     status, basis = "stale", "past_grace"
+
+        # Dormancy floor: off-season, dormant_ok explains ABSENCE only — the
+        # artifact was never produced because nothing should run. An EXISTING
+        # artifact evaluates fully: a failed/corrupt marker stays loud, a fresh
+        # one reads fresh, and a STALE one reads stale — a producer that HAS
+        # been writing and then goes silent is a missed fire, not dormancy
+        # (Codex round-2 catch: hiding a missed weekly fire behind dormant_ok).
+        if artifact.dormant_ok and off_season and status == "missing":
+            status, basis = "dormant", "dormant_ok_offseason"
+            observed_at = None
+            age_seconds = None
 
         if artifact.tier == "auxiliary" and status in _DEGRADING_STATUSES:
             disclosures.append("auxiliary_info_only")

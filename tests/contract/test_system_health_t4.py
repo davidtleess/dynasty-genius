@@ -72,15 +72,20 @@ EXPECTED_ARTIFACTS: dict[str, dict[str, Any]] = {
         "dormant_ok": False,
     },
     "realized_outcome": {
-        # Real-shape source of truth: the route, producer default, and LaunchAgent
-        # all use scorecard_latest.json. The earlier health spec table had a
-        # stale guessed filename.
-        "path": "app/data/realized_outcome/scorecard_latest.json",
+        # AMENDED (2026-07-11, cockpit-converged shape ii): registration upgraded
+        # from the mtime-only scorecard pin (never produced; fresh-mtime failure
+        # indistinguishable from success) to the terminal status marker shipped
+        # with PR #147. ok AND noop are healthy terminal states; failed carries
+        # failure_reason.
+        "path": "app/data/valuation_runtime/realized_outcome_scoring_status_latest.json",
         "producer": "scripts/run_realized_outcome_scoring.py",
         "cadence": "weekly",
         "scheduled_time_local": "10:00",
         "tier": "auxiliary",
-        "timestamp_field": None,
+        "timestamp_field": "finished_at",
+        "status_field": "status",
+        "success_status": ["ok", "noop"],
+        "failure_reason_field": "failure_reason",
         "dormant_ok": True,
     },
     "market_divergence": {
