@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dynasty Genius — Value Board static comp v2 (disposable; real 2026-07-11 data)</title>
+<style>
+:root{
+  --dg-bg:oklch(0.16 0.01 250); --dg-surface:oklch(0.2 0.012 250); --dg-surface-raised:oklch(0.24 0.014 250);
+  --dg-border:oklch(0.32 0.012 250); --dg-border-strong:oklch(0.48 0.014 250);
+  --dg-text:oklch(0.92 0.005 250); --dg-text-muted:oklch(0.68 0.008 250);
+  --dg-focus:oklch(0.72 0.14 255);
+  --dg-model:oklch(0.72 0.11 255); --dg-model-emphasis:oklch(0.8 0.13 255);
+  --dg-market:oklch(0.76 0.13 75); --dg-market-emphasis:oklch(0.82 0.14 75);
+  --dg-pos-qb:oklch(0.6 0.14 300); --dg-pos-rb:oklch(0.62 0.13 170); --dg-pos-wr:oklch(0.6 0.15 340); --dg-pos-te:oklch(0.64 0.12 205);
+  --dg-font-display:"Archivo","Archivo Narrow",system-ui,sans-serif;
+  --dg-font-sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --dg-font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",monospace;
+}
+*{box-sizing:border-box} html{font-size:16px}
+body{margin:0;background:var(--dg-bg);color:var(--dg-text);font-family:var(--dg-font-sans);font-size:0.9375rem;line-height:1.45}
+/* builder chrome (comp scaffold, not product) */
+section.frame{max-width:76rem;margin:1.25rem auto 2.5rem;padding:0 1rem}
+h2.frametitle{font-size:.75rem;font-weight:500;color:oklch(0.5 0.01 250);letter-spacing:.06em;text-transform:uppercase;margin:0 0 .45rem}
+.compnote{max-width:76rem;margin:1rem auto 2rem;padding:.7rem 1rem;border:1px dashed oklch(0.36 0.01 250);color:oklch(0.55 0.01 250);font-size:.75rem;border-radius:6px}
+.viewport{background:var(--dg-surface);border:1px solid var(--dg-border);border-radius:6px;overflow:hidden}
+/* product chrome */
+.appbar{display:flex;align-items:center;gap:1rem;padding:.65rem 1rem;border-bottom:1px solid var(--dg-border)}
+.appbar .title{font-family:var(--dg-font-display);font-weight:700;font-size:1.125rem}
+.appbar .sub{color:var(--dg-text-muted);font-size:.8125rem}
+.tabs{display:flex;gap:.25rem}
+.tab{padding:.3rem .7rem;border-radius:4px;color:var(--dg-text-muted);font-size:.8125rem}
+.tab[aria-current="true"]{background:var(--dg-surface-raised);color:var(--dg-text);font-weight:600}
+.search{margin-left:auto;display:flex;align-items:center;gap:.4rem;background:var(--dg-surface-raised);border:1px solid var(--dg-border);border-radius:4px;padding:.3rem .6rem;color:var(--dg-text-muted);font-size:.8125rem;min-height:2rem}
+.search .scope{background:var(--dg-bg);border:1px solid var(--dg-border);border-radius:3px;padding:0 .35rem;font-size:.75rem}
+.strip{display:flex;gap:.6rem;align-items:center;padding:.4rem 1rem;color:var(--dg-text-muted);font-size:.8125rem;border-bottom:1px solid var(--dg-border)}
+.strip .showing{margin-left:auto}
+.freshness{padding:.45rem 1rem;color:var(--dg-text-muted);font-size:.8125rem;border-top:1px solid var(--dg-border)}
+/* degraded banner: hue-neutral structural warning (the shipped caveat token nearly matches the
+   market amber — named token-system follow-up; the comp deliberately uses ink + strong border) */
+.degraded{display:flex;gap:.75rem;align-items:flex-start;padding:.7rem 1rem;background:var(--dg-surface-raised);border-bottom:2px solid var(--dg-border-strong)}
+.degraded .mark{font-weight:700}
+.degraded p{margin:0;font-size:.875rem}
+.degraded .sub{color:var(--dg-text-muted);font-size:.8125rem}
+/* macro */
+.macro{padding:1rem 1rem .4rem}
+.macro .lead{font-family:var(--dg-font-display);font-size:1.65rem;font-weight:700;line-height:1.3;text-wrap:balance;margin:0}
+.macro .second{margin:.35rem 0 0;color:var(--dg-text-muted);font-size:.875rem}
+/* table */
+table.board{width:100%;border-collapse:collapse;font-size:.9375rem}
+.board th{font-weight:600;font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;color:var(--dg-text-muted);text-align:left;padding:.45rem .75rem;border-bottom:1px solid var(--dg-border-strong)}
+.board td{padding:0 .75rem;height:2.15rem;border-bottom:1px solid var(--dg-border);vertical-align:middle;white-space:nowrap}
+.board tr.grouphead td{height:2.2rem;background:var(--dg-surface-raised);font-weight:600;font-size:.8125rem;letter-spacing:.04em}
+.board tr.grouphead .meta{color:var(--dg-text-muted);font-weight:400}
+.focal{font-family:var(--dg-font-display);font-weight:700;font-size:1.2rem;font-variant-numeric:tabular-nums}
+.ctx{font-size:.8125rem;color:var(--dg-text-muted);font-variant-numeric:tabular-nums}
+/* identity */
+.id{display:flex;align-items:center;gap:.6rem;min-width:0}
+.avatar{flex:none;width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;font-size:.72rem;font-weight:700;color:oklch(0.14 0.01 250)}
+.avatar.qb{background:var(--dg-pos-qb)} .avatar.rb{background:var(--dg-pos-rb)} .avatar.wr{background:var(--dg-pos-wr)} .avatar.te{background:var(--dg-pos-te)}
+.id .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.id .tm{font-size:.75rem;color:var(--dg-text-muted)}
+/* paired percentile bar: absolute 0–100 axis */
+.gapcell{min-width:17rem}
+.pbar{position:relative;height:1.05rem;width:11rem;display:inline-block;vertical-align:middle}
+.pbar .track{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--dg-border)}
+.pbar .seg{position:absolute;top:50%;height:3px;transform:translateY(-50%);background:var(--dg-border-strong);border-radius:2px}
+.pbar .mk{position:absolute;top:50%;transform:translate(-50%,-50%);width:.6rem;height:.6rem;border-radius:50%}
+.pbar .mk.model{background:var(--dg-model-emphasis)}
+.pbar .mk.market{background:transparent;border:2px solid var(--dg-market-emphasis)}
+/* direction chips: words carry direction; hue = the HIGHER lane; no bare signs on rows */
+.dir{display:inline-flex;align-items:baseline;gap:.35rem;margin-left:.6rem;font-size:.875rem;font-weight:600}
+.dir .pts{font-variant-numeric:tabular-nums}
+.dir.model{color:var(--dg-model-emphasis)}
+.dir.market{color:var(--dg-market-emphasis)}
+.dir.band{color:var(--dg-text-muted);font-weight:500}
+.mktlabel{font-size:.75rem;color:var(--dg-text-muted);margin-left:.5rem;font-variant-numeric:tabular-nums}
+.noread{color:var(--dg-text-muted)}
+/* actions */
+.actions{display:flex;gap:.1rem;justify-content:flex-end}
+.ibtn,.chev{appearance:none;background:none;border:0;color:var(--dg-text-muted);font-size:.85rem;min-width:2.75rem;min-height:2.75rem;padding:.35rem;cursor:pointer;border-radius:4px}
+.ibtn:focus-visible,.chev:focus-visible,.tab:focus-visible,.search:focus-visible{outline:2px solid var(--dg-focus);outline-offset:2px}
+/* movers: player-first sentence, muted level beneath */
+.movers{padding:.25rem 1rem 1rem}
+.movers h3,.rostersec h3{font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;color:var(--dg-text-muted);font-weight:600;margin:.9rem 0 .25rem}
+.mover{display:flex;align-items:center;gap:.65rem;min-height:2.9rem;border-bottom:1px solid var(--dg-border);padding:.3rem 0}
+.mover .lines{min-width:0}
+.mover .phrase{font-weight:600}
+.mover .level{color:var(--dg-text-muted);font-size:.8125rem;margin-top:.05rem}
+.mover .spacer{flex:1}
+.morelink{color:var(--dg-text-muted);font-size:.8125rem;padding:.5rem 0}
+.rostersec{padding:0 1rem 1rem}
+.groupline{display:flex;gap:.75rem;align-items:center;height:2.3rem;border-bottom:1px solid var(--dg-border);font-weight:600;font-size:.875rem}
+.groupline .meta{color:var(--dg-text-muted);font-weight:400;font-size:.8125rem}
+.groupline .chev{margin-left:auto}
+/* FA */
+.fa-agg{padding:.75rem 1rem .2rem;font-family:var(--dg-font-display);font-size:1.3rem;font-weight:700;line-height:1.35;text-wrap:balance}
+.fa-sub{padding:0 1rem .6rem;color:var(--dg-text-muted);font-size:.875rem;border-bottom:1px solid var(--dg-border)}
+.fa-toggle{display:inline-flex;border:1px solid var(--dg-border);border-radius:4px;overflow:hidden;margin:.6rem 1rem;font-size:.8125rem}
+.fa-toggle span{padding:.35rem .75rem;color:var(--dg-text-muted)}
+.fa-toggle span[aria-current="true"]{background:var(--dg-surface-raised);color:var(--dg-text);font-weight:600}
+tr.repline td{height:1.7rem;background:var(--dg-surface-raised);color:var(--dg-text-muted);font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+/* receipt */
+.receipt{max-width:31rem;margin:.75rem 1rem 1rem;background:var(--dg-surface-raised);border:1px solid var(--dg-border);border-radius:6px;padding:.75rem .9rem;font-size:.8125rem}
+.receipt dt{color:var(--dg-text-muted);float:left;clear:left;width:10.5rem}
+.receipt dd{margin:0 0 .3rem 11rem;font-variant-numeric:tabular-nums}
+.receipt .prose{color:var(--dg-text-muted);border-top:1px solid var(--dg-border);margin-top:.5rem;padding-top:.5rem}
+/* mobile frames */
+.mobilerow{display:flex;gap:1.25rem;flex-wrap:wrap;align-items:flex-start}
+.phone{width:24.375rem;flex:none;background:var(--dg-surface);border:1px solid var(--dg-border-strong);border-radius:14px;overflow:hidden}
+.phone .appbar{padding:.55rem .8rem}
+.phone .appbar .title{font-size:1rem}
+.phone .macro{padding:.8rem .8rem .3rem}
+.phone .macro .lead{font-size:1.25rem}
+.phone .mrow{padding:.4rem .8rem;border-bottom:1px solid var(--dg-border)}
+.phone .mrow .l1{display:flex;align-items:center;gap:.5rem;min-height:2.2rem}
+.phone .mrow .l1 .acts{margin-left:auto}
+.phone .mrow .l2{display:flex;align-items:center;gap:.5rem;font-size:.875rem;min-height:1.5rem;padding-left:2.55rem;flex-wrap:wrap}
+.phone .mrow .l2 .pbar{width:7rem}
+.phone .thumb{display:flex;gap:.5rem;padding:.55rem .8rem calc(.55rem + env(safe-area-inset-bottom));border-top:1px solid var(--dg-border-strong)}
+.phone .thumb>*{min-height:2.75rem;display:flex;align-items:center;justify-content:center;flex:1;border:1px solid var(--dg-border);border-radius:6px;font-size:.8125rem;color:var(--dg-text-muted)}
+.phone .grouphead-m{display:flex;gap:.5rem;align-items:center;padding:.45rem .8rem;background:var(--dg-surface-raised);font-size:.8125rem;font-weight:600}
+.phone .grouphead-m .meta{color:var(--dg-text-muted);font-weight:400}
+.phone .freshness{font-size:.75rem}
+@media (prefers-reduced-motion:no-preference){ .mk.model{transition:left .24s cubic-bezier(0,0,0.3,1)} }
+</style>
+</head>
+<body>
+
+<!-- ============================================================= -->
+<section class="frame">
+<h2 class="frametitle">Frame 1 · Daily Open · desktop · healthy (as of Sat Jul 11)</h2>
+<div class="viewport" style="min-width:64rem">
+  <div class="appbar">
+    <span class="title">Daily Open</span>
+    <span class="sub">Sat Jul 11 · Woodbury Riders</span>
+    <div class="search" role="search" tabindex="0">⌕ Search <span class="scope">in My Roster</span></div>
+  </div>
+  <div class="macro">
+    <p class="lead">Five moves of 2+ points on your roster since Thursday. The market did the moving; your model's values held.</p>
+    <p class="second">Prices ticked on 22 of your 23 compared players; the gap changed for 14, five by 2+ percentile points. Thursday was the last capture before Saturday. <button class="ibtn" aria-label="How this is derived">ⓘ</button></p>
+  </div>
+  <div class="movers">
+    <h3>What moved · biggest change first</h3>
+    <div class="mover">
+      <span class="id"><span class="avatar qb">MJ</span></span>
+      <span class="lines">
+        <div class="phrase">▲ Market up on Mac Jones · <strong>moved 4 pts toward the market</strong> since Thu</div>
+        <div class="level">SF · QB · 27 · gap now: <span class="dir market" style="margin-left:0;font-size:.8125rem">Market higher · 14 pts</span> · market rank QB37</div>
+      </span>
+      <span class="spacer"></span>
+      <span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span>
+    </div>
+    <div class="mover">
+      <span class="id"><span class="avatar wr">XL</span></span>
+      <span class="lines">
+        <div class="phrase">▼ Market down on Xavier Legette · <strong>moved 4 pts toward DG</strong> since Thu</div>
+        <div class="level">CAR · WR · 24 · gap now: <span class="dir model" style="margin-left:0;font-size:.8125rem">DG higher · 28 pts</span> · market rank WR109</div>
+      </span>
+      <span class="spacer"></span>
+      <span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span>
+    </div>
+    <div class="mover">
+      <span class="id"><span class="avatar wr">CB</span></span>
+      <span class="lines">
+        <div class="phrase">▲ Market up on Chris Bell · <strong>moved 4 pts toward the market</strong> since Thu</div>
+        <div class="level">MIA · WR · 21 · gap now: <span class="dir band" style="margin-left:0;font-size:.8125rem">within band</span> · market rank WR57</div>
+      </span>
+      <span class="spacer"></span>
+      <span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span>
+    </div>
+    <div class="morelink">11 more movers ▾</div>
+  </div>
+  <div class="rostersec">
+    <h3>Your roster · DG higher on 9 · market higher on 6 · within band on 9 · 3 without DG values</h3>
+    <div class="groupline">QUARTERBACKS <span class="meta">(5) · all valued</span><button class="chev" aria-label="Expand quarterbacks">▸</button></div>
+    <div class="groupline">RUNNING BACKS <span class="meta">(5) · 4 of 5 valued</span><button class="chev" aria-label="Expand running backs">▸</button></div>
+    <div class="groupline">WIDE RECEIVERS <span class="meta">(14) · 12 of 14 valued</span><button class="chev" aria-label="Expand wide receivers">▸</button></div>
+    <div class="groupline">TIGHT ENDS <span class="meta">(3) · all valued</span><button class="chev" aria-label="Expand tight ends">▸</button></div>
+  </div>
+  <div class="freshness">market prices as of Sat Jul 11, 11:07 AM · updated Sat 12:43 PM · about these numbers ▸</div>
+</div>
+</section>
+
+<!-- ============================================================= -->
+<section class="frame">
+<h2 class="frametitle">Frame 2 · Daily Open · desktop · today's real state (degraded, Sun Jul 12)</h2>
+<div class="viewport" style="min-width:64rem">
+  <div class="appbar">
+    <span class="title">Daily Open</span>
+    <span class="sub">Sun Jul 12 · Woodbury Riders</span>
+    <div class="search" role="search" tabindex="0">⌕ Search <span class="scope">in My Roster</span></div>
+  </div>
+  <div class="macro">
+    <p class="lead">Prices are Saturday's — nothing new to react to yet.</p>
+    <p class="second">Comparing today against Saturday would manufacture motion, so gap movement is paused. Your model's values are current. <button class="ibtn" aria-label="What happened">ⓘ</button></p>
+  </div>
+  <div class="degraded" role="status">
+    <span class="mark">▲</span>
+    <div>
+      <p>The market source returned yesterday's prices at this morning's refresh.</p>
+      <p class="sub">Showing market prices from <strong>Sat Jul 11, 11:07 AM</strong> (last successful) · refresh attempted Sun 10:06 AM · movement resumes with the next successful refresh.</p>
+    </div>
+  </div>
+  <div class="rostersec">
+    <h3>Your roster · Saturday's read, labeled · DG higher on 9 · market higher on 6 · within band on 9</h3>
+    <div class="groupline">QUARTERBACKS <span class="meta">(5) · all valued</span><button class="chev" aria-label="Expand quarterbacks">▸</button></div>
+    <div class="groupline">RUNNING BACKS <span class="meta">(5) · 4 of 5 valued</span><button class="chev" aria-label="Expand running backs">▸</button></div>
+    <div class="groupline">WIDE RECEIVERS <span class="meta">(14) · 12 of 14 valued</span><button class="chev" aria-label="Expand wide receivers">▸</button></div>
+    <div class="groupline">TIGHT ENDS <span class="meta">(3) · all valued</span><button class="chev" aria-label="Expand tight ends">▸</button></div>
+  </div>
+  <div class="freshness">market prices as of <strong>Sat Jul 11, 11:07 AM (last successful)</strong> · refresh attempted Sun 10:06 AM · model values current</div>
+</div>
+</section>
+
+<!-- ============================================================= -->
+<section class="frame">
+<h2 class="frametitle">Frame 3 · Value Board · Full Universe · desktop</h2>
+<div class="viewport" style="min-width:64rem">
+  <div class="appbar">
+    <span class="title">The Value Board</span>
+    <div class="tabs"><span class="tab">My Roster</span><span class="tab">Other Teams</span><span class="tab" aria-current="true">Full Universe</span></div>
+    <div class="search" role="search" tabindex="0">⌕ Search <span class="scope">All players</span></div>
+  </div>
+  <div class="strip">Our view vs the market's, not yet validated · 468 ranked · 340 with a market read · 191 disagreements <button class="ibtn" aria-label="Provenance drawer">▸</button><span class="showing">Showing 340 of 468</span></div>
+  <table class="board">
+    <thead><tr>
+      <th style="width:6rem">DG Overall</th><th>Player</th><th style="width:5.5rem">Pos Rank</th>
+      <th class="gapcell">Model–market gap · percentile points</th><th style="width:6rem"></th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td class="focal">T-30</td>
+        <td><span class="id"><span class="avatar rb">AJ</span><span class="nm">Ashton Jeanty</span><span class="tm">LV · 22</span></span></td>
+        <td class="ctx">T-RB18</td>
+        <td class="gapcell">
+          <span class="pbar" role="img" aria-label="Market higher by 14 percentile points. Our model: 84th percentile; market: 98th, rounded separately.">
+            <span class="track"></span><span class="seg" style="left:84%;width:14%"></span>
+            <span class="mk model" style="left:84%"></span><span class="mk market" style="left:98%"></span>
+          </span><span class="dir market">Market higher <span class="pts">· 14 pts</span></span><span class="mktlabel">Mkt RB3</span>
+        </td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="focal">97</td>
+        <td><span class="id"><span class="avatar wr">RO</span><span class="nm">Rome Odunze</span><span class="tm">CHI · 23</span></span></td>
+        <td class="ctx">WR38</td>
+        <td class="gapcell">
+          <span class="pbar" role="img" aria-label="Within the disclosed noise band. Our model: 81st percentile; market: 83rd, rounded separately.">
+            <span class="track"></span>
+            <span class="mk model" style="left:81%"></span><span class="mk market" style="left:83%"></span>
+          </span><span class="dir band">within band</span><span class="mktlabel">Mkt WR26</span>
+        </td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="focal">T-116</td>
+        <td><span class="id"><span class="avatar te">TK</span><span class="nm">Tucker Kraft</span><span class="tm">GB · 25</span></span></td>
+        <td class="ctx">T-TE1</td>
+        <td class="gapcell">
+          <span class="pbar" role="img" aria-label="Within the disclosed noise band. Our model: 95th percentile; market: 94th, rounded separately.">
+            <span class="track"></span>
+            <span class="mk market" style="left:94%"></span><span class="mk model" style="left:95%"></span>
+          </span><span class="dir band">within band</span><span class="mktlabel">Mkt TE5</span>
+        </td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt, including the 11-way tie at the model's ceiling">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="focal">184</td>
+        <td><span class="id"><span class="avatar te">TJ</span><span class="nm">Theo Johnson</span><span class="tm">NYG · 24</span></span></td>
+        <td class="ctx">TE23</td>
+        <td class="gapcell">
+          <span class="pbar" role="img" aria-label="DG higher by 33 percentile points. Our model: 80th percentile; market: 46th, rounded separately.">
+            <span class="track"></span><span class="seg" style="left:46%;width:34%"></span>
+            <span class="mk market" style="left:46%"></span><span class="mk model" style="left:80%"></span>
+          </span><span class="dir model">DG higher <span class="pts">· 33 pts</span></span><span class="mktlabel">Mkt TE38</span>
+        </td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="focal">227</td>
+        <td><span class="id"><span class="avatar wr">XL</span><span class="nm">Xavier Legette</span><span class="tm">CAR · 24</span></span></td>
+        <td class="ctx">WR87</td>
+        <td class="gapcell">
+          <span class="pbar" role="img" aria-label="DG higher by 28 percentile points. Our model: 57th percentile; market: 29th, rounded separately.">
+            <span class="track"></span><span class="seg" style="left:29%;width:28%"></span>
+            <span class="mk market" style="left:29%"></span><span class="mk model" style="left:57%"></span>
+          </span><span class="dir model">DG higher <span class="pts">· 28 pts</span></span><span class="mktlabel">Mkt WR109</span>
+        </td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="freshness">● DG — Dynasty Genius, our model (blue) · ○ the market (amber), marks at true positions · within band = the two views sit inside our disclosed noise band ⓘ · market prices as of Sat Jul 11, 11:07 AM · updated Sat 12:43 PM</div>
+</div>
+<dl class="receipt"><strong>Metric receipt: Xavier Legette (exemplar, expanded)</strong>
+  <dt>The gap</dt><dd>DG higher by 28 percentile points</dd>
+  <dt>Our model</dt><dd>57th percentile of 199 model-valued WRs</dd>
+  <dt>Market</dt><dd>29th percentile of the market's WR pool</dd>
+  <dt>Familiar ranks</dt><dd>DG WR87 · market WR109 (different pools; not subtractable)</dd>
+  <dt>Market source</dt><dd>FantasyCalc · Superflex PPR · Sat Jul 11, 11:07 AM</dd>
+  <dt>Underlying values</dt><dd>our model 4.9 · the market 450</dd>
+  <div class="prose">A descriptive disagreement, not a recommendation. Our ranking is not yet validated as more accurate than the market's.</div>
+</dl>
+</section>
+
+<!-- ============================================================= -->
+<section class="frame">
+<h2 class="frametitle">Frame 4 · Value Board · My Roster · desktop (QB group expanded)</h2>
+<div class="viewport" style="min-width:64rem">
+  <div class="appbar">
+    <span class="title">The Value Board</span>
+    <div class="tabs"><span class="tab" aria-current="true">My Roster</span><span class="tab">Other Teams</span><span class="tab">Full Universe</span></div>
+    <div class="search" role="search" tabindex="0">⌕ Search <span class="scope">in My Roster</span></div>
+  </div>
+  <div class="strip">DG higher on 9 · market higher on 6 · within band on 9 · 3 without DG values <button class="ibtn" aria-label="Coverage receipt">ⓘ</button></div>
+  <table class="board">
+    <thead><tr>
+      <th style="width:6rem">DG Rank</th><th>Player</th>
+      <th class="gapcell">Model–market gap · percentile points</th><th style="width:6rem"></th>
+    </tr></thead>
+    <tbody>
+      <tr class="grouphead"><td colspan="4">QUARTERBACKS <span class="meta">(5) · all valued</span></td></tr>
+      <tr>
+        <td class="focal">QB16</td>
+        <td><span class="id"><span class="avatar qb">JD</span><span class="nm">Jaxson Dart</span><span class="tm">NYG · 22</span></span></td>
+        <td class="gapcell"><span class="pbar" role="img" aria-label="Market higher by 19 percentile points. Our model: 67th; market: 86th, rounded separately."><span class="track"></span><span class="seg" style="left:67%;width:19%"></span><span class="mk model" style="left:67%"></span><span class="mk market" style="left:86%"></span></span><span class="dir market">Market higher <span class="pts">· 19 pts</span></span><span class="mktlabel">Mkt QB10</span></td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="focal">QB20</td>
+        <td><span class="id"><span class="avatar qb">FM</span><span class="nm">Fernando Mendoza</span><span class="tm">LV · 22</span></span></td>
+        <td class="gapcell"><span class="pbar" role="img" aria-label="Market higher by 21 percentile points. Our model: 59th; market: 79th, rounded separately."><span class="track"></span><span class="seg" style="left:59%;width:20%"></span><span class="mk model" style="left:59%"></span><span class="mk market" style="left:79%"></span></span><span class="dir market">Market higher <span class="pts">· 21 pts</span></span><span class="mktlabel">Mkt QB15</span></td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="focal">QB30</td>
+        <td><span class="id"><span class="avatar qb">JM</span><span class="nm">J.J. McCarthy</span><span class="tm">MIN · 22</span></span></td>
+        <td class="gapcell"><span class="pbar" role="img" aria-label="Market higher by 20 percentile points. The familiar ranks match at QB30 because the two pools differ. Our model: 37th; market: 57th, rounded separately."><span class="track"></span><span class="seg" style="left:37%;width:20%"></span><span class="mk model" style="left:37%"></span><span class="mk market" style="left:57%"></span></span><span class="dir market">Market higher <span class="pts">· 20 pts</span></span><span class="mktlabel">Mkt QB30</span></td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="focal">QB32</td>
+        <td><span class="id"><span class="avatar qb">MJ</span><span class="nm">Mac Jones</span><span class="tm">SF · 27</span></span></td>
+        <td class="gapcell"><span class="pbar" role="img" aria-label="Market higher by 14 percentile points. Our model: 33rd; market: 47th, rounded separately."><span class="track"></span><span class="seg" style="left:33%;width:14%"></span><span class="mk model" style="left:33%"></span><span class="mk market" style="left:47%"></span></span><span class="dir market">Market higher <span class="pts">· 14 pts</span></span><span class="mktlabel">Mkt QB37</span></td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="focal">QB38</td>
+        <td><span class="id"><span class="avatar qb">DG</span><span class="nm">Dillon Gabriel</span><span class="tm">CLE · 25</span></span></td>
+        <td class="gapcell"><span class="pbar" role="img" aria-label="Within the disclosed noise band. The familiar ranks sit 19 apart because the two pools differ. Our model: 20th; market: 18th, rounded separately."><span class="track"></span><span class="mk market" style="left:18%"></span><span class="mk model" style="left:20%"></span></span><span class="dir band">within band</span><span class="mktlabel">Mkt QB57</span></td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr class="grouphead"><td colspan="4">RUNNING BACKS <span class="meta">(5) · 4 of 5 valued</span></td></tr>
+      <tr>
+        <td class="focal">T-RB18</td>
+        <td><span class="id"><span class="avatar rb">AJ</span><span class="nm">Ashton Jeanty</span><span class="tm">LV · 22</span></span></td>
+        <td class="gapcell"><span class="pbar" role="img" aria-label="Market higher by 14 percentile points. Our model: 84th; market: 98th, rounded separately."><span class="track"></span><span class="seg" style="left:84%;width:14%"></span><span class="mk model" style="left:84%"></span><span class="mk market" style="left:98%"></span></span><span class="dir market">Market higher <span class="pts">· 14 pts</span></span><span class="mktlabel">Mkt RB3</span></td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="focal">RB88</td>
+        <td><span class="id"><span class="avatar rb">RA</span><span class="nm">Rasheen Ali</span><span class="tm">BAL · 24</span></span></td>
+        <td class="gapcell"><span class="pbar" role="img" aria-label="DG higher by 19 percentile points. Our model: 21st; market: 2nd, rounded separately."><span class="track"></span><span class="seg" style="left:2%;width:19%"></span><span class="mk market" style="left:2%"></span><span class="mk model" style="left:21%"></span></span><span class="dir model">DG higher <span class="pts">· 19 pts</span></span><span class="mktlabel">Mkt RB106</span></td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="ctx">—</td>
+        <td><span class="id"><span class="avatar rb">BA</span><span class="nm">Braelon Allen</span><span class="tm">NYJ · 21 · IR</span></span></td>
+        <td class="gapcell"><span class="noread">No DG value yet</span><span class="mktlabel">Mkt RB52</span></td>
+        <td><span class="actions"><button class="ibtn" aria-label="Why no DG value">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="freshness">market prices as of Sat Jul 11, 11:07 AM · updated Sat 12:43 PM</div>
+</div>
+</section>
+
+<!-- ============================================================= -->
+<section class="frame">
+<h2 class="frametitle">Frame 5 · Free Agents · desktop · both toggle states</h2>
+<div class="viewport" style="min-width:64rem;margin-bottom:1.25rem">
+  <div class="appbar"><span class="title">Full Universe · Free Agents</span>
+    <div class="search" role="search" tabindex="0">⌕ Search <span class="scope">Free Agents</span></div>
+  </div>
+  <div class="fa-agg">No free agent clears our model's replacement line.</div>
+  <div class="fa-sub">All 223 valued free agents sit below it. Closest calls, by disagreement: Keenan Allen and Kareem Hunt. <button class="ibtn" aria-label="Replacement line receipt">ⓘ</button></div>
+  <div class="fa-toggle" role="radiogroup" aria-label="Free agent pool"><span aria-current="true">With market read (97)</span><span>All valued (223)</span></div>
+  <table class="board">
+    <thead><tr><th style="width:6rem">DG Overall</th><th>Player</th><th style="width:5.5rem">Pos Rank</th><th class="gapcell">Model–market gap · percentile points</th><th style="width:6rem"></th></tr></thead>
+    <tbody>
+      <tr class="repline"><td colspan="5">Model replacement line · every player below it</td></tr>
+      <tr>
+        <td class="focal">153</td>
+        <td><span class="id"><span class="avatar wr">KA</span><span class="nm">Keenan Allen</span><span class="tm">LAC · 33</span></span></td>
+        <td class="ctx">WR60</td>
+        <td class="gapcell"><span class="pbar" role="img" aria-label="DG higher by 49 percentile points. Our model: 70th; market: 21st, rounded separately."><span class="track"></span><span class="seg" style="left:21%;width:49%"></span><span class="mk market" style="left:21%"></span><span class="mk model" style="left:70%"></span></span><span class="dir model">DG higher <span class="pts">· 49 pts</span></span><span class="mktlabel">Mkt WR121</span></td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="focal">157</td>
+        <td><span class="id"><span class="avatar rb">KH</span><span class="nm">Kareem Hunt</span><span class="tm">KC · 30</span></span></td>
+        <td class="ctx">RB51</td>
+        <td class="gapcell"><span class="pbar" role="img" aria-label="DG higher by 46 percentile points. Our model: 55th; market: 9th, rounded separately."><span class="track"></span><span class="seg" style="left:9%;width:46%"></span><span class="mk market" style="left:9%"></span><span class="mk model" style="left:55%"></span></span><span class="dir model">DG higher <span class="pts">· 46 pts</span></span><span class="mktlabel">Mkt RB99</span></td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="freshness">market prices as of Sat Jul 11, 11:07 AM · updated Sat 12:43 PM</div>
+</div>
+<div class="viewport" style="min-width:64rem">
+  <div class="appbar"><span class="title">Full Universe · Free Agents</span>
+    <div class="search" role="search" tabindex="0">⌕ Search <span class="scope">Free Agents</span></div>
+  </div>
+  <div class="fa-agg">No free agent clears our model's replacement line.</div>
+  <div class="fa-sub">All 223 valued free agents sit below it. Closest calls, by disagreement: Keenan Allen and Kareem Hunt. <button class="ibtn" aria-label="Replacement line receipt">ⓘ</button></div>
+  <div class="fa-toggle" role="radiogroup" aria-label="Free agent pool"><span>With market read (97)</span><span aria-current="true">All valued (223)</span></div>
+  <table class="board">
+    <thead><tr><th style="width:6rem">DG Overall</th><th>Player</th><th style="width:5.5rem">Pos Rank</th><th class="gapcell">Model–market gap · percentile points</th><th style="width:6rem"></th></tr></thead>
+    <tbody>
+      <tr class="repline"><td colspan="5">Model replacement line · every player below it</td></tr>
+      <tr>
+        <td class="focal">146</td>
+        <td><span class="id"><span class="avatar rb">BK</span><span class="nm">Bam Knight</span><span class="tm">ARI · 24</span></span></td>
+        <td class="ctx">RB47</td>
+        <td class="gapcell"><span class="noread">No market read</span> <button class="ibtn" aria-label="Only our market source lacks a value for him">ⓘ</button></td>
+        <td><span class="actions"><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+      <tr>
+        <td class="focal">153</td>
+        <td><span class="id"><span class="avatar wr">KA</span><span class="nm">Keenan Allen</span><span class="tm">LAC · 33</span></span></td>
+        <td class="ctx">WR60</td>
+        <td class="gapcell"><span class="pbar" role="img" aria-label="DG higher by 49 percentile points. Our model: 70th; market: 21st, rounded separately."><span class="track"></span><span class="seg" style="left:21%;width:49%"></span><span class="mk market" style="left:21%"></span><span class="mk model" style="left:70%"></span></span><span class="dir model">DG higher <span class="pts">· 49 pts</span></span><span class="mktlabel">Mkt WR121</span></td>
+        <td><span class="actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Open player inspector">▸</button></span></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="freshness">market prices as of Sat Jul 11, 11:07 AM · updated Sat 12:43 PM</div>
+</div>
+</section>
+
+<!-- ============================================================= -->
+<section class="frame">
+<h2 class="frametitle">Frame 6 · Mobile · the one-handed morning (390px frames)</h2>
+<div class="mobilerow">
+  <div class="phone">
+    <div class="appbar"><span class="title">Daily Open</span></div>
+    <div class="freshness" style="border-top:0;border-bottom:1px solid var(--dg-border)">market Sat 11:07 AM · updated Sat 12:43 PM</div>
+    <div class="macro">
+      <p class="lead">Five real moves on your roster since Thursday.</p>
+      <p class="second">The market did the moving; your model held. <button class="ibtn" aria-label="Derivation receipt">ⓘ</button></p>
+    </div>
+    <div>
+      <h3 style="font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;color:var(--dg-text-muted);margin:.4rem .8rem .2rem">What moved · biggest first</h3>
+      <div class="mrow">
+        <div class="l1"><span class="avatar qb">MJ</span><span class="nm">Mac Jones</span><span class="tm">SF · QB · 27</span><span class="acts actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Inspector">▸</button></span></div>
+        <div class="l2">▲ Market up · <strong>4 pts toward the market</strong> · now <span class="dir market" style="margin-left:0">Market higher · 14 pts</span></div>
+      </div>
+      <div class="mrow">
+        <div class="l1"><span class="avatar wr">XL</span><span class="nm">Xavier Legette</span><span class="tm">CAR · WR · 24</span><span class="acts actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Inspector">▸</button></span></div>
+        <div class="l2">▼ Market down · <strong>4 pts toward DG</strong> · now <span class="dir model" style="margin-left:0">DG higher · 28 pts</span></div>
+      </div>
+      <div class="morelink" style="padding:.4rem .8rem">12 more movers ▾</div>
+      <div class="grouphead-m">Newly compared: Rasheen Ali · 3 without DG values <button class="ibtn" aria-label="Coverage receipt" >ⓘ</button></div>
+      <div class="grouphead-m">ROSTER ▾ <span class="meta">DG higher on 9 · market higher on 6 · within band on 9</span></div>
+    </div>
+    <div class="freshness" style="border-top:1px solid var(--dg-border);font-size:.75rem">● our model (blue) · ○ market (amber)</div>
+    <div class="thumb"><span>⌕ Search · in My Roster</span><span>⧉ Board</span></div>
+  </div>
+
+  <div class="phone">
+    <div class="appbar"><span class="title">Daily Open</span><span class="sub" style="margin-left:auto">Sun Jul 12</span></div>
+    <div class="degraded" role="status" style="padding:.6rem .8rem">
+      <span class="mark">▲</span>
+      <div>
+        <p style="font-size:.8125rem">No fresh prices this morning.</p>
+        <p class="sub" style="font-size:.75rem">Showing Sat Jul 11, 11:07 AM (last successful).</p>
+      </div>
+    </div>
+    <div class="macro">
+      <p class="lead">Saturday's board, clearly labeled.</p>
+      <p class="second">Gap movement is paused; your model's values are current. <button class="ibtn" aria-label="What happened">ⓘ</button></p>
+    </div>
+    <div class="grouphead-m">ROSTER ▾ <span class="meta">Saturday's read · DG higher on 9 · market higher on 6</span></div>
+    <div class="freshness" style="border-top:1px solid var(--dg-border);font-size:.75rem">last successful: Sat 11:07 AM · attempted Sun 10:06 AM</div>
+    <div class="thumb"><span>⌕ Search · in My Roster</span><span>⧉ Board</span></div>
+  </div>
+
+  <div class="phone">
+    <div class="appbar"><span class="title">Value Board</span><span class="sub" style="margin-left:auto">Roster ▾</span></div>
+    <div class="freshness" style="border-top:0;border-bottom:1px solid var(--dg-border)">market Sat 11:07 AM · updated Sat 12:43 PM</div>
+    <div class="grouphead-m">RUNNING BACKS <span class="meta">(5) · 4 of 5 valued</span></div>
+    <div class="mrow">
+      <div class="l1"><span class="avatar rb">AJ</span><span class="nm">Ashton Jeanty</span><span class="tm">LV · T-RB18</span><span class="acts actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Inspector">▸</button></span></div>
+      <div class="l2"><span class="dir market" style="margin-left:0">Market higher <span class="pts">· 14 pts</span></span><span class="pbar" role="img" aria-label="Model 84th, market 98th, rounded separately."><span class="track"></span><span class="seg" style="left:84%;width:14%"></span><span class="mk model" style="left:84%"></span><span class="mk market" style="left:98%"></span></span><span class="mktlabel">Mkt RB3</span></div>
+    </div>
+    <div class="mrow">
+      <div class="l1"><span class="avatar rb">KB</span><span class="nm">Kaelon Black</span><span class="tm">SF · RB30</span><span class="acts actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Inspector">▸</button></span></div>
+      <div class="l2"><span class="dir model" style="margin-left:0">DG higher <span class="pts">· 31 pts</span></span><span class="pbar" role="img" aria-label="Model 73rd, market 42nd, rounded separately."><span class="track"></span><span class="seg" style="left:42%;width:31%"></span><span class="mk market" style="left:42%"></span><span class="mk model" style="left:73%"></span></span><span class="mktlabel">Mkt RB63</span></div>
+    </div>
+    <div class="grouphead-m">WIDE RECEIVERS <span class="meta">(14) · 12 of 14 valued</span></div>
+    <div class="mrow">
+      <div class="l1"><span class="avatar wr">KW</span><span class="nm">Kyle Williams</span><span class="tm">NE · T-WR104</span><span class="acts actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Inspector">▸</button></span></div>
+      <div class="l2"><span class="dir band" style="margin-left:0">within band</span><span class="mktlabel">Mkt WR91</span></div>
+    </div>
+    <div class="freshness" style="border-top:1px solid var(--dg-border);font-size:.75rem">● our model (blue) · ○ market (amber)</div>
+    <div class="thumb"><span>⌕ Search · in My Roster</span><span>⧉ Scope</span></div>
+  </div>
+
+  <div class="phone">
+    <div class="appbar"><span class="title">Free Agents</span></div>
+    <div class="freshness" style="border-top:0;border-bottom:1px solid var(--dg-border)">market Sat 11:07 AM · updated Sat 12:43 PM</div>
+    <div class="fa-agg" style="font-size:1rem">No free agent clears our model's replacement line.</div>
+    <div class="fa-sub" style="font-size:.8125rem">Closest calls: Keenan Allen and Kareem Hunt. <button class="ibtn" aria-label="Receipt">ⓘ</button></div>
+    <div class="fa-toggle" style="margin:.5rem .8rem"><span>Market read (97)</span><span aria-current="true">All valued (223)</span></div>
+    <div class="grouphead-m" style="text-transform:uppercase;font-size:.75rem;letter-spacing:.06em">Model replacement line · every player below it</div>
+    <div class="mrow">
+      <div class="l1"><span class="avatar rb">BK</span><span class="nm">Bam Knight</span><span class="tm">ARI · #146</span><span class="acts actions"><button class="ibtn" aria-label="Why no market read">ⓘ</button><button class="chev" aria-label="Inspector">▸</button></span></div>
+      <div class="l2"><span class="ctx">RB47</span> · <span class="noread">No market read</span></div>
+    </div>
+    <div class="mrow">
+      <div class="l1"><span class="avatar wr">KA</span><span class="nm">Keenan Allen</span><span class="tm">LAC · #153</span><span class="acts actions"><button class="ibtn" aria-label="Metric receipt">ⓘ</button><button class="chev" aria-label="Inspector">▸</button></span></div>
+      <div class="l2"><span class="dir model" style="margin-left:0">DG higher <span class="pts">· 49 pts</span></span><span class="pbar" role="img" aria-label="Model 70th, market 21st, rounded separately."><span class="track"></span><span class="seg" style="left:21%;width:49%"></span><span class="mk market" style="left:21%"></span><span class="mk model" style="left:70%"></span></span><span class="mktlabel">Mkt WR121</span></div>
+    </div>
+    <div class="freshness" style="border-top:1px solid var(--dg-border);font-size:.75rem">● our model (blue) · ○ market (amber)</div>
+    <div class="thumb"><span>⌕ Search · Free Agents</span><span>⧉ Scope</span></div>
+  </div>
+</div>
+</section>
+
+<p class="compnote"><strong>Comp v2 builder notes (not product):</strong> real 2026-07-11 data via comp-v33-extract.py; contract source = composition doc v3.14. v2 applies both unanchored audit passes: direction words replace bare signs on every row ("Market higher · 14 pts", tinted to the higher lane; stored signed values live in receipts only); mover rows are player-first sentences with the level as a muted second line; ties render as T-30 with the tie count in the receipt; the degraded banner is hue-neutral (the shipped caveat-vs-market amber collision is a named token follow-up); counts use neutral emphasis (lane blue is model-only); ages join identity; full names on mobile; vendor names are receipt-only ("No market read" on rows, source-bounded in the receipt); "percentile points" is spelled in headers with "pts" at point of use. Headshots are the named build-time asset (David-gated pipeline); initials discs are the mandated interim fallback. The inspector panel (adjacent comparison, the Trade Lab staging tray, and a context slot for the "why") renders in the next iteration. decision_supported=false throughout.</p>
+
+</body>
+</html>
