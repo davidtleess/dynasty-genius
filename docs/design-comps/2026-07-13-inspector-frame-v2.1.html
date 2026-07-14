@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dynasty Genius — Player Inspector frame v2.1 (disposable; real 2026-07-11 data)</title>
+<style>
+:root{
+  --dg-bg:oklch(0.16 0.01 250); --dg-surface:oklch(0.2 0.012 250); --dg-surface-raised:oklch(0.24 0.014 250);
+  --dg-border:oklch(0.32 0.012 250); --dg-border-strong:oklch(0.48 0.014 250);
+  --dg-text:oklch(0.92 0.005 250); --dg-text-muted:oklch(0.68 0.008 250);
+  --dg-focus:oklch(0.72 0.14 255);
+  --dg-model:oklch(0.72 0.11 255); --dg-model-emphasis:oklch(0.8 0.13 255);
+  --dg-market:oklch(0.76 0.13 75); --dg-market-emphasis:oklch(0.82 0.14 75);
+  --dg-pos-wr:oklch(0.6 0.15 340);
+  --dg-font-display:"Archivo",system-ui,sans-serif; --dg-font-sans:"IBM Plex Sans",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--dg-bg);color:var(--dg-text);font-family:var(--dg-font-sans);font-size:.9375rem;line-height:1.45}
+.note{max-width:44rem;margin:1rem auto;padding:.6rem 1rem;border:1px dashed oklch(0.36 0.01 250);color:oklch(0.55 0.01 250);font-size:.75rem;border-radius:6px}
+.sheet{position:relative;max-width:26rem;margin:1rem auto 3rem;background:var(--dg-surface);border:1px solid var(--dg-border-strong);border-radius:12px;overflow:hidden}
+.hdr{display:flex;gap:.75rem;align-items:center;padding:1rem;border-bottom:1px solid var(--dg-border)}
+.avatar{flex:none;width:3rem;height:3rem;border-radius:50%;display:grid;place-items:center;font-weight:700;color:oklch(0.14 0.01 250);background:var(--dg-pos-wr)}
+.hdr .nm{font-family:var(--dg-font-display);font-weight:700;font-size:1.5rem;line-height:1.2}
+.hdr .meta{color:var(--dg-text-muted);font-size:.8125rem}
+.story{padding:.9rem 1rem;border-bottom:1px solid var(--dg-border)}
+.story .big{font-family:var(--dg-font-display);font-weight:700;font-size:1.35rem}
+.story .big .model{color:var(--dg-model-emphasis)}
+.story .sub{color:var(--dg-text-muted);font-size:.8125rem;margin-top:.2rem}
+.pbar{position:relative;height:1.2rem;margin:.6rem 0 .2rem}
+.pbar .track{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--dg-border)}
+.pbar .seg{position:absolute;top:50%;height:3px;transform:translateY(-50%);background:var(--dg-border-strong)}
+.pbar .mk{position:absolute;top:50%;transform:translate(-50%,-50%);width:.7rem;height:.7rem;border-radius:50%}
+.pbar .mk.model{background:var(--dg-model-emphasis)} .pbar .mk.market{background:transparent;border:2px solid var(--dg-market-emphasis)}
+.pbar .lbl{position:absolute;top:-0.5rem;font-size:.75rem;color:var(--dg-text-muted);transform:translateX(-50%)}
+.sec{padding:.8rem 1rem;border-bottom:1px solid var(--dg-border)}
+.sec h4{margin:0 0 .4rem;font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;color:var(--dg-text-muted);font-weight:600}
+.nrow{display:flex;gap:.5rem;align-items:center;min-height:1.9rem;font-size:.875rem}
+.nrow .rk{width:3.2rem;color:var(--dg-text-muted);font-variant-numeric:tabular-nums}
+.nrow .nm2{flex:1;font-weight:500}
+.nrow.me{background:var(--dg-surface-raised);margin:0 -.5rem;padding:0 .5rem;border-radius:4px}
+.nrow.me .nm2{font-weight:700}
+.chip{font-size:.8125rem;font-weight:600}
+.chip.model{color:var(--dg-model-emphasis)} .chip.market{color:var(--dg-market-emphasis)} .chip.band{color:var(--dg-text-muted);font-weight:500}
+.ctxslot{padding:.8rem 1rem;border-bottom:1px solid var(--dg-border);color:var(--dg-text-muted);font-size:.875rem}
+.tray{display:flex;gap:.6rem;padding:.9rem 1rem}
+.tray button{flex:1;min-height:2.75rem;background:var(--dg-surface-raised);border:1px solid var(--dg-border);border-radius:6px;color:var(--dg-text);font-size:.875rem;cursor:pointer}
+.tray button:focus-visible{outline:2px solid var(--dg-focus);outline-offset:2px}
+.fine{padding:.6rem 1rem 1rem;color:var(--dg-text-muted);font-size:.75rem}
+</style>
+</head>
+<body>
+<p class="note"><strong>Inspector frame v2.1</strong> (disposable; companion to the frozen Value Board comp — separate file by design). The manager's next tap after any row: the person, the gap story, the neighbors, the honest context slot, and the user-initiated handoff tray. Real 2026-07-11 data throughout.</p>
+
+<div class="sheet" role="dialog" aria-label="Player inspector: Xavier Legette">
+  <div class="hdr">
+    <button type="button" style="all:unset;cursor:pointer;position:absolute;top:.9rem;right:.9rem;min-width:2.75rem;min-height:2.75rem;display:grid;place-items:center;color:var(--dg-text-muted);font-size:1.1rem" aria-label="Close inspector — Esc also closes; focus returns to the board row">✕</button>
+    <span class="avatar">XL</span>
+    <div>
+      <div class="nm">Xavier Legette</div>
+      <div class="meta">WR · Carolina · age 24 · rostered by Woodbury Riders</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="big"><span class="model">+28pp · our model higher</span></div>
+    <div class="sub">Our model puts him at the 57th percentile of the 199 WRs it values; the market has him at its 29th (its list holds 152 WRs). Familiar labels: DG WR87 · market WR109 — different pools; the percentiles (pp) are the comparison.</div>
+    <div class="pbar" role="img" aria-label="Our model 57th percentile; market 29th; the gap is +28 percentile points, our model higher; stored delta 0.276.">
+      <span class="track"></span><span class="seg" style="left:29%;width:28%"></span>
+      <span class="lbl" style="left:29%">Mkt 29th</span><span class="lbl" style="left:57%">DG 57th</span>
+      <span class="mk market" style="left:29%"></span><span class="mk model" style="left:57%"></span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h4>Since Thursday</h4>
+    <div class="nrow"><span>▼ His market price fell (555 → 450); the gap <strong>widened 4pp</strong> — now +28pp (our model higher).</span></div>
+  </div>
+
+  <div class="sec">
+    <h4>His market price · our daily capture since Jun 24</h4>
+    <svg viewBox="0 0 292 52" width="100%" height="52" role="img" aria-label="Market price, 18 daily reads from June 24 to July 11: started 472, ranged 408 to 555, ended 450.">
+      <polyline points="0.0,26.6 16.5,23.9 32.9,26.6 49.4,30.7 65.9,39.4 82.4,39.6 98.8,44.0 115.3,31.5 131.8,26.3 148.2,37.7 164.7,28.5 181.2,25.8 197.6,19.5 214.1,15.7 230.6,16.2 247.1,4.0 263.5,25.2 280.0,32.6" fill="none" stroke="var(--dg-market)" stroke-width="1.5"/>
+      <circle cx="280.0" cy="32.6" r="2.5" fill="var(--dg-market-emphasis)"/>
+    </svg>
+    <div class="sub" style="color:var(--dg-text-muted);font-size:.75rem">450 as of Sat Jul 11 · 18-day daily trend, accruing since Jun 24 · market lane (amber) <button class="ibtn" style="all:unset;cursor:pointer" aria-label="FantasyCalc value, captured daily by DG; our capture began Jun 24 — no earlier history exists">ⓘ</button></div>
+  </div>
+  <div class="sec">
+    <h4>Neighbors by our value · WR84–90</h4>
+    <div class="nrow"><span class="rk">WR84</span><span class="nm2">Pat Bryant <span style="color:var(--dg-text-muted)">DEN · 23</span></span><span class="chip model">+14pp</span></div>
+    <div class="nrow"><span class="rk">WR85</span><span class="nm2">Brenen Thompson <span style="color:var(--dg-text-muted)">LAC · 22</span></span><span class="chip model">+25pp</span></div>
+    <div class="nrow"><span class="rk">WR86</span><span class="nm2">Isaac TeSlaa <span style="color:var(--dg-text-muted)">DET · 23</span></span><span class="chip band">within band</span></div>
+    <div class="nrow me"><span class="rk">WR87</span><span class="nm2">Xavier Legette <span style="color:var(--dg-text-muted)">CAR · 24</span></span><span class="chip model">+28pp</span></div>
+    <div class="nrow"><span class="rk">WR88</span><span class="nm2">Malik Washington <span style="color:var(--dg-text-muted)">MIA · 25</span></span><span class="chip band">within band</span></div>
+    <div class="nrow"><span class="rk">WR89</span><span class="nm2">Tre Harris <span style="color:var(--dg-text-muted)">LAC · 23</span></span><span class="chip band">within band</span></div>
+    <div class="nrow"><span class="rk">WR90</span><span class="nm2">Jaylin Noel <span style="color:var(--dg-text-muted)">HOU · 23</span></span><span class="chip band">within band</span></div>
+  </div>
+
+  <div class="ctxslot">
+    <h4 style="margin:0 0 .3rem;font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600">Why it moved</h4>
+    We don’t guess at reasons — role and usage context (snaps, routes, targets) arrives here in-season.
+  </div>
+
+  <div class="tray">
+    <button type="button">Add to Trade Lab tray</button>
+    <button type="button">See roster context</button>
+  </div>
+  <div class="fine">You choose what happens next — nothing here is a recommendation. Our ranking is not yet validated as more accurate than the market's. Full numbers and sources: the ⓘ receipt on any value.</div>
+</div>
+</body>
+</html>
