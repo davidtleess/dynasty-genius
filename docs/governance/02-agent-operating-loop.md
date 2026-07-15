@@ -1,7 +1,7 @@
 ---
 document: Dynasty Genius Agent Operating Loop
-version: 1.1.0
-last_updated: 2026-07-06
+version: 1.2.0
+last_updated: 2026-07-14
 authority: workflow
 ---
 
@@ -352,6 +352,38 @@ Completion standard:
 - how it was tested or why testing was deferred
 - whether governance docs are affected
 - what the next collaborator needs to know
+
+## Cockpit Closeout Motion
+
+A closeout is the disciplined end-of-session flush. It is **announced by Tower** (never self-declared by a lane). Ratified 2026-07-14; spec: `docs/superpowers/specs/2026-07-14-cockpit-closeout-motion-02-amendment.md`. On announcement, every non-Tower agent, in order:
+
+1. **Reaches a clean stopping point.** Finish the thought or step in progress to a coherent, on-disk state. Never abandon an edit, commit, or test run mid-change — a half-applied change is worse than a parked one. If a step cannot reach a clean point quickly, park it explicitly (next item) rather than rush it.
+2. **Writes postflight immediately.** Append the session's ledger entry (`docs/agent-ledger/YYYY-MM-DD.md`) and update `AGENT_SYNC.md` for any state the agent changed. This is not deferred to "after the reply" — it is the reply's precondition. `AGENT_SYNC.md` updates follow the serialization protocol below.
+3. **Flags parked and uncommitted work with its location.** Every approved-but-uncommitted change, half-done build, or open review must be named with **where it is parked** — branch, worktree path, PR number, artifact path — so the next session can resume it from disk alone. "Parked at `<path>` on branch `<branch>`, N/M tests green, awaiting `<gate>`" is the shape.
+4. **Replies with an explicit closeout status to Tower** (never a bare "done"):
+   - **`closed — clean`**: reached a clean stop, postflight + sync on disk, no uncommitted or half-done work outstanding.
+   - **`closed — parked`**: postflight + sync on disk, but named work is deliberately parked — the reply carries its **location, active command/test state, and next gate** (e.g. "parked at `<worktree>` on `<branch>`, 17/17 tests green, awaiting Codex audit CLEAR + David push").
+   - **`closeout-blocked`**: cannot reach a clean or cleanly-parked state (e.g. a mid-flight change that will not settle) — the reply says exactly what is unsettled and where, so Tower never mistakes it for a clean close.
+
+   A lane is not closed until its ledger + sync writes are on disk and its status reply is **delivery-verified** (cockpit-messaging skill) — a stranded `closed` is not a close.
+
+**Durability is the whole point:** conversation memory does not survive the session; anything not written to disk at closeout is lost. A truthful `parked`/`blocked` status is itself durable state — a false `clean` is the failure mode the status vocabulary exists to prevent.
+
+### `AGENT_SYNC.md` serialization
+
+`AGENT_SYNC.md` is shared and lanes close concurrently, so a naive read-modify-write can lose a peer's update — defeating the durability the motion exists to protect. Each lane, when patching `AGENT_SYNC.md` at closeout:
+
+1. **Re-reads the file immediately before writing** (never patches from a stale in-memory copy).
+2. **Applies a conflict-preserving update** — append/merge its own lane's state without overwriting another lane's section.
+3. **Defers to Tower sequencing/retry** if a concurrent write intervenes between its re-read and its write: Tower orders the writes and the lane retries against the fresh file rather than clobbering.
+
+### Closeout roles
+
+- **Non-Tower lanes** flush, park with location, and reply a closeout status (above).
+- **Spokesperson** consolidates the lanes' statuses and **confirms crew completion to Tower with a faithful report** — it does not authorize the close, and it surfaces every non-clean lane exactly as reported (no smoothing a `parked`/`blocked` lane into a tidy close).
+- **Tower** ushers and verifies: it announces the motion, confirms each lane's on-disk state, and **performs its own closeout last** — Tower cannot reply `closed` to itself, so its terminal condition is: after the spokesperson's faithful crew report, Tower flushes **its own** ledger/sync state, verifies the durable record, and only then closes the cockpit. Tower closing is the session's terminal act.
+
+**Guardrails.** Closeout is **not** a commit authorization — flushing ledger + sync state is verifier-exempt state-doc maintenance; committing/pushing code still needs cockpit CLEAR + David's word, so closeout *parks* uncommitted work with its location rather than rush-landing it to beat the deadline. "Clean stopping point" is not "rush to finish": when in doubt, park explicitly.
 
 ## Daily Ledger Format
 
