@@ -11,6 +11,7 @@ from app.api.routes import (
     internal_project_plan,
     league_pulse,
     league_what_changed,
+    morning_tape,
     players,
     realized_outcome_scorecard,
     rookies,
@@ -46,6 +47,7 @@ app.include_router(players.router, prefix="/api")
 app.include_router(internal_project_plan.router, prefix="/api")
 app.include_router(league_pulse.router, prefix="/api")
 app.include_router(league_what_changed.router, prefix="/api")
+app.include_router(morning_tape.router, prefix="/api")
 app.include_router(system_model_provenance.router, prefix="/api")
 app.include_router(system_capture_health.router, prefix="/api")
 app.include_router(system_tier_readiness.router, prefix="/api")

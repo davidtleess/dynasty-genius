@@ -7596,6 +7596,30 @@
         ]
       }
     },
+    "/api/league/morning-tape": {
+      "get": {
+        "description": "Read-only serve of the latest pre-built Morning Tape artifact (artifact-state).",
+        "operationId": "morning_tape_surface_api_league_morning_tape_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Morning Tape Surface Api League Morning Tape Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Morning Tape Surface",
+        "tags": [
+          "league-morning-tape"
+        ]
+      }
+    },
     "/api/league/pulse": {
       "get": {
         "description": "Read-only League Pulse over the Phase 17/18 artifacts (artifact-state).",
