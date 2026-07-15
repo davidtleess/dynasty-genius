@@ -1,7 +1,7 @@
 ---
 document: Dynasty Genius Product Constitution
-version: 1.0.0
-last_updated: 2026-06-27
+version: 1.1.0
+last_updated: 2026-07-14
 authority: highest
 source_documents:
   - docs/governance/archive/originals/DYNASTY_GENIUS_FRAMEWORK.original.md
@@ -165,7 +165,9 @@ Rulings:
 
 - Surface the arithmetic honestly, unclamped. Show gaps that cross zero (a cut that is a net upgrade reads negative), deficits as raw counts, and wide volatile ranges as wide ranges. Tightening, clamping, banding, or editorializing a number into a recommendation is the failure mode this line prevents. When inputs cannot be trusted — stale, missing, malformed, or low-coverage — report unavailable, block, or widen uncertainty; never fabricate a confident tidy number that reads as a verdict.
 
-- Ranks and tiers must disclose their basis, never nudge. A default sort or rank must be tied to a declared transparent metric or rule, and any composite ordering must disclose its components and not function as a hidden recommended action order. Present raw percentile position; avoid subjective static tier labels ("Elite", "Bust", "Starter Depth") that smuggle a value judgment into a descriptive category.
+- Ranks and tiers must disclose their basis, never nudge. A default sort or rank must be tied to a declared transparent metric or rule, and any composite ordering must disclose its components and not function as a hidden recommended action order. Present raw percentile position alongside any tier label.
+
+- Named tier labels ("Generational", "Elite", "Cornerstone", "Starter", "Depth") are legal only when assigned by a David-ratified statistical tier-calibration model — never by hand, never by an arbitrary fixed bucket chosen for convenience. A named tier is a descriptive statement about a player's calibrated position (by DVS, by production, or both, per the calibration contract); it carries its basis on the surface (the raw rank/percentile plus the cohort population and its numeric denominator that earned it) and remains descriptive (`decision_supported` is governed separately; a tier label never flips it). "Bust" remains banned — a pejorative verdict, not a calibrated position. Until a valid ratified `tier_calibration` artifact authorizes a given label, that label may not be computed, serialized, emitted on any API, persisted, or rendered — front end or back end; every non-calibration occurrence stays fail-closed. Market-lane and model-lane tiers are calibrated on their own lane's basis and never blend into a single tier. The defect this prevents is not the word but the *unearned* word: a calibrated label is a disclosed-basis position, not a smuggled verdict. [David-ratified 2026-07-14; amendment `docs/superpowers/specs/2026-07-14-00-amendment-calibrated-tier-lexicon.md`; the enforcement-surface edits and the `CalibratedTier` disclosure primitive land per the amendment's binding sequence — the calibration gate before the vocabulary relaxes.]
 
 - No nominated target by the back door. A tool may echo a David-supplied hypothesis (a proposed cut or trade) and display candidate rows — including player identifiers — under an explicit sort key. It may not select a player or action as the tool's own chosen target: a "next/marginal" cost is an index of the next increment in an existing order, not a recommendation, and carries no hidden "do this" payload.
 
