@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Daily league snapshot capture (F1 — league-data freshness).
+
+  Committable configuration ONLY. Installing/reloading this with launchctl is a
+  separate David-gated machine change. Runs at 09:20 local — after the feature
+  refresh (09:15), before the PVO refresh (09:30) and what-changed (09:45) —
+  but downstream consumers gate on the READY MARKER, never on this clock slot
+  (marker-not-clock, spec 2026-07-15-league-snapshot-scheduled-capture-design.md).
+
+  Publishes an immutable per-run capture to the gitignored league_runtime store;
+  marker written last after full-chain acceptance; a failed run leaves the last
+  good run serving and writes a named failed status the capture-health
+  registration (report_freshness.json: league_capture) surfaces as amber.
+  Fails closed on everything; never touches the tracked seed artifacts.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.davidleess.dynasty-league-capture</string>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>WorkingDirectory</key>
+  <string>/Users/davidleess/dynasty-genius-product</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>20</integer>
+  </dict>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+    <string>/Users/davidleess/dynasty-genius-product/scripts/run_league_snapshot_capture.py</string>
+    <string>--runtime-root</string>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/league_runtime</string>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/davidleess/dynasty-genius-product/app/data/logs/league_capture.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/davidleess/dynasty-genius-product/app/data/logs/league_capture.err.log</string>
+</dict>
+</plist>
