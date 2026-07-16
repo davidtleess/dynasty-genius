@@ -12,12 +12,15 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import pytest
+
 import scripts.validate_governance as validate_governance
 
 ROOT = Path(__file__).resolve().parents[2]
 NEW_ATTRIBUTION = "Gemini (Operations & Telemetry)"
 HISTORICAL_ATTRIBUTION = "Gemini (Product Manager)"
 FIXED_NOW = datetime(2026, 7, 16, 15, 0, tzinfo=ZoneInfo("America/New_York"))
+E8_SKILL_PATH = ROOT / ".agents" / "skills" / "cockpit-messaging" / "SKILL.md"
 
 
 def _load_script(name: str):
@@ -187,6 +190,10 @@ def test_e7_plugin_wide_live_instructions_have_no_retired_gemini_routing() -> No
         assert retired_instruction not in live_text
 
 
+@pytest.mark.skipif(
+    not E8_SKILL_PATH.is_file(),
+    reason="E8 cockpit-messaging skill is local-by-law and absent in a fresh clone",
+)
 def test_e8_local_cockpit_skill_encodes_binding_routes_and_awareness_exception() -> None:
     text = _read(".agents/skills/cockpit-messaging/SKILL.md")
 
