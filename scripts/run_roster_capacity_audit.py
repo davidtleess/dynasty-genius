@@ -37,15 +37,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.dynasty_genius.league_capture import load_league_set_for_root  # noqa: E402
 from src.dynasty_genius.pvo_source import resolve_pvo_source  # noqa: E402
 from src.dynasty_genius.roster_capacity.models import ProducerReport  # noqa: E402
 from src.dynasty_genius.roster_capacity.scenario_simulator import (  # noqa: E402
     simulate_capacity_scenarios,
 )
 
-SNAPSHOT_PATH = (
-    ROOT / "app" / "data" / "league_snapshots" / "sleeper_universe_snapshot_latest.json"
-)
+SNAPSHOT_PATH = load_league_set_for_root(ROOT).paths["snapshot.json"]
 PVO_SEED_PATH = ROOT / "app" / "data" / "valuation" / "universe_pvo_latest.json"
 PVO_SEED_COVERAGE_PATH = (
     ROOT / "app" / "data" / "valuation" / "universe_pvo_coverage_latest.json"

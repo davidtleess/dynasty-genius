@@ -12,16 +12,18 @@ sys.path.insert(0, str(ROOT))
 
 from pydantic import ValidationError  # noqa: E402
 
+from src.dynasty_genius.league_capture import load_league_set_for_root
 from src.dynasty_genius.league_opportunity_map import (  # noqa: E402
     build_league_opportunity_map,
     write_league_opportunity_artifacts,
 )
 from src.dynasty_genius.roster_cut_engine import RosterCutResult  # noqa: E402
 
-TEAM_MATRIX_PATH = ROOT / "app" / "data" / "valuation" / "team_value_matrix_latest.json"
+_LEAGUE_SET = load_league_set_for_root(ROOT)
+TEAM_MATRIX_PATH = _LEAGUE_SET.paths["team_value_matrix.json"]
 MARKET_DIVERGENCE_PATH = ROOT / "app" / "data" / "valuation" / "universe_market_divergence_latest.json"
-TEAM_POSTURE_PATH = ROOT / "app" / "data" / "valuation" / "team_posture_latest.json"
-ROSTER_CUT_REPORT_PATH = ROOT / "app" / "data" / "valuation" / "roster_cut_report_latest.json"
+TEAM_POSTURE_PATH = _LEAGUE_SET.paths["team_posture.json"]
+ROSTER_CUT_REPORT_PATH = _LEAGUE_SET.paths["roster_cut_report.json"]
 OUTPUT_DIR = ROOT / "app" / "data" / "valuation"
 
 

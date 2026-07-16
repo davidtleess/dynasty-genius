@@ -1,0 +1,6 @@
+{
+  "schema_version": "league_runtime_provenance_seed.v1",
+  "decision_supported": false,
+  "seed": true,
+  "note": "Placeholder provenance for the committed seed set (F1 spec). Real provenance exists only on marker-pinned runtime runs; a surface reading this seed is reading pre-capture fallback data and must caveat accordingly (league_snapshot_seed_fallback)."
+}

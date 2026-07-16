@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.dynasty_genius.league_capture import load_league_set_for_root  # noqa: E402
 from src.dynasty_genius.what_changed.report import (  # noqa: E402  (after sys.path bootstrap)
     emit_daily_what_changed_report,
 )
@@ -45,18 +46,26 @@ from src.dynasty_genius.what_changed.report import (  # noqa: E402  (after sys.p
 _INPUT_RELATIVES = {
     "fc_db_path": "app/data/fc_forward_capture.db",
     "model_db_path": "app/data/model_forward_capture.db",
-    "sleeper_snapshot_path": "app/data/league_snapshots/sleeper_universe_snapshot_latest.json",
-    "team_posture_path": "app/data/valuation/team_posture_latest.json",
-    "team_value_matrix_path": "app/data/valuation/team_value_matrix_latest.json",
     "league_opportunity_path": "app/data/valuation/league_opportunity_latest.json",
-    "roster_cut_report_path": "app/data/valuation/roster_cut_report_latest.json",
 }
 _REPORT_RELATIVE = "app/data/what_changed/what_changed_latest_report.json"
 _TOP_N = 25
 
 
+_LEAGUE_INPUT_KEYS = {
+    "sleeper_snapshot_path": "snapshot.json",
+    "team_posture_path": "team_posture.json",
+    "team_value_matrix_path": "team_value_matrix.json",
+    "roster_cut_report_path": "roster_cut_report.json",
+}
+
+
 def _resolve_inputs() -> dict[str, Path]:
-    return {key: ROOT / rel for key, rel in _INPUT_RELATIVES.items()}
+    inputs = {key: ROOT / rel for key, rel in _INPUT_RELATIVES.items()}
+    league = load_league_set_for_root(ROOT)
+    for key, artifact in _LEAGUE_INPUT_KEYS.items():
+        inputs[key] = league.paths[artifact]
+    return inputs
 
 
 def _resolve_report_path() -> Path:

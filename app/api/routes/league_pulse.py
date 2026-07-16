@@ -8,6 +8,7 @@ assembler failure (`LeaguePulseDependencyError`) translates to 503.
 from __future__ import annotations
 
 import json
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,7 @@ from app.api.routes.league_pulse_assembler import (
     assemble_league_pulse,
 )
 from app.api.routes.league_pulse_models import LeaguePulseResponse
+from src.dynasty_genius.league_capture import load_production_league_set
 
 _ROOT = Path(__file__).resolve().parents[3]
 _VALUATION = _ROOT / "app" / "data" / "valuation"
@@ -37,12 +39,21 @@ def _load_json(path: Path) -> dict[str, Any]:
         return json.load(f)
 
 
+_PINNED_LEAGUE_SET: ContextVar[Any] = ContextVar("league_pulse_pinned_set", default=None)
+
+
+def _current_league_set() -> Any:
+    """The request-pinned LeagueSet when inside the route, else a fresh resolution."""
+    pinned = _PINNED_LEAGUE_SET.get()
+    return pinned if pinned is not None else load_production_league_set()
+
+
 def _load_team_posture() -> dict[str, Any]:
-    return _load_json(_VALUATION / "team_posture_latest.json")
+    return _load_json(_current_league_set().paths["team_posture.json"])
 
 
 def _load_team_value_matrix() -> dict[str, Any]:
-    return _load_json(_VALUATION / "team_value_matrix_latest.json")
+    return _load_json(_current_league_set().paths["team_value_matrix.json"])
 
 
 def _load_league_opportunity() -> dict[str, Any]:
@@ -53,8 +64,14 @@ def _load_league_opportunity() -> dict[str, Any]:
 def league_pulse_surface() -> LeaguePulseResponse:
     """Read-only League Pulse over the Phase 17/18 artifacts (artifact-state)."""
     try:
-        posture = _load_team_posture()
-        value = _load_team_value_matrix()
+        # Pin ONE resolution for the whole request: posture and matrix must come
+        # from the same marker-pinned run (or the same seed set) — never mixed.
+        pin_token = _PINNED_LEAGUE_SET.set(load_production_league_set())
+        try:
+            posture = _load_team_posture()
+            value = _load_team_value_matrix()
+        finally:
+            _PINNED_LEAGUE_SET.reset(pin_token)
         opportunity = _load_league_opportunity()
     except FileNotFoundError as exc:
         raise _artifact_unavailable_503(str(exc)) from exc

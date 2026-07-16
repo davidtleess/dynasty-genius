@@ -150,6 +150,11 @@
       "path": "app/data/models/head_a/runs/20260524T140748Z/te_v3.pkl",
       "required": true,
       "kind": "file"
+    },
+    {
+      "path": "app/data/league_runtime/runs",
+      "required": true,
+      "kind": "directory"
     }
   ],
   "optional": [

@@ -22,6 +22,16 @@ FRONTEND_OPENAPI_PATH = REPO_ROOT / "frontend" / "openapi.json"
 
 
 EXPECTED_ARTIFACTS: dict[str, dict[str, Any]] = {
+    # league_capture registered 2026-07-15 (F1 spec) — intentional pin amendment
+    "league_capture": {
+        "path": "app/data/league_runtime/capture_status_latest.json",
+        "producer": "scripts/run_league_snapshot_capture.py",
+        "cadence": "daily",
+        "scheduled_time_local": "09:20",
+        "tier": "core_substrate",
+        "timestamp_field": "finished_at",
+        "dormant_ok": False,
+    },
     "pvo_refresh": {
         "path": "app/data/model_capture/pvo_refresh_latest_report.json",
         "producer": "scripts/run_pvo_refresh.py",

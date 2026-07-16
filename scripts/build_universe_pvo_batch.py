@@ -18,6 +18,7 @@ from app.services.engine_b_service import score_inference_partition  # noqa: E40
 from src.dynasty_genius.features.feature_source import (  # noqa: E402
     resolve_feature_source,
 )
+from src.dynasty_genius.league_capture import load_league_set_for_root  # noqa: E402
 from src.dynasty_genius.models.player_identity import PlayerIdentity  # noqa: E402
 from src.dynasty_genius.pvo_assembler import assemble_pvo  # noqa: E402
 from src.dynasty_genius.universe_pvo_batch import (  # noqa: E402
@@ -25,7 +26,7 @@ from src.dynasty_genius.universe_pvo_batch import (  # noqa: E402
     write_universe_pvo_artifacts,
 )
 
-SNAPSHOT_PATH = ROOT / "app" / "data" / "league_snapshots" / "sleeper_universe_snapshot_latest.json"
+SNAPSHOT_PATH = load_league_set_for_root(ROOT).paths["snapshot.json"]
 PROSPECT_CARDS_PATH = ROOT / "resources" / "prospect_cards.json"
 FF_PLAYERIDS_PATH = ROOT / "app" / "data" / "identity" / "_runs" / "ff_playerids_20260516.json"
 ENGINE_B_FEATURES_PATH = ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
