@@ -27,9 +27,9 @@ A choice only David can make (reviewers CLEAR content; David authorizes actions 
 - Do **not** bundle an authorization into a status update — make the ask explicit and separable.
 
 ### Cockpit loop-close
-The post-action confirmation back to Codex/Gemini after a cleared write/commit/merge/branch-delete/run (via `scripts/tmux_msg.py`).
+The post-action confirmation to the binding lanes' independent reviewer after a cleared write/commit/merge/branch-delete/run (via `scripts/tmux_msg.py`); Gemini receives an awareness copy (no reply requested — Operations & Telemetry seat).
 - SHA/paths/PR/state, what was and wasn't touched, excluded scratch never staged.
-- The cycle ends when the cockpit confirms — close it, don't leave it open.
+- The cycle ends when the independent reviewer confirms (audited against the actual commit/state, per 02's closing-the-loop rule) — close it, don't leave it open.
 
 ### Risk / blocker surface
 - Name the blocker and exactly what unblocks it (RED not cleared, David word pending, accrual pending, a deeper named layer).

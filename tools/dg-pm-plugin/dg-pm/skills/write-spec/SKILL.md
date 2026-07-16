@@ -14,14 +14,14 @@ Produce a **design spec of record** at `docs/superpowers/specs/YYYY-MM-DD-<slug>
 
 1. **Complete the governance bootstrap first — do not shortcut it.** Per `CLAUDE.md`/`AGENTS.md`, the full Required Reading Order precedes any spec authoring, code, PR review, or analytical recommendation: governance `02-agent-operating-loop` → `00-product-constitution` → `01-north-star-architecture` → `03-code-hygiene-policy` → root `PRODUCT.md`/`DESIGN.md` (if the surface is visual) → `AGENT_SYNC.md` → today's ledger. For *this* spec specifically, ground hardest in `00` (immutable football rules + the No-Verdict Line) and `AGENT_SYNC.md` (current thread); load `PRODUCT.md`/`DESIGN.md` via the `impeccable` skill for any visual surface.
 2. **Measure the problem — do not infer it.** Reproduce it. Read the actual code at `file:line`. Quote the real marker/output/test. A spec that opens with a reproduced failure and exact line references is worth ten that open with a hunch. **The reproduction is a gate, not a formality:** the `Reproduced` block must contain a real command and its captured output. If you genuinely cannot reproduce yet, you must **label the section `Reproduction pending` (never `Reproduced`)** and mark the spec **NOT a spec of record — it cannot go to cockpit CLEAR until a real command + output is pasted.** A `Reproduced` heading over a placeholder is the exact failure this skill exists to prevent.
-3. **Name the authoring lane.** Claude authors the spec; **Codex authors the RED**; Gemini is advisory/non-binding. State this so the reader knows who does what next.
+3. **Name the authoring lane.** Claude authors the spec and the framing; **Codex authors the RED** and adversarially challenges the framing in writing (Claude answers with a written disposition); Gemini is the Operations & Telemetry seat — telemetry facts on request, awareness copies, no judgment. State this so the reader knows who does what next.
 
 ## Spec structure
 
 Write these sections. Keep it scannable — a busy reviewer should get the gist from headers and bold.
 
 ### Header block
-- **Title**, **Date**, **Status** (`DRAFT — awaiting cockpit CLEAR, then David authorization`), **Authoring lane** (Claude spec · Codex RED · Gemini advisory), **Scope** (one line: what subsystem, and explicitly what it is *not*).
+- **Title**, **Date**, **Status** (`DRAFT — awaiting cockpit CLEAR, then David authorization`), **Authoring lane** (Claude spec · Codex sole binding reviewer + RED · Gemini awareness-only), **Scope** (one line: what subsystem, and explicitly what it is *not*).
 
 ### 1. Problem (measured, not inferred)
 - The user/system problem in 2–3 sentences, grounded in evidence (a reproduced failure, a real marker, a metric, a David directive quoted verbatim).
@@ -41,7 +41,7 @@ Write these sections. Keep it scannable — a busy reviewer should get the gist 
 
 ### 5. Sequence (cockpit-TDD)
 Spell out the loop so the next agent knows the gates:
-1. Cockpit CLEAR on this spec (Codex technical; Gemini advisory if relevant).
+1. Cockpit CLEAR on this spec: **Claude authors the framing → Codex challenges it in writing → Claude issues a written disposition on every challenge item → Codex technical review to CLEAR** (Gemini: awareness copy; telemetry facts on request).
 2. **David authorizes** the RED.
 3. Codex authors the RED (F1..Fn), demonstrably red on `main`.
 4. Claude implements GREEN; runs the focused suite + full gate where a locked surface is touched; self-probes the falsification matrix.
@@ -67,7 +67,7 @@ Spell out the loop so the next agent knows the gates:
 
 ## Output
 
-Markdown. Write to `docs/superpowers/specs/YYYY-MM-DD-<slug>-design.md`. Then offer to route it to the cockpit (Codex for CLEAR + RED authorship, Gemini advisory) — but **do not commit or route without David's word**. Writing the spec file is content; routing and committing are actions.
+Markdown. Write to `docs/superpowers/specs/YYYY-MM-DD-<slug>-design.md`. Then offer to route it to the cockpit (Codex for the written challenge, CLEAR + RED authorship; Gemini gets an awareness copy) — but **do not commit or route without David's word**. Writing the spec file is content; routing and committing are actions.
 
 ## Tips
 

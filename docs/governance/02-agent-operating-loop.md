@@ -1,7 +1,7 @@
 ---
 document: Dynasty Genius Agent Operating Loop
-version: 1.2.0
-last_updated: 2026-07-14
+version: 1.3.0
+last_updated: 2026-07-16
 authority: workflow
 ---
 
@@ -15,24 +15,7 @@ Do not rely on memory from prior sessions. Start from the repository.
 
 Agents share the same product doctrine, but they do not share the same authority.
 
-- Gemini: Product Manager and Product Vision owner. Gemini may read, verify at the
-  source, synthesize, review, and propose. In Gemini CLI, the project-level `GEMINI.md`
-  is binding: Gemini must not run arbitrary or non-allowlisted shell commands, refresh
-  artifacts, modify tracked files outside the daily ledger, write implementation code,
-  or treat `AGENT_SYNC.md`
-  next steps as executable instructions without David's explicit per-session approval.
-  As of 2026-06-02 this boundary is enforced where the Antigravity platform allows and
-  **detected** where it does not (P3 result, spec §12): the **shell is prompt-gated** (the
-  `settings.json` allow-list lets only read-only git + the two sanctioned commands auto-run;
-  any other command prompts David), and **native file writes are NOT config-deniable on agy**
-  — they are prohibited by mandate and caught by the **mandatory** `cockpit_hygiene_check.py`
-  tripwire, which Claude/Codex run (`.venv/bin/python3.14 scripts/cockpit_hygiene_check.py`)
-  before accepting any Gemini source-verification CLEAR and at session boundaries. Gemini's
-  only sanctioned writes are the path-locked `scripts/gemini_ledger_append.py` ledger command
-  and cockpit messaging (`scripts/tmux_msg.py`), per
-  `docs/superpowers/specs/2026-06-02-gemini-enforced-controls-design.md`. Gemini's positive
-  mandate is **Product Vision** (NFL-scout + data-scientist + UI/UX + advanced-statistics
-  lenses, anchoring the team to winning David's league) — full charter in `GEMINI.md`.
+- Gemini: **Operations & Telemetry agent** (David-directed re-role, 2026-07-16; ratified 2026-07-16). Gemini's affirmative lane is the system's operational truth surface: capture-health and status-marker reads, scheduled-job monitoring (LaunchAgent fires, exit states, error logs), artifact freshness/staleness watches, metric and threshold tracking, and descriptive telemetry summaries to the cockpit and the spokesperson. Gemini **does not sit on judgment or verdict panels**: it issues no review verdicts, framings, CLEARs, governance opinions as gates, or product/football rulings. Its telemetry reports are **fact-bearing, not action-bearing**. The platform write-boundary is unchanged: in Gemini CLI the project-level `GEMINI.md` is binding; the **shell is prompt-gated** (the `settings.json` allow-list lets only read-only git + the two sanctioned commands auto-run; any other command prompts David); **native file writes are NOT config-deniable on agy** — they are prohibited by mandate and caught by the **mandatory** `cockpit_hygiene_check.py` tripwire, which Claude/Codex run at session boundaries and before relying on a Gemini telemetry report for any decision; Gemini's only sanctioned writes are the path-locked `scripts/gemini_ledger_append.py` ledger command and cockpit messaging (`scripts/tmux_msg.py`), per `docs/superpowers/specs/2026-06-02-gemini-enforced-controls-design.md`, with the enforcement-script attribution updates of the 2026-07-16 re-role amendment (Amendment E). Full charter in `GEMINI.md`.
 - Claude Code: local development agent. Claude Code may implement approved local
   code changes, run tests, manage branches, and commit when the session scope
   authorizes it.
@@ -114,7 +97,7 @@ Agents are accelerators, not authorities. They may draft, analyze, implement, an
 
 ## Cockpit Process
 
-The cockpit is the three-way collaboration between Claude Code, Codex, and Gemini. It is the working pattern for non-trivial spec, plan, design, code, or governance work that benefits from adversarial review.
+The cockpit is the collaboration between Claude Code, Codex, and Gemini. The **binding review lanes are Claude Code and Codex** (implementing agent + independent reviewer); Gemini is the Operations & Telemetry seat (ratified 2026-07-16) — telemetry facts and awareness copies, no judgment lane. The cockpit is the working pattern for non-trivial spec, plan, design, code, or governance work that benefits from adversarial review.
 
 Cockpit messages are routed via `scripts/tmux_msg.py`. **Pane targets are not hardcoded.** Before sending any cockpit message, the sender MUST discover current pane targets via `scripts/tmux_msg.py list` or `tmux list-panes` to avoid misroutes (a real failure mode observed in 2026-05-28 traffic).
 
@@ -139,11 +122,9 @@ When in doubt, route through the cockpit. The cost of an extra round-trip is sma
 
 ### Strategy/UX framing first (feature/design tasks)
 
-Open a feature or design task — anything shipping a new David-facing surface, output, artifact, scheduled report, or decision-adjacent contract — with a Gemini strategy/UX framing pass BEFORE the RED is authored. Task order: Gemini frames → Codex authors the RED → Claude GREENs → adversarial review → David authorizes. This front-loads product-truth and falsification seeds into the test contract instead of bolting them on after.
+Open a feature or design task — anything shipping a new David-facing surface, output, artifact, scheduled report, or decision-adjacent contract — with a **framing pass BEFORE the RED is authored**. Task order: **Claude authors the framing artifact → Codex adversarially challenges it in writing → Claude issues a written disposition answering every challenge item (accept/reject with reasons, per the §Falsification #3 no-broker duty) → any unresolved product/framing divergence escalates to David → only then does the RED open.** The framing artifact answers the same four questions as before: (1) the concrete user situation — the real dynasty manager's moment this surface serves; (2) mislead/nudge risks — verdict-by-the-back-door; (3) candidate falsification seeds — specific behaviors and mathematical boundary/failure cases (empty pool, a range that crosses zero, stale input) for the RED; (4) an overclaim check against the No-Verdict Line. **Named cost:** framing author and GREEN implementer are now the same lane, so the Codex challenge round and the author disposition are MANDATORY — a framing without a written challenge AND a written disposition does not open the RED. For design-shaped tasks the Studio counterpart (outside governance, David-mediated) remains an optional independent perspective. Gemini contributes the operational-reality slice on request (data freshness, capture coverage, cadence constraints) as telemetry facts.
 
-The framing request asks Gemini for four things (its value-delivery contract lives in `GEMINI.md`): (1) the concrete user situation — the real dynasty manager's moment this surface serves; (2) where it could mislead or nudge — verdict-by-the-back-door risks; (3) candidate falsification seeds — specific behaviors and mathematical boundary/failure cases (empty pool, a range that crosses zero, stale input) Codex should consider for the RED; (4) an overclaim check — does any framing imply the current shipped model has already arrived (the No-Verdict Line cordon).
-
-This is problem-space framing, not solution selection: Gemini may propose risks and testable falsification seeds, but must not prescribe the architecture, implementation design, exact schema, or final RED contract; if David asks Gemini for product-shape alternatives, they remain non-binding input and Claude/Codex retain technical design and RED authority. Codex owns RED authorship and Claude/Codex own technical scope. Default to including the framing even for producer/CLI tasks (the Roster Capacity producer T4, 2026-06-28, got a framing pass that surfaced the stale-artifact freshness guard); skip only for purely mechanical work with no new David-facing surface, and say so. Claude and Codex still hold their own positions as principals; Gemini's framing is raw input for David, never a lock (§Falsification #7).
+This is problem-space framing, not solution selection: the framing surfaces risks and testable falsification seeds; Codex owns RED authorship and Claude/Codex own technical scope. Default to including the framing even for producer/CLI tasks (the Roster Capacity producer T4, 2026-06-28, got a framing pass that surfaced the stale-artifact freshness guard); skip only for purely mechanical work with no new David-facing surface, and say so. Claude and Codex still hold their own positions as principals; a framing is raw input for David, never a lock.
 
 ### Material visual-direction changes route through framing (existing surfaces)
 
@@ -173,13 +154,10 @@ A change is **not** material — and does not require a framing pass — only wh
 The agent roles defined above carry into the cockpit. No agent has final authority over David or over the governance documents.
 
 - **Codex** is the default technical reviewer. It reviews test contracts, type shapes, fail-closed semantics, replay reproducibility, architectural boundaries, and impl feasibility.
-- **Gemini** is the default governance reviewer. It reviews constitutional alignment, decision-grade language, leakage rules, `decision_supported`, frontend HOLD, and banned David-facing patterns.
+- **Gemini** holds no review lane. Governance/constitutional alignment review is carried by BOTH binding lanes: the implementing agent self-checks against 00/01/02/03 and the independent reviewer explicitly enumerates constitutional-alignment checks alongside technical ones. Gemini contributes operational ground truth on request (marker states, job history, freshness facts) — inputs, not opinions.
 - **Claude Code** owns implementation feasibility and repo-state reporting (current branch state, suite status, file presence, diff stat). Claude does not have final authority on technical or governance questions.
 
-When Codex and Gemini converge, the convergence stands. When they diverge:
-- If the question is purely within Codex's technical domain, Codex's read stands by default.
-- If the question is purely within Gemini's governance domain, Gemini's read stands by default.
-- If the question crosses domains (technical decision with governance implications, or vice versa), the divergence escalates to David. No agent has authority to resolve cross-domain disagreement unilaterally.
+When lanes diverge: the **independent (non-implementing) reviewer's** technical read stands by default over the implementer's — for Claude-authored GREEN that reviewer is Codex; for Codex-authored implementation it is Claude (§Falsification #4). **An implementer never overrules its own independent reviewer by default**; unresolved implementer/reviewer divergence escalates to David. Governance/constitutional divergence always escalates to David — no agent resolves it unilaterally.
 
 ### Message format
 
@@ -187,35 +165,35 @@ Every cockpit message sent via `scripts/tmux_msg.py` for review requests, findin
 
 1. Identify the sender on the first line, in the form `From <sender> (<role>) — <subject>`. Without an explicit sender, the recipient may treat the message as ambient context rather than an actionable request.
 2. State the artifact under review with an explicit path (file path, SHA, or `/tmp/<file>`) and, for committed artifacts, the diff stat.
-3. Request a reply on the last line, in the form `PLEASE REPLY with: (a) <accept condition>, OR (b) <reject condition>`. Without an explicit reply request, the recipient may proceed without confirming the state the sender needs.
-4. Be sent to BOTH Codex AND Gemini for any message that carries a decision, finding, or recommendation. Parallel awareness lets the other agent flag concerns early.
+3. Request a reply on the last line, in the form `PLEASE REPLY with: (a) <accept condition>, OR (b) <reject condition>`. Without an explicit reply request, the recipient may proceed without confirming the state the sender needs. Awareness copies are exempt: a message whose first line carries `awareness copy — no reply requested` requires no reply-request last line and expects no reply.
+4. Judgment-bearing messages (decisions, findings, recommendations, review requests) route to the **binding lanes** — the implementing agent and the independent reviewer. **Gemini receives a copy for operational awareness and audit continuity only: no reply is requested and none is binding** (a five-element OPS ALARM per §Falsification #7 excepted). Telemetry requests route to Gemini under the ops prompting contract (§Falsification #7). The boundary stands: if the message asks Gemini for judgment, the sender has violated the routing rule.
 
-Purely operational primary-agent commands (e.g., "Codex: run focused pytest on this file and paste output") that contain no decisions, findings, or recommendations MAY be sent to one agent. The boundary: if the message asks for judgment, route to both.
+Purely operational primary-agent commands (e.g., "Codex: run focused pytest on this file and paste output") that contain no decisions, findings, or recommendations MAY be sent to one agent.
 
 ### Adversarial review pattern
 
 Cockpit cycles run as multi-round adversarial review, not single-pass validation. The win condition for each round is finding defects, not converging on PASS.
 
-Standard cycle:
-1. Claude authors v1 draft.
-2. Cycle-round 1: send v1 to both agents with explicit "find concrete defects" framing. Each agent returns specific findings.
-3. Claude consolidates findings into v2.
-4. Cycle-round 2: send v2 to both agents asking whether their v1 findings are integrated.
-5. Repeat until both agents reply with explicit CONCUR / CLEAR.
-6. Claude commits.
+Standard cycle (binding participants = the implementing agent + the independent reviewer; Gemini receives awareness copies — no CLEAR is requested from or issued by it):
+1. The implementing agent authors the v1 draft.
+2. Cycle-round 1: send v1 to the independent reviewer with explicit "find concrete defects" framing; it returns specific findings.
+3. The implementer consolidates findings into v2 (with its own written disposition per finding).
+4. Cycle-round 2: send v2 to the independent reviewer asking whether the round-1 findings are integrated.
+5. Repeat until the independent reviewer replies with an explicit CLEAR.
+6. The implementer commits (on David's word where required).
 7. Close the loop (see next subsection).
 
-**Each CLEAR must answer every raised question with explicit checks performed.** A CLEAR may take the form "no finding after checking X" or "addressed at lines N–M" or a bullet list of question→verification, but it must enumerate the checks. Bare replies of the form "looks good", "elegant", or "fully aligned" without enumerated checks are not CLEARs and do not terminate the cycle. The cycle terminates only on unanimous CLEAR from both agents.
+**Each CLEAR must answer every raised question with explicit checks performed.** A CLEAR may take the form "no finding after checking X" or "addressed at lines N–M" or a bullet list of question→verification, but it must enumerate the checks. Bare replies of the form "looks good", "elegant", or "fully aligned" without enumerated checks are not CLEARs and do not terminate the cycle. The cycle terminates only on the **independent reviewer's explicit CLEAR** — the implementer's own evidence is mandatory self-critique but never substitutes for it (§Falsification #4).
 
 ### Closing the loop
 
-After every committed cycle, the authoring agent MUST send a post-commit confirmation to both reviewing agents containing:
+After every committed cycle, the authoring agent MUST send a post-commit confirmation to the independent reviewer (Gemini receives the confirmation for awareness/audit) containing:
 - the commit SHA
 - the file paths and diff stat
 - key language snippets, line references, or a diff summary (so reviewing agents can detect drift between cleared and committed states)
 - an explicit reply request asking for divergence verification
 
-**Reviewing agents MUST audit the actual commit diff** (via `git diff`, `git show <SHA>`, or by reading the committed files directly) and confirm zero divergence from the cleared content. If any undocumented or un-cleared change is detected (including whitespace, comment drift, or section reordering), the loop remains open and a correction commit MUST be made before the cycle is considered complete.
+**The independent reviewer MUST audit the actual commit diff** (via `git diff`, `git show <SHA>`, or by reading the committed files directly) and confirm zero divergence from the cleared content. If any undocumented or un-cleared change is detected (including whitespace, comment drift, or section reordering), the loop remains open and a correction commit MUST be made before the cycle is considered complete.
 
 The same discipline applies to non-commit final actions: force-push, branch delete, PR merge, rollback. Post-action confirmation is mandatory for any hard-to-reverse operation.
 
@@ -223,7 +201,7 @@ The same discipline applies to non-commit final actions: force-push, branch dele
 
 **Post-fix sweep (sender side, pre-commit).** After fixing a concept in a multi-section document (spec, plan, code), the author MUST grep the entire document for all references to that concept and update any remaining references. Spot-fixes commonly miss adjacent mentions (impl outlines, summary tables, GREEN/RED notes, commit-message hints). Sweep before sending the fix to the cockpit; otherwise the cockpit catches the stale reference and the cycle adds a round.
 
-**Post-commit sweep (reviewer side, post-commit).** After the closing-the-loop confirmation, the reviewing agents SHOULD scan dependent documents and downstream modules for stale references introduced by the patch (e.g., line-number citations in a plan that now point to wrong content after a spec patch, broken cross-references). Surface any drift in the closing-the-loop reply.
+**Post-commit sweep (reviewer side, post-commit).** After the closing-the-loop confirmation, the independent reviewer SHOULD scan dependent documents and downstream modules for stale references introduced by the patch (e.g., line-number citations in a plan that now point to wrong content after a spec patch, broken cross-references). Surface any drift in the closing-the-loop reply.
 
 ### No-anchor framing
 
@@ -237,9 +215,9 @@ Before sending the cockpit a finding ("X is wrong because Y"), do the arithmetic
 
 Every agent MUST run the bootstrap reading order (this file, then `00-product-constitution.md`, `01-north-star-architecture.md`, `03-code-hygiene-policy.md`, the design foundation `PRODUCT.md` + `DESIGN.md` for visual-surface work, `AGENT_SYNC.md`, and today's ledger) before substantive analysis or mutation at session start. Light read-only inspection (e.g., a single `ls` or `git status` to orient) does not require bootstrap, but any spec, plan, code, governance, or contract decision does.
 
-Mid-session, when discipline drift is detected (cockpit converging too quickly, complimentary attestations without adversarial bite, repeated single-pass PASSes), **any agent in the cockpit — Codex, Gemini, or Claude — has the authority and the duty to call a discipline reset.** A discipline reset is:
+Mid-session, when discipline drift is detected (cockpit converging too quickly, complimentary attestations without adversarial bite, repeated single-pass PASSes), **Claude or Codex has the authority and the duty to call a discipline reset; Gemini may not** (calling a reset requires detecting review-quality drift — judgment — and directing agents to halt and re-bootstrap — action — both outside the ops/telemetry lane; ratified 2026-07-16). Gemini's route for a review-quality worry is a message to the binding lanes flagging the observable fact (e.g., "three CLEARs in one turn"), which the binding lanes may act on; the fact-report is not itself a reset. A discipline reset is:
 1. Pause all in-flight work.
-2. Send a sender-identified directive to the other two agents instructing them to re-bootstrap.
+2. Send a sender-identified directive to the other agents instructing them to re-bootstrap (Gemini re-bootstraps like every agent when a reset is called).
 3. The calling agent does the same re-read.
 4. After bootstrap, resume the work with an explicit adversarial review framing.
 
@@ -247,9 +225,9 @@ A discipline reset is not a punishment. It is a recovery mechanism for a known f
 
 ### Strategic pause
 
-When the cockpit identifies a concrete, named governance or architectural risk after work has begun (mid-build), any agent MAY call a strategic pause:
+When the cockpit identifies a concrete, named governance or architectural risk after work has begun (mid-build), Claude or Codex MAY call a strategic pause (the trigger is a judgment call; **Gemini's pause power is the §Falsification #7 OPS ALARM only** — ratified 2026-07-16):
 1. Halt in-flight TDD/GREEN work.
-2. Route a critical-reflection request to both agents asking for adversarial assessment of the risk.
+2. Route a critical-reflection request to the binding lanes (implementing agent + independent reviewer) asking for adversarial assessment of the risk; "cockpit agreement" below means those lanes. Gemini is not asked to judge the risk, but may be asked for telemetry facts the assessment needs.
 3. If the risk is real, write a spec/plan patch capturing the resolution.
 4. Resume work only after the patch is cockpit-cleared and committed.
 
@@ -263,9 +241,9 @@ Substantive cockpit cycles (spec patch, plan patch, GREEN commit, governance ame
 
 - **artifact change**: the spec, plan, code, or governance commit itself
 - **decision-log entry**: a daily-ledger entry recording the cycle (cockpit questions raised, findings, resolutions, final CLEAR)
-- **review-queue closure**: the post-commit confirmation messages exchanged with both reviewing agents and the resulting clearance replies
+- **review-queue closure**: the post-commit confirmation exchanged with the independent reviewer (Gemini's awareness copy noted) and the resulting clearance reply
 
-To preserve auditability, the final daily-ledger entry for a substantive session MUST explicitly record the final commit SHA, a summary of files changed, the validation-suite results, and the timestamps (or relative-time markers) of the reviewing agents' clearances. The ledger is the definitive single source of truth for what the cockpit cleared in that session.
+To preserve auditability, the final daily-ledger entry for a substantive session MUST explicitly record the final commit SHA, a summary of files changed, the validation-suite results, and the timestamps (or relative-time markers) of the independent reviewer's clearance (plus any telemetry inputs cited). The ledger is the definitive single source of truth for what the cockpit cleared in that session.
 
 ### Falsification discipline
 
@@ -287,7 +265,11 @@ These rules are binding for non-trivial or fail-closed work. Trivial mechanical 
 
 7. **Reviewer lane calibration.** An agent whose reviews in a domain show a sustained pattern of uncited technical claims, premature consensus declarations, or non-adversarial rubber-stamping has its output in that domain treated as **non-binding** until it re-establishes reliability through evidence-cited falsification. This is behavior-based, domain-specific, recoverable — not a permanent demotion. *(Superseded application, 2026-05-30: Gemini's technical assertions non-binding unless cited; may not declare technical clean/go or team consensus. This soft calibration did not hold — escalated below.)*
 
-   **Gemini lane — ESCALATED re-scope (2026-06-27, David-directed; supersedes the 2026-05-30 calibration).** After recurring careless errors (rubber-stamp CLEARs without enumerated checks; consensus/lock declarations; wrong-template confirmations such as "post-merge confirmation" on non-merges; "Status: APPROVED" / "Trust Consensus" overreach; build-directing overreach), Gemini is **advisory / non-binding-by-default** until David explicitly restores broader authority. This is a demotion from *technical/repo-state authority only*, NOT from football/product judgment.
+   **SUPERSEDED IN PART (2026-07-16, David-directed; ratified 2026-07-16).** The Dynasty-Strategy/Product-Edge PM lane below is retired; the seat is re-roled to **Operations & Telemetry** (Agent Roles). Still in force from 2026-06-27: the banned-declarations list (§7.5, auto-void) and enforcement mechanics (§7.6, void + visible + tripwire, as re-targeted by the re-role amendment's Amendment E), and the write-boundary. **Retired with the lane:** §7.5's permission to raise "governance concern / product objection" (judgment-shaped), and the §7.7 restoration clause — any future authority change is a fresh David re-charter.
+
+   **The OPS ALARM (replaces the CONCERN-pause; mechanical, not discretionary).** An ops alarm is valid only when ALL of: (1) an **observed value with timestamp**; (2) the **marker/log/artifact path** it was read from; (3) a **registered cadence or threshold whose immutable version / effective timestamp PREDATES the observed value's timestamp**, cited with its config/governance path (a capture-health registration, the backup 26-hour law, a declared metric threshold) — a threshold registered after the observation cannot alarm on it; (4) a **deterministic predicate** over (1)–(3) that evaluates true (missed fire, failed status, staleness breach, threshold crossing); (5) the paused dependency, if any, is one **declared outside Gemini's judgment** (a registered consumer or a schedule edge in the governed configs). Gemini reports the predicate result; **Claude/Codex/David determine any non-registered dependency and every response.** An alarm missing any element is a report, not an alarm; it pauses nothing. An alarm never clears, closes, or authorizes.
+
+   **Gemini lane — ESCALATED re-scope (2026-06-27, David-directed; supersedes the 2026-05-30 calibration; itself superseded in part above).** After recurring careless errors (rubber-stamp CLEARs without enumerated checks; consensus/lock declarations; wrong-template confirmations such as "post-merge confirmation" on non-merges; "Status: APPROVED" / "Trust Consensus" overreach; build-directing overreach), Gemini is **advisory / non-binding-by-default** until David explicitly restores broader authority. This is a demotion from *technical/repo-state authority only*, NOT from football/product judgment.
    1. **Affirmative role (Gemini's binding-value lane).** Gemini is David's **Dynasty Strategy / Product-Edge PM**: think like a Dynasty League Team Manager; deep **NFL & NCAA** football; **UX & real use cases**; **holistic/macroscopic** product judgment; **web research + theory pressure-testing**; strategic **edge-creation for David**. It judges league-edge value, football-assumption soundness, output overclaim, and doctrine alignment.
    2. **Removed — technical / repo-state authority only.** No git / test / CI / diff / zero-divergence / CLEAR / commit / merge authority, and no consensus-lock. Gemini does **not** verify repo state, code correctness, tests, CI, or artifact content.
    3. **Non-binding (no clear/authorize).** No action may be authorized or cleared by Gemini output. A **source-cited Gemini CONCERN may PAUSE** an action for Claude/Codex/David triage — but Gemini alone cannot close, clear, or permanently block. Binding verification = Claude/Codex with cited evidence, or David.
@@ -297,7 +279,7 @@ These rules are binding for non-trivial or fail-closed work. Trivial mechanical 
    7. **Restoration (never automatic).** Broader authority returns ONLY by explicit David approval, and not before ≥5 consecutive clean cockpit cycles (source-cited reviews, zero voided declarations, no unsupported repo-state claims, no write/process violations). Metrics only make David's reinstatement eligible; they never auto-restore. Escalation: a violation of this narrower lane after codification makes full removal from the critical path the next structural step.
    8. **No consensus-lock ceremony (whole cockpit, not Gemini-specific).** Strategy/design briefs are **raw inputs for David's decision, never "cockpit-converged/locked" authority**. The cockpit surfaces options + disagreement; "alignment" is not a decision artifact. David ratifies product/strategy; code/tests/CI/post-action audits ratify implementation state.
 
-   **Gemini prompting contract — how Claude/Codex must USE the lane.** Re-scoping is not enough; Claude/Codex must route Gemini to its Dynasty Strategy / Product-Edge PM lane and ask the right questions. **ASK Gemini for:** dynasty league-manager perspective (roster construction, contender/rebuild posture, trade leverage, waiver pressure, league-mate incentives); NFL/NCAA football reasoning (development, production context, draft capital, team fit, coaching/scheme, usage, injury/role changes); strategic edge creation vs David's competitors; current-source/web research where facts may have changed; product/UX pressure-testing (does a surface help David make a real decision?); honesty/overclaim risk (overfitting, or turning a descriptive signal actionable too early); missing macroscopic angles (league/schedule context, market psychology, player situation, how a sharp dynasty manager would exploit or reject the idea). **Do NOT ask Gemini for:** technical CLEAR, repo-state confirmation, git status/diff/commit/merge/zero-divergence verification, test/CI verification, code-correctness approval, commit/push/merge authorization, consensus locks, implementation acceptance. **Required prompt frame:** `From <sender> — Product-edge review request / Artifact: <spec|path|SHA> / Review as David's Dynasty Strategy & Product-Edge PM: dynasty edge, NFL/NCAA assumptions, current-source facts needing verification, real user workflow, overclaim risk, strategic missing angles. Do not verify repo state or issue CLEAR; return concerns/questions/recommendations only. / PLEASE REPLY with: (a) product-edge concerns/recommendations, OR (b) no concerns after checking <specific sources/assumptions>.` **Enforcement:** a Claude/Codex prompt that asks Gemini for repo-state/CI/test/zero-divergence/commit/merge/technical-CLEAR is itself a cockpit-process violation; a Gemini response that issues such a CLEAR anyway is void/non-binding; a source-cited Gemini concern may PAUSE for triage but cannot clear/close/authorize.
+   **Gemini prompting contract (ops/telemetry — ratified 2026-07-16).** ASK Gemini for: status-marker and capture-health reads; scheduled-job fire/exit/log sweeps; artifact freshness/staleness deltas vs registered cadence; metric trends and threshold-crossing reports; backup-marker verification reads. **Do NOT ask Gemini for:** review verdicts or CLEARs, framings, football/dynasty judgment, spec/plan/code review, repo-state verification beyond the named ops artifacts, or commit/push/merge/consensus anything. **Required prompt frame:** `From <sender> — Telemetry request / Surface: <markers|jobs|freshness|thresholds> / Report facts with paths+timestamps; no verdicts. / PLEASE REPLY with: (a) the telemetry report, OR (b) unreadable/unavailable with the named reason.` A prompt asking Gemini for judgment is a cockpit-process violation; a Gemini reply issuing judgment is void/non-binding — except a five-element OPS ALARM per the supersession note above, which pauses for triage.
 
 8. **Robustness boundary in specs (up front).** Specs for modules consuming external or variable data must define the robustness boundary at design time: API-misuse (wrong argument types → fail loud), data-corruption (malformed contents → fail closed), and semantic/range/finiteness validation (the producer's responsibility). This prevents both missed hardening and unbounded whack-a-mole during adversarial sweeps.
 

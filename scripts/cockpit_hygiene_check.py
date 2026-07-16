@@ -4,8 +4,10 @@ Surfaces working-tree changes (including UNTRACKED files) that fall outside an
 allowlist of expected-mutable paths, so an unexpected artifact (e.g. an out-of-lane
 ``scripts/run_2025_curation.py``) is caught. This is a DETECTION / surfacing gate,
 not prevention, and is run manually by Claude/Codex at session boundaries and before
-accepting any Gemini source-verification CLEAR. It does NOT attribute authorship; it
-answers "is the tree in the expected state?".
+accepting any Gemini telemetry report that a decision will rely on (the seat is
+Operations & Telemetry per the David-ratified 2026-07-16 re-role; it issues no
+review verdicts). It does NOT attribute authorship; it answers "is the tree in the
+expected state?".
 
 Standalone by design — NOT folded into ``validate_governance.py`` (which may be
 CI/pre-commit-wired, where an untracked-file scan would false-positive on in-flight
@@ -47,23 +49,31 @@ BANNED_GEMINI_DECLARATIONS = [
     "the loop is closed",
 ]
 
-_GEMINI_ATTRIBUTION = "Gemini (Product Manager)"
+# Scan-both, never scan-neither (re-role amendment E2): the ACTIVE attribution is the
+# Operations & Telemetry header; the retired Product-Manager header remains scanned so
+# historical (pre-re-role) ledger content never falls out of enforcement coverage.
+_GEMINI_ATTRIBUTIONS = (
+    "Gemini (Operations & Telemetry)",
+    "Gemini (Product Manager)",  # historical header — scanned, not an active role label
+)
 
 
 def scan_gemini_ledger_violations(ledger_text: str) -> list[tuple[int, str, str]]:
     """Flag banned lane-overreach declarations inside Gemini-attributed ledger sections.
 
-    A Gemini section runs from a header shaped ``## HH:MM ET - Gemini (Product Manager)``
-    up to the next ``## `` header. Within those sections only, each banned-pattern hit
-    yields a ``(1-based file line number, canonical banned pattern, original line text)``
-    tuple. Match is literal + case-insensitive; this is a tripwire (it flags; it does not
-    adjudicate quoted or contextual use). Lines outside Gemini sections are ignored.
+    A Gemini section runs from a header carrying either the active
+    ``Gemini (Operations & Telemetry)`` attribution or the historical
+    ``Gemini (Product Manager)`` attribution, up to the next ``## `` header. Within
+    those sections only, each banned-pattern hit yields a ``(1-based file line number,
+    canonical banned pattern, original line text)`` tuple. Match is literal +
+    case-insensitive; this is a tripwire (it flags; it does not adjudicate quoted or
+    contextual use). Lines outside Gemini sections are ignored.
     """
     violations: list[tuple[int, str, str]] = []
     in_gemini = False
     for line_no, line in enumerate(ledger_text.splitlines(), start=1):
         if line.startswith("## "):
-            in_gemini = _GEMINI_ATTRIBUTION in line
+            in_gemini = any(attribution in line for attribution in _GEMINI_ATTRIBUTIONS)
             continue
         if not in_gemini:
             continue

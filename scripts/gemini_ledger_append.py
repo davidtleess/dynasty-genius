@@ -1,14 +1,16 @@
-"""Constrained ledger-append command for Gemini (PM) — Gemini-controls Layer 2.
+"""Constrained ledger-append command for the Gemini Operations & Telemetry seat — Gemini-controls Layer 2.
 
 Gemini's native file-write tools are denied (spec §3); this is the ONLY path by
 which Gemini may write the daily agent ledger. The target file is computed
 internally (``docs/agent-ledger/<today>.md``) — there is NO path argument, so the
-write cannot be redirected. Author attribution is hardcoded to "Gemini (Product
-Manager)" so the command cannot impersonate Claude or Codex. Writes are
-append-only and fail closed if the resolved target escapes ``docs/agent-ledger/``
-(e.g. via a symlinked file or directory).
+write cannot be redirected. Author attribution is hardcoded to "Gemini
+(Operations & Telemetry)" (the David-ratified 2026-07-16 re-role) so the command
+cannot impersonate Claude or Codex. Writes are append-only and fail closed if the
+resolved target escapes ``docs/agent-ledger/`` (e.g. via a symlinked file or
+directory).
 
-Spec: docs/superpowers/specs/2026-06-02-gemini-enforced-controls-design.md §4.
+Spec: docs/superpowers/specs/2026-06-02-gemini-enforced-controls-design.md §4;
+re-role: docs/superpowers/specs/2026-07-16-gemini-ops-telemetry-rerole-02-amendment.md.
 
 Usage (no path arg by design):
     .venv/bin/python3.14 scripts/gemini_ledger_append.py < entry_body.md
@@ -20,7 +22,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-_ATTRIBUTION = "Gemini (Product Manager)"
+_ATTRIBUTION = "Gemini (Operations & Telemetry)"
 _LEDGER_TAIL = ("docs", "agent-ledger")
 _ET = ZoneInfo("America/New_York")
 

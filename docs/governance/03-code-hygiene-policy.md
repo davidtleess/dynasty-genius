@@ -1,7 +1,7 @@
 ---
 document: Dynasty Genius Code Hygiene Policy
-version: 1.0.0
-last_updated: 2026-05-25
+version: 1.1.0
+last_updated: 2026-07-16
 authority: code-quality
 source_documents:
   - docs/strategies/2026-05-25-repo-linting-hygiene-spec.md
@@ -91,9 +91,9 @@ These are non-negotiable for any lint work:
 Any change to the selected rules, ignored rules, enforcement surface, pinned version, or
 CI gating is a **policy change**:
 
-1. Route through PM (Gemini) review for governance alignment.
+1. Route through the standard cockpit review (implementing lane + independent reviewer, constitutional-alignment checks enumerated per 02).
 2. Obtain David's explicit approval; record it in `AGENT_SYNC.md` or the daily ledger.
 3. Only then may Claude Code / Codex implement the change.
 
-The PM proposes and reviews policy; it does not run lint cleanup. Cleanup execution is
-Claude Code / Codex on a dedicated branch after David's approval.
+Policy changes are proposed through the cockpit and ratified by David; no lane runs lint
+cleanup without a dedicated branch and David approval.

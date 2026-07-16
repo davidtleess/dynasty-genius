@@ -77,9 +77,11 @@ REQUIRED_GOVERNANCE_PHRASES = {
         "fresh-agent visual audit",
         "keep harness-local enablement local",
         "material visual-direction change",
+        "Operations & Telemetry agent",
+        "does not sit on judgment or verdict panels",
     ],
     "GEMINI.md": [
-        "Product Vision owner and Product Manager",
+        "Operations & Telemetry agent",
         "shell is prompt-gated",
         "native file writes are prohibited by mandate",
         "Bootstrap is read-only",

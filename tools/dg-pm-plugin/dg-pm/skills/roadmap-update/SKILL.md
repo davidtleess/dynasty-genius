@@ -24,7 +24,7 @@ DG's "roadmap" is `AGENT_SYNC.md` — a dense living status doc, most-recent sta
 
 ### 3. Preserve the DG conventions
 - **Most-recent at top.** New banners go above older ones; supersede rather than delete when history carried a decision.
-- **Every material step routes through the cockpit** (Gemini frames → Codex RED → Claude GREEN → dual-CLEAR → David authorizes). `dual-CLEAR` = Claude + Codex, the two binding lanes; Gemini is advisory/non-binding and never issues a CLEAR. Say so where relevant.
+- **Every material step routes through the cockpit** (Claude authors the framing → Codex challenges it in writing → Claude's written disposition → Codex RED → Claude GREEN → independent-reviewer CLEAR → David authorizes). The binding lanes are the implementing agent + the independent reviewer (Claude + Codex); Gemini is the Operations & Telemetry seat — it contributes telemetry facts on request, receives awareness copies, and never issues a CLEAR. Say so where relevant.
 - **Name the gate.** If something is blocked (RED not cleared, David word pending, accrual pending), say exactly what unblocks it.
 - **Branch/commit discipline.** Retained branches are listed with "delete = David's word." Commits/merges are David-authorized.
 

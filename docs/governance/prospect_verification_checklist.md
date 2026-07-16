@@ -87,7 +87,7 @@ If a Hunter/Campbell-class error is detected post-write:
 | **Claude Code (Local Dev)** | Runs the check on any local insert/draft before commit; refuses to author files that fail |
 | **Codex (CI/CD)** | *Future:* lint check that flags any new player names in `docs/class-trackers/` or `gen_alpha.gold.anchors` migrations against a verified-prospects allowlist |
 | **Genie (Workspace)** | Runs the check on any direct UI/notebook insert; surfaces verification source in commit message |
-| **Gemini (PM)** | Names of prospects in PM directives are *not* exempt — Claude Code/Codex/Genie run the check on PM-named players too (this session has demonstrated PM directives can carry transcription drift) |
+| **Gemini (Operations & Telemetry)** | Names of prospects in Gemini telemetry reports are *not* exempt — the binding lanes (Claude Code/Codex, plus Genie for workspace checks) run the check on Gemini-named players too (transcription drift was demonstrated under the retired PM lane; the re-role does not retire the risk) |
 
 ## Out of Scope
 
