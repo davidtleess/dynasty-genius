@@ -88,6 +88,9 @@ app/data/features_runtime/
 # F-seed-split — runtime PVO/coverage pair + ready-marker + refresh report (operational, not source; the committed seed is app/data/valuation/universe_pvo_latest.json + universe_pvo_coverage_latest.json)
 app/data/valuation_runtime/
 
+# F1 league capture — immutable per-run league snapshots + derivation chain, ready/status markers (operational; committed seeds stay tracked; spec 2026-07-15-league-snapshot-scheduled-capture-design.md)
+app/data/league_runtime/
+
 # Phase 0 daily margin recompute — compounding PIT history (gitignored SQLite; the tracked baseline is universe_market_divergence_latest.json) + refresh logs. Status marker + report live under app/data/valuation_runtime/ (above).
 app/data/market_divergence_history.db
 app/data/market_divergence_history.db-journal

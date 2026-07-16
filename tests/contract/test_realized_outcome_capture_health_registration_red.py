@@ -111,7 +111,7 @@ def test_real_config_pins_realized_outcome_to_status_marker_with_two_successes()
     realized = artifacts["realized_outcome"]
 
     assert config.config_version == 2
-    assert len(config.artifacts) == 7
+    assert len(config.artifacts) == 8  # league_capture registered 2026-07-15 (F1 spec) — intentional pin amendment
     assert realized.path == (
         "app/data/valuation_runtime/realized_outcome_scoring_status_latest.json"
     )

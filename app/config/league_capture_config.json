@@ -1,0 +1,5 @@
+{
+  "schema_version": "league_capture.v1",
+  "unresolved_threshold_bp": 500,
+  "rationale": "Systemic identity floor for the daily league capture (spec 2026-07-15-league-snapshot-scheduled-capture-design.md F14). Routine unresolved rostered ids publish with disclosed counts; at or above 500 basis points (5%) of distinct rostered ids the run fails closed as sleeper_identity_suspect, because a mass identity break is a capture defect, not a disclosure case. Comparison is integer cross-multiplication (unresolved * 10000 >= threshold_bp * total)."
+}

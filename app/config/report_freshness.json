@@ -157,6 +157,30 @@
           1
         ]
       }
+    },
+    {
+      "artifact_id": "league_capture",
+      "path": "app/data/league_runtime/capture_status_latest.json",
+      "producer": "scripts/run_league_snapshot_capture.py",
+      "cadence": "daily",
+      "scheduled_time_local": "09:20",
+      "grace_hours": 3,
+      "tier": "core_substrate",
+      "min_size_bytes": 64,
+      "timestamp_field": "finished_at",
+      "status_field": "status",
+      "success_status": "ok",
+      "failure_reason_field": "reason",
+      "dormant_ok": false,
+      "season_windows": {
+        "in_season_months": [
+          9,
+          10,
+          11,
+          12,
+          1
+        ]
+      }
     }
   ]
 }

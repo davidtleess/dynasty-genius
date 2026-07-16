@@ -41,7 +41,7 @@ MARKER_REL_PATH = "app/data/ops/backup_status_latest.json"
 ALLOWED_ROOTS = ("app/data", "app/config")
 _MANIFEST_KEYS = {"schema_version", "required", "optional", "exclude_paths", "exclusions"}
 _ENTRY_KEYS = {"path", "required", "kind"}
-_ENTRY_KINDS = {"sqlite", "file"}
+_ENTRY_KINDS = {"sqlite", "file", "directory"}
 _STABILITY_ATTEMPTS = 2
 _STABILITY_INTERVAL_SECONDS = 2.0
 
@@ -183,15 +183,38 @@ def run_backup(
             raise BackupError(f"manifest_unreadable:{type(exc).__name__}") from exc
         entries = _validate_manifest_shape(manifest_payload)["entries"]
 
-        resolved: list[tuple[dict[str, Any], Path]] = []
+        # Each unit is one file to stage/upload: (repo-relative path, source, kind).
+        # A directory entry expands to its regular-file members BEFORE any gcloud
+        # interaction, so symlink rejection can never be masked by auth/upload state.
+        staging_units: list[tuple[str, Path, str]] = []
         for entry in entries:
             source = _validate_entry_path(entry["path"], repo_root)
+            unresolved_source = repo_root / entry["path"]
             if not source.exists():
                 if entry["required"]:
                     raise BackupError(f"missing_required:{entry['path']}")
                 failures.append(f"missing_optional:{entry['path']}")
                 continue
-            resolved.append((entry, source))
+            if entry["kind"] == "directory":
+                # The entry itself must be a real directory — never a symlink,
+                # even one that resolves inside the repo.
+                if unresolved_source.is_symlink():
+                    raise BackupError(f"directory_symlink:{entry['path']}")
+                if not unresolved_source.is_dir():
+                    # A regular file where a directory is declared must fail
+                    # loudly — rglob on a file is silently empty, which would
+                    # read as a completed zero-inventory backup.
+                    raise BackupError(f"directory_not_directory:{entry['path']}")
+                for member in sorted(unresolved_source.rglob("*")):
+                    member_rel = member.relative_to(repo_root).as_posix()
+                    if member.is_symlink():
+                        raise BackupError(f"directory_symlink:{member_rel}")
+                    if member.is_file():
+                        staging_units.append((member_rel, member, "file"))
+                # An empty existing directory contributes zero units and is a
+                # verified empty inventory, not a failure.
+            else:
+                staging_units.append((entry["path"], source, entry["kind"]))
 
         # Resolve the gcloud runner only after required-source validation, so a
         # gcloud_not_found failure can never mask a missing_required:* reason. A
@@ -206,9 +229,9 @@ def run_backup(
         if getattr(auth, "returncode", 1) != 0:
             raise BackupError("auth_unavailable")
 
-        for entry, source in resolved:
-            destination = run_staging / entry["path"]
-            if entry["kind"] == "sqlite":
+        for unit_path, source, kind in staging_units:
+            destination = run_staging / unit_path
+            if kind == "sqlite":
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 sqlite_backup_runner(source, destination)
                 size, digest = file_fingerprint(destination)
@@ -217,7 +240,7 @@ def run_backup(
                     source, destination, file_fingerprint, sleep
                 )
             inventory.append(
-                {"path": entry["path"], "bytes": size, "sha256": digest}
+                {"path": unit_path, "bytes": size, "sha256": digest}
             )
 
         run_inventory = {

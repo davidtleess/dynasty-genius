@@ -16,6 +16,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.dynasty_genius.adapters.fantasycalc_adapter import fetch_with_cache
+from src.dynasty_genius.league_capture import load_production_league_set
 from src.dynasty_genius.pvo_source import (
     PvoSourceNotReadyError,
     resolve_pvo_source,
@@ -65,9 +66,7 @@ class MarketReconcileRequest(BaseModel):
 
 def _load_reconcile_artifacts() -> tuple[dict, dict]:
     """Load model-native artifacts. 503 if absent — W5a self-computes Phase 22 cuts."""
-    snapshot_path = (
-        _ROOT / "app" / "data" / "league_snapshots" / "sleeper_universe_snapshot_latest.json"
-    )
+    snapshot_path = load_production_league_set().paths["snapshot.json"]
     try:
         resolved = resolve_pvo_source(
             seed_paths={"pvo": PVO_SEED_PATH, "coverage": PVO_SEED_COVERAGE_PATH},
