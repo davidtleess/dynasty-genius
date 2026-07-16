@@ -51,7 +51,7 @@ def test_append_gemini_entry_creates_today_ledger_with_hardcoded_attribution(
 
     assert written_path == tmp_path / "docs" / "agent-ledger" / "2026-06-02.md"
     text = written_path.read_text(encoding="utf-8")
-    assert text.startswith("## 12:07 ET - Gemini (Product Manager)\n\n")
+    assert text.startswith("## 12:07 ET - Gemini (Operations & Telemetry)\n\n")
     assert "- Task: Bootstrap review" in text
     assert "Claude" not in text
     assert "Codex" not in text
@@ -78,7 +78,7 @@ def test_append_gemini_entry_is_append_only_and_never_truncates(tmp_path: Path):
 
     text = ledger_path.read_text(encoding="utf-8")
     assert text.startswith(original)
-    assert text.count("## 12:07 ET - Gemini (Product Manager)") == 2
+    assert text.count("## 12:07 ET - Gemini (Operations & Telemetry)") == 2
     assert "- Task: First Gemini append" in text
     assert "- Task: Second Gemini append" in text
 

@@ -10,7 +10,7 @@ Developer Agents:
   1. Claude Code (this script) - Local development
   2. Codex - GitHub CI/CD automation
   3. Genie - Workspace native queries
-  4. Gemini - Product Manager (read-only oversight)
+  4. Gemini (Operations & Telemetry) - operational truth surface (read-only)
 
 Usage:
     python scripts/claude_code_connector.py [--mode read|write|demo]
@@ -216,7 +216,7 @@ def main():
         print("  1. Claude Code (Mac Desktop) - Local development ✅")
         print("  2. Codex (GitHub Actions) - CI/CD automation")
         print("  3. Genie (Databricks) - Workspace native")
-        print("  4. Gemini (Product Manager) - Strategy oversight")
+        print("  4. Gemini (Operations & Telemetry) - Capture-health & job telemetry")
         print()
         
         return 0

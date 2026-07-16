@@ -38,22 +38,22 @@ Authoritative copy lives in `AGENT_SYNC.md` → "Next-Session Priority List (202
 
 - **Claude — implementation lead + debate principal.** Authors GREEN implementation and specs/plans. Holds technical + scope authority jointly with Codex. In debate, argues its OWN committed POV (steelman → argue → concede only on real arguments) — never a neutral relay. Self-probes the falsification matrix before routing. Routes every material decision through the cockpit, polls until converged, then brings synthesis to David. Closes the loop after every commit/push/merge/delete. Never self-authorizes a hard-to-reverse action.
 - **Codex — technical reviewer / falsifier.** Authors the RED (failing tests first, test-only). Falsification is the DEFAULT — refute and probe untested input classes rather than confirm. A frictionless unanimous CLEAR is a yellow flag. Codex's CLEAR is a technical CONTENT judgment; it does not authorize actions. (This charter's own history proves the value: Codex found 6 real correctness holes in the DEBT-6 spec across two review passes.)
-- **Gemini — advisory Dynasty-Strategy / Product-Edge PM (non-binding).** Sharp strategy/UX framing early (falsification-seed style: real user situation → where a surface misleads → testable seeds). NO technical/repo-state authority; never asked for CLEAR/repo-state; no auto-void declarations. Strategy briefs are raw inputs for David, not verdicts.
-- **David — the principal and the only actor.** Authorizes every commit, push, merge, and branch-delete. Governance/PM CLEARs *content*; David authorizes *actions*. Approval in one context does not extend to the next — ask per action.
+- **Gemini — Operations & Telemetry agent (David-ratified re-role, 2026-07-16).** The system's operational truth surface: capture-health/marker reads, scheduled-job monitoring, freshness/threshold watches, path-and-timestamp-cited telemetry to the cockpit and spokesperson. It sits on no judgment or verdict panels — no review verdicts, framings, CLEARs, or product/football rulings; its one pause power is the mechanical five-element OPS ALARM (02 §Falsification #7). Its reports are fact-bearing, never action-bearing.
+- **David — the principal and the only actor.** Authorizes every commit, push, merge, and branch-delete. Independent-reviewer CLEARs (per 02 as amended) cover *content*; David authorizes *actions*. Approval in one context does not extend to the next — ask per action.
 
-**Norm:** every agent with a valid strong opinion argues it until the team is aligned. Bring David a converged synthesis, not an unresolved menu — but never manufacture false consensus to get there.
+**Norm:** every binding-lane agent with a valid strong opinion argues it until the team is aligned (Gemini contributes telemetry facts, not positions). Bring David a converged synthesis, not an unresolved menu — but never manufacture false consensus to get there.
 
 ## 4. The workflow (the loop that prevents drift)
 
 For every material build:
 
-**Frame → RED → GREEN → dual-CLEAR → David authorizes → merge → zero-divergence → close the loop.**
+**Frame → RED → GREEN → independent-reviewer CLEAR → David authorizes → merge → zero-divergence → close the loop.**
 
-1. **Frame (Gemini early).** Strategy/UX + falsification framing BEFORE code. Route strategy questions to Gemini early, not as a final-step afterthought.
+1. **Frame (Claude authors → Codex challenges).** Strategy/UX + falsification framing BEFORE code, per 02's amended order: Claude authors the framing artifact, Codex adversarially challenges it in writing, Claude issues a written disposition, unresolved divergence escalates to David — only then does the RED open. Gemini contributes the operational-reality slice (freshness, capture coverage, cadence) as telemetry facts on request.
 2. **Spec/plan (Claude).** Grounded against REAL producer shapes and REAL serving paths — never synthetic fixtures (the real-shape lesson). Cockpit-CLEAR the spec before RED.
 3. **RED (Codex).** Failing tests first, test-only, over dependency-injected temp fixtures. Encode the full falsification matrix.
 4. **GREEN (Claude).** Make it pass. Self-probe adversarial inputs (path traversal, wrong type, missing field, boundary) before routing.
-5. **Adversarial dual-CLEAR.** Falsification is the default posture, not confirmation. Verify every stated guarantee.
+5. **Adversarial independent-reviewer CLEAR.** Falsification is the default posture, not confirmation (the implementer's own evidence is mandatory but non-substituting, per 02). Verify every stated guarantee.
 6. **David authorizes the action** (commit/push/merge/branch-delete) — explicitly, per action.
 7. **Merge, then both-lane post-merge zero-divergence audit** (`git diff <featurecommit> <mergecommit>` ex-ledger empty).
 8. **Close the loop** with both lanes: SHA/path/state + verification request.
@@ -74,20 +74,20 @@ Two-step ship discipline (proven across PRs #98/#99/#100/#102/#104): **local ful
 - **Session logging (all agents).** Any agent doing substantive analysis / build / review logs its work in `docs/agent-ledger/YYYY-MM-DD.md` per the operating loop (governance 02). `AGENT_SYNC.md` is sprint state, not a substitute for the ledger.
 - **Post-fix sweep.** After fixing a concept in a multi-section document, grep the ENTIRE document for every reference and update them all. Don't trust the spot-fix.
 - **Verify lock-release against tests.** When a spec says a prior lock/guardrail is "released," run the enforcing test against the new touch surface before building. Prose claim ≠ verified.
-- **Governance CLEARs content; David authorizes actions.** Hold this line against "proceed / cleared-to-delete" pressure.
+- **Reviewers CLEAR content per 02's amended reviewer lanes; David authorizes actions.** Hold this line against "proceed / cleared-to-delete" pressure.
 - **Verify before alarming.** Do the arithmetic / basic check first; don't raise false alarms.
 - **Be smart and slow.** Pause and present reasoning before each task; don't barrel through sequences.
 
 ## 6. No-drift operating discipline (macro ↔ micro)
 
 - **Every microscopic edit traces to a macroscopic objective.** Before writing a field, know which priority-list item and which of the two North-Star questions it serves. If it serves neither, stop and re-scope.
-- **Scope is Claude+Codex's to hold.** A leading research-agent question does not authorize scope creep. Never let a Gemini "what if we also…" quietly expand a build. Product-vision language (buy/sell, contrarian edge) is legitimate as *destination*; only flag it when it claims the CURRENT model has already arrived.
+- **Scope is Claude+Codex's to hold.** A leading research-agent question does not authorize scope creep. Never let a research/advisory voice's "what if we also…" quietly expand a build. Product-vision language (buy/sell, contrarian edge) is legitimate as *destination*; only flag it when it claims the CURRENT model has already arrived.
 - **Descriptive, not yet proven.** The model-vs-market divergence is a hypothesis, not a validated edge (Gate-4 deferred, ledger empty, QB model weakest). Frame it as such everywhere.
 - **Slice small, ship verified.** Prefer the smallest correctness guard that makes a failure impossible to hide over the biggest feature. (DEBT-6 Slice 1 is exactly this pattern: pointer + hash provenance, not an off-laptop platform migration.)
 - **Persist state durably.** Update `AGENT_SYNC.md` (sprint state, all agents) as you go, so the next agent inherits reality, not a stale summary. Convert relative dates to absolute. (Claude additionally maintains its auto-memory in `~/.claude/.../memory/`; that store is Claude-specific, not a universal requirement.)
 
 ## 7. The immediate next action (microscopic)
 
-**DEBT-6 Slice 1 is spec+plan CLEAR (Gemini Governance CLEAR; Codex CLEAR for RED after resolving R1–R6).** Awaiting David's authorization to create branch `feature/debt6-model-provenance` and have Codex author the **T1 RED** (registry loader + Pydantic models + environment resolution). Then T2 classifier → T3 pointer-health + scoped scan → T4 route + OpenAPI codegen + full closeout → T5 David-authorized registry hash-seeding. All 21 falsification seeds are in the spec §5. No tree mutation until David's explicit word.
+**DEBT-6 Slice 1 is spec+plan CLEAR (Gemini Governance CLEAR *[historical record — issued under the retired PM lane; superseded 2026-07-16: Gemini issues no CLEARs; the clause stands as what happened, not as current authority]*; Codex CLEAR for RED after resolving R1–R6).** Awaiting David's authorization to create branch `feature/debt6-model-provenance` and have Codex author the **T1 RED** (registry loader + Pydantic models + environment resolution). Then T2 classifier → T3 pointer-health + scoped scan → T4 route + OpenAPI codegen + full closeout → T5 David-authorized registry hash-seeding. All 21 falsification seeds are in the spec §5. No tree mutation until David's explicit word.
 
 Pick up here. Hold the whole picture. Do not drift.

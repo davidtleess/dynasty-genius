@@ -195,10 +195,11 @@ def remind_checklist() -> CheckResult:
         "Human-judgment gates (see docs/governance/02-agent-operating-loop.md — not restated here):\n"
         "- Commits, pushes, merges, branch deletes, and inviolate-surface amendments require David's "
         "explicit authorization.\n"
-        "- Route decisions (spec/plan/contract/merge-strategy) through the cockpit (Codex + Gemini) "
-        "before David.\n"
+        "- Route decisions (spec/plan/contract/merge-strategy) through the cockpit's binding "
+        "lanes — the implementing agent + the independent reviewer — before David; Gemini "
+        "receives awareness copies only (Operations & Telemetry seat, no judgment routing).\n"
         "- After any hard-to-reverse op (commit/push/merge/delete), close the loop with a post-action "
-        "confirmation to both reviewers.\n"
+        "confirmation to the independent reviewer (Gemini gets the confirmation for awareness/audit).\n"
         "- CI (not local-green) is the push gate; this verifier is local pre-flight, not a CI substitute."
     )
     return CheckResult("remind", REMIND, None, text)

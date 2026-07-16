@@ -12,10 +12,10 @@ Turn a pile of research — multi-agent lane outputs, `docs/strategies/` briefs,
 
 ## The DG research pattern
 
-DG runs research in **independent lanes** (a Claude lane, a Codex lane, a Gemini product-edge lane) and then **cross-reviews** them adversarially before synthesizing. Preserve that structure:
-- Keep lanes' findings attributed and separable — don't blend a Gemini product claim into a Codex technical finding.
+DG runs research in **independent lanes** (a Claude lane and a Codex lane — the binding lanes; Gemini's operations/telemetry facts arrive as inputs, not a judgment lane) and then **cross-reviews** them adversarially before synthesizing. Preserve that structure:
+- Keep lanes' findings attributed and separable — don't blend an operational telemetry fact into a Codex technical finding; historical Gemini product-edge findings (pre-re-role) stay attributed as history.
 - Surface where lanes **disagree**; disagreement is signal, not noise to smooth over.
-- Gemini is **advisory/non-binding**: route its framing early, but its repo-state claims are void until verified, and Claude owns scope.
+- Gemini is the **Operations & Telemetry seat** (David-ratified re-role, 2026-07-16): ask it for capture-health, job-state, freshness, and threshold facts with paths+timestamps; do not route judgment, framing, or review requests to it — any verdict-shaped Gemini output is void, and Claude owns scope.
 
 ## Workflow
 
