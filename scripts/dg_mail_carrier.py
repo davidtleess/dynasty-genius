@@ -100,6 +100,27 @@ def _discover_panes(runner: Any) -> dict[str, str]:
     return panes
 
 
+def _ensure_tmux_path() -> str | None:
+    """launchd runs with a minimal PATH that excludes /usr/local/bin — the
+    exact defect class the backup runner's gcloud fix closed (PR #137, shape
+    2b). Resolve tmux explicitly, prepend its directory for every subprocess
+    call in this process, and fail NAMED (never a raw launchd-log traceback)."""
+
+    import os
+    import shutil
+
+    found = shutil.which("tmux")
+    if found is None:
+        for candidate in ("/usr/local/bin/tmux", "/opt/homebrew/bin/tmux"):
+            if Path(candidate).exists():
+                found = candidate
+                break
+    if found is None:
+        return None
+    os.environ["PATH"] = str(Path(found).parent) + os.pathsep + os.environ.get("PATH", "")
+    return found
+
+
 def main() -> int:
     """Production carrier fire [GREEN round-2 B7]: real store, real composite
     capturer, discovered panes. The store must already exist (init-store is a
@@ -115,6 +136,9 @@ def main() -> int:
     if not ENABLE_MARKER.exists():
         print("held: carrier_disabled")
         return 0
+    if _ensure_tmux_path() is None:
+        print("error: tmux_not_found (launchd minimal PATH; no known candidate)")
+        return 5
     try:
         store = SqliteStoreAdapter(DEFAULT_STORE_PATH)
     except StoreError as error:
@@ -127,6 +151,9 @@ def main() -> int:
             store=store,
             panes=_discover_panes(subprocess.run),
         )
+    except Exception as error:  # noqa: BLE001 - launchd boundary: named, never a raw traceback
+        print(f"error: carrier_fire_failed: {type(error).__name__}: {error}")
+        return 5
     finally:
         store.close()
     print(f"{result.status}: {result.reason}")
