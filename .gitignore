@@ -106,6 +106,9 @@ app/data/roster_capacity/
 # Backtest run artifacts — large JSON, versioned by run_id
 app/data/backtest/runs/
 
+# QB-1 validation-study artifacts + raw snapshots (spec v7 D5/F24/F31)
+app/data/backtest/qb_validation/
+
 # Phase 16 bake-off run artifacts
 app/data/backtest/phase16/
 

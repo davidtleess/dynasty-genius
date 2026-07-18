@@ -23,6 +23,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from src.dynasty_genius.adapters.nflreadpy_qb_adapter import (
+    VALIDATION_DATASET_COLUMNS as _VALIDATION_DATASET_COLUMNS,
+)
+from src.dynasty_genius.adapters.nflreadpy_qb_adapter import (
+    VALIDATION_PARSED_RENAMES as _VALIDATION_PARSED_RENAMES,
+)
 from src.dynasty_genius.models.engine_a_contract import (
     CFBD_MODEL_INPUT_COLUMNS,
     PLAYERPROFILER_CONTEXT_COLUMNS,
@@ -35,6 +41,7 @@ SourceRole = Literal[
     "training_label",
     "context_signal",
     "market_overlay",
+    "validation_study",
     "prohibited_current_phase",
     "prohibited",
 ]
@@ -350,6 +357,42 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
                 "context_signal only — never Engine A or Engine B model inputs. "
                 "DAKOTA = (EPA/dropback × 0.7) + (CPOE/100 × 0.3). "
                 "Requires Python >=3.10 (nflreadpy 0.1.5 constraint)."
+            ),
+        ),
+        _make(
+            # QB-1 spec v8 D1: a DISTINCT second definition for the same adapter
+            # module — SourceDefinition has ONE shared roles set and ONE shared
+            # allowed_fields tuple, so granting validation_study on the context
+            # entry would silently widen what context may carry. The context
+            # entry above is byte-untouched by design (F33 registry wall).
+            name="nflreadpy_qb_validation",
+            roles=["validation_study"],
+            allowed_fields=sorted(
+                {
+                    column
+                    for columns in _VALIDATION_DATASET_COLUMNS.values()
+                    for column in columns
+                }
+                | {
+                    renamed
+                    for renames in _VALIDATION_PARSED_RENAMES.values()
+                    for renamed in renames.values()
+                }
+            ),
+            prohibited_fields=list(PROHIBITED_COLUMNS),
+            provenance_required=True,
+            cache_policy="parquet_snapshot",
+            freshness_hours=None,
+            failure_behavior="fail_closed",
+            test_gate="tests/contract/test_qb_validation_program_red.py",
+            notes=(
+                "QB-1 validation-study ingestion (spec v8, SHA 8fa244c1…): the six "
+                "pinned D1 nflverse datasets via the validation_* functions of the "
+                "shared nflreadpy adapter. Consumable ONLY by "
+                "src/dynasty_genius/eval/qb_validation/ (F33 wall); raw snapshots "
+                "under app/data/backtest/qb_validation/raw/; never an Engine A/B "
+                "feature input. The hash-pinned registration manifests are the "
+                "exhaustive column authority."
             ),
         ),
     ]
