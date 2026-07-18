@@ -49,13 +49,58 @@ ROWS = {
     "F34": "resolve_draft_join",
 }
 
+# Parked contract rows: seams whose implementing deliverable has not landed.
+# Each is an expected failure with the SLICE DELIVERABLE that flips it named
+# (CI-remedy Option 2, David-worded 2026-07-18). strict=True is the RED
+# discipline: the moment a deliverable implements a seam, the row XPASSes and
+# FAILS the suite until its marking is removed — parked can never rot into
+# silently-green. Building a seam and un-marking its row happen in the SAME
+# reviewed change.
+PARKED_SEAMS = {
+    "F3": "D2a study matrix",
+    "F4": "D3 study machinery (expanding folds)",
+    "F5": "D3 study machinery (Ridge lane)",
+    "F6": "D3 study machinery (comparison scoring)",
+    "F8": "D3 study machinery (primary comparison set)",
+    "F10": "D5 report assembly (case panel)",
+    "F11": "D2 label table",
+    "F12": "D3 study machinery (age/cohort features)",
+    "F13": "D5 report assembly (threshold-sensitivity panel)",
+    "F16": "D4 static identity join (duplicate/conflict semantics)",
+    "F18": "D4 static identity join (coverage gate)",
+    "F20": "D3 study machinery (degenerate-input closure)",
+    "F21": "D2 label table (scoring edge components)",
+    "F22": "D3 study machinery (train-only imputer)",
+    "F25": "D5 report assembly (frozen-boundary assertion)",
+    "F27": "D3 study machinery (hypothesis manifest partition)",
+    "F28": "D2 label table (attrition classes)",
+    "F29": "D5 report assembly (sensitivity panel)",
+    "F31": "D5 report assembly (artifact tracking)",
+    "F32": "D4 static identity join (name reconciliation gate)",
+    "F33": "the F33 consumer-boundary tripwire deliverable",
+}
+
+SEAM_PARAMS = [
+    pytest.param(
+        seed,
+        symbol,
+        id=f"{seed}-{symbol}",
+        marks=pytest.mark.xfail(
+            strict=True, reason=f"parked RED row: lands with {PARKED_SEAMS[seed]}"
+        ),
+    )
+    if seed in PARKED_SEAMS
+    else pytest.param(seed, symbol, id=f"{seed}-{symbol}")
+    for seed, symbol in ROWS.items()
+]
+
 
 def _study_module():
     """Load the study package only; implementation is intentionally absent in RED."""
     return importlib.import_module("src.dynasty_genius.eval.qb_validation")
 
 
-@pytest.mark.parametrize("seed,symbol", ROWS.items())
+@pytest.mark.parametrize("seed,symbol", SEAM_PARAMS)
 def test_falsification_seed_has_a_direct_hermetic_seam(seed: str, symbol: str) -> None:
     """Every registered RED row must have a callable implementation seam."""
     module = _study_module()
@@ -68,6 +113,9 @@ def test_f1_source_failure_is_named_and_fail_closed() -> None:
         module.load_validation_sources({"weekly": {"status": "stale"}})
 
 
+@pytest.mark.xfail(
+    strict=True, reason="parked RED row: lands with D2a study matrix (build_study_matrix)"
+)
 def test_f2_fold_rejects_target_season_feature_leakage() -> None:
     module = _study_module()
     with pytest.raises(Exception, match="leak|as_of|target"):
