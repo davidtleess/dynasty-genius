@@ -15,6 +15,11 @@ report output validation (F26), the model-lane status decision (F30 — the H5
 lane refuses with a named reason until its behavioral RED lands), and the
 draft-join closure (F34); D1 ``validation_*`` ingestion + the
 ``nflreadpy_qb_validation`` registry entry land in the adapter/registry.
+Slice 3 (2026-07-18): the D2 Sleeper-scored PPG label table
+(F11 ``validate_label_table``, F21 ``validate_scoring_edges``,
+F28 ``validate_attrition_classes``) — settings-derived Decimal scoring with
+the hash assertion, the pinned qualifying-game predicate, and the exhaustive
+outcome-class law.
 """
 from __future__ import annotations
 
@@ -33,6 +38,17 @@ from src.dynasty_genius.eval.qb_validation.identity import (
     resolve_draft_join,
     validate_identity_overlap,
 )
+from src.dynasty_genius.eval.qb_validation.qb_ppg_labels import (
+    ATTRITION_CLASSES,
+    OUTCOME_CLASSES,
+    SCORING_COMPONENTS,
+    build_label_table,
+    score_stat_line,
+    settings_hash,
+    validate_attrition_classes,
+    validate_label_table,
+    validate_scoring_edges,
+)
 from src.dynasty_genius.eval.qb_validation.registration import (
     build_registration,
     reject_registration_drift,
@@ -50,6 +66,15 @@ __all__ = [
     "QBValidationFailure",
     "OUTPUT_ROOT",
     "VALIDATION_DATASETS",
+    "ATTRITION_CLASSES",
+    "OUTCOME_CLASSES",
+    "SCORING_COMPONENTS",
+    "build_label_table",
+    "score_stat_line",
+    "settings_hash",
+    "validate_label_table",
+    "validate_scoring_edges",
+    "validate_attrition_classes",
     "build_registration",
     "require_registration_hash",
     "reject_registration_drift",
