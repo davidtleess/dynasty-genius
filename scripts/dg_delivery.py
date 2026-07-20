@@ -59,7 +59,10 @@ _TERMINAL_STATES = {
 _NEVER_ORPHAN_STATES = {"input_not_verifiable", "input_not_empty", "manual_clear_required"}
 
 _SEND_ID_RE = re.compile(r"\[(w#[a-z0-9]{1,16}-\d+)\]")
-_SGR_RE = re.compile(r"\x1b\[([0-9;]*)m")
+# Accepts semicolon AND colon parameter forms (round-1 H1): colon-form
+# extended color (`ESC[38:2::1:2:3m`) is valid SGR and must be consumed,
+# never left as literal pane text.
+_SGR_RE = re.compile(r"\x1b\[([0-9;:]*)m")
 _CHIP_RE = re.compile(r"\[Pasted text #\d+ \+(\d+) lines?\]")
 _OPTION_ROW_RE = re.compile(r"^\s*[❯›>]?\s*(\d+)\.\s+(.*)$")
 
@@ -78,11 +81,42 @@ class PaneProfile:
     name: str
     ready_markers: tuple[str, ...]
     chip_collapsing: bool = False
+    bordered: bool = False
+    selection_markers: tuple[str, ...] = ()
 
+    # Ready markers and footer patterns are evidence-based per live chrome
+    # capture (ledger 2026-07-19, profile-registry fix): the new Codex
+    # chrome's `› ` marker was ALWAYS correct — the truecolor strip_ghost
+    # defect hid it; the new Gemini (agy) chrome renders a bordered composer
+    # whose line is exactly ">" (line-anchored marker — a bare ">" substring
+    # would false-match prose); the live Claude composer renders `❯` +
+    # NBSP (U+00A0), so the regular-space marker alone missed it. Footer
+    # patterns POSITIVELY identify the one status line each chrome renders
+    # below its composer (round-1 B1: a footer is skipped by recognition,
+    # never by position alone — an arbitrary final line stays input).
     _REGISTRY = {
-        "claude": {"ready": ("❯ ",), "chip": True},
-        "codex": {"ready": ("codex > ", "❯ ", "› "), "chip": False},
-        "gemini": {"ready": ("Type your message", "> ",), "chip": False},
+        # `bordered` is the STRUCTURAL composer signature (round-3 B2 +
+        # David's round-4 word): claude/gemini render the composer inside a
+        # box-drawing border pair, so chrome below the closing border is
+        # excluded by GEOMETRY (split_regions), never by text resemblance.
+        # Codex is unbordered; its footer is excluded by IDENTITY — the
+        # line names the pane's actual working directory (tmux metadata).
+        # Text-pattern footer recognition is RETIRED.
+        # `selection` glyphs are registered from LIVE per-profile dialog
+        # evidence ONLY (round-4 B4): ASCII ">" is NEVER a selection glyph
+        # — it collides with Markdown quoting in conversation history.
+        # Gemini has NO captured live dialog yet, so it registers none:
+        # its dialogs classify via press-enter or hold fail-closed until
+        # live evidence lands (documented contract gap, not an oversight).
+        "claude": {"ready": ("❯ ", "❯\u00a0"), "chip": True, "bordered": True,
+                   "selection": ("❯",)},
+        "codex": {"ready": ("codex > ", "❯ ", "› "), "chip": False,
+                  "bordered": False, "selection": ("❯", "›")},
+        # The legacy bare "> " substring stays REMOVED: it matched ordinary
+        # prose ("a > b") anywhere in the pane — a false-READY hazard. The
+        # current agy chrome is the line-anchored bordered composer.
+        "gemini": {"ready": ("Type your message", "\n>\n"), "chip": False,
+                   "bordered": True, "selection": ()},
     }
 
     @classmethod
@@ -90,7 +124,13 @@ class PaneProfile:
         entry = cls._REGISTRY.get(name)
         if entry is None:
             raise ValueError(f"unknown CLI profile: {name!r}")
-        return cls(name=name, ready_markers=tuple(entry["ready"]), chip_collapsing=entry["chip"])
+        return cls(
+            name=name,
+            ready_markers=tuple(entry["ready"]),
+            chip_collapsing=entry["chip"],
+            bordered=bool(entry.get("bordered", False)),
+            selection_markers=tuple(entry.get("selection", ())),
+        )
 
 
 @dataclass
@@ -183,14 +223,47 @@ def strip_ghost(raw: str) -> str:
                     out.append(segment)
                     ghost_open = False
             params = match.group(1)
-            codes = [int(p) for p in params.split(";") if p != ""] if params else [0]
-            if not params:
-                codes = [0]
-            for code in codes:
+            # Extended-color introducers (38/48/58) carry a MODE SELECTOR and
+            # arguments — `48;2;R;G;B` (truecolor) embeds a literal `2` that
+            # is NOT SGR-dim. Naive per-code iteration read that 2 as dim and
+            # placeheld every non-dim glyph after a truecolor background —
+            # the defect that swallowed the new Codex chrome's `› ` marker
+            # (profile-registry fix, David-worded 2026-07-19). Introducer
+            # arguments are consumed, never interpreted. Round-1 H1
+            # completeness: EMPTY parameters are the value 0 per ECMA-48
+            # (`ESC[;m` = double reset; `ESC[2;m` = dim then reset), and
+            # colon-form extended color (`ESC[38:2::1:2:3m`) is a single
+            # self-contained token — its subparameters never leak as codes.
+            tokens = params.split(";") if params else [""]
+            i = 0
+            while i < len(tokens):
+                token = tokens[i]
+                if ":" in token:
+                    head = token.split(":", 1)[0]
+                    primary = int(head) if head else 0
+                    if primary not in (38, 48, 58):
+                        if primary == 2:
+                            dim = True
+                        elif primary in (0, 22):
+                            dim = False
+                    i += 1  # colon subparameters are self-contained
+                    continue
+                code = int(token) if token else 0
+                if code in (38, 48, 58):
+                    mode = tokens[i + 1] if i + 1 < len(tokens) else ""
+                    if mode == "2":
+                        i += 5  # introducer + mode + R + G + B
+                        continue
+                    if mode == "5":
+                        i += 3  # introducer + mode + palette index
+                        continue
+                    i += 1
+                    continue
                 if code == 2:
                     dim = True
                 elif code in (0, 22):
                     dim = False
+                i += 1
             pos = match.end()
         tail = line[pos:]
         if tail:
@@ -203,25 +276,251 @@ def strip_ghost(raw: str) -> str:
     return "\n".join(lines_out)
 
 
-def _visible_empty(text: str) -> bool:
+_PROMPT_LINE_PREFIXES = ("codex >", "❯", "›", ">")
+_BORDER_CHARS = set("─│╭╮╰╯┌┐└┘━┃═║ \t ")
+
+# Leading border glyphs a dialog box may prefix onto its option rows
+# (round-2 B3): "│ › 1. Yes" must still read as an option row.
+_LEADING_BORDER_RE = re.compile(r"^[\s│┃║]+")
+
+
+def _deborder(line: str) -> str:
+    """Strip leading box-border chrome so option-row detection sees the row."""
+    return _LEADING_BORDER_RE.sub("", line)
+
+
+_TRAILING_BORDER_RE = re.compile(r"[\s│┃║]+$")
+
+
+@dataclass(frozen=True)
+class OptionRow:
+    selected: bool
+    digit: str
+    text: str
+
+
+def parse_option_row(
+    line: str, selection_markers: tuple[str, ...]
+) -> "OptionRow | None":
+    """THE canonical option-row parser (round-3 B3 / David's round-4
+    structural word): every consumer — the classifier, the public approval
+    helper, the carrier hold — reads option rows through this ONE function.
+    Leading AND trailing box-border chrome normalize away, and the
+    selection highlight is judged ONLY against the profile's registered
+    live-evidence glyphs (round-4 B4 — never ASCII ">", which collides
+    with Markdown quoting).
+    """
+    body = _TRAILING_BORDER_RE.sub("", _deborder(line))
+    selected = bool(selection_markers) and body.startswith(selection_markers)
+    if selected:
+        body = body[1:].lstrip(" \u00a0")
+    match = re.match(r"^(\d+)\.\s+(.*)$", body)
+    if match is None:
+        return None
+    return OptionRow(selected=selected, digit=match.group(1), text=match.group(2).strip())
+
+
+def _visible_empty(text: str, profile: "PaneProfile | None" = None) -> bool:
+    """True when the input region carries no REAL user text.
+
+    Chrome-aware (profile-registry fix, David-worded 2026-07-19): the new
+    crew chrome renders a bare prompt glyph, box-drawing borders, and a
+    status footer INSIDE the prompt-anchored input region, so a raw
+    all-text emptiness read refused every send `input_not_empty` on an
+    actually-empty composer. Chrome never counts as input:
+    - a prompt-prefixed line counts only for text AFTER the prefix
+      (prefix + NBSP included — live Claude chrome evidence);
+    - lines of pure box-drawing/whitespace are borders;
+    Footer chrome no longer reaches this function at all (round-3 B2 +
+    David's round-4 structural word): `split_regions` excludes it by
+    geometry/identity at the capture funnel, so ANY remaining line here is
+    input. Text-pattern footer recognition is retired — an arbitrary final
+    line, footer-resembling or not, keeps the fail-closed refusal.
+    """
     stripped = strip_ghost(text).replace(GHOST_PLACEHOLDER, "")
-    return stripped.strip() == ""
+    lines = stripped.splitlines()
+    if not lines:
+        return True
+    meaningful: list[int] = []
+    prompt_line_index: int | None = None
+    for index, line in enumerate(lines):
+        body = line.strip().replace(" ", " ")
+        if not body:
+            continue
+        if all(ch in _BORDER_CHARS for ch in body):
+            continue
+        for prefix in _PROMPT_LINE_PREFIXES:
+            if body.startswith(prefix):
+                if prompt_line_index is None:
+                    prompt_line_index = index
+                body = body[len(prefix):].strip()
+                break
+        if body:
+            meaningful.append(index)
+    return not meaningful
+
+
+_PRESS_ENTER_RE = re.compile(r"^\s*Press enter\b")
+
+
+def _option_groups(
+    lines: list[str], selection_markers: tuple[str, ...]
+) -> list[list[int]]:
+    """Maximal runs of CONTIGUOUS option rows on the ORIGINAL line topology
+    (round-6 H1). Callers MUST pass lines WITH blanks intact: a blank line
+    breaks contiguity, so two numbered paragraphs separated by a blank are
+    two groups, never one merged group. Indexes are into ``lines``."""
+    groups: list[list[int]] = []
+    current: list[int] = []
+    for index, line in enumerate(lines):
+        if parse_option_row(line, selection_markers) is not None:
+            current.append(index)
+        else:
+            # ANY non-option line — blank or prose — breaks the run.
+            if current:
+                groups.append(current)
+            current = []
+    if current:
+        groups.append(current)
+    return groups
+
+
+def split_regions(
+    raw: str, profile: PaneProfile, cursor_row: "int | None" = None
+) -> tuple[str, str]:
+    """Structural region parsing by CURSOR GEOMETRY (round-6 B1/B2 pivot,
+    David-decided 2026-07-19). Returns ``(input_region, conversation_region)``.
+
+    The composer is where the cursor is; a user can only type AT or ABOVE
+    the insertion point, never below it. So the input region is the
+    prompt-anchored lines from the prompt down THROUGH the cursor row, and
+    every line strictly BELOW the cursor row — bottom border, status
+    footer, trailing chrome — is excluded by geometry. This is evidence
+    ordinary input cannot forge (the recurring rounds-2→6 failure of every
+    text/word rule): footer-shaped text a user types lands ON the composer
+    line, at the cursor, and stays input; the CLI's own footer renders
+    below the cursor and drops. Uniform across bordered and unbordered
+    profiles — the live cursor sits on the prompt line inside the box for
+    claude/gemini and on the bare prompt for codex, with all chrome below.
+
+    Fail-closed without metadata: if ``cursor_row`` is absent or does not
+    sit at/below the resolved prompt line, NOTHING is excluded — the region
+    is the prompt line down (footer then counts as input and the send holds
+    rather than pastes over). Production always supplies the cursor row from
+    the one-dispatch capture; only metadata-less test doubles hold.
+    """
+    lines = raw.splitlines()
+    prompt_index: int | None = None
+    for index in range(len(lines) - 1, -1, -1):
+        body = strip_ghost(lines[index]).strip().replace("\u00a0", " ")
+        if any(body.startswith(prefix) for prefix in _PROMPT_LINE_PREFIXES):
+            prompt_index = index
+            break
+    if prompt_index is None:
+        return "\n".join(lines), ""
+    # Bordered profiles: include the composer's own top border (the line
+    # immediately above the prompt) in the input region so it skips as
+    # chrome during emptiness rather than reading as conversation.
+    region_start = prompt_index
+    if profile.bordered and prompt_index > 0:
+        above = strip_ghost(lines[prompt_index - 1]).strip()
+        if above and all(ch in _BORDER_CHARS for ch in above):
+            region_start = prompt_index - 1
+    if (
+        cursor_row is not None
+        and prompt_index <= cursor_row < len(lines)
+    ):
+        return (
+            "\n".join(lines[region_start : cursor_row + 1]),
+            "\n".join(lines[:region_start]),
+        )
+    # No usable cursor metadata: held — everything from the prompt down is
+    # input; no chrome is excluded (never a swallow).
+    return "\n".join(lines[region_start:]), "\n".join(lines[:region_start])
 
 
 def classify_pane(raw: str, profile: PaneProfile) -> PaneState:
     """Positive classification; absence of markers is UNKNOWN, never READY."""
 
     stripped = strip_ghost(raw)
-    tail_lines = [line for line in stripped.splitlines() if line.strip()][-8:]
+    all_lines = stripped.splitlines()
+    tail_lines = [line for line in all_lines if line.strip()][-8:]
+    # Blank-preserving tail window for GROUP contiguity (round-6 H1): a
+    # blank between numbered paragraphs must break the group, so grouping
+    # runs on the original topology, not the blank-stripped tail.
+    tail_start = len(all_lines)
+    seen = 0
+    for i in range(len(all_lines) - 1, -1, -1):
+        if all_lines[i].strip():
+            seen += 1
+        tail_start = i
+        if seen >= 8 and all_lines[i].strip():
+            break
+    topo_tail = all_lines[tail_start:]
     tail = "\n".join(tail_lines)
     if "Working (" in tail or "esc to interrupt" in tail or "esc to cancel" in tail:
         return PaneState.BUSY
-    option_rows = [line for line in stripped.splitlines() if _OPTION_ROW_RE.match(line)]
-    if option_rows and ("Press enter" in stripped or len(option_rows) >= 2 or "?" in stripped):
-        return PaneState.DIALOG
-    for marker in profile.ready_markers:
-        if marker in stripped:
-            return PaneState.READY
+    # Dialog detection is TAIL-SCOPED like the busy check (profile-registry
+    # fix, David-worded 2026-07-19): a whole-pane scan matched numbered
+    # LISTS in conversation history, and the former bare-"?" alternate was
+    # permanently satisfied by Gemini's `? for shortcuts` footer — every
+    # send held as dialog forever. Real dialogs render at the bottom; the
+    # predicate keeps "Press enter" and the >=2-option-row shape. A missed
+    # exotic dialog degrades to UNKNOWN/held via the ready-marker miss —
+    # fail-closed in the same direction as before.
+    # REGISTERED dialog structure (round-3 B1/H1/H2 + David's round-4
+    # structural word): a dialog is an option set carrying DIALOG-SPECIFIC
+    # structure — a SELECTED row (the ❯/›/> highlight every captured live
+    # dialog renders) or an explicit "Press enter" instruction. Bare
+    # numbered rows — conversation lists, border-prefixed output — are NOT
+    # dialogs, however many there are. Ghost placeholders are no longer
+    # independent evidence: the dim-sibling geometry always co-occurs with
+    # the selected row, which is the structure keyed on — and this also
+    # closes the separated-sibling geometry (selected + border + ghost).
+    # Geometries with numbered options but neither a selection highlight
+    # nor a press-enter instruction are OUT OF CONTRACT: they classify
+    # UNKNOWN (held) via the marker miss, never READY — the fail-closed
+    # direction (live evidence pinned in the regression file).
+    groups = _option_groups(topo_tail, profile.selection_markers)
+    non_option_text = "\n".join(
+        line
+        for line in all_lines
+        if parse_option_row(line, profile.selection_markers) is None
+    )
+    ready_chrome_present = any(
+        marker in non_option_text for marker in profile.ready_markers
+    )
+    selected_present = any(
+        parse_option_row(topo_tail[i], profile.selection_markers).selected
+        for group in groups
+        for i in group
+    )
+    # "Press enter" evidence is REGISTERED GEOMETRY (round-5 H1), not
+    # proximity: the anchored instruction line must DIRECTLY follow an
+    # option group, AND the pane must not co-render the ordinary READY
+    # composer — every captured live dialog replaces the composer, so a
+    # numbered sentence + press-enter prose beside a normal composer is
+    # conversation, never a dialog.
+    press_enter_bound = any(
+        group[-1] + 1 < len(topo_tail)
+        and _PRESS_ENTER_RE.match(topo_tail[group[-1] + 1])
+        for group in groups
+    )
+    if selected_present or (press_enter_bound and not ready_chrome_present):
+        if groups or selected_present:
+            return PaneState.DIALOG
+    # Round-6 B3: a profile with NO live dialog evidence (empty
+    # selection_markers) is GENUINELY fail-closed — ANY option group in the
+    # tail (a single `1. Continue` row is a possible one-action dialog)
+    # holds UNKNOWN even when ordinary READY chrome co-renders. The cost is
+    # over-holding a gemini pane whose conversation ends in a numbered line;
+    # that is the DOCUMENTED price of no live gemini dialog capture, and it
+    # is fail-closed (never a wrong send). Lifts when live gemini dialog
+    # evidence registers selection glyphs.
+    if groups and not profile.selection_markers:
+        return PaneState.UNKNOWN
+    if ready_chrome_present:
+        return PaneState.READY
     return PaneState.UNKNOWN
 
 
@@ -572,7 +871,7 @@ class DeliveryMachine:
         frame_a, frame_b = gate
 
         visible = strip_ghost(frame_b.input_region)
-        if not _visible_empty(frame_b.input_region):
+        if not _visible_empty(frame_b.input_region, self.profile):
             stamp = _SEND_ID_RE.search(frame_b.input_region)
             if stamp and stamp.group(1) in self.store.rows:
                 candidate = self.store.rows[stamp.group(1)]
@@ -615,7 +914,7 @@ class DeliveryMachine:
         recheck, err = self._try_capture(frame_b.pane_id)
         if err is not None:
             return err
-        if not _visible_empty(recheck.input_region):
+        if not _visible_empty(recheck.input_region, self.profile):
             self._transition(send_id, "input_not_empty")
             row["terminal"] = True
             return _result(
@@ -699,7 +998,7 @@ class DeliveryMachine:
             if err is not None:
                 break
             last_observation = post
-            if _visible_empty(post.input_region):
+            if _visible_empty(post.input_region, self.profile):
                 if classify_pane(
                     post.raw, self.profile
                 ) is PaneState.READY and send_id in strip_ghost(
@@ -715,7 +1014,7 @@ class DeliveryMachine:
                         err is None
                         and classify_pane(confirm.raw, self.profile) is PaneState.READY
                         and self._frames_agree(post, confirm)
-                        and _visible_empty(confirm.input_region)
+                        and _visible_empty(confirm.input_region, self.profile)
                         and send_id in strip_ghost(confirm.conversation_region)
                     ):
                         self._resolve_attempt(row, "delivered_verified", confirm)
@@ -841,7 +1140,7 @@ class DeliveryMachine:
         frame_b, err = self._try_capture(pane_id)
         if err is not None:
             return err
-        if _visible_empty(frame_b.input_region):
+        if _visible_empty(frame_b.input_region, self.profile):
             send_id = self._next_send_id()
             if self._new_row(send_id, frame_b.pane_id, "composing") is None:
                 return _result("refused", "send_id_exists", terminal=True,
@@ -887,7 +1186,7 @@ class DeliveryMachine:
             return True
         if self.profile.chip_collapsing and expected_lines is not None and not chip:
             return "input_not_verifiable"
-        if _visible_empty(frame.input_region):
+        if _visible_empty(frame.input_region, self.profile):
             return "input_not_verifiable"
         if _normalize_for_compare(visible).strip() == _normalize_for_compare(wire_body).strip():
             return True
@@ -946,13 +1245,30 @@ class DeliveryMachine:
         if err is not None:
             return err
         if classify_pane(frame.raw, self.profile) is not PaneState.DIALOG:
+            # Shipped-contract preservation, corrected per round-5 H2: the
+            # r7 reason belongs ONLY to a REAL option group (>=2 contiguous
+            # rows — the registered group structure); a lone numbered
+            # conversation line is history, and `no_dialog_present` is the
+            # truthful refusal for it.
+            # Group on ORIGINAL topology (round-6 H1): blank-separated
+            # numbered paragraphs are distinct groups, so blank-separated
+            # conversation history never fuses into a spurious option group
+            # and mislabels the refusal. A real option group = >=2
+            # contiguous rows earns the r7 reason; anything else is history.
+            raw_lines = strip_ghost(frame.raw).splitlines()
+            groups = _option_groups(raw_lines, self.profile.selection_markers)
+            if any(len(group) >= 2 for group in groups):
+                return _result("refused", "no_highlighted_option", terminal=False)
             return _result("refused", "no_dialog_present", terminal=False)
         highlighted = None
         digit = None
+        # The canonical parser (round-3 B3): bordered dialog rows parse the
+        # same here as in the classifier — leading/trailing border chrome
+        # never reaches the option text or defeats highlight detection.
         for line in strip_ghost(frame.raw).splitlines():
-            match = _OPTION_ROW_RE.match(line)
-            if match and line.lstrip().startswith(("❯", "›")):
-                digit, highlighted = match.group(1), match.group(2).strip()
+            row = parse_option_row(line, self.profile.selection_markers)
+            if row is not None and row.selected:
+                digit, highlighted = row.digit, row.text
                 break
         if highlighted is None:
             # No highlighted row -> the tool cannot know what Enter/digit selects.
@@ -968,7 +1284,7 @@ class DeliveryMachine:
             return _result(
                 "refused", "dialog_still_open", terminal=False, meta={"warning_exit": 8}
             )
-        if not _visible_empty(post.input_region):
+        if not _visible_empty(post.input_region, self.profile):
             return _result(
                 "refused", "stray_echo_detected", terminal=False, meta={"warning_exit": 8}
             )
@@ -1156,7 +1472,7 @@ class DeliveryMachine:
             return _result("held", row_state, terminal=False)
 
         # No machine row for what is visible.
-        if _visible_empty(frame.input_region):
+        if _visible_empty(frame.input_region, self.profile):
             return _result("idle", "no_strand", terminal=False)
         if not input_stripped.lstrip().startswith("From "):
             return _result("held", "unattributed_strand", terminal=False)
@@ -1165,7 +1481,7 @@ class DeliveryMachine:
         return _result("held", "untracked_strand", terminal=False)
 
     def _strand_absent(self, frame: Any, row: dict, pane_id: str) -> bool:
-        if not _visible_empty(frame.input_region):
+        if not _visible_empty(frame.input_region, self.profile):
             return False
         if row["send_id"] in strip_ghost(frame.conversation_region):
             return False
@@ -1174,7 +1490,7 @@ class DeliveryMachine:
             return False
         if classify_pane(second.raw, self.profile) is not PaneState.READY:
             return False
-        return _visible_empty(second.input_region) and row["send_id"] not in strip_ghost(
+        return _visible_empty(second.input_region, self.profile) and row["send_id"] not in strip_ghost(
             second.conversation_region
         )
 
@@ -1467,7 +1783,7 @@ class DeliveryMachine:
             frame, err = self._try_capture(row["pane_id"])
             if err is not None:
                 return err
-            if not _visible_empty(frame.input_region):
+            if not _visible_empty(frame.input_region, self.profile):
                 return _result("refused", "input_not_empty", terminal=False)
         cas = getattr(self.store, "cas_pane_claim", None)
         if cas is not None:
@@ -1946,6 +2262,7 @@ class CapturedFrame:
     current_command: str
     input_region: str
     conversation_region: str
+    current_path: str = ""
     readable: bool = True
     frame_id: str = ""
 
@@ -1955,14 +2272,24 @@ class TmuxCapturer:
 
     _PROMPT_PREFIXES = ("❯", "›", ">", "codex >")
 
-    def __init__(self, runner: Callable[..., Any] = None) -> None:
+    def __init__(
+        self,
+        runner: Callable[..., Any] = None,
+        profile: "PaneProfile | None" = None,
+    ) -> None:
         import subprocess
 
         self.runner = runner or subprocess.run
+        # With a profile, regions are parsed STRUCTURALLY (split_regions —
+        # round-3 B2 + David's round-4 word) on this production path; test
+        # doubles and profile-less captures keep the legacy prompt-anchored
+        # split, so deliberately crafted fixture regions stay authoritative.
+        self.profile = profile
 
     _META_FORMAT = (
         "DGMETA\t#{pane_id}\t#{cursor_y}\t#{cursor_x}\t#{pane_width}\t"
-        "#{pane_height}\t#{pane_title}\t#{pane_current_command}"
+        "#{pane_height}\t#{pane_title}\t#{pane_current_command}\t"
+        "#{pane_current_path}"
     )
 
     def capture(self, pane_id: str) -> CapturedFrame:
@@ -1981,9 +2308,10 @@ class TmuxCapturer:
         if not meta.startswith("DGMETA\t"):
             raise RuntimeError(f"pane_unreadable: bad composite header {meta[:40]!r}")
         fields = meta[len("DGMETA\t"):].split("\t")
-        if len(fields) != 7:
+        if len(fields) != 8:
             raise RuntimeError(f"pane_unreadable: bad metadata {meta!r}")
-        resolved, cursor_row, cursor_col, width, height, title, command = fields
+        (resolved, cursor_row, cursor_col, width, height, title, command,
+         current_path) = fields
         input_lines: list[str] = []
         conversation_lines: list[str] = []
         seen_prompt = False
@@ -1999,6 +2327,23 @@ class TmuxCapturer:
                 input_lines.append(line)
             else:
                 conversation_lines.append(line)
+        if self.profile is not None:
+            input_region, conversation_region = split_regions(
+                raw, self.profile, int(cursor_row)
+            )
+            return CapturedFrame(
+                raw=raw,
+                pane_id=resolved,
+                cursor_row=int(cursor_row),
+                cursor_col=int(cursor_col),
+                width=int(width),
+                height=int(height),
+                title=title,
+                current_command=command,
+                current_path=current_path,
+                input_region=input_region,
+                conversation_region=conversation_region,
+            )
         return CapturedFrame(
             raw=raw,
             pane_id=resolved,
@@ -2008,6 +2353,7 @@ class TmuxCapturer:
             height=int(height),
             title=title,
             current_command=command,
+            current_path=current_path,
             input_region="\n".join(reversed(input_lines)),
             conversation_region="\n".join(reversed(conversation_lines)),
         )

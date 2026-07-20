@@ -272,7 +272,9 @@ def _machine_for(target: str):
     store = dg_delivery.SqliteStoreAdapter(dg_delivery.DEFAULT_STORE_PATH)
     return dg_delivery.DeliveryMachine(
         runner=subprocess.run,
-        capturer=dg_delivery.TmuxCapturer(),
+        capturer=dg_delivery.TmuxCapturer(
+            profile=dg_delivery.PaneProfile.for_cli(profile_name)
+        ),
         clock=_Clock(),
         store=store,
         profile=dg_delivery.PaneProfile.for_cli(profile_name),

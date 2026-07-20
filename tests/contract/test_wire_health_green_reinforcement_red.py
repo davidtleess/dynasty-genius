@@ -456,7 +456,11 @@ def test_r20_production_capture_is_one_dispatch(monkeypatch) -> None:
 
     def fake_run(command, **kwargs):
         calls.append(list(command))
-        meta = "DGMETA\t%7\t1\t2\t120\t40\tCodex pane\tcodex"
+        # Lawfully updated for the 8-field metadata contract (profile fix,
+        # David-worded 2026-07-19): #{pane_current_path} joined the one
+        # composite dispatch; a short 7-field frame now refuses
+        # pane_unreadable (pinned in the profile-refresh regression file).
+        meta = "DGMETA\t%7\t1\t2\t120\t40\tCodex pane\tcodex\t/work/repo"
         return type("Completed", (), {"returncode": 0, "stdout": meta + "\ncodex > \n", "stderr": ""})()
 
     capturer = delivery.TmuxCapturer(runner=fake_run)
@@ -465,6 +469,7 @@ def test_r20_production_capture_is_one_dispatch(monkeypatch) -> None:
     assert ";" in calls[0]
     assert frame.pane_id == "%7"
     assert frame.current_command == "codex"
+    assert frame.current_path == "/work/repo"
 
 
 def test_r21_cli_exposes_approve_and_direct_send_reaches_named_store_error(tmp_path: Path) -> None:

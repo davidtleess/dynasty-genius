@@ -20,10 +20,20 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from scripts.dg_delivery import DeliveryMachine, PaneProfile, SendResult, _result
+    from scripts.dg_delivery import (
+        DeliveryMachine,
+        PaneProfile,
+        SendResult,
+        _result,
+    )
 except ModuleNotFoundError:  # direct invocation: sys.path roots at scripts/
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from scripts.dg_delivery import DeliveryMachine, PaneProfile, SendResult, _result
+    from scripts.dg_delivery import (
+        DeliveryMachine,
+        PaneProfile,
+        SendResult,
+        _result,
+    )
 
 ENABLE_MARKER = Path.home() / "dg-cockpit" / "carrier.enabled"
 LOG_PATH = Path.home() / "dg-cockpit" / "carrier.log"
@@ -64,12 +74,40 @@ def run_once(
     used_clock = clock or _RealClock()
     outcomes: list[SendResult] = []
     for pane_id, profile_name in (panes or {}).items():
+        pane_profile = PaneProfile.for_cli(profile_name)
+        pane_capturer = capturer
+        # The per-pane profile invariant (rounds 4-6). Judged by duck type
+        # (module-identity differences must never skip the law). Any
+        # profile-bearing capturer participates:
+        if hasattr(capturer, "profile"):
+            bound = capturer.profile
+            if bound is not None and getattr(bound, "name", None) != profile_name:
+                # A bound mismatch is an INVARIANT VIOLATION — refuse by
+                # name AND stop the whole run (round-6 H3: refusal
+                # precedence; returning only outcomes[-1] hid an earlier
+                # pane's mismatch behind a later pane's benign result).
+                return _result(
+                    "refused", "capturer_profile_mismatch", terminal=False
+                )
+            if bound is None and hasattr(capturer, "runner"):
+                # Round-6 H2: reconstruction may not assume the constructor
+                # signature — a capturer whose ctor rejects (runner=,
+                # profile=) is refused BY NAME, never allowed to raise a
+                # raw TypeError across the daemon boundary.
+                try:
+                    pane_capturer = type(capturer)(
+                        runner=capturer.runner, profile=pane_profile
+                    )
+                except Exception:
+                    return _result(
+                        "refused", "capturer_not_rebindable", terminal=False
+                    )
         machine = DeliveryMachine(
             runner=runner,
-            capturer=capturer,
+            capturer=pane_capturer,
             clock=used_clock,
             store=store,
-            profile=PaneProfile.for_cli(profile_name),
+            profile=pane_profile,
         )
         outcomes.append(machine.carrier_tick(pane_id))
     if not outcomes:
