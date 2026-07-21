@@ -1,7 +1,8 @@
-"""QB-1 study-side source loading: the six-dataset fail-closed gate (F1).
+"""QB-1 study-side source loading: the seven-dataset fail-closed gate (F1).
 
-Spec rows implemented here (v8, SHA 8fa244c1…): D1 pins exactly six nflverse
-datasets (weekly all-position player stats, players, rosters, the ff_playerids
+Spec rows implemented here (v9, SHA-256 347c2d6e30d2… + amendment b7221a7a…):
+D1 pins exactly seven nflverse datasets (weekly all-position player stats, the
+1b official REG season summaries, players, rosters, the ff_playerids
 crosswalk, draft_picks, pbp). ``load_validation_sources`` is the study's single
 entry to them: every dataset must be present with an ``ok`` status — an
 unavailable, stale, or absent dataset is a NAMED fail-closed refusal
@@ -19,9 +20,11 @@ from typing import Any, Mapping
 
 from src.dynasty_genius.eval.qb_validation.errors import QBValidationFailure
 
-# The pinned D1 dataset set, in spec order (D1.1–D1.6).
+# The pinned D1 dataset set, in spec order (v9: seven names — dataset 1b
+# `season_summary` per amendment §A1, the official REG season CPOE source).
 VALIDATION_DATASETS = (
     "weekly",
+    "season_summary",
     "players",
     "rosters",
     "ff_playerids",
@@ -69,7 +72,7 @@ def _dataset_problem(dataset: str, state: Any) -> str | None:
 def load_validation_sources(
     sources: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Mapping[str, Any]]:
-    """Gate the study's source pool: six USABLE, provenance-bearing datasets (F1).
+    """Gate the study's source pool: seven USABLE, provenance-bearing datasets (F1).
 
     A status string is not proof. Each dataset must be a mapping with
     ``status == "ok"``, a non-empty parsed frame, and provenance metadata

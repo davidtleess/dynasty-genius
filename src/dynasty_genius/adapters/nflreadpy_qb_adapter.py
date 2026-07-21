@@ -5,7 +5,7 @@ It intentionally returns the narrow QB_CONTEXT_COLUMNS shape and does not
 write to Engine A or Engine B feature matrices.
 
 Single-adapter law (QB-1 spec v8, D1): this module is the repo's ONE nflreadpy
-adapter, so the validation study's six-dataset ingestion lives here too, under
+adapter, so the validation study's seven-dataset ingestion (v9) lives here too, under
 the ``validation_`` name prefix and the ``validation_study`` registry role
 (``nflreadpy_qb_validation`` — a DISTINCT registry entry; the context lane and
 its ``nflreadpy_qb_context`` definition are untouched). Study functions may be
@@ -48,6 +48,9 @@ VALIDATION_DATASET_COLUMNS: dict[str, tuple[str, ...]] = {
         "season_type",
         "attempts",
         "carries",
+        "completions",
+        "sack_yards_lost",
+        "passing_epa",
         "sacks_suffered",
         "passing_yards",
         "passing_tds",
@@ -64,8 +67,9 @@ VALIDATION_DATASET_COLUMNS: dict[str, tuple[str, ...]] = {
         "rushing_2pt_conversions",
         "receiving_2pt_conversions",
     ),
+    "season_summary": ("player_id", "season", "position", "passing_cpoe"),
     "players": ("gsis_id", "display_name", "birth_date", "college_name"),
-    "rosters": ("season", "week", "gsis_id", "game_type", "status"),
+    "rosters": ("season", "week", "gsis_id", "game_type", "status", "position"),
     "ff_playerids": ("gsis_id", "sleeper_id", "name"),
     "draft_picks": (
         "season",
@@ -280,6 +284,14 @@ def _verify_row_seasons(
             f"{dataset}: fetched rows carry seasons {unexpected} outside the "
             f"requested {sorted(expected_seasons)}",
         )
+    # v9 round-1 B1: coverage is exact in BOTH directions — a requested season
+    # with zero fetched rows is a silent gap, refused by name.
+    absent = sorted(set(expected_seasons) - set(values.astype(int)))
+    if absent:
+        raise ValidationIngestError(
+            "source_season_missing",
+            f"{dataset}: fetched rows lack requested season(s) {absent}",
+        )
 
 
 def _ingest_validation_dataset(
@@ -391,6 +403,35 @@ def load_validation_weekly_stats(
         _fetch,
         snapshot_dir=snapshot_dir,
         parse=_filter_regular_season("weekly"),
+        expected_seasons=scoped,
+    )
+
+
+def load_validation_season_summary(
+    seasons: list[int],
+    *,
+    loader: Callable[[], Any] | None = None,
+    snapshot_dir: Path | str | None = None,
+) -> dict[str, Any]:
+    """D1.1b (v9) — official REG season summaries: the exact CPOE source.
+
+    Amendment §A1/§A2: season CPOE is consumed AS-IS from the official
+    nflfastR aggregation; weekly recomposition is rejected as non-exact.
+    """
+
+    scoped = _validate_study_seasons("season_summary", list(seasons))
+
+    def _fetch() -> Any:
+        if loader is not None:
+            return loader()
+        import nflreadpy as nfl
+
+        return nfl.load_player_stats(scoped, summary_level="reg")
+
+    return _ingest_validation_dataset(
+        "season_summary",
+        _fetch,
+        snapshot_dir=snapshot_dir,
         expected_seasons=scoped,
     )
 

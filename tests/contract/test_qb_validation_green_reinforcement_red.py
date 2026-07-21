@@ -746,13 +746,23 @@ _D2_GOLDEN = [
                "receiving_2pt_conversions": 1}, "expected_points": 6.0},
 ]
 
+# v9 §B5 shipped-suite delta (David-ratified 2026-07-20): classified rows
+# carry both axes, reasons, decision_supported, and games under the two-axis
+# games law; the attrition table carries exactly the four literal keys.
 _D2_CLASSIFIED = [
-    {"player_id": "00-1", "season": 2024, "outcome_class": "evaluable",
-     "qualifying_games": 8, "ppg": 15.0},
-    {"player_id": "00-2", "season": 2024, "outcome_class": "no_target_season"},
-    {"player_id": "00-3", "season": 2024, "outcome_class": "rookie_no_priors"},
+    {"player_id": "00-1", "season": 2024, "eligibility": "cohort_admitted",
+     "target": "target_evaluable", "outcome_class": "evaluable",
+     "qualifying_games": 8, "reasons": [], "decision_supported": False,
+     "ppg": 15.0},
+    {"player_id": "00-2", "season": 2024, "eligibility": "cohort_admitted",
+     "target": "no_target_season", "outcome_class": "no_target_season",
+     "qualifying_games": 0, "reasons": [], "decision_supported": False},
+    {"player_id": "00-3", "season": 2024, "eligibility": "rookie_no_priors",
+     "target": "target_evaluable", "outcome_class": "rookie_no_priors",
+     "qualifying_games": 1, "reasons": [], "decision_supported": False},
 ]
-_D2_ATTRITION = {"no_target_season": 1, "rookie_no_priors": 1}
+_D2_ATTRITION = {"no_target_season": 1, "rookie_no_priors": 1,
+                 "cohort_ineligible_prior": 0, "cohort_ineligible_unobserved": 0}
 
 
 # --- R22: hand-computed build + the pinned qualifying predicate -------------
@@ -1108,7 +1118,11 @@ def test_r27_dishonest_attrition_table_refuses(attrition):
 
 def test_r27_attrition_row_carrying_zero_ppg_refuses_imputed_number():
     rows = _D2_CLASSIFIED + [{"player_id": "00-5", "season": 2024,
-                              "outcome_class": "no_target_season", "ppg": 0.0}]
+                              "eligibility": "cohort_admitted",
+                              "target": "no_target_season",
+                              "outcome_class": "no_target_season",
+                              "qualifying_games": 0, "reasons": [],
+                              "decision_supported": False, "ppg": 0.0}]
     with pytest.raises(F) as err:
         qbv.validate_attrition_classes(
             rows, {"no_target_season": 2, "rookie_no_priors": 1})
@@ -1117,7 +1131,10 @@ def test_r27_attrition_row_carrying_zero_ppg_refuses_imputed_number():
 
 def test_r27_attrition_row_with_qualifying_games_is_a_class_conflict():
     rows = _D2_CLASSIFIED + [{"player_id": "00-6", "season": 2024,
+                              "eligibility": "cohort_admitted",
+                              "target": "no_target_season",
                               "outcome_class": "no_target_season",
+                              "reasons": [], "decision_supported": False,
                               "qualifying_games": 3}]
     with pytest.raises(F) as err:
         qbv.validate_attrition_classes(
@@ -1271,7 +1288,10 @@ def test_r29_nonzero_covering_golden_set_still_passes():
                                        np.bool_(False)])
 def test_r30_present_malformed_games_on_attrition_row_refuses(bad_games):
     rows = _D2_CLASSIFIED + [{"player_id": "00-7", "season": 2024,
+                              "eligibility": "cohort_admitted",
+                              "target": "no_target_season",
                               "outcome_class": "no_target_season",
+                              "reasons": [], "decision_supported": False,
                               "qualifying_games": bad_games}]
     with pytest.raises(F) as err:
         qbv.validate_attrition_classes(
@@ -1281,10 +1301,15 @@ def test_r30_present_malformed_games_on_attrition_row_refuses(bad_games):
 
 def test_r30_explicit_zero_games_on_attrition_row_is_lawful():
     rows = _D2_CLASSIFIED + [{"player_id": "00-7", "season": 2024,
+                              "eligibility": "cohort_admitted",
+                              "target": "no_target_season",
                               "outcome_class": "no_target_season",
+                              "reasons": [], "decision_supported": False,
                               "qualifying_games": 0}]
     qbv.validate_attrition_classes(
-        rows, {"no_target_season": 2, "rookie_no_priors": 1})
+        rows, {"no_target_season": 2, "rookie_no_priors": 1,
+               "cohort_ineligible_prior": 0,
+               "cohort_ineligible_unobserved": 0})
 
 
 @pytest.mark.parametrize(
@@ -1293,7 +1318,10 @@ def test_r30_explicit_zero_games_on_attrition_row_is_lawful():
     ids=["absent_games", "zero_games"],
 )
 def test_r30_evaluable_without_qualifying_games_is_a_class_conflict(games_field):
-    row = {"player_id": "00-8", "season": 2024, "outcome_class": "evaluable"}
+    row = {"player_id": "00-8", "season": 2024,
+           "eligibility": "cohort_admitted", "target": "target_evaluable",
+           "outcome_class": "evaluable", "reasons": [],
+           "decision_supported": False}
     row.update(games_field)
     with pytest.raises(F) as err:
         qbv.validate_attrition_classes(_D2_CLASSIFIED + [row], _D2_ATTRITION)
@@ -1301,8 +1329,10 @@ def test_r30_evaluable_without_qualifying_games_is_a_class_conflict(games_field)
 
 
 def test_r30_evaluable_with_malformed_games_refuses_as_corruption():
-    row = {"player_id": "00-8", "season": 2024, "outcome_class": "evaluable",
-           "qualifying_games": "garbage"}
+    row = {"player_id": "00-8", "season": 2024,
+           "eligibility": "cohort_admitted", "target": "target_evaluable",
+           "outcome_class": "evaluable", "reasons": [],
+           "decision_supported": False, "qualifying_games": "garbage"}
     with pytest.raises(F) as err:
         qbv.validate_attrition_classes(_D2_CLASSIFIED + [row], _D2_ATTRITION)
     assert err.value.reason == "label_row_invalid"

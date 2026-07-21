@@ -4,6 +4,7 @@ from __future__ import annotations
 import builtins
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 from src.dynasty_genius.eval import backtest_mock_draft as bmd
@@ -130,6 +131,7 @@ def test_cli_accepts_backtest_a_flags_plus_upstream_run_and_writes_abstain_repor
 
     result = subprocess.run(
         [
+            sys.executable,
             str(RUN_BACKTEST_B_CLI),
             "--snapshots-dir",
             str(tmp_path / "snapshots"),
@@ -171,6 +173,7 @@ def test_cli_allows_missing_upstream_run_and_records_null(tmp_path: Path):
 
     result = subprocess.run(
         [
+            sys.executable,
             str(RUN_BACKTEST_B_CLI),
             "--snapshots-dir",
             str(tmp_path / "snapshots"),

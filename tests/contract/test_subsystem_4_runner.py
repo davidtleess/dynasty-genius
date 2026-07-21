@@ -1487,6 +1487,7 @@ def test_cli_requires_override_date_and_reason_together(tmp_path: Path):
 
     result = subprocess.run(
         [
+            sys.executable,
             str(RUN_BACKTEST_A_CLI),
             "--snapshots-dir",
             str(tmp_path / "snapshots"),
@@ -1520,6 +1521,7 @@ def test_cli_returns_nonzero_on_schema_ingestion_error(tmp_path: Path):
 
     result = subprocess.run(
         [
+            sys.executable,
             str(RUN_BACKTEST_A_CLI),
             "--snapshots-dir",
             str(snapshots_dir),

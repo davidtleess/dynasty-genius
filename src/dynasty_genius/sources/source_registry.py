@@ -386,7 +386,8 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
             failure_behavior="fail_closed",
             test_gate="tests/contract/test_qb_validation_program_red.py",
             notes=(
-                "QB-1 validation-study ingestion (spec v8, SHA 8fa244c1…): the six "
+                "QB-1 validation-study ingestion (spec v9, SHA-256 347c2d6e30d2… + "
+                "ratified amendment b7221a7a…): the seven "
                 "pinned D1 nflverse datasets via the validation_* functions of the "
                 "shared nflreadpy adapter. Consumable ONLY by "
                 "src/dynasty_genius/eval/qb_validation/ (F33 wall); raw snapshots "

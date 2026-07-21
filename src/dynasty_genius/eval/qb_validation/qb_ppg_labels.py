@@ -7,10 +7,11 @@ Spec rows implemented here:
   (QB receiving, fumbles lost, every 2-point path, ``pass_int``) must match
   EXACTLY, and the settings hash must match the registered pin; a mismatch
   fails the run.
-- F28 ``validate_attrition_classes`` — the outcome-class vocabulary is
-  exhaustive ({evaluable, no_target_season, rookie_no_priors}), counts
-  reconcile, and an attrition row never carries imputed metrics (a zero PPG
-  is a fabricated number, not an honest absence).
+- F28 ``validate_attrition_classes`` — the v9 two-axis outcome-class
+  vocabulary is exhaustive ({evaluable, no_target_season, rookie_no_priors,
+  cohort_ineligible_prior, cohort_ineligible_unobserved}), counts reconcile,
+  and an attrition row never carries imputed metrics (a zero PPG is a
+  fabricated number, not an honest absence).
 
 The D2 contract (spec §2):
 - ``y(p,t)`` = regular-season Sleeper-scored fantasy points per qualifying
@@ -59,8 +60,38 @@ from src.dynasty_genius.eval.qb_validation.errors import QBValidationFailure
 
 # The exhaustive outcome-class vocabulary (spec D2; rookie_no_priors is
 # ASSIGNED by D3's cohort route — the vocabulary itself is D2 law).
-OUTCOME_CLASSES = ("evaluable", "no_target_season", "rookie_no_priors")
-ATTRITION_CLASSES = ("no_target_season", "rookie_no_priors")
+# v9 two-axis vocabulary (amendment §B3/§B5, David-ratified 2026-07-20).
+OUTCOME_CLASSES = (
+    "evaluable",
+    "no_target_season",
+    "rookie_no_priors",
+    "cohort_ineligible_prior",
+    "cohort_ineligible_unobserved",
+)
+ATTRITION_CLASSES = (
+    "no_target_season",
+    "rookie_no_priors",
+    "cohort_ineligible_prior",
+    "cohort_ineligible_unobserved",
+)
+_ELIGIBILITY_AXIS = ("cohort_admitted", "rookie_no_priors", "cohort_ineligible_prior")
+_TARGET_AXIS = ("target_evaluable", "no_target_season")
+# The pinned total (eligibility, target) → outcome_class mapping. The absent
+# combination (rookie_no_priors, no_target_season) is unreachable by
+# construction and refuses by name.
+_OUTCOME_BY_AXES = {
+    ("cohort_admitted", "target_evaluable"): "evaluable",
+    ("cohort_admitted", "no_target_season"): "no_target_season",
+    ("rookie_no_priors", "target_evaluable"): "rookie_no_priors",
+    ("cohort_ineligible_prior", "target_evaluable"): "cohort_ineligible_prior",
+    ("cohort_ineligible_prior", "no_target_season"): "cohort_ineligible_unobserved",
+}
+_INELIGIBLE_REASONS = ("zero_career_dropbacks", "no_prior_roster_presence")
+# Games law per class: target_evaluable classes require games > 0; the
+# no-target classes require games = 0.
+_POSITIVE_GAMES_CLASSES = frozenset(
+    {"evaluable", "rookie_no_priors", "cohort_ineligible_prior"}
+)
 
 # Pinned weekly stat column → Sleeper scoring-settings key (full component
 # coverage per spec D2). Column names are the D1.1 post-parse pins
@@ -978,18 +1009,21 @@ def validate_scoring_edges(
 def validate_attrition_classes(
     rows: Iterable[Any], attrition: Mapping[str, Any]
 ) -> None:
-    """The F28 law over a CLASSIFIED collection: exhaustive vocabulary, honest
-    counts, no silent drops, no imputed metrics — enforced in BOTH directions
-    of the class invariant (round-1 H1).
+    """The v9 two-axis F28 law over a CLASSIFIED collection (amendment §B5):
+    exhaustive vocabulary, honest counts, no silent drops, no imputed metrics.
 
-    - every row's ``outcome_class`` is in the pinned vocabulary
+    - every row's ``outcome_class`` is in the pinned five-class vocabulary
       (``attrition_class_unknown`` otherwise — including absent);
-    - every classified row carries usable identity, and a player-season
-      appears at most once (``duplicate_player_season`` — a duplicated
-      attrition row silently inflates the class it sits in);
-    - the invariant ``evaluable = >=1 qualifying game`` binds both ways: an
-      evaluable row without a positive games count, or an attrition row WITH
-      one, is a contradiction (``outcome_class_conflict``);
+    - every classified row carries usable identity under the shipped key
+      ``(player_id, season)`` (``target_season`` is rejected), and a
+      player-season appears at most once (``duplicate_player_season``);
+    - every row carries valid axes; the total (eligibility, target) mapping
+      must agree with ``outcome_class`` (``outcome_class_conflict``); the
+      unreachable (rookie, no-target) combination refuses
+      ``universe_membership_violation``;
+    - the games law binds both ways per class: target-evaluable classes
+      require ``qualifying_games >= 1``; no-target classes require an
+      explicit zero (``outcome_class_conflict``);
     - a PRESENT-but-malformed games value (boolean, negative, unparseable)
       is corrupted evidence, never read as honest absence
       (``label_row_invalid``);
@@ -1043,39 +1077,85 @@ def validate_attrition_classes(
                 "a duplicated row silently inflates its class count",
             )
         seen.add(key)
-        games_present = "qualifying_games" in row
-        games = _lossless_int(row["qualifying_games"]) if games_present else None
-        if games_present and games is None:
+        # v9 §B5: the shipped identity key is `season`; `target_season` is the
+        # D2a-internal key and is rejected at this boundary (S34).
+        if "target_season" in row:
             raise QBValidationFailure(
                 "label_row_invalid",
-                f"classified row [{index}] ({player_id}, {season}) has a present "
-                f"but malformed qualifying_games={_safe_repr(row['qualifying_games'])}; "
-                "corrupted evidence is never read as absence",
+                f"classified row [{index}] carries target_season; the F28 "
+                "identity key is (player_id, season)",
             )
-        if games is not None and games < 0:
+        eligibility = _usable_text(row.get("eligibility"))
+        target = _usable_text(row.get("target"))
+        if eligibility not in _ELIGIBILITY_AXIS or target not in _TARGET_AXIS:
             raise QBValidationFailure(
                 "label_row_invalid",
-                f"classified row [{index}] ({player_id}, {season}) has "
-                f"qualifying_games={games}; a negative games count is "
-                "impossible evidence",
+                f"classified row [{index}] ({player_id}, {season}) lacks valid "
+                f"axes: eligibility={_safe_repr(row.get('eligibility'))} "
+                f"target={_safe_repr(row.get('target'))}",
             )
-        if outcome == "evaluable":
+        if (eligibility, target) not in _OUTCOME_BY_AXES:
+            raise QBValidationFailure(
+                "universe_membership_violation",
+                f"classified row [{index}] ({player_id}, {season}) is "
+                f"({eligibility}, {target}); a rookie can enter the universe "
+                "only through the label pool",
+            )
+        if _OUTCOME_BY_AXES[(eligibility, target)] != outcome:
+            raise QBValidationFailure(
+                "outcome_class_conflict",
+                f"classified row [{index}] ({player_id}, {season}) declares "
+                f"outcome_class {outcome!r} but its axes map to "
+                f"{_OUTCOME_BY_AXES[(eligibility, target)]!r}",
+            )
+        if row.get("decision_supported") is not False:
+            raise QBValidationFailure(
+                "label_row_invalid",
+                f"classified row [{index}] ({player_id}, {season}) lacks "
+                "decision_supported=False",
+            )
+        reasons = row.get("reasons")
+        reasons_valid = isinstance(reasons, list) and [
+            r for r in _INELIGIBLE_REASONS if r in reasons
+        ] == reasons
+        if not reasons_valid or (
+            (eligibility == "cohort_ineligible_prior") != bool(reasons)
+        ):
+            raise QBValidationFailure(
+                "label_row_invalid",
+                f"classified row [{index}] ({player_id}, {season}) has invalid "
+                f"reasons={_safe_repr(row.get('reasons'))}: an ordered subset of "
+                + ", ".join(_INELIGIBLE_REASONS)
+                + ", non-empty exactly on the cohort_ineligible classes",
+            )
+        games_raw = row.get("qualifying_games")
+        games = (
+            _lossless_int(games_raw) if "qualifying_games" in row else None
+        )
+        if "qualifying_games" in row and (games is None or games < 0):
+            raise QBValidationFailure(
+                "label_row_invalid",
+                f"classified row [{index}] ({player_id}, {season}) has a "
+                f"malformed qualifying_games={_safe_repr(games_raw)}; corrupted "
+                "evidence is never read as absence",
+            )
+        if outcome in _POSITIVE_GAMES_CLASSES:
             if games is None or games < 1:
                 raise QBValidationFailure(
                     "outcome_class_conflict",
                     f"classified row [{index}] ({player_id}, {season}) is "
-                    f"evaluable with qualifying_games="
-                    f"{_safe_repr(row.get('qualifying_games'))}; evaluable means >=1 "
-                    "qualifying game by definition",
+                    f"{outcome} with qualifying_games={_safe_repr(games_raw)}; "
+                    "a target-evaluable class means >=1 qualifying game",
                 )
-            continue
-        if games is not None and games >= 1:
+        elif games is None or games != 0:
             raise QBValidationFailure(
                 "outcome_class_conflict",
-                f"classified row [{index}] carries qualifying_games={games} but "
-                f"outcome_class {outcome!r}; a qualifying season is evaluable "
-                "by definition",
+                f"classified row [{index}] ({player_id}, {season}) is "
+                f"{outcome} with qualifying_games={_safe_repr(games_raw)}; a "
+                "no-target class requires an explicit zero",
             )
+        if outcome == "evaluable":
+            continue
         carried = [
             field for field in ("ppg", "points_total") if field in row
         ]

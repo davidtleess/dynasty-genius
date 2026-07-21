@@ -10,7 +10,7 @@ unimplemented spec rows deliberately stay absent so their RED rows stay red.
 Slice 1 (2026-07-16): registration hash gate, output-path guard, No-Verdict
 scan, dataset/manifest shape guards.
 Slice 2 (2026-07-17): reviewer-contract signature reconciliation (F14/F15/F24),
-the six-dataset source gate (F1), identity-overlap and as-of guards (F17/F19),
+the seven-dataset source gate (F1, v9), identity-overlap and as-of guards (F17/F19),
 report output validation (F26), the model-lane status decision (F30 — the H5
 lane refuses with a named reason until its behavioral RED lands), and the
 draft-join closure (F34); D1 ``validation_*`` ingestion + the
@@ -61,6 +61,9 @@ from src.dynasty_genius.eval.qb_validation.sources import (
 from src.dynasty_genius.eval.qb_validation.status import (
     evaluate_power_and_status,
 )
+from src.dynasty_genius.eval.qb_validation.study_matrix import (
+    build_study_matrix,
+)
 
 __all__ = [
     "QBValidationFailure",
@@ -70,6 +73,7 @@ __all__ = [
     "OUTCOME_CLASSES",
     "SCORING_COMPONENTS",
     "build_label_table",
+    "build_study_matrix",
     "score_stat_line",
     "settings_hash",
     "validate_label_table",

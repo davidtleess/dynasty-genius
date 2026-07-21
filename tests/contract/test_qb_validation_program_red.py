@@ -12,6 +12,8 @@ import importlib
 
 import pytest
 
+from tests.contract.qb_validation_study_matrix_contract import exercise_s1_s34
+
 ROWS = {
     "F1": "load_validation_sources",
     "F2": "build_registration",
@@ -57,7 +59,6 @@ ROWS = {
 # silently-green. Building a seam and un-marking its row happen in the SAME
 # reviewed change.
 PARKED_SEAMS = {
-    "F3": "D2a study matrix",
     "F4": "D3 study machinery (expanding folds)",
     "F5": "D3 study machinery (Ridge lane)",
     "F6": "D3 study machinery (comparison scoring)",
@@ -110,15 +111,10 @@ def test_f1_source_failure_is_named_and_fail_closed() -> None:
         module.load_validation_sources({"weekly": {"status": "stale"}})
 
 
-@pytest.mark.xfail(
-    strict=True, reason="parked RED row: lands with D2a study matrix (build_study_matrix)"
-)
-def test_f2_fold_rejects_target_season_feature_leakage() -> None:
+def test_f2_v9_d2a_behavioral_contract_s1_s34(tmp_path) -> None:
+    """Ratified v9 D2a contract; one row preserves the 1F + 18XF ratchet."""
     module = _study_module()
-    with pytest.raises(Exception, match="leak|as_of|target"):
-        module.build_study_matrix(
-            [{"target_season": 2025, "feature_season": 2025, "ppg": 10.0}]
-        )
+    exercise_s1_s34(module, tmp_path)
 
 
 def test_f9_report_enforces_recursive_no_verdict_language() -> None:
