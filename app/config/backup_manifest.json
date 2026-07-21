@@ -155,6 +155,11 @@
       "path": "app/data/league_runtime/runs",
       "required": true,
       "kind": "directory"
+    },
+    {
+      "path": "app/data/research/league_behavior/raw",
+      "required": true,
+      "kind": "directory"
     }
   ],
   "optional": [

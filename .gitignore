@@ -36,6 +36,11 @@ app/data/cfbd_cache/
 app/data/raw/
 app/data/processed/
 app/data/artifacts/
+# Research capture stores (EDGE-H1-00 league-behavior snapshots and successors):
+# immutable point-in-time data layers live on disk + GCS under the three-copy
+# backup architecture, never in git. Protection is backup_manifest.json
+# coverage, not version control. [David-ruled 2026-07-20]
+app/data/research/
 .pycache_tmp/
 
 # Generated enriched training artifacts (committed only after all tasks complete)
