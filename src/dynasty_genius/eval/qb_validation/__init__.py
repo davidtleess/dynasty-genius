@@ -20,10 +20,22 @@ Slice 3 (2026-07-18): the D2 Sleeper-scored PPG label table
 F28 ``validate_attrition_classes``) — settings-derived Decimal scoring with
 the hash assertion, the pinned qualifying-game predicate, and the exhaustive
 outcome-class law.
+Slice D3-a (2026-07-23): the expanding-fold construction and train-safe
+preparation guards in ``folds.py`` (F4 ``run_expanding_folds``,
+F12 ``validate_age_features``, F20 ``validate_degenerate_inputs``,
+F22 ``fit_train_only_imputer``, F27 ``validate_hypothesis_partition``) — the
+leakage-proof layer that runs before any estimator (F5) or scoring (F6).
 """
 from __future__ import annotations
 
 from src.dynasty_genius.eval.qb_validation.errors import QBValidationFailure
+from src.dynasty_genius.eval.qb_validation.folds import (
+    fit_train_only_imputer,
+    run_expanding_folds,
+    validate_age_features,
+    validate_degenerate_inputs,
+    validate_hypothesis_partition,
+)
 from src.dynasty_genius.eval.qb_validation.guards import (
     OUTPUT_ROOT,
     scan_banned_language,
@@ -74,6 +86,11 @@ __all__ = [
     "SCORING_COMPONENTS",
     "build_label_table",
     "build_study_matrix",
+    "run_expanding_folds",
+    "validate_age_features",
+    "validate_degenerate_inputs",
+    "fit_train_only_imputer",
+    "validate_hypothesis_partition",
     "score_stat_line",
     "settings_hash",
     "validate_label_table",
