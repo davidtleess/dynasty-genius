@@ -24,3 +24,17 @@ Inter-agent messages are delivered by pasting into another pane's input box. The
 4. **Ghost text is furniture.** Dim (SGR-2) text in an input box is the CLI's own prompt suggestion, not a message. Read panes with `tmux capture-pane -e` so dim styling stays visible. Never submit it and never report it — David likes the feature and reads the dim rendering himself.
 
 Rationale of record: the mail-carrier daemon existed to rescue stranded messages. Codex's 2026-07-21 bounded verification reproduced three failures — it can press Enter on an open permission dialog, can take over a live sender's message without proving the sender is gone, and can submit an unattributed strand. It remains paused and unarmed. This rule replaces it.
+
+## UNDER TEST — QB rushing is a live hypothesis, not a finding (David's word, 2026-07-22)
+
+The QB-1 study pre-registration (`docs/validation/2026-07-21-qb-1-study-registration.md`) registers QB **rushing production (H2)** as a hypothesis **under test**. The study has not run. There is no result.
+
+Until the pre-registered study is executed and David rules on the registered result:
+
+1. **Do not assert rushing as established.** Not in David-facing output, prose, specs, plans, briefs, or your own reasoning; not as a premise for a feature, threshold, tier, or recommendation. "Under test" is the only status it has.
+2. **A registered hypothesis is not evidence for itself.** Do not cite the registration, its manifests, or any interim or partial output as support for rushing mattering. Pre-registration exists to stop exactly that.
+3. **Know the ceiling.** The study's registered target is regular-season fantasy points per qualifying game under a pinned scoring rule, in a veteran cohort — **not "dynasty value."** Any result on one of the five registered contrasts involving H2 (§8) would, at most, support that corresponding registered comparison, under that contrast's registered status vocabulary and the study's inference contract and David's ruling — never a general "rushing is established" claim, never a marginal/conditional "rushing adds value on top of the other features" claim (no registered contrast tests it), and never the broader value construct without separate validation.
+4. **Say the status out loud when you use it.** Naming rushing as a hypothesis under test is always allowed, and is the required form.
+5. **Only execution-plus-ruling lifts this.** Not a partial run, not an interim table, not a plausible coefficient, not the passage of time.
+
+Pre-existing rushing language and shipped model mechanics elsewhere in the repo are **not** cleared by this section. Full text: Addendum A at the foot of the registration document.

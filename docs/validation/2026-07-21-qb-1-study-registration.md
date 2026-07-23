@@ -151,6 +151,7 @@ Lookback tags: **[t−1]** prior-season value · **[career≤t−1]** career agg
 
 - **H1 — efficiency:** `epa_per_dropback` [t−1] (Σ passing_epa ÷ Σ dropbacks_proxy, paired-null exclusion) · `cpoe` [t−1] (**official REG season-summary value, consumed as-is** — weekly recomposition was falsified as non-exact and is rejected) · `sack_rate` [t−1] (Σ sacks_suffered ÷ Σ dropbacks_proxy) · `any_a` [t−1] ((Σ passing_yards + 20·Σ passing_tds − 45·Σ passing_interceptions **+** Σ sack_yards_lost) ÷ Σ dropbacks_proxy; `sack_yards_lost` is source-signed ≤ 0) · `completion_pct` [t−1] (Σ completions ÷ Σ attempts). **All H1 aggregates run over ALL of the player's t−1 REG qualifying rows across teams.**
 - **H2 — rushing (continuous; no binary archetype):** `rush_att_per_game` [t−1] · `rush_yds_per_game` [t−1] · `rush_td_share` [t−1] (player rush TDs ÷ **team** rush TDs, team totals from the **all-position pre-QB-filter** aggregation; a zero denominator yields a null routed to the missingness path, named) · `rush_yds_per_att` [t−1].
+  **⚠️ UNDER TEST — see Addendum A (2026-07-22) at the foot of this document: H2 is this study's hypothesis, not an established finding, and must not be asserted as established until the pre-registered study is executed and David rules on the registered result.**
 - **H3 — volume:** `dropbacks_per_game` [t−1] · `pass_att_per_game` [t−1] · `qualifying_games` [t−1] · `career_dropbacks` [career≤t−1] · `team_proe` [t−1] (mean `pass_oe` over the attributed team's REG offensive plays in *t−1*).
 - **H4 — composite:** exactly **H1 ∪ H2 ∪ H3 + two identity groups** — `age_at_season_start` [static-derived: (Sept 1 of target season *t*) − birth_date; uses only DOB and the season label, no season-*t* performance] and the draft-capital group `{draft_round, draft_overall, is_udfa}` [static]. **Nothing more, nothing less** (seed F27 asserts exactly this).
 - **H1/H2/H3 are pairwise disjoint** (seed F27).
@@ -496,3 +497,29 @@ disclosures = [
 | 5 | Separate, still-ungranted: the `src/dynasty_genius/eval/` allowlist amendment (a distinct §5 step-2 sub-gate), the loader bridge for the four standalone market files (§9.1), study execution, push, merge | **David** |
 
 **Nothing in this document authorizes a run.** Until items 2–4 close, every runner correctly refuses with `preregistration_missing`.
+
+---
+
+## Addendum A — 2026-07-22: rushing (H2) is UNDER TEST
+
+*Added 2026-07-22 on David's word. **This addendum changes no registered value and makes no status claim about this document.** The canonical object at `docs/validation/2026-07-21-qb-1-study-registration.json` is not touched by it. Independent audit (Codex, ledger 2026-07-22 15:23 ET) established that no repository application/test/CI path reads or hashes this Markdown into the QB-1 registration pin, so no prose here can move that pin.*
+
+**The guard.** QB rushing production — the H2 manifest (`rush_att_per_game`, `rush_yds_per_game`, `rush_td_share`, `rush_yds_per_att`) — is **UNDER TEST in this study. It is not an established finding.** Until the pre-registered study is executed and David rules on the registered result, rushing's predictive value for QBs — including the H2 manifest's registered predictive performance — **must not be asserted as established**: not in David-facing output, not in prose, specs, plans, briefs, or agent reasoning, and not as a premise for any other build.
+
+**What this study actually tests — and the ceiling on any eventual result.** The registered target is **regular-season Sleeper-scored fantasy points per qualifying game** for a player-season under the §2.1 pinned 2026 scoring rule, postseason excluded, within the §4 veteran cohort. It is **not "QB dynasty value."** The study evaluates five registered contrasts involving H2 (§8): three H2-favoring model contrasts (`c02` H2 vs naive, `c05` H2 vs H1, `c06` H2 vs H3), one H4-favoring model contrast (`c09` H4 vs H2), and one H5 market-vs-H2 contrast (`c12`). **Any eventual result can support only its corresponding registered comparison, under that contrast's registered status vocabulary and the registered inference and uncertainty contract (§7), subject to David's ruling** — and the H5 lane cannot yield a `supported` outcome at all (§9.2 makes the two lane vocabularies disjoint). No registered contrast isolates rushing's marginal contribution conditional on the other feature groups, so **no "incremental contribution" claim is licensed** by any result. Extrapolating any eventual result to dynasty value, trade value, tier placement, or any broader construct **requires separate validation** and is forbidden by this guard.
+
+**Forbidden, concretely:**
+
+- Stating or implying as settled fact that rushing predicts the registered target, or that dual-threat QBs are validated as more valuable.
+- Citing this registration, its manifests, or any interim or partial result as evidence *for* rushing. A registered hypothesis is a question the study asks, never an answer it has given.
+- Reading a single registered contrast result as more than its own registered comparison — in particular as a marginal/conditional "rushing adds value on top of the other features" claim, which no registered contrast tests.
+- Building a feature, threshold, tier, or David-facing claim whose justification rests on rushing being established.
+- Reporting an eventual result as broader than the registered target.
+
+**Permitted:** naming rushing as a **hypothesis under test**, with that status attached; describing H2's construction; and reporting registered results *after* resolution, carrying whatever the result actually was — including "not separable within confidence intervals," which §12 / disclosure `d6` already registers as a likely and legitimate outcome.
+
+**Resolution.** This guard lifts only when the pre-registered study is executed and David rules on the registered result. Neither a partial run, an interim table, nor a plausible-looking coefficient lifts it.
+
+**Pre-existing text is NOT grandfathered.** Rushing-related language and mechanics exist elsewhere in this repository — including shipped Engine B model behavior and at least one governance decision record. This addendum does **not** clear, bless, or exempt any of it, and it does **not** claim to enumerate it. **A complete corpus audit is a named follow-up (`H2-AUDIT-1`), not a claim made here.**
+
+**Shipped model mechanics are outside this addendum's authority.** Engine B currently derives `is_dual_threat` and uses it to select distinct QB aging curves, and shipped resources carry an associated rushing-decline assertion. Whether that constitutes a live governance problem is **not ruled on here, in either direction.** It is a **pre-existing unresolved model assumption**, and any retain / remove / revalidate decision belongs to model-change governance under the constitution's human-gated promotion rule — never to this addendum and never as a side effect of this study.
