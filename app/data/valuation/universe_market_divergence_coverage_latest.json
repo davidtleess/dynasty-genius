@@ -1,7 +1,7 @@
 {
   "banned_language_present": [],
   "decision_supported_true_count": 0,
-  "market_overlay_present_count": 399,
+  "market_overlay_present_count": 398,
   "phase17_4_exit_criteria": {
     "decision_supported_false": true,
     "market_data_overlay_only": true,
@@ -9,15 +9,15 @@
     "te_not_suppressed_by_position_alone": true
   },
   "signal_status_counts": {
-    "gates_passed": 188,
-    "inside_band": 146,
-    "unavailable": 11867
+    "gates_passed": 190,
+    "inside_band": 150,
+    "unavailable": 11861
   },
   "signals_by_type": {
-    "INSIDE_BAND": 146,
-    "MODEL_HIGH_MARKET_LOW": 142,
-    "MODEL_LOW_MARKET_HIGH": 46,
-    "UNAVAILABLE": 11866,
+    "INSIDE_BAND": 150,
+    "MODEL_HIGH_MARKET_LOW": 141,
+    "MODEL_LOW_MARKET_HIGH": 49,
+    "UNAVAILABLE": 11860,
     "UNRESOLVED_IDENTITY": 1
   },
   "te_position_suppressed_count": 0,

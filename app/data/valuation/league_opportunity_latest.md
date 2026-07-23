@@ -1,6 +1,6 @@
 # League Opportunity Map
 
-captured_at: 2026-06-30T18:55:08.407630+00:00
+captured_at: 2026-07-15T00:40:23.591631+00:00
 decision_supported: false
 card_count: 31
 
@@ -17,26 +17,26 @@ card_count: 31
 - roster 2: score 1.0 | matched_positions: none
 
 ## Cards
-- opp-0064 | DIVERGENCE_MODEL_HIGH | Jonnu Smith | sorted by absolute_model_market_delta_desc=0.853 | decision_supported: false
-- opp-0138 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Noah Fant | sorted by absolute_model_market_delta_desc=0.662 | decision_supported: false
-- opp-0131 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Kareem Hunt | sorted by absolute_model_market_delta_desc=0.605 | decision_supported: false
-- opp-0149 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Tommy Tremble | sorted by absolute_model_market_delta_desc=0.605 | decision_supported: false
-- opp-0129 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Keenan Allen | sorted by absolute_model_market_delta_desc=0.59 | decision_supported: false
-- opp-0099 | DIVERGENCE_MODEL_HIGH | Noah Gray | sorted by absolute_model_market_delta_desc=0.563 | decision_supported: false
-- opp-0143 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Cole Kmet | sorted by absolute_model_market_delta_desc=0.544 | decision_supported: false
-- opp-0098 | DIVERGENCE_MODEL_HIGH | Pat Freiermuth | sorted by absolute_model_market_delta_desc=0.539 | decision_supported: false
-- opp-0130 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Cooper Kupp | sorted by absolute_model_market_delta_desc=0.505 | decision_supported: false
-- opp-0019 | DIVERGENCE_MARKET_HIGH | Blake Corum | sorted by absolute_model_market_delta_desc=0.504 | decision_supported: false
-- opp-0156 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Jerome Ford | sorted by absolute_model_market_delta_desc=0.494 | decision_supported: false
-- opp-0137 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Mike Gesicki | sorted by absolute_model_market_delta_desc=0.492 | decision_supported: false
-- opp-0162 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Demario Douglas | sorted by absolute_model_market_delta_desc=0.486 | decision_supported: false
-- opp-0147 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Rashod Bateman | sorted by absolute_model_market_delta_desc=0.485 | decision_supported: false
-- opp-0093 | DIVERGENCE_MARKET_HIGH | Trevor Lawrence | sorted by absolute_model_market_delta_desc=0.462 | decision_supported: false
-- opp-0062 | DIVERGENCE_MODEL_HIGH | Alvin Kamara | sorted by absolute_model_market_delta_desc=0.454 | decision_supported: false
-- opp-0148 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Joshua Palmer | sorted by absolute_model_market_delta_desc=0.454 | decision_supported: false
-- opp-0059 | DIVERGENCE_MARKET_HIGH | Dak Prescott | sorted by absolute_model_market_delta_desc=0.45 | decision_supported: false
-- opp-0060 | DIVERGENCE_MODEL_HIGH | Tyreek Hill | sorted by absolute_model_market_delta_desc=0.445 | decision_supported: false
-- opp-0049 | DIVERGENCE_MARKET_HIGH | Kaytron Allen | sorted by absolute_model_market_delta_desc=0.437 | decision_supported: false
+- opp-0143 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Zach Ertz | sorted by absolute_model_market_delta_desc=0.725 | decision_supported: false
+- opp-0150 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Darren Waller | sorted by absolute_model_market_delta_desc=0.684 | decision_supported: false
+- opp-0149 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Keenan Allen | sorted by absolute_model_market_delta_desc=0.562 | decision_supported: false
+- opp-0174 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Bam Knight | sorted by absolute_model_market_delta_desc=0.549 | decision_supported: false
+- opp-0151 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Tyler Higbee | sorted by absolute_model_market_delta_desc=0.511 | decision_supported: false
+- opp-0171 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Tommy Tremble | sorted by absolute_model_market_delta_desc=0.51 | decision_supported: false
+- opp-0156 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Mack Hollins | sorted by absolute_model_market_delta_desc=0.504 | decision_supported: false
+- opp-0154 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Kareem Hunt | sorted by absolute_model_market_delta_desc=0.486 | decision_supported: false
+- opp-0169 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Michael Carter | sorted by absolute_model_market_delta_desc=0.486 | decision_supported: false
+- opp-0141 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Sam Roush | sorted by absolute_model_market_delta_desc=0.479 | decision_supported: false
+- opp-0160 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Dawson Knox | sorted by absolute_model_market_delta_desc=0.458 | decision_supported: false
+- opp-0165 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Colby Parkinson | sorted by absolute_model_market_delta_desc=0.443 | decision_supported: false
+- opp-0126 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Devontez Walker | sorted by absolute_model_market_delta_desc=0.42 | decision_supported: false
+- opp-0164 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Cole Kmet | sorted by absolute_model_market_delta_desc=0.418 | decision_supported: false
+- opp-0178 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Daniel Bellinger | sorted by absolute_model_market_delta_desc=0.417 | decision_supported: false
+- opp-0140 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Marlin Klein | sorted by absolute_model_market_delta_desc=0.409 | decision_supported: false
+- opp-0127 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Roman Wilson | sorted by absolute_model_market_delta_desc=0.404 | decision_supported: false
+- opp-0092 | DIVERGENCE_MARKET_HIGH | Joe Burrow | sorted by absolute_model_market_delta_desc=0.399 | decision_supported: false
+- opp-0163 | UNROSTERED_MODEL_MARKET_DIVERGENCE | Olamide Zaccheaus | sorted by absolute_model_market_delta_desc=0.398 | decision_supported: false
+- opp-0090 | DIVERGENCE_MODEL_HIGH | Devin Singletary | sorted by absolute_model_market_delta_desc=0.377 | decision_supported: false
 - opp-0006 | ROSTER_SURPLUS_DEFICIT_MATCH | Justin Jefferson | sorted by positional_z_differential_desc=4.038 | decision_supported: false
 - opp-0008 | ROSTER_SURPLUS_DEFICIT_MATCH | Lamar Jackson | sorted by positional_z_differential_desc=3.671 | decision_supported: false
 - opp-0007 | ROSTER_SURPLUS_DEFICIT_MATCH | Jonnu Smith | sorted by positional_z_differential_desc=3.541 | decision_supported: false
@@ -46,5 +46,5 @@ card_count: 31
 - opp-0005 | ROSTER_SURPLUS_DEFICIT_MATCH | Puka Nacua | sorted by positional_z_differential_desc=2.557 | decision_supported: false
 - opp-0002 | ROSTER_SURPLUS_DEFICIT_MATCH | Josh Jacobs | sorted by positional_z_differential_desc=2.36 | decision_supported: false
 - opp-0009 | ROSTER_SURPLUS_DEFICIT_MATCH | Jadarian Price | sorted by positional_z_differential_desc=2.336 | decision_supported: false
-- opp-0163 | TAXI_LONG_TERM_VALUE_PRESENT | Fernando Mendoza | sorted by taxi_long_term_value_desc=10.31 | decision_supported: false
-- opp-0164 | TAXI_LONG_TERM_VALUE_PRESENT | Omar Cooper Jr. | sorted by taxi_long_term_value_desc=1.79 | decision_supported: false
+- opp-0188 | TAXI_LONG_TERM_VALUE_PRESENT | Fernando Mendoza | sorted by taxi_long_term_value_desc=10.31 | decision_supported: false
+- opp-0189 | TAXI_LONG_TERM_VALUE_PRESENT | Omar Cooper Jr. | sorted by taxi_long_term_value_desc=1.79 | decision_supported: false
