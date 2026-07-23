@@ -157,3 +157,8 @@ frontend/test-results/
 
 # H2 Increment 0: rebuildable player asset cache (backup-manifest exclusions entry; never committed)
 app/data/assets/
+
+# Durability boundary (2026-07-23, David-worded): agent-local + cache + external reference — never committed
+.gemini/
+.impeccable/
+paper.txt
