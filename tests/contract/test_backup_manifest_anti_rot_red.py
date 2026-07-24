@@ -47,6 +47,28 @@ def _excluded_manifest_paths(payload: dict[str, Any]) -> set[str]:
     return excluded
 
 
+def _is_excluded(path: str, excluded: set[str]) -> bool:
+    """True if ``path`` is exactly an exclusion, or is a true descendant of an
+    excluded DIRECTORY.
+
+    Directory scope (recursive descendants) is granted ONLY to entries the manifest
+    declares as directories — a trailing slash (``app/data/assets/``) or an
+    extensionless final segment (``app/data/ops/backup_staging``). A FILE exclusion
+    carries a file extension (``backup_status_latest.json``) and stays EXACT-only,
+    so a real store nested under a file-exclusion path string is never silently
+    exempted (an anti-rot false-negative). The ``+ "/"`` boundary keeps a similarly
+    prefixed sibling (``backup_staging_OTHER``) uncovered.
+    """
+    for entry in excluded:
+        normalized = entry.rstrip("/")
+        if path == normalized:
+            return True
+        is_directory = entry.endswith("/") or "." not in normalized.rsplit("/", 1)[-1]
+        if is_directory and path.startswith(normalized + "/"):
+            return True
+    return False
+
+
 def _registry_referenced_paths() -> set[str]:
     registry = _read_json(MODEL_REGISTRY)
     paths = {"app/config/model_registry.json"}
@@ -88,10 +110,56 @@ def test_backup_manifest_covers_present_dbs_and_registry_references() -> None:
     excluded = _excluded_manifest_paths(payload)
 
     required_coverage = _present_app_data_dbs() | _registry_referenced_paths()
-    uncovered = sorted(required_coverage - covered - excluded)
+    uncovered = sorted(
+        path
+        for path in required_coverage
+        if path not in covered and not _is_excluded(path, excluded)
+    )
 
     assert uncovered == [], (
         "backup manifest rot: every present app/data/*.db and every "
         "model_registry.json-referenced artifact/pointer path must be backed up or "
         f"explicitly excluded with reason; uncovered={uncovered}"
     )
+
+
+def test_backup_manifest_excludes_files_nested_under_excluded_directories() -> None:
+    """A directory-level manifest exclusion must exclude files NESTED under it.
+
+    The manifest declares `app/data/ops/backup_staging` excluded (with a reason),
+    but the anti-rot scan discovers DBs recursively (`rglob`) — so a transient
+    staging copy at `.../backup_staging/<run_id>/app/data/x.db` must be treated as
+    excluded, not flagged uncovered. Exact-string exclusion matching (the prior
+    bug) wrongly re-flagged those copies whenever a daily backup had staged them.
+    """
+    excluded = _excluded_manifest_paths(_manifest_payload())
+
+    nested_staging = "app/data/ops/backup_staging/20260724T141500Z/app/data/fc_snapshots.db"
+    assert nested_staging not in excluded, "sanity: the deep path is not an exact exclusion entry"
+    assert _is_excluded(nested_staging, excluded), "nested file under an excluded directory must be excluded"
+
+    # A real top-level store is NOT excluded (the fix must not over-exclude).
+    assert not _is_excluded("app/data/fc_snapshots.db", excluded)
+    # An exact-file exclusion still matches.
+    assert _is_excluded("app/data/ops/backup_status_latest.json", excluded)
+
+
+def test_backup_manifest_exact_file_exclusion_stays_exact_only() -> None:
+    """A FILE exclusion must match exactly — it must NOT gain directory-prefix
+    semantics, or a real store nested under its path string (e.g. a future
+    registry-referenced path) would be silently exempted from anti-rot coverage.
+
+    Directory scope (recursive descendants) is granted only to entries the
+    manifest declares as directories — a trailing slash (`app/data/assets/`) or an
+    extensionless final segment (`app/data/ops/backup_staging`). A file exclusion
+    carries a file extension (`backup_status_latest.json`) and stays exact-only.
+    """
+    excluded = _excluded_manifest_paths(_manifest_payload())
+
+    status_marker = "app/data/ops/backup_status_latest.json"
+    assert _is_excluded(status_marker, excluded)  # the exact file still matches
+    assert not _is_excluded(status_marker + "/hidden_store.db", excluded)  # descendants do NOT
+
+    # The staging DIRECTORY keeps recursive semantics; a prefixed sibling does not.
+    assert _is_excluded("app/data/ops/backup_staging/run/app/data/copy.db", excluded)
+    assert not _is_excluded("app/data/ops/backup_staging_OTHER/store.db", excluded)
