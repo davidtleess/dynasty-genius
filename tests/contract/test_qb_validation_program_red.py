@@ -61,7 +61,6 @@ ROWS = {
 # silently-green. Building a seam and un-marking its row happen in the SAME
 # reviewed change.
 PARKED_SEAMS = {
-    "F5": "D3 study machinery (Ridge lane)",
     "F6": "D3 study machinery (comparison scoring)",
     "F8": "D3 study machinery (primary comparison set)",
     "F10": "D5 report assembly (case panel)",
@@ -1114,3 +1113,677 @@ def test_string_subclass_names_reach_a_bounded_boundary_refusal() -> None:
         )
     assert _failure_reason(exc_info) == "hypothesis_manifest_entry_invalid"
     assert len(str(exc_info.value)) < 500
+
+
+# ===========================================================================
+# D3-b / F5 fit_ridge_lane — behavioral RED (framing ENUMERATED CLEAR 2026-07-23)
+# F5 is a single-fold, single-ridge-lane primitive. H2 is UNDER TEST — fit
+# identically to every lane; no rushing/incremental/value/comparison claim.
+# ===========================================================================
+_F5_MATRIX = importlib.import_module("src.dynasty_genius.eval.qb_validation.study_matrix")
+_H1F = tuple(name for name, _ in _F5_MATRIX.H1_MANIFEST)
+_H2F = tuple(name for name, _ in _F5_MATRIX.H2_MANIFEST)
+_H4F = tuple(name for name, _ in _F5_MATRIX.H4_MANIFEST)
+_DRAFT_CAP = ("draft_round", "draft_overall", "is_udfa")
+_ALPHA_GRID = (0.01, 0.1, 1, 10, 100)
+
+
+def _f5_row(pid, season, k, *, eligibility="cohort_admitted", target="target_evaluable"):
+    """A cohort-admitted study-matrix row with all H4 features finite + resolved capital."""
+    row = {
+        "player_id": pid,
+        "target_season": season,
+        "eligibility": eligibility,
+        "target": target,
+        "decision_supported": False,
+    }
+    for i, name in enumerate(_H4F):
+        if name in _DRAFT_CAP:
+            continue
+        row[name] = float((k * 3 + i * 2) % 13) + 0.25   # deterministic, varied, finite
+    row["draft_round"] = float(1 + (k % 7))
+    row["draft_overall"] = float(1 + k * 4)
+    row["is_udfa"] = 0.0
+    return row
+
+
+def _f5_label(pid, season, k):
+    return {"player_id": pid, "season": season, "outcome_class": "evaluable",
+            "qualifying_games": 12, "ppg": float(10 + (k % 9))}
+
+
+def _f5_fold_and_labels():
+    train = [("qb-t1", 2019, 1), ("qb-t2", 2020, 2), ("qb-t3", 2021, 3),
+             ("qb-t4", 2022, 4), ("qb-t5", 2023, 5), ("qb-t6", 2024, 6)]
+    test = [("qb-e1", 2025, 7), ("qb-e2", 2025, 8)]
+    fold = {
+        "test_season": 2025,
+        "train_seasons": list(range(2016, 2025)),
+        "train_rows": [_f5_row(p, s, k) for p, s, k in train],
+        "test_rows": [_f5_row(p, s, k) for p, s, k in test],
+    }
+    labels = [_f5_label(p, s, k) for p, s, k in train + test]
+    return fold, labels
+
+
+def _by_key(records, value="y_pred"):
+    return {(r["player_id"], r["target_season"]): r[value] for r in records}
+
+
+def test_f5_single_lane_schema_and_predictions() -> None:
+    """F5 returns one lane's result under the published single-lane schema."""
+    module = _study_module()
+    fold, labels = _f5_fold_and_labels()
+    result = module.fit_ridge_lane(fold, labels, lane="h1")
+
+    assert {
+        "test_season", "lane", "feature_names", "alpha", "n_train", "n_predicted",
+        "predictions", "missingness", "fit_diagnostics", "decision_supported",
+    } <= set(result)
+    assert result["test_season"] == 2025
+    assert result["lane"] == "h1"
+    assert tuple(result["feature_names"]) == _H1F          # canonical manifest, ordered
+    assert result["alpha"] in _ALPHA_GRID
+    assert result["decision_supported"] is False
+    assert result["n_train"] == 6
+    assert result["n_predicted"] == len(result["predictions"]) == 2
+    for pred in result["predictions"]:
+        assert {"player_id", "target_season", "y_pred", "y_true", "decision_supported"} <= set(pred)
+        assert pred["decision_supported"] is False
+        assert math.isfinite(pred["y_pred"])
+        assert math.isfinite(pred["y_true"])
+    diag = result["fit_diagnostics"]
+    assert {
+        "imputer_medians", "scaler_mean", "scaler_scale", "scaler_var",
+        "ridge_coef", "ridge_intercept", "train_predictions",
+    } <= set(diag)
+    assert len(diag["ridge_coef"]) == len(_H1F)
+    for train_pred in diag["train_predictions"]:
+        assert train_pred["decision_supported"] is False           # FR4 scanner law
+    miss = result["missingness"]
+    assert "train_manifest_missing" in miss and "test_manifest_missing" in miss
+    assert miss["train_manifest_missing"]["count"] == 0
+    assert miss["test_manifest_missing"]["count"] == 0
+
+
+def test_f5_feature_only_counterfactual_no_leakage() -> None:
+    """FR1: poisoning ONLY test features leaves every train-fit diagnostic exact."""
+    module = _study_module()
+    fold, labels = _f5_fold_and_labels()
+    base = module.fit_ridge_lane(fold, labels, lane="h4")
+
+    poisoned = copy.deepcopy(fold)
+    for index, row in enumerate(poisoned["test_rows"]):
+        for name in _H4F:
+            if name in _DRAFT_CAP:
+                continue
+            row[name] = 20000.0 if index == 0 else None    # nominal→extreme AND missing→extreme
+    variant = module.fit_ridge_lane(poisoned, labels, lane="h4")
+
+    assert variant["fit_diagnostics"] == base["fit_diagnostics"]   # medians, scaler, coef, intercept, train preds
+    assert variant["alpha"] == base["alpha"]
+    # test y_pred MAY move — deliberately NOT asserted equal.
+
+
+def test_f5_label_only_counterfactual_no_leakage() -> None:
+    """FR1: changing ONLY test labels leaves fit AND test predictions exact — only y_true moves."""
+    module = _study_module()
+    fold, labels = _f5_fold_and_labels()
+    base = module.fit_ridge_lane(fold, labels, lane="h4")
+
+    relabeled = copy.deepcopy(labels)
+    for lab in relabeled:
+        if lab["season"] == 2025:
+            lab["ppg"] = 99999.0
+    variant = module.fit_ridge_lane(fold, relabeled, lane="h4")
+
+    assert variant["fit_diagnostics"] == base["fit_diagnostics"]
+    assert variant["alpha"] == base["alpha"]
+    assert _by_key(variant["predictions"], "y_pred") == _by_key(base["predictions"], "y_pred")
+    assert _by_key(variant["predictions"], "y_true") != _by_key(base["predictions"], "y_true")
+
+
+def test_f5_alpha_from_grid_train_only_deterministic() -> None:
+    module = _study_module()
+    fold, labels = _f5_fold_and_labels()
+    a = module.fit_ridge_lane(fold, labels, lane="h3")
+    b = module.fit_ridge_lane(copy.deepcopy(fold), copy.deepcopy(labels), lane="h3")
+    assert a["alpha"] in _ALPHA_GRID
+    assert a["alpha"] == b["alpha"]                        # deterministic
+
+
+def test_f5_rookie_and_eligibility_refusals() -> None:
+    module = _study_module()
+    fold, labels = _f5_fold_and_labels()
+
+    rookie = copy.deepcopy(fold)
+    rookie["train_rows"][0]["eligibility"] = "rookie_no_priors"
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(rookie, labels, lane="h1")
+    assert _failure_reason(exc_info) == "rookie_no_priors"
+
+    bad = copy.deepcopy(fold)
+    bad["train_rows"][0]["eligibility"] = "not_a_class"
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(bad, labels, lane="h1")
+    assert _failure_reason(exc_info) == "eligibility_invalid"
+
+
+def test_f5_target_axis_and_label_integrity_precedence() -> None:
+    module = _study_module()
+
+    # no-target row: excluded from fit/predict, NO fabricated label.
+    fold, labels = _f5_fold_and_labels()
+    fold["test_rows"][0]["target"] = "no_target_season"
+    labels = [lab for lab in labels
+              if not (lab["player_id"] == "qb-e1" and lab["season"] == 2025)]
+    result = module.fit_ridge_lane(fold, labels, lane="h1")
+    assert all(p["player_id"] != "qb-e1" for p in result["predictions"])
+
+    # target_evaluable but no label present → classification_label_mismatch (presence only).
+    fold, labels = _f5_fold_and_labels()
+    labels = [lab for lab in labels
+              if not (lab["player_id"] == "qb-e1" and lab["season"] == 2025)]
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "classification_label_mismatch"
+
+    # a label attached to a no_target_season row → classification_label_mismatch.
+    fold, labels = _f5_fold_and_labels()
+    fold["test_rows"][0]["target"] = "no_target_season"
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "classification_label_mismatch"
+
+    # duplicate label key → duplicate_label (label-integrity BEFORE presence).
+    fold, labels = _f5_fold_and_labels()
+    labels.append(_f5_label("qb-e1", 2025, 99))
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "duplicate_label"
+
+    # non-finite ppg → label_value_invalid (value BEFORE presence).
+    fold, labels = _f5_fold_and_labels()
+    for lab in labels:
+        if lab["player_id"] == "qb-e1" and lab["season"] == 2025:
+            lab["ppg"] = float("inf")
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "label_value_invalid"
+
+    # off-by-one join: label at season t-1 must NOT satisfy a target-t row.
+    fold, labels = _f5_fold_and_labels()
+    for lab in labels:
+        if lab["player_id"] == "qb-e1" and lab["season"] == 2025:
+            lab["season"] = 2024
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "classification_label_mismatch"
+
+
+def test_f5_lane_relative_missingness() -> None:
+    """Ruling 2: missingness is lane×partition on the RAW manifest, drop-before-impute."""
+    module = _study_module()
+    fold, labels = _f5_fold_and_labels()
+
+    # A train row missing 3 of H2's 4 features: DROPPED in H2 (3/4>0.5), KEPT in H4 (3/18<0.5).
+    dropped = fold["train_rows"][0]
+    for name in ("rush_att_per_game", "rush_yds_per_game", "rush_td_share"):
+        dropped[name] = None
+
+    h2 = module.fit_ridge_lane(copy.deepcopy(fold), labels, lane="h2")
+    assert h2["missingness"]["train_manifest_missing"]["count"] == 1
+    assert [dropped["player_id"], dropped["target_season"]] in [
+        list(k) for k in h2["missingness"]["train_manifest_missing"]["keys"]
+    ]
+    assert h2["n_train"] == 5                               # the dropped row did not fit
+
+    h4 = module.fit_ridge_lane(copy.deepcopy(fold), labels, lane="h4")
+    assert h4["missingness"]["train_manifest_missing"]["count"] == 0   # 3/18 kept
+    assert h4["n_train"] == 6
+
+    # Exactly 50% is retained: 2/4 missing in H2 is KEPT.
+    fold2, labels2 = _f5_fold_and_labels()
+    for name in ("rush_att_per_game", "rush_yds_per_game"):
+        fold2["train_rows"][1][name] = None
+    kept = module.fit_ridge_lane(fold2, labels2, lane="h2")
+    assert kept["missingness"]["train_manifest_missing"]["count"] == 0
+    assert kept["n_train"] == 6
+
+
+def test_f5_draft_capital_unresolved_is_h4_only_refusal() -> None:
+    """Option A: a surviving H4 row with null draft capital aborts only (fold, h4)."""
+    module = _study_module()
+    for field in _DRAFT_CAP:
+        fold, labels = _f5_fold_and_labels()
+        fold["train_rows"][0][field] = None                # survives >50% missingness (1/18)
+        with pytest.raises(module.QBValidationFailure) as exc_info:
+            module.fit_ridge_lane(fold, labels, lane="h4")
+        assert _failure_reason(exc_info) == "draft_capital_unresolved"
+        # the SAME row is legal on h1/h2/h3 (their manifests carry no draft capital).
+        for lane in ("h1", "h2", "h3"):
+            ok = module.fit_ridge_lane(copy.deepcopy(fold), labels, lane=lane)
+            assert ok["n_train"] == 6
+
+
+def test_f5_ridgecv_scaler_exactness_and_degeneracy() -> None:
+    module = _study_module()
+
+    # zero-variance feature column is VALID — finite prediction, NOT a refusal.
+    fold, labels = _f5_fold_and_labels()
+    for row in fold["train_rows"] + fold["test_rows"]:
+        row["cpoe"] = 5.0                                  # constant column across the fold
+    result = module.fit_ridge_lane(fold, labels, lane="h1")
+    assert all(math.isfinite(p["y_pred"]) for p in result["predictions"])
+
+    # a single surviving train observation → LOO/GCV unavailable → refuse.
+    fold, labels = _f5_fold_and_labels()
+    fold["train_rows"] = fold["train_rows"][:1]
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "fold_train_insufficient"
+
+    # an all-null imputable train column → F22 refusal.
+    fold, labels = _f5_fold_and_labels()
+    for row in fold["train_rows"]:
+        row["epa_per_dropback"] = None
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "imputer_train_all_null"
+
+
+def test_f5_input_and_manifest_boundaries() -> None:
+    module = _study_module()
+    fold, labels = _f5_fold_and_labels()
+
+    with pytest.raises(TypeError):
+        module.fit_ridge_lane(None, labels, lane="h1")
+    with pytest.raises(TypeError):
+        module.fit_ridge_lane(fold, None, lane="h1")
+    with pytest.raises(TypeError):
+        module.fit_ridge_lane(fold, labels, lane="h9")     # lane not in {h1..h4}
+
+    missing = copy.deepcopy(fold)
+    del missing["train_rows"][0]["epa_per_dropback"]       # a selected h1 feature key absent
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(missing, labels, lane="h1")
+    assert _failure_reason(exc_info) == "manifest_feature_missing"
+
+    corrupt = copy.deepcopy(fold)
+    corrupt["train_rows"][0] = ["not", "a", "mapping"]
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(corrupt, labels, lane="h1")
+    assert _failure_reason(exc_info) == "fold_row_invalid"
+
+    dup = copy.deepcopy(fold)
+    dup["train_rows"].append(copy.deepcopy(dup["train_rows"][0]))
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(dup, labels, lane="h1")
+    assert _failure_reason(exc_info) == "duplicate_player_season"
+
+    # non-mutation of inputs.
+    fold_before = copy.deepcopy(fold)
+    labels_before = copy.deepcopy(labels)
+    module.fit_ridge_lane(fold, labels, lane="h4")
+    assert fold == fold_before and labels == labels_before
+
+
+def test_f5_no_verdict_totality_and_h2_identical() -> None:
+    module = _study_module()
+    fold, labels = _f5_fold_and_labels()
+
+    # H2 (UNDER TEST) fits under the identical schema/laws as every lane.
+    h2 = module.fit_ridge_lane(fold, labels, lane="h2")
+    assert h2["lane"] == "h2"
+    assert tuple(h2["feature_names"]) == _H2F
+    assert h2["decision_supported"] is False
+    assert all(p["decision_supported"] is False for p in h2["predictions"])
+
+    # a hostile feature value is a bounded named refusal, never a bare crash.
+    hostile = copy.deepcopy(fold)
+    hostile["train_rows"][0]["epa_per_dropback"] = 10**10000
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(hostile, labels, lane="h1")
+    assert len(str(exc_info.value)) < 500
+
+
+def test_f5_deterministic_alignment_and_no_cross_lane_aliasing() -> None:
+    module = _study_module()
+    fold, labels = _f5_fold_and_labels()
+
+    result = module.fit_ridge_lane(fold, labels, lane="h4")
+    order = [(p["target_season"], p["player_id"]) for p in result["predictions"]]
+    assert order == sorted(order)                          # deterministic ordering
+
+    h1 = module.fit_ridge_lane(copy.deepcopy(fold), copy.deepcopy(labels), lane="h1")
+    h4 = module.fit_ridge_lane(copy.deepcopy(fold), copy.deepcopy(labels), lane="h4")
+    h1["predictions"][0]["y_pred"] = -12345.0              # mutate one lane result
+    assert h4["predictions"][0]["y_pred"] != -12345.0      # the other lane is independent
+
+
+# --- D3-b / F5 round-2 (Codex G1-G6 + RED-matrix gaps) --------------------
+class _HashRaises(str):
+    def __hash__(self) -> int:
+        raise RuntimeError("hash exploded")
+
+
+class _EqRaises(str):
+    def __eq__(self, other: object) -> bool:
+        raise RuntimeError("eq exploded")
+
+    __hash__ = str.__hash__
+
+
+class _FloatRaises(int):
+    def __float__(self) -> float:
+        raise RuntimeError("float exploded")
+
+
+def test_f5_precedence_co_occurrence() -> None:
+    """G1: fold structure before label integrity; target before eligibility."""
+    module = _study_module()
+
+    fold, labels = _f5_fold_and_labels()
+    fold["train_rows"][0] = ["not", "a", "mapping"]
+    labels.append(_f5_label("qb-e1", 2025, 99))               # also a duplicate label
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "fold_row_invalid"    # structure BEFORE label-table
+
+    fold, labels = _f5_fold_and_labels()
+    fold["train_rows"][0]["eligibility"] = "rookie_no_priors"
+    fold["train_rows"][0]["target"] = "bogus"
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "target_class_invalid"  # target BEFORE eligibility
+
+
+def test_f5_fold_root_validates_train_seasons() -> None:
+    """G2: the fold root schedule (train_seasons) is validated."""
+    module = _study_module()
+    for mutate in (
+        lambda f: f.pop("train_seasons"),
+        lambda f: f.__setitem__("train_seasons", ["garbage", 2025]),
+        lambda f: f.__setitem__("train_seasons", [2016, 2017]),   # inconsistent with row seasons
+    ):
+        fold, labels = _f5_fold_and_labels()
+        mutate(fold)
+        with pytest.raises(module.QBValidationFailure) as exc_info:
+            module.fit_ridge_lane(fold, labels, lane="h1")
+        assert _failure_reason(exc_info) == "fold_root_invalid"
+
+
+def test_f5_empty_and_fully_filtered_test_partition() -> None:
+    """G3: zero test survivors is a named total state, never a bare sklearn error."""
+    module = _study_module()
+
+    fold, labels = _f5_fold_and_labels()
+    fold["test_rows"] = []
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "fold_root_invalid"       # structurally empty
+
+    fold, labels = _f5_fold_and_labels()
+    for row in fold["test_rows"]:
+        row["target"] = "no_target_season"
+    labels = [lab for lab in labels if lab["season"] != 2025]
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "fold_test_unpredictable"  # all no-target
+
+    fold, labels = _f5_fold_and_labels()
+    for row in fold["test_rows"]:
+        for name in _H1F:
+            row[name] = None
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "fold_test_unpredictable"  # all >50% missing
+
+
+def test_f5_estimator_output_is_finite_or_named() -> None:
+    """G4: finite inputs that overflow the estimator refuse, never emit inf/nan."""
+    module = _study_module()
+
+    fold, labels = _f5_fold_and_labels()
+    fold["train_rows"][0]["epa_per_dropback"] = 1e308
+    fold["train_rows"][1]["epa_per_dropback"] = -1e308
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "estimator_nonfinite"
+
+    fold, labels = _f5_fold_and_labels()
+    for lab in labels:
+        if lab["player_id"] == "qb-t1":
+            lab["ppg"] = 1e308
+        if lab["player_id"] == "qb-t2":
+            lab["ppg"] = -1e308
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "estimator_nonfinite"
+
+
+def test_f5_hostile_primitive_fields_are_total() -> None:
+    """G5: exact-primitive validation before hash/equality/numeric conversion."""
+    module = _study_module()
+
+    fold, labels = _f5_fold_and_labels()
+    fold["train_rows"][0]["player_id"] = "   "               # whitespace identity
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "player_identity_invalid"
+
+    fold, labels = _f5_fold_and_labels()
+    fold["train_rows"][0]["player_id"] = _HashRaises("qb-x")
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "player_identity_invalid"
+
+    fold, labels = _f5_fold_and_labels()
+    fold["train_rows"][0]["eligibility"] = _EqRaises("cohort_admitted")
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "eligibility_invalid"
+
+    fold, labels = _f5_fold_and_labels()
+    with pytest.raises(TypeError):
+        module.fit_ridge_lane(fold, labels, lane=_HashRaises("h1"))
+
+    fold, labels = _f5_fold_and_labels()
+    fold["train_rows"][0]["epa_per_dropback"] = _FloatRaises(5)
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "imputer_value_invalid"
+
+
+def test_f5_label_api_and_d2_integrity() -> None:
+    """G6: accept a tuple sequence; validate the consumed D2 label-row contract."""
+    module = _study_module()
+
+    fold, labels = _f5_fold_and_labels()
+    result = module.fit_ridge_lane(fold, tuple(labels), lane="h1")   # tuple sequence
+    assert result["lane"] == "h1"
+
+    fold, labels = _f5_fold_and_labels()
+    for lab in labels:
+        if lab["player_id"] == "qb-e1":
+            del lab["outcome_class"]
+            del lab["qualifying_games"]
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "label_row_invalid"
+
+    fold, labels = _f5_fold_and_labels()
+    for lab in labels:
+        if lab["player_id"] == "qb-e1":
+            lab["outcome_class"] = "no_target_season"           # non-evaluable outcome
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "label_row_invalid"
+
+
+def test_f5_missingness_matrix_gaps() -> None:
+    """RED-matrix gaps: H4 9/18 boundary, test-partition counts, drop-before-impute."""
+    module = _study_module()
+
+    # H4 exactly 9/18 missing is KEPT.
+    fold, labels = _f5_fold_and_labels()
+    non_draft = [n for n in _H4F if n not in _DRAFT_CAP]
+    for name in non_draft[:9]:
+        fold["train_rows"][0][name] = None
+    kept = module.fit_ridge_lane(fold, labels, lane="h4")
+    assert kept["missingness"]["train_manifest_missing"]["count"] == 0
+    assert kept["n_train"] == 6
+
+    # nonzero TEST-partition missingness carries count + deterministic keys.
+    fold, labels = _f5_fold_and_labels()
+    for name in ("rush_att_per_game", "rush_yds_per_game", "rush_td_share"):
+        fold["test_rows"][0][name] = None                       # 3/4 in H2 → dropped
+    r = module.fit_ridge_lane(fold, labels, lane="h2")
+    assert r["missingness"]["test_manifest_missing"]["count"] == 1
+    assert [list(k) for k in r["missingness"]["test_manifest_missing"]["keys"]] == [["qb-e1", 2025]]
+    assert r["n_predicted"] == 1
+
+    # drop-before-impute: a dropped extreme row cannot move the learned median.
+    fold_b, labels_b = _f5_fold_and_labels()
+    fold_b["train_rows"][0]["rush_att_per_game"] = 1e6          # extreme, but the row is dropped:
+    for name in ("rush_yds_per_game", "rush_td_share", "rush_yds_per_att"):
+        fold_b["train_rows"][0][name] = None                    # 3/4 missing → dropped
+    variant = module.fit_ridge_lane(fold_b, labels_b, lane="h2")
+    fold_c, labels_c = _f5_fold_and_labels()
+    fold_c["train_rows"] = fold_c["train_rows"][1:]            # the same 5 surviving rows
+    removed = module.fit_ridge_lane(fold_c, labels_c, lane="h2")
+    assert variant["fit_diagnostics"]["imputer_medians"] == removed["fit_diagnostics"]["imputer_medians"]
+
+
+def test_f5_retained_extreme_test_row_and_test_draft_capital() -> None:
+    """RED-matrix gaps: a RETAINED extreme/missing test row; test-partition capital."""
+    module = _study_module()
+
+    fold, labels = _f5_fold_and_labels()
+    base = module.fit_ridge_lane(fold, labels, lane="h4")
+    poisoned = copy.deepcopy(fold)
+    non_draft = [n for n in _H4F if n not in _DRAFT_CAP]
+    for name in non_draft[:5]:
+        poisoned["test_rows"][0][name] = 50000.0
+    for name in non_draft[5:8]:
+        poisoned["test_rows"][0][name] = None                   # 8/18 < 50% → RETAINED
+    variant = module.fit_ridge_lane(poisoned, labels, lane="h4")
+    assert variant["fit_diagnostics"] == base["fit_diagnostics"]   # fit exact despite extreme test row
+    assert variant["n_predicted"] == base["n_predicted"] == 2
+
+    # a TEST row with null draft capital aborts (fold, h4) too.
+    fold, labels = _f5_fold_and_labels()
+    fold["test_rows"][0]["draft_round"] = None
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h4")
+    assert _failure_reason(exc_info) == "draft_capital_unresolved"
+
+
+def test_f5_signed_boundary_estimator_totality() -> None:
+    """V2-H1: signed-boundary features that overflow the estimator refuse, never
+    escape as a bare sklearn ValueError. The finiteness gate must be STAGED."""
+    module = _study_module()
+
+    def _set(fn, lane="h1"):
+        fold, labels = _f5_fold_and_labels()
+        fn(fold)
+        with pytest.raises(module.QBValidationFailure) as exc_info:
+            module.fit_ridge_lane(fold, labels, lane=lane)
+        assert _failure_reason(exc_info) == "estimator_nonfinite"
+
+    def _train_const_test_extreme(f):
+        for row in f["train_rows"]:
+            row["epa_per_dropback"] = -1e308     # constant train column
+        f["test_rows"][0]["epa_per_dropback"] = 1e308   # scaled_test → inf, reaches predict
+    _set(_train_const_test_extreme)
+
+    def _train_const_max_test_neg(f):
+        for row in f["train_rows"]:
+            row["epa_per_dropback"] = 1.7976931348623157e308
+        f["test_rows"][0]["epa_per_dropback"] = -1.7976931348623157e308
+    _set(_train_const_max_test_neg)
+
+    def _same_sign_near_max_train(f):
+        f["train_rows"][0]["epa_per_dropback"] = 1e308
+        f["train_rows"][1]["epa_per_dropback"] = 9e307      # var overflow → inf scaler state
+    _set(_same_sign_near_max_train)
+
+
+def test_f5_bounded_rendering_for_huge_plain_values() -> None:
+    """V2-H2: exact plain but huge values render bounded (D3-a C9 int-digit law)."""
+    module = _study_module()
+
+    fold, labels = _f5_fold_and_labels()
+    fold["train_rows"][0]["eligibility"] = "x" * 10000
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "eligibility_invalid"
+    assert len(str(exc_info.value)) < 500
+
+    fold, labels = _f5_fold_and_labels()
+    big = "q" * 10000
+    fold["train_rows"][0]["player_id"] = big
+    for lab in labels:
+        if lab["season"] == 2019:
+            lab["player_id"] = big                  # matching label so the row is valid until…
+    del fold["train_rows"][0]["epa_per_dropback"]   # …a missing feature key
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "manifest_feature_missing"
+    assert len(str(exc_info.value)) < 500
+
+    fold, labels = _f5_fold_and_labels()
+    fold["train_rows"][0]["target_season"] = 10**10000
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "fold_row_invalid"
+    assert len(str(exc_info.value)) < 500
+
+    fold, labels = _f5_fold_and_labels()
+    for season in (10**10000, 10**10000):
+        labels.append({"player_id": "qb-x", "season": season, "outcome_class": "evaluable",
+                       "qualifying_games": 5, "ppg": 10.0})
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert len(str(exc_info.value)) < 500
+
+
+def test_f5_train_seasons_strict_expanding_schedule() -> None:
+    """V2-M1: train_seasons must be a strictly-increasing, contiguous schedule
+    ending at test_season-1 (order/multiplicity/contiguity are not discarded)."""
+    module = _study_module()
+    for bad in (
+        list(range(2016, 2025))[::-1],                 # reversed
+        list(range(2016, 2025)) + [2024],              # duplicate
+        [2016, 2017, 2019, 2020, 2021, 2022, 2023, 2024],  # gapped
+        list(range(2016, 2024)),                       # ends at 2023, not 2024
+    ):
+        fold, labels = _f5_fold_and_labels()
+        fold["train_seasons"] = bad
+        with pytest.raises(module.QBValidationFailure) as exc_info:
+            module.fit_ridge_lane(fold, labels, lane="h1")
+        assert _failure_reason(exc_info) == "fold_root_invalid"
+
+
+def test_f5_sequence_api_and_whitespace_identity() -> None:
+    """V2-M2: accept any non-string Sequence; reject surrounding-whitespace IDs."""
+    from collections import UserList
+
+    module = _study_module()
+    fold, labels = _f5_fold_and_labels()
+    result = module.fit_ridge_lane(fold, UserList(labels), lane="h1")   # a Sequence, not list/tuple
+    assert result["lane"] == "h1"
+
+    fold, labels = _f5_fold_and_labels()
+    fold["train_rows"][0]["player_id"] = " qb-t1 "
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "player_identity_invalid"
+
+    fold, labels = _f5_fold_and_labels()
+    for lab in labels:
+        if lab["player_id"] == "qb-e1":
+            lab["player_id"] = " qb-e1 "
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.fit_ridge_lane(fold, labels, lane="h1")
+    assert _failure_reason(exc_info) == "label_row_invalid"

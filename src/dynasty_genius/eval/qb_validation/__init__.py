@@ -25,6 +25,10 @@ preparation guards in ``folds.py`` (F4 ``run_expanding_folds``,
 F12 ``validate_age_features``, F20 ``validate_degenerate_inputs``,
 F22 ``fit_train_only_imputer``, F27 ``validate_hypothesis_partition``) — the
 leakage-proof layer that runs before any estimator (F5) or scoring (F6).
+Slice D3-b (2026-07-23): the single-fold, single-ridge-lane estimator in
+``ridge_lane.py`` (F5 ``fit_ridge_lane``) — the H1-H4 train-fitted
+imputer→scaler→RidgeCV(LOO/GCV) pipeline, per-lane, train-only, no test-fold
+leakage; naive-carryforward and comparison scoring remain D3-c.
 """
 from __future__ import annotations
 
@@ -66,6 +70,9 @@ from src.dynasty_genius.eval.qb_validation.registration import (
     reject_registration_drift,
     require_registration_hash,
 )
+from src.dynasty_genius.eval.qb_validation.ridge_lane import (
+    fit_ridge_lane,
+)
 from src.dynasty_genius.eval.qb_validation.sources import (
     VALIDATION_DATASETS,
     load_validation_sources,
@@ -91,6 +98,7 @@ __all__ = [
     "validate_degenerate_inputs",
     "fit_train_only_imputer",
     "validate_hypothesis_partition",
+    "fit_ridge_lane",
     "score_stat_line",
     "settings_hash",
     "validate_label_table",
