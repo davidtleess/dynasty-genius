@@ -29,9 +29,22 @@ Slice D3-b (2026-07-23): the single-fold, single-ridge-lane estimator in
 ``ridge_lane.py`` (F5 ``fit_ridge_lane``) — the H1-H4 train-fitted
 imputer→scaler→RidgeCV(LOO/GCV) pipeline, per-lane, train-only, no test-fold
 leakage; naive-carryforward and comparison scoring remain D3-c.
+Slice D3-c (2026-07-24): the per-fold comparison-scoring layer in
+``comparisons.py`` (``build_naive_lane`` helper, F6 ``score_comparisons``,
+F8 ``build_primary_comparisons``, + the drivable ``validate_contrast_set``
+guard) — exact-key common-pool paired deltas with player-keyed
+``paired_evidence``, contrast-lane-aware secondaries, and the two-level fold
+topology. Per-fold ONLY: pooling/bootstrap/permutation/BH-FDR remain D3-d;
+H5 materialization/join remain D4; H2 rushing production remains UNDER TEST.
 """
 from __future__ import annotations
 
+from src.dynasty_genius.eval.qb_validation.comparisons import (
+    build_naive_lane,
+    build_primary_comparisons,
+    score_comparisons,
+    validate_contrast_set,
+)
 from src.dynasty_genius.eval.qb_validation.errors import QBValidationFailure
 from src.dynasty_genius.eval.qb_validation.folds import (
     fit_train_only_imputer,
@@ -99,6 +112,10 @@ __all__ = [
     "fit_train_only_imputer",
     "validate_hypothesis_partition",
     "fit_ridge_lane",
+    "build_naive_lane",
+    "score_comparisons",
+    "build_primary_comparisons",
+    "validate_contrast_set",
     "score_stat_line",
     "settings_hash",
     "validate_label_table",

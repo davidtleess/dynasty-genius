@@ -61,8 +61,6 @@ ROWS = {
 # silently-green. Building a seam and un-marking its row happen in the SAME
 # reviewed change.
 PARKED_SEAMS = {
-    "F6": "D3 study machinery (comparison scoring)",
-    "F8": "D3 study machinery (primary comparison set)",
     "F10": "D5 report assembly (case panel)",
     "F13": "D5 report assembly (threshold-sensitivity panel)",
     "F16": "D4 static identity join (duplicate/conflict semantics)",
@@ -1787,3 +1785,1005 @@ def test_f5_sequence_api_and_whitespace_identity() -> None:
     with pytest.raises(module.QBValidationFailure) as exc_info:
         module.fit_ridge_lane(fold, labels, lane="h1")
     assert _failure_reason(exc_info) == "label_row_invalid"
+
+
+# ===========================================================================
+# D3-c / naive + F6 + F8 — behavioral RED (framing v6 CLEAR 2026-07-23)
+# Per-fold evidence only. Cross-fold inference remains D3-d. H2 is UNDER TEST
+# and follows the same mechanics as every other registered lane.
+# ===========================================================================
+_D3C_MODEL_FOLDS = tuple(range(2018, 2026))
+_D3C_H5_FOLDS = (2021, 2022, 2023, 2024)
+_D3C_BASE_LANES = ("naive", "h1", "h2", "h3", "h4")
+_D3C_CONTRASTS = (
+    {"id": "c01", "lane": "model", "left": "h1", "right": "naive",
+     "direction": "h1_gt_naive"},
+    {"id": "c02", "lane": "model", "left": "h2", "right": "naive",
+     "direction": "h2_gt_naive"},
+    {"id": "c03", "lane": "model", "left": "h3", "right": "naive",
+     "direction": "h3_gt_naive"},
+    {"id": "c04", "lane": "model", "left": "h4", "right": "naive",
+     "direction": "h4_gt_naive"},
+    {"id": "c05", "lane": "model", "left": "h2", "right": "h1",
+     "direction": "h2_gt_h1"},
+    {"id": "c06", "lane": "model", "left": "h2", "right": "h3",
+     "direction": "h2_gt_h3"},
+    {"id": "c07", "lane": "model", "left": "h3", "right": "h1",
+     "direction": "h3_gt_h1"},
+    {"id": "c08", "lane": "model", "left": "h4", "right": "h1",
+     "direction": "h4_gt_h1"},
+    {"id": "c09", "lane": "model", "left": "h4", "right": "h2",
+     "direction": "h4_gt_h2"},
+    {"id": "c10", "lane": "model", "left": "h4", "right": "h3",
+     "direction": "h4_gt_h3"},
+    {"id": "c11", "lane": "h5", "left": "h5", "right": "h1",
+     "direction": "market_noninferior_delta_gt_delta0"},
+    {"id": "c12", "lane": "h5", "left": "h5", "right": "h2",
+     "direction": "market_noninferior_delta_gt_delta0"},
+    {"id": "c13", "lane": "h5", "left": "h5", "right": "h3",
+     "direction": "market_noninferior_delta_gt_delta0"},
+    {"id": "c14", "lane": "h5", "left": "h5", "right": "h4",
+     "direction": "market_noninferior_delta_gt_delta0"},
+)
+
+
+def _d3c_registration():
+    return {
+        "folds": {
+            "scheme": "expanding",
+            "train_start_season": 2016,
+            "test_seasons": list(_D3C_MODEL_FOLDS),
+        },
+        "h5": {"folds": list(_D3C_H5_FOLDS), "rank_only": True},
+        "contrasts": [copy.deepcopy(row) for row in _D3C_CONTRASTS],
+    }
+
+
+def _d3c_contrast(contrast_id):
+    return copy.deepcopy(
+        next(row for row in _D3C_CONTRASTS if row["id"] == contrast_id)
+    )
+
+
+def _d3c_player_ids(n=20, *, start=0):
+    return [f"p{i:03d}" for i in range(start, start + n)]
+
+
+def _d3c_truth(player_id):
+    return float(1000 - int(player_id[1:]))
+
+
+def _d3c_lane(
+    lane,
+    season=2025,
+    *,
+    player_ids=None,
+    prediction=None,
+    provenance=True,
+):
+    ids = list(player_ids if player_ids is not None else _d3c_player_ids())
+    rows = []
+    for player_id in ids:
+        y_true = _d3c_truth(player_id)
+        y_pred = y_true if prediction is None else float(
+            prediction(player_id, y_true)
+        )
+        row = {
+            "player_id": player_id,
+            "target_season": season,
+            "y_pred": float(y_pred),
+            "y_true": y_true,
+            "decision_supported": False,
+        }
+        if lane == "h5" and provenance:
+            row["source_provenance"] = "dynastyprocess_ecr_2qb"
+        rows.append(row)
+    result = {
+        "test_season": season,
+        "lane": lane,
+        "n_predicted": len(rows),
+        "predictions": rows,
+        "decision_supported": False,
+    }
+    if lane == "h5" and provenance:
+        result["lane_source"] = "dynastyprocess_ecr_2qb"
+    return result
+
+
+def _d3c_lanes_by_fold(*, include_out_of_scope_h5=False):
+    lanes_by_fold = {}
+    for season in _D3C_MODEL_FOLDS:
+        lanes_by_fold[season] = {
+            lane: _d3c_lane(lane, season) for lane in _D3C_BASE_LANES
+        }
+        if season in _D3C_H5_FOLDS or include_out_of_scope_h5:
+            lanes_by_fold[season]["h5"] = _d3c_lane("h5", season)
+    return lanes_by_fold
+
+
+def _d3c_registration_pin(module, registration):
+    return module.build_registration(registration)["sha256"]
+
+
+def _d3c_metric_leaf(result, family, side):
+    leaf = result["secondaries"][family][side]
+    assert set(leaf) == {"value", "state"}
+    return leaf
+
+
+def _d3c_hit_leaf(result, side, k):
+    leaf = result["secondaries"]["hit_rate"][side][f"k{k}"]
+    assert set(leaf) == {"value", "state"}
+    return leaf
+
+
+def _assert_d3c_no_support_status(value):
+    if isinstance(value, dict):
+        assert "support_status" not in value
+        for nested in value.values():
+            _assert_d3c_no_support_status(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            _assert_d3c_no_support_status(nested)
+
+
+def _assert_d3c_emitted_flags(value):
+    """Every declared D3-c record type carries the recursive false flag."""
+    if isinstance(value, dict):
+        record_markers = {
+            "contrast_id", "per_lane_coverage", "secondaries", "degeneracy",
+            "player_id", "excluded", "per_fold", "contrasts",
+        }
+        if record_markers.intersection(value):
+            assert value.get("decision_supported") is False
+        for nested in value.values():
+            _assert_d3c_emitted_flags(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            _assert_d3c_emitted_flags(nested)
+
+
+def _naive_fold_and_labels():
+    def row(player_id, season, *, target="target_evaluable"):
+        return {
+            "player_id": player_id,
+            "target_season": season,
+            "eligibility": "cohort_admitted",
+            "target": target,
+            "decision_supported": False,
+        }
+
+    def label(player_id, season, ppg):
+        return {
+            "player_id": player_id,
+            "season": season,
+            "outcome_class": "evaluable",
+            "qualifying_games": 12,
+            "ppg": float(ppg),
+        }
+
+    fold = {
+        "test_season": 2025,
+        "train_seasons": list(range(2016, 2025)),
+        "train_rows": [
+            row("qb-a", 2022),
+            row("qb-a", 2024),
+            row("qb-b", 2021),
+            row("qb-c", 2023),
+        ],
+        "test_rows": [
+            row("qb-a", 2025),
+            row("qb-b", 2025),
+            row("qb-c", 2025),
+            row("qb-no-target", 2025, target="no_target_season"),
+        ],
+    }
+    labels = [
+        label("qb-a", 2022, 10.0),
+        label("qb-a", 2024, 14.0),
+        label("qb-b", 2021, 9.0),
+        label("qb-c", 2023, 12.0),
+        label("qb-a", 2025, 20.0),
+        label("qb-b", 2025, 21.0),
+        label("qb-c", 2025, 22.0),
+        label("qb-a", 2026, 999.0),
+    ]
+    return fold, labels
+
+
+class _D3CExplodingValue(dict):
+    """A mapping value that proves an ignored H5 lane is never inspected."""
+
+    def _explode(self, *args, **kwargs):
+        raise AssertionError("out-of-scope h5 value was accessed")
+
+    __getitem__ = _explode
+    __iter__ = _explode
+    __len__ = _explode
+    get = _explode
+    items = _explode
+    keys = _explode
+    values = _explode
+
+
+class _D3CExplodingTopLevel(dict):
+    """A top-level map that proves F7 runs before fold/lane iteration."""
+
+    def _explode(self, *args, **kwargs):
+        raise AssertionError("lanes_by_fold was accessed before F7")
+
+    __getitem__ = _explode
+    __iter__ = _explode
+    __len__ = _explode
+    get = _explode
+    items = _explode
+    keys = _explode
+    values = _explode
+
+
+def test_d3c_naive_uses_latest_prior_window_and_preserves_axes() -> None:
+    module = _study_module()
+    fold, labels = _naive_fold_and_labels()
+    before_fold = copy.deepcopy(fold)
+    before_labels = copy.deepcopy(labels)
+
+    result = module.build_naive_lane(fold, labels)
+
+    assert fold == before_fold and labels == before_labels
+    assert result["test_season"] == 2025
+    assert result["lane"] == "naive"
+    assert result["decision_supported"] is False
+    assert result["n_predicted"] == 2
+    by_key = _by_key(result["predictions"])
+    assert by_key[("qb-a", 2025)] == 14.0
+    assert by_key[("qb-c", 2025)] == 12.0
+    assert ("qb-b", 2025) not in by_key
+    assert ("qb-no-target", 2025) not in by_key
+    assert _by_key(result["predictions"], "y_true") == {
+        ("qb-a", 2025): 20.0,
+        ("qb-c", 2025): 22.0,
+    }
+    assert result["excluded"] == {
+        "count": 1,
+        "keys": [["qb-b", 2025]],
+        "decision_supported": False,
+    }
+    assert all(row["decision_supported"] is False for row in result["predictions"])
+
+
+def test_d3c_naive_validates_full_label_table_but_never_uses_future_ppg() -> None:
+    module = _study_module()
+    fold, labels = _naive_fold_and_labels()
+    labels[-1]["ppg"] = float("inf")
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_naive_lane(fold, labels)
+    assert _failure_reason(exc_info) == "label_value_invalid"
+
+    fold, labels = _naive_fold_and_labels()
+    labels.append(copy.deepcopy(labels[0]))
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_naive_lane(fold, labels)
+    assert _failure_reason(exc_info) == "duplicate_label"
+
+
+def test_d3c_naive_api_and_fold_row_boundaries_are_total() -> None:
+    module = _study_module()
+    fold, labels = _naive_fold_and_labels()
+    with pytest.raises(TypeError):
+        module.build_naive_lane(None, labels)
+    with pytest.raises(TypeError):
+        module.build_naive_lane(fold, None)
+
+    bad = copy.deepcopy(fold)
+    bad["test_rows"][0]["eligibility"] = "not_a_class"
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_naive_lane(bad, labels)
+    assert _failure_reason(exc_info) == "eligibility_invalid"
+
+    hostile = copy.deepcopy(fold)
+    hostile["test_rows"][0]["player_id"] = _RaisingReprStr("qb-a")
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_naive_lane(hostile, labels)
+    assert len(str(exc_info.value)) < 500
+
+
+def test_d3c_f6_contrast_validation_precedes_all_lane_access() -> None:
+    module = _study_module()
+    bomb = _D3CExplodingValue()
+    with pytest.raises(TypeError):
+        module.score_comparisons(bomb, bomb, contrast=None)
+
+    malformed = [
+        {"id": "c01", "lane": "model", "left": "h1", "right": "naive"},
+        {**_d3c_contrast("c01"), "extra": "x"},
+        {**_d3c_contrast("c01"), "lane": "unknown"},
+        {**_d3c_contrast("c01"), "id": "  "},
+        {**_d3c_contrast("c01"), "right": "h1"},
+        {**_d3c_contrast("c01"), "left": _RaisingReprStr("h1")},
+    ]
+    for contrast in malformed:
+        with pytest.raises(module.QBValidationFailure) as exc_info:
+            module.score_comparisons(bomb, bomb, contrast=contrast)
+        assert _failure_reason(exc_info) == "contrast_malformed"
+        assert len(str(exc_info.value)) < 500
+
+
+def test_d3c_f6_exact_key_join_shuffle_sign_coverage_and_evidence() -> None:
+    module = _study_module()
+    left = _d3c_lane(
+        "h3", player_ids=_d3c_player_ids(21, start=0)
+    )
+    right = _d3c_lane(
+        "h1",
+        player_ids=_d3c_player_ids(21, start=1),
+        prediction=lambda player_id, truth: -truth,
+    )
+    result = module.score_comparisons(
+        left, right, contrast=_d3c_contrast("c07")
+    )
+    shuffled_left = copy.deepcopy(left)
+    shuffled_right = copy.deepcopy(right)
+    shuffled_left["predictions"].reverse()
+    shuffled_right["predictions"] = (
+        shuffled_right["predictions"][::2]
+        + shuffled_right["predictions"][1::2]
+    )
+    shuffled = module.score_comparisons(
+        shuffled_left, shuffled_right, contrast=_d3c_contrast("c07")
+    )
+
+    assert result == shuffled
+    assert result["contrast_id"] == "c07"
+    assert result["registered_direction"] == "h3_gt_h1"
+    assert result["common_pool_n"] == 20
+    assert result["spearman_left"] == pytest.approx(1.0)
+    assert result["spearman_right"] == pytest.approx(-1.0)
+    assert result["paired_delta"] == pytest.approx(2.0)
+    assert result["per_lane_coverage"] == {
+        "left": {"n_predicted": 21, "n_in_common": 20, "n_left_only": 1},
+        "right": {"n_predicted": 21, "n_in_common": 20, "n_right_only": 1},
+        "decision_supported": False,
+    }
+    evidence_keys = [
+        (row["target_season"], row["player_id"])
+        for row in result["paired_evidence"]
+    ]
+    assert evidence_keys == sorted(evidence_keys)
+    assert len(evidence_keys) == 20
+    assert all(row["decision_supported"] is False
+               for row in result["paired_evidence"])
+
+
+def test_d3c_f6_lane_and_pair_integrity_failures_are_named() -> None:
+    module = _study_module()
+    left = _d3c_lane("h3")
+    right = _d3c_lane("h1")
+
+    with pytest.raises(TypeError):
+        module.score_comparisons(
+            None, right, contrast=_d3c_contrast("c07")
+        )
+    with pytest.raises(TypeError):
+        module.score_comparisons(
+            left, None, contrast=_d3c_contrast("c07")
+        )
+
+    duplicate = copy.deepcopy(left)
+    duplicate["predictions"].append(copy.deepcopy(duplicate["predictions"][0]))
+    duplicate["n_predicted"] += 1
+    cases = [
+        (duplicate, right, "lane_key_duplicate"),
+        ({**left, "test_season": 2024}, right, "lane_fold_mismatch"),
+        ({**left, "lane": "h4"}, right, "lane_identity_mismatch"),
+        ({**left, "n_predicted": 19}, right, "lane_result_malformed"),
+    ]
+    for bad_left, good_right, reason in cases:
+        with pytest.raises(module.QBValidationFailure) as exc_info:
+            module.score_comparisons(
+                bad_left, good_right, contrast=_d3c_contrast("c07")
+            )
+        assert _failure_reason(exc_info) == reason
+
+    mismatch = copy.deepcopy(right)
+    mismatch["predictions"][0]["y_true"] += 0.25
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.score_comparisons(
+            left, mismatch, contrast=_d3c_contrast("c07")
+        )
+    assert _failure_reason(exc_info) == "paired_label_mismatch"
+
+    null_row = copy.deepcopy(left)
+    null_row["predictions"][0]["y_pred"] = None
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.score_comparisons(
+            null_row, right, contrast=_d3c_contrast("c07")
+        )
+    assert _failure_reason(exc_info) == "lane_result_malformed"
+
+    for bad_value in (float("nan"), float("inf"), _FloatRaises(1)):
+        nonfinite = copy.deepcopy(left)
+        nonfinite["predictions"][0]["y_pred"] = bad_value
+        with pytest.raises(module.QBValidationFailure) as exc_info:
+            module.score_comparisons(
+                nonfinite, right, contrast=_d3c_contrast("c07")
+            )
+        assert _failure_reason(exc_info) == "lane_result_malformed"
+
+
+def test_d3c_f6_empty_common_pool_is_a_named_non_verdict_state() -> None:
+    module = _study_module()
+    left = _d3c_lane("h3", player_ids=_d3c_player_ids(5, start=0))
+    right = _d3c_lane("h1", player_ids=_d3c_player_ids(5, start=100))
+    result = module.score_comparisons(
+        left, right, contrast=_d3c_contrast("c07")
+    )
+    assert result["common_pool_n"] == 0
+    assert result["spearman_left"] is None
+    assert result["spearman_right"] is None
+    assert result["paired_delta"] is None
+    assert result["paired_evidence"] == []
+    assert "empty_common_pool" in {
+        reason if isinstance(reason, str) else reason.get("reason")
+        for reason in result["reasons"]
+    }
+    assert result["decision_supported"] is False
+
+
+def test_d3c_f6_fold_starved_nulls_every_point_estimate_and_keeps_evidence() -> None:
+    module = _study_module()
+    model = _d3c_lane("h1", player_ids=_d3c_player_ids(19))
+    naive = _d3c_lane("naive", player_ids=_d3c_player_ids(19))
+    result = module.score_comparisons(
+        model, naive, contrast=_d3c_contrast("c01")
+    )
+    assert result["fold_starved"] is True
+    assert result["common_pool_n"] == len(result["paired_evidence"]) == 19
+    assert result["spearman_left"] is None
+    assert result["spearman_right"] is None
+    assert result["paired_delta"] is None
+    for family in ("rmse", "mae"):
+        leaf = _d3c_metric_leaf(result, family, "left")
+        assert leaf == {"value": None, "state": "fold_starved"}
+        assert "right" not in result["secondaries"][family]
+    for side in ("left", "right"):
+        for k in (6, 12, 24):
+            assert _d3c_hit_leaf(result, side, k) == {
+                "value": None,
+                "state": "fold_starved",
+            }
+
+    scored = module.score_comparisons(
+        _d3c_lane("h1"), _d3c_lane("naive"),
+        contrast=_d3c_contrast("c01"),
+    )
+    assert scored["fold_starved"] is False
+    assert scored["spearman_left"] is not None
+    assert scored["spearman_right"] is not None
+    assert scored["paired_delta"] is not None
+    assert _d3c_metric_leaf(scored, "rmse", "left")["state"] == "ok"
+    assert _d3c_metric_leaf(scored, "mae", "left")["state"] == "ok"
+    assert _d3c_hit_leaf(scored, "left", 24) == {
+        "value": None,
+        "state": "undersized",
+    }
+
+
+def test_d3c_f6_h5_starved_kendall_is_null_and_rmse_is_absent() -> None:
+    module = _study_module()
+    ids = _d3c_player_ids(19)
+    result = module.score_comparisons(
+        _d3c_lane("h5", player_ids=ids),
+        _d3c_lane("h1", player_ids=ids),
+        contrast=_d3c_contrast("c11"),
+    )
+    assert "rmse" not in result["secondaries"]
+    assert "mae" not in result["secondaries"]
+    for side in ("left", "right"):
+        assert _d3c_metric_leaf(result, "kendall", side) == {
+            "value": None,
+            "state": "fold_starved",
+        }
+        for k in (6, 12, 24):
+            assert _d3c_hit_leaf(result, side, k)["state"] == "fold_starved"
+
+
+def test_d3c_f6_degeneracy_is_per_side_and_mass_ties_remain_scorable() -> None:
+    module = _study_module()
+    ids = _d3c_player_ids()
+    tied = _d3c_lane(
+        "h3",
+        player_ids=ids,
+        prediction=lambda player_id, truth: int(player_id[1:]) // 2,
+    )
+    ordinary = _d3c_lane("h1", player_ids=ids)
+    tied_result = module.score_comparisons(
+        tied, ordinary, contrast=_d3c_contrast("c07")
+    )
+    assert tied_result["degeneracy"]["left"]["metrics_allowed"] is True
+    assert tied_result["degeneracy"]["left"]["tie_counts"]["predictions"]
+    assert tied_result["spearman_left"] is not None
+    assert tied_result["paired_delta"] is not None
+
+    constant = _d3c_lane(
+        "h3", player_ids=ids, prediction=lambda player_id, truth: 1.0
+    )
+    constant_result = module.score_comparisons(
+        constant, ordinary, contrast=_d3c_contrast("c07")
+    )
+    assert constant_result["degeneracy"]["left"]["metrics_allowed"] is False
+    assert constant_result["spearman_left"] is None
+    assert constant_result["spearman_right"] is not None
+    assert constant_result["paired_delta"] is None
+    assert any(
+        "degenerate_input" in str(reason)
+        for reason in constant_result["reasons"]
+    )
+
+
+def test_d3c_f6_h5_orientation_and_deterministic_tie_at_k() -> None:
+    module = _study_module()
+    ids = _d3c_player_ids()
+    h5 = _d3c_lane("h5", player_ids=ids)
+    by_id = {row["player_id"]: row for row in h5["predictions"]}
+    by_id["p005"]["y_pred"] = by_id["p006"]["y_pred"]
+    h5["predictions"].reverse()
+    result = module.score_comparisons(
+        h5, _d3c_lane("h1", player_ids=ids),
+        contrast=_d3c_contrast("c11"),
+    )
+    assert result["spearman_left"] > 0
+    assert _d3c_metric_leaf(result, "kendall", "left")["value"] > 0
+    assert _d3c_hit_leaf(result, "left", 6) == {
+        "value": 1.0,
+        "state": "ok",
+    }
+    assert "rmse" not in result["secondaries"]
+    assert "mae" not in result["secondaries"]
+
+
+def test_d3c_f6_model_secondaries_apply_only_to_model_sides() -> None:
+    module = _study_module()
+    result = module.score_comparisons(
+        _d3c_lane("h1"), _d3c_lane("naive"),
+        contrast=_d3c_contrast("c01"),
+    )
+    assert set(result["secondaries"]["rmse"]) == {"left"}
+    assert set(result["secondaries"]["mae"]) == {"left"}
+    assert "kendall" not in result["secondaries"]
+
+    both_models = module.score_comparisons(
+        _d3c_lane("h3"), _d3c_lane("h1"),
+        contrast=_d3c_contrast("c07"),
+    )
+    assert set(both_models["secondaries"]["rmse"]) == {"left", "right"}
+    assert set(both_models["secondaries"]["mae"]) == {"left", "right"}
+
+
+def test_d3c_f6_h2_lane_uses_identical_comparison_mechanics() -> None:
+    module = _study_module()
+    h1_result = module.score_comparisons(
+        _d3c_lane("h1"), _d3c_lane("naive"),
+        contrast=_d3c_contrast("c01"),
+    )
+    h2_result = module.score_comparisons(
+        _d3c_lane("h2"), _d3c_lane("naive"),
+        contrast=_d3c_contrast("c02"),
+    )
+    for field in (
+        "common_pool_n", "spearman_left", "spearman_right", "paired_delta",
+        "secondaries", "degeneracy", "fold_starved",
+    ):
+        assert h2_result[field] == h1_result[field]
+    assert h2_result["decision_supported"] is False
+
+
+def test_d3c_f6_recursive_no_verdict_and_bounded_hostile_values() -> None:
+    module = _study_module()
+    result = module.score_comparisons(
+        _d3c_lane("h3"), _d3c_lane("h1"),
+        contrast=_d3c_contrast("c07"),
+    )
+    _assert_d3c_no_support_status(result)
+    _assert_d3c_emitted_flags(result)
+    assert result["decision_supported"] is False
+    assert result["per_lane_coverage"]["decision_supported"] is False
+    assert result["secondaries"]["decision_supported"] is False
+    assert result["degeneracy"]["decision_supported"] is False
+
+    bad = _d3c_lane("h3")
+    bad["predictions"][0]["target_season"] = 10**10000
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.score_comparisons(
+            bad, _d3c_lane("h1"), contrast=_d3c_contrast("c07")
+        )
+    assert _failure_reason(exc_info) == "lane_result_malformed"
+    assert len(str(exc_info.value)) < 500
+
+
+def test_d3c_f8_registration_gate_runs_before_any_lane_access() -> None:
+    module = _study_module()
+    registration = _d3c_registration()
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_primary_comparisons(
+            _D3CExplodingTopLevel(),
+            registration=registration,
+            expected_registration_hash="0" * 64,
+        )
+    assert _failure_reason(exc_info) == "preregistration_missing"
+
+
+def test_d3c_validate_contrast_set_is_directly_falsifiable() -> None:
+    module = _study_module()
+    comparisons = importlib.import_module(
+        "src.dynasty_genius.eval.qb_validation.comparisons"
+    )
+    expected = [copy.deepcopy(row) for row in _D3C_CONTRASTS]
+    assembled = copy.deepcopy(expected)
+    assembled[0]["left"] = "h4"
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        comparisons.validate_contrast_set(assembled, expected)
+    assert _failure_reason(exc_info) == "assembled_contrasts_inconsistent"
+
+
+def test_d3c_f8_clean_build_is_exact_14_and_structural_by_scope() -> None:
+    module = _study_module()
+    registration = _d3c_registration()
+    result = module.build_primary_comparisons(
+        _d3c_lanes_by_fold(),
+        registration=registration,
+        expected_registration_hash=_d3c_registration_pin(
+            module, registration
+        ),
+    )
+    assert result["registration_hash"] == _d3c_registration_pin(
+        module, registration
+    )
+    assert result["decision_supported"] is False
+    assert [
+        {
+            "id": row["id"],
+            "lane": row["lane"],
+            "left": row["left"],
+            "right": row["right"],
+            "direction": row["registered_direction"],
+        }
+        for row in result["contrasts"]
+    ] == [copy.deepcopy(row) for row in _D3C_CONTRASTS]
+    assert len(result["contrasts"]) == 14
+    for contrast in result["contrasts"]:
+        expected_folds = 8 if contrast["lane"] == "model" else 4
+        assert contrast["folds_present"] == expected_folds
+        assert len(contrast["per_fold"]) == expected_folds
+        assert contrast["decision_supported"] is False
+        assert all(cell["decision_supported"] is False
+                   for cell in contrast["per_fold"])
+    _assert_d3c_no_support_status(result)
+    _assert_d3c_emitted_flags(result)
+
+
+def test_d3c_f8_fold_and_lane_topology_failures_are_named() -> None:
+    module = _study_module()
+    registration = _d3c_registration()
+    pin = _d3c_registration_pin(module, registration)
+
+    missing_fold = _d3c_lanes_by_fold()
+    missing_fold.pop(2018)
+    unexpected_fold = _d3c_lanes_by_fold()
+    unexpected_fold[2026] = copy.deepcopy(unexpected_fold[2025])
+    missing_base = _d3c_lanes_by_fold()
+    missing_base[2018].pop("h4")
+    missing_h5 = _d3c_lanes_by_fold()
+    missing_h5[2021].pop("h5")
+    unexpected_lane = _d3c_lanes_by_fold()
+    unexpected_lane[2018]["h6"] = _d3c_lane("h1", 2018)
+    hostile_key = _d3c_lanes_by_fold()
+    hostile_key[2018][_RaisingReprStr("h5")] = _D3CExplodingValue()
+    nested_fold_mismatch = _d3c_lanes_by_fold()
+    nested_fold_mismatch[2018]["h1"]["test_season"] = 2019
+    nested_lane_mismatch = _d3c_lanes_by_fold()
+    nested_lane_mismatch[2018]["h1"]["lane"] = "h2"
+    cases = [
+        (missing_fold, "fold_missing"),
+        (unexpected_fold, "unexpected_fold"),
+        (missing_base, "lane_missing"),
+        (missing_h5, "lane_missing"),
+        (unexpected_lane, "unexpected_lane"),
+        (hostile_key, "unexpected_lane"),
+        (nested_fold_mismatch, "lane_fold_mismatch"),
+        (nested_lane_mismatch, "lane_identity_mismatch"),
+    ]
+    for lanes_by_fold, reason in cases:
+        with pytest.raises(module.QBValidationFailure) as exc_info:
+            module.build_primary_comparisons(
+                lanes_by_fold,
+                registration=registration,
+                expected_registration_hash=pin,
+            )
+        assert _failure_reason(exc_info) == reason
+        assert len(str(exc_info.value)) < 500
+
+    huge_fold = _d3c_lanes_by_fold()
+    huge_fold[10**10000] = huge_fold.pop(2018)
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_primary_comparisons(
+            huge_fold,
+            registration=registration,
+            expected_registration_hash=pin,
+        )
+    assert _failure_reason(exc_info) == "unexpected_fold"
+    assert len(str(exc_info.value)) < 500
+
+
+def test_d3c_f8_out_of_scope_h5_is_ignored_before_value_access() -> None:
+    module = _study_module()
+    registration = _d3c_registration()
+    lanes_by_fold = _d3c_lanes_by_fold()
+    for season in (2018, 2019, 2020, 2025):
+        lanes_by_fold[season]["h5"] = _D3CExplodingValue()
+    result = module.build_primary_comparisons(
+        lanes_by_fold,
+        registration=registration,
+        expected_registration_hash=_d3c_registration_pin(
+            module, registration
+        ),
+    )
+    h5_contrasts = [
+        contrast for contrast in result["contrasts"]
+        if contrast["lane"] == "h5"
+    ]
+    assert len(h5_contrasts) == 4
+    assert all(contrast["folds_present"] == 4
+               for contrast in h5_contrasts)
+
+
+def test_d3c_f8_consumed_h5_provenance_is_fail_closed() -> None:
+    module = _study_module()
+    registration = _d3c_registration()
+    pin = _d3c_registration_pin(module, registration)
+
+    for mutate in (
+        lambda h5: h5.pop("lane_source"),
+        lambda h5: h5.__setitem__("lane_source", "wrong"),
+        lambda h5: h5["predictions"][0].pop("source_provenance"),
+        lambda h5: h5["predictions"][0].__setitem__(
+            "source_provenance", "wrong"
+        ),
+    ):
+        lanes_by_fold = _d3c_lanes_by_fold()
+        mutate(lanes_by_fold[2021]["h5"])
+        with pytest.raises(module.QBValidationFailure) as exc_info:
+            module.build_primary_comparisons(
+                lanes_by_fold,
+                registration=registration,
+                expected_registration_hash=pin,
+            )
+        assert _failure_reason(exc_info) == "market_provenance_missing"
+
+
+def test_d3c_f8_pre_d4_input_fails_honestly_on_missing_h5() -> None:
+    module = _study_module()
+    registration = _d3c_registration()
+    lanes_by_fold = _d3c_lanes_by_fold()
+    for season in _D3C_H5_FOLDS:
+        lanes_by_fold[season].pop("h5")
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_primary_comparisons(
+            lanes_by_fold,
+            registration=registration,
+            expected_registration_hash=_d3c_registration_pin(
+                module, registration
+            ),
+        )
+    assert _failure_reason(exc_info) == "lane_missing"
+
+# ===========================================================================
+# D3-c GREEN review r1 — dispositions of Codex's independent falsification
+# (6 findings, RED-then-GREEN). Each row is the permanent regression that the
+# existing 21-row suite did not cover.
+# ===========================================================================
+class _D3CEqBomb:
+    """A value whose equality raises — hostile provenance must fail closed via
+    exact-plain gating BEFORE any ``==`` is invoked."""
+
+    def __eq__(self, other: object) -> bool:
+        raise RuntimeError("hostile provenance equality was invoked")
+
+
+def test_d3c_f6_rejects_registered_literal_drift() -> None:
+    module = _study_module()
+    drifted = {**_d3c_contrast("c07"), "direction": "invented_direction"}
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.score_comparisons(_d3c_lane("h3"), _d3c_lane("h1"), contrast=drifted)
+    assert _failure_reason(exc_info) == "contrast_malformed"
+
+
+def test_d3c_f6_reconciles_every_prediction_row_to_lane_fold() -> None:
+    module = _study_module()
+    left = _d3c_lane("h3")
+    for row in left["predictions"]:
+        row["target_season"] = 2024  # rows drift from the root test_season 2025
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.score_comparisons(left, _d3c_lane("h1"), contrast=_d3c_contrast("c07"))
+    assert _failure_reason(exc_info) == "lane_result_malformed"
+
+
+def test_d3c_f6_validates_consumed_no_verdict_flags() -> None:
+    module = _study_module()
+    root_flag = _d3c_lane("h3")
+    root_flag["decision_supported"] = True
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.score_comparisons(root_flag, _d3c_lane("h1"), contrast=_d3c_contrast("c07"))
+    assert _failure_reason(exc_info) == "lane_result_malformed"
+
+    row_flag = _d3c_lane("h3")
+    row_flag["predictions"][0]["decision_supported"] = True
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.score_comparisons(row_flag, _d3c_lane("h1"), contrast=_d3c_contrast("c07"))
+    assert _failure_reason(exc_info) == "lane_result_malformed"
+
+
+def test_d3c_f8_reconciles_nested_fold_to_outer_map_key() -> None:
+    module = _study_module()
+    registration = _d3c_registration()
+    lanes_by_fold = _d3c_lanes_by_fold()
+    for lane_name in _D3C_BASE_LANES:  # all lanes coherent with each other, wrong outer
+        lanes_by_fold[2018][lane_name] = _d3c_lane(lane_name, 2019)
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_primary_comparisons(
+            lanes_by_fold, registration=registration,
+            expected_registration_hash=_d3c_registration_pin(module, registration),
+        )
+    assert _failure_reason(exc_info) == "lane_fold_mismatch"
+
+
+def test_d3c_f8_consumed_h5_nonmapping_is_named() -> None:
+    module = _study_module()
+    registration = _d3c_registration()
+    lanes_by_fold = _d3c_lanes_by_fold()
+    lanes_by_fold[2021]["h5"] = None
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_primary_comparisons(
+            lanes_by_fold, registration=registration,
+            expected_registration_hash=_d3c_registration_pin(module, registration),
+        )
+    assert _failure_reason(exc_info) == "lane_result_malformed"
+
+
+def test_d3c_f8_hostile_h5_provenance_fails_closed() -> None:
+    module = _study_module()
+    registration = _d3c_registration()
+    lanes_by_fold = _d3c_lanes_by_fold()
+    lanes_by_fold[2021]["h5"]["lane_source"] = _D3CEqBomb()
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_primary_comparisons(
+            lanes_by_fold, registration=registration,
+            expected_registration_hash=_d3c_registration_pin(module, registration),
+        )
+    assert _failure_reason(exc_info) == "market_provenance_missing"
+
+
+def test_d3c_naive_validates_train_fold_classification() -> None:
+    module = _study_module()
+    fold, labels = _naive_fold_and_labels()
+    fold["train_rows"][0]["eligibility"] = "not_a_class"
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_naive_lane(fold, labels)
+    assert _failure_reason(exc_info) == "eligibility_invalid"
+
+
+def test_d3c_naive_no_target_row_with_label_is_named() -> None:
+    module = _study_module()
+    fold, labels = _naive_fold_and_labels()
+    labels.append({
+        "player_id": "qb-no-target", "season": 2025,
+        "outcome_class": "evaluable", "qualifying_games": 12, "ppg": 5.0,
+    })
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_naive_lane(fold, labels)
+    assert _failure_reason(exc_info) == "classification_label_mismatch"
+
+
+def test_d3c_f6_finite_extremes_do_not_escape_as_overflow() -> None:
+    module = _study_module()
+    left = _d3c_lane(
+        "h3",
+        prediction=lambda player_id, truth: 1e308 if int(player_id[1:]) % 2 == 0 else -1e308,
+    )
+    result = module.score_comparisons(left, _d3c_lane("h1"), contrast=_d3c_contrast("c07"))
+    for family in ("rmse", "mae"):
+        value = result["secondaries"][family]["left"]["value"]
+        assert value is None or math.isfinite(value)
+
+# ===========================================================================
+# D3-c GREEN review r2 — dispositions of Codex's deeper falsification
+# (2 residuals: naive F5-parity fold-root/precedence + both-direction label
+# presence; exact-plain contrast KEY totality). RED-then-GREEN.
+# ===========================================================================
+class _D3CStrKeySubclass(str):
+    """A str subclass — a 'validated string' with teeth for KEY positions."""
+
+
+class _D3CStrRenderBomb(str):
+    def __str__(self) -> str:
+        raise RuntimeError("hostile contrast key rendering invoked")
+
+
+def _d3c_naive_label(player_id, season, ppg):
+    return {"player_id": player_id, "season": season, "outcome_class": "evaluable",
+            "qualifying_games": 12, "ppg": ppg}
+
+
+def _d3c_train_target_fold(target):
+    return {
+        "test_season": 2025,
+        "train_seasons": [2022, 2023, 2024],
+        "train_rows": [{"player_id": "train-qb", "target_season": 2024, "target": target,
+                        "eligibility": "cohort_admitted", "decision_supported": False}],
+        "test_rows": [{"player_id": "test-qb", "target_season": 2025, "target": "target_evaluable",
+                       "eligibility": "cohort_admitted", "decision_supported": False}],
+    }
+
+
+def test_d3c_naive_train_evaluable_without_label_is_named() -> None:
+    module = _study_module()
+    labels = [_d3c_naive_label("test-qb", 2024, 10.0), _d3c_naive_label("test-qb", 2025, 11.0)]
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_naive_lane(_d3c_train_target_fold("target_evaluable"), labels)
+    assert _failure_reason(exc_info) == "classification_label_mismatch"
+
+
+def test_d3c_naive_train_no_target_with_label_is_named() -> None:
+    module = _study_module()
+    labels = [_d3c_naive_label("train-qb", 2024, 9.0), _d3c_naive_label("test-qb", 2024, 10.0),
+              _d3c_naive_label("test-qb", 2025, 11.0)]
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_naive_lane(_d3c_train_target_fold("no_target_season"), labels)
+    assert _failure_reason(exc_info) == "classification_label_mismatch"
+
+
+def test_d3c_naive_empty_test_partition_is_fold_root_invalid() -> None:
+    module = _study_module()
+    fold = _d3c_train_target_fold("target_evaluable")
+    fold["train_rows"][0]["player_id"] = "test-qb"
+    fold["test_rows"] = []
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_naive_lane(fold, [_d3c_naive_label("test-qb", 2024, 10.0)])
+    assert _failure_reason(exc_info) == "fold_root_invalid"
+
+
+def test_d3c_naive_empty_train_partition_is_fold_root_invalid() -> None:
+    module = _study_module()
+    fold = _d3c_train_target_fold("target_evaluable")
+    fold["train_rows"] = []
+    labels = [_d3c_naive_label("test-qb", 2024, 10.0), _d3c_naive_label("test-qb", 2025, 11.0)]
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_naive_lane(fold, labels)
+    assert _failure_reason(exc_info) == "fold_root_invalid"
+
+
+def test_d3c_naive_fold_root_precedes_label_integrity() -> None:
+    module = _study_module()
+    fold = _d3c_train_target_fold("target_evaluable")
+    fold["train_seasons"] = [2022, 2024]  # gapped schedule → fold_root_invalid BEFORE label table
+    labels = [_d3c_naive_label("test-qb", 2024, 10.0), _d3c_naive_label("test-qb", 2025, float("inf"))]
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.build_naive_lane(fold, labels)
+    assert _failure_reason(exc_info) == "fold_root_invalid"
+
+
+def test_d3c_f6_rejects_nonplain_contrast_field_key() -> None:
+    module = _study_module()
+    contrast = {_D3CStrKeySubclass("id"): "c07", "lane": "model", "left": "h3",
+                "right": "h1", "direction": "h3_gt_h1"}
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.score_comparisons(_d3c_lane("h3"), _d3c_lane("h1"), contrast=contrast)
+    assert _failure_reason(exc_info) == "contrast_malformed"
+
+
+def test_d3c_f6_hostile_contrast_key_is_named_not_bare() -> None:
+    module = _study_module()
+    contrast = {**_d3c_contrast("c07"), _D3CStrRenderBomb("extra"): "x"}
+    with pytest.raises(module.QBValidationFailure) as exc_info:
+        module.score_comparisons(_d3c_lane("h3"), _d3c_lane("h1"), contrast=contrast)
+    assert _failure_reason(exc_info) == "contrast_malformed"
+    assert len(str(exc_info.value)) < 500
