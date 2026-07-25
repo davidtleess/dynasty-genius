@@ -17,6 +17,7 @@
 **STATUS REGISTER (records and process, deliberately NOT numbered tickets — they carry no engineering work and would corrupt the planning count):**
 - **TEP — CLOSED AS VERIFIED (Ruling I satisfied).** Held values are **TEP-off**. `tep=0` is not a valid provider encoding (404); provider-off is `tep=none`; the omitted and explicit-off responses are identical on **475/475** rows and **68/68** TE values. **Tucker Kraft is not a TEP artifact.** Correction recorded: a TEP misconfiguration would corrupt currency and cross-position comparison, but **0 of 68 TE position ranks changed** under TEP+, so "every tight-end comparison would be wrong" was too broad for rank mode.
 - **Redraft comparison — REFUSED and CLOSED (Ruling D.1).** A standing constraint, not a deferred option. Any proposal reopening it is a governance escalation.
+- **`surplus_label` reading "deficit" at all four positions — REFUTED as an independent defect (Studio 009 P5, verified 2026-07-25). No ticket.** The four values reproduce, but the semantics are **intentional and correct**: each position is defined against the 12-team league distribution (`team_value_matrix.py:143-150,208-220`; recorded in `docs/strategies/Phase17-Research-Draft.md:191-195`), and `league_opportunity_map.py:154-175,249-299` matches a league-relative deficit to another roster's league-relative surplus. **An all-around weak roster can truthfully be below the league threshold at all four positions; fourteen WR slots do not prove a surplus.** Within-roster normalisation would force every team to show a "surplus" even when every group is weak, and would break counterparty fit. **The inputs are contaminated by `P-06` and `S3-04c` — correct those and recompute.** At most, rename to "league-relative value deficit" for clarity.
 - **Adversarial review to CLEAR** — this is each sprint's **exit gate**, not a ticket.
 - **QB-1 D3-d r3** — repairs complete and verified; packet parked at `<scratchpad>/msg_codex_d3d_green_review_r3.txt` (`96d98c51cd1d…`); awaiting Codex review, then **David's commit word**; the RED file rides in the same commit. Tracked here and in `AGENT_SYNC`, not as a planning ticket.
 - **Silent-failure — the contradiction is resolved.** The *"state how this fails loudly"* line is **in force now** as a cross-cutting authoring requirement on every ticket in the backlog; it needs no decision. What remains **open for David** is only whether to *additionally* fund a thin epic owning a shared surfacing mechanism. One is binding, the other is a proposal — they are no longer the same item.
@@ -85,11 +86,11 @@ David, 2026-07-25, verbatim: *"absolutely no redraft market analysis - this is a
 
 ## 2. Design — the shape of the program
 
-**One missing quantity, several features.** The epic builds a **per-season value stream** and derives from it: dynasty-horizon value, the contention-window lens, the comparison layer, and the production branch of pick value.
+**One missing quantity, several features.** The epic builds **a dynasty-horizon value whose construction `DG2-S1-02` selects**, and derives from it: dynasty-horizon value, the contention-window lens, the comparison layer, and the production branch of pick value. **Which construction — a per-season stream, a direct multi-horizon family, or another — is open and is decided in Sprint 1, not here.**
 
 ### 2.1 The quantity (thesis-gated, NOT settled here)
 
-Working shape, to be *decided* in Sprint 1 and not before:
+**One candidate shape, shown to make the terms concrete — NOT the selected construction.** `DG2-S1-02` decides the construction; if it selects the direct multi-horizon family, the terms below are re-expressed and the formula below does not apply. Nothing downstream may treat this as settled:
 
 ```
 V_i(W) = Σ_{t ∈ W}  A_i,t · S_i,t · E[v_i,t]  −  rent_t
@@ -115,7 +116,7 @@ V_i(W) = Σ_{t ∈ W}  A_i,t · S_i,t · E[v_i,t]  −  rent_t
 3. **Pick value needs more than the stream.** Ruling A requires draft-and-cut, pick trade value, and the rookie-as-chip option. **None is a summation over a production stream.** So "pick value = the same stream from the debut season" is insufficient **by David's own standard in the same document**. **Codex independently reached the same conclusion** ("Tower's pick-sequencing claim is wrong in blanket form"), from a different direction — market-anchored pick pricing can be researched *independently* of the stream.
 4. **Per-season error is never validated if only sums are checked** — and the window lens reads a *sub*-range, so it would be unvalidated exactly where it is used.
 
-**The alternative that must be benchmarked, not dismissed:** direct multi-horizon regression (`V(k)` fit against realized k-season outcomes). Better at validation honesty and sample efficiency; **worse as the engine** (cannot price a pick, no internal consistency). **Recommended role: the stream's validator** — if summed `V(1..2)` disagrees materially with a directly-fit `V(2)`, the decomposition is wrong. That is a falsifier the stream cannot generate for itself, and it should be frozen before any fit.
+**The alternative construction, which `DG2-S1-02` weighs on equal terms:** direct multi-horizon regression (`V(k)` fit against realized k-season outcomes). **Argued** better at validation honesty and sample efficiency; **argued** weaker at pricing a pick and at internal consistency. **Those are positions entering the Sprint-1 decision, not findings — neither construction is recommended here.** One consequence holds whichever wins: if a summed `V(1..2)` disagrees materially with a directly-fit `V(2)`, the decomposition is wrong. That is a falsifier the stream cannot generate for itself, and it should be frozen before any fit.
 
 ### 2.3 The discount, decomposed (Sprint 1 deliverable)
 
@@ -181,7 +182,7 @@ Increment-level RED matrices belong to each sprint's own spec. These are the **e
 | **0** | Know what we are measuring | **No comparison work proceeds until closed.** Every measurement question answered with a locator; data-asset inventory and injury-obtainability delivered |
 | **1** | The thesis | **Adversarial enumerated CLEAR** on the thesis of record, with falsifiers frozen by hash **before** anything is fit. No code. |
 | **2** | Data foundation | **Hard adequacy gate** — prove the sample supports what the thesis assumes, per position and per age band. If it does not, **the thesis changes** |
-| **3** | Build the quantity | Adversarial CLEAR **plus** benchmarks vs the market curve, the current artifact, and ≥1 alternative — **naming losses as well as wins** |
+| **3** | Build the quantity | **Win or tie on the frozen primary metric against all three frozen benchmarks** (market curve · current artifact · ≥1 alternative), **naming losses as well as wins**. **If it loses to any benchmark, the current artifact stays in production and the result publishes as a negative finding.** The backlog's Sprint-3 gate is the binding text; this row restates it and must not diverge from it. |
 | **4** | The comparison layer | Both modes correct on a common cohort; currency calibration validated on the exponential curve |
 | **5** | Picks and surfaces | Ruling A's three-test gate demonstrably priced, or picks stay floored at zero; surfaces read freshest and display the single answer |
 

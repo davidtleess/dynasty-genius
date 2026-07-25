@@ -42,6 +42,7 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 | Availability minimum resolution | S1-04 *(moved from S3-06)* | Claude, Codex binding review | Sprint 1 | Same freeze; the ticket may **not** declare the number that judges it |
 | Discount sensitivity range | S1-03 | Claude, Codex binding review | Sprint 1 | Frozen with the decomposition |
 | Join-rate floor for availability data | S1-04 | Claude, Codex binding review | Sprint 1 | Same freeze |
+| Manual-export staleness max age | S1-04 *(moved from S2-03)* | Claude, Codex binding review | **Sprint 1**, not inside S2-03 | Same freeze; **the ticket may not declare the threshold that judges it** |
 
 **Rule of record:** every threshold above is declared in Sprint 1 **before the work it judges is performed**. No ticket declares the number that grades it.
 
@@ -66,20 +67,68 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 
 ---
 
-## SPRINT-P — runs in parallel, gates nothing, blocked by nothing
+## SPRINT-P — runs in parallel; P-01/P-04/P-05/P-06 blocked by nothing, P-03 needs S0-10, P-02 follows P-03, P-07 follows P-01+P-06. **P-06 GATES SPRINT 4.**
 
-*Both tickets have zero dependency on the dynasty-horizon value. David has been asked whether to run them immediately; they are structured so that answer changes nothing else.*
+*All seven tickets have zero dependency on the dynasty-horizon value. **P-01, P-04, P-05 and P-06 are blocked by nothing; P-03 depends on S0-10; P-02 follows P-03; P-07 follows P-01 and P-06. P-02 and P-05 are co-designed in one framing pass.** ⚑ **`P-06` is CRITICAL and blocks all of Sprint 4** — no rank or currency comparison may run over fabricated zeros.*
+*P-04 and P-05 are the 008 Track-1 work David authorised (**"P2 bucket lookup + P4 surface, no model change"**) — they had no ticket in v3 and were recovered here.*
 
-### DG2-P-01 — Surfaces read the freshest capture · Size M
-- **Problem:** the four consumers above read a snapshot whose observed mtime is **2026-06-23 11:36** while a daily capture exists. **4 of 12 team posture labels are wrong on served data, including the labels used to choose a trade counterparty, and David's own rebuild progress is hidden from him.**
-- **AC:** (1) all four consumers read the newest capture present on disk; (2) the posture labels are recomputed and the before/after published for all 12 teams — **the count of corrected labels is whatever it is on the day; the AC is that all 12 are recomputed and published, not that exactly 4 change**; (3) a capture older than **26 hours** surfaces a staleness signal at every consumer.
-- **Deps:** none. **Fails loudly:** stale beyond 26h renders a staleness signal rather than a confident label.
+### DG2-P-01 — Served data is coherent, fresh, and provably from current code · Size M
+> **REWRITTEN 2026-07-25 after independent verification.** The prior framing — *"the four consumers read a stale snapshot"* — **described a defect current source does not have.** The June-23 serving reproduced against a **stale loaded process** (PID 7180, started 2026-07-14, predating commit `157fda86` which landed the marker-pinned reader on 2026-07-15). Executed from the current checkout, posture, matrix and trade snapshot all return **2026-07-25**. The read-path fix already landed; three different lifecycle failures were merged under it.
+
+- **Problem:** the app can serve data that is internally inconsistent, falsely labelled fresh, or produced by code that is no longer the code in the repository — and none of the three announces itself.
+- **Three residual defects, each verified:**
+  1. **Mixed-vintage League Pulse.** `app/api/routes/league_pulse.py:59-60,75` reads `league_opportunity_latest.json` **outside** the marker-pinned run, so a fresh posture table renders beside partner rankings and cards whose inputs are an older posture. **The page can contradict itself.**
+  2. **False-fresh Roster Capacity.** `app/api/routes/roster_capacity.py:34-37,190-200` reports `artifact_status="ok"` whenever its timestamps merely **parse** — currently `ok` over a June-23 Sleeper snapshot in a file last written 2026-07-14.
+  3. **Invisible process-version drift.** A corrected reader can be absent from the live product indefinitely, because no surface distinguishes current source from a pre-change loaded process. **This is the defect that made the other two look like one bug.**
+- **AC:** (1) every League Pulse section either shares a coherent source vintage or **visibly degrades/refuses** — a section may not render confidently over inputs older than its neighbours; (2) derivative artifacts including Roster Capacity carry an **age-based** freshness rule with named refresh ownership, so `ok` cannot mean "the timestamp parsed"; (3) a running instance exposes enough for a reader to tell whether the code serving them is the code in the repository.
+- **Falsifier:** if a single coherent-vintage rule makes all three symptoms disappear, they were one defect and this ticket over-splits — merge and say so.
+- **Deps:** none. **Blocks:** nothing. **Related:** residual 3 is a **silent-failure instance — feed it to `DGX-05`.**
+- **Fails loudly:** that is the entire ticket — each residual is a case of the system degrading without saying so.
+
+### DG2-P-06 — Unavailable model values are fabricated as zero ⚑ CRITICAL · Size M
+- **Problem:** a player the model **cannot value** is recorded as **worth exactly zero**, and zero then ranks as a low opinion rather than as an absence. Two independent defects produce it.
+- **Verified, 2026-07-25 rostered skill population (272 rows):** **15** rows carry `model_grade=ACTIVE_B` with **both** `dynasty_value_score` and `xvar` null, and **all 15** land as `raw_xvar: 0.0`; they hold **~31,550** units of market value between them (Daniels #9, Nabers #17, Wilson #43, Murray #80, Willis #90 …). Separately, **27** rostered rows have null xVAR — the 15 mis-graded plus **12 legitimately `PRE_MODEL`** — and **all 27 traverse the same coercion.**
+- **The two defect sites:**
+  1. `src/dynasty_genius/pvo_assembler.py:378-410` assigns `ACTIVE_B` **before** the low-games/dead-window branch; `:415-456` can null the value **without resetting grade or status**. Player Detail therefore says *"modeled"* with no value and no degradation.
+  2. `src/dynasty_genius/team_value_matrix.py:18-20` converts **any** null xVAR to `0.0`, and that value drives lineup selection, team strength, positional summaries, posture, partner rankings and roster-fit cards (`:52-105,153-220,243-289`).
+- **The repairs are related but NOT identical:** fixing the 15 grades alone leaves the **12 correctly-`PRE_MODEL` nulls still fabricated as zeros.** Both are required.
+- **Scope correction on the record:** the claim that *"every divergence readout"* inherits this is **false** — `src/dynasty_genius/universe_market_divergence.py:37-50,111-117` requires non-null xVAR and `:198-205` emits `UNAVAILABLE`. The dedicated divergence builder is already honest; the **league aggregates** are not.
+- **AC:** (1) an unavailable value stays unavailable through **every** aggregator — no consumer converts absence to a number; (2) grade and status **reconcile with value availability**, so nothing is presented as modelled without a value or a stated degradation; (3) the affected consumers are enumerated and each is shown to handle absence; (4) no null is ranked, summed, or averaged as zero anywhere in the league layer.
+- **Falsifier:** if an aggregator genuinely requires a numeric fill to function, that is a **declared, visible policy with its consequence stated** — not a silent default. If no such aggregator exists, the fill has no justification anywhere.
+- **Deps:** none. **BLOCKS: all of Sprint 4 (`S4-01`, `S4-02`) — no rank or currency comparison may run over fabricated zeros.** Also blocks `P-02`/`P-05` co-design, which reads these values.
+- **Fails loudly:** an unavailable value renders as unavailable with its reason, never as `0.0`.
+
+### DG2-P-07 — League Pulse renders as a raw key/value dump ⚑ visual P1 · Size L
+- **Problem:** the app's only answer to *"who should I trade with"* is a serialized payload, not a surface. Measured at 1440×900: `document.body.scrollHeight` **43,634px**, with 11 partner rankings, 12 postures, 12 team-value blocks and 31 opportunity cards; **48 visible `z_score` tokens and 18 `surplus_label` tokens**; the mandatory mid-scroll viewport centres on raw `perspective_surplus_label`. An independent reviewer reproduced **48,669px at 390×844 with 2px horizontal overflow.**
+- **This is authored raw rendering, not an accidental serializer:** `frontend/src/league-pulse/TeamValueOverview.tsx:9-21,36-75` renders allowlisted schema keys directly; `OpportunityCards.tsx:125-190` renders raw card types, evidence keys, score keys and caveat tokens. The page is primary-nav reachable.
+- **Prior record:** already logged as a **P0** defect in `docs/agent-ledger/2026-07-16.md:223-229` across all four League Pulse sections. **It has had no owner since.** `DG2-P-05` fixes invisible picks inside one block and does **not** repair the surface.
+- **AC:** (1) no raw schema vocabulary reaches the viewport — the surface speaks manager language; (2) the whole viewport, at desktop **and** mobile widths, reads as a product surface rather than a diagnostics console; (3) no horizontal overflow at any supported width.
+- **Constraint:** `PRODUCT.md`/`DESIGN.md` make raw schema vocabulary and a diagnostics-console viewport **objective blockers**, so **component-contract green cannot close this ticket** — closure requires whole-viewport and mid-scroll evidence and an unanchored fresh-agent visual audit.
+- **Deps:** **`P-01` and `P-06` first** — a counterparty view built over incoherent vintages and fabricated zeros would be a well-designed wrong answer. **Visual surface ⇒ design-foundation load + framing pass before implementation.**
+- **Fails loudly:** a surface rendering raw keys fails its visual audit rather than shipping.
 
 ### DG2-P-02 — Current injury/IR state on value surfaces · Size M
 - **Problem:** a player on IR whose value reads as if healthy is a **live wrong answer** every time David opens the app, independent of any modelling. It compounds the invisible-IR defect in starter strength.
 - **AC:** (1) the surfaces that display player value are **enumerated in the ticket before work starts** (the four consumers above plus any the S0-04 audit adds); (2) every enumerated surface shows current injury/IR state; (3) a player on IR is never presented as an available starter.
 - **Deps:** DG2-P-03. **Visual surface ⇒ design-foundation load + framing pass before implementation.**
 - **Fails loudly:** unknown injury state renders as unknown, never as healthy.
+
+### DG2-P-04 — Bucketed future picks are refused where the vendor prices them · Size M
+- **Problem:** the market reconciler refuses **every** bucketed pick, so a bucketed pick in a trade is unpriced even when the vendor publishes a price for it. The refusal cites a premise that is false against the current cache: *"Early/mid/late bucket picks have no deterministic FC key"* (`src/dynasty_genius/trade_lab/market_reconciler.py:200-206`).
+- **Context, verified against the live cache this session** (`app/cache/fantasycalc/market_values.json`, fetched 2026-07-24): **76 PICK rows** — 48 exact 2026 slots (`2026 Pick 1.01` …), 16 year/round generics (`2026 1st` …), and **12 bucketed rows for 2027 only**: `2027 1st (Early|Mid|Late)` through `2027 4th (Early|Mid|Late)`. **There are no bucketed rows for 2026, 2028 or 2029.** Exact-slot pricing is already implemented and permanently tested (`tests/.../test_phase23_w1.py:93-107`), so this is a gap in one branch, not an absent capability.
+- **AC:** (1) a bucketed pick resolves to a market value **wherever the vendor publishes one**; (2) a bucketed pick the vendor does not publish resolves as **unavailable with its reason**, not as zero and not as a generic substitute; (3) the 2027-only bound is derived from the cache at run time, **not hard-coded to 2027** — a future cache carrying 2028 buckets must price them with no code change; (4) exact-slot and generic resolution are unchanged, evidenced against the existing tests.
+- **Falsifier:** if resolving buckets changes no trade evaluation in David's league (no rostered bucketed pick, and none reachable in a proposed trade), the ticket is correct but low-value and drops below `P-05` in priority.
+- **Deps:** none. **Blocks:** nothing. **Size note:** no model change — this is overlay resolution only, and the market wall is untouched.
+- **Fails loudly:** an unpriced bucket surfaces as unavailable-with-reason on the trade surface, never silently as zero or as a generic-priced substitute.
+
+### DG2-P-05 — The pick portfolio is invisible on the value surface · Size M
+- **Problem:** the backend exports a roster's future picks and **the frontend renders three keys the payload does not contain**, so nothing about picks reaches the screen. Answering *"what do I own?"* currently requires reading JSON.
+- **Context, verified this session:** backend emits `future_picks: {owned: [...], outgoing: [...]}` (`src/dynasty_genius/team_value_matrix.py:278`, built at `:108-121`); the frontend reads `const PICK_KEYS = ["owned_count", "outgoing_count", "pick_value_status"]` (`frontend/src/league-pulse/TeamValueOverview.tsx:19`) against `value.future_picks` (`:26`). **Why nobody noticed:** the component's own fixture pins the obsolete summary shape (`TeamValueOverview.test.jsx:22,77`), so the mismatch passes its tests.
+- **AC:** (1) the payload shape and the display shape are reconciled in **one** direction, chosen and recorded before implementation — the backend's per-pick rows are the source of truth and the display is derived from them, or the backend adds a summary and that choice is stated; (2) a roster's owned and outgoing picks are visible on the value surface with enough identity to act on (season, round, and origin where the payload carries it); (3) the obsolete fixture no longer passes against a payload missing the rendered fields.
+- **Falsifier:** if a manager can already answer *"what picks do I own?"* from an existing surface without reading JSON, this is a duplicate and should be merged into that surface instead.
+- **Deps:** none technically. **CO-DESIGN REQUIRED with `DG2-P-02`** — both change what the value surface shows about a roster, and designing them separately produces two half-answers that re-open each other. **Visual surface ⇒ design-foundation load + a single framing pass covering P-02 and P-05 together, before implementation.**
+- **Context input:** Studio's 008 prototype is the natural input to that framing pass; the crew's verified disposition of Studio's five findings is the record of what was confirmed and what was refuted.
+- **Fails loudly:** a payload/display contract mismatch fails a check rather than rendering an empty region — the current defect is invisible precisely because nothing fails.
 
 ### DG2-P-03 — Current injury/IR feed · Size M
 - **Problem:** *(added — no ticket owned a **current, refreshable** injury source; the epic had only a historical ingest path.)* There is no live injury/IR feed for any value surface.
@@ -219,7 +268,7 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 
 ### DG2-S2-03 — Manual-export path for subscription sources · Size M
 - **Problem:** some sources have no legitimate automated route; David has accepted manual exports for edge cases.
-- **AC:** a documented export→ingest procedure that a second person can execute from the document alone; a provenance stamp per import; **staleness visible against a max age declared in this ticket before the first import** *(not after)*.
+- **AC:** a documented export→ingest procedure that a second person can execute from the document alone; a provenance stamp per import; **staleness visible against the max age frozen in S1-04** *(v3 let this ticket declare the threshold that judges it, violating the register rule at the head of this document — moved to the register)*.
 - **Scope note:** the staleness *mechanism* is DG2-P-01's; this ticket consumes it rather than building a second one.
 - **Deps:** S0-07, S0-09. **Fails loudly:** an export past its max age surfaces stale rather than current.
 
@@ -240,7 +289,7 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 ## SPRINT 3 — BUILD THE QUANTITY
 
 **Exit gate (binary):** the built quantity **wins or ties on the frozen primary metric against all three frozen benchmarks**, with wins and losses named. **If it loses to any benchmark, the current artifact stays in production and the result publishes as a negative finding.**
-**Spec/backlog conflict resolved:** the spec's Sprint-3 gate previously said "benchmarked, naming wins and losses"; this gate is the binding one and the spec now points here. *(A result could previously pass one gate and fail the other.)*
+**Spec/backlog conflict resolved — and the resolution is now actually performed.** This gate is binding; the spec's Sprint-3 row has been rewritten to restate it verbatim in substance and carries a clause forbidding divergence. *(v3 asserted "the spec now points here" while the spec still read "benchmarked, naming wins and losses" — the reconciliation was claimed and never done, so a result could pass one gate and fail the other. Corrected.)*
 
 > **Construction-neutral naming.** v2 named these tickets for one branch (`E[v_i,t]`, "per-season estimator", "the stream"), which pre-answered S1-02. **v3 names them by role.** If S1-02 selects the direct multi-horizon construction, S3-01/S3-07 change shape but do not disappear; **S3-09 exists so the alternative has a build ticket rather than existing only as a yardstick.**
 
@@ -261,7 +310,8 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 - **Deps:** S1-03, S1-04, S3-01. **Fails loudly:** a fitted rate fails a check.
 
 ### DG2-S3-03 — Retire the ceiling artifact · Size M
-- **Problem:** the current scale destroys ordering at the top — twelve players tied at exactly 100, spanning the market's #3 to its #137. Ties break rank comparison, the product's core mechanism. `pvo_assembler.py:405-407`.
+- **Problem:** the current scale destroys ordering at the top. **Measured 2026-07-25 (a dated observation, not a fixed count — it moves with the data): 23 of 245 rostered skill players sit at exactly `100.0`, spanning market #2 (Bijan Robinson) to #158 (Dallas Goedert).** Ties break rank comparison, the product's core mechanism. Cause is explicit at `pvo_assembler.py:389-410` — projection over a position-specific P90, clamped 0–100. *(A prior "twelve players, #3 to #137" figure was a 2026-07-24 observation; restating it as dated stops it going stale again.)*
+- **Scope boundary, verified:** this ticket owns **the ceiling only.** DVS is deliberately normalised **within** position; the ratified cross-position quantity is xVAR (`pvo_assembler.py:471-491`), and DG 2.0's assembled value is intended to replace that. **Sorting DVS across positions and finding a TE-heavy board is misuse of the field, not a DVS contract violation — do not "fix" DVS into the cross-position value by assumption.**
 - **Constraint:** **no ceiling artifact — no tie created by a bound, no bound-truncated value — may reach any downstream consumer.** Range and any presentation bound are the developer's design choice.
 - **AC:** (1) zero bound-induced ties in the compared cohort; (2) **the trade-math behaviour is unchanged against a baseline captured before the change** — the tests that cover it are named in the ticket before work starts, and if none exist that is the first deliverable; (3) every consumer from S0-04 verified against the new unit.
 - **Deps:** S0-04, S1-04, S3-01. **Fails loudly:** a value at any bound is stamped bounded in its record.
@@ -277,6 +327,16 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 - **AC:** before/after published for all 12 posture labels, every positional z-score and every partner ranking.
 - **Deps:** S3-04. **Fails loudly:** an unpublished basis change fails the gate.
 
+### DG2-S3-04c — Separate lineup availability from dynasty asset strength ⚑ NEW · Size M
+- **Problem:** *(found by independent verification of Studio 009 P3 — `S3-04` and `S3-05` can both close while this defect survives exactly as today.)* One number answers two different questions. *"Can I field this lineup now"* currently drives *"how strong is this roster as a dynasty asset base"* — `starter_weighted_xvar` is **60% of the posture score** (`team_posture.py:28-37,116-135`) and the base of every position z-score, surplus/deficit label and counterparty ranking, while `team_value_matrix.py:35-49,246-253` excludes IR and taxi from lineup candidates and depth credit.
+- **Why it bites hardest here:** roster 1 holds **26.6%** of its market value on IR/taxi against a league median **3.6%** — **7.32×**. It is the offseason: there are no lineups to field, and taxi is rookies-only by league rule, so it is the slot that exists to hold valuable rookies. A this-week legality filter is deciding a dynasty comparison, and it is blindest to exactly this roster's profile.
+- **Verified reproductions:** the legal lineup starts AJ Barner at TE (`-5.64`) while Tucker Kraft sits on IR at `+2.85`; it fills SUPER_FLEX while Fernando Mendoza sits on taxi at `+10.31`. *(Studio's third example — Tank Dell "at 0.0" — is a `DG2-P-06` artifact, not a valuation: Dell is `PRE_MODEL` with null xVAR. Removing it does not defeat the ticket; the other three reproduce.)*
+- **The code already computes the alternative** and does not use it for the dominant term (`team_value_matrix.py:254-272`).
+- **AC:** (1) lineup availability and dynasty asset strength are **separately expressed**, and any consumer states which one it is using; (2) unavailable and taxi assets appear in the dynasty-strength measure **with their status and conversion cost visible**; (3) the posture score names which question it answers.
+- **Not claiming:** that an IR player should count as startable. The defect is one number serving both questions.
+- **Deps:** `S3-05` (eligibility states), `P-06` (or the strength measure sums fabricated zeros). **Blocks:** `S3-04b`.
+- **Fails loudly:** a consumer that cannot tell which measure it holds fails rather than defaulting to the lineup one.
+
 ### DG2-S3-05 — Roster eligibility states · Size M
 - **Problem:** IR and taxi players are invisible to starter strength.
 - **Context — David's league rules, domain truth:** a taxi player may be promoted **at any point in the season**; promotion does **not** create a roster spot; **nobody may be added to taxi until after the rookie draft**.
@@ -291,8 +351,9 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 
 ### DG2-S3-07 — Assemble the final value ⚑ NEW — the epic had no owner for its own product · Size L
 - **Problem:** *(found by one reviewer, conceded by Codex as a real miss.)* Sprint 3 produced the value estimate, survival, availability, the discount treatment and the roster cost **separately, and no ticket combined them.* The quantity the epic exists to produce had no builder.
-- **AC:** a single assembled value per player per window, composed from the S3-01/S3-01b/S3-02/S3-06/S3-08 components; the assembly is the **only** producer of that quantity; every consumer reads it rather than recombining parts.
-- **Deps:** S3-01, S3-01b, S3-02, S3-06, S3-08. **Blocks:** S4-01, S4-02, S4-03, S5-01a.
+- **AC:** a single assembled value per player per window, composed from whichever components the S1-02 construction requires *(for the candidate shape in spec §2.1 that is S3-01/S3-01b/S3-02/S3-06/S3-08; a different construction changes the component set, not this ticket's purpose)*; **every consumer of that quantity returns an identical value for identical inputs, and a second independent derivation of it is detected. How production is structured is the developer's choice.**
+  *(Two repairs: the component list was hard-coded to one construction, pre-answering S1-02; and "the assembly is the **only** producer" was the identical structural mandate v3 removed from S5-03 — all three uncontaminated runs flagged it surviving one ticket away.)*
+- **Deps:** **the component tickets the S1-02 construction requires.** For the spec §2.1 candidate shape that is S3-01, S3-01b, S3-02, S3-06, S3-08; **a construction that does not decompose into those components does not inherit them as prerequisites, and S1-02's record names the set.** *(The unconditional edge was the executable half of the construction pre-answering — the AC was made conditional while the dependency graph still mandated the stream branch.)* **Blocks:** S4-01, S4-02, S4-03, S5-01a.
 - **Fails loudly:** a missing component blocks assembly by name rather than being defaulted.
 
 ### DG2-S3-08 — Roster-spot cost ⚑ NEW — the `rent_t` term had no owner · Size M
@@ -302,14 +363,14 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 
 ### DG2-S3-09 — The alternative construction, as a built comparator ⚑ NEW · Size M
 - **Problem:** the spec says the alternative construction **"must be benchmarked, not dismissed"**, and v2 gave it **zero build tickets** while giving the stream five — which pre-answered S1-02 structurally.
-- **AC:** the alternative selected in S1-02's rejected set is built to the point where it can be scored on the same frozen benchmark as S3-07, or S1-02's record explains why it cannot be.
+- **AC:** the alternative construction is **built and scored** on the same frozen benchmark as S3-07, with its score published alongside. *(The "or the record explains why it cannot be" escape was removed — it was the safe-fallback shape fix #1 exists to eliminate, and it let the alternative disappear by prose from the very ticket created to protect it.)* **If it genuinely cannot be built, that is an escalation to David with what is missing — not a closed ticket**, and Sprint 3's gate cannot be met on two benchmarks where three were frozen.
 - **Deps:** S1-02, S1-04, S2-05. **Fails loudly:** a benchmark run with a missing comparator reports the gap rather than scoring against two.
 
 ---
 
 ## SPRINT 4 — THE COMPARISON LAYER
 
-**Exit gate (binary):** both modes reproduce on the common cohort with deltas published; **no mode ships whose calibration error exceeds the tolerance frozen in S1-04**; **and S4-03 exists and is exercised** *(v2's gate never mentioned it, so Ruling F's whole purpose could be absent and the gate still passed)*.
+**Exit gate (binary):** `DG2-P-06` is closed — **no comparison runs over fabricated zeros**; both modes reproduce on the common cohort with deltas published; **no mode ships whose calibration error exceeds the tolerance frozen in S1-04**; **and S4-03 exists and is exercised** *(v2's gate never mentioned it, so Ruling F's whole purpose could be absent and the gate still passed)*.
 
 ### DG2-S4-01 — Rank-vs-rank on the common cohort · Size M
 - **Problem:** *(added.)* The two sides are ranked over different populations, so today's rank comparison is not like-for-like and its noise-band classifications are unreliable.
@@ -392,8 +453,11 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 ```
 DG 2.0 — 44 numbered tickets (v2: 41; +5 new, −2 merged/moved)
 │
-├─ SPRINT-P  runs in parallel, gates nothing, blocked by nothing
+├─ SPRINT-P  runs in parallel, gates nothing; P-01/P-04/P-05 blocked by nothing, P-03 ← S0-10, P-02 ← P-03
 │   P-01 freshest capture M · P-02 injury on surfaces ⚑DAVID M ← P-03 · P-03 live injury feed M ← S0-10
+│   P-04 bucketed-pick resolution M (008 Track 1) · P-05 pick portfolio on surface M (008 Track 1)
+│   P-06 ⚑CRITICAL unavailable-as-zero M → BLOCKS S4-01,S4-02 · P-07 League Pulse viewport L ← P-01,P-06
+│   ⚑ P-02 + P-05 co-designed in ONE framing pass (same surface, same question)
 │
 ├─ S0  gate: measured RESULTS (not statements) for S0-01..05 + four documents delivered
 │   S0-01 rank-population ⚑HIGHEST M → S4-01,S4-02   S0-02 engine mix S → S1-01(cond)  S0-02b age by engine S
@@ -413,14 +477,16 @@ DG 2.0 — 44 numbered tickets (v2: 41; +5 new, −2 merged/moved)
 │
 ├─ S3  gate: win-or-tie vs all three FROZEN benchmarks, else current artifact stays in production
 │   S3-01 estimator L · S3-01b survival L · S3-02 discount M · S3-03 retire ceiling M
-│   S3-04 optimal lineup L ← S3-05 · S3-04b publish basis change S ← S3-04 · S3-05 eligibility M (no deps)
+│   S3-04 optimal lineup L ← S3-05 · S3-04b publish basis change S ← S3-04c · S3-05 eligibility M (no deps)
+│   S3-04c ⚑NEW separate availability from asset strength M ← S3-05,P-06
 │   S3-06 availability ⚑DAVID M ← S1-04,S2-04,S3-01
-│   S3-07 ASSEMBLE THE VALUE L ⚑NEW ← S3-01,S3-01b,S3-02,S3-06,S3-08 → S4-01,S4-02,S4-03,S5-01a
+│   S3-07 ASSEMBLE THE VALUE L ⚑NEW ← the components S1-02's construction requires
+│         (candidate shape: S3-01,S3-01b,S3-02,S3-06,S3-08) → S4-01,S4-02,S4-03,S5-01a
 │   S3-08 ROSTER-SPOT COST M ⚑NEW ← S3-05,S1-01 → S3-07
 │   S3-09 ALTERNATIVE CONSTRUCTION M ⚑NEW ← S1-02,S1-04,S2-05
 │
 ├─ S4  gate: both modes within FROZEN tolerance + S4-03 exercised
-│   S4-01 rank-vs-rank M ← S0-01,S0-04,S3-07   S4-02 currency L ← S0-04,S0-05,S1-04,S3-03,S3-07
+│   S4-01 rank-vs-rank M ← S0-01,S0-04,S3-07,P-06   S4-02 currency L ← S0-04,S0-05,S1-04,S3-03,S3-07,P-06
 │   S4-03 window lens M ← S3-07
 │
 ├─ S5  gate: three tests priced OR floored at zero; S5-01c and S5-01d closed
