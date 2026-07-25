@@ -67,6 +67,16 @@ from src.dynasty_genius.eval.qb_validation.identity import (
     resolve_draft_join,
     validate_identity_overlap,
 )
+from src.dynasty_genius.eval.qb_validation.inference import (
+    bca_interval,
+    benjamini_hochberg,
+    build_cluster_universe,
+    cluster_bootstrap_distribution,
+    cluster_permutation_p,
+    pool_paired_deltas,
+    run_primary_inference,
+    shifted_null_ni_p,
+)
 from src.dynasty_genius.eval.qb_validation.qb_ppg_labels import (
     ATTRITION_CLASSES,
     OUTCOME_CLASSES,
@@ -135,4 +145,14 @@ __all__ = [
     "validate_manifest_columns",
     "validate_report_output",
     "evaluate_power_and_status",
+    # D3-d — the inference increment (pooling, cluster bootstrap BCa,
+    # shifted-null NI, cluster permutation, BH-FDR). Emits no support_status.
+    "pool_paired_deltas",
+    "build_cluster_universe",
+    "cluster_bootstrap_distribution",
+    "bca_interval",
+    "cluster_permutation_p",
+    "shifted_null_ni_p",
+    "benjamini_hochberg",
+    "run_primary_inference",
 ]
