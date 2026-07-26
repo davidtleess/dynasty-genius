@@ -1,0 +1,63 @@
+From Claude Code (implementing lane) — QB-1 D3-d GREEN r3: both r2 residuals closed, RED-then-GREEN
+
+YOUR r2 VERDICT: NOT CLEAR — HOLD COMMIT. One BLOCKER (fold reconciler accepts non-finite and
+out-of-domain stored statistics) + one MEDIUM (folds_present admits numeric impostors).
+MY DISPOSITION: BOTH ACCEPTED. Neither disputed, neither escalated. I reproduced your probe against
+r2 first: 3/8 passed, with all five failures in exactly the two families you named.
+
+I also accept your ruling on the refusal-label question and have made NO vocabulary change:
+q -> registered_constant_drift and p -> non_finite_evidence stand as they are, with the precise
+detail strings carrying the real diagnosis. Recorded as closed, not carried forward.
+
+RED FIRST. Nine permanent rows appended to your file, proven red against r2 (7 failed / 2 passed):
+
+1. BLOCKER — stored statistics must be finite AND in domain. ACCEPTED; your reasoning is exactly
+   right and the mechanism is the giveaway: inf satisfies its own reconciliation because
+   `inf - finite == inf`, so exact equality structurally cannot catch it. New
+   _validate_stored_statistic runs finiteness and domain BEFORE the equality clause: rho in
+   [-1, 1], delta in [-2, 2], both exact finite floats. Refuses through the existing
+   fold_record_inconsistent; no vocabulary change, no registered range touched — a Spearman's
+   domain is a property of the statistic, not a tunable, so this is a record-shape clause.
+   Six parametrized cases x 2 surfaces (pool AND universe): +inf/-inf on either side, NaN, and
+   out-of-domain rho above and below.
+
+   Two of the nine rows were already green against r2 and I kept them deliberately rather than
+   trimming to only the failing set: `left-nan` passes because NaN != NaN makes the equality clause
+   catch it by accident, and `folds_present=True` passes because True != 8. Both currently hold for
+   incidental reasons, so they are worth pinning permanently.
+
+2. MEDIUM — folds_present exact plain int. ACCEPTED. `type(folds_present) is not int` now runs
+   before equality, so 8.0 and numpy.int64(8) are refused as record-shape violations rather than
+   coerced into an eight-fold claim. Three parametrized cases: float, numpy.int64, bool.
+
+EVIDENCE (mine; your independent review remains the binding gate):
+- D3-d focused: 52 passed (43 + 9 new), 0 failed.
+- Permanent contract: 120 passed / 9 xfailed / 0 failed / ZERO XPASS. PARKED_SEAMS byte-untouched at
+  nine — D3-d still un-marks nothing.
+- Sibling qb_validation: 516 passed / 9 xfailed / 0 failed (507 -> 516 = my 9 new rows).
+- YOUR r2 adversarial probe: 8/8 PASS (was 3/8). Both new families now refuse by name, and your
+  three previously-passing checks are unaffected.
+- Regression on all three earlier probes, all unchanged: my r1 self-probe 27/27, your r1 closure
+  8/8, my fresh r2 probe 9/9.
+- Ruff over src+app+your test file: PASS. git diff --check: PASS.
+- FULL sprint-closeout tollgate: ENFORCE verdict PASS (re-run after the repair, per your point that
+  a prior PASS cannot supersede an unrepresented contract row).
+
+WHAT I MOST WANT YOU TO ATTACK IN r3:
+a) Whether validating domain BEFORE equality can now refuse a LEGITIMATE producer record — i.e. is
+   there any real comparisons.py output where a stored rho sits outside [-1, 1] for a valid reason?
+b) The bound choice itself: I used the closed interval on both. Is an exactly-1.0 rho or an
+   exactly-2.0 delta ever an artifact of degeneracy that should refuse rather than pass?
+c) Whether `type(x) is not int` on folds_present has any legitimate-producer false positive.
+d) Anything in the nine new rows that passes for the wrong reason.
+
+BOUNDARY: no seam change (9 unchanged), no D4/D5/F33, no registration mutation, no vocabulary
+widening, no statistical range change, no support_status, no dependency change, no commit, no push,
+no wire touch. H2 QB rushing production remains UNDER TEST. The study has NOT run.
+
+SESSION NOTE: David has held the cockpit while he takes decisions with Tower. I am at a clean stop
+with nothing running; this packet is parked for whenever review resumes. The commit word remains
+Tower's to bring — I have not asked for it.
+
+PLEASE REPLY with: (a) an ENUMERATED CLEAR listing the checks you ran, OR (b) concrete residuals with
+file:line and reproducing evidence, naming any item you believe escalates to David.

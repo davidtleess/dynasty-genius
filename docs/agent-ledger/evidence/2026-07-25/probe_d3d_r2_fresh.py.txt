@@ -1,0 +1,65 @@
+"""Fresh break-attempts against the r2 CHANGED surface only (Falsification #5)."""
+from __future__ import annotations
+
+import copy, importlib, json, math
+from pathlib import Path
+
+red = importlib.import_module("tests.contract.test_qb_validation_inference_red")
+inf = importlib.import_module("src.dynasty_genius.eval.qb_validation.inference")
+from src.dynasty_genius.eval.qb_validation import QBValidationFailure, build_registration
+
+REG = json.loads(Path("docs/validation/2026-07-21-qb-1-study-registration.json").read_text())
+HASH = build_registration(REG)["sha256"]
+R = []
+
+def why(fn):
+    try:
+        return f"OK:{fn()['state']}" if isinstance(fn(), dict) else "ACCEPTED"
+    except QBValidationFailure as e:
+        return e.reason
+    except Exception as e:
+        return f"UNNAMED:{type(e).__name__}"
+
+def chk(n, c, d=""):
+    R.append((n, bool(c), d))
+
+# 1 — REORDERED topology (same seasons, wrong order) must refuse.
+c = red._two_fold_signal_contrast()
+c["per_fold"][0], c["per_fold"][1] = c["per_fold"][1], c["per_fold"][0]
+chk("reordered topology refused", why(lambda: inf.pool_paired_deltas(c, registration=REG)) == "unexpected_fold")
+
+# 2 — folds_present disagreeing with the supplied record count.
+c = red._two_fold_signal_contrast(); c["folds_present"] = 7
+chk("folds_present mismatch refused", why(lambda: inf.pool_paired_deltas(c, registration=REG)) == "fold_record_inconsistent")
+
+# 3 — duplicate STILL precedes season agreement when both are violated.
+c = red._two_fold_signal_contrast()
+c["per_fold"][1]["paired_evidence"][0]["target_season"] = 2018
+chk("duplicate precedes season clause", why(lambda: inf.build_cluster_universe(c)) == "duplicate_evidence_key")
+
+# 4 — empty jackknife (a deletion emptied a fold) -> named, never a fake interval.
+r = inf.bca_interval((0.0, 1.0, 2.0), observed=1.0, jackknife=())
+chk("empty jackknife named", r["state"] == "jackknife_degenerate" and r["ci95_low"] is None, r["state"])
+
+# 5 — BH probability boundaries are admissible; q boundaries enforced.
+ok = inf.benjamini_hochberg({"c01": 0.0, "c02": 1.0}, q=1.0, family_size=14)
+chk("p=0 and p=1 admissible at q=1", ok["state"] == "ok" and len(ok["adjusted"]) == 14)
+chk("q=0 refused", why(lambda: inf.benjamini_hochberg({"c01": 0.5}, q=0.0, family_size=14)) == "registered_constant_drift")
+
+# 6 — comparisons hash of the wrong TYPE is refused, not coerced.
+s = red._all_comparisons(empty=True); s["registration_hash"] = None
+chk("null comparisons hash refused", why(lambda: inf.run_primary_inference(s, registration=REG, expected_registration_hash=HASH)) == "preregistration_missing")
+
+# 7 — -0.0 is a legitimate finite delta, not a rejection.
+r = inf.shifted_null_ni_p((-0.0, 0.1, 0.2), observed=0.0, delta0=-0.05)
+chk("-0.0 distribution member admissible", r["state"] == "ok", r["state"])
+
+# 8 — a still-valid full-topology contrast is untouched by the new gates.
+r = inf.pool_paired_deltas(red._two_fold_signal_contrast(), registration=REG)
+chk("valid contrast unaffected", r["state"] == "ok" and r["evaluable_folds"] == 2, f"{r['state']}/{r['evaluable_folds']}")
+
+for n, ok_, d in R:
+    print(f"{'PASS' if ok_ else 'FAIL'}  {n}" + (f"  [{d}]" if d else ""))
+bad = [x for x in R if not x[1]]
+print(f"\n{len(R)-len(bad)}/{len(R)} fresh r2 probes pass")
+raise SystemExit(1 if bad else 0)

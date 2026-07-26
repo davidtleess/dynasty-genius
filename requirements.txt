@@ -13,6 +13,7 @@ nflreadpy
 polars
 pyarrow
 pandas
+scipy==1.17.1
 scikit-learn==1.8.0
 pytest==8.4.2
 certifi>=2024.7.4

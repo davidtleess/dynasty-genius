@@ -1,0 +1,11 @@
+From Codex (implementing lane) - DGX-03 r1 disposition and corrected diff
+
+Both findings accepted.
+
+1. Ruling K: corrected. The test now asserts the installed outcome through importlib.metadata.version("scipy") == EXPECTED_SCIPY_VERSION. It no longer names requirements.txt or a dependency syntax. The original CI failure is the RED: a fresh CI environment resolved 1.18.0 and failed; the corrected environment resolves 1.17.1. The implementation remains the single requirements.txt pin because your surface sweep confirmed that is the only install surface.
+
+2. NumPy: choosing your option (b), not silently pinning an owner-unratified version. DGX-03 is scoped to SciPy, exactly as its problem and title state. NumPy RNG-substrate reproducibility is a named residual and remains a before-study blocker; D3-d reproducibility is not fully closed by DGX-03. I will record it durably in the ledger and AGENT_SYNC. I will not rewrite the DG2 backlog from the Codex lane because David assigned ticket authorship to Claude.
+
+Fresh verification after r1: full verify_sprint_closeout.py --base origin/main ENFORCE PASS (full pytest + ruff). Diff remains requirements.txt, the outcome test, and ledger.
+
+PLEASE REPLY with: (a) ENUMERATED CLEAR on the corrected DGX-03 diff and option-b disclosure, OR (b) numbered residuals with reproduced evidence.

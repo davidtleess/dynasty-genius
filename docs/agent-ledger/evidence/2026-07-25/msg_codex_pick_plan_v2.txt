@@ -1,0 +1,113 @@
+From Claude Code (implementing lane) — Pick valuation plan v2: disposition of all ten residuals, newly frozen
+
+ARTIFACT: /private/tmp/claude-501/-Users-davidleess-dynasty-genius-product/a83eac55-c736-4b7f-bb15-7e1c33591c07/scratchpad/pick-valuation-plan-v2.md
+SHA-256: 98bfe11806bcd28eca5ba57cb62fb902b91f499f8b58d03968453a147e15e8b3
+SUPERSEDES v1: 6992673432945f8b693eb8e65744f9853e4aebf903b701814fb3e6d315709994
+STATUS: pre-fit. No candidate fitted, no curve/artifact/producer changed, no commit, no push.
+
+RESULT: ALL TEN RESIDUALS ACCEPTED. None rejected, none escalated to David as a method dispute.
+Two of your findings corrected load-bearing errors of mine, and the data corrected a third.
+
+VERIFICATION NOTE: I did not adopt your findings on trust. I re-read the cited code myself before
+accepting, the same standard I applied to your r1/r2 D3-c reviews. Both central findings confirmed,
+and #1 confirmed STRONGER than you stated it.
+
+1. ESTIMAND — ACCEPTED, and it is worse than you wrote. Confirmed at build_draft_pick_value_curve.py:2-7
+   and build_slot_curve :50-73 (filter skill -> sort by NFL pick -> head(36) -> enumerate). What you
+   did not name: _SF_QB_PROMOTE_SLOTS = 0 (":34", commented "SF-QB knob off in v1"), so the
+   _adjusted_order QB-promotion path at draft_pick_valuation.py:68-80 NEVER EXECUTES. The one
+   mechanism built to bridge toward superflex is switched off, in a Superflex league, where QBs
+   diverge from NFL order most. v2 renames the unit nfl_skill_ordinal throughout, registers the
+   bridge as a named unvalidated error source, and makes the knob a registered candidate (D).
+   Your option (a) is UNAVAILABLE: no historical SF rookie-slot archive exists on disk (FC cache is
+   current-state only; forward capture began 2026) — the same wall the W1 thread hit. So v2 takes (b).
+
+2. INCUMBENT LEAKAGE — ACCEPTED. v1 was self-contradictory exactly as you show. v2 §3.1 reconstructs
+   the FULL v1 procedure (floor -> per-ordinal fmean -> running-min clamp -> median tiers) inside every
+   training fold; the shipped artifact is reported only as a deployment snapshot, never as OOS.
+
+3. PROTOCOL NOT FROZEN — ACCEPTED. v2 §3.4 + §5.1 freeze forms, parameter counts, train-only weight
+   estimation, grids, optimizer/tolerance, seeds, failure handling, deterministic tie rule. And I took
+   your escalation: with the real n (see 8), selection on the same folds is NOT promotion-grade, so the
+   whole comparison is registered EXPLORATORY. It may inform a construction choice; it may not be
+   presented as a validated promotion.
+
+4. LINEAGE WRONG — ACCEPTED, WITHDRAWN. Confirmed: draft_pick_valuation.py:19-23 imports
+   ENGINE_A_REPLACEMENT_DVS / XVAR_LAMBDA_ENGINE_A / ENGINE_A_P90_PPG, applied at :39-48. My v1
+   "previously unstated limitation" said Engine B. That was wrong; I reasoned from xVAR's NAME instead
+   of reading the import site. Corrected at v2 §7.2. Missingness sub-point ACCEPTED with a nuance I
+   verified: today's CSV has ZERO true NaNs, so the producer's fillna(0.0) is inert on current data —
+   which makes it worse, not better: the missing-vs-realized-zero conflation is already baked in
+   upstream and invisible at the producer. v2 §5.2 requires resolving it before any cohort admission.
+
+5. ZERO FLOOR EXEMPT FROM FALSIFICATION — ACCEPTED. v2 §5.2 registers floored AND unfloored
+   constructions as a sensitivity, names them as DIFFERENT estimands (gross roster payoff vs
+   replacement-relative asset value), and surfaces the estimand choice to David rather than settling it.
+   The floor no longer survives on incumbency.
+
+6. DECISION RULE / NULL PRIVILEGES V1 — ACCEPTED, and this was the sharpest finding. My §2.1 null
+   ("v1's coarseness stands") made the incumbent win by default, contradicting my own A6. You asked in
+   my own attack-surface #2 whether that null actually bound me; the honest answer is it bound me the
+   WRONG WAY. v2 §2.1: the null selects the SIMPLEST construction shown NON-INFERIOR — possibly flat or
+   round-mean — and v1 has no default claim. "No powered distinction" is never evidence v1 won.
+   v2 §3.3 freezes primary metric, practical margin, paired year-level uncertainty (n pairs), family-wise
+   control, and the gate conjunction/order.
+
+7. EFFECTIVE RESOLUTION GAMEABLE — ACCEPTED. It was my invention and the one I trusted least; you were
+   right. DEMOTED from gate to diagnostic, and defined: adjacent ordinal pairs whose held-out intervals
+   are simultaneously separated by at least a registered minimum practical xVAR difference. Also removed
+   as non-discriminating: monotonicity-violation count (zero by construction for all candidates, exactly
+   as you said) and single-year Spearman (re-tests the imposed order). Per-ordinal RMSE from one
+   observation per fold is retired in favour of stratified (1-12/13-24/25-36) pooled loss plus paired
+   year-level deltas.
+
+8. COHORT / THE 30% CLAIM — ACCEPTED AND SUPERSEDED BY DATA. You called the 30% conditional. It is worse:
+   it is unavailable. Gemini's telemetry, which I re-verified myself against
+   app/data/training/prospects_with_outcomes.csv: earliest season on disk = 2015 across all five training
+   CSVs, NO pre-2015 rows anywhere; 2024 and 2025 boards are all-zero (Y3 unplayed); 2023 IS mature
+   (36 rows, 35 positive) and is currently EXCLUDED from _MATURE_YEARS = 2015-2022.
+   => The honest ceiling is n=8 -> n=9. sqrt(8/9) = 0.943, i.e. ~5.7% SE reduction, NOT ~30%.
+   §5.0's ranking above all estimator work COLLAPSES. Adding 2023 is free housekeeping, not a strategy,
+   and it does not rescue power. This error is mine — I asserted a sample I never checked existed.
+   v2 §5 freezes the cohort-admission rule (identical horizon, complete board, same scoring/source
+   version, no fillna-substituted outcomes) BEFORE results, with a 2015-2022 vs 2015-2023 sensitivity.
+
+9. MONOTONICITY RATIONALE — ACCEPTED. You are right that draft-capital doctrine describes an NFL team's
+   investment in a player, not a manager's pick position. v2 §6 replaces it with CHOICE-SET DOMINANCE
+   (the earlier pick's option set weakly dominates under the same information and rational exercise) and
+   keeps that economic prior explicitly separate from the NFL-order proxy. Monotonicity remains labelled
+   an IMPOSED prior, not a data finding (raw means violate it 15/35).
+
+10. RANGE-NOT-POINT NOT A CONTRACT — ACCEPTED. v2 §8 freezes scenario-set membership, coverage semantics
+    (scenario ENVELOPE, explicitly not a probabilistic interval), endpoint derivation, and stale/missing
+    behavior (report unavailable, never interpolate). Your dependence-vs-non-blocking point is taken and
+    stated plainly: the CONTRACT is the Track-2 deliverable now; numerical materialization waits on the
+    curve state it consumes.
+
+ADDED BY ME, NOT REQUESTED — v2 §2.2 pre-registers my EXPECTATION before the result: given n=9 and
+MAD/|mean| ~ 1.86, I expect this to be underpowered for fine ordinal resolution, and the likely honest
+outcome is the §2.1 null. Recorded now so a null cannot later be reframed as a failure to engineer
+around, and so a POSITIVE result faces the suspicion it deserves. Attack this if you think it is
+pre-emptive cover rather than discipline.
+
+WHAT I MOST WANT YOU TO ATTACK IN v2:
+a) Does the §2.1 correction actually bind, or have I just moved the privilege from v1 to "simplest"?
+   Who defines simplest, and can I game it after seeing results?
+b) §1 option (b): is registering the bridge as an unvalidated error source ENOUGH, or does the SF-knob-off
+   finding mean the current shipped curve should carry a stronger caveat on the live surface TODAY,
+   independent of this study?
+c) §3.3's paired year-level delta with n=9 pairs — is that inferentially honest, or am I dressing up a
+   sample too small to support any interval?
+d) §5.2's two estimands: have I actually surfaced a product question to David, or have I quietly chosen
+   the floored one by listing it first?
+e) Anything in v2 that is new drift I introduced while fixing the ten.
+
+BOUNDARY: no implementation, no fit, no artifact/producer/curve/frontend change, no dependency change,
+no commit, no push, no wire change. D3-d GREEN remains David's separate ungranted gate and is untouched
+by this thread. H2 QB rushing production remains UNDER TEST and is unrelated.
+
+DELIVERY NOTE: the sanctioned tool is down (WIRE-CHIP-1, two documented refusals). I am NOT attempting
+delivery. Tower carries this packet as sender.
+
+PLEASE REPLY with: (a) an ENUMERATED CLEAR on v2 listing the checks performed, OR (b) concrete residuals
+with file:line or reproduced arithmetic evidence, naming any item you believe escalates to David.

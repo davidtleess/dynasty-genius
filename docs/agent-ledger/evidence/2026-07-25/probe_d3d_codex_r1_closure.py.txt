@@ -1,0 +1,176 @@
+"""Closure evidence for Codex's r1 adversarial probe.
+
+Mirrors all eight of Codex's reproduced acceptance paths and asserts each is now
+REFUSED honestly (named reason / named state), rather than accepted. Codex's own
+artifact at /tmp/codex_d3d_adversarial_probe.py is left untouched; it asserts the
+pre-fix accepting behaviour and now raises at case 2 by design.
+"""
+from __future__ import annotations
+
+import copy
+import importlib
+import json
+import math
+from pathlib import Path
+
+import numpy as np
+
+red = importlib.import_module("tests.contract.test_qb_validation_inference_red")
+inference = importlib.import_module(
+    "src.dynasty_genius.eval.qb_validation.inference"
+)
+from src.dynasty_genius.eval.qb_validation import (  # noqa: E402
+    QBValidationFailure,
+    build_registration,
+)
+
+REG = json.loads(
+    Path("docs/validation/2026-07-21-qb-1-study-registration.json").read_text()
+)
+HASH = build_registration(REG)["sha256"]
+ROWS: list[tuple[str, bool, str]] = []
+
+
+def refusal(fn) -> str:
+    try:
+        fn()
+    except QBValidationFailure as exc:
+        return exc.reason
+    except Exception as exc:  # noqa: BLE001
+        return f"UNNAMED:{type(exc).__name__}"
+    return "ACCEPTED"
+
+
+def row(name, ok, detail):
+    ROWS.append((name, ok, detail))
+
+
+# 1 — zero-row admitted fold -> replicate_degenerate (not silently dropped).
+per_fold = [
+    red._fold_record("c01", 2018, n=20, start=0, left_order="perfect", right_order="reverse"),
+    red._fold_record("c01", 2019, n=20, start=20, left_order="perfect", right_order="reverse"),
+]
+per_fold.extend(red._fold_record("c01", s, n=0) for s in range(2020, 2026))
+zero_row_contrast = red._contrast_record("c01", per_fold=per_fold)
+small = copy.deepcopy(REG)
+small["inference"]["bootstrap_B"] = 1
+
+
+class FixedGenerator:
+    def integers(self, *, low, high, size, dtype):
+        return np.asarray([list(range(20, 40)) * 2], dtype=np.int64)
+
+
+real = inference._generator
+inference._generator = lambda procedure, contrast_id: FixedGenerator()
+try:
+    result = inference.cluster_bootstrap_distribution(
+        zero_row_contrast, registration=small
+    )
+finally:
+    inference._generator = real
+row(
+    "zero_row_admitted_fold",
+    result["state"] == "replicate_degenerate" and result["deltas"] is None,
+    f"state={result['state']}, deltas={result['deltas']}",
+)
+
+# 2 — missing registered fold seasons.
+missing = red._contrast_record(
+    "c01", per_fold=[red._fold_record("c01", s, n=20) for s in range(2018, 2023)]
+)
+reason = refusal(lambda: inference.pool_paired_deltas(missing, registration=REG))
+row("missing_registered_folds", reason == "unexpected_fold", reason)
+
+# 3 / 4 — duplicate H5 seasons cannot inflate the floor or the NI conjunct.
+dup = red._contrast_record(
+    "c11",
+    per_fold=[
+        red._fold_record("c11", 2021, n=20, start=0),
+        red._fold_record("c11", 2021, n=20, start=20),
+        red._fold_record("c11", 2022, n=20, start=40),
+        red._fold_record("c11", 2022, n=20, start=60),
+    ],
+)
+reason = refusal(lambda: inference.pool_paired_deltas(dup, registration=REG))
+row("duplicate_fold_floor_inflation", reason == "unexpected_fold", reason)
+
+comps = red._all_comparisons(empty=False)
+for index, contrast in enumerate(comps["contrasts"]):
+    if contrast["id"] == "c11":
+        comps["contrasts"][index] = dup
+reason = refusal(
+    lambda: inference.run_primary_inference(
+        comps, registration=REG, expected_registration_hash=HASH
+    )
+)
+row("duplicate_seasons_cross_h5_gate", reason == "unexpected_fold", reason)
+
+# 5 — universe refuses a non-colliding fold/evidence season mismatch.
+mismatch = red._two_fold_signal_contrast()
+for evidence_row in mismatch["per_fold"][0]["paired_evidence"]:
+    evidence_row["target_season"] = 2020
+reason = refusal(lambda: inference.build_cluster_universe(mismatch))
+row(
+    "universe_accepts_season_mismatch",
+    reason == "fold_record_inconsistent",
+    reason,
+)
+
+# 6 — stale comparisons provenance.
+stale = red._all_comparisons(empty=True)
+stale["registration_hash"] = "f" * 64
+reason = refusal(
+    lambda: inference.run_primary_inference(
+        stale, registration=REG, expected_registration_hash=HASH
+    )
+)
+row(
+    "stale_comparisons_registration_hash",
+    reason == "preregistration_missing",
+    reason,
+)
+
+# 7 — non-finite distribution members.
+bca_reason = refusal(
+    lambda: inference.bca_interval(
+        (math.nan, -0.1, 0.0, 0.1), observed=0.0, jackknife=(0.0, 1.0, 2.0)
+    )
+)
+ni_reason = refusal(
+    lambda: inference.shifted_null_ni_p(
+        (math.nan, -0.1, 0.0, 0.1), observed=0.0, delta0=-0.05
+    )
+)
+row(
+    "nonfinite_distribution",
+    bca_reason == "non_finite_evidence" and ni_reason == "non_finite_evidence",
+    f"bca={bca_reason}, ni={ni_reason}",
+)
+
+# 8 — BH partial family and invalid inputs.
+partial = inference.benjamini_hochberg({"c01": 0.01}, q=0.10, family_size=14)
+zero_family = refusal(
+    lambda: inference.benjamini_hochberg({"c01": 0.01}, q=2.0, family_size=0)
+)
+nan_p = refusal(
+    lambda: inference.benjamini_hochberg(
+        {"c01": math.nan}, q=0.10, family_size=14
+    )
+)
+row(
+    "bh_partial_and_invalid_inputs",
+    len(partial["adjusted"]) == 14
+    and partial["adjusted"]["c14"] is None
+    and partial["rejected"]["c14"] is False
+    and zero_family == "registered_constant_drift"
+    and nan_p == "non_finite_evidence",
+    f"slots={len(partial['adjusted'])}, zero_family={zero_family}, nan_p={nan_p}",
+)
+
+for name, ok, detail in ROWS:
+    print(f"{'CLOSED' if ok else 'OPEN  '}  {name}|{detail}")
+failed = [r for r in ROWS if not r[1]]
+print(f"\n{len(ROWS) - len(failed)}/{len(ROWS)} Codex r1 acceptance paths now refused honestly")
+if failed:
+    raise SystemExit(1)
