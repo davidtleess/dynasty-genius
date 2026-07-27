@@ -1,7 +1,7 @@
 ---
 title: Engineering Backlog
 type: project-knowledge
-last_updated: 2026-05-03
+last_updated: 2026-07-26
 owner_default: Codex (engineering)
 ---
 
@@ -26,6 +26,32 @@ Holding pen for tickets that are not in the active sprint (`docs/next-sprint.md`
 ---
 
 ## Open Tickets
+
+### BACKLOG-002 — Distinguish quoted ephemeral-path evidence from live closeout dependencies
+- **Filed:** 2026-07-26
+- **Filed by:** Codex Option 2 final review, under David's TW26X stop rule
+- **Owner (suggested):** David for policy; implementation lane only after ruling
+- **Priority:** P3
+- **Effort estimate:** S
+- **Depends on:** none
+- **Description:** The closeout gate scans all added documentation and treats
+  any session-scoped path literal as a live ephemeral dependency. Exact
+  adversarial-review stimuli can therefore prevent a clean close even when no
+  artifact or claim depends on resolving that path. Determining whether
+  path-shaped prose is a dependency, citation, example, or test stimulus is a
+  semantic distinction; the now-deleted waiver machinery did not make that
+  distinction reliably.
+- **Acceptance criteria:**
+  - Exact historical reproducer evidence may remain verbatim without being
+    classified as a live closeout dependency.
+  - A closeout that actually depends on session-scoped storage cannot claim
+    clean.
+  - Any exemption or structural binding rule is owner-ratified before
+    implementation. This preserves David's 2026-07-26 deletion of implicit
+    prose/fence/document-type exemptions, which protected against content-driven
+    false PASSes.
+- **Out of scope:** repairing this during closeout-hardening piece 1; editing
+  historical reviewer evidence; rebuilding waiver machinery.
 
 ### BACKLOG-001 — Automate 2027/2028 consensus board ingestion
 - **Filed:** 2026-05-03

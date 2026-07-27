@@ -1,7 +1,7 @@
 ---
 document: Dynasty Genius Agent Operating Loop
-version: 1.3.0
-last_updated: 2026-07-16
+version: 1.4.0
+last_updated: 2026-07-26
 authority: workflow
 ---
 
@@ -322,9 +322,10 @@ Before ending a material session, every agent must:
 1. Re-check work against the constitution and architecture.
 2. Update `AGENT_SYNC.md` if sprint state, active phase, blockers, or next steps changed.
 3. Append an entry to `docs/agent-ledger/YYYY-MM-DD.md`.
-4. State files changed.
-5. State tests or checks run.
-6. State unresolved risks, blockers, and next-agent handoff.
+4. **Commit the ledger and `AGENT_SYNC.md` updates, then run `scripts/verify_closeout.py`.** On disk is not durable. Under an announced closeout the gate's exit code governs the status word (see Cockpit Closeout Motion); outside one it is still the check that the session's record is durable and its citations resolve.
+5. State files changed.
+6. State tests or checks run.
+7. State unresolved risks, blockers, and next-agent handoff.
 
 Completion standard:
 
@@ -337,19 +338,58 @@ Completion standard:
 
 ## Cockpit Closeout Motion
 
-A closeout is the disciplined end-of-session flush. It is **announced by Tower** (never self-declared by a lane). Ratified 2026-07-14; spec: `docs/superpowers/specs/2026-07-14-cockpit-closeout-motion-02-amendment.md`. On announcement, every non-Tower agent, in order:
+A closeout is the disciplined end-of-session flush. It is **announced by Tower** (never self-declared by a lane). Ratified 2026-07-14; spec: `docs/superpowers/specs/2026-07-14-cockpit-closeout-motion-02-amendment.md`. **Hardened 2026-07-26** after the 2026-07-25 close had to be rescued; harvest and rationale: `docs/superpowers/specs/2026-07-26-closeout-hardening-02-amendment.md`. The executable procedure is the `cockpit-closeout` skill (`.claude/skills/cockpit-closeout/SKILL.md`); the mechanical gate is `scripts/verify_closeout.py`. On announcement, every non-Tower agent, in order:
 
 1. **Reaches a clean stopping point.** Finish the thought or step in progress to a coherent, on-disk state. Never abandon an edit, commit, or test run mid-change — a half-applied change is worse than a parked one. If a step cannot reach a clean point quickly, park it explicitly (next item) rather than rush it.
-2. **Writes postflight immediately.** Append the session's ledger entry (`docs/agent-ledger/YYYY-MM-DD.md`) and update `AGENT_SYNC.md` for any state the agent changed. This is not deferred to "after the reply" — it is the reply's precondition. `AGENT_SYNC.md` updates follow the serialization protocol below.
-3. **Flags parked and uncommitted work with its location.** Every approved-but-uncommitted change, half-done build, or open review must be named with **where it is parked** — branch, worktree path, PR number, artifact path — so the next session can resume it from disk alone. "Parked at `<path>` on branch `<branch>`, N/M tests green, awaiting `<gate>`" is the shape.
-4. **Replies with an explicit closeout status to Tower** (never a bare "done"):
-   - **`closed — clean`**: reached a clean stop, postflight + sync on disk, no uncommitted or half-done work outstanding.
-   - **`closed — parked`**: postflight + sync on disk, but named work is deliberately parked — the reply carries its **location, active command/test state, and next gate** (e.g. "parked at `<worktree>` on `<branch>`, 17/17 tests green, awaiting Codex audit CLEAR + David push").
+2. **Writes postflight and COMMITS it.** Append the session's ledger entry (`docs/agent-ledger/YYYY-MM-DD.md`), update `AGENT_SYNC.md` for any state the agent changed (serialization protocol below), **and commit both**. This is not deferred to "after the reply" — it is the reply's precondition. **On disk is not durable.** A working tree is lost to a discarded change, a prune, or a fresh clone; the 2026-07-25 close was reported CLEAN with the session's entire record uncommitted. Committing the ledger and state board is verifier-exempt state-doc maintenance and needs no fresh David word; code, tests, config, specs, and governance still require cockpit CLEAR + David's word and are **parked**, never rush-landed to beat the deadline.
+3. **Runs the durability gate.** `.venv/bin/python3.14 scripts/verify_closeout.py` (read-only). Its exit code determines **which status word the lane may claim**: exit 0 permits `closed — clean`; exit 1 forbids claiming clean and requires `closed — parked` or `closeout-blocked` naming every ENFORCE reason. Its **three ENFORCE** checks are `durable-record`, `working-tree`, and `ephemeral-locators` — each a mechanical fact about the repo. Its **REPORT** blocks — `citations`, `repo-facts`, `pushed-ci`, `session-commits`, `background` — are facts the status reply carries verbatim rather than recollecting, and are audited by a human rather than enforced. **An ENFORCE failure does not block closing — it blocks claiming clean.** [Citation-checking was demoted from ENFORCE to REPORT and the waiver system deleted; David, 2026-07-26.]
+4. **Flags parked and uncommitted work with its location.** Every approved-but-uncommitted change, half-done build, or open review must be named with **where it is parked** — branch, worktree path, PR number, artifact path — so the next session can resume it from disk alone. "Parked at `<path>` on branch `<branch>`, N/M tests green, awaiting `<gate>`" is the shape.
+5. **Answers the disclosure rows** (below) with a concrete item or an explicit `NONE`.
+6. **Replies with an explicit closeout status to Tower** (never a bare "done"):
+   - **`closed — clean`**: reached a clean stop, **postflight + sync committed**, gate exit 0, no uncommitted or half-done work, no open post-commit divergence audit.
+   - **`closed — parked`**: postflight + sync committed, but named work is deliberately parked — the reply carries its **location, active command/test state, and next gate** (e.g. "parked at `<worktree>` on `<branch>`, 17/17 tests green, awaiting Codex audit CLEAR + David push").
    - **`closeout-blocked`**: cannot reach a clean or cleanly-parked state (e.g. a mid-flight change that will not settle) — the reply says exactly what is unsettled and where, so Tower never mistakes it for a clean close.
 
-   A lane is not closed until its ledger + sync writes are on disk and its status reply is **delivery-verified** (cockpit-messaging skill) — a stranded `closed` is not a close.
+   A lane is not closed until its ledger + sync writes are **committed** and its status reply is **delivery-verified** (cockpit-messaging skill) — a stranded `closed` is not a close.
 
-**Durability is the whole point:** conversation memory does not survive the session; anything not written to disk at closeout is lost. A truthful `parked`/`blocked` status is itself durable state — a false `clean` is the failure mode the status vocabulary exists to prevent.
+**Durability is the whole point:** conversation memory does not survive the session; anything not committed at closeout is at risk, and anything living only in `/tmp` or a session scratchpad is already lost. A truthful `parked`/`blocked` status is itself durable state — a false `clean` is the failure mode the status vocabulary exists to prevent.
+
+#### Disclosure rows
+
+The pre-2026-07-26 closeout asked only for uncommitted work, half-done work, and background processes. It took a special David-ordered accountability probe to surface ten carried items from a single session — a placeholder written into a production `__init__.py`, a 12× rewrite of a numerical core taken on a lane's own judgment, three load-bearing numbers used without independent checking, and a contradiction between two of David's own rulings resolved unilaterally. Those questions are now standard. Each closeout answers, with a concrete item or an explicit `NONE`:
+
+1. **Authority** — a decision taken that was arguably David's or another lane's to make: a ruling conflict resolved alone, scope beyond the word given, a contract widened.
+2. **Unverified claims** — every load-bearing number or claim used but not independently checked, named with its provenance lane.
+3. **Deferred work** — authorized work quietly parked. Filing it as a future ticket is still deferring it.
+4. **Never told to David** — anything carried that has not reached him, including items that feel too small or too awkward to mention.
+5. **Open loops** — for every commit this session, whether its independent post-commit divergence audit is CLEAR or open with an owner. **An open audit makes the lane `parked`, not `clean`** (§Closing the loop already makes that audit mandatory; on 2026-07-25 two were parked, unstarted, while the close read as done).
+6. **Background** — for each process the gate reports, whether THIS session created it. A pre-existing process is not the lane's to stop, but it is the lane's to disclose.
+
+#### Cross-lane closeout audit
+
+**A lane may not audit its own close.** This mirrors §Falsification #4 and is now explicit at closeout scope, because on 2026-07-25 self-evidence failed repeatedly (a lane's own 27/27 probe missed six defects independent review then found) and the independent lane caught every one — including, during the rescue itself, six dead `/tmp` citations and a promoted reproducer that ran only on its author's machine.
+
+Each binding lane's closeout claims are verified by **the other binding lane** — Claude audits Codex's, Codex audits Claude's — against the repo, not against the prose. Tower ushers and sequences; Gemini receives awareness copies only (Operations & Telemetry seat, no judgment lane). The audit is bounded: run the gate, read the REPORT blocks, and challenge disclosure rows whose `NONE` looks too tidy.
+
+#### Verify the verifier
+
+A closeout **order** is prose written from conversation memory; repo state is a fact. On 2026-07-25 the closeout order asserted HEAD, which files were committed, what would stay uncommitted, and a reviewer's clearance — and was wrong on all four clauses; a separate step asked David to confirm six uncommitted files when there were eight.
+
+**No lane confirms a repo-state assertion it has not read from the repo itself.** When a closeout order states a SHA, a file's committed status, an ahead/behind count, or a lane's clearance, the receiving lane checks it against the repo and corrects it in its reply. Verdicts are verified against the ledger, never against pane text. The gate's `repo-facts` block exists to make this mechanical.
+
+Verifying the verifier extends past repo facts to **the gate's own honesty**: its checks must be exercised against **real positive controls**, not only synthetic fixtures, and it must not enforce a judgement it cannot actually make. Both failure modes were observed building this amendment — a fixture confirmed code the real input never exercised, and an exemption system built to let the gate enforce a distinction it could not decide became a larger defect source than the check it guarded. **A gate should enforce only what it can defend, and report the rest.**
+
+#### Flush vs terminal close
+
+The 2026-07-25 close reopened four times — ratification, a relay addendum, a push, a rule commit. Each was a legitimate new David word and a lane does not refuse those, but a close that reopens four times is a pause with a ceremony attached and the word stops meaning anything.
+
+A **flush** is repeatable and cheap: postflight written, committed, gate run, status reported. A **terminal close** happens once and ends the session (Tower's close is the terminal act). New David work after a flush **reopens the session** — the lane says so plainly and re-flushes. Do not spend the word `closed` on a close expected to reopen.
+
+#### Durable evidence, and the wire
+
+Evidence a closeout cites must live in the repo. On 2026-07-25 roughly thirty review packets, probes, and research reports existed only under `/tmp` or a session scratchpad, and the rescue that promoted them found the promoted documents still citing `/tmp` paths and a reproducer hardcoding `/Users/…` plus a sibling checkout — a promoted document pointing at a dead path is not durable evidence. Promoted reproducers derive their own repository root, take inputs as overridable arguments, verify input hashes, and refuse on mismatch.
+
+**Delivery is not durability.** When a report cannot be delivery-verified — the wire is down, a pane is blocked — the repo is the delivery channel: commit the artifact and cite its committed path rather than hand-carrying a temporary one. The gate's `ephemeral-locators` check ENFORCEs this over the lines a closeout adds, **with no exemptions**: do not write a session-scoped or machine-bound locator into the closeout record at all. To discuss one, describe it ("a session-scoped temp path") rather than reproducing it. Unresolved repo citations are surfaced as a **REPORT** for human audit rather than enforced — whether a path-shaped string is a binding citation or an example is not decidable from prose, and the machinery built to decide it produced more defects than the check it guarded [David, 2026-07-26].
 
 ### `AGENT_SYNC.md` serialization
 
