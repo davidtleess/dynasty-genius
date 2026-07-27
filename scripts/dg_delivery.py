@@ -64,6 +64,31 @@ _SEND_ID_RE = re.compile(r"\[(w#[a-z0-9]{1,16}-\d+)\]")
 # never left as literal pane text.
 _SGR_RE = re.compile(r"\x1b\[([0-9;:]*)m")
 _CHIP_RE = re.compile(r"\[Pasted text #\d+ \+(\d+) lines?\]")
+# WIRE-CHIP-1 (David-authorised 2026-07-26): the live Codex chrome collapses a long
+# paste to `[Pasted Content <N> chars]` — different wording from Claude's chip AND a
+# CHARACTER count rather than a line count. Recognising it needs its own pattern and
+# its own verification unit; a shared regex cannot serve both.
+_CHIP_CHARS_RE = re.compile(r"\[Pasted Content (\d+) chars?\]")
+# ANCHORED form (Codex r3/r4 Thread B): count equality is bounded evidence ONLY when the
+# entire composer IS the chip, on ONE line, prefixed only by chrome actually observed live.
+# The first form allowed any run of `>`, `|` and `\s` (including newline), so chip-shaped
+# Markdown/table prose satisfied the body check. ASCII `>` is rejected as a selection glyph
+# elsewhere in this same registry precisely because it collides with Markdown quoting, and
+# `|` is not a registered Codex prompt glyph — admitting them reintroduced a hazard the
+# registry had already removed. Evidenced live shapes are an empty prefix and `\u203a`.
+_CHIP_CHARS_ONLY_RE = re.compile(r"[ \t]*\u203a?[ \t]*\[Pasted Content (\d+) chars?\][ \t]*")
+
+
+def _chars_chip_count(visible: str) -> int | None:
+    """Advertised character count when the WHOLE composer is a chars chip, else None.
+
+    Fail-closed on anything else: multi-line content, unobserved glyphs, or surrounding
+    prose all return None, which the callers treat as `not a match`."""
+    text = (visible or "").strip("\r\n")
+    if "\n" in text:
+        return None
+    match = _CHIP_CHARS_ONLY_RE.fullmatch(text)
+    return int(match.group(1)) if match else None
 _OPTION_ROW_RE = re.compile(r"^\s*[❯›>]?\s*(\d+)\.\s+(.*)$")
 
 
@@ -81,6 +106,7 @@ class PaneProfile:
     name: str
     ready_markers: tuple[str, ...]
     chip_collapsing: bool = False
+    chip_chars: bool = False  # composer collapses to a CHARACTER-count chip
     bordered: bool = False
     selection_markers: tuple[str, ...] = ()
 
@@ -110,7 +136,14 @@ class PaneProfile:
         # live evidence lands (documented contract gap, not an oversight).
         "claude": {"ready": ("❯ ", "❯\u00a0"), "chip": True, "bordered": True,
                    "selection": ("❯",)},
-        "codex": {"ready": ("codex > ", "❯ ", "› "), "chip": False,
+        # WIRE-CHIP-1 (David-authorised 2026-07-26): the live codex composer DOES
+        # collapse a long paste, to a CHARACTER-count chip. `chip_chars` fixes body
+        # verification only; `chip` stays False so the carrier's orphan-adoption
+        # semantics are untouched by a delivery-scoped authorisation. Known residual,
+        # named not fixed: if the carrier is ever ARMED, codex strand adoption must be
+        # revisited, because a collapsed strand cannot be read and therefore cannot be
+        # proven to belong to its sender.
+        "codex": {"ready": ("codex > ", "❯ ", "› "), "chip": False, "chip_chars": True,
                   "bordered": False, "selection": ("❯", "›")},
         # The legacy bare "> " substring stays REMOVED: it matched ordinary
         # prose ("a > b") anywhere in the pane — a false-READY hazard. The
@@ -128,6 +161,7 @@ class PaneProfile:
             name=name,
             ready_markers=tuple(entry["ready"]),
             chip_collapsing=entry["chip"],
+            chip_chars=bool(entry.get("chip_chars", False)),
             bordered=bool(entry.get("bordered", False)),
             selection_markers=tuple(entry.get("selection", ())),
         )
@@ -977,9 +1011,7 @@ class DeliveryMachine:
             row["terminal"] = True
             return _result("refused", "pre_key_drift", phase="pasted", terminal=True,
                            meta={"send_id": send_id})
-        if _normalize_for_compare(strip_ghost(pre_key.input_region)).strip() != (
-            _normalize_for_compare(wire_body).strip()
-        ):
+        if not self._observed_matches_body(strip_ghost(pre_key.input_region), wire_body):
             self._transition(send_id, "manual_clear_required")
             row["terminal"] = True
             return _result("refused", "wire_body_mismatch", phase="pasted", terminal=True,
@@ -1047,6 +1079,13 @@ class DeliveryMachine:
         self._resolve_attempt(row, "delivery_unconfirmed", last_observation)
         self._transition(send_id, "delivery_unconfirmed")
         row["terminal"] = True
+        # A TERMINAL transaction must not hold a pane claim. `delivered_verified` above
+        # already releases; this branch did not, so an unconfirmed send held the pane
+        # forever and every later send was refused `pane_claim_lost` — three blocked
+        # deliveries on 2026-07-26 (David-authorised fix, Tower TW26O). The release is
+        # owner-bound and epoch-conditional, so it can never clear a foreign claim: an
+        # unconfirmed delivery gives up its claim, it does not seize anyone else's.
+        self._release_pane(pane_id, expected_owner=send_id)
         return _result(
             "unconfirmed", "delivery_unconfirmed", phase="submitted", terminal=True,
             attempts=row["attempts"], meta={"send_id": send_id},
@@ -1174,10 +1213,33 @@ class DeliveryMachine:
             return _result("composed_verified", "composed_verified")
         return _result("refused", outcome, terminal=False)
 
+    def _observed_matches_body(self, visible: str, wire_body: str) -> bool:
+        """Does the pane's input region demonstrably hold `wire_body`?
+
+        WIRE-CHIP-1: a collapsing composer shows a chip, not the text, so a literal
+        comparison can never succeed there. Patching only `_composed_matches` was
+        incomplete — the pre-key guard and both retry paths compared literally and still
+        refused `wire_body_mismatch` on a correct chip. Every site now shares this one
+        predicate. Fail-closed: an unmatched or absent chip is not a match."""
+        if self.profile.chip_chars:
+            advertised = _chars_chip_count(visible)
+            if advertised is not None:
+                return advertised == len(wire_body)
+        return (_normalize_for_compare(visible).strip()
+                == _normalize_for_compare(wire_body).strip())
+
     def _composed_matches(
         self, frame: Any, wire_body: str, *, expected_lines: int | None = None
     ) -> Any:
         visible = strip_ghost(frame.input_region)
+        if self.profile.chip_chars:
+            advertised = _chars_chip_count(visible)
+            if advertised is not None:
+                # Positive length proof against what was actually pasted (body + stamp).
+                # Unequal length is fail-closed: never guess at a body we cannot read.
+                if advertised != len(wire_body):
+                    return "input_not_verifiable"
+                return True
         chip = _CHIP_RE.search(visible)
         if self.profile.chip_collapsing and chip:
             advertised = int(chip.group(1)) + 1
@@ -1186,6 +1248,8 @@ class DeliveryMachine:
             return True
         if self.profile.chip_collapsing and expected_lines is not None and not chip:
             return "input_not_verifiable"
+        if self.profile.chip_collapsing and _CHIP_CHARS_RE.search(visible) and not chip:
+            return "input_not_verifiable"  # cross-unit chip: recognised, not verifiable
         if _visible_empty(frame.input_region, self.profile):
             return "input_not_verifiable"
         if _normalize_for_compare(visible).strip() == _normalize_for_compare(wire_body).strip():
@@ -1573,9 +1637,10 @@ class DeliveryMachine:
             return _result("refused", "profile_mismatch", terminal=True)
         if not self._claim_pane(row["pane_id"], send_id):
             return _result("refused", "pane_claim_lost", terminal=False)
-        recorded = _normalize_for_compare(str(row.get("wire_digest", ""))).strip()
-        observed = _normalize_for_compare(strip_ghost(recheck.input_region)).strip()
-        if not recorded or observed != recorded:
+        recorded = str(row.get("wire_digest", ""))
+        if not recorded.strip() or not self._observed_matches_body(
+            strip_ghost(recheck.input_region), recorded
+        ):
             return _result("refused", "wire_body_mismatch", terminal=True)
         row["attempts"] = int(row.get("attempts", 0)) + 1
         row["last_press_at"] = self._now()
@@ -1593,19 +1658,33 @@ class DeliveryMachine:
                            attempts=int(row.get("attempts", 0)))
         attempts = int(row.get("attempts", 0))
         if attempts >= 2:
+            # A terminal resolution must not retain the pane claim, and must mark the row
+            # terminal. This branch returned terminal=True while holding both, so the same
+            # `pane_claim_lost` jam stayed reachable by a second route (Codex r5).
+            row["terminal"] = True
+            self._release_pane(row["pane_id"], expected_owner=send_id)
             return _result(
                 "refused", "submit_attempts_exhausted", phase="submitted", terminal=True,
                 attempts=attempts,
             )
+        # Same invariant as the two repaired paths: a terminal resolution must not retain
+        # the claim, and must mark the row terminal. These three returned terminal while
+        # leaving the transaction resumable-looking and the pane held (Codex r6).
+        def _terminal(reason: str) -> SendResult:
+            row["terminal"] = True
+            self._release_pane(row["pane_id"], expected_owner=send_id)
+            return _result("refused", reason, terminal=True, attempts=attempts)
+
         frame, err = self._try_capture(row["pane_id"])
         if err is not None:
-            return _result("refused", "pane_unreadable", terminal=True, attempts=attempts)
+            return _terminal("pane_unreadable")
         if classify_pane(frame.raw, self.profile) is not PaneState.READY:
-            return _result("refused", "pane_not_ready", terminal=True, attempts=attempts)
-        recorded = _normalize_for_compare(str(row.get("wire_digest", ""))).strip()
-        observed = _normalize_for_compare(strip_ghost(frame.input_region)).strip()
-        if not recorded or observed != recorded:
-            return _result("refused", "wire_body_mismatch", terminal=True, attempts=attempts)
+            return _terminal("pane_not_ready")
+        recorded = str(row.get("wire_digest", ""))
+        if not recorded.strip() or not self._observed_matches_body(
+            strip_ghost(frame.input_region), recorded
+        ):
+            return _terminal("wire_body_mismatch")
         if not self._claim_pane(row["pane_id"], send_id):
             return _result("refused", "pane_claim_lost", terminal=False, attempts=attempts)
         attempts += 1
