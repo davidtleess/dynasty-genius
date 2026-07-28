@@ -45,21 +45,140 @@ def _load_prospect_pvos(path: Path = PROSPECT_CARDS_PATH) -> list[dict[str, Any]
     return [card for card in cards if card.get("sleeper_id")]
 
 
+# ── TW28 Units A + B: identity-join hardening ────────────────────────────────
+# The crosswalk is the only join between Engine B's gsis-keyed predictions and the
+# Sleeper-keyed universe. Before TW28 a missing file returned empty maps and every
+# modeled player was then dropped by a bare `continue`, so a refresh could publish a
+# universe with zero model values while passing every exit check.
+#
+# Every failure below raises a BARE machine token as its message: `run_pvo_refresh`
+# copies `str(exc)` straight into the governed report's `aborted_reason`, so prose in
+# the message would corrupt that truth surface.
+
+
+class _CrosswalkIndex(dict):
+    """A crosswalk index that also carries its parse-time duplicate count.
+
+    ``_load_ff_playerids`` must keep returning exactly two mappings — callers unpack a
+    2-tuple. Carrying the count on the mapping keeps the payload parsed exactly once,
+    so the count can never describe different bytes than the index it came from.
+    """
+
+    duplicate_count: int = 0
+
+
+def _crosswalk_identifier(entry: dict[str, Any], field: str) -> str | None:
+    """Return a source identifier, or None when absent.
+
+    JSON null stays absent rather than becoming the string ``"None"``. A non-string,
+    non-null value fails closed instead of being coerced: ``bool`` is an ``int``
+    subclass, so an explicit ``str`` check is what makes ``False`` and ``123`` both
+    reject. Empty and whitespace-only values are treated as absent, which preserves
+    the pre-TW28 loader's truthiness semantics so this change cannot silently alter
+    which rows join.
+    """
+    value = entry.get(field)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("ff_playerids_identifier_wrong_type")
+    return value.strip() or None
+
+
+def _is_identical_crosswalk_duplicate(
+    entry: dict[str, Any],
+    gsis_id: str | None,
+    sleeper_id: str | None,
+    by_gsis: dict[str, dict[str, Any]],
+    by_sleeper: dict[str, dict[str, Any]],
+) -> bool:
+    """True when this row repeats an already-indexed row exactly.
+
+    "Identical" is Python mapping equality AFTER JSON parsing, not serialized-slice
+    identity, so key order and whitespace in the source file are irrelevant.
+    """
+    if gsis_id is not None and by_gsis.get(gsis_id) == entry:
+        return True
+    return sleeper_id is not None and by_sleeper.get(sleeper_id) == entry
+
+
+def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Fail closed on a key repeated inside one JSON object.
+
+    ``json.loads`` keeps the LAST value for a repeated key, so
+    ``{"gsis_id": "00-good", "gsis_id": "00-wrong"}`` decodes as ``00-wrong`` and the
+    first value is already gone before any entry-level conflict check can see it.
+    Hardening the INDEX against last-write-wins was therefore not enough — the decoder
+    did it first, one level lower. Runs for every object in the payload, so a repeated
+    key anywhere fails the load rather than only inside an entry.
+    """
+    seen: set[str] = set()
+    for key, _value in pairs:
+        if key in seen:
+            raise ValueError("ff_playerids_duplicate_json_key")
+        seen.add(key)
+    return dict(pairs)
+
+
 def _load_ff_playerids(path: Path = FF_PLAYERIDS_PATH) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     if not path.exists():
-        return {}, {}
-    payload = _load_json(path)
-    entries = payload.get("entries") or []
-    by_gsis = {
-        str(entry["gsis_id"]): entry
-        for entry in entries
-        if entry.get("gsis_id")
-    }
-    by_sleeper = {
-        str(entry["sleeper_id"]): entry
-        for entry in entries
-        if entry.get("sleeper_id")
-    }
+        raise ValueError("ff_playerids_crosswalk_missing")
+    try:
+        # Decode explicitly rather than via `read_text()`. Undecodable bytes raise
+        # `UnicodeDecodeError`, which is itself a `ValueError` — so left uncaught it
+        # reaches the governed refresh report as an `aborted_reason` full of codec
+        # prose AND is type-indistinguishable from the named machine tokens above.
+        # Naming the encoding also removes a locale dependency from the load.
+        text = path.read_bytes().decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError("ff_playerids_crosswalk_invalid_json") from exc
+    try:
+        # A ValueError from the hook is not a JSONDecodeError, so the duplicate-key
+        # reason propagates unchanged through the clause below.
+        payload = json.loads(text, object_pairs_hook=_reject_duplicate_json_keys)
+    except json.JSONDecodeError as exc:
+        raise ValueError("ff_playerids_crosswalk_invalid_json") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("ff_playerids_payload_not_object")
+    entries = payload.get("entries")
+    if not isinstance(entries, list):
+        raise ValueError("ff_playerids_entries_not_list")
+
+    by_gsis = _CrosswalkIndex()
+    by_sleeper = _CrosswalkIndex()
+    duplicate_count = 0
+
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ValueError("ff_playerids_entry_not_object")
+        gsis_id = _crosswalk_identifier(entry, "gsis_id")
+        sleeper_id = _crosswalk_identifier(entry, "sleeper_id")
+
+        # A row carrying neither identifier joins nothing. That is not an error and
+        # not a duplicate — it simply never participates.
+        if gsis_id is None and sleeper_id is None:
+            continue
+
+        if _is_identical_crosswalk_duplicate(entry, gsis_id, sleeper_id, by_gsis, by_sleeper):
+            duplicate_count += 1
+            continue
+
+        # Validate both directions BEFORE committing either, so a rejected row never
+        # leaves a half-written index behind. A conflicting mapping fails closed;
+        # the pre-TW28 dict comprehensions resolved it by last-write-wins, silently
+        # choosing one player's identity over another's.
+        if gsis_id is not None and gsis_id in by_gsis:
+            raise ValueError("ff_playerids_conflicting_gsis_mapping")
+        if sleeper_id is not None and sleeper_id in by_sleeper:
+            raise ValueError("ff_playerids_conflicting_sleeper_mapping")
+
+        if gsis_id is not None:
+            by_gsis[gsis_id] = entry
+        if sleeper_id is not None:
+            by_sleeper[sleeper_id] = entry
+
+    by_gsis.duplicate_count = duplicate_count
+    by_sleeper.duplicate_count = duplicate_count
     return by_gsis, by_sleeper
 
 
@@ -81,6 +200,42 @@ def _load_engine_b_feature_rows(path: Path = ENGINE_B_FEATURES_PATH) -> dict[str
     return rows
 
 
+class _ActivePvoBatch(list):
+    """Active PVO rows, plus the identity-join accounting for the coverage report.
+
+    ``main`` calls ``_active_pvos_from_engine_b()`` with no arguments, and an existing
+    sibling contract (``tests/contract/test_pvo_refresh_runner.py``) replaces it with a
+    zero-argument lambda returning a plain ``list``. Carrying the accounting on the
+    returned list preserves both that arity and that return type, so hardening this
+    producer cannot break a contract that predates it.
+    """
+
+    join_accounting: dict[str, Any]
+
+
+def _orphan_record(
+    gsis_id: str,
+    ff_entry: dict[str, Any] | None,
+    feature_row: dict[str, Any] | None,
+    prediction: dict[str, Any],
+    reason: str,
+) -> dict[str, Any]:
+    """One dropped prediction, described only by facts that actually exist.
+
+    A value we do not have stays JSON null; nothing here is inferred from a name or
+    filled in from a neighbouring row. When the crosswalk entry exists its facts win,
+    because they are the join side that failed.
+    """
+    row = feature_row or {}
+    if ff_entry is not None:
+        name = ff_entry.get("name")
+        position = ff_entry.get("position")
+    else:
+        name = row.get("full_name")
+        position = row.get("position") or prediction.get("position")
+    return {"gsis_id": gsis_id, "name": name, "position": position, "reason": reason}
+
+
 def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
     ff_by_gsis, _ = _load_ff_playerids()
     # Resolve the feature source ONCE so the row-read and the predictions share a single,
@@ -91,20 +246,55 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
     feature_meta = feature_source.metadata()
     feature_rows = _load_engine_b_feature_rows(feature_source.path)
     predictions = score_inference_partition(feature_source=feature_source)
-    pvos: list[dict[str, Any]] = []
-    seen_sleepers: set[str] = set()
+    if not predictions:
+        raise ValueError("engine_b_predictions_empty")
 
+    # Collapse repeated predictions on the gsis key BEFORE joining. The pre-TW28 loop
+    # deduplicated on the SLEEPER side through a `seen_sleepers` set and said nothing
+    # about what it dropped — the same silent-resolution defect as the crosswalk's
+    # last-write-wins indexes. That set is gone rather than merely reported: because
+    # conflicting Sleeper mappings now fail closed at parse time, two distinct gsis
+    # can no longer resolve to one Sleeper id, so the condition it guarded is
+    # unreachable.
+    unique_predictions: dict[str, dict[str, Any]] = {}
+    prediction_duplicate_count = 0
     for prediction in predictions:
-        gsis_id = prediction.get("player_id")
-        if not gsis_id:
+        raw_gsis = prediction.get("player_id")
+        if not raw_gsis:
+            # Not in the RED's rows. Failing closed is the deliberate choice: a
+            # prediction with no identifier cannot be joined, reported as an orphan
+            # (it has no key to sort or name), or dropped without repeating the exact
+            # silence this unit removes.
+            raise ValueError("engine_b_prediction_gsis_missing")
+        gsis_key = str(raw_gsis)
+        existing = unique_predictions.get(gsis_key)
+        if existing is not None:
+            if existing == prediction:
+                prediction_duplicate_count += 1
+                continue
+            raise ValueError("engine_b_prediction_conflict")
+        unique_predictions[gsis_key] = prediction
+
+    pvos: list[dict[str, Any]] = []
+    orphan_records: list[dict[str, Any]] = []
+
+    for gsis_id, prediction in unique_predictions.items():
+        ff_entry = ff_by_gsis.get(gsis_id)
+        if ff_entry is None:
+            orphan_records.append(
+                _orphan_record(
+                    gsis_id, None, feature_rows.get(gsis_id), prediction, "crosswalk_entry_missing"
+                )
+            )
             continue
-        ff_entry = ff_by_gsis.get(str(gsis_id))
-        if not ff_entry or not ff_entry.get("sleeper_id"):
+        sleeper_id = _crosswalk_identifier(ff_entry, "sleeper_id")
+        if sleeper_id is None:
+            orphan_records.append(
+                _orphan_record(
+                    gsis_id, ff_entry, feature_rows.get(gsis_id), prediction, "sleeper_id_missing"
+                )
+            )
             continue
-        sleeper_id = str(ff_entry["sleeper_id"])
-        if sleeper_id in seen_sleepers:
-            continue
-        seen_sleepers.add(sleeper_id)
 
         features = feature_rows.get(str(gsis_id), {}).copy()
         features["engine_b_score"] = prediction
@@ -133,7 +323,26 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
         )
         pvos.append(pvo.model_dump())
 
-    return pvos
+    # Zero successful joins is refused. David's split rationale names the empty-board
+    # publication risk directly, so an artifact carrying no model value at all does not
+    # ship. This deliberately states NO partial-coverage floor: what fraction of missing
+    # joins makes the artifact untrustworthy is a David-owned policy question (framing
+    # v4 §0.2), and neither this code nor its comments assert that no threshold exists.
+    if not pvos:
+        raise ValueError("engine_b_identity_join_zero_success")
+
+    batch = _ActivePvoBatch(pvos)
+    batch.join_accounting = {
+        # The raw input count, duplicates included — it answers "how many rows arrived",
+        # which is a different question from how many distinct players were joined.
+        "prediction_count": len(predictions),
+        "join_success_count": len(pvos),
+        "orphan_count": len(orphan_records),
+        "orphan_records": sorted(orphan_records, key=lambda record: record["gsis_id"]),
+        "crosswalk_duplicate_count": getattr(ff_by_gsis, "duplicate_count", 0),
+        "prediction_duplicate_count": prediction_duplicate_count,
+    }
+    return batch
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -150,12 +359,24 @@ def main(argv: list[str] | None = None) -> None:
     output_dir = Path(args.output_dir) if args.output_dir else OUTPUT_DIR
     snapshot = _load_json(SNAPSHOT_PATH)
     captured_at = datetime.now(timezone.utc).isoformat()
+    active_pvos = _active_pvos_from_engine_b()
     batch = build_universe_pvo_batch(
         snapshot,
         prospect_pvos=_load_prospect_pvos(),
-        active_pvos=_active_pvos_from_engine_b(),
+        active_pvos=active_pvos,
         captured_at=captured_at,
     )
+    # Unit B: the identity-join accounting rides into the coverage report here rather
+    # than inside `build_universe_pvo_batch`, which keeps this thread's change inside
+    # the producer script and out of the shared batch module.
+    #
+    # The attribute is absent only when a caller has replaced the producer function
+    # entirely (the sibling runner contract substitutes a plain list to bypass Engine B).
+    # In that case no join ran, so there is no accounting to report — this is not a
+    # silent skip of a real result.
+    join_accounting = getattr(active_pvos, "join_accounting", None)
+    if join_accounting is not None:
+        batch["coverage"]["engine_b_identity_join"] = join_accounting
     run_id = args.run_id or datetime.now(timezone.utc).strftime("phase17-2-%Y%m%dT%H%M%SZ")
     paths = write_universe_pvo_artifacts(batch, output_dir=output_dir, run_id=run_id)
     print(f"Wrote Phase 17.2 universe PVO batch: {paths['batch']}")

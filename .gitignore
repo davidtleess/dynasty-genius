@@ -119,7 +119,14 @@ app/data/backtest/phase16/
 
 # Identity audit run artifacts — raw cohort fixtures (may contain DOB/source IDs), untracked
 # Promoted governance artifacts in app/data/identity/ are committed only after David approval
-app/data/identity/_runs/
+#
+# TW28 Unit D: the frozen gsis→Sleeper crosswalk this directory holds is the production
+# dependency `scripts/build_universe_pvo_batch.py` resolves, so it is tracked while its
+# siblings stay ignored. The pattern excludes the directory's CONTENTS (`/*`) rather than
+# the directory itself — git cannot re-include a child whose parent directory is excluded,
+# so a bare negation under `_runs/` would leave the payload untracked.
+app/data/identity/_runs/*
+!app/data/identity/_runs/ff_playerids_20260516.json
 
 # PFF manual exports and local manifests are private subscriber data / local paths
 app/data/pff_exports/
