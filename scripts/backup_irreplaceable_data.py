@@ -63,6 +63,28 @@ DEFAULT_GCLOUD_CANDIDATES = (
 class BackupError(Exception):
     """A named, fail-closed backup failure. str(exc) is the marker reason."""
 
+    @property
+    def reasons(self) -> list[str]:
+        """Every marker reason this failure carries. One, unless overridden."""
+        return [str(self)]
+
+
+class ManifestScanError(BackupError):
+    """Every required-store failure found in one manifest scan, not just the first.
+
+    Reasons are sorted so the reported set is a property of the manifest's CONTENT,
+    never of its declaration ORDER — reversing two entries must not change which
+    failure a run reports (Codex r2 HIGH, 2026-07-27).
+    """
+
+    def __init__(self, reasons: list[str]) -> None:
+        self._reasons = sorted(reasons)
+        super().__init__("; ".join(self._reasons))
+
+    @property
+    def reasons(self) -> list[str]:
+        return list(self._reasons)
+
 
 def _validate_manifest_shape(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict):
@@ -187,34 +209,70 @@ def run_backup(
         # A directory entry expands to its regular-file members BEFORE any gcloud
         # interaction, so symlink rejection can never be masked by auth/upload state.
         staging_units: list[tuple[str, Path, str]] = []
+        # Every entry is validated before any of them can abort the scan, and each
+        # entry's failure is collected rather than raised. Raising inside the loop
+        # made required-store truth depend on manifest ORDER: the first failing
+        # entry was the only one reported and every later required entry went
+        # unvalidated, so a real defect could go silent purely because another
+        # entry was declared before it — the exact silence this ticket exists to
+        # cure. Reasons are sorted, so reversing declaration order cannot change
+        # the reported set. No side effect occurs here: staging and every gcloud
+        # interaction happen after this scan, so an aborted scan uploads nothing.
+        entry_failures: list[str] = []
         for entry in entries:
-            source = _validate_entry_path(entry["path"], repo_root)
-            unresolved_source = repo_root / entry["path"]
-            if not source.exists():
-                if entry["required"]:
-                    raise BackupError(f"missing_required:{entry['path']}")
-                failures.append(f"missing_optional:{entry['path']}")
-                continue
-            if entry["kind"] == "directory":
-                # The entry itself must be a real directory — never a symlink,
-                # even one that resolves inside the repo.
-                if unresolved_source.is_symlink():
-                    raise BackupError(f"directory_symlink:{entry['path']}")
-                if not unresolved_source.is_dir():
-                    # A regular file where a directory is declared must fail
-                    # loudly — rglob on a file is silently empty, which would
-                    # read as a completed zero-inventory backup.
-                    raise BackupError(f"directory_not_directory:{entry['path']}")
-                for member in sorted(unresolved_source.rglob("*")):
-                    member_rel = member.relative_to(repo_root).as_posix()
-                    if member.is_symlink():
-                        raise BackupError(f"directory_symlink:{member_rel}")
-                    if member.is_file():
-                        staging_units.append((member_rel, member, "file"))
-                # An empty existing directory contributes zero units and is a
-                # verified empty inventory, not a failure.
-            else:
-                staging_units.append((entry["path"], source, entry["kind"]))
+            try:
+                source = _validate_entry_path(entry["path"], repo_root)
+                unresolved_source = repo_root / entry["path"]
+                if not source.exists():
+                    if entry["required"]:
+                        raise BackupError(f"missing_required:{entry['path']}")
+                    failures.append(f"missing_optional:{entry['path']}")
+                    continue
+                if entry["kind"] == "directory":
+                    # The entry itself must be a real directory — never a symlink,
+                    # even one that resolves inside the repo.
+                    if unresolved_source.is_symlink():
+                        raise BackupError(f"directory_symlink:{entry['path']}")
+                    if not unresolved_source.is_dir():
+                        # A regular file where a directory is declared must fail
+                        # loudly — rglob on a file is silently empty, which would
+                        # read as a completed zero-inventory backup.
+                        raise BackupError(f"directory_not_directory:{entry['path']}")
+                    units_before = len(staging_units)
+                    for member in sorted(unresolved_source.rglob("*")):
+                        member_rel = member.relative_to(repo_root).as_posix()
+                        if member.is_symlink():
+                            raise BackupError(f"directory_symlink:{member_rel}")
+                        if member.is_file():
+                            staging_units.append((member_rel, member, "file"))
+                    # DGX-02 per-store coverage: a REQUIRED directory that expands
+                    # to zero files is an unprotected irreplaceable store, and the
+                    # run-wide empty-inventory guard below cannot see it whenever
+                    # any other entry contributes a file. Without this, emptying
+                    # app/data/league_snapshots/ — the exact disaster this manifest
+                    # exists to survive — would still report completed with
+                    # sha256_verified=true. `required: false` still means tolerated:
+                    # an empty optional store contributes nothing, not a failure.
+                    if entry["required"] and len(staging_units) == units_before:
+                        raise BackupError(f"directory_empty_required:{entry['path']}")
+                else:
+                    staging_units.append((entry["path"], source, entry["kind"]))
+            except BackupError as exc:
+                entry_failures.append(str(exc))
+        if entry_failures:
+            raise ManifestScanError(entry_failures)
+
+        # DGX-02 silent-failure guard: a run that stages zero files protects
+        # nothing, and a backup that protects nothing must say so. Without this,
+        # an empty or all-missing-optional manifest uploaded only run_inventory.json,
+        # passed verification vacuously (expected_objects == 1), advanced the
+        # latest.json pointer, and wrote a `completed` marker with
+        # sha256_verified=true over an empty payload — success reported for a
+        # protected set of nothing. Checked BEFORE gcloud resolution so no bucket
+        # is touched, the pointer cannot advance, and the reason is never masked
+        # by an auth or binary-resolution failure.
+        if not staging_units:
+            raise BackupError("empty_inventory")
 
         # Resolve the gcloud runner only after required-source validation, so a
         # gcloud_not_found failure can never mask a missing_required:* reason. A
@@ -313,7 +371,7 @@ def run_backup(
 
         status = "completed"
     except BackupError as exc:
-        failures.append(str(exc))
+        failures.extend(exc.reasons)
     except Exception as exc:  # fail closed on anything unforeseen
         failures.append(f"unexpected:{type(exc).__name__}")
     finally:

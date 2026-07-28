@@ -196,7 +196,25 @@ def test_directory_entry_rejects_a_regular_file_before_auth_or_upload(tmp_path: 
     assert gcloud.calls == []
 
 
-def test_empty_existing_directory_is_a_verified_empty_inventory(tmp_path: Path) -> None:
+def test_empty_existing_required_directory_fails_as_an_unprotected_store(
+    tmp_path: Path,
+) -> None:
+    """INVERTED by DGX-02 — David's words, 2026-07-27.
+
+    Part (b), TW27B: *"an empty or zero-file manifest run must FAIL LOUDLY and
+    non-zero, never report completed with sha256_verified true."*
+    The fold-in, TW27G: *"a required directory that expands to zero files must fail
+    loudly, not ride along silently while other entries contribute files."*
+
+    This row previously asserted ``status == "completed"`` with ``files == 0``:
+    a run protecting nothing reported success with ``sha256_verified`` true. The
+    directory-expansion semantics it was really pinning are unchanged and still
+    asserted here — an empty existing directory expands to zero units and is NOT
+    misclassified as ``directory_not_directory`` or ``directory_symlink``. What
+    changed is the outcome. The entry here is ``required``, so the specific
+    per-store reason fires rather than the run-wide ``empty_inventory``; both
+    guards are contracted in ``tests/contract/test_dgx02_backup_coverage_red.py``.
+    """
     repo = tmp_path / "repo"
     (repo / "app" / "data" / "league_runtime" / "runs").mkdir(parents=True)
     gcloud = FakeGcloud()
@@ -209,9 +227,12 @@ def test_empty_existing_directory_is_a_verified_empty_inventory(tmp_path: Path) 
         verifier=lambda **kwargs: seen.append(kwargs["inventory"]) is None,
     )
 
-    assert result["status"] == "completed"
+    assert result["status"] == "failed"
     assert result["files"] == 0
-    assert seen == [[]]
+    assert result["failures"] == ["directory_empty_required:app/data/league_runtime/runs"]
+    assert result["sha256_verified"] is False
+    assert seen == [], "verification must not run on an empty payload"
+    assert gcloud.calls == []
 
 
 def test_real_restore_verifier_checks_each_expanded_directory_member() -> None:

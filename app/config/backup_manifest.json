@@ -160,6 +160,21 @@
       "path": "app/data/research/league_behavior/raw",
       "required": true,
       "kind": "directory"
+    },
+    {
+      "path": "app/data/prospect_identity_review.jsonl",
+      "required": true,
+      "kind": "file"
+    },
+    {
+      "path": "app/data/pff_exports",
+      "required": true,
+      "kind": "directory"
+    },
+    {
+      "path": "app/data/league_snapshots",
+      "required": true,
+      "kind": "directory"
     }
   ],
   "optional": [
