@@ -1,0 +1,66 @@
+feat(identity): TW28 Units A/B/D — crosswalk fails closed, orphans named, payload pinned (David-worded)
+
+Thread 1 of David's split ("split it"). Units A, B and D only. Unit C (the David-facing
+degradation copy) is a separate thread and deliberately shares no commit with this one.
+
+WHAT CHANGES
+  A. The gsis->Sleeper crosswalk now fails CLOSED. Before this, a missing file returned
+     empty maps and every Engine B player was dropped by a bare `continue`, so the refresh
+     published a universe with zero model values that satisfied every Phase-17.2 exit check.
+     Named machine reasons (bare tokens, because run_pvo_refresh copies str(exc) verbatim
+     into the governed aborted_reason): crosswalk_missing, crosswalk_invalid_json,
+     payload_not_object, entries_not_list, entry_not_object, identifier_wrong_type,
+     conflicting_gsis_mapping, conflicting_sleeper_mapping, duplicate_json_key.
+     Conflicting mappings fail closed rather than resolving last-write-wins.
+  B. coverage.engine_b_identity_join reports prediction_count, join_success_count,
+     orphan_count, orphan_records (sorted by gsis_id, no fabricated athlete facts),
+     crosswalk_duplicate_count and prediction_duplicate_count. The `seen_sleepers` silent
+     skip is REMOVED rather than reported: conflicting Sleeper mappings now fail at parse
+     time, so two gsis can no longer resolve to one Sleeper id and the guarded condition is
+     unreachable. Zero successful joins refuses; an empty prediction set refuses.
+  D. The exact production dependency is tracked and byte-pinned:
+     app/data/identity/_runs/ff_playerids_20260516.json,
+     sha256 8ed4b67578d06a24527356f9f355ed97f12be827e34885270c0b1d28c079f593.
+     .gitignore excludes the directory's CONTENTS and negates this one child, because git
+     cannot re-include a child whose parent directory is excluded. Siblings stay ignored.
+     This pins BYTES ONLY — the snapshot records source, pull_timestamp and count with no
+     upstream commit SHA, so the upstream revision is NOT pinned and this commit does not
+     claim it is.
+
+DELIBERATELY ABSENT
+  No partial-coverage threshold, in either direction. `>=1 join` is itself a 1/503 floor;
+  what fraction of missing joins makes the artifact untrustworthy is David's open policy
+  question (framing v4 §0.2) and neither the code nor its comments claim otherwise.
+
+DECISIONS BEYOND THE RED'S ROWS, all fail-closed, all disclosed in review
+  - engine_b_prediction_gsis_missing: a prediction with no identifier refuses; it cannot be
+    joined, cannot be an orphan (no key to sort or name), and dropping it would repeat the
+    silence this unit removes.
+  - Same gsis AND same sleeper but differing descriptive facts refuses, because tolerating
+    it means silently choosing one row's name over another's.
+  - Empty/whitespace identifiers are treated as ABSENT, preserving the pre-TW28 truthiness
+    semantics so this change cannot silently alter which rows join.
+  - The duplicate-key hook covers every object in the payload, not only entries, so a
+    repeated key in the metadata block cannot silently redirect provenance either.
+
+KNOWN GAPS, enumerated rather than implied
+  - _load_json (this file, the SLEEPER SNAPSHOT and prospect-card loader) still carries both
+    decoder defects fixed here for the crosswalk. NOT fixed: outside the review's scope.
+    Named follow-up, disclosed to David.
+  - Unit C is untouched, so the false "No active model score for this player category"
+    sentence (3,453 rows, two rendered surfaces), the 113 MODEL_UNCERTAIN rows presented as
+    "Modeled", and the "0" sentinel answering HTTP 200 all remain live.
+  - Two container subclasses (_CrosswalkIndex, _ActivePvoBatch) carry parse-time facts
+    because an existing sibling contract monkeypatches the producer with a zero-argument
+    lambda returning a plain list, and the loader's 2-tuple shape is asserted by the RED.
+
+CHECKS
+  focused RED 21/21 (attribution reproduced twice: 18F/1P then 2F/19P, RED never edited);
+  sibling slice 22/22; FULL Python suite 3,949 passed / 12 skipped / 9 xfailed / 0 failed;
+  ruff `src app` clean; ruff on the touched file clean; git diff --check clean.
+  Positive control: the real payload still parses to 7,952 gsis / 6,117 sleeper / 0
+  duplicates, identical to the pre-change measurement, so today's board does not move.
+  Codex independently reproduced 503 predictions -> 501 joins + the exact 2 sorted orphans
+  on live data. No production refresh was run.
+
+NOT PUSHED — the push is a separate David word.
