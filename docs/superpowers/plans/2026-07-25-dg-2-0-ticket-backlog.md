@@ -1,18 +1,26 @@
 # DG 2.0 — ticket backlog v3 (EPIC → SPRINTS → TICKETS)
 
-**Date:** 2026-07-25 · **Revision v3**, authored after **three independent fresh-engineer reviews** returned **5 / 9 / 26 FAILs** on the same 41 tickets against the same standard.
+**Date:** 2026-07-25 · **Revision v3**, authored after three independent fresh-engineer reviews of the same tickets against the same standard.
 **Epic:** DG 2.0 — the dynasty-horizon rebuild · **Spec of record:** `docs/superpowers/specs/2026-07-25-dg-2-0-dynasty-horizon-rebuild-design.md`
-**Status:** DRAFT — awaiting Codex binding review. **No implementation, ingestion, commit, push, or wire action authorized.**
-**Flow:** Claude authors · **Codex gives the binding review** · iterate to an enumerated CLEAR. Tower carries packets and reports the outcome; it does not arbitrate substance.
+**Status (2026-07-26): REVIEWED AND IN EXECUTION. Sprint 0 is OPEN** (David, 2026-07-26). Codex's binding review happened; the reviewed substance is on `origin/main`. Commits and pushes still require David's word.
+**Flow:** Claude implements · **Codex gives the binding adversarial review** · Gemini supplies independent reproduction of stated measurements. Tower carries packets and reports outcomes; it does not arbitrate substance.
 
-> **The spread was a definition problem, not a quality problem.** The three reviewers disagreed almost entirely about **where "necessary constraint" ends and "prescribing the HOW" begins** — two lanes independently rejected their own reviewer on that axis. That question is **NOT settled here**: it is a separate PROPOSAL for David at `docs/superpowers/specs/2026-07-25-constraint-vs-how-boundary-proposal.md`. **v3 is written to the strictest defensible reading (Candidate B)** so that a permissive ruling can only *relax* it, never invalidate it.
+> **THE BOUNDARY QUESTION IS SETTLED. RULING K IS RATIFIED AND IN THE REPO** at `docs/governance/rulings/2026-07-25-ticket-scope-boundary-rule.md`:
+>
+> *"A ticket states required observable outcomes and may name an internal technical restriction only when it cites a pre-existing, owner-ratified boundary and explains the consequence it protects; otherwise design, dependencies, tools, implementation sequence, and test method belong to the developer."*
+>
+> **Both riders bind:** unresolved or contested cases **default to developer freedom**; and **process requirements — RED-first, independent review, second-lane reproduction — live in a program-wide Definition of Done, NOT inside ticket acceptance criteria.**
+>
+> **SUPERSEDED, do not follow:** the earlier constraint-versus-how *proposal* was **rejected by David** (its framing was Tower-contaminated), and the "strictest defensible reading / Candidate B" standard this backlog was originally written to is **superseded by Ruling K**. Any ticket text still written to Candidate B is stricter than the ratified rule requires; that is a defect to repair when the ticket is picked up, not a standard to preserve.
+>
+> **Verification is per-ticket, not a batch pass** (David, 2026-07-26): a ticket is checked against Ruling K **as the first step of working it**, and a failure is repaired in the same breath. There is no 49-ticket audit project.
 
 ## What v3 fixes — the six defects all three reviewers converged on
 
 1. **Safe-fallback ACs repaired.** No AC may be closed by writing a statement. The floored-at-zero *product behaviour* is correct and **stays** — it is a runtime safe default, never an acceptance criterion.
 2. **Problem statements added** to every ticket that lacked one (S2-04, S4-01, S4-03, S5-01a).
 3. **Execution order fixed — and I say which.** See "The ordering fix" below.
-4. **Stream pre-answering neutralised.** Construction-neutral ticket names; the alternative construction now has build tickets; the Ruling F/J contradiction is escalated to David rather than resolved by me again.
+4. **Stream pre-answering neutralised.** Construction-neutral ticket names; the alternative construction now has build tickets. *(The Ruling F/J contradiction was escalated and is no longer open here — the boundary question it fed is settled by Ruling K, above.)*
 5. **Assembly and `rent_t` now have owners** (S3-07, S3-08) — the epic previously had no ticket that produced the thing it exists to produce.
 6. **Late-bound thresholds** now name **WHO** declares, **WHEN**, and that the value is **frozen before any result is seen**. Pre-registration, not improvisation.
 
@@ -61,7 +69,7 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 | Pick curve + SF knob | `scripts/build_draft_pick_value_curve.py:34` (`_SF_QB_PROMOTE_SLOTS = 0`) · `src/dynasty_genius/trade_lab/draft_pick_valuation.py:68-80` |
 | Rulings A–J | `~/.claude/projects/-Users-davidleess/memory/david_rulings_2026-07-25_dg2.md` — **outside any clone. See RISK-1.** |
 
-**RISK-1, unresolved and escalated:** the Rulings are cited as binding by ~12 tickets and live in a machine-local personal directory. Eleven further cited inputs live in `/tmp`, which macOS purges. **A developer with a fresh clone cannot read the reasoning this epic rests on.** A durable in-repo home is **proposed, not taken** — it is a David commit decision. *(All three reviewers reached this independently; Claude ranks it the epic's third-worst problem and the only one that worsens with time.)*
+**RISK-1 — CLOSED 2026-07-26.** The cited session artifacts were promoted into the clone at `docs/agent-ledger/evidence/2026-07-25/`, and Ruling K is in the repo at `docs/governance/rulings/2026-07-25-ticket-scope-boundary-rule.md`. **Residual, named not fixed:** Rulings A–J are still cited from a machine-local personal directory outside any clone; a developer with a fresh clone cannot read them. That residual is the only part of RISK-1 still open.
 
 **Numbering note:** there is no S0-06. It was the TEP record, moved to the spec's status register in v2. The gap is deliberate.
 
@@ -145,7 +153,8 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 ### DG2-S0-01 — Rank-population mismatch ⚑ HIGHEST · Size M
 - **Problem:** our side and the market side are ranked over different populations, so the divergence is not like-for-like.
 - **Context:** rebasing moves the average delta **10.67 pp** and changes **127 of 338** noise-band classifications — larger than the age effect it is used to investigate.
-- **AC:** (1) the common cohort is defined with its inclusion rule; (2) a rebased divergence exists for the same snapshot date; (3) the reclassification count is **independently reproduced to within ±2 rows** *(who reproduces it is not specified — the requirement is independent reproduction)*; (4) current and rebased average delta both reported.
+- **AC:** (1) the common cohort is defined with its inclusion rule; (2) a rebased divergence exists for the same snapshot date; (3) the reclassification count is reported and **reproducible from source to within ±2 rows**; (4) current and rebased average delta both reported.
+- **Ruling-K check (2026-07-26, on pick-up):** ACs state observable outcomes and name no design, tool, or sequence. **One repair made:** AC(3) previously required the count be *independently* reproduced — a **process** requirement, which Ruling K's rider places in the program-wide Definition of Done, not in a ticket AC. The AC now states the observable property (reproducible to ±2 rows); the independence requirement stands in the DoD, and David assigned this ticket's reproduction to Gemini.
 - **Falsifier:** < 34 of 338 reclassified ⇒ cosmetic, drops priority.
 - **Deps:** none. **Blocks:** S4-01, S4-02, and any age conclusion. **Fails loudly:** a non-common-cohort run refuses by name.
 
