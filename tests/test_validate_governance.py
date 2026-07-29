@@ -33,6 +33,7 @@ def test_governance_validator_requires_design_foundation_bootstrap_and_audit_con
         "docs/governance/01-north-star-architecture.md",
         "docs/governance/02-agent-operating-loop.md",
         "docs/governance/03-code-hygiene-policy.md",
+        "docs/governance/05-layer-doctrine.md",
         "PRODUCT.md",
         "DESIGN.md",
         "AGENT_SYNC.md",
@@ -56,6 +57,65 @@ def test_governance_validator_requires_design_foundation_bootstrap_and_audit_con
     assert "Shape before code (pre-build)." in design_phrases
     assert "The unanchored scored audit" in design_phrases
     assert "mid-scroll captures" in design_phrases
+
+
+def test_governance_validator_enforces_layer_doctrine() -> None:
+    """Every bootstrap file must point at 05 and carry its pending boundary.
+
+    The every-session read requirement is agent-authored and PENDING David's
+    ratification; this test pins the pointer and the boundary, NOT the read as law.
+
+    Regression guard for the 2026-07-28 gap: the validator PASSED while no bootstrap
+    file mentioned 05 at all. A passing gate that does not know a required file
+    exists is adverse evidence, not assurance.
+    """
+    assert "docs/governance/05-layer-doctrine.md" in validate_governance.REQUIRED_FILES
+    assert (
+        "docs/governance/05-layer-doctrine.md"
+        in validate_governance.REQUIRED_BOOTSTRAP_TARGETS
+    )
+
+    doctrine_phrases = validate_governance.REQUIRED_GOVERNANCE_PHRASES[
+        "docs/governance/05-layer-doctrine.md"
+    ]
+    # David's verbatim ruling — the load-bearing sentence of the doctrine.
+    assert "if we don't have this our app WILL NOT WORK" in doctrine_phrases
+    # The attribution split. v1.0.0 attributed the whole file to David, which was false;
+    # pinning it makes that regression mechanical rather than a matter of reviewer memory.
+    assert "§2 onward is agent-authored codification" in doctrine_phrases
+    # The central pending-activation markers.
+    assert "authority_section_2_onward: PENDING" in doctrine_phrases
+    assert (
+        "pending_activation:"
+        in validate_governance.REQUIRED_GOVERNANCE_PHRASES[
+            "docs/governance/02-agent-operating-loop.md"
+        ]
+    )
+
+
+def test_bootstrap_files_must_mark_the_pending_ritual_pending() -> None:
+    """First-contact surfaces must not command unratified rules as law.
+
+    Regression guard for the 2026-07-28 authority-leak family, which recurred five
+    times. The central 05/02 pins CANNOT catch this: strip the activation status from
+    a bootstrap pointer and it still names the 05 path, so the target check passes
+    while an agent reads an agent-authored ritual as binding on first contact.
+
+    05 §1 is David's words and stands on his authority. The every-session READ
+    requirement and the ritual obligations are both agent-authored and stay pending
+    until he ratifies them.
+    """
+    assert "PENDING DAVID'S RATIFICATION" in validate_governance.REQUIRED_BOOTSTRAP_PHRASES
+    assert "NOT YET BINDING" in validate_governance.REQUIRED_BOOTSTRAP_PHRASES
+
+    for file_name in validate_governance.BOOTSTRAP_FILES:
+        path = validate_governance.ROOT / file_name
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for phrase in validate_governance.REQUIRED_BOOTSTRAP_PHRASES:
+            assert phrase in text, f"{file_name} is missing the pending marker {phrase!r}"
+
 
 
 def test_governance_validator_rejects_tracked_local_hook_enablement(monkeypatch) -> None:

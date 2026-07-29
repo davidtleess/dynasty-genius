@@ -15,6 +15,7 @@ REQUIRED_FILES = [
     "docs/governance/01-north-star-architecture.md",
     "docs/governance/02-agent-operating-loop.md",
     "docs/governance/03-code-hygiene-policy.md",
+    "docs/governance/05-layer-doctrine.md",
     "docs/governance/archive/originals/DYNASTY_GENIUS_FRAMEWORK.original.md",
     "docs/governance/archive/originals/DYNASTY_GENIUS_NORTH_STAR.original.md",
     "docs/governance/archive/originals/DYNASTY_GENIUS_PRODUCT_DESIGN.original.md",
@@ -47,11 +48,26 @@ BOOTSTRAP_FILES = [
     "docs/README.md",
 ]
 
+# Every bootstrap file is a FIRST-CONTACT surface: an agent reads it before any
+# governance doc. If a pointer commands 05's agent-authored ritual without saying it
+# is pending David's ratification, the agent obeys unratified rules on first contact —
+# and the central 05/02 pins cannot detect it, because the pointer still names the
+# 05 path. Codex round-8 finding 2; the family had already recurred five times.
+REQUIRED_BOOTSTRAP_PHRASES = [
+    "PENDING DAVID'S RATIFICATION",
+    "NOT YET BINDING",
+]
+
 REQUIRED_BOOTSTRAP_TARGETS = [
     "docs/governance/00-product-constitution.md",
     "docs/governance/01-north-star-architecture.md",
     "docs/governance/02-agent-operating-loop.md",
     "docs/governance/03-code-hygiene-policy.md",
+    # Every bootstrap file must POINT AT 05. NOTE: the every-session read requirement is
+    # itself agent-authored and PENDING David's ratification — this pin enforces that the
+    # pointer and its pending boundary are present, NOT that the read is binding law.
+    # Before this pin the gate PASSED while no bootstrap file mentioned 05 at all.
+    "docs/governance/05-layer-doctrine.md",
     "PRODUCT.md",
     "DESIGN.md",
     "AGENT_SYNC.md",
@@ -69,8 +85,24 @@ REQUIRED_GOVERNANCE_PHRASES = {
         "Unified Player Value Object",
         "Data Platform Pattern",
     ],
+    "docs/governance/05-layer-doctrine.md": [
+        # David's verbatim ruling — the load-bearing sentence of the whole doctrine.
+        "if we don't have this our app WILL NOT WORK",
+        # The pending-activation boundary. Agent-authored codification must not silently
+        # acquire David's standing: §2 onward stays PENDING until he ratifies it. Pinned
+        # because this defect family recurred four times across six review rounds.
+        "authority_section_2_onward: PENDING",
+        # The attribution split. v1.0.0 attributed the whole file to David, which was false;
+        # this pin makes the regression detectable rather than a matter of reviewer memory.
+        "§2 onward is agent-authored codification",
+    ],
     "docs/governance/02-agent-operating-loop.md": [
         "Preflight: Session Start",
+        "Layer discipline",
+        "Priority is never authorization",
+        # 02 carries the enforcement half of the pending amendment; a fresh agent reads 02
+        # before 05, so the pending marker must survive here too or the boundary is void.
+        "pending_activation:",
         "Execution: During Work",
         "Postflight: Session End",
         "Contract-green is never a visual GREEN",
@@ -156,6 +188,49 @@ def validate_required_files(failures: list[str]) -> None:
         fail("Missing at least one daily ledger file in docs/agent-ledger", failures)
 
 
+# Match the BASENAME, not the full path. docs/README.md writes the doctrine as
+# `governance/05-layer-doctrine.md` (repo-relative), so a full-path match silently
+# skipped the very block Codex round-9 finding 2 named. A guard that cannot see the
+# known instance is not a guard.
+LAYER_DOCTRINE_TARGET = "05-layer-doctrine.md"
+
+
+def _blocks_mentioning(text: str, needle: str) -> list[str]:
+    """Blank-line-separated blocks that mention `needle`.
+
+    Pointer-LOCAL, deliberately. Whole-file presence is not enough: a file can carry
+    the pending phrases in an unrelated footer while a separate pointer still commands
+    the ritual as binding, and the reader obeys the pointer they are standing on.
+    Codex round-9 finding 2 demonstrated exactly that with a synthetic file, and
+    docs/README.md was a live instance (qualified pointer in one section, bare
+    "Read every session" in the index below it).
+    """
+    return [b for b in text.split("\n\n") if needle in b]
+
+
+def _check_layer_pointer_blocks(file_name: str, text: str, failures: list[str]) -> None:
+    """EVERY block naming the layer doctrine must carry the pending boundary.
+
+    05 §1 is David's verbatim words and stands on his authority. The every-session
+    read requirement and the ritual obligations are agent-authored and stay pending
+    until he ratifies them — so any block that names the doctrine must say so where
+    the instruction is given, not somewhere else in the file.
+    """
+    blocks = _blocks_mentioning(text, LAYER_DOCTRINE_TARGET)
+    if not blocks:
+        return  # the missing-target check above already reports this
+    for index, block in enumerate(blocks, start=1):
+        for phrase in REQUIRED_BOOTSTRAP_PHRASES:
+            if phrase not in block:
+                fail(
+                    f"{file_name}: the layer-doctrine reference in block {index} "
+                    f"of {len(blocks)} does not carry the pending boundary "
+                    f"(missing {phrase!r}) — an agent reading that block receives "
+                    "agent-authored, unratified rules as binding",
+                    failures,
+                )
+
+
 def validate_bootstrap_files(failures: list[str]) -> None:
     for file_name in BOOTSTRAP_FILES:
         path = ROOT / file_name
@@ -165,6 +240,7 @@ def validate_bootstrap_files(failures: list[str]) -> None:
         for target in REQUIRED_BOOTSTRAP_TARGETS:
             if target not in text:
                 fail(f"{file_name} does not point to {target}", failures)
+        _check_layer_pointer_blocks(file_name, text, failures)
 
 
 def validate_governance_phrases(failures: list[str]) -> None:

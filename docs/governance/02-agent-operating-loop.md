@@ -1,8 +1,9 @@
 ---
 document: Dynasty Genius Agent Operating Loop
-version: 1.4.0
-last_updated: 2026-07-26
+version: 1.5.0
+last_updated: 2026-07-28
 authority: workflow
+pending_activation: the v1.5.0 delta ONLY — §Layer discipline, Authority Order entry 2, Required Reading 2a, the preflight/ledger layer fields, and the discipline-reset list entry. These give effect to 05 §2 onward, which is agent-authored and NOT yet David-ratified. Everything else in this file is in force and unaffected.
 ---
 
 # Dynasty Genius Agent Operating Loop
@@ -43,6 +44,7 @@ Every session begins in this order:
 
 1. Read this file.
 2. Read `docs/governance/00-product-constitution.md`.
+2a. Read `docs/governance/05-layer-doctrine.md` every session. **The read requirement itself is agent-authored and **PENDING DAVID'S RATIFICATION — NOT YET BINDING.**** David issued no read command; §1 is his words and stands on his authority, but this delivery mechanism is ours and lanes follow it voluntarily pending his word. Its §1 is David's verbatim doctrine on the six layers; §2 onward is agent-authored codification (cite them differently). It is short by design. See §Layer discipline.
 3. Read `docs/governance/01-north-star-architecture.md` when doing implementation, architecture, model, pipeline, API, or data work.
 4. Read `docs/governance/03-code-hygiene-policy.md` when doing Python, lint, or code-hygiene work.
 5. Read the design foundation — root `PRODUCT.md` + `DESIGN.md` — when doing frontend, UI, CSS, component, or any visual-surface work. It is the ratified visual-design source of record (honesty is the substrate; fantasy-native legibility is the aesthetic; the surface must never look like a developer diagnostics console in a fantasy skin). Claude Code loads it via the `impeccable` skill; Codex, Gemini, and other agents read the two files directly. **Contract-green is never a visual GREEN** — the whole viewport (not the diff) is the review unit, and an independent, unanchored fresh-agent visual audit (mid-scroll captures mandatory) is the standing pre-David gate.
@@ -53,12 +55,71 @@ Every session begins in this order:
 ## Authority Order
 
 1. `00-product-constitution.md` governs analytical decisions.
-2. `01-north-star-architecture.md` governs technical architecture.
-3. `02-agent-operating-loop.md` governs session workflow.
-4. `03-code-hygiene-policy.md` governs code-hygiene mechanics (subordinate to the above).
-5. Root bootstrap files point here and must not duplicate the full doctrine.
+2. **[PENDING DAVID'S RATIFICATION — not yet in force; see §Layer discipline]** `05-layer-doctrine.md` governs **sequencing, investment priority, and the root-layer check** — what should be worked on next, and whether a defect is being addressed at the layer that causes it. Its §1 is David-verbatim; §2 onward is agent-authored codification. It outranks every plan, spec, ticket, and backlog. **Authority is resolved by domain, not by blanket precedence:** it does not override another document's own domain, and genuine overlap stops, logs, and escalates rather than being resolved by rank. Priority is never authorization.
+3. `01-north-star-architecture.md` governs technical architecture.
+4. `02-agent-operating-loop.md` governs session workflow.
+5. `03-code-hygiene-policy.md` governs code-hygiene mechanics (subordinate to the above).
+6. Root bootstrap files point here and must not duplicate the full doctrine.
 
 If documents conflict, stop and log the conflict in the daily ledger before implementing.
+
+## Layer discipline
+
+> **⏸ ACTIVATION STATUS — READ BEFORE APPLYING THIS SECTION.** `05` **§1 (David's verbatim words) is
+> in force now.** Everything in this section, and 05 §2 onward that it gives effect to, is
+> **agent-authored codification PENDING DAVID'S RATIFICATION** and is **not yet binding**. Do not cite
+> it as standing doctrine, and do not treat its mechanics as mandatory, until he ratifies it — the
+> ratification gate is tracked on `AGENT_SYNC.md`, which names the exact artifact set he is being
+> asked to ratify. *(This banner exists because a fresh agent reads `02` before `05` and would
+> otherwise receive pending mechanics as binding — Codex round-6 finding 1.)*
+
+`05-layer-doctrine.md` §1 carries **David's own words, verbatim** (2026-07-28): his standing
+instruction (§1.1) and the six layers (§1.2). **This section does not restate them — §1 forbids
+paraphrase, so read them there.** His ruling, quoted exactly: *"Steps 1 and 2 are the foundation - if
+we don't have this our app WILL NOT WORK. we shouldn't be wasting cycles until we've built this
+foundation."* **§2 onward of that file is agent-authored codification, not his words** — cite the two
+differently and never attribute the whole document to him.
+
+It owns the domain of **sequencing, investment priority, and the root-layer check**, and outranks
+every plan, spec, ticket, and backlog on what to work on next. It does not override another
+document's own domain; genuine overlap stops and escalates (§Authority Order). **Priority is never
+authorization** — establishing that something matters does not authorise building it.
+
+Read it during bootstrap, every session. Two mechanics are **proposed** for the working loop — both **PENDING DAVID'S RATIFICATION — NOT YET BINDING.** and followed voluntarily until he ratifies them:
+
+1. **Name the layer in every preflight** (see the checklist below). State the **primary (presenting)
+   layer**; name several when the work genuinely spans them, and use **`cross-layer` / `governance`**
+   for work that governs how layers are chosen rather than sitting at one. An agent that cannot name
+   the layer does not yet understand the task.
+
+2. **The layers 1–2 dependency check, for work at layers 3–6.** Before the work proceeds past
+   framing, the agent records three separate things: **the check performed** (cited so another agent
+   can rerun it), **the result**, and **the conclusion** — proceed at the presenting layer, or this
+   is a symptom of layers 1–2.
+
+   - "Genuinely at this layer" is a legitimate conclusion. The rule is that the question is **asked
+     and answered from evidence**, not that upper-layer work be refused.
+   - **Where a framing artifact exists, omission is a finding** the independent reviewer raises. For
+     mechanical work with no framing, a one-line preflight statement suffices — a rule that demands
+     ceremony from trivial work decays into a box-tick.
+   - **A conclusion is not a licence to fix.** Concluding that a defect originates at layers 1–2
+     records a finding; opening work on it needs David's word.
+
+**Why this exists (do not delete the reason).** On 2026-07-28 the cockpit ran **multiple
+adversarial rounds** on a layer-6 wording problem — framing, challenge, disposition, re-review, two
+rounds of copy options, all correctly executed. *(Not a completed cycle: §Adversarial review pattern
+terminates only on the independent reviewer's explicit CLEAR, and that review returned NOT CLEAR
+before David parked the thread.)* David broke the premise with two sentences of football knowledge.
+Every agent was working correctly *within its layer*; nobody asked whether the layer was right.
+**David caught it and no agent did.**
+
+The follow-up measurement **proved** that `nfl_draft_round`, `nfl_draft_pick` and `draft_class` are
+each absent from 501 of 501 modeled Engine B rows (80 of 12,203 universe-wide), reproduced by two
+lanes. It did **not** prove that this is a layers-1/2 hole or a defect at all — `00` frames draft
+capital as a **rookie** rule and `01` §Engine B bars rookie-only pre-NFL features from active-player
+training unless modeled as a prior. **That second error — asserting a root layer without running the
+check this rule demands — was made while writing this rule, and is recorded in `05` §4 rather than
+quietly fixed.** Full record and figures there.
 
 ## Preflight: Session Start
 
@@ -66,6 +127,9 @@ Before substantive analysis or code changes, every agent must establish:
 
 - docs read and versions
 - current task
+- *(pending ratification, followed voluntarily)* **the layer this work serves** (`05-layer-doctrine.md`) — primary/presenting, several if it genuinely
+  spans them, or `cross-layer`/`governance`; and for layers 3–6 the **layers 1–2 dependency check**:
+  the check performed (rerunnable), its result, and the conclusion
 - active phase or decision surface
 - intended write scope
 - files likely to change
@@ -213,7 +277,7 @@ Before sending the cockpit a finding ("X is wrong because Y"), do the arithmetic
 
 ### Bootstrap-first and discipline reset
 
-Every agent MUST run the bootstrap reading order (this file, then `00-product-constitution.md`, `01-north-star-architecture.md`, `03-code-hygiene-policy.md`, the design foundation `PRODUCT.md` + `DESIGN.md` for visual-surface work, `AGENT_SYNC.md`, and today's ledger) before substantive analysis or mutation at session start. Light read-only inspection (e.g., a single `ls` or `git status` to orient) does not require bootstrap, but any spec, plan, code, governance, or contract decision does.
+Every agent MUST run the bootstrap reading order (this file, then `00-product-constitution.md`, `05-layer-doctrine.md`, `01-north-star-architecture.md`, `03-code-hygiene-policy.md`, the design foundation `PRODUCT.md` + `DESIGN.md` for visual-surface work, `AGENT_SYNC.md`, and today's ledger) before substantive analysis or mutation at session start. Light read-only inspection (e.g., a single `ls` or `git status` to orient) does not require bootstrap, but any spec, plan, code, governance, or contract decision does.
 
 Mid-session, when discipline drift is detected (cockpit converging too quickly, complimentary attestations without adversarial bite, repeated single-pass PASSes), **Claude or Codex has the authority and the duty to call a discipline reset; Gemini may not** (calling a reset requires detecting review-quality drift — judgment — and directing agents to halt and re-bootstrap — action — both outside the ops/telemetry lane; ratified 2026-07-16). Gemini's route for a review-quality worry is a message to the binding lanes flagging the observable fact (e.g., "three CLEARs in one turn"), which the binding lanes may act on; the fact-report is not itself a reset. A discipline reset is:
 1. Pause all in-flight work.
@@ -416,6 +480,7 @@ Use this format:
 
 - Task:
 - Governance read:
+- Layer *(pending ratification, followed voluntarily)* (primary/presenting; several if it spans them; `cross-layer`/`governance` is valid) + for layers 3-6, the layers 1-2 dependency check: what was run, what it showed, the conclusion:
 - Active phase / surface:
 - Intended or completed write scope:
 - Files changed:
