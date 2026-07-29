@@ -1,12 +1,91 @@
 # Dynasty Genius Agent Sync
 
+> # ⛳ BOARD STATE — READ THIS BLOCK BEFORE ANYTHING BELOW IT
+> **Stamped 2026-07-28, late session. Everything further down this file is HISTORY unless this block
+> names it live.** This block exists because on 2026-07-28 the board still presented parked work as
+> open, and a fresh agent reading it would have started the one thread David had just stopped.
+>
+> ### ▶ LIVE — the only open thread
+> **The Layer Doctrine** (`docs/governance/05-layer-doctrine.md`) — David's highest-stated priority:
+> *"nothing is of higher priority than the memorialization of these rules and after the rules are in
+> place - making them a ritual of how we work."* Doctrine at **v1.2.1**, `02` at **v1.5.0**, ritual
+> wired into all eight bootstrap files + the governance validator. **Uncommitted.**
+>
+> **State:** **every review round so far has returned NOT CLEAR. The latest returned 3 findings, all
+> dispositioned; corrected freeze re-issued — awaiting Codex review.**
+> **Tally, counted from the durable artifacts rather than from memory** (`layer_doctrine_codex_*.md`
+> in today's evidence directory): **8 review artifacts, 25 findings total** — 6 · 5 · 3 · 2 · 3 · 1 ·
+> 2 · 3. The `1` is `rereview_v6`, a review superseded mid-flight when Claude moved the artifacts under
+> it; its finding was real and was fixed. *(Codex numbers the latest round 9; that is a labelling
+> difference, not a factual one. Earlier board and ledger figures of "24 across six" and "26 across
+> eight" were both wrong — recounted from the artifacts.)*
+>
+> **FOUR SEPARATE GATES. None implies the next, and one David instruction satisfies more than one
+> only if he says so explicitly.**
+>
+> **⚠ THEY ARE NOT STRICTLY ORDERED, and a fresh agent must not infer that they are.** David's 22:49
+> word — *"commit it once codex clears"* — deliberately authorises **gate 3 (commit) while gate 2
+> (ratification) is still open.** That is his call, and the intent relayed with it is that `05` be
+> committed **honestly labelled as unratified** and ratified tomorrow when he can read it properly
+> rather than nod at it. **So the expected sequence is: gate 1 → gate 3 → gate 2 later → gate 4
+> separately.** Committing does not ratify, and nothing on disk may read as though it does.
+> 1. **Codex CLEAR** on the corrected freeze — content gate, not yet given.
+> 2. **David ratifies the agent-authored codification.** **He has NOT.** Ordering the memorialization,
+>    ordering the hardening, and saying *"let it finish"* are instructions to continue work, **not
+>    ratification of every agent-authored sentence.**
+>    **The exact package he is being asked to ratify — presented, not chosen for him. He may ratify
+>    all of it, part of it, or none:**
+>    - `05` **§2–§4** (authority-by-domain, the ritual, the failure record). **`05` §1 is his own
+>      verbatim words and needs no ratification — it is in force now.**
+>    - `02` **v1.5.0's delta only** — §Layer discipline, Authority Order entry 2, Required Reading 2a,
+>      the preflight/ledger layer fields, the discipline-reset list entry.
+>    - The **05 pointer text** in the eight bootstrap files (`CLAUDE.md`, `AGENTS.md`, `.clauderules`,
+>      `AI_CONTEXT.md`, session starter, `README.md`, `docs/README.md`, `GEMINI.md`).
+>    - The **validator pins** (`scripts/validate_governance.py` + `tests/test_validate_governance.py`).
+>
+>    **Until he ratifies, every item above is PENDING and NOT BINDING** — `02` §Layer discipline
+>    carries that banner at its head so a fresh agent reading `02` before `05` cannot mistake pending
+>    mechanics for law.
+> 3. **David authorizes the commit** — a separate fresh word.
+> 4. **David authorizes the push** — a separate fresh word again.
+>
+> ### ⏸ PARKED BY DAVID — do NOT pick these up without a fresh word from him
+> - **The modeled-blank wording thread** (the 113 players shown as "Modeled" with no value). **Stopped
+>   by David 2026-07-28 22:01:** *"what are we doing wasting time on the naming rules of a Gap that we
+>   are about to fill now that we understand how we are building this app?"* His **Option 7** wording
+>   pick is recorded and unspent. **Resume only if the gap survives the layer-1/2 inventory.** Framing
+>   v2 frozen `a011587d…6a4c584`; a five-finding re-review disposition is owed, not dropped.
+> - **The roster-audit cross-producer contradiction** — proven mechanism, unverified figures. See the
+>   detailed park block further down this file.
+> - **The upstream prospect-prior question** — raised with David, never ordered.
+> - **The false "Engine A prospect score used as prior" caveat** on all 113 affected rows
+>   (`pvo_assembler.py:451-456` writes it on the branch where no prior exists). Named, not opened.
+>
+> ### ⛔ NOT OPEN — named, never started, do not scope or spec
+> - **The layer-1/2 inventory.** David's declared next thread. He has not said when it opens.
+> - **The draft-capital question.** `nfl_draft_round`/`nfl_draft_pick`/`draft_class` absent from
+>   501/501 modeled Engine B rows (80/12,203 universe-wide) — **field absence is proved; the root
+>   layer is NOT established**, and `01` §Engine B may make the absence compliant by design. See
+>   `05` §4 before forming any view on it.
+>
+> ### 🔒 Gates, unchanged
+> **Commit and push each require David's separate fresh word.** A commit word is never a build word.
+> The QB-1 study has NOT run; **H2 QB rushing remains UNDER TEST.**
+
 > **✅ TW28 IDENTITY — THREAD 1 (Units A/B/D) SHIPPED, PUSHED, CI-GREEN, DIVERGENCE-VERIFIED (2026-07-28, David-worded commit + push).** `89757413e4f81b6ca2406e167455d29f434c2bf3` on `origin/main` (fast-forward `67bd75f..8975741`, remote-verified via `git branch -r --contains`). **CI run `30392011511` SUCCESS** — Python + Frontend both green on that exact SHA. **Codex DIVERGENCE-VERIFY CLEAR, zero drift, blob-level** (`identity_abd_postcommit_codex_divergence_clear_v1.md`). 4 paths / +136,016 / −26: `scripts/build_universe_pvo_batch.py`, `.gitignore`, the frozen crosswalk `app/data/identity/_runs/ff_playerids_20260516.json` (sha256 `8ed4b675…c079f593`, now TRACKED — `.gitignore` excludes `_runs/*` and negates that one child, because git cannot re-include a child under an excluded directory), and `tests/contract/test_identity_crosswalk_hardening_red.py`. **What it does:** the gsis→Sleeper crosswalk now **fails closed** (9 named machine-token reasons incl. `duplicate_json_key`; conflicting mappings and duplicate JSON keys no longer resolve last-write-wins), every dropped prediction is **counted and named** in `coverage.engine_b_identity_join`, the `seen_sleepers` silent skip is **removed** (unreachable once conflicting Sleeper mappings fail at parse time), and zero successful joins **refuses** — closing the empty-board publication risk. **NO partial-coverage threshold in either direction** — David-owned open policy.
 >
-> **⚠ TW28 THREAD 2 (Unit C — the David-facing wording) IS PARKED, NOT DONE, and the defect is LIVE on David's screen.** `app/api/routes/players.py:285-291` emits *"No active model score for this player category."* on **3,453** rows whose position IS modeled (WR 1,548 / RB 790 / TE 713 / QB 402), and `frontend/src/player/PlayerInspector.tsx:22-35` **hardcodes its own** "Unmodeled category" independent of the API, so it cannot be fixed from the API alone. Framing at `identity_honesty_fix_framing_v4.md` (`ecfb9891…`) + `identity_honesty_fix_split_addendum.md` (`437d40bc…`, seed partition: Thread 1 = 10 seeds, Thread 2 = 13). Codex challenge v4 exists and is **NOT dispositioned**. **No RED, no code.**
+> **⏸ [PARKED — see BOARD STATE at top; do not pick up] TW28 THREAD 2 (Unit C — the David-facing wording). NOT DONE; the defect remains live on David's screen, and that is accepted for now.** `app/api/routes/players.py:285-291` emits *"No active model score for this player category."* on **3,453** rows whose position IS modeled (WR 1,548 / RB 790 / TE 713 / QB 402), and `frontend/src/player/PlayerInspector.tsx:22-35` **hardcodes its own** "Unmodeled category" independent of the API, so it cannot be fixed from the API alone. Framing at `identity_honesty_fix_framing_v4.md` (`ecfb9891…`) + `identity_honesty_fix_split_addendum.md` (`437d40bc…`, seed partition: Thread 1 = 10 seeds, Thread 2 = 13). Codex challenge v4 exists and is **NOT dispositioned**. **No RED, no code.**
 >
-> **⚠ THREE DAVID-OWNED IDENTITY DECISIONS, MEASURED AND UNANSWERED.** (1) **113 of 581** modeled rows are `MODEL_UNCERTAIN` with `dynasty_value_score` AND `xvar` both null yet render as **"Modeled"** with nothing said (Jayden Reed, Jonathan Mingo, Roschon Johnson…) — arguably worse than the wording defect and **out of identity scope**; (2) the **partial-coverage floor** — fail on any orphan / a floor he sets / publish with accounting; note fail-on-any **would stop today's refresh** (2 orphans of 503 exist now); (3) the **`"0"` sentinel** pseudo-player, admitted because the string is truthy at `sleeper_universe.py:90-107`, answering `GET /api/players/0` with HTTP 200 while `build_model_player_key` already excludes it as a pseudo-id. **Board of record: `identity_board_claude_v3.md` (`b42dcbae…`), Codex CLEAR.**
+> **⏸ [PARKED — see BOARD STATE at top] THREE DAVID-OWNED IDENTITY DECISIONS, MEASURED AND UNANSWERED. Item (1) below is the modeled-blank thread David STOPPED on 2026-07-28; do not resume it.** (1) **113 of 581** modeled rows are `MODEL_UNCERTAIN` with `dynasty_value_score` AND `xvar` both null yet render as **"Modeled"** with nothing said (Jayden Reed, Jonathan Mingo, Roschon Johnson…) — arguably worse than the wording defect and **out of identity scope**; (2) the **partial-coverage floor** — fail on any orphan / a floor he sets / publish with accounting; note fail-on-any **would stop today's refresh** (2 orphans of 503 exist now); (3) the **`"0"` sentinel** pseudo-player, admitted because the string is truthy at `sleeper_universe.py:90-107`, answering `GET /api/players/0` with HTTP 200 while `build_model_player_key` already excludes it as a pseudo-id. **Board of record: `identity_board_claude_v3.md` (`b42dcbae…`), Codex CLEAR.**
 >
 > **NAMED FOLLOW-UP, disclosed not fixed:** `_load_json` (`scripts/build_universe_pvo_batch.py:38`) still carries **both** decoder defects fixed for the crosswalk, and it loads the **Sleeper snapshot + prospect cards** (the 12,203-row universe and the 80 Engine A rows). Outside the cleared scope; Codex recorded it as a separate question.
+>
+> **⏸ PARKED BY DAVID 2026-07-28 20:33 — CROSS-PRODUCER VALUATION CONTRADICTION. Named, NOT opened, NOT folded into any build. Do not "fix it while you are in there."**
+> **PROVEN (verified by Claude reading the source, reproducible):** the roster audit does **not** read the runtime PVO artifact. `app/services/roster_auditor.py:644-649` builds `features = {"age": …}` plus `engine_b_score` and **omits `games_t`**, so the below-floor gate at `src/dynasty_genius/pvo_assembler.py:394-404` evaluates **False** and the roster-audit path **computes a DVS from the same `projection_2y` that the player-detail path withholds**. Player detail withholds it correctly: all 113 affected players sit at `games_t` 4–7 against the governed floor `ENGINE_B_MIN_GAMES_T = 8` (`src/dynasty_genius/models/engine_b_contract.py:107`). Two independent producers, one population, opposite outputs.
+> **NOT PROVEN — do not inherit these as fact:** Codex's reconstructed values (Braelon Allen 31.2/−16.46, Garrett Wilson 77.6/17.0, Jayden Daniels 65.0/1.11) are **his probe, not independently reproduced by Claude.** Recorded as attributed, unverified figures. **Reproduce them before citing them anywhere.** (Tonight's entire thread began with a stale figure treated as verified; this park exists partly to avoid repeating that.)
+> **Why it matters:** the same player can show a real number on the roster audit and a blank on his player card, with nothing telling David which to believe. **Two of the three named players are on David's own roster.** No wording change can touch it — this is a producer-contract question, not a copy question.
+> **Full write-up:** `docs/agent-ledger/evidence/2026-07-28/modeled_blank_framing_v2.md` §4.3 (framing v2, frozen `a011587d…6a4c584`); challenge origin `modeled_blank_framing_codex_challenge_v1.md` finding 3.
+> **Status: awaiting a fresh David word to open. It is not in scope for the modeled-blank build.**
 >
 > **Identity ground truth, measured 2026-07-28:** production runs on **Sleeper ids**, not the north-star canonical key — of 12,203 live rows only **581** carry a `dg_player_id`, in **two incompatible vocabularies** (501 gsis-shaped Engine B, 80 name-slug Engine A). The best-built identity component (`outcome_identity_bridge.py`, point-in-time, fail-closed) is **wired to a stub** returning `[]`; its missing input is a PIT **Sleeper→GSIS** mapping, independent of the vocabulary split. `docs/identity/identity_contract.md` is still **DRAFT** and unenforced.
 
@@ -15,17 +94,17 @@
 > **`0e2be58` wire fix — PARTIAL BY DESIGN, and its subject line says so.** Three claim-leak families repaired and proven live; **every remaining gap enumerated in the commit message by file and line**, including that `row["terminal"] = True` never persists and FakeStore tests cannot see that boundary. **The terminal-resolution audit was CANCELLED by David 2026-07-26, deliberately — it is NOT pending work and nobody should pick it up.** Do not open `dg_delivery.py`. The workaround (send · resend once · park on disk) is **the mode**, not a degraded mode.
 > **⚠ RECORDED OPEN AUDIT, NOT ACTIVE WORK:** `0e2be58` has no Codex post-commit gap-list audit. David cancelled all wire work and then called closeout; do not resume it without a new David word.
 > **★ SPRINT 0 IS OPEN (David, 2026-07-26). DG2-S0-01 IS HALF-DONE AND PARKED.** Untracked module `src/dynasty_genius/market_divergence_rebase.py` + contract file `tests/contract/test_market_divergence_rebase_red.py`; Claude reports **10/10 green**, but Codex review did not start and the module is not referenced by any live artifact builder. **Independent answer key for the 2026-07-26 snapshot (TW27F): 336 common — QB 45 / RB 88 / TE 65 / WR 138; 131 reclassified; mean signed delta +7.85 pp → 0.00 pp; mean absolute-delta shift 10.72 pp.** Sensitivity: 54/336 lie within 0.02 of the band edge, so treat the count as 131 ± one boundary case. The 2026-07-25 values (338 common, 127 reclassified, +8.11 → 0.00, 10.67 pp) are **CORROBORATION ONLY**, because 127/338 was disclosed in the briefing; they are not independent reproduction.
-> **Also uncommitted:** the DG2 backlog **cover-page repair** (header only — Ruling K stated as ratified, the rejected boundary proposal and Candidate B marked superseded, RISK-1 corrected to CLOSED). Awaiting Codex review + David's word.
+> **✅ LANDED (was listed here as uncommitted; corrected 2026-07-28):** the DG2 backlog **cover-page repair** (header only — Ruling K stated as ratified, the rejected boundary proposal and Candidate B marked superseded) is committed at **`3aa7ae0`** under David's word and is an ancestor of `origin/main`. The working tree is identical to HEAD for `docs/superpowers/plans/2026-07-25-dg-2-0-ticket-backlog.md`. **Nothing here awaits Codex review or David's word — do not re-review it.**
 > **⚠ BACKUP TRUTH:** run `20260726T141500Z` completed, 272 files / 1,090,914,306 bytes, `sha256_verified=true` — **and DGX-02's four named files, league-snapshot/coverage globs, and raw PFF exports are STILL UNCOVERED.** The fix was authorised and **never started**. **The marker protects only the current manifest, not those assets. DGX-02 IS FIRST IN LINE TOMORROW.**
 > **Standing:** ticket verification against **Ruling K is per-ticket at pick-up**, not a batch pass. All wire engineering is **cancelled**. `dg_mail_carrier.py` is **byte-untouched and default-paused** (tenth confirmation). **TW26Q FantasyCalc correction** — the ingested superflex feed is a scaled one-QB feed, not observed superflex trades — is **recorded and queued**, folded into S0-01 as it touches the market population.
 > **The QB-1 study has NOT run; there is no result. H2 QB rushing production remains UNDER TEST.**
 
-Doctrine version: 1.0.0 (00-product-constitution at 1.1.0 since 2026-07-14 — calibrated tier lexicon; **02-agent-operating-loop at 1.4.0 since commit `30688be` — closeout hardening**; 03-code-hygiene at 1.1.0)
-Last updated: 2026-07-26 terminal close. Pushed code is through `0e2be58`; DGX-03, closeout hardening, and the deliberately partial wire bank are landed. The QB-1 study has not run; there is no result; H2 rushing remains **UNDER TEST**.
+Doctrine version: 1.1.0 (00-product-constitution at 1.1.0 since 2026-07-14 — calibrated tier lexicon; **02-agent-operating-loop at 1.5.0 — layer discipline, UNCOMMITTED as of 2026-07-28 late session**; **05-layer-doctrine at 1.2.1 — NEW, UNCOMMITTED, under cockpit review**; 03-code-hygiene at 1.1.0). *The 1.5.0/1.2.1 pins are on-disk state pending David's commit word; update this line with the commit SHA when it lands.*
+Last updated: 2026-07-28 late session (layer doctrine + ritual, uncommitted; see the BOARD STATE block at the top). Prior stamp: 2026-07-26 terminal close. Pushed code is through `0e2be58`; DGX-03, closeout hardening, and the deliberately partial wire bank are landed. The QB-1 study has not run; there is no result; H2 rushing remains **UNDER TEST**.
 
 > **✅ LIVE CI GREEN:** `origin/main@59ba925` passed GitHub CI run `30202569707`: Frontend checks green in 1m03s; Python checks green in 3m21s, including fresh dependency installation, ruff, compilation, governance, training-split validation, full pytest, and storage policy. This closes the three prior SciPy-resolution failures (`30178886924`, `30179373576`, `30187282058`).
 
-> **⚠ DG2 BACKLOG COVER REPAIR PARKED:** `docs/superpowers/plans/2026-07-25-dg-2-0-ticket-backlog.md` now carries the narrow cover-page/Ruling-K repair plus the S0-01 pick-up note, uncommitted and awaiting Codex review + David's word. Sprint 0 is already open; this does not reopen the cleared ticket substance.
+> **✅ DG2 BACKLOG COVER REPAIR — LANDED, NOT PARKED (corrected 2026-07-28).** `docs/superpowers/plans/2026-07-25-dg-2-0-ticket-backlog.md` carries the narrow cover-page/Ruling-K repair plus the S0-01 pick-up note, **committed at `3aa7ae0`** under David's word (an ancestor of `origin/main`); the working tree is identical to HEAD for that path. This banner previously said "uncommitted and awaiting Codex review + David's word" — that was stale and would have sent a lane to re-review shipped work. Sprint 0 is already open; this does not reopen the cleared ticket substance.
 
 > **⏹ CODEX LANE TERMINAL CLOSE — CLOSED/PARKED (2026-07-26, TW27G).** **APPROVED-BUT-UNCOMMITTED after the state flush:** (1) `docs/superpowers/plans/2026-07-25-dg-2-0-ticket-backlog.md`; (2) `src/dynasty_genius/market_divergence_rebase.py`; (3) `tests/contract/test_market_divergence_rebase_red.py`. **HALF-DONE:** DG2-S0-01 is parked at the latter two paths, unreviewed and not live-integrated. **BACKGROUND:** no Codex-created process, test, watcher, monitor, subagent, or scheduled job is running. PID 7180 is a pre-existing July-14 uvicorn, not Codex-created and not stopped. **SAFE TO WALK AWAY.** **FIRST TOMORROW:** DGX-02 backup coverage + silent-failure guard, then resume DG2-S0-01 review when routed. Full answer-key provenance and contamination distinction are durable in `docs/agent-ledger/2026-07-26.md`.
 
