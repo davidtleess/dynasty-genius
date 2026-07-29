@@ -1,5 +1,38 @@
 # Dynasty Genius Agent Sync
 
+> # ⛳ BOARD STATE — 2026-07-29 SESSION CLOSE
+> **NO THREAD IS OPEN. Everything below this block is history unless a later David word explicitly
+> reopens it.**
+>
+> **Layer Doctrine landed with open defects named, not resolved or overridden.**
+> Governance commit **`f77f5ca`** is on `origin/main` (contained by local remote-tracking ref
+> `origin/main@cc82192`). David's 2026-07-28 23:25 word was: *"commit it now with the open findings
+> named."* He then stopped round 11. Codex's requested disposition will not be produced; that is
+> David's decision, not an abandoned handoff.
+>
+> **Open findings published in the record:**
+> 1. The fresh-agent work-routing cold start passes, but **AUTHORITY-STATUS still fails**: the
+>    every-session read is described as pending while active bootstrap and validator mechanisms
+>    compel it.
+> 2. `tests/test_validate_governance.py` still passes with its pointer-local helper disabled.
+> 3. The repo-delivered round-9 message was appended after its authenticated hash was routed.
+>
+> Source of record:
+> `docs/agent-ledger/evidence/2026-07-28/layer_doctrine_codex_rereview_v9.md`.
+> The review history now contains **9 Codex artifacts / 28 findings**:
+> **6 · 5 · 3 · 2 · 3 · 1 · 2 · 3 · 3**.
+>
+> **§1 remains David-verbatim and in force. §2 onward remains agent-authored and NOT
+> David-ratified.** Commit and push did not ratify it.
+>
+> **PARKED / NOT OPEN:** the layer-1/2 inventory is David's next thread and is **NOT OPEN**. The
+> modeled-blank thread, roster-audit contradiction, prospect-prior question, false-prior caveat, and
+> draft-capital question remain parked exactly as recorded below. Do not scope, review, build, or
+> repair any of them without a fresh David word.
+>
+> **Codex closeout:** see `docs/agent-ledger/2026-07-29.md`. Nothing Codex created is running
+> unattended. No push of closeout-only state is authorized.
+
 > # ⛳ BOARD STATE — READ THIS BLOCK BEFORE ANYTHING BELOW IT
 > **Stamped 2026-07-28, late session. Everything further down this file is HISTORY unless this block
 > names it live.** This block exists because on 2026-07-28 the board still presented parked work as
