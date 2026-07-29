@@ -67,9 +67,13 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 | Scale clamp | `src/dynasty_genius/pvo_assembler.py:405-407` |
 | Outcome table | `app/data/training/prospects_with_outcomes_v3.csv` (874 rows, 358 complete arcs, terminates at Year 4, no Year-1 columns) |
 | Pick curve + SF knob | `scripts/build_draft_pick_value_curve.py:34` (`_SF_QB_PROMOTE_SLOTS = 0`) · `src/dynasty_genius/trade_lab/draft_pick_valuation.py:68-80` |
-| Rulings A–J | `~/.claude/projects/-Users-davidleess/memory/david_rulings_2026-07-25_dg2.md` — **outside any clone. See RISK-1.** |
+| Rulings A–J | `docs/governance/rulings/2026-07-25-dg2-rulings.md` — **in the repo**, committed `99826d0`, present on `origin/main`. |
 
-**RISK-1 — CLOSED 2026-07-26.** The cited session artifacts were promoted into the clone at `docs/agent-ledger/evidence/2026-07-25/`, and Ruling K is in the repo at `docs/governance/rulings/2026-07-25-ticket-scope-boundary-rule.md`. **Residual, named not fixed:** Rulings A–J are still cited from a machine-local personal directory outside any clone; a developer with a fresh clone cannot read them. That residual is the only part of RISK-1 still open.
+**RISK-1 — CLOSED 2026-07-26; last residual verified closed 2026-07-28, no residual remains.** The cited session artifacts were promoted into the clone at `docs/agent-ledger/evidence/2026-07-25/`, and Ruling K is in the repo at `docs/governance/rulings/2026-07-25-ticket-scope-boundary-rule.md`.
+
+**The A–J residual is closed.** This entry previously read *"Rulings A–J are still cited from a machine-local personal directory outside any clone; a developer with a fresh clone cannot read them"* — that was stale. Verified 2026-07-28 against the repo and the remote: Rulings A–J are in the repo at `docs/governance/rulings/2026-07-25-dg2-rulings.md` (RULING A through RULING J as section headers, with their substance, not just titles), committed in `99826d0`, and present on `origin/main`. The in-repo copy is **byte-identical** to the machine-local file it superseded (both sha256 `b454e557…`), so nothing was lost in the promotion. A fresh clone can read them.
+
+**The plan-v2 artifact residual is also closed** (found during the same verification, not previously named here): `pick-valuation-plan-v2.md`, cited under DG2-S5-01d, is in the clone at `docs/agent-ledger/evidence/2026-07-25/pick-valuation-plan-v2.md`, on `origin/main`, and hashes to the exact value that ticket cites (`98bfe11806bc…`). Its citation has been corrected in place.
 
 **Numbering note:** there is no S0-06. It was the TEP record, moved to the spec's status register in v2. The gap is deliberate.
 
@@ -421,7 +425,7 @@ Some numbers are empirical results that cannot honestly be known in advance. Tho
 
 ### DG2-S5-01d — Pick-valuation plan v3 · Size M
 - **Problem:** plan v2 carries **5 HIGH + 1 MEDIUM** unresolved Codex residuals; no candidate may be fit before a newly hashed v3.
-- **Artifact:** `<session-scratchpad>/pick-valuation-plan-v2.md`, SHA-256 `98bfe11806bc…` — **see RISK-1; this file is not in any clone.**
+- **Artifact:** `docs/agent-ledger/evidence/2026-07-25/pick-valuation-plan-v2.md`, SHA-256 `98bfe11806bc…` — **in the repo and on `origin/main`; hash verified 2026-07-28.** *(Citation only: this line previously pointed at a session scratchpad and said "not in any clone", which was stale. Nothing else in this ticket is changed — the problem, AC, deps, and its BLOCKED-pending-David status all stand.)*
 - **⚠ BLOCKED PENDING DAVID:** a semantic ruling on **floored vs unfloored value** before either becomes the primary estimand.
 - **AC:** every residual dispositioned in writing; v3 hashed and recorded.
 - **Deps:** David's ruling. **Blocks:** S5-01a, S5-01b. **Fails loudly:** a fit run against v2 is void.
@@ -508,4 +512,4 @@ DG 2.0 — 44 numbered tickets (v2: 41; +5 new, −2 merged/moved)
 
 **Cross-cutting on every ticket:** `decision_supported=false` recursively · no market data in Engine A/B training features · no verdict or nominated target in running-software output · **`Fails loudly:` stated** (S0-03 exempt and says so) · reviewers CLEAR content, **David authorizes actions**.
 
-**Open for David, not decided here:** the constraint-vs-HOW boundary rule (separate proposal) · the **Ruling F vs J** contradiction blocking S1-02 · floored-vs-unfloored estimand blocking S5-01d · whether SPRINT-P runs now · a durable in-repo home for the rulings (RISK-1).
+**Open for David, not decided here:** the constraint-vs-HOW boundary rule (separate proposal) · the **Ruling F vs J** contradiction blocking S1-02 · floored-vs-unfloored estimand blocking S5-01d · whether SPRINT-P runs now. *(Removed 2026-07-28: "a durable in-repo home for the rulings (RISK-1)" — that home exists at `docs/governance/rulings/2026-07-25-dg2-rulings.md`, committed `99826d0`, on `origin/main`. It is no longer open for David.)*
