@@ -11,6 +11,14 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⏸ TW30 CODEX CLOSEOUT STATE — 2026-07-30 16:47:46 EDT
+> **CLOSED/PARKED.** Tonight deliberately changes no scheduler, producer, freshness reader, SQL,
+> model, or RED contract. The morning cluster runs untouched so the pre-registered telemetry check
+> can measure the current system against its blind prediction. The two scheduling escalations remain
+> parked in the 2026-07-30 evidence directory: content-basis freshness needs a content-identity
+> capability, and a coherent morning chain needs a producer-stage split. Both require David's next
+> scope decision. Codex created **no** background process, subagent, watcher, or scheduled job.
+
 > # 🔎 TW30 MORNING VERIFICATION — 2026-07-30 08:05–08:20 ET (Claude Code, read from the repo)
 > **Read this before the 07-29 block below it. Five statements in that block were true when written
 > and are FALSE this morning — all in the direction of understating what landed.** Corrected under
