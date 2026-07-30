@@ -32,6 +32,52 @@
 >
 > **Codex closeout:** see `docs/agent-ledger/2026-07-29.md`. Nothing Codex created is running
 > unattended. No push of closeout-only state is authorized.
+>
+> ---
+>
+> **▶ TW29 CLAUDE LANE CLOSE (2026-07-29 18:26 ET).** Session ran: layer-1/2 inventory → DGX-02
+> restore drill → layers-1/2 census → Databricks retirement → ingestion research → ingestion contract
+> v1–v4. **Pushed and remote-verified per commit: `c3cf0d8`, `04ab30e`, `6c5c1ae` (origin/main head).**
+>
+> **✅ PROVEN, not asserted:** the DGX-02 backup restore drill passed under David's explicit word —
+> **267 objects / 120 MB pulled back out, 266 byte-identical**, the 267th reconciled against the backup
+> object's own `Content-Length`. Backup coverage is demonstrated. **Single-lane; no other lane
+> reproduced it.**
+>
+> **📋 CENSUS COMPLETE** (`layers_1_2_census_claude_v1.md`, committed). Two independent enumerations,
+> **diffed** not reviewed — five coverage holes found in the host-oriented method, none in the
+> runtime-trace method. **Three sources ingest daily; the live population is ≥17 streams.** The source
+> registry **fails in both directions** (lists sources that never run, omits established ones).
+> **Transactions are never ingested, so layer 5 has no substrate**; `activity_recency_score = 0.0` is
+> published as though measured. **373/501 served Engine B rows have joinable draft capital and are
+> served blank — a layer-2 join gap, NOT a layer-1 hole** (my earlier claim, retracted).
+>
+> **⏸ PARKED, UNCOMMITTED, AT RISK ON ONE MACHINE:** ingestion contract **v1–v4** (v4 NOT CLEAR:
+> 5 blocking + 1 material; **no content regression**, but §A's ledger carries a false row). Commit word
+> requested, not yet given.
+>
+> **⏸ PARKED, UNCOMMITTED, CORRECTLY WITHHELD:** the Databricks retirement (`codex_audit.yml`,
+> `codex_audit.py`, `databricks_check_retirement_claude_v1.md`) — **NOT CLEAR round 2; David's
+> conditional commit-and-push word is UNSPENT.** Retiring it does **not** retire five obligations, and
+> **3 of those 5 were never verified at all** while CI was green.
+>
+> **⛔ NOT RETIRED, awaiting David:** the SQL governance job. **Misconfigured, not moot** — it scans
+> `resources/` (0 `.sql` files) while four `.sql` files live in `infrastructure/src/sql/`. Aimed
+> correctly it exits 1, and **I did not establish those as true violations.** Three-way choice open.
+>
+> **📌 CLIFF-AGE FRAMING CORRECTED (David, via Tower):** the defect in `refresh_genius_state.sql` is
+> that a value-producing path encodes a **binary cliff at all** (`00` §Aging Curves — models consume
+> fitted continuous curves; cliff ages are human-readable warnings only). **The number is the lesser
+> half.** That file **PASSES** the auditor, which polices the number and is silent on the prohibition.
+> **Recorded, not opened.**
+>
+> **OPEN LOOPS:** no independent post-commit divergence audit exists for `c3cf0d8`, `04ab30e`, or
+> `6c5c1ae`. Owner: Codex. **This makes the Claude lane `parked`, not `clean`.**
+> **CARRIED DEBT (2 days):** my disposition of Codex's five modeled-blank framing findings.
+> **BACKGROUND: NONE created this session.** Pre-existing and disclosed: PID 7180 `uvicorn` (07-14),
+> PID 71458 wedged `tmux send-keys` (06-04).
+> **Gemini postflight NOT delivered** — its pane is blocked by a CLI survey prompt; send refused,
+> nothing stranded, no keys forced.
 
 > # ⛳ BOARD STATE — READ THIS BLOCK BEFORE ANYTHING BELOW IT
 > **Stamped 2026-07-28, late session. Everything further down this file is HISTORY unless this block
