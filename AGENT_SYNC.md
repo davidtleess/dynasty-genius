@@ -1,5 +1,16 @@
 # Dynasty Genius Agent Sync
 
+> # ⛔ STANDING WALL — TW29-WALL-35 (DAVID, 2026-07-29)
+> David's instruction, verbatim: **"do not let claude or codex mess up with studios work."**
+>
+> No crew lane reads, writes, moves, copies, commits, backs up, lists, or inspects anything in the
+> Studio working directory — including proposals, notes, kit, board, or backup state. Do not help,
+> verify, or include Studio material in repository history. If a task appears to require crossing
+> this wall, the task is wrong: stop and tell Tower.
+>
+> Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
+> is not a breach; routing to Studio, reading from it, or acting on it is.
+
 > # ⛳ BOARD STATE — 2026-07-29 SESSION CLOSE
 > **NO THREAD IS OPEN. Everything below this block is history unless a later David word explicitly
 > reopens it.**
