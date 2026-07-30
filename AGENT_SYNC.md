@@ -15,8 +15,10 @@
 > **Read this before the 07-29 block below it. Five statements in that block were true when written
 > and are FALSE this morning — all in the direction of understating what landed.** Corrected under
 > Tower ruling TW30-RULE-B (TOWER TRAFFIC, state-doc accuracy). **The original text below is
-> annotated in place, never deleted.** This correction is **UNCOMMITTED in the working tree** —
-> Tower is carrying the commit question to David.
+> annotated in place, never deleted.** ~~This correction is UNCOMMITTED in the working tree~~ **[CORRECTED at the TW30 closeout:
+> this block was COMMITTED in `e20291e` and is on `origin/main`. The stale-self-status sentence was
+> post-commit audit finding 5 — a durable artifact asserting its own commit status, which the commit
+> itself falsified. Verify durability from `git`, never from this line.]**
 >
 > | Inherited claim | Verified state, 2026-07-30 morning |
 > | :-- | :-- |
@@ -244,7 +246,7 @@
 > **The QB-1 study has NOT run; there is no result. H2 QB rushing production remains UNDER TEST.**
 
 Doctrine version: 1.1.0 (00-product-constitution at 1.1.0 since 2026-07-14 — calibrated tier lexicon; **02-agent-operating-loop at 1.5.0 — layer discipline, COMMITTED at `f77f5ca` on `origin/main` [corrected 07-30; previously read "UNCOMMITTED as of 2026-07-28 late session"]**; **05-layer-doctrine at 1.2.1 — COMMITTED at `f77f5ca` [same correction]**; 03-code-hygiene at 1.1.0). *Landing is not ratification: `05` §1 is David-verbatim and in force; **`05` §2 onward and the `02` v1.5.0 delta remain agent-authored, PENDING David's ratification, and NOT BINDING**.*
-Last updated: **2026-07-30 morning — TW30 verification pass (see the TW30 MORNING VERIFICATION block at the very top; that block is UNCOMMITTED in the working tree pending David's word on the commit).** Prior: 2026-07-28 late session (layer doctrine + ritual, since committed at `f77f5ca`). Prior stamp: 2026-07-26 terminal close. Pushed code is through `0e2be58`; DGX-03, closeout hardening, and the deliberately partial wire bank are landed. The QB-1 study has not run; there is no result; H2 rushing remains **UNDER TEST**.
+Last updated: **2026-07-30 morning — TW30 verification pass (see the TW30 MORNING VERIFICATION block at the very top; that block is COMMITTED at `e20291e` on `origin/main` — corrected at the TW30 closeout; it previously asserted its own uncommitted status, which is the ruled stale-self-status pattern).** Prior: 2026-07-28 late session (layer doctrine + ritual, since committed at `f77f5ca`). Prior stamp: 2026-07-26 terminal close. Pushed code is through `0e2be58`; DGX-03, closeout hardening, and the deliberately partial wire bank are landed. The QB-1 study has not run; there is no result; H2 rushing remains **UNDER TEST**.
 
 > **✅ LIVE CI GREEN:** `origin/main@59ba925` passed GitHub CI run `30202569707`: Frontend checks green in 1m03s; Python checks green in 3m21s, including fresh dependency installation, ruff, compilation, governance, training-split validation, full pytest, and storage policy. This closes the three prior SciPy-resolution failures (`30178886924`, `30179373576`, `30187282058`).
 
