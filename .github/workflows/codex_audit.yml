@@ -5,6 +5,8 @@ on:
     branches: [main, claude/**]
     paths:
       - ".github/workflows/codex_audit.yml"
+      # Re-pointed 2026-07-30 (David's word) at where the SQL actually lives.
+      - "infrastructure/src/sql/**/*.sql"
       - "resources/**/*.sql"
       # scripts/codex_audit.py removed 2026-07-29: no job runs it (see RETIRED note below).
       - "scripts/codex_audit_sql.py"
@@ -12,6 +14,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/codex_audit.yml"
+      - "infrastructure/src/sql/**/*.sql"
       - "resources/**/*.sql"
       # scripts/codex_audit.py removed 2026-07-29: no job runs it (see RETIRED note below).
       - "scripts/codex_audit_sql.py"
@@ -21,7 +24,7 @@ on:
 
 jobs:
   sql-governance:
-    name: SQL governance audit
+    name: SQL governance audit (REPORT-ONLY)
     runs-on: ubuntu-latest
 
     steps:
@@ -33,8 +36,70 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Validate trade evaluation SQL governance
-        run: python scripts/codex_audit_sql.py resources
+      # RE-POINTED + REPORT-ONLY, 2026-07-30, on David's word.
+      #
+      # Before this change the step ran `codex_audit_sql.py resources`, and
+      # resources/ contains ZERO .sql files — so it reported "passed for 0 SQL
+      # file(s)", exit 0, every day. The four governed .sql files live under
+      # infrastructure/src/sql/, including refresh_genius_state.sql, which
+      # rebuilds the source-of-truth table (a layer-2 artifact).
+      #
+      # `continue-on-error: true` is DELIBERATE and is David's instruction: the
+      # check must tell the truth immediately WITHOUT blocking anything. Aimed
+      # correctly it exits 1 today. Those findings are NOT fixed in this change
+      # and MUST NOT be fixed as a drive-by.
+      #
+      # FINDINGS ROUTE TO TOWER — never straight to David. Corrected 2026-07-30:
+      # an earlier version of this comment said they route to David, which would
+      # put raw unreviewed check output in front of him with nobody between. That
+      # is the exact failure this cockpit exists to prevent.
+      #
+      # This step is NOT a gate: it is tolerated, so a red audit does not fail the
+      # job. Nothing may cite a green run of this workflow as evidence that the
+      # governed SQL is compliant. (The JOB can still fail for other reasons —
+      # checkout, Python setup, or the summary step — so "this job cannot fail" is
+      # false and must not be written anywhere.)
+      - name: Audit governed SQL (report-only — never blocks)
+        id: sql_audit
+        continue-on-error: true
+        run: |
+          # Capture the AUDITOR'S OWN numeric exit code. `steps.<id>.outcome` is
+          # only "success"/"failure" — reporting it as the exit code would be the
+          # check misreporting its own result, which is the defect this re-point
+          # exists to cure. Corrected 2026-07-30.
+          set +e
+          set -o pipefail
+          python scripts/codex_audit_sql.py infrastructure/src/sql resources \
+            | tee sql_audit_output.txt
+          code=$?
+          set -e
+          echo "$code" > sql_audit_exit.txt
+          exit "$code"
+        shell: bash
+
+      # The findings must be visible without opening the log. This surfaces them
+      # on the run summary whether the audit passed or failed.
+      - name: Publish audit findings to the run summary
+        if: always()
+        run: |
+          audit_exit="$(cat sql_audit_exit.txt 2>/dev/null || echo 'unknown')"
+          {
+            echo "## SQL governance audit — REPORT-ONLY (this step does not block the build)"
+            echo ""
+            echo "Aimed at: \`infrastructure/src/sql\` + \`resources\`"
+            echo "Auditor exit code (the auditor's own): \`${audit_exit}\`"
+            echo "Step outcome (tolerated by continue-on-error): \`${{ steps.sql_audit.outcome }}\`"
+            echo ""
+            echo '```'
+            cat sql_audit_output.txt 2>/dev/null || echo "(no auditor output captured)"
+            echo '```'
+            echo ""
+            echo "A non-zero exit code above means real findings. They are REPORTED, not gated,"
+            echo "and they are NOT to be fixed from this run — they route to TOWER, never"
+            echo "straight to David. An exit code of \`unknown\` means the audit step did not"
+            echo "reach its exit-capture and this summary is NOT evidence of anything."
+          } >> "$GITHUB_STEP_SUMMARY"
+        shell: bash
 
   # ---------------------------------------------------------------------------
   # RETIRED 2026-07-29 (David's word: "retire the databricks check").
@@ -82,8 +147,14 @@ jobs:
   # static auditor itself requires 26 (codex_audit_sql.py:218,300). Treat it as a
   # stale executable artifact, not as a source of truth.
   #
-  # ⚠ The remaining sql-governance job scans ZERO .sql files under resources/ and
-  # reports "Codex SQL audit passed for 0 SQL file(s)", exit 0. After this retirement
-  # this workflow is a KNOWN GREEN NO-OP. It must never be described as a healthy
-  # compliance surface. Whether it should also be retired is a separate David decision.
+  # ⚠ SUPERSEDED 2026-07-30 — the paragraph below described this workflow BEFORE the
+  # re-point above, and is kept because the history matters. It read: the remaining
+  # sql-governance job scans ZERO .sql files under resources/, reports "passed for 0
+  # SQL file(s)", exit 0, and is a KNOWN GREEN NO-OP.
+  #
+  # That was true from the retirement until 2026-07-30. It is NO LONGER the aim: the
+  # job now audits infrastructure/src/sql (4 files) and reports real findings without
+  # blocking. The warning it carried still stands in a new form — a green run of a
+  # REPORT-ONLY audit step is not evidence of compliance because its finding exit is tolerated.
+  # Whether the SQL governance surface should gate anything remains David's decision.
   # ---------------------------------------------------------------------------

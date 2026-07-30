@@ -11,6 +11,49 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # 🔎 TW30 MORNING VERIFICATION — 2026-07-30 08:05–08:20 ET (Claude Code, read from the repo)
+> **Read this before the 07-29 block below it. Five statements in that block were true when written
+> and are FALSE this morning — all in the direction of understating what landed.** Corrected under
+> Tower ruling TW30-RULE-B (TOWER TRAFFIC, state-doc accuracy). **The original text below is
+> annotated in place, never deleted.** This correction is **UNCOMMITTED in the working tree** —
+> Tower is carrying the commit question to David.
+>
+> | Inherited claim | Verified state, 2026-07-30 morning |
+> | :-- | :-- |
+> | `origin/main` head is `6c5c1ae` | **`ade7d61`.** Local `main` 0 ahead / 0 behind after `git fetch`; working tree **clean incl. untracked**. |
+> | `1ecb18f` is local only; `ade7d61` is unpushed *(said by `ade7d61`'s own message)* | **Both are on `origin/main`** — reflog: `1ecb18f` pushed **22:37:09**, `ade7d61` **22:43:48** (07-29); `ls-remote` returns `ade7d61`. |
+> | Ingestion contract v1–v4 UNCOMMITTED, at risk on one machine | **Committed + pushed inside `38ef301`**, tracked. Still **NOT CLEAR at v4** (5 blocking + 1 material) — the *verdict* stands, the *durability risk* does not. |
+> | Databricks retirement parked / withheld / conditional word UNSPENT | **Landed at `38ef301` and pushed**, with the round-2 NOT CLEAR **open and named in the commit subject**. |
+> | `05` v1.2.1 + `02` v1.5.0 UNCOMMITTED | **Committed at `f77f5ca`**, on `origin/main`. §1 still David-verbatim; §2 onward still **NOT ratified** — landing changed nothing about ratification. |
+>
+> **CI per SHA (`gh run list`):** `38ef301` CI ✅ `30508608314` + Codex Compliance Audit ✅ `30508608300`;
+> `1ecb18f` ✅ `30508956273`; `ade7d61` ✅ `30509251963`.
+>
+> **DURABILITY ✅** — `app/data/ops/backup_status_latest.json`: run `20260729T141500Z`, `completed`,
+> **306 files / 1,293,152,815 bytes**, `sha256_verified=true`, finished `2026-07-29T15:22:59Z`. The
+> **26-hour law is not breached** (last scheduled fire 07-29 10:15 local; next 10:15 today).
+> `backup_manifest.json` **v2** now carries the DGX-02 classes as `required`: `app/data/pff_exports`,
+> `app/data/league_snapshots`, `app/data/league_runtime/runs`, `app/data/research/league_behavior/raw`.
+>
+> **FRESHNESS** — the eight dynasty LaunchAgents fire 09:00–09:45 local and **had not fired yet** at
+> this reading; yesterday's artifacts stamped `2026-07-29T13:30Z` (`universe_pvo_runtime.json`) and
+> `13:40Z` (market divergence) are **one cycle old, which is expected, not degraded**. **Exception:**
+> `app/data/valuation/league_opportunity_latest.json` carries `captured_at` **2026-07-15T00:40Z**
+> (mtime 07-22) — **stale by content. Recorded, not opened.**
+>
+> **OPEN LOOPS — SIX, not three.** The three named at the TW29 close (`c3cf0d8`, `04ab30e`,
+> `6c5c1ae`) plus the three that landed after it (`38ef301`, `1ecb18f`, `ade7d61`). **Routed to Codex
+> 2026-07-30 morning under Tower ruling TW30-RULE-B** (delegated authority 4 — an audit completes an
+> obligation that attached when the commit was authorised; it opens no thread; **not David's word**).
+> A surfaced divergence goes to **Tower first**; remediation is a fresh question.
+>
+> **BACKGROUND, re-verified by `ps`:** both disclosed processes are **still alive and pre-existing** —
+> PID **7180** `uvicorn` (started 2026-07-14 19:22), PID **71458** wedged `tmux send-keys` to
+> `dynasty:1.3` (started 2026-06-04 21:32). Neither belongs to any current session.
+>
+> **UNCHANGED BY ANY OF THE ABOVE:** no thread is open; the QB-1 study has not run and **H2 QB rushing
+> remains UNDER TEST**; the Studio wall stands; every parked item stays parked.
+
 > # ⛳ BOARD STATE — 2026-07-29 SESSION CLOSE
 > **NO THREAD IS OPEN. Everything below this block is history unless a later David word explicitly
 > reopens it.**
@@ -36,7 +79,10 @@
 > **§1 remains David-verbatim and in force. §2 onward remains agent-authored and NOT
 > David-ratified.** Commit and push did not ratify it.
 >
-> **PARKED / NOT OPEN:** the layer-1/2 inventory is David's next thread and is **NOT OPEN**. The
+> **PARKED / NOT OPEN:** ~~the layer-1/2 inventory is David's next thread and is **NOT OPEN**~~
+> **[CORRECTED 07-30: the inventory RAN and LANDED on 07-29 — `c3cf0d8` (inventory + DGX-02 restore
+> drill) and `6c5c1ae` (census). What is not open is any thread ARISING from it — the join gap, the
+> registry repair, the transactions hole. Do not re-run the inventory; do not open its findings.]** The
 > modeled-blank thread, roster-audit contradiction, prospect-prior question, false-prior caveat, and
 > draft-capital question remain parked exactly as recorded below. Do not scope, review, build, or
 > repair any of them without a fresh David word.
@@ -48,7 +94,9 @@
 >
 > **▶ TW29 CLAUDE LANE CLOSE (2026-07-29 18:26 ET).** Session ran: layer-1/2 inventory → DGX-02
 > restore drill → layers-1/2 census → Databricks retirement → ingestion research → ingestion contract
-> v1–v4. **Pushed and remote-verified per commit: `c3cf0d8`, `04ab30e`, `6c5c1ae` (origin/main head).**
+> v1–v4. **Pushed and remote-verified per commit: `c3cf0d8`, `04ab30e`, `6c5c1ae` (~~origin/main
+> head~~ **[CORRECTED 07-30: origin/main head is now `ade7d61`; three further commits landed after
+> this close]**).**
 >
 > **✅ PROVEN, not asserted:** the DGX-02 backup restore drill passed under David's explicit word —
 > **267 objects / 120 MB pulled back out, 266 byte-identical**, the 267th reconciled against the backup
@@ -63,14 +111,18 @@
 > published as though measured. **373/501 served Engine B rows have joinable draft capital and are
 > served blank — a layer-2 join gap, NOT a layer-1 hole** (my earlier claim, retracted).
 >
-> **⏸ PARKED, UNCOMMITTED, AT RISK ON ONE MACHINE:** ingestion contract **v1–v4** (v4 NOT CLEAR:
-> 5 blocking + 1 material; **no content regression**, but §A's ledger carries a false row). Commit word
-> requested, not yet given.
+> **⏸ ~~PARKED, UNCOMMITTED, AT RISK ON ONE MACHINE~~ → COMMITTED + PUSHED in `38ef301`
+> [CORRECTED 07-30]:** ingestion contract **v1–v4** (v4 **still NOT CLEAR**: 5 blocking + 1 material;
+> **no content regression**, but §A's ledger carries a false row). ~~Commit word requested, not yet
+> given.~~ **The word was given late on 07-29 — *"commit and push it all"*. The durability risk is
+> gone; the NOT CLEAR verdict is untouched and no revision has been authored.**
 >
-> **⏸ PARKED, UNCOMMITTED, CORRECTLY WITHHELD:** the Databricks retirement (`codex_audit.yml`,
-> `codex_audit.py`, `databricks_check_retirement_claude_v1.md`) — **NOT CLEAR round 2; David's
-> conditional commit-and-push word is UNSPENT.** Retiring it does **not** retire five obligations, and
-> **3 of those 5 were never verified at all** while CI was green.
+> **⏸ ~~PARKED, UNCOMMITTED, CORRECTLY WITHHELD~~ → LANDED WITH THE REVIEW OPEN, `38ef301`
+> [CORRECTED 07-30]:** the Databricks retirement (`codex_audit.yml`, `codex_audit.py`,
+> `databricks_check_retirement_claude_v1.md`) — **NOT CLEAR round 2**, ~~David's conditional
+> commit-and-push word is UNSPENT~~ **[the word was spent; the commit subject says it landed NOT
+> CLEARED, and nothing has dispositioned that verdict since]**. Retiring it does **not** retire five
+> obligations, and **3 of those 5 were never verified at all** while CI was green.
 >
 > **⛔ NOT RETIRED, awaiting David:** the SQL governance job. **Misconfigured, not moot** — it scans
 > `resources/` (0 `.sql` files) while four `.sql` files live in `infrastructure/src/sql/`. Aimed
@@ -84,7 +136,9 @@
 >
 > **OPEN LOOPS:** no independent post-commit divergence audit exists for `c3cf0d8`, `04ab30e`, or
 > `6c5c1ae`. Owner: Codex. **This makes the Claude lane `parked`, not `clean`.**
-> **CARRIED DEBT (2 days):** my disposition of Codex's five modeled-blank framing findings.
+> **[UPDATED 07-30: the count is SIX — add `38ef301`, `1ecb18f`, `ade7d61`, which landed after this
+> close. All six routed to Codex on 07-30 under Tower ruling TW30-RULE-B.]**
+> **CARRIED DEBT (~~2~~ **3 as of 07-30**  days):** my disposition of Codex's five modeled-blank framing findings.
 > **BACKGROUND: NONE created this session.** Pre-existing and disclosed: PID 7180 `uvicorn` (07-14),
 > PID 71458 wedged `tmux send-keys` (06-04).
 > **Gemini postflight NOT delivered** — its pane is blocked by a CLI survey prompt; send refused,
@@ -185,12 +239,12 @@
 > **⚠ RECORDED OPEN AUDIT, NOT ACTIVE WORK:** `0e2be58` has no Codex post-commit gap-list audit. David cancelled all wire work and then called closeout; do not resume it without a new David word.
 > **★ SPRINT 0 IS OPEN (David, 2026-07-26). DG2-S0-01 IS HALF-DONE AND PARKED.** Untracked module `src/dynasty_genius/market_divergence_rebase.py` + contract file `tests/contract/test_market_divergence_rebase_red.py`; Claude reports **10/10 green**, but Codex review did not start and the module is not referenced by any live artifact builder. **Independent answer key for the 2026-07-26 snapshot (TW27F): 336 common — QB 45 / RB 88 / TE 65 / WR 138; 131 reclassified; mean signed delta +7.85 pp → 0.00 pp; mean absolute-delta shift 10.72 pp.** Sensitivity: 54/336 lie within 0.02 of the band edge, so treat the count as 131 ± one boundary case. The 2026-07-25 values (338 common, 127 reclassified, +8.11 → 0.00, 10.67 pp) are **CORROBORATION ONLY**, because 127/338 was disclosed in the briefing; they are not independent reproduction.
 > **✅ LANDED (was listed here as uncommitted; corrected 2026-07-28):** the DG2 backlog **cover-page repair** (header only — Ruling K stated as ratified, the rejected boundary proposal and Candidate B marked superseded) is committed at **`3aa7ae0`** under David's word and is an ancestor of `origin/main`. The working tree is identical to HEAD for `docs/superpowers/plans/2026-07-25-dg-2-0-ticket-backlog.md`. **Nothing here awaits Codex review or David's word — do not re-review it.**
-> **⚠ BACKUP TRUTH:** run `20260726T141500Z` completed, 272 files / 1,090,914,306 bytes, `sha256_verified=true` — **and DGX-02's four named files, league-snapshot/coverage globs, and raw PFF exports are STILL UNCOVERED.** The fix was authorised and **never started**. **The marker protects only the current manifest, not those assets. DGX-02 IS FIRST IN LINE TOMORROW.**
+> **⚠ BACKUP TRUTH [SUPERSEDED 07-30 — DGX-02 SHIPPED; original preserved]:** ~~run `20260726T141500Z` completed, 272 files / 1,090,914,306 bytes, `sha256_verified=true` — **and DGX-02's four named files, league-snapshot/coverage globs, and raw PFF exports are STILL UNCOVERED.** The fix was authorised and **never started**. **The marker protects only the current manifest, not those assets. DGX-02 IS FIRST IN LINE TOMORROW.**~~ **CURRENT (verified 07-30 from `backup_status_latest.json` + `backup_manifest.json`): run `20260729T141500Z` completed, 306 files / 1,293,152,815 bytes, `sha256_verified=true`; manifest v2 lists `pff_exports`, `league_snapshots`, `league_runtime/runs` and `league_behavior/raw` as `required`. A 07-29 restore drill pulled 267 objects / 120 MB back out, 266 byte-identical and the 267th reconciled against the backup object's own `Content-Length` — SINGLE-LANE, never reproduced by another lane.**
 > **Standing:** ticket verification against **Ruling K is per-ticket at pick-up**, not a batch pass. All wire engineering is **cancelled**. `dg_mail_carrier.py` is **byte-untouched and default-paused** (tenth confirmation). **TW26Q FantasyCalc correction** — the ingested superflex feed is a scaled one-QB feed, not observed superflex trades — is **recorded and queued**, folded into S0-01 as it touches the market population.
 > **The QB-1 study has NOT run; there is no result. H2 QB rushing production remains UNDER TEST.**
 
-Doctrine version: 1.1.0 (00-product-constitution at 1.1.0 since 2026-07-14 — calibrated tier lexicon; **02-agent-operating-loop at 1.5.0 — layer discipline, UNCOMMITTED as of 2026-07-28 late session**; **05-layer-doctrine at 1.2.1 — NEW, UNCOMMITTED, under cockpit review**; 03-code-hygiene at 1.1.0). *The 1.5.0/1.2.1 pins are on-disk state pending David's commit word; update this line with the commit SHA when it lands.*
-Last updated: 2026-07-28 late session (layer doctrine + ritual, uncommitted; see the BOARD STATE block at the top). Prior stamp: 2026-07-26 terminal close. Pushed code is through `0e2be58`; DGX-03, closeout hardening, and the deliberately partial wire bank are landed. The QB-1 study has not run; there is no result; H2 rushing remains **UNDER TEST**.
+Doctrine version: 1.1.0 (00-product-constitution at 1.1.0 since 2026-07-14 — calibrated tier lexicon; **02-agent-operating-loop at 1.5.0 — layer discipline, COMMITTED at `f77f5ca` on `origin/main` [corrected 07-30; previously read "UNCOMMITTED as of 2026-07-28 late session"]**; **05-layer-doctrine at 1.2.1 — COMMITTED at `f77f5ca` [same correction]**; 03-code-hygiene at 1.1.0). *Landing is not ratification: `05` §1 is David-verbatim and in force; **`05` §2 onward and the `02` v1.5.0 delta remain agent-authored, PENDING David's ratification, and NOT BINDING**.*
+Last updated: **2026-07-30 morning — TW30 verification pass (see the TW30 MORNING VERIFICATION block at the very top; that block is UNCOMMITTED in the working tree pending David's word on the commit).** Prior: 2026-07-28 late session (layer doctrine + ritual, since committed at `f77f5ca`). Prior stamp: 2026-07-26 terminal close. Pushed code is through `0e2be58`; DGX-03, closeout hardening, and the deliberately partial wire bank are landed. The QB-1 study has not run; there is no result; H2 rushing remains **UNDER TEST**.
 
 > **✅ LIVE CI GREEN:** `origin/main@59ba925` passed GitHub CI run `30202569707`: Frontend checks green in 1m03s; Python checks green in 3m21s, including fresh dependency installation, ruff, compilation, governance, training-split validation, full pytest, and storage policy. This closes the three prior SciPy-resolution failures (`30178886924`, `30179373576`, `30187282058`).
 
