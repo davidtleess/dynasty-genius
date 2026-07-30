@@ -6,14 +6,14 @@ on:
     paths:
       - ".github/workflows/codex_audit.yml"
       - "resources/**/*.sql"
-      - "scripts/codex_audit.py"
+      # scripts/codex_audit.py removed 2026-07-29: no job runs it (see RETIRED note below).
       - "scripts/codex_audit_sql.py"
   pull_request:
     branches: [main]
     paths:
       - ".github/workflows/codex_audit.yml"
       - "resources/**/*.sql"
-      - "scripts/codex_audit.py"
+      # scripts/codex_audit.py removed 2026-07-29: no job runs it (see RETIRED note below).
       - "scripts/codex_audit_sql.py"
   schedule:
     - cron: "0 14 * * *"
@@ -36,36 +36,54 @@ jobs:
       - name: Validate trade evaluation SQL governance
         run: python scripts/codex_audit_sql.py resources
 
-  catalog-compliance:
-    name: Sovereign Unity compliance audit
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
-
-      - name: Install dependencies
-        run: pip install databricks-sdk==0.30.0
-
-      - name: Run Codex Compliance Audit
-        env:
-          DATABRICKS_HOST: https://dbc-228373f7-57ec.cloud.databricks.com
-          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
-          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
-          DATABRICKS_WAREHOUSE_ID: 5e883b4bfbb1e3f4
-        run: python scripts/codex_audit.py
-
-      - name: Upload audit results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: codex-audit-results
-          path: audit_results.json
-          retention-days: 30
+  # ---------------------------------------------------------------------------
+  # RETIRED 2026-07-29 (David's word: "retire the databricks check").
+  #
+  # The "Sovereign Unity compliance audit" job ran scripts/codex_audit.py against
+  # Databricks SQL warehouse 5e883b4bfbb1e3f4. It failed identically on five
+  # consecutive scheduled days (2026-07-25 .. 2026-07-29) after 24 consecutive
+  # successes (2026-07-01 .. 2026-07-24).
+  #
+  # Mechanism, bounded to what the evidence establishes: codex_audit.py calls
+  # execute_statement with wait_timeout="50s" (:114-117) and then tests ONLY
+  # `state == SUCCEEDED` (:120). A non-terminal state carries no `.error`, so the
+  # else-branch (:138) renders it as the literal string "Unknown error". The code
+  # and the 2026-07-28 Actions log establish FIVE non-SUCCEEDED responses each
+  # rendered as "Unknown error" after ~50s, explaining the ~254s step. They do NOT
+  # establish a single unanswered connection: the statement state was discarded and
+  # no statement ids were persisted, so that cannot be known from here.
+  #
+  # ⚠ WHAT THE JOB ACTUALLY VERIFIED -- corrected 2026-07-29 after adversarial
+  # review found the earlier version of this comment materially false.
+  #
+  # execute_query() returns PASSED for ANY successful, non-empty SQL response
+  # WITHOUT INSPECTING ITS VALUES (:120-129). Reproduced by the reviewer against
+  # deliberately absurd fake responses. So of the five named "tests":
+  #     1. genius_state SSoT accessibility  -> genuine connectivity/accessibility probe
+  #     2. Governance Rules Validation      -> NOT AN ASSERTION. Its aggregate query
+  #                                            returns one row even for an empty table.
+  #     3. DVU Anchor Integrity             -> the ONE real domain assertion
+  #     4. Status Classification Distribution -> NOT AN ASSERTION. Asserts no rule.
+  #     5. Source Rank Distribution (65:35) -> NOT AN ASSERTION. A bare GROUP BY that
+  #                                            never compares anything to 65:35; the
+  #                                            ratio appears only in the test's NAME.
+  #
+  # Therefore items 2, 4 and 5 were NOT being verified while this job was green.
+  # Retiring the job does not begin their verification gap -- it ends a green signal
+  # that never covered them. Only items 1 and 3 lose real coverage here.
+  #
+  # Where any of the five must now live is UNDECIDED and is David's call. See
+  # docs/agent-ledger/evidence/2026-07-29/databricks_check_retirement_claude_v1.md
+  #
+  # scripts/codex_audit.py is RETAINED, unwired, as a QUERY REFERENCE -- NOT as a
+  # specification. It cannot specify items 2/4/5 because it contains no acceptance
+  # criteria, and it queries rule_id 'rb_age_cliff_28' (:431) while the constitution's
+  # locked ruling is RB age 26 (00-product-constitution.md:106) and the surviving
+  # static auditor itself requires 26 (codex_audit_sql.py:218,300). Treat it as a
+  # stale executable artifact, not as a source of truth.
+  #
+  # ⚠ The remaining sql-governance job scans ZERO .sql files under resources/ and
+  # reports "Codex SQL audit passed for 0 SQL file(s)", exit 0. After this retirement
+  # this workflow is a KNOWN GREEN NO-OP. It must never be described as a healthy
+  # compliance surface. Whether it should also be retired is a separate David decision.
+  # ---------------------------------------------------------------------------

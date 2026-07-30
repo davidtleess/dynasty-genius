@@ -3,12 +3,52 @@
 Codex Compliance Audit Script
 Sovereign Unity Multi-Agent Architecture - Phase 4
 
-Tests:
-1. genius_state SSoT accessibility
-2. Governance rules validation
-3. DVU anchor integrity (following Dynasty Genius framework)
-4. Status classification logic
-5. 65:35 compliance ratio enforcement
+*** RETIRED FROM CI 2026-07-29 (David's word: "retire the databricks check"). ***
+
+This script is NO LONGER RUN BY ANY JOB. The "Sovereign Unity compliance audit"
+job was removed from .github/workflows/codex_audit.yml after five consecutive
+identical scheduled failures (2026-07-25 .. 2026-07-29), which followed 24
+consecutive successes.
+
+Why it failed, bounded to what the evidence establishes: execute_query below
+calls execute_statement with wait_timeout="50s" (:114-117) and tests ONLY
+`state == SUCCEEDED` (:120). A non-terminal state carries no `.error`, so the
+else-branch (:138) renders it as the literal "Unknown error". The code plus the
+2026-07-28 Actions log establish FIVE non-SUCCEEDED responses each rendered that
+way after ~50s, explaining the ~254s step. They do NOT establish a single
+unanswered connection -- statement state was discarded and no statement ids were
+persisted, so that is not knowable from here.
+
+*** WHAT THIS SCRIPT ACTUALLY VERIFIED -- corrected 2026-07-29 after adversarial
+review found the first version of this banner materially false. ***
+
+execute_query() returns PASSED for ANY successful, non-empty response WITHOUT
+INSPECTING ITS VALUES (:120-129) -- reproduced against deliberately absurd fake
+responses. Of the five named "tests" below:
+
+1. genius_state SSoT accessibility     -- genuine connectivity/accessibility probe.
+2. Governance rules validation         -- NOT AN ASSERTION. Its aggregate query
+                                          (:425-435) returns one row even for an
+                                          empty table, so it passes regardless.
+3. DVU anchor integrity                -- the ONE real domain assertion here.
+4. Status classification logic         -- NOT AN ASSERTION (:441-452). No rule.
+5. 65:35 compliance ratio "enforcement" -- NOT AN ASSERTION (:455-467). A bare
+                                          GROUP BY. Nothing is ever compared to
+                                          65:35; the ratio appears only in this
+                                          docstring, a comment, and the test NAME.
+
+So items 2, 4 and 5 were NOT verified while this job was green. Retiring the
+runner did not begin their gap -- it ended a green signal that never covered
+them. Items 1 and 3 are the ones that lose real coverage.
+
+*** THIS FILE IS A QUERY REFERENCE, NOT A SPECIFICATION. *** It cannot specify
+items 2/4/5: it contains no acceptance criteria. It is also STALE AND UNSAFE to
+copy from -- it queries rule_id 'rb_age_cliff_28' (:431) while the constitution's
+locked ruling is RB age 26 (docs/governance/00-product-constitution.md:106) and
+the surviving static auditor requires 26 (scripts/codex_audit_sql.py:218,300).
+
+Where any of the five must now live is UNDECIDED -- David's call:
+docs/agent-ledger/evidence/2026-07-29/databricks_check_retirement_claude_v1.md
 """
 
 import json
