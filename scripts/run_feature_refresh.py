@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,6 +34,10 @@ from src.dynasty_genius.features.feature_publish import (  # noqa: E402
 from src.dynasty_genius.features.feature_refresh_runner import (  # noqa: E402
     compute_source_hash,
     run_feature_refresh,
+)
+from src.dynasty_genius.nflverse_usage import (  # noqa: E402
+    load_nextgen_from_export,
+    nextgen_export_provenance,
 )
 
 _DEFAULT_RUNTIME_DIR = ROOT / "app" / "data" / "features_runtime"
@@ -58,16 +63,22 @@ def _load_source(seasons_window: list[int] | None) -> dict:
 
     part_seasons = [s for s in (seasons_window or []) if s >= 2019]
     ng_seasons = [s for s in (seasons_window or []) if s >= 2016]
-    return {
+    sources = {
         "player_stats": _pd(nfl.load_player_stats(seasons=seasons_window)),
         "rosters": _pd(nfl.load_rosters(seasons=seasons_window)),
         "snap_counts": _pd(nfl.load_snap_counts(seasons=seasons_window)),
         "pbp": _pd(nfl.load_pbp(seasons=seasons_window)),
         "participation": _pd(nfl.load_participation(seasons=part_seasons)),
-        "nextgen_passing": _pd(nfl.load_nextgen_stats(seasons=ng_seasons, stat_type="passing")),
-        "nextgen_receiving": _pd(nfl.load_nextgen_stats(seasons=ng_seasons, stat_type="receiving")),
-        "nextgen_rushing": _pd(nfl.load_nextgen_stats(seasons=ng_seasons, stat_type="rushing")),
     }
+    # NGS comes from the LAST-GOOD LOCAL EXPORT, not from three live calls inside
+    # the 09:15 scheduled chain (David's word 2026-07-31, Codex sequencing step 3,
+    # on Gemini's explicit RELINQUISH of this file). Three network round-trips in
+    # the critical path were three new ways the morning halts, with no cached
+    # fallback despite the registry declaring failure_behavior="use_cached".
+    # Absence returns {} and the NGS columns are simply not merged — the
+    # downstream per-position features are optional-if-present by contract.
+    sources.update(load_nextgen_from_export(ng_seasons))
+    return sources
 
 
 def _resolve_default_source(season_start: int, ceiling: int) -> tuple[dict, int]:
@@ -254,11 +265,40 @@ def main(argv: list[str] | None = None) -> int:
             seed_path=args.seed_path,
             now_fn=lambda: datetime.now(timezone.utc),
             read_fns=read_fns,
-            source_inputs={"source_hash": source_hash, "seasons_window": seasons_window},
+            source_inputs={
+                "source_hash": source_hash,
+                "seasons_window": seasons_window,
+                # Which NGS export vintage this build consumed — or that none was
+                # available, and why. Absence is legitimate; a build that silently
+                # produced NGS-free features with no stated cause is not. Recorded
+                # beside the hash rather than inside it: the export's frames are
+                # already part of `loader_outputs`, so a changed vintage already
+                # changes the source hash on its own.
+                "nextgen_export": nextgen_export_provenance(),
+            },
             assemble_fn=assemble_feature_candidate,
             publish_fn=publish_fn,
         )
         status = result.get("status")
+
+        # NGS provenance sidecar. It belongs as a FIELD in the refresh report, but
+        # the report is written by `feature_refresh_runner.py`, which persists only
+        # `source_hash` and `seasons_window` from `source_inputs` and is NOT a file
+        # this lane owns. Written beside the runtime rather than dropped: a build
+        # that consumed no NGS must say so with a reason, and one that did must name
+        # the exact export vintage. Folding it into the report is a one-line change
+        # in the runner and needs that file's handoff.
+        try:
+            (Path(args.runtime_dir) / "nextgen_export_provenance.json").write_text(
+                json.dumps(
+                    {"status": status, **nextgen_export_provenance()},
+                    indent=1, sort_keys=True, default=str,
+                ) + "\n",
+                encoding="utf-8",
+            )
+        except OSError:
+            pass  # never fail a good refresh over a provenance sidecar
+
         print(status)
         # Unattended-scheduler alertability: ok/noop are healthy (exit 0); a blocked
         # publish (validation/write failure) or any other status is a real failure the

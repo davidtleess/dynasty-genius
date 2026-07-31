@@ -15,6 +15,7 @@ Two defects that live data exposed and a synthetic fixture would not have:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
@@ -445,3 +446,293 @@ def test_the_run_marker_is_what_reports_the_failing_attempt(tmp_path, harness, i
     assert after["failed_stream"] == "ngs_rushing"
     assert after["failed_season"] == 2025
     assert "nflverse 503" in after["reason"]
+
+
+# --------------------------------------------------------------------------
+# Derived last-good export (Codex TW31 required shape)
+#
+# The store commits ONE stream-season at a time, so a consumer pointed at it
+# mid-capture sees a MIXED-VINTAGE read. Reproduced on the live store after the
+# ten-season backfill: two `ingested_at` stamps coexisted, 12 stream-seasons from
+# one run and 28 from the next. Consumers therefore read the READY MARKER, which
+# names one run and is written LAST.
+# --------------------------------------------------------------------------
+
+
+def test_export_is_published_only_after_every_stream_season_succeeds(
+    tmp_path, harness, identity
+) -> None:
+    from src.dynasty_genius.nflverse_usage import read_last_good_export
+
+    status = _run(tmp_path, harness, identity)
+    export_root = tmp_path / "runtime" / "export"
+    manifest = read_last_good_export(export_root)
+    assert manifest is not None
+    assert manifest["run_id"] == status["run_id"]
+    for spec in SPECS:
+        assert manifest["files"][spec.name]["rows"] > 0
+    assert (export_root / "runs" / status["run_id"] / "manifest.json").exists()
+
+
+def test_a_failed_capture_leaves_the_previous_export_untouched(
+    tmp_path, harness, identity
+) -> None:
+    """The point of a last-good handoff. A consumer must keep reading the previous
+    complete vintage rather than a half-written one."""
+    from src.dynasty_genius.nflverse_usage import read_last_good_export
+
+    first = _run(tmp_path, harness, identity)
+    export_root = tmp_path / "runtime" / "export"
+    before = read_last_good_export(export_root)
+    assert before["run_id"] == first["run_id"]
+
+    def exploding(spec: StreamSpec, season: int):
+        if spec.name == "ngs_rushing":
+            raise RuntimeError("nflverse 503")
+        return harness(spec, season)
+
+    with pytest.raises(Exception):
+        _run(tmp_path, harness, identity, fetch=exploding)
+
+    after = read_last_good_export(export_root)
+    assert after == before, "a failed capture advanced or damaged the last-good export"
+
+
+def test_the_identity_artifact_covers_every_stream_not_just_one(
+    tmp_path, harness, identity
+) -> None:
+    """Codex's exact requirement: the artifact must carry ALL non-canonical rows
+    across the canonical adapter — the source-only snap rows above all — not one
+    stream's empty file presented as identity being complete."""
+    import polars as pl
+
+    status = _run(tmp_path, harness, identity)
+    run_dir = tmp_path / "runtime" / "export" / "runs" / status["run_id"]
+    frame = pl.read_parquet(run_dir / "unresolved_identity.parquet")
+
+    assert frame.height > 0, "the fixture carries unresolved rows on purpose"
+    assert set(frame["stream"].unique().to_list()) == {"snap_counts"}, (
+        "NGS resolves fully on this fixture; snap counts carry the unresolved rows"
+    )
+    assert set(frame["identity_status"].unique().to_list()) <= {SOURCE_ONLY, CONFLICT, UNKNOWN}
+    assert frame.height == status["export"]["unresolved_rows"]
+
+
+def test_a_consumer_with_no_export_yet_gets_none_rather_than_an_error(tmp_path) -> None:
+    """Optional-if-present is only real if absence is survivable."""
+    from src.dynasty_genius.nflverse_usage import read_last_good_export
+
+    assert read_last_good_export(tmp_path / "nothing-here") is None
+
+
+def test_an_export_run_directory_is_immutable(tmp_path, harness, identity) -> None:
+    from src.dynasty_genius.nflverse_usage import UsageStore, publish_export
+
+    status = _run(tmp_path, harness, identity)
+    store = UsageStore(tmp_path / "usage.db", SPECS)
+    with pytest.raises(UsageCaptureError, match="nflverse_export_run_exists"):
+        publish_export(
+            store, SPECS, run_id=status["run_id"], captured_at="now",
+            export_root=tmp_path / "runtime" / "export",
+        )
+
+
+# --------------------------------------------------------------------------
+# Codex round-2 export counter-probes (E1-E4), each reproduced before fixing
+# --------------------------------------------------------------------------
+
+
+def test_e1_export_is_consumer_typed_and_the_exact_feature_filter_works(
+    tmp_path, harness, identity
+) -> None:
+    """SQLite declares every column TEXT, so an untyped projection ships `week`
+    and `season` as Utf8. The EXACT filter the feature build already uses then
+    fails against the export — a local-reader swap would erase every NGS feature."""
+    import polars as pl
+
+    status = _run(tmp_path, harness, identity)
+    run_dir = tmp_path / "runtime" / "export" / "runs" / status["run_id"]
+    frame = pl.read_parquet(run_dir / "ngs_passing.parquet")
+
+    assert frame["week"].dtype == pl.Int64
+    assert frame["season"].dtype == pl.Int64
+    assert frame["completion_percentage_above_expectation"].dtype == pl.Float64
+    # the exact existing contract, locked
+    matched = frame.filter((pl.col("week") == 0) & (pl.col("season_type") == "REG"))
+    assert matched.height > 0, "the feature filter returned nothing from the export"
+
+
+def test_e1_snap_counts_are_typed_too(tmp_path, harness, identity) -> None:
+    import polars as pl
+
+    status = _run(tmp_path, harness, identity)
+    frame = pl.read_parquet(
+        tmp_path / "runtime" / "export" / "runs" / status["run_id"] / "snap_counts.parquet"
+    )
+    assert frame["season"].dtype == pl.Int64
+    assert frame["offense_pct"].dtype == pl.Float64
+
+
+def test_e2_an_export_failure_fails_the_run_marker_by_name(
+    tmp_path, harness, identity, monkeypatch
+) -> None:
+    """Publishing after the except block left the run marker reading `running`
+    forever, with no reason and no stage. The prior export survived but
+    operational truth did not, and silence is never success."""
+    import src.dynasty_genius.nflverse_usage as module
+
+    monkeypatch.setattr(
+        module, "publish_export",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("export boom")),
+    )
+    with pytest.raises(Exception):
+        _run(tmp_path, harness, identity)
+
+    marker = json.loads(status_marker_path(tmp_path / "runtime").read_text())
+    assert marker["status"] == "failed", "an export failure left the run marker lying"
+    assert marker["failed_stage"] == "export"
+    assert "export boom" in marker["reason"]
+
+
+def test_e3_a_marker_naming_a_missing_file_is_refused(tmp_path) -> None:
+    """The ready marker protects PUBLISH ORDERING. It says nothing about what
+    happened to the bytes afterwards."""
+    from src.dynasty_genius.nflverse_usage import (
+        _atomic_write_json,
+        export_ready_marker_path,
+        read_last_good_export,
+    )
+
+    root = tmp_path / "export"
+    _atomic_write_json(export_ready_marker_path(root), {
+        "run_id": "ghost",
+        "files": {"ngs_passing": {"path": str(root / "runs" / "ghost" / "nope.parquet"),
+                                  "rows": 999, "sha256": "deadbeef"}},
+    })
+    with pytest.raises(UsageCaptureError, match="nflverse_export_file_missing"):
+        read_last_good_export(root)
+
+
+def test_e3_post_publication_corruption_is_refused_by_name(
+    tmp_path, harness, identity
+) -> None:
+    from src.dynasty_genius.nflverse_usage import read_last_good_export
+
+    status = _run(tmp_path, harness, identity)
+    export_root = tmp_path / "runtime" / "export"
+    assert read_last_good_export(export_root)["run_id"] == status["run_id"]
+
+    target = export_root / "runs" / status["run_id"] / "ngs_passing.parquet"
+    target.write_bytes(b"corrupted after the marker was published")
+    with pytest.raises(UsageCaptureError, match="nflverse_export_hash_mismatch"):
+        read_last_good_export(export_root)
+
+
+def test_e4_a_second_capture_refuses_while_the_first_owns_the_transaction(
+    tmp_path, harness, identity
+) -> None:
+    """R2-E4 (Codex): the first version of this row wrote `capture.lock` by hand,
+    which proves only that a pre-existing FILE is refused — it would still pass if
+    the implementation took and released the lock before the capture body ever ran.
+
+    This drives TWO REAL captures. The second is launched from inside the first's
+    fetch callback, so the first genuinely owns the transaction at that moment, and
+    the refusal has to come from the live lock rather than from a leftover file."""
+    from src.dynasty_genius.nflverse_usage import export_ready_marker_path
+
+    db_path = tmp_path / "usage.db"
+    inner: dict[str, Any] = {}
+
+    def fetch_then_reenter(spec: StreamSpec, season: int):
+        if "result" not in inner:
+            # the outer capture is mid-flight and holds the lock right now
+            try:
+                _run(tmp_path, harness, identity, db_path=db_path,
+                     raw_root=tmp_path / "other-root")
+                inner["result"] = "PROCEEDED"
+            except UsageCaptureError as exc:
+                inner["result"] = str(exc)
+        return harness(spec, season)
+
+    first = _run(tmp_path, harness, identity, db_path=db_path, fetch=fetch_then_reenter)
+
+    assert "result" in inner, "the re-entrant capture never ran"
+    assert "nflverse_capture_lock_held" in inner["result"], (
+        f"a second capture proceeded against a store already being written: {inner['result']}"
+    )
+    # ...and the second used a DIFFERENT raw_root, proving the lock keys on the
+    # STORE rather than the raw directory (R2-E4's exact counterexample).
+    marker = export_ready_marker_path(tmp_path / "runtime" / "export")
+    assert json.loads(marker.read_text())["run_id"] == first["run_id"]
+
+
+def test_e4_the_lock_is_released_after_a_failure(tmp_path, harness, identity) -> None:
+    """A lock that survives a failure bricks every later capture — the same shape
+    as the pane-claim leak fixed earlier today."""
+    def exploding(spec: StreamSpec, season: int):
+        raise RuntimeError("nflverse 503")
+
+    with pytest.raises(Exception):
+        _run(tmp_path, harness, identity, fetch=exploding)
+    assert not (tmp_path / "runtime" / "capture.lock").exists()
+    # and a later capture succeeds
+    assert _run(tmp_path, harness, identity)["status"] == "ok"
+
+
+def test_r2e3_a_row_count_mismatch_is_refused(tmp_path) -> None:
+    """Codex R2-E3, reproduced: hash + existence is NOT last-good. A marker
+    recording rows=999 against a one-row Parquet whose sha256 matched was accepted
+    as good — the hash proves the file is the one written, not that it holds what
+    the manifest claims. A consumer sizing its join on `rows` under-reads silently."""
+    import polars as pl
+
+    from src.dynasty_genius.nflverse_usage import (
+        _atomic_write_json,
+        export_ready_marker_path,
+        read_last_good_export,
+    )
+
+    root = tmp_path / "export"
+    run_dir = root / "runs" / "probe"
+    run_dir.mkdir(parents=True)
+    path = run_dir / "ngs_passing.parquet"
+    pl.DataFrame({"a": [1]}).write_parquet(path)
+    _atomic_write_json(export_ready_marker_path(root), {
+        "run_id": "probe",
+        "files": {"ngs_passing": {
+            "path": str(path), "rows": 999,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        }},
+    })
+    with pytest.raises(UsageCaptureError, match="nflverse_export_row_count_mismatch"):
+        read_last_good_export(root)
+
+
+def test_r2e1_malformed_numeric_source_text_fails_rather_than_becoming_null(
+    tmp_path, identity, fixture_payload
+) -> None:
+    """Codex R2-E1, reproduced: `strict=False` alone converts malformed non-null
+    text to NULL, so a typed Parquet looks valid while having eaten bad values —
+    corruption made indistinguishable from missingness. The publish must refuse."""
+    corrupted = dict(fixture_payload)
+    rows = [dict(r) for r in fixture_payload["ngs_passing"]]
+    rows[0] = dict(rows[0], week="not-a-number")
+    corrupted["ngs_passing"] = rows
+
+    def fetch(spec: StreamSpec, season: int):
+        return corrupted[spec.name]
+
+    with pytest.raises(UsageCaptureError, match="nflverse_export_cast_lost_values"):
+        _run(tmp_path, fetch, identity)
+
+
+def test_r2e1_the_failure_names_the_offending_column(
+    tmp_path, identity, fixture_payload
+) -> None:
+    rows = [dict(r) for r in fixture_payload["ngs_passing"]]
+    rows[0] = dict(rows[0], week="not-a-number")
+    corrupted = dict(fixture_payload, ngs_passing=rows)
+
+    with pytest.raises(UsageCaptureError) as exc:
+        _run(tmp_path, lambda spec, season: corrupted[spec.name], identity)
+    assert "week" in str(exc.value)

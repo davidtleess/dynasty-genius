@@ -33,6 +33,7 @@ import json
 import os
 import sqlite3
 import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -43,6 +44,9 @@ SCHEMA_VERSION = "nflverse_usage.v2"
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DB_PATH = _REPO_ROOT / "app" / "data" / "nflverse_usage.db"
 DEFAULT_RAW_ROOT = _REPO_ROOT / "app" / "data" / "nflverse_usage"
+#: Consumer-facing DERIVED export. Not a second source of truth — a projection of
+#: the store, published as one last-good unit (§publish_export).
+DEFAULT_EXPORT_ROOT = DEFAULT_RAW_ROOT / "export"
 GOVERNED_CROSSWALK = (
     _REPO_ROOT / "app" / "data" / "identity" / "_runs" / "ff_playerids_20260516.json"
 )
@@ -167,9 +171,28 @@ class StreamSpec:
     loader: Callable[..., Any]
     loader_kwargs: Mapping[str, Any]
 
+    #: Columns the EXPORT must publish as real numbers, not strings. SQLite holds
+    #: every column as TEXT, so an untyped projection ships `week`/`season` as
+    #: Utf8 — and E1 (Codex, reproduced) showed the exact existing feature filter
+    #: `(week == 0) & (season_type == "REG")` then fails outright against it. An
+    #: all-string Parquet is not an analyst-ready projection; calling it one is
+    #: how a local-reader swap silently erases every NGS feature.
+    integer_columns: tuple[str, ...] = ()
+    float_columns: tuple[str, ...] = ()
+
     @property
     def stored_columns(self) -> tuple[str, ...]:
         return (*self.columns, "dg_player_id", "identity_status", "row_key", "season_ingested")
+
+    @property
+    def export_dtypes(self) -> dict[str, Any]:
+        """Explicit per-column export types. Declared, never inferred — inference
+        would silently retype a column the day its data happens to look numeric."""
+        import polars as pl
+
+        types: dict[str, Any] = {c: pl.Int64 for c in self.integer_columns}
+        types.update({c: pl.Float64 for c in self.float_columns})
+        return types
 
 
 _NGS_SHARED = (
@@ -211,6 +234,14 @@ NGS_PASSING = StreamSpec(
     ),
     loader=None,  # bound at runtime; see build_streams
     loader_kwargs={"stat_type": "passing"},
+    integer_columns=("season", "week", "attempts", "pass_yards", "pass_touchdowns",
+                     "interceptions", "completions"),
+    float_columns=("avg_time_to_throw", "avg_completed_air_yards", "avg_intended_air_yards",
+                   "avg_air_yards_differential", "aggressiveness",
+                   "max_completed_air_distance", "avg_air_yards_to_sticks", "passer_rating",
+                   "completion_percentage", "expected_completion_percentage",
+                   "completion_percentage_above_expectation", "avg_air_distance",
+                   "max_air_distance"),
 )
 
 NGS_RUSHING = StreamSpec(
@@ -235,6 +266,10 @@ NGS_RUSHING = StreamSpec(
     ),
     loader=None,
     loader_kwargs={"stat_type": "rushing"},
+    integer_columns=("season", "week", "rush_attempts", "rush_yards", "rush_touchdowns"),
+    float_columns=("efficiency", "percent_attempts_gte_eight_defenders", "avg_time_to_los",
+                   "avg_rush_yards", "expected_rush_yards", "rush_yards_over_expected",
+                   "rush_yards_over_expected_per_att", "rush_pct_over_expected"),
 )
 
 NGS_RECEIVING = StreamSpec(
@@ -263,6 +298,10 @@ NGS_RECEIVING = StreamSpec(
     # kwarg here silently loaded passing rows under a receiving label. The schema guard caught
     # it on the first live run — which is the guard doing exactly its job.
     loader_kwargs={"stat_type": "receiving"},
+    integer_columns=("season", "week", "receptions", "targets", "rec_touchdowns"),
+    float_columns=("avg_cushion", "avg_separation", "avg_intended_air_yards",
+                   "percent_share_of_intended_air_yards", "catch_percentage", "yards",
+                   "avg_yac", "avg_expected_yac", "avg_yac_above_expectation"),
 )
 
 SNAP_COUNTS = StreamSpec(
@@ -291,6 +330,9 @@ SNAP_COUNTS = StreamSpec(
     ),
     loader=None,
     loader_kwargs={},
+    integer_columns=("season", "week"),
+    float_columns=("offense_snaps", "offense_pct", "defense_snaps", "defense_pct",
+                   "st_snaps", "st_pct"),
 )
 
 
@@ -308,6 +350,8 @@ def build_streams() -> tuple[StreamSpec, ...]:
             columns=spec.columns,
             loader=loader,
             loader_kwargs=spec.loader_kwargs,
+            integer_columns=spec.integer_columns,
+            float_columns=spec.float_columns,
         )
 
     return (
@@ -644,6 +688,328 @@ def _to_records(frame: Any) -> list[dict[str, Any]]:
     raise UsageCaptureError(f"unsupported frame type from loader: {type(frame)!r}")
 
 
+@contextmanager
+def _exclusive_capture_lock(db_path: Path):
+    """One writer per STORE. E4 (Codex, reproduced): `run_usage_capture` had no
+    lock at all, so two captures could interleave their per-season commits and one
+    could export rows partly written by the other under its own run_id.
+
+    R2-E4 (Codex, reproduced): the first fix keyed the lock to `raw_root`, but
+    `db_path` and `raw_root` are INDEPENDENT arguments — two calls against the same
+    SQLite store with different raw roots took two different locks and could still
+    interleave that one store, contradicting the "one writer per store" claim this
+    docstring makes. The lock is therefore keyed to the canonical DB path, which is
+    the thing actually being protected.
+
+    The lock spans the whole transaction: start marker, every DB write, the export,
+    and the terminal marker. A second capture REFUSES by name and touches neither
+    the first run's store nor its ready marker.
+    """
+    db_path = Path(db_path)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = db_path.with_name(f".{db_path.name}.capture.lock")
+    try:
+        descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError as exc:
+        raise UsageCaptureError(
+            f"nflverse_capture_lock_held: {lock_path} exists; another capture may be "
+            "running. A concurrent capture is refused rather than allowed to "
+            "interleave stream-season commits."
+        ) from exc
+    try:
+        os.write(descriptor, b"nflverse_usage_capture\n")
+        os.close(descriptor)
+        yield
+    finally:
+        lock_path.unlink(missing_ok=True)
+
+
+def export_ready_marker_path(export_root: Path = DEFAULT_EXPORT_ROOT) -> Path:
+    """The consumer's entry point. Reading this FIRST is the whole contract."""
+    return Path(export_root) / "nflverse_usage.ready.json"
+
+
+def publish_export(
+    store: "UsageStore",
+    specs: Sequence[StreamSpec],
+    *,
+    run_id: str,
+    captured_at: str,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+) -> dict[str, Any]:
+    """Publish the DERIVED last-good export: Parquet projections + identity artifact.
+
+    **Why this exists (Codex, TW31 — reproduced before accepting).** The SQLite store
+    commits ONE stream-season at a time, each in its own transaction. Every commit is
+    valid, but a consumer pointed at the store mid-capture observes a MIXED-VINTAGE
+    read. That is not hypothetical: after the ten-season backfill the live store held
+    two ``ingested_at`` stamps at once — 12 stream-seasons from one run and 28 from
+    the next. A feature build reading between them would have mixed 2016-2022 fresh
+    rows with 2023-2025 stale ones and reported neither.
+
+    So consumers never read the store directly. They read the READY MARKER, which
+    names one ``run_id``, and that marker is written LAST — after every Parquet file
+    for the run has landed. The marker is the commit point:
+
+      - Success -> a new immutable run directory, then the marker flips atomically.
+      - Failure -> this function is never called, so the PRIOR run and PRIOR marker
+        stand untouched and the consumer keeps reading the last good vintage. The run
+        marker separately says ``failed``. Silence is never success.
+
+    Parquet because columnar is the right shape to hand the analysis layer; SQLite is
+    not. It is a projection, never a second adapter and never a second source of truth.
+    """
+    import polars as pl
+
+    export_root = Path(export_root)
+    run_dir = export_root / "runs" / run_id
+    if run_dir.exists():
+        raise UsageCaptureError(
+            f"nflverse_export_run_exists: {run_dir} — refusing to overwrite an "
+            "immutable export run"
+        )
+    run_dir.mkdir(parents=True)
+
+    files: dict[str, dict[str, Any]] = {}
+    unresolved_frames: list[Any] = []
+
+    with store._connect() as conn:
+        for spec in specs:
+            rows = [dict(r) for r in conn.execute(f"SELECT * FROM {spec.table}")]
+            frame = pl.DataFrame(rows) if rows else pl.DataFrame()
+            # E1 (Codex, reproduced): SQLite stores every column TEXT, so an
+            # untyped projection ships `week` and `season` as Utf8 and the exact
+            # existing feature filter `(week == 0) & (season_type == "REG")` fails
+            # against it outright. Types are DECLARED per stream, never inferred —
+            # inference would silently retype a column the day its data happened to
+            # look numeric.
+            if frame.height:
+                # R2-E1 (Codex, reproduced): `strict=False` alone turns malformed
+                # non-null source text into NULL, so a typed Parquet can look
+                # perfectly valid while having silently eaten bad values —
+                # corruption made indistinguishable from missingness, which is the
+                # exact disease this product keeps getting burned by. Every cast is
+                # therefore RECONCILED: non-null count before vs after, and any
+                # column that lost a value fails the publish BY NAME.
+                lost: list[str] = []
+                for name, dtype in spec.export_dtypes.items():
+                    if name not in frame.columns:
+                        continue
+                    before = frame.height - frame[name].null_count()
+                    frame = frame.with_columns(
+                        pl.col(name).cast(dtype, strict=False).alias(name)
+                    )
+                    after = frame.height - frame[name].null_count()
+                    if after < before:
+                        lost.append(f"{name} ({before - after} value(s))")
+                if lost:
+                    raise UsageCaptureError(
+                        f"nflverse_export_cast_lost_values: {spec.name} lost non-null "
+                        f"values casting {lost} — the source carries text that is not "
+                        "the declared numeric type. Refusing to publish a typed export "
+                        "in which corruption is indistinguishable from missingness."
+                    )
+            path = run_dir / f"{spec.name}.parquet"
+            frame.write_parquet(path)
+            files[spec.name] = {
+                "path": str(path),
+                "rows": len(rows),
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            }
+            # The identity artifact covers EVERY non-canonical row across EVERY
+            # stream — not one stream's empty file presented as identity being
+            # complete. The 45,363 source-only snap rows and the 3 held conflicts
+            # are the substance of it.
+            for row in rows:
+                if row.get("identity_status") != CANONICAL_RESOLVED:
+                    unresolved_frames.append(
+                        {
+                            "stream": spec.name,
+                            "source_id": str(row.get(spec.identity_column) or ""),
+                            "identity_kind": spec.identity_kind,
+                            "identity_status": row.get("identity_status"),
+                            "season": row.get("season_ingested"),
+                            "player": row.get("player") or row.get("player_display_name"),
+                            "position": row.get("position") or row.get("player_position"),
+                        }
+                    )
+
+    unresolved_path = run_dir / "unresolved_identity.parquet"
+    (pl.DataFrame(unresolved_frames) if unresolved_frames else pl.DataFrame()).write_parquet(
+        unresolved_path
+    )
+    files["unresolved_identity"] = {
+        "path": str(unresolved_path),
+        "rows": len(unresolved_frames),
+        "sha256": hashlib.sha256(unresolved_path.read_bytes()).hexdigest(),
+    }
+
+    by_status: dict[str, int] = {}
+    for row in unresolved_frames:
+        status = str(row["identity_status"])
+        by_status[status] = by_status.get(status, 0) + 1
+
+    manifest = {
+        "schema_version": SCHEMA_VERSION,
+        "run_id": run_id,
+        "captured_at": captured_at,
+        "db_path": str(store.db_path),
+        "files": files,
+        "rows_total": sum(f["rows"] for name, f in files.items() if name != "unresolved_identity"),
+        "unresolved_rows": len(unresolved_frames),
+        "unresolved_by_status": by_status,
+        "seasons": sorted({str(c["season"]) for c in store.captures()}),
+    }
+    _atomic_write_json(run_dir / "manifest.json", manifest)
+
+    # THE COMMIT POINT — written last, atomically. Until this lands, the previous
+    # run remains the last good vintage for every consumer.
+    _atomic_write_json(export_ready_marker_path(export_root), manifest)
+    return manifest
+
+
+def read_last_good_export(
+    export_root: Path = DEFAULT_EXPORT_ROOT, *, verify: bool = True
+) -> dict[str, Any] | None:
+    """The consumer entry point: the last COMPLETE, VERIFIED export, or None.
+
+    Returns None when nothing has ever been published — a consumer with no artifact
+    must carry on without one, which is what makes optional-if-present real.
+
+    **But absence and CORRUPTION are different, and only one of them is normal.**
+    E3 (Codex, reproduced): the first version returned any syntactically valid
+    marker, so a marker naming a nonexistent Parquet with ``sha256=deadbeef`` was
+    accepted as last-good. The ready marker protects PUBLISH ORDERING; it says
+    nothing about what happened to the bytes afterwards — a truncated copy, a
+    half-restored backup, a partial sync. Every referenced file is therefore
+    checked for existence, containment in its own immutable run directory, and
+    sha256 before a consumer is told the export is good, and a mismatch fails
+    LOUDLY by name rather than degrading to None.
+    """
+    marker = export_ready_marker_path(export_root)
+    if not marker.exists():
+        return None
+    manifest = json.loads(marker.read_text(encoding="utf-8"))
+    if not verify:
+        return manifest
+
+    run_id = str(manifest.get("run_id") or "")
+    run_dir = (Path(export_root) / "runs" / run_id).resolve()
+    for name, entry in (manifest.get("files") or {}).items():
+        path = Path(str(entry.get("path", ""))).resolve()
+        if run_id and run_dir not in path.parents:
+            raise UsageCaptureError(
+                f"nflverse_export_escapes_run: {name} at {path} is outside the "
+                f"immutable run directory {run_dir}"
+            )
+        if not path.exists():
+            raise UsageCaptureError(
+                f"nflverse_export_file_missing: {name} at {path} is named by the "
+                "ready marker but is not on disk"
+            )
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest != entry.get("sha256"):
+            raise UsageCaptureError(
+                f"nflverse_export_hash_mismatch: {name} at {path} hashes {digest[:16]} "
+                f"but the ready marker recorded {str(entry.get('sha256'))[:16]}"
+            )
+        # R2-E3 (Codex, reproduced): hash + existence is NOT last-good. A marker
+        # recording rows=999 against a one-row Parquet whose sha256 matched was
+        # accepted as good — the hash proves the file is the one that was written,
+        # not that it holds what the manifest claims. A consumer sizing its join on
+        # `rows` would silently under-read.
+        import polars as pl
+
+        actual_rows = pl.scan_parquet(path).select(pl.len()).collect().item()
+        if int(actual_rows) != int(entry.get("rows", -1)):
+            raise UsageCaptureError(
+                f"nflverse_export_row_count_mismatch: {name} at {path} holds "
+                f"{actual_rows} rows but the ready marker recorded {entry.get('rows')}"
+            )
+    return manifest
+
+
+#: The NGS streams a feature build consumes, mapped to the loader-output keys the
+#: existing assembly already expects. Same keys, same column names — the consumer
+#: is not rewritten to suit the store.
+NEXTGEN_LOADER_KEYS: dict[str, str] = {
+    "ngs_passing": "nextgen_passing",
+    "ngs_receiving": "nextgen_receiving",
+    "ngs_rushing": "nextgen_rushing",
+}
+
+
+def load_nextgen_from_export(
+    seasons: Sequence[int] | None = None,
+    *,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+) -> dict[str, Any]:
+    """Read NGS for a feature build from the LAST-GOOD export instead of the network.
+
+    This is the store's first consumer, and the reason the export exists. Before it,
+    the 09:15 scheduled chain made three direct ``load_nextgen_stats`` calls — three
+    network round-trips inside the critical path, three new ways the morning halts,
+    and no cached-failure behaviour despite the source registry declaring
+    ``failure_behavior="use_cached"``.
+
+    Returns loader-output frames keyed exactly as the existing assembly expects, so
+    the consumer needs no rewrite. Returns ``{}`` when no export has ever been
+    published — absence is normal and must never raise, which is what makes the
+    downstream optional-if-present features genuinely optional. Corruption is a
+    different thing and still raises loudly (§read_last_good_export).
+    """
+    manifest = read_last_good_export(export_root)
+    if manifest is None:
+        return {}
+
+    import polars as pl
+
+    wanted = {int(s) for s in seasons} if seasons else None
+    frames: dict[str, Any] = {}
+    for stream, loader_key in NEXTGEN_LOADER_KEYS.items():
+        entry = (manifest.get("files") or {}).get(stream)
+        if entry is None:
+            continue
+        frame = pl.read_parquet(entry["path"])
+        if wanted is not None and frame.height and "season" in frame.columns:
+            frame = frame.filter(pl.col("season").is_in(sorted(wanted)))
+        frames[loader_key] = frame.to_pandas()
+    return frames
+
+
+def nextgen_export_provenance(
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+) -> dict[str, Any]:
+    """What the feature build should RECORD about the NGS it consumed.
+
+    Absence is legitimate but must never be silent: a build that ran without NGS
+    says so, with the reason, rather than quietly producing a candidate whose NGS
+    columns are missing for no stated cause.
+
+    ``captured_at`` is FETCH/RETRIEVAL time. Upstream publish time is UNAVAILABLE —
+    no artifact distinguishes them — so nothing here implies an observed vendor
+    cadence (Gemini/Codex provenance boundary, 2026-07-31).
+    """
+    manifest = read_last_good_export(export_root)
+    if manifest is None:
+        return {"source": "nflverse_usage_export", "available": False,
+                "reason": "no export has been published"}
+    return {
+        "source": "nflverse_usage_export",
+        "available": True,
+        "run_id": manifest.get("run_id"),
+        "captured_at_is": "fetch_time",
+        "captured_at": manifest.get("captured_at"),
+        "upstream_publish_time": "UNAVAILABLE",
+        "seasons": manifest.get("seasons"),
+        "schema_version": manifest.get("schema_version"),
+        "file_sha256": {
+            name: entry.get("sha256")
+            for name, entry in (manifest.get("files") or {}).items()
+        },
+    }
+
+
 def run_usage_capture(
     *,
     seasons: Sequence[int],
@@ -651,6 +1017,7 @@ def run_usage_capture(
     identity: IdentityIndex | None = None,
     db_path: Path = DEFAULT_DB_PATH,
     raw_root: Path = DEFAULT_RAW_ROOT,
+    export_root: Path | None = None,
     fetch: Callable[[StreamSpec, int], Sequence[Mapping[str, Any]]] | None = None,
 ) -> dict[str, Any]:
     """Start marker -> per stream-season fetch -> raw snapshot -> normalize -> store -> marker.
@@ -672,14 +1039,32 @@ def run_usage_capture(
         "seasons": seasons,
         "streams": [spec.name for spec in specs],
     }
-    _atomic_write_json(marker, {**base, "status": "running"})
-
     def _default_fetch(spec: StreamSpec, season: int) -> Sequence[Mapping[str, Any]]:
         return _to_records(spec.loader(seasons=[season], **dict(spec.loader_kwargs)))
 
     fetch = fetch or _default_fetch
-    store: UsageStore | None = None
+    export_dir = Path(export_root) if export_root is not None else Path(raw_root) / "export"
     results: list[dict[str, Any]] = []
+
+    # The lock spans the WHOLE transaction — start marker, every DB write, the
+    # export, and the terminal marker — so a second capture cannot interleave its
+    # per-season commits with this one's (E4).
+    with _exclusive_capture_lock(Path(db_path)):
+        _atomic_write_json(marker, {**base, "status": "running"})
+        return _run_locked_capture(
+            base=base, marker=marker, specs=specs, seasons=seasons, fetch=fetch,
+            identity=identity, db_path=db_path, raw_root=raw_root,
+            export_dir=export_dir, run_id=run_id, started_at=started_at,
+            results=results,
+        )
+
+
+def _run_locked_capture(
+    *, base, marker, specs, seasons, fetch, identity, db_path, raw_root,
+    export_dir, run_id, started_at, results,
+) -> dict[str, Any]:
+    """The capture body, run while the exclusive lock is held."""
+    store: UsageStore | None = None
     stream_name = season = None
 
     try:
@@ -717,6 +1102,18 @@ def run_usage_capture(
                         "coverage": coverage,
                     }
                 )
+
+        # DERIVED EXPORT — inside the transaction on purpose. E2 (Codex,
+        # reproduced): publishing after the except block meant an export failure
+        # left the run marker reading `running` forever, with no reason and no
+        # failed stage. The prior ready marker survived, but OPERATIONAL TRUTH did
+        # not, and silence is never success. The export is part of the capture, so
+        # its failure fails the run by name.
+        stream_name, season = None, None
+        export_manifest = publish_export(
+            store, specs, run_id=run_id, captured_at=started_at,
+            export_root=export_dir,
+        )
     except Exception as exc:
         if store is not None and stream_name is not None and season is not None:
             store.record_failure(
@@ -727,6 +1124,7 @@ def run_usage_capture(
             {
                 **base,
                 "status": "failed",
+                "failed_stage": "export" if stream_name is None and results else "capture",
                 "failed_stream": stream_name,
                 "failed_season": season,
                 "reason": f"{type(exc).__name__}: {exc}",
@@ -743,6 +1141,13 @@ def run_usage_capture(
         "status": "ok",
         "finished_at": datetime.now(timezone.utc).isoformat(),
         "db_path": str(db_path),
+        "export": {
+            "run_id": export_manifest["run_id"],
+            "rows_total": export_manifest["rows_total"],
+            "unresolved_rows": export_manifest["unresolved_rows"],
+            "unresolved_by_status": export_manifest["unresolved_by_status"],
+            "ready_marker": str(export_ready_marker_path(export_dir)),
+        },
         "results": results,
         "totals": _totals(results),
         "rows_stored": {

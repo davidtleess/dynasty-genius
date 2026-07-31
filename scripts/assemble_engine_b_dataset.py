@@ -29,6 +29,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
+def _load_nextgen_from_export(seasons):
+    """Lazy import: see the call site. Keeps this script standalone-loadable."""
+    from src.dynasty_genius.nflverse_usage import load_nextgen_from_export
+
+    return load_nextgen_from_export(seasons)
+
+
 from src.dynasty_genius.audit.te_archetype_taxonomy import (
     derive_te_taxonomy_features,  # noqa: E402
 )
@@ -214,9 +221,13 @@ def main():
         "snap_counts": _to_pandas(nfl.load_snap_counts(SEASONS)),
         "pbp": _to_pandas(nfl.load_pbp(SEASONS)),
         "participation": _to_pandas(nfl.load_participation(valid_part_seasons)),
-        "nextgen_passing": _to_pandas(nfl.load_nextgen_stats(valid_ng_seasons, stat_type="passing")),
-        "nextgen_receiving": _to_pandas(nfl.load_nextgen_stats(valid_ng_seasons, stat_type="receiving")),
-        "nextgen_rushing": _to_pandas(nfl.load_nextgen_stats(valid_ng_seasons, stat_type="rushing")),
+        # NGS from the last-good local export rather than live calls (see
+        # run_feature_refresh.py for the full reasoning). Same loader-output keys,
+        # so the assembly below is unchanged. Imported LAZILY: this module sets
+        # ROOT/sys.path below its import block, so a module-level `src.` import
+        # breaks a standalone/launchd invocation from outside the repo — caught by
+        # the closeout tollgate's standalone-scripts check before it shipped.
+        **_load_nextgen_from_export(valid_ng_seasons),
     }
     df_final = build_engine_b_features(read_fns=read_fns, seasons_window=SEASONS)
 
