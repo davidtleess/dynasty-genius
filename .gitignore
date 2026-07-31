@@ -111,6 +111,18 @@ app/data/league_transactions.db
 app/data/league_transactions.db-journal
 app/data/league_transactions/
 
+# nflverse usage ingestion (layer 1) — durable SQLite store + per-run raw snapshots + status marker
+# for Next Gen Stats and snap counts. Operational, rebuildable from the free public nflverse
+# releases via nflreadpy; never committed. ~117MB of runtime data, so an unignored `git add -A`
+# would land it in history — the same exposure closed for the transaction store above.
+app/data/nflverse_usage.db
+app/data/nflverse_usage.db-journal
+app/data/nflverse_usage/
+
+# Per-source raw/curated capture root (Codex's NGS + CFBD foundation captures). Parquet snapshots,
+# rebuildable from their public sources; operational, never committed.
+app/data/sources/
+
 # Realized-Outcome Loop (T5) — gitignored weekly scorecard artifact (descriptive, decision_supported=false)
 app/data/realized_outcome/
 
