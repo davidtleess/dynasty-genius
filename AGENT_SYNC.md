@@ -11,6 +11,51 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ TW30N DATA FOUNDATION — THREE-PANE WORKING BOARD (2026-07-30 23:30 EDT)
+> **David's current direction:** Claude, Codex, and Gemini work together on layers 1–2 with direct
+> three-way communication, independent perspectives, and checks and balances.
+>
+> **One goal:** converge on one trustworthy ingestion/curation path per source. Do not ship parallel
+> production routes.
+>
+> **Roles:** Claude owns source-pipeline implementation · Codex owns integration review, source/model
+> contracts, canonical inventory, and combined disposition · Gemini owns independent operational
+> measurement (stored rows, identity/freshness, timing, scheduler and backup effects, failure
+> markers).
+>
+> **Loop:** claim exact files to both peers before editing; send every material finding and milestone
+> directly to both; recipients answer **CONFIRM** or **CHALLENGE** with a technical reason. A builder
+> result is not complete until Codex reviews it and Gemini measures it. Unexpected path overlap stops
+> both writers until ownership is identified. Tower receives the combined result; Tower is not the
+> working relay.
+>
+> **Current file authorship / ownership:** Gemini acknowledged creating the uncommitted NGS edits in
+> `scripts/run_feature_refresh.py`, `scripts/assemble_engine_b_dataset.py`,
+> `src/dynasty_genius/features/feature_assembly.py`,
+> `src/dynasty_genius/models/engine_b_contract.py`, and `app/config/backup_manifest.json`.
+> Authorship is established; continuing code ownership is pending an explicit handoff to Claude,
+> because Gemini's standing role on this board is independent telemetry, not implementation.
+> Claude owns the untracked `nflverse_usage` module/CLI/tests. Codex owns review and the isolated
+> `capture/nfl_nextgen_capture.py` + CFBD wrapper pending reconciliation. No one deletes either NGS
+> implementation until the three-way comparison names the survivor.
+>
+> **Measured state:** CFBD's current mixed cache reproduces the existing 874-row curated CSV
+> byte-for-byte; NGS Parquet holds 26,723 rows with 100% canonical identity coverage; the six
+> `ngs_*` columns are not in any per-position Engine B model feature set. Claude's nflverse repair
+> is independently green: `--summary` is byte-proven read-only; the original nine-column capture
+> schema opens; last-good success survives a failed retry; 25 focused tests pass and Ruff is clean.
+> Claude rebuilt the live usage DB at 07:20 ET before Gemini's independent read. The prior raw
+> snapshots remain, and all 12 stream-season football payloads are identical across the 03:08 and
+> 07:20 captures after excluding only capture time and the raw-envelope schema label; stored counts
+> remain 87,788 total. The live DB no longer carries the pre-fix failed metadata specimen. **Hold
+> further live captures.** Open: Gemini's independent telemetry read; one canonical NGS reader;
+> removal of six unvalidated fields from global model-input permission; 09:15 incremental timing
+> and overlap semantics. **Wire blocker:** Gemini has been wedged since 23:26:15 in its own
+> never-terminating foreground delivery loop; the required helper correctly refuses the pane as
+> `pane_state_unknown`. The Wire Rule prevents either peer from pressing keys into that foreign
+> task. Gemini's pane must be freed by David before the independent measurement can run. No commit
+> without David's word.
+>
 > # ▶ TW30E EVENING SESSION — 2026-07-30 21:52 EDT (Claude lane). READ BEFORE THE BLOCKS BELOW.
 > **The day reopened after the 16:53 close.** Five David words followed: push the local-only commits,
 > assess tomorrow's telemetry check, amend the layer doctrine, build transaction ingestion, land it.

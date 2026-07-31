@@ -26,20 +26,22 @@ history, project transcripts, file history and Tower files; Codex history and se
 transcripts; `dg-cockpit`; and temporary text/task/scratch files. No credential or secret file was
 opened.
 
-## ONE OF SIX.
+## TWO INGESTED, ONE BY HAND, THREE NOT CURRENT.
 
 **Six sources on his list. Five he pays for — PFF, CFBD, PlayerProfiler, FantasyPros, Footballguys —
-plus NFL Next Gen Stats, free. We are getting ONE of the six, and it is reading a two-month-old
-cache.** That is the only number on this page that matters.
+plus NFL Next Gen Stats, free. CFBD and NFL Next Gen Stats are now ingested; PFF arrives by hand;
+PlayerProfiler and FantasyPros are historical only; Footballguys is absent. CFBD still reads a
+two-month-old cache until David authorizes the isolated refresh after tomorrow's morning
+measurement.**
 
 | # | Source | Getting it today? | Why not | What it would take | What we lose without it |
 | --: | :-- | :-- | :-- | :-- | :-- |
-| 1 | **collegefootballdata.com (CFBD)** | **YES — the source is live.** But we are eating from a **2-month-old cache** (810 files, last moved 2026-05-24) | Nothing is broken. The key works — I called the live API tonight: **HTTP 200, 681 teams returned.** Nobody scheduled a refresh, so the pipeline reads a May snapshot | **Hours.** Re-run the college feature build against the live API. Making it *stay* fresh is a scheduler decision, which is your word | Every rookie is being graded on May college numbers — breakout age, dominator, target share. We are scouting the 2026 class with last spring's stats |
+| 1 | **collegefootballdata.com (CFBD)** | **YES — the source is live.** But we are eating from a **2-month-old cache** (810 files, last moved 2026-05-24) | Nothing is broken. The key works — the live API returned HTTP 200 tonight. The isolated raw-to-curated refresh is now built and tested, but was deliberately not executed because changing this input before tomorrow's pre-registered morning run would contaminate that measurement | **Built and runnable.** On David's word after the morning run, one explicit command fetches into a new immutable raw snapshot, validates 99%+ identity coverage and non-degraded output, and publishes a separate curated table without overwriting the May input | Every rookie is being graded on May college numbers — breakout age, dominator, target share. We are scouting the 2026 class with last spring's stats |
 | 2 | **PFF** | **BY HAND ONLY** — 3 files you exported yourself, newest **2026-05-23** | The documented automated credential path is absent. A parser and real manual data exist; there is no live feed to point it at | **4–8 hours** per refresh once you export. A tested authenticated path is roughly **2–4 days**, subject to PFF's terms and subscription tier | Snaps, routes, route participation, YPRR, and grading a box score cannot show. Without them we cannot see *how* a WR or TE won, only that a target arrived |
 | 3 | **PlayerProfiler** | **HISTORICAL ONLY** — old caches and a v2 training table contain real values; the current path is broken | The current probe returned **874 parse errors out of 874 players**. The documented credential directory is absent, and the existing adapter has no current product caller | **2–4 days** to restore authentication, update the parser, and run identity/coverage QA; a manual HTML export could reduce this to **about 1 day** | Breakout age, speed score, target share, and college dominator — rookie evidence we are paying for and currently modelling without |
 | 4 | **FantasyPros** | **HISTORICAL ONLY** — 2,185 rows on four dates through DynastyProcess; no live feed | We built only a four-date archive and never built an authorized current export/feed | **1–2 days** if the paid account exposes a usable export; **3–5 days** if browser-authenticated retrieval is required | Current consensus rankings, positional ECR, and an independent draft/trade/waiver view. Today that comparison leans on FantasyCalc alone |
 | 5 | **Footballguys** | **NO** | **Zero code references anywhere.** Its *thinking* is deep in us — mortality tables / expected years remaining, Superflex replacement level, seasonal value multipliers, cited across 16 strategy docs. Its *data* was never ingested | **UNVERIFIED — I cannot size this without you.** Tell us what your subscription actually lets you download (export? API? articles only?) and it becomes a real estimate | UNVERIFIED until we know what it serves. The age/replacement-level framing we already borrowed is doing real work in our valuation |
-| 6 | **NFL Next Gen Stats** | **NO** | Never switched on. **And it is already sitting in the box** — `nflreadpy.load_nextgen_stats()` ships in a library we already depend on and call every morning | **Hours. This is the cheapest tank on the board and it is free.** One function call, plus the join we already do for every other nflreadpy table | Separation, cushion, air yards, time-to-throw. Real athleticism-and-usage signal for WR and QB that we currently proxy at |
+| 6 | **NFL Next Gen Stats** | **YES — raw and curated 2016–2025 aggregates captured tonight; no product/model consumer yet** | Filled tonight through the already-installed `nflreadpy.load_nextgen_stats()` path | **Built and run.** 26,723 curated rows, 100% GSIS identity coverage, immutable raw snapshots, and a repeat-run no-op. A scheduler or model/UI use remains a separate David decision | Separation, cushion, air yards, time-to-throw, expected completion, rushing efficiency, and RYOE are now in the foundation instead of being unavailable |
 
 **CORRECTION, recorded rather than quietly erased (David, 2026-07-30 22:41).** This table originally
 carried a seventh row for **"Dynasty Genius"**, filed as an unidentified third-party subscription and
@@ -54,10 +56,12 @@ table cells. **This is the same defect as every instrument this week that report
 never established** — the shape was processed, the meaning was not. It belongs in the record next to
 the others.
 
-**Free data we already pay nothing for, already have installed, and have never called once:**
-`load_nextgen_stats` · `load_ff_opportunity` · `load_ff_rankings` · `load_pfr_advstats` ·
-`load_ftn_charting` · `load_contracts` · `load_injuries` · `load_depth_charts` — **0 references each.**
-Eight loaders, same library, already a dependency.
+**Free data we already pay nothing for and already have installed:** tonight's check verified all
+eight loaders existed and had zero callers. `load_nextgen_stats` is now wired. Seven remain:
+`load_ff_opportunity` · `load_ff_rankings` · `load_pfr_advstats` · `load_ftn_charting` ·
+`load_contracts` · `load_injuries` · `load_depth_charts`. The raw/curated capture mechanics
+generalize, but their schemas, season availability, identity keys, licenses, and football use
+still require source-specific contracts.
 
 **One correction to a doc, not to you:** `docs/data-source-contracts.md` says credentials live in
 `~/.config/dynasty-genius/`. **That directory does not exist on this machine.** This cross-check
@@ -82,7 +86,7 @@ reading Tower's sweep; everything else was measured first-hand.
 | **Sleeper transactions** | Free | **YES — as of tonight** | `app/data/league_transactions.db` | **NOTHING** — manual command only | NOBODY yet (layer-1 substrate) | **2026-07-30 22:16** (4 seasons, 932 txns) |
 | **FantasyCalc** (market values) | Free public API | **YES** | `app/data/fc_forward_capture.db`, `universe_market_divergence_latest.json` | LaunchAgent `dynasty-market-divergence-refresh` 09:40 + `dynasty-fc-snapshot` 09:00 | Market divergence / margin | **2026-07-30 09:40** |
 | **nflverse via nflreadpy** (NFL stats, PBP, rosters, draft picks) | Free | **YES** | `app/data/features_runtime/` | LaunchAgent `dynasty-feature-refresh`; today's run was a no-op | Engine B features, outcome capture | **2026-07-10 09:21** |
-| **CFBD — collegefootballdata.com** | **PAID** (David's list; exact tier UNVERIFIED) | **YES, from a stale local cache** | `app/data/cfbd_cache/` (810 files) | **NOTHING scheduled** | Engine A college features (from cache) | **2026-05-24** — 2 months |
+| **CFBD — collegefootballdata.com** | **PAID** (David's list; exact tier UNVERIFIED) | **YES, from a stale local cache** | Current input: `app/data/cfbd_cache/` (810 files). New isolated destination is ready under `app/data/sources/cfbd_foundation/` | Raw-to-curated runner built and preflighted; **not executed and NOTHING scheduled** | Engine A college features still read the May cache | **2026-05-24** — intentionally unchanged tonight |
 | **PFF** | **PAID** | **BY HAND ONLY** | `app/data/pff_exports/` (3 files) | **NOTHING automatic** — David exports by hand | `scripts/build_college_features.py` only | **2026-05-23** — 2 months |
 | **PlayerProfiler** | **PAID** | **HISTORICAL ONLY** | Old caches and `app/data/training/prospects_with_outcomes_v2.csv`; current probe is **874/874 parse errors** | **NOTHING current** | NOBODY in current v3 | **2026-05-11** |
 | **FantasyPros** | **PAID** (David's list) | **HISTORICAL ONLY** | `app/data/fc_snapshots.db`, source `dp_archive`: 2,185 rows on four dates | One manual archive load; **NOTHING current** | Backtest/trust-surface code | Local load **2026-05-30**; newest source date **2024-09-08** |
@@ -92,7 +96,7 @@ reading Tower's sweep; everything else was measured first-hand.
 | **RotoViz** | **UNVERIFIED** (likely paid) | **NO** | nowhere | **NOTHING** | **NOBODY** — declared in the registry, no fetch code exists | **never** |
 | **Campus2Canton** | **UNVERIFIED** | **NO** | nowhere | **NOTHING** | **NOBODY** — declared in the registry, no fetch code exists | **never** |
 | **KeepTradeCut (KTC)** | Free | **NO** | nowhere live | **NOTHING** | NOBODY — and by constitution it may never enter a model | **UNVERIFIED** |
-| **NFL Next Gen Stats** | Free (David named it as public data) | **NO** | nowhere | **NOTHING** | **NOBODY** | **never** |
+| **NFL Next Gen Stats** | Free (David named it as public data) | **YES** | `app/data/sources/nfl_nextgen_stats/`: immutable raw Parquet plus one curated table | Manual runnable capture; **NOTHING scheduled** | Stable curated loader exists; **NOBODY in the product/model yet** | **2026-07-30 23:00 ET** — 26,723 rows, 2016–2025 |
 | **Sleeper CDN** (player images) | Free | **YES** | `app/data/assets/` (263 files) | **NOTHING** — built once | Front-end player images | **2026-07-06** |
 | **Sportradar** | Enterprise — never contracted | **NO** | nowhere | **NOTHING** | **NOBODY** — name only, in the registry | **never** |
 | **Genius Sports** | Enterprise — never contracted | **NO** | nowhere | **NOTHING** | **NOBODY** — name only | **never** |
@@ -123,7 +127,9 @@ reading Tower's sweep; everything else was measured first-hand.
    data but no current feed; Footballguys has nothing. CFBD's cache and PFF's manual files are
    about two months old.
 2. **Live college production.** CFBD is cache-only, so Engine A trains on a static May snapshot.
-3. **Advanced NFL usage David named as free** — Next Gen Stats. Never ingested.
+3. **Seven other free nflreadpy datasets remain unwired.** Next Gen Stats is now ingested; FF
+   opportunity, rankings, PFR advanced stats, FTN charting, contracts, injuries, and depth charts
+   still have zero callers.
 4. **League history beyond transactions** — drafts, standings, matchups, weekly lineups across the
    four seasons. Sleeper serves all of it; we call none of it.
 5. **A live market source other than FantasyCalc.** KTC is named everywhere and ingested nowhere.
