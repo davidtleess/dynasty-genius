@@ -102,6 +102,15 @@ app/data/market_divergence_history.db-journal
 app/data/logs/market_divergence_refresh.out.log
 app/data/logs/market_divergence_refresh.err.log
 
+# League transaction ingestion (layer 1) — durable SQLite store + raw per-run snapshots and the
+# capture status marker. Operational, rebuildable from the public Sleeper API; never committed.
+# Backup-manifest coverage is deliberately DEFERRED (David, 2026-07-30) and returns with a
+# scheduler word — this entry is independent of that decision and closes the exposure where a
+# rebuilt store in the default location would sit untracked and visible.
+app/data/league_transactions.db
+app/data/league_transactions.db-journal
+app/data/league_transactions/
+
 # Realized-Outcome Loop (T5) — gitignored weekly scorecard artifact (descriptive, decision_supported=false)
 app/data/realized_outcome/
 

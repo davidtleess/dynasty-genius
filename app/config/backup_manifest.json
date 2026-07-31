@@ -210,6 +210,10 @@
     {
       "path": "app/data/assets/",
       "reason": "Rebuildable from public Sleeper CDN; not irreplaceable (Increment-0 spec s1A)."
+    },
+    {
+      "path": "app/data/league_transactions.db",
+      "reason": "Rebuildable from public Sleeper API; not irreplaceable."
     }
   ]
 }
