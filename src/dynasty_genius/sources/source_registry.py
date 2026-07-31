@@ -360,6 +360,32 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
             ),
         ),
         _make(
+            name="nfl_nextgen_stats",
+            roles=["context_signal"],
+            allowed_fields=[],
+            prohibited_fields=list(PROHIBITED_COLUMNS),
+            provenance_required=True,
+            cache_policy="sqlite_store_with_raw_snapshots",
+            freshness_hours=168,
+            failure_behavior="use_cached",
+            test_gate="tests/contract/test_nflverse_usage_ingestion_red.py",
+            notes=(
+                "Public passing, receiving, and rushing aggregates from NFL Next "
+                "Gen Stats via nflverse/nflreadpy. Raw per-run snapshots plus a "
+                "durable SQLite store; context_signal until a separately authorized "
+                "validation establishes a model use. Never inferred to be full "
+                "player-tracking data. "
+                "CANONICAL ADAPTER: src/dynasty_genius/nflverse_usage.py, store "
+                "app/data/nflverse_usage.db (committed fe7ea89). Reconciled "
+                "2026-07-31 — this entry previously named `parquet_snapshot` and "
+                "`test_nfl_nextgen_capture.py`, a second adapter for the same "
+                "external source that was withheld under 01 §Source Adapter Rules "
+                "(exactly one adapter per source). Both fields were false as "
+                "written. Codex, which authored both this entry and the withdrawn "
+                "Parquet route, requested this reconciliation."
+            ),
+        ),
+        _make(
             # QB-1 spec v8 D1: a DISTINCT second definition for the same adapter
             # module — SourceDefinition has ONE shared roles set and ONE shared
             # allowed_fields tuple, so granting validation_study on the context

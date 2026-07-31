@@ -119,9 +119,16 @@ app/data/nflverse_usage.db
 app/data/nflverse_usage.db-journal
 app/data/nflverse_usage/
 
-# Per-source raw/curated capture root (Codex's NGS + CFBD foundation captures). Parquet snapshots,
-# rebuildable from their public sources; operational, never committed.
-app/data/sources/
+# Per-source raw/curated capture directories. Parquet snapshots, rebuildable from their public
+# sources; operational, never committed.
+#
+# NARROWED 2026-07-31 (Codex finding, accepted). The rule shipped in 1a6255c as a blanket
+# `app/data/sources/`, which silently pre-ignores every FUTURE vendor directory under that root —
+# including one that might hold genuinely irreplaceable paid data. An ignore rule must name what it
+# excludes, so a new source has to be considered on its own terms rather than disappearing by
+# inheritance. Listed explicitly; add a line per source, deliberately.
+app/data/sources/nfl_nextgen_stats/
+app/data/sources/cfbd_foundation/
 
 # Realized-Outcome Loop (T5) — gitignored weekly scorecard artifact (descriptive, decision_supported=false)
 app/data/realized_outcome/
