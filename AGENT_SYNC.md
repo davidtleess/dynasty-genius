@@ -29,32 +29,52 @@
 > both writers until ownership is identified. Tower receives the combined result; Tower is not the
 > working relay.
 >
-> **Current file authorship / ownership:** Gemini acknowledged creating the uncommitted NGS edits in
+> **Current file authorship / ownership (Codex integration update, 2026-07-31 09:29 ET):** Gemini acknowledged creating the uncommitted NGS edits in
 > `scripts/run_feature_refresh.py`, `scripts/assemble_engine_b_dataset.py`,
 > `src/dynasty_genius/features/feature_assembly.py`,
 > `src/dynasty_genius/models/engine_b_contract.py`, and `app/config/backup_manifest.json`.
 > Authorship is established; continuing code ownership is pending an explicit handoff to Claude,
 > because Gemini's standing role on this board is independent telemetry, not implementation.
-> Claude owns the untracked `nflverse_usage` module/CLI/tests. Codex owns review and the isolated
-> `capture/nfl_nextgen_capture.py` + CFBD wrapper pending reconciliation. No one deletes either NGS
-> implementation until the three-way comparison names the survivor.
+> Claude's `nflverse_usage` module/CLI/tests are now committed locally in `fe7ea89`; Codex's isolated
+> Parquet NGS module/CLI/test are **not cleared to land** because they would create a second adapter
+> and store for the same source. The untracked CFBD wrapper is mechanically green but awaits Claude's
+> independent source-pipeline review before commit. **That CFBD review is now complete and Codex
+> independently cleared it after two pre-land isolation guards were added; no live refresh ran.**
+> It is ready to land only on David's word. The source-registry edits are reconciled to the canonical
+> SQLite/raw-snapshot nflverse path; snap counts still lacks its own registry declaration. No one deletes the superseded files or
+> runtime snapshots without a separate explicit disposition.
 >
-> **Measured state:** CFBD's current mixed cache reproduces the existing 874-row curated CSV
+> **Measured state (Codex integration update, 2026-07-31 11:39 ET):** CFBD's current mixed cache reproduces the existing 874-row curated CSV
 > byte-for-byte; NGS Parquet holds 26,723 rows with 100% canonical identity coverage; the six
 > `ngs_*` columns are not in any per-position Engine B model feature set. Claude's nflverse repair
 > is independently green: `--summary` is byte-proven read-only; the original nine-column capture
 > schema opens; last-good success survives a failed retry; 25 focused tests pass and Ruff is clean.
-> Claude rebuilt the live usage DB at 07:20 ET before Gemini's independent read. The prior raw
-> snapshots remain, and all 12 stream-season football payloads are identical across the 03:08 and
-> 07:20 captures after excluding only capture time and the raw-envelope schema label; stored counts
-> remain 87,788 total. The live DB no longer carries the pre-fix failed metadata specimen. **Hold
-> further live captures.** Open: Gemini's independent telemetry read; one canonical NGS reader;
-> removal of six unvalidated fields from global model-input permission; 09:15 incremental timing
-> and overlap semantics. **Wire blocker:** Gemini has been wedged since 23:26:15 in its own
-> never-terminating foreground delivery loop; the required helper correctly refuses the pane as
-> `pane_state_unknown`. The Wire Rule prevents either peer from pressing keys into that foreign
-> task. Gemini's pane must be freed by David before the independent measurement can run. No commit
-> without David's word.
+> Claude rebuilt the live usage DB at 07:20 ET before Gemini's independent read. Gemini's requested
+> read-only measurement has now landed and Claude independently reconciled it with no discrepancy:
+> all 12 captures are `ok`; stored counts remain 87,788; 36 raw files form three complete run stamps;
+> published and consumed feature SHAs match; and no partial runtime files exist. The live DB no
+> longer carries the pre-fix failed metadata specimen, so failed-retry preservation is unobservable
+> there; the three exact properties pass in temporary databases. **The review-specific live-store
+> freeze is satisfied and lifts; that is not an instruction to capture again.** Codex's live
+> scheduler read found today's 09:15 feature refresh still
+> running after 14m10s at 09:29:10, then complete `status=ok` at 09:29:23; PVO completed after it at
+> 09:30:31 and consumed the exact published feature SHA-256 (`5a3eaf...acf180`). **No sequence
+> inversion occurred today.** Gemini's independent telemetry now corroborates that chain result.
+> Claude's `scripts/dg_delivery.py` working-tree repair is **CLEAR after two review rounds**. The
+> exact prompt-prefixed history probe now returns `UNKNOWN`; the W4 race test invokes
+> `DeliveryMachine._claim_pane` across two real SQLite adapters; and the post-paste capture-exception
+> path proves terminal durable row plus released claim. Codex independently ran all wire tests:
+> `214 passed, 1 skipped`; the combined wire+CFBD counterprobe slice is `21 passed`; Ruff is clean.
+> Gemini's earlier 9-test confirmation was valid operational corroboration and its refusal to issue
+> a structural verdict was correct. Codex did not edit or claim the wire file.
+> Detailed evidence: `docs/agent-ledger/evidence/2026-07-31/wire_repair_review_codex_v1.md`.
+> Open: one canonical NGS
+> reader; removal of six unvalidated fields from global model-input permission; replacement of the
+> three direct scheduled NGS network calls with a durable local canonical reader; field-level
+> provenance; 09:15 incremental timing and overlap semantics. The modified backup manifest and the
+> six global `ngs_*` permissions remain David's decisions; this delivery changes neither. Three local
+> commits now exist on `main` (`1a6255c`, `fe7ea89`, `290a4e7`) and have not been pushed; Gemini's
+> five files and Codex's remaining files are still uncommitted.
 >
 > # ▶ TW30E EVENING SESSION — 2026-07-30 21:52 EDT (Claude lane). READ BEFORE THE BLOCKS BELOW.
 > **The day reopened after the 16:53 close.** Five David words followed: push the local-only commits,
