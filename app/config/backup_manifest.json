@@ -214,6 +214,18 @@
     {
       "path": "app/data/league_transactions.db",
       "reason": "Rebuildable from public Sleeper API; not irreplaceable."
+    },
+    {
+      "path": "app/data/sources/nfl_nextgen_stats/",
+      "reason": "Rebuildable from public NFL Next Gen Stats via nflreadpy; not irreplaceable."
+    },
+    {
+      "path": "app/data/sources/cfbd_foundation/",
+      "reason": "Rebuildable from collegefootballdata.com API via run_cfbd_foundation_refresh.py; not irreplaceable."
+    },
+    {
+      "path": "app/data/nflverse_usage.db",
+      "reason": "Rebuildable from nflverse public usage statistics via run_nflverse_usage_capture.py; not irreplaceable."
     }
   ]
 }

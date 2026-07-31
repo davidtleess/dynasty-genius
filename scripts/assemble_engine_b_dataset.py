@@ -83,6 +83,12 @@ ENGINE_B_OUTPUT_COLUMNS = (
     "ppg_t_minus_2_available",
     "snap_share_t_minus_1_available",
     "te_role_is_risk_profile",
+    "ngs_completion_percentage_above_expectation",
+    "ngs_avg_time_to_throw",
+    "ngs_avg_separation",
+    "ngs_avg_cushion",
+    "ngs_rush_yards_over_expected_per_att",
+    "ngs_percent_attempts_gte_eight_defenders",
 )
 
 def _to_pandas(df: Any) -> pd.DataFrame:
@@ -201,12 +207,16 @@ def main():
     # F-feature-refresh seam). This script is the production LOADER: pull the source
     # frames from nflreadpy and delegate the engineering to the shared builder.
     valid_part_seasons = [s for s in SEASONS if s >= 2019]
+    valid_ng_seasons = [s for s in SEASONS if s >= 2016]
     read_fns = {
         "player_stats": _to_pandas(nfl.load_player_stats(SEASONS)),
         "rosters": _to_pandas(nfl.load_rosters(SEASONS)),
         "snap_counts": _to_pandas(nfl.load_snap_counts(SEASONS)),
         "pbp": _to_pandas(nfl.load_pbp(SEASONS)),
         "participation": _to_pandas(nfl.load_participation(valid_part_seasons)),
+        "nextgen_passing": _to_pandas(nfl.load_nextgen_stats(valid_ng_seasons, stat_type="passing")),
+        "nextgen_receiving": _to_pandas(nfl.load_nextgen_stats(valid_ng_seasons, stat_type="receiving")),
+        "nextgen_rushing": _to_pandas(nfl.load_nextgen_stats(valid_ng_seasons, stat_type="rushing")),
     }
     df_final = build_engine_b_features(read_fns=read_fns, seasons_window=SEASONS)
 

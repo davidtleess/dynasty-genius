@@ -57,12 +57,16 @@ def _load_source(seasons_window: list[int] | None) -> dict:
         return frame.to_pandas() if hasattr(frame, "to_pandas") else frame
 
     part_seasons = [s for s in (seasons_window or []) if s >= 2019]
+    ng_seasons = [s for s in (seasons_window or []) if s >= 2016]
     return {
         "player_stats": _pd(nfl.load_player_stats(seasons=seasons_window)),
         "rosters": _pd(nfl.load_rosters(seasons=seasons_window)),
         "snap_counts": _pd(nfl.load_snap_counts(seasons=seasons_window)),
         "pbp": _pd(nfl.load_pbp(seasons=seasons_window)),
         "participation": _pd(nfl.load_participation(seasons=part_seasons)),
+        "nextgen_passing": _pd(nfl.load_nextgen_stats(seasons=ng_seasons, stat_type="passing")),
+        "nextgen_receiving": _pd(nfl.load_nextgen_stats(seasons=ng_seasons, stat_type="receiving")),
+        "nextgen_rushing": _pd(nfl.load_nextgen_stats(seasons=ng_seasons, stat_type="rushing")),
     }
 
 

@@ -302,3 +302,75 @@ def test_qb_rb_wr_are_not_experimental():
         assert pos not in ENGINE_B_EXPERIMENTAL_POSITIONS, (
             f"{pos} passes the holdout gate and must not be marked experimental"
         )
+
+
+# --------------------------------------------------------------------------
+# Optional-if-present NGS placement (David's word, 2026-07-31)
+# --------------------------------------------------------------------------
+
+
+def test_required_position_contracts_carry_no_optional_features():
+    """The REQUIRED sets are read by backtest_harness (the QB-1 walk-forward runs
+    through it) and are pinned by exact-equality tests above. Placing NGS INSIDE
+    them made it a hard required column and broke QB-1 with
+    `KeyError: [...] not in index`. Optionality lives beside the contract."""
+    from src.dynasty_genius.models.engine_b_contract import (
+        ENGINE_B_FEATURES_BY_POSITION,
+    )
+
+    for position, features in ENGINE_B_FEATURES_BY_POSITION.items():
+        leaked = sorted(f for f in features if f.startswith("ngs_"))
+        assert not leaked, (
+            f"{position}'s REQUIRED contract gained optional features {leaked}; "
+            "this makes them mandatory for QB-1 and every pinned contract"
+        )
+
+
+def test_optional_features_are_position_exclusive():
+    """Each NGS field is populated for exactly one position on the real candidate,
+    so a field offered to two unrelated positions would be a wrong constant for
+    one of them. Receivers share separation/cushion legitimately; nothing else
+    may overlap."""
+    from src.dynasty_genius.models.engine_b_contract import (
+        ENGINE_B_OPTIONAL_FEATURES_BY_POSITION as OPT,
+    )
+
+    assert OPT["QB"].isdisjoint(OPT["RB"])
+    assert OPT["QB"].isdisjoint(OPT["WR"] | OPT["TE"])
+    assert OPT["RB"].isdisjoint(OPT["WR"] | OPT["TE"])
+    assert OPT["WR"] == OPT["TE"], "receiver coverage metrics are shared by design"
+
+
+def test_optional_features_are_absent_without_error():
+    """The whole meaning of optional-if-present: a dataset built before the NGS
+    streams landed must train exactly as it did before, and must never raise."""
+    from src.dynasty_genius.models.engine_b_contract import optional_features_present
+
+    assert optional_features_present("QB", ["age", "ppg_t", "cpoe"]) == []
+    assert optional_features_present("RB", []) == []
+    assert optional_features_present("QB", ["ngs_avg_time_to_throw"]) == [
+        "ngs_avg_time_to_throw"
+    ]
+
+
+def test_validator_permits_optional_but_still_rejects_cross_position_leakage():
+    from src.dynasty_genius.models.engine_b_contract import (
+        ENGINE_B_FEATURES_BY_POSITION,
+        validate_position_feature_contract,
+    )
+
+    required = sorted(ENGINE_B_FEATURES_BY_POSITION["QB"])
+    validate_position_feature_contract("QB", required)
+    validate_position_feature_contract("QB", required + ["ngs_avg_time_to_throw"])
+    with pytest.raises(ValueError, match="not in allowed set"):
+        validate_position_feature_contract("QB", required + ["yprr"])
+
+
+def test_optional_features_never_enter_the_unified_matrix():
+    """The unified control fits all positions behind a median imputer, so a
+    position-exclusive column there is not sparse — it is a wrong constant. The
+    QB median CPOE would have been imputed into 2,485 mostly-non-QB rows."""
+    from scripts.train_engine_b import FEATURES_UNIFIED
+
+    leaked = [f for f in FEATURES_UNIFIED if f.startswith("ngs_")]
+    assert leaked == [], f"position-exclusive features reached the unified matrix: {leaked}"

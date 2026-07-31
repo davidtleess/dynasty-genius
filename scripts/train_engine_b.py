@@ -32,6 +32,7 @@ from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_ALLOWED_FEATURES,
     ENGINE_B_FEATURES_BY_POSITION,
     OUTCOME_COLUMN,
+    optional_features_present,
     validate_no_prohibited_features,
     validate_no_temporal_leakage,
     validate_position_feature_contract,
@@ -54,7 +55,12 @@ _META_COLS = {
 # ── Unified feature list for v1.1 control (same logic as v1, minus 4 exclusions)
 FEATURES_UNIFIED = sorted([
     f for f in ENGINE_B_ALLOWED_FEATURES
-    if f not in _META_COLS and f != "te_role_is_risk_profile"
+    if f not in _META_COLS
+    and f != "te_role_is_risk_profile"
+    # Position-exclusive optional features are PER-POSITION only and must never
+    # enter the unified matrix, which fits every position together behind a
+    # median imputer. There they are not sparse — they are a wrong constant.
+    and not f.startswith("ngs_")
 ])
 
 HOLDOUT_SEASONS = [2022, 2023]
@@ -241,6 +247,17 @@ def _train_position(
 
     # Only include columns that exist in the dataset and are in this position's contract
     available = sorted([f for f in allowed if f in pos_df.columns])
+
+    # OPTIONAL-IF-PRESENT (David's word, 2026-07-31): position-exclusive NGS
+    # features join this position's matrix only when the dataset actually carries
+    # them. A dataset built before the NGS streams landed trains exactly as it did
+    # before — absence is normal, never an error. The required contract above is
+    # untouched, which is what keeps the QB-1 walk-forward and the pinned
+    # per-position contracts seeing the identical set they saw before.
+    optional = optional_features_present(pos, pos_df.columns)
+    if optional:
+        print(f"  {pos}: +{len(optional)} optional NGS features present: {optional}")
+    available = sorted(available + optional)
 
     validate_position_feature_contract(pos, available)
 

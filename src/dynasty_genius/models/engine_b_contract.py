@@ -182,6 +182,64 @@ ENGINE_B_FEATURES_BY_POSITION: dict[str, frozenset[str]] = {
     "TE": ENGINE_B_FEATURES_TE,
 }
 
+# ── OPTIONAL per-position features — present-if-available, never required ─────
+# David's word, 2026-07-31: place NGS per position, "optional-if-present, and
+# don't touch QB-1".
+#
+# This is a SEPARATE mapping on purpose. The REQUIRED sets above are read by
+# `backtest_harness.py` (which the QB-1 walk-forward runs through) and are pinned
+# by exact-equality contract tests tied to ratified validation state. Adding to
+# them made NGS a HARD REQUIRED column of every path those positions touch — the
+# QB-1 walk-forward raised `KeyError: [...] not in index` and TE deployment
+# training raised `missing required columns`. Optionality therefore lives beside
+# the contract, not inside it: the required sets are byte-unchanged, so QB-1 and
+# every pinned contract see exactly what they saw before.
+#
+# These six are POSITION-EXCLUSIVE by measurement on the published candidate —
+# each is populated for exactly one position and 0.0% for every other:
+#     CPOE / time-to-throw          QB 79.1%
+#     separation / cushion          WR 54.1%   TE 35.1%
+#     RYOE-per-att / stacked box    RB 47.9%
+# That is why they must never enter the UNIFIED matrix, which fits all positions
+# together behind a median imputer: there they would not be sparse, they would be
+# a WRONG CONSTANT (the QB median CPOE written into 2,485 mostly-non-QB rows).
+#
+# A consumer opts in explicitly and must intersect with the columns actually
+# present. Absence is normal and is never an error.
+ENGINE_B_OPTIONAL_FEATURES_BY_POSITION: dict[str, frozenset[str]] = {
+    # `ngs_completion_percentage_above_expectation` correlates 0.852 with the
+    # existing `cpoe` across their 258 shared QB rows and is the LESS complete of
+    # the two (79.1% vs 100%). Kept because Ridge is built for collinear
+    # predictors, but it is the one field whose incremental value is genuinely
+    # open — name it first if a validation has to drop one.
+    "QB": frozenset({
+        "ngs_completion_percentage_above_expectation",
+        "ngs_avg_time_to_throw",
+    }),
+    # RB had ZERO position-specific features: it ran on base features alone, which
+    # is the likeliest reason it is the weakest Engine B position. These are its
+    # first two, and both measure usage QUALITY rather than volume.
+    "RB": frozenset({
+        "ngs_rush_yards_over_expected_per_att",
+        "ngs_percent_attempts_gte_eight_defenders",
+    }),
+    # Coverage metrics, not production metrics — no existing receiver feature
+    # measures how a player is DEFENDED, only what he produced.
+    "WR": frozenset({"ngs_avg_separation", "ngs_avg_cushion"}),
+    "TE": frozenset({"ngs_avg_separation", "ngs_avg_cushion"}),
+}
+
+
+def optional_features_present(position: str, available_columns) -> list[str]:
+    """The position's optional features that this frame actually carries.
+
+    Returns a sorted list, empty when none are present. Absence is the normal
+    case for any dataset built before the NGS streams landed, and must never
+    raise — that is the whole meaning of optional-if-present.
+    """
+    optional = ENGINE_B_OPTIONAL_FEATURES_BY_POSITION.get(position, frozenset())
+    return sorted(optional & set(available_columns))
+
 # ── Positions with experimental Engine B signal ───────────────────────────────
 # Engine B v1 does not outperform the naive baseline for these positions.
 # Cleared only when a promoted v2 artifact passes the ≥2/3 gate for that
@@ -264,8 +322,11 @@ def validate_position_feature_contract(position: str, feature_columns: list[str]
     _meta = {"player_id", "position", "feature_season", "team", "depth_chart_position",
              "aging_curve_position", OUTCOME_COLUMN, "training_eligible"}
 
-    # Extra columns not in this position's contract
-    extra = col_set - allowed - _meta
+    # Extra columns not in this position's contract. Optional features are
+    # PERMITTED here but never required below — a caller that supplies them is
+    # in contract, and a caller that omits them is equally in contract.
+    optional = ENGINE_B_OPTIONAL_FEATURES_BY_POSITION.get(position, frozenset())
+    extra = col_set - allowed - optional - _meta
     if extra:
         raise ValueError(
             f"Engine B v2 position contract violation for {position}: "

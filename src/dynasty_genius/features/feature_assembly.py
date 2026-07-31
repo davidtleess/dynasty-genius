@@ -231,6 +231,44 @@ def build_engine_b_features(
     df["yprr"] = df["yards_t"] / df["routes_run"].replace(0, np.nan)
     df["tprr"] = df["targets_t"] / df["routes_run"].replace(0, np.nan)
 
+    # 6b. NFL Next Gen Stats (public aggregates)
+    ng_pass = _to_pandas(read_fns.get("nextgen_passing")) if read_fns.get("nextgen_passing") is not None else pd.DataFrame()
+    ng_rec = _to_pandas(read_fns.get("nextgen_receiving")) if read_fns.get("nextgen_receiving") is not None else pd.DataFrame()
+    ng_rush = _to_pandas(read_fns.get("nextgen_rushing")) if read_fns.get("nextgen_rushing") is not None else pd.DataFrame()
+
+    if not ng_pass.empty:
+        ng_pass = ng_pass[(ng_pass["week"] == 0) & (ng_pass["season_type"] == "REG")].copy()
+        ng_pass = ng_pass.rename(columns={"player_gsis_id": "player_id", "season": "feature_season"})
+        ng_pass = ng_pass.rename(columns={
+            "avg_time_to_throw": "ngs_avg_time_to_throw",
+            "completion_percentage_above_expectation": "ngs_completion_percentage_above_expectation"
+        })
+        keep_cols = ["player_id", "feature_season", "ngs_avg_time_to_throw", "ngs_completion_percentage_above_expectation"]
+        ng_pass = ng_pass[[c for c in keep_cols if c in ng_pass.columns]]
+        df = df.merge(ng_pass, on=["player_id", "feature_season"], how="left")
+
+    if not ng_rec.empty:
+        ng_rec = ng_rec[(ng_rec["week"] == 0) & (ng_rec["season_type"] == "REG")].copy()
+        ng_rec = ng_rec.rename(columns={"player_gsis_id": "player_id", "season": "feature_season"})
+        ng_rec = ng_rec.rename(columns={
+            "avg_separation": "ngs_avg_separation",
+            "avg_cushion": "ngs_avg_cushion"
+        })
+        keep_cols = ["player_id", "feature_season", "ngs_avg_separation", "ngs_avg_cushion"]
+        ng_rec = ng_rec[[c for c in keep_cols if c in ng_rec.columns]]
+        df = df.merge(ng_rec, on=["player_id", "feature_season"], how="left")
+
+    if not ng_rush.empty:
+        ng_rush = ng_rush[(ng_rush["week"] == 0) & (ng_rush["season_type"] == "REG")].copy()
+        ng_rush = ng_rush.rename(columns={"player_gsis_id": "player_id", "season": "feature_season"})
+        ng_rush = ng_rush.rename(columns={
+            "rush_yards_over_expected_per_att": "ngs_rush_yards_over_expected_per_att",
+            "percent_attempts_gte_eight_defenders": "ngs_percent_attempts_gte_eight_defenders"
+        })
+        keep_cols = ["player_id", "feature_season", "ngs_rush_yards_over_expected_per_att", "ngs_percent_attempts_gte_eight_defenders"]
+        ng_rush = ng_rush[[c for c in keep_cols if c in ng_rush.columns]]
+        df = df.merge(ng_rush, on=["player_id", "feature_season"], how="left")
+
     # 7. Multi-year trends + availability flags
     trend_base = df[["player_id", "feature_season", "ppg_t", "snap_share"]].drop_duplicates(
         subset=["player_id", "feature_season"]
