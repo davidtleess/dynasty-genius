@@ -1,0 +1,79 @@
+"""Capture Next Gen Stats + snap counts into the durable usage store.
+
+Two streams David named that were already installed and had never been called. Free, no
+credential. This script installs nothing, schedules nothing, and touches no other producer —
+adding a LaunchAgent is a separate decision and a separate word.
+
+    .venv/bin/python3.14 scripts/run_nflverse_usage_capture.py
+    .venv/bin/python3.14 scripts/run_nflverse_usage_capture.py --seasons 2023 2024 2025
+    .venv/bin/python3.14 scripts/run_nflverse_usage_capture.py --summary   # read-only
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from src.dynasty_genius.nflverse_usage import (  # noqa: E402
+    DEFAULT_DB_PATH,
+    UsageStore,
+    build_streams,
+    run_usage_capture,
+)
+
+DEFAULT_SEASONS = (2023, 2024, 2025)
+
+
+def _print_summary(db_path: Path) -> None:
+    specs = build_streams()
+    store = UsageStore(db_path, specs)
+    print("\nWhat the usage store holds:\n")
+    for row in store.captures():
+        coverage = row.get("coverage") or {}
+        unresolved = coverage.get("rows_not_canonically_identified")
+        conflicts = coverage.get("rows_conflict")
+        print(
+            f"  {row['stream']:<14} {row['season']}  {row['status']:<6} "
+            f"{row['rows_total'] or 0:>6} rows   "
+            f"not canonically identified: {unresolved}  (conflicts: {conflicts})"
+        )
+    print()
+    for spec in specs:
+        print(f"  {spec.table:<20} {store.row_count(spec.table):>7} rows stored")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--seasons", nargs="+", type=int, default=list(DEFAULT_SEASONS))
+    parser.add_argument("--db-path", default=str(DEFAULT_DB_PATH))
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="READ-ONLY: print what the store already holds and fetch nothing",
+    )
+    args = parser.parse_args()
+
+    # `--summary` is read-only, full stop. Adding a second opt-out flag while leaving --summary
+    # capture-first would have preserved the original trap rather than removing it — a flag whose
+    # name promises a look must never open a socket (Codex, TW30N blocker 1, accepted in full).
+    if args.summary:
+        _print_summary(Path(args.db_path))
+        return 0
+
+    status = run_usage_capture(seasons=args.seasons, db_path=Path(args.db_path))
+    slim = {k: v for k, v in status.items() if k != "results"}
+    slim["totals"] = {
+        k: v for k, v in status["totals"].items() if k != "by_stream_season"
+    }
+    print(json.dumps(slim, indent=1, sort_keys=True, default=str))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
