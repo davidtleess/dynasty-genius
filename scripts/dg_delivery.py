@@ -109,6 +109,24 @@ class PaneProfile:
     chip_chars: bool = False  # composer collapses to a CHARACTER-count chip
     bordered: bool = False
     selection_markers: tuple[str, ...] = ()
+    # Composer PLACEHOLDER hints the CLI renders into an EMPTY input box.
+    # Registered per profile because a placeholder is furniture, not a strand
+    # (Wire Rule: "Ghost text is furniture"). Historically these were SGR-DIM
+    # and `strip_ghost` removed them; the agy chrome now paints its hint in a
+    # 256-colour grey, which is not dim and must not be treated as dim — so the
+    # hint is recognised by REGISTERED TEXT instead.
+    #
+    # W1 (Codex, reproduced): the first version of this matched
+    # `body.endswith(<phrase>)` on ANY line, which classified REAL typed text
+    # ending in that phrase as an empty composer — an overwrite hazard — and
+    # false-READYed a pane whose conversation history merely mentioned it.
+    # Patterns are therefore FULL-LINE ANCHORED regexes over the prompt-line
+    # body: the placeholder must BE the whole body, never a suffix of it.
+    placeholder_patterns: tuple[str, ...] = ()
+
+    def placeholder_match(self, body: str) -> bool:
+        """True when ``body`` is EXACTLY a registered composer placeholder."""
+        return any(re.fullmatch(p, body.strip()) for p in self.placeholder_patterns)
 
     # Ready markers and footer patterns are evidence-based per live chrome
     # capture (ledger 2026-07-19, profile-registry fix): the new Codex
@@ -148,8 +166,26 @@ class PaneProfile:
         # The legacy bare "> " substring stays REMOVED: it matched ordinary
         # prose ("a > b") anywhere in the pane — a false-READY hazard. The
         # current agy chrome is the line-anchored bordered composer.
-        "gemini": {"ready": ("Type your message", "\n>\n"), "chip": False,
-                   "bordered": True, "selection": ()},
+        # WIRE-GEMINI-2 (David-authorised 2026-07-31, "get whatever needs to be
+        # fixed done"): the agy chrome stopped rendering its composer placeholder
+        # in SGR-DIM and now uses a 256-colour grey (`38;5;246`). `strip_ghost`
+        # keys on real SGR-2 and is CORRECT to leave a colour alone — so the
+        # placeholder survives stripping, the composer line reads
+        # `> Accept-edits mode: …` instead of a bare `>`, and neither prior marker
+        # matched. Every send to gemini classified UNKNOWN and was refused.
+        # Measured cost: SIX refused deliveries and a peer unreachable for days,
+        # with the fault on OUR side, not the pane's.
+        #
+        # The placeholder is registered as a FULL-LINE ANCHORED pattern and is the
+        # positive READY signal via `placeholder_match`, NOT as a loose substring.
+        # W1 (Codex, reproduced): registering the bare phrase as a ready marker
+        # made `completed prose mentions (shift+tab to cycle)` classify READY with
+        # no composer present at all. A ready signal must be composer GEOMETRY.
+        # The retired bare `"> "` substring stays retired: it matched Markdown
+        # quoting in ordinary prose, which is the same false-READY hazard.
+        "gemini": {"ready": ("Type your message", "\n>\n"),
+                   "chip": False, "bordered": True, "selection": (),
+                   "placeholders": (r"[\w-]+ mode: .*\(shift\+tab to cycle\)",)},
     }
 
     @classmethod
@@ -164,6 +200,7 @@ class PaneProfile:
             chip_chars=bool(entry.get("chip_chars", False)),
             bordered=bool(entry.get("bordered", False)),
             selection_markers=tuple(entry.get("selection", ())),
+            placeholder_patterns=tuple(entry.get("placeholders", ())),
         )
 
 
@@ -389,6 +426,20 @@ def _visible_empty(text: str, profile: "PaneProfile | None" = None) -> bool:
                     prompt_line_index = index
                 body = body[len(prefix):].strip()
                 break
+        # A composer showing ONLY its own placeholder hint is EMPTY. Two guards,
+        # both required (W1, Codex — reproduced):
+        #   1. it must be the PROMPT line (geometry), so a history line can never
+        #      supply emptiness;
+        #   2. the body must match a registered placeholder in FULL (`fullmatch`),
+        #      so real typed text that merely ENDS with the phrase stays non-empty
+        #      and keeps the fail-closed refusal rather than being overwritten.
+        if (
+            body
+            and profile is not None
+            and prompt_line_index == index
+            and profile.placeholder_match(body)
+        ):
+            body = ""
         if body:
             meaningful.append(index)
     return not meaningful
@@ -524,6 +575,38 @@ def classify_pane(raw: str, profile: PaneProfile) -> PaneState:
     ready_chrome_present = any(
         marker in non_option_text for marker in profile.ready_markers
     )
+    # A registered placeholder counts as READY chrome ONLY as composer TOPOLOGY:
+    # a prompt-anchored line whose body is EXACTLY the placeholder AND which sits
+    # INSIDE the final bordered composer box.
+    #
+    # W1 round 2 (Codex, reproduced): scanning every line was still wrong — the
+    # ASCII ">" is a registered prompt prefix, so a QUOTED HISTORY line reading
+    # `> Accept-edits mode: … (shift+tab to cycle)` masqueraded as composer
+    # geometry and classified a pane READY with no composer present at all.
+    # Markdown quoting is ordinary conversation content and must never supply
+    # readiness. Binding to the border pair is evidence conversation cannot forge:
+    # the CLI draws those rules around its own input box.
+    if (
+        not ready_chrome_present
+        and profile.placeholder_patterns
+        and profile.bordered
+    ):
+        borders = [
+            index
+            for index, line in enumerate(all_lines)
+            if line.strip() and all(ch in _BORDER_CHARS for ch in line.strip())
+        ]
+        if len(borders) >= 2:
+            for line in all_lines[borders[-2] + 1 : borders[-1]]:
+                body = line.strip().replace(" ", " ")
+                for prefix in _PROMPT_LINE_PREFIXES:
+                    if body.startswith(prefix) and profile.placeholder_match(
+                        body[len(prefix):]
+                    ):
+                        ready_chrome_present = True
+                        break
+                if ready_chrome_present:
+                    break
     selected_present = any(
         parse_option_row(topo_tail[i], profile.selection_markers).selected
         for group in groups
@@ -832,6 +915,49 @@ class DeliveryMachine:
     def _claim_pane(self, pane_id: str, send_id: str) -> bool:
         cas = getattr(self.store, "cas_pane_claim", None)
         pane = self.store.panes.get(pane_id)
+        # WIRE-CLAIM-2 (David-authorised 2026-07-31): a claim owned by a TERMINAL
+        # transaction is not a live claim. There is no expiry and no manual-clear
+        # command, so before this ONE leaked claim bricked a pane's inbound wire
+        # permanently — every later send returned `pane_claim_lost` forever. That
+        # is how the store reached 508 rows in `manual_clear_required` against a
+        # single `delivered_verified`, with two of three crew panes unreachable and
+        # both Codex's disposition and Gemini's alignment message stranded unread.
+        #
+        # This is the SAME principle already written for `delivery_unconfirmed`
+        # ("a TERMINAL transaction must not hold a pane claim"), applied at
+        # ACQUISITION so panes already bricked by the old leak can recover.
+        # Deliberately NOT a time-based expiry: a live sender mid-flight is never
+        # displaced, because only a FINISHED row's claim is reaped.
+        if pane is not None:
+            owner = pane.get("owner_send_id")
+            if owner not in (None, send_id) and self._terminal_row(
+                self.store.rows.get(owner)
+            ):
+                # W4 (Codex, reproduced): the first version mutated the local pane
+                # and called `persist_pane`, an UNCONDITIONAL upsert. A live sender
+                # that acquired between the read and that write had its newer claim
+                # overwritten with None — exactly what the comment promised could
+                # never happen. The reap now goes through the durable
+                # epoch+owner CAS, so a stale reaper LOSES to a newer owner and
+                # reloads instead of clobbering it.
+                if cas is not None:
+                    won, refreshed = cas(
+                        pane_id,
+                        int(pane.get("epoch", 0)),
+                        None,
+                        expected_owner=owner,
+                    )
+                    if refreshed is not None:
+                        self.store.panes[pane_id] = refreshed
+                        pane = refreshed
+                    if not won:
+                        # Someone else moved first; re-read and let the normal
+                        # claim path below decide against the CURRENT state.
+                        pane = self.store.panes.get(pane_id)
+                else:
+                    pane = dict(pane)
+                    pane["owner_send_id"] = None
+                    self.store.panes[pane_id] = pane
         if cas is not None:
             expected_epoch = int(pane.get("epoch", 0)) if pane else 0
             won, new_pane = cas(pane_id, expected_epoch, send_id)
@@ -922,8 +1048,12 @@ class DeliveryMachine:
             # Forged/unknown stamps and self-similar bodies without a durable
             # matching row are FOREIGN content [GREEN round-2 B4].
             send_id = self._next_send_id()
-            if self._new_row(send_id, frame_b.pane_id, "input_not_empty", terminal=True):
-                self._claim_pane(frame_b.pane_id, send_id)
+            # W3 (Codex, reproduced): this created a TERMINAL row and then CLAIMED
+            # the pane, so a refusal that never pasted anything held that pane
+            # forever. A terminal transaction must not own a claim — the record of
+            # the foreign composer is the durable row, which is written either way;
+            # the claim added nothing and blocked everyone.
+            self._new_row(send_id, frame_b.pane_id, "input_not_empty", terminal=True)
             return _result(
                 "refused", "input_not_empty", terminal=True,
                 meta={"send_id": send_id, "guard": "T1_empty_proof"},
@@ -951,6 +1081,19 @@ class DeliveryMachine:
         if not _visible_empty(recheck.input_region, self.profile):
             self._transition(send_id, "input_not_empty")
             row["terminal"] = True
+            # WIRE-CLAIM-1 (David-authorised 2026-07-31). A TERMINAL refusal must
+            # not keep the claim it just took. The same defect was already fixed
+            # once for `delivery_unconfirmed` below with the same reasoning; this
+            # path and the `input_not_verifiable` path below still leaked, so one
+            # refused send held its target pane forever and every later send to
+            # that pane was refused `pane_claim_lost`.
+            # Measured cost at the time of this fix: 508 rows stranded in
+            # `manual_clear_required` against ONE `delivered_verified` in the
+            # store's entire history — including Codex's full disposition and
+            # Gemini's alignment message, neither of which ever reached a pane.
+            # The release is owner-bound and epoch-conditional (see
+            # `_release_pane`), so it can never clear a foreign claim.
+            self._release_pane(frame_b.pane_id, expected_owner=send_id)
             return _result(
                 "refused", "input_not_empty", terminal=True,
                 meta={"send_id": send_id, "guard": "T2_pre_paste_recheck"},
@@ -961,6 +1104,13 @@ class DeliveryMachine:
 
         verify, err = self._try_capture(frame_b.pane_id)
         if err is not None:
+            # W3 (Codex, reproduced): this returned a TERMINAL result while the
+            # durable row stayed `pasted`/`terminal=False`. A result and its store
+            # row may not disagree about terminality — the row is what survives the
+            # session, so a reader would see a live transaction that no longer is.
+            self._transition(send_id, "input_not_verifiable")
+            row["terminal"] = True
+            self._release_pane(frame_b.pane_id, expected_owner=send_id)
             return _result(
                 "refused", "input_not_verifiable", phase="pasted", terminal=True,
                 meta={"send_id": send_id},
@@ -969,6 +1119,11 @@ class DeliveryMachine:
         if composed is not True:
             self._transition(send_id, "input_not_verifiable")
             row["terminal"] = True
+            # W2 (Codex, reproduced): the ORDINARY post-paste mismatch path —
+            # capture succeeded, body did not match — still leaked its claim. My
+            # first pass only released inside the capture-ERROR branch above, so
+            # the commonest post-paste failure kept holding the pane.
+            self._release_pane(frame_b.pane_id, expected_owner=send_id)
             return _result(
                 "refused", composed, phase="pasted", terminal=True, meta={"send_id": send_id}
             )
