@@ -1,0 +1,1890 @@
+{
+ "_fixture_note": "REAL rows lifted verbatim from sleeper_universe_snapshot_latest.json, filtered to players referenced by the transaction fixture.",
+ "captured_at": "2026-06-23T13:17:20.007866+00:00",
+ "league_id": "1314363401744416768",
+ "players": [
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 26,
+    "full_name": "Chris Brooks",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "GB",
+    "years_exp": 3
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11370"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "MDEF",
+    "owner_user_id": "1049829521757237248",
+    "roster_id": 3,
+    "rostered": true
+   },
+   "player": {
+    "age": 23,
+    "full_name": "Drake Maye",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": "NE",
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11564"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 22,
+    "full_name": "Audric Estime",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "NO",
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11579"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "jkazzz",
+    "owner_user_id": "1005290797896036352",
+    "roster_id": 11,
+    "rostered": true
+   },
+   "player": {
+    "age": 22,
+    "full_name": "Jonathon Brooks",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "CAR",
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11583"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "rzalika",
+    "owner_user_id": "913634756779212800",
+    "roster_id": 5,
+    "rostered": true
+   },
+   "player": {
+    "age": 23,
+    "full_name": "Ja'Tavion Sanders",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": "CAR",
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11600"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 25,
+    "full_name": "Isaiah Williams",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "NYJ",
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11608"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "jkazzz",
+    "owner_user_id": "1005290797896036352",
+    "roster_id": 11,
+    "rostered": true
+   },
+   "player": {
+    "age": 25,
+    "full_name": "Malik Washington",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "MIA",
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11610"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 24,
+    "full_name": "Ja'Lynn Polk",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "NO",
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11619"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 23,
+    "full_name": "Javon Baker",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11645"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "jkazzz",
+    "owner_user_id": "1005290797896036352",
+    "roster_id": 11,
+    "rostered": true
+   },
+   "player": {
+    "age": 24,
+    "full_name": "Kimani Vidal",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "LAC",
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11647"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 25,
+    "full_name": "Isaac Guerendo",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "SF",
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11651"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "jspringe88",
+    "owner_user_id": "924053611846397952",
+    "roster_id": 8,
+    "rostered": true
+   },
+   "player": {
+    "age": 26,
+    "full_name": "Tyrone Tracy",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "NYG",
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11655"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 37,
+    "full_name": "Kirk Cousins",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": "LV",
+    "years_exp": 14
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "1166"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 28,
+    "full_name": "Devaughn Vele",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "NO",
+    "years_exp": 2
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "11834"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "rzalika",
+    "owner_user_id": "913634756779212800",
+    "roster_id": 5,
+    "rostered": true
+   },
+   "player": {
+    "age": 23,
+    "full_name": "Riley Leonard",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": "IND",
+    "years_exp": 1
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "12470"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 24,
+    "full_name": "Tez Johnson",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "TB",
+    "years_exp": 1
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "12485"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 23,
+    "full_name": "Quinn Ewers",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": "MIA",
+    "years_exp": 1
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "12500"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 22,
+    "full_name": "Isaiah Bond",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "CLE",
+    "years_exp": 1
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "12503"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "rzalika",
+    "owner_user_id": "913634756779212800",
+    "roster_id": 5,
+    "rostered": true
+   },
+   "player": {
+    "age": 23,
+    "full_name": "Jalen Royals",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "KC",
+    "years_exp": 1
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "12505"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 23,
+    "full_name": "Jalen Milroe",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": "SEA",
+    "years_exp": 1
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "12510"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 23,
+    "full_name": "Kalel Mullings",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "TEN",
+    "years_exp": 1
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "12516"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 23,
+    "full_name": "Elijah Arroyo",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": "SEA",
+    "years_exp": 1
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "12521"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 24,
+    "full_name": "KeAndre Lambert-Smith",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "LAC",
+    "years_exp": 1
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "12670"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": true,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "MDEF",
+    "owner_user_id": "1049829521757237248",
+    "roster_id": 3,
+    "rostered": true
+   },
+   "player": {
+    "age": 22,
+    "full_name": "Malachi Fields",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "NYG",
+    "years_exp": 0
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "13285"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": true,
+    "owner_display_name": "rkissane",
+    "owner_user_id": "925054003463999488",
+    "roster_id": 10,
+    "rostered": true
+   },
+   "player": {
+    "age": 22,
+    "full_name": "Caleb Douglas",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "MIA",
+    "years_exp": 0
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "13296"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": true,
+    "owner_display_name": "jspringe88",
+    "owner_user_id": "924053611846397952",
+    "roster_id": 8,
+    "rostered": true
+   },
+   "player": {
+    "age": 24,
+    "full_name": "Matt Hibner",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": "BAL",
+    "years_exp": 0
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "13324"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 35,
+    "full_name": "Zach Ertz",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 13
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "1339"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": true,
+    "owner_display_name": "rkissane",
+    "owner_user_id": "925054003463999488",
+    "roster_id": 10,
+    "rostered": true
+   },
+   "player": {
+    "age": 21,
+    "full_name": "Justin Joly",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": "DEN",
+    "years_exp": 0
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "13400"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": true,
+    "owner_display_name": "rzalika",
+    "owner_user_id": "913634756779212800",
+    "roster_id": 5,
+    "rostered": true
+   },
+   "player": {
+    "age": 24,
+    "full_name": "Garrett Nussmeier",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": "KC",
+    "years_exp": 0
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "13404"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "rzalika",
+    "owner_user_id": "913634756779212800",
+    "roster_id": 5,
+    "rostered": true
+   },
+   "player": {
+    "age": 23,
+    "full_name": "Bryce Lance",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "NO",
+    "years_exp": 0
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "13420"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": true,
+    "owner_display_name": "jkazzz",
+    "owner_user_id": "1005290797896036352",
+    "roster_id": 11,
+    "rostered": true
+   },
+   "player": {
+    "age": 22,
+    "full_name": "Eli Raridon",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": "NE",
+    "years_exp": 0
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "13421"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 33,
+    "full_name": "DeAndre Hopkins",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 13
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "1426"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 33,
+    "full_name": "Keenan Allen",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 13
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "1479"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 35,
+    "full_name": "Adam Thielen",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 13
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "1689"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 33,
+    "full_name": "Darren Waller",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 11
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "2505"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 33,
+    "full_name": "Raheem Mostert",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 11
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "2749"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": true,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "jspagnola",
+    "owner_user_id": "923413316708466688",
+    "roster_id": 7,
+    "rostered": true
+   },
+   "player": {
+    "age": 32,
+    "full_name": "Derrick Henry",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "BAL",
+    "years_exp": 10
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "3198"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 44,
+    "full_name": "Philip Rivers",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 22
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "331"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "jspringe88",
+    "owner_user_id": "924053611846397952",
+    "roster_id": 8,
+    "rostered": true
+   },
+   "player": {
+    "age": 29,
+    "full_name": "Joe Mixon",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 9
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "4018"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 33,
+    "full_name": "Cooper Kupp",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "SEA",
+    "years_exp": 9
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "4039"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 30,
+    "full_name": "Kareem Hunt",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 9
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "4098"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 30,
+    "full_name": "Samaje Perine",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "CIN",
+    "years_exp": 9
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "4147"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 35,
+    "full_name": "Taysom Hill",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 9
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "4381"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": true,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "rkissane",
+    "owner_user_id": "925054003463999488",
+    "roster_id": 10,
+    "rostered": true
+   },
+   "player": {
+    "age": 31,
+    "full_name": "Baker Mayfield",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": "TB",
+    "years_exp": 8
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "4892"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 29,
+    "full_name": "Christian Kirk",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "SF",
+    "years_exp": 8
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "4950"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 31,
+    "full_name": "Calvin Ridley",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "TEN",
+    "years_exp": 8
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "4981"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "MJLeess318",
+    "owner_user_id": "913546847858470912",
+    "roster_id": 4,
+    "rostered": true
+   },
+   "player": {
+    "age": 30,
+    "full_name": "Josh Allen",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": "BUF",
+    "years_exp": 8
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "4984"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 30,
+    "full_name": "Nick Chubb",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 8
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "4988"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 30,
+    "full_name": "Mike Gesicki",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": "CIN",
+    "years_exp": 8
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "4993"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 29,
+    "full_name": "Ray-Ray McCloud",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 7
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "5096"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "MJLeess318",
+    "owner_user_id": "913546847858470912",
+    "roster_id": 4,
+    "rostered": true
+   },
+   "player": {
+    "age": 28,
+    "full_name": "DK Metcalf",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "PIT",
+    "years_exp": 7
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "5846"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 29,
+    "full_name": "Marquise Brown",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "PHI",
+    "years_exp": 7
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "5848"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 27,
+    "full_name": "Alexander Mattison",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 7
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "5987"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 28,
+    "full_name": "Justice Hill",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "BAL",
+    "years_exp": 7
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "5995"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 28,
+    "full_name": "Ty Johnson",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "BUF",
+    "years_exp": 7
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "6039"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 27,
+    "full_name": "Colby Parkinson",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": "LAR",
+    "years_exp": 6
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "6865"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 26,
+    "full_name": "Gabe Davis",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": null,
+    "years_exp": 6
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "6943"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 28,
+    "full_name": "Patrick Taylor",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "SF",
+    "years_exp": 6
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "6963"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 26,
+    "full_name": "Tutu Atwell",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "MIA",
+    "years_exp": 5
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "7562"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 27,
+    "full_name": "Cade Otton",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": "TB",
+    "years_exp": 4
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "8111"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 25,
+    "full_name": "Zonovan Knight",
+    "position": "RB",
+    "sleeper_status": "Active",
+    "team": "ARI",
+    "years_exp": 4
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "8122"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 27,
+    "full_name": "Jalen Nailor",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "LV",
+    "years_exp": 4
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "8180"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": true,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "jkazzz",
+    "owner_user_id": "1005290797896036352",
+    "roster_id": 11,
+    "rostered": true
+   },
+   "player": {
+    "age": 26,
+    "full_name": "Brock Purdy",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": "SF",
+    "years_exp": 4
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "8183"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "jspagnola",
+    "owner_user_id": "923413316708466688",
+    "roster_id": 7,
+    "rostered": true
+   },
+   "player": {
+    "age": 26,
+    "full_name": "Chig Okonkwo",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": "WAS",
+    "years_exp": 4
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "8210"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 26,
+    "full_name": "Tanner McKee",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": "PHI",
+    "years_exp": 3
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "9230"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_user_id": null,
+    "roster_id": null,
+    "rostered": false
+   },
+   "player": {
+    "age": 25,
+    "full_name": "Luke Musgrave",
+    "position": "TE",
+    "sleeper_status": "Active",
+    "team": "GB",
+    "years_exp": 3
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "9481"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": true,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "jkazzz",
+    "owner_user_id": "1005290797896036352",
+    "roster_id": 11,
+    "rostered": true
+   },
+   "player": {
+    "age": 24,
+    "full_name": "Jaxon Smith-Njigba",
+    "position": "WR",
+    "sleeper_status": "Active",
+    "team": "SEA",
+    "years_exp": 3
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "9488"
+  },
+  {
+   "cohort": "FANTASY_RELEVANT",
+   "identity_status": "sleeper_resolved",
+   "league_context": {
+    "in_current_draft": false,
+    "in_starters": false,
+    "on_ir": false,
+    "on_taxi": false,
+    "owner_display_name": "MJLeess318",
+    "owner_user_id": "913546847858470912",
+    "roster_id": 4,
+    "rostered": true
+   },
+   "player": {
+    "age": 42,
+    "full_name": "Aaron Rodgers",
+    "position": "QB",
+    "sleeper_status": "Active",
+    "team": "PIT",
+    "years_exp": 21
+   },
+   "schema_version": "sleeper_universe_snapshot.v1",
+   "sleeper_player_id": "96"
+  }
+ ],
+ "rosters": [
+  {
+   "owner_id": "827345221493850112",
+   "roster_id": 1
+  },
+  {
+   "owner_id": "1124744818174812160",
+   "roster_id": 2
+  },
+  {
+   "owner_id": "1049829521757237248",
+   "roster_id": 3
+  },
+  {
+   "owner_id": "913546847858470912",
+   "roster_id": 4
+  },
+  {
+   "owner_id": "913634756779212800",
+   "roster_id": 5
+  },
+  {
+   "owner_id": "919611510605852672",
+   "roster_id": 6
+  },
+  {
+   "owner_id": "923413316708466688",
+   "roster_id": 7
+  },
+  {
+   "owner_id": "924053611846397952",
+   "roster_id": 8
+  },
+  {
+   "owner_id": "924757837283254272",
+   "roster_id": 9
+  },
+  {
+   "owner_id": "925054003463999488",
+   "roster_id": 10
+  },
+  {
+   "owner_id": "1005290797896036352",
+   "roster_id": 11
+  },
+  {
+   "owner_id": "930700626709893120",
+   "roster_id": 12
+  }
+ ],
+ "users": [
+  {
+   "avatar": "f4168ae8d9fa7a4522cfcff028d80eb3",
+   "display_name": "RPanzera",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "mention_pn": "on"
+   },
+   "settings": null,
+   "user_id": "606970046656348160"
+  },
+  {
+   "avatar": "ab1b7d5779119177053be01c9ad07479",
+   "display_name": "Dleess",
+   "is_bot": false,
+   "is_owner": true,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "allow_sms": "on",
+    "archived": "off",
+    "avatar": "https://sleepercdn.com/uploads/94f6c0d4b030b348732f5687e1007fd7.jpg",
+    "join_voice_pn": "on",
+    "mascot_message": "on",
+    "mention_pn": "on",
+    "player_like_pn": "on",
+    "player_nickname_update": "on",
+    "show_mascots": "off",
+    "team_name": "Woodbury Riders",
+    "team_name_update": "on",
+    "trade_block_pn": "on",
+    "transaction_commissioner": "on",
+    "transaction_free_agent": "on",
+    "transaction_trade": "on",
+    "transaction_waiver": "on",
+    "user_message_pn": "on"
+   },
+   "settings": null,
+   "user_id": "827345221493850112"
+  },
+  {
+   "avatar": "32c00d8e6fd6736a9b66516c73c89ebe",
+   "display_name": "MJLeess318",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "allow_sms": "on",
+    "archived": "off",
+    "avatar": "https://sleepercdn.com/uploads/1c6142fb55ab03048ea31f45f26187b1.jpg",
+    "mention_pn": "on",
+    "team_name": "Free Kelly"
+   },
+   "settings": null,
+   "user_id": "913546847858470912"
+  },
+  {
+   "avatar": "f0edbf4278f53f9425db175073df6584",
+   "display_name": "rzalika",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "allow_sms": "on",
+    "archived": "off",
+    "join_voice_pn": "on",
+    "mascot_message": "on",
+    "mention_pn": "on",
+    "player_like_pn": "on",
+    "player_nickname_update": "on",
+    "team_name_update": "on",
+    "trade_block_pn": "on",
+    "transaction_commissioner": "on",
+    "transaction_free_agent": "on",
+    "transaction_trade": "on",
+    "transaction_waiver": "on",
+    "user_message_pn": "on"
+   },
+   "settings": null,
+   "user_id": "913634756779212800"
+  },
+  {
+   "avatar": "e7af4deab0289b4f5505646424895246",
+   "display_name": "kgelardi",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "allow_sms": "on",
+    "mention_pn": "on",
+    "team_name": "Drew P. Bauls"
+   },
+   "settings": null,
+   "user_id": "919611510605852672"
+  },
+  {
+   "avatar": "15d7cf259bc30eab8f6120f45f652fb6",
+   "display_name": "jspagnola",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "allow_sms": "on",
+    "mention_pn": "on",
+    "team_name": "YippeKiYay MarshalFaulker"
+   },
+   "settings": null,
+   "user_id": "923413316708466688"
+  },
+  {
+   "avatar": "8eb8f8bf999945d523f2c4033f70473e",
+   "display_name": "jspringe88",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "allow_sms": "on",
+    "mention_pn": "on"
+   },
+   "settings": null,
+   "user_id": "924053611846397952"
+  },
+  {
+   "avatar": "4f4090e5e9c3941414db40a871e3e909",
+   "display_name": "Dseidman",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "allow_sms": "on",
+    "avatar": "https://sleepercdn.com/uploads/1eb32927f721421c19a83834b391090e.jpg",
+    "join_voice_pn": "on",
+    "league_report_pn": "on",
+    "mascot_message": "on",
+    "mention_pn": "on",
+    "player_like_pn": "on",
+    "player_nickname_update": "on",
+    "team_name": "Seidmans Sasquatches",
+    "team_name_update": "on",
+    "trade_block_pn": "on",
+    "transaction_commissioner": "on",
+    "transaction_free_agent": "on",
+    "transaction_trade": "on",
+    "transaction_waiver": "on",
+    "user_message_pn": "on"
+   },
+   "settings": null,
+   "user_id": "924757837283254272"
+  },
+  {
+   "avatar": "882ebe676115a919c00f83a45a24a94d",
+   "display_name": "rkissane",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "avatar": "https://sleepercdn.com/uploads/9ecb6e0a0fcfb28be60221b86b4c657e.jpg",
+    "mention_pn": "on",
+    "team_name": "Kissane\u2019s Team"
+   },
+   "settings": null,
+   "user_id": "925054003463999488"
+  },
+  {
+   "avatar": "82aec8e811b839b8ec25d7b458afd57b",
+   "display_name": "jlillian80",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "mention_pn": "on",
+    "show_mascots": "off",
+    "team_name": "Florida Man"
+   },
+   "settings": null,
+   "user_id": "930700626709893120"
+  },
+  {
+   "avatar": "15d7cf259bc30eab8f6120f45f652fb6",
+   "display_name": "jkazzz",
+   "is_bot": false,
+   "is_owner": null,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "allow_sms": "on",
+    "mention_pn": "on"
+   },
+   "settings": null,
+   "user_id": "1005290797896036352"
+  },
+  {
+   "avatar": "8eb8f8bf999945d523f2c4033f70473e",
+   "display_name": "MDEF",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "allow_sms": "on",
+    "avatar": "https://sleepercdn.com/uploads/e90a5ca7bba1cd1122860fbf64f72f68.jpg",
+    "mention_pn": "on",
+    "team_name": "MDEF"
+   },
+   "settings": null,
+   "user_id": "1049829521757237248"
+  },
+  {
+   "avatar": "b319fdf8b7b5b0359d3c78622ba4d70c",
+   "display_name": "jgil96",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "mention_pn": "on"
+   },
+   "settings": null,
+   "user_id": "1124744818174812160"
+  },
+  {
+   "avatar": "578c6b253dd7b4bab45382e1af102204",
+   "display_name": "MattNason3",
+   "is_bot": false,
+   "is_owner": false,
+   "league_id": "1314363401744416768",
+   "metadata": {
+    "allow_pn": "on",
+    "mention_pn": "on"
+   },
+   "settings": null,
+   "user_id": "1262112427034546176"
+  }
+ ]
+}
