@@ -11,6 +11,60 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ TW30E EVENING SESSION — 2026-07-30 21:52 EDT (Claude lane). READ BEFORE THE BLOCKS BELOW.
+> **The day reopened after the 16:53 close.** Five David words followed: push the local-only commits,
+> assess tomorrow's telemetry check, amend the layer doctrine, build transaction ingestion, land it.
+> Everything below this block predates that and is history except where it names live state.
+>
+> **⭐ LANDED — LEAGUE TRANSACTION INGESTION (layer 1).** Sleeper's transactions endpoint had never
+> been called in this product's history; layer 4 (context — manager behaviour) had no substrate.
+> Now: fetch → raw snapshot → normalize → durable SQLite store → status marker, with canonical
+> `dg_player_id` from the governed ff_playerids crosswalk. Live figures: **67 transactions, 127
+> movements, 97/99 player movements canonically resolved, 2 `sleeper_only` (`13324`, `13400`), 0
+> unknown.** Review returned three blocking findings; all reproduced, fixed, and locked by tests.
+>
+> **⚠ FOUR THINGS A FRESH AGENT MUST NOT GET WRONG:**
+> 1. **It does NOT refresh itself.** No scheduler, no plist, by David's boundary. Someone types
+>    `.venv/bin/python3.14 scripts/run_league_transaction_capture.py` until he says otherwise.
+> 2. **The backup-manifest entry for the new store was REVERTED ON DAVID'S WORD** so the 10:15 run
+>    reads a manifest identical to the prior day's — the manifest is read from DISK at run time, so an
+>    entry in a working tree was already live to that run. **Do NOT silently re-add it.** It returns
+>    when a scheduler word lands. A contract test fails if it reappears without that decision.
+>    The matching `.gitignore` entry was reverted with it; only the manifest was live to the backup, so
+>    **restoring the `.gitignore` entry is worth doing independently** — without it a rebuilt store
+>    sits untracked and visible and could be committed by accident.
+> 3. **Only the current league-season is reachable.** No `previous_league_id` chain-following, no CLI
+>    flag.
+> 4. **The runtime store is not in the repo** and does not survive the session. That is fine: it
+>    rebuilds from the public Sleeper API in seconds, which is the fact David's revert ruling rests on.
+>
+> **📐 GOVERNANCE — `05` v1.3.0: David swapped layers 4 and 5.** Order in force: 1 ingest · 2 curate ·
+> 3 models · **4 CONTEXT (the twelve managers)** · **5 data analysis** · 6 front-end. His words are
+> verbatim at §1.3; §1.2 is byte-identical and NOT renumbered. **Only digits 4 and 5 are ambiguous —
+> 1, 2, 3, 6 are identical under both schemes;** `05` §5.4 carries the translation rule and §5.6 flags
+> six repo artifacts left deliberately unedited. **This amendment did NOT ratify `05` §2 onward**,
+> which remains agent-authored and unratified. Foundation-first is unchanged: everything still starts
+> with robust and COMPLETE layers 1 and 2.
+>
+> **🌅 TOMORROW 09:00–10:15 RUNS UNTOUCHED.** No scheduler, producer, plist, or `report_freshness.json`
+> change landed. The pre-registered check runs **UNAMENDED**, and the telemetry lane's interpretation
+> key is committed. **Nobody fixes anything before that run.** A FAILURE reading may be the check
+> rather than the system — three known mismatches plus a missing halt measurement, recorded in the
+> 2026-07-30 evidence directory.
+>
+> **OPEN LOOPS — precise, after the review lane's correction:** `c841c52` (ingestion) post-commit
+> divergence audit is **CLEAR** (exact-hash comparison, 36 focused tests, Ruff, `git diff --check`).
+> **`bed701e` and `0698322` have NO audit and NO named owner** — they sat outside the code-review
+> thread and the review lane correctly declined to manufacture a CLEAR. **Tower must name an owner or
+> rule them not required.** **Claude lane is `parked`, not `clean`, on that basis.**
+> **⚠ SURVIVES TOMORROW'S RUN EITHER WAY (telemetry lane):** the pre-registered check does **not**
+> verify that `league_capture` runs after the valuation refresh (Inversion 3 — capture 09:20, PVO
+> 09:30, so league posture and the team value matrix build against the prior valuation).
+> **BACKGROUND: NONE created by any lane this session.** Pre-existing and disclosed: PID 7180
+> `uvicorn`, PID 71458 wedged `tmux send-keys`.
+> **Still parked and untouched tonight:** both scheduling escalations, the two governed SQL findings,
+> and every item parked in the blocks below.
+
 > # ⏸ TW30 CODEX CLOSEOUT STATE — 2026-07-30 16:47:46 EDT
 > **CLOSED/PARKED.** Tonight deliberately changes no scheduler, producer, freshness reader, SQL,
 > model, or RED contract. The morning cluster runs untouched so the pre-registered telemetry check
