@@ -1,0 +1,6 @@
+rank,position,candidate_family,best_first_use,incremental_case,main_risk
+1,RB,"Yards after contact, missed tackles forced, breakaway production",Engine A and Engine B,"Measures creation beyond blocking and volume; fills the largest position-specific blind spot","Component overlap; do not combine components and Elusive Rating indiscriminately"
+2,QB,"Big-time-throw rate, turnover-worthy-play rate, pressure-to-sack rate, clean-pocket accuracy",Engine A then Engine B,"Decision quality and pocket response not captured by basic passing totals","PFF charting subjectivity; pressure splits are noisy and sample-sensitive"
+3,TE,"Slot/wide/inline role, route rate, receiving efficiency",Engine A and Engine B,"Separates detached receiving role from blocking workload","A prior TE role feature was contaminated; identity and derivation need fresh gates"
+4,WR,"Man/zone and depth profile, YAC, missed tackles forced",Engine A then Engine B,"Adds role and coverage response beyond YPRR, TPRR and WOPR","Small split samples, scheme confounding and multiple-testing risk"
+5,Team context,"OL pass/run blocking and pressure allowed",Engine B control variables,"Can separate player output from environment","Team changes can make situation masquerade as persistent player talent"

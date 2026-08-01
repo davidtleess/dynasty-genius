@@ -1,0 +1,4 @@
+position,rows,avg_depth_of_target,avoided_tackles,epa,first_downs,positive_epa_percent,route_rate,slot_rate,wide_rate,inline_rate,pass_block_rate,yprr,drop_rate_coverage,yac_per_reception_coverage,contested_catch_rate_coverage
+WR,9975,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.952,0.933,0.781
+RB,4928,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.973,0.955,0.345
+TE,3898,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.947,0.923,0.637

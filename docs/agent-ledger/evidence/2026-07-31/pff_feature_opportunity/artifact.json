@@ -1,0 +1,294 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "title": "Where PFF Can Add Real Model Signal",
+    "surface": "report",
+    "sources": [
+      {
+        "id": "pff_catalog",
+        "label": "PFF Premium Stats 2.3.53 report catalog",
+        "href": "https://premium.pff.com/nfl/positions/2025/REGPO",
+        "path": "pff_report_catalog.csv",
+        "query": {
+          "description": "Official PFF Premium NFL/NCAA position-report routes and report metadata inspected July 31, 2026.",
+          "engine": "DuckDB",
+          "language": "sql",
+          "executed_at": "2026-07-31T21:27:50-04:00",
+          "sql": "SELECT family, views, unique_paths FROM read_csv_auto('pff_report_family_summary.csv') ORDER BY views DESC",
+          "tables_used": [
+            "pff_report_family_summary.csv"
+          ],
+          "filters": [
+            "NFL and NCAA position reports",
+            "PFF Premium application version 2.3.53"
+          ],
+          "metric_definitions": [
+            "Report views count each report configuration exposed by the shared PFF Premium catalog.",
+            "Unique report paths deduplicate configurations that present the same underlying endpoint through different views."
+          ]
+        }
+      },
+      {
+        "id": "pff_receiving",
+        "label": "Fresh PFF NCAA receiving summary exports, 2017–2025",
+        "path": "pff_existing_coverage.csv",
+        "query": {
+          "description": "Private subscriber CSVs summarized without embedding proprietary player rows.",
+          "engine": "DuckDB",
+          "language": "sql",
+          "executed_at": "2026-07-31T21:27:50-04:00",
+          "sql": "SELECT * FROM read_csv_auto('pff_existing_coverage.csv') ORDER BY rows DESC",
+          "tables_used": [
+            "pff_existing_coverage.csv",
+            "app/data/pff_exports/phase16_wr_manifest.json"
+          ],
+          "filters": [
+            "2017–2025",
+            "regular season plus postseason",
+            "WR, RB and TE"
+          ],
+          "metric_definitions": [
+            "Field coverage is the number of nonblank values divided by relevant position-season rows.",
+            "Contested-catch rate can be structurally blank when a player has no contested targets."
+          ]
+        }
+      },
+      {
+        "id": "candidate_priority",
+        "label": "PFF candidate feature-family ranking",
+        "path": "pff_candidate_priority.csv",
+        "query": {
+          "description": "Candidate families ranked by incremental information, current model gaps, addressability and measurement risk.",
+          "engine": "DuckDB",
+          "language": "sql",
+          "executed_at": "2026-07-31T21:27:50-04:00",
+          "sql": "SELECT * FROM read_csv_auto('pff_candidate_priority.csv') ORDER BY rank",
+          "tables_used": [
+            "pff_candidate_priority.csv",
+            "src/dynasty_genius/models/engine_a_contract.py",
+            "src/dynasty_genius/models/engine_b_contract.py"
+          ],
+          "filters": [
+            "Offensive fantasy positions and team-context controls",
+            "No PFF grade promotion"
+          ],
+          "metric_definitions": [
+            "Rank is a decision priority, not a measured estimate of predictive lift."
+          ]
+        }
+      },
+      {
+        "id": "dg_contracts",
+        "label": "Dynasty Genius Engine A/B feature contracts",
+        "path": "src/dynasty_genius/models/engine_a_contract.py",
+        "query": {
+          "description": "Current allowed, prohibited and position-specific feature contracts, reconciled with src/dynasty_genius/models/engine_b_contract.py.",
+          "engine": "Repository inspection",
+          "executed_at": "2026-07-31T21:27:50-04:00",
+          "filters": [
+            "Current working tree"
+          ],
+          "metric_definitions": [
+            "Current use means a field is actually read by a model feature matrix, not merely present in a source CSV."
+          ]
+        }
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# Where PFF Can Add Real Model Signal"
+      },
+      {
+        "id": "summary",
+        "type": "markdown",
+        "body": "## Executive Summary\n\n- **Yes—PFF likely contains meaningful candidate signal, especially for running backs and quarterbacks.** The strongest opportunities measure player-created value or decision quality rather than repeat box-score volume.\n- **The first move is not a download spree.** Our current NCAA receiving export already contains 47 columns, but production uses only two PFF-derived signals. High-coverage alignment, YAC, missed-tackle, depth, drop, contested-catch, EPA and route-role fields are already paid for and on disk.\n- **Prioritize position-specific families.** NCAA RB creation metrics, NCAA QB decision/pressure metrics and TE/WR role splits deserve the first controlled bake-offs. NFL PFF can then add the same families to Engine B, with the source season strictly aligned to the Season-T leakage contract.\n- **More columns are not an edge by themselves.** No PFF field should be promoted without a chronological, position-specific ablation that proves incremental value over the existing baseline."
+      },
+      {
+        "id": "catalog_intro",
+        "type": "markdown",
+        "sourceId": "pff_catalog",
+        "body": "## PFF is a broad charting source, not one receiving table\n\nThe shared PFF Premium catalog exposes 43 report views backed by 35 unique report paths across offense, defense, special teams and snap/schedule views. For Dynasty Genius, the 19 unique offensive datasets and position-snap view are the relevant hunting ground; defense and special teams are mostly out of scope unless we later add team-context controls."
+      },
+      {
+        "id": "catalog_chart_block",
+        "type": "chart",
+        "chartId": "catalog_chart"
+      },
+      {
+        "id": "existing",
+        "type": "markdown",
+        "sourceId": "pff_receiving",
+        "body": "## The cheapest opportunity is already in our NCAA receiving files\n\nThe fresh 2017–2025 export contains 18,801 WR/RB/TE rows. Average target depth, avoided tackles, EPA, first downs, positive-EPA rate, route rate, slot/wide/inline rates, pass-block rate and YPRR are populated on every relevant row. Drop rate and YAC per reception are populated on more than 92% of rows; contested-catch rate is naturally sparse when a player has no contested targets. Today the parser keeps identity plus five football fields, while Engine A consumes only YPRR and receiving yards through RYPTPA."
+      },
+      {
+        "id": "priorities",
+        "type": "markdown",
+        "sourceId": "candidate_priority",
+        "body": "## Running backs are the best first edge search\n\nThe best incremental fields measure what the player created independent of opportunity. My candidate order is:\n\n1. **RB creation:** yards after contact per attempt, missed tackles forced per touch and breakaway production.\n2. **QB decision quality:** big-time-throw rate, turnover-worthy-play rate, pressure-to-sack rate and clean-pocket accuracy.\n3. **TE role:** slot/wide/inline alignment, route rate and receiving efficiency.\n4. **WR profile:** man/zone and depth splits, YAC and missed tackles forced.\n5. **Team context:** offensive-line blocking and pressure allowed, used as controls rather than player-talent features.\n\nReceiver splits need shrinkage and denominator gates to avoid turning tiny samples into noise. For RBs, use the creation components or Elusive Rating—not both indiscriminately—because the composite is built from the same underlying components."
+      },
+      {
+        "id": "next",
+        "type": "markdown",
+        "body": "## Recommended next steps\n\n1. Expand the existing NCAA receiving parser into an objective-field candidate store; keep PFF grades out.\n2. Export NCAA rushing summary and passing summary for every historical season used by Engine A. Add pressure/clean and man/zone tables only after their CSV schemas are confirmed.\n3. Export the parallel NFL receiving, rushing and passing summaries across the full Engine B training window. Keep NFL regular season as the baseline scope; preserve postseason as a separate slice unless David explicitly changes the Season-T target basis.\n4. Pre-register one grouped ablation per position. Compare baseline vs. candidate family using chronological walk-forward evaluation, frozen outcomes, sample thresholds and the existing promotion gate.\n5. Promote only fields that improve held-out performance and remain directionally stable across cohorts. Treat a failed family as useful evidence, not a reason to search individual columns until one passes."
+      },
+      {
+        "id": "questions",
+        "type": "markdown",
+        "body": "## Further questions\n\n- Do the authenticated export buttons expose all split columns in one CSV, or require one download per split?\n- What is the earliest complete season for each NFL and NCAA report family under David's subscription?\n- Do PFF's current terms permit durable local feature-store use for model development, or only personal/manual analysis?\n- For NFL postseason, should performance be excluded, modeled separately, or included only in rate features after an explicit scope ruling?"
+      },
+      {
+        "id": "caveats",
+        "type": "markdown",
+        "body": "## Caveats and assumptions\n\nThis is an opportunity ranking, not evidence that any candidate improves predictions. Exact CSV headers and export entitlements for the additional tables remain unverified because this pane could not access David's authenticated PFF session. PFF grades remain prohibited by the current Engine A contract and are not recommended as model features. NCAA postseason inclusion follows David's July 31 ruling; it does not automatically settle NFL feature-season scope."
+      }
+    ],
+    "charts": [
+      {
+        "id": "catalog_chart",
+        "title": "PFF Premium report views by family",
+        "description": "Official shared catalog; views may reuse the same underlying report path.",
+        "type": "bar",
+        "dataset": "report_catalog",
+        "encodings": {
+          "x": {
+            "field": "family",
+            "type": "nominal"
+          },
+          "y": {
+            "field": "views",
+            "type": "quantitative"
+          }
+        },
+        "options": {
+          "showLegend": false
+        },
+        "sourceId": "pff_catalog"
+      }
+    ],
+    "tables": []
+  },
+  "snapshot": {
+    "version": 1,
+    "status": "ready",
+    "generatedAt": "2026-07-31T21:27:50-04:00",
+    "datasets": {
+      "report_catalog": [
+        {
+          "family": "Offense",
+          "views": 26,
+          "unique_paths": 19,
+          "relevance": "Primary"
+        },
+        {
+          "family": "Defense",
+          "views": 9,
+          "unique_paths": 8,
+          "relevance": "Low / team context only"
+        },
+        {
+          "family": "ST",
+          "views": 5,
+          "unique_paths": 5,
+          "relevance": "Out of current scope"
+        },
+        {
+          "family": "Misc",
+          "views": 3,
+          "unique_paths": 3,
+          "relevance": "Role/context"
+        }
+      ],
+      "existing_coverage": [
+        {
+          "position": "WR",
+          "rows": 9975,
+          "core_role_fields": "100%",
+          "drop_rate_coverage": 0.952,
+          "yac_coverage": 0.933
+        },
+        {
+          "position": "RB",
+          "rows": 4928,
+          "core_role_fields": "100%",
+          "drop_rate_coverage": 0.973,
+          "yac_coverage": 0.955
+        },
+        {
+          "position": "TE",
+          "rows": 3898,
+          "core_role_fields": "100%",
+          "drop_rate_coverage": 0.947,
+          "yac_coverage": 0.923
+        }
+      ],
+      "candidate_priority": [
+        {
+          "rank": 1,
+          "position": "RB",
+          "candidate_family": "Yards after contact, missed tackles, breakaway production",
+          "engine": "A and B",
+          "why": "Measures creation beyond blocking and volume",
+          "risk": "Overlap and composite double-counting"
+        },
+        {
+          "rank": 2,
+          "position": "QB",
+          "candidate_family": "BTT%, TWP%, pressure-to-sack, clean-pocket accuracy",
+          "engine": "A, then B",
+          "why": "Decision quality not captured by basic passing totals",
+          "risk": "Charting subjectivity and split instability"
+        },
+        {
+          "rank": 3,
+          "position": "TE",
+          "candidate_family": "Slot/wide/inline role, route rate, receiving efficiency",
+          "engine": "A and B",
+          "why": "Separates detached receiving role from blocking role",
+          "risk": "Prior TE role feature was contaminated"
+        },
+        {
+          "rank": 4,
+          "position": "WR",
+          "candidate_family": "Man/zone and depth profile; YAC and missed tackles",
+          "engine": "A, then B",
+          "why": "Adds role and coverage response beyond YPRR/WOPR",
+          "risk": "Small split samples and scheme confounding"
+        },
+        {
+          "rank": 5,
+          "position": "Team context",
+          "candidate_family": "OL pass/run blocking and pressure allowed",
+          "engine": "B controls",
+          "why": "Can separate player output from environment",
+          "risk": "Team changes and situation masquerading as talent"
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "pff_catalog",
+      "label": "PFF Premium Stats 2.3.53 report catalog",
+      "href": "https://premium.pff.com/nfl/positions/2025/REGPO",
+      "path": "pff_report_catalog.csv"
+    },
+    {
+      "id": "pff_receiving",
+      "label": "Fresh PFF NCAA receiving summary exports, 2017–2025",
+      "path": "pff_existing_coverage.csv"
+    },
+    {
+      "id": "candidate_priority",
+      "label": "PFF candidate feature-family ranking",
+      "path": "pff_candidate_priority.csv"
+    },
+    {
+      "id": "dg_contracts",
+      "label": "Dynasty Genius Engine A/B feature contracts",
+      "path": "src/dynasty_genius/models/engine_a_contract.py"
+    }
+  ]
+}

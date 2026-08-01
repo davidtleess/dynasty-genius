@@ -1,0 +1,44 @@
+play_type,report_title,slug,api_path,views_or_dataset,fantasy_relevance
+offense,OL Pass Blocking Efficiency,ol-pass-blocking-efficiency,/signature/pass-blocking/efficiency/line,dataset,team_context
+offense,Pass Blocking Efficiency,pass-blocking-efficiency,/offense/blocking,view,team_context
+offense,Pass Blocking,offense-pass-blocking,/offense/pass_blocking,dataset,team_context
+offense,Run Blocking,offense-run-blocking,/offense/run_blocking,dataset,team_context
+offense,Blocking Grades,offense-blocking,/offense/blocking,view,team_context
+offense,Offense Grades,offense,/offense/summary,dataset,low
+offense,Adjusted Completion %,passing-adjusted-completion,/passing/summary,view,high_qb
+offense,Allowed Pressure,passing-allowed-pressure,/passing/allowed_pressure,dataset,medium_qb
+offense,Passing Concept,passing-concept,/passing/concept,dataset,medium_qb
+offense,Passing Depth,passing-depth,/passing/depth,dataset,high_qb
+offense,"Passing Pressure, Concept & Direction",passing-detail,/passing/detail,dataset,medium_qb
+offense,Passing Pressure,passing-pressure,/passing/pressure,dataset,high_qb
+offense,Passing Grades,passing,/passing/summary,view,high_qb
+offense,Time In Pocket,time-in-pocket,/signature/passing/time_in_pocket,dataset,medium_qb
+offense,Receiving vs. Coverage,receiving-vs-coverage,/receiving/coverage,dataset,medium_receiver
+offense,Receiving Concept,receiving-concept,/receiving/concept,dataset,medium_receiver
+offense,Receiving Depth,receiving-depth,/receiving/depth,view,high_receiver
+offense,Receiving Depth & Direction,receiving-detail,/receiving/depth,view,high_receiver
+offense,Drop Rates,receiving-drop-rates,/receiving/summary,view,medium_receiver
+offense,Receiving vs Scheme,receiving-scheme,/receiving/scheme,dataset,high_receiver
+offense,Receiving Grades,receiving,/receiving/summary,view,high_receiver
+offense,Yards/Route Run,yards-per-route-run,/receiving/summary,view,high_receiver
+offense,Breakaway %,rushing-breakaway,/rushing/summary,view,high_rb
+offense,Rushing Direction,rushing-direction,/rushing/direction,dataset,medium_rb
+offense,Elusive Rating,elusive-rating,/rushing/summary,view,high_rb
+offense,Rushing Grades,rushing,/rushing/summary,view,high_rb
+defense,Coverage vs. Receiving,defense-coverage-vs-receiving,/defense/coverage_matchup,dataset,low
+defense,Coverage Grades,defense-coverage,/defense/coverage,dataset,low
+defense,Coverage Scheme,defense-coverage-scheme,/defense/coverage_scheme,dataset,low
+defense,Slot Coverage,defense-coverage-slot,/signature/defense/slot_coverage,dataset,low
+defense,Pass Rush Grades,defense-pass-rush,/defense/pass_rush,dataset,low
+defense,Pass Rushing Productivity,defense-pass-rush-productivity,/signature/defense/outside_pass_rush,dataset,low
+defense,Run Defense Grades,defense-run,/defense/run,view,low
+defense,Run Stop %,run-stop-percent,/defense/run,view,low
+defense,Defense Grades,defense,/defense/summary,dataset,low
+special-teams,Field Goal Grades,kicking,/field_goal/summary,dataset,out_of_scope
+special-teams,Kickoff Grades,kickoffs,/kickoff/summary,dataset,out_of_scope
+special-teams,Punting Grades,punting,/punting/summary,dataset,out_of_scope
+special-teams,Kickoff and Punt Return Grades,kick-returning,/return/summary,dataset,out_of_scope
+special-teams,Special Teams Grades,special-teams,/special/summary,dataset,out_of_scope
+misc,Schedule & Weekly Grades,schedule,/teams/summary,dataset,low
+misc,Available Player Reports,snaps,/snaps/summary,dataset,role_context
+misc,Snaps By Position,snaps-by-position,/position/pivot,dataset,high_role
