@@ -34,9 +34,31 @@ now ingested; PFF arrives by hand; FantasyPros is historical only; Footballguys 
 still reads a two-month-old cache until David authorizes the isolated refresh after tomorrow's
 morning measurement.**
 
-**Say the limit with the win: layer 1 is not layer 2.** PlayerProfiler data is in the foundation and
-reaching NO model and NO surface. Three of the six sources are now ingested; **the count of David's
-paid sources actually feeding a product decision is still ZERO.**
+**What "ingested" does and does not mean.** PlayerProfiler data is in the foundation and reaches
+NO model and NO surface. That is **the sequence working, not a shortfall** — David's ruling in
+`05` §1 is that layers 1-2 are the foundation and *"we shouldn't be wasting cycles until we've
+built this foundation."* A layer-1 adapter with no layer-3 consumer is complying with that order,
+not falling short of it. It is recorded here only so that "ingested" can never be misread as
+"the product got better" — this register has previously described sources as live while they
+served a two-month-old cache, and that is the error being guarded against.
+
+**Two different things get written down here, and they must not be confused:**
+
+1. **SEQUENCE STATUS — where the work has reached.** No layer-2 consumer yet; Advanced PBP not
+   ingested; FantasyPros and Footballguys unfed; CFBD still on the May cache. Every one of these
+   dissolves when the work is done. They are not limits and must not be written as though they
+   were. **Layer 1 is not finished, so exploring and curating would be premature by design.**
+2. **DATA PROPERTIES — constraints that survive completion.** The medical archive stops at 2023
+   and no amount of ingestion extends it. `yards_created_receiving` uses `NA` for both "zero" and
+   "not charted" and those will still be indistinguishable in 2027. The 2025 gamelog's man/zone
+   coverage columns are gone. **These are real limits, permanently**, and they bound what layer 2
+   can honestly build on top of. Carry them forward.
+
+**The order of work, per David (2026-08-01):** finish layer 1 → hypothesize and explore the full
+data → then test curation in layer 2 to strengthen the models. **Exploration is its own phase**,
+and it is the phase that decides *what* is worth curating — with 317 season columns, 174 gamelog
+columns and 92 PBP columns in the store, curating before exploring would only be guessing at a
+smaller pile.
 
 | # | Source | Getting it today? | Why not | What it would take | What we lose without it |
 | --: | :-- | :-- | :-- | :-- | :-- |
@@ -91,8 +113,8 @@ reading Tower's sweep; everything else was measured first-hand.
 | **FantasyCalc** (market values) | Free public API | **YES** | `app/data/fc_forward_capture.db`, `universe_market_divergence_latest.json` | LaunchAgent `dynasty-market-divergence-refresh` 09:40 + `dynasty-fc-snapshot` 09:00 | Market divergence / margin | **2026-07-30 09:40** |
 | **nflverse via nflreadpy** (NFL stats, PBP, rosters, draft picks) | Free | **YES** | `app/data/features_runtime/` | LaunchAgent `dynasty-feature-refresh`; today's run was a no-op | Engine B features, outcome capture | **2026-07-10 09:21** |
 | **CFBD — collegefootballdata.com** | **PAID** (David's list; exact tier UNVERIFIED) | **YES, from a stale local cache** | Current input: `app/data/cfbd_cache/` (810 files). New isolated destination is ready under `app/data/sources/cfbd_foundation/` | Raw-to-curated runner built and preflighted; **not executed and NOTHING scheduled** | Engine A college features still read the May cache | **2026-05-24** — intentionally unchanged tonight |
-| **PFF** | **PAID** | **BY HAND ONLY** | `app/data/pff_exports/` (3 files) | **NOTHING automatic** — David exports by hand | `scripts/build_college_features.py` only | **2026-05-23** — 2 months |
-| **PlayerProfiler** | **PAID** | **YES — four streams, layer 1 filled 2026-07-31/08-01** | `app/data/playerprofiler.db` (gitignored, and **in backup `required`** on David's word): `pp_player_season` 5,476×317 · `pp_medical_history` 9,768 · `pp_roster_week` 230,394 · `pp_identity_bridge` 3,290 · `pp_gamelog_week` 44,462 | **NOTHING automatic, and none is possible** — there is no API; David exports by hand, then one command per stream ingests | **NOBODY yet** — layer-1 substrate; the curated consumer is the open work | **2026-08-01** (player-seasons 2017–2025 · roster + gamelog 2020–2025 · medical 2017–**2023**, see the blind window) |
+| **PFF** | **PAID** | **BY HAND ONLY** | `app/data/pff_exports/`: **149 distinct paid payloads / 7 report families / 2017–2025**, content-deduplicated from 307 downloads; private, gitignored, required-backup-covered | **NOTHING automatic** — David exports by hand; master inventory maps every download by SHA-256 | `scripts/build_college_features.py` reads the active NCAA receiving-summary manifest; all other newly organized families are **NOBODY yet** pending Layer-2 candidate validation | **2026-08-01** — NCAA REGPO + NFL REG baselines complete for summaries, passing pressure/depth, and receiving scheme/depth (named scope/coverage exceptions retained separately) |
+| **PlayerProfiler** | **PAID** | **YES — ALL FIVE streams, layer 1 COMPLETE for this source 2026-08-01** | `app/data/playerprofiler.db` (gitignored, and **in backup `required`** on David's word): `pp_player_season` 5,476×317 · `pp_medical_history` 9,768 · `pp_roster_week` 230,394 · `pp_identity_bridge` 3,290 · `pp_gamelog_week` 44,462 · `pp_pbp_play` 280,868 · `pp_pbp_slot` 949,041 | **NOTHING automatic, and none is possible** — there is no API; David exports by hand, then one command per stream ingests | **NOBODY yet** — layer-1 substrate; the curated consumer is the open work | **2026-08-01** (player-seasons 2017–2025 · roster + gamelog 2020–2025 · medical 2017–**2023**, see the blind window) |
 | **FantasyPros** | **PAID** (David's list) | **HISTORICAL ONLY** | `app/data/fc_snapshots.db`, source `dp_archive`: 2,185 rows on four dates | One manual archive load; **NOTHING current** | Backtest/trust-surface code | Local load **2026-05-30**; newest source date **2024-09-08** |
 | **Footballguys** | **PAID — UNVERIFIED** (David named it 07-25; he added the URL again 22:21 tonight) | **NO** | nowhere | **NOTHING** | **NOBODY** — its *ideas* are cited in 16 strategy docs; its *data* was never ingested | **never** |
 | **MyFantasyLeague (MFL)** — rookie ADP | Free public export API | **NO** (adapter exists, fixture-backed) | no production store | **NOTHING** | NOBODY outside adapter/tests | **never** |
@@ -178,6 +200,17 @@ reading Tower's sweep; everything else was measured first-hand.
      `routes_vs_man`, `targets_vs_zone`, `separation_at_target`, `target_accuracy` and
      friends exist 2021–2024 only. Absent is not zero; an average over 2021–2025 would
      divide a four-season sum by five. Recorded in `column_availability`.
+   - **Advanced PBP is three datasets, not one, and the seams cost information both times.**
+     This stream names *which player filled which role* on each snap, and PlayerProfiler
+     changed that vocabulary twice. 2020 charts five receiver positions and NAMES the slot
+     receiver (`wr1 wr2 slot1 slot2 wr5`). **2021 did not renumber them, it DROPPED two** —
+     the surviving indices are the discontinuous `receiver1`, `receiver2`, `receiver5`,
+     and 2020's `slot1`/`slot2` are exactly the absent 3 and 4. **The slot receiver is
+     unavailable from 2021 on.** Then 2023 removed the role entirely: `skill1..skill5` are
+     anonymous, so every 2023+ slot row carries `slot_role_known = False` and any positional
+     reading of them is an inference, not the vendor's word. A consumer counting receivers
+     per play across these seams would read a vendor coverage change as a change in NFL
+     personnel usage.
    - **THE MEDICAL BLIND WINDOW — 2024, 2025 and 2026 have NO injury data.** PlayerProfiler's
      archive stops at 2023 (David, 2026-07-31). The danger is specific: a naive join renders "no
      record" identically to "was healthy", which is not missing data but a confident wrong answer.
