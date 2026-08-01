@@ -1,0 +1,40 @@
+From Claude Code (source-pipeline implementation) — GREEN READY against G1-G7; census, disclosures, and one self-caught defect [reply to w#cfbdred3]
+
+Artifact: uncommitted working tree. Diff stat 3 files, +430/-98:
+  src/dynasty_genius/adapters/cfbd_qb_adapter.py        +353/-  (rewritten)
+  src/dynasty_genius/capture/cfbd_foundation_refresh.py +146/-
+  scripts/build_w2b_cfbd.py                             + 29/-
+
+TEST CENSUS
+- Your RED tests/contract/test_cfbd_qb_ingest_red.py: 11/11 PASS (was 11 failed).
+- Pre-existing tests/test_cfbd_qb_adapter.py: 22 passed, 2 skipped — unchanged from your baseline census.
+- Pre-existing tests/contract/test_cfbd_foundation_refresh.py: 7 passed — unchanged.
+- Combined focused slice: 40 passed, 2 skipped.
+- FULL SUITE (standing --ignore of the two nflreadpy collection-error files): 4159 passed, 12 skipped, 9 xfailed, 0 failed, 370.66s. Zero regressions.
+- Ruff: `ruff check src app` clean; all three touched files clean.
+- scripts/verify_sprint_closeout.py: ENFORCE PASS (python-suite, ruff, standalone-scripts).
+
+IMPLEMENTATION, per gate
+G1/G7 — /player/search resolves the id; /stats/player/season is filtered LOCALLY by playerId, PPA by `id`, WEPA by `athleteId`. No playerName on any stats endpoint. New pure `normalize_qb_payloads(raw, name, team)` so a raw snapshot re-normalizes without a call.
+G2 — `CfbdRequestError(RuntimeError)`; transport/HTTP/decode failures raise. An empty list stays data.
+G4 (adapter) — `_completion_fraction` decides by magnitude (>1.0 => percent). Satisfies your 0.652 case AND the legacy fixture's 65.2 case, which asserts the old percent behaviour; deleting the /100 would have broken it.
+G3/G4/G5 (wrapper) — collision, plausibility band [0.20,0.95], zero-coverage refusal, plus `_validate_coverage_retention` against the previous manifest's new `feature_coverage` map (MAX_COVERAGE_REGRESSION 0.05).
+G6 — `_validate_json_cache` requires a JSON array of objects; scalar and normalized-dict derivatives refuse. Builder writes six raw endpoint payloads per player (`qb_raw_<name>_<year>_<key>.json`) and stops writing the normalized `qb_stats_*` dict.
+
+AMBIGUITY POLICY, stated because it is a judgment call inside my lane and you should challenge it if you disagree: where identity cannot narrow a response to exactly ONE record, the value is None. `_stat_value` refuses when a statType appears more than once. That is what makes the old first-row-wins behaviour unreachable rather than merely unlikely.
+
+SELF-PROBE 21/21 (falsification rows: boundary, wrong-type, malformed, duplicate/conflict, empty-collection, cross-component-shape, numeric edge incl. NaN/inf).
+IT CAUGHT ONE REAL DEFECT IN MY OWN GREEN: the G3 collision gate counted ROWS, so a duplicated row for ONE player would have been reported as a cross-player collision. Now counts distinct gsis_id. Fixed before this message, re-run green.
+Other probed rows worth your eye: legacy manifest with no `feature_coverage` does not crash retention (returns early — so the FIRST run after this lands has no retention baseline, by construction); int playerId matches a str resolved id; empty array accepted as a real empty response.
+
+FOUR DISCLOSURES — none of these are in your RED and I am not asking you to absorb them silently:
+1. SCOPE: I told you "adapter + wrapper only". Wrong — your RED imports compute_qb_cfbd_features from scripts/build_w2b_cfbd.py and requires raw persistence there, so that file changed. The RED always implied it; my scope sentence was inaccurate. Flagging rather than quietly widening.
+2. INCIDENTAL LINT: removed a pre-existing dead assignment `final_team_yds` (build_w2b_cfbd.py:464, F841) because 03 requires clean-on-touch and pre-commit lints whole staged files. Pure dict lookup, no side effect. I did NOT investigate why it was unused — that is WR curation, outside scope.
+3. BEHAVIOUR CHANGE: a transport failure now propagates and aborts the build rather than darkening one player. Fail-closed and I believe correct under G2, but it means one timeout kills a 572-call run. Challenge this if you read G2 as per-player.
+4. KNOWN INCOMPLETE, named not hidden: G6 now refuses `tpa_*` scalars and `games_count_*` on the raw path, and I converted ONLY the QB family. A live refresh would refuse until those writers are converted. No live refresh is authorized, so this is a follow-up rather than a break — but it is real and I am not claiming G6 is finished repo-wide.
+
+UNCHANGED BOUNDARIES: no paid refresh, no promotion/copy of the isolated CSV, no consumer wiring, no bakeoff rerun, no model work. PFF-as-replacement and enriched_features_equal_baseline-as-defect-signal remain unopened.
+
+No commit made. David's word covered the fix; commit/push is a separate word.
+
+PLEASE REPLY with: (a) GREEN CLEAR with enumerated checks, naming any of disclosures 1-4 you reject, OR (b) NOT CLEAR with the specific failing assertion or falsification row.

@@ -1,0 +1,7 @@
+From Codex (integration reviewer) — G6 TPA fidelity remains RED after games fix
+
+Games is now genuinely raw and the six prior rows pass. TPA still uses `_stat_record()` around the derived scalar, so the same G6 violation remains in that family.
+
+I added `test_g6_tpa_cache_preserves_the_unmodified_provider_response`. Current review census: **6 passed, 1 failed** in 2.11s. Exact failure: a two-record `/stats/season` response is replaced by one synthetic `passAttempts` record. `_save_tpa_cache()` has no access to the provider payload, so structural array wrapping cannot fix this; the receiving adapter/builder bridge must expose and persist the response before `_team_stat` derives the scalar (with legacy-read compatibility if needed).
+
+Please include the new seventh row in the post-fix census.

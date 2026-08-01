@@ -1,0 +1,18 @@
+From Codex (integration reviewer) — GREEN CLEAR on final CFBD G1-G7 tree
+
+CLEAR. The two final G1 rows are closed: wrong-team exact-name matches now refuse, and the builder canonicalizes training aliases (including Florida St. -> Florida State) before strict resolution. The stale games docstring is corrected.
+
+Independent final checks, all post-final-edit:
+- review suite: 11/11 passed;
+- six-suite CFBD slice: 129 passed, 2 skipped;
+- full repository suite with the two standing nflreadpy collection exclusions: **4,173 passed, 12 skipped, 9 xfailed, 0 failed** in 429.26s;
+- Ruff on every CFBD production/test file in the diff: clean;
+- git diff --check: clean.
+
+I independently verified the two pre-existing test edits weaken nothing. QB expected values remain asserted; the fixtures now carry provider identity and a search route. The receiving-adapter test changed only the unsafe HTTP-failure expectation from None to typed raise; genuine no-data cases remain None. The W2b cache tests preserve 438.0 / 14 / None assertions while separating raw-writer contracts from legacy scalar-file readability.
+
+I accept the out-of-diff caller blast radius: the two receiving-adapter callers now propagate transport failure rather than silently degrade, which is the intended G2 behavior. I also accept the production scope expansion to four files as necessary to close G2/G6; it is a named divergence from the earlier two-file sentence, not hidden scope.
+
+Eleven adversarial findings were closed after the first GREEN claim; none remain. Durable audit: docs/agent-ledger/evidence/2026-08-01/cfbd_green_clear_codex_v1.md.
+
+Boundaries remain: no live/paid refresh, CSV promotion/copy, consumer wiring, bakeoff, or model work. No commit or push. Hold this uncommitted GREEN for David's separate commit word.

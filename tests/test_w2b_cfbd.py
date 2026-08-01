@@ -835,9 +835,36 @@ def test_era_proxy_missing_age_gives_missing_flags():
 # ── TPA cache round-trip ──────────────────────────────────────────────────────
 
 def test_tpa_cache_roundtrip_positive(tmp_path, monkeypatch):
-    """Positive TPA cache: (True, float) round-trip."""
+    """Positive TPA cache: (True, float) round-trip from the provider records.
+
+    G6 (2026-08-01): the writer takes the unmodified `/stats/season` records,
+    not a derived scalar. The value is read back out of the snapshot.
+    """
     monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
-    bw2b._save_tpa_cache("Alabama", 2021, 438.0)
+    bw2b._save_tpa_cache(
+        "Alabama",
+        2021,
+        [
+            {"statName": "passAttempts", "statValue": 438.0},
+            {"statName": "sacksAllowed", "statValue": 21},
+        ],
+    )
+    hit, value = bw2b._load_tpa_cache("Alabama", 2021)
+    assert hit is True
+    assert value == pytest.approx(438.0)
+
+
+def test_tpa_cache_rejects_a_derived_scalar(tmp_path, monkeypatch):
+    """A scalar must not be wrappable into a provider-shaped array (G6)."""
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
+    with pytest.raises(TypeError):
+        bw2b._save_tpa_cache("Alabama", 2021, 438.0)
+
+
+def test_tpa_legacy_scalar_file_remains_readable(tmp_path, monkeypatch):
+    """The ~810 pre-array cache files must not be invalidated into a paid re-fetch."""
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
+    (tmp_path / "tpa_alabama_2021.json").write_text("438.0", encoding="utf-8")
     hit, value = bw2b._load_tpa_cache("Alabama", 2021)
     assert hit is True
     assert value == pytest.approx(438.0)
@@ -852,9 +879,9 @@ def test_tpa_cache_miss_when_absent(tmp_path, monkeypatch):
 
 
 def test_tpa_negative_cache_roundtrip(tmp_path, monkeypatch):
-    """Negative TPA cache: (True, None) prevents redundant API re-fetch."""
+    """Negative TPA cache: an empty provider response is data, and is cached."""
     monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
-    bw2b._save_tpa_cache("FCS School", 2021, None)
+    bw2b._save_tpa_cache("FCS School", 2021, [])
     hit, value = bw2b._load_tpa_cache("FCS School", 2021)
     assert hit is True
     assert value is None
@@ -863,9 +890,20 @@ def test_tpa_negative_cache_roundtrip(tmp_path, monkeypatch):
 # ── Games-count cache round-trip ─────────────────────────────────────────────
 
 def test_games_count_cache_roundtrip_positive(tmp_path, monkeypatch):
-    """Positive games-count cache: (True, int) round-trip."""
+    """Positive games-count cache: the count is the length of the raw schedule."""
     monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
-    bw2b._save_games_count_cache("Alabama", 2021, 14)
+    bw2b._save_games_raw_cache(
+        "Alabama", 2021, [{"id": index, "season": 2021} for index in range(14)]
+    )
+    hit, value = bw2b._load_games_count_cache("Alabama", 2021)
+    assert hit is True
+    assert value == 14
+
+
+def test_games_count_legacy_scalar_file_remains_readable(tmp_path, monkeypatch):
+    """Pre-array games-count cache files stay readable (no forced re-fetch)."""
+    monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
+    (tmp_path / "games_count_alabama_2021.json").write_text("14", encoding="utf-8")
     hit, value = bw2b._load_games_count_cache("Alabama", 2021)
     assert hit is True
     assert value == 14
@@ -880,9 +918,9 @@ def test_games_count_cache_miss_when_absent(tmp_path, monkeypatch):
 
 
 def test_games_count_negative_cache_roundtrip(tmp_path, monkeypatch):
-    """Negative games-count cache: (True, None) prevents redundant re-fetch."""
+    """Negative games-count cache: an empty schedule is data, and is cached."""
     monkeypatch.setattr(bw2b, "CACHE_DIR", tmp_path)
-    bw2b._save_games_count_cache("FCS School", 2021, None)
+    bw2b._save_games_raw_cache("FCS School", 2021, [])
     hit, value = bw2b._load_games_count_cache("FCS School", 2021)
     assert hit is True
     assert value is None

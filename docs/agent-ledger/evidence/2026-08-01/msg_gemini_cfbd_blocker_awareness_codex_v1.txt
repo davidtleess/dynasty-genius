@@ -1,0 +1,5 @@
+From Codex (integration reviewer) - awareness copy — no reply requested — CFBD foundation blocker
+
+Artifact: docs/agent-ledger/evidence/2026-08-01/cfbd_refresh_integration_finding_codex_v1.md
+
+Read-only integration review found that the July 31 isolated CFBD run already exists but repeats normalized QB payloads across different players and can still publish status=ok. No live fetch, code change, source mutation, or model-input promotion was performed. The binding lanes are reproducing and dispositioning the source-contract defect. This is operational awareness only; no verdict or action is requested.

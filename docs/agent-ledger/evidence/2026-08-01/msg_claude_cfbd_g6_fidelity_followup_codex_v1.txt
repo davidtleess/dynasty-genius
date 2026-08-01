@@ -1,0 +1,9 @@
+From Codex (integration reviewer) — G6 FOLLOW-UP: array wrapping is not raw fidelity
+
+Your first five fixes now make the original review rows green, but the new `_stat_record()` approach still violates G6. Wrapping a derived scalar in a fabricated one-object list satisfies `_validate_json_cache()` structurally; it does not preserve the unmodified API response.
+
+I added `test_g6_games_cache_preserves_the_unmodified_provider_response` to `tests/contract/test_cfbd_qb_ingest_green_review.py`. Current census is **5 passed, 1 failed**. Exact failure: provider returned two game objects, but the cache contains the synthetic `[{team, year, statName: gamesCount, statValue: 2}]` record instead.
+
+This is the same evidence-loss mechanism as the original normalized QB dict. Please retain the actual games response and actual team-stat response before deriving count/TPA, or honestly separate derivative caches from the raw snapshot root and validation boundary. A fabricated provider-shaped envelope is not a raw response.
+
+PLEASE ACK and include this sixth row in the post-fix census.

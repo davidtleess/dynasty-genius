@@ -179,31 +179,64 @@ def test_cfbd_source_not_prohibited():
 
 # ── Mock helpers ──────────────────────────────────────────────────────────────
 
+# Every mocked stat row carries the provider identity the adapter now binds to.
+# Before 2026-08-01 these fixtures had no identity at all, which is exactly why
+# they could not catch a response being attributed to the wrong quarterback.
+PLAYER_ID = "player-1"
+
+
 def _passing_stats(pct=65.2, ypa=8.1, td=30, int_=8, yds=3000, att=400, team="Clemson"):
     return [
-        {"statType": "PCT",  "stat": pct,  "team": team},
-        {"statType": "YPA",  "stat": ypa,  "team": team},
-        {"statType": "TD",   "stat": td,   "team": team},
-        {"statType": "INT",  "stat": int_, "team": team},
-        {"statType": "YDS",  "stat": yds,  "team": team},
-        {"statType": "ATT",  "stat": att,  "team": team},
+        {"statType": "PCT",  "stat": pct,  "team": team, "playerId": PLAYER_ID},
+        {"statType": "YPA",  "stat": ypa,  "team": team, "playerId": PLAYER_ID},
+        {"statType": "TD",   "stat": td,   "team": team, "playerId": PLAYER_ID},
+        {"statType": "INT",  "stat": int_, "team": team, "playerId": PLAYER_ID},
+        {"statType": "YDS",  "stat": yds,  "team": team, "playerId": PLAYER_ID},
+        {"statType": "ATT",  "stat": att,  "team": team, "playerId": PLAYER_ID},
     ]
 
 
 def _rushing_stats(car=80, yds=400, td=5, team="Clemson"):
     return [
-        {"statType": "CAR", "stat": car, "team": team},
-        {"statType": "YDS", "stat": yds, "team": team},
-        {"statType": "TD",  "stat": td,  "team": team},
+        {"statType": "CAR", "stat": car, "team": team, "playerId": PLAYER_ID},
+        {"statType": "YDS", "stat": yds, "team": team, "playerId": PLAYER_ID},
+        {"statType": "TD",  "stat": td,  "team": team, "playerId": PLAYER_ID},
     ]
 
 
 def _ppa_stats(value=0.38, team="Clemson"):
-    return [{"name": "Trevor Lawrence", "team": team, "averagePPA": {"all": value}}]
+    return [
+        {
+            "id": PLAYER_ID,
+            "name": "Trevor Lawrence",
+            "team": team,
+            "averagePPA": {"all": value},
+        }
+    ]
 
 
 def _wepa_stats(value=42.3, team="Clemson"):
-    return [{"name": "Trevor Lawrence", "team": team, "season": 2020, "wepa": value}]
+    return [
+        {
+            "athleteId": PLAYER_ID,
+            "name": "Trevor Lawrence",
+            "team": team,
+            "season": 2020,
+            "wepa": value,
+        }
+    ]
+
+
+def _player_search(params, team="Clemson"):
+    """Resolve whatever name was asked for, so identity binding succeeds."""
+    return [
+        {
+            "id": PLAYER_ID,
+            "name": params.get("searchTerm", ""),
+            "team": team,
+            "position": "QB",
+        }
+    ]
 
 
 def _team_stats(pass_att=430, sacks=18, net_pass_yds=3200, team="Clemson"):
@@ -216,6 +249,8 @@ def _team_stats(pass_att=430, sacks=18, net_pass_yds=3200, team="Clemson"):
 
 def _route(url: str, params: dict) -> str:
     """Determine which endpoint a call is for using params, not URL query strings."""
+    if "/player/search" in url:
+        return "search"
     if "/stats/player/season" in url:
         return params.get("category", "")
     if "/ppa/players/season" in url:
@@ -230,8 +265,11 @@ def _route(url: str, params: dict) -> str:
 def _full_mock(url, **kwargs):
     resp = MagicMock()
     resp.raise_for_status = MagicMock()
-    route = _route(url, kwargs.get("params", {}))
-    if route == "passing":
+    params = kwargs.get("params", {})
+    route = _route(url, params)
+    if route == "search":
+        resp.json.return_value = _player_search(params)
+    elif route == "passing":
         resp.json.return_value = _passing_stats()
     elif route == "rushing":
         resp.json.return_value = _rushing_stats()
@@ -249,8 +287,11 @@ def _full_mock(url, **kwargs):
 def _no_ppa_mock(url, **kwargs):
     resp = MagicMock()
     resp.raise_for_status = MagicMock()
-    route = _route(url, kwargs.get("params", {}))
-    if route == "passing":
+    params = kwargs.get("params", {})
+    route = _route(url, params)
+    if route == "search":
+        resp.json.return_value = _player_search(params)
+    elif route == "passing":
         resp.json.return_value = _passing_stats()
     elif route == "rushing":
         resp.json.return_value = _rushing_stats()
@@ -309,8 +350,11 @@ def test_td_int_ratio_caps_denominator_at_one_for_zero_ints(_):
     def zero_int_mock(url, **kwargs):
         resp = MagicMock()
         resp.raise_for_status = MagicMock()
-        route = _route(url, kwargs.get("params", {}))
-        if route == "passing":
+        params = kwargs.get("params", {})
+        route = _route(url, params)
+        if route == "search":
+            resp.json.return_value = _player_search(params)
+        elif route == "passing":
             resp.json.return_value = _passing_stats(int_=0)
         elif route == "rushing":
             resp.json.return_value = _rushing_stats()

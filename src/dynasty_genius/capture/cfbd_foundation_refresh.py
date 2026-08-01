@@ -17,6 +17,24 @@ SCHEMA_VERSION = "cfbd_foundation.v1"
 SOURCE_NAME = "cfbd"
 MIN_IDENTITY_COVERAGE = 0.99
 
+#: Declared QB feature family. A declared family that publishes at 0% coverage is
+#: a failed ingest wearing the costume of a legitimately sparse feature (G5).
+QB_FEATURE_COLUMNS: tuple[str, ...] = (
+    "qb_completion_pct_final",
+    "qb_yards_per_attempt_final",
+    "qb_td_int_ratio_final",
+    "qb_sack_rate_final",
+)
+
+#: Plausible band for a qualifying college completion rate expressed as a
+#: fraction (G4). The 2026-08-01 defect published 0.00594 for 62/62 rows — a
+#: value no completion rate can take on any scale.
+COMPLETION_PCT_BOUNDS: tuple[float, float] = (0.20, 0.95)
+
+#: A published family may not lose more than this share of its coverage against
+#: the previous manifest without an explicit decision (G5).
+MAX_COVERAGE_REGRESSION = 0.05
+
 
 class CfbdRefreshError(RuntimeError):
     """Raised when a staged CFBD refresh cannot meet its publication contract."""
@@ -80,15 +98,37 @@ def _exclusive_lock(root: Path):
 
 
 def _validate_json_cache(raw_cache_dir: Path) -> tuple[int, str]:
+    """Hash the raw snapshot, refusing anything that is not a raw API response.
+
+    G6. CFBD endpoints return JSON arrays of objects. A bare scalar (the old
+    `tpa_*` cache held `430.0`) or a normalized feature dict (the old
+    `qb_stats_*` cache held the 11-key contract shape) is a *derivative*, not a
+    snapshot. Storing derivatives here is why the 2026-08-01 investigation could
+    not prove which player CFBD actually returned: the evidence was discarded
+    before it was written.
+    """
     files = sorted(raw_cache_dir.glob("*.json"))
     if not files:
         raise CfbdRefreshError("CFBD builder produced no raw JSON cache files")
     combined = hashlib.sha256()
     for path in files:
         try:
-            json.loads(path.read_text(encoding="utf-8"))
+            payload = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
             raise CfbdRefreshError(f"invalid raw JSON cache file: {path}") from exc
+        if not isinstance(payload, list):
+            raise CfbdRefreshError(
+                f"{path.name} is not a raw API response: expected a JSON array of "
+                f"objects, found {type(payload).__name__}. A normalized feature "
+                f"dict or a scalar derivative is not a raw snapshot."
+            )
+        offenders = [item for item in payload if not isinstance(item, dict)]
+        if offenders:
+            raise CfbdRefreshError(
+                f"{path.name} is not a raw API response: the array holds "
+                f"non-object entries ({type(offenders[0]).__name__}). A scalar "
+                f"or normalized derivative is not a raw snapshot."
+            )
         combined.update(path.name.encode("utf-8"))
         combined.update(_sha256(path).encode("ascii"))
     return len(files), combined.hexdigest()
@@ -131,18 +171,124 @@ def _validate_curated(path: Path) -> dict[str, Any]:
         raise CfbdRefreshError(
             "CFBD curated output has no populated CFBD provenance source columns"
         )
+
+    qb_rows = [row for row in rows if (row.get("position") or "").upper() == "QB"]
+    declared = [column for column in QB_FEATURE_COLUMNS if column in rows[0]]
+    feature_coverage = _validate_qb_family(qb_rows, declared)
+
     return {
         "row_count": len(rows),
         "identity_resolved_rows": resolved,
         "identity_coverage": coverage,
         "populated_source_columns": source_columns,
+        "feature_coverage": feature_coverage,
     }
+
+
+def _validate_qb_family(
+    qb_rows: list[dict[str, str]], declared: list[str]
+) -> dict[str, float]:
+    """Run the QB publication gates and return per-field coverage.
+
+    G3 (collision), G4 (semantic range) and G5 (zero coverage). Each refusal
+    names the players involved, because "some rows collided" is not actionable
+    and the whole point of these gates is that a human can act on the refusal.
+    """
+    if not qb_rows or not declared:
+        return {}
+
+    # G4 — a qualifying completion rate outside any physically possible band.
+    low, high = COMPLETION_PCT_BOUNDS
+    if "qb_completion_pct_final" in declared:
+        for row in qb_rows:
+            raw = (row.get("qb_completion_pct_final") or "").strip()
+            if not raw:
+                continue
+            try:
+                value = float(raw)
+            except ValueError as exc:
+                raise CfbdRefreshError(
+                    f"qb_completion_pct_final is not numeric for "
+                    f"{row.get('gsis_id')}: {raw!r}"
+                ) from exc
+            if not low <= value <= high:
+                raise CfbdRefreshError(
+                    f"qb_completion_pct_final {value} for {row.get('gsis_id')} is "
+                    f"outside the plausible range [{low}, {high}]; a completion "
+                    f"rate cannot take this value on any scale"
+                )
+
+    # G3 — distinct players carrying a byte-identical complete feature vector.
+    complete: dict[tuple[str, ...], set[str]] = {}
+    for row in qb_rows:
+        values = tuple((row.get(column) or "").strip() for column in declared)
+        if not all(values):
+            continue  # an incomplete vector cannot evidence a collision
+        # Scoped to the season: the defect spread ONE season's payload across
+        # that season's quarterbacks. Two players in different seasons sharing a
+        # rounded vector is coincidence, and flagging it would be a false alarm.
+        key = (str(row.get("season") or ""), *values)
+        complete.setdefault(key, set()).add(str(row.get("gsis_id") or "?"))
+    for values, players in complete.items():
+        # Distinct players, not row count: a duplicated row for ONE player is a
+        # different defect and must not be reported as a cross-player collision.
+        if len(players) > 1:
+            raise CfbdRefreshError(
+                f"identical complete QB feature vector shared by {len(players)} "
+                f"distinct players ({', '.join(sorted(players)[:6])}): {values}. A "
+                f"cross-player collision means the response was not bound to a "
+                f"player."
+            )
+
+    # G5 — a declared family that publishes at zero coverage.
+    coverage: dict[str, float] = {}
+    for column in declared:
+        populated = sum(1 for row in qb_rows if (row.get(column) or "").strip())
+        coverage[column] = populated / len(qb_rows)
+        if populated == 0:
+            raise CfbdRefreshError(
+                f"declared QB feature {column} has 0% coverage across "
+                f"{len(qb_rows)} QB rows; a fully dark declared family is a "
+                f"failed ingest, not a sparse feature"
+            )
+    return coverage
 
 
 def _read_manifest(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _validate_coverage_retention(
+    previous: Mapping[str, Any] | None, curated_quality: Mapping[str, Any]
+) -> None:
+    """Refuse a publish that materially loses feature coverage (G5).
+
+    The 2026-07-31 run published `status: ok` while dropping QB values relative
+    to the vintage it replaced. A refresh that knows less than its predecessor
+    is a regression, and publishing it silently is how a source gets quietly
+    worse while every status marker stays green.
+    """
+    if not previous:
+        return
+    before = previous.get("feature_coverage") or {}
+    after = curated_quality.get("feature_coverage") or {}
+    regressions = []
+    for column, previous_value in before.items():
+        if column not in after:
+            regressions.append(f"{column}: {previous_value:.1%} -> absent")
+            continue
+        if after[column] < previous_value - MAX_COVERAGE_REGRESSION:
+            regressions.append(
+                f"{column}: {previous_value:.1%} -> {after[column]:.1%}"
+            )
+    if regressions:
+        raise CfbdRefreshError(
+            "CFBD curated output regresses feature coverage against the previous "
+            f"manifest ({'; '.join(sorted(regressions))}); refusing publish. "
+            "Coverage retention is a publication gate, not a warning."
+        )
 
 
 def run_cfbd_foundation_refresh(
@@ -197,6 +343,8 @@ def run_cfbd_foundation_refresh(
                 }
                 _atomic_json(source_root / "status_latest.json", status)
                 return status
+
+            _validate_coverage_retention(previous, curated_quality)
 
             raw_root = source_root / "raw" / run_id
             if raw_root.exists():

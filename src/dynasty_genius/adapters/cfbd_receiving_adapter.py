@@ -15,6 +15,14 @@ load_dotenv()
 
 BASE_URL = "https://api.collegefootballdata.com"
 
+
+class CfbdTeamStatRequestError(RuntimeError):
+    """Raised when a CFBD team-stat request cannot be completed.
+
+    Distinct from an empty response: a legitimate empty list is data and may be
+    cached, but a failure must never be persisted as one.
+    """
+
 # Abbreviation → canonical CFBD name. Covers both:
 #   (a) training CSV spellings (PFR names) → canonical
 #   (b) PFF export ALL-CAPS team names → canonical
@@ -140,6 +148,7 @@ def fetch_team_pass_attempts(
     college_team: str,
     season: int,
     api_key: str | None = None,
+    raw_sink: list | None = None,
 ) -> float | None:
     """Return pass attempts for a college team in a given season, or None.
 
@@ -147,6 +156,9 @@ def fetch_team_pass_attempts(
         college_team: PFF team_name string (will be normalized to CFBD name).
         season: College season year (e.g. 2022).
         api_key: CFBD API key. Falls back to CFBD_API_KEY env var.
+        raw_sink: when supplied, receives the unmodified provider records so the
+            caller can persist a genuine raw snapshot (G6). The derived scalar
+            is a reading of that response, never a replacement for it.
 
     Returns:
         Float pass attempts or None if unavailable.
@@ -165,8 +177,20 @@ def fetch_team_pass_attempts(
         )
         response.raise_for_status()
         records = response.json()
-        if not isinstance(records, list):
-            return None
-        return _team_stat(records, "passAttempts")
-    except Exception:
-        return None
+    except Exception as exc:
+        # G2: a transport failure is not "this team had no season". Swallowing
+        # it here let an empty raw_sink be persisted as a negative cache that is
+        # byte-identical to a valid empty provider response.
+        raise CfbdTeamStatRequestError(
+            f"CFBD request to /stats/season failed for {cfbd_name} {season}: "
+            f"{exc.__class__.__name__}: {exc}"
+        ) from exc
+
+    if not isinstance(records, list):
+        raise CfbdTeamStatRequestError(
+            f"CFBD request to /stats/season returned {type(records).__name__} "
+            f"for {cfbd_name} {season}, expected a JSON array"
+        )
+    if raw_sink is not None:
+        raw_sink.extend(records)
+    return _team_stat(records, "passAttempts")

@@ -1,0 +1,51 @@
+From Claude Code (source-pipeline implementation) — GREEN v2: all 6 review findings CLOSED, none challenged; one of my own disclosures escalated by you and accepted [reply to your GREEN review]
+
+I reproduced all five original findings before touching anything (5 failed in 1.15s, exactly your prediction), then found you had added a sixth mid-flight. All six are closed. I am challenging none of them — every one was correct, including the one I had explicitly flagged for you to challenge.
+
+FINDING-BY-FINDING
+
+1. G1 unresolved identity accepted a lone unattributed row — CLOSED.
+   You were right and this was MY stated ambiguity policy, which I had flagged as a judgment call. `_bind_to_player` now returns [] when identity is unresolved. Nothing survives without attribution. "There was only one row, so it must be his" is the same reasoning that put one quarterback's season on nine of them; the fallback was a smaller version of the defect I was repairing.
+
+2. G2 non-list payload became empty data — CLOSED.
+   `_request_json` now raises CfbdRequestError on a non-list payload. A provider schema change is a failed request, not an empty season.
+
+3. G3 collision grouping ignored season — CLOSED.
+   Grouping key is now (season, *values). The defect spread ONE season's payload across that season's QBs, so cross-season identical rounded vectors are coincidence and flagging them would be a false alarm.
+
+4. G6 raw discarded when normalization raised — CLOSED.
+   The builder now writes the snapshot in a `finally`, so the payload is durable before normalization can fail. A paid response thrown away because a downstream bug raised is a response bought twice — and the snapshot is exactly the evidence needed to diagnose that bug.
+
+5. G6 validator contradicted the builder's own writers — CLOSED, and you were right to call it a release blocker rather than accept my "named follow-up" framing. I had disclosed it as deferred; it was not deferrable, because the writer and validator contradicted each other inside one diff.
+
+6. G6 games cache must preserve the VERBATIM provider response — CLOSED.
+   This one you added after my GREEN went out, and it correctly rejected my first fix. I had made `_save_games_count_cache` emit a derived {statName, statValue} record — array-shaped, so it satisfied the validator, but still a derivative wearing a raw costume. `load_team_games_count` now persists the unmodified `/games` array and the count is derived as its length. That is genuinely raw; my first attempt was compliance theatre and your test caught it.
+
+7. G6 TPA still wrapped a derived scalar — CLOSED, at the source you named.
+   I had asked you to rule on exactly this and you ruled: fix it. You were right that structural array wrapping could not repair it, because `_save_tpa_cache()` never saw the payload. Fixed at the bridge, as you specified:
+   - `cfbd_receiving_adapter.fetch_team_pass_attempts` gains `raw_sink: list | None` and extends it with the unmodified `/stats/season` records before `_team_stat` derives anything.
+   - The builder call site passes `raw_sink=tpa_raw` and persists THAT, so the whole response survives — I probed that `sacksAllowed` is still in the stored snapshot, not just the one stat we read.
+   - `_load_tpa_cache` reads `passAttempts` out of the verbatim response; empty list is the negative cache; legacy bare scalars stay readable.
+   This is a FOURTH file (cfbd_receiving_adapter.py). Disclosed to David as a further widening of the scope sentence I gave him.
+
+CACHE SHAPES — three coexist, deliberately:
+- verbatim provider response (games AND tpa): the value is read out of the response. Raw.
+- {statName, statValue} record: only when a caller hands `_save_tpa_cache` a bare scalar. No production path does this now; the builder passes raw. Retained so the scalar signature is not a trap.
+- legacy bare scalar: READ-ONLY backward compatibility. ~810 files in app/data/cfbd_cache predate the array contract; refusing to read them forces a full paid re-fetch.
+ROLE SEPARATION, probed: loaders accept all three; `_validate_json_cache` REFUSES the legacy scalar. The raw staging dir only ever receives newly-written files, so the legacy shape cannot reach it.
+
+CENSUS — including your seventh row, as asked
+- Your review checks tests/contract/test_cfbd_qb_ingest_green_review.py: 7/7 PASS (was 6 passed / 1 failed).
+- Your original RED tests/contract/test_cfbd_qb_ingest_red.py: 11/11 PASS.
+- tests/contract/test_cfbd_foundation_refresh.py: 7 passed.
+- tests/test_cfbd_qb_adapter.py: 22 passed, 2 skipped.
+- Widened to the families the tpa fix touches — plus tests/test_cfbd_receiving_adapter.py and tests/test_w2b_cfbd.py: SIX-suite slice 122 passed, 2 skipped.
+- Ruff clean on src, app, and every touched file.
+- Re-probe after the fixes: 9/9 on the tpa surface (verbatim storage, sacksAllowed survival, derived read, negative cache, scalar-caller compatibility, games still raw, validator acceptance, legacy readability, legacy still refused in a raw dir).
+
+DISCLOSURE — I MODIFIED PRE-EXISTING TESTS, and this is the item most deserving your challenge.
+Closing finding 1 broke 4 legacy tests in tests/test_cfbd_qb_adapter.py (completion_pct fraction, td_int_ratio x2, pass_attempts int). Their fixtures carried NO identity at all — which is precisely why they never caught a misattributed response. I added `playerId` to the stat rows, `id` to PPA, `athleteId` to WEPA, and a `/player/search` route that echoes the requested searchTerm. I weakened NO assertion: every expected value (0.652, 30/8, 30/1, 400) is unchanged and still asserted. But you should verify that claim against the diff rather than my description of it — a GREEN author editing the tests that constrain him is exactly the shape that warrants an independent read.
+
+STILL OPEN, unchanged: no paid refresh, no CSV promotion/copy, no consumer wiring, no bakeoff rerun, no model work. No commit — David's word covered the fix, commit/push is separate.
+
+PLEASE REPLY with: (a) GREEN CLEAR with enumerated checks, explicitly confirming the legacy-fixture edit weakens nothing and stating whether the tpa derivative satisfies G6 or needs the receiving-adapter raw sink, OR (b) NOT CLEAR with the specific failing assertion.

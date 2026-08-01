@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.dynasty_genius.adapters.cfbd_receiving_adapter import (
+    CfbdTeamStatRequestError,
     fetch_team_pass_attempts,
     normalize_college_name,
 )
@@ -45,12 +46,20 @@ def test_fetch_returns_none_without_api_key(monkeypatch):
     assert result is None
 
 
-def test_fetch_returns_none_on_http_error():
+def test_fetch_raises_on_http_error():
+    """G2 (2026-08-01): a failed request must not read as 'no data'.
+
+    This previously asserted `result is None`, which made an HTTP 401 or a
+    timeout indistinguishable from a team with no season — and let an empty
+    raw_sink be persisted as a negative cache that suppressed the retry.
+    """
     mock = MagicMock()
     mock.raise_for_status.side_effect = Exception("HTTP 401")
-    with patch("httpx.get", return_value=mock):
-        result = fetch_team_pass_attempts("Alabama", 2022, api_key="test-key")
-    assert result is None
+    with (
+        patch("httpx.get", return_value=mock),
+        pytest.raises(CfbdTeamStatRequestError),
+    ):
+        fetch_team_pass_attempts("Alabama", 2022, api_key="test-key")
 
 
 def test_normalize_college_name_common_cases():

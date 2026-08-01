@@ -60,7 +60,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.dynasty_genius.adapters.cfbd_qb_adapter import (  # noqa: E402
+    RAW_PAYLOAD_KEYS,
     fetch_qb_college_stats,
+    normalize_qb_payloads,
 )
 from src.dynasty_genius.adapters.cfbd_receiving_adapter import (  # noqa: E402
     fetch_team_pass_attempts,
@@ -140,19 +142,46 @@ def _load_tpa_cache(cfbd_college: str, year: int) -> tuple[bool, Optional[float]
     if not path.exists():
         return False, None
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        value = float(raw) if raw is not None else None
-        return True, value
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return True, _cached_pass_attempts(payload)
     except Exception:
         return False, None
 
 
-def _save_tpa_cache(cfbd_college: str, year: int, value: Optional[float]) -> None:
-    """Save team pass attempts to local cache. Writes null for negative caching."""
+def _cached_pass_attempts(payload) -> Optional[float]:
+    """Read pass attempts from whichever cache shape is on disk.
+
+    The verbatim `/stats/season` response carries many statName rows; the value
+    is read out of it rather than the response being replaced by the value.
+    Legacy bare scalars stay readable so the existing cache is not invalidated.
+    """
+    if isinstance(payload, list):
+        for row in payload:
+            if not isinstance(row, dict):
+                continue
+            if str(row.get("statName", "")).strip() == "passAttempts":
+                raw_value = row.get("statValue")
+                return float(raw_value) if raw_value is not None else None
+        return None
+    return float(payload) if payload is not None else None
+
+
+def _save_tpa_cache(cfbd_college: str, year: int, records: list) -> None:
+    """Persist the unmodified `/stats/season` records. Empty array = negative cache.
+
+    Records only. A writer that accepted a derived scalar and wrapped it into a
+    provider-shaped array would reopen G6 through its own back door: the file
+    would satisfy the array contract while carrying no captured response.
+    """
+    if not isinstance(records, list):
+        raise TypeError(
+            "_save_tpa_cache expects the provider records list; a derived "
+            "scalar is not a snapshot"
+        )
     safe_name = re.sub(r"[^a-z0-9]", "_", cfbd_college.lower())
     path = CACHE_DIR / f"tpa_{safe_name}_{year}.json"
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value), encoding="utf-8")
+    path.write_text(json.dumps(records), encoding="utf-8")
 
 
 def _load_games_count_cache(cfbd_team: str, year: int) -> tuple[bool, Optional[int]]:
@@ -168,27 +197,55 @@ def _load_games_count_cache(cfbd_team: str, year: int) -> tuple[bool, Optional[i
     if not path.exists():
         return False, None
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        value = int(raw) if raw is not None else None
-        return True, value
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return True, _cached_games_count(payload)
     except Exception:
         return False, None
 
 
-def _save_games_count_cache(cfbd_team: str, year: int, value: Optional[int]) -> None:
-    """Save team games count to local cache. Writes null for negative caching."""
+def _cached_games_count(payload) -> Optional[int]:
+    """Derive the game count from whichever cache shape is on disk.
+
+    Three shapes coexist by design: the verbatim `/games` response (the count is
+    its length), a `statName`/`statValue` record, and the legacy bare scalar.
+    Deriving from the verbatim response is what makes the snapshot raw — the
+    count is a reading of the evidence rather than a replacement for it.
+    """
+    if isinstance(payload, list):
+        if not payload:
+            return None
+        first = payload[0]
+        if isinstance(first, dict) and "statName" in first:
+            raw_value = first.get("statValue")
+            return int(raw_value) if raw_value is not None else None
+        return len(payload)
+    return int(payload) if payload is not None else None
+
+
+def _save_games_raw_cache(cfbd_team: str, year: int, games: Optional[list]) -> None:
+    """Persist the unmodified `/games` response; empty array is the negative cache."""
     safe_name = re.sub(r"[^a-z0-9]", "_", cfbd_team.lower())
     path = CACHE_DIR / f"games_count_{safe_name}_{year}.json"
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value), encoding="utf-8")
+    path.write_text(json.dumps(games if games else []), encoding="utf-8")
+
+
+class CfbdGamesRequestError(RuntimeError):
+    """Raised when a CFBD `/games` request cannot be completed.
+
+    A legitimately empty schedule is data and is cached; a failure is not.
+    """
 
 
 def load_team_games_count(cfbd_team: str, year: int, api_key: str,
                           force_fetch: bool = False) -> Optional[int]:
     """Return regular-season game count for cfbd_team/year from CFBD /games endpoint.
 
-    Returns an integer count, or None if the team/year has no data or the API fails.
-    Results are cached individually (mirrors TPA cache pattern).
+    Returns an integer count, or None when the team/year genuinely has no games.
+    Raises `CfbdGamesRequestError` when the request fails — a failure is never
+    cached, because a negative-cache snapshot would be byte-identical to a valid
+    empty schedule and would suppress the retry permanently (G2).
+    The unmodified provider response is what gets cached (G6).
     """
     if not force_fetch:
         hit, cached = _load_games_count_cache(cfbd_team, year)
@@ -204,12 +261,24 @@ def load_team_games_count(cfbd_team: str, year: int, api_key: str,
         )
         resp.raise_for_status()
         games = resp.json()
-        count = len(games) if games else None
-    except Exception:
-        count = None
+    except Exception as exc:
+        # G2: no provider response was received, so nothing is written. A
+        # negative-cache snapshot here would be byte-identical to a valid empty
+        # /games response and would suppress the retry forever.
+        raise CfbdGamesRequestError(
+            f"CFBD request to /games failed for {cfbd_team} {year}: "
+            f"{exc.__class__.__name__}: {exc}"
+        ) from exc
 
-    _save_games_count_cache(cfbd_team, year, count)
-    return count
+    if not isinstance(games, list):
+        raise CfbdGamesRequestError(
+            f"CFBD request to /games returned {type(games).__name__} for "
+            f"{cfbd_team} {year}, expected a JSON array"
+        )
+
+    # A legitimately empty list IS data and is cached as the negative result.
+    _save_games_raw_cache(cfbd_team, year, games)
+    return len(games) if games else None
 
 
 def load_player_stats(year: int, category: str, api_key: str,
@@ -459,7 +528,6 @@ def compute_wr_cfbd_features(
 
     final = annotated[-1]
     final_year = final["year"]
-    final_team_yds = team_rec_lookup.get((norm_school, final_year), 0.0)
 
     # wr_dominator_final: avg(yds_share, td_share) in final season
     if final["dominator"] is not None:
@@ -742,15 +810,43 @@ def compute_qb_cfbd_features(
         return result
 
     name = row.get("pfr_player_name", "")
+    raw_college = row.get("college") or row.get("school") or None
+    # Strict team binding needs the provider's own spelling. The training table
+    # carries aliases like "Florida St." where CFBD returns "Florida State", so
+    # without this the correct refusal would darken valid rows and trip the
+    # coverage gate — a right rule producing a wrong outcome.
+    college_team = normalize_college_name(raw_college) if raw_college else None
     final_year = draft_year - 1
-    cache_key = f"qb_stats_{normalize_player_name(name)}_{final_year}.json"
-    cache_path = cache_dir / cache_key
 
-    if cache_path.exists():
-        stats: dict = json.loads(cache_path.read_text())
+    # G6: the cache holds the unmodified endpoint responses, never the
+    # normalized feature dict. Normalization is re-derived from the snapshot, so
+    # a cache hit costs no API call and the snapshot stays the source of truth.
+    prefix = f"qb_raw_{normalize_player_name(name)}_{final_year}"
+    raw_paths = {key: cache_dir / f"{prefix}_{key}.json" for key in RAW_PAYLOAD_KEYS}
+
+    if all(path.exists() for path in raw_paths.values()):
+        raw = {
+            key: json.loads(path.read_text(encoding="utf-8"))
+            for key, path in raw_paths.items()
+        }
+        stats: dict = normalize_qb_payloads(raw, name, college_team)
     else:
-        stats = fetch_qb_college_stats(name, final_year, api_key)
-        cache_path.write_text(json.dumps(stats))
+        raw: dict = {}
+        try:
+            stats = fetch_qb_college_stats(
+                name, final_year, api_key, college_team=college_team, raw_sink=raw
+            )
+        finally:
+            # The snapshot is durable before normalization can fail. A paid
+            # response discarded because a downstream bug raised is a response
+            # bought twice, and the evidence needed to diagnose that bug is
+            # exactly what the snapshot holds.
+            if raw:
+                cache_dir.mkdir(parents=True, exist_ok=True)
+                for key, path in raw_paths.items():
+                    path.write_text(
+                        json.dumps(raw.get(key, [])), encoding="utf-8"
+                    )
 
     pass_attempts = stats.get("pass_attempts")
     if pass_attempts is None or pass_attempts < 100:
@@ -947,8 +1043,13 @@ def main(force_fetch: bool = False, allow_degraded: bool = False, include_rb_ypg
                 if cached_tpa is not None:
                     tpa_lookup[(cfbd_college, year)] = cached_tpa
                 continue  # skip API call for both positive and negative cache hits
-        tpa = fetch_team_pass_attempts(cfbd_college, year, api_key)
-        _save_tpa_cache(cfbd_college, year, tpa)  # cache None too (negative cache)
+        tpa_raw: list = []
+        tpa = fetch_team_pass_attempts(
+            cfbd_college, year, api_key, raw_sink=tpa_raw
+        )
+        # Persist the provider response itself; the scalar is derived from it.
+        # An empty list is the negative cache — asked, got nothing.
+        _save_tpa_cache(cfbd_college, year, tpa_raw)
         if tpa is not None:
             tpa_lookup[(cfbd_college, year)] = tpa
     print(f"  Team pass attempts: {len(tpa_lookup)}/{len(unique_tpa_team_years)} pairs populated")

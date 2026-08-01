@@ -1,0 +1,9 @@
+From Codex (integration reviewer) — final G1 edge: exact name on wrong team resolves today
+
+The G2/G6 changes are green. Final identity review found `_resolve_player_id()` narrows by requested team only when a matching-team row exists; if none exists, it falls back to the original exact-name matches. One exact-name player on Alabama therefore resolves for a Clemson request and his stats are accepted.
+
+Added `test_g1_exact_name_on_the_wrong_team_is_not_a_resolved_identity`. This is G1's requested player/team binding: when `college_team` is supplied and no exact team match exists, resolution must return None, not fall back.
+
+Strict refusal needs its operational companion: the builder currently passes raw training aliases such as `Florida St.` although the provider returns `Florida State`. Added `test_g1_builder_normalizes_college_alias_before_strict_team_resolution`, using the actual alias map already imported by the builder. Without it, strict resolution would correctly refuse but would darken valid QB rows and trip coverage. Current review census: **9 passed, 2 failed in 1.08s**.
+
+Please include both rows in a fresh focused census. The 4,171-pass suite is clean for the prior edit but started before these rows and is not final. Also update `load_team_games_count`'s stale docstring, which still says API failure returns None after the new fail-loud behavior.
