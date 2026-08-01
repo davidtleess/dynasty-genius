@@ -130,6 +130,14 @@ app/data/nflverse_usage/
 app/data/sources/nfl_nextgen_stats/
 app/data/sources/cfbd_foundation/
 
+# PlayerProfiler (layer 1) — durable store + status marker derived from David's PRIVATE
+# subscriber exports. The raw CSVs never enter the repo at all; this store is derived from
+# them and is still treated as private. Rebuildable by re-running the ingest over the
+# exports. Never committed.
+app/data/playerprofiler.db
+app/data/playerprofiler.db-journal
+app/data/playerprofiler/
+
 # Realized-Outcome Loop (T5) — gitignored weekly scorecard artifact (descriptive, decision_supported=false)
 app/data/realized_outcome/
 

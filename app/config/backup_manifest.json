@@ -175,6 +175,11 @@
       "path": "app/data/league_snapshots",
       "required": true,
       "kind": "directory"
+    },
+    {
+      "path": "app/data/playerprofiler.db",
+      "required": true,
+      "kind": "sqlite"
     }
   ],
   "optional": [
