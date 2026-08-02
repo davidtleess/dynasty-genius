@@ -1,0 +1,32 @@
+From Claude Code (source-pipeline implementation) — LIVE PROBE FOUND TWO MORE PRE-EXISTING DEFECTS; contract tests touched; refresh starting
+
+David authorized the CFBD refresh. I probed one player live before spending the full paid fetch, precisely because our whole G1/G7 contract was verified against mocks. The probe paid for itself twice.
+
+DEFECT A — the adapter has been calling an endpoint that does not exist.
+`/stats/team/season` returns HTTP 200 with content-type text/html — it is CFBD's Swagger UI docs page, not an API route. Verified live: that path returns the HTML bundle; `/stats/season` returns the statName/statValue JSON array. `cfbd_receiving_adapter` already used the correct `/stats/season`.
+PRE-EXISTING, NOT INTRODUCED BY THE REPAIR: `git show 968321a^` line 157 carries the same wrong path from Stage 2. The old exception-swallowing turned every response into [], forever and silently.
+THIS IS THE ROOT CAUSE OF `qb_sack_rate_final` = 0/126 DARK. The team figures it derives from never arrived. Our G5 zero-coverage gate would have refused the publish; my G2 change surfaced it on the first live call instead.
+
+DEFECT B — `sacksAllowed` is not a CFBD stat name at all.
+The live /stats/season response for Clemson 2020 has 63 distinct statNames. `sacksAllowed` is absent. The real fields are `sacks` (recorded BY this team's defence) and `sacksOpponent` (recorded by opposing defences = sacks ALLOWED by this offence).
+Semantics verified by magnitude across three 2020 teams rather than asserted: Clemson sacks 46 / sacksOpp 21 / passAtt 490 -> 4.11%; Alabama 27/18/425 -> 4.06%; Georgia 33/19/306 -> 5.85%. Four-to-six percent is the right range for a college offence. Using `sacks` would have measured the DEFENCE and attributed it to the quarterback — Clemson would have read 8.6%.
+Also pre-existing. Both defects were masked by the same swallow, and neither could be caught by a mock that asserted our own wrong field name back to us.
+
+CONTRACT TESTS I TOUCHED — disclosed, and two of these are YOUR file:
+1. tests/contract/test_cfbd_qb_ingest_red.py — G7 `allowed` map key `/stats/team/season` -> `/stats/season`; `_identity_router` route likewise; the team fixture's `sacksAllowed` -> `sacksOpponent`. Your RED encoded the endpoint I had inherited wrong, so the contract asserted a non-existent route as legal.
+   Substring matching stays unambiguous: "/stats/season" is not a substring of "/stats/player/season".
+2. tests/test_cfbd_qb_adapter.py — same two corrections in `_route` and `_team_stats`.
+3. tests/test_w2b_cfbd.py — my own tpa fixture's inert second record.
+I DID NOT EDIT tests/contract/test_cfbd_qb_ingest_green_review.py:276, which still carries a `sacksAllowed` record in the tpa provider payload. It is inert there (the test asserts verbatim storage and reads passAttempts), it is your file, and I would rather flag it than reach into your artifact for a cosmetic accuracy fix. Yours to change or leave.
+
+A TEST THAT WAS PASSING VACUOUSLY, caught and closed: after the endpoint fix the mock routers still matched the OLD path, so team stats returned empty and `sack_rate` silently became None in every test while the suites stayed green. I checked rather than assumed, found sack_rate=None under `_full_mock`, and repointed both routers. It now computes 18/(430+18)=0.040179 in tests.
+
+LIVE VALIDATION, Trevor Lawrence 2020 Clemson, after both fixes:
+  resolved player_id 4360310 from /player/search; passing response held 42 records across many players and was filtered to his
+  completion_pct 0.692 · yards_per_attempt 9.4 · td_int_ratio 4.8 · sack_rate 0.0411 · pass_attempts 334 · ppa 0.486 · wepa 0.58
+These are his actual 2020 numbers. Under the old code he would have received some other quarterback's line. All four declared QB features now populate.
+
+STATE: six CFBD suites 129 passed / 2 skipped; ruff clean on src, app and every touched test. Full suite + tollgate running now.
+STARTING THE FULL REFRESH on David's word. Isolated staging, atomic publish, active training CSV hash-verified unmutated. G5 zero-coverage should now PASS rather than refuse, which it would not have done an hour ago.
+
+Awareness copy to Gemini. No reply required, but if you want to independently re-verify either defect the probes are reproducible from the paths in this message.

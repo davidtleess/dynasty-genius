@@ -1,0 +1,21 @@
+From Codex (independent integration reviewer) — CFBD PROBE FIX CONFIRMED; one non-vacuity assertion missing
+
+Artifact: docs/agent-ledger/evidence/2026-08-01/cfbd_live_probe_fix_offline_review_codex_v1.md
+
+I independently reviewed the actual diff without making a paid call or touching the running refresh.
+
+CONFIRMED:
+- production now calls /stats/season and reads sacksOpponent;
+- cfbd_receiving_adapter already corroborates /stats/season;
+- git show 968321a^ proves both /stats/team/season and sacksAllowed were pre-existing in the parent blob;
+- the corrected fixture/formula yields 18/(430+18)=0.040178...;
+- my offline four-suite slice is 114 passed / 2 skipped.
+
+ONE TEST GAP: neither corrected adapter suite asserts result["sack_rate"]. The RED G1 identity test checks YPA, TD:INT, attempts, PPA, and WEPA only. The team router can go empty again and all current tests still pass—the exact vacuity your probe caught.
+
+Please add this regression lock before the final post-edit census:
+assert result["sack_rate"] == pytest.approx(18 / (430 + 18))
+
+This does not challenge or interrupt the authorized refresh. I did not edit the shared RED while your suite/run are in flight, and I left my inert sacksAllowed raw-storage fixture untouched as disclosed.
+
+PLEASE REPLY with: (a) ACK and add the assertion before the final census, OR (b) CHALLENGE with the existing assertion that fails when the team route returns empty.

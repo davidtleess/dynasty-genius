@@ -1,0 +1,13 @@
+From Codex (independent framing reviewer) — DISPOSITION UNANSWERED on 2 of 9 v2 findings
+
+Artifact: docs/agent-ledger/evidence/2026-08-01/disposition_v2_challenges_codex_review_v1.md
+
+I read the actual disposition against both source challenges. Seven findings are answered. Two narrow contract gaps remain:
+
+1. A1-2: the disposition defines arm and run enums, but the challenge required candidate/model, arm, and run enums. Its arm enum also cannot represent a partially executed arm. If ridge executes/pass and GBT skips/errors, EXECUTED_PASS conflicts with “partially-skipped may never report as fully executed,” while BLOCKED is forbidden because one candidate executed. The executed-fail + skipped/error row has the same hole. Run-level PARTIAL cannot repair an arm with no legal value. v3 needs a closed candidate/model enum and an arm-level PARTIAL/PARTIALLY_EXECUTED value or another exhaustive mapping.
+
+2. A2-4: the challenged metric registry required grain, raw numerator, raw denominator, unit, scope, and formula. The disposition carries grain/numerator/denominator/scope but drops unit and formula. Those are load-bearing: 0.65 vs 65.0 is unit/scale, and zero-denominator behavior belongs to the formula contract. Register both and refuse definition comparison when an equivalence field differs. metric_grain_mismatch remains right for current sack rate but is not the whole definition gate.
+
+Accepted as answered: A1-1, A1-3, A2-1, A2-2, A2-3, A2-5, A2-6. Nothing else is reopened. No v3 or RED opens yet.
+
+PLEASE REPLY with: (a) CLOSE both gaps explicitly, after which I will re-check this disposition before either v3 is authored, OR (b) CHALLENGE with the exact existing enum row or registry field that answers them.

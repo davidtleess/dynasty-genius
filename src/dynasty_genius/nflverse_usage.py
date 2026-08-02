@@ -1,7 +1,10 @@
-"""nflverse usage ingestion — Next Gen Stats and snap counts.
+"""nflverse usage ingestion — Next Gen Stats, snap counts, and the injury report.
 
-Layer 1. Two streams David named that we already had installed and had **never once called**:
-``nflreadpy.load_nextgen_stats`` and ``nflreadpy.load_snap_counts``. Free, no credential, already
+Layer 1. Originally two streams David named that we already had installed and had **never once
+called**: ``nflreadpy.load_nextgen_stats`` and ``nflreadpy.load_snap_counts``. A fifth spec,
+``INJURIES`` (``nflreadpy.load_injuries``), joined them on 2026-08-01 — hence
+``SCHEMA_VERSION`` ``v3``, so a four-stream artifact and a five-stream artifact can never carry the
+same label. Free, no credential, already
 a daily dependency. Fetch, snapshot, resolve identity, store durably. Nothing downstream reads it
 yet — no model input, no surface, no scoring.
 
@@ -11,7 +14,7 @@ Callable, never self-scheduling. A scheduler is a separate decision and a separa
 against live data the same night: raw snapshot before parsing, canonical identity with a
 never-rounded outcome, a content-addressed store whose idempotence is provable by bytes, a status
 marker written before any fetch, and failures that name themselves. It is a repetition of a working
-pattern, not a new framework — four stream specs and one capture function.
+pattern, not a new framework — five stream specs and one capture function.
 
 Shape facts measured from the live source (2026-07-30), each of which the code must survive:
 
@@ -39,7 +42,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-SCHEMA_VERSION = "nflverse_usage.v2"
+SCHEMA_VERSION = "nflverse_usage.v3"
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DB_PATH = _REPO_ROOT / "app" / "data" / "nflverse_usage.db"
@@ -179,6 +182,20 @@ class StreamSpec:
     #: how a local-reader swap silently erases every NGS feature.
     integer_columns: tuple[str, ...] = ()
     float_columns: tuple[str, ...] = ()
+
+    #: Columns where the provider ships MORE THAN ONE token for "absent". The
+    #: nflverse injury report carries 45 true nulls and 69 whitespace strings
+    #: ('\n    ', a scrape artifact) in `practice_status` alone. Stored as-is
+    #: they are two different values meaning the same nothing — the same defect
+    #: PlayerProfiler's `NA` token produced. Opt-in per stream so existing
+    #: reviewed streams keep their exact behaviour.
+    blank_as_null_columns: tuple[str, ...] = ()
+
+    #: Refuse when any grain coordinate is absent. `date_modified` is the whole
+    #: reason injury revisions are a time series rather than a conflict; a null
+    #: there would still key successfully and quietly collapse two observations
+    #: into an indistinguishable pair. Opt-in so existing streams are untouched.
+    require_populated_grain: bool = False
 
     @property
     def stored_columns(self) -> tuple[str, ...]:
@@ -336,6 +353,61 @@ SNAP_COUNTS = StreamSpec(
 )
 
 
+#: Weekly NFL injury report. Measured against the live source 2026-08-01
+#: (17,882 rows 2023-2025; history reaches at least 2009).
+#:
+#: `date_modified` is IN THE GRAIN on purpose. The report is revised through the
+#: week — Cade Stover 2024 wk15 HOU went Questionable (03:34 UTC) to Out (14:17
+#: UTC) — and those are two real observations, not a conflict. Without it the
+#: grain check would reject the revision as a duplicate and a last-wins store
+#: would silently discard what we knew on Friday.
+#:
+#: `game_type` scopes the row, and `season_type` is DELIBERATELY ABSENT from the
+#: contract. Measured 2026-08-01: the column exists ONLY in 2025 (16 columns for
+#: 2015-2024, 17 for 2025). An earlier reading called it "66% null" — that was an
+#: artifact of polars unioning schemas across a multi-season load, not a property
+#: of the data. Declaring it would make every pre-2025 single-season load refuse
+#: on schema drift, and it carries nothing `game_type` does not already give.
+INJURIES = StreamSpec(
+    name="injuries",
+    table="nflverse_injury_report",
+    identity_column="gsis_id",
+    identity_kind="gsis",
+    grain=("season", "game_type", "week", "team", "gsis_id", "date_modified"),
+    columns=(
+        "season",
+        "game_type",
+        "team",
+        "week",
+        "gsis_id",
+        "position",
+        "full_name",
+        "first_name",
+        "last_name",
+        "report_primary_injury",
+        "report_secondary_injury",
+        "report_status",
+        "practice_primary_injury",
+        "practice_secondary_injury",
+        "practice_status",
+        "date_modified",
+    ),
+    loader=None,
+    loader_kwargs={},
+    integer_columns=("season", "week"),
+    require_populated_grain=True,
+    blank_as_null_columns=(
+        "report_status",
+        "report_primary_injury",
+        "report_secondary_injury",
+        "practice_status",
+        "practice_primary_injury",
+        "practice_secondary_injury",
+        "position",
+    ),
+)
+
+
 def build_streams() -> tuple[StreamSpec, ...]:
     """Bind the nflreadpy loaders. Imported lazily so the module stays importable offline."""
     import nflreadpy
@@ -352,6 +424,8 @@ def build_streams() -> tuple[StreamSpec, ...]:
             loader_kwargs=spec.loader_kwargs,
             integer_columns=spec.integer_columns,
             float_columns=spec.float_columns,
+            blank_as_null_columns=spec.blank_as_null_columns,
+            require_populated_grain=spec.require_populated_grain,
         )
 
     return (
@@ -359,6 +433,7 @@ def build_streams() -> tuple[StreamSpec, ...]:
         _bind(NGS_RUSHING, nflreadpy.load_nextgen_stats),
         _bind(NGS_RECEIVING, nflreadpy.load_nextgen_stats),
         _bind(SNAP_COUNTS, nflreadpy.load_snap_counts),
+        _bind(INJURIES, nflreadpy.load_injuries),
     )
 
 
@@ -402,8 +477,26 @@ def normalize_rows(
             record.get(spec.identity_column), kind=spec.identity_kind
         )
         row = {col: record.get(col) for col in spec.columns}
+        for col in spec.blank_as_null_columns:
+            value = row.get(col)
+            if isinstance(value, str) and not value.strip():
+                row[col] = None
         row["dg_player_id"] = dg_player_id
         row["identity_status"] = status
+        if spec.require_populated_grain:
+            blank_grain = [
+                col
+                for col in spec.grain
+                if record.get(col) is None
+                or (isinstance(record.get(col), str) and not record[col].strip())
+            ]
+            if blank_grain:
+                raise UsageCaptureError(
+                    f"nflverse_blank_grain: stream {spec.name} season {season} has a row "
+                    f"with absent grain coordinate(s) {blank_grain} — the grain is what "
+                    "makes two observations distinguishable; keying on a blank silently "
+                    "collapses them"
+                )
         row["row_key"] = _row_key(spec, record)
         row["season_ingested"] = str(season)
         rows.append(row)
@@ -481,6 +574,56 @@ def _rows_hash(rows: Sequence[Mapping[str, Any]]) -> str:
         (json.dumps(row, sort_keys=True, default=str) for row in rows),
     )
     return hashlib.sha256("\n".join(payload).encode("utf-8")).hexdigest()
+
+
+def read_only_summary(db_path: Path) -> dict[str, Any]:
+    """Inspect the store without the power to change it.
+
+    `--summary` promised "read-only, full stop", but it built a UsageStore, whose
+    constructor runs CREATE TABLE IF NOT EXISTS for every spec in build_streams().
+    Adding a fifth stream therefore made a read-only command create a table in an
+    existing four-stream database (Codex reproduced it by hashing the file before
+    and after). Intent is not a guarantee: this opens SQLite with `mode=ro`, which
+    physically cannot write, and reads only tables that already exist.
+    """
+    if not Path(db_path).exists():
+        return {"captures": [], "tables": {}}
+
+    conn = sqlite3.connect(f"file:{Path(db_path).as_posix()}?mode=ro", uri=True)
+    try:
+        present = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        captures: list[dict[str, Any]] = []
+        if "nflverse_capture" in present:
+            cursor = conn.execute(
+                "SELECT stream, season, status, rows_total, coverage_json "
+                "FROM nflverse_capture ORDER BY stream, season"
+            )
+            for stream, season, status, rows_total, coverage_json in cursor:
+                captures.append(
+                    {
+                        "stream": stream,
+                        "season": season,
+                        "status": status,
+                        "rows_total": rows_total,
+                        "coverage": json.loads(coverage_json) if coverage_json else {},
+                    }
+                )
+        tables = {
+            spec.table: (
+                conn.execute(f"SELECT COUNT(*) FROM {spec.table}").fetchone()[0]
+                if spec.table in present
+                else None
+            )
+            for spec in build_streams()
+        }
+        return {"captures": captures, "tables": tables}
+    finally:
+        conn.close()
 
 
 class UsageStore:
@@ -829,7 +972,15 @@ def publish_export(
                             "identity_kind": spec.identity_kind,
                             "identity_status": row.get("identity_status"),
                             "season": row.get("season_ingested"),
-                            "player": row.get("player") or row.get("player_display_name"),
+                            "player": (
+                                row.get("player")
+                                or row.get("player_display_name")
+                                # Injuries carry `full_name`. Without this the
+                                # review artifact for every source_only row — 1,140
+                                # in the 2024 cohort alone — loses the human name,
+                                # which is the one field that makes it reviewable.
+                                or row.get("full_name")
+                            ),
                             "position": row.get("position") or row.get("player_position"),
                         }
                     )

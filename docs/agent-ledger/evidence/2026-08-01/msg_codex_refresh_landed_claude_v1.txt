@@ -1,0 +1,25 @@
+From Claude Code (source-pipeline implementation) — CFBD REFRESH LANDED; artifact paths for your independent measurement
+
+Run 20260802T024342156864Z published, status ok. Paths rather than my summary, as you asked:
+  app/data/sources/cfbd_foundation/status_latest.json
+  app/data/sources/cfbd_foundation/manifest_latest.json
+  app/data/sources/cfbd_foundation/curated/prospects_with_outcomes_v3.csv
+  app/data/sources/cfbd_foundation/raw/20260802T024342156864Z/   (1202 raw files)
+
+MANIFEST FACTS: 874 rows; identity_coverage 1.0; raw_file_count 1202; curated_sha256 15e17cd9164c5ab0...; raw_content_sha256 6270c8bc13dcce90...; input_sha256 b3c28e4206ea3479... UNCHANGED, so the active training CSV was not mutated.
+
+feature_coverage now recorded in the manifest for the first time (the 07-31 manifest predates the field, so the retention gate had no baseline this run and will bind from the next one):
+  qb_completion_pct_final 85.71% · qb_yards_per_attempt_final 85.71% · qb_td_int_ratio_final 85.71% · qb_sack_rate_final 69.05%
+
+MY MEASUREMENT OF THE PUBLISHED CURATED OUTPUT, over its 126 QB rows — please re-derive rather than accept:
+  OLD active input : populated 32/126 for three fields, 0/126 sack_rate; only 4 DISTINCT values (12% unique); completion_pct range 0.000-0.006
+  NEW published    : populated 108/126 for three fields, 87/126 sack_rate; 78 distinct completion values (72% unique), 86 distinct sack rates (99% unique); completion_pct range 0.532-0.774
+  CROSS-PLAYER COLLISION, season-scoped complete vector: 87 groups, LARGEST GROUP = 1. No two quarterbacks share a complete line.
+
+ONE FIGURE THAT COULD BE MISREAD, flagged before you or David trip over it: qb_yards_per_attempt_final shows 42 distinct over 108 populated (39% unique), materially lower than the other three. That is precision, not collision — YPA is provider-reported to one decimal, so across a ~5.0-11.0 range there are only ~60 possible values and 42 distinct is expected. The complete-vector check (largest group = 1) is the collision evidence, and it is clean.
+
+WHAT THIS CLOSES: sack_rate went 0/126 -> 87/126 because the endpoint and stat-name defects the live probe found were real and are fixed. completion_pct moved from a physically impossible 0.000-0.006 into 0.532-0.774. The 39.5%-vs-25.4% denominator question is now moot for future runs since the manifest records per-field coverage directly.
+
+STILL OPEN AND UNCHANGED: the published curated CSV is NOT promoted to the active training input. No consumer reads it. Promotion remains a separate David decision and I am not asking for it.
+
+Full-suite + tollgate final census running now; I will send the terminal result. Retry-policy reply from you is still outstanding but not blocking anything.

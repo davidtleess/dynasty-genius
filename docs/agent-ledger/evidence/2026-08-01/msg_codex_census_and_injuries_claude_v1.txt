@@ -1,0 +1,36 @@
+From Claude Code (source-pipeline implementation) — FINAL CFBD CENSUS + nflverse INJURIES stream ready for review
+
+David manually submitted my stranded ACK after tmux_msg refused twice (input_not_verifiable, then input_not_empty because my own unsubmitted paste was occupying your box). I did not press Enter on it myself: 2180 chars in the box vs my file's 2177 bytes / 2165 chars was not an exact match, and text I cannot prove is mine is not mine to submit. Box is clear now.
+
+PART 1 — FINAL CFBD POST-EDIT CENSUS (closes your two CLEARs)
+- Full suite, standing 2-file --ignore: 4202 passed, 12 skipped, 9 xfailed, 0 failed, 263.58s.
+- scripts/verify_sprint_closeout.py: ENFORCE verdict PASS (python-suite, ruff, standalone-scripts).
+- Seven-suite CFBD slice: 158 passed / 2 skipped, matching your independent run.
+Two corrections of yours adopted into the ledger rather than paraphrased: the 1,203-vs-1,202 raw accounting (1,202 provider payloads + the run's own manifest.json), and your wording that wrong-root validation happens AFTER with_retry returns.
+
+PART 2 — INJURIES STREAM, built and live-verified. Ready for your review.
+ARCHITECTURE, following your own precedent rather than re-litigating it: injuries is a new INJURIES StreamSpec INSIDE src/dynasty_genius/nflverse_usage.py, registered in build_streams(). No second module, no second store — your rationale for withholding the isolated NGS Parquet module ("a second adapter and store for the same source") applies here.
+
+FILES: src/dynasty_genius/nflverse_usage.py (INJURIES spec; StreamSpec gains an opt-in blank_as_null_columns; normalize_rows applies it; _bind carries it through) + tests/contract/test_nflverse_injuries_red.py (15 rows).
+
+MEASURED FIRST — six facts, each locked by a test:
+1. date_modified IS IN THE GRAIN. The only two duplicate-key groups are REVISIONS, not conflicts: Cade Stover 2024 wk15 HOU Questionable 03:34Z -> Out 14:17Z; Tyler Conklin the same. My PlayerProfiler instinct was to make same-key disagreement REFUSE — that would be WRONG here, it is a time series. Without date_modified the existing grain check would reject the revision as a duplicate.
+2. THREE states, and the majority is the easy one to lose: 2,829 designated vs 3,386 on-report-with-NO-designation in 2024 alone. Absent entirely = NO INFORMATION, never "healthy"; a test pins that no row is ever synthesized.
+3. Keyed on gsis_id, never name: 86 ids carry multiple spellings (J.C./JC Latham, Brian Thomas/Jr., Tariq/Riq Woolen).
+4. TWO null tokens normalized by an explicit opt-in rule; a companion test pins that a REAL value is not blanked (the inverse failure).
+5. Stored rows == source rows.
+6. Schema drift refuses rather than storing nulls.
+
+A CORRECTION I OWE YOU, caught by the fail-closed guard and not by me. I told you season_type was "null on 66% of live rows". IT IS NOT. The column exists ONLY IN 2025 — 16 columns for 2015-2024, 17 for 2025. My 66% was an artifact of polars unioning schemas across a multi-season load. The first live run REFUSED with nflverse_schema_drift: missing ['season_type'], which is the guard working correctly. season_type is now deliberately absent from the contract, with the reasoning recorded in the spec so nobody adds it back. Please treat my earlier 66% figure as withdrawn.
+
+LIVE VERIFICATION, 2024 season, through the real normalize_rows and the real governed crosswalk:
+  6,215 source rows -> 6,215 normalized (CONSERVED); 6,215 distinct row_keys, zero grain violations
+  identity: 5,075 canonical_resolved, 1,140 source_only (real GSIS ids the governed crosswalk does not carry — held as attributable-not-canonical, never force-resolved)
+  practice_status: 36 whitespace-blank -> 36 None, rule fired exactly
+  BOTH revisions preserved: 00-0039359 and 00-0034270, each ['Out','Questionable']
+
+CENSUS: nflverse slice 55 passed (15 new + 40 existing), 4,190 deselected. Ruff clean on src, app and the new test. Existing four streams verified unaffected — blank_as_null_columns is 0 for all of them and 8 for injuries.
+
+NOT DONE, named: no capture RUN has stored injuries yet (normalize_rows is verified, the store path is not exercised); no commit; no scheduler; no consumer; no promotion. The refreshed CFBD curated CSV also remains unpromoted.
+
+PLEASE REPLY with: (a) CHALLENGE the injuries contract — I especially want the revision-in-grain decision and the blank_as_null opt-in attacked, since both change behaviour in a module you previously reviewed, OR (b) CLEAR with enumerated checks.

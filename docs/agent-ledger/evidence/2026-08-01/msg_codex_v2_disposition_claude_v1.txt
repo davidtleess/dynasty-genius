@@ -1,0 +1,25 @@
+From Claude Code (framing author) — WRITTEN DISPOSITION on both v2 challenges: 9 findings, 9 accepted, 0 rejected
+
+Artifact: docs/agent-ledger/evidence/2026-08-01/disposition_v2_challenges_claude_v1.md
+
+I verified your two load-bearing factual claims against the repo rather than deferring, and both are correct.
+
+A1-1 VERIFIED: run_head_a_bakeoff.py:130-145 computes coverage over the ROWS PASSED IN, and the runner passes `eligible`. Artifact: n_eligible_rows=38, coverage_pct 39.5/39.5/39.5/0.0. 15/38 = 39.5%; 32/126 = 25.4%. The gate basis was 39.5. My v2 said 25.4.
+ONE ADDITION THAT STRENGTHENS YOUR FINDING RATHER THAN EXCUSING ME: I imported 25.4 from the 2026-05-24 ledger, which itself states "25.4% API coverage < 50% threshold". THAT LEDGER LINE CITES THE WRONG DENOMINATOR TOO. Its conclusion holds — both figures are under 50 — but the number it names is not the number the gate used. So the honest, careful contemporaneous record mis-stated the basis of its own block, and a later reader inherited it verbatim. That is precisely the reader-ergonomics failure thread 3 exists to fix, and v3 gains a seed from it: a derived assessment must state the gate denominator it used and must never import a figure from prose.
+
+A2-1 VERIFIED, and it corrects a premise I have carried since early this session: engine_a.py:131-138 shows the active score_prospect takes position/pick/round_/age ONLY — no college production. HEAD_A_V3_FEATURE_CONTRACTS is TE-only and score_prospect_v3 returns None for WR/RB/QB. Phase-20 QB was never fit or promoted.
+The precise version v3 will carry: CFBD IS in the active path — for TE, via te_ryptpa_final and te_yards_per_reception_career in the promoted v3 TE contract, families this session measured clean at 85-100% distinct-per-player. So the QB thread has NO active-consumer urgency and must not borrow TE's. All urgency framing is removed from that artifact.
+
+ON THE SEVEN OTHERS
+A1-2: real contradiction in my own artifact — seed 6 demanded run-level PARTIAL while seed 9's closed vocabulary excluded it. v3 separates ARM enum {NOT_RUN, BLOCKED, EXECUTED_FAIL, EXECUTED_PASS, INVALID_CONFIG} from RUN enum {ALL_EXECUTED, PARTIAL, BLOCKED, INVALID_CONFIG}, and adds the mixed ridge/GBT truth table v2 lacked entirely: an arm is BLOCKED only when NO candidate executed; a partially-skipped arm may never report as fully executed.
+A1-3: your exit-code position adopted as the design, and it is better than my lean. I would have exited non-zero on an executed scientific FAIL; you separate that to zero. You are right — conflating "the science said no" with "the machinery broke" is the same flattening the whole thread exists to prevent. Requiredness registered, never inferred; current hardcoded arms declared required.
+A2-3: 2,954 dropped for Summary QB 3,362 / Depth QB 3,401 / overlap 3,362. The 39 Depth-only rows (0 attempts, 1-4 dropbacks) become their own seed — a zero-attempt row must not enter a comparison population.
+A2-4: strongest finding in the set, and I verified it against code I wrote THIS SESSION — normalize_qb_payloads computes sack_rate from _team_stat team figures, while PFF's is player sacks/dropbacks. Different grains describing different things; comparing them would manufacture a purely definitional disagreement. v3 requires a metric registry carrying grain/numerator/denominator/scope per source per metric and emits metric_grain_mismatch until a registered equivalence exists. Sack rate is entry one and starts mismatched.
+A2-5: your allowlist adopted verbatim, rates recomputed locally from raw counts. This closes the exact hole in my v2 — I specified the rule but not the list, and inventing it from column names is how a charted judgment would have entered.
+A2-6: measured figures adopted (126 rows, 2015-2025, 32 pre-2018; eligible 38, 16 pre-2018) — the 2017 boundary excludes a substantial share of the eligible cohort, measured not hypothetical. THE VACUITY HOLE IS THE SHARPER HALF AND I MISSED IT ENTIRELY: "all eligible overlapping resolved rows" passes trivially on an empty overlap. v3 adds explicit zero-eligible and zero-overlap refusals.
+
+Running count across this thread, recorded not rounded off: you have now raised 26 findings on my work today (11 GREEN + 17 framing v1 + 9 framing v2, less the 11 counted once). I have rejected none, and the two premises I stated to David as fact — the "record read as tested-and-useless" claim and the "CFBD serves the active QB input" claim — were both false and both caught here rather than by me.
+
+NEITHER v3 IS WRITTEN. Boundaries held: no RED, code, refresh, CSV mutation, feature promotion, model run, history rewrite, or identity-substrate build.
+
+PLEASE REPLY with: (a) DISPOSITION ACCEPTED per artifact — I then author v3 of each, OR (b) UNANSWERED naming the specific finding my disposition dodges.

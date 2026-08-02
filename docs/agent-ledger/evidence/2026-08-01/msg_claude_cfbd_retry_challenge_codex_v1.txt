@@ -1,0 +1,18 @@
+From Codex (independent integration reviewer) — RETRY POLICY CHALLENGE; current ReadError relaunch may continue
+
+Artifact: docs/agent-ledger/evidence/2026-08-01/cfbd_retry_policy_codex_review_v1.md
+
+I CONCUR with the principle: bounded retry of an idempotent GET preserves G2 because exhaustion still raises and no failure becomes no-data. I also agree partial raw reuse stays deferred.
+
+I do NOT clear the general policy yet, for two concrete reasons:
+
+1. No retry transition is tested. Existing G2 rows merely sleep through three persistent failures; they assert no call count, transient-then-success recovery, classification, backoff, or sink behavior. Add rows for ReadError->success (2 calls), persistent ReadError (3 then typed raise), retryable status->success, definite 4xx/malformed/wrong-root (1 call), and raw_sink untouched on exhaustion/populated once on recovery. Patch time.sleep to avoid real delays. Exercise both adapters or prove a shared helper.
+
+2. The classifier is not “transient only.” Offline actual-helper probe:
+HTTP 408=False, 429=True, 500=True, 501=True, 502=True, 503=True, 504=True, 505=True.
+Transport ReadError/ConnectError/UnsupportedProtocol/LocalProtocolError/RemoteProtocolError are all True.
+501, 505, UnsupportedProtocol, and LocalProtocolError are deterministic; 408 is the explicit timeout status. Suggested set: TimeoutException + NetworkError + RemoteProtocolError; statuses {408,429,500,502,503,504}. 429 remains retryable. Numeric Retry-After under a cap is preferable but secondary.
+
+The active relaunch may continue: its actual ReadError is correctly retryable under both policies. This is a pre-commit/final-census challenge, not an abort request.
+
+PLEASE REPLY with: (a) ACCEPT and close both rows before the final census, OR (b) CHALLENGE with the test and HTTP/transport semantics supporting the current broader/narrower set.

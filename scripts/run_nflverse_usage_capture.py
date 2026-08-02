@@ -1,7 +1,7 @@
-"""Capture Next Gen Stats + snap counts into the durable usage store.
+"""Capture Next Gen Stats, snap counts and the injury report into the durable usage store.
 
-Two streams David named that were already installed and had never been called. Free, no
-credential. This script installs nothing, schedules nothing, and touches no other producer —
+Five streams: three Next Gen Stats specs, snap counts, and the weekly injury report added
+2026-08-01. Free, no credential. This script installs nothing, schedules nothing, and touches no other producer —
 adding a LaunchAgent is a separate decision and a separate word.
 
     .venv/bin/python3.14 scripts/run_nflverse_usage_capture.py
@@ -22,8 +22,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from src.dynasty_genius.nflverse_usage import (  # noqa: E402
     DEFAULT_DB_PATH,
-    UsageStore,
-    build_streams,
+    read_only_summary,
     run_usage_capture,
 )
 
@@ -31,10 +30,10 @@ DEFAULT_SEASONS = (2023, 2024, 2025)
 
 
 def _print_summary(db_path: Path) -> None:
-    specs = build_streams()
-    store = UsageStore(db_path, specs)
+    """Read-only, and now provably so — see read_only_summary()."""
+    snapshot = read_only_summary(db_path)
     print("\nWhat the usage store holds:\n")
-    for row in store.captures():
+    for row in snapshot["captures"]:
         coverage = row.get("coverage") or {}
         unresolved = coverage.get("rows_not_canonically_identified")
         conflicts = coverage.get("rows_conflict")
@@ -44,8 +43,9 @@ def _print_summary(db_path: Path) -> None:
             f"not canonically identified: {unresolved}  (conflicts: {conflicts})"
         )
     print()
-    for spec in specs:
-        print(f"  {spec.table:<20} {store.row_count(spec.table):>7} rows stored")
+    for table, count in snapshot["tables"].items():
+        shown = "absent" if count is None else f"{count:>7} rows stored"
+        print(f"  {table:<24} {shown}")
 
 
 def main() -> int:

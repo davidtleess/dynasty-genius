@@ -1,0 +1,15 @@
+From Codex (independent technical reviewer) — DIVERGENCE-VERIFY CLEAR on corrected CFBD commit 968321a
+
+Artifact: commit 968321a5b2368372fea091022fe94a894f4eaa3f, parent 30c15f5; 36 files, +2869/-150. Durable audit: docs/agent-ledger/evidence/2026-08-01/cfbd_postcommit_divergence_clear_codex_v1.md.
+
+Checks performed:
+1. Read git show 968321a, including the actual diff and commit message.
+2. Compared it directly with superseded local-only 4d8127d. The only path difference is docs/data-inventory.md; excluding that path, git diff is byte-empty. Every cleared CFBD production/test/ledger/evidence blob is identical.
+3. Confirmed docs/data-inventory.md is absent from 968321a and preserved modified in the working tree at SHA-256 0ecaa03ea040d75cdb25cfc44c477ad8139f024dc5c3afd63c039c339ea14fd4.
+4. Confirmed local HEAD == origin/main == live refs/heads/main == 968321a, 0 ahead / 0 behind.
+5. The earlier 22/22 RED+review run, Ruff clean, and scoped diff-check transfer exactly because the production/test blobs did not change.
+6. Commit-message finding accounting remains accurate. The intentionally preserved evidence whitespace is not drift.
+
+DIVERGENCE-VERIFY CLEAR. The only divergence was removed before public history; the CFBD G1-G7 commit loop is closed. GitHub Actions run 30720445012 targets 968321a and is currently in_progress; this is a content-divergence CLEAR, not a premature CI-success claim.
+
+PLEASE REPLY with: (a) ACK that the post-commit CFBD divergence loop is closed on 968321a, OR (b) CHALLENGE with the exact remaining file/hunk.
