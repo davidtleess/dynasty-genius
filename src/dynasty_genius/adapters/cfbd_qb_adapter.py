@@ -24,6 +24,8 @@ from typing import Any
 import httpx
 from dotenv import load_dotenv
 
+from src.dynasty_genius.adapters import cfbd_http
+
 load_dotenv()
 
 BASE_URL = "https://api.collegefootballdata.com"
@@ -32,7 +34,13 @@ ENDPOINT_PLAYER_SEARCH = "/player/search"
 ENDPOINT_PLAYER_SEASON = "/stats/player/season"
 ENDPOINT_PPA = "/ppa/players/season"
 ENDPOINT_WEPA = "/wepa/players/passing"
-ENDPOINT_TEAM_SEASON = "/stats/team/season"
+# CFBD serves its Swagger docs page at /stats/team/season — an HTTP 200 with
+# text/html, not an API route. The adapter called it from Stage 2 onward and the
+# old exception-swallowing turned every response into [], which is why
+# `qb_sack_rate_final` measured 0/126 dark: the team figures it derives from
+# never arrived. Verified live 2026-08-01: /stats/season returns the
+# statName/statValue array. The receiving adapter already used the correct path.
+ENDPOINT_TEAM_SEASON = "/stats/season"
 
 QB_CFBD_FEATURES: list[str] = [
     "completion_pct",
@@ -82,14 +90,22 @@ def _request_json(
 ) -> list[dict[str, Any]]:
     """Call CFBD and return the decoded list payload.
 
-    Raises `CfbdRequestError` on any transport or decode failure so that a
-    failure is never silently indistinguishable from "no data" (G2).
+    Raises `CfbdRequestError` when the request cannot be completed, so a failure
+    is never silently indistinguishable from "no data" (G2). Transient failures
+    are retried first via the shared policy in `cfbd_http`: on 2026-08-01 a
+    single `Connection reset by peer` during an ~800-call refresh discarded the
+    entire paid run. Fail-closed on the record and fail-fast on the batch are
+    different things — this keeps the first and drops the second.
     """
     url = f"{BASE_URL}{endpoint}"
-    try:
+
+    def _call():
         response = httpx.get(url, headers=_headers(api_key), params=params)
         response.raise_for_status()
-        payload = response.json()
+        return response.json()
+
+    try:
+        payload = cfbd_http.with_retry(_call)
     except Exception as exc:  # transport, HTTP status, or JSON decode
         raise CfbdRequestError(
             f"CFBD request to {endpoint} failed: {exc.__class__.__name__}: {exc}"
@@ -328,7 +344,14 @@ def normalize_qb_payloads(
     player_pass_attempts = _stat_value(passing, "ATT")
 
     team_pass_attempts = _team_stat(team_records, "passAttempts")
-    sacks_allowed = _team_stat(team_records, "sacksAllowed")
+    # CFBD has no `sacksAllowed` stat — verified live 2026-08-01 against the 63
+    # statNames /stats/season actually returns. `sacks` is what THIS defence
+    # recorded; `sacksOpponent` is what opposing defences recorded against this
+    # offence, i.e. sacks allowed. Using `sacks` would measure the defence and
+    # attribute it to the quarterback. Magnitude check across 2020 Clemson /
+    # Alabama / Georgia gives 4.1% / 4.1% / 5.9%, the right range for a college
+    # offence; `sacks` would have produced 8.6% for Clemson.
+    sacks_allowed = _team_stat(team_records, "sacksOpponent")
     net_passing_yards = _team_stat(team_records, "netPassingYards")
 
     td_int_ratio = None

@@ -11,6 +11,8 @@ from typing import Any
 import httpx
 from dotenv import load_dotenv
 
+from src.dynasty_genius.adapters import cfbd_http
+
 load_dotenv()
 
 BASE_URL = "https://api.collegefootballdata.com"
@@ -22,6 +24,7 @@ class CfbdTeamStatRequestError(RuntimeError):
     Distinct from an empty response: a legitimate empty list is data and may be
     cached, but a failure must never be persisted as one.
     """
+
 
 # Abbreviation → canonical CFBD name. Covers both:
 #   (a) training CSV spellings (PFR names) → canonical
@@ -170,13 +173,16 @@ def fetch_team_pass_attempts(
     cfbd_name = normalize_college_name(college_team)
     url = f"{BASE_URL}/stats/season"
     try:
-        response = httpx.get(
-            url,
-            headers={"Authorization": f"Bearer {key}"},
-            params={"year": season, "team": cfbd_name},
-        )
-        response.raise_for_status()
-        records = response.json()
+        def _call():
+            response = httpx.get(
+                url,
+                headers={"Authorization": f"Bearer {key}"},
+                params={"year": season, "team": cfbd_name},
+            )
+            response.raise_for_status()
+            return response.json()
+
+        records = cfbd_http.with_retry(_call)
     except Exception as exc:
         # G2: a transport failure is not "this team had no season". Swallowing
         # it here let an empty raw_sink be persisted as a negative cache that is

@@ -142,11 +142,11 @@ def _identity_router(url, **kwargs):
                 },
             ]
         )
-    if "/stats/team/season" in url:
+    if "/stats/season" in url:
         return _response(
             [
                 {"statName": "passAttempts", "statValue": 430},
-                {"statName": "sacksAllowed", "statValue": 18},
+                {"statName": "sacksOpponent", "statValue": 18},
                 {"statName": "netPassingYards", "statValue": 3200},
             ]
         )
@@ -164,6 +164,12 @@ def test_g1_binds_every_feature_family_to_the_resolved_player(_):
     assert result["pass_attempts"] == 400
     assert result["ppa"] == pytest.approx(0.5)
     assert result["wepa"] == pytest.approx(42.0)
+    # Non-vacuity lock (2026-08-01). Without this the team route can go empty —
+    # a wrong endpoint, a renamed stat — and every test still passes while
+    # sack_rate silently becomes None. That is exactly what happened: the
+    # adapter called CFBD's Swagger docs page for months and `sacksAllowed`
+    # was never a real stat name, and no assertion noticed either.
+    assert result["sack_rate"] == pytest.approx(18 / (430 + 18))
 
 
 @patch(PATCH_GET, side_effect=_identity_router)
@@ -202,7 +208,12 @@ def test_g7_uses_only_provider_supported_query_parameters(mock_get):
             "excludeGarbageTime",
         },
         "/wepa/players/passing": {"year", "team", "conference", "position"},
-        "/stats/team/season": {
+        # Corrected 2026-08-01 after a live probe: /stats/team/season is CFBD's
+        # Swagger docs page (HTTP 200, text/html), not an API route. The real
+        # team-stat endpoint is /stats/season, which the receiving adapter
+        # already used. Substring matching stays unambiguous because
+        # "/stats/season" is not a substring of "/stats/player/season".
+        "/stats/season": {
             "year",
             "team",
             "conference",

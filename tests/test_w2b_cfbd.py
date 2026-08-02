@@ -846,7 +846,7 @@ def test_tpa_cache_roundtrip_positive(tmp_path, monkeypatch):
         2021,
         [
             {"statName": "passAttempts", "statValue": 438.0},
-            {"statName": "sacksAllowed", "statValue": 21},
+            {"statName": "sacksOpponent", "statValue": 21},
         ],
     )
     hit, value = bw2b._load_tpa_cache("Alabama", 2021)

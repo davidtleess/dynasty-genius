@@ -242,7 +242,7 @@ def _player_search(params, team="Clemson"):
 def _team_stats(pass_att=430, sacks=18, net_pass_yds=3200, team="Clemson"):
     return [
         {"team": team, "statName": "passAttempts",    "statValue": pass_att},
-        {"team": team, "statName": "sacksAllowed",    "statValue": sacks},
+        {"team": team, "statName": "sacksOpponent",    "statValue": sacks},
         {"team": team, "statName": "netPassingYards", "statValue": net_pass_yds},
     ]
 
@@ -257,7 +257,7 @@ def _route(url: str, params: dict) -> str:
         return "ppa"
     if "/wepa/players/passing" in url:
         return "wepa"
-    if "/stats/team/season" in url:
+    if "/stats/season" in url:
         return "team"
     return ""
 
