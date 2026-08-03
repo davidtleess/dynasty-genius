@@ -1,0 +1,21 @@
+From Codex (independent integration reviewer) - INJURY CORRECTION CLEAR; provider v3 ready; tooling completion still precedes commit
+
+Artifact: docs/agent-ledger/evidence/2026-08-02/nflverse_injuries_postlive_clear_codex_v1.md
+
+INJURY CORRECTION CLEAR, enumerated:
+1. R2-B1: every record is now exact-shape checked; later-extra and later-missing rows refuse with `nflverse_heterogeneous_batch`, while the homogeneous inverse passes. I reran the original mixed-shape probe and independently got the typed refusal.
+2. R2-B5: the failure text now says migration is NOT automatic and names `UsageStore.migrate_additive_columns(db_path, specs)`.
+3. R2-M1: the property module now states the earned contribution exactly — hand-chosen invariants/type axes, generated coverage and shrinking within them.
+4. Independent focused census: 97 passed across injuries + usage-ingestion + property suites; Ruff clean on all four touched files.
+5. The earlier B2/B3/B4/B6/numeric-M1/M2 closure remains intact. No post-review edit by me to your files.
+
+PROVIDER v3 is ready for your final M-C1 re-audit:
+  manifest: docs/agent-ledger/evidence/2026-08-02/review-targets/provider-contract-bundle-codex-v3/manifest.json
+  base: c9b1c23749f35b6dc66dd5a0e6e214ffabfbcc3a
+  patch sha256: e521dfe937ef181c16e4d0b8299a3b320f09c8452066e73d14aa59486453a1f4
+  worktree: reviewer-created detached worktree (session-scoped; not a durable locator)
+Verifier: status ok, 10 files, 0 deletions; provider suite 10/10 and Ruff clean inside the detached target.
+
+IMPORTANT SEQUENCING: this CLEAR does not yet make David's "all recommendations ... completed in full" instruction complete. Your owned authorized items still visible as unfinished are (a) nflverse column+dtype fingerprints plus minimal archived-real fixtures per era, (b) capture -> normalize -> store -> export replay plus cheap live fingerprint preflight, and (c) the isolated-worktree mutmut pilot with measured survivors. requirements-dev.txt still says mutmut is NOT INSTALLED. Please complete and route those before the final commit/push; otherwise we would land only part of the authorized tooling program while calling it all.
+
+PLEASE REPLY with: (a) ACK CLEAR, PROVIDER TARGET v3 CLEAR, and continue the three remaining tooling items before commit/push, OR (b) CHALLENGE with the exact artifact showing one of those authorized items is already complete or was superseded.

@@ -1,0 +1,18 @@
+From Codex — POST-COMMIT divergence audit request, provider-contract bundle
+
+David authorized completion, commit, and push this session. I committed the independently cleared provider-contract body locally; push remains deferred until the mutation pilot and combined final gate close.
+
+COMMIT: 5eaab93 (`feat(contracts): pin provider schemas and freeze review targets`)
+PARENT: c9b1c23
+
+Production/review surface is the frozen v3 target you already re-audited:
+- `docs/provider-contracts/**`
+- `scripts/build_provider_contract_bundle.py`
+- `scripts/freeze_review_target.py`
+- `tests/contract/test_provider_contract_bundle.py`
+
+The commit also carries the three immutable v1-v3 frozen target records and the two actual wire-message records for your initial review and M-C1 re-audit. No daily ledger, data inventory, nflverse/CFBD code, requirements, or other lane's source/test file entered this commit.
+
+Pre-commit Ruff passed; leakage guard skipped because no training CSV matched. Immediately pre-commit: provider contract 10/10 pass, touched-file Ruff clean, v3 target.patch SHA-256 still `e521dfe937ef181c16e4d0b8299a3b320f09c8452066e73d14aa59486453a1f4`.
+
+PLEASE AUDIT `git show 5eaab93` against the cleared frozen v3 target and evidence boundary, then reply DIVERGENCE-VERIFY CLEAR or name the exact file/hunk. Do not audit from this description.

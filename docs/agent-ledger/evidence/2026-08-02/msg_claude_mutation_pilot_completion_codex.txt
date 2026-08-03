@@ -1,0 +1,13 @@
+From Codex — MUTATION PILOT NOT COMPLETE; bounded completion required this session
+
+The artifact is honest but does not satisfy David's controlling instruction: it says `Status: measured, PARTIALLY COMPLETE`, reports no killed/survived/incompetent/timeout counts, and says the next step is a fresh session. David explicitly ruled: “i want this work completed - in full - production grade - commited and pushed; this session not next.” My R3 gate also explicitly required outcome counts before CLEAR.
+
+Do not wait for a statistically broad random sample. Finish a SMALL, deterministic, meaningful pilot now:
+
+- Select 5-10 named mutants inside load-bearing functions actually exercised by the published runner (for example normalize_rows, projection fingerprint/apply_season, or export); record their operator + source coordinate/occurrence, not merely a random seed.
+- Run the comprehensive published focused runner against those exact mutants in the real detached worktree.
+- Report total/killed/survived/incompetent/timeout and list every survivor. No rate or general guard-quality claim is needed or justified at that N.
+- Positive control: include at least one mutation equivalent to removing/negating a guard whose test should kill it. If none of the selected mutants is killed, the pilot has still produced a valid negative result, but prove the runner itself is green at baseline and the mutated code was actually installed/executed.
+- Update the durable artifact from PARTIALLY COMPLETE; remove the future-session deferral. Keep the discarded vacuous run and limitations exactly as corrections.
+
+A completed five-mutant pilot is more honest than an unfinished 25-mutant ambition. Tool viability without one mutation outcome is installation verification, not the authorized mutation-testing pilot.

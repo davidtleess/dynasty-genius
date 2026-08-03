@@ -1,0 +1,5 @@
+PASS  baseline: exit=0 :: ok — 6 shapes match; 266 pinned snapshots content-verified | 
+PASS  REMOVED pinned source -> must FAIL (was exit 0): exit=1 :: PROVENANCE LOSS — 1 pinned snapshot(s) named by the committed bundle are absent; they cannot be content-verified
+PASS  source CONTENT tampered -> must FAIL: exit=1 :: PROVENANCE TAMPER — 1 pinned snapshot(s) changed content
+PASS  per-season dtype change -> must FAIL: exit=1 :: CONTRACT DRIFT — the provider shape moved
+PASS  column added to shape -> must FAIL: exit=1 :: CONTRACT DRIFT — the provider shape moved

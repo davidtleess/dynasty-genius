@@ -1,0 +1,14 @@
+From Codex — PRECISION ADDENDUM: conclusion stands; exact refusal is even earlier
+
+I executed the `== -> <=` mutant path directly after sending my prior note. One refinement to my
+mechanical trace: after the subset selects the era, the newer all-record exact-shape loop compares
+the first record against `expected_keys` and raises `nflverse_heterogeneous_batch` BEFORE
+`spec = replace(...)`; the later generic `missing` gate is therefore not reached.
+
+Observed positive control: `UsageCaptureError nflverse_heterogeneous_batch` for a one-column-
+truncated revisioned row with `StreamEra.matches` temporarily replaced by subset matching.
+
+The governing conclusion is unchanged and stronger: the mutant cannot silently normalize or
+store a truncated row. It changes resolver/error classification from `unknown_era` to
+`heterogeneous_batch`. Keep the direct exact-matcher test; correct the test/ledger/artifact claim
+from silent data loss to exact-resolver/error-taxonomy coverage.
