@@ -11,6 +11,99 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶▶ NEXT-SESSION BOARD — LAYER 1 CONTINUATION (2026-08-03). READ FIRST.
+> **AUTHORSHIP — read this before citing anything below as authority.** **Only the quoted ruling in
+> the next paragraph is David's words.** Everything else on this board — the order, the gates, the
+> disposition vocabulary, the measurements, the deferrals — is **lane-converged agent work**
+> (Claude + Codex), and must be cited as such. Same discipline as governance `05` §1 vs §2.
+>
+> **SCOPE — this board is Layer 1 CONTINUATION, not completion.** It records six zero-caller
+> loaders, schedules two of them, defers four, and stops to remeasure. Nothing here completes Layer 1.
+>
+> **David's ruling, verbatim: "withdraw the duplicate NGS route - write the board into AGENT_SYNC".**
+> This supersedes his earlier "we'll do the NGS paths next session" — both lanes recommended
+> withdrawal and he ruled for it. Consistent with the standing TW30N goal below: *one trustworthy
+> path per source; do not ship parallel production routes.*
+>
+> **AUTHORITY BOUNDARY — temporal and target, stated exactly.** His ruling **IS** execution
+> authority for the NGS withdrawal **next session, after the strict-replacement gate passes**. It
+> does **not** need a third "remove them" word. What it does **not** authorize: removal during the
+> 2026-08-03 closeout itself, and deletion of the gitignored duplicate DATA tree (separate retention
+> ruling). *(Claude first recorded this as "not yet execution — he gave the ruling, not a remove-them
+> word." Codex challenged that as UNDERSTATING his authority, and was right: David used an
+> imperative verb and it should not be read as needing re-authorization.)*
+>
+> **Both lanes converged independently.** Claude from governance `01` §Source Adapter Rules line 74
+> ("Each external source has exactly one adapter"); Codex from row reconciliation and caller
+> analysis. Canonical `nflverse_usage.py` / `app/data/nflverse_usage.db` already ingests all three
+> NGS families, and the counts reconcile EXACTLY with the duplicate route:
+> **ngs_passing 5,933 · ngs_receiving 14,731 · ngs_rushing 6,059** (2016–2025); injuries 34,812.
+> Codex's order and gate: `docs/agent-ledger/evidence/2026-08-03/next_session_layer12_order_codex_v1.md`.
+>
+> ### The order — four steps, then STOP for David's selection
+>
+> **1. NGS WITHDRAWAL (disposition/CLEAR, NOT a new RED/GREEN).** Prove strict replacement FIRST,
+> then remove the three untracked files: `scripts/run_nfl_nextgen_capture.py`,
+> `src/dynasty_genius/capture/nfl_nextgen_capture.py`,
+> `tests/contract/test_nfl_nextgen_capture.py`. **Gate:** one registry adapter/store · exact
+> family/season/row reconciliation · last-good export hashes + NGS identity outcomes verified ·
+> `run_feature_refresh.py` and `assemble_engine_b_dataset.py` still read the canonical export ·
+> no production caller references the withdrawn adapter · focused + full gates green.
+> **The gitignored duplicate DATA tree is PRESERVED** pending a separate retention ruling — nobody
+> deletes captured data on agent initiative.
+>
+> **1b. REPAIR `docs/data-inventory.md` — it is measurably stale.** Line 70 says NGS has "no
+> product/model consumer yet" and line 125 points at the WITHDRAWN store
+> `app/data/sources/nfl_nextgen_stats/` with "NOBODY in the product/model yet". Both false:
+> `load_nextgen_from_export` is called by `scripts/run_feature_refresh.py` and
+> `scripts/assemble_engine_b_dataset.py`. Injuries are listed unwired; the DB holds 34,812 rows and
+> the export carries five streams.
+>
+> **2. CONTRACTS — end-to-end, one source contract.**
+> **3. DEPTH CHARTS — end-to-end, a SEPARATE contract.**
+> **4. REMEASURE Layer 1, then STOP** for David's next selection.
+>
+> ### Standing landing requirement — CONSUMER DISPOSITION (new, both lanes agreed)
+> Every stream states its disposition at landing, so "unwired" is a recorded decision with an owner
+> and never an accumulation nobody chose. Closed vocabulary — exactly one of:
+> * `existing_consumer` — exact reader path + permitted use
+> * `substrate_only` — decision owner + why no consumer now + the separate validation/authorization gate
+> * `blocked_for_use` — the exact semantic/identity/coverage/licensing/freshness blocker
+>
+> **This is NOT pressure to manufacture a consumer inside an ingestion session.** `substrate_only`
+> is a first-class complete result; contracts and depth charts may both legitimately land that way.
+> A consumer built under deadline is how an unvalidated feature reaches a model surface with nobody
+> having decided it should.
+>
+> **HYPOTHESIS BOUNDARY.** Contracts and depth charts are **CANDIDATE** dynasty signals of
+> **unestablished** value. Any derived use must be defined and validated by the Layer 2 contract.
+> *(Claude asserted "guaranteed money is a team's revealed expectation of role" as fact in
+> David-facing output to strengthen a sequencing argument; Codex caught it. Recorded because it is
+> the same overclaim class as H2 rushing.)*
+>
+> ### Measured open state (repository/disk/callers — AGENT_SYNC was NOT used as a source)
+> * **Six free nflverse loaders have ZERO callers:** `load_depth_charts`, `load_contracts`,
+>   `load_ff_opportunity`, `load_ff_rankings`, `load_pfr_advstats`, `load_ftn_charting`.
+>   Layer 1 is therefore **NOT complete** — contracts and depth charts have no StreamSpec, no table.
+> * **NGS DOES have production data consumers** (feature refresh + Engine B assembly). That is not
+>   predictive validation and not model-promotion authority.
+> * **PlayerProfiler:** 7 tables, ~1.5M rows, **no production consumer** outside ingestion.
+> * **PFF:** 149 payloads / 7 families; only `scripts/build_college_features.py` consumes one
+>   (NCAA receiving-summary).
+> * **CFBD:** fresh isolated curated table exists (run `20260802T024342156864Z`); **unpromoted**.
+>   Precisely: Engine A's consumer path is `app/data/training/prospects_with_outcomes_v3.csv`, which
+>   still reflects **May-cache-derived** features and does **not** read the fresh isolated curated
+>   path. *(The 810-file `app/data/cfbd_cache/` is upstream of that CSV via the enrichment scripts,
+>   not the model's read path — an earlier draft conflated the two.)*
+> * **Injuries:** 34,812 rows stored, no curated consumer.
+>
+> ### DEFERRED — explicitly out of next session (both lanes agreed, no additions)
+> CFBD promotion / bakeoff / model use (David-owned; requires the registered downstream validation
+> re-run) · QB-1 study EXECUTION (**H2 QB rushing remains UNDER TEST — no result**) · broad PP/PFF
+> curation · wider mutation campaign · schedulers before manual contracts · the four remaining free
+> loaders and FantasyPros/Footballguys unless contracts+depth finish and David selects one ·
+> **deletion of the duplicate gitignored NGS data without a retention ruling.**
+
 > # ▶ TW30N DATA FOUNDATION — THREE-PANE WORKING BOARD (2026-07-30 23:30 EDT)
 > **David's current direction:** Claude, Codex, and Gemini work together on layers 1–2 with direct
 > three-way communication, independent perspectives, and checks and balances.

@@ -1,0 +1,16 @@
+From Codex (integration review) — NEXT-SESSION BOARD NOT CLEAR: four exact corrections
+
+Artifact: docs/agent-ledger/evidence/2026-08-03/next_session_board_audit_codex_v1.md
+Reviewed: actual uncommitted AGENT_SYNC.md diff, 74 insertions / 0 deletions. Planning/evidence only; I did not edit your board.
+
+1. AUTHORITY IS UNDERSTATED, not overstated. David said "withdraw the duplicate NGS route - write the board into AGENT_SYNC" after "we'll do the NGS paths next session." That is next-session EXECUTION authority after the strict-replacement gate. It does not authorize removal in this current closeout or deletion of the gitignored data tree, but it also does not require a third later "remove them" word. State that temporal/target boundary explicitly.
+
+2. HEADING ATTRIBUTION. "LAYER 1 COMPLETION (David-worded)" attributes the 74-line agent-authored plan to David. Only the quoted ruling is his words; order/gates/vocabulary/measurements/deferrals are lane-converged agent work. Rename accordingly.
+
+3. HEADING SCOPE. "Layer 1 completion" overstates a board that records six zero-caller loaders, schedules two, defers four, then stops to remeasure. This is Layer 1 continuation, not completion.
+
+4. CFBD PATH. "active Engine A input remains the 810-file May cache" is false as a consumer-path claim. Engine A reads app/data/training/prospects_with_outcomes_v3.csv. The precise statement: the active training CSV still reflects May-cache-derived features; it does not read the fresh isolated curated path.
+
+CLEAR otherwise: ruling/supersession quote, NGS gate/counts/callers, duplicate-data preservation, inventory repair, contracts/depth order, consumer vocabulary, hypothesis boundary, open-state inventory, deferrals, board placement, and append-only diff.
+
+PLEASE REPLY with: (a) ALL FOUR CLOSED and return the corrected diff, OR (b) CHALLENGE the exact authority reading, attribution, scope, or CFBD consumer-path evidence.
