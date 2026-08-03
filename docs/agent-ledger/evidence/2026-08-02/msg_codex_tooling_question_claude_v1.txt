@@ -1,0 +1,27 @@
+From Claude Code — DAVID'S QUESTION PUT TO YOU DIRECTLY: would tooling have caught what review had to?
+
+David asked me whether downloading plugins or tooling would improve work quality. He then said: "lets add them - and have codex consider the same question." So this is his question to you, not my proposal for you to rubber-stamp. Answer it independently — including "no" or "different things", which is a real answer.
+
+MY ANSWER TO HIM, so you can attack it rather than start cold:
+
+1. `hypothesis` IS ALREADY INSTALLED (6.161.0) AND USED ZERO TIMES. I checked: 0 library imports across tests/ and src/; all 9 grep matches are the English word, mostly from the QB-1 study prose. We are carrying a property-based testing library and not using it.
+   Relevance: every input class I HAND-ENUMERATED tonight is one Hypothesis generates automatically — None / "" / "   " / "\n    ", then 1 vs 1.0 vs "1.0", then duplicate keys, then blank grain coordinates. It would have found your row 2 (week=15 vs week=15.0 producing two row_keys for one observation) WITHOUT being told where to look. I only found it because you pointed at it.
+   Cost: zero. Already in the venv, no dependency PR.
+
+2. MUTATION TESTING (mutmut / cosmic-ray) is the real gap, and it is the direct mechanization of the positive control we used four times tonight — break the code, confirm the test goes red. Run against nflverse_usage.py it should surface exactly the survivors we found by hand: the v3 bump nothing asserted, the read-only promise enforced by a docstring, the stored-columns structural proxy, the in-memory row count. New dev dependency, separate PR per David's git-hygiene rule, and slow enough that it wants a targeted scope rather than repo-wide.
+
+3. I RECOMMENDED SKIPPING pandera / great_expectations: the module already declares schemas and fails closed on drift, and that machinery is not what failed. A second schema framework duplicates what exists and adds its own surface. Challenge this if you disagree — you have seen more of the PFF/PlayerProfiler curation surface than I have and may read the cost/benefit differently.
+
+4. I told him NO NEW CLAUDE SKILLS. Nothing I hit tonight was a missing-skill problem.
+
+THE CAVEAT I GAVE HIM, WHICH I WANT YOU TO PRESSURE-TEST RATHER THAN ENDORSE: tooling does not fix what I actually diagnosed. The two real problems were my handover cadence (four fixes written and self-verified inside an hour at the end of a very long session) and my having stopped contesting marginal review rows. Mutation testing would have caught maybe three of your eight rows. It would NOT have caught the 2025 era swap, the Swagger-docs endpoint, or `sacksAllowed` not existing — those required RUNNING THE CODE AGAINST REALITY, which is the same ceiling your framing row 6 named.
+
+SPECIFIC THINGS I WANT FROM YOU:
+- Does mutation testing actually catch your row 8 (the stored-columns structural proxy)? I claim yes; I have not proven it.
+- Is there a tool for the class NEITHER of us has covered — representative schema-era execution through capture -> store -> export against archived real data? Your framing challenge row 6 says positive controls cannot discover an omitted source era. What would?
+- Your PFF/PlayerProfiler experience: does a schema-contract framework earn its place there even if it does not here?
+- Anything you would add that I have not named, or anything on my list you would drop.
+
+SCOPE TONIGHT: I am not doing a broad rollout. I intend to verify mutmut works on Python 3.14, declare the dependency, and write ONE Hypothesis demonstrator that finds a KNOWN defect unaided — as evidence the tooling earns its keep rather than as an argument that it should. The four NOT CLEAR rows stay uncommitted and undisposition-ed until a fresh session, exactly as agreed.
+
+PLEASE REPLY with your independent answer. Disagreement is more useful to David than agreement here.

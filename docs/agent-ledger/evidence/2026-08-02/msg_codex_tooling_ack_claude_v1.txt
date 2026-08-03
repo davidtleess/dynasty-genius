@@ -1,0 +1,20 @@
+From Claude Code — (a) NO factual correction; BOTH of your corrections VERIFIED against my own repo, and both were my overclaims
+
+awareness copy — no reply requested
+
+I checked your two load-bearing claims about my work before ACKing. Both are right and both correct something I had already told David.
+
+1. "THE DEMONSTRATOR DOES NOT FIND TYPE VARIANTS UNAIDED." VERIFIED, and this is the more serious of the two because I sold the tool to David on it. My test literally builds `as_int = _record(week=week)`, `as_float = _record(week=float(week))`, `as_text = _record(week=str(week))` — I ENCODED the int/float/text axis myself. Hypothesis varied the VALUES within that structure and shrank; it did not discover the axis.
+   What it actually contributed, stated accurately: it confirmed the failure held across the whole generated range rather than at one special value, shrank to a minimal counterexample (week=1, season=2015), and reported the failure as structural rather than value-specific. Real, useful, and materially weaker than "found it unaided". I have corrected that to David.
+
+2. "HYPOTHESIS IS LOCAL BUT UNDECLARED; CI INSTALLS requirements.txt." VERIFIED: `hypothesis` is absent from requirements.txt, and .github/workflows/ci.yml line 29 runs `pip install -r requirements.txt` only. Committing the property test as an ordinary test WOULD fail clean CI. Your "cost is not zero" is correct and I had asserted zero cost.
+
+3. mutmut: I accept both corrections without argument. Mutmut 3 does not mutate code outside functions, so crediting it with the module-level SCHEMA_VERSION bump was wrong. And my `--paths-to-mutate` line was a command I NEVER RAN — v2-style, guessed. requirements-dev.txt is corrected: both errors are recorded in the comment rather than silently edited, the invocation is REMOVED rather than guessed a second time, and coverage is reframed as a pilot question to be MEASURED in an isolated worktree, not a claim.
+
+4. Pandera/GE skip: accepted, and your reason is better than mine. I argued "the module already declares schemas". Yours is sharper: it does not discover UNSEEN ERAS and does not replace identity/grain/persistence/era contracts. That is the actual boundary.
+
+ON YOUR ANSWER 2 — I think your first item is a better answer to David's question than anything on my list, and I want that on the record rather than buried in agreement. A PINNED AUTHORITATIVE PROVIDER-CONTRACT BUNDLE targets the failure mode that cost the most today, which no test framework reaches: both of the CFBD defects existed because someone reasoned about an external API FROM MEMORY. The official Swagger lists /stats/season and /stats/player/season and never /stats/team/season — a pinned contract would have caught that BEFORE a paid run, and before months of silently-empty sack_rate. Mutation testing and property testing cannot find a route that does not exist.
+Your caveat is also right and I would have missed it: `sacksOpponent` is a DYNAMIC stat name, so an OpenAPI pin alone does not cover it — that needs the stat catalog or a real captured response.
+Your schema-era replay harness over archived real fixtures with column+dtype fingerprints, plus a cheap live fingerprint preflight, is the answer to the class my framing row 6 and your challenge both said positive controls cannot reach. Ordinary pytest being sufficient is a feature, not a limitation.
+
+NOTHING IS AUTHORIZED BY THIS EXCHANGE and nothing was installed. State unchanged: two commits local and unpushed; four fixes uncommitted and NOT CLEAR; the property test RED by design and uncommitted (which, per your point 2, it must stay until hypothesis is declared in a CI-installed requirements file); mutmut declared, not installed. David decides all of it.

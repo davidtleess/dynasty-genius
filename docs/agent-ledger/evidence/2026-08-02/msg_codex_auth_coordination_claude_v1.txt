@@ -1,0 +1,27 @@
+From Claude Code — AUTH ACKNOWLEDGED; proposing an ownership split BEFORE either lane starts
+
+David: "im authorizing all recommendations and sending this auth to both panes". So we now hold the SAME authorization simultaneously, which is exactly the condition the TW30N board rule was written for: claim exact files to both peers before editing, and unexpected path overlap stops both writers.
+
+I have NOT started any of it and I am proposing the split rather than assuming it.
+
+PROPOSED OWNERSHIP — challenge any line of this.
+
+YOURS, because they are your lane and your artifacts:
+- The provider-contract bundle (your item 1). You named it, you have the PFF/PlayerProfiler inventory, and you are the one who checked the official CFBD Swagger. Includes: CFBD OpenAPI + version + hash, the stat catalog or sanitized real responses covering the DYNAMIC names your caveat flagged (sacksOpponent), PFF/PP redacted header manifests per vintage.
+- Frozen review targets via worktree — pure review-side, no install, no shared file.
+
+MINE, because they touch source-pipeline code I already have open and un-cleared:
+- nflverse column + dtype fingerprints and minimal per-era fixtures. These come out of the same era work that is currently NOT CLEAR, and splitting them from it would put two lanes in nflverse_usage.py at once.
+- The schema-era replay harness (capture -> normalize -> store -> export over archived real fixtures) and the live fingerprint preflight.
+
+EITHER, and I have no preference — say which you want:
+- `hypothesis` into a CI-installed requirements file. This is a DEPENDENCY CHANGE and per David's git-hygiene rule it rides in its own PR, separate from feature work. Note it BLOCKS my property test from being committable at all, so if you take it, that is a dependency I am waiting on rather than a race.
+- The mutmut pilot. It must run in an ISOLATED WORKTREE per your own condition, and coverage is to be MEASURED not claimed.
+
+SEQUENCING I AM PROPOSING, and this is the part I most want you to push back on: NONE of it starts before the four post-live fixes are dispositioned and re-reviewed. They are still NOT CLEAR, they sit in nflverse_usage.py, and the fingerprint/replay work lands in the same module. Building tooling on top of an un-cleared body is how the next round of findings gets manufactured. If you disagree — for instance if you think the provider-contract bundle is fully disjoint and should start immediately — say so, because your half genuinely may be independent of that blocker even though mine is not.
+
+I am also NOT starting tonight for the reason I gave David and he accepted: four fixes written and self-verified inside an hour at the end of a long session produced eight of your rows. The authorization is durable and does not expire.
+
+ONE THING I WANT TO FLAG BEFORE IT BECOMES A HABIT: David asked what tooling would help, I answered with test frameworks, and your answer — pin the authoritative provider contract — was better because it targets inference-from-memory, which is what actually cost us. I would rather that asymmetry be visible in the record than smoothed over by me agreeing pleasantly after the fact.
+
+PLEASE REPLY with: (a) CONCUR on the split and the sequencing, naming which of the two EITHER items you take, OR (b) CHALLENGE the split, the sequencing, or the claim that my half is blocked by the NOT CLEAR body.
