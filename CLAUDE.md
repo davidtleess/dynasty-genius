@@ -10,11 +10,12 @@ You do not rely on prior chat memory. You do not rely on summaries. Before execu
 
 1. `docs/governance/02-agent-operating-loop.md` (How you must work and log your session)
 2. `docs/governance/00-product-constitution.md` (The immutable football rules)
-2a. **`docs/governance/05-layer-doctrine.md` — ALWAYS, EVERY SESSION.** Its **§1 is David's own words, verbatim**; **§2 onward is agent-authored codification** — cite them differently and never attribute the whole file to him. **Do not rely on any summary of it, including this one** — §1 forbids paraphrase, so its own words come only from the read. His ruling, quoted exactly: *"Steps 1 and 2 are the foundation - if we don't have this our app WILL NOT WORK. we shouldn't be wasting cycles until we've built this foundation."* **Obligations (pending — see ACTIVATION STATUS at the end of this item):** name the layer your work serves (primary/presenting; several if it spans them; `cross-layer`/`governance` is valid); work at layers 3-6 records the layers 1-2 dependency check — what you ran, what it showed, your conclusion. Priority is never authorization, and a conclusion is not a licence to fix. *(The precedence rule — that 05 outranks plans, specs, tickets and backlogs — is part of the same pending codification and is NOT yet in force.)* **ACTIVATION STATUS — read this before treating anything in this item as binding.** **`05` §1 is David's own words and stands on his authority.** But **the every-session read requirement AND the obligations stated above are BOTH agent-authored codification, PENDING DAVID'S RATIFICATION and NOT YET BINDING** — he never issued a read command; that delivery mechanism is ours. The lanes follow both voluntarily pending his word, but no agent may cite either as law, hold another agent to them, or block work on them until he ratifies. Ratification is tracked on `AGENT_SYNC.md`. It is short; read it, do not skim it.
+2a. **`docs/governance/05-layer-doctrine.md` — ALWAYS, EVERY SESSION.** Its **§1 is David's own words, verbatim**; **§2 onward is agent-authored codification** — cite them differently and never attribute the whole file to him. **Do not rely on any summary of it, including this one** — §1 forbids paraphrase, so its own words come only from the read. His ruling, quoted exactly: *"Steps 1 and 2 are the foundation - if we don't have this our app WILL NOT WORK. we shouldn't be wasting cycles until we've built this foundation."* **Obligations (pending — see ACTIVATION STATUS at the end of this item):** name the layer your work serves (primary/presenting; several if it spans them; `cross-layer`/`governance` is valid); work at layers 3-6 records the layers 1-2 dependency check — what you ran, what it showed, your conclusion. Priority is never authorization, and a conclusion is not a licence to fix. *(The precedence rule — that 05 outranks plans, specs, tickets and backlogs — is part of the same pending codification and is NOT yet in force.)* **ACTIVATION STATUS — read this before treating anything in this item as binding.** **`05` §1 is David's own words and stands on his authority.** But **the every-session read requirement AND the obligations stated above are BOTH agent-authored codification, PENDING DAVID'S RATIFICATION and NOT YET BINDING** — he never issued a read command; that delivery mechanism is ours. The lanes follow both voluntarily pending his word, but no agent may cite either as law, hold another agent to them, or block work on them until he ratifies. Ratification is tracked on `AGENT_SYNC.md`. **`05` itself is short — read `05` in full, do not skim it.** *(This sentence previously read "It is short; read it, do not skim it" directly after naming `AGENT_SYNC.md`, so "it" resolved to `AGENT_SYNC.md` — a 400 KB, 1,300-line file. A fresh-agent audit flagged the referent as ambiguous. The short file is `05`.)*
 3. `docs/governance/01-north-star-architecture.md` (The codebase structure)
 4. `docs/governance/03-code-hygiene-policy.md` (Lint scope, enforcement, and unsafe-change guardrails — for Python work)
 5. **The design foundation — root `PRODUCT.md` + `DESIGN.md` — only if your task touches the frontend / UI / any visual surface** (anything under `frontend/`, React/TS, CSS, a route, or a component). It is the ratified visual-design source of record (honesty is the substrate; fantasy-native legibility is the aesthetic; the product must never look like a developer diagnostics console in a fantasy skin). Claude Code loads it via the `impeccable` skill; it is also item 5 of governance 02's Required Reading Order (Codex, Gemini, and other agents read the two files directly). **Contract-green is never a visual GREEN** — the whole viewport (not the diff) is the review unit, and an independent, unanchored fresh-agent visual audit with mid-scroll captures is the standing pre-David gate.
 6. `AGENT_SYNC.md` (The current sprint state — contains active blockers and script run gates)
+   **HOW TO READ IT — it is ~400 KB and append-at-top.** Read from line 1 **through the `⏹ END CURRENT BOARD` marker** and stop there. Everything below that marker is **historical context and is not live unless the current board reopens it** — reading further costs context and risks inheriting superseded commands. The **topmost dated block wins**. Several older blocks still say "READ FIRST" or "READ THIS BLOCK BEFORE ANYTHING BELOW IT" — **those are stale claims from when they were newest; precedence is by position, newest first.** If two blocks conflict, the higher one governs.
 
 If you attempt to write code or analyze players without logging your work in `docs/agent-ledger/` and adhering to the governance files, you are failing your prime directive.
 
@@ -53,7 +54,21 @@ The project uses Python 3.14. Always invoke the project venv explicitly:
 uvicorn app.main:app --reload           # run the API server
 ```
 
-Two test files have pre-existing collection errors and must be excluded from standard runs — check `AGENT_SYNC.md` for the current exclusion list.
+**Run the FULL suite. There is no exclusion list, and you must not invent one.**
+
+The invariant is **zero collection errors** — never a fixed total. *(4,335 collected on 2026-08-03 is historical pre-withdrawal evidence only; it includes a contract test that the pending NGS withdrawal removes, so a lower census afterward is correct and not a regression.)*
+
+```bash
+.venv/bin/python3.14 -m pytest          # require: ZERO collection errors. Do NOT pin a test count.
+```
+
+*This paragraph previously read: "Two test files have pre-existing collection errors and must be
+excluded from standard runs — check `AGENT_SYNC.md` for the current exclusion list." **Every part of
+that was false.*** No such list has ever existed in `AGENT_SYNC.md`, and `--collect-only` reports
+**zero** collection errors. The instruction caused a real defect on 2026-08-03: an agent hunted for
+the list, applied an `--ignore` from a stale note, and reported the scoped result as "the full
+suite." **If a run needs a filter, the filter must be justified from a measurement you took in this
+session — never from a remembered or documented exclusion.**
 
 ## Developer Quick Reference
 

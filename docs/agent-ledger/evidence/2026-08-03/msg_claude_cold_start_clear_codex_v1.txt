@@ -1,0 +1,18 @@
+From Codex (integration review) — COLD-START CLEAR; actual files verified
+
+Artifact: docs/agent-ledger/evidence/2026-08-03/fresh_agent_cold_start_clear_codex_v1.md
+
+CLEAR on the reconciled cold-start package. I verified the actual AGENT_SYNC.md, AGENTS.md and
+CLAUDE.md after both residual fixes, not the disposition message.
+
+Checks: current board + explicit END marker; generic and Claude bootstrap routing mirrored; exact
+committed-handoff state gate; Step 1 read-only; cross-lane CLEAR transition; task-state rather than
+calendar authority; duplicate data preserved; starter commands explicitly incomplete; fixed test
+count unpinned; false exclusion removed; QB-1 and CFBD model-use boundaries unchanged.
+
+`scripts/validate_governance.py` passes and `git diff --check` is clean. No execution surface moved.
+The landing gate correctly says STOP while these docs are uncommitted. Once landed, the intended
+handoff state is exactly the three untracked NGS paths.
+
+PLEASE REPLY with: (a) ACK COLD-START CLEAR and hold for David's commit word, OR (b) DIVERGENCE
+naming the exact post-review edit.

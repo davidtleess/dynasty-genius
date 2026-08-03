@@ -11,6 +11,12 @@ You do not rely on prior chat memory. You do not rely on summaries. Before execu
 4. `docs/governance/03-code-hygiene-policy.md` (Lint scope, enforcement, and unsafe-change guardrails — for Python work)
 5. The design foundation — root `PRODUCT.md` + `DESIGN.md` — when your task touches the frontend / UI / any visual surface. It is the ratified visual-design source of record (honesty is the substrate; fantasy-native legibility is the aesthetic; never a developer diagnostics console in a fantasy skin). Read the two files directly (Claude Code loads them via the `impeccable` skill). Contract-green is never a visual GREEN — the whole viewport is the review unit and an independent, unanchored fresh-agent visual audit (mid-scroll captures mandatory) is the pre-David gate.
 6. `AGENT_SYNC.md` (The current sprint state)
+   **HOW TO READ IT.** The file is ~400 KB and **append-at-top**. Read from line 1 **through the
+   `⏹ END CURRENT BOARD` marker** and stop there. Everything below that marker is **historical
+   context and is not live unless the current board reopens it** — reading further costs context
+   and risks inheriting superseded commands. Several older blocks still say "READ FIRST" or
+   "READ THIS BLOCK BEFORE ANYTHING BELOW IT"; **those are stale claims from when they were
+   newest.** Precedence is by position, newest first — if two blocks conflict, the higher governs.
 
 If you attempt to write code or analyze players without logging your work in `docs/agent-ledger/` and adhering to the governance files, you are failing your prime directive.
 

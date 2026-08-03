@@ -11,7 +11,7 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
-> # ▶▶ NEXT-SESSION BOARD — LAYER 1 CONTINUATION (2026-08-03). READ FIRST.
+> # ▶▶ CURRENT HANDOFF / EXECUTION BOARD — LAYER 1 CONTINUATION (authored 2026-08-03). READ FIRST.
 > **AUTHORSHIP — read this before citing anything below as authority.** **Only the quoted ruling in
 > the next paragraph is David's words.** Everything else on this board — the order, the gates, the
 > disposition vocabulary, the measurements, the deferrals — is **lane-converged agent work**
@@ -20,18 +20,67 @@
 > **SCOPE — this board is Layer 1 CONTINUATION, not completion.** It records six zero-caller
 > loaders, schedules two of them, defers four, and stops to remeasure. Nothing here completes Layer 1.
 >
+> ## COLD-START ROUTER — the next agent starts here
+>
+> After the mandatory bootstrap reads, execute **Step 1 only**. Do not begin CFBD promotion,
+> contracts, depth charts, or QB-1 work in parallel.
+>
+> 1. **Reconcile the handoff before changing anything. This step is a LANDING GATE, and it is
+>    DESIGNED to fail while the handoff documents are still uncommitted — that is not a defect.**
+>    The expected state applies to the **COMMITTED** handoff: a clean tracked tree whose **only**
+>    untracked paths are `scripts/run_nfl_nextgen_capture.py`,
+>    `src/dynasty_genius/capture/nfl_nextgen_capture.py`, and
+>    `tests/contract/test_nfl_nextgen_capture.py`.
+>    * **State matches** → the handoff has landed. You are the next session. Proceed.
+>    * **Anything else dirty or untracked** → **STOP. Do not execute step 1.** The board/docs have
+>      not been landed yet, so you are still in the authoring/landing phase. Land or reconcile them
+>      first; identify ownership and **preserve every unexpected change** — do not treat old board
+>      text as authority to absorb or discard it.
+>    *(A fresh-agent audit read this precondition as self-falsifying because the authoring session's
+>    own edits dirtied the tree. It is not: the dirty tree is precisely the signal that you are not
+>    yet the executing session. **Do not weaken the exact state check** to make it pass.)*
+> 2. **The first pass is read-only.** Prove the strict-replacement gate in Step 1 and write a durable
+>    audit. Do not edit or remove the three paths merely because the board recommends withdrawal.
+> 3. **Independent CLEAR is the transition.** Once the strict-replacement audit is independently
+>    clear, David's existing ruling authorizes removing those three code/test paths and repairing
+>    `docs/data-inventory.md`; no third withdrawal word is required. The gitignored duplicate data
+>    tree remains preserved.
+> 4. **Finish Step 1 + 1b before Step 2.** CFBD data promotion returns first as a focused framing;
+>    no promotion, bakeoff, model write, paid refresh, or QB-1 execution starts from this router.
+>
+> The **END CURRENT BOARD** marker below is authoritative for navigation: everything after it is
+> historical context unless this current board explicitly reopens it.
+>
 > **David's ruling, verbatim: "withdraw the duplicate NGS route - write the board into AGENT_SYNC".**
 > This supersedes his earlier "we'll do the NGS paths next session" — both lanes recommended
 > withdrawal and he ruled for it. Consistent with the standing TW30N goal below: *one trustworthy
 > path per source; do not ship parallel production routes.*
 >
-> **AUTHORITY BOUNDARY — temporal and target, stated exactly.** His ruling **IS** execution
-> authority for the NGS withdrawal **next session, after the strict-replacement gate passes**. It
-> does **not** need a third "remove them" word. What it does **not** authorize: removal during the
-> 2026-08-03 closeout itself, and deletion of the gitignored duplicate DATA tree (separate retention
-> ruling). *(Claude first recorded this as "not yet execution — he gave the ruling, not a remove-them
-> word." Codex challenged that as UNDERSTATING his authority, and was right: David used an
-> imperative verb and it should not be read as needing re-authorization.)*
+> **AUTHORITY BOUNDARY — a TASK-STATE test, not a calendar test.**
+> His ruling **IS** execution authority for the NGS withdrawal and needs no third "remove them" word.
+> The condition was originally "next session", which a fresh-agent audit proved undecidable. It was
+> then briefly written as a `date +%F > 2026-08-03` comparison — **that was wrong and is withdrawn.**
+> *A session is not a day.* A genuine fresh session can begin on the authoring date (David asked for
+> exactly that on 2026-08-03), and a calendar test would have blocked an authorized same-day fresh
+> bootstrap. **The real boundary is whether the handoff has LANDED:**
+>
+> * **The authoring/closeout agent commits this board and STOPS.** It does not execute step 1.
+> * **The next fresh bootstrap opens on step 1**, regardless of date.
+> * **Mechanical test — is the handoff committed?**
+>   ```bash
+>   git status --porcelain
+>   ```
+>   **Handoff landed** = tracked tree clean and the **only** untracked paths are the three NGS files.
+>   That state means you are the next session: proceed to step 1 behind its gate.
+>   **Anything else uncommitted** = the handoff has not landed. You are still in the authoring/landing
+>   phase: **do not execute step 1.** Land or reconcile the handoff first (see COLD-START ROUTER).
+> * **NEVER authorized in any session, whatever the state:** deletion of the gitignored duplicate
+>   DATA tree (separate retention ruling), and any bakeoff/model/feature use.
+>
+> *(Claude first recorded this as "not yet execution — he gave the ruling, not a remove-them word."
+> Codex challenged that as UNDERSTATING his authority, and was right: David used an imperative verb
+> and it should not be read as needing re-authorization. The task-state test above preserves that
+> correction while removing the ambiguity a later fresh-agent audit found.)*
 >
 > **Both lanes converged independently.** Claude from governance `01` §Source Adapter Rules line 74
 > ("Each external source has exactly one adapter"); Codex from row reconciliation and caller
@@ -40,7 +89,64 @@
 > **ngs_passing 5,933 · ngs_receiving 14,731 · ngs_rushing 6,059** (2016–2025); injuries 34,812.
 > Codex's order and gate: `docs/agent-ledger/evidence/2026-08-03/next_session_layer12_order_codex_v1.md`.
 >
-> ### The order — five steps, then STOP for David's selection
+> ### IF YOU ARE A SOLO AGENT WITH NO COCKPIT — read before starting anything
+> Steps 1 and 2 both terminate in an **independent reviewer's CLEAR**, and `02` §Falsification #4
+> forbids the implementer supplying its own. Check first:
+> ```bash
+> .venv/bin/python3.14 scripts/tmux_msg.py list    # who else is on the wire?
+> ```
+> **Ask whether an INDEPENDENT reviewer exists — not whether a pane named Codex exists.** If you ARE
+> the Codex lane, finding a pane called Codex means finding yourself, which satisfies nothing.
+> Independent = a different lane than the one implementing. (Normal lane roles: Claude implements,
+> Codex reviews. When Codex implements, Claude reviews.)
+> * **An independent reviewer is available** → work the order normally; route framing/RED/GREEN for
+>   CLEAR as usual.
+> * **No independent reviewer** → you may do everything up to but NOT including the reviewed step. Concretely:
+>   run measurements, write the framing document, author RED tests, repair `docs/data-inventory.md`
+>   (step 1b needs no CLEAR — it is correcting text against measured fact). **You may not remove the
+>   NGS files, and you may not promote CFBD data**, because both terminate in a CLEAR you cannot
+>   issue yourself. Leave the work staged and tell David a reviewer is needed.
+>
+> ### STARTER MEASUREMENTS for step 1 — these do NOT close the gate
+> **Read this heading literally.** These commands are a *starting* subset. They check three aggregate
+> table counts and caller wiring. **They do not satisfy the step-1 gate**, which additionally requires
+> per-family/season reconciliation, last-good export hashes, NGS identity outcomes, registry
+> uniqueness, and the named focused contracts. *An earlier draft called this list "the runnable gate",
+> which promoted a measured component to the whole — the exact failure this session spent its length
+> correcting. Passing everything below means you have started, not finished.*
+>
+> ```bash
+> .venv/bin/python3.14 -m pytest --collect-only -q | tail -2   # require: ZERO collection errors
+> .venv/bin/python3.14 scripts/verify_sprint_closeout.py       # expect: ENFORCE verdict: PASS
+> .venv/bin/ruff check src app                                 # expect: All checks passed
+>
+> # canonical NGS store — the counts the withdrawal must reconcile against:
+> .venv/bin/python3.14 -c "import sqlite3;c=sqlite3.connect('app/data/nflverse_usage.db');\
+> print([(t,c.execute(f'SELECT COUNT(*) FROM {t}').fetchone()[0]) for t in \
+> ('ngs_passing','ngs_receiving','ngs_rushing')])"
+> # expected EXACTLY: ngs_passing 5933 · ngs_receiving 14731 · ngs_rushing 6059
+>
+> # canonical reader wiring:
+> rg -l "load_nextgen_from_export" src/ scripts/ | rg -v test
+> # expected EXACTLY: nflverse_usage.py + run_feature_refresh.py + assemble_engine_b_dataset.py
+>
+> # SEPARATE check — no PRODUCTION CALLER of the withdrawn adapter (imports, not text):
+> rg -n "from .*nfl_nextgen_capture import|import nfl_nextgen_capture" src/ scripts/ | rg -v test
+> # expected: ONLY scripts/run_nfl_nextgen_capture.py, itself a withdrawn file.
+> # KNOWN BENIGN, NOT a failure: source_registry.py:381 names `test_nfl_nextgen_capture.py` inside a
+> # PROSE NOTE recording why the route was withheld. A string in a comment is not a caller. An
+> # earlier draft said "NO reference anywhere", which a literal agent would fail on that note.
+> ```
+>
+> **TEST COUNT — do not pin it.** `4,335 collected` is **historical pre-withdrawal evidence**: it
+> includes `tests/contract/test_nfl_nextgen_capture.py`, which the withdrawal removes. After an
+> authorized removal the correct census is **lower**, and that is not a regression. The invariant is
+> **zero collection errors**; report the exact post-edit census rather than matching a remembered
+> number.
+>
+> ### The order — steps 1, 1b, 2, 3, 4, 5, then STOP for David's selection
+> *(six numbered items; 1b is a sub-step of 1, not a separate stage — an earlier "four steps" and
+> then "five steps" heading both miscounted this list.)*
 >
 > **1. NGS WITHDRAWAL (disposition/CLEAR, NOT a new RED/GREEN).** Prove strict replacement FIRST,
 > then remove the three untracked files: `scripts/run_nfl_nextgen_capture.py`,
@@ -172,6 +278,10 @@
 > curation · wider mutation campaign · schedulers before manual contracts · the four remaining free
 > loaders and FantasyPros/Footballguys unless contracts+depth finish and David selects one ·
 > **deletion of the duplicate gitignored NGS data without a retention ruling.**
+
+> # ⏹ END CURRENT BOARD — EVERYTHING BELOW IS HISTORICAL CONTEXT
+> Lower boards, phase notes, and old “next” instructions remain evidence only. They do not compete
+> with the cold-start router or the five-step order above unless David explicitly reopens them.
 
 > # ▶ TW30N DATA FOUNDATION — THREE-PANE WORKING BOARD (2026-07-30 23:30 EDT)
 > **David's current direction:** Claude, Codex, and Gemini work together on layers 1–2 with direct
