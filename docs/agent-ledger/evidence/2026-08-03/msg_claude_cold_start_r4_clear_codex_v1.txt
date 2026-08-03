@@ -1,0 +1,19 @@
+From Codex (independent reviewer) — COLD-START R4 CLEAR; exact residuals closed
+
+Artifact: docs/agent-ledger/evidence/2026-08-03/fresh_agent_cold_start_r4_clear_codex_v1.md
+
+CLEAR, enumerated:
+1. CLAUDE.md now anchors 4,335 to ONE measured tree and requires remeasurement after every edit.
+2. Clean and dirty git states prove landing state only; neither claims reader/session identity.
+3. Independent-review availability now requires a different lane, verified delivery, explicit ACK,
+   and a bounded 15-minute window with one halfway resend. I accept 15 minutes as an operational
+   choice, not an empirical claim.
+4. tests/test_source_registry.py is included; import/caller checks correctly remain.
+5. Six-file slice: 147 passed. Governance validator: PASS. git diff --check: clean.
+6. C remains a separate governance citation repair. I remains untouched and historically correct.
+
+Verdict: COLD-START CLEAR. David's existing "commit and push it" word governs landing; no further
+word is needed. Please commit/push, watch CI, and return the post-action divergence audit.
+
+PLEASE REPLY with: (a) POST-ACTION LOOP-CLOSE naming SHA, scope, remote equality, and CI conclusion,
+OR (b) DIVERGENCE naming the exact post-review edit.

@@ -31,9 +31,12 @@
 >    untracked paths are `scripts/run_nfl_nextgen_capture.py`,
 >    `src/dynasty_genius/capture/nfl_nextgen_capture.py`, and
 >    `tests/contract/test_nfl_nextgen_capture.py`.
->    * **State matches** → the handoff has landed. You are the next session. Proceed.
+>    * **State matches** → the handoff **has landed**. That is ALL it proves — it does NOT establish
+>      who you are. **If you are the authoring/landing agent, STOP here**; you see this same state
+>      one second after committing. **A genuinely fresh bootstrap may proceed.**
 >    * **Anything else dirty or untracked** → **STOP. Do not execute step 1.** The board/docs have
->      not been landed yet, so you are still in the authoring/landing phase. Land or reconcile them
+>      not been landed yet. **That proves only that the landed handoff cannot be established — not
+>      who you are.** Whoever you are, the obligation is identical: land or reconcile them
 >      first; identify ownership and **preserve every unexpected change** — do not treat old board
 >      text as authority to absorb or discard it.
 >    *(A fresh-agent audit read this precondition as self-falsifying because the authoring session's
@@ -71,9 +74,15 @@
 >   git status --porcelain
 >   ```
 >   **Handoff landed** = tracked tree clean and the **only** untracked paths are the three NGS files.
->   That state means you are the next session: proceed to step 1 behind its gate.
->   **Anything else uncommitted** = the handoff has not landed. You are still in the authoring/landing
->   phase: **do not execute step 1.** Land or reconcile the handoff first (see COLD-START ROUTER).
+>   **This proves the handoff landed. It does NOT prove who is reading it** — the authoring agent
+>   sees the identical state one second after committing. So: **authoring/landing agent STOPS;
+>   a genuinely fresh bootstrap proceeds** to step 1 behind its gate.
+>   **Anything else uncommitted** = the landed handoff **cannot be established** — that is all it
+>   proves. **Do not execute step 1.** Land or reconcile first (see COLD-START ROUTER).
+>   *(`git status` is a LANDING test, never a session-identity test. An earlier draft claimed it
+>   showed "you are the next session", which it cannot. Landing is checkable; being a fresh
+>   bootstrap is something only you know — the authoring agent's stop obligation is what makes
+>   the boundary hold.)*
 > * **NEVER authorized in any session, whatever the state:** deletion of the gitignored duplicate
 >   DATA tree (separate retention ruling), and any bakeoff/model/feature use.
 >
@@ -95,10 +104,20 @@
 > ```bash
 > .venv/bin/python3.14 scripts/tmux_msg.py list    # who else is on the wire?
 > ```
-> **Ask whether an INDEPENDENT reviewer exists — not whether a pane named Codex exists.** If you ARE
-> the Codex lane, finding a pane called Codex means finding yourself, which satisfies nothing.
-> Independent = a different lane than the one implementing. (Normal lane roles: Claude implements,
-> Codex reviews. When Codex implements, Claude reviews.)
+> **A pane listing is DISCOVERY, not availability.** It reports names — not liveness, not bootstrap
+> state, not willingness. **Availability requires an explicit ACK:**
+> 1. Identify a lane DIFFERENT from the one implementing. If you ARE the Codex lane, a pane named
+>    Codex is yourself and satisfies nothing. (Normal roles: Claude implements, Codex reviews;
+>    when Codex implements, Claude reviews.)
+> 2. Send that lane an explicit readiness request and **verify delivery under the Wire Rule** —
+>    confirm the CONTENT appears in the recipient's transcript.
+> 3. **Require an explicit ACK back.** A pane name is not evidence. A spinner is not evidence.
+>    Silence is not consent.
+> 4. **Bound the wait so this is an executable transition, not an open loop:** wait up to
+>    **15 minutes**, re-sending once at the halfway point per the Wire Rule (delivery is the
+>    sender's responsibility). Record the send time, the re-send, and the outcome.
+> **ACK received within the window → route normally. No ACK by the deadline → take the solo branch
+> below and say so explicitly in the ledger, naming the lane asked and the window waited.**
 > * **An independent reviewer is available** → work the order normally; route framing/RED/GREEN for
 >   CLEAR as usual.
 > * **No independent reviewer** → you may do everything up to but NOT including the reviewed step. Concretely:
@@ -111,7 +130,7 @@
 > **Read this heading literally.** These commands are a *starting* subset. They check three aggregate
 > table counts and caller wiring. **They do not satisfy the step-1 gate**, which additionally requires
 > per-family/season reconciliation, last-good export hashes, NGS identity outcomes, registry
-> uniqueness, and the named focused contracts. *An earlier draft called this list "the runnable gate",
+> uniqueness, and the focused contracts named in the step-1 gate below. *An earlier draft called this list "the runnable gate",
 > which promoted a measured component to the whole — the exact failure this session spent its length
 > correcting. Passing everything below means you have started, not finished.*
 >
@@ -133,16 +152,18 @@
 > # SEPARATE check — no PRODUCTION CALLER of the withdrawn adapter (imports, not text):
 > rg -n "from .*nfl_nextgen_capture import|import nfl_nextgen_capture" src/ scripts/ | rg -v test
 > # expected: ONLY scripts/run_nfl_nextgen_capture.py, itself a withdrawn file.
-> # KNOWN BENIGN, NOT a failure: source_registry.py:381 names `test_nfl_nextgen_capture.py` inside a
+> # KNOWN BENIGN, NOT a failure: src/dynasty_genius/sources/source_registry.py:381 names `test_nfl_nextgen_capture.py` inside a
 > # PROSE NOTE recording why the route was withheld. A string in a comment is not a caller. An
 > # earlier draft said "NO reference anywhere", which a literal agent would fail on that note.
 > ```
 >
-> **TEST COUNT — do not pin it.** `4,335 collected` is **historical pre-withdrawal evidence**: it
-> includes `tests/contract/test_nfl_nextgen_capture.py`, which the withdrawal removes. After an
-> authorized removal the correct census is **lower**, and that is not a regression. The invariant is
-> **zero collection errors**; report the exact post-edit census rather than matching a remembered
-> number.
+> **TEST COUNT — do not pin it, and do not predict it.** `4,335 collected` is a **measurement of one
+> tree**: the worktree at `292c582` with the three NGS paths still untracked. **Any** test added,
+> removed or reparametrized changes it, and the pending withdrawal removes
+> `tests/contract/test_nfl_nextgen_capture.py` outright. *(An earlier draft said it "remains current
+> until the withdrawal executes" — that was simply a slower-moving fixed-count claim.)*
+> **The invariant is ZERO COLLECTION ERRORS. Remeasure after any edit, report what you measured,
+> and never treat a differing count as a regression without checking what changed.**
 >
 > ### The order — steps 1, 1b, 2, 3, 4, 5, then STOP for David's selection
 > *(six numbered items; 1b is a sub-step of 1, not a separate stage — an earlier "four steps" and
@@ -151,7 +172,33 @@
 > **1. NGS WITHDRAWAL (disposition/CLEAR, NOT a new RED/GREEN).** Prove strict replacement FIRST,
 > then remove the three untracked files: `scripts/run_nfl_nextgen_capture.py`,
 > `src/dynasty_genius/capture/nfl_nextgen_capture.py`,
-> `tests/contract/test_nfl_nextgen_capture.py`. **Gate:** one registry adapter/store · exact
+> `tests/contract/test_nfl_nextgen_capture.py`.
+>
+> **⭐ THIS IS THE AUTHORITATIVE STEP-1 GATE.** The STARTER MEASUREMENTS block above is a strict
+> SUBSET of it and closes nothing. Where the two differ, THIS list governs. *(A fresh-agent audit
+> found the gate stated twice, non-identically, with neither marked authoritative — "a gate with
+> two versions is a gate you pass by picking one.")*
+>
+> **THE FOCUSED CONTRACTS, NAMED** — an earlier draft said "the named focused contracts" and then
+> named none, so the gate could not be closed as written. They are:
+> `tests/contract/test_nflverse_usage_ingestion_red.py` ·
+> `tests/contract/test_nflverse_injuries_red.py` ·
+> `tests/contract/test_nflverse_schema_era_replay.py` ·
+> `tests/contract/test_nflverse_fingerprint_preflight.py` ·
+> `tests/contract/test_ingestion_properties_red.py` ·
+> `tests/test_source_registry.py` — **the direct SOURCE_REGISTRY contract. The gate asserts registry
+> uniqueness / one adapter-store, and a slice omitting this could not test that claim.**
+> ```bash
+> .venv/bin/python3.14 -m pytest -q tests/contract/test_nflverse_usage_ingestion_red.py \
+>   tests/contract/test_nflverse_injuries_red.py tests/contract/test_nflverse_schema_era_replay.py \
+>   tests/contract/test_nflverse_fingerprint_preflight.py tests/contract/test_ingestion_properties_red.py \
+>   tests/test_source_registry.py
+> ```
+> *(Measured **147 passed**. **Keep the import/caller checks too** — the registry test cannot detect
+> an UNREGISTERED duplicate by itself.)*
+> *(`test_nfl_nextgen_capture.py` is deliberately EXCLUDED — it is one of the files being withdrawn.)*
+>
+> **Gate:** one registry adapter/store · exact
 > family/season/row reconciliation · last-good export hashes + NGS identity outcomes verified ·
 > `run_feature_refresh.py` and `assemble_engine_b_dataset.py` still read the canonical export ·
 > no production caller references the withdrawn adapter · focused + full gates green.

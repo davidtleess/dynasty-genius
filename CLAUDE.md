@@ -56,7 +56,7 @@ uvicorn app.main:app --reload           # run the API server
 
 **Run the FULL suite. There is no exclusion list, and you must not invent one.**
 
-The invariant is **zero collection errors** — never a fixed total. *(4,335 collected on 2026-08-03 is historical pre-withdrawal evidence only; it includes a contract test that the pending NGS withdrawal removes, so a lower census afterward is correct and not a regression.)*
+The invariant is **zero collection errors** — never a fixed total, and never a predicted one. *(4,335 collected is a measurement of ONE TREE: the worktree at `292c582` with the three NGS paths still untracked. Any test added, removed or reparametrized changes it. Remeasure after any edit, report what you measured, and never treat a differing count as a regression without checking what changed.)*
 
 ```bash
 .venv/bin/python3.14 -m pytest          # require: ZERO collection errors. Do NOT pin a test count.
