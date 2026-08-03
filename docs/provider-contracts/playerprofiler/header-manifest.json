@@ -1,0 +1,323 @@
+{
+  "contract_version": "provider-contracts.v1",
+  "delivery": "paid manual subscriber exports",
+  "generated_at": "2026-08-02T07:00:00Z",
+  "privacy": {
+    "complete_headers_committed": false,
+    "note": "Only header hashes, widths, vintages, and value-kind profile hashes are committed. No subscriber row, player identifier, filename, or complete paid header leaves the private source directory.",
+    "raw_values_committed": false,
+    "source_filenames_committed": false
+  },
+  "provider": "playerprofiler",
+  "schema_count": 16,
+  "schemas": [
+    {
+      "column_count": 117,
+      "header_sha256": "10aa758d0305dab33677650f6a4b070bae2ebd63353f40bafe6bf274fd9e7ba2",
+      "positions": [],
+      "seasons": [
+        "2023",
+        "2024"
+      ],
+      "source_file_count": 2,
+      "stream": "advanced_gamelog",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 87,
+        "decimal": 11,
+        "integer": 111,
+        "text": 6
+      },
+      "value_kind_profile_sha256": "a2f69322658d8e94bd71fbff984c2200f73163c377f8e1f35dee0b916058a223"
+    },
+    {
+      "column_count": 119,
+      "header_sha256": "2338f8c1c363f925715bfd6f7cebcfc2b5bf52725e3e47be6a2b75c29166f802",
+      "positions": [],
+      "seasons": [
+        "2021",
+        "2022"
+      ],
+      "source_file_count": 2,
+      "stream": "advanced_gamelog",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 87,
+        "decimal": 11,
+        "integer": 114,
+        "text": 6
+      },
+      "value_kind_profile_sha256": "7d7538d7c2a16b8f4a585eb869519c7c9786482c44eba72f208e729e2ec08923"
+    },
+    {
+      "column_count": 108,
+      "header_sha256": "26e0670ef85973a660ecc37e0ef889e9bbca06ff6ccd9cf96cb5e1b3214feae7",
+      "positions": [],
+      "seasons": [
+        "2025"
+      ],
+      "source_file_count": 1,
+      "stream": "advanced_gamelog",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 78,
+        "decimal": 9,
+        "integer": 101,
+        "text": 6
+      },
+      "value_kind_profile_sha256": "bd4a67ca5ca4f08aaa392e5a8355a5ae00296be70788c512271f96f13445e5be"
+    },
+    {
+      "column_count": 91,
+      "header_sha256": "ecbd1f0c6d19b38d59e75c49161aa997bf354f72a3e84535e441926560b985d2",
+      "positions": [],
+      "seasons": [
+        "2020"
+      ],
+      "source_file_count": 1,
+      "stream": "advanced_gamelog",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 51,
+        "decimal": 16,
+        "integer": 86,
+        "text": 6
+      },
+      "value_kind_profile_sha256": "9c79ee53f0e50f7dd250bdae817c7e90bc62855be6999220db4ffda0f2594c3b"
+    },
+    {
+      "column_count": 143,
+      "header_sha256": "3138e94485947cb458f2eb78bb6c990ca26f10442d07a8548bcccaef5180182a",
+      "positions": [],
+      "seasons": [
+        "2021",
+        "2022"
+      ],
+      "source_file_count": 2,
+      "stream": "advanced_pbp",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 79,
+        "decimal": 2,
+        "integer": 98,
+        "text": 44
+      },
+      "value_kind_profile_sha256": "2fd824222b20170906518041bf5a1aa83aa5064af74495f3339ae5353e32819a"
+    },
+    {
+      "column_count": 92,
+      "header_sha256": "9b22e55ac94c1997a001c1f464aff8ce729d051fcb53e12ddbc4197b73fed831",
+      "positions": [],
+      "seasons": [
+        "2023",
+        "2024",
+        "2025"
+      ],
+      "source_file_count": 3,
+      "stream": "advanced_pbp",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 40,
+        "decimal": 3,
+        "integer": 58,
+        "text": 35
+      },
+      "value_kind_profile_sha256": "2eed8dc2582f2a557b39c0487bc6bb2074341ca10e63fcb2714935074b042363"
+    },
+    {
+      "column_count": 134,
+      "header_sha256": "f3020b655770f853c88f210562235ec982403aa542b390e972a169c177bac46a",
+      "positions": [],
+      "seasons": [
+        "2020"
+      ],
+      "source_file_count": 1,
+      "stream": "advanced_pbp",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 75,
+        "integer": 86,
+        "text": 46
+      },
+      "value_kind_profile_sha256": "6c7197ae7fc0b1a31c410b0fb0959745c13aaeed0f6baee59e1b1e44e6a5a578"
+    },
+    {
+      "column_count": 12,
+      "header_sha256": "18c3cc5fc2c29dcfb4ebbd9b8321d3c63e6e2f9e3894ef6d72ed3921676acf7e",
+      "positions": [],
+      "seasons": [
+        "2017",
+        "2018"
+      ],
+      "source_file_count": 2,
+      "stream": "medical_history",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 4,
+        "integer": 3,
+        "text": 9
+      },
+      "value_kind_profile_sha256": "68c2a9608c56d0e743e543b8d19a79ee5784ae703f04ef8f2270a2c65b6c372c"
+    },
+    {
+      "column_count": 17,
+      "header_sha256": "1af9fb9a3a55d1c3f612d47dfe191566c5fac4afa82dc66e0e3f993286d0e0a4",
+      "positions": [],
+      "seasons": [
+        "2023"
+      ],
+      "source_file_count": 1,
+      "stream": "medical_history",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 7,
+        "integer": 3,
+        "text": 13
+      },
+      "value_kind_profile_sha256": "f35717e257ecd1caf06e2a24f7f9d688bf3271198fa7bdc6bc4f15bd265b621f"
+    },
+    {
+      "column_count": 13,
+      "header_sha256": "4960e62ada624f5b186a0a2298107d6dad6dda3f5fcaa098b64991c7df2f858d",
+      "positions": [],
+      "seasons": [
+        "2019"
+      ],
+      "source_file_count": 1,
+      "stream": "medical_history",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 4,
+        "integer": 3,
+        "text": 10
+      },
+      "value_kind_profile_sha256": "f4d02ec91c2f64b6bc17503e1e0de11f11cbd30cd345b0aafdf6b40145aeb731"
+    },
+    {
+      "column_count": 14,
+      "header_sha256": "abbc017372886a54638c91eec9a22707665389543f79f485666920d30eebebc2",
+      "positions": [],
+      "seasons": [
+        "2020"
+      ],
+      "source_file_count": 1,
+      "stream": "medical_history",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 6,
+        "integer": 3,
+        "text": 11
+      },
+      "value_kind_profile_sha256": "8130ea5411bc66dae02195750c1faaa7e3a9f830e21229e9dc9ae9c956d2190e"
+    },
+    {
+      "column_count": 15,
+      "header_sha256": "b4e3a0ce671f47e48b6cbc6f633fea9a42d25866ccea2da6b29326cb4f081b31",
+      "positions": [],
+      "seasons": [
+        "2021",
+        "2022"
+      ],
+      "source_file_count": 2,
+      "stream": "medical_history",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 8,
+        "integer": 3,
+        "text": 12
+      },
+      "value_kind_profile_sha256": "f960274492cc7064c8290c525686612415a8336c65aff8b6b7e52dfa59c8c568"
+    },
+    {
+      "column_count": 317,
+      "header_sha256": "34b7a51e357183354bb5f237b4bc4618d36205b60cbd1bee86ee61f6ca94abe5",
+      "positions": [
+        "QB",
+        "RB",
+        "TE",
+        "WR"
+      ],
+      "seasons": [
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025"
+      ],
+      "source_file_count": 31,
+      "stream": "player_season",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 311,
+        "decimal": 208,
+        "integer": 298,
+        "text": 7
+      },
+      "value_kind_profile_sha256": "1f7ad104c506ae84b08aad83bf103508629505ec31f54f959335c114147864da"
+    },
+    {
+      "column_count": 5,
+      "header_sha256": "1668f90a86db8af632a75dc551416ab020f6156d9d06856e05f7c517a7bc2f93",
+      "positions": [],
+      "seasons": [
+        "2020"
+      ],
+      "source_file_count": 1,
+      "stream": "weekly_roster_key",
+      "value_kind_column_counts": {
+        "integer": 2,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "bbd736eda21a34c53409e76009853b0dc2626196430bf49903d51c843db495c2"
+    },
+    {
+      "column_count": 7,
+      "header_sha256": "373e28217fd178673d253e9ad53afbaf1ab692f11f96a5f59a75af6d939f9559",
+      "positions": [],
+      "seasons": [
+        "2021",
+        "2022"
+      ],
+      "source_file_count": 2,
+      "stream": "weekly_roster_key",
+      "value_kind_column_counts": {
+        "blank_or_null_token": 1,
+        "integer": 3,
+        "text": 4
+      },
+      "value_kind_profile_sha256": "b557ffde974859b8e364278d1056679e32184fff7a4def90beab136a93cb0feb"
+    },
+    {
+      "column_count": 7,
+      "header_sha256": "e0cce0beb9c4fe4461f4fafa35f59c9dabbb01d31edceaebb00e6825e3c70729",
+      "positions": [],
+      "seasons": [
+        "2023",
+        "2024",
+        "2025"
+      ],
+      "source_file_count": 3,
+      "stream": "weekly_roster_key",
+      "value_kind_column_counts": {
+        "integer": 2,
+        "text": 5
+      },
+      "value_kind_profile_sha256": "cc72e60e83e60d0ed7742eaa21130d31c4d48bdf1f1a0901c3b8e1d79e970221"
+    }
+  ],
+  "source_file_count": 56,
+  "status_contracts": {
+    "advanced_gamelog": {
+      "run_id": "ppg-20260801T0437539441780000",
+      "schema_version": "playerprofiler_gamelog.v1",
+      "status_sha256": "d7659257e8f2eb105f288f4df68aa1f40830a765968bda3190239603ad7b42b1"
+    },
+    "advanced_pbp": {
+      "run_id": "ppp-20260801T1336263695140000",
+      "schema_version": "playerprofiler_pbp.v1",
+      "status_sha256": "8c90f0d00b999064bf82c5728b955092c21aeac0c778796354e49c0a51b4bb3f"
+    },
+    "player_season_medical": {
+      "run_id": "pp-20260801T0347219730240000",
+      "schema_version": "playerprofiler.v1",
+      "status_sha256": "b1126a6f3f18f0dc7b1f0f43347983adc042745d4726e9d0d7eea303021c7dec"
+    },
+    "weekly_roster_key": {
+      "run_id": "ppr-20260801T0419207068070000",
+      "schema_version": "playerprofiler_roster.v1",
+      "status_sha256": "ddf65a731ec0d8a723496dc044a2b947bec14d37b33a30e88164c3944102c6f6"
+    }
+  },
+  "value_profile_sample_rows_per_file": 200
+}

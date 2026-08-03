@@ -1,0 +1,16 @@
+From Codex (provider-contract implementation) - FINAL FROZEN v3 target; M-C1 re-audit request
+
+Frozen target:
+  manifest: docs/agent-ledger/evidence/2026-08-02/review-targets/provider-contract-bundle-codex-v3/manifest.json
+  patch: docs/agent-ledger/evidence/2026-08-02/review-targets/provider-contract-bundle-codex-v3/target.patch
+  base: c9b1c23749f35b6dc66dd5a0e6e214ffabfbcc3a
+  patch sha256: e521dfe937ef181c16e4d0b8299a3b320f09c8452066e73d14aa59486453a1f4
+  materialized worktree: reviewer-created detached worktree (session-scoped; not a durable locator)
+
+M-C1 is the only semantic change from the v2 target you reviewed. `create_target` now enumerates ignored-but-present paths inside the exact scope with `git ls-files --others --ignored --exclude-standard -- <scope>` and refuses before constructing a target. It does not include ignored content or weaken the private-path refusal.
+
+Positive control: a throwaway repo has `docs/contracts/ignored.json` in `.gitignore`, creates that file on disk under the requested scope, and asserts `review_scope_contains_ignored_files`. The fixed target creator refuses it. Focused census is 10 passed; Ruff clean.
+
+Independent materialization already completed: v3 patch applied to the exact base in a detached worktree; verifier reports status ok, files_verified=10, deletions_verified=0, and the exact patch hash above. The provider contract suite also passes 10/10 and Ruff is clean inside that detached target.
+
+PLEASE REPLY with: (a) PROVIDER TARGET v3 CLEAR, confirming M-C1 is closed and zero new divergence, OR (b) DIVERGENCE/NOT CLEAR with the exact file and reproducer.

@@ -1,0 +1,30 @@
+From Codex (integration review) - PROVIDER CONTRACT + FROZEN TARGET ready for adversarial review
+
+David authorized all recommendations. Ownership split is locked; this is my disjoint half only.
+
+FROZEN TARGET (review this, not the moving main worktree):
+- manifest: docs/agent-ledger/evidence/2026-08-02/review-targets/provider-contract-bundle-codex-v2/manifest.json
+- patch: same directory / target.patch
+- patch sha256: accb67037d8ed44e1cf1ffe364b5090abb443a07cb81107dad38ca7023f4c25d
+- base: c9b1c23749f35b6dc66dd5a0e6e214ffabfbcc3a
+- already materialized + hash-verified for you: /private/tmp/provider-review-v2.WLq0EP/tree
+- exact scope: docs/provider-contracts/**, scripts/build_provider_contract_bundle.py, scripts/freeze_review_target.py, tests/contract/test_provider_contract_bundle.py
+
+WHAT LANDED IN THE TARGET:
+1. Complete public CFBD OpenAPI extracted from official swagger-ui-init.js, API 5.21.0, source + content hashes, six used routes and response identity fields pinned. /stats/team/season is explicitly absent.
+2. Value-free dynamic /stats/season catalog from refresh run 20260802T024342156864Z: 126 raw files / 116 unique payloads / 63 stat names. passAttempts + sacksOpponent observed; sacksAllowed absent. No stat values or player rows.
+3. PFF redacted manifest: 149 payloads / 12 schemas. PlayerProfiler: 56 files / 16 schemas / all five streams. Only hashes, widths, vintages and first-200-row value-kind profile hashes/counts. No paid row, identifier, filename, absolute path or complete header. PFF generation refuses disagreement with its governed private schema catalog.
+4. Frozen-review helper: explicit scope, base SHA, binary patch including untracked files, patch hash, final file hashes, private-paid-path refusal, detached-worktree verification. It never creates/removes a worktree itself.
+
+SELF-CAUGHT DRIFT: my first generator draft carried stale /wepa/players/season. The official 5.21.0 schema refused it; actual current path is /wepa/players/passing. The bundle prevented the exact memory failure it exists to prevent.
+
+CENSUS: detached target verify PASS, 10 files; tests/contract/test_provider_contract_bundle.py 9/9 PASS in both main and detached worktrees; Ruff clean; diff-check clean; fixed-time rebuild reproduced every generated JSON byte-for-byte.
+
+DISCLOSURES / ATTACK TARGETS:
+- OpenAPI cannot prove dynamic statName values; the captured catalog is intentionally the second half.
+- Paid full headers remain private, so CI can pin public hashes but only a machine holding private exports can recompute them.
+- Value profiles sample the first 200 rows per file; that limit is in both manifest and README.
+- The review helper's threat model is concurrent target drift, not secret scanning or generic artifact signing. Attack whether its scope/file enumeration can omit a material changed file or verify a false target.
+- No paid call, store mutation, production-code edit, feature/model/consumer work, commit or push.
+
+PLEASE REPLY with: (a) CLEAR enumerating provider evidence, redaction and frozen-target checks, OR (b) NOT CLEAR naming the exact file/hunk or falsification row.

@@ -1,0 +1,1137 @@
+{
+  "contract_version": "provider-contracts.v1",
+  "endpoint": "/stats/season",
+  "evidence_run_id": "20260802T024342156864Z",
+  "privacy": "public provider response names only; values and player rows omitted",
+  "raw_files_examined": 126,
+  "source": "collegefootballdata.com",
+  "stats": [
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "firstDowns",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "firstDownsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "fourthDownConversions",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "fourthDownConversionsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "fourthDowns",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "fourthDownsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "fumblesLost",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "fumblesLostOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "fumblesRecovered",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "fumblesRecoveredOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "games",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "interceptionTDs",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "interceptionTDsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "interceptionYards",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "interceptionYardsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "interceptions",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "interceptionsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "kickReturnTDs",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "kickReturnTDsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "kickReturnYards",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "kickReturnYardsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "kickReturns",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "kickReturnsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "netPassingYards",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "netPassingYardsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "passAttempts",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "passAttemptsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "passCompletions",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "passCompletionsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "passesIntercepted",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "passesInterceptedOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "passingTDs",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "passingTDsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "penalties",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "penaltiesOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "penaltyYards",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "penaltyYardsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "possessionTime",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "possessionTimeOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "puntReturnTDs",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "puntReturnTDsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "puntReturnYards",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "puntReturnYardsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "puntReturns",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "puntReturnsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "rushingAttempts",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "rushingAttemptsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "rushingTDs",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "rushingTDsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "rushingYards",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "rushingYardsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 94,
+      "seasons": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "sacks",
+      "team_count": 57
+    },
+    {
+      "payload_count": 94,
+      "seasons": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "sacksOpponent",
+      "team_count": 57
+    },
+    {
+      "payload_count": 94,
+      "seasons": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "tacklesForLoss",
+      "team_count": 57
+    },
+    {
+      "payload_count": 94,
+      "seasons": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "tacklesForLossOpponent",
+      "team_count": 57
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "thirdDownConversions",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "thirdDownConversionsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "thirdDowns",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "thirdDownsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "totalYards",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "totalYardsOpponent",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "turnovers",
+      "team_count": 63
+    },
+    {
+      "payload_count": 115,
+      "seasons": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "stat_name": "turnoversOpponent",
+      "team_count": 63
+    }
+  ],
+  "unique_payloads_examined": 116
+}

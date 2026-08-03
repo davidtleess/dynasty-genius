@@ -1,0 +1,36 @@
+{
+  "contract_version": "provider-contracts.v1",
+  "known_invalid_dynamic_stat_names": [
+    "sacksAllowed"
+  ],
+  "known_invalid_paths": [
+    "/stats/team/season"
+  ],
+  "openapi_sha256": "f6274010fb8f3d11c4c574fd4d648fd33e6c47e0eca2cfb61b481b20ca482ea3",
+  "openapi_version": "5.21.0",
+  "provider": "collegefootballdata.com",
+  "required_dynamic_stat_names": [
+    "passAttempts",
+    "sacksOpponent"
+  ],
+  "required_paths": [
+    "/player/search",
+    "/stats/player/season",
+    "/ppa/players/season",
+    "/wepa/players/passing",
+    "/stats/season",
+    "/games"
+  ],
+  "response_identity_fields": {
+    "/games": "id",
+    "/player/search": "id",
+    "/ppa/players/season": "id",
+    "/stats/player/season": "playerId",
+    "/stats/season": "team+season",
+    "/wepa/players/passing": "athleteId"
+  },
+  "retrieved_at": "2026-08-02T07:00:00Z",
+  "source_url": "https://api.collegefootballdata.com/swagger-ui-init.js",
+  "swagger_init_sha256": "aaca7e0ce527e4af13942a42ba601521916c750a936c69476a12bcd70cbc136a",
+  "team_stat_catalog_sha256": "60a76ee6d5eafb065562455b8c635b089caf05b14b5cc71d98237c6d2357aa0c"
+}

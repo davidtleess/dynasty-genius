@@ -1,0 +1,381 @@
+{
+  "contract_version": "provider-contracts.v1",
+  "delivery": "paid manual exports",
+  "generated_at": "2026-08-02T07:00:00Z",
+  "payload_count": 149,
+  "privacy": {
+    "complete_headers_committed": false,
+    "note": "Full paid headers and rows remain in the gitignored, backed-up private inventory. This manifest pins each header and redacted value-kind profile by SHA-256 without publishing proprietary contents.",
+    "raw_values_committed": false,
+    "source_filenames_committed": false
+  },
+  "private_catalog_sha256": "19040e9cc345676e03408c8cc1e001fca53605449753a457ba5ddce19db423bf",
+  "provider": "pff",
+  "schema_count": 12,
+  "schemas": [
+    {
+      "column_count": 165,
+      "header_sha256": "0b2dd9d3e6668dd08f8bde053d509da92a63d64b59be666e7e06252fc49edce1",
+      "leagues": [
+        "nfl"
+      ],
+      "payload_count": 1,
+      "reports": [
+        "passing_pressure"
+      ],
+      "scopes": [
+        "PRE"
+      ],
+      "seasons": [
+        2025
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 59,
+        "decimal": 79,
+        "integer": 82,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "9715a18092a1c84b934980eda473144c9f19b9a636000dcd47683c65e0a0771b"
+    },
+    {
+      "column_count": 193,
+      "header_sha256": "1508805f4bf8773c1c00e205e43f5cf3406e36d353db00fd2b98091ee8264196",
+      "leagues": [
+        "nfl"
+      ],
+      "payload_count": 4,
+      "reports": [
+        "passing_pressure"
+      ],
+      "scopes": [
+        "REG",
+        "REGPO"
+      ],
+      "seasons": [
+        2017,
+        2020
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 94,
+        "decimal": 107,
+        "integer": 82,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "7fd0ffb7c6958dd186fa1cb5a2bf63f2d944c35431e31f0ac14bad215e4b5e9f"
+    },
+    {
+      "column_count": 47,
+      "header_sha256": "1e70043df47f4fd84fa5d03e20baf4b9a90b461e220e2aa81e77d0d7cd7ec7cd",
+      "leagues": [
+        "ncaa",
+        "nfl"
+      ],
+      "payload_count": 18,
+      "reports": [
+        "rushing_summary"
+      ],
+      "scopes": [
+        "REG",
+        "REGPO"
+      ],
+      "seasons": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 7,
+        "decimal": 13,
+        "integer": 31,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "9fda895cb9b152b222aeccbb97620f972825f15b0d74e0fde68aafcb52480637"
+    },
+    {
+      "column_count": 189,
+      "header_sha256": "23a99649dd3bf383e3bf32db85463a206626feba4b861135274256a937f1e418",
+      "leagues": [
+        "nfl"
+      ],
+      "payload_count": 2,
+      "reports": [
+        "passing_pressure"
+      ],
+      "scopes": [
+        "REG",
+        "REGPO"
+      ],
+      "seasons": [
+        2022
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 90,
+        "decimal": 95,
+        "integer": 82,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "92049df81ab6947329211245d0230c125ee920aa6067203b0b51bf5810bfa804"
+    },
+    {
+      "column_count": 197,
+      "header_sha256": "30f69e9afe1fd91e041d2ee7a8e55cad3b4c0d91cca546f1a81c5196d3f72b40",
+      "leagues": [
+        "ncaa",
+        "nfl"
+      ],
+      "payload_count": 15,
+      "reports": [
+        "passing_pressure"
+      ],
+      "scopes": [
+        "REG",
+        "REGPO"
+      ],
+      "seasons": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2025
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 99,
+        "decimal": 111,
+        "integer": 82,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "38551fbc3365389e1d42b7a29f067e6775f612bd577d8677830572cb00d460b7"
+    },
+    {
+      "column_count": 44,
+      "header_sha256": "3a3eba34fd889a8cab718916b3d0728951804c165384d0299726c8924752f193",
+      "leagues": [
+        "ncaa",
+        "nfl"
+      ],
+      "payload_count": 18,
+      "reports": [
+        "passing_summary"
+      ],
+      "scopes": [
+        "REG",
+        "REGPO"
+      ],
+      "seasons": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 7,
+        "decimal": 17,
+        "integer": 24,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "d37d6b21b6484fedd3a77102dcaa55419586c3d10d1c8646a1ef8ec32dcbceda"
+    },
+    {
+      "column_count": 201,
+      "header_sha256": "3a6edb4cc905d6edca4802ea886e8e1b91401279ce73684e0a01a04c9d7efe84",
+      "leagues": [
+        "ncaa"
+      ],
+      "payload_count": 2,
+      "reports": [
+        "passing_pressure"
+      ],
+      "scopes": [
+        "REGPO"
+      ],
+      "seasons": [
+        2017,
+        2024
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 41,
+        "decimal": 102,
+        "integer": 82,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "cff8fd2a158e23bcbfd30a2840066ddd0fee9762aaf70a5d257dd8c39bdb1997"
+    },
+    {
+      "column_count": 71,
+      "header_sha256": "3f7b5bae2297a7fd129e1b409e7cb6b8dd34dd3df5227c65f8f6e664e2d21cb9",
+      "leagues": [
+        "ncaa",
+        "nfl"
+      ],
+      "payload_count": 17,
+      "reports": [
+        "receiving_scheme"
+      ],
+      "scopes": [
+        "REG",
+        "REGPO"
+      ],
+      "seasons": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 26,
+        "decimal": 30,
+        "integer": 38,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "1fa0322bee62d7b7dea36472b3312d3d159b28d96e438b515d9d0ed80b29cb59"
+    },
+    {
+      "column_count": 47,
+      "header_sha256": "a513f4e030fade4d0b81fd36ce813f05c14c18f53db28d4f81b6026535678b5e",
+      "leagues": [
+        "ncaa",
+        "nfl"
+      ],
+      "payload_count": 28,
+      "reports": [
+        "receiving_summary"
+      ],
+      "scopes": [
+        "REG",
+        "REGPO"
+      ],
+      "seasons": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 2,
+        "decimal": 20,
+        "integer": 24,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "f3fc4b35600f6066aec01fbfbfbb4110913c03a837b49710170aa3b0f91b0ecb"
+    },
+    {
+      "column_count": 185,
+      "header_sha256": "c1b12c07ebb9b0fb9198b7af1964c8176439b8c09bf496ea8adaf742ebba29e5",
+      "leagues": [
+        "nfl"
+      ],
+      "payload_count": 4,
+      "reports": [
+        "passing_pressure"
+      ],
+      "scopes": [
+        "REG",
+        "REGPO"
+      ],
+      "seasons": [
+        2019,
+        2024
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 87,
+        "decimal": 96,
+        "integer": 82,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "693818076f194a6efe96225312a8992b0ccf9ac3fae8b7eb8c20a15a6f37ec55"
+    },
+    {
+      "column_count": 554,
+      "header_sha256": "c1ede0cbc56c780cdf31a94855fd32b05af6c22fe00104f3e02c78ff0a2cc394",
+      "leagues": [
+        "ncaa",
+        "nfl"
+      ],
+      "payload_count": 19,
+      "reports": [
+        "passing_depth"
+      ],
+      "scopes": [
+        "POST",
+        "REG",
+        "REGPO"
+      ],
+      "seasons": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 208,
+        "decimal": 240,
+        "integer": 311,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "70890e37d6c0d7cb16b691423099a82499e598b9343c1e9700406e8a6f58398b"
+    },
+    {
+      "column_count": 505,
+      "header_sha256": "cd08625cb4165a7d7ce81a19fbf5d36c5195ac381a7374d2dacaa7d3008ed157",
+      "leagues": [
+        "ncaa",
+        "nfl"
+      ],
+      "payload_count": 21,
+      "reports": [
+        "receiving_depth"
+      ],
+      "scopes": [
+        "REG",
+        "REGPO"
+      ],
+      "seasons": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "value_kind_column_counts": {
+        "blank_or_null_token": 160,
+        "decimal": 240,
+        "integer": 262,
+        "text": 3
+      },
+      "value_kind_profile_sha256": "d8f9a9d2ae5956ff955bdd76b0403f5a3c0f924962d9c22ac4a98879353e1e78"
+    }
+  ],
+  "value_profile_sample_rows_per_payload": 200
+}
