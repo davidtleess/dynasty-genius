@@ -40,7 +40,7 @@
 > **ngs_passing 5,933 · ngs_receiving 14,731 · ngs_rushing 6,059** (2016–2025); injuries 34,812.
 > Codex's order and gate: `docs/agent-ledger/evidence/2026-08-03/next_session_layer12_order_codex_v1.md`.
 >
-> ### The order — four steps, then STOP for David's selection
+> ### The order — five steps, then STOP for David's selection
 >
 > **1. NGS WITHDRAWAL (disposition/CLEAR, NOT a new RED/GREEN).** Prove strict replacement FIRST,
 > then remove the three untracked files: `scripts/run_nfl_nextgen_capture.py`,
@@ -59,9 +59,73 @@
 > `scripts/assemble_engine_b_dataset.py`. Injuries are listed unwired; the DB holds 34,812 rows and
 > the export carries five streams.
 >
-> **2. CONTRACTS — end-to-end, one source contract.**
-> **3. DEPTH CHARTS — end-to-end, a SEPARATE contract.**
-> **4. REMEASURE Layer 1, then STOP** for David's next selection.
+> **2. CFBD DATA PROMOTION** — David-authorized 2026-08-03; framing + RED before GREEN. See block A.
+> **3. CONTRACTS — end-to-end, one source contract.**
+> **4. DEPTH CHARTS — end-to-end, a SEPARATE contract.**
+> **5. REMEASURE Layer 1, then STOP** for David's next selection.
+>
+> **SCHEDULED BACKLOG — NOT next session, and list membership implies NO priority:**
+> QB-1 study (block B; **execution PENDING — not authorized**), which additionally still awaits
+> David's separate execution word.
+>
+> ### ⭐ A. CFBD **DATA** PROMOTION — AUTHORIZED. David: *"yea make the fresh data live!"*
+>
+> **AUTHORITY IS SCOPED TO DATA.** He authorized promoting the corrected **DATA**. He did **not**
+> authorize bakeoff or model/feature use — those stay DEFERRED below. The old deferral entry read
+> "CFBD promotion / bakeoff / model use" as one phrase; only the first clause is released.
+>
+> **DATA ≠ MODEL.** Corrected substrate may go live **even if a QB candidate later fails
+> scientifically**. A negative bakeoff blocks feature/model promotion — it does not block correcting
+> wrong data. Data promotion by itself changes no current QB runtime scorer.
+>
+> **MEASURED DELTA — machine-enforceable invariants, independently reproduced by both lanes.**
+> Replaces the earlier "explain each change" prose, which was unfalsifiable.
+> * active `app/data/training/…/prospects_with_outcomes_v3.csv` sha `b3c28e42…`
+>   → fresh `app/data/sources/cfbd_foundation/curated/…` sha `15e17cd9…`
+> * **874 rows, identical keys, identical row order, identical 173-column header.**
+> * **Exactly 117 rows change, ALL of position QB. Zero non-QB rows change.**
+> * **1,123 cells across EXACTLY 12 permitted fields** — `qb_completion_pct_final`,
+>   `qb_yards_per_attempt_final`, `qb_td_int_ratio_final`, `qb_sack_rate_final`, each with its
+>   `_source` and `_missing` companion. **Any change outside this allowlist FAILS the promotion.**
+>
+> **CONSUMER SURFACE — corrected.** An earlier draft listed "nine consumers" from a grep and called
+> it the validation surface. That was wrong and would have triggered a paid refresh and a model
+> write. Actual dispositions: `run_phase20_bakeoff.py` is the relevant **non-promoting** QB
+> evaluator · Phase-19 Head A ignores these QB fields · Head B skips QB ·
+> `promote_head_a_te_v3.py` **writes a model** · `build_w2_features.py` / `build_w2b_cfbd.py` /
+> `build_head_b_targets.py` **mutate or overwrite the active CSV** ·
+> `run_cfbd_foundation_refresh.py` is a **paid** refresh · `cfbd_foundation_refresh.py` is its
+> wrapper, not a model consumer. **Required: an explicit command/side-effect ALLOWLIST plus a
+> candidate-input override — never a blanket re-run of the nine.**
+>
+> **MECHANISM GATE (Codex-specified; open focused framing + RED before GREEN):**
+> source-manifest/hash binding · **CAS that the active file still equals input SHA `b3c28e42…`** at
+> swap time · exact row/header/order/delta invariants enforced · local G3–G5 validation ·
+> lock + atomic replace · hash-verified durable preimage · **tested explicit rollback** · a
+> promotion receipt · crash recovery for an active-file/receipt split. **No untracked `cp`.**
+>
+> ### B. QB-1 STUDY — ADDED TO THE BACKLOG by David, 2026-08-03
+>
+> **SCHEDULING ONLY, NOT EXECUTION AUTHORITY.** David said *add it to the to-do list*. Under the
+> ratified registration that is **not** the separate execution word, which **remains pending**.
+> Registration: `docs/validation/2026-07-21-qb-1-study-registration.md`.
+>
+> **READINESS, stated precisely.** **Primitives and contracts are built** — 13 analytical modules
+> across four independently reviewed increments. **No end-to-end runner/orchestrator exists**, and
+> the registration still names the **H5 standalone-file loader bridge as unbuilt**. An earlier draft
+> said "machinery is BUILT," which overstated runnability. **The study has NOT run; there is NO
+> result** — verified on disk, not assumed.
+>
+> **CEILINGS AND BOUNDARIES — none relaxed by scheduling:**
+> * **H2 QB rushing production remains a registered hypothesis UNDER TEST.** Scheduling is not a
+>   result, is not evidence, and licenses no assertion of rushing anywhere.
+> * Registered target is **regular-season fantasy PPG, veteran cohort, pinned scoring rule — NOT
+>   "dynasty value."**
+> * **Counterfactual pinned 2026 scoring is applied across ALL seasons.**
+> * **No registered contrast tests a marginal/conditional H2 contribution** on top of other features.
+> * **Partial or interim output is not a result**, and `decision_supported` remains **false**.
+> * Execution is a separate David word (**not yet given**); **ruling on the registered result is a
+>   further separate word.**
 >
 > ### Standing landing requirement — CONSUMER DISPOSITION (new, both lanes agreed)
 > Every stream states its disposition at landing, so "unwired" is a recorded decision with an owner
@@ -97,9 +161,14 @@
 >   not the model's read path — an earlier draft conflated the two.)*
 > * **Injuries:** 34,812 rows stored, no curated consumer.
 >
-> ### DEFERRED — explicitly out of next session (both lanes agreed, no additions)
-> CFBD promotion / bakeoff / model use (David-owned; requires the registered downstream validation
-> re-run) · QB-1 study EXECUTION (**H2 QB rushing remains UNDER TEST — no result**) · broad PP/PFF
+> ### DEFERRED — explicitly out of next session
+> *(Both lanes agreed this list. **David's 2026-08-03 words moved part of it.** The old entry read
+> "CFBD promotion / bakeoff / model use" as ONE phrase; it is now SPLIT, because he authorized the
+> data and nothing else.)*
+> ~~CFBD **data** promotion~~ **→ AUTHORIZED, block A** · **CFBD bakeoff / model + feature use —
+> STILL DEFERRED** (a negative bakeoff blocks model promotion, not data correction) ·
+> ~~QB-1 study on the backlog~~ **→ SCHEDULED, block B — but EXECUTION still needs David's separate
+> word and does NOT have it; H2 QB rushing remains UNDER TEST with no result** · broad PP/PFF
 > curation · wider mutation campaign · schedulers before manual contracts · the four remaining free
 > loaders and FantasyPros/Footballguys unless contracts+depth finish and David selects one ·
 > **deletion of the duplicate gitignored NGS data without a retention ruling.**
