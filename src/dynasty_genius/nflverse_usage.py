@@ -7,8 +7,28 @@ called**: ``nflreadpy.load_nextgen_stats`` and ``nflreadpy.load_snap_counts``. A
 ``source_era`` and ``season_type`` in the store and exports, era-dependent row-key semantics, and an
 idempotence identity that includes the persisted projection. An artifact from before and after that
 change must never carry the same label. Free, no credential, already
-a daily dependency. Fetch, snapshot, resolve identity, store durably. Nothing downstream reads it
-yet — no model input, no surface, no scoring.
+a daily dependency. Fetch, snapshot, resolve identity, store durably.
+
+**Downstream, stated precisely (corrected 2026-08-03 — this paragraph previously read "Nothing
+downstream reads it yet — no model input, no surface, no scoring", which was false on the first
+clause).** Two production consumers read the export via ``load_nextgen_from_export``:
+``scripts/run_feature_refresh.py`` and ``scripts/assemble_engine_b_dataset.py``. Six ``ngs_*``
+columns therefore reach the assembled Engine B **dataset**.
+
+**No shipped model trains on them, and that is deliberate.** ``scripts/train_engine_b.py`` excludes
+``ngs_*`` from the unified matrix by name (position-exclusive features would be a wrong constant
+behind a median imputer, not a sparse one), and the per-position opt-in helpers over
+``ENGINE_B_OPTIONAL_FEATURES_BY_POSITION`` have **zero production callers**.
+
+The registry role is ``context_signal``. What is unauthorized is **predictive-model training use and
+model-feature promotion** — not the dataset assembly above, which exists and is stated plainly here
+rather than denied. Reaching a dataset is not being a model input, but the gap between those two is
+**one caller wide**: treat any new consumer of those per-position helpers as a governance change
+requiring a separately authorized validation, never as a wiring change.
+
+*(Open and escalated, not resolved here: this registry role and
+``engine_b_contract.ENGINE_B_OPTIONAL_FEATURES_BY_POSITION`` — which declares these same six fields
+as optional per-position model features — are in tension. Inert while nothing calls the helpers.)*
 
 Callable, never self-scheduling. A scheduler is a separate decision and a separate word.
 

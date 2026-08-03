@@ -67,7 +67,7 @@ smaller pile.
 | 3 | **PlayerProfiler** | **YES — ingested 2026-07-31 from David's own subscriber exports.** 5,476 player-seasons (36/36 position-seasons, QB/RB/WR/TE, 2017–2025, 317 columns) plus a 9,768-row medical archive 2017–2023. **No product or model consumer yet** | Nothing is broken. The old 874/874 figure came from an **unauthenticated** `admin-ajax.php` endpoint that never used David's credentials — it proved the shadow path was dead, not the subscription. The sanctioned path is the product's own export button | **Done for layer 1.** Refresh cost is David exporting again + one command. A scheduler is impossible by design (manual export); **layer 2 — a curated consumer — is the open work** | Breakout age, speed score, target share and college dominator are now IN the foundation. They are still not reaching any model, so the loss is unchanged until layer 2 lands |
 | 4 | **FantasyPros** | **HISTORICAL ONLY** — 2,185 rows on four dates through DynastyProcess; no live feed | We built only a four-date archive and never built an authorized current export/feed | **1–2 days** if the paid account exposes a usable export; **3–5 days** if browser-authenticated retrieval is required | Current consensus rankings, positional ECR, and an independent draft/trade/waiver view. Today that comparison leans on FantasyCalc alone |
 | 5 | **Footballguys** | **NO** | **Zero code references anywhere.** Its *thinking* is deep in us — mortality tables / expected years remaining, Superflex replacement level, seasonal value multipliers, cited across 16 strategy docs. Its *data* was never ingested | **UNVERIFIED — I cannot size this without you.** Tell us what your subscription actually lets you download (export? API? articles only?) and it becomes a real estimate | UNVERIFIED until we know what it serves. The age/replacement-level framing we already borrowed is doing real work in our valuation |
-| 6 | **NFL Next Gen Stats** | **YES — raw and curated 2016–2025 aggregates captured tonight; no product/model consumer yet** | Filled tonight through the already-installed `nflreadpy.load_nextgen_stats()` path | **Built and run.** 26,723 curated rows, 100% GSIS identity coverage, immutable raw snapshots, and a repeat-run no-op. A scheduler or model/UI use remains a separate David decision | Separation, cushion, air yards, time-to-throw, expected completion, rushing efficiency, and RYOE are now in the foundation instead of being unavailable |
+| 6 | **NFL Next Gen Stats** | **YES — 2016–2025 aggregates ingested via the canonical adapter, and TWO production consumers read them** | Filled through the already-installed `nflreadpy.load_nextgen_stats()` path | **Built and run.** Canonical store `app/data/nflverse_usage.db` (ngs_passing 5,933 · ngs_receiving 14,731 · ngs_rushing 6,059), 100% canonical identity resolution, 171 immutable raw snapshots, hash-verified last-good export. Six `ngs_*` columns reach the assembled Engine B **dataset**; **no predictive-model training use and no model-feature promotion** — `train_engine_b.py` excludes `ngs_*` from the unified matrix by name and the per-position opt-in helpers have zero production callers. A scheduler, or any training/promotion use, remains a separate David decision | Separation, cushion, air yards, time-to-throw, expected completion, rushing efficiency, and RYOE are in the foundation and reaching the feature-refresh and Engine B assembly paths as `context_signal` |
 
 **CORRECTION, recorded rather than quietly erased (David, 2026-07-30 22:41).** This table originally
 carried a seventh row for **"Dynasty Genius"**, filed as an unidentified third-party subscription and
@@ -82,12 +82,21 @@ table cells. **This is the same defect as every instrument this week that report
 never established** — the shape was processed, the meaning was not. It belongs in the record next to
 the others.
 
-**Free data we already pay nothing for and already have installed:** tonight's check verified all
-eight loaders existed and had zero callers. `load_nextgen_stats` is now wired. Seven remain:
-`load_ff_opportunity` · `load_ff_rankings` · `load_pfr_advstats` · `load_ftn_charting` ·
-`load_contracts` · `load_injuries` · `load_depth_charts`. The raw/curated capture mechanics
+**Free data we already pay nothing for and already have installed:** the 2026-07-30 check verified
+all eight loaders existed and had zero callers. **`load_nextgen_stats` and `load_injuries` are now
+both wired. SIX remain:** `load_ff_opportunity` · `load_ff_rankings` · `load_pfr_advstats` ·
+`load_ftn_charting` · `load_contracts` · `load_depth_charts`. The raw/curated capture mechanics
 generalize, but their schemas, season availability, identity keys, licenses, and football use
 still require source-specific contracts.
+
+**CORRECTION, 2026-08-03 — recorded rather than quietly erased.** This paragraph said **seven**
+remain and listed `load_injuries` among them. That was false on both counts. `load_injuries` is
+wired into the canonical adapter: `nflverse_injury_report` holds **34,812 rows** and `injuries` is
+one of the five streams in the hash-verified last-good export. The correct count is **six**, which
+is what `AGENT_SYNC.md`'s measured open state already said — **the inventory disagreed with the
+board, and the board was the one that matched the repo.** Found during the Step 1 NGS
+strict-replacement audit; evidence
+`docs/agent-ledger/evidence/2026-08-03/ngs_strict_replacement_audit_claude_v3.md`.
 
 **One correction to a doc, not to you:** `docs/data-source-contracts.md` says credentials live in
 `~/.config/dynasty-genius/`. **That directory does not exist on this machine.** This cross-check
@@ -122,7 +131,7 @@ reading Tower's sweep; everything else was measured first-hand.
 | **RotoViz** | **UNVERIFIED** (likely paid) | **NO** | nowhere | **NOTHING** | **NOBODY** — declared in the registry, no fetch code exists | **never** |
 | **Campus2Canton** | **UNVERIFIED** | **NO** | nowhere | **NOTHING** | **NOBODY** — declared in the registry, no fetch code exists | **never** |
 | **KeepTradeCut (KTC)** | Free | **NO** | nowhere live | **NOTHING** | NOBODY — and by constitution it may never enter a model | **UNVERIFIED** |
-| **NFL Next Gen Stats** | Free (David named it as public data) | **YES** | `app/data/sources/nfl_nextgen_stats/`: immutable raw Parquet plus one curated table | Manual runnable capture; **NOTHING scheduled** | Stable curated loader exists; **NOBODY in the product/model yet** | **2026-07-30 23:00 ET** — 26,723 rows, 2016–2025 |
+| **NFL Next Gen Stats** | Free (David named it as public data) | **YES** | **`app/data/nflverse_usage.db`** (canonical): `ngs_passing` 5,933 · `ngs_receiving` 14,731 · `ngs_rushing` 6,059, plus 171 immutable raw snapshots and a hash-verified last-good export | Manual runnable capture; **NOTHING scheduled** | **`scripts/run_feature_refresh.py` and `scripts/assemble_engine_b_dataset.py`**, via `load_nextgen_from_export` — **`context_signal`**; six `ngs_*` columns reach the Engine B **dataset**, but **no predictive-model training use and no model-feature promotion** (`train_engine_b.py` excludes `ngs_*`; the per-position opt-in helpers have zero production callers) | **2026-08-03 03:11 UTC** export run — 26,723 NGS rows, 2016–2025 |
 | **Sleeper CDN** (player images) | Free | **YES** | `app/data/assets/` (263 files) | **NOTHING** — built once | Front-end player images | **2026-07-06** |
 | **Sportradar** | Enterprise — never contracted | **NO** | nowhere | **NOTHING** | **NOBODY** — name only, in the registry | **never** |
 | **Genius Sports** | Enterprise — never contracted | **NO** | nowhere | **NOTHING** | **NOBODY** — name only | **never** |
@@ -132,6 +141,19 @@ reading Tower's sweep; everything else was measured first-hand.
 | **ESPN** | Free | **NO** | nowhere | **NOTHING** | **NOBODY** — appears only in prose/research | **never** |
 | **Rotowire** | **UNVERIFIED** | **NO** | nowhere | **NOTHING** | **NOBODY** — appears only in prose/research | **never** |
 | **Dynasty Nerds** | — | **NOT A SOURCE** | — | — | — | **This is a COMPETITOR** in our positioning docs, not a data source. Listed so nobody re-adds it as one. |
+
+**CORRECTION, 2026-08-03 — the NFL Next Gen Stats row named a store that has been withdrawn.** It
+pointed at `app/data/sources/nfl_nextgen_stats/` and said **"NOBODY in the product/model yet."**
+Both clauses were false. That path was a **second adapter for the same source**, withheld under
+`01` §Source Adapter Rules ("Each external source has exactly one adapter") and withdrawn on
+David's word on 2026-08-03; the canonical store has always been `app/data/nflverse_usage.db`, and it
+has **two live production consumers**. The withdrawn route's captured **data** is deliberately
+retained on disk pending a separate David retention ruling — it is not deleted, and this correction
+does not authorize deleting it. Strict replacement was proven before removal (registry uniqueness,
+all 30 family-season cells, identical key sets, zero payload mismatches, all provider columns
+retained in the canonical raw snapshots): evidence
+`docs/agent-ledger/evidence/2026-08-03/ngs_strict_replacement_audit_claude_v3.md`, independently
+cleared by Codex.
 
 ### Derived stores (not external sources, but they are our data and they move or don't)
 
@@ -153,9 +175,10 @@ reading Tower's sweep; everything else was measured first-hand.
    current feed; Footballguys has nothing. CFBD's cache and PFF's manual files are about two months
    old. PlayerProfiler is now current through 2025 — but see the medical blind window below.
 2. **Live college production.** CFBD is cache-only, so Engine A trains on a static May snapshot.
-3. **Seven other free nflreadpy datasets remain unwired.** Next Gen Stats is now ingested; FF
-   opportunity, rankings, PFR advanced stats, FTN charting, contracts, injuries, and depth charts
-   still have zero callers.
+3. **Six other free nflreadpy datasets remain unwired.** Next Gen Stats **and injuries** are both
+   ingested; FF opportunity, rankings, PFR advanced stats, FTN charting, contracts, and depth charts
+   still have zero callers. *(This item said "Seven" and listed injuries among the unwired until
+   2026-08-03; see the correction above.)*
 4. **League history beyond transactions** — drafts, standings, matchups, weekly lineups across the
    four seasons. Sleeper serves all of it; we call none of it.
 5. **A live market source other than FantasyCalc.** KTC is named everywhere and ingested nowhere.

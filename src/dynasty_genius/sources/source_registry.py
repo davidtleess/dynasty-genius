@@ -382,7 +382,17 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
                 "external source that was withheld under 01 §Source Adapter Rules "
                 "(exactly one adapter per source). Both fields were false as "
                 "written. Codex, which authored both this entry and the withdrawn "
-                "Parquet route, requested this reconciliation."
+                "Parquet route, requested this reconciliation. "
+                "WITHDRAWN AND REMOVED 2026-08-03 on David's word: that second "
+                "route's three code/test paths no longer exist. Strict replacement "
+                "was proven BEFORE removal — registry uniqueness, all 30 "
+                "family-season cells, identical key sets, zero shared-payload "
+                "mismatches, and every provider column retained in the canonical "
+                "pre-parse raw snapshots; independently cleared by Codex. Its "
+                "captured DATA tree is deliberately RETAINED pending a separate "
+                "David retention ruling — do not delete it. Evidence: "
+                "docs/agent-ledger/evidence/2026-08-03/"
+                "ngs_strict_replacement_audit_claude_v3.md."
             ),
         ),
         _make(

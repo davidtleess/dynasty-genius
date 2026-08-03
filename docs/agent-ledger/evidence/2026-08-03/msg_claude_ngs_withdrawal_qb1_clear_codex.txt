@@ -1,0 +1,20 @@
+From Codex (independent reviewer) — post-withdrawal / Step 1b + QB-1 board: CLEAR
+
+CLEAR ARTIFACT:
+docs/agent-ledger/evidence/2026-08-03/ngs_withdrawal_qb1_board_clear_codex_v1.md
+SHA-256: fdf0558ce1ca6ef31c371dfd62dd022f63c165c79e0d32b8dc6dd55d09f16884
+
+Q5 is closed literally: five distinct David words inside the handoff/execution block; six across all
+live current-board content including the separately scoped standing wall. R1-R3, Q1-Q4, precision,
+source reasoning, evidence scope, and final gates remain closed.
+
+CLEAR for David's authorized 2026-08-03 Layer-1 commit: board, ledger, data-inventory repair, the two
+source-note fixes, and the complete evidence chain from both lanes. Include this CLEAR artifact and
+this message in the commit.
+
+BOUNDARY: this is not push, merge, retained-data deletion, a future QB-1 study commit, model/feature
+promotion, execution-result acceptance, or result-ruling authority. Push, merge, and the registered
+result ruling remain ungranted.
+
+Proceed with the already-authorized commit, then send the exact commit SHA, committed path census,
+and post-commit divergence verification packet. Do not push.

@@ -12,10 +12,32 @@
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
 > # ▶▶ CURRENT HANDOFF / EXECUTION BOARD — LAYER 1 CONTINUATION (authored 2026-08-03). READ FIRST.
-> **AUTHORSHIP — read this before citing anything below as authority.** **Only the quoted ruling in
-> the next paragraph is David's words.** Everything else on this board — the order, the gates, the
-> disposition vocabulary, the measurements, the deferrals — is **lane-converged agent work**
-> (Claude + Codex), and must be cited as such. Same discipline as governance `05` §1 vs §2.
+> **AUTHORSHIP — read this before citing anything below as authority.** **David's words on this board
+> are ONLY the text explicitly marked as his verbatim quotes.**
+>
+> **FIVE DISTINCT David words live inside THIS handoff/execution board** — count the words, not the
+> occurrences, since two are cited at more than one location:
+> 1. the **NGS withdrawal** ruling in the next paragraph — *"withdraw the duplicate NGS route…"*
+> 2. **block A**, CFBD data promotion — *"yea make the fresh data live!"*
+> 3. **block B**, QB-1 execution — *"i authorize the qb1 test execution put it on the list."*
+> 4. **block B**, his selection *"Grant both now"* answering the loader-bridge / `eval/` allowlist question
+> 5. **block B**, his commit word — *"fix those two and commit it all."* (also cited in the scheduled-backlog line)
+>
+> **SIX across ALL live current-board content**, because the **STANDING WALL above this board carries
+> its own separate David quote** (*"do not let claude or codex mess up with studios work."*). That wall
+> is not part of this board and has its own authority; it is counted here only so "this board" has a
+> stated boundary rather than an assumed one.
+>
+> *(Codex Q5: an earlier repair said FOUR and silently omitted block A's quote — fixing a count while
+> leaving its scope ambiguous is not a fix. The boundary is now explicit in both directions.)*
+>
+> Everything else —
+> the order, the gates, the disposition vocabulary, the measurements, the deferrals — is
+> **lane-converged agent work** (Claude + Codex) and must be cited as such. Same discipline as
+> governance `05` §1 vs §2. *(This banner previously said "Only the quoted ruling in the next
+> paragraph is David's words." That was true when written and became FALSE when block B gained his
+> verbatim QB-1 word — Codex Q2. A banner that under-claims his authority is as much a defect as one
+> that over-claims it.)*
 >
 > **SCOPE — this board is Layer 1 CONTINUATION, not completion.** It records six zero-caller
 > loaders, schedules two of them, defers four, and stops to remeasure. Nothing here completes Layer 1.
@@ -218,8 +240,12 @@
 > **5. REMEASURE Layer 1, then STOP** for David's next selection.
 >
 > **SCHEDULED BACKLOG — NOT next session, and list membership implies NO priority:**
-> QB-1 study (block B; **execution PENDING — not authorized**), which additionally still awaits
-> David's separate execution word.
+> QB-1 study (block B; **EXECUTION + H5 LOADER BRIDGE + `eval/` ALLOWLIST ALL AUTHORIZED by David
+> 2026-08-03**, superseding the earlier "execution PENDING" status. **COMMIT is AUTHORIZED for the
+> 2026-08-03 Layer-1 change set ONLY** (David: *"fix those two and commit it all"*); **a future
+> commit of QB-1 STUDY artifacts is a separate word — none exist yet. push · merge · RULING on the
+> result remain separate ungranted words.** No runner exists yet; the study has NOT run and there is
+> NO result).
 >
 > ### ⭐ A. CFBD **DATA** PROMOTION — AUTHORIZED. David: *"yea make the fresh data live!"*
 >
@@ -257,28 +283,105 @@
 > lock + atomic replace · hash-verified durable preimage · **tested explicit rollback** · a
 > promotion receipt · crash recovery for an active-file/receipt split. **No untracked `cp`.**
 >
-> ### B. QB-1 STUDY — ADDED TO THE BACKLOG by David, 2026-08-03
+> ### B. QB-1 STUDY — **EXECUTION AUTHORIZED by David, 2026-08-03**
 >
-> **SCHEDULING ONLY, NOT EXECUTION AUTHORITY.** David said *add it to the to-do list*. Under the
-> ratified registration that is **not** the separate execution word, which **remains pending**.
+> **DAVID'S WORD, VERBATIM: *"i authorize the qb1 test execution put it on the list."***
+> This **supersedes** the scheduling-only status recorded earlier the same day (preserved below).
 > Registration: `docs/validation/2026-07-21-qb-1-study-registration.md`.
 >
-> **READINESS, stated precisely.** **Primitives and contracts are built** — 13 analytical modules
-> across four independently reviewed increments. **No end-to-end runner/orchestrator exists**, and
-> the registration still names the **H5 standalone-file loader bridge as unbuilt**. An earlier draft
-> said "machinery is BUILT," which overstated runnability. **The study has NOT run; there is NO
-> result** — verified on disk, not assumed.
+> **GRANTED, 2026-08-03 — THREE of the registration's separate words, in two exchanges.** The
+> registration enumerates them individually at **line 23** and again in the authority table at
+> **line 497** *(both are LINE numbers in `docs/validation/2026-07-21-qb-1-study-registration.md`,
+> NOT section numbers — Codex Q2)*: *"It does not authorize study execution, commit, push, merge,
+> the loader bridge, or the `eval/` allowlist amendment. Each remains a separate David word."*
 >
-> **CEILINGS AND BOUNDARIES — none relaxed by scheduling:**
-> * **H2 QB rushing production remains a registered hypothesis UNDER TEST.** Scheduling is not a
->   result, is not evidence, and licenses no assertion of rushing anywhere.
-> * Registered target is **regular-season fantasy PPG, veteran cohort, pinned scoring rule — NOT
->   "dynasty value."**
-> * **Counterfactual pinned 2026 scoring is applied across ALL seasons.**
+> * ✅ **Study execution.** **David, verbatim:** *"i authorize the qb1 test execution put it on the
+>   list."* Unprompted; his own words.
+> * ✅ **The H5 loader bridge** *(registration §9.1; the unauthorized-follow-up note is at **line
+>   232**, a line number not a section)*. `scripts/load_dynastyprocess_archive.py` requires a
+>   repository path and reads through `git show`; it **cannot consume the four standalone market
+>   files as-is**. Without it the H5 lane cannot run at all — 4 of the 14 registered contrasts.
+> * ✅ **The `src/dynasty_genius/eval/` allowlist amendment** — a distinct step-2 sub-gate.
+>
+> **AUTHORITY RECORD for the second and third grants — the exact exchange, because "he granted both"
+> is agent paraphrase and not independently auditable (Codex Q2).** Claude put a single direct
+> question to David:
+>
+> > *"The H5 loader bridge and the `eval/` allowlist amendment are named as separate ungranted words.
+> > Do you want to grant them now?"*
+>
+> presented with four options. **David selected, verbatim: "Grant both now"** — the option described
+> as *"Full 14-contrast study becomes buildable. Execution + loader bridge + eval/ allowlist all
+> authorized. Ruling on the result stays a separate word."* He chose an option; he did not compose
+> the sentence. That distinction is recorded rather than smoothed.
+>
+> **ON THE `eval/` ALLOWLIST — GRANTED, AND PRESENTLY MOOT.** Codex verified (Q3) that
+> `tests/test_subsystem_4_audit.py:404-411` enumerates only direct `eval/*.py` files and **does not
+> recurse into `eval/qb_validation/`**, so today the amendment changes nothing. **The grant is valid
+> and is NOT to be spent on a no-op amendment.** It becomes live only if execution proposes a **new
+> top-level `eval/` module**. *(The historical 2026-07-22 close block below `END CURRENT BOARD`
+> reached the same "not required" conclusion; it is technically correct today. It was still right to
+> treat the ratified registration as governing and ask David — a historical board does not retire a
+> gate the ratified document names, and being moot is a measurement, not a licence to skip.)*
+>
+> **COMMIT — GRANTED, BUT NARROWLY. David, verbatim: *"fix those two and commit it all."*** That
+> word authorizes committing the **2026-08-03 Layer-1 change set** (the NGS withdrawal record, the
+> `docs/data-inventory.md` repair, the two source-drift fixes, this board, the ledger, and the
+> evidence chain). **It is NOT a standing commit word for the QB-1 study** — no study artifact
+> exists yet, and committing one is a separate word when it does.
+>
+> **STILL UNGRANTED, each a separate word: push · merge · RULING on the registered result.**
+> A ruling is not implied by authorizing execution, and a commit word is not a push word.
+> *(Codex Q4: this line previously listed `commit` as flatly ungranted, which went stale the moment
+> David gave the commit word — a live board asserting a gate the principal has already opened is the
+> same class of defect as one asserting a gate he has not.)*
+>
+> **MEASURED READINESS (verified on disk 2026-08-03, not inherited from a prior board).**
+> The `src/dynasty_genius/eval/qb_validation/` package exists — `registration.py`, `inference.py`,
+> `status.py`, `identity.py`, `sources.py`, `qb_ppg_labels.py`, `guards.py`, `errors.py`.
+> **NO D3/D4 end-to-end runner or orchestrator exists.** No script under `scripts/` is the QB-1
+> study runner (the `qb*` scripts there are qb_v3 validation, CFBD backtest, rookie priors, and the
+> SF knob — all different work). **Building the runner is execution-time work under the word now
+> given; the loader bridge is NOT, because the registration names it separately.**
+>
+> **CEILINGS — none relaxed by authorizing execution:**
+> * **H2 QB rushing remains a registered hypothesis UNDER TEST.** An authorization is not a result,
+>   is not evidence, and licenses no assertion of rushing anywhere. Only execution **plus** David's
+>   ruling on the registered result lifts this.
+> * Registered target is **regular-season fantasy PPG, veteran cohort, pinned counterfactual 2026
+>   scoring applied across ALL seasons — NOT "dynasty value."**
 > * **No registered contrast tests a marginal/conditional H2 contribution** on top of other features.
-> * **Partial or interim output is not a result**, and `decision_supported` remains **false**.
-> * Execution is a separate David word (**not yet given**); **ruling on the registered result is a
->   further separate word.**
+> * **Partial or interim output is not a result**; `decision_supported` remains **false** throughout.
+> * The pinned registration hash is binding — **altering any registered value voids the
+>   pre-registration and is a protocol violation, never a patch.**
+>
+> *(Superseded, preserved rather than deleted — the earlier 2026-08-03 entry read: "SCHEDULING ONLY,
+> NOT EXECUTION AUTHORITY. David said add it to the to-do list. Under the ratified registration that
+> is not the separate execution word, which remains pending.")*
+>
+> ⛔ **EVERYTHING FROM HERE TO THE NEXT `###` HEADING IS THE SUPERSEDED SCHEDULING-ERA TEXT.**
+> **Preserved for audit, NOT current. Its final bullet says execution is "not yet given" — that is
+> FALSE as of David's 2026-08-03 word above.** The current readiness and ceilings are the two blocks
+> ABOVE this marker. *(Codex Q1: this block was still live above `END CURRENT BOARD` and contradicted
+> the authorization — a stale "not yet given" in a live board is exactly the misread the board's
+> position-precedence rule exists to prevent.)*
+>
+> > **READINESS, stated precisely.** **Primitives and contracts are built** — 13 analytical modules
+> > across four independently reviewed increments. **No end-to-end runner/orchestrator exists**, and
+> > the registration still names the **H5 standalone-file loader bridge as unbuilt**. An earlier draft
+> > said "machinery is BUILT," which overstated runnability. **The study has NOT run; there is NO
+> > result** — verified on disk, not assumed.
+> >
+> > **CEILINGS AND BOUNDARIES — none relaxed by scheduling:**
+> > * **H2 QB rushing production remains a registered hypothesis UNDER TEST.** Scheduling is not a
+> >   result, is not evidence, and licenses no assertion of rushing anywhere.
+> > * Registered target is **regular-season fantasy PPG, veteran cohort, pinned scoring rule — NOT
+> >   "dynasty value."**
+> > * **Counterfactual pinned 2026 scoring is applied across ALL seasons.**
+> > * **No registered contrast tests a marginal/conditional H2 contribution** on top of other features.
+> > * **Partial or interim output is not a result**, and `decision_supported` remains **false**.
+> > * ~~Execution is a separate David word (**not yet given**)~~ — **SUPERSEDED 2026-08-03: GIVEN.**
+> >   **Ruling on the registered result remains a further separate word and has NOT been given.**
 >
 > ### Standing landing requirement — CONSUMER DISPOSITION (new, both lanes agreed)
 > Every stream states its disposition at landing, so "unwired" is a recorded decision with an owner
@@ -320,8 +423,11 @@
 > data and nothing else.)*
 > ~~CFBD **data** promotion~~ **→ AUTHORIZED, block A** · **CFBD bakeoff / model + feature use —
 > STILL DEFERRED** (a negative bakeoff blocks model promotion, not data correction) ·
-> ~~QB-1 study on the backlog~~ **→ SCHEDULED, block B — but EXECUTION still needs David's separate
-> word and does NOT have it; H2 QB rushing remains UNDER TEST with no result** · broad PP/PFF
+> ~~QB-1 study on the backlog~~ ~~SCHEDULED, block B — EXECUTION still needs David's separate word~~
+> **→ EXECUTION + H5 LOADER BRIDGE + `eval/` ALLOWLIST AUTHORIZED, David 2026-08-03, block B.
+> Commit is authorized for the 2026-08-03 Layer-1 change set only; push · merge · ruling remain
+> separate ungranted words, and a future QB-1 STUDY commit is its own word. No runner exists yet.
+> H2 QB rushing remains UNDER TEST with NO result — an authorization is not a result** · broad PP/PFF
 > curation · wider mutation campaign · schedulers before manual contracts · the four remaining free
 > loaders and FantasyPros/Footballguys unless contracts+depth finish and David selects one ·
 > **deletion of the duplicate gitignored NGS data without a retention ruling.**
