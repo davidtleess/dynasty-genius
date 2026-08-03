@@ -3,8 +3,10 @@
 Layer 1. Originally two streams David named that we already had installed and had **never once
 called**: ``nflreadpy.load_nextgen_stats`` and ``nflreadpy.load_snap_counts``. A fifth spec,
 ``INJURIES`` (``nflreadpy.load_injuries``), joined them on 2026-08-01 — hence
-``SCHEMA_VERSION`` ``v3``, so a four-stream artifact and a five-stream artifact can never carry the
-same label. Free, no credential, already
+``SCHEMA_VERSION`` ``v4``. v3 added the fifth stream; v4 marks the post-live contract change —
+``source_era`` and ``season_type`` in the store and exports, era-dependent row-key semantics, and an
+idempotence identity that includes the persisted projection. An artifact from before and after that
+change must never carry the same label. Free, no credential, already
 a daily dependency. Fetch, snapshot, resolve identity, store durably. Nothing downstream reads it
 yet — no model input, no surface, no scoring.
 
@@ -37,12 +39,12 @@ import os
 import sqlite3
 import tempfile
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-SCHEMA_VERSION = "nflverse_usage.v3"
+SCHEMA_VERSION = "nflverse_usage.v4"
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DB_PATH = _REPO_ROOT / "app" / "data" / "nflverse_usage.db"
@@ -162,6 +164,38 @@ class IdentityIndex:
 
 
 @dataclass(frozen=True)
+class StreamEra:
+    """One shape a stream has had, identified by its COLUMN SET, never by year.
+
+    nflverse swapped `date_modified` for `season_type` at 2025 — same 16 columns,
+    one traded for the other — and the 2025 era carries ZERO duplicate groups on
+    the five-column key, so it cannot express a revision at all. Mapping one era
+    onto the other would either lose the revision semantics or invent them.
+
+    Detection is by content because a season label is not evidence of a shape:
+    the same PlayerProfiler discipline where an unrecognised era REFUSES rather
+    than being mapped onto whichever known era looks closest.
+    """
+
+    name: str
+    requires: tuple[str, ...]
+    forbids: tuple[str, ...]
+    columns: tuple[str, ...]
+    grain: tuple[str, ...]
+
+    def matches(self, available: set[str]) -> bool:
+        """EXACT column-set equality, not a marker check.
+
+        `requires`/`forbids` alone accept an otherwise-valid row carrying an
+        UNEXPECTED extra provider field and then silently discard it — which is
+        precisely how 2025's `season_type` was lost the first time. An additive
+        provider column must REFUSE, because the class and its error text promise
+        that an unrecognised column set refuses (Codex B1).
+        """
+        return available == set(self.columns)
+
+
+@dataclass(frozen=True)
 class StreamSpec:
     """One nflverse stream: how to load it, how to key it, what to keep."""
 
@@ -197,9 +231,27 @@ class StreamSpec:
     #: into an indistinguishable pair. Opt-in so existing streams are untouched.
     require_populated_grain: bool = False
 
+    #: Shapes this stream has had over time, resolved per batch from the observed
+    #: column set. Empty means the stream has exactly one shape.
+    eras: tuple[StreamEra, ...] = ()
+
     @property
     def stored_columns(self) -> tuple[str, ...]:
-        return (*self.columns, "dg_player_id", "identity_status", "row_key", "season_ingested")
+        """The table must hold the UNION of every era's columns.
+
+        Otherwise an era-specific field has nowhere to go and is dropped SILENTLY
+        at insert time — measured: the 2025 `season_type` value was declared by
+        its era, produced by normalization, and then discarded because the table
+        had been created from the default era's column list. Silent loss, no
+        error, and only visible by querying for a column that was not there.
+        """
+        columns = list(self.columns)
+        for era in self.eras:
+            for column in era.columns:
+                if column not in columns:
+                    columns.append(column)
+        base = (*columns, "dg_player_id", "identity_status", "row_key", "season_ingested")
+        return (*base, "source_era") if self.eras else base
 
     @property
     def export_dtypes(self) -> dict[str, Any]:
@@ -368,30 +420,57 @@ SNAP_COUNTS = StreamSpec(
 #: artifact of polars unioning schemas across a multi-season load, not a property
 #: of the data. Declaring it would make every pre-2025 single-season load refuse
 #: on schema drift, and it carries nothing `game_type` does not already give.
+_INJURY_BASE_COLUMNS = (
+    "season",
+    "game_type",
+    "team",
+    "week",
+    "gsis_id",
+    "position",
+    "full_name",
+    "first_name",
+    "last_name",
+    "report_primary_injury",
+    "report_secondary_injury",
+    "report_status",
+    "practice_primary_injury",
+    "practice_secondary_injury",
+    "practice_status",
+)
+_INJURY_BASE_GRAIN = ("season", "game_type", "week", "team", "gsis_id")
+
+#: 2020-2024. `date_modified` is present and revisions DO occur — Cade Stover
+#: 2024 wk15 went Questionable 03:34Z then Out 14:17Z — so the timestamp is part
+#: of the grain and both observations survive.
+INJURY_ERA_REVISIONED = StreamEra(
+    name="revisioned",
+    requires=("date_modified",),
+    forbids=("season_type",),
+    columns=(*_INJURY_BASE_COLUMNS, "date_modified"),
+    grain=(*_INJURY_BASE_GRAIN, "date_modified"),
+)
+
+#: 2025 onward. nflverse traded `date_modified` for `season_type`. Measured:
+#: ZERO duplicate groups on the five-column key, so this era cannot express a
+#: revision at all. Its grain is therefore the five-column key, and a duplicate
+#: there is still a refusal.
+INJURY_ERA_SINGLE_OBSERVATION = StreamEra(
+    name="single_observation",
+    requires=("season_type",),
+    forbids=("date_modified",),
+    columns=(*_INJURY_BASE_COLUMNS, "season_type"),
+    grain=_INJURY_BASE_GRAIN,
+)
+
+
 INJURIES = StreamSpec(
     name="injuries",
     table="nflverse_injury_report",
     identity_column="gsis_id",
     identity_kind="gsis",
-    grain=("season", "game_type", "week", "team", "gsis_id", "date_modified"),
-    columns=(
-        "season",
-        "game_type",
-        "team",
-        "week",
-        "gsis_id",
-        "position",
-        "full_name",
-        "first_name",
-        "last_name",
-        "report_primary_injury",
-        "report_secondary_injury",
-        "report_status",
-        "practice_primary_injury",
-        "practice_secondary_injury",
-        "practice_status",
-        "date_modified",
-    ),
+    grain=INJURY_ERA_REVISIONED.grain,
+    columns=INJURY_ERA_REVISIONED.columns,
+    eras=(INJURY_ERA_REVISIONED, INJURY_ERA_SINGLE_OBSERVATION),
     loader=None,
     loader_kwargs={},
     integer_columns=("season", "week"),
@@ -426,6 +505,7 @@ def build_streams() -> tuple[StreamSpec, ...]:
             float_columns=spec.float_columns,
             blank_as_null_columns=spec.blank_as_null_columns,
             require_populated_grain=spec.require_populated_grain,
+            eras=spec.eras,
         )
 
     return (
@@ -463,6 +543,58 @@ def normalize_rows(
         return [], _coverage(spec, season, [], missing_columns=[])
 
     available = set(records[0].keys())
+
+    # Resolve the era from the column set before anything else — the declared
+    # columns and grain depend on it.
+    era_name = None
+    columns, grain = spec.columns, spec.grain
+    if spec.eras:
+        matched = [era for era in spec.eras if era.matches(available)]
+        if not matched:
+            declared = {era.name: sorted(era.columns) for era in spec.eras}
+            extra = {
+                era.name: sorted(available - set(era.columns)) for era in spec.eras
+            }
+            absent = {
+                era.name: sorted(set(era.columns) - available) for era in spec.eras
+            }
+            raise UsageCaptureError(
+                f"nflverse_unknown_era: stream {spec.name} season {season} matches no "
+                f"declared era exactly. Observed {sorted(available)}; declared "
+                f"{declared}; unexpected-per-era {extra}; missing-per-era {absent}. "
+                "Refusing rather than mapping an unrecognised shape onto whichever era "
+                "looks closest — an accepted-and-dropped column is silent data loss"
+            )
+        if len(matched) > 1:
+            raise UsageCaptureError(
+                f"nflverse_ambiguous_era: stream {spec.name} season {season} matches "
+                f"{[era.name for era in matched]} simultaneously; declared eras must be "
+                "mutually exclusive. Taking the first match would make the contract "
+                "depend on declaration order"
+            )
+        match = matched[0]
+        era_name, columns, grain = match.name, match.columns, match.grain
+
+        # Validate EVERY record, not only records[0]. Choosing the era from the
+        # first mapping and never re-checking meant a heterogeneous batch — a
+        # later row with an extra provider field, or missing a declared one —
+        # was accepted and silently mangled, which is the exact defect the exact-
+        # match rule was added to prevent (Codex R2-B1). The one-row positive
+        # control could not see it.
+        expected_keys = set(match.columns)
+        for index, record in enumerate(records):
+            observed = set(record.keys())
+            if observed != expected_keys:
+                raise UsageCaptureError(
+                    f"nflverse_heterogeneous_batch: stream {spec.name} season "
+                    f"{season} record {index} does not match era {match.name!r} "
+                    f"exactly — unexpected {sorted(observed - expected_keys)}, "
+                    f"missing {sorted(expected_keys - observed)}. Every record in a "
+                    "batch must carry the same declared shape; validating only the "
+                    "first row lets a later one be silently dropped or nulled"
+                )
+    spec = replace(spec, columns=columns, grain=grain)
+
     missing = [col for col in spec.columns if col not in available]
     if missing:
         raise UsageCaptureError(
@@ -477,6 +609,44 @@ def normalize_rows(
             record.get(spec.identity_column), kind=spec.identity_kind
         )
         row = {col: record.get(col) for col in spec.columns}
+        if era_name is not None:
+            row["source_era"] = era_name
+        # The 2020 source types season/week as Float64 while 2021+ types them
+        # Int32, so the store held '2020.0' and '1.0' — and `season == 2020`
+        # then misses the whole season. Normalize integral values; refuse a
+        # genuinely fractional one rather than inventing a coercion.
+        for col in spec.integer_columns:
+            value = row.get(col)
+            if value is None:
+                continue
+            if isinstance(value, bool):
+                # `True` is not week 1. Falling through left a bool in the key
+                # and deferred the failure to a later export cast (Codex M1).
+                raise UsageCaptureError(
+                    f"nflverse_non_integer: stream {spec.name} season {season} has "
+                    f"{col}={value!r}, a bool where an integer is declared"
+                )
+            try:
+                as_float = float(value)
+            except (TypeError, ValueError) as exc:
+                raise UsageCaptureError(
+                    f"nflverse_non_integer: stream {spec.name} season {season} has "
+                    f"{col}={value!r}, which is not numeric; the normalization "
+                    "contract must distinguish an integer from a non-integer rather "
+                    "than deferring to an export cast after the season is stored"
+                ) from exc
+            if as_float != as_float or as_float in (float("inf"), float("-inf")):
+                raise UsageCaptureError(
+                    f"nflverse_non_integer: stream {spec.name} season {season} has "
+                    f"{col}={value!r}, which is not finite"
+                )
+            if not as_float.is_integer():
+                raise UsageCaptureError(
+                    f"nflverse_non_integer: stream {spec.name} season {season} has "
+                    f"{col}={value!r}, which is not a whole number; coercing it would "
+                    "invent a fact"
+                )
+            row[col] = int(as_float)
         for col in spec.blank_as_null_columns:
             value = row.get(col)
             if isinstance(value, str) and not value.strip():
@@ -484,11 +654,16 @@ def normalize_rows(
         row["dg_player_id"] = dg_player_id
         row["identity_status"] = status
         if spec.require_populated_grain:
+            # Read the NORMALIZED row, not the raw record. Reading `record` meant
+            # 2020.0/1.0 and 2020/1 normalized to identical stored coordinates yet
+            # produced DIFFERENT row keys, so one observation was stored twice and
+            # the duplicate gate was satisfied by the divergence it should have
+            # caught (Codex B2).
             blank_grain = [
                 col
                 for col in spec.grain
-                if record.get(col) is None
-                or (isinstance(record.get(col), str) and not record[col].strip())
+                if row.get(col) is None
+                or (isinstance(row.get(col), str) and not str(row[col]).strip())
             ]
             if blank_grain:
                 raise UsageCaptureError(
@@ -497,7 +672,7 @@ def normalize_rows(
                     "makes two observations distinguishable; keying on a blank silently "
                     "collapses them"
                 )
-        row["row_key"] = _row_key(spec, record)
+        row["row_key"] = _row_key(spec, row)
         row["season_ingested"] = str(season)
         rows.append(row)
 
@@ -567,6 +742,27 @@ _CAPTURE_COLUMNS = (
     "content_hash",
     "ingested_at",
 )
+
+
+def _projection_fingerprint(spec: StreamSpec) -> str:
+    """The persisted projection contract, as part of the idempotence identity.
+
+    Hashing rows ALONE meant a schema widening returned `unchanged`: the same
+    normalized rows had already been stored through a narrower projection, so the
+    new columns stayed NULL and only a manual DELETE recovered it (Codex B3).
+    Same rows + different persisted projection must NOT be `unchanged`.
+    """
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "stored_columns": list(spec.stored_columns),
+        "grain": list(spec.grain),
+        "integer_columns": list(spec.integer_columns),
+        "blank_as_null_columns": list(spec.blank_as_null_columns),
+        "eras": [era.name for era in spec.eras],
+    }
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()
 
 
 def _rows_hash(rows: Sequence[Mapping[str, Any]]) -> str:
@@ -655,6 +851,59 @@ class UsageStore:
                 self._assert_schema(conn, spec.table, spec.stored_columns)
 
     @staticmethod
+    def migrate_additive_columns(
+        db_path: Path, specs: Sequence[StreamSpec]
+    ) -> dict[str, list[str]]:
+        """EXPLICIT, reproducible additive migration. Never runs implicitly.
+
+        `UsageStore.__init__` still FAILS CLOSED on a schema mismatch — that
+        contract is deliberate and predates this work, and silently widening a
+        store on every open would be the same silent-change class this module
+        exists to refuse. This is the operator's reproducible replacement for the
+        two hand-run `ALTER TABLE` statements that got production to its current
+        shape (Codex B5), and it is additive only: it never renames, drops,
+        retypes, or backfills. The widened columns repopulate on the next capture
+        because the projection fingerprint makes the season read as changed (B3).
+        """
+        added: dict[str, list[str]] = {}
+        conn = sqlite3.connect(db_path)
+        try:
+            for spec in specs:
+                new_columns = UsageStore._additive_gap(
+                    conn, spec.table, spec.stored_columns
+                )
+                for column in new_columns:
+                    conn.execute(
+                        f"ALTER TABLE {spec.table} ADD COLUMN {column} TEXT"
+                    )
+                if new_columns:
+                    added[spec.table] = new_columns
+            conn.commit()
+        finally:
+            conn.close()
+        return added
+
+    @staticmethod
+    def _additive_gap(
+        conn: sqlite3.Connection, table: str, expected: Sequence[str]
+    ) -> list[str]:
+        """Declared-but-absent columns for an EXISTING table. Never mutates.
+
+        Production reached its current shape through two hand-run `ALTER TABLE`
+        statements and a manual delete, which meant the schema transition existed
+        nowhere in code and could not be reproduced on another machine or from a
+        fresh clone (Codex B5). This makes the narrow, safe half of that
+        reproducible. It deliberately does NOT rename, drop, retype, or backfill:
+        any of those is a real migration needing its own decision, and the
+        widened columns are repopulated because the projection fingerprint now
+        makes the next capture see the season as changed (B3).
+        """
+        actual = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if not actual:
+            return []
+        return [column for column in expected if column not in actual]
+
+    @staticmethod
     def _assert_schema(
         conn: sqlite3.Connection, table: str, expected: Sequence[str]
     ) -> None:
@@ -662,9 +911,13 @@ class UsageStore:
         missing = [column for column in expected if column not in actual]
         if missing:
             raise UsageCaptureError(
-                f"nflverse_usage_schema_mismatch: {table} is missing {missing} — the store "
-                f"predates {SCHEMA_VERSION}; rebuild it from the raw snapshots rather than "
-                "writing mixed-schema rows"
+                f"nflverse_usage_schema_mismatch: {table} is missing {missing} for "
+                f"{SCHEMA_VERSION}. Additive widening is NOT automatic — the store fails "
+                "closed on purpose. Run the explicit, reproducible migration "
+                "`UsageStore.migrate_additive_columns(db_path, specs)`, which adds "
+                "declared-but-absent columns and nothing else. A column still absent "
+                "afterwards means a NON-ADDITIVE change (rename, retype, drop) that needs "
+                "its own decision — refusing rather than writing mixed-schema rows"
             )
 
     def _connect(self) -> sqlite3.Connection:
@@ -682,7 +935,10 @@ class UsageStore:
         ingested_at: str,
     ) -> str:
         key = f"{spec.name}:{season}"
-        digest = _rows_hash(rows)
+        # Identity = rows AND the projection they are persisted through.
+        digest = hashlib.sha256(
+            f"{_rows_hash(rows)}|{_projection_fingerprint(spec)}".encode("utf-8")
+        ).hexdigest()
         with self._connect() as conn:
             existing = conn.execute(
                 "SELECT content_hash, status FROM nflverse_capture WHERE stream_season = ?",
@@ -919,7 +1175,25 @@ def publish_export(
     with store._connect() as conn:
         for spec in specs:
             rows = [dict(r) for r in conn.execute(f"SELECT * FROM {spec.table}")]
-            frame = pl.DataFrame(rows) if rows else pl.DataFrame()
+            # Construct with an EXPLICIT all-Utf8 schema rather than letting polars
+            # infer from a 100-row window. SQLite holds every column as TEXT, so
+            # Utf8 is what the data actually is — and inference here was a live
+            # failure, not a hypothetical: the injury stream's first rows carry a
+            # null `report_primary_injury`, polars inferred Null, and the first
+            # real value ("Ankle") raised ComputeError mid-export. The declared
+            # casts below then apply the real types. "Declared, never inferred"
+            # has to hold at CONSTRUCTION too, not only at cast time.
+            # Both branches construct from the DECLARED columns. The empty branch
+            # used to be a bare pl.DataFrame(), so a consumer's schema depended on
+            # whether the table happened to be empty that run — a zero-column
+            # Parquet where the contract promises typed columns (Codex B6).
+            frame = pl.DataFrame(
+                rows,
+                schema={
+                    column: pl.Utf8
+                    for column in (rows[0] if rows else spec.stored_columns)
+                },
+            )
             # E1 (Codex, reproduced): SQLite stores every column TEXT, so an
             # untyped projection ships `week` and `season` as Utf8 and the exact
             # existing feature filter `(week == 0) & (season_type == "REG")` fails

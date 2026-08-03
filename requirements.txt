@@ -17,3 +17,9 @@ scipy==1.17.1
 scikit-learn==1.8.0
 pytest==8.4.2
 certifi>=2024.7.4
+
+# Property-based testing. Installed locally and used ZERO times until
+# 2026-08-02; CI installs THIS file only, so the property contract in
+# tests/contract/test_ingestion_properties_red.py cannot run in CI without it
+# (Codex, 2026-08-02). Pinned to the version already in the local venv.
+hypothesis==6.161.0

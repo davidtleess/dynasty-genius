@@ -17,10 +17,13 @@ this contract:
   * THREE states exist, and the majority one is the easy one to lose: 8,333 rows
     carry a designation, 9,549 (53%) are on the report with NO designation, and
     a row that is absent entirely is NO INFORMATION — never "healthy".
-  * `season_type` exists ONLY in 2025 — 16 columns for 2015-2024, 17 for 2025.
-    A first reading called it "66% null"; that was an artifact of polars unioning
-    schemas across a multi-season load. Declaring it would make every pre-2025
-    single-season load refuse on schema drift, so it is deliberately absent.
+  * The source has TWO 16-COLUMN SHAPES, not a 16-vs-17 difference. 2015-2024
+    carry `date_modified`; 2025 carries `season_type` INSTEAD. One column was
+    swapped for another. (Two earlier readings of this were wrong and are
+    recorded rather than smoothed: first "66% null", an artifact of polars
+    unioning schemas across a multi-season load; then "16 vs 17", corrected by
+    Codex against the raw evidence.) Both columns are declared — each in its own
+    era — and the table stores the union.
   * `practice_status` carries TWO distinct null tokens: 45 true nulls and 69
     whitespace strings ('\\n    ', a scrape artifact). Silently merging them is
     the PlayerProfiler `NA` defect repeating.
@@ -119,13 +122,24 @@ def test_a_revision_is_preserved_not_collapsed():
 # ── Scope field: game_type, never season_type ─────────────────────────────────
 
 
-def test_scope_uses_game_type_and_season_type_is_not_declared():
-    """season_type exists only in 2025; declaring it breaks every earlier season."""
+def test_season_type_is_declared_era_locally_not_globally():
+    """`season_type` is real, but only in the single-observation era.
+
+    The earlier version of this test asserted it was "not declared" at all, which
+    described a default-era implementation detail rather than the contract and
+    stayed green for the wrong reason (Codex B4).
+    """
     assert "game_type" in INJURIES.grain
-    assert "season_type" not in INJURIES.grain
-    assert "season_type" not in INJURIES.columns, (
-        "a 2025-only column must not be declared, or 2015-2024 loads refuse"
+    spec = _bound_injuries()
+    by_name = {era.name: era for era in spec.eras}
+    assert "season_type" not in by_name["revisioned"].columns
+    assert "season_type" in by_name["single_observation"].columns
+    assert "date_modified" in by_name["revisioned"].columns
+    assert "date_modified" not in by_name["single_observation"].columns
+    assert "season_type" not in by_name["single_observation"].grain, (
+        "season_type scopes the row; game_type is the grain coordinate"
     )
+    assert "season_type" in spec.stored_columns, "the table stores the union"
 
 
 # ── The three states ──────────────────────────────────────────────────────────
@@ -381,7 +395,7 @@ def test_end_to_end_capture_stores_exports_and_keeps_the_unresolved_name(tmp_pat
     # label. Assert the value on every surface a consumer could read it from.
     import json as _json
 
-    assert SCHEMA_VERSION == "nflverse_usage.v3"
+    assert SCHEMA_VERSION == "nflverse_usage.v4"
     assert result["schema_version"] == SCHEMA_VERSION, "returned status"
 
     marker = _json.loads(
@@ -450,4 +464,375 @@ def test_summary_cannot_mutate_a_four_stream_store(tmp_path):
     assert "nflverse_injury_report" not in tables(), (
         "the injury table must not appear in a four-stream store just because a "
         "fifth spec was registered"
+    )
+
+
+# ── Live-capture findings: two eras, and a source dtype that breaks filters ────
+#
+# The live capture stored 2020-2024 and REFUSED 2025. Both facts are real:
+#
+#   * 2025 SWAPS `date_modified` FOR `season_type` — same 16 columns, one traded
+#     for the other. And 2025 has ZERO duplicate groups on the five-column key,
+#     so that era cannot express a revision at all. Mapping one era onto the
+#     other would either lose the revision semantics or invent them.
+#   * THE 2020 FILE TYPES season/week AS Float64 while 2021+ types them Int32,
+#     so the store held '2020.0' and '1.0'. A consumer filtering season == 2020
+#     or week == 1 misses the entire season — the exact failure `integer_columns`
+#     exists to prevent, missed because it is a source DTYPE difference rather
+#     than a column difference.
+#
+# Eras are detected from the COLUMN SET, never the year — the PlayerProfiler
+# discipline, where an unrecognised era refuses rather than being mapped onto a
+# known one.
+
+
+def _era_b_row(**overrides):
+    """A 2025-shaped row: season_type present, date_modified absent."""
+    row = _row(**overrides)
+    row.pop("date_modified", None)
+    row["season_type"] = "REG"
+    return row
+
+
+def test_revisioned_era_keys_on_date_modified():
+    spec = _bound_injuries()
+    rows, _ = normalize_rows(
+        [
+            _row(report_status="Questionable", date_modified="2024-12-15T03:34:33+00:00"),
+            _row(report_status="Out", date_modified="2024-12-15T14:17:06+00:00"),
+        ],
+        spec=spec, season=2024, identity=_Identity(),
+    )
+    assert len(rows) == 2
+    assert len({r["row_key"] for r in rows}) == 2
+    assert {r["source_era"] for r in rows} == {"revisioned"}
+
+
+def test_single_observation_era_is_accepted_without_date_modified():
+    """2025 must ingest, not refuse — it is a different shape, not a broken one."""
+    spec = _bound_injuries()
+    rows, _ = normalize_rows(
+        [_era_b_row()], spec=spec, season=2025, identity=_Identity()
+    )
+    assert len(rows) == 1
+    assert rows[0]["source_era"] == "single_observation"
+    assert rows[0].get("date_modified") is None
+
+
+def test_era_is_detected_from_columns_not_the_year():
+    """A season label must never decide the era; the column set must."""
+    spec = _bound_injuries()
+    # era-B shaped data carrying a 2021 label
+    rows, _ = normalize_rows(
+        [_era_b_row(season=2021)], spec=spec, season=2021, identity=_Identity()
+    )
+    assert rows[0]["source_era"] == "single_observation"
+
+
+def test_unrecognised_column_shape_refuses():
+    """Neither era: refuse rather than mapping onto whichever looks closest."""
+    spec = _bound_injuries()
+    broken = _row()
+    broken.pop("date_modified")            # no date_modified
+    # and no season_type either -> matches no declared era
+    with pytest.raises(UsageCaptureError, match="era|schema_drift|missing"):
+        normalize_rows([broken], spec=spec, season=2024, identity=_Identity())
+
+
+def test_single_observation_era_still_refuses_a_duplicate_key():
+    """Without date_modified the five-column key must still be unique."""
+    spec = _bound_injuries()
+    with pytest.raises(UsageCaptureError, match="grain_violation"):
+        normalize_rows(
+            [_era_b_row(), _era_b_row()], spec=spec, season=2025, identity=_Identity()
+        )
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [(2020.0, "2020"), ("2020.0", "2020"), (2020, "2020"), ("2020", "2020")],
+)
+def test_float_typed_season_is_normalized_for_storage(raw, expected):
+    """'2020.0' in the store means `season == 2020` misses the whole season."""
+    rows, _ = normalize_rows(
+        [_row(season=raw)], spec=_bound_injuries(), season=2020, identity=_Identity()
+    )
+    assert str(rows[0]["season"]) == expected
+
+
+@pytest.mark.parametrize("raw,expected", [(1.0, "1"), ("1.0", "1"), (13, "13")])
+def test_float_typed_week_is_normalized_for_storage(raw, expected):
+    rows, _ = normalize_rows(
+        [_row(week=raw)], spec=_bound_injuries(), season=2020, identity=_Identity()
+    )
+    assert str(rows[0]["week"]) == expected
+
+
+def test_a_genuinely_fractional_integer_column_refuses():
+    """2020.5 is not a season; coercing it would invent a fact."""
+    with pytest.raises(UsageCaptureError, match="integer|numeric"):
+        normalize_rows(
+            [_row(season=2020.5)], spec=_bound_injuries(), season=2020, identity=_Identity()
+        )
+
+
+def test_every_era_column_has_a_home_in_the_table():
+    """An era column absent from stored_columns is dropped SILENTLY at insert.
+
+    Measured: 2025's `season_type` was declared by its era and produced by
+    normalization, then discarded because the table was created from the default
+    era's column list. `row.get()` means no error — just missing data.
+    """
+    spec = _bound_injuries()
+    stored = set(spec.stored_columns)
+    for era in spec.eras:
+        missing = [c for c in era.columns if c not in stored]
+        assert not missing, f"era {era.name} columns with no column to land in: {missing}"
+    assert "season_type" in stored
+    assert "date_modified" in stored
+
+
+def test_declared_integer_column_refuses_at_normalization_not_at_export():
+    """The refusal for an integer column must happen BEFORE the season is stored.
+
+    Codex M1: the export cast would refuse malformed text, but only after SQLite
+    had already been rewritten. Normalization is the earlier, safer boundary.
+    """
+    with pytest.raises(UsageCaptureError, match="nflverse_non_integer"):
+        normalize_rows(
+            [_row(week="not-a-number")],
+            spec=_bound_injuries(), season=SEASON, identity=_Identity(),
+        )
+
+
+# ── Codex post-live review: B3, B5, B6, M2 ────────────────────────────────────
+
+
+def test_widening_the_projection_is_not_unchanged(tmp_path):
+    """B3: same rows + a different persisted projection must NOT be `unchanged`.
+
+    Hashing rows ALONE meant a schema widening returned `unchanged`, so the new
+    columns stayed NULL and only a manual DELETE recovered it. The idempotence
+    identity must include the projection the rows are persisted through.
+    """
+    from dataclasses import replace as _replace
+
+    from src.dynasty_genius.nflverse_usage import UsageStore
+
+    spec = _bound_injuries()
+    narrow = _replace(spec, eras=(), columns=spec.columns, grain=spec.grain)
+    rows, coverage = normalize_rows(
+        [_row()], spec=spec, season=SEASON, identity=_Identity()
+    )
+
+    db = tmp_path / "widen.db"
+    UsageStore(db, [narrow]).apply_season(
+        narrow, season=SEASON, rows=rows, coverage=coverage, ingested_at="t0"
+    )
+    # widen the projection, then apply the IDENTICAL rows
+    assert UsageStore.migrate_additive_columns(db, [spec])[spec.table]
+    verdict = UsageStore(db, [spec]).apply_season(
+        spec, season=SEASON, rows=rows, coverage=coverage, ingested_at="t1"
+    )
+
+    assert verdict != "unchanged", (
+        "identical rows through a WIDER projection returned `unchanged`; the new "
+        "columns would stay NULL until someone deleted the table by hand"
+    )
+
+
+def test_additive_migration_is_explicit_and_the_store_still_fails_closed(tmp_path):
+    """B5: reproducible from code, but never silently on open.
+
+    The deliberate fail-closed contract predates this work. Auto-widening on
+    every store open would be the same silent-change class this module refuses.
+    """
+    import sqlite3
+
+    from src.dynasty_genius.nflverse_usage import UsageStore
+
+    spec = _bound_injuries()
+    db = tmp_path / "old.db"
+    with sqlite3.connect(db) as conn:
+        conn.execute(
+            f"CREATE TABLE {spec.table} (row_key TEXT PRIMARY KEY, season TEXT)"
+        )
+
+    with pytest.raises(UsageCaptureError, match="schema_mismatch"):
+        UsageStore(db, [spec])
+
+    added = UsageStore.migrate_additive_columns(db, [spec])
+    assert "source_era" in added[spec.table]
+    assert "season_type" in added[spec.table]
+    UsageStore(db, [spec])  # now opens
+
+
+def test_empty_stream_still_exports_the_declared_schema(tmp_path):
+    """B6: consumer schema must not depend on whether the table happens to be empty."""
+    import polars as pl
+
+    from src.dynasty_genius.nflverse_usage import UsageStore, publish_export
+
+    spec = _bound_injuries()
+    store = UsageStore(tmp_path / "empty.db", [spec])
+    publish_export(
+        store, [spec], run_id="r1", captured_at="t0", export_root=tmp_path / "export"
+    )
+
+    found = sorted((tmp_path / "export").glob("**/injuries.parquet"))
+    assert found, "no parquet exported for an empty stream"
+    frame = pl.read_parquet(found[-1])
+    assert frame.height == 0
+    assert set(spec.stored_columns) <= set(frame.columns), (
+        "an empty export dropped the declared columns; a zero-column Parquet "
+        "makes the consumer contract depend on today's row count"
+    )
+
+
+def test_both_era_columns_survive_storage_and_export(tmp_path):
+    """M2: a real store round-trip, not a membership assertion.
+
+    The previous test checked `stored_columns` membership and would not have
+    caught an insert/projection regression.
+    """
+    import polars as pl
+
+    from src.dynasty_genius.nflverse_usage import IdentityIndex, run_usage_capture
+
+    spec = _bound_injuries()
+    era_b = _row(gsis_id="00-0000002", season=2025)
+    era_b.pop("date_modified")
+    era_b["season_type"] = "POST"
+
+    index = IdentityIndex(
+        gsis_ids=frozenset({"00-0039359", "00-0000002"}),
+        pfr_to_gsis={}, pfr_conflicts={}, names_by_gsis={},
+    )
+    payload = {2024: [_row()], 2025: [era_b]}
+    run_usage_capture(
+        seasons=[2024, 2025], specs=[spec], identity=index,
+        db_path=tmp_path / "u.db", raw_root=tmp_path / "raw",
+        export_root=tmp_path / "export",
+        fetch=lambda s, season: payload[season],
+    )
+
+    import sqlite3
+
+    conn = sqlite3.connect(tmp_path / "u.db")
+    try:
+        stored = {
+            r[0]: (r[1], r[2])
+            for r in conn.execute(
+                f"SELECT source_era, date_modified, season_type FROM {spec.table}"
+            )
+        }
+    finally:
+        conn.close()
+
+    assert stored["revisioned"][0] is not None, "date_modified lost in storage"
+    assert stored["revisioned"][1] is None
+    assert stored["single_observation"][1] == "POST", "season_type lost in storage"
+    assert stored["single_observation"][0] is None
+
+    exported = sorted((tmp_path / "export").glob("**/injuries.parquet"))
+    frame = pl.read_parquet(exported[-1])
+    assert set(frame["season_type"].to_list()) == {None, "POST"}
+    assert frame.height == 2
+
+
+def test_an_additive_unknown_provider_column_refuses():
+    """B1's actual reproducer: an otherwise-valid row with an EXTRA column.
+
+    `requires`/`forbids` matching accepted it as `single_observation` and silently
+    discarded the field — which is exactly how 2025's `season_type` was lost the
+    first time. The earlier "unrecognised shape" test removed a column instead of
+    adding one, so it matched no era under either implementation and could not
+    distinguish them. Found because the positive control for this fix did not
+    fail when the fix was reverted.
+    """
+    extra = _row(unexpected_provider_field="surprise")
+    with pytest.raises(UsageCaptureError, match="unknown_era"):
+        normalize_rows(
+            [extra], spec=_bound_injuries(), season=SEASON, identity=_Identity()
+        )
+
+
+def test_ambiguous_era_declaration_refuses():
+    """Two eras matching one column set must refuse, not take the first.
+
+    Taking `next()` would make the contract depend on declaration ORDER.
+    """
+    from dataclasses import replace as _replace
+
+    spec = _bound_injuries()
+    twin = _replace(spec.eras[0], name="revisioned_twin")
+    ambiguous = _replace(spec, eras=(spec.eras[0], twin))
+
+    with pytest.raises(UsageCaptureError, match="ambiguous_era"):
+        normalize_rows(
+            [_row()], spec=ambiguous, season=SEASON, identity=_Identity()
+        )
+
+
+# ── Codex R2 re-review: the one-row positive control was itself vacuous ────────
+
+
+def test_a_later_record_with_an_extra_column_refuses():
+    """R2-B1: era validation must check EVERY record, not just records[0].
+
+    The era was chosen from the first mapping and never re-checked, so a valid
+    first row followed by one carrying an unexpected provider field was accepted
+    and the field silently discarded. My B1 positive control used a ONE-ROW
+    batch, so it could not distinguish the two implementations — the same
+    guard-that-does-not-guard shape, one level down.
+    """
+    with pytest.raises(UsageCaptureError, match="heterogeneous_batch"):
+        normalize_rows(
+            [_row(), _row(gsis_id="00-0000002", unexpected_provider_field="x")],
+            spec=_bound_injuries(), season=SEASON, identity=_Identity(),
+        )
+
+
+def test_a_later_record_missing_a_declared_column_refuses():
+    """The other half of R2-B1: absence in a later row, not just addition."""
+    short = _row(gsis_id="00-0000003")
+    short.pop("report_primary_injury")
+    with pytest.raises(UsageCaptureError, match="heterogeneous_batch"):
+        normalize_rows(
+            [_row(), short],
+            spec=_bound_injuries(), season=SEASON, identity=_Identity(),
+        )
+
+
+def test_a_homogeneous_multi_row_batch_is_still_accepted():
+    """The refusal must not fire on the normal case (the inverse failure)."""
+    rows, _ = normalize_rows(
+        [_row(), _row(gsis_id="00-0000004")],
+        spec=_bound_injuries(), season=SEASON, identity=_Identity(),
+    )
+    assert len(rows) == 2
+
+
+def test_schema_mismatch_error_names_the_real_migration_entry_point():
+    """R2-B5: the message said widening was automatic. It is not, and was not."""
+    import sqlite3
+
+    from src.dynasty_genius.nflverse_usage import UsageStore
+
+    spec = _bound_injuries()
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        db = Path(tmp) / "old.db"
+        with sqlite3.connect(db) as conn:
+            conn.execute(
+                f"CREATE TABLE {spec.table} (row_key TEXT PRIMARY KEY, season TEXT)"
+            )
+        with pytest.raises(UsageCaptureError) as exc:
+            UsageStore(db, [spec])
+    message = str(exc.value)
+    assert "migrate_additive_columns" in message, (
+        "the failure surface must name the real entry point"
+    )
+    assert "automatically" not in message, (
+        "the message previously claimed automatic widening, which was false"
     )

@@ -713,10 +713,19 @@ def test_r2e1_malformed_numeric_source_text_fails_rather_than_becoming_null(
 ) -> None:
     """Codex R2-E1, reproduced: `strict=False` alone converts malformed non-null
     text to NULL, so a typed Parquet looks valid while having eaten bad values —
-    corruption made indistinguishable from missingness. The publish must refuse."""
+    corruption made indistinguishable from missingness. The publish must refuse.
+
+    2026-08-02: this now corrupts a FLOAT column rather than `week`. Codex M1
+    moved the refusal for DECLARED INTEGER columns earlier, to normalization, so
+    a bad `week` never reaches the export cast — better, because the old order
+    only refused AFTER the SQLite season had already been rewritten. Corrupting
+    `avg_time_to_throw` (a float column, not an integer column) keeps this test
+    exercising the EXPORT-CAST guard it was written for, which would otherwise
+    have been silently orphaned by that improvement.
+    """
     corrupted = dict(fixture_payload)
     rows = [dict(r) for r in fixture_payload["ngs_passing"]]
-    rows[0] = dict(rows[0], week="not-a-number")
+    rows[0] = dict(rows[0], avg_time_to_throw="not-a-number")
     corrupted["ngs_passing"] = rows
 
     def fetch(spec: StreamSpec, season: int):
@@ -730,9 +739,9 @@ def test_r2e1_the_failure_names_the_offending_column(
     tmp_path, identity, fixture_payload
 ) -> None:
     rows = [dict(r) for r in fixture_payload["ngs_passing"]]
-    rows[0] = dict(rows[0], week="not-a-number")
+    rows[0] = dict(rows[0], avg_time_to_throw="not-a-number")
     corrupted = dict(fixture_payload, ngs_passing=rows)
 
     with pytest.raises(UsageCaptureError) as exc:
         _run(tmp_path, lambda spec, season: corrupted[spec.name], identity)
-    assert "week" in str(exc.value)
+    assert "avg_time_to_throw" in str(exc.value)

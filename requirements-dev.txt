@@ -5,3 +5,25 @@
 # Ruff itself is version-pinned by the hook `rev` in .pre-commit-config.yaml
 # (and by the CI install step), so pre-commit only needs to be the runner here.
 pre-commit
+
+# Mutation testing — added 2026-08-02 on David's word.
+#
+# Mechanizes the "positive control": break the code, confirm a test goes red.
+#
+# THE DECLARED TOOL CHANGED AFTER MEASUREMENT, and the earlier attempts are
+# recorded rather than quietly replaced:
+#   * mutmut==3.7.0 CANNOT INSTALL on Python 3.14 — it requires libcst, which has
+#     no 3.14 wheel. `pip index versions` listed it, which is why an earlier
+#     version of this file pinned it; listing a version is not proving it installs.
+#   * mutmut==2.5.1 installs (parso-based) but CRASHES on 3.14 with
+#     `TypeError: cannot pickle 'itertools.count' object`.
+#   * cosmic-ray 8.4.6 is the measured-compatible path and is what is pinned.
+#
+# Deliberately NOT wired into CI: slow, and a repo-wide run would be the box-tick
+# `05` §3 warns about. Run it in an ISOLATED GIT WORKTREE over one module at a
+# time, with a runner that actually exercises that module — a runner scoped too
+# narrowly reports survivors that are really just out-of-scope code.
+#   cosmic-ray init <config.toml> <session.sqlite>
+#   cosmic-ray baseline <config.toml>
+#   cosmic-ray exec <config.toml> <session.sqlite>
+cosmic-ray==8.4.6
