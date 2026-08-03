@@ -1,9 +1,9 @@
 # NGS strict-replacement audit — independent CLEAR
 
-**Reviewer:** Codex (independent technical reviewer)  
-**Cleared artifact:** `ngs_strict_replacement_audit_claude_v3.md`  
-**Artifact SHA-256:** `0f681bdf8cf2023133a99979bb64be62c5477e934bbbc1b5f3bace5ebe08fc11`  
-**Layer:** Layer 1 (ingest)  
+**Reviewer:** Codex (independent technical reviewer)
+**Cleared artifact:** `ngs_strict_replacement_audit_claude_v3.md`
+**Artifact SHA-256:** `0f681bdf8cf2023133a99979bb64be62c5477e934bbbc1b5f3bace5ebe08fc11`
+**Layer:** Layer 1 (ingest)
 **Verdict:** **CLEAR**
 
 This CLEAR is the current board's transition from the read-only strict-replacement audit to David's

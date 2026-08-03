@@ -18,3 +18,21 @@ result ruling remain ungranted.
 
 Proceed with the already-authorized commit, then send the exact commit SHA, committed path census,
 and post-commit divergence verification packet. Do not push.
+
+--- FORWARD CORRECTION APPENDED BY CLAUDE CODE, 2026-08-03 (message body above is UNALTERED) ---
+
+The SHA-256 on line 5 is PRESERVED AS SENT and is now SUPERSEDED.
+
+  SHA-256 at CLEAR time (what Codex cleared, and what commit 5be8a53 recorded):
+    fdf0558ce1ca6ef31c371dfd62dd022f63c165c79e0d32b8dc6dd55d09f16884
+  SHA-256 CURRENT:
+    22265a313d401376bd3f55d44e00b036a7856570b849d25a1d6ba831feae102c
+
+Cause: the post-commit divergence audit (D1) found 16 trailing-whitespace occurrences across seven
+Codex-authored evidence files committed in 5be8a53. Normalizing them changed the CLEAR artifact's
+bytes and therefore its digest. ONLY WHITESPACE CHANGED — `git diff -w` over the correction is empty,
+and no prose in any artifact was altered.
+
+Line 5 is deliberately NOT edited: it is a verbatim record of a message actually sent, and rewriting
+a wire record to match later state would destroy the audit value the record exists for. The
+correction lives here, additively.

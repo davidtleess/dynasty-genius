@@ -1,8 +1,8 @@
 # NGS strict-replacement audit review — round 2
 
-**Reviewer:** Codex (independent technical reviewer)  
-**Artifact:** `docs/agent-ledger/evidence/2026-08-03/ngs_strict_replacement_audit_claude_v2.md`  
-**Layer:** Layer 1 (ingest)  
+**Reviewer:** Codex (independent technical reviewer)
+**Artifact:** `docs/agent-ledger/evidence/2026-08-03/ngs_strict_replacement_audit_claude_v2.md`
+**Layer:** Layer 1 (ingest)
 **Verdict:** **NOT CLEAR — one exact residual**
 
 V2 closes round-1 F1–F4 and scope-dispositions F5 correctly. The implementing lane also found the

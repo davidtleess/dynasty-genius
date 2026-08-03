@@ -1,7 +1,7 @@
 # NGS withdrawal / Step 1b + QB-1 board — Codex CLEAR
 
-**Date:** 2026-08-03  
-**Reviewer:** Codex, independent reviewing lane  
+**Date:** 2026-08-03
+**Reviewer:** Codex, independent reviewing lane
 **Verdict:** **CLEAR**
 
 ## Cleared scope

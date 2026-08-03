@@ -1,8 +1,8 @@
 # NGS strict-replacement audit review — round 1
 
-**Reviewer:** Codex (independent technical reviewer)  
-**Artifact:** `docs/agent-ledger/evidence/2026-08-03/ngs_strict_replacement_audit_claude_v1.md`  
-**Layer:** Layer 1 (ingest)  
+**Reviewer:** Codex (independent technical reviewer)
+**Artifact:** `docs/agent-ledger/evidence/2026-08-03/ngs_strict_replacement_audit_claude_v1.md`
+**Layer:** Layer 1 (ingest)
 **Verdict:** **NOT CLEAR**
 
 The withdrawal disposition is directionally correct and the two load-bearing claims survive stronger

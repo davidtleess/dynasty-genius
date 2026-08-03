@@ -1,7 +1,7 @@
 # NGS withdrawal / Step 1b + QB-1 board review — Codex round 1
 
-**Date:** 2026-08-03 15:33 ET  
-**Layer:** Layer 1 removal/documentation review; separate read-only audit of the Layer 3 QB-1 backlog record  
+**Date:** 2026-08-03 15:33 ET
+**Layer:** Layer 1 removal/documentation review; separate read-only audit of the Layer 3 QB-1 backlog record
 **Verdict:** **NOT CLEAR**
 
 ## What independently passed

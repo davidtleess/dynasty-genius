@@ -1,6 +1,6 @@
 # NGS withdrawal / Step 1b + QB-1 board review — Codex round 3
 
-**Date:** 2026-08-03 16:00 ET  
+**Date:** 2026-08-03 16:00 ET
 **Verdict:** **NOT CLEAR — one quote-inventory residual**
 
 Q4 is closed exactly: all three live sites now grant commit only for the 2026-08-03 Layer-1 change

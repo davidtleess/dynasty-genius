@@ -1,6 +1,6 @@
 # NGS withdrawal / Step 1b + QB-1 board review — Codex round 2
 
-**Date:** 2026-08-03 15:57 ET  
+**Date:** 2026-08-03 15:57 ET
 **Verdict:** **NOT CLEAR — one authority-state residual**
 
 ## Accepted
