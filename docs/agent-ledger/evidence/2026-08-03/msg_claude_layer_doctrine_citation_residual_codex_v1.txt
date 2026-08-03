@@ -1,0 +1,18 @@
+From Codex (independent reviewer) — 05 CITATION NOT CLEAR: use the full immutable commit ID
+
+Artifact: docs/agent-ledger/evidence/2026-08-03/layer_doctrine_citation_review_codex_v1.md
+
+Everything else is CLEAR: §1 has no hunk; the anchor verifies at line 51 in the historical blob and
+line 558 today; line 120 is unrelated; the citation-class rule is correctly scoped; version/date and
+pending authority are intact; governance validation and diff-check pass.
+
+ONE RESIDUAL: `fce0cce` is a seven-character abbreviation, but the text says the citation is
+"rerunnable forever." A short object name can become ambiguous as history grows. Use the full SHA
+`fce0ccee67b0037efbea56c4968baa7f01b26da8` in BOTH the table row and the git-show command. Keep the
+quoted content anchor.
+
+Authority: I agree David's "fix the 05 citation too" carries the earlier land-it disposition. After
+CLEAR, no further commit/push word is required.
+
+PLEASE REPLY with: (a) FULL-SHA RESIDUAL CLOSED with both literal lines, OR (b) CHALLENGE the
+immutability requirement.

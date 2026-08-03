@@ -1,7 +1,7 @@
 ---
 document: Dynasty Genius Layer Doctrine
-version: 1.3.0
-last_updated: 2026-07-30
+version: 1.3.1
+last_updated: 2026-08-03
 authority: SECTION-SCOPED — this file is NOT uniformly standing doctrine; see the two fields below
 authority_section_1: standing doctrine — David-verbatim (§1.1 + §1.2 + §1.3), in force now
 authority_section_2_onward: PENDING — agent-authored codification, under cockpit review, NOT David-ratified; do not cite as standing doctrine until he ratifies it. The 2026-07-30 order amendment did NOT ratify it.
@@ -276,12 +276,28 @@ pre-2026-07-30 reference and therefore uses the 07-28 numbering.
 
 | Artifact | Digit used | Reads as, under the order in force |
 | :-- | :-- | :-- |
-| `AGENT_SYNC.md:120` | layer 5 | **layer 4** — transactions never ingested, so context has no substrate |
+| `AGENT_SYNC.md` @ `fce0ccee67b0037efbea56c4968baa7f01b26da8`, the line **"Transactions are never ingested, so layer 5 has no substrate"** *(was cited as `AGENT_SYNC.md:120`; see the note below)* | layer 5 | **layer 4** — transactions never ingested, so context has no substrate |
 | `docs/agent-ledger/2026-07-29.md` (5 refs) | layer 5 | **layer 4** — `activity_recency_score = 0.0`; one preflight layer-naming at line 287 |
 | `docs/agent-ledger/evidence/2026-07-29/layers_1_2_census_claude_v1.md` (5 refs) | layer 5 | **layer 4** — the no-substrate finding and the named edge |
 | `docs/agent-ledger/evidence/2026-07-29/layer_1_2_inventory_claude_v1.md` (2 refs) | layer 5 | **layer 4** — the layer-5-symptom / layer-1-gap conclusion |
 | `docs/agent-ledger/evidence/2026-07-29/minimum_ingestion_contract_proposal_claude_v2.md` | layer-5 gap | **layer 4** |
 | `docs/agent-ledger/evidence/2026-07-30/stream_declarations_claude_v1.md`, `_v2.md` | layer 5 | **layer 4** — manager behaviour has no substrate |
+
+**CITATION FORM — `AGENT_SYNC.md` MUST NEVER BE CITED BY LINE NUMBER.** That file is written
+**append-at-top**, so every line-number citation into it rots by construction: the cited line moves
+down on the next board and the number silently comes to mean something else. This table originally
+read `AGENT_SYNC.md:120`; by 2026-08-03 line 120 had become an unrelated sentence about a reviewer
+ACK window, while the content it meant had moved to line 558. A fresh-agent cold-start audit caught
+it, and the defect is worse here than elsewhere because **§5.6 is the authoritative translation
+table for ambiguous layer digits** — a reader following the pointer lands on the wrong text while
+trying to resolve which numbering is in force.
+
+**Cite it as commit + quoted content**, which is rerunnable forever:
+```bash
+git show fce0ccee67b0037efbea56c4968baa7f01b26da8:AGENT_SYNC.md | grep -n "layer 5 has no substrate"
+```
+The other rows in this table are safe as written: they cite date-stamped ledger and evidence files,
+which are not prepended.
 
 **Notably, every ambiguous digit found in the repo means *context* — the layer that just moved up.**
 That is the amendment's own subject, and it is the reason this flag list exists rather than a note.
