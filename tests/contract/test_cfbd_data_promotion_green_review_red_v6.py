@@ -43,4 +43,3 @@ def test_path_alias_to_governed_active_cannot_escape_jurisdiction(
             writer_name="test_writer",
         )
     _assert_reason(exc, "promoted_projection_write_refused")
-

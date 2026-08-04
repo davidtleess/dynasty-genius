@@ -51,4 +51,3 @@ def test_unknown_alias_identity_cannot_become_out_of_jurisdiction_permission(
             writer_name="test_writer",
         )
     _assert_reason(exc, "path_identity_unreadable")
-
