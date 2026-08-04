@@ -235,9 +235,53 @@
 > the export carries five streams.
 >
 > **2. CFBD DATA PROMOTION** — David-authorized 2026-08-03; framing + RED before GREEN. See block A.
-> **3. CONTRACTS — end-to-end, one source contract.**
-> **4. DEPTH CHARTS — end-to-end, a SEPARATE contract.**
-> **5. REMEASURE Layer 1, then STOP** for David's next selection.
+> **3-5 SUPERSEDED 2026-08-03 by David's Layer-1 ruling — see block C.**
+> ~~3. CONTRACTS — end-to-end, one source contract.~~
+> ~~4. DEPTH CHARTS — end-to-end, a SEPARATE contract.~~
+> ~~5. REMEASURE Layer 1, then STOP.~~
+>
+> ### ⭐ C. LAYER-1 RESET — David's ruling, 2026-08-03
+>
+> **David's words, verbatim:** *"1) We have a lot of powerful data...land it all --- this is our
+> fuel: layer 1."* and *"the question i have for you is WHY aren't we making progress on Layer 1?
+> its been a few sessions since i laid down the layers thesis - and i feel like the biggest win so
+> far was MY OWN MANUAL DOWNLOAD OF A TON OF PFF AND PLAYER PROFILE DATA"*
+>
+> **He is empirically right.** Measured 2026-08-03: `playerprofiler.db` **1,523,362 rows** and the
+> **149 PFF payloads** — both landed BY DAVID, BY HAND — are the largest external datasets we hold.
+> Agent-built ingestion has delivered one free source (`nflverse_usage.db`, 314,687 rows). The
+> big-looking `model_forward_capture.db` (988,108) and `market_divergence_history.db` (280,648) are
+> **our own outputs, not fuel**. Today's 20 commits were **64.4% process/ledger/governance, 3.2%
+> code, and landed ZERO new external rows**.
+>
+> **THE WORK: land the SIX free nflverse loaders as ONE batch** — `load_contracts`,
+> `load_depth_charts`, `load_ff_opportunity`, `load_ff_rankings`, `load_pfr_advstats`,
+> `load_ftn_charting`. All free, already installed, **zero callers** since the layers thesis was
+> laid down. Implement **sequentially with per-stream checkpoints**; ONE framing/review cycle for
+> the batch, not six.
+>
+> **REDUCED PER-STREAM GATE (ceremony by blast radius; Codex-specified, David-ratified):** raw
+> snapshot + manifest/hash · deterministic normalization and replay · schema, key uniqueness,
+> identity/unresolved census, row/season coverage · existing-table counts unchanged and failed runs
+> preserve last-good · `substrate_only` disposition · focused contracts per stream. Then **ONE**
+> independent review and **ONE** full-suite/Ruff gate **for the batch**.
+> **Blast radius is low DOWNSTREAM, not low absolutely** — identity/provenance/replay gates stay
+> mandatory (Codex's correction, accepted).
+>
+> **METRIC: USABLE STREAMS LANDED first, rows second.** A session landing no new stream is a MISS
+> unless it names an external blocker. *(Rows alone invite gaming — Codex's correction, accepted.)*
+>
+> **NO CEILING on the reduced gate — David ruled, 2026-08-03.** Claude proposed a per-stream review
+> or size cap; David declined and chose to trust the reduced gate. **Standing obligation instead:
+> if the gate begins expanding mid-batch, the implementing lane says so AT THAT MOMENT rather than
+> absorbing it and reporting a long session afterwards.**
+>
+> **FROZEN: housekeeping, withdrawal, cleanup and governance work out of prime time.**
+>
+> **STATED PLAINLY SO IT IS NOT A SURPRISE LATER: completing Layer 1 will NOT produce edge.**
+> PlayerProfiler's 1.5M rows already have ZERO consumers. Six more `substrate_only` streams make
+> that six-fold. The honest headline after this batch is *"fuel landed, none of it burning yet."*
+> Layer 2 is where that changes.
 >
 > **SCHEDULED BACKLOG — NOT next session, and list membership implies NO priority:**
 > QB-1 study (block B; **EXECUTION + H5 LOADER BRIDGE + `eval/` ALLOWLIST ALL AUTHORIZED by David
