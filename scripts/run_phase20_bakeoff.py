@@ -14,6 +14,8 @@ Does NOT promote any model pkl or update any manifest.
 """
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
 import sys
 import uuid
@@ -239,7 +241,18 @@ def _write_oof_log_p20(position, ridge_result, gbt_result, run_id, generated_at)
     return out_path
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--input",
+        type=Path,
+        default=None,
+        help="evaluate a CANDIDATE training CSV instead of the active file; "
+             "read-only, promotes nothing",
+    )
+    args = parser.parse_args(argv)
+    input_path = args.input if args.input is not None else V3_CSV
+
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     run_id = str(uuid.uuid4())[:8]
     generated_at = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -247,11 +260,15 @@ def main() -> None:
     print("Phase 20 — Head A v3 Full Board Activation Bake-Off")
     print(f"  Run ID      : {run_id}")
     print(f"  Generated   : {generated_at}")
-    print(f"  CSV         : {V3_CSV}")
+    print(f"  CSV         : {input_path}")
     print(f"  Folds       : {WALK_FORWARD_FOLDS}")
     print(f"  RMSE gate   : ≥{RMSE_IMPROVEMENT_PCT_GATE_P20}% (Phase 20, stricter than Phase 19 2%)")
 
-    all_rows = _load_all_rows()
+    # Bind the input hash BEFORE evaluation and re-verify after. Computing it by
+    # reopening the file at artifact-write time would let a mid-run change make the
+    # artifact certify bytes that were never evaluated.
+    input_sha256 = hashlib.sha256(input_path.read_bytes()).hexdigest()
+    all_rows = _load_all_rows(input_path)
     print(f"  Total rows  : {len(all_rows)}")
 
     position_results: dict[str, dict] = {}
@@ -278,7 +295,12 @@ def main() -> None:
         "run_id": run_id,
         "generated_at": generated_at,
         "scope": "Phase 20 — Head A v3 Full Board Activation (WR/RB/QB)",
-        "csv_source": V3_CSV.name,
+        "csv_source": input_path.name,
+        # The exact bytes this evaluation consumed. Without the hash the artifact
+        # cannot distinguish an active-file run from a candidate run after the fact.
+        "input_path": str(input_path),
+        "input_sha256": input_sha256,
+        "input_is_active_file": input_path.resolve() == V3_CSV.resolve(),
         "walk_forward_folds": [
             {"train_max_year": t, "test_year": v} for t, v in WALK_FORWARD_FOLDS
         ],
@@ -299,6 +321,12 @@ def main() -> None:
             "spearman_ndcg_gate": "unweighted_mean_of_fold_level_values",
         },
     }
+
+    if hashlib.sha256(input_path.read_bytes()).hexdigest() != input_sha256:
+        raise RuntimeError(
+            f"input changed during evaluation: {input_path}\n"
+            "refusing to write an artifact certifying bytes that were not evaluated"
+        )
 
     out_path = OUTPUT_DIR / f"phase20_bakeoff_{generated_at}_{run_id}.json"
     out_path.write_text(json.dumps(_strip_raw(artifact), indent=2))

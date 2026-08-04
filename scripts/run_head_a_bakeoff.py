@@ -601,13 +601,24 @@ def _write_oof_log(
     return out_path
 
 
-def _load_all_rows() -> list[dict]:
-    if not V3_CSV.exists():
+def _load_all_rows(input_path: Path | None = None) -> list[dict]:
+    """Load the training rows, optionally from a CANDIDATE file instead of the active one.
+
+    The override exists so a candidate can be EVALUATED WITHOUT BEING PROMOTED. Callers
+    that pass nothing get the active file, exactly as before.
+
+    It is threaded here, at the real read, rather than at a caller's display constant:
+    `run_phase20_bakeoff` imports this function, so parameterising that module's own
+    `V3_CSV` would leave this line still reading the active file and would look like an
+    override while being none.
+    """
+    source = Path(input_path) if input_path is not None else V3_CSV
+    if not source.exists():
         raise FileNotFoundError(
-            f"v3 training CSV not found: {V3_CSV}\n"
+            f"v3 training CSV not found: {source}\n"
             "Ensure the W2b enrichment pipeline has been run."
         )
-    with V3_CSV.open(newline="", encoding="utf-8") as f:
+    with source.open(newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
 
 

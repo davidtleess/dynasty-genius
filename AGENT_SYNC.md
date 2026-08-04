@@ -44,8 +44,39 @@
 >
 > ## COLD-START ROUTER — the next agent starts here
 >
-> After the mandatory bootstrap reads, execute **Step 1 only**. Do not begin CFBD promotion,
-> contracts, depth charts, or QB-1 work in parallel.
+> ### ⛽ 2026-08-03 SESSION CLOSE — THE NEXT SESSION OPENS ON INGESTION. NOTHING ELSE.
+>
+> **David's instruction:** *"i want fresh agents to start their session with the ingestion - i want
+> them to make strong progess on layer 1"*.
+>
+> **DO THIS FIRST, BEFORE ANY OTHER BOARD ITEM:** land the **six free nflverse loaders** as one
+> batch — `load_contracts` · `load_depth_charts` · `load_ff_opportunity` · `load_ff_rankings` ·
+> `load_pfr_advstats` · `load_ftn_charting`. All free, already installed, **zero callers**. Full
+> instructions in **block C** below.
+>
+> **Copy the pattern, do not invent one.** `src/dynasty_genius/nflverse_usage.py` already implements
+> fetch → raw snapshot → identity resolve → durable store → hash-verified export for three NGS
+> families plus snaps and injuries. These six share that shape.
+>
+> **WHY THIS IS THE WORK, measured 2026-08-03:** `playerprofiler.db` (1,523,362 rows) and the 149
+> PFF payloads — **the two largest external datasets we hold — were landed BY DAVID, BY HAND.**
+> Agent-built ingestion has delivered one free source. The 2026-08-03 session produced **64.4%
+> process/ledger/governance, 3.2% code, and ZERO new external rows.**
+>
+> **SUCCESS METRIC: usable streams landed, rows second.** A session landing no new stream is a MISS
+> unless it names an external blocker.
+>
+> **DO NOT** open with housekeeping, withdrawal, cleanup, governance repair, or board rewriting.
+> Those are frozen out of prime time by David's ruling. If you find a defect in old work, record it
+> and keep ingesting.
+>
+> ---
+>
+> *(Historical, superseded — the Step-1 NGS withdrawal below is COMPLETE and was landed, reviewed
+> and pushed on 2026-08-03. It is retained only for audit. Do not execute it.)*
+>
+> ~~After the mandatory bootstrap reads, execute **Step 1 only**. Do not begin CFBD promotion,
+> contracts, depth charts, or QB-1 work in parallel.~~
 >
 > 1. **Reconcile the handoff before changing anything. This step is a LANDING GATE, and it is
 >    DESIGNED to fail while the handoff documents are still uncommitted — that is not a defect.**
