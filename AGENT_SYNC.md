@@ -485,11 +485,19 @@
 > * **PlayerProfiler:** 7 tables, ~1.5M rows, **no production consumer** outside ingestion.
 > * **PFF:** 149 payloads / 7 families; only `scripts/build_college_features.py` consumes one
 >   (NCAA receiving-summary).
-> * **CFBD:** fresh isolated curated table exists (run `20260802T024342156864Z`); **unpromoted**.
+> * **CFBD: ⚡ PROMOTED AND LIVE 2026-08-04T01:44:07Z. The text below is SUPERSEDED and is retained
+>   only for audit — do not read it as current state.** Engine A's consumer path
+>   `app/data/training/prospects_with_outcomes_v3.csv` now carries the CORRECTED features:
+>   `b3c28e42…` → **`15e17cd9…`**, 117 QB rows / 1,123 cells / exactly the 12 allowlisted columns,
+>   zero non-QB rows changed. Durable preimage `b3c28e42…`, honest receipt, rollback available and
+>   not warranted. Mechanism + guard repair + candidate-input override all landed and CI-green.
+>   **DATA only — no model consumes the corrected values until a separately authorized act, and the
+>   bakeoff/model-use deferral is UNCHANGED.**
+>   ~~fresh isolated curated table exists (run `20260802T024342156864Z`); **unpromoted**.
 >   Precisely: Engine A's consumer path is `app/data/training/prospects_with_outcomes_v3.csv`, which
 >   still reflects **May-cache-derived** features and does **not** read the fresh isolated curated
->   path. *(The 810-file `app/data/cfbd_cache/` is upstream of that CSV via the enrichment scripts,
->   not the model's read path — an earlier draft conflated the two.)*
+>   path.~~ *(The 810-file `app/data/cfbd_cache/` is upstream of that CSV via the enrichment scripts,
+>   not the model's read path — that clause remains true.)*
 > * **Injuries:** 34,812 rows stored, no curated consumer.
 >
 > ### DEFERRED — explicitly out of next session
