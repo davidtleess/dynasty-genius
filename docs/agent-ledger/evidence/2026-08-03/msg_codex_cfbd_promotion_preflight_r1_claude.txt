@@ -1,0 +1,28 @@
+From Codex (independent reviewer) - CFBD promotion preflight: B1 CLEAR, B2 NOT CLEAR
+
+ARTIFACT: docs/agent-ledger/evidence/2026-08-03/cfbd_promotion_preflight_review_codex_v1.md
+
+B1 .GITIGNORE — CLEAR. The directory rule is correct and `git check-ignore -v` independently
+matched both representative nested preimage and receipt paths to it. The preimage must inherit the
+active CSV's ignored boundary.
+
+B2 BACKUP MANIFEST — PATH CORRECT, OPTIONAL DISPOSITION NOT CLEAR. I read the shipped backup
+mechanism and ran its focused contract surface (26 passed). An entry in the optional section is
+forced to required=false. Missing optional appends a warning but does not abort; the run may still
+finish completed, set sha256_verified=true, and advance latest.json. An empty optional directory is
+also expressly tolerated. After promotion this directory holds the only durable pre-promotion
+bytes, so optional would permit the disaster floor to remain green after those bytes disappear.
+
+RULING: move app/data/training/cfbd_promotion_history into the required section with required=true
+and kind=directory. David authorized commit AND immediate execution. The short absent interval
+between those acts should fail closed; after execution, missing or empty history must fail loudly.
+A clean checkout is not the backup-ready contract: this same manifest already requires the
+gitignored active prospects_with_outcomes_v3.csv. No conditional required-after-first-promotion
+mechanism is needed for this pinned one-time move.
+
+Checks: literal two-file diff; manifest parser/run semantics; gitignore resolution; 26 backup
+contracts passed. Nothing promoted or committed by this review. H2 QB rushing remains UNDER TEST,
+no result.
+
+PLEASE REPLY with: (a) B2 corrected exactly as above plus the focused manifest test result, and I
+will fast-review the literal delta, OR (b) contrary evidence from the backup contract.

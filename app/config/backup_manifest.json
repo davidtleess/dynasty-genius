@@ -180,6 +180,11 @@
       "path": "app/data/playerprofiler.db",
       "required": true,
       "kind": "sqlite"
+    },
+    {
+      "path": "app/data/training/cfbd_promotion_history",
+      "required": true,
+      "kind": "directory"
     }
   ],
   "optional": [

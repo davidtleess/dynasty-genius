@@ -68,6 +68,10 @@ from src.dynasty_genius.adapters.cfbd_receiving_adapter import (  # noqa: E402
     fetch_team_pass_attempts,
     normalize_college_name,
 )
+from src.dynasty_genius.capture.cfbd_data_promotion import (  # noqa: E402
+    default_promotion_spec,
+    guard_destructive_cfbd_write,
+)
 from src.dynasty_genius.models.head_b_contract import (  # noqa: E402
     HEAD_B_PROHIBITED_COLUMNS,
     MARKET_PROHIBITED_COLUMNS,
@@ -78,6 +82,11 @@ from src.dynasty_genius.models.head_b_contract import (  # noqa: E402
 
 V3_CSV = ROOT / "app/data/training/prospects_with_outcomes_v3.csv"
 CACHE_DIR = ROOT / "app/data/cfbd_cache"
+# This script RECOMPUTES the QB triplets from CACHE_DIR and row.update()s them, so it
+# targets exactly the promoted CFBD projection. The receipt path is DERIVED from the
+# shared spec rather than restated here: a second copy of a pinned hash is a second
+# thing to get wrong.
+CFBD_PROMOTION_RECEIPT = default_promotion_spec(ROOT).receipt_path
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -973,6 +982,14 @@ def main(force_fetch: bool = False, allow_degraded: bool = False, include_rb_ypg
     with V3_CSV.open(newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     print(f"  Loaded {len(rows)} rows  sha256=...{source_sha256[-8:]}")
+
+    # Admission BEFORE paid work: this rewrite targets exactly the promoted CFBD
+    # projection, and refusing after the API calls would spend quota for nothing.
+    guard_destructive_cfbd_write(
+        active_path=V3_CSV,
+        receipt_path=CFBD_PROMOTION_RECEIPT,
+        writer_name="build_w2b_cfbd",
+    )
 
     api_key = _cfbd_api_key()
     if not api_key:

@@ -48,6 +48,11 @@ app/data/training/prospects_with_outcomes_*partial*.csv
 app/data/training/prospects_with_outcomes_v2.csv
 app/data/training/prospects_with_outcomes_phase16.csv
 app/data/training/prospects_with_outcomes_v3.csv
+# CFBD promotion evidence. The preimage is a byte-identical copy of the gitignored
+# active training CSV above, so it MUST inherit the same treatment -- otherwise the
+# first `git add -A` commits exactly the data this repo decided not to track. Covered
+# in app/config/backup_manifest.json instead (02 Manifest coverage law).
+app/data/training/cfbd_promotion_history/
 app/data/training/expected_ppg_curves_v3.json
 
 # Engine B model artifacts — manifest and run outputs are local-only

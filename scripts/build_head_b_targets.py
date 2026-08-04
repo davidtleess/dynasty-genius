@@ -56,6 +56,10 @@ from sklearn.isotonic import IsotonicRegression
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from src.dynasty_genius.capture.cfbd_data_promotion import (  # noqa: E402
+    default_promotion_spec,
+    guard_destructive_cfbd_write,
+)
 from src.dynasty_genius.models.head_b_contract import (  # noqa: E402
     HEAD_B_PROHIBITED_COLUMNS,
     W1_TARGET_COLUMNS,
@@ -65,6 +69,10 @@ from src.dynasty_genius.models.head_b_contract import (  # noqa: E402
 
 SOURCE_CSV = ROOT / "app/data/training/prospects_with_outcomes.csv"
 OUTPUT_CSV = ROOT / "app/data/training/prospects_with_outcomes_v3.csv"
+# This script RECONSTRUCTS v3 from SOURCE_CSV, so it destroys any promoted CFBD
+# projection wholesale. The receipt path is DERIVED from the shared spec rather than
+# restated here: a second copy of a pinned hash is a second thing to get wrong.
+CFBD_PROMOTION_RECEIPT = default_promotion_spec(ROOT).receipt_path
 CURVES_JSON = ROOT / "app/data/training/expected_ppg_curves_v3.json"
 
 # ── Constants ─────────────────────────────────────────────────────────────────
@@ -373,6 +381,14 @@ def main() -> None:
     source_row_count = len(rows)
     print(f"  Loaded: {source_row_count} rows  sha256=...{source_sha256[-8:]}")
 
+    # Admission BEFORE expense: this rebuild would silently revert an active CFBD
+    # promotion, and refusing after the curve fit would burn the work anyway.
+    guard_destructive_cfbd_write(
+        active_path=OUTPUT_CSV,
+        receipt_path=CFBD_PROMOTION_RECEIPT,
+        writer_name="build_head_b_targets",
+    )
+
     # ── Fit curves ──────────────────────────────────────────────────────────
     print(f"\n  Fitting expected-PPG curves (training ≤{TRAINING_MAX_SEASON})...")
     curves = _build_curves(rows)
@@ -391,7 +407,8 @@ def main() -> None:
     for row in rows:
         season = int(row.get("season", 0))
         seasons_in_source.append(season)
-        total_games = int(row.get("total_games", 0) or 0)
+        # (a dead `total_games` binding lived here; `compute_row_targets` derives it
+        # itself at the top of the file — removed under 03's clean-on-touch ratchet)
         position = row.get("position", "")
 
         targets = compute_row_targets(row, curves)
