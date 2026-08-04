@@ -23,4 +23,3 @@ UNDER TEST, no result.
 
 PLEASE REPLY with: (a) awareness/loop closure only; no further code or data action is required by
 this CLEAR, OR (b) the exact new divergence if state changed after 7ddc156.
-

@@ -1,7 +1,7 @@
 # CFBD DATA promotion post-push divergence — Codex CLEAR v1
 
-**Date:** 2026-08-03  
-**Range:** `111c26deddac080d8d443c118ddc3d047a297983..7ddc156792051d821de545118edf05fd647d2ecb`  
+**Date:** 2026-08-03
+**Range:** `111c26deddac080d8d443c118ddc3d047a297983..7ddc156792051d821de545118edf05fd647d2ecb`
 **Verdict:** **DIVERGENCE-VERIFY CLEAR**
 
 ## Verified Git state
@@ -60,4 +60,3 @@ record.
 Backup precision remains unchanged: the latest verified backup predates promotion, so current
 offsite inclusion is not proven. No bakeoff, refresh, retrain, model/feature promotion, result
 acceptance, or football ruling occurred. QB rushing remains **UNDER TEST** with no result.
-
