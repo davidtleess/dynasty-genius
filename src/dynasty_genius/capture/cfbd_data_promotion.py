@@ -242,6 +242,34 @@ def default_promotion_spec(root: Path | None = None) -> PromotionSpec:
 # ── Validation — read-only, every gate independently recomputed ──────────────
 
 
+def _same_file(first: Path, second: Path) -> bool:
+    """Path IDENTITY, not spelling. The single comparison rule for this module.
+
+    A symlink and a ``..`` detour are different strings for the same bytes. Lexical
+    equality let both slip past jurisdiction, so the guard stood down while the writer
+    reached the promoted file through another spelling. Every path comparison here --
+    role distinctness AND guard jurisdiction -- goes through this one function, so a
+    future fix cannot close it in one place and leave it open in the other.
+    """
+    first, second = Path(first), Path(second)
+    if first == second:
+        return True
+    try:
+        if first.resolve(strict=False) == second.resolve(strict=False):
+            return True
+        if first.exists() and second.exists() and first.samefile(second):
+            return True
+    except OSError as exc:
+        # UNKNOWN IS A THIRD STATE, NOT False. This previously returned False, and the
+        # two callers read that word differently: role distinctness heard "assume
+        # distinct", but guard jurisdiction heard "unrelated file" and PERMITTED THE
+        # WRITE. An OS/stat failure proves neither sameness nor difference, and at a
+        # fail-closed admission boundary uncertainty must never become permission.
+        # Raising makes both callers fail closed on the same fact.
+        _fail("path_identity_unreadable", f"cannot establish identity of {first} vs {second}: {exc}")
+    return False
+
+
 _ARTIFACT_ROLES = (
     "active_path",
     "candidate_path",
@@ -268,18 +296,8 @@ def _assert_distinct_paths(spec: PromotionSpec) -> None:
 
     for index, left in enumerate(_ARTIFACT_ROLES):
         for right in _ARTIFACT_ROLES[index + 1 :]:
-            first, second = paths[left], paths[right]
-            if first == second:
-                _fail("path_alias", f"{left} and {right} are the same path")
-            try:
-                if first.resolve(strict=False) == second.resolve(strict=False):
-                    _fail("path_alias", f"{left} and {right} resolve to the same path")
-                if first.exists() and second.exists() and first.samefile(second):
-                    _fail("path_alias", f"{left} and {right} are the same inode")
-            except CfbdPromotionError:
-                raise
-            except OSError:  # pragma: no cover - stat failure is not an alias signal
-                pass
+            if _same_file(paths[left], paths[right]):
+                _fail("path_alias", f"{left} and {right} are the same file")
 
 
 def _check_identity_validity(rows: Sequence[Mapping[str, str]], columns: Sequence[str]) -> None:
@@ -896,6 +914,7 @@ def guard_destructive_cfbd_write(
     active_path: Path,
     receipt_path: Path,
     writer_name: str,
+    governed_active_path: Path | None = None,
 ) -> None:
     """Refuse a destructive rewrite while CFBD promotion evidence exists.
 
@@ -911,6 +930,25 @@ def guard_destructive_cfbd_write(
     """
     receipt_path = Path(receipt_path)
     active_path = Path(active_path)
+
+    # ── JURISDICTION FIRST, from TRUSTED CALLER CONFIGURATION ────────────────
+    # `governed_active_path` is supplied by the caller's own configuration, never
+    # read from the artifact under judgment. Defaults to `active_path`, i.e. IN
+    # jurisdiction, so an omission fails closed rather than open.
+    #
+    # Two corrections are encoded here, both from review:
+    #  1. My first repair took jurisdiction from `receipt.active_path` -- letting the
+    #     RECEIPT DECIDE ITS OWN JURISDICTION. Editing that one field to a decoy left a
+    #     structurally complete, honest-looking receipt that silently disarmed the guard
+    #     on the real promoted file. The artifact being judged could opt itself out.
+    #  2. Jurisdiction is settled BEFORE the receipt is read at all. Validating a
+    #     malformed real receipt first would preserve exactly the cross-world coupling
+    #     that broke four tests: a fixture target must not be judged by another world's
+    #     evidence, however broken that evidence is.
+    governed = Path(governed_active_path) if governed_active_path is not None else active_path
+    if not _same_file(active_path, governed):
+        return
+
     if not receipt_path.exists():
         return
 
@@ -932,6 +970,13 @@ def guard_destructive_cfbd_write(
             _fail("promotion_receipt_invalid", f"{receipt_path} {field} must be false")
     if payload.get("promotion_decision") != PROMOTION_DECISION:
         _fail("promotion_receipt_invalid", f"{receipt_path} promotion_decision is not governed")
+
+    # Inside jurisdiction the receipt MUST describe the GOVERNED file -- compared
+    # against trusted configuration, never against the caller's spelling, which may be
+    # an alias. A mismatch is a corrupt or foreign receipt on the governed path.
+    if not _same_file(Path(payload.get("active_path", "")), governed):
+        _fail("promotion_receipt_invalid", f"{receipt_path} does not describe {governed}")
+
     expected = payload.get("after_projection_sha256")
     if not expected:
         _fail("promotion_receipt_invalid", f"{receipt_path} carries no after_projection_sha256")

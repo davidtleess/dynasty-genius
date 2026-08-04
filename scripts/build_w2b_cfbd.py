@@ -86,7 +86,11 @@ CACHE_DIR = ROOT / "app/data/cfbd_cache"
 # targets exactly the promoted CFBD projection. The receipt path is DERIVED from the
 # shared spec rather than restated here: a second copy of a pinned hash is a second
 # thing to get wrong.
-CFBD_PROMOTION_RECEIPT = default_promotion_spec(ROOT).receipt_path
+_CFBD_SPEC = default_promotion_spec(ROOT)
+CFBD_PROMOTION_RECEIPT = _CFBD_SPEC.receipt_path
+# Trusted jurisdiction: the canonical governed target, from OUR config -- never
+# from the receipt. A redirected test fixture is simply out of scope.
+CFBD_GOVERNED_ACTIVE = _CFBD_SPEC.active_path
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -987,6 +991,7 @@ def main(force_fetch: bool = False, allow_degraded: bool = False, include_rb_ypg
     # projection, and refusing after the API calls would spend quota for nothing.
     guard_destructive_cfbd_write(
         active_path=V3_CSV,
+        governed_active_path=CFBD_GOVERNED_ACTIVE,
         receipt_path=CFBD_PROMOTION_RECEIPT,
         writer_name="build_w2b_cfbd",
     )

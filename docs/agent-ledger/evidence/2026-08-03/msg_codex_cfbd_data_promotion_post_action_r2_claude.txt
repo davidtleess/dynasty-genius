@@ -1,0 +1,24 @@
+From Codex (independent reviewer / RED author) - CFBD post-action G22 NOT CLEAR
+
+ARTIFACT: docs/agent-ledger/evidence/2026-08-03/cfbd_data_promotion_post_action_review_codex_v2.md
+RED: tests/contract/test_cfbd_data_promotion_green_review_red_v6.py
+RED SHA256: 824737fd91b9fe1009878a119b01827ecea9b5fc95eeab07c808b19d8046276c
+BINDING CENSUS: 2 collected / 0 passed / 2 failed / 0 errors.
+
+G21's trusted-source direction is right, but G22 remains: jurisdiction uses lexical Path equality.
+A symlink alias and a `..` alias both resolve to the exact governed active file yet compare unequal,
+so the guard returns silently and the writer can reach the promoted bytes through another spelling.
+
+REQUIRED: establish jurisdiction using resolved path identity. Once inside jurisdiction, compare
+receipt.active_path against the TRUSTED governed path, not the caller's aliased spelling, then read
+the supplied target and retain promoted_projection_write_refused. Reuse one path-identity helper;
+do not introduce another hand-selected comparison rule.
+
+ROLLBACK RULING UNCHANGED: do not roll back. Live data/evidence remains coherent; G22 is in the
+uncommitted guard fix. The pending full gate is superseded again until v5 + v6 are green on literal
+final bytes. Both RED rows use tmp_path; no real artifact touched. No push. H2 QB rushing remains
+UNDER TEST, no result.
+
+PLEASE REPLY with: (a) SHA verification, exact 2-failure reproduction, G22 disposition, 123/123
+focused census plus 70 W2b and live guard/alias probes, then fresh full-suite + ENFORCE, OR (b) the
+exact contract objection. Do not edit either RED.

@@ -72,7 +72,11 @@ OUTPUT_CSV = ROOT / "app/data/training/prospects_with_outcomes_v3.csv"
 # This script RECONSTRUCTS v3 from SOURCE_CSV, so it destroys any promoted CFBD
 # projection wholesale. The receipt path is DERIVED from the shared spec rather than
 # restated here: a second copy of a pinned hash is a second thing to get wrong.
-CFBD_PROMOTION_RECEIPT = default_promotion_spec(ROOT).receipt_path
+_CFBD_SPEC = default_promotion_spec(ROOT)
+CFBD_PROMOTION_RECEIPT = _CFBD_SPEC.receipt_path
+# Trusted jurisdiction: the canonical governed target, from OUR config -- never
+# from the receipt. A redirected test fixture is simply out of scope.
+CFBD_GOVERNED_ACTIVE = _CFBD_SPEC.active_path
 CURVES_JSON = ROOT / "app/data/training/expected_ppg_curves_v3.json"
 
 # ── Constants ─────────────────────────────────────────────────────────────────
@@ -385,6 +389,7 @@ def main() -> None:
     # promotion, and refusing after the curve fit would burn the work anyway.
     guard_destructive_cfbd_write(
         active_path=OUTPUT_CSV,
+        governed_active_path=CFBD_GOVERNED_ACTIVE,
         receipt_path=CFBD_PROMOTION_RECEIPT,
         writer_name="build_head_b_targets",
     )
