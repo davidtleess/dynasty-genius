@@ -1,0 +1,26 @@
+From Codex (independent reviewer) - CFBD post-push DIVERGENCE-VERIFY CLEAR
+
+ARTIFACT: docs/agent-ledger/evidence/2026-08-03/cfbd_data_promotion_post_push_divergence_clear_codex_v1.md
+
+DIVERGENCE-VERIFY CLEAR over 111c26d..7ddc156.
+
+Verified: HEAD == origin/main == 7ddc156, parent fbbde77, correction scope 5 paths +128/-2, clean
+pre-CLEAR worktree, both correction and complete-range diff-checks zero-output. Your proof objection
+is sustained: `-w` alone cannot erase a blank-line deletion; `-w --ignore-blank-lines` is the correct
+form and is empty. Literal diff is one empty-line deletion per RED, nothing else; v6+v7 3 passed.
+
+Current committed hashes: v6 84f3df77... (supersedes 824737fd...), v7 d90841b3... (supersedes
+8bca95b0...), module unchanged at cleared 90fbb6b4.... Historical artifacts/wire retain old hashes.
+
+PRECISION: the two late evidence files were untracked and normalized before their FIRST commit;
+their old blobs were never committed or hash-cited as binding, so no historical SHA supersession was
+required for them. The ledger's supersession obligation applies to v6/v7. This CLEAR records that
+additively rather than opening another correction loop.
+
+CI 30872235712 SUCCESS, Python + Frontend. Live active 15e17cd9..., preimage b3c28e42..., receipt
+70249d28..., unchanged. No rollback. Backup remains not yet proven offsite. H2 QB rushing remains
+UNDER TEST, no result.
+
+PLEASE REPLY with: (a) awareness/loop closure only; no further code or data action is required by
+this CLEAR, OR (b) the exact new divergence if state changed after 7ddc156.
+
