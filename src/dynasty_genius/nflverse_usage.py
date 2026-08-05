@@ -306,6 +306,20 @@ class StreamSpec:
     #: Out-of-range seasons are RECORDED as skipped, never silently omitted.
     min_season: int | None = None
 
+    #: Collapse rows that are EXACT content duplicates across every declared column, and
+    #: reconcile the count. Opt-in, so no existing stream changes.
+    #:
+    #: Codex C8's rule: exact repeated payloads and distinct observations colliding on a
+    #: candidate key are DIFFERENT failure classes and must not be treated as one. Measured on
+    #: depth charts 2020-2024: 790 of 186,074 rows are exact full-row repeats, and after
+    #: collapsing them there are ZERO semantic collisions on the declared grain. So the repeats
+    #: are provider noise, not lost observations — but collapsing silently would hide a real
+    #: upstream change, so the count is reported as `rows_collapsed_exact_duplicates`.
+    #:
+    #: This ONLY collapses byte-identical content. Two rows differing in any declared column
+    #: still hit the grain check and still refuse.
+    collapse_exact_duplicates: bool = False
+
     def __post_init__(self) -> None:
         """Fail closed on contradictory identity declarations (Codex C7).
 
@@ -883,6 +897,84 @@ FTN_CHARTING = StreamSpec(
 )
 
 
+# ---------------------------------------------------------------------------
+# Depth charts (board block C, stream 4 of 6) — TWO ERAS, DIFFERENT GRAINS
+# ---------------------------------------------------------------------------
+#
+# Measured live 2026-08-04 (`nflreadpy 0.1.5`). The era boundary is PER SEASON and
+# clean — an earlier reading called the eras "disjoint with nulls", which was an
+# artifact of unioning schemas across a multi-season load, not a property of the data:
+#
+#   * 2020-2024 WEEKLY era — 15 columns, ~37k rows/season, keyed on the game week.
+#   * 2025+ DAILY era      — 12 columns, 554,215 rows in 2025 alone. nflverse swapped
+#     to a daily snapshot (`dt`) with ESPN position slots. It shares only `gsis_id`
+#     and `team`/`club_code` semantics with the weekly era.
+#
+# `StreamEra` already carries a per-era grain (it is how the two injury eras work), so
+# this needs no new era machinery — only the two shapes declared honestly.
+#
+# WEEKLY GRAIN, and why each coordinate is there:
+#   `game_type` is load-bearing — week 19 exists as BOTH `REG` and `WC`, and without
+#   it a player's wildcard row collides with his week-19 regular-season row.
+#   `week` is NULL for exactly the `SBBYE` (Super Bowl bye) rows — 214-257 per season,
+#   a real category, not corruption. `require_populated_grain` is therefore False for
+#   this stream; `game_type` keeps those rows distinguishable.
+#
+# EXACT DUPLICATES: 790 of 186,074 weekly rows (2020-2024) are exact full-row repeats,
+# and after collapsing them there are ZERO semantic collisions on the declared grain.
+# Provider noise, not lost observations — collapsed deterministically and COUNTED.
+#
+# DAILY GRAIN uses `espn_id`, not `gsis_id`: measured, `(dt, team, espn_id, pos_grp,
+# pos_slot, pos_rank)` is 554,215/554,215 unique with ZERO nulls, while `gsis_id` is
+# null on 5,577 rows. Identity still resolves on `gsis_id` (those 5,577 become
+# `unknown`, which is honest) — the grain and the identity key are different questions.
+
+_DEPTH_WEEKLY_COLUMNS = (
+        'club_code', 'depth_position', 'depth_team', 'elias_id', 'first_name',
+        'football_name', 'formation', 'full_name', 'game_type', 'gsis_id',
+        'jersey_number', 'last_name', 'position', 'season', 'week',
+)
+_DEPTH_WEEKLY_GRAIN = (
+    "season", "game_type", "week", "club_code", "gsis_id", "depth_position",
+    "formation", "depth_team",
+)
+_DEPTH_DAILY_COLUMNS = (
+        'dt', 'espn_id', 'gsis_id', 'player_name', 'pos_abb', 'pos_grp',
+        'pos_grp_id', 'pos_id', 'pos_name', 'pos_rank', 'pos_slot', 'team',
+)
+_DEPTH_DAILY_GRAIN = ("dt", "team", "espn_id", "pos_grp", "pos_slot", "pos_rank")
+
+DEPTH_WEEKLY_ERA = StreamEra(
+    name="weekly",
+    requires=("week",),
+    forbids=("dt",),
+    columns=_DEPTH_WEEKLY_COLUMNS,
+    grain=_DEPTH_WEEKLY_GRAIN,
+)
+DEPTH_DAILY_ERA = StreamEra(
+    name="daily",
+    requires=("dt",),
+    forbids=("week",),
+    columns=_DEPTH_DAILY_COLUMNS,
+    grain=_DEPTH_DAILY_GRAIN,
+)
+
+DEPTH_CHARTS = StreamSpec(
+    name="depth_charts",
+    table="depth_charts",
+    identity_column="gsis_id",
+    identity_kind="gsis",
+    grain=_DEPTH_WEEKLY_GRAIN,
+    columns=_DEPTH_WEEKLY_COLUMNS,
+    loader=None,  # bound in build_streams
+    loader_kwargs={},
+    integer_columns=("season",),
+    collapse_exact_duplicates=True,
+    require_populated_grain=False,  # SBBYE rows legitimately carry a null week
+    eras=(DEPTH_WEEKLY_ERA, DEPTH_DAILY_ERA),
+)
+
+
 def build_streams() -> tuple[StreamSpec, ...]:
     """Bind the nflreadpy loaders. Imported lazily so the module stays importable offline."""
     import nflreadpy
@@ -906,6 +998,7 @@ def build_streams() -> tuple[StreamSpec, ...]:
             identity_applicable=spec.identity_applicable,
             boolean_columns=spec.boolean_columns,
             min_season=spec.min_season,
+            collapse_exact_duplicates=spec.collapse_exact_duplicates,
             eras=spec.eras,
         )
 
@@ -921,6 +1014,7 @@ def build_streams() -> tuple[StreamSpec, ...]:
         _bind(PFR_DEF, nflreadpy.load_pfr_advstats),
         _bind(FF_OPPORTUNITY, nflreadpy.load_ff_opportunity),
         _bind(FTN_CHARTING, nflreadpy.load_ftn_charting),
+        _bind(DEPTH_CHARTS, nflreadpy.load_depth_charts),
     )
 
 
@@ -1031,6 +1125,26 @@ def normalize_rows(
             "data rather than a changed contract"
         )
 
+    collapsed_exact = 0
+    if spec.collapse_exact_duplicates:
+        # Deterministic: first occurrence wins and input order is preserved, so a replay
+        # produces byte-identical output. Keyed on the DECLARED columns only — an undeclared
+        # provider field cannot make two otherwise-identical rows look distinct.
+        seen_content: set[tuple] = set()
+        deduped: list[Mapping[str, Any]] = []
+        for record in records:
+            fingerprint = tuple(
+                # repr, not str: `None` and the string "None" must not collide.
+                (column, repr(record.get(column)))
+                for column in columns
+            )
+            if fingerprint in seen_content:
+                collapsed_exact += 1
+                continue
+            seen_content.add(fingerprint)
+            deduped.append(record)
+        records = deduped
+
     rows: list[dict[str, Any]] = []
     for record in records:
         if spec.identity_applicable:
@@ -1137,6 +1251,10 @@ def normalize_rows(
         )
 
     coverage = _coverage(spec, season, rows, missing_columns=[])
+    if spec.collapse_exact_duplicates:
+        # Reported even when zero: a silently absent key cannot be distinguished from a run
+        # where nothing was collapsed, and the whole point is that the collapse is visible.
+        coverage["rows_collapsed_exact_duplicates"] = collapsed_exact
     if spec.exclude_unidentified_rows:
         # Additive, and ONLY for opted-in specs, so every existing stream's coverage dict is
         # byte-identical to before. Reconciliation, not a silent drop.

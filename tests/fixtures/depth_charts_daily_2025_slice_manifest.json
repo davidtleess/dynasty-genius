@@ -1,0 +1,16 @@
+{
+  "era": "daily",
+  "grain_is_unique": true,
+  "n_columns": 12,
+  "nflreadpy_version": "0.1.5",
+  "null_gsis_rows": 7,
+  "season": 2025,
+  "slice_rows": 195,
+  "snapshot_dt": "2025-08-03T10:09:07Z",
+  "teams": [
+    "ARI",
+    "ATL"
+  ],
+  "upstream_rows": 554215,
+  "upstream_sha256": "a4037a6638118c5f2a4c989ebad531429d26ff55959758b399c578ec542fc1fd"
+}

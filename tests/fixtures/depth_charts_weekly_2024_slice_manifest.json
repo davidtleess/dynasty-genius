@@ -1,0 +1,22 @@
+{
+  "appended_to_exercise": [
+    "sbbye_null_week"
+  ],
+  "base_clubs": [
+    "ARI",
+    "ATL"
+  ],
+  "era": "weekly",
+  "exact_duplicate_rows": 2,
+  "game_types": {
+    "REG": 2156,
+    "SBBYE": 1
+  },
+  "n_columns": 15,
+  "nflreadpy_version": "0.1.5",
+  "null_week_rows": 1,
+  "season": 2024,
+  "slice_rows": 2157,
+  "upstream_rows": 37312,
+  "upstream_sha256": "25caa7cc90fe4a811804546d4f2368c919e6ac52b8798ae15e65a4bc238b81a1"
+}
