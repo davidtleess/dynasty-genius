@@ -947,10 +947,11 @@ FTN_CHARTING = StreamSpec(
 #   `game_type` is load-bearing — week 19 exists as BOTH `REG` and `WC`, and without
 #   it a player's wildcard row collides with his week-19 regular-season row.
 #   `week` is NULL for exactly the `SBBYE` (Super Bowl bye) rows — 214-257 per season,
-#   a real category, not corruption. `require_populated_grain` is therefore False for
-#   this stream; `game_type` keeps those rows distinguishable.
+#   a real category, not corruption. Grain enforcement is ON; `week` is declared
+#   nullable ON THE WEEKLY ERA ONLY (with `depth_position`, the '\n    ' artifact), and
+#   the daily era permits no null coordinate. `game_type` keeps SBBYE distinguishable.
 #
-# EXACT DUPLICATES: 790 of 186,074 weekly rows (2020-2024) are exact full-row repeats,
+# EXACT DUPLICATES: 790 of 186,074 weekly rows (2020-2024 sample) are exact full-row repeats,
 # and after collapsing them there are ZERO semantic collisions on the declared grain.
 # Provider noise, not lost observations — collapsed deterministically and COUNTED.
 #
@@ -1901,10 +1902,13 @@ def publish_export(
                         # to 1 and published as True — and sent non-numeric values like 'yes'
                         # to the generic cast-lost-values error rather than a Boolean one
                         # (Codex 7de9357-2). SQLite holds these as TEXT '0'/'1' (measured).
-                        # SQLite measurably stores these as TEXT '0'/'1'. Python bools
-                        # round-trip as 'True'/'False'. Nothing else is a boolean we were
-                        # given — widening to 'true'/'yes' would be inventing a dialect.
-                        allowed = {"0", "1", "True", "False"}
+                        # MEASURED, not assumed: a genuine Python bool reaches this
+                        # store as TEXT '0'/'1' (probe: 235 zeros / 96 ones on the real
+                        # fixture). It NEVER arrives as 'True'/'False'. An earlier version
+                        # allowed those two strings "for Python bool round-trip" — a premise
+                        # that is simply false, and it let a SOURCE string "True" through to
+                        # publish as Boolean true (Codex 36c813c-1). Stored spellings only.
+                        allowed = {"0", "1"}
                         observed = [
                             v for v in frame[name].to_list()
                             if v is not None and str(v) not in allowed
@@ -1919,10 +1923,7 @@ def publish_export(
                             )
                         casted = (
                             pl.col(name)
-                            .replace_strict(
-                                {"0": False, "1": True, "False": False, "True": True},
-                                default=None,
-                            )
+                            .replace_strict({"0": False, "1": True}, default=None)
                             .cast(pl.Boolean, strict=False)
                         )
                     else:

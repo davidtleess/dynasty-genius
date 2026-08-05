@@ -385,7 +385,17 @@ def test_nullability_is_declared_per_era_not_per_spec() -> None:
 # --- 7de9357-2: Boolean domain checked on the RAW value ---
 
 
-@pytest.mark.parametrize("bad", ["01", "+1", "yes", "2", "-1", "1.0", " 1"])
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "01", "+1", "yes", "2", "-1", "1.0", " 1",
+        # Codex 36c813c-1: these two were ALLOWED on the false premise that Python bools
+        # round-trip as 'True'/'False'. Measured: a genuine bool reaches this store as TEXT
+        # '0'/'1' (235/96 on the real fixture) and never as these. Allowing them was not
+        # compatibility, it was widening the source dialect for nothing.
+        "True", "False",
+    ],
+)
 def test_boolean_domain_is_checked_on_the_raw_value_not_a_coerced_integer(
     identity, bad
 ) -> None:
