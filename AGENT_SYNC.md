@@ -16,9 +16,12 @@
 > **AUTHORITY.** David instructed both binding lanes to close out. This block is agent-authored
 > state reconciliation, not David's prose and not new build/commit/push/landing authority.
 >
-> **CURRENT REPO FACT, superseding stale measured-state claims lower on this live board:**
-> `HEAD == origin/main == 4909d52e89af022f004b0bfeb88847c2ac63c0c2`; clean tree; CI run
-> `31040947372` succeeded on that SHA. Streams 1-4 are landed. Stream 5 `contracts` is committed at
+> **PUSHED CODE BASELINE, superseding stale measured-state claims lower on this live board:**
+> `4909d52e89af022f004b0bfeb88847c2ac63c0c2` — CI run `31040947372` SUCCESS on that SHA. **Local
+> closeout state-doc commits follow it and are unpushed, so this file must NOT be read as asserting
+> `HEAD == origin/main`.** A commit cannot truthfully pin its own resulting HEAD: any such claim is
+> invalidated by the very commit that writes it. The exact current SHA and ahead-count belong in a
+> gate run, never in a committed state doc. Streams 1-4 are landed. Stream 5 `contracts` is committed at
 > `4909d52` solely as a durable **NOT CLEAR** artifact; it has **zero rows in the product store**.
 > Stream 6 `ff_rankings` is untouched. Therefore lower claims that all six loaders have zero callers,
 > that contracts/depth have no `StreamSpec`, or that four loaders remain are **SUPERSEDED**.
