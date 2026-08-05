@@ -1,0 +1,20 @@
+{
+  "base_games": [
+    "2024_01_ARI_BUF",
+    "2024_01_BAL_KC"
+  ],
+  "boolean_column_count": 15,
+  "boolean_null_counts": {},
+  "grain_is_unique": true,
+  "has_no_player_column": true,
+  "n_columns": 29,
+  "nflreadpy_version": "0.1.5",
+  "season": 2024,
+  "slice_rows": 331,
+  "upstream_rows": 48031,
+  "upstream_sha256": "874b968d07eb33fb6ca7033882ad93ed7e32e107b0f7a93c104dd215e3908c06",
+  "value_counts_is_motion": {
+    "False": 235,
+    "True": 96
+  }
+}

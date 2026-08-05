@@ -83,6 +83,16 @@ SOURCE_ONLY = "source_only"
 CONFLICT = "conflict"
 UNKNOWN = "unknown"
 
+#: A row for which player identity is NOT A QUESTION — the stream has no player column at all.
+#:
+#: This is categorically different from `UNKNOWN`, which means "we looked for a player and did
+#: not find one". FTN charting is play-grain: 143,572 plays with no player field anywhere. Left
+#: as `UNKNOWN`, every one of those plays would be reported as an unresolved PLAYER and would
+#: land in `unresolved_identity.parquet` — a review artifact that exists so a human can chase
+#: missing players would fill with rows that never had one. Distinguishing the two is Codex's
+#: C7 requirement and the reason this constant exists rather than a nullable column.
+NOT_APPLICABLE = "not_applicable"
+
 
 class UsageCaptureError(RuntimeError):
     """The capture refuses rather than publishing something untrustworthy."""
@@ -272,6 +282,59 @@ class StreamSpec:
     #: and COUNTED, never dropped silently. Opt-in, so no existing stream changes.
     exclude_unidentified_rows: bool = False
 
+    #: Whether player identity is a MEANINGFUL question for this stream.
+    #:
+    #: False for play-grain streams that carry no player column (FTN charting). Such rows get
+    #: `identity_status = NOT_APPLICABLE`, are excluded from `unresolved_identity.parquet`, and
+    #: do NOT inflate `rows_not_canonically_identified`. Coverage reports
+    #: `identity_applicable_rows = 0` so the absence is stated rather than implied by four zeros.
+    identity_applicable: bool = True
+
+    #: Columns the export must publish as real Booleans. FTN is 15/29 Boolean and the export
+    #: declares only integer and float casts, so without this they publish as TEXT out of SQLite
+    #: — `"false"` is a truthy string, which is how a charting flag silently inverts.
+    boolean_columns: tuple[str, ...] = ()
+
+    #: Earliest season this source exists at all. Not a preference — a property of the provider.
+    #:
+    #: FTN charting begins in 2022 and `nflreadpy.load_ftn_charting` RAISES for anything earlier.
+    #: The capture applies ONE season list to EVERY spec, so a 2018-2025 run over a 2022+ source
+    #: aborted the whole run (observed live: `failed_stream=ftn_charting, season=2018`). The
+    #: fail-closed machinery behaved correctly — last-good stood, the marker named the failure —
+    #: but a source's own start date is a declarable fact, not something to discover by crashing.
+    #: This is the per-stream cousin of the seasonless-source capture-axis gap (Codex C5).
+    #: Out-of-range seasons are RECORDED as skipped, never silently omitted.
+    min_season: int | None = None
+
+    def __post_init__(self) -> None:
+        """Fail closed on contradictory identity declarations (Codex C7).
+
+        A nullable identity column alone would let a stream be half-declared — an identity kind
+        with no column, or an exclusion policy for rows that were never identified — and each of
+        those reads as working until the census is wrong.
+        """
+        if self.identity_applicable:
+            if not self.identity_column or not self.identity_kind:
+                raise UsageCaptureError(
+                    f"stream {self.name}: identity_applicable is True but "
+                    f"identity_column={self.identity_column!r} / "
+                    f"identity_kind={self.identity_kind!r} — declare both or set "
+                    "identity_applicable=False"
+                )
+        else:
+            if self.identity_column or self.identity_kind:
+                raise UsageCaptureError(
+                    f"stream {self.name}: identity_applicable is False but still declares "
+                    f"identity_column={self.identity_column!r} / "
+                    f"identity_kind={self.identity_kind!r} — a stream with no player column "
+                    "must not name one"
+                )
+            if self.exclude_unidentified_rows:
+                raise UsageCaptureError(
+                    f"stream {self.name}: exclude_unidentified_rows has no meaning when "
+                    "identity_applicable is False — every row would be excluded"
+                )
+
     #: Shapes this stream has had over time, resolved per batch from the observed
     #: column set. Empty means the stream has exactly one shape.
     eras: tuple[StreamEra, ...] = ()
@@ -302,6 +365,7 @@ class StreamSpec:
 
         types: dict[str, Any] = {c: pl.Int64 for c in self.integer_columns}
         types.update({c: pl.Float64 for c in self.float_columns})
+        types.update({c: pl.Boolean for c in self.boolean_columns})
         return types
 
 
@@ -738,6 +802,87 @@ FF_OPPORTUNITY = StreamSpec(
 )
 
 
+# ---------------------------------------------------------------------------
+# FTN charting (board block C, stream 3 of 6) — PLAY-GRAIN, NO PLAYER IDENTITY
+# ---------------------------------------------------------------------------
+#
+# Measured live 2026-08-04 (`nflreadpy 0.1.5`): 2022-2025, 185,215 rows, 29 columns
+# in every season — charting begins 2022, so 2022 is the true start, not a gap.
+# Grain `(nflverse_game_id, nflverse_play_id)`: 143,572/143,572 unique with ZERO
+# nulls over 2023-2025 — the cleanest grain of the six loaders.
+#
+# THIS STREAM HAS NO PLAYER COLUMN. Not a sparse one — none. It is charting ABOUT
+# PLAYS: was there motion, play action, a blitz, a drop. Declaring a nullable
+# identity column would report all 143,572 plays as unresolved PLAYERS and bury the
+# real unresolved-player artifact, so `identity_applicable=False` and the rows carry
+# `NOT_APPLICABLE`, which the export excludes from `unresolved_identity.parquet`.
+#
+# 15 of the 29 columns are Boolean. SQLite has no Boolean type, so without an
+# explicit Boolean cast the export publishes them as TEXT — and `"false"` is a
+# truthy string, which is how a charting flag silently inverts.
+#
+# `date_pulled` is a provider timestamp, declared as an ordinary string column: it
+# is scrape metadata, not an observation coordinate, and it is NOT in the grain.
+
+_FTN_KEY = (
+    "ftn_game_id",
+    "nflverse_game_id",
+    "season",
+    "week",
+    "ftn_play_id",
+    "nflverse_play_id",
+)
+_FTN_STRING = ("starting_hash", "qb_location", "read_thrown", "date_pulled")
+_FTN_INT = ("season", "week", "ftn_game_id", "ftn_play_id", "nflverse_play_id",
+            "n_offense_backfield", "n_defense_box", "n_blitzers", "n_pass_rushers")
+_FTN_BOOL = (
+    "is_no_huddle", "is_motion", "is_play_action", "is_screen_pass", "is_rpo",
+    "is_trick_play", "is_qb_out_of_pocket", "is_interception_worthy", "is_throw_away",
+    "is_catchable_ball", "is_contested_ball", "is_created_reception", "is_drop",
+    "is_qb_sneak", "is_qb_fault_sack",
+)
+_FTN_COLUMNS = (
+    *_FTN_KEY,
+    "starting_hash",
+    "qb_location",
+    "n_offense_backfield",
+    "n_defense_box",
+    *_FTN_BOOL[:9],
+    "read_thrown",
+    *_FTN_BOOL[9:14],
+    "n_blitzers",
+    "n_pass_rushers",
+    _FTN_BOOL[14],
+    "date_pulled",
+)
+_FTN_GRAIN = ("nflverse_game_id", "nflverse_play_id")
+
+FTN_CHARTING = StreamSpec(
+    name="ftn_charting",
+    table="ftn_charting",
+    identity_column="",
+    identity_kind="",
+    identity_applicable=False,
+    grain=_FTN_GRAIN,
+    columns=_FTN_COLUMNS,
+    loader=None,  # bound in build_streams
+    loader_kwargs={},
+    integer_columns=_FTN_INT,
+    boolean_columns=_FTN_BOOL,
+    require_populated_grain=True,
+    min_season=2022,  # charting begins 2022; the loader RAISES below it
+    eras=(
+        StreamEra(
+            name="ftn_v1",
+            requires=(),
+            forbids=(),
+            columns=_FTN_COLUMNS,
+            grain=_FTN_GRAIN,
+        ),
+    ),
+)
+
+
 def build_streams() -> tuple[StreamSpec, ...]:
     """Bind the nflreadpy loaders. Imported lazily so the module stays importable offline."""
     import nflreadpy
@@ -758,6 +903,9 @@ def build_streams() -> tuple[StreamSpec, ...]:
             require_populated_grain=spec.require_populated_grain,
             refuse_non_finite=spec.refuse_non_finite,
             exclude_unidentified_rows=spec.exclude_unidentified_rows,
+            identity_applicable=spec.identity_applicable,
+            boolean_columns=spec.boolean_columns,
+            min_season=spec.min_season,
             eras=spec.eras,
         )
 
@@ -772,6 +920,7 @@ def build_streams() -> tuple[StreamSpec, ...]:
         _bind(PFR_REC, nflreadpy.load_pfr_advstats),
         _bind(PFR_DEF, nflreadpy.load_pfr_advstats),
         _bind(FF_OPPORTUNITY, nflreadpy.load_ff_opportunity),
+        _bind(FTN_CHARTING, nflreadpy.load_ftn_charting),
     )
 
 
@@ -884,9 +1033,13 @@ def normalize_rows(
 
     rows: list[dict[str, Any]] = []
     for record in records:
-        dg_player_id, status = identity.resolve(
-            record.get(spec.identity_column), kind=spec.identity_kind
-        )
+        if spec.identity_applicable:
+            dg_player_id, status = identity.resolve(
+                record.get(spec.identity_column), kind=spec.identity_kind
+            )
+        else:
+            # Not "we looked and failed" — there is nothing to look at. See NOT_APPLICABLE.
+            dg_player_id, status = None, NOT_APPLICABLE
         row = {col: record.get(col) for col in spec.columns}
         if era_name is not None:
             row["source_era"] = era_name
@@ -1002,11 +1155,19 @@ def _coverage(
         status: [r for r in rows if r["identity_status"] == status]
         for status in (CANONICAL_RESOLVED, SOURCE_ONLY, CONFLICT, UNKNOWN)
     }
+    # Rows for which identity is a meaningful question. For a play-grain stream this is 0, and
+    # the four buckets below are all 0 too — so the reconciliation invariant is
+    # `identity_applicable_rows == sum(the four buckets)`, which holds for BOTH kinds of stream
+    # (for an identity-bearing stream it also equals rows_total). Stating the zero explicitly is
+    # the point: four zeros alone cannot distinguish "no players here" from "nothing resolved".
+    identity_applicable_rows = len(rows) if spec.identity_applicable else 0
+
     return {
         "schema_version": SCHEMA_VERSION,
         "stream": spec.name,
         "season": season,
         "rows_total": len(rows),
+        "identity_applicable_rows": identity_applicable_rows,
         # Four counts, never one. "Not canonically identified" is the sum of the last three and is
         # reported explicitly so no single zero can stand in for identity.
         "rows_canonical_resolved": len(by_status[CANONICAL_RESOLVED]),
@@ -1516,9 +1677,18 @@ def publish_export(
                     if name not in frame.columns:
                         continue
                     before = frame.height - frame[name].null_count()
-                    frame = frame.with_columns(
-                        pl.col(name).cast(dtype, strict=False).alias(name)
-                    )
+                    if dtype == pl.Boolean:
+                        # SQLite has no Boolean type and holds these as TEXT '0'/'1'
+                        # (measured), and polars refuses Utf8 -> Boolean outright. Go through
+                        # Int64. Anything that is neither '0' nor '1' becomes null under
+                        # strict=False and is then caught by the reconciliation below — which
+                        # is the fail-closed behaviour we want, not a silent coercion.
+                        casted = (
+                            pl.col(name).cast(pl.Int64, strict=False).cast(pl.Boolean, strict=False)
+                        )
+                    else:
+                        casted = pl.col(name).cast(dtype, strict=False)
+                    frame = frame.with_columns(casted.alias(name))
                     after = frame.height - frame[name].null_count()
                     if after < before:
                         lost.append(f"{name} ({before - after} value(s))")
@@ -1541,7 +1711,10 @@ def publish_export(
             # complete. The 45,363 source-only snap rows and the 3 held conflicts
             # are the substance of it.
             for row in rows:
-                if row.get("identity_status") != CANONICAL_RESOLVED:
+                # NOT_APPLICABLE is deliberately excluded: this artifact exists so a human can
+                # chase players we failed to resolve. A play-grain stream has no player to
+                # chase, and 143,572 FTN plays would otherwise drown the real 53,994 (Codex C7).
+                if row.get("identity_status") not in (CANONICAL_RESOLVED, NOT_APPLICABLE):
                     unresolved_frames.append(
                         {
                             "stream": spec.name,
@@ -1803,6 +1976,18 @@ def _run_locked_capture(
         for spec in specs:
             for season in seasons:
                 stream_name = spec.name
+                if spec.min_season is not None and season < spec.min_season:
+                    # Recorded, not silently omitted: a reader of the results must be able to
+                    # tell "this source does not go back that far" from "we forgot to fetch it".
+                    results.append(
+                        {
+                            "stream": spec.name,
+                            "season": season,
+                            "skipped": "before_min_season",
+                            "min_season": spec.min_season,
+                        }
+                    )
+                    continue
                 records = fetch(spec, season)
                 raw_path = write_raw_snapshot(
                     records,
@@ -1898,8 +2083,15 @@ def _run_locked_capture(
 
 
 def _totals(results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-    """Totals that cannot hide a stream-season. Same rule as the transaction chain."""
-    blocks = [dict(r["coverage"]) for r in results]
+    """Totals that cannot hide a stream-season. Same rule as the transaction chain.
+
+    Skipped stream-seasons (a season before the source's `min_season`) carry no coverage block
+    and are counted separately. They are NOT folded into `stream_seasons`, because that count
+    means "stream-seasons actually ingested" and quietly inflating it with skips would hide the
+    very thing the skip record exists to disclose.
+    """
+    skipped = [r for r in results if r.get("skipped")]
+    blocks = [dict(r["coverage"]) for r in results if "coverage" in r]
     keys = (
         "rows_total",
         "rows_canonical_resolved",
@@ -1911,6 +2103,9 @@ def _totals(results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     return {
         **{k: sum(int(b.get(k) or 0) for b in blocks) for k in keys},
         "stream_seasons": len(blocks),
+        "stream_seasons_skipped": sorted(
+            f"{r['stream']}:{r['season']}" for r in skipped
+        ),
         "stream_seasons_with_unresolved": sorted(
             f"{b['stream']}:{b['season']}"
             for b in blocks
