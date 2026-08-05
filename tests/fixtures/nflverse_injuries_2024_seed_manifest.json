@@ -1,0 +1,27 @@
+{
+  "columns": [
+    "date_modified",
+    "first_name",
+    "full_name",
+    "game_type",
+    "gsis_id",
+    "last_name",
+    "position",
+    "practice_primary_injury",
+    "practice_secondary_injury",
+    "practice_status",
+    "report_primary_injury",
+    "report_secondary_injury",
+    "report_status",
+    "season",
+    "team",
+    "week"
+  ],
+  "n_columns": 16,
+  "nflreadpy_version": "0.1.5",
+  "season": 2024,
+  "selection_rule": "every row of week 1 for teams ['ARI', 'ATL']",
+  "slice_rows": 10,
+  "upstream_rows": 6215,
+  "upstream_sha256": "4786e92e3fc25ebad66dbaf7981f1254bc2a7e8142904a5e6696af6963ab3e31"
+}

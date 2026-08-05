@@ -251,6 +251,13 @@ class StreamSpec:
     #: into an indistinguishable pair. Opt-in so existing streams are untouched.
     require_populated_grain: bool = False
 
+    #: Refuse a non-finite value (NaN/inf) in a declared numeric column. Opt-in per stream so
+    #: existing reviewed streams keep their exact behaviour. Refusal — not silent nulling — is
+    #: the consistent choice: `publish_export` already refuses a cast that loses non-null
+    #: values, so quietly turning an inf into a null here would contradict that contract and
+    #: make corruption indistinguishable from missingness.
+    refuse_non_finite: bool = False
+
     #: Shapes this stream has had over time, resolved per batch from the observed
     #: column set. Empty means the stream has exactly one shape.
     eras: tuple[StreamEra, ...] = ()
@@ -507,6 +514,96 @@ INJURIES = StreamSpec(
 )
 
 
+# ---------------------------------------------------------------------------
+# PFR advanced stats (board block C, stream 1 of 6)
+# ---------------------------------------------------------------------------
+#
+# Measured live 2026-08-04 (`nflreadpy 0.1.5`): 2018-2025, four stat types, 121,954
+# rows. Column counts are IDENTICAL in every season — pass 24 · rush 16 · rec 17 ·
+# def 29 — so this stream has no historical shape drift. Grain
+# `(game_id, pfr_player_id)` measured zero-null and zero-duplicate in all four types.
+# Identity: 121,688 canonical_resolved · 266 source_only · 0 conflict · 0 unknown.
+#
+# Each spec declares ONE explicit era even though the shape never changed. That is
+# deliberate: `normalize_rows` enforces exact column-set equality only when
+# `spec.eras` is non-empty (see the `if spec.eras:` branch). Without an era a NEW
+# upstream column would be accepted and silently projected away — the same silent
+# loss the era mechanism was built to stop. Declaring the era buys the refusal
+# without changing behaviour for any existing stream.
+
+_PFR_SHARED = (
+    "game_id",
+    "pfr_game_id",
+    "season",
+    "week",
+    "game_type",
+    "team",
+    "opponent",
+    "pfr_player_name",
+    "pfr_player_id",
+)
+_PFR_GRAIN = ("game_id", "pfr_player_id")
+
+_PFR_PASS_METRICS = (
+    "passing_drops", "passing_drop_pct", "receiving_drop", "receiving_drop_pct",
+    "passing_bad_throws", "passing_bad_throw_pct", "times_sacked", "times_blitzed",
+    "times_hurried", "times_hit", "times_pressured", "times_pressured_pct",
+    "def_times_blitzed", "def_times_hurried", "def_times_hitqb",
+)
+_PFR_RUSH_METRICS = (
+    "carries", "rushing_yards_before_contact", "rushing_yards_before_contact_avg",
+    "rushing_yards_after_contact", "rushing_yards_after_contact_avg",
+    "rushing_broken_tackles", "receiving_broken_tackles",
+)
+_PFR_REC_METRICS = (
+    "rushing_broken_tackles", "receiving_broken_tackles", "passing_drops",
+    "passing_drop_pct", "receiving_drop", "receiving_drop_pct", "receiving_int",
+    "receiving_rat",
+)
+_PFR_DEF_METRICS = (
+    "def_ints", "def_targets", "def_completions_allowed", "def_completion_pct",
+    "def_yards_allowed", "def_yards_allowed_per_cmp", "def_yards_allowed_per_tgt",
+    "def_receiving_td_allowed", "def_passer_rating_allowed", "def_adot",
+    "def_air_yards_completed", "def_yards_after_catch", "def_times_blitzed",
+    "def_times_hurried", "def_times_hitqb", "def_sacks", "def_pressures",
+    "def_tackles_combined", "def_missed_tackles", "def_missed_tackle_pct",
+)
+
+
+def _pfr_spec(name: str, stat_type: str, metrics: tuple[str, ...]) -> StreamSpec:
+    columns = (*_PFR_SHARED, *metrics)
+    return StreamSpec(
+        name=name,
+        table=name,
+        identity_column="pfr_player_id",
+        identity_kind="pfr",
+        grain=_PFR_GRAIN,
+        columns=columns,
+        loader=None,  # bound in build_streams
+        # Explicit, never defaulted: `load_pfr_advstats` DEFAULTS its stat_type, and an
+        # omitted kwarg is exactly how NGS receiving once shipped passing rows.
+        loader_kwargs={"stat_type": stat_type},
+        integer_columns=("season", "week"),
+        float_columns=metrics,
+        refuse_non_finite=True,
+        eras=(
+            StreamEra(
+                name=f"{stat_type}_v1",
+                requires=(),
+                forbids=(),
+                columns=columns,
+                grain=_PFR_GRAIN,
+            ),
+        ),
+    )
+
+
+PFR_PASS = _pfr_spec("pfr_pass", "pass", _PFR_PASS_METRICS)
+PFR_RUSH = _pfr_spec("pfr_rush", "rush", _PFR_RUSH_METRICS)
+PFR_REC = _pfr_spec("pfr_rec", "rec", _PFR_REC_METRICS)
+PFR_DEF = _pfr_spec("pfr_def", "def", _PFR_DEF_METRICS)
+
+
 def build_streams() -> tuple[StreamSpec, ...]:
     """Bind the nflreadpy loaders. Imported lazily so the module stays importable offline."""
     import nflreadpy
@@ -525,6 +622,7 @@ def build_streams() -> tuple[StreamSpec, ...]:
             float_columns=spec.float_columns,
             blank_as_null_columns=spec.blank_as_null_columns,
             require_populated_grain=spec.require_populated_grain,
+            refuse_non_finite=spec.refuse_non_finite,
             eras=spec.eras,
         )
 
@@ -534,6 +632,10 @@ def build_streams() -> tuple[StreamSpec, ...]:
         _bind(NGS_RECEIVING, nflreadpy.load_nextgen_stats),
         _bind(SNAP_COUNTS, nflreadpy.load_snap_counts),
         _bind(INJURIES, nflreadpy.load_injuries),
+        _bind(PFR_PASS, nflreadpy.load_pfr_advstats),
+        _bind(PFR_RUSH, nflreadpy.load_pfr_advstats),
+        _bind(PFR_REC, nflreadpy.load_pfr_advstats),
+        _bind(PFR_DEF, nflreadpy.load_pfr_advstats),
     )
 
 
@@ -561,6 +663,15 @@ def normalize_rows(
     """
     if not records:
         return [], _coverage(spec, season, [], missing_columns=[])
+
+    # A non-mapping record is API MISUSE, not data corruption: fail loud and name the offending
+    # index and type rather than letting `.keys()` raise an unattributed AttributeError deeper in.
+    for index, record in enumerate(records):
+        if not isinstance(record, Mapping):
+            raise UsageCaptureError(
+                f"nflverse_bad_record_type: stream {spec.name} season {season} record "
+                f"{index} is {type(record).__name__}, expected a mapping"
+            )
 
     available = set(records[0].keys())
 
@@ -667,6 +778,25 @@ def normalize_rows(
                     "invent a fact"
                 )
             row[col] = int(as_float)
+        if spec.refuse_non_finite:
+            # A NaN or inf reaching a float column silently poisons every downstream
+            # aggregate. Refuse rather than null: the export already refuses a cast that
+            # loses non-null values, so nulling here would contradict it.
+            for col in spec.float_columns:
+                value = row.get(col)
+                if value is None or isinstance(value, str):
+                    continue
+                try:
+                    as_float = float(value)
+                except (TypeError, ValueError):
+                    continue  # non-numeric text is the export cast's contract, not this one
+                if as_float != as_float or as_float in (float("inf"), float("-inf")):
+                    raise UsageCaptureError(
+                        f"nflverse_non_finite: stream {spec.name} season {season} has "
+                        f"{col}={value!r}, which is not finite; refusing rather than "
+                        "nulling, which would make corruption indistinguishable from "
+                        "missingness"
+                    )
         for col in spec.blank_as_null_columns:
             value = row.get(col)
             if isinstance(value, str) and not value.strip():
@@ -1544,6 +1674,11 @@ def _run_locked_capture(
                         "season": season,
                         "applied": applied,
                         "raw_snapshot": str(raw_path),
+                        # The reduced per-stream gate requires "raw snapshot + manifest/hash".
+                        # Recording only the path meant the export hashes proved the PARSED
+                        # projection but never the PRE-PARSE bytes, so a replay could not show
+                        # that what we parsed is what we fetched.
+                        "raw_sha256": hashlib.sha256(raw_path.read_bytes()).hexdigest(),
                         "coverage": coverage,
                     }
                 )

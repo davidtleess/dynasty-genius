@@ -1,0 +1,184 @@
+{
+  "pfr_def": {
+    "appended_unresolved_row_from_game": "2024_01_PIT_ATL",
+    "base_games": [
+      "2024_01_ARI_BUF",
+      "2024_01_BAL_KC"
+    ],
+    "columns": [
+      "def_adot",
+      "def_air_yards_completed",
+      "def_completion_pct",
+      "def_completions_allowed",
+      "def_ints",
+      "def_missed_tackle_pct",
+      "def_missed_tackles",
+      "def_passer_rating_allowed",
+      "def_pressures",
+      "def_receiving_td_allowed",
+      "def_sacks",
+      "def_tackles_combined",
+      "def_targets",
+      "def_times_blitzed",
+      "def_times_hitqb",
+      "def_times_hurried",
+      "def_yards_after_catch",
+      "def_yards_allowed",
+      "def_yards_allowed_per_cmp",
+      "def_yards_allowed_per_tgt",
+      "game_id",
+      "game_type",
+      "opponent",
+      "pfr_game_id",
+      "pfr_player_id",
+      "pfr_player_name",
+      "season",
+      "team",
+      "week"
+    ],
+    "identity_census": {
+      "canonical_resolved": 59,
+      "source_only": 1
+    },
+    "n_columns": 29,
+    "nflreadpy_version": "0.1.5",
+    "season": 2024,
+    "slice_games": {
+      "2024_01_ARI_BUF": 29,
+      "2024_01_BAL_KC": 30,
+      "2024_01_PIT_ATL": 1
+    },
+    "slice_rows": 60,
+    "stat_type": "def",
+    "upstream_rows": 7992,
+    "upstream_sha256": "6c8eacbc42483133df156830bd459cde0e00678b43df091d065856e7c2a55e90"
+  },
+  "pfr_pass": {
+    "appended_unresolved_row_from_game": null,
+    "base_games": [
+      "2024_01_ARI_BUF",
+      "2024_01_BAL_KC"
+    ],
+    "columns": [
+      "def_times_blitzed",
+      "def_times_hitqb",
+      "def_times_hurried",
+      "game_id",
+      "game_type",
+      "opponent",
+      "passing_bad_throw_pct",
+      "passing_bad_throws",
+      "passing_drop_pct",
+      "passing_drops",
+      "pfr_game_id",
+      "pfr_player_id",
+      "pfr_player_name",
+      "receiving_drop",
+      "receiving_drop_pct",
+      "season",
+      "team",
+      "times_blitzed",
+      "times_hit",
+      "times_hurried",
+      "times_pressured",
+      "times_pressured_pct",
+      "times_sacked",
+      "week"
+    ],
+    "identity_census": {
+      "canonical_resolved": 4
+    },
+    "n_columns": 24,
+    "nflreadpy_version": "0.1.5",
+    "season": 2024,
+    "slice_games": {
+      "2024_01_ARI_BUF": 2,
+      "2024_01_BAL_KC": 2
+    },
+    "slice_rows": 4,
+    "stat_type": "pass",
+    "upstream_rows": 697,
+    "upstream_sha256": "f7604ac8190a71f528ef7dfde4f2fd8d1a9502d420e6e394bb3a93eb4ee9b492"
+  },
+  "pfr_rec": {
+    "appended_unresolved_row_from_game": "2024_02_CIN_KC",
+    "base_games": [
+      "2024_01_ARI_BUF",
+      "2024_01_BAL_KC"
+    ],
+    "columns": [
+      "game_id",
+      "game_type",
+      "opponent",
+      "passing_drop_pct",
+      "passing_drops",
+      "pfr_game_id",
+      "pfr_player_id",
+      "pfr_player_name",
+      "receiving_broken_tackles",
+      "receiving_drop",
+      "receiving_drop_pct",
+      "receiving_int",
+      "receiving_rat",
+      "rushing_broken_tackles",
+      "season",
+      "team",
+      "week"
+    ],
+    "identity_census": {
+      "canonical_resolved": 34,
+      "source_only": 1
+    },
+    "n_columns": 17,
+    "nflreadpy_version": "0.1.5",
+    "season": 2024,
+    "slice_games": {
+      "2024_01_ARI_BUF": 18,
+      "2024_01_BAL_KC": 16,
+      "2024_02_CIN_KC": 1
+    },
+    "slice_rows": 35,
+    "stat_type": "rec",
+    "upstream_rows": 4453,
+    "upstream_sha256": "0e40d7405a6e73bfe2aeaaff65f9ba6140107c9684d35f794ee116279f78bd37"
+  },
+  "pfr_rush": {
+    "appended_unresolved_row_from_game": null,
+    "base_games": [
+      "2024_01_ARI_BUF",
+      "2024_01_BAL_KC"
+    ],
+    "columns": [
+      "carries",
+      "game_id",
+      "game_type",
+      "opponent",
+      "pfr_game_id",
+      "pfr_player_id",
+      "pfr_player_name",
+      "receiving_broken_tackles",
+      "rushing_broken_tackles",
+      "rushing_yards_after_contact",
+      "rushing_yards_after_contact_avg",
+      "rushing_yards_before_contact",
+      "rushing_yards_before_contact_avg",
+      "season",
+      "team",
+      "week"
+    ],
+    "identity_census": {
+      "canonical_resolved": 16
+    },
+    "n_columns": 16,
+    "nflreadpy_version": "0.1.5",
+    "season": 2024,
+    "slice_games": {
+      "2024_01_ARI_BUF": 8,
+      "2024_01_BAL_KC": 8
+    },
+    "slice_rows": 16,
+    "stat_type": "rush",
+    "upstream_rows": 2359,
+    "upstream_sha256": "e376d9195552806cea261ae8921757369fbbd02d12af5a48170b3ad1c2afefe9"
+  }
+}
