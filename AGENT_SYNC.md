@@ -11,6 +11,35 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⏸ 2026-08-05 CLOSEOUT OVERRIDE — LAYER-1 SIX-LOADER BATCH PARKED AFTER STREAM 5
+>
+> **AUTHORITY.** David instructed both binding lanes to close out. This block is agent-authored
+> state reconciliation, not David's prose and not new build/commit/push/landing authority.
+>
+> **CURRENT REPO FACT, superseding stale measured-state claims lower on this live board:**
+> `HEAD == origin/main == 4909d52e89af022f004b0bfeb88847c2ac63c0c2`; clean tree; CI run
+> `31040947372` succeeded on that SHA. Streams 1-4 are landed. Stream 5 `contracts` is committed at
+> `4909d52` solely as a durable **NOT CLEAR** artifact; it has **zero rows in the product store**.
+> Stream 6 `ff_rankings` is untouched. Therefore lower claims that all six loaders have zero callers,
+> that contracts/depth have no `StreamSpec`, or that four loaders remain are **SUPERSEDED**.
+>
+> **CONTRACTS PARKED — V12-1..5 OPEN:** first-row exact-schema diagnostic ordering; missing durable
+> G1-G5 controls; fail-open raw-envelope API; unconstrained legacy snapshot-ledger acceptance; and
+> incomplete `by_stream_snapshot` census. Codex post-commit divergence audit is
+> **CLEAR-AS-PARKED**: `4909d52` faithfully preserves the reviewed NOT CLEAR implementation, but it
+> is not a GREEN/content CLEAR and authorizes no capture, landing, scheduler, consumer, or model use.
+> Evidence: `docs/agent-ledger/evidence/2026-08-05/contracts_closeout_cross_lane_audit_codex_v13.md`.
+>
+> **NEXT GATE:** a fresh implementing session closes V12-1..5, adds the durable controls, runs the
+> full gate, and routes a fresh GREEN. Any eventual live landing must capture/export all twelve
+> prior streams plus contracts and reconcile prior artifacts and NGS consumers; it needs a separate
+> David word. `ff_rankings` remains a separate market-overlay design within the six-loader batch.
+>
+> **CLOSEOUT AUDIT:** Claude's first `closed — parked` report is not yet accepted because its final
+> postflight was not merged into the ledger/current board: those durable records still described
+> `HEAD=d645933` and uncommitted contracts. Claude owns a corrective state-doc re-flush and gate
+> rerun. Codex's own closeout is parked pending Claude's independent audit of the closeout commit.
+
 > # ▶▶ CURRENT HANDOFF / EXECUTION BOARD — LAYER 1 CONTINUATION (authored 2026-08-03). READ FIRST.
 > **AUTHORSHIP — read this before citing anything below as authority.** **David's words on this board
 > are ONLY the text explicitly marked as his verbatim quotes.**
