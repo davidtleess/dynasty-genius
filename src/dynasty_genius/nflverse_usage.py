@@ -59,7 +59,7 @@ import os
 import sqlite3
 import tempfile
 from contextlib import contextmanager
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -330,6 +330,35 @@ class StreamSpec:
     #: still hit the grain check and still refuse.
     collapse_exact_duplicates: bool = False
 
+    #: Which axis this stream is captured along. FAIL-CLOSED ENUM, not a bool (Codex D3):
+    #:
+    #: ``seasonal`` — the existing behaviour and the DEFAULT, so no current stream changes:
+    #: one loader call per requested season, rows partitioned by ``season_ingested``.
+    #:
+    #: ``snapshot`` — exactly ONE no-arguments loader call per RUN. The source has no season
+    #: axis at all (``load_contracts()`` accepts no ``seasons``), and passing one raises. Rows
+    #: are partitioned by ``snapshot_id`` + ``observed_at`` and carry NO ``season_ingested``;
+    #: inventing a synthetic season is the defect this enum exists to prevent.
+    capture_axis: str = "seasonal"
+
+    #: Columns holding a nested structure that must be stored as canonical JSON. SQLite cannot
+    #: hold ``List(Struct)``. The encoder VALIDATES before serializing and never coerces.
+    json_columns: tuple[str, ...] = ()
+
+    #: Refuse a record whose top-level key set differs from the declared source columns.
+    #:
+    #: Opt-in and set ONLY on contracts. The non-era normalization path checks for MISSING
+    #: columns and then projects the declared ones, so an ADDED upstream field is silently
+    #: dropped and every digest is unchanged. Declaring a synthetic era would widen the cleared
+    #: projection with `source_era`; extending exact equality globally would change the twelve
+    #: frozen streams' accepted-input behaviour. This is one binary rule, so a bool is the right
+    #: shape — unlike `capture_axis`, which carries distinct partition semantics.
+    refuse_unexpected_columns: bool = False
+
+    #: Exact field names each JSON column's entries must carry. Pinned, so a provider adding or
+    #: dropping a nested field REFUSES rather than being silently serialized.
+    nested_fields: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+
     #: Columns that MUST be zero/absent on a row excluded by `exclude_unidentified_rows`.
     #: This is the exclusion's premise made executable rather than left in a docstring.
     exclude_requires_zero_columns: tuple[str, ...] = ()
@@ -363,6 +392,37 @@ class StreamSpec:
                     "identity_applicable is False — every row would be excluded"
                 )
 
+        if self.capture_axis not in ("seasonal", "snapshot"):
+            raise UsageCaptureError(
+                f"stream {self.name}: unknown capture_axis {self.capture_axis!r}; "
+                "expected 'seasonal' or 'snapshot'"
+            )
+
+        if self.capture_axis == "snapshot":
+            # Each of these is a SEASONAL setting that is meaningless — and therefore
+            # dangerous — on a source with no season axis. Refused individually so a failure
+            # names the offending field rather than confounding several.
+            if self.min_season is not None:
+                raise UsageCaptureError(
+                    f"stream {self.name}: min_season has no meaning on a snapshot stream — "
+                    "there is no season axis for a floor to apply to"
+                )
+            if "seasons" in dict(self.loader_kwargs):
+                raise UsageCaptureError(
+                    f"stream {self.name}: loader_kwargs carries 'seasons' on a snapshot "
+                    "stream; a snapshot loader is called with no arguments at all"
+                )
+            if self.require_populated_grain or self.nullable_grain_columns:
+                raise UsageCaptureError(
+                    f"stream {self.name}: seasonal grain/nullability settings are not valid "
+                    "on a snapshot stream, whose rows are keyed by snapshot_id and content"
+                )
+            if self.grain:
+                raise UsageCaptureError(
+                    f"stream {self.name}: a snapshot stream declares no grain — its key is "
+                    f"snapshot_id + content_sha256; got {self.grain!r}"
+                )
+
     #: Shapes this stream has had over time, resolved per batch from the observed
     #: column set. Empty means the stream has exactly one shape.
     eras: tuple[StreamEra, ...] = ()
@@ -382,7 +442,15 @@ class StreamSpec:
             for column in era.columns:
                 if column not in columns:
                     columns.append(column)
-        base = (*columns, "dg_player_id", "identity_status", "row_key", "season_ingested")
+        base = (*columns, "dg_player_id", "identity_status", "row_key")
+        if self.capture_axis == "snapshot":
+            base = (*base, "content_sha256", "snapshot_id", "observed_at")
+        else:
+            # SEASONAL FREEZE (Codex v9). An earlier draft appended `content_sha256` here too,
+            # which changed the stored schema AND the pinned projection fingerprint of every
+            # already-landed stream — caught by the golden-digest contract test, which is
+            # exactly what that pin exists for. Seasonal projection is byte-for-byte unchanged.
+            base = (*base, "season_ingested")
         return (*base, "source_era") if self.eras else base
 
     @property
@@ -1019,6 +1087,67 @@ DEPTH_CHARTS = StreamSpec(
 )
 
 
+# ---------------------------------------------------------------------------
+# Contracts (board block C, stream 5 of 6) — SNAPSHOT AXIS, ACCUMULATED
+# ---------------------------------------------------------------------------
+#
+# Measured live 2026-08-05 (`nflreadpy 0.1.5`): 51,808 rows / 25 columns and NO season
+# axis — `load_contracts()` accepts no arguments. The source MOVES: two probes in one
+# session measured 51,803 then 51,808 rows, which is why David ruled ACCUMULATE FROM
+# CAPTURE ONE at WEEKLY cadence rather than overwrite. Retention is indefinite; the
+# cadence authorizes no scheduler and this lands manual-only.
+#
+# NO BUSINESS KEY EXISTS. Every candidate leaves duplicates: otc_id+year_signed 9,616
+# groups, +team 6,668, +position 6,350. Rather than a nine-column "everything that
+# happens to differ" key — which is a set of MUTABLE MEASURES, not an identity — rows
+# are keyed by snapshot_id + a content digest over the declared source columns.
+#
+# 2,503 duplicate groups / 3,316 EXCESS copies / 5,819 participating / max 9;
+# 48,492 + 3,316 = 51,808. Post-collapse identity census: 32,198 canonical_resolved +
+# 12,196 source_only + 4,098 unknown = 48,492, and the first-snapshot unresolved
+# artifact is 16,294 — EVERY non-canonical row, not just the unknowns.
+#
+# `year_signed == 0` on 1,106 rows: preserved literally, no meaning inferred.
+# `is_active` is Boolean upstream and must be declared, or it publishes as text.
+# `cols` is List(Struct) of 13 cap fields; SQLite cannot hold it, so it is canonical
+# JSON with the order preserved exactly — never sorted, and `year` is not always
+# numeric (every one of 45,875 lists ends in a non-numeric 'Total').
+
+_CONTRACTS_COLUMNS = (
+    'player', 'position', 'team', 'is_active', 'year_signed', 'years', 'value',
+    'apy', 'guaranteed', 'apy_cap_pct', 'inflated_value', 'inflated_apy',
+    'inflated_guaranteed', 'player_page', 'otc_id', 'gsis_id', 'date_of_birth',
+    'height', 'weight', 'college', 'draft_year', 'draft_round', 'draft_overall',
+    'draft_team', 'cols',
+)
+
+CONTRACTS = StreamSpec(
+    name="contracts",
+    table="contracts",
+    identity_column="gsis_id",
+    identity_kind="gsis",
+    capture_axis="snapshot",
+    grain=(),  # keyed by snapshot_id + content_sha256, not by a business grain
+    columns=_CONTRACTS_COLUMNS,
+    loader=None,  # bound in build_streams
+    loader_kwargs={},
+    integer_columns=('year_signed', 'years', 'otc_id', 'draft_year', 'draft_round', 'draft_overall'),
+    float_columns=('value', 'apy', 'guaranteed', 'apy_cap_pct', 'inflated_value', 'inflated_apy', 'inflated_guaranteed'),
+    boolean_columns=('is_active',),
+    json_columns=("cols",),
+    refuse_unexpected_columns=True,
+    nested_fields={
+        "cols": (
+            "year", "team", "base_salary", "prorated_bonus", "roster_bonus",
+            "guaranteed_salary", "cap_number", "cap_percent", "cash_paid", "workout_bonus",
+            "other_bonus", "per_game_roster_bonus", "option_bonus",
+        )
+    },
+    collapse_exact_duplicates=True,
+    refuse_non_finite=True,
+)
+
+
 def build_streams() -> tuple[StreamSpec, ...]:
     """Bind the nflreadpy loaders. Imported lazily so the module stays importable offline."""
     import nflreadpy
@@ -1045,6 +1174,10 @@ def build_streams() -> tuple[StreamSpec, ...]:
             collapse_exact_duplicates=spec.collapse_exact_duplicates,
             exclude_requires_zero_columns=spec.exclude_requires_zero_columns,
             nullable_grain_columns=spec.nullable_grain_columns,
+            capture_axis=spec.capture_axis,
+            json_columns=spec.json_columns,
+            refuse_unexpected_columns=spec.refuse_unexpected_columns,
+            nested_fields=spec.nested_fields,
             eras=spec.eras,
         )
 
@@ -1061,6 +1194,7 @@ def build_streams() -> tuple[StreamSpec, ...]:
         _bind(FF_OPPORTUNITY, nflreadpy.load_ff_opportunity),
         _bind(FTN_CHARTING, nflreadpy.load_ftn_charting),
         _bind(DEPTH_CHARTS, nflreadpy.load_depth_charts),
+        _bind(CONTRACTS, nflreadpy.load_contracts),
     )
 
 
@@ -1087,7 +1221,14 @@ def normalize_rows(
     absence of data.
     """
     if not records:
-        return [], _coverage(spec, season, [], missing_columns=[])
+        empty = _coverage(spec, season, [], missing_columns=[])
+        # An absent counter cannot be distinguished from "nothing happened", and an empty
+        # capture is exactly when a reader most needs the zero stated.
+        if spec.collapse_exact_duplicates:
+            empty["rows_collapsed_exact_duplicates"] = 0
+        if spec.exclude_unidentified_rows:
+            empty["rows_excluded_unidentified"] = 0
+        return [], empty
 
     # A non-mapping record is API MISUSE, not data corruption: fail loud and name the offending
     # index and type rather than letting `.keys()` raise an unattributed AttributeError deeper in.
@@ -1200,6 +1341,20 @@ def normalize_rows(
             coverage["rows_excluded_unidentified"] = excluded_unidentified
             return [], coverage
 
+    if spec.refuse_unexpected_columns:
+        # Before projection, collapse, digest or persistence — a dropped field must never
+        # reach a digest that then claims the row is unchanged. Every record, not just the
+        # first: a later row carrying a new field is the same defect.
+        declared = set(spec.columns)
+        for index, record in enumerate(records):
+            observed = set(record.keys())
+            if observed != declared:
+                raise UsageCaptureError(
+                    f"nflverse_unexpected_columns: stream {spec.name} record {index} has "
+                    f"unexpected {sorted(observed - declared)} and missing "
+                    f"{sorted(declared - observed)}; the declared source shape is exact"
+                )
+
     collapsed_exact = 0
     if spec.collapse_exact_duplicates:
         # Deterministic: first occurrence wins and input order is preserved, so a replay
@@ -1291,8 +1446,24 @@ def normalize_rows(
             value = row.get(col)
             if isinstance(value, str) and not value.strip():
                 row[col] = None
+        # Nested columns become canonical JSON BEFORE the digest, so the digest covers the
+        # serialized form a consumer actually reads. Validation refuses; it never coerces.
+        for col in spec.json_columns:
+            row[col] = encode_nested_json(
+                row.get(col), expected_fields=spec.nested_fields.get(col)
+            )
+
         row["dg_player_id"] = dg_player_id
         row["identity_status"] = status
+        # Identifies the OBSERVATION. Same content in two snapshots -> same digest, which is
+        # what makes accumulated vintages comparable.
+        if spec.capture_axis == "snapshot":
+            # G2: an earlier draft stamped this on EVERY row. It is unpersisted for seasonal
+            # streams, but `_rows_hash` hashes the whole row dict, so the season digest
+            # changed (measured 96b09692 vs legacy da36dcc5) and an UNCHANGED capture would
+            # have rewritten its partitions. I fixed `stored_columns`, verified only that, and
+            # reported the whole freeze as verified. Seasonal rows never see this field.
+            row["content_sha256"] = row_content_digest(spec, row)
         if spec.require_populated_grain:
             # Read the NORMALIZED row, not the raw record. Reading `record` meant
             # 2020.0/1.0 and 2020/1 normalized to identical stored coordinates yet
@@ -1315,9 +1486,30 @@ def normalize_rows(
                     "makes two observations distinguishable; keying on a blank silently "
                     "collapses them"
                 )
-        row["row_key"] = _row_key(spec, row)
-        row["season_ingested"] = str(season)
+        if spec.capture_axis == "snapshot":
+            # No grain, no season. `row_key` is composed in `apply_snapshot`, which is where
+            # the snapshot_id lives; inventing a synthetic season here is the defect the
+            # capture_axis enum exists to prevent.
+            row.pop("season_ingested", None)
+        else:
+            row["row_key"] = _row_key(spec, row)
+            row["season_ingested"] = str(season)
         rows.append(row)
+
+    if spec.capture_axis == "snapshot":
+        # Uniqueness is enforced on (snapshot_id, content_sha256) at apply time. Two rows
+        # sharing a content digest after collapse would mean the collapse failed.
+        digests = [r["content_sha256"] for r in rows]
+        if len(digests) != len(set(digests)):
+            duplicates = sorted({d for d in digests if digests.count(d) > 1})[:5]
+            raise UsageCaptureError(
+                f"nflverse_duplicate_content_digest: stream {spec.name} produced repeated "
+                f"content digests after collapse; examples {duplicates}"
+            )
+        coverage = _coverage(spec, season, rows, missing_columns=[])
+        if spec.collapse_exact_duplicates:
+            coverage["rows_collapsed_exact_duplicates"] = collapsed_exact
+        return rows, coverage
 
     keys = [r["row_key"] for r in rows]
     if len(keys) != len(set(keys)):
@@ -1391,6 +1583,31 @@ def _coverage(
 #: the run marker, and a ``failed`` row is written only when there is no prior success to preserve.
 #: ``ingested_at`` on an ``ok`` row is therefore the last-good timestamp — staleness is readable
 #: from the store alone without overloading ``status`` with attempt state.
+#: A SEPARATE, SUCCESS-ONLY ledger for snapshot-axis streams (Codex v9 ruling).
+#:
+#: The shared `nflverse_capture` table is keyed by `stream_season`, and `captures()`,
+#: `read_only_summary` and the export's season inventory all consume that as a SEASON. Putting
+#: a snapshot_id there would make the column a lie for every reader. A snapshot observation is
+#: a different kind of fact, so it gets its own table rather than three nullable columns and an
+#: overloaded key.
+#:
+#: SUCCESS-ONLY BY DESIGN: there is no `status` or `failure_reason`. A row here means a durable
+#: observation exists. Failures are reported by the run marker, which already names the stream,
+#: the stage and the reason.
+_SNAPSHOT_CAPTURE_COLUMNS = (
+    "stream",
+    "snapshot_id",
+    "capture_axis",
+    "observed_at",
+    "rows_total",
+    "coverage_json",
+    "content_hash",
+    "raw_snapshot",
+    "raw_sha256",
+    "ingested_at",
+)
+
+
 _CAPTURE_COLUMNS = (
     "stream_season",
     "stream",
@@ -1439,6 +1656,103 @@ def _coverage_fingerprint(coverage: Mapping[str, Any]) -> str:
         "identity_applicable_rows",
     )
     return "|".join(f"{k}={coverage.get(k)}" for k in keys)
+
+
+#: Fields written BY the pipeline rather than read from the source. Excluded from the row
+#: content digest, which must identify the OBSERVATION, not the capture that carried it.
+_DERIVED_FIELDS = frozenset({
+    "snapshot_id", "observed_at", "capture_axis", "dg_player_id", "identity_status",
+    "row_key", "content_sha256", "season_ingested", "source_era",
+})
+
+JSON_SCALARS = (str, int, float, bool, type(None))
+
+
+def encode_nested_json(
+    value: Any, expected_fields: Sequence[str] | None = None
+) -> str | None:
+    """Canonical JSON for a nested column. VALIDATES, never coerces.
+
+    polars hands a ``Series`` for a ``List`` column, so an explicit order-preserving conversion
+    is required before encoding. The banned ``default=`` fallback would turn an unexpected type
+    into a plausible-looking string; the shape is checked instead and anything else refuses by
+    name. ``None`` stays ``None`` so a null nested column reaches SQLite as SQL NULL rather than
+    the string "null".
+    """
+    if value is None:
+        return None
+
+    items = value.to_list() if hasattr(value, "to_list") else value
+    if not isinstance(items, (list, tuple)):
+        raise UsageCaptureError(
+            f"nflverse_nested_not_a_list: nested column is {type(value).__name__}, "
+            "expected a list of mappings"
+        )
+
+    plain: list[dict[str, Any]] = []
+    for index, entry in enumerate(items):
+        if not isinstance(entry, Mapping):
+            raise UsageCaptureError(
+                f"nflverse_nested_entry_not_a_mapping: entry {index} is "
+                f"{type(entry).__name__}, expected a mapping"
+            )
+        if expected_fields is not None and set(entry) != set(expected_fields):
+            raise UsageCaptureError(
+                f"nflverse_nested_shape: entry {index} has fields {sorted(entry)}, "
+                f"expected exactly {sorted(expected_fields)}"
+            )
+        for key, inner in entry.items():
+            if not isinstance(inner, JSON_SCALARS):
+                raise UsageCaptureError(
+                    f"nflverse_nested_value_not_json: entry {index} field {key!r} is "
+                    f"{type(inner).__name__}, which is not a JSON scalar"
+                )
+        plain.append(dict(entry))
+
+    # Order is NEVER changed: measured across 45,875 live lists, numeric years ascend and every
+    # list ends in a non-numeric 'Total'. Sorting would destroy that and `year` is not numeric.
+    return json.dumps(plain, sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def row_content_digest(spec: StreamSpec, row: Mapping[str, Any]) -> str:
+    """SHA-256 over the declared SOURCE columns of one row.
+
+    An ALLOW-LIST of `spec.columns`, not a deny-list of metadata: a deny-list silently admits
+    any column added later. Identifies the observation, so two identical contracts in different
+    snapshots share a digest — which is what lets accumulation be compared across vintages.
+    """
+    payload = {column: row.get(column) for column in spec.columns}
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def snapshot_idempotence_digest(
+    spec: StreamSpec,
+    *,
+    rows: Sequence[Mapping[str, Any]],
+    coverage: Mapping[str, Any],
+    observed_at: str,
+    raw_sha256: str,
+) -> str:
+    """Identifies one OBSERVATION ATTEMPT — deliberately a different thing from a row digest.
+
+    Includes COVERAGE, so a changed exact-duplicate count cannot hide behind an identical
+    collapsed row-set, and the raw provenance hash, so a retry against different source bytes
+    is not mistaken for the same observation.
+    """
+    parts = {
+        "stream": spec.name,
+        "observed_at": observed_at,
+        "raw_sha256": raw_sha256,
+        "rows": sorted(str(r.get("content_sha256")) for r in rows),
+        "coverage": _coverage_fingerprint(coverage),
+        # The PERSISTED PROJECTION, which `apply_season` has always included. Omitting it here
+        # meant a projection change with identical rows and coverage would return "unchanged"
+        # and leave the stored projection stale (Codex v9).
+        "projection": _projection_fingerprint(spec),
+    }
+    canonical = json.dumps(parts, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _rows_hash(rows: Sequence[Mapping[str, Any]]) -> str:
@@ -1518,6 +1832,29 @@ class UsageStore:
                 + ", PRIMARY KEY (stream_season))"
             )
             self._assert_schema(conn, "nflverse_capture", _CAPTURE_COLUMNS)
+            # Created ONLY when a snapshot stream is present, so a purely seasonal store is
+            # byte-for-byte what it was before this axis existed (Codex v9).
+            if any(spec.capture_axis == "snapshot" for spec in specs):
+                # NOT NULL on every field a row needs to describe itself, and a CHECK
+                # pinning the axis. G4: an all-TEXT nullable DDL accepted a seasonal-axis row
+                # with null context and empty provenance — a ledger row that cannot say what
+                # it recorded is worse than no row.
+                _required = (
+                    "stream", "snapshot_id", "capture_axis", "observed_at",
+                    "content_hash", "raw_snapshot", "raw_sha256", "ingested_at",
+                )
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS nflverse_snapshot_capture ("
+                    + ", ".join(
+                        f"{c} TEXT" + (" NOT NULL" if c in _required else "")
+                        for c in _SNAPSHOT_CAPTURE_COLUMNS
+                    )
+                    + ", CHECK (capture_axis = 'snapshot')"
+                    + ", PRIMARY KEY (stream, snapshot_id))"
+                )
+                self._assert_schema(
+                    conn, "nflverse_snapshot_capture", _SNAPSHOT_CAPTURE_COLUMNS
+                )
             for spec in specs:
                 conn.execute(
                     f"CREATE TABLE IF NOT EXISTS {spec.table} ("
@@ -1660,6 +1997,151 @@ class UsageStore:
             )
             return "inserted" if existing is None else "updated"
 
+    def apply_snapshot(
+        self,
+        spec: StreamSpec,
+        *,
+        rows: Sequence[Mapping[str, Any]],
+        coverage: Mapping[str, Any],
+        ingested_at: str,
+        snapshot_id: str,
+        observed_at: str,
+        raw_sha256: str,
+        raw_snapshot: str,
+    ) -> str:
+        """Persist ONE observation of a snapshot-axis stream.
+
+        Accumulation, not replacement: a different `snapshot_id` is a DIFFERENT observation and
+        is added alongside the others, even when its content is byte-identical to last week's.
+        That is the property David's ruling turns on and the one a content-keyed store most
+        easily breaks.
+
+        Reusing a `snapshot_id` means retrying the SAME logical observation. It is idempotent
+        only when observed_at, the row/coverage/projection digest AND the raw provenance all
+        match — then nothing is rewritten. Any difference REFUSES and leaves the first success
+        exactly as it was, because two different observations must never share one identity.
+        """
+        if spec.capture_axis != "snapshot":
+            raise UsageCaptureError(
+                f"nflverse_wrong_axis: apply_snapshot called for {spec.name}, which is "
+                f"capture_axis={spec.capture_axis!r}"
+            )
+        missing = [
+            name
+            for name, value in (
+                ("snapshot_id", snapshot_id), ("observed_at", observed_at),
+                ("raw_sha256", raw_sha256), ("raw_snapshot", raw_snapshot),
+            )
+            if not str(value or "").strip()
+        ]
+        if missing:
+            raise UsageCaptureError(
+                f"nflverse_snapshot_provenance_missing: stream {spec.name} cannot record an "
+                f"observation without {missing}"
+            )
+
+        digest = snapshot_idempotence_digest(
+            spec, rows=rows, coverage=coverage,
+            observed_at=observed_at, raw_sha256=raw_sha256,
+        )
+
+        # A content digest must identify exactly one payload. Two unequal payloads arriving on
+        # one digest is a collision and must fail loudly rather than overwrite.
+        seen: dict[str, Mapping[str, Any]] = {}
+        for row in rows:
+            key = str(row.get("content_sha256"))
+            prior = seen.get(key)
+            if prior is not None:
+                if {c: prior.get(c) for c in spec.columns} != {
+                    c: row.get(c) for c in spec.columns
+                }:
+                    raise UsageCaptureError(
+                        f"nflverse_content_digest_collision: stream {spec.name} snapshot "
+                        f"{snapshot_id} has two UNEQUAL payloads on digest {key}"
+                    )
+            seen[key] = row
+
+        with self._connect() as conn:
+            existing = conn.execute(
+                "SELECT * FROM nflverse_snapshot_capture WHERE stream = ? AND snapshot_id = ?",
+                (spec.name, snapshot_id),
+            ).fetchone()
+
+            if existing is not None:
+                mismatch = [
+                    field
+                    for field, value in (
+                        ("observed_at", observed_at),
+                        ("content_hash", digest),
+                        ("raw_sha256", raw_sha256),
+                        ("raw_snapshot", raw_snapshot),
+                    )
+                    if existing[field] != value
+                ]
+                if mismatch:
+                    raise UsageCaptureError(
+                        f"nflverse_snapshot_id_reused: stream {spec.name} snapshot "
+                        f"{snapshot_id} already exists and differs in {mismatch}. A snapshot id "
+                        "identifies ONE observation; refusing rather than overwriting the "
+                        "first success."
+                    )
+                return "unchanged"
+
+            for row in rows:
+                stored = dict(row)
+                stored["snapshot_id"] = snapshot_id
+                stored["observed_at"] = observed_at
+                stored["row_key"] = f"{snapshot_id}|{row['content_sha256']}"
+                conn.execute(
+                    f"INSERT INTO {spec.table} "
+                    f"({', '.join(spec.stored_columns)}) "
+                    f"VALUES ({', '.join('?' for _ in spec.stored_columns)})",
+                    [stored.get(c) for c in spec.stored_columns],
+                )
+            conn.execute(
+                "INSERT INTO nflverse_snapshot_capture "
+                f"({', '.join(_SNAPSHOT_CAPTURE_COLUMNS)}) "
+                f"VALUES ({', '.join('?' for _ in _SNAPSHOT_CAPTURE_COLUMNS)})",
+                [
+                    spec.name,
+                    snapshot_id,
+                    "snapshot",
+                    observed_at,
+                    len(rows),
+                    json.dumps(coverage, sort_keys=True, default=str),
+                    digest,
+                    raw_snapshot,
+                    raw_sha256,
+                    ingested_at,
+                ],
+            )
+            return "inserted"
+
+    def snapshot_captures(self) -> list[dict[str, Any]]:
+        """Snapshot-axis capture records, `coverage_json` decoded to `coverage`.
+
+        Deliberately separate from `captures()`, which stays exactly as it was for the seasonal
+        streams that already depend on it.
+        """
+        with self._connect() as conn:
+            names = {
+                r[0]
+                for r in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' "
+                    "AND name='nflverse_snapshot_capture'"
+                )
+            }
+            if not names:
+                return []
+            records = []
+            for row in conn.execute(
+                "SELECT * FROM nflverse_snapshot_capture ORDER BY stream, observed_at"
+            ):
+                record = dict(row)
+                record["coverage"] = json.loads(record["coverage_json"])
+                records.append(record)
+            return records
+
     def record_failure(
         self, stream: str, season: int, reason: str, ingested_at: str
     ) -> None:
@@ -1734,23 +2216,39 @@ def write_raw_snapshot(
     records: Sequence[Mapping[str, Any]],
     *,
     stream: str,
-    season: int,
+    season: int | None,
     captured_at: str,
     raw_root: Path = DEFAULT_RAW_ROOT,
+    partition: Mapping[str, Any] | None = None,
 ) -> Path:
-    """Write the raw payload BEFORE parsing (`01` §Source Adapter Rules)."""
+    """Write the raw payload BEFORE parsing (`01` §Source Adapter Rules).
+
+    G3: an earlier draft passed `season=observed_at` for snapshot streams, writing an ISO
+    timestamp under a key literally named `season` into the durable pre-parse artifact — a
+    synthetic season in the one file that is supposed to be the untouched source truth. A
+    snapshot stream now passes `season=None` and its own `partition` instead, and NO `season`
+    key is written at all.
+    """
     raw_dir = Path(raw_root) / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
     stamp = "".join(ch for ch in captured_at if ch.isalnum())
-    path = raw_dir / f"{stream}_{season}_{stamp}.json"
+    label = season if season is not None else (partition or {}).get("snapshot_id", "snapshot")
+    safe = "".join(ch if ch.isalnum() else "-" for ch in str(label))
+    path = raw_dir / f"{stream}_{safe}_{stamp}.json"
+    metadata: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "stream": stream,
+        "captured_at": captured_at,
+        "rows": len(records),
+    }
+    if partition is not None:
+        metadata.update(partition)
+    else:
+        metadata["season"] = season
     path.write_text(
         json.dumps(
             {
-                "schema_version": SCHEMA_VERSION,
-                "stream": stream,
-                "season": season,
-                "captured_at": captured_at,
-                "rows": len(records),
+                **metadata,
                 "records": list(records),
             },
             default=str,
@@ -1767,6 +2265,9 @@ def _to_records(frame: Any) -> list[dict[str, Any]]:
         return frame.to_dicts()
     if hasattr(frame, "to_dict"):
         return frame.to_dict(orient="records")
+    if isinstance(frame, (list, tuple)):
+        # Already records. A loader is free to return them, and a test spy always does.
+        return [dict(r) for r in frame]
     raise UsageCaptureError(f"unsupported frame type from loader: {type(frame)!r}")
 
 
@@ -1883,6 +2384,16 @@ def publish_export(
             # against it outright. Types are DECLARED per stream, never inferred —
             # inference would silently retype a column the day its data happened to
             # look numeric.
+            if not frame.height:
+                # A zero-row export must still carry the declared types, or a consumer's
+                # schema depends on whether the table happened to be empty that run.
+                frame = frame.with_columns(
+                    [
+                        pl.col(name).cast(dtype, strict=False).alias(name)
+                        for name, dtype in spec.export_dtypes.items()
+                        if name in frame.columns
+                    ]
+                )
             if frame.height:
                 # R2-E1 (Codex, reproduced): `strict=False` alone turns malformed
                 # non-null source text into NULL, so a typed Parquet can look
@@ -1961,6 +2472,12 @@ def publish_export(
                             "source_id": str(row.get(spec.identity_column) or ""),
                             "identity_kind": spec.identity_kind,
                             "identity_status": row.get("identity_status"),
+                            # D2: a seasonal row keeps `season`; a snapshot row carries its
+                            # own partition instead. Without it, 52 weekly snapshots of the
+                            # same unresolved player are indistinguishable rows.
+                            "capture_axis": spec.capture_axis,
+                            "snapshot_id": row.get("snapshot_id"),
+                            "observed_at": row.get("observed_at"),
                             "season": row.get("season_ingested"),
                             "player": (
                                 row.get("player")
@@ -2151,6 +2668,52 @@ def nextgen_export_provenance(
     }
 
 
+def capture_snapshot_stream(
+    spec: StreamSpec,
+    *,
+    identity: IdentityIndex | None = None,
+    db_path: Path = DEFAULT_DB_PATH,
+    raw_root: Path = DEFAULT_RAW_ROOT,
+    fetch: Callable[..., Sequence[Mapping[str, Any]]] | None = None,
+) -> dict[str, Any]:
+    """Capture ONE snapshot-axis stream. Refuses a seasonal spec.
+
+    The two axes have genuinely different semantics — one partition per season versus one per
+    observation — so routing a spec through the wrong one would produce a plausible-looking
+    store with the wrong key. The guard is here, at the entry point, rather than inferred.
+    """
+    if spec.capture_axis != "snapshot":
+        raise UsageCaptureError(
+            f"nflverse_wrong_axis: {spec.name} is capture_axis={spec.capture_axis!r} and "
+            "cannot be routed through the snapshot path"
+        )
+    return run_usage_capture(
+        seasons=[], specs=(spec,), identity=identity,
+        db_path=db_path, raw_root=raw_root, fetch=fetch,
+    )
+
+
+def capture_seasonal_stream(
+    spec: StreamSpec,
+    *,
+    season: int,
+    identity: IdentityIndex | None = None,
+    db_path: Path = DEFAULT_DB_PATH,
+    raw_root: Path = DEFAULT_RAW_ROOT,
+    fetch: Callable[..., Sequence[Mapping[str, Any]]] | None = None,
+) -> dict[str, Any]:
+    """Capture ONE seasonal-axis stream for one season. Refuses a snapshot spec."""
+    if spec.capture_axis != "seasonal":
+        raise UsageCaptureError(
+            f"nflverse_wrong_axis: {spec.name} is capture_axis={spec.capture_axis!r} and "
+            "cannot be routed through the seasonal path"
+        )
+    return run_usage_capture(
+        seasons=[season], specs=(spec,), identity=identity,
+        db_path=db_path, raw_root=raw_root, fetch=fetch,
+    )
+
+
 def run_usage_capture(
     *,
     seasons: Sequence[int],
@@ -2181,6 +2744,10 @@ def run_usage_capture(
         "streams": [spec.name for spec in specs],
     }
     def _default_fetch(spec: StreamSpec, season: int) -> Sequence[Mapping[str, Any]]:
+        if spec.capture_axis == "snapshot":
+            # NO arguments at all — `load_contracts()` accepts none, and passing `seasons`
+            # is the C5 defect this axis exists to prevent.
+            return _to_records(spec.loader())
         return _to_records(spec.loader(seasons=[season], **dict(spec.loader_kwargs)))
 
     fetch = fetch or _default_fetch
@@ -2214,6 +2781,55 @@ def _run_locked_capture(
         store = UsageStore(db_path, specs)
 
         for spec in specs:
+            if spec.capture_axis == "snapshot":
+                # EXACTLY ONE no-arguments call per RUN, regardless of how many seasons the
+                # run requests. The source has no season axis; passing one raises.
+                stream_name, season = spec.name, None
+                records = fetch(spec, None)
+                # Stamped AFTER the fetch returns, never at run start (Codex D4-2).
+                observed_at = datetime.now(timezone.utc).isoformat()
+                snapshot_id = f"{run_id}:{spec.name}"
+                raw_path = write_raw_snapshot(
+                    records,
+                    stream=spec.name,
+                    season=None,
+                    captured_at=started_at,
+                    raw_root=raw_root,
+                    partition={
+                        "capture_axis": "snapshot",
+                        "snapshot_id": snapshot_id,
+                        "observed_at": observed_at,
+                    },
+                )
+                raw_sha256 = hashlib.sha256(raw_path.read_bytes()).hexdigest()
+                rows, coverage = normalize_rows(
+                    records, spec=spec, season=None, identity=identity
+                )
+                applied = store.apply_snapshot(
+                    spec,
+                    rows=rows,
+                    coverage=coverage,
+                    ingested_at=started_at,
+                    snapshot_id=snapshot_id,
+                    observed_at=observed_at,
+                    raw_sha256=raw_sha256,
+                    raw_snapshot=str(raw_path),
+                )
+                results.append(
+                    {
+                        "stream": spec.name,
+                        "capture_axis": "snapshot",
+                        "snapshot_id": snapshot_id,
+                        "observed_at": observed_at,
+                        "season": None,
+                        "applied": applied,
+                        "raw_snapshot": str(raw_path),
+                        "raw_sha256": raw_sha256,
+                        "coverage": coverage,
+                    }
+                )
+                continue
+
             for season in seasons:
                 stream_name = spec.name
                 if spec.min_season is not None and season < spec.min_season:
@@ -2273,6 +2889,9 @@ def _run_locked_capture(
             export_root=export_dir,
         )
     except Exception as exc:
+        failed_axis = next(
+            (spec.capture_axis for spec in specs if spec.name == stream_name), None
+        )
         if store is not None and stream_name is not None and season is not None:
             store.record_failure(
                 stream_name, season, f"{type(exc).__name__}: {exc}", started_at
@@ -2285,9 +2904,29 @@ def _run_locked_capture(
                 "failed_stage": "export" if stream_name is None and results else "capture",
                 "failed_stream": stream_name,
                 "failed_season": season,
+                "capture_axis": failed_axis,
                 "reason": f"{type(exc).__name__}: {exc}",
+                # Per-axis partition context. A bare {stream, season} entry cannot describe a
+                # snapshot observation at all — `season` is None for it, so a reader could not
+                # tell WHICH weekly capture had already landed before the run died.
                 "captured_before_failure": [
-                    {"stream": r["stream"], "season": r["season"]} for r in results
+                    (
+                        {
+                            "stream": r["stream"],
+                            "capture_axis": "snapshot",
+                            "snapshot_id": r.get("snapshot_id"),
+                            "observed_at": r.get("observed_at"),
+                            "season": None,
+                        }
+                        if r.get("capture_axis") == "snapshot"
+                        else {
+                            "stream": r["stream"],
+                            "capture_axis": "seasonal",
+                            "season": r.get("season"),
+                        }
+                    )
+                    for r in results
+                    if not r.get("skipped")
                 ],
                 "finished_at": datetime.now(timezone.utc).isoformat(),
             },
@@ -2331,7 +2970,13 @@ def _totals(results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     very thing the skip record exists to disclose.
     """
     skipped = [r for r in results if r.get("skipped")]
-    blocks = [dict(r["coverage"]) for r in results if "coverage" in r]
+    snapshots = [r for r in results if r.get("capture_axis") == "snapshot"]
+    blocks = [
+        dict(r["coverage"])
+        for r in results
+        if "coverage" in r and r.get("capture_axis") != "snapshot"
+    ]
+    snapshot_blocks = [dict(r["coverage"]) for r in snapshots]
     keys = (
         "rows_total",
         "rows_canonical_resolved",
@@ -2343,6 +2988,49 @@ def _totals(results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     return {
         **{k: sum(int(b.get(k) or 0) for b in blocks) for k in keys},
         "stream_seasons": len(blocks),
+        # A snapshot is counted ONCE under its OWN vocabulary. `stream_seasons` means
+        # stream-seasons actually ingested and folding a snapshot into it would be the
+        # synthetic-season defect wearing a different coat (Codex D3).
+        "stream_snapshots": len(snapshots),
+        "by_stream_snapshot": {
+            entry["stream"]: {
+                "snapshot_id": entry["snapshot_id"],
+                "observed_at": entry["observed_at"],
+                "rows_total": entry["coverage"]["rows_total"],
+                "rows_canonical_resolved": entry["coverage"]["rows_canonical_resolved"],
+                "rows_source_only": entry["coverage"]["rows_source_only"],
+                "rows_conflict": entry["coverage"]["rows_conflict"],
+                "rows_unknown": entry["coverage"]["rows_unknown"],
+            }
+            for entry in snapshots
+        },
+        # G5: excluding snapshot blocks from the seasonal counters without adding the
+        # snapshot equivalents made the unresolved population INVISIBLE at run level — a
+        # controlled 49 source_only + 1 unknown reported as zeros. Snapshot-prefixed, so the
+        # seasonal counters stay untouched.
+        **{
+            f"snapshot_{key}": sum(int(b.get(key) or 0) for b in snapshot_blocks)
+            for key in (
+                "rows_total",
+                "rows_canonical_resolved",
+                "rows_source_only",
+                "rows_conflict",
+                "rows_unknown",
+                "rows_not_canonically_identified",
+            )
+        },
+        "snapshot_unresolved_by_stream": {
+            entry["stream"]: {
+                "snapshot_id": entry["snapshot_id"],
+                "rows_source_only": entry["coverage"]["rows_source_only"],
+                "rows_conflict": entry["coverage"]["rows_conflict"],
+                "rows_unknown": entry["coverage"]["rows_unknown"],
+                "rows_not_canonically_identified": entry["coverage"][
+                    "rows_not_canonically_identified"
+                ],
+            }
+            for entry in snapshots
+        },
         "stream_seasons_skipped": sorted(
             f"{r['stream']}:{r['season']}" for r in skipped
         ),
