@@ -8,14 +8,16 @@ failure stages, replay determinism, duplicate/missing/heterogeneous refusal) is 
 `test_pfr_advstats_ingestion_red.py` and is not re-litigated here. This file contracts what is
 DISTINCTIVE to `ff_opportunity`:
 
-  * TWO ROW CLASSES, and the exclusion/reconciliation of the residual class.
+  * TWO ROW CLASSES, both KEPT — the residual class resolves to `unknown` identity.
+    (An earlier design EXCLUDED them; its premise failed on real 2022 data. See the
+    corrective RED and the spec comment.)
   * A GSIS-keyed identity (PFR's stream resolves through the PFR bridge instead).
   * A 159-column contract whose `season` is String and `week` Float64 upstream.
 
 MEASURED LIVE 2026-08-04 (`nflreadpy 0.1.5`), seasons 2023-2025 — reproduced in a staging capture:
-  18,140 source rows = 16,860 PLAYER rows stored + 1,280 RESIDUAL rows excluded, exactly.
-  Player grain `(game_id, player_id)`: zero duplicates. Identity: 16,834 canonical_resolved /
-  26 source_only / 0 conflict / 0 unknown.
+  18,140 source rows = 16,860 PLAYER rows + 1,280 RESIDUAL rows, ALL STORED.
+  Grain `(game_id, posteam, player_id)`: unique in EVERY season 2018-2025 including residuals.
+  Player-row identity: 16,834 canonical_resolved / 26 source_only / 0 conflict.
   Residual rows are exactly ONE per `(game_id, posteam)`; 1,274 of 1,280 carry a nonzero
   `rec_attempt` but ZERO realized production, contributing exactly 0.0 of 143,269.2 total
   fantasy points (0.000%).
@@ -54,7 +56,6 @@ COVERAGE_PARTS = (
     "rows_conflict",
     "rows_unknown",
 )
-EXCLUDED_KEY = "rows_excluded_unidentified"
 
 
 def _mod():
@@ -113,10 +114,9 @@ def test_the_fixture_carries_checkable_provenance(rows, manifest) -> None:
 
 
 def test_the_fixture_carries_both_row_classes(rows) -> None:
-    """A fixture with only player rows would leave the exclusion path untested — and the
-    exclusion path is the whole distinctive contract of this stream."""
+    """Both classes must be present, or the residual-identity path is untested."""
     assert _player_rows(rows), "no player rows in the slice"
-    assert _residual_rows(rows), "no residual rows in the slice — exclusion untested"
+    assert _residual_rows(rows), "no residual rows in the slice"
 
 
 def test_the_residual_rows_are_one_per_game_and_team(rows, manifest) -> None:
@@ -126,16 +126,17 @@ def test_the_residual_rows_are_one_per_game_and_team(rows, manifest) -> None:
     assert manifest["residual_is_one_per_game_posteam"] is True
 
 
-def test_the_residual_rows_carry_no_realized_production(rows) -> None:
-    """Measured across 2023-2025: residual rows contribute exactly 0.0 of 143,269.2 total
-    fantasy points. They are an expected-value residual for unattributed targets, NOT lost
-    player production — which is what makes excluding them from the player projection honest.
+def test_the_residual_rows_in_this_slice_are_production_free(rows) -> None:
+    """A property of THIS 2024 slice, recorded as an observation — NOT as a rule.
+
+    The retired design turned exactly this observation into a load-bearing premise and applied
+    it to 2018-2025 without re-measuring. It is false: one 2022 row carries 21.4 fantasy points,
+    84 yards and 2 touchdowns. The rows are kept now regardless of production, so this test
+    describes the fixture rather than licensing anything.
     """
     for row in _residual_rows(rows):
         assert (row.get("total_fantasy_points") or 0) == 0
-        assert (row.get("total_yards_gained") or 0) == 0
         assert row.get("full_name") is None
-        assert row.get("position") is None
 
 
 # ---------------------------------------------------------------------------
@@ -161,15 +162,21 @@ def test_the_registered_spec_keeps_its_declared_behaviour_flags() -> None:
     exactly this way and the first staging capture died on a blank grain.
     """
     spec = next(s for s in _mod().build_streams() if s.name == STREAM)
-    assert spec.exclude_unidentified_rows is True
+    assert spec.exclude_unidentified_rows is False, (
+        "the exclusion mechanism is retired for this stream — its premise failed on real data"
+    )
     assert spec.refuse_non_finite is True
-    assert spec.require_populated_grain is True
+    assert spec.require_populated_grain is False, (
+        "player_id is null on the residual rows by design; game_id and posteam never are"
+    )
     assert spec.eras, "the additive-column refusal depends on a declared era"
 
 
 def test_the_declared_grain_and_identity() -> None:
     spec = _spec()
-    assert spec.grain == ("game_id", "player_id")
+    assert spec.grain == ("game_id", "posteam", "player_id"), (
+        "posteam is what separates the two teams' residual rows in a game"
+    )
     assert spec.identity_column == "player_id"
     assert spec.identity_kind == "gsis", "player_id is a GSIS id, our canonical key"
 
@@ -207,31 +214,71 @@ def test_every_metric_column_is_typed() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_residual_rows_are_excluded_and_counted_not_silently_dropped(rows, identity) -> None:
+def test_every_row_is_kept_including_the_residuals(rows, identity) -> None:
+    """REPLACES the exclusion contract, which was retired after its premise failed on real data.
+
+    The old design dropped residual rows because "they carry zero realized production" —
+    measured on 2023-2025 and then applied to 2018-2025 without re-measuring. FALSE: one 2022
+    row carries 21.4 fantasy points, 84 yards and 2 touchdowns, and the committed landing
+    discarded it. Widening the grain to include `posteam` (unique in every season) means
+    nothing needs excluding, so there is no premise left that can be wrong.
+    """
     mod = _mod()
     normalized, coverage = mod.normalize_rows(
         [dict(r) for r in rows], spec=_spec(), season=2024, identity=identity
     )
-    expected_players = len(_player_rows(rows))
-    expected_residual = len(_residual_rows(rows))
-
-    assert len(normalized) == expected_players
-    assert coverage[COVERAGE_TOTAL] == expected_players
-    assert EXCLUDED_KEY in coverage, (
-        "an excluded row that is not counted is a silent drop; the coverage must reconcile"
+    assert len(normalized) == len(rows), "no row may be dropped"
+    assert coverage[COVERAGE_TOTAL] == len(rows)
+    assert "rows_excluded_unidentified" not in coverage, (
+        "the exclusion mechanism is retired for this stream; a lingering counter would imply "
+        "rows are still being dropped"
     )
-    assert coverage[EXCLUDED_KEY] == expected_residual
-    # THE RECONCILIATION: stored + excluded == what the source handed us.
-    assert coverage[COVERAGE_TOTAL] + coverage[EXCLUDED_KEY] == len(rows)
 
 
-def test_no_stored_row_has_a_blank_identity(rows, identity) -> None:
+def test_a_residual_row_with_real_production_survives(rows, identity) -> None:
+    """The regression that matters. This exact shape — a blank-id row carrying real points —
+    exists in the live 2022 season and was silently discarded by the committed landing."""
     mod = _mod()
+    mutated = [dict(r) for r in rows]
+    idx = next(i for i, r in enumerate(mutated) if not str(r.get("player_id") or "").strip())
+    mutated[idx]["total_fantasy_points"] = 21.4
+    mutated[idx]["total_yards_gained"] = 84.0
+    mutated[idx]["total_touchdown"] = 2.0
+
+    normalized, _ = mod.normalize_rows(
+        mutated, spec=_spec(), season=2024, identity=identity
+    )
+    survivors = [r for r in normalized if r.get("total_fantasy_points") == 21.4]
+    assert survivors, "a residual row carrying real production was discarded"
+    assert survivors[0]["identity_status"] == mod.UNKNOWN
+    assert survivors[0]["dg_player_id"] is None
+
+
+def test_the_widened_grain_separates_the_two_team_residuals(rows, identity) -> None:
+    """Both teams in a game produce a residual row. Under the old (game_id, player_id) grain
+    they keyed identically; `posteam` is what makes them distinguishable rather than a
+    collision to be avoided by dropping them."""
+    mod = _mod()
+    assert _spec().grain == ("game_id", "posteam", "player_id")
     normalized, _ = mod.normalize_rows(
         [dict(r) for r in rows], spec=_spec(), season=2024, identity=identity
     )
-    for row in normalized:
-        assert str(row.get("player_id") or "").strip(), "a residual row survived exclusion"
+    residual_keys = [
+        r["row_key"] for r in normalized if not str(r.get("player_id") or "").strip()
+    ]
+    assert len(residual_keys) == len(set(residual_keys)), "residual rows collided"
+
+
+def test_residual_rows_resolve_to_unknown_identity(rows, identity) -> None:
+    mod = _mod()
+    normalized, coverage = mod.normalize_rows(
+        [dict(r) for r in rows], spec=_spec(), season=2024, identity=identity
+    )
+    residuals = [r for r in normalized if not str(r.get("player_id") or "").strip()]
+    assert residuals
+    for row in residuals:
+        assert row["identity_status"] == mod.UNKNOWN
+    assert coverage["rows_unknown"] == len(residuals)
 
 
 def test_identity_resolves_on_the_gsis_universe_with_no_conflicts(rows, identity) -> None:
@@ -240,25 +287,8 @@ def test_identity_resolves_on_the_gsis_universe_with_no_conflicts(rows, identity
         [dict(r) for r in rows], spec=_spec(), season=2024, identity=identity
     )
     assert coverage["rows_conflict"] == 0
-    assert coverage["rows_unknown"] == 0
     assert sum(coverage[k] for k in COVERAGE_PARTS) == coverage[COVERAGE_TOTAL]
-    assert coverage["rows_source_only"] >= 1, (
-        "the slice is built to carry an unresolved player; if this is zero the "
-        "source_only path is untested"
-    )
-
-
-def test_an_unidentified_row_is_excluded_rather_than_refused(identity) -> None:
-    """Positive control on the exclusion itself: a batch of ONLY residual rows must produce a
-    clean empty result with the count reconciled, not a blank-grain refusal and not a crash."""
-    mod = _mod()
-    residual = _residual_rows(json.loads(FIXTURE.read_text(encoding="utf-8")))
-    normalized, coverage = mod.normalize_rows(
-        [dict(r) for r in residual], spec=_spec(), season=2024, identity=identity
-    )
-    assert normalized == []
-    assert coverage[COVERAGE_TOTAL] == 0
-    assert coverage[EXCLUDED_KEY] == len(residual)
+    assert coverage["rows_source_only"] >= 1
 
 
 # ---------------------------------------------------------------------------

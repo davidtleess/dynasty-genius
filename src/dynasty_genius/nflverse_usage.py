@@ -320,6 +320,10 @@ class StreamSpec:
     #: still hit the grain check and still refuse.
     collapse_exact_duplicates: bool = False
 
+    #: Columns that MUST be zero/absent on a row excluded by `exclude_unidentified_rows`.
+    #: This is the exclusion's premise made executable rather than left in a docstring.
+    exclude_requires_zero_columns: tuple[str, ...] = ()
+
     def __post_init__(self) -> None:
         """Fail closed on contradictory identity declarations (Codex C7).
 
@@ -717,9 +721,12 @@ PFR_DEF = _pfr_spec("pfr_def", "def", _PFR_DEF_METRICS)
 # are season-week groupings of residual rows. Filtered to populated ids the
 # player grain is perfectly unique.
 #
-# The residual rows are EXCLUDED from the player projection and COUNTED
-# (`rows_excluded_unidentified`), never dropped silently — a null identity would
-# key every team-game residual identically under the declared grain.
+# The residual rows are KEPT. An earlier design excluded them on the premise that they
+# carry zero realized production — measured true for 2023-2025 and then applied to
+# 2018-2025 WITHOUT being re-measured. It is FALSE: one row in 2022 carries 21.4
+# fantasy points, 84 yards and 2 touchdowns, and the committed landing discarded it.
+# Widening the grain to include `posteam` (unique in every season, measured) removes
+# the need to exclude anything, so there is no longer a premise that can be wrong.
 #
 # `season` ships as String and `week` as Float64 in this source; both are
 # declared integers and the existing normalization refuses a non-integral value
@@ -795,22 +802,31 @@ FF_OPPORTUNITY = StreamSpec(
     table="ff_opportunity",
     identity_column="player_id",
     identity_kind="gsis",
-    grain=("game_id", "player_id"),
+    # WIDENED from (game_id, player_id) after the exclusion premise FAILED on real data.
+    # Measured 2018-2025: (game_id, posteam, player_id) is unique in EVERY season including the
+    # residual rows, with game_id and posteam never null. So nothing needs excluding at all —
+    # the residual rows store alongside the player rows and resolve to `unknown` identity,
+    # which is honest and loses nothing.
+    grain=("game_id", "posteam", "player_id"),
     columns=(*_FF_OPP_KEY, *_FF_OPP_METRICS),
     loader=None,  # bound in build_streams
     loader_kwargs={},
     integer_columns=("season", "week"),
     float_columns=_FF_OPP_METRICS,
     refuse_non_finite=True,
-    exclude_unidentified_rows=True,
-    require_populated_grain=True,
+    # `player_id` is null on the residual rows by design; game_id and posteam never are.
+    require_populated_grain=False,
     eras=(
         StreamEra(
             name="ffopportunity_v1",
             requires=(),
             forbids=(),
             columns=(*_FF_OPP_KEY, *_FF_OPP_METRICS),
-            grain=("game_id", "player_id"),
+            # The ERA owns the grain and REPLACES the spec's during normalization
+            # (nflverse_usage.py, era resolution). Widening only the spec-level grain left this
+            # one stale and the old key silently still in force — the same StreamEra property
+            # Codex explained in C3, missed a second time.
+            grain=("game_id", "posteam", "player_id"),
         ),
     ),
 )
@@ -999,6 +1015,7 @@ def build_streams() -> tuple[StreamSpec, ...]:
             boolean_columns=spec.boolean_columns,
             min_season=spec.min_season,
             collapse_exact_duplicates=spec.collapse_exact_duplicates,
+            exclude_requires_zero_columns=spec.exclude_requires_zero_columns,
             eras=spec.eras,
         )
 
@@ -1053,16 +1070,6 @@ def normalize_rows(
             )
 
     excluded_unidentified = 0
-    if spec.exclude_unidentified_rows:
-        kept = [
-            r for r in records if str(r.get(spec.identity_column) or "").strip()
-        ]
-        excluded_unidentified = len(records) - len(kept)
-        records = kept
-        if not records:
-            coverage = _coverage(spec, season, [], missing_columns=[])
-            coverage["rows_excluded_unidentified"] = excluded_unidentified
-            return [], coverage
 
     available = set(records[0].keys())
 
@@ -1124,6 +1131,41 @@ def normalize_rows(
             f"{missing} — the upstream shape changed; storing nulls would look like missing "
             "data rather than a changed contract"
         )
+
+    if spec.exclude_unidentified_rows:
+        # MOVED here from before schema validation (Codex da00235-1). Filtering first meant
+        # upstream drift confined to a row we were about to exclude was accepted and dropped —
+        # a contract breach is a contract breach wherever it appears.
+        kept, dropped = [], []
+        for record in records:
+            (kept if str(record.get(spec.identity_column) or "").strip() else dropped).append(
+                record
+            )
+
+        # ENFORCE the premise the exclusion rests on (Codex da00235-2). Excluding these rows is
+        # justified ONLY by the measurement that they carry zero realized production. The code
+        # never checked it, so a blank-id row with 10 real fantasy points was silently
+        # discarded. If the premise stops holding, REFUSE — do not quietly drop real production.
+        for record in dropped:
+            offending = {
+                column: record.get(column)
+                for column in spec.exclude_requires_zero_columns
+                if record.get(column) not in (None, 0, 0.0, "", "0", "0.0")
+            }
+            if offending:
+                raise UsageCaptureError(
+                    f"nflverse_excluded_row_carries_production: stream {spec.name} season "
+                    f"{season} would exclude a row with no {spec.identity_column}, but it "
+                    f"carries {offending}. The exclusion premise is that unidentified rows "
+                    "hold no realized production; refusing rather than discarding it."
+                )
+
+        excluded_unidentified = len(dropped)
+        records = kept
+        if not records:
+            coverage = _coverage(spec, season, [], missing_columns=[])
+            coverage["rows_excluded_unidentified"] = excluded_unidentified
+            return [], coverage
 
     collapsed_exact = 0
     if spec.collapse_exact_duplicates:
@@ -1347,6 +1389,22 @@ def _projection_fingerprint(spec: StreamSpec) -> str:
     ).hexdigest()
 
 
+def _coverage_fingerprint(coverage: Mapping[str, Any]) -> str:
+    """The reconciliation counters that make two same-rows captures genuinely different."""
+    keys = (
+        "rows_total",
+        "rows_canonical_resolved",
+        "rows_source_only",
+        "rows_conflict",
+        "rows_unknown",
+        "rows_not_canonically_identified",
+        "rows_excluded_unidentified",
+        "rows_collapsed_exact_duplicates",
+        "identity_applicable_rows",
+    )
+    return "|".join(f"{k}={coverage.get(k)}" for k in keys)
+
+
 def _rows_hash(rows: Sequence[Mapping[str, Any]]) -> str:
     payload = sorted(
         (json.dumps(row, sort_keys=True, default=str) for row in rows),
@@ -1519,7 +1577,14 @@ class UsageStore:
         key = f"{spec.name}:{season}"
         # Identity = rows AND the projection they are persisted through.
         digest = hashlib.sha256(
-            f"{_rows_hash(rows)}|{_projection_fingerprint(spec)}".encode("utf-8")
+            # Coverage is part of the OBSERVATION, not decoration: two captures with
+            # identical stored rows but a different excluded/collapsed count are different
+            # facts. Hashing only the stored rows returned `unchanged` and left durable
+            # SQLite coverage stale against the run marker — two truth surfaces disagreeing
+            # (Codex da00235-3). Only the reconciliation counters are included; volatile
+            # fields like ids/timestamps would defeat idempotence.
+            f"{_rows_hash(rows)}|{_projection_fingerprint(spec)}"
+            f"|{_coverage_fingerprint(coverage)}".encode("utf-8")
         ).hexdigest()
         with self._connect() as conn:
             existing = conn.execute(
@@ -1796,6 +1861,34 @@ def publish_export(
                         continue
                     before = frame.height - frame[name].null_count()
                     if dtype == pl.Boolean:
+                        # FAIL CLOSED (Codex edf05e9-1). The Int64 intermediate accepts ANY
+                        # integer and polars maps nonzero -> true, so `is_motion='2'` published
+                        # as True and the non-null reconciliation could not see it: it only
+                        # counts nulls. The commit message claimed such a value "becomes null
+                        # and is caught by the reconciliation" — that was simply false. Check
+                        # the domain explicitly instead of trusting the cast.
+                        as_int = frame[name].cast(pl.Int64, strict=False)
+                        out_of_domain = (
+                            frame.select(
+                                bad=(
+                                    as_int.is_not_null() & ~as_int.is_in([0, 1])
+                                ).sum()
+                            )["bad"][0]
+                        )
+                        if out_of_domain:
+                            observed = sorted(
+                                {
+                                    v
+                                    for v in frame[name].to_list()
+                                    if str(v) not in ("0", "1", "None", "True", "False")
+                                }
+                            )[:5]
+                            raise UsageCaptureError(
+                                f"nflverse_export_boolean_out_of_domain: {spec.name}.{name} "
+                                f"carries {out_of_domain} value(s) that are neither 0 nor 1 "
+                                f"(e.g. {observed}). Casting them would silently publish True. "
+                                "Refusing rather than inventing a boolean."
+                            )
                         # SQLite has no Boolean type and holds these as TEXT '0'/'1'
                         # (measured), and polars refuses Utf8 -> Boolean outright. Go through
                         # Int64. Anything that is neither '0' nor '1' becomes null under
