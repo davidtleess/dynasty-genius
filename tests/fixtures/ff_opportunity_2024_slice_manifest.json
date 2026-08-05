@@ -1,0 +1,20 @@
+{
+  "appended_unresolved_row_from_game": "2024_02_CIN_KC",
+  "base_games": [
+    "2024_01_ARI_BUF",
+    "2024_01_BAL_KC"
+  ],
+  "identity_census_player_rows": {
+    "canonical_resolved": 38,
+    "source_only": 1
+  },
+  "n_columns": 159,
+  "nflreadpy_version": "0.1.5",
+  "player_rows": 39,
+  "residual_is_one_per_game_posteam": true,
+  "residual_rows": 2,
+  "season": 2024,
+  "slice_rows": 41,
+  "upstream_rows": 6005,
+  "upstream_sha256": "b675608bfd4640e4b54531c061a7d3434f7b65a037bad2933b82ebbee0824c44"
+}

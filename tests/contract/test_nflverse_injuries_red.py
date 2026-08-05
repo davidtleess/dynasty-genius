@@ -280,13 +280,23 @@ def test_every_declared_blank_column_normalizes_whitespace(column):
     assert rows[0][column] is None
 
 
+#: The four streams this guard was written to protect. NAMED, not inferred as "everything that
+#: is not injuries" — that proxy silently widened to cover every stream added later, and on
+#: 2026-08-04 it failed on `ff_opportunity`, which sets `require_populated_grain` for its own
+#: reviewed reason. The guard's intent (per its docstring: the FOUR previously reviewed streams)
+#: is unchanged; only the way it identifies them is fixed.
+_PRE_INJURY_STREAMS = ("ngs_passing", "ngs_rushing", "ngs_receiving", "snap_counts")
+
+
 def test_existing_streams_declare_no_blank_policy():
     """The opt-in must not have leaked into the four previously reviewed streams."""
-    for spec in build_streams():
-        if spec.name == "injuries":
-            continue
-        assert spec.blank_as_null_columns == (), spec.name
-        assert spec.require_populated_grain is False, spec.name
+    by_name = {spec.name: spec for spec in build_streams()}
+    missing = [name for name in _PRE_INJURY_STREAMS if name not in by_name]
+    assert not missing, f"the guarded streams are no longer registered: {missing}"
+    for name in _PRE_INJURY_STREAMS:
+        spec = by_name[name]
+        assert spec.blank_as_null_columns == (), name
+        assert spec.require_populated_grain is False, name
 
 
 @pytest.mark.parametrize("absent", [None, "", "   "])

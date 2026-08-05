@@ -258,6 +258,20 @@ class StreamSpec:
     #: make corruption indistinguishable from missingness.
     refuse_non_finite: bool = False
 
+    #: Exclude rows whose identity column is null, and RECONCILE the count in coverage.
+    #:
+    #: `ff_opportunity` ships exactly one residual row per (game_id, posteam) — 1,280 across
+    #: 2023-2025 — carrying unattributed targets and air yards. Measured: 1,274 of them have a
+    #: nonzero `rec_attempt` but ZERO realized production, and their total contribution to
+    #: `total_fantasy_points` is exactly 0.0 (0.000% of the 143,269.2 attributed). They are an
+    #: expected-value residual, not lost player production.
+    #:
+    #: They cannot simply flow through: the grain is (game_id, player_id) and a null player
+    #: would key every team-game residual identically. Refusing the whole batch is also wrong —
+    #: the residual is a normal property of the source, not corruption. So they are excluded
+    #: and COUNTED, never dropped silently. Opt-in, so no existing stream changes.
+    exclude_unidentified_rows: bool = False
+
     #: Shapes this stream has had over time, resolved per batch from the observed
     #: column set. Empty means the stream has exactly one shape.
     eras: tuple[StreamEra, ...] = ()
@@ -604,6 +618,126 @@ PFR_REC = _pfr_spec("pfr_rec", "rec", _PFR_REC_METRICS)
 PFR_DEF = _pfr_spec("pfr_def", "def", _PFR_DEF_METRICS)
 
 
+# ---------------------------------------------------------------------------
+# ff_opportunity — expected fantasy points (board block C, stream 2 of 6)
+# ---------------------------------------------------------------------------
+#
+# Measured live 2026-08-04 (`nflreadpy 0.1.5`), seasons 2023-2025: 18,140 rows,
+# 159 columns. TWO ROW CLASSES, not a broken grain:
+#
+#   * 16,860 PLAYER rows — grain `(game_id, player_id)` and `(season, week,
+#     player_id)` both ZERO-duplicate. `player_id` is a GSIS id, so identity
+#     resolves on our canonical key: 16,834 canonical_resolved / 26 source_only.
+#   * 1,280 RESIDUAL rows — exactly ONE per `(game_id, posteam)`, `player_id`
+#     null, no name, no position. 1,274 carry a nonzero `rec_attempt` but ZERO
+#     realized production; their total `total_fantasy_points` is exactly 0.0
+#     against 143,269.2 attributed (0.000%). An expected-value residual for
+#     unattributed targets — NOT lost player production.
+#
+# An earlier reading called the 65 apparent duplicate groups a broken player
+# grain. They were an artifact of grouping on a null `player_id`: the 65 buckets
+# are season-week groupings of residual rows. Filtered to populated ids the
+# player grain is perfectly unique.
+#
+# The residual rows are EXCLUDED from the player projection and COUNTED
+# (`rows_excluded_unidentified`), never dropped silently — a null identity would
+# key every team-game residual identically under the declared grain.
+#
+# `season` ships as String and `week` as Float64 in this source; both are
+# declared integers and the existing normalization refuses a non-integral value
+# rather than coercing one.
+
+_FF_OPP_KEY = (
+    'season', 'week', 'game_id', 'posteam', 'player_id', 'full_name', 'position',
+)
+
+_FF_OPP_METRICS = (
+    'pass_attempt', 'rec_attempt', 'rush_attempt', 'pass_air_yards',
+    'rec_air_yards', 'pass_completions', 'receptions', 'pass_completions_exp',
+    'receptions_exp', 'pass_yards_gained', 'rec_yards_gained', 'rush_yards_gained',
+    'pass_yards_gained_exp', 'rec_yards_gained_exp', 'rush_yards_gained_exp',
+    'pass_touchdown', 'rec_touchdown', 'rush_touchdown', 'pass_touchdown_exp',
+    'rec_touchdown_exp', 'rush_touchdown_exp', 'pass_two_point_conv',
+    'rec_two_point_conv', 'rush_two_point_conv', 'pass_two_point_conv_exp',
+    'rec_two_point_conv_exp', 'rush_two_point_conv_exp', 'pass_first_down',
+    'rec_first_down', 'rush_first_down', 'pass_first_down_exp',
+    'rec_first_down_exp', 'rush_first_down_exp', 'pass_interception',
+    'rec_interception', 'pass_interception_exp', 'rec_interception_exp',
+    'rec_fumble_lost', 'rush_fumble_lost', 'pass_fantasy_points_exp',
+    'rec_fantasy_points_exp', 'rush_fantasy_points_exp', 'pass_fantasy_points',
+    'rec_fantasy_points', 'rush_fantasy_points', 'total_yards_gained',
+    'total_yards_gained_exp', 'total_touchdown', 'total_touchdown_exp',
+    'total_first_down', 'total_first_down_exp', 'total_fantasy_points',
+    'total_fantasy_points_exp', 'pass_completions_diff', 'receptions_diff',
+    'pass_yards_gained_diff', 'rec_yards_gained_diff', 'rush_yards_gained_diff',
+    'pass_touchdown_diff', 'rec_touchdown_diff', 'rush_touchdown_diff',
+    'pass_two_point_conv_diff', 'rec_two_point_conv_diff',
+    'rush_two_point_conv_diff', 'pass_first_down_diff', 'rec_first_down_diff',
+    'rush_first_down_diff', 'pass_interception_diff', 'rec_interception_diff',
+    'pass_fantasy_points_diff', 'rec_fantasy_points_diff',
+    'rush_fantasy_points_diff', 'total_yards_gained_diff', 'total_touchdown_diff',
+    'total_first_down_diff', 'total_fantasy_points_diff', 'pass_attempt_team',
+    'rec_attempt_team', 'rush_attempt_team', 'pass_air_yards_team',
+    'rec_air_yards_team', 'pass_completions_team', 'receptions_team',
+    'pass_completions_exp_team', 'receptions_exp_team', 'pass_yards_gained_team',
+    'rec_yards_gained_team', 'rush_yards_gained_team', 'pass_yards_gained_exp_team',
+    'rec_yards_gained_exp_team', 'rush_yards_gained_exp_team',
+    'pass_touchdown_team', 'rec_touchdown_team', 'rush_touchdown_team',
+    'pass_touchdown_exp_team', 'rec_touchdown_exp_team', 'rush_touchdown_exp_team',
+    'pass_two_point_conv_team', 'rec_two_point_conv_team',
+    'rush_two_point_conv_team', 'pass_two_point_conv_exp_team',
+    'rec_two_point_conv_exp_team', 'rush_two_point_conv_exp_team',
+    'pass_first_down_team', 'rec_first_down_team', 'rush_first_down_team',
+    'pass_first_down_exp_team', 'rec_first_down_exp_team',
+    'rush_first_down_exp_team', 'pass_interception_team', 'rec_interception_team',
+    'pass_interception_exp_team', 'rec_interception_exp_team',
+    'rec_fumble_lost_team', 'rush_fumble_lost_team', 'pass_fantasy_points_exp_team',
+    'rec_fantasy_points_exp_team', 'rush_fantasy_points_exp_team',
+    'pass_fantasy_points_team', 'rec_fantasy_points_team',
+    'rush_fantasy_points_team', 'pass_completions_diff_team',
+    'receptions_diff_team', 'pass_yards_gained_diff_team',
+    'rec_yards_gained_diff_team', 'rush_yards_gained_diff_team',
+    'pass_touchdown_diff_team', 'rec_touchdown_diff_team',
+    'rush_touchdown_diff_team', 'pass_two_point_conv_diff_team',
+    'rec_two_point_conv_diff_team', 'rush_two_point_conv_diff_team',
+    'pass_first_down_diff_team', 'rec_first_down_diff_team',
+    'rush_first_down_diff_team', 'pass_interception_diff_team',
+    'rec_interception_diff_team', 'pass_fantasy_points_diff_team',
+    'rec_fantasy_points_diff_team', 'rush_fantasy_points_diff_team',
+    'total_yards_gained_team', 'total_yards_gained_exp_team',
+    'total_yards_gained_diff_team', 'total_touchdown_team',
+    'total_touchdown_exp_team', 'total_touchdown_diff_team',
+    'total_first_down_team', 'total_first_down_exp_team',
+    'total_first_down_diff_team', 'total_fantasy_points_team',
+    'total_fantasy_points_exp_team', 'total_fantasy_points_diff_team',
+)
+
+FF_OPPORTUNITY = StreamSpec(
+    name="ff_opportunity",
+    table="ff_opportunity",
+    identity_column="player_id",
+    identity_kind="gsis",
+    grain=("game_id", "player_id"),
+    columns=(*_FF_OPP_KEY, *_FF_OPP_METRICS),
+    loader=None,  # bound in build_streams
+    loader_kwargs={},
+    integer_columns=("season", "week"),
+    float_columns=_FF_OPP_METRICS,
+    refuse_non_finite=True,
+    exclude_unidentified_rows=True,
+    require_populated_grain=True,
+    eras=(
+        StreamEra(
+            name="ffopportunity_v1",
+            requires=(),
+            forbids=(),
+            columns=(*_FF_OPP_KEY, *_FF_OPP_METRICS),
+            grain=("game_id", "player_id"),
+        ),
+    ),
+)
+
+
 def build_streams() -> tuple[StreamSpec, ...]:
     """Bind the nflreadpy loaders. Imported lazily so the module stays importable offline."""
     import nflreadpy
@@ -623,6 +757,7 @@ def build_streams() -> tuple[StreamSpec, ...]:
             blank_as_null_columns=spec.blank_as_null_columns,
             require_populated_grain=spec.require_populated_grain,
             refuse_non_finite=spec.refuse_non_finite,
+            exclude_unidentified_rows=spec.exclude_unidentified_rows,
             eras=spec.eras,
         )
 
@@ -636,6 +771,7 @@ def build_streams() -> tuple[StreamSpec, ...]:
         _bind(PFR_RUSH, nflreadpy.load_pfr_advstats),
         _bind(PFR_REC, nflreadpy.load_pfr_advstats),
         _bind(PFR_DEF, nflreadpy.load_pfr_advstats),
+        _bind(FF_OPPORTUNITY, nflreadpy.load_ff_opportunity),
     )
 
 
@@ -672,6 +808,18 @@ def normalize_rows(
                 f"nflverse_bad_record_type: stream {spec.name} season {season} record "
                 f"{index} is {type(record).__name__}, expected a mapping"
             )
+
+    excluded_unidentified = 0
+    if spec.exclude_unidentified_rows:
+        kept = [
+            r for r in records if str(r.get(spec.identity_column) or "").strip()
+        ]
+        excluded_unidentified = len(records) - len(kept)
+        records = kept
+        if not records:
+            coverage = _coverage(spec, season, [], missing_columns=[])
+            coverage["rows_excluded_unidentified"] = excluded_unidentified
+            return [], coverage
 
     available = set(records[0].keys())
 
@@ -835,7 +983,12 @@ def normalize_rows(
             "that silently drops rows"
         )
 
-    return rows, _coverage(spec, season, rows, missing_columns=[])
+    coverage = _coverage(spec, season, rows, missing_columns=[])
+    if spec.exclude_unidentified_rows:
+        # Additive, and ONLY for opted-in specs, so every existing stream's coverage dict is
+        # byte-identical to before. Reconciliation, not a silent drop.
+        coverage["rows_excluded_unidentified"] = excluded_unidentified
+    return rows, coverage
 
 
 def _coverage(
