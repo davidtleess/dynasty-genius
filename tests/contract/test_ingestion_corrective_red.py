@@ -292,3 +292,149 @@ def test_a_changed_collapse_count_is_not_reported_as_unchanged(identity) -> None
         assert applied != "unchanged", (
             "the collapse count changed but the capture reported unchanged"
         )
+
+
+# ===========================================================================
+# ROUND 2 — Codex's four blockers on 7de9357 and 7654a19
+# ===========================================================================
+
+
+def _depth_weekly():
+    return json.loads((FIXTURES / "depth_charts_weekly_2024_slice.json").read_text())
+
+
+def _depth_daily():
+    return json.loads((FIXTURES / "depth_charts_daily_2025_slice.json").read_text())
+
+
+# --- 7de9357-1 / 7654a19-1: nullability is PER COLUMN and PER ERA, not all-or-nothing ---
+
+
+def test_ff_refuses_a_null_posteam_while_still_permitting_a_null_player_id(
+    opp_rows, identity
+) -> None:
+    """CODEX'S REPRODUCER. `require_populated_grain=False` permitted null player_id — and
+    silently permitted null game_id and posteam too, keying a row as
+    `game_id=...|posteam=None|player_id=None`. Only player_id is legitimately nullable."""
+    mod = _mod()
+    rows = [dict(r) for r in opp_rows]
+    rows[_residual_index(rows)]["posteam"] = None
+    with pytest.raises(mod.UsageCaptureError, match="blank_grain"):
+        mod.normalize_rows(rows, spec=mod.FF_OPPORTUNITY, season=2024, identity=identity)
+
+
+def test_ff_refuses_a_null_game_id(opp_rows, identity) -> None:
+    mod = _mod()
+    rows = [dict(r) for r in opp_rows]
+    rows[0]["game_id"] = None
+    with pytest.raises(mod.UsageCaptureError, match="blank_grain"):
+        mod.normalize_rows(rows, spec=mod.FF_OPPORTUNITY, season=2024, identity=identity)
+
+
+def test_ff_still_accepts_the_null_player_id_residuals(opp_rows, identity) -> None:
+    """The nullable declaration must not break the real data it exists for."""
+    mod = _mod()
+    normalized, _ = mod.normalize_rows(
+        [dict(r) for r in opp_rows], spec=mod.FF_OPPORTUNITY, season=2024, identity=identity
+    )
+    assert len(normalized) == len(opp_rows)
+
+
+def test_the_daily_depth_era_permits_no_null_grain_coordinate(identity) -> None:
+    """CODEX'S REPRODUCER. The weekly era's SBBYE null week forced
+    `require_populated_grain=False` at SPEC level, which also disabled every check on the
+    DAILY era — so a daily row with a null `pos_rank` was accepted."""
+    mod = _mod()
+    rows = [dict(r) for r in _depth_daily()]
+    rows[0]["pos_rank"] = None
+    with pytest.raises(mod.UsageCaptureError, match="blank_grain"):
+        mod.normalize_rows(rows, spec=mod.DEPTH_CHARTS, season=2025, identity=identity)
+
+
+def test_the_weekly_depth_era_still_permits_the_sbbye_null_week(identity) -> None:
+    mod = _mod()
+    rows = [dict(r) for r in _depth_weekly()]
+    normalized, _ = mod.normalize_rows(
+        rows, spec=mod.DEPTH_CHARTS, season=2024, identity=identity
+    )
+    assert any(r.get("game_type") == "SBBYE" and r.get("week") is None for r in normalized)
+
+
+def test_the_weekly_depth_era_still_refuses_other_null_coordinates(identity) -> None:
+    """`week` is nullable; `club_code` is not."""
+    mod = _mod()
+    rows = [dict(r) for r in _depth_weekly()]
+    rows[0]["club_code"] = None
+    with pytest.raises(mod.UsageCaptureError, match="blank_grain"):
+        mod.normalize_rows(rows, spec=mod.DEPTH_CHARTS, season=2024, identity=identity)
+
+
+def test_nullability_is_declared_per_era_not_per_spec() -> None:
+    mod = _mod()
+    bound = {s.name: s for s in mod.build_streams()}
+    depth = bound["depth_charts"]
+    assert depth.require_populated_grain is True
+    by_era = {e.name: e.nullable_grain_columns for e in depth.eras}
+    assert by_era == {"weekly": ("week", "depth_position"), "daily": ()}, (
+        "weekly permits `week` (SBBYE) and `depth_position` (the '\\n    ' scrape artifact, "
+        "3,964 rows 2018-2024); daily permits nothing"
+    )
+    assert bound["ff_opportunity"].nullable_grain_columns == ("player_id",)
+
+
+# --- 7de9357-2: Boolean domain checked on the RAW value ---
+
+
+@pytest.mark.parametrize("bad", ["01", "+1", "yes", "2", "-1", "1.0", " 1"])
+def test_boolean_domain_is_checked_on_the_raw_value_not_a_coerced_integer(
+    identity, bad
+) -> None:
+    """CODEX'S REPRODUCER, EXTENDED. My first guard coerced to Int64 and checked {0,1}, so
+    '01' and '+1' both parsed to 1 and published True, while non-numeric values fell through
+    to the generic cast-lost-values error rather than a Boolean-specific one."""
+    mod = _mod()
+    rows = [dict(r) for r in json.loads((FIXTURES / "ftn_charting_2024_slice.json").read_text())]
+    rows[0]["is_motion"] = bad
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        with pytest.raises(mod.UsageCaptureError, match="boolean_out_of_domain"):
+            mod.run_usage_capture(
+                seasons=[2024], specs=(mod.FTN_CHARTING,), identity=identity,
+                db_path=td / "u.db", raw_root=td / "rt", fetch=lambda s, season: rows,
+            )
+
+
+# --- 7654a19-2: the LIVE export dtypes, per era ---
+
+
+@pytest.mark.parametrize(
+    "fixture_name,season,expected_ints",
+    [
+        ("weekly", 2024, ("season", "week")),
+        ("daily", 2025, ("pos_slot", "pos_rank")),
+    ],
+)
+def test_depth_chart_integers_publish_as_int64_in_both_era_exports(
+    identity, fixture_name, season, expected_ints
+) -> None:
+    """CODEX'S FINDING. The live Parquet published `week`, `pos_rank` and `pos_slot` as String
+    because only `season` was declared. The fixtures happened to carry ints, so a
+    fixture-level assertion could not see it — this reads the EMITTED file, per era."""
+    import polars as pl
+
+    mod = _mod()
+    rows = _depth_weekly() if fixture_name == "weekly" else _depth_daily()
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        mod.run_usage_capture(
+            seasons=[season], specs=(mod.DEPTH_CHARTS,), identity=identity,
+            db_path=td / "u.db", raw_root=td / "rt",
+            fetch=lambda s, se: [dict(r) for r in rows],
+        )
+        run = sorted((td / "rt" / "export" / "runs").iterdir())[-1]
+        frame = pl.read_parquet(run / "depth_charts.parquet")
+    dtypes = dict(zip(frame.columns, frame.dtypes))
+    for column in expected_ints:
+        assert dtypes[column] == pl.Int64, (
+            f"{fixture_name} era published {column} as {dtypes[column]}, expected Int64"
+        )

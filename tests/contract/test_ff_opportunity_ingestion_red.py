@@ -166,8 +166,14 @@ def test_the_registered_spec_keeps_its_declared_behaviour_flags() -> None:
         "the exclusion mechanism is retired for this stream — its premise failed on real data"
     )
     assert spec.refuse_non_finite is True
-    assert spec.require_populated_grain is False, (
-        "player_id is null on the residual rows by design; game_id and posteam never are"
+    assert spec.require_populated_grain is True, (
+        "grain IS enforced; only the declared nullable coordinate may be absent"
+    )
+    assert spec.nullable_grain_columns == ("player_id",), (
+        "a blanket require_populated_grain=False also permitted null game_id/posteam"
+    )
+    assert spec.eras[0].nullable_grain_columns == ("player_id",), (
+        "the era's nullability is what normalization actually uses"
     )
     assert spec.eras, "the additive-column refusal depends on a declared era"
 

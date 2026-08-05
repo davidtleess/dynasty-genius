@@ -213,6 +213,12 @@ class StreamEra:
     columns: tuple[str, ...]
     grain: tuple[str, ...]
 
+    #: Grain columns this era permits to be NULL. Everything else in the grain must be
+    #: populated. A spec-level all-or-nothing switch was too blunt: `require_populated_grain
+    #: =False` for the weekly era's SBBYE null week ALSO disabled every check on the daily
+    #: era, so a daily row with a null `pos_rank` was accepted (Codex 7654a19-1).
+    nullable_grain_columns: tuple[str, ...] = ()
+
     def matches(self, available: set[str]) -> bool:
         """EXACT column-set equality, not a marker check.
 
@@ -260,6 +266,10 @@ class StreamSpec:
     #: there would still key successfully and quietly collapse two observations
     #: into an indistinguishable pair. Opt-in so existing streams are untouched.
     require_populated_grain: bool = False
+
+    #: Grain columns permitted to be NULL for a spec with no eras. Same contract as
+    #: `StreamEra.nullable_grain_columns`, and the era's value wins when one matches.
+    nullable_grain_columns: tuple[str, ...] = ()
 
     #: Refuse a non-finite value (NaN/inf) in a declared numeric column. Opt-in per stream so
     #: existing reviewed streams keep their exact behaviour. Refusal — not silent nulling — is
@@ -814,8 +824,11 @@ FF_OPPORTUNITY = StreamSpec(
     integer_columns=("season", "week"),
     float_columns=_FF_OPP_METRICS,
     refuse_non_finite=True,
-    # `player_id` is null on the residual rows by design; game_id and posteam never are.
-    require_populated_grain=False,
+    # Grain IS enforced; only `player_id` may be null (the residual rows). `game_id` and
+    # `posteam` are never null in any measured season and must never be accepted null — a
+    # blanket require_populated_grain=False permitted all three (Codex 7de9357-1).
+    require_populated_grain=True,
+    nullable_grain_columns=("player_id",),
     eras=(
         StreamEra(
             name="ffopportunity_v1",
@@ -827,6 +840,7 @@ FF_OPPORTUNITY = StreamSpec(
             # one stale and the old key silently still in force — the same StreamEra property
             # Codex explained in C3, missed a second time.
             grain=("game_id", "posteam", "player_id"),
+            nullable_grain_columns=("player_id",),
         ),
     ),
 )
@@ -921,7 +935,7 @@ FTN_CHARTING = StreamSpec(
 # clean — an earlier reading called the eras "disjoint with nulls", which was an
 # artifact of unioning schemas across a multi-season load, not a property of the data:
 #
-#   * 2020-2024 WEEKLY era — 15 columns, ~37k rows/season, keyed on the game week.
+#   * 2018-2024 WEEKLY era — 15 columns, ~37k rows/season, keyed on the game week.
 #   * 2025+ DAILY era      — 12 columns, 554,215 rows in 2025 alone. nflverse swapped
 #     to a daily snapshot (`dt`) with ESPN position slots. It shares only `gsis_id`
 #     and `team`/`club_code` semantics with the weekly era.
@@ -966,6 +980,13 @@ DEPTH_WEEKLY_ERA = StreamEra(
     forbids=("dt",),
     columns=_DEPTH_WEEKLY_COLUMNS,
     grain=_DEPTH_WEEKLY_GRAIN,
+    # `week` (SBBYE rows) and `depth_position`. The latter is NOT null upstream — it is
+    # the whitespace scrape artifact '\n    ', 3,964 rows across 2018-2024, the same
+    # artifact class the injury stream already normalizes. Measured: with blanks
+    # normalized the weekly grain stays UNIQUE in every season. A nulls-only measurement
+    # missed all of them, which is how the first nullable declaration was wrong.
+    # The daily era permits nothing null.
+    nullable_grain_columns=("week", "depth_position"),
 )
 DEPTH_DAILY_ERA = StreamEra(
     name="daily",
@@ -984,9 +1005,15 @@ DEPTH_CHARTS = StreamSpec(
     columns=_DEPTH_WEEKLY_COLUMNS,
     loader=None,  # bound in build_streams
     loader_kwargs={},
-    integer_columns=("season",),
+    # week is Int32 upstream (weekly); pos_slot/pos_rank are Int32 (daily). Declaring only
+    # `season` published all three as TEXT in the LIVE export — the fixtures happened to
+    # carry ints, so a fixture-only assertion could not see it (Codex 7654a19-2).
+    integer_columns=("season", "week", "pos_slot", "pos_rank"),
     collapse_exact_duplicates=True,
-    require_populated_grain=False,  # SBBYE rows legitimately carry a null week
+    # '\n    ' and None are two spellings of the same nothing; store one.
+    blank_as_null_columns=("depth_position",),
+    # Grain IS enforced; nullability is declared PER ERA.
+    require_populated_grain=True,
     eras=(DEPTH_WEEKLY_ERA, DEPTH_DAILY_ERA),
 )
 
@@ -1016,6 +1043,7 @@ def build_streams() -> tuple[StreamSpec, ...]:
             min_season=spec.min_season,
             collapse_exact_duplicates=spec.collapse_exact_duplicates,
             exclude_requires_zero_columns=spec.exclude_requires_zero_columns,
+            nullable_grain_columns=spec.nullable_grain_columns,
             eras=spec.eras,
         )
 
@@ -1077,6 +1105,7 @@ def normalize_rows(
     # columns and grain depend on it.
     era_name = None
     columns, grain = spec.columns, spec.grain
+    nullable_grain = spec.nullable_grain_columns
     if spec.eras:
         matched = [era for era in spec.eras if era.matches(available)]
         if not matched:
@@ -1103,6 +1132,7 @@ def normalize_rows(
             )
         match = matched[0]
         era_name, columns, grain = match.name, match.columns, match.grain
+        nullable_grain = match.nullable_grain_columns
 
         # Validate EVERY record, not only records[0]. Choosing the era from the
         # first mapping and never re-checking meant a heterogeneous batch — a
@@ -1122,7 +1152,9 @@ def normalize_rows(
                     "batch must carry the same declared shape; validating only the "
                     "first row lets a later one be silently dropped or nulled"
                 )
-    spec = replace(spec, columns=columns, grain=grain)
+    spec = replace(
+        spec, columns=columns, grain=grain, nullable_grain_columns=nullable_grain
+    )
 
     missing = [col for col in spec.columns if col not in available]
     if missing:
@@ -1269,8 +1301,11 @@ def normalize_rows(
             blank_grain = [
                 col
                 for col in spec.grain
-                if row.get(col) is None
-                or (isinstance(row.get(col), str) and not str(row[col]).strip())
+                if col not in spec.nullable_grain_columns
+                and (
+                    row.get(col) is None
+                    or (isinstance(row.get(col), str) and not str(row[col]).strip())
+                )
             ]
             if blank_grain:
                 raise UsageCaptureError(
@@ -1861,41 +1896,34 @@ def publish_export(
                         continue
                     before = frame.height - frame[name].null_count()
                     if dtype == pl.Boolean:
-                        # FAIL CLOSED (Codex edf05e9-1). The Int64 intermediate accepts ANY
-                        # integer and polars maps nonzero -> true, so `is_motion='2'` published
-                        # as True and the non-null reconciliation could not see it: it only
-                        # counts nulls. The commit message claimed such a value "becomes null
-                        # and is caught by the reconciliation" — that was simply false. Check
-                        # the domain explicitly instead of trusting the cast.
-                        as_int = frame[name].cast(pl.Int64, strict=False)
-                        out_of_domain = (
-                            frame.select(
-                                bad=(
-                                    as_int.is_not_null() & ~as_int.is_in([0, 1])
-                                ).sum()
-                            )["bad"][0]
-                        )
-                        if out_of_domain:
-                            observed = sorted(
-                                {
-                                    v
-                                    for v in frame[name].to_list()
-                                    if str(v) not in ("0", "1", "None", "True", "False")
-                                }
-                            )[:5]
+                        # EXACT DOMAIN on the RAW value, not on a coerced integer.
+                        # Checking the Int64 coercion let '01' and '+1' through — both parse
+                        # to 1 and published as True — and sent non-numeric values like 'yes'
+                        # to the generic cast-lost-values error rather than a Boolean one
+                        # (Codex 7de9357-2). SQLite holds these as TEXT '0'/'1' (measured).
+                        # SQLite measurably stores these as TEXT '0'/'1'. Python bools
+                        # round-trip as 'True'/'False'. Nothing else is a boolean we were
+                        # given — widening to 'true'/'yes' would be inventing a dialect.
+                        allowed = {"0", "1", "True", "False"}
+                        observed = [
+                            v for v in frame[name].to_list()
+                            if v is not None and str(v) not in allowed
+                        ]
+                        if observed:
                             raise UsageCaptureError(
                                 f"nflverse_export_boolean_out_of_domain: {spec.name}.{name} "
-                                f"carries {out_of_domain} value(s) that are neither 0 nor 1 "
-                                f"(e.g. {observed}). Casting them would silently publish True. "
-                                "Refusing rather than inventing a boolean."
+                                f"carries {len(observed)} value(s) outside "
+                                f"{sorted(allowed)} (e.g. {sorted(set(map(str, observed)))[:5]}). "
+                                "Casting them would silently publish a boolean we were never "
+                                "given. Refusing rather than inventing one."
                             )
-                        # SQLite has no Boolean type and holds these as TEXT '0'/'1'
-                        # (measured), and polars refuses Utf8 -> Boolean outright. Go through
-                        # Int64. Anything that is neither '0' nor '1' becomes null under
-                        # strict=False and is then caught by the reconciliation below — which
-                        # is the fail-closed behaviour we want, not a silent coercion.
                         casted = (
-                            pl.col(name).cast(pl.Int64, strict=False).cast(pl.Boolean, strict=False)
+                            pl.col(name)
+                            .replace_strict(
+                                {"0": False, "1": True, "False": False, "True": True},
+                                default=None,
+                            )
+                            .cast(pl.Boolean, strict=False)
                         )
                     else:
                         casted = pl.col(name).cast(dtype, strict=False)

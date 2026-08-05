@@ -137,7 +137,15 @@ def test_the_registered_spec_keeps_its_behaviour_flags() -> None:
     now silently dropped a new flag once for real (stream 2)."""
     spec = next(s for s in _mod().build_streams() if s.name == STREAM)
     assert spec.collapse_exact_duplicates is True
-    assert spec.require_populated_grain is False, "SBBYE rows legitimately carry a null week"
+    assert spec.require_populated_grain is True, (
+        "grain IS enforced; nullability is declared per era, not by disabling the check"
+    )
+    by_era = {e.name: e.nullable_grain_columns for e in spec.eras}
+    assert by_era["daily"] == (), "the daily era must permit no null grain coordinate"
+    assert set(by_era["weekly"]) == {"week", "depth_position"}
+    assert spec.blank_as_null_columns == ("depth_position",), (
+        "the whitespace artifact must normalize to null so the store holds one spelling"
+    )
     assert spec.identity_column == "gsis_id" and spec.identity_kind == "gsis"
     assert len(spec.eras) == 2
 
