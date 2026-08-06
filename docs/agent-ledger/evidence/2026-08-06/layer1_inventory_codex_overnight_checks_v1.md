@@ -227,6 +227,81 @@ Catalog consequences:
 - Do not count the five derived artifacts as five ingested source streams; they are downstream
   outputs of the one coherent snapshot bundle.
 
+## V17 — N18 is a normalized snapshot, not a raw endpoint capture
+
+The V16 row correctly adds a missing scheduled Layer-1 route, but its current count/grain statement
+is not supportable as written. `scripts/build_sleeper_universe_snapshot.py::build_snapshot` fetches
+eight Sleeper endpoint payloads, then passes them through
+`src.dynasty_genius.sleeper_universe.build_universe_snapshot`. Only that transformed result is
+written as `snapshot.json`; the exact endpoint response bytes are not retained.
+
+Specific grain defects in the current N18 row:
+
+- `league (5)` and `draft_state (18)` are counts of keys in normalized mappings, not observation
+  counts.
+- `coverage (10)` is a count of keys in a repo-derived coverage report, not a source endpoint
+  grain.
+- `future_picks` is reconstructed from league settings, roster IDs, draft rounds, and traded-pick
+  input; its 109 rows are derived future-pick records, not raw `traded_picks` endpoint rows.
+- the 12,209 `players` are normalized/classified rows over a union of source players, rostered IDs,
+  draft IDs, and optional prospect/market IDs. They are not raw `get_all_players` records.
+- rosters and users remain list-shaped source components, but their presence inside the normalized
+  bundle does not make the bundle an exact raw snapshot.
+
+The lineage block hashes players, league, rosters, users, and traded picks, but does not retain the
+source payloads and does not hash NFL state, draft state, or draft picks separately. The ready
+marker hashes the normalized `snapshot.json` plus five derived artifacts. Therefore N18 is
+scheduled, marker-pinned, and consumed, but physical capture state must say **normalized snapshot;
+raw endpoint replay unavailable**. The source count cell should list output-component grains as
+such and must not label dictionary-key counts or derived coverage as endpoint observations.
+
+## V18 — R13 still omits the newly found physical Sleeper route
+
+Table A-P A7 correctly adds `app/data/league_runtime`, but canonical registry row R13 still says
+physical state is only ``league_transactions.db — transactions only``. The two source tables
+therefore disagree after V16. R13 must name both measured physical routes, preserving their
+different states: scheduled normalized league/universe snapshot versus manual transaction capture.
+
+## V19 — N18's “THE ONE” heading is false
+
+The heading calls N18 “THE ONE SCHEDULED, CAPTURED, CONSUMED LAYER-1 STREAM.” The same catalog
+records FantasyCalc forward capture as daily, captured, and consumed by market-overlay jobs. N18 is
+an important missing counterexample to the nflverse store's manual-only status, but it is not the
+only scheduled/captured/consumed Layer-1 stream. The heading should say it is **a** scheduled stream
+that was missing.
+
+## V20 — The export-verification paragraph retains its superseded contradiction
+
+The B1-B12 export paragraph first records independent SHA verification and then keeps a malformed
+parenthetical saying the checkmarks are “owed, not confirmed.” That superseded text is both
+contradictory and missing its closing delimiter. It must be removed rather than retained beside the
+current truth.
+
+## V21 — Verification-state labels are stale after the independent pass
+
+Section headings still say Table A-R and Table B-N are “Claude-measured, awaiting R4,” and Table
+A-P says “status unchanged from v3.” Multiple cells in those tables now have independent Codex
+probes plus Claude reproduction. Whole-table completion remains blocked, but the headings should
+distinguish **independently verified cells** from **table not yet complete**; saying the entire
+tables await independent verification is no longer accurate. The job matrix should also attach the
+new cadence evidence at
+`docs/agent-ledger/evidence/2026-08-06/layer1_cadence_codex_overnight_v1.md` rather than continuing
+to describe path/timestamp evidence as wholly outstanding.
+
+## V22 — The gap and disposition sections still say completed enumeration is owed
+
+Section 6 lists “The 20 registry definitions not yet rowed” as a current gap even though §2.1 now
+contains all 20. Section 7 likewise says full registry enumeration and non-nflverse stream rows are
+“still owed,” even though both were subsequently added. These are historical dispositions being
+presented as live blockers. Section 6 should retain only current gaps, and §7 should be clearly
+labelled historical or have its superseded owed-list removed.
+
+## V23 — The backup-alarm withdrawal is duplicated
+
+Section 4.3 repeats the numbered “Timeout as mechanism — WITHDRAWN” item twice. This is cosmetic,
+but the duplicate sits in the operational source-of-truth section and should be removed during the
+same reconciliation pass.
+
 ## Rerunnable probes
 
 ```bash

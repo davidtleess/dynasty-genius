@@ -85,7 +85,8 @@ and never captured.
 
 ## §2. Table A — SOURCES
 
-### §2.1 Table A-R — the 20 machine-registry definitions *(F1 CLOSED — Claude-measured, awaiting R4 verification)*
+### §2.1 Table A-R — the 20 machine-registry definitions
+*(F1 CLOSED. **Mixed verification state *(V21)*: several cells now carry INDEPENDENT Codex probes plus Claude reproduction — R1/R4/R18/R20 physical states, the seven-source count, the built-route claim. Others remain Claude-measured only. Whole-table completion is still blocked; it is no longer true that the entire table awaits independent verification.)***
 
 **Enumerated 2026-08-06** by loading `SOURCE_REGISTRY` from
 `src/dynasty_genius/sources/source_registry.py` and dumping every dataclass field — not by reading
@@ -115,7 +116,7 @@ observed behaviour. **Capture state is a separate, physical question** and is th
 | R10 | `dynasty_data_lab` | market_overlay | `none` | — | `skip_enrichment` | **paid** ($4/1k req) | **deferred — no capture** |
 | R11 | `dynasty_nerds` | market_overlay | `none` | — | `skip_enrichment` | no clean API | **deferred — no capture** |
 | R12 | `ktc` | market_overlay | `none` | — | `skip_enrichment` | **PROHIBITED** — ToS bars scraping | **none, by rule** |
-| R13 | `sleeper` | context_signal | `json_cache` | 1 | `use_cached` | free | `league_transactions.db` — transactions only |
+| R13 | `sleeper` | context_signal | `json_cache` | 1 | `use_cached` | free | **TWO measured routes, different states *(V18)*:** (a) **`app/data/league_runtime/` — SCHEDULED daily 09:20, normalized snapshot, consumed, raw replay unavailable** *(N18)*; (b) `league_transactions.db` — **manual_only**, no consumer |
 | R14 | `sportradar` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — ~$7,200/yr | **none, by rule** |
 | R15 | `genius_sports` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — enterprise | **none, by rule** |
 | R16 | `stats_perform` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — enterprise | **none, by rule** |
@@ -155,7 +156,8 @@ as a MEASURED FACT and a gap of kind *absent source declaration* + *absent captu
 authority to build, register, or schedule anything.** This is the object of David's A/B pressure
 test — see `docs/agent-ledger/evidence/2026-08-05/layer1_feature_refresh_route_recommendation_claude_v1.md`.
 
-### §2.3 Table A-P — PHYSICAL sources present in the repo *(status unchanged from v3)*
+### §2.3 Table A-P — PHYSICAL sources present in the repo
+*(**PFF and CFBD rows now carry independently verified inventories *(V1/V2/V12)*; A7 carries the V16 route addition.** Remaining rows are Claude-measured.)*
 
 | # | Source (provider + dataset family) | Access | Stores | Status |
 | :-- | :-- | :-- | :-- | :-- |
@@ -209,7 +211,7 @@ must never sit in a state cell** — v2 put `blocked_for_use` in B14's consumer 
 | B18 | `pbp` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared** |
 | B19 | `participation` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared** |
 
-### ⛔ N18 — THE ONE SCHEDULED, CAPTURED, CONSUMED LAYER-1 STREAM, AND IT WAS MISSING
+### ⛔ N18 — **A** SCHEDULED, CAPTURED, CONSUMED LAYER-1 STREAM THAT WAS MISSING ENTIRELY
 
 **Found only because correcting my own N12/N13 cadence error exposed it *(V16, Codex)*.** I had
 attributed the daily 09:20 cadence to the transaction tables; when that was withdrawn, the cadence
@@ -231,7 +233,14 @@ Measured and independently reproduced:
    `team_value_matrix`) are **downstream outputs of one coherent bundle — NOT five ingested source
    streams.** Counting them as streams would inflate the inventory with our own outputs, which is the
    same error class as counting `model_forward_capture.db` as fuel.
-4. **This materially qualifies the session's headline finding.** *"The canonical ingestion store has
+4. **PHYSICAL CAPTURE STATE: `normalized snapshot; RAW ENDPOINT REPLAY UNAVAILABLE` *(V17)*.**
+   `build_snapshot` fetches eight Sleeper endpoints and passes them through
+   `build_universe_snapshot`; **only the transformed result is written.** The exact endpoint response
+   bytes are never retained, and the lineage block hashes players/league/rosters/users/traded-picks
+   but not NFL state, draft state, or draft picks. **A marker-pinned normalized bundle is not a raw
+   capture**, and this stream cannot satisfy `01` §Source Adapter Rules' raw-snapshot-before-parsing
+   requirement as it stands. *(My V16 row implied otherwise by listing everything as flat counts.)*
+5. **This materially qualifies the session's headline finding.** *"The canonical ingestion store has
    NO SCHEDULED REFRESH"* remains true **of `nflverse_usage.db`** — but it must never be read as
    *"Layer 1 has no scheduled ingestion."* **N18 is scheduled, captured, marker-pinned, and
    consumed.** It is the counter-example, and the catalog missed it.
@@ -242,7 +251,8 @@ or not we store it; `obs = 0` records that **we keep nothing**, not that nothing
 duplicate route to B4** (`player_snap_count`, 253,106 `obs`). Disposition for all five is David's
 open A/B decision, not the catalog's to assign.
 
-### §3.1 Table B-N — NON-NFLVERSE streams *(F1/F6 blocker; Claude-measured 2026-08-06, awaiting R4)*
+### §3.1 Table B-N — NON-NFLVERSE streams
+*(F1/F6 blocker. **Mixed verification state *(V21)*: PlayerProfiler/FantasyCalc/Sleeper counts, the CFBD 1,202 figure, the PFF 149/134,392 split and its one consumer lane are INDEPENDENTLY verified; per-stream R7 states and cadence are not. Table not complete.**)*
 
 Measured by opening each store and counting per table, then decomposing by R5 grain. **`alt` is
 never added to a total.**
@@ -263,7 +273,7 @@ never added to a total.**
 | N12 | Sleeper | `league_transaction` | 932 | `obs` | **none** *(V4 — corrected)* |
 | N13 | Sleeper | `league_transaction_movement` | 1,692 | `obs` *(different grain)* | **none** *(V4 — corrected)* |
 | N14 | Sleeper | `league_season_capture` | 4 | `cap` | — |
-| **N18** | **Sleeper — league/universe SNAPSHOT BUNDLE** *(V16 — was ABSENT from this catalog entirely)* | `app/data/league_runtime/runs/<run_id>/snapshot.json`, schema `sleeper_universe_snapshot.v1` | **12,209** players · **12** rosters · **14** users · **109** future picks · league (5) · draft_state (18) · coverage (10) | `obs` **per component endpoint — do NOT sum across grains** | **CONSUMED** by the league derivation chain |
+| **N18** | **Sleeper — league/universe NORMALIZED SNAPSHOT** *(V16 added it; V17 corrected its grain)* | `app/data/league_runtime/runs/<run_id>/snapshot.json`, schema `sleeper_universe_snapshot.v1` | **players 12,209** *(normalized/classified over a UNION of source players + rostered/draft/prospect IDs — **not** raw `get_all_players`)* · **rosters 12** · **users 14** *(list-shaped source components)* · **future_picks 109 — DERIVED**, reconstructed from settings/roster IDs/rounds/traded-pick input · ~~league 5 · draft_state 18 · coverage 10~~ **DICTIONARY-KEY COUNTS, NOT OBSERVATIONS — withdrawn as counts** | **mixed — see cell; NOT uniform `obs`** | **CONSUMED** by the league derivation chain |
 | N15 | PFF | manual export payloads | **149** | **`raw-payload count` — NOT `obs`** *(V2)* | **partial — ONE PRECISE LANE** *(V12)*: NCAA `receiving_summary`, scope `REGPO`, seasons 2017–2025 (9 entries in `phase16_wr_manifest.json`, hashes match content-hash filenames) via `scripts/build_college_features.py`. **Not evidence that the other 13 lanes are consumed.** |
 | N15b | PFF | internal source rows across 14 league/report lanes | **134,392** | `obs` *(sum; overlap/dedup rule NOT yet stated)* | as N15 |
 | N16 | CFBD | `curated/prospects_with_outcomes_v3.csv` | 874 rows | `obs` | **Engine A** (promoted 2026-08-04) |
@@ -322,7 +332,7 @@ too — but that is a **second consumer migration with its own parity and contro
 `pbp` capture exists**. **A lane must not convert "the architecture implies this" into scope on a
 build the principal sized himself.** My "in scope in substance" phrasing did exactly that.
 
-**`exported` for B1–B12 is INDEPENDENTLY VERIFIED *(V11, Codex)*:** `app/data/nflverse_usage/export/nflverse_usage.ready.json` names all 12 materialized streams plus the unresolved-identity companion; **every named Parquet exists and recomputes to the marker's SHA-256**, and the 12 counts sum to **1,491,691**. Pinned at run `nflverse-usage-20260805T1334216901700000`, captured `2026-08-05T13:34:21.690170+00:00`. **This verifies export existence and integrity ONLY — not a consumer for B4–B12, and not any refresh cadence.** *(Superseded text, kept: the ✓ marks reflect
+**`exported` for B1–B12 is INDEPENDENTLY VERIFIED *(V11, Codex)*:** `app/data/nflverse_usage/export/nflverse_usage.ready.json` names all 12 materialized streams plus the unresolved-identity companion; **every named Parquet exists and recomputes to the marker's SHA-256**, and the 12 counts sum to **1,491,691**. Pinned at run `nflverse-usage-20260805T1334216901700000`, captured `2026-08-05T13:34:21.690170+00:00`. **This verifies export existence and integrity ONLY — not a consumer for B4–B12, and not any refresh cadence.**
 membership in the canonical export as understood, not a probe. Treat as owed, not confirmed.
 
 **`obs` subtotal across the 12 materialized tables: 1,491,691.** Plus `nflverse_capture` **101
@@ -359,6 +369,11 @@ consumer. The withdrawal stands on the first reason alone.)*
 ## §4. Refresh frequencies
 
 ### §4.1 Job matrix *(Gemini, Operations & Telemetry — telemetry facts, not a catalog pass)*
+
+**Per-job cadence evidence with paths and timestamps is now durable *(V21)*:**
+`docs/agent-ledger/evidence/2026-08-06/layer1_cadence_codex_overnight_v1.md`. The earlier statement
+that path/timestamp evidence was **wholly** outstanding is superseded — it is partly landed. What
+remains open is **per-STREAM** cadence (R3: a job's cadence is not its upstream stream's).
 
 | Job | JOB cadence (plist) | FRESHNESS policy | `dormant_ok` |
 | :-- | :-- | :-- | :-- |
