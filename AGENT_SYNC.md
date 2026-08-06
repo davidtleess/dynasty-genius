@@ -26,13 +26,22 @@
 > `be6ed64f6946b9092657208651d3f4d865b9efa0`: SUCCESS** (Frontend 49s · Python 3m46s). Stated as past
 > facts about named SHAs. Codex post-push audit requested `[w#79rm9uvq-1]`, delivery verified.
 >
-> ## BACKUP — RECOVERY RUN IN FLIGHT, TERMINAL STATE UNKNOWN
-> Run `20260806T024853Z` launched under David's *"i meant RUN IT"*. Immutable prefix, **no delete
-> constructed**. At last check ~205/508 objects uploaded. **The marker still reads the previous FAILED
-> run `20260805T141503Z` — that is by design; it is written only at terminal state. READ
-> `app/data/ops/backup_status_latest.json` FRESH before claiming any outcome.** A second failure is a
-> result to report, not to retry quietly. The failing file from the prior run exists and is readable
-> (7,243 bytes) — not a source-file defect; "timeout" as a mechanism stays withdrawn.
+> ## ✅ BACKUP — RECOVERY **COMPLETED** AND CROSS-LANE VERIFIED
+> David's *"i meant RUN IT"* is **discharged**. Run **`20260806T024853Z`**: `status: completed` ·
+> **`sha256_verified: true`** · `failures: []` · **508 files / 2,203,676,656 bytes** · started
+> `2026-08-06T02:48:53.958127Z`, finished `2026-08-06T04:52:33.690114Z` (2h03m40s).
+> **Verified on BOTH surfaces by BOTH binding lanes:** local durable marker **and** remote
+> `latest.json`, each naming the same run/prefix with `verified: true`. The remote pointer was
+> generated **seven seconds before** the terminal marker — the required ordering, since the pointer
+> advances only after the restore drill passes.
+> **NO-DELETE CLAUSE HELD:** the prior FAILED run `20260805T141503Z` and all earlier run prefixes
+> remain present. The only mutation was the sanctioned `latest.json` pointer, after verification.
+> **The §4.3 OPS ALARM is DISCHARGED.**
+> **⚠ SCOPE:** this closes the recovery **INCIDENT ONLY**. It does **NOT** close future scheduled
+> backup health, and it does **NOT** discharge the new-capture manifest preconditions Option A's
+> retention contract depends on. **The prior failure's cause remains UNDIAGNOSED** — the failing file
+> uploaded fine this run, so it was never a source-file defect, and **"timeout" stays WITHDRAWN**;
+> a successful re-run does not retroactively evidence a cause.
 >
 > ## GEMINI WIRE — ROOT-CAUSED AND REPAIRED. THIRD LANE LIVE.
 > **Root cause:** the agy chrome parks the terminal cursor at the end of the last rendered response
@@ -75,7 +84,11 @@
 > R4 needs Codex per-cell verification and six capture-state cells are `UNVERIFIED`.
 >
 > ## ⏳ OUTSTANDING — DAVID ONLY
-> 1. **The A/B ruling**, and the retention contract A forces (the backup manifest excludes
+> 0. **PUSH.** Many commits sit unpushed on `main`. Get the count from a gate run
+>    (`git rev-list --count origin/main..HEAD`) — **never from this document**.
+> 1. **The A/B ruling** — now a **THREE-LANE** recommendation (Claude · Codex · Gemini all Option A),
+>    with **§6.6 of the recommendation naming what would still change the answer** so it can be
+>    tested rather than accepted — and the retention contract A forces (the backup manifest excludes
 >    `nflverse_usage.db` and does not protect `nflverse_usage/raw`, ~5.2 GiB).
 > 2. **Commit + push for the parked wire fix** (code), after Codex's CLEAR.
 > 3. Numeric storage/paid-call ceilings; the enablement word for any job.
