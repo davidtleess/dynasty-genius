@@ -303,9 +303,9 @@ Measured and independently reproduced:
 ### §3.4 N19's TRANSACTION SLICE measured against N12 — an older alternate capture, NOT N12's provenance layer
 
 **Codex SG1 ranked this the #1 source gap** — four seasons of Sleeper league history captured,
-backup-covered, and absent from the catalog. **The store and the omission are both real, and Codex's
-N19 row above is correct. This section adds the relationship it does not state**, measured before
-being written:
+backup-covered, and absent from the catalog. **The store and the omission are both real, and the
+canonical N19 row (in Table B-N below) is correct. This section adds the relationship it does not
+state**, measured before being written:
 
 | Check | Result |
 | :-- | :-- |
@@ -345,7 +345,7 @@ the entire store. Wrong.)*
 (after N18), and it is the directory whose `transactions_week_05.json` failed the 2026-08-05 backup.
 **We were backing it up without it appearing in the catalog.**
 
-**Not opened:** whether the raw layer should be refreshed forward alongside N12.
+**Not opened:** whether **N19's broader multi-endpoint raw corpus** (matchups, league, users, rosters, traded picks, drafts) should be refreshed forward. *(This read "whether the raw layer should be refreshed forward alongside N12" — but after the lineage correction N19 is explicitly NOT N12's raw layer, so "the raw layer" named a thing this section had just denied. N12's own governed raw path is a separate question and is not raised here.)*
 
 **B15–B19 are streams with production consumers and no canonical capture** — the exact inverse of
 B5–B13 (captured, no consumer). `obs = 0` records that **we keep nothing on these routes**, not that
