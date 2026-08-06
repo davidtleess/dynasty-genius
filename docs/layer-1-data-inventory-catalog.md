@@ -300,6 +300,40 @@ Measured and independently reproduced:
    *"Layer 1 has no scheduled ingestion."* **N18 is scheduled, captured, marker-pinned, and
    consumed.** It is the counter-example, and the catalog missed it.
 
+### §3.4 N19 measured AGAINST N12 — it is N12's raw layer, not a separate dataset
+
+**Codex SG1 ranked this the #1 source gap** — four seasons of Sleeper league history captured,
+backup-covered, and absent from the catalog. **The store and the omission are both real, and Codex's
+N19 row above is correct. This section adds the relationship it does not state**, measured before
+being written:
+
+| Check | Result |
+| :-- | :-- |
+| transaction IDs in N19's raw capture | **923** |
+| shared with N12 `league_transaction` (932) | **923** |
+| **present ONLY in N19** | **0** |
+| present only in N12 | **9** — all season 2026 (N12 67 vs N19 58) |
+
+**⇒ N19's transactions are a STRICT SUBSET of N12.** Not a second source, not new history, not a
+data gap. N12 was refreshed after the 2026-07-19 capture, which is why it holds 9 more recent rows.
+
+**Three consequences:**
+1. **`alt` grain — the 923 must NEVER be added to N12's 932.** Same observations in source form. This
+   is the `fc_forward_capture_joinable` trap in a new place, and it is the fourth time this catalog
+   has had to mark an `alt` to stop a double count.
+2. **N12/N13 are BETTER provenanced than this catalog said.** They have raw source bytes with
+   per-endpoint envelopes (`fetched_at_utc`, `endpoint_url`, `payload`) plus a fetch log of 176
+   calls / 0 failures. **N12 therefore SATISFIES `01` §Source Adapter Rules' raw-snapshot-before-parse
+   requirement — which N18 does NOT.** Two Sleeper routes, opposite provenance quality.
+3. **SG1's ranking should fall for §H purposes.** It is a **cataloging** gap, not a **source** gap.
+   **David's §H question asks what sources we still need to ingest; this is not one of them.**
+
+**Also recorded:** this is the **second entire captured store found missing from the inventory**
+(after N18), and it is the directory whose `transactions_week_05.json` failed the 2026-08-05 backup.
+**We were backing it up without it appearing in the catalog.**
+
+**Not opened:** whether the raw layer should be refreshed forward alongside N12.
+
 **B15–B19 are streams with production consumers and no canonical capture** — the exact inverse of
 B5–B13 (captured, no consumer). `obs = 0` records that **we keep nothing on these routes**, not that
 nothing flows. **B17 is the duplicate route to B4** (`player_snap_count`, 253,106 `obs`). Option A
@@ -342,7 +376,7 @@ never added to a total.**
 | N17 | CFBD | `raw/20260802T024342156864Z/` payloads | **1,202** *(manifest `raw_file_count`; dir holds 1,203 JSON = 1,202 payloads + `manifest.json`)* | **`raw-payload count` — NOT `obs` or ledger `cap`** | upstream evidence for N16 |
 | **N18** | **Sleeper — league/universe NORMALIZED SNAPSHOT** *(V16 added it; V17 corrected its grain)* | `app/data/league_runtime/runs/<run_id>/snapshot.json`, schema `sleeper_universe_snapshot.v1` | **players 12,209** *(normalized/classified over a UNION of source players + rostered/draft/prospect IDs — **not** raw `get_all_players`)* · **rosters 12** · **users 14** *(list-shaped source components)* · **future_picks 109 — DERIVED**, reconstructed from settings/roster IDs/rounds/traded-pick input · ~~league 5 · draft_state 18 · coverage 10~~ **DICTIONARY-KEY COUNTS, NOT OBSERVATIONS — withdrawn as counts** | **mixed — see cell; NOT uniform `obs`** | **direct scripts:** `build_universe_pvo_batch.py`, `run_what_changed_report.py`, `run_roster_capacity_audit.py`, `run_league_transaction_capture.py`; **API:** `league_pulse.py`, `trade.py`, `trade_market.py`; **bundle derivative:** `build_league_opportunity_map.py` |
 | **N18b** | **Sleeper — tracked normalized seed/archive surface** | `app/data/league_snapshots/` | **12 files:** 2 active `*_latest.json` fallback aliases + 10 retained timestamped archives | file/representation count; **not source `obs` and not exact endpoint raw** | only the 2 latest aliases are active fallback inputs for `load_production_league_set`; 10 timestamped files are retained archives |
-| **N19** | **Sleeper — league-behavior exact endpoint history** | `app/data/research/league_behavior/raw/2026-07-19/` | **172 endpoint envelopes + 1 fetch log**; 2023–2026; 176 logged calls, zero failures | `raw-payload` by endpoint family; **never sum unlike grains** | **none established; manual one-time, replayable, backup-covered** |
+| **N19** | **Sleeper — league-behavior exact endpoint history** | `app/data/research/league_behavior/raw/2026-07-19/` | **172 endpoint envelopes + 1 fetch log**; 2023–2026; 176 logged calls, zero failures | `raw-payload` by endpoint family; **never sum unlike grains**. **Its 923 transaction records are `alt` of N12 — NEVER added to N12's 932 (§3.4)** | **none established; manual one-time, replayable, backup-covered**; **it IS N12's raw-before-parse provenance layer (§3.4)** |
 
 **PlayerProfiler reconciles exactly:** 1,520,009 `obs` + 3,290 `idn` + 63 `cap` = 1,523,362 physical
 rows — the figure the prior board carried, now decomposed by grain rather than asserted as a total.
