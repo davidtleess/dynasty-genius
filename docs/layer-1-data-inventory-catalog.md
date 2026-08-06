@@ -785,6 +785,62 @@ provider proven” is the current answer, not a claim that Layer 1 is complete.
 
 ---
 
+## §6A. A-C Closure Matrix
+
+**Purpose.** Replace open-ended row-by-row correction cycles with **one finite, independently
+verifiable batch**. David agreed this sequence 2026-08-06; Codex concurred the write scope.
+**Authoring rule:** every cell draws on **already-measured evidence**. An unresolved cell stays an
+explicit closure item — it does **not** trigger a fresh side investigation during authorship.
+
+**No §1 checkbox moves until this matrix is independently verified as a batch.** Nothing here
+authorizes code, capture, scheduler/plist changes, consumer migration, provider purchase, Layer 2,
+commit, or push.
+
+**Status vocabulary:** `OPEN` · `MEASURED — awaiting review` · `BLOCKED — needs David`.
+*(No row count is stated. Counts come from a probe, not from this document — §5.)*
+
+### A — SOURCES
+
+| Canonical row/cell | Current measured state | Exact unresolved question / defect | Evidence path or probe | Lane | Binary pass condition | Authority dependency | Status |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| **R13 Sleeper — physical routes** | FOUR measured routes: N18 daily 09:20 normalized snapshot (consumed); N12/N13 `league_transactions.db` (manual, no consumer) with its own governed raw path `app/data/league_transactions/raw`; N19 one-time multi-endpoint raw corpus | Which route is canonical for which dataset, and what is the standing relationship between them? N19's transaction slice is `alt` of N12 (§3.4); N18's dataset is NOT in N12 | §3.4 · `app/data/league_transactions/raw` (20 snapshots; latest-per-season = 932 unique, 932/932 shared with DB, zero either-side-only) · `league_transactions.py` L1009→L1022→L1029 | Claude authors · Codex reviews | Each Sleeper dataset names exactly ONE canonical route; every other route is labelled `alt`, `superseded`, or `separate corpus` with its reason | none to record; any route retirement needs David | **MEASURED — awaiting review** |
+| **R8 FantasyCalc — parallel acquisition** | TWO routes: daily `fc_forward_capture.db` (20,043 `obs`, source `fc_native`, 2026-06-24→2026-08-05) **and** request-time `app/cache/fantasycalc/market_values.json` / live fallback used by the trade API and market-overlay service | Which is canonical? A request-time live fallback is an ungoverned acquisition path inside a serving surface | §2.1 R8 · N9/N10/N11 | Claude authors · Codex reviews | One canonical market capture named; the request-time path is either declared a cache OF it or recorded as a defect. **Engine A/B physical + semantic market separation restated and unbroken** | none to record | **OPEN** |
+| **R1 `nfl_data_py` — source identity** | **No `nfl_data_py` import exists in the repository.** `scripts/ingest_2026_draft.py` imports **`nflreadpy`**, writes an 80-player JSON, and labels the artifact `nfl_data_py_verified_nfl_draft`. Declared `parquet_snapshot`; actual route is JSON via nflreadpy | A governed registry entry names a provider the code does not use. Is the entry renamed, retired, or is the label corrected? | V5 · `rg 'import nfl_data_py'` returns nothing · `scripts/ingest_2026_draft.py` | Claude authors · Codex reviews | Registry declaration and actual client agree, **or** the mismatch is recorded as an accepted, dated exception with a reason | **registry edit = governed change; needs David** | **BLOCKED — needs David** |
+| **R18 `nflreadpy_qb_context` — provenance** | Declared `parquet_snapshot` / 168h. **Actual behaviour is `live_direct_read`, consumer-triggered** by `app/services/roster_auditor.py` (2024/2023), no raw snapshot, no governed cache. **It is a SECOND live consumer of the B18 `pbp` stream, not its own stream** (V15) | A declared cache policy that does not describe the physical route. Correct the declaration, or capture it? | V7 · V15 · `nflreadpy_qb_adapter.py::fetch_qb_nfl_stats` | Claude authors · Codex reviews | Declaration matches physical route, **and** R18 is recorded as a consumer edge on B18 rather than a stream | **registry edit = governed change; needs David.** Consumer migration is a SEPARATE later word — it must not widen David's five-stream Option A scope | **BLOCKED — needs David** |
+
+### B — STREAMS
+
+| Canonical row/cell | Current measured state | Exact unresolved question / defect | Evidence path or probe | Lane | Binary pass condition | Authority dependency | Status |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| **Table B-N — R7 state columns** | Counts and grains measured and partly independently verified (PlayerProfiler, FantasyCalc, Sleeper, CFBD 1,202, PFF 149). **R7 states are incomplete across the table** | Every row needs all five states explicit: `bound` · `captured` · `exported` · `consumed` · `decision_supported` | §3.1 Table B-N · V3 · V11 (B1–B12 `exported` independently verified at run `nflverse-usage-20260805T1334216901700000`) | Claude authors · Codex reviews | Every B-N row carries all five R7 states, or an explicit `UNVERIFIED` with the probe that would settle it | none to record | **OPEN** |
+| **Parallel-route relationships** | Three known: `snap_counts` (canonical B4 + direct read B17); Sleeper (four routes, R13 above); FantasyCalc (two routes, R8 above) | Each pair needs a stated relationship and a named duplicate | §3.4 · B4/B17 · V15 | Claude authors · Codex reviews | Every parallel pair states which route is canonical and which is duplicate/`alt`/separate, with the evidence | route retirement needs David | **OPEN** |
+| **Final automation classes** | Provisional classes exist in the refresh plan §3; the cadence research is independently CLEAR at its pin | No canonical stream row yet carries its FINAL class from the seven-value vocabulary | refresh plan §1 (seven classes) · cadence artifact + disposition v2 | Claude authors · Gemini supplies job/marker facts · Codex reviews | Every canonical stream row carries exactly one of the seven automation classes | class ≠ enablement; enablement needs David | **OPEN** |
+| **B13 `contracts`** | **Bound with no table; never executed.** Zero rows in the product store | First scheduled capture IS the product-store landing | §3.1 B13 · AGENT_SYNC contracts blocks | Claude authors · Codex reviews | Row states `bound / not captured`, and the landing gate is named on the row | **landing needs a separate David word AND one export covering all twelve prior streams plus contracts** | **BLOCKED — needs David** |
+| **N18 — absent exact raw capture** | Scheduled daily 09:20, marker-pinned, consumed, 21 successful runs. **Normalized snapshot only — `build_snapshot` passes eight endpoints through `build_universe_snapshot` and writes ONLY the transformed result; raw endpoint bytes never retained** (V17) | Does not satisfy `01` §Source Adapter Rules raw-snapshot-before-parse | V16 · V17 · `build_sleeper_universe_snapshot.py` | Claude authors · Codex reviews | Row states `normalized snapshot; raw endpoint replay unavailable` and names exact-raw capture as a separate Option A correction | **capture work needs David; step 4(d) of the agreed order** | **BLOCKED — needs David** |
+
+### C — CADENCE
+
+| Canonical row/cell | Current measured state | Exact unresolved question / defect | Evidence path or probe | Lane | Binary pass condition | Authority dependency | Status |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| **Per-stream cadence pinning** | Source-publish cadences pinned to primary sources and independently CLEAR; **not yet written onto the canonical stream rows** | Each canonical stream needs FIVE separate fields: source-publish cadence · job cadence · freshness expectation · dependency edge · proposed automation class | cadence artifact (CLEAR at its pin) + disposition v2 · Gemini job/marker facts · §4.1 | Claude authors · Gemini facts · Codex reviews | Every canonical stream row carries all five fields, with `UNVERIFIED` where unmeasured. **R3 held: job cadence ≠ freshness cadence ≠ stream cadence** | pinning ≠ scheduling; any clock needs David | **OPEN** |
+| **`nflverse_usage.db` — absent schedule** | 13 bound specs, 12 materialized, 1,491,691 `obs`. **No LaunchAgent invokes the canonical capture runner** | Recorded as a measured fact. **Scoped to this store only — NOT the layer** (N18 and FantasyCalc are scheduled) | §4.2 (scope qualification) · `rg -ln 'run_nflverse_usage_capture' ops/` returns nothing | Claude authors · Codex reviews | Row states the absent schedule **at the correct grain**, with the counter-examples named | **scheduler = David only** | **BLOCKED — needs David** |
+| **⏰ CH1 — participation can cap all five frames** | `participation_2026` is absent upstream. `_load_source` builds all five frames in ONE dict literal, so any 404 raises out of the whole function; `_resolve_default_source` then steps the ENTIRE window down one season **for all five**. Currently harmless only because 2026 has no data at all. **The 09:15 job has never run in-season** — its log begins 2026-06-28 and every recorded run is offseason | **RISK TRIGGER: the first publication of usable 2026 current-season data in ANY of `player_stats` / `rosters` / `snap_counts` / `pbp`, while `participation_2026` remains absent.** From that point the job silently discards the entire current season from four healthy streams while reporting `ok` | CH1 · measured HTTP: participation 2024/2025 = 200, **2026 = 404**; pbp 2024/2025 = 200, **2026 = 404** · `run_feature_refresh.py::_load_source`, `_resolve_default_source` · `feature_refresh.out.log` (created 2026-06-28; all runs offseason) | Claude authors · Codex reviews | **Independently versioned participation acquisition/fallback, with a DURABLE CONTROL proving its absence cannot cap `player_stats`, `rosters`, `snap_counts` or `pbp`** | **separate David code / consumer-migration word.** *(No calendar date is asserted here — the trigger is source publication, not a predicted day.)* | **BLOCKED — needs David; TIME-SENSITIVE** |
+| **B19 `participation` cadence** | 2023+ publishes **after the postseason only**; it does not update in season | Must not be modelled as a daily source | cadence artifact B19 row | Claude authors · Codex reviews | Row carries an annual/postseason cadence and an explicit "not daily-current" note | none to record | **MEASURED — awaiting review** |
+
+### Carried into Option A preparation — NOT A-C blockers
+
+| Item | State | Pass condition when it is taken up |
+| :-- | :-- | :-- |
+| **4(a) `snap_counts` consumer migration** | Parity proven **AT ONE VINTAGE**: 205,354 rows value-identical across 16 columns; candidates 2,743 × 39 value-identical with all other inputs fixed | **The historical experiment is EVIDENCE, not the pass condition.** Migration requires a **governed loader plus a durable candidate-equivalence control** |
+| **PFF combined-view aggregation** | Scope-nesting tested at row level and **FAILED**; 3 same-scope conflict rows located | **Explicitly OUTSIDE the A-C blocking path** (David, 2026-08-06). At Layer 1: preserve scope as a key; keep 134,392 labelled raw-grain. Any combined/current-state policy is later semantic-layer work |
+
+**Why this matrix is not itself a closure.** It enumerates and pins; it decides nothing. Several rows
+are `BLOCKED — needs David`, and `§H` stays unchecked until the canonical rows are independently
+re-verified after reconciliation. **H2 QB rushing remains a registered hypothesis UNDER TEST with no
+result.**
+
+---
+
 ## §7. Disposition of Codex review v2 *(SHA `d99b3247…`)* — F1–F7 ALL ACCEPTED
 > **⚠ HISTORICAL RECORD — NOT A LIVE BLOCKER LIST *(V22)*.** This section preserves the v2 review
 > and its dispositions as written at the time. **Its "still owed" items — full registry enumeration,
