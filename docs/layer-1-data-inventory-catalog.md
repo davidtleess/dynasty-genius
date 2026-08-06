@@ -921,13 +921,38 @@ the store).
 | PlayerProfiler stores | no plist · no logs · **manual file copy only** | **`manual_only`** | Matches R3's `manual, by David` |
 | PFF manual export inventory | no plist · no logs · manual reconciliation | **`manual_only`** | Human export is the current contract |
 | CFBD foundation promoted store | no plist · no logs · manual script | **`blocked`** | Paid source; needs David's cost/run ruling before any clock (refresh plan §7.2) |
-| `nflreadpy_qb_context` (R18) | roster-capacity plist weekly Tue 10:00 · **loaded** · success 2026-08-04 · **reads live PBP in memory, no cache/snapshot** | **`blocked`** | The JOB is scheduled; the SOURCE is an uncaptured live read. Same `consumer edge` finding as §6B.2 — classing the job as the stream's automation would repeat the R3 error |
+| `nflreadpy_qb_context` (R18) | **⛔ CORRECTED — there is NO roster-capacity job.** Verified: `launchctl list` shows **exactly 8** dynasty jobs and none is `roster-capacity`; `~/Library/LaunchAgents` and `ops/launchd/` each hold the **same 8** plists. **Reads live PBP in memory, no cache/snapshot** | **`blocked`** *(class unchanged)* | **NOT scheduled at all** — an uncaptured live read reached only through a consumer. *(This cell first said "roster-capacity plist weekly Tue 10:00 · loaded", taken from Gemini's cadence audit and NOT verified by me. Gemini's two reports contradict each other and the earlier one is wrong. The class survives; the evidence under it did not.)* |
 | QB validation raw path (R20) | no plist · no logs · **study has not run** | **`static_pinned`** | Pinned pre-registered inputs; **automation must be physically unable to overwrite them.** H2 QB rushing remains UNDER TEST with no result |
 
 **Two classes I deliberately did NOT assign `automatic_active_verified`.** Both `fc_forward_capture`
 and `league_runtime` fire successfully — but `02`'s own distinction is that **a fire is not health
 evidence.** One lacks a freshness registration entirely; the other is normalized-only. **`verified`
 has to be earned by evidence of health, not by a green exit code.**
+
+### §6C.1 Freshness registry — verified, and TWO registrations with NO JOB
+
+**Verified independently** from `app/config/report_freshness.json` and `launchctl list`:
+
+| Registered `artifact_id` | cadence | `dormant_ok` | Has a job? |
+| :-- | :-- | :-- | :-- |
+| `pvo_refresh` | daily | false | ✓ |
+| `feature_refresh` | **weekly** | **true** | ✓ — **fires DAILY 09:15. Known mismatch** |
+| `what_changed` | daily | false | ✓ |
+| **`roster_capacity`** | weekly | false | **⛔ NO JOB EXISTS** |
+| **`league_opportunity`** | weekly | false | **⛔ NO JOB EXISTS** |
+| `realized_outcome` | weekly | true | ✓ |
+| `market_divergence` | daily | false | ✓ |
+| `league_capture` | daily | false | ✓ |
+
+**8 registrations · 8 loaded jobs · but they are NOT the same 8.** Two artifacts carry a registered
+freshness expectation with **no scheduler behind it** — the inverse of the `feature_refresh`
+mismatch, and arguably worse: a staleness policy that can never be satisfied because nothing is
+scheduled to satisfy it. **Recorded as a measured fact; not a licence to create either job.**
+
+**GEMINI CONTRADICTION, recorded rather than smoothed:** its earlier cadence audit reported
+`com.davidleess.dynasty-roster-capacity` as **loaded**; its later report correctly says
+`roster_capacity` has no plist. **The later report is right.** I had already propagated the earlier
+claim into the R18 row above before verifying it — corrected there.
 
 **STILL OPEN in step 2:** the R7 states (`bound`/`captured`/`exported`/`consumed`/
 `decision_supported`) across the enumerated B and N rows, and automation classes for the §4.4 members
