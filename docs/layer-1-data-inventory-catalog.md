@@ -430,7 +430,16 @@ surface.** It is recorded as a measured fact **at the grain stated above**. **It
 recommendation, and no agent may treat it as authority to build, schedule, or re-sequence anything**
 — David rules on that.
 
-### §4.3 ⚠ VALID OPS ALARM — offsite backup run FAILED
+### §4.3 ✅ OPS ALARM — DISCHARGED 2026-08-06 *(was: offsite backup run FAILED)*
+
+> **RESOLVED.** David authorized the recovery (*"i meant RUN IT"*); run **`20260806T024853Z`** completed
+> **`sha256_verified: true`**, **zero failures**, 508 files / 2,203,676,656 bytes, finished
+> **`2026-08-06T04:52:33.690114Z`**. `latest.json` advanced to that run. **The prior FAILED run prefix
+> and all earlier runs remain intact — no delete, rotation or overwrite was constructed.** The alarm's
+> predicate (`status == failed`) is now **false**. **The prior failure's cause remains UNDIAGNOSED and
+> is not inferred from the successful re-run.**
+
+*(Historical alarm record below, preserved.)*
 
 Reproduced by Gemini, Codex and Claude. **Codex accepts it as a valid five-element alarm.**
 
