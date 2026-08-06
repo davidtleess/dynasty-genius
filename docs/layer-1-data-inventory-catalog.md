@@ -223,8 +223,13 @@ Measured and independently reproduced:
 * **21 successful runs**, 2026-07-16 → 2026-08-05 (`app/data/logs/league_capture.out.log`).
 * `ready_latest.json` pins run **`league-20260805T132003Z`**, source-captured
   **`2026-08-05T13:20:03.348137+00:00`**, with **six** SHA-pinned artifacts.
-* Snapshot grain, verified key by key: **12,209** players · **12** rosters · **14** users ·
-  **109** `future_picks` · `league` 5 · `draft_state` 18 · `coverage` 10.
+* Snapshot grain — **CORRECTED BY V17; the flat-count version below it originally stated is
+  falsified and is not restated here.** `players` **12,209** are *normalized/classified over a UNION*
+  of source players + rostered/draft/prospect IDs — **not** raw `get_all_players`. `rosters` **12**
+  and `users` **14** are list-shaped source components. `future_picks` **109** is **DERIVED**.
+  **`league`, `draft_state` and `coverage` are DICTIONARIES — their "counts" were dictionary-key
+  counts and are withdrawn as observation figures**; `coverage` is a repo-derived report, not a
+  source grain at all. See the N18 row in §3.1 for the per-field statement.
 
 **Corrections this forces:**
 1. **`app/data/league_runtime` is added to A7's physical stores** — it was not listed.
@@ -333,7 +338,6 @@ too — but that is a **second consumer migration with its own parity and contro
 build the principal sized himself.** My "in scope in substance" phrasing did exactly that.
 
 **`exported` for B1–B12 is INDEPENDENTLY VERIFIED *(V11, Codex)*:** `app/data/nflverse_usage/export/nflverse_usage.ready.json` names all 12 materialized streams plus the unresolved-identity companion; **every named Parquet exists and recomputes to the marker's SHA-256**, and the 12 counts sum to **1,491,691**. Pinned at run `nflverse-usage-20260805T1334216901700000`, captured `2026-08-05T13:34:21.690170+00:00`. **This verifies export existence and integrity ONLY — not a consumer for B4–B12, and not any refresh cadence.**
-membership in the canonical export as understood, not a probe. Treat as owed, not confirmed.
 
 **`obs` subtotal across the 12 materialized tables: 1,491,691.** Plus `nflverse_capture` **101
 `cap`** = 1,491,792 physical rows. `contracts` contributes 0 and has no table.
@@ -473,17 +477,27 @@ established:
 
 | Gap | Kind |
 | :-- | :-- |
-| Canonical ingestion has **no scheduled job** | **absent schedule** |
+| **`nflverse_usage.db`** ingestion has **no scheduled job** *(scoped — NOT the layer; N18 and FantasyCalc are scheduled)* | **absent schedule** |
 | `contracts` bound but never executed; store table absent | **absent capture** |
 | **Nine materialized streams with no production consumer, NAMED (V2-F4):** `snap_counts` · `injuries` · `pfr_pass` · `pfr_rush` · `pfr_rec` · `pfr_def` · `ff_opportunity` · `ftn_charting` · `depth_charts` | **absent consumer** |
 | PlayerProfiler 1,520,009 `obs`, no production consumer outside ingestion | **absent consumer** |
 | PFF — **partial**, not absent: one family consumed by `build_college_features.py` | **partial consumer** |
-| The 20 registry definitions not yet rowed | **unenumerated** |
+| **N18 Sleeper snapshot: scheduled and consumed, but NORMALIZED — raw endpoint replay unavailable** *(V17)* | **absent raw capture** |
+| **Five direct provider reads** (`player_stats`/`rosters`/`snap_counts`/`pbp`/`participation`) declared by no registry entry | **absent source declaration + absent capture** |
+| **R1 `nfl_data_py` mislabel** (nflreadpy in fact) · **R18 declared `parquet_snapshot`, actually a live read** | **provenance defect** |
+| `ras` fixture-only; `rotoviz`/`campus2canton` fixture-only | **absent capture** |
+| PFF cross-lane overlap/dedup rule undefined, so 134,392 cannot be published as a deduplicated total | **absent normalization rule** |
 | Candidate NEW external sources | **NOT ENUMERATED — the core open work** |
 
 ---
 
 ## §7. Disposition of Codex review v2 *(SHA `d99b3247…`)* — F1–F7 ALL ACCEPTED
+> **⚠ HISTORICAL RECORD — NOT A LIVE BLOCKER LIST *(V22)*.** This section preserves the v2 review
+> and its dispositions as written at the time. **Its "still owed" items — full registry enumeration,
+> non-nflverse stream rows, B4's consumer state — have since been COMPLETED** (§2.1, §3.1, and the
+> B4 resolution respectively). **The live gap list is §6 and nowhere else.** *(This section was being
+> read as current, which is the same correction-without-canonical-reconciliation defect the register
+> in §5 exists for — it just happened to a whole section rather than a row.)*
 
 | F | Finding | Disposition |
 | :-- | :-- | :-- |
@@ -495,8 +509,14 @@ established:
 | F6 | B6–B9 must be four rows | **Accepted, reproduced.** Split with measured counts; R7 multi-valued state added; 3/9/1 summary withdrawn. |
 | F7 | §6 cannot answer David | **Accepted.** Marked unanswerable; PFF corrected to partial. |
 
-**Still owed before a fresh review:** full registry enumeration, non-nflverse stream rows, per-row
-evidence paths/timestamps, B4 consumer state.
+~~**Still owed before a fresh review:** full registry enumeration, non-nflverse stream rows, per-row
+evidence paths/timestamps, B4 consumer state.~~
+**SUPERSEDED — struck inline rather than left to the section banner.** Registry enumeration → §2.1.
+Non-nflverse stream rows → §3.1. B4 consumer state → resolved (canonical export has no production
+consumer). Per-job cadence evidence → `layer1_cadence_codex_overnight_v1.md`; **per-STREAM cadence
+remains genuinely open** and is carried in §6. *(Found by my own whole-document sweep, not flagged in
+V22-V25: a bolded standalone line reads as live no matter what banner sits above it, so it is struck
+where it stands.)*
 
 ---
 

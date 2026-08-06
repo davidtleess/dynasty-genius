@@ -302,6 +302,35 @@ Section 4.3 repeats the numbered “Timeout as mechanism — WITHDRAWN” item t
 but the duplicate sits in the operational source-of-truth section and should be removed during the
 same reconciliation pass.
 
+## V24 — V17 corrected the N18 table row but left the canonical prose counts stale
+
+The N18 Table B-N row now correctly strikes the dictionary-key counts and labels the normalized /
+derived grains. The earlier N18 prose block still says “Snapshot grain, verified key by key:
+12,209 players · 12 rosters · 14 users · 109 future_picks · league 5 · draft_state 18 · coverage
+10.” That is the exact statement V17 falsified. The prose block must carry the corrected grain too;
+fixing only the table recreates the correction-without-canonical-reconciliation defect.
+
+## V25 — V20 removed the parenthetical opener but left its contradictory body
+
+The export-verification paragraph now ends correctly, but the next standalone lines still read
+“membership in the canonical export as understood, not a probe. Treat as owed, not confirmed.”
+Those lines are the body of the superseded malformed parenthetical and still contradict the
+independent SHA verification. They must be removed entirely.
+
+## V26 — All 20 registry declaration columns independently verify
+
+At HEAD `1d5e6c34ae8744dfadd6ae013c042e0e4239913b`, Codex loaded `SOURCE_REGISTRY`, parsed all 20
+R1–R20 markdown rows, and compared these declared columns mechanically: registry key, role set,
+`cache_policy`, `freshness_hours`, and `failure_behavior`. All 20 rows matched exactly; zero
+declaration mismatches. Source file pin:
+`src/dynasty_genius/sources/source_registry.py` SHA-256
+`a840d6f72c3bbdbe36a69e2aca7bf9cbf05c7cdafc75353b78217a28be6eccd6`.
+
+This independently verifies the machine-declaration cells only. It does not verify the separately
+inferred access-class cells or any physical capture state not already covered by V1–V18. The Table
+A heading can now narrow its remaining R4 work accordingly instead of treating the registry
+declarations as Claude-only measurements.
+
 ## Rerunnable probes
 
 ```bash
