@@ -856,6 +856,50 @@ rushing remains a registered hypothesis UNDER TEST with no result.**
 
 ---
 
+## §6B. Step 1 — SOURCE-ROUTE DISPOSITIONS *(closes the §6A "A" rows)*
+
+**Scope:** the canonical route per dataset, and every parallel route classified with a reason from
+the §6A vocabulary — `alt` · `superseded` · `separate corpus` · `consumer edge` · `acquisition
+defect`. **Classification only. No route is retired, repaired or migrated by this section.**
+
+### §6B.1 FantasyCalc — canonical + one acquisition defect
+
+| Route | Measured | Disposition |
+| :-- | :-- | :-- |
+| **`fc_forward_capture.db`** via `scripts/run_fc_forward_capture.py`, daily 09:00 | **20,518 `obs`, 44 snapshot dates 2026-06-24 → 2026-08-06**, carrying `snapshot_date` · `source` (`fc_native`) · `settings_hash` · `retrieved_at` | **CANONICAL** — governed capture with provenance |
+| `fetch_with_cache()` (`fantasycalc_adapter`) → `app/cache/fantasycalc/market_values.json`, **live `httpx.get` on miss/expiry**, called at REQUEST TIME by `market_overlay_service.enrich_pvo_list_with_market_overlay` | single **overwritten** file; TTL-gated; never raises, degrades with caveats | **⛔ `acquisition defect`** |
+
+**Why `acquisition defect` and not `alt`:** it acquires from the provider **outside the governed
+route, at serving time**, and **what it served is not preserved** — one overwritten file, no vintage.
+So the overlay can serve a market value **with no corresponding row in the capture store**, and no
+later reader can reconstruct what was shown. *(`alt` would imply a second representation of captured
+data; this is uncaptured acquisition.)*
+
+### §6B.2 Sleeper — FOUR routes, three datasets
+
+| Route | Dataset | Disposition |
+| :-- | :-- | :-- |
+| **N18** `league_runtime/` daily 09:20 normalized snapshot bundle | league/universe state | **CANONICAL for league state** — *carrying its own recorded defect: normalized only, raw endpoint replay unavailable (§3.4 / V17)* |
+| **N12/N13** `league_transactions.db` + **N14b** `league_transactions/raw` | transaction history | **CANONICAL for transactions** — and the **only** Sleeper route satisfying `01` raw-before-parse (`write_raw_snapshot` → `normalize` → `upsert`) |
+| **N19** `league_behavior/raw/` | transactions **+** matchups/league/users/rosters/traded-picks/drafts | **SPLIT disposition:** its **923 transaction records are `alt`** of N12 (strict subset, §3.4) · its **other endpoint families are a `separate corpus`** not held anywhere else |
+| **Roster Auditor request-time reads** — `app/services/roster_auditor.py:9` imports `get_all_players`, `get_leagues`, `get_rosters`, `get_user` from `app.data.sleeper` | league/roster/player universe at serving time | **`consumer edge`** — a serving-path read of the same upstream datasets, **not a fifth ingestion stream** *(the R1 source ≠ stream ≠ store rule, applied as it was for R18/B18)* |
+
+**Two Sleeper routes, opposite provenance quality** — N12 satisfies raw-before-parse; N18, the
+*scheduled and consumed* one, does not. The catalog previously implied the reverse.
+
+### §6B.3 Standing grain warning — stores that go stale BY THE CLOCK
+
+**A new staleness class, distinct from the §5 register.** §5 records claims invalidated by an *edit*.
+**`fc_forward_capture.db` is a DAILY-GROWING store**: the catalog carried **20,043** as though it
+were a fixed property; it is **20,518** today and will differ tomorrow.
+
+**Rule adopted:** a count for a growing store is published **only with an as-of date**, or not at all.
+`20,518 obs as of 2026-08-06` is a fact; `20,518 obs` is a claim that decays silently. This applies
+to N9/N10 (FantasyCalc), N12/N13 (Sleeper transactions), and N18/N18b — every store with a live
+capture job behind it.
+
+---
+
 ## §7. Disposition of Codex review v2 *(SHA `d99b3247…`)* — F1–F7 ALL ACCEPTED
 > **⚠ HISTORICAL RECORD — NOT A LIVE BLOCKER LIST *(V22)*.** This section preserves the v2 review
 > and its dispositions as written at the time. **Its "still owed" items — full registry enumeration,
