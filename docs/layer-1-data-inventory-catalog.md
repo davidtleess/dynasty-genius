@@ -900,6 +900,42 @@ capture job behind it.
 
 ---
 
+## §6C. Step 2 (part) — AUTOMATION CLASSES from Gemini's job telemetry
+
+**Scope:** the automation class for every store Gemini's cadence audit covers. **A class is REVIEWED
+PLANNING JUDGMENT, not a measured fact** (§6A / M4) — the *evidence* is Gemini's, the *class* is mine
+and is Codex's to challenge. Vocabulary is the refresh plan's seven values.
+
+**Evidence:** `docs/agent-ledger/evidence/2026-08-06/gemini_layer1_cadence_audit_response.md`
+(plist declarations, `launchctl` loaded state, last observed fire/exit, and whether a job refreshes
+the store).
+
+| Store / stream | Gemini's measured job facts | Class *(judgment)* | Why |
+| :-- | :-- | :-- | :-- |
+| `nflverse_usage.db` (13 bound specs) | no plist · not loaded · no execution logs · **not refreshed by any job** | **`automatic_candidate`** | Technically automatable; **no governed job exists.** Physical state is manual-only — the class records possibility, not a plan |
+| Feature Refresh **direct reads** (B15–B19) | job loaded, daily 09:15, last fire `noop` · **streams read in memory, no raw snapshots written** | **`blocked`** | Blocked pending David's A/B architecture ruling — **not** `automatic_active`: the JOB is automated, the STREAMS are not captured. R3: a consumer job's cadence is not its upstream stream's |
+| `fc_forward_capture.db` | plist daily 09:00 · **loaded** · success 2026-08-05 13:00 UTC · **appends daily rows** · **freshness config: none found** | **`automatic_active_health_unverified`** | Fires and captures, but **no registered freshness policy**, so health cannot be evidenced from a fire alone |
+| `fc_snapshots.db` (legacy) | no plist · no logs · frozen, last modified 2026-05-30 | **`static_pinned`** | A frozen mixed-source archive (§3.1 N11); correct cadence is no refresh |
+| `league_transactions.db` | no plist · not loaded · no logs · **run manually only** | **`manual_only`** | Confirms V4 — the 09:20 job never touches it |
+| `app/data/league_runtime/` (N18) | plist daily 09:20 · **loaded** · freshness config daily 09:20 · success 2026-08-05 13:20 UTC | **`automatic_active_health_unverified`** | Fires, captures and is consumed, **and** carries a freshness registration — but it is **normalized-only with no raw endpoint replay** (V17), so I will not call it `verified` |
+| PlayerProfiler stores | no plist · no logs · **manual file copy only** | **`manual_only`** | Matches R3's `manual, by David` |
+| PFF manual export inventory | no plist · no logs · manual reconciliation | **`manual_only`** | Human export is the current contract |
+| CFBD foundation promoted store | no plist · no logs · manual script | **`blocked`** | Paid source; needs David's cost/run ruling before any clock (refresh plan §7.2) |
+| `nflreadpy_qb_context` (R18) | roster-capacity plist weekly Tue 10:00 · **loaded** · success 2026-08-04 · **reads live PBP in memory, no cache/snapshot** | **`blocked`** | The JOB is scheduled; the SOURCE is an uncaptured live read. Same `consumer edge` finding as §6B.2 — classing the job as the stream's automation would repeat the R3 error |
+| QB validation raw path (R20) | no plist · no logs · **study has not run** | **`static_pinned`** | Pinned pre-registered inputs; **automation must be physically unable to overwrite them.** H2 QB rushing remains UNDER TEST with no result |
+
+**Two classes I deliberately did NOT assign `automatic_active_verified`.** Both `fc_forward_capture`
+and `league_runtime` fire successfully — but `02`'s own distinction is that **a fire is not health
+evidence.** One lacks a freshness registration entirely; the other is normalized-only. **`verified`
+has to be earned by evidence of health, not by a green exit code.**
+
+**STILL OPEN in step 2:** the R7 states (`bound`/`captured`/`exported`/`consumed`/
+`decision_supported`) across the enumerated B and N rows, and automation classes for the §4.4 members
+Gemini's audit does not cover. **A fresh Gemini request covering the complete plist set, the full
+`report_freshness.json` registry, and every schedule-vs-freshness mismatch is in flight.**
+
+---
+
 ## §7. Disposition of Codex review v2 *(SHA `d99b3247…`)* — F1–F7 ALL ACCEPTED
 > **⚠ HISTORICAL RECORD — NOT A LIVE BLOCKER LIST *(V22)*.** This section preserves the v2 review
 > and its dispositions as written at the time. **Its "still owed" items — full registry enumeration,
