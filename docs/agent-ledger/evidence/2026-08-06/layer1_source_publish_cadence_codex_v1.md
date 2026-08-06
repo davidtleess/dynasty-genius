@@ -31,15 +31,21 @@ require us to create four duplicate observations; unchanged content must remain 
   [update_data.yaml](https://github.com/nflverse/nflverse-pbp/blob/866020fdf54bee79ea11b6cf69168d438dd26dea/.github/workflows/update_data.yaml)
   schedules 09:00 UTC daily plus post-TNF/Sunday/Monday game windows in January, February, and
   September–December. Player stats run downstream of the same PBP update.
-- ffverse's official `ep-update-data.yaml` schedules `ff_opportunity` after TNF, Sunday early/late,
-  SNF, and MNF game windows in January, February, and September–December.
-- nflverse's official `rotc` `update_otc.yaml` updates contracts every day at 07:00 UTC.
+- ffverse's official
+  [`ep-update-data.yaml`](https://github.com/ffverse/ffopportunity/blob/dd72110d43a8cf7d2d60fd6dd080a046e6578fcb/.github/workflows/ep-update-data.yaml)
+  schedules `ff_opportunity` after TNF, Sunday early/late, SNF, and MNF game windows in January,
+  February, and September–December.
+- nflverse's official `rotc`
+  [`update_otc.yaml`](https://github.com/nflverse/rotc/blob/de1355f7c9eb5989184dccff3d9cdb735c82868b/.github/workflows/update_otc.yaml)
+  updates contracts every day at 07:00 UTC.
 - The current nflverse schedule page says its injury source died after 2024 and says no 2025 data
   is available. The actual official `injuries` release contradicts that sentence: `injuries_2025`
   assets were published `2026-03-18T12:45:31Z`, after the 2025 postseason. This proves a 2025
-  historical archive exists, but does **not** establish an in-season injury feed. The local store
-  contains 6,068 season-2025 rows with null `date_modified`; it cannot be treated as evidence of a
-  live 2025 source.
+  historical archive exists, but does **not** establish an in-season nflverse injury feed. The
+  existing Sleeper `/players/nfl` source carries injury-shaped fields, but its in-season
+  completeness has not been measured and the product retains neither those fields nor the exact
+  endpoint response. The local nflverse store contains 6,068 season-2025 rows with null
+  `date_modified`; it cannot be treated as evidence of a live 2025 source.
 
 ## Historical-season immutability is falsified at the release-asset boundary
 
@@ -71,7 +77,7 @@ These are target checks, not authorized clocks. Two calendars are intentionally 
 | :-- | :-- | :-- | :-- | :-- |
 | B1–B3 NGS passing/rushing/receiving | nightly 03:00–05:00 ET in season | daily 06:15 ET in provider-active months; weekly check otherwise | fresh by 09:15 consumer; unchanged bytes create no observation | existing canonical capture is manual; scheduler still needs design/word |
 | B4 canonical snap counts / B17 duplicate live read | provider checks 00/06/12/18 UTC in season | one canonical check daily 07:15 ET in provider-active months; weekly otherwise | one last-good B4 export; B17 is retired only after parity control | do not create a second captured stream for B17 |
-| B5 injuries — historical archive | no established live feed; 2025 archive appeared only after postseason | weekly availability check February–April, then freeze the completed season | content-addressed annual archive; never claim current injury freshness | current-season injury state is **blocked pending a replacement sanctioned source** |
+| B5 injuries — historical archive | no established live nflverse feed; 2025 archive appeared only after postseason | weekly availability check February–April, then freeze the completed season | content-addressed annual archive; never claim current injury freshness | current-season injury state needs exact Sleeper capture + an in-season coverage test; a replacement provider is conditional on failing that test |
 | B6–B9 PFR advanced passing/rushing/receiving/defense | daily 07:00 UTC in season | daily 06:15 ET in provider-active months; weekly otherwise | same-day last good; no-change on identical bytes | four grains may share a job only with separate per-stream markers/counts |
 | B10 ff opportunity | after TNF/Sunday/SNF/MNF game windows in provider-active months | daily 06:30 ET in provider-active months; weekly otherwise | last provider release; unchanged bytes create no observation | derived upstream from PBP but remains its own source release/contract |
 | B11 FTN charting | provider checks 4× daily; charting may lag a game up to 48h | daily 07:15 ET in provider-active months; weekly otherwise | freshness ceiling must allow documented 48h source lag | CC-BY-SA attribution/retention remains part of artifact contract |
@@ -85,7 +91,7 @@ These are target checks, not authorized clocks. Two calendars are intentionally 
 ## HIGH — participation currently caps the entire five-frame season window
 
 The postseason-only cadence is not merely wasted daily I/O. The current 09:15 job couples all five
-frames into one season-ceiling probe:
+frames into one season-ceiling probe (`scripts/run_feature_refresh.py:52-103,226-252`):
 
 1. `_load_source` evaluates `player_stats`, `rosters`, `snap_counts`, `pbp`, and `participation` in
    one dict literal.
@@ -168,11 +174,12 @@ component vintage; it must not pretend all five share one observation clock.
    own source clock, marker, row/count reconciliation, and no-change outcome.
 2. The morning deadline is driven by the existing 09:15 consumer, but the source clock determines
    whether a component can legitimately change.
-3. Current-season injury data is the first concrete candidate-new-source gap exposed by cadence
-   research. Any injury-derived current-season feature had **no live 2025 input for the entire 2025
-   season**; the 6,068 season-2025 rows now in the store arrived as a post-hoc archive and have null
-   `date_modified`. Row presence today must not be misread as point-in-time coverage. The historical
-   nflverse archive does not satisfy current-season availability.
+3. Current-season injury coverage is the first concrete **coverage** gap exposed by cadence
+   research, but it is not yet a proven new-provider gap. Any injury-derived current-season feature
+   had **no live 2025 input for the entire 2025 season** from the nflverse archive; the 6,068 local
+   season-2025 rows arrived post hoc and have null `date_modified`. Sleeper already exposes
+   injury-shaped fields, so the next gate is exact capture plus an in-season completeness test.
+   Those nflverse rows are historical evidence, not point-in-time coverage.
 4. Participation must be removed from the “daily source” mental model even though it remains one of
    the five Option A capture contracts.
 5. The completed backup recovery clears the failed-marker precondition **ONLY**. Manifest coverage,

@@ -56,26 +56,31 @@ and never captured.
       role/cache/freshness/failure fields and a separately-stated physical capture state, including
       the deferred, fixture-only and prohibited states (F1's named blocker). **Codex V5–V8 + V10–V13
       resolved the physical capture states and they are now carried in the §2.1 rows themselves, not
-      in an appendix.** **Still UNCHECKED:** R4 requires independent per-cell verification of the
-      corrected table, and the two **provenance defects** it surfaced (R1's `nfl_data_py` mislabel,
-      R18's declared-vs-actual route) are recorded but unresolved.
+      in an appendix.** **Still UNCHECKED:** the declaration fields are independently verified, but
+      physical acquisition routes remain unreconciled for Sleeper and FantasyCalc, and the two
+      **provenance defects** (R1's `nfl_data_py` mislabel, R18's declared-vs-actual route) remain
+      unresolved.
       *(This line previously asserted "six capture-state cells are `UNVERIFIED`" and was left standing
       after V5–V8 resolved four of them — the §5 defect again, in the progress block that is supposed
       to describe the document's own state. **No count is stated here now**; §2.1 is the source of truth.)*
       *(Deliberately carries NO row-count total for the physical table — a count describing a table
       in the same commit that changes it is the §5 defect, instances 5 and 6. Counts come from a
       probe, not from this document.)*
-- [ ] **B. Ingestion streams** — **the five direct provider reads are rowed (B15–B19)**, the
-      non-registry gap is recorded in §2.2, and **PlayerProfiler, FantasyCalc, Sleeper, PFF and CFBD
-      are now rowed by grain in §3.1 (Table B-N)**. **Still missing:** per-stream
-      `bound`/`captured`/`exported` states on B-N, refresh cadence per stream, and the
-      validation/context streams. **No B-N row is verified** — R4 makes a Claude-only measurement
-      `measured`, not checked off.
-- [ ] **C. Refresh frequencies** — **REOPENED (F4/F5).** Job matrix received; stream↔job edges wrong
-      in v1 and now corrected; per-stream cadence unresolved.
+- [ ] **B. Ingestion streams** — Feature Refresh's five direct reads are rowed (B15–B19); Combine
+      and schedules are B20–B21; draft-picks / ff-playerids / players are B22–B24; the non-registry
+      and multi-consumer gaps are recorded in §2.2; and PlayerProfiler, FantasyCalc, Sleeper, PFF
+      and CFBD are rowed by grain in §3.1.
+      **Still missing:** complete R7 state columns on Table B-N, resolution of the parallel Sleeper /
+      FantasyCalc routes, and final automation classifications. Mixed independent verification
+      exists; the table as a whole is not checked off.
+- [ ] **C. Refresh frequencies** — source-publish cadence planning is independently CLEAR at the
+      pin named in §4.1, but the clocks are not installed jobs and not every canonical stream row
+      yet carries its final automation class / job / freshness edge.
 - [ ] **D. Catalog** · [ ] **E. Player 360** · [ ] **F. Semantic layer + metrics** · [ ] **G. Schemas**
       *(phase B — CLOSED until A–C clear)*
-- [ ] **H. Sources we still need to ingest** *(§6 — cannot be answered yet, F7)*
+- [ ] **H. Sources we still need to ingest** — §6 now gives the provisional evidence-backed answer:
+      existing-source reconciliation is required; no unconditional new provider is proven. Remains
+      unchecked pending fresh verification of the corrected canonical rows.
 - [ ] **I. Every row independently verified** · [ ] **J. → Layer 2 research opens**
 
 > **v1 marked A and B `[x]`. That was false** — enumeration was partial and the checkmarks asserted
@@ -113,21 +118,21 @@ observed behaviour. **Capture state is a separate, physical question** and is th
 | R2 | `cfbd` | model_input | `json_cache` | 720 | `skip_enrichment` | **paid** | partial — `sources/cfbd_foundation/`; promoted 2026-08-04 |
 | R3 | `playerprofiler` | context_signal | `json_cache` | — | `skip_enrichment` | **manual, by David** | `playerprofiler.db` — 1,520,009 `obs` |
 | R4 | `ras` | context_signal | `json_cache` | — | `skip_enrichment` | free | **`fixture_only`** — adapter defaults to `resources/fixtures/ras_mock.csv`, the only RAS data file *(V6)* |
-| R5 | `pff` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | 149 payloads / 7 families; 1 partial consumer |
+| R5 | `pff` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | 149 raw payloads / 134,392 source-row sum / 14 league-report lanes; 1 partial consumer, but `yprr_college` is still 0/874 in the active artifact |
 | R6 | `rotoviz` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | **fixture-only — no capture** |
 | R7 | `campus2canton` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | **fixture-only — no capture** |
-| R8 | `fantasycalc` | market_overlay | `json_cache` | 24 | `use_cached` | free | `fc_forward_capture.db` — 20,043 `obs` |
-| R9 | `mfl_rookie_adp` | market_overlay | `json_cache` | 24 | `use_cached` | free | **no capture** — overlay destination undesigned |
+| R8 | `fantasycalc` | market_overlay | `json_cache` | 24 | `use_cached` | free | **TWO acquisition routes:** daily `fc_forward_capture.db` (20,043 `obs`) plus request-time `app/cache/fantasycalc/market_values.json` / live fallback used by the trade API and market-overlay service |
+| R9 | `mfl_rookie_adp` | market_overlay | `json_cache` | 24 | `use_cached` | free | **BLOCKED:** adapter + separated `app/data/valuation` destination built, but current undocumented `ROOKIES=1&IS_MOCK=No` query returns veterans; official rookie-only contract is `IS_KEEPER=R&IS_MOCK=0`. Zero cache, output artifact, or scheduler |
 | R10 | `dynasty_data_lab` | market_overlay | `none` | — | `skip_enrichment` | **paid** ($4/1k req) | **deferred — no capture** |
 | R11 | `dynasty_nerds` | market_overlay | `none` | — | `skip_enrichment` | no clean API | **deferred — no capture** |
 | R12 | `ktc` | market_overlay | `none` | — | `skip_enrichment` | **PROHIBITED** — ToS bars scraping | **none, by rule** |
-| R13 | `sleeper` | context_signal | `json_cache` | 1 | `use_cached` | free | **TWO measured routes, different states *(V18)*:** (a) **`app/data/league_runtime/` — SCHEDULED daily 09:20, normalized snapshot, consumed, raw replay unavailable** *(N18)*; (b) `league_transactions.db` — **manual_only**, no consumer |
+| R13 | `sleeper` | context_signal | `json_cache` | 1 | `use_cached` | free | **FOUR measured routes, different states:** (a) `app/data/league_runtime/` — scheduled daily 09:20 normalized snapshot, consumed, raw replay unavailable (N18); (b) `league_transactions.db` — manual_only, no consumer; (c) `app/data/research/league_behavior/raw/2026-07-19/` — manual one-time exact endpoint history, replayable + backup-covered (N19); (d) request-time live Roster Auditor calls, no exact capture |
 | R14 | `sportradar` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — ~$7,200/yr | **none, by rule** |
 | R15 | `genius_sports` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — enterprise | **none, by rule** |
 | R16 | `stats_perform` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — enterprise | **none, by rule** |
 | R17 | `rolling_insights` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — $4,200–7,200/yr | **none, by rule** |
 | R18 | `nflreadpy_qb_context` | context_signal | `parquet_snapshot` | 168 | `skip_enrichment` | free | **`live_direct_read`, consumer-triggered** via Roster Auditor; no snapshot, no cache. **A SECOND LIVE CONSUMER OF THE B18 `pbp` STREAM — not its own stream** *(V7/V15)*. Declared `parquet_snapshot` ≠ actual route |
-| R19 | `nfl_nextgen_stats` | context_signal | `sqlite_store_with_raw_snapshots` | 168 | `use_cached` | free | **canonical** — `nflverse_usage.db`, B1–B13 |
+| R19 | `nfl_nextgen_stats` | context_signal | `sqlite_store_with_raw_snapshots` | 168 | `use_cached` | free | **registry declaration covers NGS B1–B3;** the shared canonical adapter/store also binds B4–B13, but those ten families do not thereby gain matching machine source declarations |
 | R20 | `nflreadpy_qb_validation` | **validation_study** | `parquet_snapshot` | — | `fail_closed` | free | **`registered_and_pinned; NOT captured`** — `app/data/backtest/qb_validation/raw/` holds **zero files**; the study has not run *(V8)*. Walled to `eval/qb_validation/` |
 
 **Registry composition, corrected *(V10)*:** **SEVEN** prohibited-or-deferred with no capture by
@@ -142,7 +147,7 @@ store, **not scheduled**), and **R2 `cfbd`** (`scripts/run_cfbd_foundation_refre
 capture + promotion path). Those routes differ in operational state; **each row states its own
 measured state rather than collapsing authorship and production status into one sentence.**
 
-### §2.2 ⛔ NEW FINDING — five production provider reads that NO registry entry declares
+### §2.2 ⛔ Feature Refresh's five provider reads have no matching machine declaration
 
 **Measured 2026-08-06.** `scripts/run_feature_refresh.py::_load_source` pulls **`player_stats`,
 `rosters`, `snap_counts`, `pbp`, `participation`** directly from `nflreadpy` on every 09:15 fire.
@@ -156,23 +161,47 @@ are each a different use, verified field-by-field:
   `src/dynasty_genius/eval/qb_validation/` by the F33 wall.
 
 `01` §Source Adapter Rules requires one adapter per external source, a raw snapshot before parsing,
-and source-timestamp/parser-version provenance. **These five reads satisfy none of those.** Recorded
-as a MEASURED FACT and a gap of kind *absent source declaration* + *absent capture* (R6). **Not
-authority to build, register, or schedule anything.** This is the object of David's A/B pressure
-test — see `docs/agent-ledger/evidence/2026-08-05/layer1_feature_refresh_route_recommendation_claude_v1.md`.
+and source-timestamp/parser-version provenance. **These five reads satisfy none of those.** The
+three-lane pressure test selected canonical Layer 1 capture (Option A) as planning direction; that
+does not itself authorize implementation or enablement.
+
+**This five-frame list is not the complete external-read universe.** The canonical table now also
+rows:
+
+- **B20 Combine** — live input to `scripts/build_w2_features.py`; no replayable capture found.
+- **B21 schedules** — future-live input to the loaded Realized Outcome job; current runs gate before
+  source access because prediction snapshots are absent. That job is also another `player_stats`
+  consumer.
+- **B22–B24 draft picks / ff_playerids / players** — mixed-provider production-builder, identity,
+  one-time-freeze, backtest, and registered-validation callers. B22 has a hash-pinned 257-row
+  nflverse loader payload plus an 80-row projection; B23 is DynastyProcess `db_playerids` fetched
+  through nflreadpy and has 12,457-row frozen plus 7,952-row governed identity snapshots; players is
+  uncaptured.
+
+Consumer edges are also broader than Feature Refresh: `scripts/assemble_engine_b_dataset.py` loads
+all five again; Roster Auditor directly loads B18 PBP; Roster Auditor also makes independent live
+Sleeper calls; and FantasyCalc has both forward-capture and request-time acquisition routes.
+Counting those callers as new streams would inflate the inventory; omitting them would hide the
+parallel-route defect. The target unit is one upstream dataset → one canonical capture → many
+declared consumers.
+
+Finally, R19's `nfl_nextgen_stats` declaration names B1–B3, not every family sharing the canonical
+adapter/store. B4–B13 still require source-declaration reconciliation. Recorded as measured gaps of
+*absent source declaration*, *absent capture*, and *parallel route* — not authority to build,
+register, or schedule anything.
 
 ### §2.3 Table A-P — PHYSICAL sources present in the repo
 *(**PFF and CFBD rows now carry independently verified inventories *(V1/V2/V12)*; A7 carries the V16 route addition.** Remaining rows are Claude-measured.)*
 
 | # | Source (provider + dataset family) | Access | Stores | Status |
 | :-- | :-- | :-- | :-- | :-- |
-| A1 | nflverse via `nflreadpy 0.1.5` | free | `nflverse_usage.db` | partial |
+| A1 | nflverse via `nflreadpy 0.1.5` | free | `nflverse_usage.db` + `resources/prospect_fixtures/_frozen_2025/nflverse_draft_picks_2025_pin.json` (257 loader rows, hashed manifest) + `resources/prospect_identity_2026.json` (80-row projection) + retained inactive `app/data/sources/nfl_nextgen_stats/` (8 files / 3,348 KiB, pending retention ruling) | partial; multiple capture/projection states |
 | A2 | PlayerProfiler | **manual, by David** | `playerprofiler.db` | partial |
 | A3 | PFF | **manual, by David** | `app/data/pff_exports/` | **measured** — 149 payloads / 134,392 internal source rows / 14 lanes *(V2)*; consumer is ONE lane *(V12)* |
 | A4 | CFBD | **paid** | `sources/cfbd_foundation/` | **measured** — promoted run `20260802T024342156864Z`, **1,202** raw payloads, 874 curated rows *(V1)* |
-| A5 | FantasyCalc | free | `fc_forward_capture.db` + part of `fc_snapshots.db` | partial |
-| A6 | **DynastyProcess** *(ONE source — v1 split it into A7/A9 by loader, F2)* | free, GPL-3.0 repo | pinned `values.csv`; part of `fc_snapshots.db` | partial |
-| A7 | Sleeper | free | `league_transactions.db` *(transactions — **manual_only**, no consumer)* **+ `app/data/league_runtime/` (daily 09:20 snapshot bundle, 21 runs, consumed — added V16)** | partial |
+| A5 | FantasyCalc | free | `fc_forward_capture.db` + part of `fc_snapshots.db` + request-time `app/cache/fantasycalc/market_values.json` / live fallback | partial — parallel routes |
+| A6 | **DynastyProcess** *(ONE source — v1 split it by loader, F2)* | free, GPL-3.0 repo | pinned `values.csv`; part of `fc_snapshots.db`; `resources/prospect_fixtures/_frozen_2025/ff_playerids_pin.json` (12,457 rows, hashed manifest); `app/data/identity/_runs/ff_playerids_20260516.json` (7,952 rows) | partial |
+| A7 | Sleeper | free | `league_transactions.db` + `app/data/league_transactions/raw/` *(20 raw JSON)* + `app/data/league_runtime/` *(daily normalized bundle)* + tracked `app/data/league_snapshots/` seed/archive surface *(12 files)* + `app/data/research/league_behavior/raw/2026-07-19/` *(manual exact endpoint history, backup-covered)* + request-time live Roster Auditor route | partial — routes/surfaces require reconciliation |
 
 **A6 DynastyProcess is in NO registry entry** — a physical source with pinned data and no machine
 declaration. Recorded, not opened.
@@ -196,9 +225,9 @@ must never sit in a state cell** — v2 put `blocked_for_use` in B14's consumer 
 
 | # | Stream | Table | `obs` | bound | captured | exported | consumed | dec_sup | disposition |
 | :-- | :-- | :-- | --: | :-: | :-: | :-: | :-- | :-: | :-- |
-| B1 | `ngs_passing` | `ngs_passing` | **5,933** | ✓ | ✓ | ✓ | feature refresh (via export) | ✗ | `existing_consumer` |
-| B2 | `ngs_rushing` | `ngs_rushing` | **6,059** | ✓ | ✓ | ✓ | " | ✗ | `existing_consumer` |
-| B3 | `ngs_receiving` | `ngs_receiving` | **14,731** | ✓ | ✓ | ✓ | " | ✗ | `existing_consumer` |
+| B1 | `ngs_passing` | `ngs_passing` | **5,933** | ✓ | ✓ | ✓ | Feature Refresh + Engine B assembly (via canonical export) | ✗ | `existing_consumer` |
+| B2 | `ngs_rushing` | `ngs_rushing` | **6,059** | ✓ | ✓ | ✓ | Feature Refresh + Engine B assembly (via canonical export) | ✗ | `existing_consumer` |
+| B3 | `ngs_receiving` | `ngs_receiving` | **14,731** | ✓ | ✓ | ✓ | Feature Refresh + Engine B assembly (via canonical export) | ✗ | `existing_consumer` |
 | B4 | `snap_counts` | `player_snap_count` | **253,106** | ✓ | ✓ | ✓ | **none** — canonical export has no production consumer; the daily job's `nflreadpy.load_snap_counts` is a SEPARATE provider-read stream *(V2-F4, Codex probe)* | ✗ | `substrate_only` |
 | B5 | `injuries` | `nflverse_injury_report` | **45,337** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
 | B6 | `pfr_pass` | `pfr_pass` | **5,424** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
@@ -210,11 +239,24 @@ must never sit in a state cell** — v2 put `blocked_for_use` in B14's consumer 
 | B12 | `depth_charts` | `depth_charts` | **812,074** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
 | B13 | `contracts` | *(absent)* | **0** | ✓ | **✗ never run** | ✗ | none | ✗ | `substrate_only` |
 | B14 | `ff_rankings` | *(none)* | 0 | ✗ | ✗ | ✗ | none | ✗ | `blocked_for_use` |
-| B15 | `player_stats` **(direct provider read — §2.2)** | *(none)* | 0 | ✗ | ✗ | ✗ | **09:15 Feature Refresh, live from `nflreadpy`** | ✗ | **undeclared — see §2.2** |
-| B16 | `rosters` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared** |
-| B17 | `snap_counts` **(direct provider read — DUPLICATE of B4)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared — two live routes to one source** |
-| B18 | `pbp` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared** |
-| B19 | `participation` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared** |
+| B15 | `player_stats` **(direct provider read — §2.2)** | *(none)* | 0 | ✗ | ✗ | ✗ | Feature Refresh; Engine B assembly; draft-prospect collection; future-live Realized Outcome; QB role labels; registered QB-validation loaders | ✗ | **undeclared — see §2.2** |
+| B16 | `rosters` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | Feature Refresh; Engine B assembly; QB identity bridge / priors / role labels / v3 validation; registered QB-validation loader | ✗ | **undeclared** |
+| B17 | `snap_counts` **(direct provider read — DUPLICATE of B4)** | *(none)* | 0 | ✗ | ✗ | ✗ | Feature Refresh; Engine B assembly; QB role labels | ✗ | **undeclared — parallel route to B4** |
+| B18 | `pbp` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | Feature Refresh; Engine B assembly; request-time Roster Auditor; registered QB-validation loader | ✗ | **undeclared** |
+| B19 | `participation` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | **09:15 Feature Refresh + Engine B assembly** | ✗ | **undeclared** |
+| B20 | `combine` **(active-builder direct read)** | *(none)* | 0 | ✗ | ✗ | ✗ | **`build_w2_features.py` mutates the active training artifact from a live read** | ✗ | **uncaptured existing-source input** |
+| B21 | `schedules` **(future-live direct read)** | *(none)* | 0 | ✗ | ✗ | ✗ | **loaded Realized Outcome job; current runs gate before access on absent predictions** | ✗ | **future-live / uncaptured** |
+| B22 | nflverse `draft_picks` **(direct / study / identity reads)** | frozen 2025 loader payload + 2026 prospect projection | **257 frozen loader rows + 80 projected rows — different vintages/representations, never add** | ✗ | **✓ parsed loader payload; exact HTTP bytes absent** | ✗ | draft-prospect collection; 2026 draft ingest; TE cohort; prospect bridge; mock draft; 2025 freeze; registered QB-validation loader | ✗ | **capture/provenance reconciliation required** |
+| B23 | DynastyProcess `db_playerids` / loader name `ff_playerids` **(identity crosswalk)** | frozen 2025 pin + governed 2026 identity run | **12,457 + 7,952 `idn` rows — different vintages, never add** | ✗ | ✓ | ✗ | production identity infrastructure (`build_universe_pvo_batch.py`, transaction capture, PlayerProfiler, canonical nflverse identity, identity audit, league-intelligence refresh); TE cohort; backtest; freeze; registered QB-validation loader | ✗ | **captured identity input; no DynastyProcess registry declaration** |
+| B24 | `players` **(registered QB-validation loader)** | *(none)* | 0 | ✗ | ✗ | ✗ | registered QB-validation study only; study has not run | ✗ | **static-pinned study input, not captured** |
+
+**Point-in-time ceiling for B1–B12:** the 1,019 local raw snapshots have capture dates only
+2026-07-31, 08-02, 08-03, and 08-05. Historical-season rows are retrospective coverage, not
+historical as-of vintages. `captured = ✓` remains true; pre-2026-07-31 point-in-time history does not.
+
+**Retained inactive NGS representation:** `app/data/sources/nfl_nextgen_stats/` contains eight files
+(3,348 KiB) from the withdrawn parallel route. It is retained pending a separate David retention
+ruling, is not the active adapter/store, and must not be counted as three additional streams.
 
 ### ⛔ N18 — **A** SCHEDULED, CAPTURED, CONSUMED LAYER-1 STREAM THAT WAS MISSING ENTIRELY
 
@@ -244,22 +286,31 @@ Measured and independently reproduced:
    streams.** Counting them as streams would inflate the inventory with our own outputs, which is the
    same error class as counting `model_forward_capture.db` as fuel.
 4. **PHYSICAL CAPTURE STATE: `normalized snapshot; RAW ENDPOINT REPLAY UNAVAILABLE` *(V17)*.**
-   `build_snapshot` fetches eight Sleeper endpoints and passes them through
+   A normal run makes nine Sleeper requests — drafts discovery, league, rosters, users, traded
+   picks, players, NFL state, draft object, and draft picks — and passes them through
    `build_universe_snapshot`; **only the transformed result is written.** The exact endpoint response
    bytes are never retained, and the lineage block hashes players/league/rosters/users/traded-picks
    but not NFL state, draft state, or draft picks. **A marker-pinned normalized bundle is not a raw
-   capture**, and this stream cannot satisfy `01` §Source Adapter Rules' raw-snapshot-before-parsing
-   requirement as it stands. *(My V16 row implied otherwise by listing everything as flat counts.)*
+   capture.** The player projection also drops `injury_status`, `injury_body_part`,
+   `practice_participation`, and `injury_start_date`, retaining only generic source `status`. This
+   stream cannot satisfy `01` §Source Adapter Rules' raw-snapshot-before-parsing requirement as it
+   stands, and it cannot establish adequate live injury coverage without an in-season test.
 5. **This materially qualifies the session's headline finding.** *"The canonical ingestion store has
    NO SCHEDULED REFRESH"* remains true **of `nflverse_usage.db`** — but it must never be read as
    *"Layer 1 has no scheduled ingestion."* **N18 is scheduled, captured, marker-pinned, and
    consumed.** It is the counter-example, and the catalog missed it.
 
-**B15–B19 are streams with a PRODUCTION CONSUMER and NO capture** — the exact inverse of B5–B13
-(captured, no consumer). They are rowed here because R1 makes a stream an inventory entity whether
-or not we store it; `obs = 0` records that **we keep nothing**, not that nothing flows. **B17 is the
-duplicate route to B4** (`player_snap_count`, 253,106 `obs`). Disposition for all five is David's
-open A/B decision, not the catalog's to assign.
+**B15–B19 are streams with production consumers and no canonical capture** — the exact inverse of
+B5–B13 (captured, no consumer). `obs = 0` records that **we keep nothing on these routes**, not that
+nothing flows. **B17 is the duplicate route to B4** (`player_snap_count`, 253,106 `obs`). Option A
+is the selected planning direction: one canonical capture per upstream dataset, then migrate each
+consumer behind its own parity/control gate. **B20** is an active-builder input with no replayable
+capture; **B21** is future-live and must be canonical before the first prediction-bearing run.
+**B22–B24** are existing mixed-provider identity/study dataset families that the prior table
+omitted: B22/B24 are nflverse-backed, while B23 is DynastyProcess `db_playerids` transported by
+nflreadpy. Their callers mix production builders, one-time freezes, identity work, and a registered
+validation study; that classification prevents “every loader exists” from becoming “schedule every
+loader.”
 
 ### §3.1 Table B-N — NON-NFLVERSE streams
 *(F1/F6 blocker. **Mixed verification state *(V21)*: PlayerProfiler/FantasyCalc/Sleeper counts, the CFBD 1,202 figure, the PFF 149/134,392 split and its one consumer lane are INDEPENDENTLY verified; per-stream R7 states and cadence are not. Table not complete.**)*
@@ -277,27 +328,32 @@ never added to a total.**
 | N6 | PlayerProfiler | `pp_player_season` | 5,476 | `obs` | none |
 | N7 | PlayerProfiler | `pp_identity_bridge` | 3,290 | `idn` | — |
 | N8 | PlayerProfiler | `pp_capture` + `pp_pbp_capture` | 57 + 6 | `cap` | — |
-| N9 | FantasyCalc | `fc_forward_capture_raw` *(source `fc_native`, snapshots 2026-06-24 → 2026-08-05)* | 20,043 | `obs` | market overlay |
-| N10 | FantasyCalc | `fc_forward_capture_joinable` | 20,043 | **`alt`** | **never added** |
-| N11 | **MIXED-SOURCE store** *(V3)* | `fc_snapshots` = DynastyProcess **2,185** (2021-09-08 → 2024-09-08) + FantasyCalc **4,605** (2026-06-12 → 2026-06-24) | 6,790 | `obs` | market overlay |
+| N9 | FantasyCalc | `fc_forward_capture_raw` *(source `fc_native`, snapshots 2026-06-24 → 2026-08-05)* | 20,043 | `obs` | **no direct production consumer; source representation for N10** |
+| N10 | FantasyCalc | `fc_forward_capture_joinable` | 20,043 | **`alt` — never add to N9** | **scheduled Market Divergence + What-Changed report** (`run_market_divergence_refresh.py`, `what_changed/daily_diff.py`) |
+| N11 | **MIXED-SOURCE store** *(V3)* | `fc_snapshots` = DynastyProcess **2,185** (2021-09-08 → 2024-09-08) + FantasyCalc **4,605** (2026-06-12 → 2026-06-24) | 6,790 | `obs` | **optional legacy backtest instrument** (`eval/market_snapshot_store.py`, `run_backtest.py`); not the current overlay source |
 | N12 | Sleeper | `league_transaction` | 932 | `obs` | **none** *(V4 — corrected)* |
 | N13 | Sleeper | `league_transaction_movement` | 1,692 | `obs` *(different grain)* | **none** *(V4 — corrected)* |
 | N14 | Sleeper | `league_season_capture` | 4 | `cap` | — |
-| **N18** | **Sleeper — league/universe NORMALIZED SNAPSHOT** *(V16 added it; V17 corrected its grain)* | `app/data/league_runtime/runs/<run_id>/snapshot.json`, schema `sleeper_universe_snapshot.v1` | **players 12,209** *(normalized/classified over a UNION of source players + rostered/draft/prospect IDs — **not** raw `get_all_players`)* · **rosters 12** · **users 14** *(list-shaped source components)* · **future_picks 109 — DERIVED**, reconstructed from settings/roster IDs/rounds/traded-pick input · ~~league 5 · draft_state 18 · coverage 10~~ **DICTIONARY-KEY COUNTS, NOT OBSERVATIONS — withdrawn as counts** | **mixed — see cell; NOT uniform `obs`** | **CONSUMED** by the league derivation chain |
+| N14b | Sleeper | `app/data/league_transactions/raw/` | **20 JSON files** | `raw-payload`; not added to N12/N13/N14 | upstream exact transaction capture evidence; manual_only |
 | N15 | PFF | manual export payloads | **149** | **`raw-payload count` — NOT `obs`** *(V2)* | **partial — ONE PRECISE LANE** *(V12)*: NCAA `receiving_summary`, scope `REGPO`, seasons 2017–2025 (9 entries in `phase16_wr_manifest.json`, hashes match content-hash filenames) via `scripts/build_college_features.py`. **Not evidence that the other 13 lanes are consumed.** |
 | N15b | PFF | internal source rows across 14 league/report lanes | **134,392** | `obs` *(sum; overlap/dedup rule NOT yet stated)* | as N15 |
-| N16 | CFBD | `curated/prospects_with_outcomes_v3.csv` | 874 rows | `obs` | **Engine A** (promoted 2026-08-04) |
-| N17 | CFBD | `raw/20260802T024342156864Z/` payloads | **1,202** *(manifest `raw_file_count`; dir holds 1,203 JSON = 1,202 payloads + `manifest.json`)* | `cap`/raw | upstream of N16 |
+| N16 | CFBD + other sources | `curated/prospects_with_outcomes_v3.csv` | 874 rows | **curated multi-source artifact rows — NOT CFBD source `obs`** | callable builders/evaluators exist; current board says no model consumes the corrected CFBD values |
+| N17 | CFBD | `raw/20260802T024342156864Z/` payloads | **1,202** *(manifest `raw_file_count`; dir holds 1,203 JSON = 1,202 payloads + `manifest.json`)* | **`raw-payload count` — NOT `obs` or ledger `cap`** | upstream evidence for N16 |
+| **N18** | **Sleeper — league/universe NORMALIZED SNAPSHOT** *(V16 added it; V17 corrected its grain)* | `app/data/league_runtime/runs/<run_id>/snapshot.json`, schema `sleeper_universe_snapshot.v1` | **players 12,209** *(normalized/classified over a UNION of source players + rostered/draft/prospect IDs — **not** raw `get_all_players`)* · **rosters 12** · **users 14** *(list-shaped source components)* · **future_picks 109 — DERIVED**, reconstructed from settings/roster IDs/rounds/traded-pick input · ~~league 5 · draft_state 18 · coverage 10~~ **DICTIONARY-KEY COUNTS, NOT OBSERVATIONS — withdrawn as counts** | **mixed — see cell; NOT uniform `obs`** | **direct scripts:** `build_universe_pvo_batch.py`, `run_what_changed_report.py`, `run_roster_capacity_audit.py`, `run_league_transaction_capture.py`; **API:** `league_pulse.py`, `trade.py`, `trade_market.py`; **bundle derivative:** `build_league_opportunity_map.py` |
+| **N18b** | **Sleeper — tracked normalized seed/archive surface** | `app/data/league_snapshots/` | **12 files:** 2 active `*_latest.json` fallback aliases + 10 retained timestamped archives | file/representation count; **not source `obs` and not exact endpoint raw** | only the 2 latest aliases are active fallback inputs for `load_production_league_set`; 10 timestamped files are retained archives |
+| **N19** | **Sleeper — league-behavior exact endpoint history** | `app/data/research/league_behavior/raw/2026-07-19/` | **172 endpoint envelopes + 1 fetch log**; 2023–2026; 176 logged calls, zero failures | `raw-payload` by endpoint family; **never sum unlike grains** | **none established; manual one-time, replayable, backup-covered** |
 
 **PlayerProfiler reconciles exactly:** 1,520,009 `obs` + 3,290 `idn` + 63 `cap` = 1,523,362 physical
 rows — the figure the prior board carried, now decomposed by grain rather than asserted as a total.
 
-**PFF grain, corrected TWICE in one table — the R5 trap catching its own warning.** The store holds
-**459 raw CSVs**, **149 unique payloads**, and **134,392 internal source rows** across **14
-league/report lanes** (7 report families × `ncaa`/`nfl`). I warned that 459 is a file count and not an
-observation count — **and then labelled 149 as `obs` in the very next column.** 149 is also a file
-count. Only N15b is an observation figure, and it is **a raw sum: the overlap/deduplication rule
-across lanes is NOT yet stated, so it may not be published as a deduplicated total** (V2, Codex).
+**PFF grain, corrected TWICE in one table — the R5 trap catching its own warning.** Disk holds
+**149 raw payload CSVs** and **153 CSVs total**, not 459 raw CSVs. The file-map contains 307 mapping
+records; those are not additional stored raw files. The payloads contain **134,392 internal source
+rows** across **14 league/report lanes** (7 report families × `ncaa`/`nfl`). Only N15b is an
+observation figure, and it is **a raw sum: the overlap/deduplication rule across lanes is NOT yet
+stated, so it may not be published as a deduplicated total**. The one callable consumer projects
+`yprr_college`, but the active 874-row artifact has **0 populated values** — a materialization /
+curation gap, not proof of another provider need.
 
 **⛔ N17 — MEASURED THE WRONG PATH. My worst error in this table.** I published **810 files** as the
 promoted CFBD run's raw payload count. **810 is the file count of `app/data/cfbd_cache/`** — a
@@ -308,10 +364,10 @@ different directory entirely, which I ran `find` against and then labelled as
 measurement run against one path and reported as a fact about another.** Second instance in one
 session; both caught by the independent lane, neither by me (V1, Codex).
 
-**Still owed on Table B-N:** per-stream `bound`/`captured`/`exported` states (R7), refresh cadence,
-evidence paths with timestamps, and **the PFF cross-lane overlap/dedup rule before any 134,392
-aggregate is treated as a deduplicated observation count**. **No row here is `verified`** — Claude
-measured them alone, which R4 makes `measured`, not checked off.
+**Still owed on Table B-N:** complete per-stream `bound`/`captured`/`exported` states (R7), final
+automation/job edges, parallel-route dispositions, and **the PFF cross-lane overlap/dedup rule before
+any 134,392 aggregate is treated as a deduplicated observation count**. Several counts and physical
+states are independently verified; **the table as a whole is not verified or checked off**.
 
 ### §3.2 Registry PHYSICAL-state evidence *(Codex V5–V8, all reproduced by Claude)*
 
@@ -365,8 +421,10 @@ build the principal sized himself.** My "in scope in substance" phrasing did exa
 **STREAMS NOW ROWED — this paragraph previously said they were missing and was left standing after
 they were added *(V14, and the SAME §5 defect the register exists for)*.** PlayerProfiler,
 PFF, CFBD, FantasyCalc and Sleeper are rowed in **§3.1 Table B-N**; the five direct
-feature-refresh loaders are rowed as **B15–B19**. **Still genuinely absent:** validation/context
-streams, and per-stream `bound`/`captured`/`exported` states on Table B-N.
+feature-refresh loaders are rowed as **B15–B19**; Combine and schedules are B20–B21. **Still
+genuinely incomplete:** final automation classifications, complete R7 states on Table B-N, and
+reconciliation of the parallel Sleeper/FantasyCalc consumer routes. Identity/study datasets are now
+rowed as B22–B24 rather than left implicit in adapter functions.
 
 **The v1 summary "3 consumers / 9 substrate_only / 1 never run" remains WITHDRAWN** — it was
 exclusive over an incomplete table. *(Its second stated reason, "B4's consumer state is UNVERIFIED",
@@ -379,10 +437,20 @@ consumer. The withdrawal stands on the first reason alone.)*
 
 ### §4.1 Job matrix *(Gemini, Operations & Telemetry — telemetry facts, not a catalog pass)*
 
-**Per-job cadence evidence with paths and timestamps is now durable *(V21)*:**
-`docs/agent-ledger/evidence/2026-08-06/layer1_cadence_codex_overnight_v1.md`. The earlier statement
-that path/timestamp evidence was **wholly** outstanding is superseded — it is partly landed. What
-remains open is **per-STREAM** cadence (R3: a job's cadence is not its upstream stream's).
+**Per-job cadence evidence with paths and timestamps is durable *(V21)*:**
+`docs/agent-ledger/evidence/2026-08-06/layer1_cadence_codex_overnight_v1.md`. Source-publish cadence
+planning is independently CLEAR at
+`docs/agent-ledger/evidence/2026-08-06/layer1_source_publish_cadence_codex_v1.md`, SHA-256
+`2d1fe261b8c88a75091ca48e0951348d64b26bee7696bc28a8abaaa8ff2387fe`. The clocks are planning
+targets, not installed jobs. What remains open is reconciliation of every canonical stream to its
+automation class, actual job edge, freshness policy, and enablement authority.
+
+The remaining-candidate cadence companion is
+`docs/agent-ledger/evidence/2026-08-06/layer1_remaining_candidate_cadence_codex_v1.md`, SHA-256
+`af31195ccc6cd99ff8f6fea2db2e3498cf94eb2b7aab7908d5be8582de6b7019`. It pins the upstream
+Combine, schedules, draft-picks, and DynastyProcess-player-ID rhythms, proposed conditional local
+checks, and the live MFL endpoint-contract blocker. These remain planning evidence, not installed
+clocks.
 
 | Job | JOB cadence (plist) | FRESHNESS policy | `dormant_ok` |
 | :-- | :-- | :-- | :-- |
@@ -395,8 +463,10 @@ remains open is **per-STREAM** cadence (R3: a job's cadence is not its upstream 
 | Realized Outcome | Weekly Tue 10:00 | Weekly | `true` |
 | Offsite Backup | Daily 10:15 | *(no `report_freshness.json` entry — F5)* | — |
 
-> **Gemini has NOT issued a final operational pass.** It supplied telemetry and one valid alarm.
-> Evidence paths/timestamps per row are still to be attached (F5).
+> **Gemini supplied telemetry, not a canonical factual pass.** Codex verification found several
+> corrections in Gemini's prose (including QB-context cadence, FantasyCalc archive state, and stale
+> backup language); only claims reconciled into this catalog or
+> `gemini_reports_codex_verification_v1.md` are carried forward.
 
 ### §4.2 ⛔ THE CORRECTION — and the most important Layer-1 finding so far
 
@@ -418,8 +488,8 @@ canonical capture runner.**
 source tables holding 1,491,691 `obs` rows; `contracts` is bound but has no table, and the
 `nflverse_capture` ledger (101 `cap`) is not a stream.** Nine of the twelve materialized streams are
 refreshed by nothing and consumed by nothing.
-Meanwhile the daily job pulls five datasets straight from the provider on a **separate** path that is
-not in the catalog.
+Meanwhile the daily job pulls five datasets straight from the provider on a **separate** path. That
+path was absent from v1 and is now explicitly rowed as B15–B19; the route defect remains unresolved.
 
 **⚠ SCOPE OF THIS FINDING — QUALIFIED 2026-08-06 (V16), because it was being read too widely.**
 The sentence above is true **of `app/data/nflverse_usage.db`** and of nothing else. It must **NEVER**
@@ -465,6 +535,62 @@ manual recovery is David-gated.**
    projection names the scheduled 10:15 run as its clock basis but computes from the prior success's
    *completion* time. Different operands.
 
+### §4.4 Per-stream automation classification candidate
+
+**Planning only — no proposed-job installation or enablement claim.** Existing installed jobs are
+recorded as measured current state; proposed checks remain plans. Every cataloged stream/source group now
+has one of the seven automation classes from the independently CLEAR refresh plan. A grouped row
+names every member explicitly and groups only shared source/failure boundaries. “Proposed check” is
+not “job exists.” `UNVERIFIED` is an explicit inventory value, not permission to guess.
+
+| Catalog IDs / source | Automation class | Upstream publish / change rhythm | Proposed or actual local check | Remaining gate |
+| :-- | :-- | :-- | :-- | :-- |
+| B1–B3 NGS | `automatic_candidate` | nightly 03:00–05:00 ET in provider-active months | proposed daily 06:15 ET in those months; weekly otherwise | canonical capture is manual; scheduler/marker design + word |
+| B4 canonical snap counts | `automatic_candidate` | provider checks 00/06/12/18 UTC in season | proposed daily 07:15 ET in provider-active months; weekly otherwise | ready-export parity and consumer migration |
+| B17 duplicate live snap-count route | `automatic_active_health_unverified` | same upstream as B4 | actual daily 09:15 live read | **target state is blocked from separate scheduling**; retire only after B4 parity/control gate |
+| B5 nflverse injury archive | `automatic_candidate` | annual/post-hoc; 2025 appeared 2026-03-18 | proposed weekly February–April, then freeze completed season | not current-season injury coverage; Sleeper test first |
+| B6–B9 PFR advanced | `automatic_candidate` | daily 07:00 UTC in season | proposed daily 06:15 ET in provider-active months; weekly otherwise | four per-stream markers/counts despite shared orchestrator |
+| B10 ff opportunity | `automatic_candidate` | after TNF/Sunday/SNF/MNF windows | proposed daily 06:30 ET in provider-active months; weekly otherwise | canonical job/marker + no-change contract |
+| B11 FTN charting | `automatic_candidate` | checked 4× daily; source may lag games 48h | proposed daily 07:15 ET in provider-active months; weekly otherwise | 48h-aware freshness + attribution/retention contract |
+| B12 depth charts | `blocked` | daily 07:00 UTC year-round | no automatic capture yet | exact compressed representation + retention ceiling; current JSON is 56.29× source Parquet |
+| B13 contracts | `blocked` | daily 07:00 UTC year-round | no scheduled capture | first capture is a separately authorized landing with 12+contracts export reconciliation |
+| B14 ff_rankings | `blocked` | source cadence not relevant while use is blocked | none | `blocked_for_use`, no RED / scheduler |
+| B15 player stats — current direct-read route | `automatic_active_health_unverified` | nightly plus game windows; Thursday corrections matter | actual daily 09:15 live read | desired Option A canonical-capture route is `automatic_candidate`; all-consumer parity required |
+| B16 rosters — current direct-read route | `automatic_active_health_unverified` | daily 07:00 UTC | actual daily 09:15 live read | desired Option A canonical-capture route is `automatic_candidate`; all-consumer parity required |
+| B18 PBP — current direct-read route | `automatic_active_health_unverified` | nightly plus game windows | actual daily 09:15 live read | desired Option A canonical-capture route is `automatic_candidate`; Roster Auditor migration separately gated |
+| B19 participation — current direct-read route | `automatic_active_health_unverified` | 2023+ postseason-only | actual daily 09:15 live read | desired Option A canonical route is `automatic_candidate` on a weekly February–March / monthly-otherwise clock; must not cap the four current-season streams |
+| B20 Combine | `automatic_candidate` | upstream workflow 12:00/17:00 UTC March 3–12 + manual dispatch | proposed one conditional check 20:00 UTC March 3–13 | exact capture, content no-change, builder migration; PFR source clock still unverified |
+| B21 schedules | `automatic_candidate` | every 5 minutes during the season | proposed Tuesday 06:15 ET year-round conditional check, before weekly Tuesday 10:00 Realized Outcome | exact source/finality provenance before first prediction-bearing run; no intraday cadence without a named consumer |
+| B22 forward draft-picks route | `automatic_candidate` | upstream 05:00 UTC Wednesdays Sep–Feb; additionally daily Feb 1–15 and Apr 23–May 5; manual dispatch possible | proposed 12:00 UTC conditional checks on those days; frozen 2025 pin remains `static_pinned` | exact transport/capture + content no-change; PFR settlement/correction clock still unverified |
+| B23 governed DynastyProcess `db_playerids` | `automatic_candidate` | upstream Friday 00:23 UTC + manual dispatch; delivery can lag | proposed Friday 08:15 ET blob-SHA check; one Saturday 08:15 ET retry whenever Friday is unchanged or retrieval fails; frozen 2025 pin remains `static_pinned` | source declaration, exact CSV/commit/blob provenance, forward identity retention; no workflow-status inference from unchanged bytes |
+| B24 QB-validation players input | `static_pinned` | registered study input | no refresh | study has not run; automation cannot alter manifest inputs |
+| N1–N8 PlayerProfiler | `blocked` | landed store came from human exports; a shadow HTTP POST route exists | no automatic job | automated acquisition remains blocked pending sanctioned-access, legal, and reliability proof |
+| N9–N10 FantasyCalc forward | `automatic_active_health_unverified` | fetch-time snapshots; no provider publish timestamp | actual daily 09:00 job | add freshness registration, prove health history, and reconcile the request-time cache/live fallback behind one governed route |
+| N11 legacy mixed snapshot archive | `manual_only` | frozen/legacy local archive | none | optional backtest only; do not use as current overlay source |
+| N12–N14b Sleeper transactions | `automatic_candidate` | live league events | candidate daily current-season + weekly full-chain reconciliation | cursor/idempotence, call ceiling, marker/freshness, word |
+| N18 Sleeper normalized league bundle | `automatic_active_verified` | endpoint state can change daily | actual daily 09:20 job | health basis: registered freshness, 21 consecutive successful runs through 2026-08-05, empty error log, current `ok`/ready markers, loaded job last exit 0; exact raw replay and request-time Roster Auditor reconciliation remain separate quality/route gaps |
+| N18b two active `*_latest.json` fallback aliases | `manual_only` | production fallback seeds, not source vintages | no automatic refresh job | consumed by `load_production_league_set`; change only through explicit seed maintenance |
+| N18b ten retained timestamped archives | `manual_only` | retained normalized history | none | no recurring use or refresh claim |
+| N19 one-time exact endpoint history | `manual_only` | one-time 2023–2026 replay evidence | none | no established consumer; backup-covered; no invented recurring use |
+| N15/N15b PFF | `manual_only` | human export | none | manual contract; fix YPRR materialization separately |
+| N16/N17 CFBD | `blocked` | paid/event-driven; registry says 720h for historical data | no automatic job | David-approved per-run/month ceiling + canonical-wrapper-only route |
+| R4 RAS | `blocked` | no production acquisition | none | governed use + NDA/retention feasibility |
+| R6 RotoViz / R7 Campus2Canton | `manual_only` | fixture/manual export contract | none | no sanctioned automated API contract |
+| R9 MFL rookie ADP | `blocked` | source result carries a timestamp but mutation cadence is **UNVERIFIED** | none until endpoint contract is repaired; post-repair candidate is weekly pre-Draft, at most daily through Aug 31, weekly Sep–Dec | current adapter query is not rookie-only in live output; correct/re-RED endpoint semantics before any first capture or scheduler |
+| A6 DynastyProcess pinned values | `static_pinned` | immutable backtest inputs | no refresh | any forward capture must use separate path/job identity |
+| R10 Dynasty Data Lab / R11 Dynasty Nerds | `blocked` | paid / no clean API | none | explicit use, access, cost, destination |
+| R12 KTC + R14–R17 enterprise sources | `prohibited` | not applicable | none | current policy/cost/licensing rulings |
+
+**B21 cadence evidence:** nflverse's primary
+[Data Update and Availability Schedule](https://nflreadr.nflverse.com/articles/nflverse_data_schedule.html#nflverse-gameschedule-data)
+states that Game/Schedule data updates every five minutes during the season (accessed 2026-08-06).
+The proposed **local** check is Tuesday 06:15 ET year-round, conditional on changed bytes and before
+the Tuesday 10:00 Realized Outcome consumer. It remains planning evidence, not an installed job.
+
+**C remains unchecked.** This table completes the current classification pass, but C still needs
+independent per-row verification, numeric paid-call ceilings where applicable, and final ownership /
+installed-job / freshness edges before it can be checked off.
+
 ---
 
 ## §5. Recurring defect register
@@ -484,24 +610,58 @@ cannot pin its own resulting HEAD") failed to catch (3) and (4) because no commi
 
 ---
 
-## §6. §H — Sources we still need to ingest *(CANNOT BE ANSWERED YET — F7)*
+## §6. §H — Sources we still need to ingest *(PROVISIONAL ANSWER; NOT CHECKED OFF)*
 
-**This is David's direct question and it is NOT answerable from an incomplete universe.** What is
-established:
+**Answer first:** substantial work is required on sources already present in the repo, but the
+evidence does **not** prove that Dynasty Genius needs an unconditional new external provider now.
+The highest-priority gaps are uncataloged exact bytes, live reads without replayable capture,
+parallel acquisition routes, and incomplete materialization from sources we already have.
 
-| Gap | Kind |
+### Required existing-source reconciliation
+
+| Gap | Kind / minimum honest state |
 | :-- | :-- |
-| **`nflverse_usage.db`** ingestion has **no scheduled job** *(scoped — NOT the layer; N18 and FantasyCalc are scheduled)* | **absent schedule** |
-| `contracts` bound but never executed; store table absent | **absent capture** |
-| **Nine materialized streams with no production consumer, NAMED (V2-F4):** `snap_counts` · `injuries` · `pfr_pass` · `pfr_rush` · `pfr_rec` · `pfr_def` · `ff_opportunity` · `ftn_charting` · `depth_charts` | **absent consumer** |
-| PlayerProfiler 1,520,009 `obs`, no production consumer outside ingestion | **absent consumer** |
-| PFF — **partial**, not absent: one family consumed by `build_college_features.py` | **partial consumer** |
-| **N18 Sleeper snapshot: scheduled and consumed, but NORMALIZED — raw endpoint replay unavailable** *(V17)* | **absent raw capture** |
-| **Five direct provider reads** (`player_stats`/`rosters`/`snap_counts`/`pbp`/`participation`) declared by no registry entry | **absent source declaration + absent capture** |
-| **R1 `nfl_data_py` mislabel** (nflreadpy in fact) · **R18 declared `parquet_snapshot`, actually a live read** | **provenance defect** |
-| `ras` fixture-only; `rotoviz`/`campus2canton` fixture-only | **absent capture** |
-| PFF cross-lane overlap/dedup rule undefined, so 134,392 cannot be published as a deduplicated total | **absent normalization rule** |
-| Candidate NEW external sources | **NOT ENUMERATED — the core open work** |
+| Sleeper league-behavior history — 172 exact endpoint payloads + fetch log, four seasons, backup-covered, previously omitted | **catalog omission** — N19 now rows it; preserve endpoint grains and manual one-time cadence |
+| Feature Refresh `player_stats` / `rosters` / `snap_counts` / `pbp` / `participation` | **absent canonical capture** — Option A exact-source capture, independent vintages, atomic bundle, last-good export, then consumer parity |
+| NFL Combine used by `build_w2_features.py` | **active-builder live read** — immutable source capture + parser/version provenance before a new vintage reaches the active artifact |
+| schedules + Realized Outcome player stats | **future-live uncaptured route** — canonical source vintage/finality before the first prediction-bearing run |
+| nflverse draft picks / DynastyProcess `db_playerids` (`ff_playerids`) / nflverse players | **mixed-provider production, identity, freeze, backtest, and validation routes** — reconcile B22's 257-row frozen payload vs 80-row projection, preserve B23's separately pinned 12,457-row and governed 7,952-row identity vintages, and keep B24 uncaptured/static until the registered study runs |
+| N18 Sleeper normalized bundle and request-time Roster Auditor | **parallel route + absent exact raw** — exact endpoint capture, explicit projection, consumer migration; in-season injury completeness test |
+| FantasyCalc forward store and request-time cache/live fallback | **parallel market acquisition** — one canonical market capture, preserve physical/semantic Engine A/B separation |
+| MFL rookie ADP adapter + `SOURCE_REGISTRY` declaration | **source-contract defect** — current undocumented query returns veterans; official rookie-only/no-mock parameters differ, while the machine registry note still calls `ROOKIES=1` documented/rookie-only. Future authorized repair must update adapter + registry declaration/notes + RED controls together before first capture or scheduling |
+| PFF NCAA receiving-summary → `yprr_college` | **materialization gap** — source and builder exist, but active coverage is 0/874; reconcile identity/season join before seeking another provider |
+| CFBD wrapper vs directly invokable builder | **bypassable canonical route** — the isolated raw+curated wrapper must become the only governed acquisition/promotion path |
+| `nflverse_usage.db` | **absent schedule** — 13 bound specs, 12 materialized; `contracts` remains bound/uncaptured and its first scheduled capture is a landing gate |
+| Nine materialized canonical streams with no production consumer | **absent consumer** — `snap_counts`, `injuries`, PFR ×4, `ff_opportunity`, `ftn_charting`, `depth_charts`; priority evidence, not a semantic prohibition |
+| PlayerProfiler 1,520,009 `obs` | **absent production consumer outside ingestion** |
+| R1 `nfl_data_py` mislabel + R18 declared snapshot / actual live PBP | **provenance defects** |
+| B4–B13 share the canonical nflverse adapter/store but lack matching machine source declarations under R19 | **absent source declarations** — reconcile each family without pretending the NGS declaration covers it |
+| DynastyProcess pinned values and `db_playerids` identity snapshots exist physically but have no `SOURCE_REGISTRY` entry | **absent source declaration** — decide whether explicit static-pinned / identity declarations are required; do not silently inherit FantasyCalc's market-source identity or relabel the nflreadpy client as the provider |
+| PFF cross-lane overlap/dedup rule | **absent normalization rule** — 134,392 remains a raw sum, not a deduplicated total |
+| Existing nflverse raw history begins 2026-07-31 | **point-in-time ceiling** — forward capture stops further loss; it cannot recreate prior as-of vintages |
+| Retained inactive `app/data/sources/nfl_nextgen_stats/` tree | **retention decision outstanding** — preserved duplicate source tree is physically inventoried; do not delete or treat it as the active adapter |
+| Sleeper `league_transactions/raw/` + tracked `league_snapshots/` surfaces | **physical-store reconciliation** — 20 raw transaction JSONs and 12 legacy seed/archive files are inventoried separately from the transaction DB and production league set |
+
+### Conditional source acquisition
+
+| Candidate | Current disposition |
+| :-- | :-- |
+| **Production RAS** | Real acquisition is missing if the narrow governed low/missing-RAS risk/context use remains required. Legal feasibility is unresolved: the provider's database instructions require an NDA and restrict sharing underlying data. Do not treat Combine as the proprietary RAS composite. |
+| **Replacement live injury/practice/game-status provider** | Conditional only. First capture Sleeper `/players/nfl` exactly and run a predeclared in-season coverage/freshness test across designation, body part, practice, game status, source timestamp, and identity. Add a provider only if Sleeper fails the floor. |
+| **MFL rookie ADP** | Existing registered source with separated descriptive-overlay destination, but adapter query semantics are currently defective and live output is not rookie-only. `blocked` pending correction/re-RED; first-capture priority is not yet the next gate. |
+
+### Not presently justified
+
+- `ff_rankings` / FantasyPros through DynastyProcess remains `blocked_for_use`, no RED.
+- KTC scraping remains prohibited and market-overlay only.
+- RotoViz / Campus2Canton fixture or manual-export declarations do not establish a production need
+  or legal automated route.
+- Dynasty Data Lab, Dynasty Nerds, and the enterprise providers remain deferred/prohibited without a
+  specific decision, access path, cost, and legal destination.
+
+**Why H remains unchecked:** these findings are now enumerated, but the canonical rows and route
+states require a fresh independent re-verification after reconciliation. “No unconditional new
+provider proven” is the current answer, not a claim that Layer 1 is complete.
 
 ---
 
@@ -543,3 +703,5 @@ where it stands.)*
 | 2026-08-05 | Claude | **v2 rebuild.** F1–F7 accepted; F3/F4/F6 reproduced first. A/B/C reopened; grain tagging added; feature-refresh semantics corrected. |
 | 2026-08-05 | Codex | v2 review — **NOT CLEAR**, four findings (V2-F1..F4). |
 | 2026-08-05 | Claude | **v3.** V2-F1..F4 all accepted, none contested. §1 source count 9→**7** (stale after the F2 merge — **fifth** §5 instance). Table B carries all **five** R7 states with disposition as its own column. "13 streams" restated as **13 bound / 12 materialized**. **B4 resolved** from Codex's probe: canonical export has no production consumer; the daily job's direct `load_snap_counts` is a separate provider-read stream — so the nine consumerless streams are now NAMED. `exported` marked column-wide UNVERIFIED pending probes — **superseded by V11**. |
+| 2026-08-06 | Codex | **v4 reconciliation candidate.** Applied CV1–CV21: added Sleeper exact raw history; Combine/schedules/draft-picks/DynastyProcess-db_playerids/players; expanded consumer and parallel-route edges; inventoried retained NGS + Sleeper raw/archive surfaces; split active seed aliases from archives; bounded R19; corrected CFBD/PFF grains; added N18 endpoint/injury ceiling, point-in-time ceiling, cadence evidence, MFL destination, and §H source-gap answer. Nothing checked off pending fresh independent review. |
+| 2026-08-06 | Codex | Added independently researched B20/B22/B23 conditional cadence candidates and blocked R9 after live current-query output proved non-rookie semantics; machine registry declaration included in future repair gate. No scheduler or fix opened. |
