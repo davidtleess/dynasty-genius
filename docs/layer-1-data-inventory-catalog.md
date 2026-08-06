@@ -216,27 +216,56 @@ never added to a total.**
 | N6 | PlayerProfiler | `pp_player_season` | 5,476 | `obs` | none |
 | N7 | PlayerProfiler | `pp_identity_bridge` | 3,290 | `idn` | — |
 | N8 | PlayerProfiler | `pp_capture` + `pp_pbp_capture` | 57 + 6 | `cap` | — |
-| N9 | FantasyCalc | `fc_forward_capture_raw` | 20,043 | `obs` | market overlay |
+| N9 | FantasyCalc | `fc_forward_capture_raw` *(source `fc_native`, snapshots 2026-06-24 → 2026-08-05)* | 20,043 | `obs` | market overlay |
 | N10 | FantasyCalc | `fc_forward_capture_joinable` | 20,043 | **`alt`** | **never added** |
-| N11 | FantasyCalc / DynastyProcess | `fc_snapshots` | 6,790 | `obs` | market overlay |
-| N12 | Sleeper | `league_transaction` | 932 | `obs` | league context |
-| N13 | Sleeper | `league_transaction_movement` | 1,692 | `obs` *(different grain)* | league context |
+| N11 | **MIXED-SOURCE store** *(V3)* | `fc_snapshots` = DynastyProcess **2,185** (2021-09-08 → 2024-09-08) + FantasyCalc **4,605** (2026-06-12 → 2026-06-24) | 6,790 | `obs` | market overlay |
+| N12 | Sleeper | `league_transaction` | 932 | `obs` | **none** *(V4 — corrected)* |
+| N13 | Sleeper | `league_transaction_movement` | 1,692 | `obs` *(different grain)* | **none** *(V4 — corrected)* |
 | N14 | Sleeper | `league_season_capture` | 4 | `cap` | — |
-| N15 | PFF | manual export payloads | **149** | `obs` *(payload grain)* | **partial** — one family (NCAA receiving-summary) via `scripts/build_college_features.py` |
+| N15 | PFF | manual export payloads | **149** | **`raw-payload count` — NOT `obs`** *(V2)* | **partial** — one family (NCAA receiving-summary) via `scripts/build_college_features.py` |
+| N15b | PFF | internal source rows across 14 league/report lanes | **134,392** | `obs` *(sum; overlap/dedup rule NOT yet stated)* | as N15 |
 | N16 | CFBD | `curated/prospects_with_outcomes_v3.csv` | 874 rows | `obs` | **Engine A** (promoted 2026-08-04) |
-| N17 | CFBD | `raw/<run_id>/` payloads | 810 files | `cap`/raw | upstream of N16 |
+| N17 | CFBD | `raw/20260802T024342156864Z/` payloads | **1,202** *(manifest `raw_file_count`; dir holds 1,203 JSON = 1,202 payloads + `manifest.json`)* | `cap`/raw | upstream of N16 |
 
 **PlayerProfiler reconciles exactly:** 1,520,009 `obs` + 3,290 `idn` + 63 `cap` = 1,523,362 physical
 rows — the figure the prior board carried, now decomposed by grain rather than asserted as a total.
 
-**PFF grain warning, recorded because it is exactly the R5 trap:** the store holds **459 raw CSVs**
-but **149 unique payloads** (`app/data/pff_exports/pff_unique_payload_inventory.csv`, 150 lines
-including its header). **459 is a file count, not an observation count** — the families are
-duplicated across the `ncaa/` and `nfl/` trees. Do not publish 459 as a stream figure.
+**PFF grain, corrected TWICE in one table — the R5 trap catching its own warning.** The store holds
+**459 raw CSVs**, **149 unique payloads**, and **134,392 internal source rows** across **14
+league/report lanes** (7 report families × `ncaa`/`nfl`). I warned that 459 is a file count and not an
+observation count — **and then labelled 149 as `obs` in the very next column.** 149 is also a file
+count. Only N15b is an observation figure, and it is **a raw sum: the overlap/deduplication rule
+across lanes is NOT yet stated, so it may not be published as a deduplicated total** (V2, Codex).
+
+**⛔ N17 — MEASURED THE WRONG PATH. My worst error in this table.** I published **810 files** as the
+promoted CFBD run's raw payload count. **810 is the file count of `app/data/cfbd_cache/`** — a
+different directory entirely, which I ran `find` against and then labelled as
+`raw/<run_id>/`. The promoted run pins **`raw_file_count = 1202`** in
+`manifest_latest.json`, and its directory holds 1,203 JSON files (1,202 payloads + `manifest.json`).
+**This is the same defect shape as the "no raw snapshots exist" error earlier in the session: a
+measurement run against one path and reported as a fact about another.** Second instance in one
+session; both caught by the independent lane, neither by me (V1, Codex).
 
 **Still owed on Table B-N:** per-stream `bound`/`captured`/`exported` states (R7), refresh cadence,
-and evidence paths with timestamps. **No row here is `verified`** — Claude measured them alone, which
-R4 makes `measured`, not checked off.
+evidence paths with timestamps, and **the PFF cross-lane overlap/dedup rule before any 134,392
+aggregate is treated as a deduplicated observation count**. **No row here is `verified`** — Claude
+measured them alone, which R4 makes `measured`, not checked off.
+
+### §3.2 Registry PHYSICAL-state corrections *(Codex V5–V8, all reproduced by Claude)*
+
+Four §2.1 capture-state cells that read `UNVERIFIED` are now resolved, and two are **provenance
+defects rather than captures**:
+
+| Registry key | §2.1 said | Physical truth | Note |
+| :-- | :-- | :-- | :-- |
+| `nfl_data_py` (R1) | UNVERIFIED | **NOT a `nfl_data_py` capture** | **No `nfl_data_py` import exists in the repo.** `scripts/ingest_2026_draft.py` imports **`nflreadpy`**, writes an 80-player JSON, and labels it `nfl_data_py_verified_nfl_draft`. Declared `parquet_snapshot`; actual route is JSON via nflreadpy. **Source-identity/provenance defect — recorded, not opened.** |
+| `ras` (R4) | UNVERIFIED | **`fixture_only`** | Adapter defaults to `resources/fixtures/ras_mock.csv`; that fixture is the only RAS data file. No production capture, no schedule. |
+| `nflreadpy_qb_context` (R18) | UNVERIFIED | **`live_direct_read`, consumer-triggered** | `fetch_qb_nfl_stats` calls `nfl.load_pbp(seasons)` in memory; `app/services/roster_auditor.py` invokes it for 2024/2023. **No raw snapshot, no governed cache.** Declared `parquet_snapshot`/168h — **a declared freshness does not make it captured.** Needs its own Table B stream row. |
+| `nflreadpy_qb_validation` (R20) | pinned study inputs | **`registered_and_pinned; NOT captured`** | `app/data/backtest/qb_validation/raw/` holds **zero files** (verified). The study has not run. **H2 QB rushing remains a registered hypothesis UNDER TEST with no result.** |
+
+**R18 is a SIXTH undeclared live provider read**, alongside the five in §2.2 — same class, different
+consumer (Roster Auditor rather than Feature Refresh). It is in scope for David's A/B ruling in
+substance even though it was not named in the question.
 
 **`exported` is column-wide UNVERIFIED pending per-row export-path evidence** — the ✓ marks reflect
 membership in the canonical export as understood, not a probe. Treat as owed, not confirmed.
