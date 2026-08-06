@@ -410,9 +410,17 @@ layout — **20** keys carry cross-scope payloads while only **2** carry same-sc
 | **Same-scope current-state selection** — choose the current payload among same-scope variants | the only true value conflicts | **3 rows** |
 | **Cross-scope aggregation (OPTIONAL)** — a union across `REG`/`POST`/`PRE` if a combined view is ever wanted | distinct keys, **not** deduplication | 20 keys |
 
-**The conflict problem is 3 rows, not 9,518.** **Nobody should publish an aggregate PFF observation
-count until the aggregation mechanism above is chosen and stated** — and that is a design decision,
-not a measurement gap.
+**The conflict problem is 3 rows, not 9,518** — and Codex's exhaustive profiling names them exactly:
+`receiving_depth · 2017 · REGPO` player IDs **39935** and **48267**, plus
+`receiving_summary · 2025 · REG` player ID **198423**.
+
+**PUBLICATION RULE, narrowed *(P8, Codex)*.** An earlier draft said *"nobody should publish an
+aggregate PFF observation count"* — **too broad, and it contradicted N15b in this same document**,
+which correctly publishes **134,392** as a raw payload-row sum.
+* **PUBLISHABLE:** raw-grain aggregation — the 134,392 payload-row sum, labelled as such.
+* **NOT PUBLISHABLE:** any **deduplicated or current-state cross-payload total**, until the
+  aggregation mechanism above is chosen and stated.
+That remaining item is a **design decision, not a measurement gap.**
 
 *(Process note, recorded because it caused a second defect: my edit script used `str.replace`, which
 returns the input unchanged when the anchor does not match, and printed a success message
