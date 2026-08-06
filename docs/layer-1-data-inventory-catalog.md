@@ -396,9 +396,23 @@ in values, and at least one player present only in a discarded payload.**
 statuses (`superseded_basis_retained` 10 payloads / 21,668 rows, `scope_mismatch_retained` 12 /
 1,784, and others) are deliberately-kept payloads.
 
-**What a real rule now requires:** a **row-level union keyed on `(player_id, scope, season, report,
-league)` with an explicit value-conflict policy** for the 9,518 differing rows — not a file-selection
-heuristic. **Nobody should publish any aggregate PFF observation count until that exists.**
+**What a real rule now requires — THREE separate mechanisms, not one *(P6, Codex; corrects my own
+internal contradiction)*.** My first version put **scope in the key** and then called **all 9,518**
+differing rows *"conflicts needing a value-conflict policy."* **Those two statements contradict each
+other:** if scope is part of the key, then rows differing across scopes are **separate keys, not
+conflicts.** Codex's reprobe: **9,515 of the 9,518 are CROSS-SCOPE** (separate keys) and **only 3 are
+same-scope variant comparisons** (genuine conflicts). Structurally consistent with the payload
+layout — **20** keys carry cross-scope payloads while only **2** carry same-scope duplicates.
+
+| Mechanism | Scope of the problem it solves | Size |
+| :-- | :-- | :-- |
+| **Raw versioning** — keep every accepted payload version | same-scope duplicate payloads | **2 keys** |
+| **Same-scope current-state selection** — choose the current payload among same-scope variants | the only true value conflicts | **3 rows** |
+| **Cross-scope aggregation (OPTIONAL)** — a union across `REG`/`POST`/`PRE` if a combined view is ever wanted | distinct keys, **not** deduplication | 20 keys |
+
+**The conflict problem is 3 rows, not 9,518.** **Nobody should publish an aggregate PFF observation
+count until the aggregation mechanism above is chosen and stated** — and that is a design decision,
+not a measurement gap.
 
 *(Process note, recorded because it caused a second defect: my edit script used `str.replace`, which
 returns the input unchanged when the anchor does not match, and printed a success message

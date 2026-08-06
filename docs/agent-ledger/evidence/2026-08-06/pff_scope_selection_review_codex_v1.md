@@ -1,8 +1,8 @@
 # PFF scope-selection review — Codex v1
 
-**Reviewed commit:** `529b187eac719386d6b7a58dd3220c5d63336857` (unpushed at review time)  
-**Layer:** Layer 1 data inventory  
-**Verdict:** **NOT CLEAR**  
+**Reviewed commit:** `529b187eac719386d6b7a58dd3220c5d63336857` (unpushed at review time)
+**Layer:** Layer 1 data inventory
+**Verdict:** **NOT CLEAR**
 **Scope:** read-only validation of `app/data/pff_exports/pff_unique_payload_inventory.csv` and its
 149 referenced canonical CSV payloads. No source payload, catalog row, code, scheduler, or consumer
 was changed.
@@ -108,4 +108,3 @@ CH1–CH5 were already accepted, integrated, and recorded in
 
 The current source-cadence artifact SHA-256 is
 `2d1fe261b8c88a75091ca48e0951348d64b26bee7696bc28a8abaaa8ff2387fe`.
-
