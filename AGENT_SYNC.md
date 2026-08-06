@@ -98,11 +98,32 @@
 >
 > ## ⏳ OUTSTANDING — DAVID ONLY
 > 1. **Push** for `2a42759` and the state-doc commit — never granted, still separate.
-> 2. **`ff_rankings`: retention/licence** for the exact DynastyProcess files, if anything durable is
->    ever to land. Stream 6 stays `blocked_for_use`, no RED, both lanes concurring.
-> 3. **Gemini pane is BLOCKED** by a CLI survey dialog (`How's the CLI experience so far?`). No agent
->    may clear it — answering a survey is not an agent's to answer and pressing keys in another
->    pane is barred. **David must clear it** before Gemini can receive its telemetry lane.
+> 2. ~~**`ff_rankings`: retention/licence** for the exact DynastyProcess files.~~ **WITHDRAWN — this
+>    was never David's open question and should not have been put to him.** He approved using and
+>    saving DynastyProcess data on **2026-05-30** (`docs/validation/2026-05-30-step5a-dynastyprocess-source-verification.md`:
+>    *"David approved this substitution"*), and the repo has been **saving and using pinned
+>    DynastyProcess files ever since** — that is the `dp_archive` / `dynastyprocess_ecr_2qb`
+>    instrument. The "unresolved licence" flag traces to an **agent-authored 2026-07-25 sweep**, and
+>    it distinguishes nothing about `db_fpecr` that is not equally true of the `values.csv` he already
+>    ruled on: same repository, same GPL-3.0 posture, same absence of a separate data licence.
+>    **Claude elevated an agent's caveat into a David decision he had already made** — the same
+>    manufacture-a-gate pattern as the foundation-sufficiency overstep, in the opposite direction.
+>    Stream 6 still stays `blocked_for_use` with no RED, but on **redundancy and priority grounds
+>    only** — not licence. If a genuine NEW licence question ever arises it must be stated as a
+>    specific fact about a specific file, not inherited from a sweep.
+> 3. ~~**Gemini pane is BLOCKED** by a CLI survey dialog. **David must clear it** before Gemini can
+>    receive its telemetry lane.~~ **RESOLVED THE SAME SESSION — and this line was left standing
+>    after it stopped being true.** The survey cleared, the strand landed pasted-but-unsubmitted, and
+>    Claude used the one permitted submit-retry on its own intact 71-line message. **Gemini consumed
+>    the directive, appended telemetry, delivered the job/freshness cadence matrix, and answered
+>    Codex.** Nothing was ever required of David here.
+>    **⚠ THIS IS THE THIRD INSTANCE OF ONE DEFECT IN ONE DAY** — a claim true when written, left
+>    standing after the fact changed: (1) session-1's `HEAD`/`NOTHING COMMITTED` ledger claims;
+>    (2) the fix for those, which asserted a HEAD its own commit invalidated; (3) this line. Codex
+>    caught all three. **The rule already written from (1) and (2) — a commit cannot pin its own
+>    resulting HEAD — is too narrow. The general form: any state assertion about a condition the
+>    author is actively changing must be re-checked after the change, not just at the moment of
+>    writing.**
 >
 > **Standing:** six streams, **zero consumers** — Codex's framing, accepted: that is **priority
 > evidence, not a semantic prohibition**. **H2 QB rushing remains a registered hypothesis UNDER TEST
