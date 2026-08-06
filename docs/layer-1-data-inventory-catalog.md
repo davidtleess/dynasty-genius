@@ -52,13 +52,16 @@ and never captured.
 
 ## §1. Progress
 
-- [ ] **A. Sources** — **REOPENED (F1/F2).** **7** rows enumerated vs **20 machine-registry
-      definitions** plus non-registry sources. Incomplete. *(This read "9" until V2-F1: the count was
-      written for v1's table and left standing after F2 merged A7/A9 into one DynastyProcess source.
-      Fifth instance of the §5 defect — a figure describing a table I had just changed.)*
-- [ ] **B. Ingestion streams** — **REOPENED (F1/F6).** Canonical nflverse specs only; missing
-      PlayerProfiler, PFF, CFBD, FantasyCalc, Sleeper, the direct feature-refresh loaders, and
-      validation/context streams.
+- [ ] **A. Sources** — **all 20 registry definitions now enumerated** in §2.1 with their declared
+      role/cache/freshness/failure fields and a separately-stated physical capture state, including
+      the deferred, fixture-only and prohibited states (F1's named blocker). **Still UNCHECKED:**
+      R4 requires independent per-cell verification, and six capture-state cells are `UNVERIFIED`.
+      *(Deliberately carries NO row-count total for the physical table — a count describing a table
+      in the same commit that changes it is the §5 defect, instances 5 and 6. Counts come from a
+      probe, not from this document.)*
+- [ ] **B. Ingestion streams** — **the five direct provider reads are now rowed (B15–B19)** and the
+      non-registry gap is recorded in §2.2. **Still missing:** PlayerProfiler, PFF, CFBD,
+      FantasyCalc and Sleeper stream rows, and the validation/context streams.
 - [ ] **C. Refresh frequencies** — **REOPENED (F4/F5).** Job matrix received; stream↔job edges wrong
       in v1 and now corrected; per-stream cadence unresolved.
 - [ ] **D. Catalog** · [ ] **E. Player 360** · [ ] **F. Semantic layer + metrics** · [ ] **G. Schemas**
@@ -71,14 +74,71 @@ and never captured.
 
 ---
 
-## §2. Table A — SOURCES *(INCOMPLETE — F1)*
+## §2. Table A — SOURCES
 
-**Machine registry: 20 definitions** in `src/dynasty_genius/sources/source_registry.py` —
-`campus2canton · cfbd · dynasty_data_lab · dynasty_nerds · fantasycalc · genius_sports · ktc ·
-mfl_rookie_adp · nfl_data_py · nfl_nextgen_stats · nflreadpy_qb_context · nflreadpy_qb_validation ·
-pff · playerprofiler · ras · rolling_insights · rotoviz · sleeper · sportradar · stats_perform`.
-**Each needs a row with its access/loader/capture state, including deferred, fixture-only and
-prohibited states. Not yet done.**
+### §2.1 Table A-R — the 20 machine-registry definitions *(F1 CLOSED — Claude-measured, awaiting R4 verification)*
+
+**Enumerated 2026-08-06** by loading `SOURCE_REGISTRY` from
+`src/dynasty_genius/sources/source_registry.py` and dumping every dataclass field — not by reading
+prose. Rerunnable:
+
+```bash
+.venv/bin/python3.14 -c "from src.dynasty_genius.sources.source_registry import SOURCE_REGISTRY; \
+print(len(SOURCE_REGISTRY)); [print(k) for k in SOURCE_REGISTRY]"
+# measured: 20
+```
+
+`role` · `cache_policy` · `freshness_hours` · `failure_behavior` are **registry declarations**, not
+observed behaviour. **Capture state is a separate, physical question** and is the last column;
+`UNVERIFIED` there means no probe was run this session, per R2.
+
+| # | Registry key | Role | Cache policy | Fresh (h) | On failure | Access class | Capture state (physical) |
+| :-- | :-- | :-- | :-- | --: | :-- | :-- | :-- |
+| R1 | `nfl_data_py` | model_input + training_label | `parquet_snapshot` | 168 | `use_cached` | free | UNVERIFIED — loaders/stores not enumerated |
+| R2 | `cfbd` | model_input | `json_cache` | 720 | `skip_enrichment` | **paid** | partial — `sources/cfbd_foundation/`; promoted 2026-08-04 |
+| R3 | `playerprofiler` | context_signal | `json_cache` | — | `skip_enrichment` | **manual, by David** | `playerprofiler.db` — 1,520,009 `obs` |
+| R4 | `ras` | context_signal | `json_cache` | — | `skip_enrichment` | free | UNVERIFIED |
+| R5 | `pff` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | 149 payloads / 7 families; 1 partial consumer |
+| R6 | `rotoviz` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | **fixture-only — no capture** |
+| R7 | `campus2canton` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | **fixture-only — no capture** |
+| R8 | `fantasycalc` | market_overlay | `json_cache` | 24 | `use_cached` | free | `fc_forward_capture.db` — 20,043 `obs` |
+| R9 | `mfl_rookie_adp` | market_overlay | `json_cache` | 24 | `use_cached` | free | **no capture** — overlay destination undesigned |
+| R10 | `dynasty_data_lab` | market_overlay | `none` | — | `skip_enrichment` | **paid** ($4/1k req) | **deferred — no capture** |
+| R11 | `dynasty_nerds` | market_overlay | `none` | — | `skip_enrichment` | no clean API | **deferred — no capture** |
+| R12 | `ktc` | market_overlay | `none` | — | `skip_enrichment` | **PROHIBITED** — ToS bars scraping | **none, by rule** |
+| R13 | `sleeper` | context_signal | `json_cache` | 1 | `use_cached` | free | `league_transactions.db` — transactions only |
+| R14 | `sportradar` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — ~$7,200/yr | **none, by rule** |
+| R15 | `genius_sports` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — enterprise | **none, by rule** |
+| R16 | `stats_perform` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — enterprise | **none, by rule** |
+| R17 | `rolling_insights` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — $4,200–7,200/yr | **none, by rule** |
+| R18 | `nflreadpy_qb_context` | context_signal | `parquet_snapshot` | 168 | `skip_enrichment` | free | UNVERIFIED |
+| R19 | `nfl_nextgen_stats` | context_signal | `sqlite_store_with_raw_snapshots` | 168 | `use_cached` | free | **canonical** — `nflverse_usage.db`, B1–B13 |
+| R20 | `nflreadpy_qb_validation` | **validation_study** | `parquet_snapshot` | — | `fail_closed` | free | pinned study inputs; walled to `eval/qb_validation/` |
+
+**Registry composition:** 6 prohibited-or-deferred with no capture by rule (R10–R12, R14–R17 less
+R13) · 3 fixture/manual-export only (R5–R7) · 1 validation-pinned (R20) · 1 canonical multi-stream
+adapter (R19). **Only R19 has a production capture route built by an agent.**
+
+### §2.2 ⛔ NEW FINDING — five production provider reads that NO registry entry declares
+
+**Measured 2026-08-06.** `scripts/run_feature_refresh.py::_load_source` pulls **`player_stats`,
+`rosters`, `snap_counts`, `pbp`, `participation`** directly from `nflreadpy` on every 09:15 fire.
+**No entry in Table A-R declares these frames as that job uses them.** The three near-neighbours
+are each a different use, verified field-by-field:
+
+- `nfl_data_py` (R1) — `allowed_fields` = `pick · round · age · team · draft_year` (draft capital).
+- `nflreadpy_qb_context` (R18) — `allowed_fields` = `cpoe · epa_per_dropback · dropback_count ·
+  dakota · pass_attempts`.
+- `nflreadpy_qb_validation` (R20) — pinned study inputs, `fail_closed`, walled to
+  `src/dynasty_genius/eval/qb_validation/` by the F33 wall.
+
+`01` §Source Adapter Rules requires one adapter per external source, a raw snapshot before parsing,
+and source-timestamp/parser-version provenance. **These five reads satisfy none of those.** Recorded
+as a MEASURED FACT and a gap of kind *absent source declaration* + *absent capture* (R6). **Not
+authority to build, register, or schedule anything.** This is the object of David's A/B pressure
+test — see `docs/agent-ledger/evidence/2026-08-05/layer1_feature_refresh_route_recommendation_claude_v1.md`.
+
+### §2.3 Table A-P — PHYSICAL sources present in the repo *(status unchanged from v3)*
 
 | # | Source (provider + dataset family) | Access | Stores | Status |
 | :-- | :-- | :-- | :-- | :-- |
@@ -89,6 +149,9 @@ prohibited states. Not yet done.**
 | A5 | FantasyCalc | free | `fc_forward_capture.db` + part of `fc_snapshots.db` | partial |
 | A6 | **DynastyProcess** *(ONE source — v1 split it into A7/A9 by loader, F2)* | free, GPL-3.0 repo | pinned `values.csv`; part of `fc_snapshots.db` | partial |
 | A7 | Sleeper | free | `league_transactions.db` **(transactions only — v1 claimed league/roster/universe, F2)** | partial |
+
+**A6 DynastyProcess is in NO registry entry** — a physical source with pinned data and no machine
+declaration. Recorded, not opened.
 
 **Derived — OUR OUTPUT, not fuel:** `model_forward_capture.db`, `market_divergence_history.db`.
 Never counted as ingested source data.
@@ -123,6 +186,17 @@ must never sit in a state cell** — v2 put `blocked_for_use` in B14's consumer 
 | B12 | `depth_charts` | `depth_charts` | **812,074** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
 | B13 | `contracts` | *(absent)* | **0** | ✓ | **✗ never run** | ✗ | none | ✗ | `substrate_only` |
 | B14 | `ff_rankings` | *(none)* | 0 | ✗ | ✗ | ✗ | none | ✗ | `blocked_for_use` |
+| B15 | `player_stats` **(direct provider read — §2.2)** | *(none)* | 0 | ✗ | ✗ | ✗ | **09:15 Feature Refresh, live from `nflreadpy`** | ✗ | **undeclared — see §2.2** |
+| B16 | `rosters` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared** |
+| B17 | `snap_counts` **(direct provider read — DUPLICATE of B4)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared — two live routes to one source** |
+| B18 | `pbp` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared** |
+| B19 | `participation` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared** |
+
+**B15–B19 are streams with a PRODUCTION CONSUMER and NO capture** — the exact inverse of B5–B13
+(captured, no consumer). They are rowed here because R1 makes a stream an inventory entity whether
+or not we store it; `obs = 0` records that **we keep nothing**, not that nothing flows. **B17 is the
+duplicate route to B4** (`player_snap_count`, 253,106 `obs`). Disposition for all five is David's
+open A/B decision, not the catalog's to assign.
 
 **`exported` is column-wide UNVERIFIED pending per-row export-path evidence** — the ✓ marks reflect
 membership in the canonical export as understood, not a probe. Treat as owed, not confirmed.

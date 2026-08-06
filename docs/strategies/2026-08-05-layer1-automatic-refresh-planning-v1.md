@@ -1,4 +1,4 @@
-# Layer 1 Automatic Data Refresh Planning — v2
+# Layer 1 Automatic Data Refresh Planning — v3
 
 **Status:** planning increment, not execution authority
 
@@ -57,7 +57,8 @@ This table is deliberately provisional. Rows not yet enumerated in the catalog r
 | Sleeper league capture | daily 09:20 job; latest marker success is not a health history | `automatic_active_health_unverified` | attach exact stream/job/marker edges and verify freshness across every league-state artifact |
 | FantasyCalc forward capture | daily 09:00 job; no registered freshness row | `automatic_active_health_unverified` | add its missing freshness-policy row and preserve physical market separation |
 | nflverse canonical store: 13 bound specs | manual capture only; 12 materialized | `automatic_candidate` | complete per-stream cadence, source-publish, and dependency rows; `contracts` has never run |
-| Feature Refresh direct reads: player stats, rosters, snap counts, PBP, participation | pulled inside a daily derivation job; not canonical capture streams | `blocked` pending architecture choice | either make them governed captured streams or register an explicit separate ingestion path; do not keep invisible provider reads |
+| Feature Refresh direct read: snap counts | canonical B4 is already materialized/exported (253,106 rows), but the daily job bypasses it with a second live read | `automatic_candidate` | schedule the canonical capture, add a ready-export loader and durable candidate-equivalence control, then remove the duplicate live route |
+| Feature Refresh direct reads: player stats, rosters, PBP, participation | pulled inside a daily derivation job; no canonical capture streams | `blocked` pending the David-ordered pressure-test conclusion | define exact-byte raw capture, normalized partitions, cadence, coherent-season frontier, atomic bundle, and backup treatment; do not keep invisible provider reads |
 | Sleeper transactions/movements | manual store today | `automatic_candidate` | define incremental cursor/idempotence, league-history backfill, and status marker |
 | CFBD | paid HTTP source; registered 720-hour freshness for historical data | `blocked` pending cost/run policy | David approves automated paid-call budget and season/event cadence |
 | PlayerProfiler | current store was manually landed; shadow retrieval exists | `blocked` pending access/legal/reliability audit | prove a sanctioned stable acquisition path before calling it automatable |
@@ -155,10 +156,11 @@ before adding more clocks.
 ### P2 — Design the canonical nflverse refresh program
 
 - Group only streams with proven shared cadence/failure boundaries.
-- Make the five Feature Refresh direct reads canonical captured streams before derivation. Letting
-  them remain a parallel production ingestion surface would contradict `01` §Source Adapter Rules
-  and the one-trustworthy-path standing goal; that alternative requires an explicit governance
-  amendment, not an ordinary architecture preference.
+- Route all five Feature Refresh inputs through canonical capture before derivation. `snap_counts`
+  must reuse existing B4 and retire its duplicate live read; the other four need new governed
+  capture contracts. Letting the live reads remain a parallel production ingestion surface would
+  contradict `01` §Source Adapter Rules and the one-trustworthy-path standing goal; that alternative
+  requires an explicit governance amendment, not an ordinary architecture preference.
 - Define season windows, dependency ordering, locks, markers, and last-good publication.
 - Preserve the contracts snapshot semantics and weekly cadence already ruled; scheduling remains a
   separate authority gate.
@@ -187,9 +189,10 @@ these gates.
 1. Which `automatic_candidate` streams receive build priority.
 2. Numeric paid-call budgets and acceptable refresh frequency for CFBD or any paid source.
 3. Whether any currently prohibited enterprise source is reopened.
-4. Whether the five direct Feature Refresh reads become canonical captured streams. Retaining a
-   parallel surface is not a peer option under current governance; it requires an explicit `01`
-   amendment that David is told he is making.
+4. The final design for the five direct Feature Refresh reads after the David-ordered pressure
+   test. David's stated preference is that they flow into Layer 1. Retaining a parallel surface is
+   not a peer option under current governance; it requires an explicit `01` amendment that David
+   is told he is making.
 5. The final enablement word for each scheduled job or approved batch.
 6. The exact in-season/offseason/event boundaries for each cadence family, after source-publish
    rhythms are measured.
@@ -199,11 +202,10 @@ these gates.
 No scheduler, LaunchAgent, capture, store, consumer, model input, market overlay, commit, or push is
 created or authorized by this plan.
 
-**Backup authority is CONTESTED and this plan does not resolve it.** Claude reads David's earlier
-word *“have the next session push and backup”* as authority for a recovery run. Codex previously
-treated manual recovery as still gated. The phrase can also mean “handle/investigate the backup
-situation.” Both interpretations cannot stand, and only David may resolve them. Until he does, no
-agent uses this plan as authority to run a backup or recovery.
+**Backup authority is resolved by David.** Asked whether *“have the next session push and backup”*
+meant execute the recovery or investigate only, David replied *“i meant RUN IT.”* The next session
+is authorized to run the manual backup/recovery. This planning artifact records that ruling; it
+does not expand it into unrelated scheduler, capture, or product authority.
 
 H2 QB rushing remains a registered hypothesis **UNDER TEST** with no result.
 
@@ -211,7 +213,7 @@ H2 QB rushing remains a registered hypothesis **UNDER TEST** with no result.
 
 | Finding | Disposition |
 | :-- | :-- |
-| C1 backup authority conflict | **Accepted; unresolved.** §8 now records both readings and escalates to David. |
+| C1 backup authority conflict | **Accepted; resolved by David.** “RUN IT” authorizes the next-session manual backup/recovery. |
 | C2 parallel direct-read branch requires governance amendment | **Accepted.** Canonical capture is the compliant default; the alternative is labelled an explicit `01` amendment. |
 | C3 active jobs were called healthy without evidence | **Accepted.** Automation existence and health are split; Sleeper/FantasyCalc are health-unverified. |
 | C4 failing backup constrains new capture | **Accepted.** Non-failed backup marker added as a persistent-capture enablement precondition. |

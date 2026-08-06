@@ -11,6 +11,80 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ 2026-08-06 SESSION 3 — PUSHED + CI GREEN · BACKUP RECOVERY RUNNING · GEMINI WIRE REPAIRED
+>
+> **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** David's words governing
+> this session: the push authorization, *"i meant RUN IT"* (backup recovery), *"we must start planning
+> for scheduled (automatic) data refreshes for all streams (that are possible)"*, and the A/B
+> pressure-test order. **No new build, landing, scheduler or enablement authority is created here.**
+>
+> **NO HEAD OR AHEAD-COUNT IS ASSERTED.** Get current SHAs from a gate run:
+> `git rev-list --count origin/main..HEAD`.
+>
+> ## PUSH — DONE. CI IS GREEN.
+> `origin/main` advanced `9f8dd0d..be6ed64` (fast-forward). **CI run `31066633017` on
+> `be6ed64f6946b9092657208651d3f4d865b9efa0`: SUCCESS** (Frontend 49s · Python 3m46s). Stated as past
+> facts about named SHAs. Codex post-push audit requested `[w#79rm9uvq-1]`, delivery verified.
+>
+> ## BACKUP — RECOVERY RUN IN FLIGHT, TERMINAL STATE UNKNOWN
+> Run `20260806T024853Z` launched under David's *"i meant RUN IT"*. Immutable prefix, **no delete
+> constructed**. At last check ~205/508 objects uploaded. **The marker still reads the previous FAILED
+> run `20260805T141503Z` — that is by design; it is written only at terminal state. READ
+> `app/data/ops/backup_status_latest.json` FRESH before claiming any outcome.** A second failure is a
+> result to report, not to retry quietly. The failing file from the prior run exists and is readable
+> (7,243 bytes) — not a source-file defect; "timeout" as a mechanism stays withdrawn.
+>
+> ## GEMINI WIRE — ROOT-CAUSED AND REPAIRED. THIRD LANE LIVE.
+> **Root cause:** the agy chrome parks the terminal cursor at the end of the last rendered response
+> line, not on its composer (measured: prompt row 24, `cursor_y` 21, stable across 3 probes).
+> `split_regions` bounds the input region by the cursor and falls fail-closed above the prompt, so the
+> status footer counted as typed input — every send refused `input_not_empty` on an empty composer.
+> **Fix WIRE-GEMINI-3:** bordered profiles only, cursor-unusable only, bottom edge falls back to the
+> **LAST** border below the prompt. First attempt used the FIRST border and **round-6 B2 caught it**.
+> Full suite **4,663 passed / 12 skipped / 9 xfailed, exit 0**, ruff clean.
+> **PARKED UNCOMMITTED — `scripts/dg_delivery.py` + 8 test rows. Code needs cockpit CLEAR + David's word.**
+> **SECOND DEFECT, DIAGNOSED NOT FIXED:** agy collapses long pastes to a chip but gemini is registered
+> `chip=False`, so long sends refuse `wire_body_mismatch`. NOT registered as chip-collapsing — one
+> sample cannot decide whether agy's `M` is total or total-minus-one, and guessing risks a false ACCEPT.
+> Needs a controlled experiment, not a live peer pane. **Disclosed: one permitted submit-retry Enter was
+> used on Claude's OWN intact strand, with evidence gathered first.**
+>
+> ## ⛳ A vs B PRESSURE TEST — **BOTH BINDING LANES RECOMMEND OPTION A.** DAVID'S RULING OWED.
+> `docs/agent-ledger/evidence/2026-08-05/layer1_feature_refresh_route_recommendation_claude_v1.md`
+> (Claude consolidation) + `..._pressure_test_codex_v3.md` (Codex, independent). Convergence flagged as
+> a §Falsification #4 yellow flag and adversarially checked, not waved through.
+> * **Decisive point, held by neither lane at the start:** on **2026-07-31, on David's word**, NGS was
+>   moved OUT of live calls in this same 09:15 chain onto the last-good export. **A is the state he
+>   already chose; B is the state he moved NGS out of.**
+> * **Not hypothetical:** 2026-08-02, a live `pbp_participation_2021.parquet` timeout aborted the
+>   derivation (`refusing to publish`). Recovered 08-03.
+> * **Claude's prior position was corrected, not confirmed:** "nothing recorded what the provider
+>   served" was TOO STRONG — a combined `source_hash` exists; it is one-way, so nothing is *replayable*.
+> * **Claude's named weakest point INVERTED:** Codex's ETag/HTTP-304 probe shows **volume favours A**.
+> * **`snap_counts` is already both routes** — B4 = 253,106 `obs`, identity-resolved, ZERO consumers.
+>   Codex's substitution: 205,354 rows value-identical, candidates 2,743×39 value-identical. First migration.
+> * **OPEN, unmeasured by any lane:** how often nflverse revises a published season parquet. Sets
+>   retention policy, not the A/B choice.
+>
+> ## LAYER 1 CATALOG — F1's LARGEST BLOCKER CLOSED, A-C STILL UNCHECKED
+> All **20 registry definitions** enumerated (§2.1) with deferred/fixture-only/prohibited states, plus
+> a separately stated physical capture state. **NEW FINDING (§2.2): NO registry entry declares the five
+> direct provider reads** (`player_stats`/`rosters`/`snap_counts`/`pbp`/`participation`) as the daily
+> job uses them — `01` §Source Adapter Rules unsatisfied for five live production reads. **Measured
+> fact, NOT authority to register or build.** B15-B19 rowed with `obs = 0`. A and B stay **UNCHECKED**:
+> R4 needs Codex per-cell verification and six capture-state cells are `UNVERIFIED`.
+>
+> ## ⏳ OUTSTANDING — DAVID ONLY
+> 1. **The A/B ruling**, and the retention contract A forces (the backup manifest excludes
+>    `nflverse_usage.db` and does not protect `nflverse_usage/raw`, ~5.2 GiB).
+> 2. **Commit + push for the parked wire fix** (code), after Codex's CLEAR.
+> 3. Numeric storage/paid-call ceilings; the enablement word for any job.
+>
+> **Standing:** Phase B and Layer 2 remain **CLOSED**. `contracts` `substrate_only`, zero product-store
+> rows. `ff_rankings` `blocked_for_use` on redundancy/priority, **not licence**. **Layer sufficiency is
+> David's alone and is asserted nowhere here.** **H2 QB rushing remains a registered hypothesis UNDER
+> TEST with no result.**
+
 > # ▶ 2026-08-05 SESSION 2 — CONTRACTS V12 **CLEAR** (uncommitted) · FF_RANKINGS **BLOCKED_FOR_USE**
 >
 > **AUTHORITY.** Agent-authored state reconciliation by the two binding lanes (Claude + Codex).

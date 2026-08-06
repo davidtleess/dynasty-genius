@@ -6,17 +6,19 @@
 
 **Review message:** `[w#4dl4iu18-1]`
 
-**Result:** C1–C7 accepted, none contested. C1 remains unresolved because only David can clarify
-whether *“have the next session push and backup”* authorized a manual recovery run.
+**Result:** C1–C7 accepted, none contested. C1 was subsequently resolved by David: when asked
+whether *“have the next session push and backup”* meant execute recovery or investigate only, he
+replied *“i meant RUN IT.”* The next-session manual backup/recovery is authorized.
 
 ## Dispositions
 
-1. **C1 — accepted and escalated.** The plan no longer asserts backup authority closed. It records
-   Claude's authorization reading and Codex's gated reading, treats them as mutually incompatible,
-   and forbids using the plan as authority until David clarifies.
-2. **C2 — accepted.** The compliant default is one canonical captured path. Retaining the five
-   direct Feature Refresh reads as a parallel ingestion surface is now labelled an explicit
-   `01` governance amendment, not an ordinary design option.
+1. **C1 — accepted, escalated, and resolved by David.** *“i meant RUN IT”* confirms the
+   next-session manual backup/recovery authority. The planning artifact records the ruling; it does
+   not expand it into unrelated capture or scheduler authority.
+2. **C2 — accepted.** The compliant default is one canonical captured path. Canonical B4 already
+   exists for `snap_counts`; its direct read is a duplicate. The other four direct inputs lack
+   canonical capture. Retaining any of the five live reads as a parallel ingestion surface is an
+   explicit `01` governance amendment, not an ordinary design option.
 3. **C3 — accepted.** Automation presence and operational health are separated. Sleeper and
    FantasyCalc are `automatic_active_health_unverified`; a job fire is not health evidence.
 4. **C4 — accepted.** A non-failed backup marker is a precondition before enabling new persistent
