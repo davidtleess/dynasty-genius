@@ -52,8 +52,10 @@ and never captured.
 
 ## §1. Progress
 
-- [ ] **A. Sources** — **REOPENED (F1/F2).** 9 rows enumerated vs **20 machine-registry definitions**
-      plus non-registry sources. Incomplete.
+- [ ] **A. Sources** — **REOPENED (F1/F2).** **7** rows enumerated vs **20 machine-registry
+      definitions** plus non-registry sources. Incomplete. *(This read "9" until V2-F1: the count was
+      written for v1's table and left standing after F2 merged A7/A9 into one DynastyProcess source.
+      Fifth instance of the §5 defect — a figure describing a table I had just changed.)*
 - [ ] **B. Ingestion streams** — **REOPENED (F1/F6).** Canonical nflverse specs only; missing
       PlayerProfiler, PFF, CFBD, FantasyCalc, Sleeper, the direct feature-refresh loaders, and
       validation/context streams.
@@ -98,26 +100,35 @@ retention/licence blocker was agent-manufactured and is withdrawn.
 
 ## §3. Table B — STREAMS, grain-tagged *(INCOMPLETE — F1)*
 
-Measured 2026-08-05, read-only, at commit `2a42759`. **13 bound StreamSpecs.**
+Measured 2026-08-05, read-only, at commit `2a42759`. **13 loader-bound StreamSpecs; 12 materialized
+as source tables.** *(V2-F3: "13 streams" conflated bound specs with materialized tables.)*
 
-| # | Stream | Loader | Axis | Table | `obs` rows | bound | captured | consumed |
-| :-- | :-- | :-- | :-- | :-- | --: | :-: | :-: | :-- |
-| B1 | `ngs_passing` | `load_nextgen_stats` | seasonal | `ngs_passing` | **5,933** | ✓ | ✓ | feature refresh (via export) |
-| B2 | `ngs_rushing` | " | seasonal | `ngs_rushing` | **6,059** | ✓ | ✓ | " |
-| B3 | `ngs_receiving` | " | seasonal | `ngs_receiving` | **14,731** | ✓ | ✓ | " |
-| B4 | `snap_counts` | `load_snap_counts` | seasonal | `player_snap_count` | **253,106** | ✓ | ✓ | **UNVERIFIED** |
-| B5 | `injuries` | `load_injuries` | seasonal | `nflverse_injury_report` | **45,337** | ✓ | ✓ | none |
-| B6 | `pfr_pass` | `load_pfr_advstats` | seasonal | `pfr_pass` | **5,424** | ✓ | ✓ | none |
-| B7 | `pfr_rush` | " | seasonal | `pfr_rush` | **18,461** | ✓ | ✓ | none |
-| B8 | `pfr_rec` | " | seasonal | `pfr_rec` | **35,724** | ✓ | ✓ | none |
-| B9 | `pfr_def` | " | seasonal | `pfr_def` | **62,345** | ✓ | ✓ | none |
-| B10 | `ff_opportunity` | `load_ff_opportunity` | seasonal | `ff_opportunity` | **47,282** | ✓ | ✓ | none |
-| B11 | `ftn_charting` | `load_ftn_charting` | seasonal | `ftn_charting` | **185,215** | ✓ | ✓ | none |
-| B12 | `depth_charts` | `load_depth_charts` | seasonal | `depth_charts` | **812,074** | ✓ | ✓ | none |
-| B13 | `contracts` | `load_contracts` | snapshot | *(table absent)* | **0** | ✓ | **✗ never run** | none |
-| B14 | `ff_rankings` | `load_ff_rankings` | — | *(none)* | 0 | ✗ | ✗ | `blocked_for_use` |
+**R7 state columns — all five, never collapsed** *(V2-F2)*. `consumed` names the consumer or `none`;
+**the landing-disposition vocabulary (`substrate_only`/`blocked_for_use`) is a SEPARATE column and
+must never sit in a state cell** — v2 put `blocked_for_use` in B14's consumer cell.
 
-**`obs` subtotal: 1,491,691.** Plus `nflverse_capture` **101 `cap`** = 1,491,792 physical rows.
+| # | Stream | Table | `obs` | bound | captured | exported | consumed | dec_sup | disposition |
+| :-- | :-- | :-- | --: | :-: | :-: | :-: | :-- | :-: | :-- |
+| B1 | `ngs_passing` | `ngs_passing` | **5,933** | ✓ | ✓ | ✓ | feature refresh (via export) | ✗ | `existing_consumer` |
+| B2 | `ngs_rushing` | `ngs_rushing` | **6,059** | ✓ | ✓ | ✓ | " | ✗ | `existing_consumer` |
+| B3 | `ngs_receiving` | `ngs_receiving` | **14,731** | ✓ | ✓ | ✓ | " | ✗ | `existing_consumer` |
+| B4 | `snap_counts` | `player_snap_count` | **253,106** | ✓ | ✓ | ✓ | **none** — canonical export has no production consumer; the daily job's `nflreadpy.load_snap_counts` is a SEPARATE provider-read stream *(V2-F4, Codex probe)* | ✗ | `substrate_only` |
+| B5 | `injuries` | `nflverse_injury_report` | **45,337** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
+| B6 | `pfr_pass` | `pfr_pass` | **5,424** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
+| B7 | `pfr_rush` | `pfr_rush` | **18,461** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
+| B8 | `pfr_rec` | `pfr_rec` | **35,724** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
+| B9 | `pfr_def` | `pfr_def` | **62,345** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
+| B10 | `ff_opportunity` | `ff_opportunity` | **47,282** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
+| B11 | `ftn_charting` | `ftn_charting` | **185,215** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
+| B12 | `depth_charts` | `depth_charts` | **812,074** | ✓ | ✓ | ✓ | none | ✗ | `substrate_only` |
+| B13 | `contracts` | *(absent)* | **0** | ✓ | **✗ never run** | ✗ | none | ✗ | `substrate_only` |
+| B14 | `ff_rankings` | *(none)* | 0 | ✗ | ✗ | ✗ | none | ✗ | `blocked_for_use` |
+
+**`exported` is column-wide UNVERIFIED pending per-row export-path evidence** — the ✓ marks reflect
+membership in the canonical export as understood, not a probe. Treat as owed, not confirmed.
+
+**`obs` subtotal across the 12 materialized tables: 1,491,691.** Plus `nflverse_capture` **101
+`cap`** = 1,491,792 physical rows. `contracts` contributes 0 and has no table.
 
 > **THE v1 ERROR, recorded not smoothed.** v1 published **1,491,792** as the source-row count and
 > reported the 101-row gap versus the prior board as an *unexplained discrepancy* — to Codex **and to
@@ -177,8 +188,11 @@ per-stream cadence might not exist. Both were FALSE.** Independently verified in
 **And: `rg -ln "run_nflverse_usage_capture" ops/` returns NOTHING — no LaunchAgent calls the
 canonical capture runner.**
 
-**⇒ The canonical ingestion store — 13 streams, 1,491,691 observation rows — has NO SCHEDULED REFRESH
-AT ALL. It is manual-only.** Nine of its streams are refreshed by nothing and consumed by nothing.
+**⇒ The canonical ingestion store has NO SCHEDULED REFRESH AT ALL. It is manual-only.**
+**Stated at the right grain (V2-F3): 13 loader-BOUND StreamSpecs, of which 12 are MATERIALIZED as
+source tables holding 1,491,691 `obs` rows; `contracts` is bound but has no table, and the
+`nflverse_capture` ledger (101 `cap`) is not a stream.** Nine of the twelve materialized streams are
+refreshed by nothing and consumed by nothing.
 Meanwhile the daily job pulls five datasets straight from the provider on a **separate** path that is
 not in the catalog.
 
@@ -235,7 +249,7 @@ established:
 | :-- | :-- |
 | Canonical ingestion has **no scheduled job** | **absent schedule** |
 | `contracts` bound but never executed; store table absent | **absent capture** |
-| Nine nflverse streams stored, no consumer *(must be named individually, F7)* | **absent consumer** |
+| **Nine materialized streams with no production consumer, NAMED (V2-F4):** `snap_counts` · `injuries` · `pfr_pass` · `pfr_rush` · `pfr_rec` · `pfr_def` · `ff_opportunity` · `ftn_charting` · `depth_charts` | **absent consumer** |
 | PlayerProfiler 1,520,009 `obs`, no production consumer outside ingestion | **absent consumer** |
 | PFF — **partial**, not absent: one family consumed by `build_college_features.py` | **partial consumer** |
 | The 20 registry definitions not yet rowed | **unenumerated** |
@@ -267,3 +281,5 @@ evidence paths/timestamps, B4 consumer state.
 | 2026-08-05 | Claude | v1 created. |
 | 2026-08-05 | Codex | NOT CLEAR, seven findings. |
 | 2026-08-05 | Claude | **v2 rebuild.** F1–F7 accepted; F3/F4/F6 reproduced first. A/B/C reopened; grain tagging added; feature-refresh semantics corrected. |
+| 2026-08-05 | Codex | v2 review — **NOT CLEAR**, four findings (V2-F1..F4). |
+| 2026-08-05 | Claude | **v3.** V2-F1..F4 all accepted, none contested. §1 source count 9→**7** (stale after the F2 merge — **fifth** §5 instance). Table B carries all **five** R7 states with disposition as its own column. "13 streams" restated as **13 bound / 12 materialized**. **B4 resolved** from Codex's probe: canonical export has no production consumer; the daily job's direct `load_snap_counts` is a separate provider-read stream — so the nine consumerless streams are now NAMED. `exported` marked column-wide UNVERIFIED pending probes. |
