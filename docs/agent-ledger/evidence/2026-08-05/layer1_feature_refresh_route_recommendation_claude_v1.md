@@ -3,14 +3,19 @@
 **Authored:** 2026-08-06 (ET), Claude Code. **Revised v2** after Codex NOT CLEAR — findings A1–A4
 accepted in full, none contested. *(A4: dates in this file are ET unless a UTC `Z` suffix is shown.)*
 
-> ## ⚠ STATUS — TWO-LANE INTERIM, not David's completed three-lane recommendation
-> **A1 (Codex, accepted).** David told Codex directly: *"tell gemini to pressure test it and
-> recommend something as well."* That is the **narrow explicit-David exception** the Gemini charter
-> requires — **not** a permanent restoration of a judgment lane. **My v1 forbade Gemini a verdict and
-> was wrong to**, and my escalation to David was written without knowledge of that word. Codex
-> delivered the corrected request and positively verified it (`[w#azmg33kj-1]`) **before** my
-> objection reached it, so no lane acted against a known instruction. **Gemini's recommendation is
-> outstanding; treat everything below as two binding lanes plus telemetry until it lands.**
+> ## ✅ STATUS — COMPLETE. THREE LANES, ALL RECOMMEND OPTION A.
+> **Claude** (this artifact) · **Codex** (`layer1_feature_refresh_route_pressure_test_codex_v3.md`) ·
+> **Gemini** (`../2026-08-06/gemini_option_a_pressure_test_response.md`, under David's narrow
+> explicit exception to its charter — *"tell gemini to pressure test it and recommend something as
+> well"* — **not** a permanent restoration of a judgment lane).
+>
+> *(A1 history, kept: my v1 forbade Gemini a verdict and was wrong to; my escalation to David was
+> written without knowledge of his word to Codex.)*
+>
+> **⚠ THREE-LANE UNANIMITY ON AN OPTION THE PRINCIPAL ALREADY LEANS TOWARD IS THE STRONGEST
+> POSSIBLE YELLOW FLAG** under `02` §Falsification #4. See §6 for what was actually checked and
+> §6.6 for **what would still change the answer** — stated so David can test the recommendation
+> rather than take it.
 **David's order:** *"I think the streams should flow into our layer 1 - what would be the point of a
 different surface? im not sure i understand the choice. i want you, codex and gemini to pressure test
 the idea and then come back with a recommendation."*
@@ -159,7 +164,19 @@ toward A makes deference the specific risk here. Checks run:
 3. **My first proposed argument was killed.** Volume favours A, not B — the opposite of what I
    expected when I named pbp as my weakest point.
 4. **B3 is left open rather than dismissed**, with the measurement that would settle it named.
-5. **The check was not sufficient.** Codex then returned **NOT CLEAR** on this artifact with four
+5. **Gemini's lane agreed independently, and I am NOT passing two of its claims through unchecked**
+   — a third concurring lane is a reason to audit harder, not to relax:
+   - It says rebuildable assets are excluded from the backup manifest *"to prevent upload timeouts."*
+     **The exclusion is real; the stated REASON is Gemini's inference and is not established** — and
+     "upload timeout" is the very mechanism this session already withdrew for want of evidence (only
+     `upload_failed:<path>` was ever observed). **Do not let it re-enter through a telemetry report.**
+   - It describes the recovery run as *"still uploading the 2.2 GiB package."* **Measured: the upload
+     phase COMPLETED — 509 objects — and the run is in its restore drill.** Minor, corrected here so
+     the figure is not carried forward wrong.
+   Its substantive operational findings (no reliability advantage to live reads, the `snap_counts`
+   double-route, failure isolation, the 37× JSON penalty, uniform lineage) **corroborate** Codex and
+   me from the operations seat and are consistent with what both lanes measured independently.
+6. **The check was not sufficient.** Codex then returned **NOT CLEAR** on this artifact with four
    findings, two of them HIGH, all accepted without contest: I forbade Gemini a verdict against
    David's direct word (A1); I asserted "no raw snapshots exist" when `snap_counts` has 129 of them
    totalling 1.12 GB (A2 — my search looked for *directories* named after the streams, so the method
@@ -169,6 +186,29 @@ toward A makes deference the specific risk here. Checks run:
    point, demonstrated on this document rather than quoted in it.
 
 ---
+
+### 6.6 What would still change the answer — stated so this can be tested, not just accepted
+
+Three lanes agreeing does not make A right. These are the things that would move it, with who could
+settle each:
+
+1. **If nflverse season parquets turn out to be genuinely immutable once published**, then re-fetching
+   reproduces the bytes and the replayability argument — the single strongest case for A — weakens
+   sharply. **Nobody measured this.** Settle it by recording per-season content hashes on successive
+   days. *(It would not rescue B: `01` §Source Adapter Rules requires a raw snapshot before parsing
+   regardless, and the 2026-08-02 outage shows a past season's asset was not reliably retrievable.)*
+2. **If the retention contract lands on option (b)** — accepting that only the provider's current
+   version is recoverable — then capturing raw bytes buys much less, and A's shape should shrink to
+   normalized captures rather than content-addressed raw. **That is David's ruling, not a lane's.**
+3. **If the storage ceiling David sets is below what content-addressed `pbp` needs**, A must be
+   re-scoped rather than partially implemented. `pbp` is 80% of the bytes.
+4. **Per-stream mixture:** Gemini calls a mixture *"operationally incoherent."* Read precisely, all
+   three lanes agree on **one authoritative route per stream**; what Codex and I proposed varying is
+   **capture policy and migration order**, not route. If David reads the sequencing in §7.2 as a
+   permanent mixed route, that is a misread we introduced and should be corrected, not defended.
+
+**What none of the three lanes can settle:** whether Layer 1 should absorb this work at all right
+now. **That is sequencing, and `05` §1 makes it David's alone.** No lane asserted otherwise here.
 
 ## 7. What this does not decide — David's calls
 
