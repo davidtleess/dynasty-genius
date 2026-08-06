@@ -1372,3 +1372,538 @@ def test_landing_contracts_adds_no_engine_consumer() -> None:
     assert patterns["CONTRACTS"].search("from x import CONTRACTS")
     assert patterns["load_contracts"].search("nflreadpy.load_contracts()")
     assert not offenders, f"contracts referenced outside the adapter: {offenders}"
+
+
+# ---------------------------------------------------------------------------
+# V12 durable controls
+# ---------------------------------------------------------------------------
+# WHY THIS SECTION EXISTS. In the prior cycle the six G-fixes were verified with ad-hoc shell
+# commands, watched to pass, and reported "PROVEN" — while leaving ZERO durable coverage. Each
+# proof was true of that moment and false of the codebase. Codex v12 required every v11 control
+# to be encoded as a TEST. That is what these are: one control per finding, each written to FAIL
+# against the state that shipped in 4909d52.
+
+
+def _reason(exc) -> str:
+    return str(exc.value)
+
+
+# --- V12-1: the opted-in exact-column check must own the refusal, first row included -------
+
+
+def test_a_first_row_missing_field_refuses_with_the_exact_vocabulary(rows, identity) -> None:
+    """V12-1. The generic `nflverse_schema_drift` check reads `records[0].keys()` and ran FIRST,
+    so a field missing from row zero was intercepted by the generic path and never reached the
+    opted-in exact check — no record index, no named unexpected/missing sets. A later row got
+    the precise vocabulary and the first row did not, which is the shape of a gate you pass by
+    picking which row you break."""
+    mod = _mod()
+    mutated = [dict(r) for r in rows]
+    del mutated[0]["college"]
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        mod.normalize_rows(mutated, spec=_spec(), season=None, identity=identity)
+    reason = _reason(exc)
+    assert "nflverse_unexpected_columns" in reason, reason
+    assert "record 0" in reason, reason
+    assert "'college'" in reason, reason
+
+
+def test_a_later_row_missing_field_refuses_with_the_exact_vocabulary(rows, identity) -> None:
+    """The already-working half, pinned so a V12-1 fix cannot regress it."""
+    mod = _mod()
+    mutated = [dict(r) for r in rows]
+    target = 3
+    del mutated[target]["college"]
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        mod.normalize_rows(mutated, spec=_spec(), season=None, identity=identity)
+    reason = _reason(exc)
+    assert "nflverse_unexpected_columns" in reason, reason
+    assert f"record {target}" in reason, reason
+    assert "'college'" in reason, reason
+
+
+def test_a_first_row_added_field_refuses_with_the_exact_vocabulary(rows, identity) -> None:
+    mod = _mod()
+    mutated = [dict(r) for r in rows]
+    mutated[0]["provider_added_field"] = "surprise"
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        mod.normalize_rows(mutated, spec=_spec(), season=None, identity=identity)
+    reason = _reason(exc)
+    assert "nflverse_unexpected_columns" in reason, reason
+    assert "record 0" in reason, reason
+    assert "provider_added_field" in reason, reason
+
+
+def test_a_later_row_added_field_refuses_with_the_exact_vocabulary(rows, identity) -> None:
+    mod = _mod()
+    mutated = [dict(r) for r in rows]
+    target = 7
+    mutated[target]["provider_added_field"] = "surprise"
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        mod.normalize_rows(mutated, spec=_spec(), season=None, identity=identity)
+    reason = _reason(exc)
+    assert "nflverse_unexpected_columns" in reason, reason
+    assert f"record {target}" in reason, reason
+    assert "provider_added_field" in reason, reason
+
+
+def test_the_exact_check_refuses_before_any_row_is_excluded_or_collapsed(
+    rows, identity
+) -> None:
+    """The exact check must precede exclusion/collapse for the same reason schema validation
+    was moved ahead of the identity filter (Codex da00235-1): drift confined to a row we were
+    about to drop is still drift. Breaking a row that carries a null gsis_id — an excludable
+    row — must still refuse."""
+    mod = _mod()
+    mutated = [dict(r) for r in rows]
+    victim = next(
+        (i for i, r in enumerate(mutated) if not str(r.get("gsis_id") or "").strip()),
+        None,
+    )
+    assert victim is not None, "the fixture must carry a null-gsis row for this control"
+    mutated[victim]["provider_added_field"] = "surprise"
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        mod.normalize_rows(mutated, spec=_spec(), season=None, identity=identity)
+    assert "nflverse_unexpected_columns" in _reason(exc), _reason(exc)
+
+
+# --- V12-2: the flag is opt-in, and the twelve prior streams are frozen --------------------
+
+
+def test_bind_preserves_refuse_unexpected_columns_and_no_prior_stream_opts_in() -> None:
+    """v11 required control. `_bind` reconstructs StreamSpec field by field, so a flag it forgets
+    is silently dropped — that already bit this batch once on stream 2 (`capture_axis`). The
+    exact-column policy is scoped to CONTRACTS ONLY; a prior stream acquiring it would change
+    previously cleared accepted-input behaviour for a frozen stream."""
+    built = _mod().build_streams()
+    by_name = {s.name: s for s in built}
+    assert by_name[STREAM].refuse_unexpected_columns is True, "the flag did not survive _bind"
+    others = {n: s.refuse_unexpected_columns for n, s in by_name.items() if n != STREAM}
+    assert len(others) == 12, f"expected twelve prior streams, saw {sorted(others)}"
+    assert not any(others.values()), f"a prior stream opted in: {others}"
+
+
+def test_the_legacy_seasonal_rows_hash_is_pinned(identity) -> None:
+    """G2 SEASONAL FREEZE, pinned rather than re-measured. An earlier draft stamped
+    `content_sha256` on EVERY normalized row; `_rows_hash` hashes the whole row dict, so the
+    season digest moved (96b09692 vs legacy da36dcc5) and an UNCHANGED capture would have
+    rewritten its partitions. Codex reproduced the restored value independently; this is that
+    value, encoded so the freeze survives the next refactor without a human remembering it."""
+    mod = _mod()
+    payload = json.loads(
+        (REPO_ROOT / "tests" / "fixtures" / "nflverse_usage_2025_slice.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    ngs = [dict(r) for r in payload["ngs_passing"]]
+    assert len(ngs) == 169, "the pinned hash is a measurement of this exact 169-row slice"
+    normalized, _ = mod.normalize_rows(
+        ngs, spec=mod.NGS_PASSING, season=2025, identity=identity
+    )
+    assert mod._rows_hash(normalized) == (
+        "da36dcc59ebb94c30a0c1f1f1cd672059871f2398e126db93ae688ea0210c2c4"
+    )
+    # The mechanism, not only the outcome: the snapshot-only field must never reach a
+    # seasonal row, because that is precisely how the digest moved.
+    assert not any("content_sha256" in row for row in normalized)
+
+
+def test_contracts_emits_no_source_era(rows, identity) -> None:
+    """v11 required control. The rejected G1 option was a synthetic single era, which would have
+    added `source_era` to every contracts row. The chosen mechanism must leave no trace of it."""
+    mod = _mod()
+    normalized, _ = mod.normalize_rows(
+        [dict(r) for r in rows], spec=_spec(), season=None, identity=identity
+    )
+    assert normalized
+    assert not any("source_era" in row for row in normalized)
+    assert "source_era" not in _spec().stored_columns
+    assert _spec().eras in (None, (), [])
+
+
+# --- V12-3: the raw pre-parse envelope must be legal before it is written ------------------
+
+
+def test_the_seasonal_raw_envelope_is_byte_stable(tmp_path) -> None:
+    """Twelve frozen streams write through this path.
+
+    Codex F3: this asserted the PARSED key set, which is blind to key ORDER, separator
+    whitespace and the trailing newline — exactly the reshaping a "byte stability" test exists
+    to catch. A byte comparison lived only in a shell probe, which is the same
+    proved-in-a-shell-not-in-a-test failure this whole section was written to answer. Now the
+    literal bytes, plus the filename, which is itself part of the artifact contract."""
+    mod = _mod()
+    path = mod.write_raw_snapshot(
+        [{"b": None, "a": 1}], stream="ngs_passing", season=2024,
+        captured_at="2026-08-05T00:00:00+00:00", raw_root=tmp_path,
+    )
+    assert path.name == "ngs_passing_2024_20260805T0000000000.json"
+    assert path.read_bytes() == (
+        b'{"schema_version": "nflverse_usage.v4", "stream": "ngs_passing", '
+        b'"captured_at": "2026-08-05T00:00:00+00:00", "rows": 1, "season": 2024, '
+        b'"records": [{"b": null, "a": 1}]}\n'
+    )
+    # Insertion order preserved, NOT sorted — a reader replaying this file must see the source
+    # record exactly as it arrived.
+    assert json.loads(path.read_text(encoding="utf-8"))["records"] == [{"b": None, "a": 1}]
+
+
+def test_the_snapshot_raw_envelope_carries_the_partition_and_no_season_key(tmp_path) -> None:
+    """G3: an earlier draft passed `season=observed_at`, writing an ISO timestamp under a key
+    literally named `season` into the pre-parse artifact."""
+    mod = _mod()
+    path = mod.write_raw_snapshot(
+        [{"a": 1}], stream=STREAM, season=None,
+        captured_at="2026-08-05T00:00:00+00:00", raw_root=tmp_path,
+        partition={"capture_axis": "snapshot", "snapshot_id": "r1:contracts",
+                   "observed_at": "2026-08-05T00:00:01+00:00"},
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert "season" not in payload
+    assert payload["capture_axis"] == "snapshot"
+    assert payload["snapshot_id"] == "r1:contracts"
+    assert payload["observed_at"] == "2026-08-05T00:00:01+00:00"
+
+
+@pytest.mark.parametrize(
+    "season,partition,label",
+    [
+        (None, None, "no_axis"),
+        (2024, {"capture_axis": "snapshot", "snapshot_id": "r:1",
+                "observed_at": "t"}, "contradictory_axis"),
+        (None, {"capture_axis": "snapshot", "snapshot_id": "r:1", "observed_at": "t",
+                "season": 2024}, "synthetic_season"),
+        (None, {"capture_axis": "snapshot"}, "incomplete_partition"),
+        (None, {"capture_axis": "seasonal", "snapshot_id": "r:1",
+                "observed_at": "t"}, "wrong_axis_value"),
+    ],
+)
+def test_write_raw_snapshot_refuses_every_illegal_envelope(
+    tmp_path, season, partition, label
+) -> None:
+    """V12-3. All five shapes were ACCEPTED and written: the function validated nothing. The raw
+    file is the pre-parse artifact every replay and audit starts from, so a malformed envelope
+    is not a cosmetic defect — it is a durable record that cannot say what it recorded."""
+    mod = _mod()
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        mod.write_raw_snapshot(
+            [{"a": 1}], stream=STREAM, season=season,
+            captured_at="2026-08-05T00:00:00+00:00", raw_root=tmp_path,
+            partition=partition,
+        )
+    assert "nflverse_raw_envelope" in _reason(exc), _reason(exc)
+    written = list((tmp_path / "raw").glob("*.json")) if (tmp_path / "raw").exists() else []
+    assert not written, f"{label}: refused but still wrote {written}"
+
+
+# --- V12-4: an existing ledger must be verified for CONSTRAINTS, not column names ----------
+
+
+def test_a_preexisting_unconstrained_snapshot_ledger_is_refused(tmp_path) -> None:
+    """V12-4. `CREATE TABLE IF NOT EXISTS` is a no-op against an existing table and
+    `_assert_schema` compares column NAMES only — so the exact partial state a prior draft
+    leaves behind (all-TEXT, nullable, no CHECK) opened successfully and the G4 constraints
+    were silently absent on every store that had already been created."""
+    import sqlite3
+
+    mod = _mod()
+    db = tmp_path / "u.db"
+    columns = mod._SNAPSHOT_CAPTURE_COLUMNS
+    with sqlite3.connect(db) as conn:
+        conn.execute(
+            "CREATE TABLE nflverse_snapshot_capture ("
+            + ", ".join(f"{c} TEXT" for c in columns)
+            + ", PRIMARY KEY (stream, snapshot_id))"
+        )
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        mod.UsageStore(db, (_spec(),))
+    reason = _reason(exc)
+    assert "nflverse_snapshot_ledger_unconstrained" in reason, reason
+
+
+def test_a_freshly_created_snapshot_ledger_enforces_its_constraints(tmp_path) -> None:
+    """The positive control for the check above. A refusal test alone cannot distinguish
+    'correctly refuses the bad shape' from 'refuses everything'."""
+    import sqlite3
+
+    mod = _mod()
+    db = tmp_path / "u.db"
+    mod.UsageStore(db, (_spec(),))
+    with sqlite3.connect(db) as conn:
+        ddl = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE name='nflverse_snapshot_capture'"
+        ).fetchone()[0]
+        assert "CHECK" in ddl.upper() and "snapshot" in ddl
+        notnull = {
+            row[1]: row[3] for row in conn.execute(
+                "PRAGMA table_info(nflverse_snapshot_capture)"
+            )
+        }
+    for column in ("stream", "snapshot_id", "capture_axis", "observed_at", "content_hash",
+                   "raw_snapshot", "raw_sha256", "ingested_at"):
+        assert notnull[column] == 1, f"{column} is nullable"
+
+    # The AXIS CHECK bites at INSERT time — isolated from the NOT NULLs.
+    #
+    # Codex F2: this previously inserted only stream/snapshot_id/capture_axis, so it raised
+    # from the five OMITTED NOT NULL columns and passed identically against a table with no
+    # CHECK at all. A control that cannot fail for the reason it names is not a control. Codex's
+    # discriminator proved it: that shallow insert refuses on a no-CHECK table, while a FULLY
+    # POPULATED seasonal row succeeds there. So populate every column — then the only
+    # constraint left that can reject a 'seasonal' row is the axis CHECK itself.
+    columns = list(mod._SNAPSHOT_CAPTURE_COLUMNS)
+    populated = {c: "v" for c in columns}
+    populated["capture_axis"] = "seasonal"
+    statement = (
+        f"INSERT INTO nflverse_snapshot_capture ({', '.join(columns)}) "
+        f"VALUES ({', '.join('?' for _ in columns)})"
+    )
+    with pytest.raises(sqlite3.IntegrityError, match="CHECK"):
+        with sqlite3.connect(db) as conn:
+            conn.execute(statement, [populated[c] for c in columns])
+
+    # Positive half: the SAME fully-populated row on the snapshot axis is accepted, proving the
+    # refusal above is the axis CHECK and not some other constraint rejecting everything.
+    populated["capture_axis"] = "snapshot"
+    with sqlite3.connect(db) as conn:
+        conn.execute(statement, [populated[c] for c in columns])
+
+
+# --- V12-5: the snapshot census must be complete in every place it is reported -------------
+
+
+def test_by_stream_snapshot_carries_the_unresolved_count_and_reconciles(
+    tmp_path, rows, identity
+) -> None:
+    """V12-5. `rows_not_canonically_identified` was present at top level and in the
+    `snapshot_*` aggregates but ABSENT from the per-stream `by_stream_snapshot` entry — while
+    the GREEN report claimed 'the same census in by_stream_snapshot'. A census that is complete
+    in two places and silently short in the third is how an unresolved population goes
+    invisible to whoever reads the per-stream view."""
+    result = _capture(tmp_path, identity, rows)
+    totals = result["totals"]
+    entry = totals["by_stream_snapshot"][STREAM]
+    coverage = result["results"][0]["coverage"]
+
+    census_keys = ("rows_total", "rows_canonical_resolved", "rows_source_only",
+                   "rows_conflict", "rows_unknown", "rows_not_canonically_identified")
+    for key in census_keys:
+        assert key in entry, f"by_stream_snapshot omits {key}"
+        assert entry[key] == coverage[key], f"{key} disagrees with the run's coverage block"
+        assert totals[f"snapshot_{key}"] == coverage[key], f"snapshot_{key} disagrees"
+
+    # The control is only meaningful if the fixture actually carries unresolved rows.
+    assert entry["rows_not_canonically_identified"] > 0
+    assert entry["rows_total"] == (
+        entry["rows_canonical_resolved"] + entry["rows_source_only"]
+        + entry["rows_conflict"] + entry["rows_unknown"]
+    )
+
+
+@pytest.mark.parametrize(
+    "season,accepted,label",
+    [
+        (2024, True, "python_int"),
+        ("numpy_int64", True, "numpy_int64"),
+        (2024.0, False, "float"),
+        ("2024", False, "string"),
+        (True, False, "bool"),
+    ],
+)
+def test_the_seasonal_season_guard_admits_integers_and_refuses_the_g3_shapes(
+    tmp_path, season, accepted, label
+) -> None:
+    """The guard's job is catching the G3 defect — an ISO timestamp under a key named
+    `season` — NOT policing an integer's provenance. `isinstance(season, int)` refuses
+    `numpy.int64`, which is a perfectly good season a caller reading a dataframe would hand
+    over. No current caller does that (argparse `type=int`), so this pins the predicate before
+    it becomes a false refusal someone hits later. `bool` is excluded explicitly: it IS an
+    Integral and `season=True` would otherwise write `"season": true`."""
+    import numpy as np
+
+    mod = _mod()
+    value = np.int64(2024) if season == "numpy_int64" else season
+    if accepted:
+        path = mod.write_raw_snapshot(
+            [{"a": 1}], stream="ngs_passing", season=value,
+            captured_at="2026-08-05T00:00:00+00:00", raw_root=tmp_path,
+        )
+        assert json.loads(path.read_text(encoding="utf-8"))["season"] == 2024
+    else:
+        with pytest.raises(mod.UsageCaptureError) as exc:
+            mod.write_raw_snapshot(
+                [{"a": 1}], stream="ngs_passing", season=value,
+                captured_at="2026-08-05T00:00:00+00:00", raw_root=tmp_path,
+            )
+        assert "nflverse_raw_envelope" in _reason(exc), label
+
+
+# ---------------------------------------------------------------------------
+# Codex v15 findings F1-F3
+# ---------------------------------------------------------------------------
+
+
+def _ledger_ddl(columns, *, required, check: bool) -> str:
+    body = ", ".join(f"{c} TEXT" + (" NOT NULL" if c in required else "") for c in columns)
+    axis = ", CHECK (capture_axis = 'snapshot')" if check else ""
+    return (
+        f"CREATE TABLE nflverse_snapshot_capture ({body}{axis}, "
+        "PRIMARY KEY (stream, snapshot_id))"
+    )
+
+
+# --- F1: the snapshot partition is an EXACT key set ---------------------------------------
+
+
+@pytest.mark.parametrize(
+    "extra,label",
+    [
+        ({"arbitrary_extra": "junk"}, "arbitrary_extra"),
+        ({"stream": "spoofed_stream"}, "collides_stream"),
+        ({"rows": 999}, "collides_rows"),
+        ({"captured_at": "spoofed_time"}, "collides_captured_at"),
+        ({"schema_version": "spoofed_schema"}, "collides_schema_version"),
+        ({"stream": "spoofed", "rows": 999, "captured_at": "t",
+          "schema_version": "s"}, "collides_all_four"),
+    ],
+)
+def test_the_snapshot_partition_refuses_any_key_outside_the_exact_set(
+    tmp_path, extra, label
+) -> None:
+    """Codex F1. Validating that the required keys are PRESENT is not validating that they are
+    the ONLY keys. `metadata.update(partition)` merges the partition OVER the authoritative
+    envelope fields, so a colliding key overwrites the truth — Codex's probe produced a file
+    holding ONE real contracts row while declaring stream='spoofed_stream' and rows=999. An
+    artifact that misreports its own stream and row count is not a record of anything, and this
+    is the pre-parse file every replay and audit starts from."""
+    mod = _mod()
+    partition = {"capture_axis": "snapshot", "snapshot_id": "r:1", "observed_at": "t", **extra}
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        mod.write_raw_snapshot(
+            [{"a": 1}], stream="contracts", season=None,
+            captured_at="2026-08-05T00:00:00+00:00", raw_root=tmp_path, partition=partition,
+        )
+    reason = _reason(exc)
+    assert "nflverse_raw_envelope" in reason, reason
+    for key in extra:
+        assert key in reason, f"{label}: the offending key {key} is not named"
+    written = list((tmp_path / "raw").glob("*.json")) if (tmp_path / "raw").exists() else []
+    assert not written, f"{label}: refused but still wrote {written}"
+
+
+def test_the_snapshot_envelope_reports_its_own_stream_and_row_count_truthfully(
+    tmp_path
+) -> None:
+    """The positive half of F1: with a legal partition, every authoritative field comes from the
+    ARGUMENTS, never from caller-supplied partition data."""
+    mod = _mod()
+    path = mod.write_raw_snapshot(
+        [{"a": 1}, {"a": 2}, {"a": 3}], stream=STREAM, season=None,
+        captured_at="2026-08-05T00:00:00+00:00", raw_root=tmp_path,
+        partition={"capture_axis": "snapshot", "snapshot_id": "r:1", "observed_at": "t"},
+    )
+    envelope = json.loads(path.read_text(encoding="utf-8"))
+    assert envelope["stream"] == STREAM
+    assert envelope["rows"] == 3 == len(envelope["records"])
+    assert envelope["captured_at"] == "2026-08-05T00:00:00+00:00"
+    assert envelope["schema_version"] == mod.SCHEMA_VERSION
+
+
+# --- F3: partial-ledger discriminators -----------------------------------------------------
+
+
+def test_a_ledger_with_every_not_null_but_no_axis_check_is_refused(tmp_path) -> None:
+    """Codex F3. The NOT NULLs and the CHECK are two independent guarantees and a table can
+    carry one without the other. This is the half a shallow-insert control cannot see."""
+    import sqlite3
+
+    mod = _mod()
+    db = tmp_path / "u.db"
+    required = ("stream", "snapshot_id", "capture_axis", "observed_at", "content_hash",
+                "raw_snapshot", "raw_sha256", "ingested_at")
+    with sqlite3.connect(db) as conn:
+        conn.execute(_ledger_ddl(mod._SNAPSHOT_CAPTURE_COLUMNS, required=required, check=False))
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        mod.UsageStore(db, (_spec(),))
+    reason = _reason(exc)
+    assert "nflverse_snapshot_ledger_unconstrained" in reason, reason
+    assert "capture_axis CHECK present: False" in reason, reason
+
+
+def test_a_ledger_with_the_axis_check_but_one_nullable_required_column_is_refused(
+    tmp_path
+) -> None:
+    """The mirror image: the CHECK is present but a required column is nullable, so a row that
+    cannot say who wrote it or when is still accepted by the table."""
+    import sqlite3
+
+    mod = _mod()
+    db = tmp_path / "u.db"
+    required = ("stream", "snapshot_id", "capture_axis", "observed_at", "content_hash",
+                "raw_snapshot", "ingested_at")  # raw_sha256 deliberately omitted
+    with sqlite3.connect(db) as conn:
+        conn.execute(_ledger_ddl(mod._SNAPSHOT_CAPTURE_COLUMNS, required=required, check=True))
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        mod.UsageStore(db, (_spec(),))
+    reason = _reason(exc)
+    assert "nflverse_snapshot_ledger_unconstrained" in reason, reason
+    assert "raw_sha256" in reason, reason
+
+
+# --- F3: blank provenance is refused by the CODE, not merely by NOT NULL --------------------
+
+
+@pytest.mark.parametrize(
+    "field", ["snapshot_id", "observed_at", "raw_sha256", "raw_snapshot"]
+)
+@pytest.mark.parametrize("blank", ["", "   "])
+def test_apply_snapshot_refuses_blank_provenance(tmp_path, rows, identity, field, blank) -> None:
+    """Codex F3. `NOT NULL` does not stop the EMPTY STRING or whitespace — a ledger row can
+    satisfy every column constraint and still say nothing. The code guard already exists; it had
+    no durable control, so nothing would have caught its removal."""
+    mod = _mod()
+    spec = _spec()
+    normalized, coverage = mod.normalize_rows(
+        [dict(r) for r in rows], spec=spec, season=None, identity=identity
+    )
+    provenance = {
+        "snapshot_id": "r1:contracts", "observed_at": "2026-08-05T00:00:00+00:00",
+        "raw_sha256": "0" * 64, "raw_snapshot": str(tmp_path / "raw.json"),
+    }
+    provenance[field] = blank
+    store = mod.UsageStore(tmp_path / "u.db", (spec,))
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        store.apply_snapshot(
+            spec, rows=normalized, coverage=coverage,
+            ingested_at="2026-08-05T00:00:00+00:00", **provenance,
+        )
+    reason = _reason(exc)
+    assert "nflverse_snapshot_provenance_missing" in reason, reason
+    assert field in reason, reason
+
+
+# --- F3: the exact diagnostic sets, pinned by value ----------------------------------------
+
+
+@pytest.mark.parametrize("index", [0, 5])
+@pytest.mark.parametrize("mode", ["added", "missing"])
+def test_the_exact_column_diagnostic_names_both_sets_by_value(
+    rows, identity, index, mode
+) -> None:
+    """Codex F3. The earlier controls asserted the error TYPE and one field name. The whole
+    point of the v11 mechanism is that it names BOTH sets exactly, so a reader can tell an
+    added column from a dropped one without rerunning anything — and the first row must get the
+    same diagnostic as a later one."""
+    mod = _mod()
+    mutated = [dict(r) for r in rows]
+    if mode == "added":
+        mutated[index]["provider_added_field"] = "surprise"
+        expected_unexpected, expected_missing = "['provider_added_field']", "[]"
+    else:
+        del mutated[index]["college"]
+        expected_unexpected, expected_missing = "[]", "['college']"
+    with pytest.raises(mod.UsageCaptureError) as exc:
+        mod.normalize_rows(mutated, spec=_spec(), season=None, identity=identity)
+    reason = _reason(exc)
+    assert f"record {index} has unexpected {expected_unexpected}" in reason, reason
+    assert f"and missing {expected_missing}" in reason, reason

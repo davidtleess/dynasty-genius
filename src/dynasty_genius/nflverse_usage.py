@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import numbers
 import os
 import sqlite3
 import tempfile
@@ -1298,6 +1299,28 @@ def normalize_rows(
         spec, columns=columns, grain=grain, nullable_grain_columns=nullable_grain
     )
 
+    if spec.refuse_unexpected_columns:
+        # V12-1: this MUST precede the generic `missing` check below, which reads only
+        # `records[0].keys()`. Ordered the other way, a field absent from row zero was
+        # intercepted as `nflverse_schema_drift` — no record index, neither set named — while
+        # the identical break on a later row got the precise vocabulary. A gate whose refusal
+        # depends on WHICH row you break is a gate you pass by picking the row.
+        #
+        # It also precedes projection, collapse, digest, persistence AND the identity
+        # exclusion filter, for the reason schema validation was moved ahead of that filter
+        # in the first place (Codex da00235-1): drift confined to a row we were about to drop
+        # is still drift, and a dropped field must never reach a digest that then claims the
+        # row is unchanged. Every record, not just the first.
+        declared = set(spec.columns)
+        for index, record in enumerate(records):
+            observed = set(record.keys())
+            if observed != declared:
+                raise UsageCaptureError(
+                    f"nflverse_unexpected_columns: stream {spec.name} record {index} has "
+                    f"unexpected {sorted(observed - declared)} and missing "
+                    f"{sorted(declared - observed)}; the declared source shape is exact"
+                )
+
     missing = [col for col in spec.columns if col not in available]
     if missing:
         raise UsageCaptureError(
@@ -1341,19 +1364,8 @@ def normalize_rows(
             coverage["rows_excluded_unidentified"] = excluded_unidentified
             return [], coverage
 
-    if spec.refuse_unexpected_columns:
-        # Before projection, collapse, digest or persistence — a dropped field must never
-        # reach a digest that then claims the row is unchanged. Every record, not just the
-        # first: a later row carrying a new field is the same defect.
-        declared = set(spec.columns)
-        for index, record in enumerate(records):
-            observed = set(record.keys())
-            if observed != declared:
-                raise UsageCaptureError(
-                    f"nflverse_unexpected_columns: stream {spec.name} record {index} has "
-                    f"unexpected {sorted(observed - declared)} and missing "
-                    f"{sorted(declared - observed)}; the declared source shape is exact"
-                )
+    # (The exact-column check ran HERE until V12-1 moved it ahead of the generic `missing`
+    # check and the identity exclusion filter. Not duplicated: one check, one place.)
 
     collapsed_exact = 0
     if spec.collapse_exact_duplicates:
@@ -1855,6 +1867,12 @@ class UsageStore:
                 self._assert_schema(
                     conn, "nflverse_snapshot_capture", _SNAPSHOT_CAPTURE_COLUMNS
                 )
+                # V12-4: the CREATE above is `IF NOT EXISTS`, a no-op against a table that
+                # already exists, and `_assert_schema` compares column NAMES only. So the
+                # exact partial state an earlier draft leaves behind — all-TEXT, nullable, no
+                # CHECK — opened successfully and the G4 constraints were absent on every
+                # store already created. Names are not a schema; verify the constraints.
+                self._assert_snapshot_ledger_constrained(conn, _required)
             for spec in specs:
                 conn.execute(
                     f"CREATE TABLE IF NOT EXISTS {spec.table} ("
@@ -1931,6 +1949,41 @@ class UsageStore:
                 "declared-but-absent columns and nothing else. A column still absent "
                 "afterwards means a NON-ADDITIVE change (rename, retype, drop) that needs "
                 "its own decision — refusing rather than writing mixed-schema rows"
+            )
+
+    @staticmethod
+    def _assert_snapshot_ledger_constrained(
+        conn: sqlite3.Connection, required: Sequence[str]
+    ) -> None:
+        """V12-4. Verify the G4 constraints are actually ON the existing table.
+
+        Refuses rather than migrating. Adding NOT NULL / CHECK to a populated SQLite table
+        means a table rebuild, and a rebuild is a decision about existing rows — including
+        what to do with any row that already violates the constraint being added. That is a
+        deliberate, reviewed migration, not something a constructor does on the way past.
+        """
+        nullable = [
+            row[1]
+            for row in conn.execute("PRAGMA table_info(nflverse_snapshot_capture)")
+            if row[1] in set(required) and not row[3]
+        ]
+        ddl = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' "
+            "AND name='nflverse_snapshot_capture'"
+        ).fetchone()
+        ddl_text = (ddl[0] if ddl else "") or ""
+        # Normalised so whitespace/quoting variants of the same CHECK still count.
+        compact = "".join(ddl_text.split()).lower().replace('"', "").replace("'", "")
+        has_axis_check = "check(capture_axis=snapshot)" in compact
+        if nullable or not has_axis_check:
+            raise UsageCaptureError(
+                "nflverse_snapshot_ledger_unconstrained: nflverse_snapshot_capture exists "
+                f"but is missing its G4 guarantees — nullable required columns {nullable}; "
+                f"capture_axis CHECK present: {has_axis_check}. The column NAMES match, "
+                "which is why this was accepted before. A ledger row that can record a null "
+                "provenance or a non-snapshot axis cannot say what it recorded. Refusing "
+                "rather than rebuilding the table underneath existing rows: adding these "
+                "constraints is an explicit, reviewed migration"
             )
 
     def _connect(self) -> sqlite3.Connection:
@@ -2228,7 +2281,97 @@ def write_raw_snapshot(
     synthetic season in the one file that is supposed to be the untouched source truth. A
     snapshot stream now passes `season=None` and its own `partition` instead, and NO `season`
     key is written at all.
+
+    V12-3: G3 fixed the CALLER and left the function itself fail-open — it validated nothing, so
+    four malformed envelope shapes were accepted and written. This is the pre-parse artifact
+    every replay and audit starts from; a raw file that cannot say what it recorded is worse
+    than no file. Exactly two envelopes are legal and they are mutually exclusive:
+
+      seasonal  — `season` is an int and `partition` is None
+      snapshot  — `season` is None and `partition` carries exactly capture_axis='snapshot',
+                  a `snapshot_id` and an `observed_at`, and NO `season` key
+
+    The seasonal branch is byte-identical to what twelve frozen streams already write.
     """
+    if partition is None:
+        if season is None:
+            raise UsageCaptureError(
+                f"nflverse_raw_envelope: stream {stream} passed neither a season nor a "
+                "snapshot partition. The raw artifact would carry no axis at all, so nothing "
+                "downstream could tell which kind of capture produced it"
+            )
+        # `numbers.Integral`, NOT `isinstance(season, int)`. The guard exists to catch the G3
+        # defect — an ISO timestamp written under a key named `season` — not to police an
+        # integer's provenance. A caller reading seasons off a dataframe hands over a
+        # `numpy.int64`, which is a perfectly good season and which a bare `int` check would
+        # refuse. No current caller does (argparse `type=int`), so this is a false refusal
+        # waiting to be hit rather than a live break. `bool` is excluded explicitly: it IS an
+        # Integral, and `season=True` would otherwise write `"season": true`.
+        if isinstance(season, bool) or not isinstance(season, numbers.Integral):
+            raise UsageCaptureError(
+                f"nflverse_raw_envelope: stream {stream} seasonal season is "
+                f"{season!r} ({type(season).__name__}), expected an integer — this is the "
+                "key that once carried an ISO timestamp (G3)"
+            )
+        # Normalize to a built-in int. Accepting the type is not enough: the writer below
+        # serializes with `default=str`, so a `numpy.int64` would land in the artifact as the
+        # STRING "2024" while a python int lands as the NUMBER 2024 — the same capture
+        # producing two different envelope shapes depending on how the caller built its list.
+        # `int()` on an Integral is exact and total. Caught by this fix's own control test,
+        # which is the entire point of writing the controls first.
+        season = int(season)
+    else:
+        if season is not None:
+            raise UsageCaptureError(
+                f"nflverse_raw_envelope: stream {stream} passed BOTH season {season!r} and a "
+                "snapshot partition. The two axes are mutually exclusive; accepting both "
+                "makes the artifact's axis depend on which key a reader happens to look at"
+            )
+        if partition.get("capture_axis") != "snapshot":
+            raise UsageCaptureError(
+                f"nflverse_raw_envelope: stream {stream} partition declares capture_axis "
+                f"{partition.get('capture_axis')!r}, expected 'snapshot'. A partition is the "
+                "snapshot-axis envelope and has no meaning on any other axis"
+            )
+        absent = [
+            key for key in ("snapshot_id", "observed_at")
+            if not str(partition.get(key) or "").strip()
+        ]
+        if absent:
+            raise UsageCaptureError(
+                f"nflverse_raw_envelope: stream {stream} snapshot partition is missing "
+                f"{absent}. A snapshot that cannot name itself or say when it was observed "
+                "cannot be reconciled against a later vintage"
+            )
+        if "season" in partition:
+            raise UsageCaptureError(
+                f"nflverse_raw_envelope: stream {stream} snapshot partition carries a "
+                f"`season` key ({partition['season']!r}). The source has no season axis; "
+                "inventing one in the pre-parse artifact is the G3 defect wearing a partition"
+            )
+        # Codex F1. Validating that the required keys are PRESENT is not the same as validating
+        # that they are the ONLY keys. `metadata.update(partition)` below merges the partition
+        # over the authoritative envelope fields, so an extra key silently rides along and a
+        # COLLIDING key overwrites the truth: Codex's probe wrote stream='spoofed_stream',
+        # rows=999, captured_at='spoofed_time' and schema_version='spoofed_schema' onto a file
+        # holding ONE real contracts row. An artifact that misreports its own stream and row
+        # count is not a record of anything. The key set is EXACT.
+        allowed = {"capture_axis", "snapshot_id", "observed_at"}
+        authoritative = {"schema_version", "stream", "captured_at", "rows"}
+        extra = sorted(set(partition) - allowed)
+        if extra:
+            collisions = sorted(set(extra) & authoritative)
+            detail = ""
+            if collisions:
+                detail = (
+                    f" {collisions} would OVERWRITE the authoritative envelope field(s) of "
+                    "the same name, making the artifact misreport itself"
+                )
+            raise UsageCaptureError(
+                f"nflverse_raw_envelope: stream {stream} snapshot partition carries "
+                f"unexpected keys {extra}; exactly {sorted(allowed)} are permitted.{detail}"
+            )
+
     raw_dir = Path(raw_root) / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
     stamp = "".join(ch for ch in captured_at if ch.isalnum())
@@ -2961,6 +3104,21 @@ def _run_locked_capture(
     return status
 
 
+#: V12-5: the ONE census vocabulary, shared by all three views `_totals` reports — the
+#: seasonal roll-up, the `snapshot_*` aggregates, and the per-stream `by_stream_snapshot`
+#: entries. They were three hand-written tuples and the third quietly lacked
+#: `rows_not_canonically_identified`. Driving them off one constant makes that drift
+#: impossible rather than merely fixed once.
+_SNAPSHOT_CENSUS_KEYS = (
+    "rows_total",
+    "rows_canonical_resolved",
+    "rows_source_only",
+    "rows_conflict",
+    "rows_unknown",
+    "rows_not_canonically_identified",
+)
+
+
 def _totals(results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     """Totals that cannot hide a stream-season. Same rule as the transaction chain.
 
@@ -2977,30 +3135,25 @@ def _totals(results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         if "coverage" in r and r.get("capture_axis") != "snapshot"
     ]
     snapshot_blocks = [dict(r["coverage"]) for r in snapshots]
-    keys = (
-        "rows_total",
-        "rows_canonical_resolved",
-        "rows_source_only",
-        "rows_conflict",
-        "rows_unknown",
-        "rows_not_canonically_identified",
-    )
     return {
-        **{k: sum(int(b.get(k) or 0) for b in blocks) for k in keys},
+        **{
+            k: sum(int(b.get(k) or 0) for b in blocks) for k in _SNAPSHOT_CENSUS_KEYS
+        },
         "stream_seasons": len(blocks),
         # A snapshot is counted ONCE under its OWN vocabulary. `stream_seasons` means
         # stream-seasons actually ingested and folding a snapshot into it would be the
         # synthetic-season defect wearing a different coat (Codex D3).
         "stream_snapshots": len(snapshots),
+        # V12-5: `rows_not_canonically_identified` was carried at top level and in the
+        # `snapshot_*` aggregates but omitted HERE — while the GREEN report claimed "the same
+        # census in by_stream_snapshot". A census complete in two views and silently short in
+        # the third is how an unresolved population goes invisible to whoever reads the
+        # per-stream view. Driven off one key tuple so the three views cannot drift again.
         "by_stream_snapshot": {
             entry["stream"]: {
                 "snapshot_id": entry["snapshot_id"],
                 "observed_at": entry["observed_at"],
-                "rows_total": entry["coverage"]["rows_total"],
-                "rows_canonical_resolved": entry["coverage"]["rows_canonical_resolved"],
-                "rows_source_only": entry["coverage"]["rows_source_only"],
-                "rows_conflict": entry["coverage"]["rows_conflict"],
-                "rows_unknown": entry["coverage"]["rows_unknown"],
+                **{key: entry["coverage"][key] for key in _SNAPSHOT_CENSUS_KEYS},
             }
             for entry in snapshots
         },
@@ -3010,14 +3163,7 @@ def _totals(results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         # seasonal counters stay untouched.
         **{
             f"snapshot_{key}": sum(int(b.get(key) or 0) for b in snapshot_blocks)
-            for key in (
-                "rows_total",
-                "rows_canonical_resolved",
-                "rows_source_only",
-                "rows_conflict",
-                "rows_unknown",
-                "rows_not_canonically_identified",
-            )
+            for key in _SNAPSHOT_CENSUS_KEYS
         },
         "snapshot_unresolved_by_stream": {
             entry["stream"]: {
