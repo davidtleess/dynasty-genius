@@ -165,7 +165,7 @@ test — see `docs/agent-ledger/evidence/2026-08-05/layer1_feature_refresh_route
 | A4 | CFBD | **paid** | `sources/cfbd_foundation/` | **measured** — promoted run `20260802T024342156864Z`, **1,202** raw payloads, 874 curated rows *(V1)* |
 | A5 | FantasyCalc | free | `fc_forward_capture.db` + part of `fc_snapshots.db` | partial |
 | A6 | **DynastyProcess** *(ONE source — v1 split it into A7/A9 by loader, F2)* | free, GPL-3.0 repo | pinned `values.csv`; part of `fc_snapshots.db` | partial |
-| A7 | Sleeper | free | `league_transactions.db` **(transactions only — v1 claimed league/roster/universe, F2)** | partial |
+| A7 | Sleeper | free | `league_transactions.db` *(transactions — **manual_only**, no consumer)* **+ `app/data/league_runtime/` (daily 09:20 snapshot bundle, 21 runs, consumed — added V16)** | partial |
 
 **A6 DynastyProcess is in NO registry entry** — a physical source with pinned data and no machine
 declaration. Recorded, not opened.
@@ -209,6 +209,33 @@ must never sit in a state cell** — v2 put `blocked_for_use` in B14's consumer 
 | B18 | `pbp` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared** |
 | B19 | `participation` **(direct provider read)** | *(none)* | 0 | ✗ | ✗ | ✗ | " | ✗ | **undeclared** |
 
+### ⛔ N18 — THE ONE SCHEDULED, CAPTURED, CONSUMED LAYER-1 STREAM, AND IT WAS MISSING
+
+**Found only because correcting my own N12/N13 cadence error exposed it *(V16, Codex)*.** I had
+attributed the daily 09:20 cadence to the transaction tables; when that was withdrawn, the cadence
+had no stream to belong to — and the real one had **no row in this catalog at all.**
+
+Measured and independently reproduced:
+* `com.davidleess.dynasty-league-capture` runs `scripts/run_league_snapshot_capture.py` **daily at
+  09:20**, loaded, **last exit 0**.
+* **21 successful runs**, 2026-07-16 → 2026-08-05 (`app/data/logs/league_capture.out.log`).
+* `ready_latest.json` pins run **`league-20260805T132003Z`**, source-captured
+  **`2026-08-05T13:20:03.348137+00:00`**, with **six** SHA-pinned artifacts.
+* Snapshot grain, verified key by key: **12,209** players · **12** rosters · **14** users ·
+  **109** `future_picks` · `league` 5 · `draft_state` 18 · `coverage` 10.
+
+**Corrections this forces:**
+1. **`app/data/league_runtime` is added to A7's physical stores** — it was not listed.
+2. **N12/N13 stay `manual_only` and consumerless.** The 09:20 cadence belongs **only** to N18.
+3. **The five derived artifacts** (`coverage`, `provenance`, `roster_cut_report`, `team_posture`,
+   `team_value_matrix`) are **downstream outputs of one coherent bundle — NOT five ingested source
+   streams.** Counting them as streams would inflate the inventory with our own outputs, which is the
+   same error class as counting `model_forward_capture.db` as fuel.
+4. **This materially qualifies the session's headline finding.** *"The canonical ingestion store has
+   NO SCHEDULED REFRESH"* remains true **of `nflverse_usage.db`** — but it must never be read as
+   *"Layer 1 has no scheduled ingestion."* **N18 is scheduled, captured, marker-pinned, and
+   consumed.** It is the counter-example, and the catalog missed it.
+
 **B15–B19 are streams with a PRODUCTION CONSUMER and NO capture** — the exact inverse of B5–B13
 (captured, no consumer). They are rowed here because R1 makes a stream an inventory entity whether
 or not we store it; `obs = 0` records that **we keep nothing**, not that nothing flows. **B17 is the
@@ -236,6 +263,7 @@ never added to a total.**
 | N12 | Sleeper | `league_transaction` | 932 | `obs` | **none** *(V4 — corrected)* |
 | N13 | Sleeper | `league_transaction_movement` | 1,692 | `obs` *(different grain)* | **none** *(V4 — corrected)* |
 | N14 | Sleeper | `league_season_capture` | 4 | `cap` | — |
+| **N18** | **Sleeper — league/universe SNAPSHOT BUNDLE** *(V16 — was ABSENT from this catalog entirely)* | `app/data/league_runtime/runs/<run_id>/snapshot.json`, schema `sleeper_universe_snapshot.v1` | **12,209** players · **12** rosters · **14** users · **109** future picks · league (5) · draft_state (18) · coverage (10) | `obs` **per component endpoint — do NOT sum across grains** | **CONSUMED** by the league derivation chain |
 | N15 | PFF | manual export payloads | **149** | **`raw-payload count` — NOT `obs`** *(V2)* | **partial — ONE PRECISE LANE** *(V12)*: NCAA `receiving_summary`, scope `REGPO`, seasons 2017–2025 (9 entries in `phase16_wr_manifest.json`, hashes match content-hash filenames) via `scripts/build_college_features.py`. **Not evidence that the other 13 lanes are consumed.** |
 | N15b | PFF | internal source rows across 14 league/report lanes | **134,392** | `obs` *(sum; overlap/dedup rule NOT yet stated)* | as N15 |
 | N16 | CFBD | `curated/prospects_with_outcomes_v3.csv` | 874 rows | `obs` | **Engine A** (promoted 2026-08-04) |
@@ -369,9 +397,19 @@ refreshed by nothing and consumed by nothing.
 Meanwhile the daily job pulls five datasets straight from the provider on a **separate** path that is
 not in the catalog.
 
+**⚠ SCOPE OF THIS FINDING — QUALIFIED 2026-08-06 (V16), because it was being read too widely.**
+The sentence above is true **of `app/data/nflverse_usage.db`** and of nothing else. It must **NEVER**
+be paraphrased as *"Layer 1 has no scheduled ingestion."* **N18 is a counter-example this catalog
+had missed entirely**: `com.davidleess.dynasty-league-capture` runs **daily at 09:20**, is loaded,
+**last exit 0**, has **21 successful runs** (2026-07-16 → 2026-08-05), writes a marker-pinned
+snapshot bundle, and **is consumed**. FantasyCalc likewise has a daily capture route (R8). **A
+finding scoped to one store is not a finding about the layer**, and the reason it nearly became one
+is that the counter-example had no row here to contradict it.
+
 **That is a genuine Layer-1 structural finding and it is exactly what this inventory was ordered to
-surface.** It is recorded as a measured fact. **It is not a recommendation, and no agent may treat it
-as authority to build, schedule, or re-sequence anything** — David rules on that.
+surface.** It is recorded as a measured fact **at the grain stated above**. **It is not a
+recommendation, and no agent may treat it as authority to build, schedule, or re-sequence anything**
+— David rules on that.
 
 ### §4.3 ⚠ VALID OPS ALARM — offsite backup run FAILED
 

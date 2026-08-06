@@ -198,6 +198,35 @@ Disposition:
 - The catalog should row Roster Auditor as an additional consumer edge on B18 (and record the
   R18 registry/provenance mismatch), not create a duplicate Table B source stream.
 
+## V16 — The actual scheduled Sleeper stream is absent from Table B
+
+Correcting N12/N13 to `manual_only` exposed a second omission: the daily 09:20 job's actual output,
+`app/data/league_runtime`, has no stream row at all.
+
+Measured state:
+
+- `com.davidleess.dynasty-league-capture` is installed/loaded and runs
+  `scripts/run_league_snapshot_capture.py` daily at 09:20.
+- `app/data/logs/league_capture.out.log` records 21 successful runs from 2026-07-16 through
+  2026-08-05; current `launchctl print` reports loaded, not running, last exit 0.
+- `ready_latest.json` names run `league-20260805T132003Z`, source-captured at
+  `2026-08-05T13:20:03.348137+00:00`, with six SHA-pinned artifacts.
+- The source snapshot has schema `sleeper_universe_snapshot.v1` and contains 12,209 classified
+  players, 12 rosters, 14 users, 109 future-pick rows, league settings, and draft state. The run
+  directory is marker-pinned and contains the source snapshot plus five derived artifacts.
+- The builder fetches Sleeper league, rosters, users, traded picks, all players, NFL state, latest
+  draft, and draft picks. This is distinct from historical transactions/movements.
+
+Catalog consequences:
+
+- Add one Sleeper universe/league-state snapshot-bundle stream row (with the component endpoint
+  grains stated), captured/exported daily and consumed by the league derivation chain.
+- Add `app/data/league_runtime` to A7's physical stores.
+- Keep N12/N13 manual and consumerless. The 09:20 cadence belongs only to this omitted runtime
+  stream.
+- Do not count the five derived artifacts as five ingested source streams; they are downstream
+  outputs of the one coherent snapshot bundle.
+
 ## Rerunnable probes
 
 ```bash
