@@ -1,0 +1,223 @@
+# Layer 1 Automatic Data Refresh Planning — v2
+
+**Status:** planning increment, not execution authority
+
+**Layer:** Layer 1 ingestion. This plan does not open Layer 2.
+
+**Catalog dependency:** the final plan cannot claim “all possible streams” until sections A–C of
+`docs/layer-1-data-inventory-catalog.md` are complete and independently clear. Planning starts now;
+implementation does not.
+
+## 1. Objective
+
+Create production-grade, season-aware automatic refreshes for every Layer 1 stream that can be
+refreshed legally, technically, and within a David-approved cost ceiling. Every stream must end in
+exactly one automation class:
+
+1. `automatic_active_verified` — governed job exists and its operational health is evidenced;
+2. `automatic_active_health_unverified` — governed job fires, but freshness/health is not yet proven;
+3. `automatic_candidate` — technically possible, but no governed job exists;
+4. `manual_only` — current access path requires a human export or upload;
+5. `blocked` — a named identity, storage, source, use, or authority blocker prevents scheduling;
+6. `prohibited` — policy, terms, cost, or governance bars the source in the current phase;
+7. `static_pinned` — immutable validation/history input whose correct cadence is no refresh.
+
+“Not scheduled” is not a cadence. “Daily job” is not proof of daily source change. “Possible” does
+not imply authorized.
+
+## 2. Required row contract
+
+Each source-stream row in the final schedule carries:
+
+| Field | Meaning |
+| :-- | :-- |
+| source and stream IDs | provider family and exact dataset/loader grain |
+| automation class | one of the seven classes above |
+| source publish cadence | measured upstream change rhythm, or `UNVERIFIED` |
+| stream refresh cadence | season-aware capture target |
+| job fire cadence | how often the scheduler checks/runs |
+| freshness policy | when the artifact is stale; separate from job fire |
+| season window | in-season, offseason, event-triggered, or year-round |
+| dependency edges | upstream capture and downstream consumers |
+| raw/normalized/store paths | physical lineage and market/model separation |
+| identity gate | required bridge and unresolved-row policy |
+| last-good behavior | unchanged, partial, failed, and recovery semantics |
+| marker/log paths | timestamped operational truth surfaces |
+| operational health basis | latest status, freshness result, and observation window; never inferred from a fire |
+| cost/access basis | free, paid-per-call, subscription, manual export, prohibited |
+| approved cost ceiling | numeric/run-rate budget or `UNVERIFIED`; “economical” is not a verdict |
+| owner and authority gate | who decides and what word is still required |
+
+## 3. Provisional classification from the current incomplete inventory
+
+This table is deliberately provisional. Rows not yet enumerated in the catalog remain open work.
+
+| Source/stream group | Current state | Planning class | Constraint before scheduling |
+| :-- | :-- | :-- | :-- |
+| Sleeper league capture | daily 09:20 job; latest marker success is not a health history | `automatic_active_health_unverified` | attach exact stream/job/marker edges and verify freshness across every league-state artifact |
+| FantasyCalc forward capture | daily 09:00 job; no registered freshness row | `automatic_active_health_unverified` | add its missing freshness-policy row and preserve physical market separation |
+| nflverse canonical store: 13 bound specs | manual capture only; 12 materialized | `automatic_candidate` | complete per-stream cadence, source-publish, and dependency rows; `contracts` has never run |
+| Feature Refresh direct reads: player stats, rosters, snap counts, PBP, participation | pulled inside a daily derivation job; not canonical capture streams | `blocked` pending architecture choice | either make them governed captured streams or register an explicit separate ingestion path; do not keep invisible provider reads |
+| Sleeper transactions/movements | manual store today | `automatic_candidate` | define incremental cursor/idempotence, league-history backfill, and status marker |
+| CFBD | paid HTTP source; registered 720-hour freshness for historical data | `blocked` pending cost/run policy | David approves automated paid-call budget and season/event cadence |
+| PlayerProfiler | current store was manually landed; shadow retrieval exists | `blocked` pending access/legal/reliability audit | prove a sanctioned stable acquisition path before calling it automatable |
+| PFF, RotoViz, Campus2Canton | manual CSV/export paths in registry | `manual_only` | no automated API in the current contract |
+| `nfl_data_py` / equivalent nflverse historical labels | registered 168-hour freshness, stream inventory incomplete | `automatic_candidate` | enumerate actual loaders/stores and avoid duplicating the canonical nflverse adapter |
+| MFL rookie ADP | public API, 24-hour registry freshness | `automatic_candidate` | define a physically separated market-overlay stream and exact rookie/SF limitations |
+| DynastyProcess pinned backtest files | immutable registered evidence | `static_pinned` | no refresh unless a separately versioned forward-history use is approved |
+| `ff_rankings` | `blocked_for_use`, no RED | `blocked` | remains outside scheduling; current ruling permits no scheduler |
+| KTC | scraping prohibited by registered source rule | `prohibited` | official/sanctioned API plus David's new ruling required |
+| Dynasty Data Lab / DynastyNerds | paid or no clean API; deferred | `blocked` | explicit use, access path, cost, and destination before ingestion planning |
+| Sportradar / Genius Sports / Stats Perform / Rolling Insights | enterprise cost/licensing, prohibited current phase | `prohibited` | David-only source/cost decision |
+| QB validation source set | pinned study inputs | `static_pinned` unless the ratified study says otherwise | never silently refresh a pre-registered input manifest |
+
+## 4. Target dependency shape
+
+```text
+source availability/change
+        |
+        v
+raw capture + provenance + content hash
+        |
+        v
+schema/identity/reconciliation gate
+        |
+        v
+atomic last-good store/export + status marker
+        |
+        +--------------------+
+        |                    |
+        v                    v
+curation/feature refresh   operational freshness monitor
+        |
+        v
+downstream model/context jobs only when separately authorized
+```
+
+The current 09:15 Feature Refresh does not occupy the raw-capture box. It consumes three NGS
+exports and directly downloads five other datasets. The final plan must eliminate that ambiguity
+before adding more clocks.
+
+## 5. Scheduling principles
+
+1. **Schedule by source and meaningful change rhythm, not one universal daily job.** One job may
+   cover several streams only when they share source, cadence, failure boundary, and provenance.
+2. **Season-aware cadence is mandatory.** Injuries/depth/league state may justify a faster
+   in-season check than historical aggregates. Offseason and dormant windows are explicit.
+3. **Capture precedes consumers.** A downstream job reads only a successful last-good artifact,
+   never an ungoverned live provider call hidden inside derivation.
+4. **No fake history.** An unchanged pull records a checked/no-change outcome; it does not create a
+   new source observation unless the stream contract explicitly defines observation-time snapshots.
+5. **Fail closed, preserve last good.** Schema drift, partial source response, identity failure,
+   and export failure surface in a marker and never replace the last-good artifact.
+6. **Each job owns a lock and a terminal marker.** Marker absence, failure, or policy-defined
+   staleness is visible. Logs are evidence, not the status API.
+7. **Retries are bounded and source-safe.** Backoff, rate limits, paid-call ceilings, and retry
+   idempotence are defined before scheduling.
+8. **Market and validation data stay isolated.** Automation never relaxes the market-overlay wall
+   or changes a pinned study manifest.
+9. **Manual fallback is part of the contract.** `manual_only` is a supported operating state, not a
+   hidden failure to automate.
+10. **Backup coverage follows new irreplaceable stores.** Any new capture store must enter the
+    governed backup manifest in the same implementation change.
+11. **Backup health is an enablement precondition.** No new persistent automatic capture is enabled
+    while `app/data/ops/backup_status_latest.json` reports failure. If a proposed cache is genuinely
+    regenerable and outside the protected set, the plan states that basis explicitly rather than
+    silently bypassing this precondition.
+12. **The manifest test has a known enforcement gap.** The current anti-rot test mechanically scans
+    present top-level databases and registry paths, not arbitrary raw directories, CSV, pickle, or
+    export artifacts. Until a RED extends it, reviewers must verify those paths manually. P4 must
+    either extend the scan or record reviewer evidence for every new governed artifact.
+13. **Pinned inputs are physically immutable to automation.** Any forward DynastyProcess or
+    validation capture writes to a separate path and job identity that cannot overwrite a pinned
+    manifest or registered input. One provider may have streams in different automation classes;
+    nobody schedules “the source” as a unit.
+
+## 6. Proposed planning sequence
+
+### P0 — Finish the inventory
+
+- Complete all source and stream rows, including direct provider reads, fixtures, deferred and
+  prohibited sources.
+- Attach source cadence, job cadence, freshness policy, evidence paths, and timestamps separately.
+- Draw exact producer/store/export/consumer edges.
+- Define each stream's season window in a versioned schedule/config row, with an owner. Do not
+  borrow the constitution's estimate-responsiveness seasons as an ingestion calendar.
+- For every paid source, carry an explicit approved per-run/month ceiling or `UNVERIFIED`.
+
+### P1 — Ratify the automation classification
+
+- Codex verifies technical/source evidence row by row.
+- Gemini verifies job, marker, log, fire, and freshness facts only.
+- Claude dispositions every challenge.
+- David rules on paid-call budgets, access methods, prohibited-source exceptions, and priority.
+
+### P2 — Design the canonical nflverse refresh program
+
+- Group only streams with proven shared cadence/failure boundaries.
+- Make the five Feature Refresh direct reads canonical captured streams before derivation. Letting
+  them remain a parallel production ingestion surface would contradict `01` §Source Adapter Rules
+  and the one-trustworthy-path standing goal; that alternative requires an explicit governance
+  amendment, not an ordinary architecture preference.
+- Define season windows, dependency ordering, locks, markers, and last-good publication.
+- Preserve the contracts snapshot semantics and weekly cadence already ruled; scheduling remains a
+  separate authority gate.
+- Treat the first scheduled contracts capture as its product-store landing: before enablement, run
+  one export covering all twelve prior streams plus contracts, reconcile prior published files and
+  the NGS consumers, obtain the separate landing/scheduling word, and pass independent review.
+
+### P3 — Extend to context and overlay sources
+
+- Automate Sleeper transactions after incremental-history/idempotence design.
+- Close FantasyCalc freshness monitoring.
+- Consider MFL ADP only in a physically separated overlay store.
+- Resolve paid/manual sources individually; do not manufacture unsupported scrapers.
+
+### P4 — Operational acceptance before enablement
+
+For every job: preflight, dry-run/candidate mode, success/no-change/failure/recovery controls,
+staleness positive control, lock contention, last-good preservation, backup-manifest coverage, and
+independent review. For raw directories/CSV/pickle/export artifacts, extend the anti-rot test or
+attach explicit reviewer-enforced manifest evidence. Require a non-failed live backup marker before
+enabling new persistent capture. Enabling a LaunchAgent is a separate David-authorized action after
+these gates.
+
+## 7. Decisions that remain David's
+
+1. Which `automatic_candidate` streams receive build priority.
+2. Numeric paid-call budgets and acceptable refresh frequency for CFBD or any paid source.
+3. Whether any currently prohibited enterprise source is reopened.
+4. Whether the five direct Feature Refresh reads become canonical captured streams. Retaining a
+   parallel surface is not a peer option under current governance; it requires an explicit `01`
+   amendment that David is told he is making.
+5. The final enablement word for each scheduled job or approved batch.
+6. The exact in-season/offseason/event boundaries for each cadence family, after source-publish
+   rhythms are measured.
+
+## 8. Explicit non-actions
+
+No scheduler, LaunchAgent, capture, store, consumer, model input, market overlay, commit, or push is
+created or authorized by this plan.
+
+**Backup authority is CONTESTED and this plan does not resolve it.** Claude reads David's earlier
+word *“have the next session push and backup”* as authority for a recovery run. Codex previously
+treated manual recovery as still gated. The phrase can also mean “handle/investigate the backup
+situation.” Both interpretations cannot stand, and only David may resolve them. Until he does, no
+agent uses this plan as authority to run a backup or recovery.
+
+H2 QB rushing remains a registered hypothesis **UNDER TEST** with no result.
+
+## 9. Disposition of Claude challenge C1–C7
+
+| Finding | Disposition |
+| :-- | :-- |
+| C1 backup authority conflict | **Accepted; unresolved.** §8 now records both readings and escalates to David. |
+| C2 parallel direct-read branch requires governance amendment | **Accepted.** Canonical capture is the compliant default; the alternative is labelled an explicit `01` amendment. |
+| C3 active jobs were called healthy without evidence | **Accepted.** Automation existence and health are split; Sleeper/FantasyCalc are health-unverified. |
+| C4 failing backup constrains new capture | **Accepted.** Non-failed backup marker added as a persistent-capture enablement precondition. |
+| C5 backup anti-rot enforcement gap | **Accepted.** Reviewer-enforced gap named; scan extension or explicit evidence required in P4. |
+| C6 pinned inputs need physical immunity | **Accepted.** Separate paths/job identities required; one source may have streams in different classes. |
+| C7 scheduled contracts capture is a landing | **Accepted.** Twelve-prior-stream-plus-contracts export reconciliation and separate authority are explicit. |
+
+Both minor findings are accepted: paid-source “economics” requires a numeric ceiling, and every
+season window needs a versioned boundary/owner rather than borrowing an unrelated estimate rule.
