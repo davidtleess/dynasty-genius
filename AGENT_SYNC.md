@@ -11,6 +11,103 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ 2026-08-05 SESSION 2 — CONTRACTS V12 **CLEAR** (uncommitted) · FF_RANKINGS **BLOCKED_FOR_USE**
+>
+> **AUTHORITY.** Agent-authored state reconciliation by the two binding lanes (Claude + Codex).
+> **Not David's prose. Not new build/commit/push/landing authority.** David's only words this
+> session were the sequencing selection *"V12 first, then ff_rankings"* and his direction to bring
+> Codex onto the wire. **Three decisions are OUTSTANDING with him** (bottom of this block).
+>
+> **SUPERSEDES the block below on stream-5 and stream-6 status only.** Everything else there stands.
+>
+> **NO HEAD OR AHEAD-COUNT IS ASSERTED HERE.** A committed state doc cannot truthfully pin its own
+> resulting HEAD (the 2026-08-05 session-1 lesson). Get current SHAs from a gate run.
+>
+> ## Stream 5 `contracts` — V12-1..5 CLOSED, **GREEN CLEAR**, **COMMITTED `2a42759`** (unpushed)
+> Codex issued **GREEN CLEAR** at a pinned v16 state; Claude recomputed all three pinned hashes and
+> they MATCH. **David authorized the commit on 2026-08-05 and the code landed as `2a42759`** — stated
+> as a past fact about that commit, never as a claim about current HEAD. It sits on top of the pushed
+> baseline `4909d52`. **PUSH IS NOT GRANTED** and remains a separate word, as do
+> landing/capture/export/scheduler/consumer/model-use; any landing is still ONE export covering all
+> twelve prior streams plus contracts.
+> * Fixes: V12-1 exact-column check ordered ahead of the generic first-row drift check and the
+>   identity exclusion filter · V12-2 **44 durable controls** · V12-3 raw-envelope validation with an
+>   EXACT partition key set · V12-4 ledger verified for NOT NULL + CHECK, refusing rather than
+>   migrating · V12-5 one shared `_SNAPSHOT_CENSUS_KEYS` across all three census views.
+> * Gate: contracts **103 passed** · focused step-1 ingestion **147 passed** · Ruff clean · full
+>   suite **4,655 passed / 12 skipped / 9 xfailed, exit 0** *(Claude-lane measurement — Codex did NOT
+>   rerun it and did not use it as independent evidence)*.
+> * Seasonal freeze proved by byte comparison against the pre-fix function loaded from git.
+> * Evidence: `docs/agent-ledger/evidence/2026-08-05/contracts_v12_green_claude_v16.md` +
+>   `..._green_clear_codex_v17.md` (plus v14/v15 for the superseded round).
+>
+> ## Stream 6 `ff_rankings` — **BLOCKED_FOR_USE, NO RED. Both lanes concur.**
+> **It is NOT a sixth copy of the contracts pattern and it is NOT an independent market source.**
+> `load_ff_rankings` downloads from **`dynastyprocess`** — the SAME source family as the `dp_archive`
+> already integrated as `dynastyprocess_ecr_2qb` (expert consensus, **not** a trade market; David
+> signed that off 2026-05-30). Claude's framing v1 claimed "a second independent market source" and
+> **that claim was FALSE**; v1 is **withdrawn**.
+> * Measured: `draft` 5,281×25 · `week` 809×28 · `all` 1,800,704×24 / 358 dates *(the `all` figures
+>   are Codex-lane, not reproduced by Claude)*. **Only `dynasty-op` is Superflex**
+>   (`dynasty-superflex.php`, `ecr_type=dsf`, **540 rows, 435 identity-resolved**). `dynasty-rk` has
+>   **no** Superflex marker — do not add its 115 rows to the exact-league slice.
+> * Redundancy answered: vs `ecr_2qb`, Spearman **.9950/.9909/.9723/.9794**, top-24 overlap 23/23/21/23.
+>   **Different in kind** (`dsf` direct vs `ecr_2qb` a regression conversion) but a **small** increment
+>   whose materiality is **unproven and expected low**.
+> * `week` carries **verdict fields** (`tag` start/sit, `start_sit_grade` A+…F, `recommendation`) —
+>   barred from normalized/overlay/export/API **by construction**, though raw-before-parse evidence is
+>   a separate matter. Its only vintage is stale (2025-12-30).
+> * **REOPENING BOUNDARY, if David ever reopens it:** maximum RED is **raw + history + provenance
+>   ONLY**. Excluded: identity normalisation, scheduling, a consumer, current overlay, model input,
+>   any surface. Any materiality study must **pre-register** the verdict tested, identity cohort,
+>   coverage floor, missingness handling, and metric + threshold.
+> * Evidence: `ff_rankings_framing_claude_v3.md` + `..._v3_concurrence_codex_v4.md` (v1 withdrawn).
+>
+> ## ⛳ DAVID'S RULING 2026-08-05 — LAYER 1 DATA INVENTORY IS THE PROGRAM
+>
+> **David's verbatim words are in `docs/agent-ledger/2026-08-05.md` under the 22:1x entry and were
+> relayed verbatim to both lanes. Read them there — this is an agent-authored summary of the work,
+> not his prose.**
+>
+> **HE RULED ON AUTHORITY FIRST, and this is the load-bearing part:** *"i, and only i determine when
+> 'the foundation is built enough'."* **Claude had asserted the opposite** — that the foundation was
+> built enough and nothing in Layer 1 was blocking the product. **That assertion provoked this
+> ruling and is recorded as an authority overstep, not a framing choice.** No agent declares layer
+> sufficiency. `05` §1 sequencing is David's doctrine and his call.
+>
+> **THE PROGRAM, in his order — and F does not open until E is complete:**
+> * **A.** Full inventory of Layer 1 data — **sources · ingestion streams · refresh frequencies**.
+> * **B.** Then granular inventory of the **catalog · Player 360 · semantic layer and metrics ·
+>   schemas**.
+> * **C.** *"KEEP TRACK OF THIS INVENTORY DILIGENTLY."*
+> * **D.** Tell David **what sources we still need to ingest**.
+> * **E.** Everything updated and **checked off clearly and cleanly on the LAYER 1 DATA INVENTORY
+>   CATALOG** — a durable tracked artifact, not a chat summary and not a scratch file.
+> * **F.** **THEN** the long, deep research session on **how Layer 2 should consume Layer 1**.
+>
+> **Nobody opens Layer 2 design work off this board.** The batch-completion question ("is stream 6
+> the last?") is subordinate to the inventory: the inventory tells David what is missing, and he
+> rules.
+>
+> **Lane split (proposed by Claude, open to challenge):** Claude — catalog/Player 360/semantic
+> layer/schemas inventory + authorship of the Catalog artifact. Codex — independent adversarial
+> verification of every row against the repo, plus the gap analysis feeding (D). Gemini — the
+> operational slice inside its ratified Operations & Telemetry seat: **refresh frequencies**,
+> job fire/exit states, marker reads, artifact age vs registered cadence; facts with paths and
+> timestamps, no verdicts.
+>
+> ## ⏳ OUTSTANDING — DAVID ONLY
+> 1. **Push** for `2a42759` and the state-doc commit — never granted, still separate.
+> 2. **`ff_rankings`: retention/licence** for the exact DynastyProcess files, if anything durable is
+>    ever to land. Stream 6 stays `blocked_for_use`, no RED, both lanes concurring.
+> 3. **Gemini pane is BLOCKED** by a CLI survey dialog (`How's the CLI experience so far?`). No agent
+>    may clear it — answering a survey is not an agent's to answer and pressing keys in another
+>    pane is barred. **David must clear it** before Gemini can receive its telemetry lane.
+>
+> **Standing:** six streams, **zero consumers** — Codex's framing, accepted: that is **priority
+> evidence, not a semantic prohibition**. **H2 QB rushing remains a registered hypothesis UNDER TEST
+> — the study has not run and there is no result.**
+
 > # ⏸ 2026-08-05 CLOSEOUT OVERRIDE — LAYER-1 SIX-LOADER BATCH PARKED AFTER STREAM 5
 >
 > **AUTHORITY.** David instructed both binding lanes to close out. This block is agent-authored
