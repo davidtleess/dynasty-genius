@@ -192,11 +192,28 @@ toward A makes deference the specific risk here. Checks run:
 Three lanes agreeing does not make A right. These are the things that would move it, with who could
 settle each:
 
-1. **If nflverse season parquets turn out to be genuinely immutable once published**, then re-fetching
-   reproduces the bytes and the replayability argument — the single strongest case for A — weakens
-   sharply. **Nobody measured this.** Settle it by recording per-season content hashes on successive
-   days. *(It would not rescue B: `01` §Source Adapter Rules requires a raw snapshot before parsing
-   regardless, and the 2026-08-02 outage shows a past season's asset was not reliably retrievable.)*
+1. ~~**If nflverse season parquets turn out to be genuinely immutable once published**, then
+   re-fetching reproduces the bytes and the replayability argument — the single strongest case for A —
+   weakens sharply. **Nobody measured this.**~~
+   **✅ MEASURED AND CLOSED 2026-08-06 — IT RESOLVED IN FAVOUR OF A.** Codex ran the test; I
+   reproduced it independently against the GitHub release API. **Season URLs are MUTABLE assets.**
+   The 2018-season files carry asset timestamps *years after* the 2018 season:
+   `play_by_play_2018.parquet` created **2025-04-30**, `stats_player_week_2018.parquet` created
+   **2025-04-30**, `snap_counts_2018.parquet` created **2025-10-06**. A stable URL is **not** a stable
+   artifact.
+   **⇒ B3, the strongest anti-A argument, is DEAD.** Re-fetching does not reproduce what the provider
+   served; "we can always re-download it" was false. **This is the open question that could have
+   overturned the recommendation, and it strengthened it instead.**
+   **BOUNDARY, stated because the temptation is to over-read it:** this proves **mutability only**.
+   It does **not** establish a revision *rate*, *which* rows changed, or *why*. **No semantic
+   revision-rate claim is made or licensed.**
+   **Retention consequence:** capture must be **content-addressed and must KEEP PRIOR ACCEPTED
+   VERSIONS when bytes change** — a freeze-at-season-key scheme would silently lose the earlier
+   vintage. *(Codex's conclusion, adopted.)*
+   *(Discrepancy recorded rather than smoothed: Codex reported `stats_player_week_2018.parquet`
+   overwritten **2026-07-10**; my own probe returned **2025-04-30**. I have used my measurement and
+   flagged the difference to Codex. **The conclusion is unaffected either way** — a 2018 asset
+   stamped in 2025 already proves mutability.)*
 2. **If the retention contract lands on option (b)** — accepting that only the provider's current
    version is recoverable — then capturing raw bytes buys much less, and A's shape should shrink to
    normalized captures rather than content-addressed raw. **That is David's ruling, not a lane's.**
