@@ -98,6 +98,11 @@ print(len(SOURCE_REGISTRY)); [print(k) for k in SOURCE_REGISTRY]"
 # measured: 20
 ```
 
+**✅ V26 — the DECLARATION columns are now INDEPENDENTLY VERIFIED.** Codex mechanically matched all
+**20** rows' key / role / cache_policy / freshness_hours / failure_behavior against `SOURCE_REGISTRY`
+at a pinned SHA. **This verifies the declarations ONLY** — the `access class` and `capture state`
+columns are separate judgements and remain as individually marked.
+
 `role` · `cache_policy` · `freshness_hours` · `failure_behavior` are **registry declarations**, not
 observed behaviour. **Capture state is a separate, physical question** and is the last column;
 `UNVERIFIED` there means no probe was run this session, per R2.
