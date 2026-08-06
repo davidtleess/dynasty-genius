@@ -139,6 +139,65 @@ summaries immediately below the table do not:
   exist. The catalog should state each route's measured state instead of collapsing authorship and
   production status into one sentence.
 
+## V11 — Canonical nflverse export state is independently verified
+
+`app/data/nflverse_usage/export/nflverse_usage.ready.json` names all 12 materialized streams plus
+the unresolved-identity companion artifact. Every named Parquet file exists and independently
+recomputes to the marker's SHA-256. The 12 stream row counts match B1–B12 and sum to 1,491,691.
+
+Therefore the `exported = ✓` cells for B1–B12 are independently supported at run
+`nflverse-usage-20260805T1334216901700000`, captured
+`2026-08-05T13:34:21.690170+00:00`. This verifies export existence/integrity, not a consumer for
+B4–B12 and not a scheduled refresh cadence.
+
+## V12 — PFF's partial consumer is one precise lane
+
+`scripts/build_college_features.py` reads `app/data/pff_exports/phase16_wr_manifest.json`. Its nine
+entries resolve exactly to NCAA `receiving_summary`, `REGPO`, seasons 2017–2025 in the unique
+payload inventory. Those files exist and their hashes match their content-hash filenames.
+
+Thus “PFF has a partial consumer” is supported, but the consumer applies to this one precise
+league/report/scope lane. It is not evidence that the other 13 league/report lanes are consumed.
+
+## V13 — The canonical source table was not reconciled after V5–V8
+
+Commit `917ffbd` adds the correct physical truths in §3.2, but §2.1—the actual 20-row source
+inventory—still says R1, R4, and R18 are `UNVERIFIED`, still describes R20 only as “pinned study
+inputs,” and §1 still says six capture-state cells are unverified. Table A-P also leaves PFF and
+CFBD `UNVERIFIED` despite the independently measured inventories above.
+
+The prose summary below Table A has two additional live errors already named in V10: seven sources
+are prohibited/deferred, not six, and R19 is not the only source with a built capture route. A
+correction appendix does not reconcile a stale canonical row; the Table A cells and progress text
+must carry the current truth before A can be checked off.
+
+## V14 — Lower catalog text still describes completed enumeration as missing
+
+After Table B-N was added, the paragraph headed “STREAMS NOT YET IN THIS TABLE” still lists
+PlayerProfiler, PFF, CFBD, FantasyCalc, and Sleeper as missing. It also says B4's consumer state is
+unverified even though the catalog change log and prior independent probe resolve it. Separately,
+the export disclaimer says all B1–B12 exports remain unverified; V11 now verifies those exact files
+and hashes.
+
+These are state-reconciliation defects: the new rows are correct, but the same document still
+asserts their prior absence.
+
+## V15 — R18 is a second live consumer of `pbp`, not a sixth ingestion stream
+
+Feature Refresh B18 calls `nfl.load_pbp(seasons)`. R18's adapter wrapper calls the same
+`nfl.load_pbp(seasons)` and Roster Auditor consumes its in-memory aggregate. Under R1
+source/stream/store separation, this is one upstream PBP dataset stream with two live consumer
+routes, not two ingestion streams.
+
+Disposition:
+
+- R18 belongs in the **architectural** Option A scope because its live route should ultimately read
+  canonical last-good PBP too.
+- It does **not** silently widen David's named five-stream implementation decision. It is a second
+  consumer migration with its own parity/control gate after canonical PBP capture exists.
+- The catalog should row Roster Auditor as an additional consumer edge on B18 (and record the
+  R18 registry/provenance mismatch), not create a duplicate Table B source stream.
+
 ## Rerunnable probes
 
 ```bash

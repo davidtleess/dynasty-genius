@@ -54,8 +54,14 @@ and never captured.
 
 - [ ] **A. Sources** — **all 20 registry definitions now enumerated** in §2.1 with their declared
       role/cache/freshness/failure fields and a separately-stated physical capture state, including
-      the deferred, fixture-only and prohibited states (F1's named blocker). **Still UNCHECKED:**
-      R4 requires independent per-cell verification, and six capture-state cells are `UNVERIFIED`.
+      the deferred, fixture-only and prohibited states (F1's named blocker). **Codex V5–V8 + V10–V13
+      resolved the physical capture states and they are now carried in the §2.1 rows themselves, not
+      in an appendix.** **Still UNCHECKED:** R4 requires independent per-cell verification of the
+      corrected table, and the two **provenance defects** it surfaced (R1's `nfl_data_py` mislabel,
+      R18's declared-vs-actual route) are recorded but unresolved.
+      *(This line previously asserted "six capture-state cells are `UNVERIFIED`" and was left standing
+      after V5–V8 resolved four of them — the §5 defect again, in the progress block that is supposed
+      to describe the document's own state. **No count is stated here now**; §2.1 is the source of truth.)*
       *(Deliberately carries NO row-count total for the physical table — a count describing a table
       in the same commit that changes it is the §5 defect, instances 5 and 6. Counts come from a
       probe, not from this document.)*
@@ -97,10 +103,10 @@ observed behaviour. **Capture state is a separate, physical question** and is th
 
 | # | Registry key | Role | Cache policy | Fresh (h) | On failure | Access class | Capture state (physical) |
 | :-- | :-- | :-- | :-- | --: | :-- | :-- | :-- |
-| R1 | `nfl_data_py` | model_input + training_label | `parquet_snapshot` | 168 | `use_cached` | free | UNVERIFIED — loaders/stores not enumerated |
+| R1 | `nfl_data_py` | model_input + training_label | `parquet_snapshot` | 168 | `use_cached` | free | **NOT a `nfl_data_py` capture — PROVENANCE DEFECT.** No `nfl_data_py` import exists; `ingest_2026_draft.py` uses **nflreadpy**, writes JSON, labels it `nfl_data_py_verified_nfl_draft` *(V5)* |
 | R2 | `cfbd` | model_input | `json_cache` | 720 | `skip_enrichment` | **paid** | partial — `sources/cfbd_foundation/`; promoted 2026-08-04 |
 | R3 | `playerprofiler` | context_signal | `json_cache` | — | `skip_enrichment` | **manual, by David** | `playerprofiler.db` — 1,520,009 `obs` |
-| R4 | `ras` | context_signal | `json_cache` | — | `skip_enrichment` | free | UNVERIFIED |
+| R4 | `ras` | context_signal | `json_cache` | — | `skip_enrichment` | free | **`fixture_only`** — adapter defaults to `resources/fixtures/ras_mock.csv`, the only RAS data file *(V6)* |
 | R5 | `pff` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | 149 payloads / 7 families; 1 partial consumer |
 | R6 | `rotoviz` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | **fixture-only — no capture** |
 | R7 | `campus2canton` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | **fixture-only — no capture** |
@@ -114,13 +120,21 @@ observed behaviour. **Capture state is a separate, physical question** and is th
 | R15 | `genius_sports` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — enterprise | **none, by rule** |
 | R16 | `stats_perform` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — enterprise | **none, by rule** |
 | R17 | `rolling_insights` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — $4,200–7,200/yr | **none, by rule** |
-| R18 | `nflreadpy_qb_context` | context_signal | `parquet_snapshot` | 168 | `skip_enrichment` | free | UNVERIFIED |
+| R18 | `nflreadpy_qb_context` | context_signal | `parquet_snapshot` | 168 | `skip_enrichment` | free | **`live_direct_read`, consumer-triggered** via Roster Auditor; no snapshot, no cache. **A SECOND LIVE CONSUMER OF THE B18 `pbp` STREAM — not its own stream** *(V7/V15)*. Declared `parquet_snapshot` ≠ actual route |
 | R19 | `nfl_nextgen_stats` | context_signal | `sqlite_store_with_raw_snapshots` | 168 | `use_cached` | free | **canonical** — `nflverse_usage.db`, B1–B13 |
-| R20 | `nflreadpy_qb_validation` | **validation_study** | `parquet_snapshot` | — | `fail_closed` | free | pinned study inputs; walled to `eval/qb_validation/` |
+| R20 | `nflreadpy_qb_validation` | **validation_study** | `parquet_snapshot` | — | `fail_closed` | free | **`registered_and_pinned; NOT captured`** — `app/data/backtest/qb_validation/raw/` holds **zero files**; the study has not run *(V8)*. Walled to `eval/qb_validation/` |
 
-**Registry composition:** 6 prohibited-or-deferred with no capture by rule (R10–R12, R14–R17 less
-R13) · 3 fixture/manual-export only (R5–R7) · 1 validation-pinned (R20) · 1 canonical multi-stream
-adapter (R19). **Only R19 has a production capture route built by an agent.**
+**Registry composition, corrected *(V10)*:** **SEVEN** prohibited-or-deferred with no capture by
+rule — R10, R11, R12, R14, R15, R16, R17 *(this read "6" and was arithmetic, not judgement)* ·
+3 fixture/manual-export only (R5–R7) · 1 validation-pinned (R20) · 1 canonical multi-stream
+adapter (R19).
+
+**The claim "Only R19 has a production capture route built by an agent" is WITHDRAWN — it was
+false.** Built capture routes also exist for **R8 `fantasycalc`** (`scripts/run_fc_forward_capture.py`,
+daily, 20,043-row store), **R13 `sleeper`** (`scripts/run_league_transaction_capture.py`, durable
+store, **not scheduled**), and **R2 `cfbd`** (`scripts/run_cfbd_foundation_refresh.py`, paid,
+capture + promotion path). Those routes differ in operational state; **each row states its own
+measured state rather than collapsing authorship and production status into one sentence.**
 
 ### §2.2 ⛔ NEW FINDING — five production provider reads that NO registry entry declares
 
@@ -147,8 +161,8 @@ test — see `docs/agent-ledger/evidence/2026-08-05/layer1_feature_refresh_route
 | :-- | :-- | :-- | :-- | :-- |
 | A1 | nflverse via `nflreadpy 0.1.5` | free | `nflverse_usage.db` | partial |
 | A2 | PlayerProfiler | **manual, by David** | `playerprofiler.db` | partial |
-| A3 | PFF | **manual, by David** | payload files | UNVERIFIED |
-| A4 | CFBD | **paid** | `sources/cfbd_foundation/` | UNVERIFIED |
+| A3 | PFF | **manual, by David** | `app/data/pff_exports/` | **measured** — 149 payloads / 134,392 internal source rows / 14 lanes *(V2)*; consumer is ONE lane *(V12)* |
+| A4 | CFBD | **paid** | `sources/cfbd_foundation/` | **measured** — promoted run `20260802T024342156864Z`, **1,202** raw payloads, 874 curated rows *(V1)* |
 | A5 | FantasyCalc | free | `fc_forward_capture.db` + part of `fc_snapshots.db` | partial |
 | A6 | **DynastyProcess** *(ONE source — v1 split it into A7/A9 by loader, F2)* | free, GPL-3.0 repo | pinned `values.csv`; part of `fc_snapshots.db` | partial |
 | A7 | Sleeper | free | `league_transactions.db` **(transactions only — v1 claimed league/roster/universe, F2)** | partial |
@@ -222,7 +236,7 @@ never added to a total.**
 | N12 | Sleeper | `league_transaction` | 932 | `obs` | **none** *(V4 — corrected)* |
 | N13 | Sleeper | `league_transaction_movement` | 1,692 | `obs` *(different grain)* | **none** *(V4 — corrected)* |
 | N14 | Sleeper | `league_season_capture` | 4 | `cap` | — |
-| N15 | PFF | manual export payloads | **149** | **`raw-payload count` — NOT `obs`** *(V2)* | **partial** — one family (NCAA receiving-summary) via `scripts/build_college_features.py` |
+| N15 | PFF | manual export payloads | **149** | **`raw-payload count` — NOT `obs`** *(V2)* | **partial — ONE PRECISE LANE** *(V12)*: NCAA `receiving_summary`, scope `REGPO`, seasons 2017–2025 (9 entries in `phase16_wr_manifest.json`, hashes match content-hash filenames) via `scripts/build_college_features.py`. **Not evidence that the other 13 lanes are consumed.** |
 | N15b | PFF | internal source rows across 14 league/report lanes | **134,392** | `obs` *(sum; overlap/dedup rule NOT yet stated)* | as N15 |
 | N16 | CFBD | `curated/prospects_with_outcomes_v3.csv` | 874 rows | `obs` | **Engine A** (promoted 2026-08-04) |
 | N17 | CFBD | `raw/20260802T024342156864Z/` payloads | **1,202** *(manifest `raw_file_count`; dir holds 1,203 JSON = 1,202 payloads + `manifest.json`)* | `cap`/raw | upstream of N16 |
@@ -251,23 +265,36 @@ evidence paths with timestamps, and **the PFF cross-lane overlap/dedup rule befo
 aggregate is treated as a deduplicated observation count**. **No row here is `verified`** — Claude
 measured them alone, which R4 makes `measured`, not checked off.
 
-### §3.2 Registry PHYSICAL-state corrections *(Codex V5–V8, all reproduced by Claude)*
+### §3.2 Registry PHYSICAL-state evidence *(Codex V5–V8, all reproduced by Claude)*
 
-Four §2.1 capture-state cells that read `UNVERIFIED` are now resolved, and two are **provenance
-defects rather than captures**:
+**These findings are now carried in the §2.1 rows themselves.** This section is the EVIDENCE behind
+those cells, not a correction appendix — *(V13: a correction appendix does not reconcile a stale
+canonical row, and leaving the canonical table stale while the fix lived only down here was exactly
+the defect Codex flagged).* Two of the four are **provenance defects rather than captures**:
 
 | Registry key | §2.1 said | Physical truth | Note |
 | :-- | :-- | :-- | :-- |
 | `nfl_data_py` (R1) | UNVERIFIED | **NOT a `nfl_data_py` capture** | **No `nfl_data_py` import exists in the repo.** `scripts/ingest_2026_draft.py` imports **`nflreadpy`**, writes an 80-player JSON, and labels it `nfl_data_py_verified_nfl_draft`. Declared `parquet_snapshot`; actual route is JSON via nflreadpy. **Source-identity/provenance defect — recorded, not opened.** |
 | `ras` (R4) | UNVERIFIED | **`fixture_only`** | Adapter defaults to `resources/fixtures/ras_mock.csv`; that fixture is the only RAS data file. No production capture, no schedule. |
-| `nflreadpy_qb_context` (R18) | UNVERIFIED | **`live_direct_read`, consumer-triggered** | `fetch_qb_nfl_stats` calls `nfl.load_pbp(seasons)` in memory; `app/services/roster_auditor.py` invokes it for 2024/2023. **No raw snapshot, no governed cache.** Declared `parquet_snapshot`/168h — **a declared freshness does not make it captured.** Needs its own Table B stream row. |
+| `nflreadpy_qb_context` (R18) | UNVERIFIED | **`live_direct_read`, consumer-triggered** | `fetch_qb_nfl_stats` calls `nfl.load_pbp(seasons)` in memory; `app/services/roster_auditor.py` invokes it for 2024/2023. **No raw snapshot, no governed cache.** Declared `parquet_snapshot`/168h — **a declared freshness does not make it captured.** **NOT its own stream — it is a SECOND CONSUMER of the B18 `pbp` stream** *(V15)*. |
 | `nflreadpy_qb_validation` (R20) | pinned study inputs | **`registered_and_pinned; NOT captured`** | `app/data/backtest/qb_validation/raw/` holds **zero files** (verified). The study has not run. **H2 QB rushing remains a registered hypothesis UNDER TEST with no result.** |
 
-**R18 is a SIXTH undeclared live provider read**, alongside the five in §2.2 — same class, different
-consumer (Roster Auditor rather than Feature Refresh). It is in scope for David's A/B ruling in
-substance even though it was not named in the question.
+**⛔ R18 IS NOT A SIXTH STREAM — CORRECTED *(V15)*.** I rowed it as a sixth undeclared ingestion
+stream and said it was "in scope for David's A/B ruling in substance." **Both halves were wrong, and
+the second half was the more serious.**
 
-**`exported` is column-wide UNVERIFIED pending per-row export-path evidence** — the ✓ marks reflect
+Under **R1** (source ≠ stream ≠ store): Feature Refresh's B18 calls `nfl.load_pbp(seasons)`, and
+R18's adapter calls **the same** `nfl.load_pbp(seasons)`. That is **ONE upstream `pbp` dataset stream
+with TWO live consumer routes** — Feature Refresh and Roster Auditor — not two ingestion streams.
+Recorded as an **additional consumer edge on B18**, plus the R18 registry/provenance mismatch.
+
+**AND IT DOES NOT WIDEN DAVID'S DECISION.** He named **five** streams. R18 belongs to the
+*architectural* Option A end-state — its live route should eventually read canonical last-good `pbp`
+too — but that is a **second consumer migration with its own parity and control gate, after canonical
+`pbp` capture exists**. **A lane must not convert "the architecture implies this" into scope on a
+build the principal sized himself.** My "in scope in substance" phrasing did exactly that.
+
+**`exported` for B1–B12 is INDEPENDENTLY VERIFIED *(V11, Codex)*:** `app/data/nflverse_usage/export/nflverse_usage.ready.json` names all 12 materialized streams plus the unresolved-identity companion; **every named Parquet exists and recomputes to the marker's SHA-256**, and the 12 counts sum to **1,491,691**. Pinned at run `nflverse-usage-20260805T1334216901700000`, captured `2026-08-05T13:34:21.690170+00:00`. **This verifies export existence and integrity ONLY — not a consumer for B4–B12, and not any refresh cadence.** *(Superseded text, kept: the ✓ marks reflect
 membership in the canonical export as understood, not a probe. Treat as owed, not confirmed.
 
 **`obs` subtotal across the 12 materialized tables: 1,491,691.** Plus `nflverse_capture` **101
@@ -288,13 +315,16 @@ membership in the canonical export as understood, not a probe. Treat as owed, no
 | `fc_forward_capture.db` | **20,043 `obs`** + 20,043 `alt` (`joinable` is a second representation — **never add**) |
 | `league_transactions.db` | **932 `obs`** transactions + 1,692 `obs` movements *(different grain)* + 4 `cap` |
 
-**STREAMS NOT YET IN THIS TABLE (F1) — enumeration is the open work:** PlayerProfiler (9 tables),
-PFF families, CFBD, FantasyCalc capture, Sleeper capture, the **direct feature-refresh loaders**
-(`player_stats`, `rosters`, `snap_counts`, `pbp`, `participation` — pulled straight from `nflreadpy`,
-bypassing the canonical store, see §4), and validation/context streams.
+**STREAMS NOW ROWED — this paragraph previously said they were missing and was left standing after
+they were added *(V14, and the SAME §5 defect the register exists for)*.** PlayerProfiler,
+PFF, CFBD, FantasyCalc and Sleeper are rowed in **§3.1 Table B-N**; the five direct
+feature-refresh loaders are rowed as **B15–B19**. **Still genuinely absent:** validation/context
+streams, and per-stream `bound`/`captured`/`exported` states on Table B-N.
 
-**The v1 summary "3 consumers / 9 substrate_only / 1 never run" is WITHDRAWN** — it was exclusive
-over an incomplete table, and B4's consumer state is UNVERIFIED.
+**The v1 summary "3 consumers / 9 substrate_only / 1 never run" remains WITHDRAWN** — it was
+exclusive over an incomplete table. *(Its second stated reason, "B4's consumer state is UNVERIFIED",
+is itself now stale: **B4 was resolved** — the canonical `player_snap_count` export has no production
+consumer. The withdrawal stands on the first reason alone.)*
 
 ---
 
@@ -425,4 +455,4 @@ evidence paths/timestamps, B4 consumer state.
 | 2026-08-05 | Codex | NOT CLEAR, seven findings. |
 | 2026-08-05 | Claude | **v2 rebuild.** F1–F7 accepted; F3/F4/F6 reproduced first. A/B/C reopened; grain tagging added; feature-refresh semantics corrected. |
 | 2026-08-05 | Codex | v2 review — **NOT CLEAR**, four findings (V2-F1..F4). |
-| 2026-08-05 | Claude | **v3.** V2-F1..F4 all accepted, none contested. §1 source count 9→**7** (stale after the F2 merge — **fifth** §5 instance). Table B carries all **five** R7 states with disposition as its own column. "13 streams" restated as **13 bound / 12 materialized**. **B4 resolved** from Codex's probe: canonical export has no production consumer; the daily job's direct `load_snap_counts` is a separate provider-read stream — so the nine consumerless streams are now NAMED. `exported` marked column-wide UNVERIFIED pending probes. |
+| 2026-08-05 | Claude | **v3.** V2-F1..F4 all accepted, none contested. §1 source count 9→**7** (stale after the F2 merge — **fifth** §5 instance). Table B carries all **five** R7 states with disposition as its own column. "13 streams" restated as **13 bound / 12 materialized**. **B4 resolved** from Codex's probe: canonical export has no production consumer; the daily job's direct `load_snap_counts` is a separate provider-read stream — so the nine consumerless streams are now NAMED. `exported` marked column-wide UNVERIFIED pending probes — **superseded by V11**. |
