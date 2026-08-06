@@ -1,6 +1,16 @@
 # Layer 1 Feature-Refresh Route — Claude lane position + consolidated recommendation (v1)
 
-**Authored:** 2026-08-06, Claude Code (this session)
+**Authored:** 2026-08-06 (ET), Claude Code. **Revised v2** after Codex NOT CLEAR — findings A1–A4
+accepted in full, none contested. *(A4: dates in this file are ET unless a UTC `Z` suffix is shown.)*
+
+> ## ⚠ STATUS — TWO-LANE INTERIM, not David's completed three-lane recommendation
+> **A1 (Codex, accepted).** David told Codex directly: *"tell gemini to pressure test it and
+> recommend something as well."* That is the **narrow explicit-David exception** the Gemini charter
+> requires — **not** a permanent restoration of a judgment lane. **My v1 forbade Gemini a verdict and
+> was wrong to**, and my escalation to David was written without knowledge of that word. Codex
+> delivered the corrected request and positively verified it (`[w#azmg33kj-1]`) **before** my
+> objection reached it, so no lane acted against a known instruction. **Gemini's recommendation is
+> outstanding; treat everything below as two binding lanes plus telemetry until it lands.**
 **David's order:** *"I think the streams should flow into our layer 1 - what would be the point of a
 different surface? im not sure i understand the choice. i want you, codex and gemini to pressure test
 the idea and then come back with a recommendation."*
@@ -37,32 +47,39 @@ consumer, model use, commit or push.
 | `snap_counts` is **already both** | `app/data/nflverse_usage.db::player_snap_count` = **253,106 rows**, seasons 2016–2025, carrying `dg_player_id` + `identity_status` |
 | What is recorded of a run | ONE sha256 (`compute_source_hash`) over all five frames + seasons window + package version + builder config + TE artifact hashes |
 | Where it lives | `app/data/features_runtime/feature_refresh_latest_report.json`, `_latest` (overwritten), rewritten only on a non-noop run |
-| Raw snapshots of the five | **none exist anywhere under `app/data/`** |
+| Raw snapshots of the five | **FOUR lack raw capture** (`player_stats`, `rosters`, `pbp`, `participation`). **`snap_counts` DOES** — 129 JSON snapshots, **1,120,520,543 bytes**, in `app/data/nflverse_usage/raw` *(A2, Codex; reproduced by me)* |
 | Registry coverage | `SOURCE_REGISTRY` holds **20** entries; **none** declares these five loader frames as the daily job uses them |
 | Job history | 39 fires: **4 `ok` · 34 `noop` · 1 `refusing to publish`** |
 
 ---
 
-## 2. The decisive argument — David already ruled this exact question, for NGS
+## 2. The strongest argument — established repository precedent, in this same job
 
-`_load_source` carries this comment, in the same function that performs the five direct reads:
+**A3 (Codex, accepted). My v1 called this "David already ruled this exact question" and that was an
+OVERCLAIM — the same defect class as attributing agent-authored codification to his authority.**
+Commit `1131d102` (2026-07-31) proves the migration: within this same 09:15 job, NGS was converged
+onto one canonical adapter reading a **local last-good export** instead of live provider calls, on
+the reasoning recorded in `_load_source`:
 
 > NGS comes from the LAST-GOOD LOCAL EXPORT, not from three live calls inside the 09:15 scheduled
-> chain (David's word 2026-07-31 …). Three network round-trips in the critical path were three new
-> ways the morning halts, with no cached fallback despite the registry declaring
-> `failure_behavior="use_cached"`.
+> chain … Three network round-trips in the critical path were three new ways the morning halts, with
+> no cached fallback despite the registry declaring `failure_behavior="use_cached"`.
 
-**Option A is what David already chose, on 2026-07-31, for a different set of streams in this same
-job, for exactly this failure mode.** Option B is not a new architecture — it is the state NGS was
-moved *out of*. Neither lane's pressure test cited this; it is the strongest single point available
-and it required no governance reasoning.
+**But David's preserved words in that commit are *"do it properly"* and *"work with the team - go
+forward on all 4."*** He authorized the work; **the local-last-good shape was the lanes' engineering
+decision** (the commit records it as "Codex's required shape"). So the correct claim is:
 
-**And the failure mode is not hypothetical — it has happened here.** On **2026-08-02** the job logged
-`refusing to publish: dynamic source probe found no loadable season at 2026 or 2025 … Failed to
-download …pbp_participation_2021.parquet: … Read timed out.` A live provider timeout aborted a
-derivation that had nothing to do with that season. Gemini independently dated it and confirmed the
-adjacent 2026-08-03 run recovered. Under A, capture fails in isolation and the derivation runs from
-last-good while disclosing staleness.
+**Option A is David-ratified repository precedent for this exact job and this exact failure mode —
+NOT his explicit technical selection of A over B.** Weaker than v1 claimed, and still the strongest
+structural point available: B is the state this job was moved *out of*, and `01` §Source Adapter
+Rules was the stated reason.
+
+**The failure mode is not hypothetical.** On **2026-08-02** the job logged `refusing to publish:
+dynamic source probe found no loadable season at 2026 or 2025 … Failed to download
+…pbp_participation_2021.parquet: … Read timed out.` A live provider timeout aborted a derivation that
+had nothing to do with that season. Gemini independently dated it and confirmed the adjacent
+2026-08-03 run recovered. Under A, capture fails in isolation and derivation runs from last-good
+while disclosing staleness.
 
 ---
 
@@ -142,6 +159,14 @@ toward A makes deference the specific risk here. Checks run:
 3. **My first proposed argument was killed.** Volume favours A, not B — the opposite of what I
    expected when I named pbp as my weakest point.
 4. **B3 is left open rather than dismissed**, with the measurement that would settle it named.
+5. **The check was not sufficient.** Codex then returned **NOT CLEAR** on this artifact with four
+   findings, two of them HIGH, all accepted without contest: I forbade Gemini a verdict against
+   David's direct word (A1); I asserted "no raw snapshots exist" when `snap_counts` has 129 of them
+   totalling 1.12 GB (A2 — my search looked for *directories* named after the streams, so the method
+   could never have found flat per-stream files, and I stated the negative confidently anyway); and
+   I overclaimed David's authority on the decisive argument (A3). **A self-run adversarial check
+   caught none of these. The independent lane caught all three** — which is the §Falsification #4
+   point, demonstrated on this document rather than quoted in it.
 
 ---
 
@@ -152,6 +177,10 @@ toward A makes deference the specific risk here. Checks run:
    (~5.2 GiB). Either (a) protect content-addressed exact source bytes as replay evidence, or
    (b) accept explicitly that only the provider's current version is recoverable. Codex and I both
    recommend (a), after the backup recovery succeeds and with a numeric ceiling.
+   **This is now sharper because of A2:** `snap_counts` already carries **1.12 GB of raw JSON
+   history that nothing protects**, at ~37× the size of the equivalent Parquet bytes. The retention
+   question is not hypothetical future cost — it is unprotected data on disk today, and it is the
+   strongest argument against simply reusing the existing raw-snapshot shape for `pbp`.
 2. **Sequencing.** `snap_counts` first (parity measured); `pbp` last, behind the retention design —
    it is 80% of the bytes and must not hold up the other four.
 3. **The `01` §Source Adapter Rules gap is real either way.** None of the 20 registry entries
