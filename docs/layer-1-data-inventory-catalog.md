@@ -59,9 +59,12 @@ and never captured.
       *(Deliberately carries NO row-count total for the physical table — a count describing a table
       in the same commit that changes it is the §5 defect, instances 5 and 6. Counts come from a
       probe, not from this document.)*
-- [ ] **B. Ingestion streams** — **the five direct provider reads are now rowed (B15–B19)** and the
-      non-registry gap is recorded in §2.2. **Still missing:** PlayerProfiler, PFF, CFBD,
-      FantasyCalc and Sleeper stream rows, and the validation/context streams.
+- [ ] **B. Ingestion streams** — **the five direct provider reads are rowed (B15–B19)**, the
+      non-registry gap is recorded in §2.2, and **PlayerProfiler, FantasyCalc, Sleeper, PFF and CFBD
+      are now rowed by grain in §3.1 (Table B-N)**. **Still missing:** per-stream
+      `bound`/`captured`/`exported` states on B-N, refresh cadence per stream, and the
+      validation/context streams. **No B-N row is verified** — R4 makes a Claude-only measurement
+      `measured`, not checked off.
 - [ ] **C. Refresh frequencies** — **REOPENED (F4/F5).** Job matrix received; stream↔job edges wrong
       in v1 and now corrected; per-stream cadence unresolved.
 - [ ] **D. Catalog** · [ ] **E. Player 360** · [ ] **F. Semantic layer + metrics** · [ ] **G. Schemas**
@@ -197,6 +200,43 @@ must never sit in a state cell** — v2 put `blocked_for_use` in B14's consumer 
 or not we store it; `obs = 0` records that **we keep nothing**, not that nothing flows. **B17 is the
 duplicate route to B4** (`player_snap_count`, 253,106 `obs`). Disposition for all five is David's
 open A/B decision, not the catalog's to assign.
+
+### §3.1 Table B-N — NON-NFLVERSE streams *(F1/F6 blocker; Claude-measured 2026-08-06, awaiting R4)*
+
+Measured by opening each store and counting per table, then decomposing by R5 grain. **`alt` is
+never added to a total.**
+
+| # | Source | Stream / table | Count | Grain | Consumer state |
+| :-- | :-- | :-- | --: | :-- | :-- |
+| N1 | PlayerProfiler | `pp_gamelog_week` | 44,462 | `obs` | none |
+| N2 | PlayerProfiler | `pp_roster_week` | 230,394 | `obs` | none |
+| N3 | PlayerProfiler | `pp_pbp_slot` | 949,041 | `obs` | none |
+| N4 | PlayerProfiler | `pp_pbp_play` | 280,868 | `obs` | none |
+| N5 | PlayerProfiler | `pp_medical_history` | 9,768 | `obs` | none |
+| N6 | PlayerProfiler | `pp_player_season` | 5,476 | `obs` | none |
+| N7 | PlayerProfiler | `pp_identity_bridge` | 3,290 | `idn` | — |
+| N8 | PlayerProfiler | `pp_capture` + `pp_pbp_capture` | 57 + 6 | `cap` | — |
+| N9 | FantasyCalc | `fc_forward_capture_raw` | 20,043 | `obs` | market overlay |
+| N10 | FantasyCalc | `fc_forward_capture_joinable` | 20,043 | **`alt`** | **never added** |
+| N11 | FantasyCalc / DynastyProcess | `fc_snapshots` | 6,790 | `obs` | market overlay |
+| N12 | Sleeper | `league_transaction` | 932 | `obs` | league context |
+| N13 | Sleeper | `league_transaction_movement` | 1,692 | `obs` *(different grain)* | league context |
+| N14 | Sleeper | `league_season_capture` | 4 | `cap` | — |
+| N15 | PFF | manual export payloads | **149** | `obs` *(payload grain)* | **partial** — one family (NCAA receiving-summary) via `scripts/build_college_features.py` |
+| N16 | CFBD | `curated/prospects_with_outcomes_v3.csv` | 874 rows | `obs` | **Engine A** (promoted 2026-08-04) |
+| N17 | CFBD | `raw/<run_id>/` payloads | 810 files | `cap`/raw | upstream of N16 |
+
+**PlayerProfiler reconciles exactly:** 1,520,009 `obs` + 3,290 `idn` + 63 `cap` = 1,523,362 physical
+rows — the figure the prior board carried, now decomposed by grain rather than asserted as a total.
+
+**PFF grain warning, recorded because it is exactly the R5 trap:** the store holds **459 raw CSVs**
+but **149 unique payloads** (`app/data/pff_exports/pff_unique_payload_inventory.csv`, 150 lines
+including its header). **459 is a file count, not an observation count** — the families are
+duplicated across the `ncaa/` and `nfl/` trees. Do not publish 459 as a stream figure.
+
+**Still owed on Table B-N:** per-stream `bound`/`captured`/`exported` states (R7), refresh cadence,
+and evidence paths with timestamps. **No row here is `verified`** — Claude measured them alone, which
+R4 makes `measured`, not checked off.
 
 **`exported` is column-wide UNVERIFIED pending per-row export-path evidence** — the ✓ marks reflect
 membership in the canonical export as understood, not a probe. Treat as owed, not confirmed.
