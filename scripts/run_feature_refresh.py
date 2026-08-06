@@ -49,6 +49,88 @@ _MIN_TOTAL_ROWS = 4
 _MIN_POSITION_ROWS = {"QB": 1, "RB": 1, "WR": 1, "TE": 1}
 
 
+_STREAM_LOADERS = (
+    ("player_stats", "load_player_stats", None),
+    ("rosters", "load_rosters", None),
+    ("snap_counts", "load_snap_counts", None),
+    ("pbp", "load_pbp", None),
+    ("participation", "load_participation", 2019),
+)
+
+
+def _load_stream_isolated(nfl, attr: str, seasons: list[int]):
+    """Load ONE stream, stepping its OWN season ceiling down once on failure.
+
+    CH1. The five frames were built in a single dict literal, so ANY loader raising
+    aborted the whole function and `_resolve_default_source` then stepped the ENTIRE
+    window down for ALL FIVE. Measured cost: `player_stats` 2026 404s while `rosters`
+    2026 returns real rows, so 2,930 valid current-season roster rows were discarded
+    every morning while the run reported `ok`.
+
+    Both failure modes are isolated here, because they are different exception types
+    from different causes: `ConnectionError` is a missing upstream parquet, and
+    `ValueError` is the installed client refusing a season outside its own bounds.
+    `_resolve_default_source` caught only the former, so the latter would have crashed
+    the run outright once an earlier loader started succeeding.
+
+    Returns (frame, provenance). A stream that cannot load at ANY season in its window
+    is `unavailable` with an EMPTY frame — it never caps a healthy stream. A stream that
+    loads and legitimately returns no rows is `loaded_empty`, which is a different fact
+    and is kept distinct so an empty frame cannot be mistaken for an absent one.
+    """
+    import pandas as pd
+
+    load = getattr(nfl, attr)
+    error_type: str | None = None
+    attempts_made = 0
+    # Candidate windows are DEDUPLICATED and empties dropped, so a single-season
+    # window yields exactly ONE attempt. F2: `fallback_used` must record a retry
+    # that actually happened, not one the loop merely intended — with `[2026]` the
+    # second candidate is empty, no second call occurs, and reporting a fallback
+    # would be a false statement about acquisition.
+    candidates: list[list[int]] = []
+    for window in (seasons, seasons[:-1]):
+        if window and window not in candidates:
+            candidates.append(list(window))
+    for window in candidates:
+        attempts_made += 1
+        try:
+            frame = _pd_frame(load(seasons=list(window)))
+        except (ConnectionError, ValueError) as exc:
+            error_type = type(exc).__name__
+            continue
+        # F1: `effective_season` is an OBSERVED fact about returned rows, never the
+        # requested ceiling. A provider asked for 2024-2026 that returns only through
+        # 2025 must not be reported as 2026, and a successful EMPTY frame has no
+        # effective season at all — reporting one would assert coverage that does not
+        # exist, which is the same false-source-state class as the original defect.
+        seasons_present = None
+        if len(frame) and "season" in frame:
+            non_null = frame["season"].dropna()
+            if len(non_null):
+                seasons_present = int(non_null.astype(int).max())
+        status = "loaded" if seasons_present is not None else "loaded_empty"
+        return frame, {
+            "status": status,
+            "effective_season": seasons_present,
+            "fallback_used": attempts_made > 1,
+            # F4: the TRIGGERING error is preserved when a fallback succeeds — that is
+            # the contract, and it is what tells a reader why the season stepped back.
+            # (An earlier comment here claimed the opposite of what this line does.)
+            "error_type": error_type if attempts_made > 1 else None,
+        }
+    return pd.DataFrame(), {
+        "status": "unavailable",
+        "effective_season": None,
+        "fallback_used": attempts_made > 1,
+        "error_type": error_type,
+    }
+
+
+def _pd_frame(frame):
+    return frame.to_pandas() if hasattr(frame, "to_pandas") else frame
+
+
 def _load_source(seasons_window: list[int] | None) -> dict:
     """Lazily load the full upstream source frame set (nflreadpy) for the shared builder.
 
@@ -58,18 +140,25 @@ def _load_source(seasons_window: list[int] | None) -> dict:
     """
     import nflreadpy as nfl  # lazy: keep standalone import light + optional
 
-    def _pd(frame):
-        return frame.to_pandas() if hasattr(frame, "to_pandas") else frame
-
-    part_seasons = [s for s in (seasons_window or []) if s >= 2019]
-    ng_seasons = [s for s in (seasons_window or []) if s >= 2016]
-    sources = {
-        "player_stats": _pd(nfl.load_player_stats(seasons=seasons_window)),
-        "rosters": _pd(nfl.load_rosters(seasons=seasons_window)),
-        "snap_counts": _pd(nfl.load_snap_counts(seasons=seasons_window)),
-        "pbp": _pd(nfl.load_pbp(seasons=seasons_window)),
-        "participation": _pd(nfl.load_participation(seasons=part_seasons)),
-    }
+    window = list(seasons_window or [])
+    ng_seasons = [s for s in window if s >= 2016]
+    sources: dict = {}
+    provenance: dict = {}
+    for name, attr, floor in _STREAM_LOADERS:
+        stream_window = [s for s in window if floor is None or s >= floor]
+        sources[name], provenance[name] = _load_stream_isolated(nfl, attr, stream_window)
+    # F3: refuse when ANY of the five is still unavailable after its bounded attempts.
+    # A schema-less empty frame is NOT a safe substitute for a required stream: the real
+    # builder immediately groups rosters on gsis_id/season and snaps on
+    # pfr_player_id/season and indexes PBP/participation columns, so an unavailable
+    # stream reaches it as a KeyError rather than a controlled report. Codex withdrew its
+    # own original rc=0 expectation here as vacuous against production — the fake runner
+    # in RED-v1 hid the real builder's column access.
+    # `loaded_empty` is NOT unavailable and still proceeds to normal downstream validation.
+    unavailable = sorted(n for n, pv in provenance.items() if pv["status"] == "unavailable")
+    if unavailable:
+        raise _StreamsUnavailable(unavailable)
+    sources["__stream_provenance__"] = provenance
     # NGS comes from the LAST-GOOD LOCAL EXPORT, not from three live calls inside
     # the 09:15 scheduled chain (David's word 2026-07-31, Codex sequencing step 3,
     # on Gemini's explicit RELINQUISH of this file). Three network round-trips in
@@ -79,6 +168,17 @@ def _load_source(seasons_window: list[int] | None) -> dict:
     # downstream per-position features are optional-if-present by contract.
     sources.update(load_nextgen_from_export(ng_seasons))
     return sources
+
+
+class _StreamsUnavailable(RuntimeError):
+    """One or more provider streams could not load at any season in their window."""
+
+    def __init__(self, streams: list[str]) -> None:
+        self.streams = streams
+        super().__init__(
+            "refusing to publish: source stream(s) unavailable after bounded "
+            "retry — " + ", ".join(streams)
+        )
 
 
 def _resolve_default_source(season_start: int, ceiling: int) -> tuple[dict, int]:
@@ -166,7 +266,10 @@ def _source_provenance(read_fns: dict, seasons_window: list[int]) -> dict:
     intentionally excluded (C5 — the runner strips `generated_at`).
     """
     return {
-        "loader_outputs": read_fns,
+        "loader_outputs": {
+            k: v for k, v in read_fns.items() if k != "__stream_provenance__"
+        },
+        "stream_provenance": read_fns.get("__stream_provenance__", {}),
         "seasons_window": seasons_window,
         "package_version": _package_version(),
         "builder_config": _builder_config(),
@@ -234,6 +337,9 @@ def main(argv: list[str] | None = None) -> int:
             ceiling = datetime.now(timezone.utc).year
             try:
                 read_fns, discovery_end = _resolve_default_source(args.season_start, ceiling)
+            except _StreamsUnavailable as exc:
+                print(str(exc))
+                return 1  # before any hash or publish
             except ConnectionError as exc:
                 print(f"refusing to publish: {exc}")
                 return 1  # lock released by the enclosing finally; no hash/publish attempted
@@ -245,10 +351,17 @@ def main(argv: list[str] | None = None) -> int:
             )
         else:
             season_end = args.season_end
-            read_fns = _load_source(list(range(args.season_start, season_end + 1)))
+            try:
+                read_fns = _load_source(list(range(args.season_start, season_end + 1)))
+            except _StreamsUnavailable as exc:
+                print(str(exc))
+                return 1  # before any hash or publish
 
         seasons_window = list(range(args.season_start, season_end + 1))
         source_hash = compute_source_hash(**_source_provenance(read_fns, seasons_window))
+        # CH1: the provenance rides ALONGSIDE the frames, never as one of them — the
+        # builder must keep receiving exactly the loader frames it always received.
+        stream_provenance = read_fns.pop("__stream_provenance__", {})
         inference_season = season_end
 
         def publish_fn(candidate_path, **kwargs):
@@ -268,6 +381,7 @@ def main(argv: list[str] | None = None) -> int:
             source_inputs={
                 "source_hash": source_hash,
                 "seasons_window": seasons_window,
+                "stream_provenance": stream_provenance,
                 # Which NGS export vintage this build consumed — or that none was
                 # available, and why. Absence is legitimate; a build that silently
                 # produced NGS-free features with no stated cause is not. Recorded

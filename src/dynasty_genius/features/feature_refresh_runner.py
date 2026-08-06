@@ -38,6 +38,7 @@ def compute_source_hash(
     builder_config: Optional[dict],
     te_rubric_artifacts: Any,
     identity_inputs: Any,
+    stream_provenance: Any = None,
 ) -> str:
     """Canonical hash over the defined source-input set (C4); excludes wall-clock (C5)."""
     config = {
@@ -49,6 +50,11 @@ def compute_source_hash(
         "builder_config": config,
         "te_rubric_artifacts": te_rubric_artifacts,
         "identity_inputs": identity_inputs,
+        # CH1 control 4: acquisition STATE is part of the source identity. Two runs whose
+        # frames hash identically can still differ in whether a stream was loaded, loaded
+        # empty, or unavailable — without this, an unavailable stream and a genuinely empty
+        # one produce the same hash and the second run false-noops on a degraded input.
+        "stream_provenance": stream_provenance,
         "loader_outputs": {
             name: _canonical_frame(frame)
             for name, frame in sorted((loader_outputs or {}).items())
@@ -144,7 +150,12 @@ def run_feature_refresh(
     # T2: validate + atomically publish the candidate (fail-closed inside publish_fn).
     publish_result = publish_fn(candidate_path, runtime_dir=runtime_dir)
     # Preserve source-hash noop gating: fold source_hash into whatever report publish wrote.
-    _record_source_hash(report_path, source_hash, now_fn)
+    _record_source_hash(
+        report_path,
+        source_hash,
+        now_fn,
+        (source_inputs or {}).get("stream_provenance"),
+    )
 
     if publish_result.get("status") == "ok":
         return {
@@ -174,7 +185,10 @@ def run_feature_refresh(
 
 
 def _record_source_hash(
-    report_path: Path, source_hash: Optional[str], now_fn: Callable[[], Any]
+    report_path: Path,
+    source_hash: Optional[str],
+    now_fn: Callable[[], Any],
+    stream_provenance: Any = None,
 ) -> None:
     """Merge the source hash into the refresh report (preserves noop gating post-publish)."""
     report: dict[str, Any] = {}
@@ -184,5 +198,11 @@ def _record_source_hash(
         except (ValueError, OSError):
             report = {}
     report["source_hash"] = source_hash
+    # CH1 control 5: persist WHICH streams were capped and why. Without this a reader of a
+    # past report cannot tell whether a season was the real frontier or the residue of one
+    # unavailable stream — exactly the ambiguity that let 2,930 discarded roster rows look
+    # like a healthy `ok` run.
+    if stream_provenance is not None:
+        report["stream_provenance"] = stream_provenance
     report["generated_at"] = now_fn().isoformat()
     report_path.write_text(json.dumps(report, sort_keys=True))
