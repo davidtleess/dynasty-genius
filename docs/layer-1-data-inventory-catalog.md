@@ -100,7 +100,7 @@ print(len(SOURCE_REGISTRY)); [print(k) for k in SOURCE_REGISTRY]"
 
 **✅ V26 — the DECLARATION columns are now INDEPENDENTLY VERIFIED.** Codex mechanically matched all
 **20** rows' key / role / cache_policy / freshness_hours / failure_behavior against `SOURCE_REGISTRY`
-at a pinned SHA. **This verifies the declarations ONLY** — the `access class` and `capture state`
+at pinned SHA **`a840d6f7…`**. **This verifies the declarations ONLY** — the `access class` and `capture state`
 columns are separate judgements and remain as individually marked.
 
 `role` · `cache_policy` · `freshness_hours` · `failure_behavior` are **registry declarations**, not
