@@ -104,17 +104,26 @@ volume, **B is the more expensive option today**, not the cheaper one.
 *Fails on diagnosis.* The single combined `source_hash` cannot say which of the five inputs changed,
 so it cannot distinguish a provider correction from a code or config change.
 
-**B3 — the data is publicly re-fetchable, so replay needs no capture. (The strongest surviving
-anti-A argument, and I am not claiming it is fully closed.)**
-Partly right: for a genuinely immutable published asset, re-fetching reproduces the bytes. But the
-provider serves an `ETag`, which exists precisely because assets can change; and the 2026-08-02
-incident shows a *past* season's asset was not reliably retrievable at all. `01` §Source Adapter
-Rules independently requires "write a raw snapshot before parsing when feasible" regardless of
-re-fetchability.
-**Named residual, unmeasured by any lane: how often nflverse revises an already-published season
-parquet.** That number does not change the A/B choice — it sets retention policy (how often
-content-addressed capture creates a new version). The measurement that settles it is recording
-per-season parquet content hashes on successive days.
+**B3 — the data is publicly re-fetchable, so replay needs no capture. (Was the strongest surviving
+anti-A argument. ✅ NOW MEASURED AND DEAD — 2026-08-06.)**
+It rested entirely on season assets being immutable once published. **They are not.** Codex ran the
+test and I reproduced it independently against the GitHub release API: the **2018-season** assets
+carry timestamps **years after** that season — `play_by_play_2018.parquet` created **2025-04-30**,
+`stats_player_week_2018.parquet` **2025-04-30**, `snap_counts_2018.parquet` **2025-10-06**.
+**A stable URL is not a stable artifact**, so re-fetching does **not** reproduce what the provider
+served, and "we can always re-download it" is false.
+`01` §Source Adapter Rules independently requires "write a raw snapshot before parsing when feasible"
+regardless, and the 2026-08-02 incident showed a *past* season's asset was not reliably retrievable
+at all.
+**Boundary:** this proves **mutability only** — **no revision *rate*, no which-rows-changed, no
+why, and no semantic claim is licensed.**
+**Retention consequence:** capture must be **content-addressed and must KEEP PRIOR ACCEPTED VERSIONS
+when bytes change**; freeze-at-season-key would silently lose the earlier vintage.
+*(This paragraph previously read "I am not claiming it is fully closed" with a named unmeasured
+residual. **It closed.** Updated here as well as in §6.6 — fixing only §6.6 would have left the
+steelman section asserting an open question that the document elsewhere reports as settled, which is
+the correction-without-canonical-reconciliation defect this session has already committed five
+times.)*
 
 ---
 

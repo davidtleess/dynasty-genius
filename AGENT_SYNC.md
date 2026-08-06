@@ -72,8 +72,14 @@
 > * **Claude's named weakest point INVERTED:** Codex's ETag/HTTP-304 probe shows **volume favours A**.
 > * **`snap_counts` is already both routes** — B4 = 253,106 `obs`, identity-resolved, ZERO consumers.
 >   Codex's substitution: 205,354 rows value-identical, candidates 2,743×39 value-identical. First migration.
-> * **OPEN, unmeasured by any lane:** how often nflverse revises a published season parquet. Sets
->   retention policy, not the A/B choice.
+> * ~~**OPEN, unmeasured by any lane:** how often nflverse revises a published season parquet.~~
+>   **✅ MEASURED AND CLOSED 2026-08-06 — RESOLVED FOR A.** Season URLs are **MUTABLE**: the
+>   2018-season assets carry timestamps years later (`play_by_play_2018` and `stats_player_week_2018`
+>   created **2025-04-30**, `snap_counts_2018` **2025-10-06**), reproduced by both binding lanes.
+>   **"We can always re-download it" is FALSE**, so B3 — the strongest anti-A argument — is dead.
+>   **Boundary: proves MUTABILITY ONLY** — no revision rate, no which-rows-changed, no semantic claim.
+>   **Retention consequence:** content-addressed capture that **KEEPS PRIOR ACCEPTED VERSIONS**;
+>   freeze-at-season-key would silently lose the earlier vintage.
 >
 > ## LAYER 1 CATALOG — F1's LARGEST BLOCKER CLOSED, A-C STILL UNCHECKED
 > All **20 registry definitions** enumerated (§2.1) with deferred/fixture-only/prohibited states, plus
