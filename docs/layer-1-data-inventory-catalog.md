@@ -961,6 +961,70 @@ Gemini's audit does not cover. **A fresh Gemini request covering the complete pl
 
 ---
 
+## §6D. Step 2 (complete) — R7 STATES for every enumerated stream
+
+**R7 states:** `bound` (a StreamSpec exists) · `captured` (rows in a store) · `exported` ·
+`consumed` · `decision_supported`. **`UNVERIFIED` leaves the row OPEN** (§6A / M4) — it is used here
+where I have no measurement, never as a soft yes.
+
+**`decision_supported` is ✗ for EVERY row, and that is a governance invariant rather than a
+measurement:** `00` §The No-Verdict Line holds every descriptive output at `decision_supported=False`
+until a pre-registered validation David ratifies earns otherwise. **No Layer 1 stream has one.** It
+is stated once here rather than repeated 40 times.
+
+### Canonical nflverse streams (B1–B14)
+
+`exported` for **B1–B12 is INDEPENDENTLY VERIFIED** (V11: every named Parquet exists and recomputes
+to the ready-marker SHA at run `nflverse-usage-20260805T1334216901700000`).
+
+| Row | Stream | bound | captured | exported | consumed |
+| :-- | :-- | :-: | :-: | :-: | :-- |
+| B1–B3 | `ngs_passing` 5,933 · `ngs_rushing` 6,059 · `ngs_receiving` 14,731 | ✓ | ✓ | ✓ | **✓** feature refresh, via last-good export |
+| B4 | `snap_counts` / `player_snap_count` 253,106 | ✓ | ✓ | ✓ | **✗** canonical export has NO production consumer *(V2-F4)*; the daily job's live read is a separate route (B17) |
+| B5 | `injuries` 45,337 | ✓ | ✓ | ✓ | ✗ |
+| B6–B9 | `pfr_pass` 5,424 · `pfr_rush` 18,461 · `pfr_rec` 35,724 · `pfr_def` 62,345 | ✓ | ✓ | ✓ | ✗ |
+| B10 | `ff_opportunity` 47,282 | ✓ | ✓ | ✓ | ✗ |
+| B11 | `ftn_charting` 185,215 | ✓ | ✓ | ✓ | ✗ |
+| B12 | `depth_charts` 812,074 | ✓ | ✓ | ✓ | ✗ |
+| B13 | `contracts` | ✓ | **✗ never run** | ✗ | ✗ |
+| B14 | `ff_rankings` | ✗ | ✗ | ✗ | ✗ — `blocked_for_use`, no RED |
+
+**Nine materialized, exported, consumerless streams** — B4–B12. Priority evidence, not a prohibition.
+
+### Direct provider reads (B15–B19) — the inverse shape
+
+| Row | Stream | bound | captured | exported | consumed |
+| :-- | :-- | :-: | :-: | :-: | :-- |
+| B15–B19 | `player_stats` · `rosters` · `snap_counts` · `pbp` · `participation` | **✗** | **✗** | **✗** | **✓ 09:15 Feature Refresh, live** |
+
+**Consumed but never captured** — the exact inverse of B4–B12, and the object of David's A/B ruling.
+**B17 duplicates B4.** *(CH1 now prevents one absent stream capping the rest; that changes failure
+behaviour, not capture state.)*
+
+### B20–B24 — UNVERIFIED, and named as such
+
+| Row | Stream | State |
+| :-- | :-- | :-- |
+| B20 Combine · B21 schedules · B22 draft picks · B23 `ff_playerids` · B24 players | — | **All five R7 states `UNVERIFIED`.** Codex's SG3/§6 records them as live/mixed-provider routes, but I have taken **no per-row measurement**. **These rows keep step 2 OPEN.** Probe: locate each read site, then test store presence and export membership as done for B1–B12 |
+
+### Non-nflverse (Table B-N)
+
+| Rows | bound | captured | exported | consumed |
+| :-- | :-: | :-: | :-: | :-- |
+| N1–N8 PlayerProfiler (1,520,009 `obs` + 3,290 `idn` + 63 `cap`) | n/a — not StreamSpec-bound | ✓ | ✗ | **✗** none outside ingestion |
+| N9/N10 FantasyCalc (20,518 `obs` **as of 2026-08-06**; joinable is `alt`) | n/a | ✓ | ✗ | ✓ market overlay |
+| N11 `fc_snapshots` 6,790 (mixed-source) | n/a | ✓ | ✗ | ✓ market overlay |
+| N12/N13 + N14b transactions (932 `obs`; raw 20 snapshots) | n/a | ✓ **with raw-before-parse** | ✗ | **✗** *(V4)* |
+| N15/N15b/N15c PFF (149 payloads; 134,392 raw-grain) | n/a | ✓ | ✗ | **partial** — ONE lane only *(V12)* |
+| N16/N17 CFBD (874 curated; 1,202 raw) | n/a | ✓ | ✗ | ✓ Engine A |
+| N18 Sleeper snapshot | n/a | ✓ **normalized only, no raw replay** | ✓ marker-pinned | ✓ league derivation |
+| N18b seed/archive aliases | n/a | ✓ | ✗ | ✓ production fallback |
+| N19 league-behavior raw | n/a | ✓ | ✗ | ✗ |
+
+**Step 2 is COMPLETE except B20–B24**, which are explicitly `UNVERIFIED` and hold it open.
+
+---
+
 ## §7. Disposition of Codex review v2 *(SHA `d99b3247…`)* — F1–F7 ALL ACCEPTED
 > **⚠ HISTORICAL RECORD — NOT A LIVE BLOCKER LIST *(V22)*.** This section preserves the v2 review
 > and its dispositions as written at the time. **Its "still owed" items — full registry enumeration,
