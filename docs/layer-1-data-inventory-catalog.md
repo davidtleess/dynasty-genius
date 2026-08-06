@@ -118,7 +118,7 @@ observed behaviour. **Capture state is a separate, physical question** and is th
 | R2 | `cfbd` | model_input | `json_cache` | 720 | `skip_enrichment` | **paid** | partial — `sources/cfbd_foundation/`; promoted 2026-08-04 |
 | R3 | `playerprofiler` | context_signal | `json_cache` | — | `skip_enrichment` | **manual, by David** | `playerprofiler.db` — 1,520,009 `obs` |
 | R4 | `ras` | context_signal | `json_cache` | — | `skip_enrichment` | free | **`fixture_only`** — adapter defaults to `resources/fixtures/ras_mock.csv`, the only RAS data file *(V6)* |
-| R5 | `pff` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | 149 raw payloads / **106,867 canonical selection** (raw sum 134,392 overstates by 27,525 — §3.3) / 14 league-report lanes; 1 partial consumer, but `yprr_college` is still 0/874 in the active artifact |
+| R5 | `pff` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | 149 raw payloads / **134,392 raw payload-row sum** (no defensible dedup total — §3.3) / 14 league-report lanes; 1 partial consumer, but `yprr_college` is still 0/874 in the active artifact |
 | R6 | `rotoviz` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | **fixture-only — no capture** |
 | R7 | `campus2canton` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | **fixture-only — no capture** |
 | R8 | `fantasycalc` | market_overlay | `json_cache` | 24 | `use_cached` | free | **TWO acquisition routes:** daily `fc_forward_capture.db` (20,043 `obs`) plus request-time `app/cache/fantasycalc/market_values.json` / live fallback used by the trade API and market-overlay service |
@@ -197,7 +197,7 @@ register, or schedule anything.
 | :-- | :-- | :-- | :-- | :-- |
 | A1 | nflverse via `nflreadpy 0.1.5` | free | `nflverse_usage.db` + `resources/prospect_fixtures/_frozen_2025/nflverse_draft_picks_2025_pin.json` (257 loader rows, hashed manifest) + `resources/prospect_identity_2026.json` (80-row projection) + retained inactive `app/data/sources/nfl_nextgen_stats/` (8 files / 3,348 KiB, pending retention ruling) | partial; multiple capture/projection states |
 | A2 | PlayerProfiler | **manual, by David** | `playerprofiler.db` | partial |
-| A3 | PFF | **manual, by David** | `app/data/pff_exports/` | **measured** — 149 payloads / **106,867 canonical selection** (raw sum 134,392, §3.3) / 14 lanes *(V2)*; consumer is ONE lane *(V12)* |
+| A3 | PFF | **manual, by David** | `app/data/pff_exports/` | **measured** — 149 payloads / **134,392 raw payload-row sum** (no defensible dedup total, §3.3) / 14 lanes *(V2)*; consumer is ONE lane *(V12)* |
 | A4 | CFBD | **paid** | `sources/cfbd_foundation/` | **measured** — promoted run `20260802T024342156864Z`, **1,202** raw payloads, 874 curated rows *(V1)* |
 | A5 | FantasyCalc | free | `fc_forward_capture.db` + part of `fc_snapshots.db` + request-time `app/cache/fantasycalc/market_values.json` / live fallback | partial — parallel routes |
 | A6 | **DynastyProcess** *(ONE source — v1 split it by loader, F2)* | free, GPL-3.0 repo | pinned `values.csv`; part of `fc_snapshots.db`; `resources/prospect_fixtures/_frozen_2025/ff_playerids_pin.json` (12,457 rows, hashed manifest); `app/data/identity/_runs/ff_playerids_20260516.json` (7,952 rows) | partial |
@@ -313,7 +313,7 @@ validation study; that classification prevents “every loader exists” from be
 loader.”
 
 ### §3.1 Table B-N — NON-NFLVERSE streams
-*(F1/F6 blocker. **Mixed verification state *(V21)*: PlayerProfiler/FantasyCalc/Sleeper counts, the CFBD 1,202 figure, the PFF 149/134,392 split (now refined to the 106,867 selection, §3.3) and its one consumer lane are INDEPENDENTLY verified; per-stream R7 states and cadence are not. Table not complete.**)*
+*(F1/F6 blocker. **Mixed verification state *(V21)*: PlayerProfiler/FantasyCalc/Sleeper counts, the CFBD 1,202 figure, the PFF 149/134,392 split (§3.3: no dedup total is defensible) and its one consumer lane are INDEPENDENTLY verified; per-stream R7 states and cadence are not. Table not complete.**)*
 
 Measured by opening each store and counting per table, then decomposing by R5 grain. **`alt` is
 never added to a total.**
@@ -336,8 +336,8 @@ never added to a total.**
 | N14 | Sleeper | `league_season_capture` | 4 | `cap` | — |
 | N14b | Sleeper | `app/data/league_transactions/raw/` | **20 JSON files** | `raw-payload`; not added to N12/N13/N14 | upstream exact transaction capture evidence; manual_only |
 | N15 | PFF | manual export payloads | **149** | **`raw-payload count` — NOT `obs`** *(V2)* | **partial — ONE PRECISE LANE** *(V12)*: NCAA `receiving_summary`, scope `REGPO`, seasons 2017–2025 (9 entries in `phase16_wr_manifest.json`, hashes match content-hash filenames) via `scripts/build_college_features.py`. **Not evidence that the other 13 lanes are consumed.** |
-| N15b | PFF | internal source rows across 14 league/report lanes — **RAW SUM, DOUBLE-COUNTED** | ~~134,392~~ | **NOT a usable observation count — inflated by 27,525 rows (20.5%)** *(§3.3)* | as N15 |
-| N15c | PFF | **canonical SELECTION** — one widest-scope payload per (league · report · season), plus the one disjoint `PRE` payload | **106,867** | `obs` **(SELECTION, not a proven row-level dedup — see §3.3)** | as N15 |
+| N15b | PFF | internal source rows across 14 league/report lanes | **134,392** | `obs` **(raw payload-row sum; NOT proved double-counted — see §3.3)** | as N15 |
+| N15c | PFF | output of a **PROPOSED widest-scope file-selection policy** — **not adopted, not canonical** | **106,867** | **policy OUTPUT, not an observation count** *(§3.3 — the subset premise was tested and FAILED)* | as N15 |
 | N16 | CFBD + other sources | `curated/prospects_with_outcomes_v3.csv` | 874 rows | **curated multi-source artifact rows — NOT CFBD source `obs`** | callable builders/evaluators exist; current board says no model consumes the corrected CFBD values |
 | N17 | CFBD | `raw/20260802T024342156864Z/` payloads | **1,202** *(manifest `raw_file_count`; dir holds 1,203 JSON = 1,202 payloads + `manifest.json`)* | **`raw-payload count` — NOT `obs` or ledger `cap`** | upstream evidence for N16 |
 | **N18** | **Sleeper — league/universe NORMALIZED SNAPSHOT** *(V16 added it; V17 corrected its grain)* | `app/data/league_runtime/runs/<run_id>/snapshot.json`, schema `sleeper_universe_snapshot.v1` | **players 12,209** *(normalized/classified over a UNION of source players + rostered/draft/prospect IDs — **not** raw `get_all_players`)* · **rosters 12** · **users 14** *(list-shaped source components)* · **future_picks 109 — DERIVED**, reconstructed from settings/roster IDs/rounds/traded-pick input · ~~league 5 · draft_state 18 · coverage 10~~ **DICTIONARY-KEY COUNTS, NOT OBSERVATIONS — withdrawn as counts** | **mixed — see cell; NOT uniform `obs`** | **direct scripts:** `build_universe_pvo_batch.py`, `run_what_changed_report.py`, `run_roster_capacity_audit.py`, `run_league_transaction_capture.py`; **API:** `league_pulse.py`, `trade.py`, `trade_market.py`; **bundle derivative:** `build_league_opportunity_map.py` |
@@ -351,13 +351,60 @@ rows — the figure the prior board carried, now decomposed by grain rather than
 **149 raw payload CSVs** and **153 CSVs total**, not 459 raw CSVs. The file-map contains 307 mapping
 records; those are not additional stored raw files. The payloads contain **134,392 internal source
 rows** across **14 league/report lanes** (7 report families × `ncaa`/`nfl`). Only N15b is an
-observation-shaped figure, and **§3.3 now shows it is a RAW SUM that DOUBLE-COUNTS 27,525 rows
-(20.5%)**. The overlap rule is **DEFINED as of 2026-08-06**: one widest-scope payload per
-`(league, report, season)` plus the disjoint `PRE` payload → **106,867 (N15c)**, publishable only as
-a **canonical selection**, never as "deduplicated observations" (the scope-nesting is inferred from
-scope names and unconfirmed at row level). The one callable consumer projects
+observation-shaped figure. **I claimed it double-counted 27,525 rows (20.5%). THAT CLAIM IS
+WITHDRAWN — the row-level check RAN and FALSIFIED it** (§3.3). The one callable consumer projects
 `yprr_college`, but the active 874-row artifact has **0 populated values** — a materialization /
 curation gap, not proof of another provider need.
+
+### §3.3 PFF aggregation — **NO DEFENSIBLE DEDUPLICATED TOTAL EXISTS** *(row-level check RAN and FAILED)*
+
+**Status: the §6 blocker is NOT closed, and it is not "awaiting a check" either. The check ran and
+the premise failed.**
+
+**What I proposed and what falsified it.** I proposed treating scopes as nested — `REG ⊂ REGPO`,
+`POST ⊂ REGPO` — selecting one widest-scope payload per `(league, report, season)`, and reporting
+**106,867**, with **134,392** described as double-counting **27,525 rows (20.5%)**.
+**Codex ran the row-level comparison I had said was unrun, and it FALSIFIES the subset premise.
+I reproduced it independently on `ncaa · receiving_summary · 2017`:**
+
+| Check | Result |
+| :-- | :-- |
+| `REG` payload rows | 2,079 |
+| `REGPO` payload rows | 2,103 |
+| **Players ONLY in `REG`** | **1 — `player_id` 55173, lost outright if `REG` is discarded** |
+| Shared players | 2,078 |
+| **Shared rows whose VALUES DIFFER** | **942** |
+
+Across the full discard set Codex measured **18,006 identical rows, 9,518 shared-player rows differing
+in values, and at least one player present only in a discarded payload.**
+
+**⇒ `REG` is NOT a subset of `REGPO`.** Discarding it **loses data**, so:
+* **`134,392` is NOT proved double-counted. The "overstates by 27,525 / 20.5%" claim is WITHDRAWN.**
+* **`106,867` is NOT canonical and NOT deduplicated.** It may be stated **only** as *the output of a
+  proposed widest-scope file-selection policy*, which is **not adopted**.
+
+**Corrections to my own analysis, from Codex P1–P4:**
+* **P1** — **20** keys carry multiple **scopes**; **21** carry multiple **payloads**. I reported 21
+  scopes, conflating payload-multiplicity with scope-multiplicity.
+* **P3** — row-count tie-breaking is **incomplete**: equal-row-count **same-scope** variants differ in
+  content, so a count tie does not identify the right file.
+* **P4** — **`PRE` is GAME-PHASE-disjoint, not PLAYER-disjoint.** Scope must stay in provenance and in
+  the key; it is not a dimension that can be summed away.
+
+**Still true and unchanged:** the repo's `preferred_for_selection` column does not resolve this
+(146/149 `True`; overlapping pairs both preferred → 127,842, also not defensible), and the retained
+statuses (`superseded_basis_retained` 10 payloads / 21,668 rows, `scope_mismatch_retained` 12 /
+1,784, and others) are deliberately-kept payloads.
+
+**What a real rule now requires:** a **row-level union keyed on `(player_id, scope, season, report,
+league)` with an explicit value-conflict policy** for the 9,518 differing rows — not a file-selection
+heuristic. **Nobody should publish any aggregate PFF observation count until that exists.**
+
+*(Process note, recorded because it caused a second defect: my edit script used `str.replace`, which
+returns the input unchanged when the anchor does not match, and printed a success message
+unconditionally — so **§3.3 was never created while six other places cited it** (Codex P5). My
+verification grep matched a DIFFERENT edit and I read it as confirmation. **Every edit in the
+correcting pass now asserts per-edit application and exits non-zero on any miss.**)*
 
 **⛔ N17 — MEASURED THE WRONG PATH. My worst error in this table.** I published **810 files** as the
 promoted CFBD run's raw payload count. **810 is the file count of `app/data/cfbd_cache/`** — a
@@ -369,9 +416,8 @@ measurement run against one path and reported as a fact about another.** Second 
 session; both caught by the independent lane, neither by me (V1, Codex).
 
 **Still owed on Table B-N:** complete per-stream `bound`/`captured`/`exported` states (R7), final
-automation/job edges, parallel-route dispositions, and **row-level confirmation of §3.3's
-scope-nesting assumption** *(the dedup RULE is now defined; what is unverified is that `REG` rows are
-literally a subset of `REGPO` rows)*. Several counts and physical
+automation/job edges, parallel-route dispositions, and **a defensible PFF aggregation rule — see
+§3.3, where the scope-nesting premise was TESTED AND FAILED, so no deduplicated PFF total exists**. Several counts and physical
 states are independently verified; **the table as a whole is not verified or checked off**.
 
 ### §3.2 Registry PHYSICAL-state evidence *(Codex V5–V8, all reproduced by Claude)*
@@ -642,7 +688,7 @@ parallel acquisition routes, and incomplete materialization from sources we alre
 | R1 `nfl_data_py` mislabel + R18 declared snapshot / actual live PBP | **provenance defects** |
 | B4–B13 share the canonical nflverse adapter/store but lack matching machine source declarations under R19 | **absent source declarations** — reconcile each family without pretending the NGS declaration covers it |
 | DynastyProcess pinned values and `db_playerids` identity snapshots exist physically but have no `SOURCE_REGISTRY` entry | **absent source declaration** — decide whether explicit static-pinned / identity declarations are required; do not silently inherit FantasyCalc's market-source identity or relabel the nflreadpy client as the provider |
-| PFF scope-nesting **assumed from scope NAMES, unconfirmed at row level** *(§3.3 defines the rule and yields the 106,867 canonical selection; 134,392 is a raw sum overstating by 27,525)* | **unverified normalization assumption** |
+| **PFF has NO defensible deduplicated total.** Scope-nesting was tested at row level and **FAILED**: discarding `REG` loses a player outright and changes 942 shared rows (§3.3). 134,392 is a raw payload-row sum; 106,867 is only a proposed policy output | **absent normalization rule — row-level check RAN and FAILED** |
 | Existing nflverse raw history begins 2026-07-31 | **point-in-time ceiling** — forward capture stops further loss; it cannot recreate prior as-of vintages |
 | Retained inactive `app/data/sources/nfl_nextgen_stats/` tree | **retention decision outstanding** — preserved duplicate source tree is physically inventoried; do not delete or treat it as the active adapter |
 | Sleeper `league_transactions/raw/` + tracked `league_snapshots/` surfaces | **physical-store reconciliation** — 20 raw transaction JSONs and 12 legacy seed/archive files are inventoried separately from the transaction DB and production league set |
