@@ -11,6 +11,99 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ 2026-08-07 SESSION 6 — A-C's OPEN SET GREW FROM TWO CLOCKS TO **FIVE FIELDS** · N6 PROTOCOL CLEAR BUT NOT RUNNABLE
+>
+> **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** His words this session:
+> ***"1"*** (selecting A-C) · ***"take codex's ruling - then ask if it recommends landing the evidence
+> and probing sleeper"*** · ***"commit the evidence chain"*** · ***"commit codex's audit append too"***
+> · ***"push it"***.
+>
+> > **⛔ ONE INSTRUCTION THIS SESSION WAS ACCIDENTAL AND IS REVOKED — IT IS NOT AUTHORITY FOR ANYTHING
+> > ON THIS BOARD.** A pasted instruction beginning *"Reconcile the catalog and board, and draft the
+> > provider questions"* reached this lane **by mistake**; David said, verbatim: ***"wait - i just sent
+> > that to claude by accident."*** Work stopped on receipt and was preserved, not extended.
+> > **An earlier draft of this very block quoted that revoked paste as David authority — that was a
+> > provenance defect, it is corrected here rather than silently removed, and no part of this board
+> > rests on it.**
+> >
+> > **THE AUTHORITY THIS RECONCILIATION ACTUALLY RESTS ON** is his LATER, deliberate request that Codex
+> > choose and start a task for both binding lanes — **scoped by Codex to `docs/layer-1-data-inventory-catalog.md`
+> > and `AGENT_SYNC.md` ONLY**, with the provider-question draft expressly out of scope.
+>
+> **No provider contact, scheduler, capture, code, export-request, Layer-2 or checkbox authority is
+> created here.**
+>
+> **NO HEAD OR AHEAD-COUNT IS ASSERTED** — this block is written by the commit that changes it. Probe:
+> `git rev-list --count origin/main..HEAD`.
+>
+> ## ⛳ THE RESULT THAT MATTERS: A-C IS **MORE** OPEN THAN THE BOARD SAID, NOT LESS
+> Codex ruled **BRANCH (b)** (`docs/agent-ledger/evidence/2026-08-07/ac_clock_closure_contract_asymmetry_review_codex_v2.md`,
+> `da04727b…`): **`continuous`/event-driven is admissible ONLY on independent verification — the label
+> is not evidence for itself.** The independently CLEAR cadence artifact pins nflverse clocks and
+> **never pinned a Sleeper publication rhythm**. So **N18 `continuous league state` and N12/N13
+> `continuous league events` were passing on values never verified**, and **N14b inherits N12**.
+> **OPEN SOURCE-PUBLISH FIELDS: N1–N8 · N19 · N18 · N12/N13 · N14b — five, not two.**
+> **N14 proper stays an evidenced `N/A`** (our own capture ledger; a *satisfied* field under M4's
+> second limb). **§1 checkboxes: NONE moved.**
+>
+> **How it was found — worth keeping, because re-reading would not have found it:** by asking **why
+> ONE row was held to a standard its siblings were not.** Q1 had already caught §6A's cadence cell
+> under-reporting once; **this is the same defect in the opposite direction.**
+>
+> ## 🕗 CATALOG + BOARD RECONCILIATION — **CANDIDATE, AWAITING CODEX CLEAR. NOT LANDED.**
+> *(This heading read "✅ RECONCILED — David's word, this session". Both halves were wrong: the work is
+> **unreviewed and uncommitted**, and "David's word" pointed at the revoked accidental paste. Corrected
+> per F1/F2 rather than quietly restyled.)*
+> §6A's C cell, §6E's N18 / N12-N13 / N14b / N14 rows, §6E's step-3 open list, **and §4.4's N12–N14b
+> and N18 upstream cells — the THIRD and FOURTH edits to previously CLEARed §4.4 cells, which retires
+> those cells' pin.** Flagged: **§4.4's column title *"Upstream publish / change rhythm"* merges the
+> two clocks R3 keeps separate, and that merge is how an unverified value read as settled.** A
+> blast-radius sweep caught N19's row still citing N18's withdrawn value — **the L3 class, caught by
+> the sweep this time rather than by the reviewer.** Zero checkbox lines touched; column counts
+> verified; governance validation PASS. **Awaiting Codex content CLEAR.**
+>
+> ## 🔎 THE DOCUMENTATION ROUTE — TRIED FOR THE FIRST TIME ON BOTH CLOCKS. NEGATIVE. CLOSES NOTHING.
+> Every B-row clock in the catalog came from provider-published documentation or scheduling config;
+> **that route had never been tried on either open clock.** Result: **no server-side publication
+> cadence on the inspected public Sleeper API page** — its `1000 calls/minute` and players
+> `once per day at most` are **client-polling guidance, a different clock under R3** and must never
+> enter the source-publish column — and **no PlayerProfiler publish-cadence statement in public
+> search**. **BOUNDED TO THE SEARCHES RUN:** the inspected-public-page route is foreclosed; **a direct
+> provider answer or subscriber-facing material could still supply a declaration.**
+>
+> ## ⛔ N6 PILOT PROTOCOL **CLEAR AT v5** — AND **NOT RUNNABLE**
+> `playerprofiler_player_season_pilot_protocol_claude_v5.md` `18cca65c…`; CLEAR `3a77ae9d…`. Six
+> rounds: **P1–P8 → R1–R5 → T1–T4 → U1–U2.** Ceilings, stated in the protocol rather than discovered
+> later: **no execution of it can close the source-publish field** · **silent truncation is an
+> UNMITIGATED validity threat to every `changed` verdict** (no independent completeness evidence
+> exists; row count is evidence, **never** a classifier) · results are `player_season` (N6) only.
+> **THE PREREQUISITE EXPANDED MID-REVIEW and was declared at that moment, not absorbed:** from one
+> pure digest helper to **a shared preparation+digest extraction** reused by production and pilot,
+> with RED/GREEN proving byte-identical rows including identity, dedup and grouping — because
+> everything producing production-equivalent rows is inline at `playerprofiler.py:630-674` and
+> exposed nowhere. **NOT AUTHORIZED. NOT WRITTEN.**
+>
+> ## 📝 PROVIDER QUESTIONS — **PARKED · UNSENT · OUT OF SCOPE**
+> Draft outreach text for Sleeper and PlayerProfiler exists on disk, **untracked and never sent** — no
+> channel, address, form or account was used. **It was written under the ACCIDENTAL, REVOKED paste and
+> is therefore NOT David-directed work**; the fresh authority that governs this board **expressly
+> excludes it**. It is preserved unedited and is **not part of this reconciliation**. **Whether it is
+> ever sent, revised, or discarded is David's alone, and no lane should treat its existence as
+> momentum toward sending it.**
+>
+> ## ⏳ OUTSTANDING — DAVID ONLY
+> 1. **Send (or decline to send) the provider questions.**
+> 2. **The §4.1 preparation+digest extraction authorization** — without it the pilot cannot run.
+> 3. **Export burden** (full report batch vs one pinned slice, with a slice-scoped conclusion) **and
+>    retention** (backup-covered — which puts subscriber data in the offsite manifest — vs single-copy
+>    and non-recoverable, where loss is permanent and the interval becomes permanently `incomparable`).
+> 4. **Whether the pilot earns the build at all**, given it cannot close the clock under any execution.
+>
+> **Standing:** Phase B and **Layer 2 remain CLOSED** until A-C completes. **Layer sufficiency is
+> David's alone and is asserted nowhere here.** **H2 QB rushing remains a registered hypothesis UNDER
+> TEST with no result.**
+
+
 > # ▶ 2026-08-07 SESSION 5 — PR #157 MERGED · TWO SCRAPERS RETIRED · BOTH A-C CLOCKS CHARACTERISED
 >
 > **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** His words this session:
