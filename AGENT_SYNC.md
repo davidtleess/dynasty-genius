@@ -11,6 +11,83 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ 2026-08-06 SESSION 4 — LAYER 1 CATALOG **CONTENT-CLEAR** AFTER SIX ROUNDS · PUSHED + CI GREEN
+>
+> **AUTHORITY.** Agent-authored state reconciliation by the two binding lanes. **Not David's prose.**
+> His words this session were exactly two: ***"commit it push it"*** and ***"commit the record, and
+> update AGENT_SYNC too"***. **No build, landing, scheduler, capture, consumer-migration, paid-call,
+> Layer-2 or checkbox authority is created here.**
+>
+> **NO HEAD OR AHEAD-COUNT IS ASSERTED.** This block is written by the same commit that changes it, so
+> it cannot truthfully pin its own resulting HEAD. Get current state from a probe:
+> `git rev-list --count origin/main..HEAD`.
+>
+> ## ✅ THE STEPS 1-3 BATCH IS INDEPENDENTLY CONTENT-CLEAR
+> Codex CLEARed `docs/layer-1-data-inventory-catalog.md` at SHA-256
+> **`87e50c21b877af7f3da7cc77c26e36420b279f7f41cfde08483d5892cbc3723c`**, plus a **separate
+> whole-table CLEAR for §4.4** (35 grouped rows) after two of its cells were edited under review.
+> Evidence `docs/agent-ledger/evidence/2026-08-06/ac_steps_1_3_clear_codex_v6.md`.
+> **Six adversarial rounds: F1-F7 → R1-R5 → Q1-Q5 → T1-T3 → U1 → CLEAR.** Every finding accepted,
+> none contested; R1/R3/R4/Q4/Q5/T3 each reproduced against the code or the live DB before acceptance.
+> **Landed as `667307f` and pushed** *(past fact about a named SHA)*; **CI run `31141895831` on exact
+> SHA `667307f3e38993a1daef6421039a227ab2bdb0e1`: SUCCESS** (Python + Frontend). Codex's post-push
+> divergence audit is **CLEAR on all elements** — the committed catalog blob recomputes to the CLEARed
+> pin, byte-identical.
+>
+> ## ⛔ A-C IS **NOT** COMPLETE. NO §1 CHECKBOX MOVED.
+> **Exactly two source-publish clocks remain genuinely unmeasured:** **N1-N8 PlayerProfiler** and
+> **N19's Sleeper endpoint families.** Under M4 either alone holds C open. **Codex has BOUNDED the
+> next catalog review** — no seventh broad round; it is limited to evidence resolving one or both
+> clocks, or a concrete new factual divergence. **Layer sufficiency remains David's alone and is
+> asserted nowhere here.**
+>
+> ## 🔎 THE MOST CONSEQUENTIAL FINDING — RECORDED, **NOT REPAIRED**
+> **The market overlay is served by the UNGOVERNED request-time route, not by the governed capture
+> store.** `market_overlay_service.py:192-193` calls `fetch_with_cache()`; the daily
+> `fc_forward_capture.db` feeds **Market Divergence + What-Changed** instead. This restates §6B.1's
+> `acquisition defect` as a **consumer** fact and makes it worse than first recorded: **what the
+> overlay shows David is not what the governed capture preserved, and no later reader can reconstruct
+> it.** Found by Claude's own sweep, reproduced by Codex. **Repair is a consumer migration needing
+> David's word — NOT opened.**
+>
+> **Also recorded, not repaired:** the committed plist `com.davidleess.dynasty-fc-snapshot.plist`
+> declares `fc_snapshots.db` *"a frozen, read-only archive"* while **three runnable scripts default to
+> writing it** — a declared-vs-physical gap, same class as R1 `nfl_data_py` and R18.
+>
+> ## ⛔ PARKED — WIRE FIX, STILL NOT CLEAR
+> `scripts/dg_delivery.py` **`b3247ec8bfff67aace2f6089d08d377ee9d5f72b13eb3da79640f96dcf012c3b`** ·
+> `tests/contract/test_wire_health_profile_refresh_red.py`
+> **`fd924eb15a77746e810ade0ed7f1158cfcf9fb4000a73a3df29c260515790591`**. Frozen on David's *"we need
+> to stop this waste of time."* **Verified excluded from every commit this session and unchanged
+> throughout.** Do not revert, discard, commit, widen or resume without a NEW David word.
+>
+> ## ⚠ THE CODEX WIRE FAILED AT SESSION END
+> `tmux_msg.py send dynasty:1.2` refused **`pane_state_unknown` twice, pasting nothing either time —
+> no stranded strand.** Measured: `26x97, cursor_y=23, in_mode=0, dead=0`, **no composer prompt row
+> rendering** — the **same cursor-geometry class as the diagnosed Gemini fault**, whose fix is the
+> parked NOT-CLEAR code above and therefore unavailable. **The repo was used as the delivery channel**
+> (`02` §Durable evidence): `docs/agent-ledger/evidence/2026-08-06/postpush_ack_claude_v1.md`.
+> **A next session must not assume the wire works.**
+>
+> ## 📊 CALIBRATION — the argument for the expensive independent lane
+> **Codex found 21 defects in Claude's work. Claude's own sweeps found 6 more Codex did not raise** —
+> including the overlay finding above. **Zero were found by re-reading the work in the pass that wrote
+> it**; all six came from mechanical whole-document greps run *because* an independent finding pointed
+> at the class. **Two published answers had to be withdrawn** (N11 `static_pinned`; a `+286/-78`
+> diffstat), both catchable only because they were stated precisely enough to check. **A seventh
+> instance of the session's defect class appeared in CODEX's own output** — a message true when
+> composed, stale by delivery — which it caught and superseded itself, unprompted.
+>
+> ## ⏳ OUTSTANDING — DAVID ONLY
+> 1. **Merge of PR #157** (CH1). Push and PR were granted; **merge was not.**
+> 2. **The parked wire fix** — commit/push after a CLEAR that does not exist yet.
+> 3. **Consumer migration for the market overlay**, and the `fc_snapshots` declared-vs-physical repair.
+> 4. Any scheduler, plist, capture, store, Option A build step, or paid call; numeric paid-call ceilings.
+>
+> **Standing:** Phase B (catalog / Player 360 / semantic layer / schemas) and **Layer 2 research remain
+> CLOSED** until A-C is complete and checked off. **H2 QB rushing remains a registered hypothesis
+> UNDER TEST with no result.**
+
 > # ▶ 2026-08-06 SESSION 3 — PUSHED + CI GREEN · BACKUP RECOVERY RUNNING · GEMINI WIRE REPAIRED
 >
 > **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** David's words governing
