@@ -56,10 +56,13 @@ and never captured.
       role/cache/freshness/failure fields and a separately-stated physical capture state, including
       the deferred, fixture-only and prohibited states (F1's named blocker). **Codex V5–V8 + V10–V13
       resolved the physical capture states and they are now carried in the §2.1 rows themselves, not
-      in an appendix.** **Still UNCHECKED:** the declaration fields are independently verified, but
-      physical acquisition routes remain unreconciled for Sleeper and FantasyCalc, and the two
-      **provenance defects** (R1's `nfl_data_py` mislabel, R18's declared-vs-actual route) remain
-      unresolved.
+      in an appendix.** **Still UNCHECKED — but the gate has moved *(Q2)*.** The Sleeper and
+      FantasyCalc acquisition routes are **no longer unreconciled: §6B dispositions every one of them**
+      (canonical named per dataset; each parallel route classified, including two `acquisition
+      defect`s). That work is **authored and awaiting independent review — which is not the same as
+      missing.** The real remaining gate is Codex's verification of §6B. The two **provenance defects**
+      (R1's `nfl_data_py` mislabel, R18's declared-vs-actual route) are **inventoried and closed as
+      facts**; their repair is remediation needing David's word and does not gate this checkbox.
       *(This line previously asserted "six capture-state cells are `UNVERIFIED`" and was left standing
       after V5–V8 resolved four of them — the §5 defect again, in the progress block that is supposed
       to describe the document's own state. **No count is stated here now**; §2.1 is the source of truth.)*
@@ -70,12 +73,17 @@ and never captured.
       and schedules are B20–B21; draft-picks / ff-playerids / players are B22–B24; the non-registry
       and multi-consumer gaps are recorded in §2.2; and PlayerProfiler, FantasyCalc, Sleeper, PFF
       and CFBD are rowed by grain in §3.1.
-      **Still missing:** complete R7 state columns on Table B-N, resolution of the parallel Sleeper /
-      FantasyCalc routes, and final automation classifications. Mixed independent verification
-      exists; the table as a whole is not checked off.
+      **Restated *(Q2)* — none of this is missing any more.** Complete R7 states for every enumerated
+      row are in **§6D**; the parallel Sleeper / FantasyCalc routes are dispositioned in **§6B**; final
+      automation classes for the exact §4.4 member set are in **§6C/§6E**. **All of it is
+      `MEASURED — awaiting review`, authored by the implementing lane.** The gate is therefore
+      **independent verification under R4**, not authorship — specifically Codex reruns of the
+      B20–B24 / N14 probes and of the corrected N9/N10, N11 and N16/N17 consumer states.
 - [ ] **C. Refresh frequencies** — source-publish cadence planning is independently CLEAR at the
-      pin named in §4.1, but the clocks are not installed jobs and not every canonical stream row
-      yet carries its final automation class / job / freshness edge.
+      pin named in §4.1, and **§6E now carries all five fields for every §4.4 member** *(Q2)*. **Two
+      named gates keep this open:** the clocks are **proposals, not installed jobs**, and **two source
+      clocks are genuinely unmeasured — N1–N8 PlayerProfiler and N19's Sleeper endpoint families**
+      *(Q1)*. Under M4 either one alone holds the checkbox.
 - [ ] **D. Catalog** · [ ] **E. Player 360** · [ ] **F. Semantic layer + metrics** · [ ] **G. Schemas**
       *(phase B — CLOSED until A–C clear)*
 - [ ] **H. Sources we still need to ingest** — §6 now gives the provisional evidence-backed answer:
@@ -121,12 +129,12 @@ observed behaviour. **Capture state is a separate, physical question** and is th
 | R5 | `pff` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | 149 raw payloads / **134,392 raw payload-row sum** (no defensible dedup total — §3.3) / 14 league-report lanes; 1 partial consumer, but `yprr_college` is still 0/874 in the active artifact |
 | R6 | `rotoviz` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | **fixture-only — no capture** |
 | R7 | `campus2canton` | context_signal | `csv_fixture` | — | `skip_enrichment` | **manual export only** | **fixture-only — no capture** |
-| R8 | `fantasycalc` | market_overlay | `json_cache` | 24 | `use_cached` | free | **TWO acquisition routes:** daily `fc_forward_capture.db` (20,043 `obs`) plus request-time `app/cache/fantasycalc/market_values.json` / live fallback used by the trade API and market-overlay service |
+| R8 | `fantasycalc` | market_overlay | `json_cache` | 24 | `use_cached` | free | **TWO acquisition routes:** daily `fc_forward_capture.db` (**20,518 `obs` as of 2026-08-06**, measured 22:23 ET; 44 snapshot dates 2026-06-24 → 2026-08-06) plus request-time `app/cache/fantasycalc/market_values.json` / live fallback used by the trade API and market-overlay service |
 | R9 | `mfl_rookie_adp` | market_overlay | `json_cache` | 24 | `use_cached` | free | **BLOCKED:** adapter + separated `app/data/valuation` destination built, but current undocumented `ROOKIES=1&IS_MOCK=No` query returns veterans; official rookie-only contract is `IS_KEEPER=R&IS_MOCK=0`. Zero cache, output artifact, or scheduler |
 | R10 | `dynasty_data_lab` | market_overlay | `none` | — | `skip_enrichment` | **paid** ($4/1k req) | **deferred — no capture** |
 | R11 | `dynasty_nerds` | market_overlay | `none` | — | `skip_enrichment` | no clean API | **deferred — no capture** |
 | R12 | `ktc` | market_overlay | `none` | — | `skip_enrichment` | **PROHIBITED** — ToS bars scraping | **none, by rule** |
-| R13 | `sleeper` | context_signal | `json_cache` | 1 | `use_cached` | free | **FOUR measured routes, different states:** (a) `app/data/league_runtime/` — scheduled daily 09:20 normalized snapshot, consumed, raw replay unavailable (N18); (b) `league_transactions.db` — manual_only, no consumer; (c) `app/data/research/league_behavior/raw/2026-07-19/` — manual one-time exact endpoint history, replayable + backup-covered (N19); (d) request-time live Roster Auditor calls, no exact capture |
+| R13 | `sleeper` | context_signal | `json_cache` | 1 | `use_cached` | free | **FOUR measured routes, different states:** (a) `app/data/league_runtime/` — scheduled daily 09:20 normalized snapshot, consumed, raw replay unavailable (N18); (b) `league_transactions.db` — **manually run / unscheduled** *(Q3 sweep: a FOURTH site carrying the stale `manual_only` token, in the §2.1 registry row. Codex named R13 in §6A and N14b in §3.1; this one was found by grepping the whole document for the concept rather than fixing only the two cited)*, no consumer; (c) `app/data/research/league_behavior/raw/2026-07-19/` — manual one-time exact endpoint history, replayable + backup-covered (N19); (d) request-time live Roster Auditor calls, no exact capture |
 | R14 | `sportradar` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — ~$7,200/yr | **none, by rule** |
 | R15 | `genius_sports` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — enterprise | **none, by rule** |
 | R16 | `stats_perform` | **prohibited_current_phase** | `none` | — | `fail_closed` | **PROHIBITED** — enterprise | **none, by rule** |
@@ -142,7 +150,7 @@ adapter (R19).
 
 **The claim "Only R19 has a production capture route built by an agent" is WITHDRAWN — it was
 false.** Built capture routes also exist for **R8 `fantasycalc`** (`scripts/run_fc_forward_capture.py`,
-daily, 20,043-row store), **R13 `sleeper`** (`scripts/run_league_transaction_capture.py`, durable
+daily store, **20,518 rows as of 2026-08-06**), **R13 `sleeper`** (`scripts/run_league_transaction_capture.py`, durable
 store, **not scheduled**), and **R2 `cfbd`** (`scripts/run_cfbd_foundation_refresh.py`, paid,
 capture + promotion path). Those routes differ in operational state; **each row states its own
 measured state rather than collapsing authorship and production status into one sentence.**
@@ -280,7 +288,7 @@ Measured and independently reproduced:
 
 **Corrections this forces:**
 1. **`app/data/league_runtime` is added to A7's physical stores** — it was not listed.
-2. **N12/N13 stay `manual_only` and consumerless.** The 09:20 cadence belongs **only** to N18.
+2. **N12/N13 stay consumerless.** The 09:20 cadence belongs **only** to N18. ~~and `manual_only`~~ — **class assertion struck (R2):** §§4.4/6C/6E now carry `automatic_candidate`, because no human export is involved, only an absent scheduler. **Consumerless is unchanged and is the point this correction was making.**
 3. **The five derived artifacts** (`coverage`, `provenance`, `roster_cut_report`, `team_posture`,
    `team_value_matrix`) are **downstream outputs of one coherent bundle — NOT five ingested source
    streams.** Counting them as streams would inflate the inventory with our own outputs, which is the
@@ -360,7 +368,7 @@ validation study; that classification prevents “every loader exists” from be
 loader.”
 
 ### §3.1 Table B-N — NON-NFLVERSE streams
-*(F1/F6 blocker. **Mixed verification state *(V21)*: PlayerProfiler/FantasyCalc/Sleeper counts, the CFBD 1,202 figure, the PFF 149/134,392 split (§3.3: no dedup total is defensible) and its one consumer lane are INDEPENDENTLY verified; per-stream R7 states and cadence are not. Table not complete.**)*
+*(F1/F6 blocker. **Mixed verification state *(V21, restated Q2)*: PlayerProfiler/FantasyCalc/Sleeper counts, the CFBD 1,202 figure, the PFF 149/134,392 split (§3.3: no dedup total is defensible) and its one consumer lane are INDEPENDENTLY verified. **Per-stream R7 states and cadence are now AUTHORED — §6D and §6E — and awaiting independent review, not absent.** Table not checked off: the gate is R4 verification plus the two unmeasured source clocks (N1–N8, N19).**)*
 
 Measured by opening each store and counting per table, then decomposing by R5 grain. **`alt` is
 never added to a total.**
@@ -375,13 +383,13 @@ never added to a total.**
 | N6 | PlayerProfiler | `pp_player_season` | 5,476 | `obs` | none |
 | N7 | PlayerProfiler | `pp_identity_bridge` | 3,290 | `idn` | — |
 | N8 | PlayerProfiler | `pp_capture` + `pp_pbp_capture` | 57 + 6 | `cap` | — |
-| N9 | FantasyCalc | `fc_forward_capture_raw` *(source `fc_native`, snapshots 2026-06-24 → 2026-08-05)* | 20,043 | `obs` | **no direct production consumer; source representation for N10** |
-| N10 | FantasyCalc | `fc_forward_capture_joinable` | 20,043 | **`alt` — never add to N9** | **scheduled Market Divergence + What-Changed report** (`run_market_divergence_refresh.py`, `what_changed/daily_diff.py`) |
+| N9 | FantasyCalc | `fc_forward_capture_raw` *(source `fc_native`, snapshots 2026-06-24 → 2026-08-05)* | 20,043 **as of 2026-08-05** | `obs` | **no direct production consumer; source representation for N10** |
+| N10 | FantasyCalc | `fc_forward_capture_joinable` | 20,043 **as of 2026-08-05** *(T3 — as-of made explicit rather than the number rewritten: this table is a dated 2026-08-05 measurement at commit `2a42759`. Current value is 20,518 as of 2026-08-06)* | **`alt` — never add to N9** | **scheduled Market Divergence + What-Changed report** (`run_market_divergence_refresh.py`, `what_changed/daily_diff.py`) |
 | N11 | **MIXED-SOURCE store** *(V3)* | `fc_snapshots` = DynastyProcess **2,185** (2021-09-08 → 2024-09-08) + FantasyCalc **4,605** (2026-06-12 → 2026-06-24) | 6,790 | `obs` | **optional legacy backtest instrument** (`eval/market_snapshot_store.py`, `run_backtest.py`); not the current overlay source |
 | N12 | Sleeper | `league_transaction` | 932 | `obs` | **none** *(V4 — corrected)* |
 | N13 | Sleeper | `league_transaction_movement` | 1,692 | `obs` *(different grain)* | **none** *(V4 — corrected)* |
 | N14 | Sleeper | `league_season_capture` | 4 | `cap` | — |
-| N14b | Sleeper | `app/data/league_transactions/raw/` | **20 JSON files** | `raw-payload`; not added to N12/N13/N14 | upstream exact transaction capture evidence; manual_only |
+| N14b | Sleeper | `app/data/league_transactions/raw/` | **20 JSON files** | `raw-payload`; not added to N12/N13/N14 | **N12's governed raw-before-parse layer (§3.4)** — `write_raw_snapshot` → `normalize` → `upsert`; no separate downstream reader *(Q3: this cell ended in the class token `manual_only`, which both contradicts §§4.4/6C/6E's `automatic_candidate` and puts an automation class in a consumer-state cell — the V2-F2 defect again)* |
 | N15 | PFF | manual export payloads | **149** | **`raw-payload count` — NOT `obs`** *(V2)* | **partial — ONE PRECISE LANE** *(V12)*: NCAA `receiving_summary`, scope `REGPO`, seasons 2017–2025 (9 entries in `phase16_wr_manifest.json`, hashes match content-hash filenames) via `scripts/build_college_features.py`. **Not evidence that the other 13 lanes are consumed.** |
 | N15b | PFF | internal source rows across 14 league/report lanes | **134,392** | `obs` **(raw payload-row sum; NOT proved double-counted — see §3.3)** | as N15 |
 | N15c | PFF | output of a **PROPOSED widest-scope file-selection policy** — **not adopted, not canonical** | **106,867** | **policy OUTPUT, not an observation count** *(§3.3 — the subset premise was tested and FAILED)* | as N15 |
@@ -484,10 +492,26 @@ different directory entirely, which I ran `find` against and then labelled as
 measurement run against one path and reported as a fact about another.** Second instance in one
 session; both caught by the independent lane, neither by me (V1, Codex).
 
-**Still owed on Table B-N:** complete per-stream `bound`/`captured`/`exported` states (R7), final
-automation/job edges, parallel-route dispositions, and **a defensible PFF aggregation rule — see
-§3.3, where the scope-nesting premise was TESTED AND FAILED, so no deduplicated PFF total exists**. Several counts and physical
-states are independently verified; **the table as a whole is not verified or checked off**.
+**~~Still owed on Table B-N: complete per-stream `bound`/`captured`/`exported` states (R7), final
+automation/job edges, parallel-route dispositions, and a defensible PFF aggregation rule.~~ STRUCK
+*(U1)* — every clause had stopped being true:**
+
+1. **R7 states — authored.** §6D carries all five for every enumerated row. They await **review**, not
+   authorship.
+2. **Automation / job / freshness edges — authored.** §4.4 (whole-table CLEAR at this pin), §6C and
+   §6E. Only **two source clocks remain unmeasured: N1–N8 PlayerProfiler and N19's Sleeper endpoint
+   families.**
+3. **Parallel-route dispositions — authored.** §6B names one canonical route per dataset and
+   classifies every other, including two `acquisition defect`s.
+4. **PFF aggregation is not a Table B-N gate at all.** §6A places combined-view aggregation
+   **outside the A-C blocking path** (David, 2026-08-06) as later semantic-layer work. §3.3 stands on
+   its own: the scope-nesting premise was **tested and FAILED**, so **no deduplicated PFF total
+   exists** and the raw-grain **134,392** is publishable only when labelled.
+
+**The table is still NOT checked off, and the real gate is:** independent R4 verification of the
+authored states, plus those **two unmeasured source clocks**. *(This paragraph recreated T1 outside
+the sites swept in round 5 — the fourth generation of one defect: a true statement left standing
+after the work it described was done.)*
 
 ### §3.2 Registry PHYSICAL-state evidence *(Codex V5–V8, all reproduced by Claude)*
 
@@ -535,16 +559,21 @@ build the principal sized himself.** My "in scope in substance" phrasing did exa
 | Store | Correct decomposition |
 | :-- | :-- |
 | `playerprofiler.db` | **1,520,009 `obs`** + 3,290 `idn` + 63 `cap` = 1,523,362 physical |
-| `fc_forward_capture.db` | **20,043 `obs`** + 20,043 `alt` (`joinable` is a second representation — **never add**) |
+| `fc_forward_capture.db` | **20,518 `obs` as of 2026-08-06** + 20,518 `alt` (`joinable` is a second representation — **never add**) *(T3: this cell published a bare `20,043`, violating §6B.3's own as-of rule. Re-measured 2026-08-06 22:23 ET: both tables 20,518, 44 snapshot dates)* |
 | `league_transactions.db` | **932 `obs`** transactions + 1,692 `obs` movements *(different grain)* + 4 `cap` |
 
 **STREAMS NOW ROWED — this paragraph previously said they were missing and was left standing after
 they were added *(V14, and the SAME §5 defect the register exists for)*.** PlayerProfiler,
 PFF, CFBD, FantasyCalc and Sleeper are rowed in **§3.1 Table B-N**; the five direct
-feature-refresh loaders are rowed as **B15–B19**; Combine and schedules are B20–B21. **Still
-genuinely incomplete:** final automation classifications, complete R7 states on Table B-N, and
-reconciliation of the parallel Sleeper/FantasyCalc consumer routes. Identity/study datasets are now
-rowed as B22–B24 rather than left implicit in adapter functions.
+feature-refresh loaders are rowed as **B15–B19**; Combine and schedules are B20–B21. Identity/study
+datasets are now rowed as **B22–B24** rather than left implicit in adapter functions.
+**~~Still genuinely incomplete: final automation classifications, complete R7 states on Table B-N,
+and reconciliation of the parallel Sleeper/FantasyCalc consumer routes.~~ STRUCK *(T1)*.** All three
+are **authored and awaiting independent review** — classes in §6C/§6E, R7 states in §6D, routes in
+§6B. **This paragraph is the second generation of the very defect it was written to record**: it was
+added to correct a stale "streams are missing" claim, and then itself went stale when the work it
+called incomplete was done. The open gate is **R4 verification plus the two unmeasured source clocks
+(N1–N8, N19)** — nothing here is missing.
 
 **The v1 summary "3 consumers / 9 substrate_only / 1 never run" remains WITHDRAWN** — it was
 exclusive over an incomplete table. *(Its second stated reason, "B4's consumer state is UNVERIFIED",
@@ -686,12 +715,12 @@ not “job exists.” `UNVERIFIED` is an explicit inventory value, not permissio
 | B24 QB-validation players input | `static_pinned` | registered study input | no refresh | study has not run; automation cannot alter manifest inputs |
 | N1–N8 PlayerProfiler | `blocked` | landed store came from human exports; a shadow HTTP POST route exists | no automatic job | automated acquisition remains blocked pending sanctioned-access, legal, and reliability proof |
 | N9–N10 FantasyCalc forward | `automatic_active_health_unverified` | fetch-time snapshots; no provider publish timestamp | actual daily 09:00 job | add freshness registration, prove health history, and reconcile the request-time cache/live fallback behind one governed route |
-| N11 legacy mixed snapshot archive | `manual_only` | frozen/legacy local archive | none | optional backtest only; do not use as current overlay source |
+| N11 legacy mixed snapshot archive | **`blocked`** *(R1 — **BOTH prior values were wrong.** `manual_only` was wrong: `scripts/snapshot_fantasycalc.py` performs a live FantasyCalc HTTP fetch and appends with no human export. My `static_pinned` was **also** wrong and is withdrawn: three executable writers still default to this path, so the store is **not physically immutable**. The named blocker is `use`/`route` — the legacy collector is **superseded by design** by `run_fc_forward_capture.py`, and scheduling any writer would recreate the parallel market-acquisition defect §6B.1 records)* | frozen/legacy local archive **by declaration only — see the declared-vs-physical gap in §6F** | none | optional backtest only; do not use as current overlay source. **`static_pinned` is the DESIRED state; its pass condition is physical write immunity, which is remediation needing David's word — not a measured fact today** |
 | N12–N14b Sleeper transactions | `automatic_candidate` | live league events | candidate daily current-season + weekly full-chain reconciliation | cursor/idempotence, call ceiling, marker/freshness, word |
 | N18 Sleeper normalized league bundle | `automatic_active_verified` | endpoint state can change daily | actual daily 09:20 job | health basis: registered freshness, 21 consecutive successful runs through 2026-08-05, empty error log, current `ok`/ready markers, loaded job last exit 0; exact raw replay and request-time Roster Auditor reconciliation remain separate quality/route gaps |
 | N18b two active `*_latest.json` fallback aliases | `manual_only` | production fallback seeds, not source vintages | no automatic refresh job | consumed by `load_production_league_set`; change only through explicit seed maintenance |
 | N18b ten retained timestamped archives | `manual_only` | retained normalized history | none | no recurring use or refresh claim |
-| N19 one-time exact endpoint history | `manual_only` | one-time 2023–2026 replay evidence | none | no established consumer; backup-covered; no invented recurring use |
+| N19 one-time exact endpoint history *(upstream clock corrected T2)* | **`blocked`** *(Q4 — changed from `manual_only`; the SECOND edit to a previously CLEARed §4.4 cell, this one requested by the reviewer. Its `fetch_log` records **176 direct Sleeper API calls, zero failures** — an API route, not a human export, so `manual_only` is definitionally wrong. The named blocker is **use**: no recurring use has been decided. **Distinct from N12/N13's `automatic_candidate`**, which has a decided purpose and merely lacks a scheduler)* | **UNVERIFIED** — the upstream change rhythm of these Sleeper endpoint families is unmeasured *(T2: this column held "one-time 2023–2026 replay evidence", which is OUR local pull history, not the source's rhythm — the same R3 defect already accepted for §6E, surviving in the canonical table. **LOCAL CAPTURE EVIDENCE, kept and moved here:** one-time 2023–2026 replay, 176 logged calls, zero failures)* | none | no established consumer; backup-covered; no invented recurring use. **If David names a recurring use, the API route may become `automatic_candidate`** |
 | N15/N15b PFF | `manual_only` | human export | none | manual contract; fix YPRR materialization separately |
 | N16/N17 CFBD | `blocked` | paid/event-driven; registry says 720h for historical data | no automatic job | David-approved per-run/month ceiling + canonical-wrapper-only route |
 | R4 RAS | `blocked` | no production acquisition | none | governed use + NDA/retention feasibility |
@@ -813,8 +842,8 @@ row `OPEN`. A proposed automation class is **reviewed planning judgment**, not a
 
 | Canonical row/cell | Current measured state | Exact unresolved question / defect | Evidence path or probe | Lane | Binary pass condition | Authority dependency | Status |
 | :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
-| **R13 Sleeper — FOUR physical routes** *(M5: my first draft said four and listed three)* | (1) **N18** daily 09:20 normalized snapshot, consumed; (2) **N12/N13** `league_transactions.db`, manual, no consumer, with its own governed raw path **N14b** `app/data/league_transactions/raw`; (3) **N19** one-time multi-endpoint raw corpus; (4) **request-time live Roster Auditor read** (R18 path) | Which route is canonical per dataset, and what is each other route? | §3.4 · N14b (20 snapshots; latest-per-season 932 unique, 932/932 shared, zero either-side-only) · `league_transactions.py` L1009→L1022→L1029 | Claude · Codex | Each Sleeper dataset names exactly ONE canonical route; every other route is labelled with a **reason** from: `alt` · `superseded` · `separate corpus` · **`consumer edge`** · **`acquisition defect`** *(M5 — not every non-canonical route is accurately one of the first three)* | route retirement needs David | **MEASURED — awaiting review** |
-| **R8 FantasyCalc — parallel acquisition** | Daily `fc_forward_capture.db` (20,043 `obs`, `fc_native`, 2026-06-24→2026-08-05) **and** request-time `app/cache/fantasycalc/market_values.json` / live fallback in the trade API + market-overlay service | Which is canonical? A request-time live fallback is an ungoverned acquisition path inside a serving surface | §2.1 R8 · N9/N10/N11 | Claude · Codex | One canonical market capture named; the request-time path classified with a reason. **Engine A/B market separation restated and unbroken** | none for the inventory fact | **OPEN** |
+| **R13 Sleeper — FOUR physical routes** *(M5: my first draft said four and listed three)* | (1) **N18** daily 09:20 normalized snapshot, consumed; (2) **N12/N13** `league_transactions.db`, **manually run / unscheduled** *(Q3 — this said `manual`, which reads as the `manual_only` class §§4.4/6C/6E no longer assign; the physical fact is an absent scheduler, not a human-fed access path)*, no consumer, with its own governed raw path **N14b** `app/data/league_transactions/raw`; (3) **N19** one-time multi-endpoint raw corpus; (4) **request-time live Roster Auditor read** (R18 path) | Which route is canonical per dataset, and what is each other route? | §3.4 · N14b (20 snapshots; latest-per-season 932 unique, 932/932 shared, zero either-side-only) · `league_transactions.py` L1009→L1022→L1029 | Claude · Codex | Each Sleeper dataset names exactly ONE canonical route; every other route is labelled with a **reason** from: `alt` · `superseded` · `separate corpus` · **`consumer edge`** · **`acquisition defect`** *(M5 — not every non-canonical route is accurately one of the first three)* | route retirement needs David | **MEASURED — awaiting review** |
+| **R8 FantasyCalc — parallel acquisition** | Daily `fc_forward_capture.db` (**20,518 `obs` as of 2026-08-06**, `fc_native`, 2026-06-24→2026-08-06) **and** request-time `app/cache/fantasycalc/market_values.json` / live fallback in the trade API + market-overlay service | Which is canonical? A request-time live fallback is an ungoverned acquisition path inside a serving surface | §2.1 R8 · N9/N10/N11 | Claude · Codex | One canonical market capture named; the request-time path classified with a reason. **Engine A/B market separation restated and unbroken** | none for the inventory fact | **MEASURED — awaiting review** *(§6B.1: canonical named, request-time route classed `acquisition defect`)* |
 | **R1 `nfl_data_py` — source identity** | **No `nfl_data_py` import exists.** `ingest_2026_draft.py` imports **`nflreadpy`**, writes JSON, labels it `nfl_data_py_verified_nfl_draft`; declared `parquet_snapshot` | Registry names a provider the code does not use | V5 · `rg 'import nfl_data_py'` → nothing | Claude · Codex | **The DEFECT is inventoried, dated and classified as a source-identity defect.** *(Fixing the registry is remediation, not inventory)* | **repair needs David; does not block inventory closure** | **VERIFIED — inventory closed** |
 | **R18 — declared vs actual provenance** | Declared `parquet_snapshot`/168h; actual is `live_direct_read`, consumer-triggered by `roster_auditor.py` (2024/2023), no snapshot, no cache. **A second live consumer of B18 `pbp`, not its own stream** | Declaration does not describe the physical route | V7 · V15 · `nflreadpy_qb_adapter.py::fetch_qb_nfl_stats` | Claude · Codex | **Defect inventoried; R18 recorded as a consumer edge on B18, not a stream** | **repair + any consumer migration need David; must NOT widen the five-stream Option A scope** | **VERIFIED — inventory closed** |
 
@@ -822,9 +851,9 @@ row `OPEN`. A proposed automation class is **reviewed planning judgment**, not a
 
 | Canonical row/cell | Current measured state | Exact unresolved question / defect | Evidence path or probe | Lane | Binary pass condition | Authority dependency | Status |
 | :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
-| **R7 states — ENUMERATED, not a basket** *(M1)*. Canonical stream rows **B1–B24**; Table B-N rows **N1–N11, N12–N14, N14b, N15, N15b, N15c, N16, N17, N18, N18b, N19** *(**N18b** was omitted from the first enumeration while N14b/N15b/N15c were explicitly listed — the same letter-suffix class, one member missed)* | Counts/grains measured; **B1–B12 `exported` independently verified** at run `nflverse-usage-20260805T1334216901700000` (V11). R7 states otherwise incomplete | Each listed row needs all five states: `bound` · `captured` · `exported` · `consumed` · `decision_supported` | §3.1 · V3 · V11 | Claude · Codex | **Every enumerated row ID above carries all five states, each independently verified or explicitly `N/A` with evidence. `UNVERIFIED` leaves the row OPEN** *(M4)* | none for the inventory fact | **OPEN** |
-| **Parallel-route relationships — enumerated** | Three pairs: `snap_counts` **B4 ↔ B17**; Sleeper **N18 ↔ N12/N13 ↔ N19 ↔ R18 request-time**; FantasyCalc **N9 ↔ request-time cache** | Each pair needs a canonical route and a classified counterpart | §3.4 · B4/B17 · V15 | Claude · Codex | Every listed pair names its canonical route and classifies the other with a reason from the M5 vocabulary | route retirement needs David | **OPEN** |
-| **Final automation classes — the EXACT §4.4 member set** *(M1: "B1–B24" was incomplete)*. §4.4 is the deterministic reference and spans **beyond B-rows**: B1–B24 **plus** N1–N8, N9–N10, N11, N12–N14b, N15/N15b, N16/N17, N18, **N18b (two rows)**, N19, **R4, R6, R7, R9, R10, R11, R12, R14–R17, and A6** | Provisional classes in refresh plan §3; cadence research independently CLEAR at its pin | No canonical stream row carries a FINAL class | refresh plan §1 (seven classes) · cadence artifact + disposition v2 | Claude authors · Gemini facts · Codex reviews | **Every member of the §4.4 set carries exactly one of the seven classes, recorded as reviewed planning judgment — not as a measured fact** *(M4)*. **Membership is resolved from §4.4 itself, not from a copied list here** — a duplicated roster would rot the moment §4.4 gains a row | class ≠ enablement | **OPEN** |
+| **R7 states — ENUMERATED, not a basket** *(M1)*. Canonical stream rows **B1–B24**; Table B-N rows **N1–N11, N12–N14, N14b, N15, N15b, N15c, N16, N17, N18, N18b, N19** *(**N18b** was omitted from the first enumeration while N14b/N15b/N15c were explicitly listed — the same letter-suffix class, one member missed)* | Counts/grains measured; **B1–B12 `exported` independently verified** at run `nflverse-usage-20260805T1334216901700000` (V11). **~~R7 states otherwise incomplete~~ — STRUCK *(T1)*: §6D now carries all five states for every enumerated row, `MEASURED — awaiting review`. Authored is not incomplete** | Each listed row needs all five states: `bound` · `captured` · `exported` · `consumed` · `decision_supported` | §3.1 · V3 · V11 | Claude · Codex | **Every enumerated row ID above carries all five states, each independently verified or explicitly `N/A` with evidence. `UNVERIFIED` leaves the row OPEN** *(M4)* | none for the inventory fact | **MEASURED — awaiting review** *(§6D: every enumerated row now carries five states; **B20–B24 and N14 measured by the authoring lane 2026-08-06 and NOT independently verified**, so the row cannot read VERIFIED)* |
+| **Parallel-route relationships — enumerated** | Three pairs: `snap_counts` **B4 ↔ B17**; Sleeper **N18 ↔ N12/N13 ↔ N19 ↔ R18 request-time**; FantasyCalc **N9 ↔ request-time cache** | Each pair needs a canonical route and a classified counterpart | §3.4 · B4/B17 · V15 | Claude · Codex | Every listed pair names its canonical route and classifies the other with a reason from the M5 vocabulary | route retirement needs David | **MEASURED — awaiting review** *(§6B.1/§6B.2: all three pairs classified; Roster Auditor carries `consumer edge` + `acquisition defect`)* |
+| **Final automation classes — the EXACT §4.4 member set** *(M1: "B1–B24" was incomplete)*. §4.4 is the deterministic reference and spans **beyond B-rows**: B1–B24 **plus** N1–N8, N9–N10, N11, N12–N14b, N15/N15b, N16/N17, N18, **N18b (two rows)**, N19, **R4, R6, R7, R9, R10, R11, R12, R14–R17, and A6** | Provisional classes in refresh plan §3; cadence research independently CLEAR at its pin. **§6C/§6E now carry a final class for every §4.4 member** | **~~No canonical stream row carries a FINAL class~~ — STRUCK *(T1)*.** The open question is **independent verification of those classes**, not their absence | refresh plan §1 (seven classes) · cadence artifact + disposition v2 | Claude authors · Gemini facts · Codex reviews | **Every member of the §4.4 set carries exactly one of the seven classes, recorded as reviewed planning judgment — not as a measured fact** *(M4)*. **Membership is resolved from §4.4 itself, not from a copied list here** — a duplicated roster would rot the moment §4.4 gains a row | class ≠ enablement | **MEASURED — awaiting review** *(§6C/§6E reconciled to §4.4 as the single canonical table; **TWO §4.4 cells have now been edited — N11 (§6F.2 R1) and N19 (§6F.3 Q4)** — both disclosed. **T1: this said "one" and went stale in the same round that made the second edit.** §4.4's original CLEAR pin therefore no longer describes §4.4)* |
 | **B13 `contracts`** | Bound with no table; never executed; zero product-store rows | — | §3.1 B13 | Claude · Codex | **Row states `bound / not captured` and names the landing gate.** Inventory fact is settled | **landing needs a separate David word AND one export covering all twelve prior streams plus contracts** | **VERIFIED — inventory closed** |
 | **N18 — absent exact raw capture** | Scheduled 09:20, marker-pinned, consumed, 21 runs. **Normalized only** — eight endpoints pass through `build_universe_snapshot`; raw bytes never retained | Fails `01` raw-snapshot-before-parse | V16 · V17 | Claude · Codex | **Row states `normalized snapshot; raw endpoint replay unavailable`.** Inventory fact settled | **exact-raw capture = step 4(d); needs David** | **VERIFIED — inventory closed** |
 
@@ -832,7 +861,7 @@ row `OPEN`. A proposed automation class is **reviewed planning judgment**, not a
 
 | Canonical row/cell | Current measured state | Exact unresolved question / defect | Evidence path or probe | Lane | Binary pass condition | Authority dependency | Status |
 | :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
-| **Cadence fields — ENUMERATED over the EXACT §4.4 member set** *(M1: "B1–B24" omitted every non-nflverse and source-group row)* | Source-publish cadences pinned to primary sources, independently CLEAR; **not yet written onto the canonical rows** | **Each member of the §4.4 set** — B-rows AND the N/R/A rows listed in the automation-classes row above — needs five fields: source-publish cadence · job cadence · freshness expectation · dependency edge · proposed automation class | cadence artifact (CLEAR at pin) + disposition v2 · Gemini job/marker facts · §4.1 | Claude · Gemini facts · Codex | **Every member of the §4.4 set carries all five fields, each independently verified or explicitly `N/A`/`not scheduled` WITH EVIDENCE. `UNVERIFIED` leaves the row OPEN** *(M4)*. **R3 held: job ≠ freshness ≠ stream cadence** | pinning ≠ scheduling | **OPEN** |
+| **Cadence fields — ENUMERATED over the EXACT §4.4 member set** *(M1: "B1–B24" omitted every non-nflverse and source-group row)* | Source-publish cadences pinned to primary sources, independently CLEAR, and **now written onto the canonical rows in §6E** *(T1 — this cell said "not yet written" after §6E wrote them)* | **Each member of the §4.4 set** — B-rows AND the N/R/A rows listed in the automation-classes row above — needs five fields: source-publish cadence · job cadence · freshness expectation · dependency edge · proposed automation class | cadence artifact (CLEAR at pin) + disposition v2 · Gemini job/marker facts · §4.1 | Claude · Gemini facts · Codex | **Every member of the §4.4 set carries all five fields, each independently verified or explicitly `N/A`/`not scheduled` WITH EVIDENCE. `UNVERIFIED` leaves the row OPEN** *(M4)*. **R3 held: job ≠ freshness ≠ stream cadence** | pinning ≠ scheduling | **OPEN** — **narrowed:** every §4.4 member now carries all five fields except **TWO unmeasured source clocks — N1–N8 PlayerProfiler AND N19's Sleeper endpoint families** *(Q1: this cell named only N1–N8 after §6E correctly opened N19, so the declared closure surface was reporting N19 settled while the section it summarises said otherwise. A closure matrix that under-reports its own open items is worse than no matrix)*. Under M4 either one alone keeps this row OPEN |
 | **`nflverse_usage.db` — absent schedule** | 13 bound specs, 12 materialized, 1,491,691 `obs`; **no LaunchAgent invokes the canonical capture runner** | Scoped to this store only — **NOT the layer** (N18 and FantasyCalc are scheduled) | §4.2 · `rg -ln 'run_nflverse_usage_capture' ops/` → nothing | Claude · Codex | **Row states the absent schedule at the correct grain with counter-examples named.** Inventory fact settled | **scheduler = David only** | **VERIFIED — inventory closed** |
 | **⏰ CH1 — ANY missing input caps ALL FIVE. ALREADY LIVE** *(M2 — my "harmless" claim was FALSE)* | **Probed 2026-08-06:** `rosters` 2026 **returns 2,930 rows × 36 cols — usable current-season data EXISTS**; `player_stats` 2026 **ConnectionError (404)**; `snap_counts`/`pbp`/`participation` **rejected client-side by the installed nflreadpy (`Season must be between … and 2025`)**. `_load_source` builds all five in ONE dict literal, so `player_stats` raises first and `_resolve_default_source` steps the WHOLE window back to 2025. **The 2,930 roster rows are silently discarded today while the job reports `ok`.** The job has never run in-season (log begins 2026-06-28) | **TRIGGER HAS FIRED.** Restated: **ANY missing input caps all five** — participation is the structurally long-lived case, **not the only cause**. **SECOND FAILURE MODE, from my own probe:** three loaders raise **`ValueError`**, which `_resolve_default_source` **does NOT catch** (it catches `ConnectionError` only, L101). Once `player_stats_2026` publishes while the installed client still caps at 2025, the run **fails hard** instead of stepping down | CH1 · live 2026 probe above · `run_feature_refresh.py::_load_source`, `_resolve_default_source` L99–103 · `feature_refresh.out.log` | Claude · Codex | **A durable control proving NO single missing stream can cap ANY other stream** — covering both the `ConnectionError` step-down path and the uncaught `ValueError` path | **code / consumer-migration word from David.** *(No calendar date asserted; the trigger is source publication and it has already occurred)* | **VERIFIED — inventory closed; REMEDIATION TIME-SENSITIVE** |
 | **B19 `participation` cadence** | 2023+ publishes after the postseason only; no in-season updates | Must not be modelled as a daily source | cadence artifact B19 | Claude · Codex | Row carries annual/postseason cadence and an explicit "not daily-current" note | none for the inventory fact | **MEASURED — awaiting review** |
@@ -853,6 +882,539 @@ keep **134,392** labelled raw-grain. Any combined/current-state policy is later 
 **Why this matrix is not itself a closure.** It enumerates and pins; it decides nothing. `§H` stays
 unchecked until the canonical rows are independently re-verified after reconciliation. **H2 QB
 rushing remains a registered hypothesis UNDER TEST with no result.**
+
+---
+
+## §6B. Step 1 — SOURCE-ROUTE DISPOSITIONS *(closes the §6A "A" rows)*
+
+**Scope:** the canonical route per dataset, and every parallel route classified with a reason from
+the §6A vocabulary — `alt` · `superseded` · `separate corpus` · `consumer edge` · `acquisition
+defect`. **Classification only. No route is retired, repaired or migrated by this section.**
+
+### §6B.1 FantasyCalc — canonical + one acquisition defect
+
+| Route | Measured | Disposition |
+| :-- | :-- | :-- |
+| **`fc_forward_capture.db`** via `scripts/run_fc_forward_capture.py`, daily 09:00 | **20,518 `obs`, 44 snapshot dates 2026-06-24 → 2026-08-06**, carrying `snapshot_date` · `source` (`fc_native`) · `settings_hash` · `retrieved_at` | **CANONICAL** — governed capture with provenance |
+| `fetch_with_cache()` (`fantasycalc_adapter`) → `app/cache/fantasycalc/market_values.json`, **live `httpx.get` on miss/expiry**, called at REQUEST TIME by `market_overlay_service.enrich_pvo_list_with_market_overlay` | single **overwritten** file; TTL-gated; never raises, degrades with caveats | **⛔ `acquisition defect`** |
+
+**Why `acquisition defect` and not `alt`:** it acquires from the provider **outside the governed
+route, at serving time**, and **what it served is not preserved** — one overwritten file, no vintage.
+So the overlay can serve a market value **with no corresponding row in the capture store**, and no
+later reader can reconstruct what was shown. *(`alt` would imply a second representation of captured
+data; this is uncaptured acquisition.)*
+
+### §6B.2 Sleeper — FOUR routes, three datasets
+
+| Route | Dataset | Disposition |
+| :-- | :-- | :-- |
+| **N18** `league_runtime/` daily 09:20 normalized snapshot bundle | league/universe state | **CANONICAL for league state** — *carrying its own recorded defect: normalized only, raw endpoint replay unavailable (§3.4 / V17)* |
+| **N12/N13** `league_transactions.db` + **N14b** `league_transactions/raw` | transaction history | **CANONICAL for transactions** — and the **only** Sleeper route satisfying `01` raw-before-parse (`write_raw_snapshot` → `normalize` → `upsert`) |
+| **N19** `league_behavior/raw/` | transactions **+** matchups/league/users/rosters/traded-picks/drafts | **SPLIT disposition:** its **923 transaction records are `alt`** of N12 (strict subset, §3.4) · its **other endpoint families are a `separate corpus`** — the **only exact historical endpoint representation** of those families *(F3 — narrowed)* |
+| **Roster Auditor request-time reads** — `app/services/roster_auditor.py:9` imports `get_all_players`, `get_leagues`, `get_rosters`, `get_user` from `app.data.sleeper` | league/roster/player universe at serving time | **`consumer edge` + ⛔ `acquisition defect`** *(F2 — both, and the second is the load-bearing one)* — topologically it is a serving-path read of the same upstream datasets and **not a fifth ingestion stream** *(the R1 source ≠ stream ≠ store rule, applied as it was for R18/B18)*; **governance-wise `app.data.sleeper._get` performs live `httpx.AsyncClient.get` calls at request time, so it acquires provider data outside the canonical captures and preserves no exact bytes** — the same defect class as the FantasyCalc request-time route |
+
+**Two Sleeper routes, opposite provenance quality** — N12 satisfies raw-before-parse; N18, the
+*scheduled and consumed* one, does not. The catalog previously implied the reverse.
+
+### §6B.3 Standing grain warning — stores that go stale BY THE CLOCK
+
+**A new staleness class, distinct from the §5 register.** §5 records claims invalidated by an *edit*.
+**`fc_forward_capture.db` is a DAILY-GROWING store**: the catalog carried **20,043** as though it
+were a fixed property; it is **20,518 as of 2026-08-06** and will differ tomorrow. *(Self-found in
+the T3 sweep: this sentence originally said "it is 20,518 **today**" — a decaying word, in the very
+sentence that states the rule against decaying counts.)*
+
+**Rule adopted:** a count for a growing store is published **only with an as-of date**, or not at all.
+`20,518 obs as of 2026-08-06` is a fact; `20,518 obs` is a claim that decays silently.
+
+**Membership — corrected *(F7)*.** The rule is triggered by **an installed job that writes to the
+store**, not by the store being interesting. Verified against §6C.1 and `launchctl list`:
+
+| Store | Installed job writing to it? | Rule applies? |
+| :-- | :-- | :-- |
+| N9/N10 `fc_forward_capture.db` | ✓ daily 09:00, loaded | **✓ as-of date required** |
+| N18 `app/data/league_runtime/` | ✓ daily 09:20, loaded | **✓ as-of date required** |
+| N12/N13/N14/N14b Sleeper transactions | **✗ no plist, no job** — run manually | **✗** — its counts change only when someone runs it |
+| N18b `app/data/league_snapshots/` | **✗ no job** — seed/archive maintenance only | **✗** |
+
+*(My first version named N12/N13 and N18b as having "a live capture job behind it". They do not, and
+the same catalog says so. The **rule is sound and stays**; its claimed membership was wrong and the
+reason given for it was false.)*
+
+---
+
+## §6C. Step 2 (part) — AUTOMATION CLASSES from Gemini's job telemetry
+
+**Scope:** the automation class for every store Gemini's cadence audit covers. **A class is REVIEWED
+PLANNING JUDGMENT, not a measured fact** (§6A / M4) — the *evidence* is Gemini's, the *class* is mine
+and is Codex's to challenge. Vocabulary is the refresh plan's seven values.
+
+> **⛳ ONE CANONICAL CLASSIFICATION — §4.4 IS IT *(F1)*.** This section does **not** hold a second
+> answer. Where my first version disagreed with §4.4, **§4.4 governs and the cells below were changed
+> to match it**; the one place I concluded §4.4 itself was wrong is edited **there**, not contradicted
+> here, and is disclosed in §6F. **The rule that produced the defect, stated so it does not recur:**
+> **a capture-quality or provenance gap never rewrites an operational-state class.** They are
+> different axes and now sit in different columns. A stream can be operationally healthy and
+> provenance-poor at the same time — N18 is exactly that, and calling it `health_unverified` for a
+> raw-replay gap measured the wrong axis.
+
+**Evidence:** `docs/agent-ledger/evidence/2026-08-06/gemini_layer1_cadence_audit_response.md`
+(plist declarations, `launchctl` loaded state, last observed fire/exit, and whether a job refreshes
+the store).
+
+| Store / stream | Gemini's measured job facts | Class *(judgment; = §4.4)* | Why | Quality / route gap — **recorded, does NOT change the class** |
+| :-- | :-- | :-- | :-- | :-- |
+| `nflverse_usage.db` (13 bound specs) | no plist · not loaded · no execution logs · **not refreshed by any job** | **`automatic_candidate`** | Technically automatable; **no governed job exists.** Physical state is manual-only — the class records possibility, not a plan | raw history begins 2026-07-31 only (point-in-time ceiling, §3) |
+| Feature Refresh **direct reads** (B15–B19) — the **CURRENT** route | job loaded, daily 09:15, last fire `noop` · **streams read in memory, no raw snapshots written** | **`automatic_active_health_unverified`** *(was `blocked` — corrected, F1)* | The route **is running today** on a loaded daily job. Its health is unproven (`feature_refresh` is registered **weekly** while the job fires **daily**), so `health_unverified`, not `verified` | **no raw capture, no replay**; the **desired Option A canonical-capture route is separately `automatic_candidate`** — that is the TARGET state, and calling the running route `blocked` collapsed current into target |
+| `fc_forward_capture.db` | plist daily 09:00 · **loaded** · success 2026-08-05 13:00 UTC · **appends daily rows** · **freshness config: none found** | **`automatic_active_health_unverified`** | Fires and captures, but **no registered freshness policy**, so health cannot be evidenced from a fire alone | parallel request-time acquisition route (§6B.1 `acquisition defect`) |
+| `fc_snapshots.db` (legacy) | no plist · no logs · last modified 2026-05-30. **`com.davidleess.dynasty-fc-snapshot` does NOT write it** — the plist targets `run_fc_forward_capture.py` → `fc_forward_capture.db` (verified by reading the plist) | **`blocked`** *(R1 — my `static_pinned` is WITHDRAWN)* | **Dormant is not immutable.** Three runnable writers default to `app/data/fc_snapshots.db`: `scripts/snapshot_fantasycalc.py:31,91-107` *(live FantasyCalc HTTP + append)* · `scripts/ingest_market_archive.py:161` *(manual CSV)* · `scripts/backfill_market_archive.py:38,88-105`. So it is neither `static_pinned` nor `manual_only`; the blocker is that the route is **superseded** and scheduling it would recreate a parallel market acquisition path | mixed-source store (DynastyProcess + FantasyCalc); never a current overlay source. **⛔ DECLARED-vs-PHYSICAL GAP:** the committed plist comment calls this store *"a frozen, read-only archive"* while three scripts can write it today |
+| `league_transactions.db` (N12–N14b) | no plist · not loaded · no logs · **run manually only** | **`automatic_candidate`** *(was `manual_only` — corrected, F1)* | Confirms V4 — the 09:20 job never touches it. But `manual_only` means **the access path needs a human**; this is an ordinary API capture that simply **has no scheduler**, which is the definition of `automatic_candidate` | cursor/idempotence, call ceiling, marker and freshness all undesigned |
+| `app/data/league_runtime/` (N18) | plist daily 09:20 · **loaded** · freshness config daily 09:20 · success 2026-08-05 13:20 UTC | **`automatic_active_verified`** *(was `automatic_active_health_unverified` — corrected, F1)* | Operational health is **independently evidenced**: registered freshness, current `ok` status marker, current ready pointer, 22 successful runs, empty error log, loaded job last exit 0 | **normalized-only; no raw endpoint replay** (V17) and a parallel request-time Roster Auditor route (§6B.2). **Both are real and neither is an operational-health fact** |
+| PlayerProfiler stores (N1–N8) | no plist · no logs · **manual file copy only** | **`blocked`** *(was `manual_only` — corrected, F1)* | A shadow HTTP route exists, so this is not a source whose only contract is a human export; **automating it is blocked** pending sanctioned-access, legal and reliability proof. That is the distinction from PFF below | landed store came from human exports; no production consumer outside ingestion |
+| PFF manual export inventory (N15/N15b) | no plist · no logs · manual reconciliation | **`manual_only`** | Human export **is** the current contract — there is no sanctioned automated route to be blocked from | `yprr_college` materialization gap (0/874); no defensible deduplicated total (§3.3) |
+| CFBD foundation promoted store (N16/N17) | no plist · no logs · manual script | **`blocked`** | Paid source; needs David's cost/run ruling before any clock (refresh plan §7.2) | the isolated wrapper is bypassable by direct builder execution |
+| `nflreadpy_qb_context` (R18) | **⛔ CORRECTED — there is NO roster-capacity job.** Verified: `launchctl list` shows **exactly 8** dynasty jobs and none is `roster-capacity`; `~/Library/LaunchAgents` and `ops/launchd/` each hold the **same 8** plists. **Reads live PBP in memory, no cache/snapshot** | **`blocked`** *(class unchanged)* | **NOT scheduled at all** — an uncaptured live read reached only through a consumer. *(This cell first said "roster-capacity plist weekly Tue 10:00 · loaded", taken from Gemini's cadence audit and NOT verified by me. Gemini's two reports contradict each other and the earlier one is wrong. The class survives; the evidence under it did not.)* | **not a stream** — a consumer edge on B18 (§6A). Declared `parquet_snapshot`/168h against an actual live read |
+| QB validation raw path (R20) | no plist · no logs · **study has not run** | **`static_pinned`** | Pinned pre-registered inputs; **automation must be physically unable to overwrite them.** H2 QB rushing remains UNDER TEST with no result | — |
+
+**Two rows are outside §4.4's member set** and are classified here as additions, not as competing
+answers: **R18** (a consumer edge, not a stream) and **R20** (the study input path; §4.4 carries the
+same substance as B24). Everything else above is now byte-for-byte the §4.4 class.
+
+**What `verified` still has to earn.** `fc_forward_capture` fires successfully and is still
+`health_unverified`, because `02`'s own distinction is that **a fire is not health evidence** — it
+has no registered freshness policy at all. N18 clears that bar on evidence, not on a green exit code.
+**Neither statement says anything about capture quality**, and that separation is the F1 repair.
+
+### §6C.1 Freshness registry — verified, and TWO registrations with NO JOB
+
+**Verified independently** from `app/config/report_freshness.json` and `launchctl list`:
+
+| Registered `artifact_id` | cadence | `dormant_ok` | Has a job? |
+| :-- | :-- | :-- | :-- |
+| `pvo_refresh` | daily | false | ✓ |
+| `feature_refresh` | **weekly** | **true** | ✓ — **fires DAILY 09:15. Known mismatch** |
+| `what_changed` | daily | false | ✓ |
+| **`roster_capacity`** | weekly | false | **⛔ NO JOB EXISTS** |
+| **`league_opportunity`** | weekly | false | **⛔ NO JOB EXISTS** |
+| `realized_outcome` | weekly | true | ✓ |
+| `market_divergence` | daily | false | ✓ |
+| `league_capture` | daily | false | ✓ |
+
+**8 registrations · 8 loaded jobs · but they are NOT the same 8.** Two artifacts carry a registered
+freshness expectation with **no scheduler behind it** — the inverse of the `feature_refresh`
+mismatch, and arguably worse: a staleness policy that can never be satisfied because nothing is
+scheduled to satisfy it. **Recorded as a measured fact; not a licence to create either job.**
+
+**GEMINI CONTRADICTION, recorded rather than smoothed:** its earlier cadence audit reported
+`com.davidleess.dynasty-roster-capacity` as **loaded**; its later report correctly says
+`roster_capacity` has no plist. **The later report is right.** I had already propagated the earlier
+claim into the R18 row above before verifying it — corrected there.
+
+**STATUS OF STEP 2, restated against what actually exists *(F6 — this paragraph previously said the
+R7 states were still open and a fresh Gemini request was "in flight", while §§6D/6E below already
+carried the work. Two live sections describing the same work in opposite states is a defect, not a
+sequencing note)*:** Gemini's follow-up **arrived and is verified above** (§6C.1 is its product — the
+eight registrations, the two with no job, and the corrected `roster_capacity` contradiction).
+R7 states are in **§6D**; automation classes for every §4.4 member are in **§6E**. What remains open
+in step 2 is named in §6D's closing paragraph and nowhere else.
+
+---
+
+## §6D. Step 2 — R7 STATES for every enumerated stream *(title corrected: it was "(complete)" while its own body said open — F6)*
+
+**R7 states:** `bound` (a StreamSpec exists) · `captured` (rows in a store) · `exported` ·
+`consumed` · `decision_supported`. **`UNVERIFIED` leaves the row OPEN** (§6A / M4) — it is used here
+where I have no measurement, never as a soft yes.
+
+**`decision_supported` is ✗ for EVERY row, and that is a governance invariant rather than a
+measurement:** `00` §The No-Verdict Line holds every descriptive output at `decision_supported=False`
+until a pre-registered validation David ratifies earns otherwise. **No Layer 1 stream has one.** It
+is stated once here rather than repeated 40 times.
+
+### Canonical nflverse streams (B1–B14)
+
+`exported` for **B1–B12 is INDEPENDENTLY VERIFIED** (V11: every named Parquet exists and recomputes
+to the ready-marker SHA at run `nflverse-usage-20260805T1334216901700000`).
+
+| Row | Stream | bound | captured | exported | consumed |
+| :-- | :-- | :-: | :-: | :-: | :-- |
+| B1–B3 | `ngs_passing` 5,933 · `ngs_rushing` 6,059 · `ngs_receiving` 14,731 | ✓ | ✓ | ✓ | **✓** feature refresh, via last-good export |
+| B4 | `snap_counts` / `player_snap_count` 253,106 | ✓ | ✓ | ✓ | **✗** canonical export has NO production consumer *(V2-F4)*; the daily job's live read is a separate route (B17) |
+| B5 | `injuries` 45,337 | ✓ | ✓ | ✓ | ✗ |
+| B6–B9 | `pfr_pass` 5,424 · `pfr_rush` 18,461 · `pfr_rec` 35,724 · `pfr_def` 62,345 | ✓ | ✓ | ✓ | ✗ |
+| B10 | `ff_opportunity` 47,282 | ✓ | ✓ | ✓ | ✗ |
+| B11 | `ftn_charting` 185,215 | ✓ | ✓ | ✓ | ✗ |
+| B12 | `depth_charts` 812,074 | ✓ | ✓ | ✓ | ✗ |
+| B13 | `contracts` | ✓ | **✗ never run** | ✗ | ✗ |
+| B14 | `ff_rankings` | ✗ | ✗ | ✗ | ✗ *(its `blocked_for_use` landing disposition is a SEPARATE column and is carried in Table B §3 — repeating it in a state cell here reproduced the exact V2-F2 defect §3 warns about; found by my own sweep, not raised in the review)* |
+
+**Nine materialized, exported, consumerless streams** — B4–B12. Priority evidence, not a prohibition.
+
+### Direct provider reads (B15–B19) — the inverse shape
+
+| Row | Stream | bound | captured | exported | consumed |
+| :-- | :-- | :-: | :-: | :-: | :-- |
+| B15–B19 | `player_stats` · `rosters` · `snap_counts` · `pbp` · `participation` | **✗** | **✗** | **✗** | **✓ 09:15 Feature Refresh, live** |
+
+**Consumed but never captured** — the exact inverse of B4–B12, and the object of David's A/B ruling.
+**B17 duplicates B4.** *(CH1 now prevents one absent stream capping the rest; that changes failure
+behaviour, not capture state.)*
+
+### B20–B24 — MEASURED 2026-08-06, per cell *(F4 — "all five UNVERIFIED" was too broad and is withdrawn)*
+
+**Why the old cell was wrong on two counts.** (1) `decision_supported` was never unknown — it is ✗ by
+the governance invariant stated at the head of this section, for every Layer 1 row. (2) Table B
+already carried Codex-measured states for these rows; erasing them into one unknown **destroyed
+measurement rather than recording its absence.** The repair is per-cell probing, which is what the
+row demanded and what has now been run.
+
+**Probes run by Claude, 2026-08-06 — each rerunnable:**
+`bound` = a `StreamSpec` in `src/dynasty_genius/nflverse_usage.py` (measured: **13 specs, none of
+these five**) · `captured` = a table in `app/data/nflverse_usage.db` (**12 tables, none of these
+five**) plus a search for any other physical store · `exported` = membership of `files` in
+`app/data/nflverse_usage/export/nflverse_usage.ready.json` (**12 entries, none of these five**) ·
+`consumed` = `rg` for each loader symbol across `src/ scripts/ app/ eval/`.
+
+| Row | bound | captured | exported | consumed | dec_sup |
+| :-- | :-: | :-- | :-: | :-- | :-: |
+| B20 `combine` | ✗ | **✗ no exact/raw/canonical SOURCE capture or replay store** *(R4 — the prior cell said "no store of any kind", which is false: `scripts/build_w2_features.py:520-524` live-loads Combine, `:597-605` merges the derived values into each row, and `:637-647` rewrites `V3_CSV`. **Derived Combine values ARE persisted in the active training artifact**; what is absent is any capture of the source bytes)* | ✗ | **✓** `scripts/build_w2_features.py:523` `nflreadpy.load_combine(COMBINE_YEARS)` — a **live read that mutates the active training artifact** | ✗ |
+| B21 `schedules` | ✗ | ✗ | ✗ | **✓** `scripts/run_realized_outcome_scoring.py:342` (loaded weekly job; current runs gate before access on absent predictions) · declared in `capture/outcome_forward_capture_store.py:22` as the finality source | ✗ |
+| B22 `draft_picks` | ✗ | **✓ as a tracked frozen pin, NOT as a stream store** — `resources/prospect_fixtures/_frozen_2025/nflverse_draft_picks_2025_pin.json`, **257 rows**, `release_tag: live_nflverse_release`. **Exact HTTP bytes absent** | ✗ | **✓** `scripts/ingest_2026_draft.py:28` · `eval/backtest_mock_draft.py:219` · `scripts/assemble_te_identity_cohort.py:51` · `scripts/freeze_2025_prospect_sources.py` | ✗ |
+| B23 `ff_playerids` | ✗ | **✓ TWO separate vintages, never added** — frozen pin `resources/prospect_fixtures/_frozen_2025/ff_playerids_pin.json` **12,457 rows** · governed run `app/data/identity/_runs/ff_playerids_20260516.json` **7,952 entries** | ✗ | **✓** production identity infrastructure — `league_transactions.py:220` via `build_universe_pvo_batch._load_ff_playerids` · `eval/backtest_harness.py:205` · `scripts/run_identity_audit.py` · `scripts/assemble_te_identity_cohort.py` | ✗ |
+| B24 `players` | ✗ | ✗ | ✗ | **✓ one site only** — `src/dynasty_genius/adapters/nflreadpy_qb_adapter.py:454` `nfl.load_players()`, the registered QB-validation loader. **The study has not run; H2 QB rushing remains UNDER TEST with no result** | ✗ |
+
+**Status of these five rows: `MEASURED — awaiting review`, not `VERIFIED`.** Under R4 the measuring
+lane is not the verifying lane. The probes above are Claude's; **they are stated so Codex can rerun
+each one**, and the rows stay open until it does. **Two findings the probes produced that were not in
+the prior text:** B22 and B23 are `captured` — the earlier blanket ✗ was wrong — and both frozen pins
+live under **`resources/prospect_fixtures/`**, a tracked repo fixture path, not under `app/data/`.
+
+### Non-nflverse (Table B-N)
+
+| Rows | bound | captured | exported | consumed |
+| :-- | :-: | :-: | :-: | :-- |
+| N1–N8 PlayerProfiler (1,520,009 `obs` + 3,290 `idn` + 63 `cap`) | n/a — not StreamSpec-bound | ✓ | ✗ | **✗** none outside ingestion |
+| N9/N10 FantasyCalc (20,518 `obs` **as of 2026-08-06**; joinable is `alt`) | n/a | ✓ | ✗ | **✓ — but NOT the market overlay.** *(Self-found while probing Q5, and Codex did not raise it: the same wrong label sat on this row too.)* Measured consumers are the **scheduled Market Divergence + What-Changed reports** — `scripts/run_market_divergence_refresh.py`, `what_changed/daily_diff.py`. **`market_overlay_service.py:192-193` reads `fetch_with_cache()`**, the request-time adapter — so the overlay surface is served by the §6B.1 `acquisition defect` route and **not** by this governed store |
+| N11 `fc_snapshots` 6,790 (mixed-source) | n/a | ✓ | ✗ | **✓ optional legacy backtest / market-comparison harness — NOT the market overlay** *(Q5)*. Measured: `scripts/run_backtest.py:35,178` via `--market-store` into the walk-forward driver, and `eval/backtest_harness.py:50,500`. **No app or service consumes `MarketSnapshotStore`**; `ingest_market_archive.py` is a WRITER, not a consumer |
+| N12/N13 + N14b transactions (932 `obs`; raw 20 snapshots) | n/a | ✓ **with raw-before-parse** | ✗ | **✗** *(V4)* |
+| **N14 `league_season_capture`** *(F4 — omitted from this table while it sat in the enumerated set)* | n/a | ✓ **4 `cap` rows** — measured 2026-08-06 in `app/data/league_transactions.db`; columns `league_id, season, status, legs_attempted, legs_with_activity, legs_empty, transactions_total, movements_total, coverage_json, failure_reason, content_hash, ingested_at` | ✗ | **✗** — an **ingestion capture ledger**, written by N12's own capture run. Not a dataset with a downstream reader, and **never added to N12/N13** (different grain) |
+| N15/N15b/N15c PFF (149 payloads; 134,392 raw-grain) | n/a | ✓ | ✗ | **partial** — ONE lane only *(V12)* |
+| N16/N17 CFBD (874 curated; 1,202 raw) | n/a | ✓ | ✗ | **⚠ NOT "✓ Engine A" — corrected *(F4)*.** The curated CSV **is Engine A's declared training-input path**, and the promoted corrected values are physically live in it (2026-08-04). What is **not** proved is that any model consumes them: no retrain or deployment followed promotion. Named callable consumers: `run_phase20_bakeoff.py` *(non-promoting evaluator)*, `build_w2_features.py` / `build_w2b_cfbd.py` / `build_head_b_targets.py` *(builders that mutate the artifact)*. **Bakeoff and model/feature use remain DEFERRED (live board).** State: **`consumed by callable builders/evaluators; production-model consumption UNPROVED`** |
+| N18 Sleeper snapshot | n/a | ✓ **normalized only, no raw replay** | ✓ marker-pinned | ✓ league derivation |
+| N18b seed/archive aliases | n/a | ✓ | ✗ | ✓ production fallback |
+| N19 league-behavior raw | n/a | ✓ | ✗ | ✗ |
+
+**STEP 2 IS NOT COMPLETE.** *(The prior line read "COMPLETE except B20–B24" — F4. It was false on its
+own terms before the B20–B24 work even started, because two of its rows were wrong and one was
+missing.)* Every enumerated row now carries all five states. **What holds step 2 open:**
+
+1. **B20–B24 are `MEASURED — awaiting review`**, not verified. R4 requires the verifying lane to be
+   the non-measuring one.
+2. **N16/N17's consumer state changed** from an asserted `✓ Engine A` to `production-model
+   consumption UNPROVED`. That correction has not been independently checked.
+3. **N14 is newly rowed** and its `cap` grain has not been reviewed.
+
+**Nothing here moves a §1 checkbox.**
+
+---
+
+## §6E. Step 3 — CADENCE, five separate fields per stream
+
+**R3 held throughout: source-publish cadence ≠ job cadence ≠ freshness expectation.** Three clocks,
+never merged. **Sources:** source-publish from Codex's cadence artifact (independently CLEAR at its
+pin); job cadence and freshness from Gemini's telemetry, **verified by me** in §6C.1; dependency
+edges and proposed class are the binding lanes'.
+
+### Canonical nflverse streams
+
+| Stream | SOURCE-publish cadence | JOB cadence | FRESHNESS expectation | Dependency edge | Proposed class |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| B1–B3 NGS | nightly ~03:00–05:00 ET in season | **none** — no job invokes the canonical capture | **none registered** | consumed by 09:15 job **via last-good export** | `automatic_candidate` |
+| B4 snap_counts | provider checks 00/06/12/18 UTC in season | **none** | none registered | canonical export **unconsumed**; B17 duplicates it live | `automatic_candidate` |
+| B5 injuries | **no established live feed** — 2025 archive appeared only 2026-03-18, post-postseason | **none** | none registered | none | `automatic_candidate` *(was `blocked` — F1)*. **The archive is schedulable; what is missing is current-season COVERAGE, which is a fitness question, not a scheduling blocker.** Sleeper completeness test first |
+| B6–B9 PFR advanced | daily 07:00 UTC in season | **none** | none registered | none | `automatic_candidate` |
+| B10 ff_opportunity | after TNF / Sunday / SNF / MNF windows, Jan–Feb + Sep–Dec | **none** | none registered | none | `automatic_candidate` |
+| B11 ftn_charting | provider checks 4×/day; charting may lag a game **up to 48h** | **none** | none registered | none | `automatic_candidate` — freshness ceiling **must** allow the 48h lag |
+| B12 depth_charts | daily 07:00 UTC **year-round** | **none** | none registered | none | **`blocked`** *(was `automatic_candidate` — F1)*. **The only stream producing a new vintage daily, year-round**, and the current JSON representation is **56.29× the source Parquet** — a named STORAGE blocker, which is `blocked` by definition. Needs an exact compressed representation + retention ceiling |
+| B13 contracts | `rotc` workflow daily 07:00 UTC | **none — never run** | none registered | first capture **IS** the product-store landing | **`blocked`** *(was `automatic_candidate, landing-gated` — F1)*. A named **authority** blocker: first capture is a separately authorized landing requiring one export covering all twelve prior streams plus contracts |
+| B14 ff_rankings | n/a | none | none | none | `blocked` |
+
+### Direct provider reads (B15–B19)
+
+**Class column corrected throughout *(F1)*.** These routes are **running today**; `blocked` described
+the state Option A would replace them with, not the state they are in. **Current** and **target** are
+now separate columns, because collapsing them is exactly what the review caught.
+
+| Stream | SOURCE-publish | JOB cadence | FRESHNESS | Dependency edge | CURRENT class | TARGET (Option A) class |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| B15 player_stats | nightly after game days + **Thursday** stat-correction pass | **daily 09:15** *(the JOB, not the stream)* | registered **weekly**, `dormant_ok: true` — **MISMATCH with a daily fire** | read live inside derivation | `automatic_active_health_unverified` | `automatic_candidate` — canonical capture; all-consumer parity |
+| B16 rosters | daily 07:00 UTC | daily 09:15 | as above | as above | `automatic_active_health_unverified` | `automatic_candidate` — canonical capture; all-consumer parity |
+| B17 snap_counts | 00/06/12/18 UTC | daily 09:15 | as above | **duplicates B4** | `automatic_active_health_unverified` | **retire** — B4 is canonical; retire only after the parity/equivalence control |
+| B18 pbp | nightly + game windows; **Thursday cleanest** after corrections | daily 09:15 | as above | **two consumers** — Feature Refresh + Roster Auditor (R18) | `automatic_active_health_unverified` | `automatic_candidate`; Roster Auditor migration separately gated |
+| B19 participation | **2023+ postseason ONLY; no in-season updates** | daily 09:15 | as above | as above | `automatic_active_health_unverified` | `automatic_candidate` **on its own weekly-Feb–Mar / monthly clock** — **a daily read cannot make annual data fresher, and its absence must not cap the other four** |
+
+**Why `health_unverified` and not `verified`:** the job fires daily while `feature_refresh` is
+registered **weekly** with `dormant_ok: true`, so no registered policy evidences the health of a daily
+route. **Why not `blocked`:** nothing prevents these routes from running — they ran at 09:15 today.
+
+### B20–B24 — cadence *(F5: source-publish cadence must not be blank because R7 states await review — R3 keeps the clocks separate)*
+
+Source-publish clocks below are from the **independently CLEAR** remaining-candidate cadence artifact
+(`layer1_remaining_candidate_cadence_codex_v1.md`) and §4.4. **Every local check is a proposal; no job
+exists.**
+
+| Stream | SOURCE-publish | JOB cadence | FRESHNESS | Dependency edge | Proposed class |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| B20 combine | upstream workflow 12:00/17:00 UTC **March 3–12** + manual dispatch | **none** | none registered | **`build_w2_features.py` mutates the active training artifact from this live read** | `automatic_candidate` — proposed ONE conditional check 20:00 UTC March 3–13 |
+| B21 schedules | **every 5 minutes during the season** | **none** | none registered | loaded Tuesday 10:00 Realized Outcome consumer | `automatic_candidate` — proposed Tuesday 06:15 ET year-round, ahead of that consumer. **No intraday cadence without a named consumer** |
+| B22 draft_picks | upstream 05:00 UTC Wednesdays Sep–Feb; additionally daily Feb 1–15 and Apr 23–May 5 | **none** | none registered | frozen 2025 pin feeds study/backtest paths | `automatic_candidate` for the forward route — proposed 12:00 UTC on those days. **The frozen pin stays `static_pinned`** |
+| B23 `ff_playerids` | upstream Friday 00:23 UTC + manual dispatch; delivery can lag | **none** | none registered | **production identity infrastructure** | `automatic_candidate` for the forward route — proposed Friday 08:15 ET blob-SHA check + one Saturday retry. **Both existing vintages stay `static_pinned`** |
+| B24 players | registered study input | **none** | none registered | registered QB-validation loader only | `static_pinned` — **automation must be physically unable to alter a pre-registered manifest input** |
+
+### Non-nflverse and source groups
+
+**Membership is now the EXACT §4.4 member set *(F5)*.** The prior table omitted N14, N14b, N18b's two
+rows, N19 and N15b. Each omitted row is added below with the same five fields, or an explicit
+evidence-backed `n/a`.
+
+| Stream / group | SOURCE-publish | JOB cadence | FRESHNESS | Dependency edge | Proposed class |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| N9/N10 FantasyCalc | continuous provider; **no provider publish timestamp** | **daily 09:00, loaded** | **none registered** | N10 `alt` feeds Market Divergence + What-Changed | `automatic_active_health_unverified` |
+| N18 Sleeper snapshot | continuous league state | **daily 09:20, loaded** | **daily, registered** | consumed by 7+ scripts/APIs | **`automatic_active_verified`** *(was `health_unverified` — F1; the raw-replay gap is a QUALITY defect and is carried in §6C's quality column, not in this class)* |
+| **N18b — 2 active `*_latest.json` aliases** *(F5 — added)* | **n/a** — production fallback seeds, not a source vintage | **none** | none registered | inputs to `load_production_league_set` | `manual_only` — change only by explicit seed maintenance |
+| **N18b — 10 retained timestamped archives** *(F5 — added)* | **n/a** — retained normalized history | **none** | none registered | none | `manual_only` — no recurring use or refresh claim |
+| N12/N13 transactions | continuous league events | **none** | none registered | none *(V4)* | **`automatic_candidate`** *(was `manual_only` — F1; no human export is involved, only an absent scheduler)* |
+| **N14 `league_season_capture`** *(F5 — added)* | **n/a** — a capture ledger, not a source | **none** *(written by N12's manual capture run)* | none registered | internal to the N12 capture | `automatic_candidate` — inherits N12's clock exactly; **never its own** |
+| **N14b `league_transactions/raw/`** *(F5 — added)* | same upstream as N12 | **none** | none registered | **N12's governed raw-before-parse layer (§3.4)** | `automatic_candidate` — inherits N12's clock |
+| **N19 league-behavior raw** *(F5 — added; source clock corrected R3)* | **UNVERIFIED** — **nobody has measured the upstream change rhythm of these Sleeper endpoint families.** *(This cell read `n/a — one-time 2023–2026 exact endpoint replay`. That describes OUR capture history, not the SOURCE's rhythm — the R3 confusion the catalog exists to prevent. The families demonstrably change on live league events: N18 reads the same upstream as `continuous league state`)* | **none** | none registered | no established consumer; backup-covered | **`blocked`** *(Q4 — was `manual_only`)* — a named **use** blocker: no recurring use decided. **Manually initiating the first HTTP pull does not make an API access path `manual_only`.** Recording an upstream rhythm invents **no** local job, cadence or use |
+| N15 PFF | manual export | none | none registered | one lane consumed (`build_college_features.py`) | `manual_only` |
+| **N15b PFF internal source rows** *(F5 — added)* | **n/a** — a decomposition of N15's payloads, not a separate acquisition | **none** | none registered | as N15 | `manual_only` — **inherits N15 exactly; it has no clock of its own** |
+| N16/N17 CFBD | paid HTTP; 720h registry freshness | none | 720h registered | callable builders/evaluators; production-model consumption unproved (§6D) | `blocked` — needs David's cost/run ruling |
+| N1–N8 PlayerProfiler | **UNVERIFIED** — the landed store came from human exports; a shadow HTTP route exists | none | none registered | none outside ingestion | **`blocked`** *(was `manual_only` — F1; automation is blocked pending sanctioned-access/legal/reliability proof, which is a stronger statement than "a human exports it")* |
+| **N11 `fc_snapshots`** *(R1 — split out of the `static_pinned` group)* | **n/a** — a dormant legacy archive, not a live provider route | **none** *(the `fc-snapshot` plist writes `fc_forward_capture.db`, not this)* | none registered | optional legacy backtest instrument only | **`blocked`** — superseded route; three writers still default here, so it is **not** physically immutable |
+| R20 QB validation · A6 DynastyProcess pins | n/a | none | none registered | pinned study / backtest inputs | `static_pinned` |
+| R4 `ras` · R6 RotoViz · R7 Campus2Canton | n/a | none | none registered | none | R4 `blocked` *(no production acquisition; NDA unresolved)* · R6/R7 `manual_only` / fixture-only |
+| R9 MFL rookie ADP | public API, 24h registry; **mutation cadence UNVERIFIED** | none | 24h registered | separated descriptive-overlay destination exists; never Engine A/B | `blocked` — adapter query defect returns veterans |
+| R10/R11 · R12 KTC · R14–R17 enterprise | n/a | none | none registered | none | `prohibited` / deferred |
+
+### ⛔ Two registrations with NO job — carried from §6C.1
+
+`roster_capacity` and `league_opportunity` hold registered freshness expectations with **no scheduler
+behind them**. A staleness policy nothing can satisfy. **Not a licence to create either job.**
+
+**STILL OPEN in step 3 *(narrowed — F5)*:**
+
+- ~~source-publish cadence for **B20–B24** (their R7 states are `UNVERIFIED`, so a cadence claim would
+  rest on nothing)~~ **WITHDRAWN.** Two separate things were merged: an R7 state and a source clock
+  are different dimensions (R3), and B20–B23's clocks were **already independently CLEAR** in the
+  remaining-candidate cadence artifact. They are now written above. **Blanking a measured field
+  because a different field is unverified is the same defect as asserting one that isn't measured.**
+- **N1–N8 PlayerProfiler source-publish cadence remains genuinely UNVERIFIED** — nobody has measured
+  how often the provider publishes. It stays blank because it is unmeasured, which is the only
+  legitimate reason for a blank cell.
+- **N19's upstream cadence is also UNVERIFIED** *(R3 — newly open, and it was masked rather than
+  absent: an `n/a` derived from OUR one-time capture sat where the SOURCE's rhythm belongs. A wrong
+  value hides an open item more effectively than a blank one does)*.
+- **Every proposed class in this section is planning judgment awaiting Codex's review**, not a
+  measured fact (§6A / M4), and **no clock here is an installed job.**
+
+---
+
+## §6F. Disposition — Codex steps 1–3 batch review, all seven accepted
+
+**Review artifact:** `docs/agent-ledger/evidence/2026-08-06/ac_steps_1_3_batch_review_codex_v1.md`
+SHA-256 `830d993cf24bb187578496d415d951e6301dd0941f773756aa45ff1f71f569ec`
+**Catalog state reviewed:** `363c2609a9e7561416cd20e48bec2105c10b569d343a8e55bca5a387484a8b45`
+**Verdict received:** NOT CLEAR.
+
+> **⚠ TWO DIFFERENT F1–F7 SETS EXIST IN THIS DOCUMENT.** These are the **steps 1–3 batch** findings.
+> §7's F1–F7 are a **different, older, closed** review (v2, SHA `d99b3247…`). Same letters, unrelated
+> content. Cite by section, never by bare "F3".
+
+**Nothing was contested. All seven are accepted and repaired at source** — the review's instruction
+was to reconcile the canonical tables rather than append another correction layer, so there is no
+"corrections" appendix; each fix is in the cell that was wrong.
+
+| # | Finding | Repair, and where |
+| :-- | :-- | :-- |
+| **F1** | Automation classes in §§6C/6E contradict the governing plan and canonical §4.4 — a second, conflicting answer | **§4.4 is declared the single canonical table** (banner in §6C). Corrected to match it: **N18 → `automatic_active_verified`** · **B15–B19 → `automatic_active_health_unverified`** (current) with a separate TARGET column · **N12/N13/N14/N14b → `automatic_candidate`** · **N1–N8 → `blocked`** · **B5 → `automatic_candidate`** · **B12, B13 → `blocked`**. **§6C gained a quality/route-gap column** so a provenance defect can never again rewrite an operational-state class |
+| **F2** | Roster Auditor is an **acquisition defect**, not merely a consumer edge | §6B.2 now reads **`consumer edge` + `acquisition defect`**, with `app.data.sleeper._get`'s live `httpx` call named as the reason and the FantasyCalc parallel drawn |
+| **F3** | N19's uniqueness claim overstates the measurement | §6B.2 narrowed to *"the only exact historical endpoint representation of those families"*. The phrase "not held anywhere else" is deleted from the document |
+| **F4** | §6D not complete; N14 missing; B20–B24 over-blanked; N16/N17 consumer state wrong | **N14 rowed and measured** (4 `cap` rows, columns listed) · **B20–B24 probed per cell** and now carry measured states · **N16/N17 corrected** to `production-model consumption UNPROVED` · the "COMPLETE except B20–B24" claim **withdrawn** and replaced with the three named reasons step 2 stays open |
+| **F5** | §6E does not cover the exact §4.4 member set; B20–B24 cadence wrongly blanked | **N14, N14b, N18b (both rows), N19, N15b added** with all five fields · **B20–B24 cadence written** from the already-CLEAR cadence artifact · R4 split out of the RotoViz/Campus2Canton group to its canonical `blocked` |
+| **F6** | §6C's live prose stale against §§6D/6E; §6D titled "complete" while its body said open | §6C's closing paragraph rewritten to the true status (**Gemini's follow-up arrived and is §6C.1**) · §6D's title corrected |
+| **F7** | The growing-store rule names stores with no live capture job | Rule kept; **membership table added** — N9/N10 and N18 qualify (jobs verified loaded); **N12/N13 and N18b do not** |
+
+### Three contradictions I found beyond the review
+
+The review named four §4.4 conflicts (B5, B12, B13, N1–N8) and said "one canonical classification must
+survive" without ruling which. Reconciling them exhaustively surfaced three more it did not list:
+
+1. **N11 `fc_snapshots`** — §4.4 `manual_only` vs §6C/§6E `static_pinned`. I ruled `static_pinned` and
+   edited §4.4. **That ruling was WRONG and is withdrawn — see §6F.2 R1.** Both candidate values were
+   wrong and the class is now **`blocked`**. Flagging the edit for challenge is precisely what surfaced
+   it, which is the argument for flagging rather than editing quietly.
+2. **N12/N13** — the `manual_only` label confused *"a human runs it"* with *"a human is required"*.
+   **`manual_only` is about the access path; `automatic_candidate` is about the absent scheduler.**
+   That distinction was the root of two of the review's four named conflicts as well.
+3. **R4 RAS** — §6E grouped it with RotoViz/Campus2Canton as `manual_only`/fixture-only; §4.4 has it
+   `blocked` (no production acquisition, NDA unresolved). Corrected to `blocked`.
+
+### Deliberately NOT done
+
+- **No §1 checkbox moved.** A–C remains open.
+- **B20–B24 are `MEASURED`, not `VERIFIED`** — measured by the authoring lane, so R4 keeps them open
+  until Codex reruns the probes.
+- **Nothing was repaired that the inventory merely records.** The MFL adapter defect, the R1/R18
+  registry mismatches, the `feature_refresh` weekly/daily mismatch and the two jobless freshness
+  registrations are all still **inventory facts awaiting David's word**, not work items taken up here.
+
+### §6F.2 Second round — Codex fresh-pin recheck, R1–R5
+
+**Review artifact:** `docs/agent-ledger/evidence/2026-08-06/ac_steps_1_3_recheck_codex_v2.md`
+SHA-256 `71dfd83a34f5cd11ec4f8e085a7bdeba73c66080f4e65fe9d43301c3cb0e2eef`
+**Catalog state reviewed:** `d92b6d0c…` · **Verdict:** NOT CLEAR, five residuals.
+**All five accepted. None contested.** R1, R3 and R4 were each reproduced against the code before
+acceptance rather than taken on the reviewer's word.
+
+| # | Finding | Disposition |
+| :-- | :-- | :-- |
+| **R1** | N11 is not `static_pinned` — three executable writers still default to `app/data/fc_snapshots.db` | **ACCEPTED, reproduced.** `snapshot_fantasycalc.py:31,91-107` (live FC HTTP + append), `ingest_market_archive.py:161`, `backfill_market_archive.py:38,88-105` all default to that path. **My `static_pinned` is withdrawn.** Reclassified **`blocked`** in §4.4, §6C and §6E — the named blocker is `use`/`route`: the collector is superseded by design and scheduling any writer recreates the §6B.1 parallel-acquisition defect. **`static_pinned` is recorded as the DESIRED state with physical write immunity as its pass condition** |
+| **R2** | Stale `manual_only` for N12/N13 in the §3 corrections list | **ACCEPTED.** Class assertion struck in place; **consumerless preserved**, since that was the correction's actual point |
+| **R3** | N19's SOURCE-publish cell held a local capture fact | **ACCEPTED, and it is worse than a blank.** `n/a — one-time replay` describes OUR capture history, not the upstream rhythm. Set to **`UNVERIFIED`** and **N19 added to the step-3 open list** |
+| **R4** | B20 "no store of any kind" is false | **ACCEPTED, reproduced.** `build_w2_features.py:520-524` live-loads Combine, `:597-605` merges derived values, `:637-647` rewrites `V3_CSV`. Corrected to **no exact/raw/canonical SOURCE capture**, with derived values persisted in the active training artifact |
+| **R5** | Reported diffstat `+286/-78` does not match the repo | **ACCEPTED — my arithmetic error, and the mechanism is worth naming.** I read `git diff --stat`'s single number (**total changed lines**) as insertions, and took `-78` from a **four-file** summary while attributing it to one file. Corrected in the ledger, **cited against a pin**, and taken from `git diff --numstat` — never from `--stat` |
+
+**A new finding the R1 probe produced, which neither lane had.** The committed plist
+`ops/launchd/com.davidleess.dynasty-fc-snapshot.plist` documents the legacy store as *"a frozen,
+read-only archive"* — while three runnable scripts default to writing it. That is a
+**declared-vs-physical gap**, the same defect class as R1 `nfl_data_py` and R18's declared
+`parquet_snapshot`. **Recorded, not repaired:** closing it means repointing or refusing those default
+paths, which is remediation needing David's word.
+
+**Reading that plist also settled the fact the class depended on:** it runs
+`run_fc_forward_capture.py` against `fc_forward_capture.db`. **No installed job writes
+`fc_snapshots.db`** — so the store is dormant, and **dormant is not immutable.** That distinction is
+the whole of R1, and it is why "nothing writes it in practice" was not good enough.
+
+---
+
+### §6F.3 Third round — Codex recheck, Q1–Q5
+
+**Review artifact:** `docs/agent-ledger/evidence/2026-08-06/ac_steps_1_3_recheck_codex_v3.md`
+SHA-256 `bd068fb39a757b532034f5072360044b1baa7c899b5c803e27c1fccd3fa9e9ac`
+**Catalog state reviewed:** `ff25c9c8…` · **Verdict:** NOT CLEAR, five reconciliation findings.
+**All five accepted, none contested.** Q4 and Q5 were probed against the code before acceptance.
+
+**N11's class was confirmed by the reviewer at `blocked`** — the third answer for that cell, and the
+one that survived a round it was explicitly invited to fail.
+
+| # | Finding | Disposition |
+| :-- | :-- | :-- |
+| **Q1** | §6A's cadence row named only N1–N8 while §6E had opened N19 | **ACCEPTED.** Both unmeasured source clocks now named in the closure cell. **A closure matrix that under-reports its own open items is worse than no matrix** — it was reporting N19 settled while the section it summarises said otherwise |
+| **Q2** | §1 and §3's live prose still called work "missing" that §§6B/6D/6E now contain | **ACCEPTED.** Restated at both sites: the work is **authored and awaiting independent review, which is not missing**. The checkboxes stay open, but the stated gate is now the true one — **R4 verification plus the two named unmeasured clocks** — not authorship |
+| **Q3** | Stale class tokens: R13 said `manual`; N14b's consumer cell ended in `manual_only` | **ACCEPTED — and a FOURTH site found by sweep.** §2.1's own R13 registry row also carried `manual_only`; it was fixed too. Two cited, three existed after N14b, four in total. R13 → *manually run / unscheduled* (a physical fact, not a class). N14b's cell → its **raw-before-parse role**. The N14b case was also **an automation class sitting in a consumer-state cell — the V2-F2 defect a third time**, which is why §3's warning is worth keeping |
+| **Q4** | N19 is not `manual_only` | **ACCEPTED, probed.** Its `fetch_log` records **176 direct Sleeper API calls, zero failures** — an API route, not a human export. Reclassified **`blocked`** in §4.4 and §6E; the named blocker is **use** (no recurring use decided). **This is the SECOND edit to a previously CLEARed §4.4 cell** — requested by the reviewer this time, and disclosed on the same terms as the first. **§6C carries no N19 row**, verified, so nothing there needed reconciling |
+| **Q5** | §6D's N11 `consumed = market overlay` contradicts the canonical row and the code | **ACCEPTED, reproduced.** Measured consumers are `run_backtest.py:35,178` via `--market-store` and `eval/backtest_harness.py:50,500`. **No app or service consumes `MarketSnapshotStore`**, and `ingest_market_archive.py` is a WRITER. Corrected to the optional legacy backtest/market-comparison harness |
+
+### The finding Q5's probe produced — same label, different row, not raised by either lane
+
+**§6D's N9/N10 cell carried the identical wrong label**, and nobody had flagged it. Measured:
+
+- N9/N10's real consumers are the **scheduled Market Divergence + What-Changed reports**
+  (`scripts/run_market_divergence_refresh.py`, `what_changed/daily_diff.py`) — exactly what the
+  canonical §3.1 N10 row already said.
+- **`market_overlay_service.py:192-193` calls `fetch_with_cache()`** — the request-time adapter.
+
+**So the market-overlay surface is served by the ungoverned request-time route and NOT by the governed
+capture store.** That is §6B.1's `acquisition defect` restated as a *consumer* fact rather than an
+acquisition one, and it makes the defect materially worse than first recorded: the governed daily
+capture is not what the overlay shows David. **Recorded, not repaired** — routing the overlay onto the
+governed store is a consumer migration needing David's word.
+
+**Why one wrong label appeared on two adjacent rows:** "FantasyCalc data" was treated as one thing, so
+whatever consumed *any* of it was written onto *all* of it. The canonical §3.1 rows had it right the
+whole time; the summary table did not inherit them.
+
+---
+
+### §6F.4 Fourth round — Codex recheck, T1–T3
+
+**Review artifact:** `docs/agent-ledger/evidence/2026-08-06/ac_steps_1_3_recheck_codex_v4.md`
+SHA-256 `7ad5718a90d51dc9ddb87f552b1d7cbaeaf4573ba651ce1c41dad4a420b938e3`
+**Catalog state reviewed:** `0080e46e…` · **Verdict:** NOT CLEAR, three residuals.
+**All three accepted, none contested.** T3 was re-measured against the live database first.
+
+| # | Finding | Disposition |
+| :-- | :-- | :-- |
+| **T1** | Closure surfaces still stale: §3's "genuinely incomplete" paragraph, three pre-authoring §6A cells, and an "one §4.4 cell edited" count that this round made two | **ACCEPTED, all four sites.** Restated as **authored-awaiting-independent-review**; only genuinely `UNVERIFIED` cells stay open; checkboxes untouched. The edited-cell count is now **two (N11, N19)**, with the consequence stated: **§4.4's original CLEAR pin no longer describes §4.4** |
+| **T2** | §4.4's N19 upstream-rhythm column held "one-time 2023–2026 replay evidence" | **ACCEPTED.** Upstream field → **`UNVERIFIED`**; the one-time replay + 176 logged calls **retained as local capture evidence in the same cell**, labelled as such. `blocked` stands |
+| **T3** | Live `20,043` counts violate §6B.3's own as-of rule | **ACCEPTED, re-measured.** `app/data/fc_forward_capture.db` at **2026-08-06 22:23 ET: 20,518 raw + 20,518 joinable, 44 snapshot dates, 2026-06-24 → 2026-08-06** |
+
+**T1's paragraph is the defect eating its own tail.** The §3 paragraph struck here was itself written
+to correct a stale "streams are missing" claim — and then went stale when the work *it* called
+incomplete got done. **Second generation of the same defect, in the sentence recording the first.**
+That is the §5 register's whole thesis, and it is why the register stays.
+
+### T3's sweep found five sites, not three
+
+Codex named three. Grepping the whole document for the number found **five**, and they needed
+**different** treatment — which is the reason to sweep rather than patch the cited ones:
+
+| Site | Kind | Treatment |
+| :-- | :-- | :-- |
+| §2.1 R8 physical state · the built-route summary · §3's grain decomposition · §6A's R8 "current measured state" | **live current-state claims** | **Updated** to `20,518 as of 2026-08-06` |
+| §3.1 N10 canonical row | **a dated historical measurement** (§3.1 is pinned to 2026-08-05 at commit `2a42759`) | **NOT rewritten** — the as-of was made explicit instead, per the reviewer's "do not rewrite historical measurements silently" |
+
+**And a sixth, self-found: §6B.3's own rule sentence read "it is 20,518 today."** *Today* is a decaying
+word, in the sentence that states the rule against decaying counts. Replaced with an as-of date.
+**A rule stated in violation of itself is not a rule anybody can follow.**
+
+---
+
+### §6F.5 Fifth round — §4.4 whole-table CLEAR, and U1
+
+**Review artifact:** `docs/agent-ledger/evidence/2026-08-06/ac_steps_1_3_recheck_codex_v5.md`
+SHA-256 `935f7926957568484bad4cf19da5f1bee76ab4a437f02e5c61a10a629b91916a`
+**Catalog state reviewed:** `0d6a1ea4…`
+
+**✅ §4.4 IS INDEPENDENTLY CLEAR at that pin.** Codex ran a **whole-table** review rather than another
+delta pass — 35 grouped rows, every class value valid against the seven definitions, member surface
+present, **N11 and N19 both correctly `blocked`**, N19's upstream clock correctly `UNVERIFIED`. **The
+superseded original §4.4 pin no longer carries review weight.** *(I raised the concern that a delta
+chain could not certify a table whose bytes had changed twice; the reviewer ruled on it by doing the
+whole-table pass. Recorded because asking for a harder review than the one on offer is the cheap half
+of this cycle.)*
+
+**T1–T3 CLOSED.** Artifact verdict **NOT CLEAR on one finding.**
+
+| # | Finding | Disposition |
+| :-- | :-- | :-- |
+| **U1** | §3.1's "Still owed on Table B-N" paragraph is pre-authoring state | **ACCEPTED.** Struck and replaced with the four clause-by-clause corrections and **the real gate named**: independent R4 verification plus the two unmeasured source clocks. The table stays **not checked off** |
+
+**U1's fourth clause was wrong in a different way from the other three.** R7 states, automation edges
+and route dispositions had been *authored*; **PFF aggregation was never a Table B-N gate** — §6A puts
+combined-view aggregation outside the A-C blocking path (David, 2026-08-06). Listing it as "still
+owed" did not just go stale, it **contradicted a boundary David set**. Three of the four clauses
+decayed; the fourth was never true here.
+
+### Whole-document sweep for this defect class — run, and the result stated
+
+**Grep over the full document** for `Still owed` · `Still missing` · `Still genuinely` · `not yet
+written` · `remain(s) unreconciled` · `otherwise incomplete` · `in flight` · `no canonical … carries`
+· `not complete`. **Eleven hits. U1 was the only live one.** The rest are:
+
+- already struck or repaired in earlier rounds (§1 A, §3's T1 paragraph, the two §6A cells);
+- **genuinely open and accurate** — §6E's "STILL OPEN in step 3" (the two unmeasured clocks);
+- **historical quotations** inside correction notes and the §7 banner, which must keep their original
+  wording to remain auditable.
+
+**Stated so the next round need not rediscover it:** after this repair there is **no remaining live
+pre-authoring state claim in this document** that the sweep can find. That is a claim about a
+mechanical grep over named patterns — not a guarantee that no such sentence exists in a form the
+patterns miss.
+
+---
 
 ---
 
@@ -896,3 +1458,13 @@ where it stands.)*
 | 2026-08-05 | Claude | **v3.** V2-F1..F4 all accepted, none contested. §1 source count 9→**7** (stale after the F2 merge — **fifth** §5 instance). Table B carries all **five** R7 states with disposition as its own column. "13 streams" restated as **13 bound / 12 materialized**. **B4 resolved** from Codex's probe: canonical export has no production consumer; the daily job's direct `load_snap_counts` is a separate provider-read stream — so the nine consumerless streams are now NAMED. `exported` marked column-wide UNVERIFIED pending probes — **superseded by V11**. |
 | 2026-08-06 | Codex | **v4 reconciliation candidate.** Applied CV1–CV21: added Sleeper exact raw history; Combine/schedules/draft-picks/DynastyProcess-db_playerids/players; expanded consumer and parallel-route edges; inventoried retained NGS + Sleeper raw/archive surfaces; split active seed aliases from archives; bounded R19; corrected CFBD/PFF grains; added N18 endpoint/injury ceiling, point-in-time ceiling, cadence evidence, MFL destination, and §H source-gap answer. Nothing checked off pending fresh independent review. |
 | 2026-08-06 | Codex | Added independently researched B20/B22/B23 conditional cadence candidates and blocked R9 after live current-query output proved non-rookie semantics; machine registry declaration included in future repair gate. No scheduler or fix opened. |
+| 2026-08-06 | Codex | **Steps 1–3 batch review — NOT CLEAR**, seven findings (§6F). |
+| 2026-08-06 | Claude | **Steps 1–3 repair.** All seven accepted, none contested, repaired at source per §6F. §4.4 declared the single canonical classification table; §§6C/6E reconciled to it and a quality/route-gap column added so provenance defects cannot rewrite operational state. B20–B24 and N14 **probed per cell** and now carry measured R7 states (B22/B23 are `captured` as tracked frozen pins — the prior blanket ✗ was wrong). N16/N17 corrected to `production-model consumption UNPROVED`. §6E membership extended to the exact §4.4 set. **One canonical edit made against a previously CLEARed §4.4 cell (N11), flagged in §6F for challenge — and the flag worked: the recheck falsified it (§6F.2 R1).** No checkbox moved. |
+| 2026-08-06 | Codex | **Fresh-pin recheck — NOT CLEAR**, five residuals R1–R5 (§6F.2). |
+| 2026-08-06 | Claude | **R1–R5 repair.** All five accepted, none contested; R1/R3/R4 reproduced against the code first. **N11 reclassified `blocked`** — my `static_pinned` withdrawn, because three runnable writers still default to `fc_snapshots.db` and dormant is not immutable. N19's source clock corrected from a local-capture `n/a` to `UNVERIFIED` and added to the step-3 open list. B20's "no store of any kind" corrected — derived Combine values ARE persisted in the active training artifact. Stale N12/N13 class assertion struck in §3. Diffstat reporting corrected to `--numstat`, pin-scoped. **New finding from the R1 probe: the committed `fc-snapshot` plist declares the legacy store "frozen, read-only" while three scripts can write it — a declared-vs-physical gap, recorded not repaired.** No checkbox moved. |
+| 2026-08-06 | Codex | **Round-3 recheck — NOT CLEAR**, five reconciliation findings Q1–Q5 (§6F.3). N11 `blocked` confirmed. |
+| 2026-08-06 | Claude | **Q1–Q5 repair.** All five accepted, none contested; Q4/Q5 probed first. **N19 reclassified `blocked`** (176 direct API calls in its fetch log — an API route, not a human export; the blocker is `use`) — the second edit to a previously CLEARed §4.4 cell, reviewer-requested. §6A's closure cell now names **both** unmeasured source clocks. §1/§3 live prose restated from "missing" to **authored-awaiting-review**, with the true gate named. Stale `manual`/`manual_only` class tokens removed from R13 and N14b. **N11 and — self-found — N9/N10 consumer labels corrected: neither feeds the market overlay; `market_overlay_service.py:192-193` reads the request-time adapter, so the overlay is served by the ungoverned route and not by the governed capture store.** Recorded, not repaired. No checkbox moved. |
+| 2026-08-06 | Codex | **Round-4 recheck — NOT CLEAR**, three residuals T1–T3 (§6F.4). |
+| 2026-08-06 | Claude | **T1–T3 repair.** All three accepted, none contested; T3 re-measured against the live DB (**20,518 + 20,518, 44 dates, 2026-08-06 22:23 ET**). §3's "genuinely incomplete" paragraph and three §6A cells restated to authored-awaiting-review; edited-§4.4-cell count corrected from one to **two (N11, N19)** with the consequence that §4.4's original CLEAR pin no longer describes it. §4.4's N19 upstream column corrected from local pull history to `UNVERIFIED`, replay evidence retained as local capture evidence. **T3 swept to five sites, not the three cited — four live claims updated, one dated historical measurement given an explicit as-of rather than rewritten — plus a sixth self-found: §6B.3's own rule said "20,518 today", a decaying word inside the rule against decaying counts.** No checkbox moved. |
+| 2026-08-06 | Codex | **Round-5 verdict — §4.4 WHOLE-TABLE CLEAR** at pin `0d6a1ea4…` (35 grouped rows; N11/N19 `blocked` confirmed; superseded original §4.4 pin retired). Artifact **NOT CLEAR on U1**. |
+| 2026-08-06 | Claude | **U1 repair.** §3.1's "Still owed on Table B-N" paragraph struck and replaced clause by clause, with the real gate named (R4 verification + the two unmeasured source clocks); the table stays unchecked. **Its PFF clause was never a Table B-N gate — §6A places combined-view aggregation outside the A-C blocking path per David, so that clause contradicted a boundary rather than merely decaying.** Whole-document grep for the defect class run: eleven hits, U1 the only live one. No checkbox moved. |
