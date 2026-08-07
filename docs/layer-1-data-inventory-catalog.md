@@ -1025,6 +1025,62 @@ behaviour, not capture state.)*
 
 ---
 
+## §6E. Step 3 — CADENCE, five separate fields per stream
+
+**R3 held throughout: source-publish cadence ≠ job cadence ≠ freshness expectation.** Three clocks,
+never merged. **Sources:** source-publish from Codex's cadence artifact (independently CLEAR at its
+pin); job cadence and freshness from Gemini's telemetry, **verified by me** in §6C.1; dependency
+edges and proposed class are the binding lanes'.
+
+### Canonical nflverse streams
+
+| Stream | SOURCE-publish cadence | JOB cadence | FRESHNESS expectation | Dependency edge | Proposed class |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| B1–B3 NGS | nightly ~03:00–05:00 ET in season | **none** — no job invokes the canonical capture | **none registered** | consumed by 09:15 job **via last-good export** | `automatic_candidate` |
+| B4 snap_counts | provider checks 00/06/12/18 UTC in season | **none** | none registered | canonical export **unconsumed**; B17 duplicates it live | `automatic_candidate` |
+| B5 injuries | **no established live feed** — 2025 archive appeared only 2026-03-18, post-postseason | **none** | none registered | none | `blocked` — current-season injury state has no source |
+| B6–B9 PFR advanced | daily 07:00 UTC in season | **none** | none registered | none | `automatic_candidate` |
+| B10 ff_opportunity | after TNF / Sunday / SNF / MNF windows, Jan–Feb + Sep–Dec | **none** | none registered | none | `automatic_candidate` |
+| B11 ftn_charting | provider checks 4×/day; charting may lag a game **up to 48h** | **none** | none registered | none | `automatic_candidate` — freshness ceiling **must** allow the 48h lag |
+| B12 depth_charts | daily 07:00 UTC **year-round** | **none** | none registered | none | `automatic_candidate` — **the only stream producing a new vintage daily, year-round; retention rule required** |
+| B13 contracts | `rotc` workflow daily 07:00 UTC | **none — never run** | none registered | first capture **IS** the product-store landing | `automatic_candidate`, landing-gated |
+| B14 ff_rankings | n/a | none | none | none | `blocked` |
+
+### Direct provider reads (B15–B19)
+
+| Stream | SOURCE-publish | JOB cadence | FRESHNESS | Dependency edge | Proposed class |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| B15 player_stats | nightly after game days + **Thursday** stat-correction pass | **daily 09:15** *(the JOB, not the stream)* | registered **weekly**, `dormant_ok: true` — **MISMATCH with a daily fire** | read live inside derivation | `blocked` pending A/B |
+| B16 rosters | daily 07:00 UTC | daily 09:15 | as above | as above | `blocked` pending A/B |
+| B17 snap_counts | 00/06/12/18 UTC | daily 09:15 | as above | **duplicates B4** | `blocked` — one route is the duplicate |
+| B18 pbp | nightly + game windows; **Thursday cleanest** after corrections | daily 09:15 | as above | **two consumers** — Feature Refresh + Roster Auditor (R18) | `blocked` pending A/B |
+| B19 participation | **2023+ postseason ONLY; no in-season updates** | daily 09:15 | as above | as above | `blocked` — **a daily read cannot make annual data fresher** |
+
+### Non-nflverse and source groups
+
+| Stream / group | SOURCE-publish | JOB cadence | FRESHNESS | Proposed class |
+| :-- | :-- | :-- | :-- | :-- |
+| N9/N10 FantasyCalc | continuous provider | **daily 09:00, loaded** | **none registered** | `automatic_active_health_unverified` |
+| N18 Sleeper snapshot | continuous league state | **daily 09:20, loaded** | **daily, registered** | `automatic_active_health_unverified` — normalized-only |
+| N12/N13 transactions | continuous | **none** | none | `manual_only` |
+| N1–N8 PlayerProfiler | UNVERIFIED | none | none | `manual_only` |
+| N15 PFF | manual export | none | none | `manual_only` |
+| N16/N17 CFBD | paid HTTP; 720h registry freshness | none | 720h registered | `blocked` — needs David's cost/run ruling |
+| N11 `fc_snapshots` · R20 QB validation · A6 DynastyProcess pins | n/a | none | none | `static_pinned` |
+| R4 `ras` · R6 RotoViz · R7 Campus2Canton | n/a | none | none | `manual_only` / fixture-only |
+| R9 MFL rookie ADP | public API, 24h registry | none | 24h registered | `blocked` — adapter query defect returns veterans |
+| R10/R11 · R12 KTC · R14–R17 enterprise | n/a | none | none | `prohibited` / deferred |
+
+### ⛔ Two registrations with NO job — carried from §6C.1
+
+`roster_capacity` and `league_opportunity` hold registered freshness expectations with **no scheduler
+behind them**. A staleness policy nothing can satisfy. **Not a licence to create either job.**
+
+**STILL OPEN in step 3:** source-publish cadence for **B20–B24** (their R7 states are `UNVERIFIED`
+per §6D, so a cadence claim would rest on nothing) and for **N1–N8 PlayerProfiler**.
+
+---
+
 ## §7. Disposition of Codex review v2 *(SHA `d99b3247…`)* — F1–F7 ALL ACCEPTED
 > **⚠ HISTORICAL RECORD — NOT A LIVE BLOCKER LIST *(V22)*.** This section preserves the v2 review
 > and its dispositions as written at the time. **Its "still owed" items — full registry enumeration,
