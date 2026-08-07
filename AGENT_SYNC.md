@@ -11,6 +11,78 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ 2026-08-07 SESSION 7 — PLAYERPROFILER SCOPE DECOMPOSED: **EIGHT provider clocks, not four** · §4.1 **DO NOT BUILD**
+>
+> **AUTHORITY — David, verbatim:** ***"ok drive this through claude and codex with a reasonable role
+> for gemini too. commit and push when appropriate"***. Claude implements, **Codex is the independent
+> reviewer and its CLEAR gates any commit/push**. Gemini contributes **telemetry facts only and is not
+> a reviewer**. **This word does NOT authorize provider contact, subscriber-data access, pilot
+> execution, or the §4.1 build.**
+>
+> **NO HEAD OR AHEAD-COUNT IS ASSERTED** — written by the commit that changes it. Probe:
+> `git rev-list --count origin/main..HEAD`.
+>
+> ## ⛳ THE FINDING — the MEMBER-FIELD count was right; the CLOCK count was wrong
+> `N1–N8` was carried as **one** source-publish field and read as **one clock**. It is a **GROUP**
+> spanning **FIVE distinct PlayerProfiler upstream REPORT FAMILIES** — **N1** gamelog · **N2**
+> roster/weekly · **N3+N4** play-by-play (**ONE** family, two tables) · **N5** medical history ·
+> **N6** Data Analysis/player-season — **plus a derived table and our own ledger**. With Sleeper's
+> **N19 · N18 · N12/N13** that is **EIGHT provider clocks, not four**. **The five §4.4 MEMBER FIELDS
+> are unchanged** — this decomposes a grouped member, it does not re-count the set.
+> * **N7** `pp_identity_bridge` — **DERIVED from the ROSTER export, INHERITS N2**, not a sixth family.
+>   Verified: `playerprofiler_roster.py:594` writes it under `stream=ROSTER_STREAM`; gamelog `:365`
+>   and pbp `:310` only `SELECT` and refuse when empty. *(A first pass claimed three modules WRITE it
+>   — a substring grep counting references as writes. Withdrawn.)*
+> * **N8** `pp_capture` + `pp_pbp_capture` — **OUR capture ledger, EVIDENCED `N/A`** under the same M4
+>   limb as N14. **The F3 class again: a grouped label absorbing a member that is satisfied, not open.**
+> * **Closure consequence:** **one question about one report family CANNOT close this row —**
+>   **explicit FAMILY-LEVEL COVERAGE for all five families is required — regardless of how many replies or documents supply it.** ONE authoritative reply or one provider document MAY cover several or all five; what is not acceptable is coverage of one family being read as covering the row *(F2: this read "five families need five answers", which over-specified the MECHANISM when the contract is the COVERAGE)*. This is also why the parked v1 provider draft's *"Covers N1–N8"* was false.
+>
+> ## ⛔ §4.1 EXTRACTION — **DO NOT BUILD for A-C. Both binding lanes agree.**
+> The pilot it would serve **cannot close the source-publish field under any execution**, every
+> `changed` verdict carries **unmitigated silent-truncation risk**, and **demonstrated reuse is ZERO**
+> (the store has no production consumer outside ingestion). Necessary modification surface is the core
+> module plus its focused contract test; the four caller scripts and four other test files are
+> **regression surface, not edits**.
+>
+> ## 🕗 THE CHEAPER PATH — recorded as a FUTURE OPTION ONLY, not a plan
+> Running the **production** ingest against a throwaway `db_path` **and** `root` preserves
+> **normalization and semantic-digest fidelity exactly** — it *is* the production path, so no parallel
+> hasher and no §4.1 extraction. **But it is CHEAPER AND WEAKER, not stronger:** it does **not**
+> produce the pilot protocol's evidence envelope (file→block map, raw-header multiset, raw file SHAs,
+> duplicate/slug-collision validation — and **the raw file SHA is computed then DISCARDED**, never
+> persisted). It needs a **small governed read-only sidecar** (which may invoke the existing public
+> `read_export`/`discover_exports`) **plus a protocol amendment and re-review**. Zero production
+> mutation holds **only under direct function invocation with both paths redirected** — the CLI
+> exposes `--db-path` but not `--root`, and adding it is **two code lines plus a test**, not one.
+> **None of this is authorized; it is recorded so a later session need not rediscover it, and applies
+> only if David decides a descriptive pilot has value.**
+>
+> ## 📝 PROVIDER QUESTIONS — v2 DRAFTED, **NOT SENT. NO PROVIDER CONTACT HAS OCCURRED.**
+> v2 covers the **five report families** and asks per-family fixed/event-driven/revision cadence,
+> in-season vs off-season behaviour, and completed-season revisions. **N7/N8 are not provider
+> questions.** **The revoked-authority v1 draft is preserved BYTE-UNTOUCHED** and remains
+> not-David-directed. **Sending remains David's action alone and has not been taken.**
+>
+> ## ⏳ OUTSTANDING — DAVID ONLY
+> 1. Whether to **send, revise, or discard** the v2 provider questions.
+> 2. Whether a **descriptive pilot** has value at all — and only then the amendment + sidecar above.
+> 3. Export **burden** (full report batch vs one pinned slice) and **retention** (backup-covered vs
+>    single-copy and non-recoverable, where loss is permanent).
+> 4. ~~Whether to open the **N8 evidenced-`N/A` repair** as its own thread.~~ **REMOVED — FALSE OPEN
+>    LOOP *(F4)*. This candidate PERFORMS that repair in-cell: N8 is recorded as an evidenced `N/A`
+>    in §4.4, §6E and §1.** A future SPLIT of the grouped `N1–N8` row into per-family rows is a
+>    *different* and **unproposed** question.
+>
+> **SUPERSEDES SESSION 6 on one point only:** its *"five fields over FOUR provider clocks"* is
+> corrected to **EIGHT clocks over the same five member fields.** Everything else on SESSION 6 stands,
+> including its record of the revoked accidental paste.
+>
+> **Standing:** Phase B and **Layer 2 remain CLOSED** until A-C completes. **A-C remains OPEN on all
+> five member fields; no §1 checkbox moved.** **Layer sufficiency is David's alone.** **H2 QB rushing
+> remains a registered hypothesis UNDER TEST with no result.**
+
+
 > # ▶ 2026-08-07 SESSION 6 — A-C's OPEN SET GREW FROM TWO CLOCKS TO **FIVE FIELDS** · N6 PROTOCOL CLEAR BUT NOT RUNNABLE
 >
 > **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** His words this session:
