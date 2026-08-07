@@ -11,6 +11,81 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ 2026-08-07 SESSION 5 — PR #157 MERGED · TWO SCRAPERS RETIRED · BOTH A-C CLOCKS CHARACTERISED
+>
+> **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** His words this session:
+> ***"merge PR #157"*** · ***"continue A-C"*** · ***"delete the dead probe script"*** ·
+> ***"get help from codex - you're authorized to proceed but with codex's alignment"*** · four
+> separate ***"land it"*** / ***"commit it push it"*** words. **No scheduler, capture, provider
+> access, export request, Layer-2 or checkbox authority is created here.**
+>
+> **NO HEAD OR AHEAD-COUNT IS ASSERTED** — this block is written by the commit that changes it. Probe:
+> `git rev-list --count origin/main..HEAD`.
+>
+> ## ✅ PR #157 MERGED — CH1 IS LIVE
+> Merged at **`fc89db6`**, CI success on that SHA. It arrived **CONFLICTING**; the sole conflict was a
+> ledger-append collision, resolved as a chronological union **in an isolated worktree** so the parked
+> wire files were never at risk. **Codex concurred on both questions put to it**, including the
+> self-serving one, and set CI-on-the-integration-head as its condition. All three CH1 pins landed
+> byte-identical to its GREEN CLEAR. **The 2,930 roster rows silently discarded each morning are the
+> defect this closes.**
+>
+> ## ✅ TWO UNSANCTIONED PLAYERPROFILER SCRAPERS RETIRED — `fd260d4`
+> `probe_playerprofiler.py` (dead) **and** `enrich_training_data.py` — the live one, carrying an
+> unauthenticated client with a **spoofed Chrome User-Agent** *and* publishing
+> `prospects_with_outcomes_v2.csv` from the same file. **It existed only because Claude's search glob
+> was too narrow; Codex found it.** Codex owned the RED and **overrode the proposed shape**, pinning
+> full retirement over a class excision. `check_leakage` survives at
+> `src/dynasty_genius/models/leakage.py` — network-free, `report_path` required. **Seven skip-reasons
+> were REPLACED, not stripped**, and say plainly that **no replacement enrichment producer exists.**
+> Full suite 4,689 / zero failures.
+>
+> ## ⛔ A-C — BOTH CLOCKS CHARACTERISED, **NEITHER CLOSED**. NO §1 CHECKBOX MOVED.
+> Catalog CLEAR at **`7ac13b85b24218a25af593bfade77915391c6a1469ad4b432703f3da64dee173`**.
+> * **N19** — measured **off-season** rhythm: `players` 21/21 · `rosters` 9/21 · `draft_state` 6/21 ·
+>   `users` 0/21. **`league`'s apparent 21/21 is ONLY `daily_waivers_last_ran`** — configuration never
+>   changed. **This is an observed-change rhythm, NOT a source-publish cadence**, and Codex ruled it
+>   does not satisfy §6A.
+> * **N1–N8** — **`UNMEASURABLE from held evidence`**: one content vintage per stream, repeat
+>   observations spaced **33s/100s/396s**, non-diagnostic. Qualified to **today's** sanctioned
+>   capability.
+> * **⛳ L1 — THE MOST CONSEQUENTIAL FINDING OF THE SESSION.** §1 C carried *"clocks are proposals,
+>   not installed jobs"* as a **second closure gate**. It is not one. **As written, A-C was gated on
+>   scheduler enablement that the agreed sequence places AFTER inventory closure** — a gate that could
+>   not open until the thing it gated was already done. Demoted to a boundary.
+>
+> ## ⏳ WHAT A-C NOW NEEDS IS DAVID, NOT ANALYSIS
+> 1. **PlayerProfiler:** **three weekly exports** of the `player_season` report. Protocol reviewed
+>    (NOT CLEAR at v1, P1–P8) — treat it as an **N6 observed-change pilot**, not an N1–N8 closure.
+>    **No automated route exists in the repo at all** after this session's retirements.
+> 2. **N19:** actual Sleeper **publication** evidence. An observed-change rhythm is not that.
+>
+> ## ⛔ PARKED — WIRE FIX, STILL NOT CLEAR
+> `scripts/dg_delivery.py` **`b3247ec8bfff67aace2f6089d08d377ee9d5f72b13eb3da79640f96dcf012c3b`** ·
+> `tests/contract/test_wire_health_profile_refresh_red.py`
+> **`fd924eb15a77746e810ade0ed7f1158cfcf9fb4000a73a3df29c260515790591`**. Frozen on David's *"we need
+> to stop this waste of time."* **Survived every commit, push, merge, stash and pull this session
+> unchanged — verified each time.** The ONLY uncommitted paths in the repo.
+>
+> ## 📊 MISS RECORD — the session's most useful output
+> **Codex found ~30 defects in Claude's work across ten review rounds. Claude's own sweeps found ~8
+> more Codex had not raised — every one only because an independent finding pointed at the class.**
+> Four distinct mechanisms, recorded separately because their guards differ:
+> * **wrong conclusion asserted before reading the mechanism** (N11 `static_pinned`; the invented
+>   timestamp "defect") → read the code path before naming a defect;
+> * **surplus rationale** — a right answer carrying uncited freight (F1/F2) → the freight is what a
+>   later reader cites;
+> * **a corrected claim retyped from memory** so the correction did not travel (K1) → **copy
+>   corrected text, never restate it**;
+> * **a code change whose blast radius landed in another document** (L3) → **sweep the docs after a
+>   landing, not just the code.**
+> **Also disclosed:** a `git stash` run against David's frozen wire work briefly stranded it
+> (recovered by path; the same stash held a Codex ledger entry a blind pop had already dropped once),
+> and **two repo-state claims were reported to David without re-derivation** — both caught by Codex.
+>
+> **Standing:** Phase B and **Layer 2 remain CLOSED** until A-C completes. **H2 QB rushing remains a
+> registered hypothesis UNDER TEST with no result.**
+
 > # ▶ 2026-08-06 SESSION 4 — LAYER 1 CATALOG **CONTENT-CLEAR** AFTER SIX ROUNDS · PUSHED + CI GREEN
 >
 > **AUTHORITY.** Agent-authored state reconciliation by the two binding lanes. **Not David's prose.**
