@@ -25,7 +25,6 @@ ENGINE_MODEL_PATHS = (
     Path("scripts/backtest_engine_a_cfbd_only.py"),
     Path("scripts/build_college_features.py"),
     Path("scripts/build_w2_features.py"),
-    Path("scripts/enrich_training_data.py"),
     Path("scripts/train_engine_b.py"),
     Path("scripts/validate_training_csv.py"),
 )

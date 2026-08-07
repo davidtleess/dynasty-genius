@@ -53,14 +53,14 @@ def _read_csv_rows(path: Path) -> list[dict]:
 def _skip_if_not_partial():
     return pytest.mark.skipif(
         not CFBD_PARTIAL_CSV.exists(),
-        reason="CFBD partial CSV not yet generated — run scripts/enrich_training_data.py first",
+        reason="CFBD partial CSV absent — the legacy enrichment route was retired 2026-08-07; the governed CFBD acquisition route is scripts/run_cfbd_foundation_refresh.py and no replacement enrichment producer exists yet",
     )
 
 
 def _skip_if_not_enriched():
     return pytest.mark.skipif(
         not ENRICHED_CSV.exists(),
-        reason="enriched training CSV not yet generated — run scripts/enrich_training_data.py first",
+        reason="enriched training CSV absent — the legacy enrichment route was retired 2026-08-07; the governed CFBD acquisition route is scripts/run_cfbd_foundation_refresh.py and no replacement enrichment producer exists yet",
     )
 
 
@@ -214,7 +214,7 @@ def test_enriched_csv_no_imputed_yprr_column():
     cols = _read_csv_columns(ENRICHED_CSV)
     assert "imputed_yprr" not in cols, (
         "Enriched CSV contains 'imputed_yprr' column — imputation pathway is still active. "
-        "Remove the WR/TE yprr median fill from enrich_training_data.py."
+        "Remove the WR/TE yprr median fill from whatever producer replaces the retired enrichment route."
     )
 
 
@@ -230,7 +230,7 @@ def test_enriched_csv_no_yprr_column():
     assert "yprr" not in cols, (
         "Enriched CSV contains a 'yprr' column. "
         "PlayerProfiler 'Yards Per Team Targets' is not verified YPRR. "
-        "Remove or rename in enrich_training_data.py — do not add to contract until gate clears."
+        "Remove or rename in the replacement enrichment producer — do not add to contract until gate clears."
     )
 
 

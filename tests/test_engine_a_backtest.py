@@ -53,13 +53,13 @@ def _parse_yaml_frontmatter(text: str) -> dict:
 
 @pytest.mark.skipif(
     not PARTIAL_CSV.exists(),
-    reason="CFBD partial CSV not generated — run scripts/enrich_training_data.py first",
+    reason="CFBD partial CSV absent — the legacy enrichment route was retired 2026-08-07; the governed CFBD acquisition route is scripts/run_cfbd_foundation_refresh.py and no replacement enrichment producer exists yet",
 )
 def test_partial_csv_exists_for_backtest():
     """The CFBD partial artifact must exist before the backtest can run."""
     assert PARTIAL_CSV.exists(), (
         f"CFBD partial CSV not found at {PARTIAL_CSV}. "
-        "Run scripts/enrich_training_data.py first."
+        "Absent producer: the legacy enrichment route was retired 2026-08-07; the governed CFBD acquisition route is scripts/run_cfbd_foundation_refresh.py and no replacement enrichment producer exists yet."
     )
 
 
