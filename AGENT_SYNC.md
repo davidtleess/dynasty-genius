@@ -11,6 +11,64 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ 2026-08-08 SESSION 8 — ⭐ B13 `contracts` LANDED — LAST OF THE 13 BOUND SPECS · DAILY CONTROL PLANE LIVE
+>
+> **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** His words: ***"i want the
+> team aligned. all three of you - run a cockpit alignment on next steps... GO!"*** · ***"yes i said
+> that - run it once codex clears"***. **No scheduler-install, paid-route, provider-contact or
+> checkbox authority is created here.**
+>
+> **NO HEAD OR AHEAD-COUNT IS ASSERTED** — probe: `git rev-list --count origin/main..HEAD`.
+>
+> ## ⭐ B13 `contracts` IS CAPTURED AND EXPORTED — THE LAST OF THE 13 BOUND SPECS TO MATERIALIZE
+> *(NOT "the first agent-built external stream" — twelve nflverse streams already were. F4/F3 corrected.)*
+> The catalog carried it as *"bound with no table; never executed; zero product-store rows"* for the
+> whole program. **Measured now: 97,022 product-store rows · `contracts.parquet` 97,022 × 31 ·
+> exported in run `nflverse-usage-20260808T0357281958710000` · ready marker advanced from the
+> 2026-08-05 run · 14 manifest files.** *(97,022 = TWO snapshot vintages of 48,511. Accumulation
+> across distinct `snapshot_id`s is documented `apply_snapshot` behaviour; I hashed both vintages'
+> row content INDEPENDENTLY of the store and they are **IDENTICAL** — retention, NOT duplication. A
+> duplication alarm was raised and **WITHDRAWN** on that evidence.)*
+>
+> ## ✅ DAILY CONTROL PLANE — BUILT, CLAUDE+CODEX ALIGNED (ZERO FORKS), CODEX-CLEARED, RUNNABLE
+> `src/dynasty_genius/sources/daily_control.py` + `scripts/run_layer1_daily_control.py`. **One manifest
+> answering David's question for ALL 20 SOURCES**: connect method (six-value ontology), ingest command,
+> destination, success marker, refresh class, staleness, and — for incomplete routes — **the exact
+> missing piece**. Read-only preflight (proven no-network, no-subprocess, no-write). Per-source failure
+> isolation. Atomic canonical report.
+> * **Executes only the two routes nothing else schedules**; never double-pulls FantasyCalc/Sleeper.
+> * **CFBD: `daily` TARGET honours David's directive; a PAID GATE stops execution.** There is no
+>   `--allow-paid` flag at all.
+> * **No manual source is ever an automatic-job FAILURE** — a complete manual route reports `manual_due`/`manual_current`; an INCOMPLETE one reports `manual_route_incomplete`/`unknown` *(F5: "all report DUE" was wrong)*. The invariant is the absence of job failure, not a single state.
+> * **Incomplete routes named honestly:** `pff`, `rotoviz`, `campus2canton` have no importer, and the
+>   manifest says so rather than inventing one.
+>
+> ## 🐛 THE FIRST LIVE RUN FOUND A REAL DEFECT, AND IT IS FIXED
+> Adding `contracts` broke the nflverse EXPORT: `pl.DataFrame(...)` inferred the unresolved-identity
+> frame's types from a bounded window, so a late non-null `snapshot_id` could not be appended.
+> **Capture and store succeeded; export died.** The last-good ready marker was PRESERVED throughout,
+> so no consumer was ever served a broken export. Repaired with an explicit ordered ten-column
+> all-`String` schema (prefix-preserving, append-only — no positional consumer break), **loud** cleanup
+> of partial run directories, and a **last-good freshness fallback** so a failed run no longer reports
+> `unknown` when the prior success is on disk. Full suite **4,773 passed, true exit 0** (measured
+> unmasked — a piped exit code had earlier masked a failure as success).
+>
+> ## ⏳ OUTSTANDING — DAVID ONLY
+> 1. **Scheduler install** — two candidate plists exist in `ops/launchd/`, NOTHING is installed, and
+>    the controller has only ever been invoked BY HAND.
+> 2. **⚠ SNAPSHOT RETENTION vs DAILY CADENCE — a decision, not a defect.** `contracts` adds ~48.5k rows
+>    PER RUN by design. Daily ⇒ **~17.7M rows/year** of content that was byte-identical across two runs
+>    90 minutes apart. Worth deciding deliberately rather than discovering at 17M rows.
+> 3. **Export run directories — 17 exist, and they are NOT all orphans** *(F6: I said 16 and mislabelled them)*. Most are legitimate historical runs; **at least one is the known pre-fix partial** from the failed 02:28 export. The cleanup guard is
+>    PROSPECTIVE and cannot remove one created before it existed. Pruning is untouched.
+> 4. CFBD cost ruling · PlayerProfiler/PFF manual drops · sending or discarding the provider questions.
+>
+> **Standing:** **A-C REMAINS OPEN on all five provider source-publish fields** (N1–N8 · N19 · N18 ·
+> N12/N13 · N14b). **The controller's `daily` target is OUR local refresh obligation and is NOT a
+> provider-cadence claim — R3 holds.** No §1 checkbox moved. **H2 QB rushing remains a registered
+> hypothesis UNDER TEST with no result.**
+
+
 > # ▶ 2026-08-07 SESSION 7 — PLAYERPROFILER SCOPE DECOMPOSED: **EIGHT provider clocks, not four** · §4.1 **DO NOT BUILD**
 >
 > **AUTHORITY — David, verbatim:** ***"ok drive this through claude and codex with a reasonable role

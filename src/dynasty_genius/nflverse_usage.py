@@ -57,6 +57,7 @@ import hashlib
 import json
 import numbers
 import os
+import shutil
 import sqlite3
 import tempfile
 from contextlib import contextmanager
@@ -2455,7 +2456,103 @@ def export_ready_marker_path(export_root: Path = DEFAULT_EXPORT_ROOT) -> Path:
     return Path(export_root) / "nflverse_usage.ready.json"
 
 
+#: The unresolved-identity artifact's EXACT ordered column contract.
+#:
+#: The first seven preserve the shape consumers already read (measured from the
+#: 2026-08-05 last-good artifact); the last three are APPENDED. Inserting into the
+#: prefix would be a positional break for anything reading by index.
+#:
+#: Every column is String because production reads them from SQLite TEXT. Typing
+#: `season` as an integer here would be a consumer-visible schema change smuggled in
+#: behind a bug fix.
+UNRESOLVED_IDENTITY_SCHEMA: tuple[str, ...] = (
+    "stream",
+    "source_id",
+    "identity_kind",
+    "identity_status",
+    "season",
+    "player",
+    "position",
+    "capture_axis",
+    "snapshot_id",
+    "observed_at",
+)
+
+
+def build_unresolved_identity_frame(rows: Sequence[Mapping[str, Any]]) -> Any:
+    """Build the unresolved-identity frame under an EXPLICIT schema.
+
+    WHY THIS EXISTS (live failure, run nflverse-usage-20260808T0228465894550000): the
+    previous code called ``pl.DataFrame(rows)``, which infers column types from a
+    BOUNDED leading window. Seasonal unresolved rows carry ``snapshot_id=None`` and
+    snapshot-axis rows (contracts) carry a string. With every row in the window null,
+    Polars built a Null column and the first real string afterwards could not be
+    appended:
+
+        ComputeError: could not append value "...:contracts" of type str to the builder
+
+    The column types are known by contract, so inferring them was never necessary. An
+    explicit schema also keeps the artifact's shape STABLE across runs — without it a
+    run containing only seasonal rows would hand consumers a different frame than one
+    containing contracts.
+    """
+    import polars as pl
+
+    columns: dict[str, list[Any]] = {name: [] for name in UNRESOLVED_IDENTITY_SCHEMA}
+    for row in rows:
+        for name in UNRESOLVED_IDENTITY_SCHEMA:
+            value = row.get(name)
+            columns[name].append(None if value is None else str(value))
+    return pl.DataFrame(
+        columns, schema={name: pl.String for name in UNRESOLVED_IDENTITY_SCHEMA}
+    )
+
+
 def publish_export(
+    store: "UsageStore",
+    specs: Sequence[StreamSpec],
+    *,
+    run_id: str,
+    captured_at: str,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+) -> dict[str, Any]:
+    """Publish the export, removing a PARTIAL run directory if it fails.
+
+    WHY (live failure, 2026-08-08): the export died after writing thirteen source
+    Parquets, leaving `runs/<run_id>/` populated with no manifest and no ready-marker
+    promotion. Anything listing the runs directory reads that as a completed export.
+    The store, the source bytes and the FAILED status marker are the honest evidence of
+    the attempt; a directory that looks finished is not.
+
+    The previous ready marker is untouched either way — it is only advanced on success,
+    which is what preserved the consumer commit point when this failed live.
+    """
+    run_dir = Path(export_root) / "runs" / run_id
+    # Only ever remove a directory THIS call created. A pre-existing run is refused by
+    # the immutability check below, and deleting it would destroy a real prior export.
+    preexisting = run_dir.exists()
+    try:
+        return _publish_export_unguarded(
+            store, specs, run_id=run_id, captured_at=captured_at, export_root=export_root
+        )
+    except BaseException as original:
+        if not preexisting and run_dir.exists():
+            try:
+                shutil.rmtree(run_dir)
+            except OSError as cleanup_error:
+                # `ignore_errors=True` silently left behind the very orphan this guard
+                # exists to prevent — a directory of Parquets with no manifest, which
+                # reads as a completed export. If cleanup cannot be done, say so loudly
+                # rather than return a quiet lie about the export root's state.
+                raise UsageCaptureError(
+                    f"nflverse_export_cleanup_failed: {run_dir} could not be removed "
+                    f"after a failed export ({cleanup_error}); a partial run directory "
+                    "remains and must not be read as a completed export"
+                ) from original
+        raise
+
+
+def _publish_export_unguarded(
     store: "UsageStore",
     specs: Sequence[StreamSpec],
     *,
@@ -2636,9 +2733,7 @@ def publish_export(
                     )
 
     unresolved_path = run_dir / "unresolved_identity.parquet"
-    (pl.DataFrame(unresolved_frames) if unresolved_frames else pl.DataFrame()).write_parquet(
-        unresolved_path
-    )
+    build_unresolved_identity_frame(unresolved_frames).write_parquet(unresolved_path)
     files["unresolved_identity"] = {
         "path": str(unresolved_path),
         "rows": len(unresolved_frames),
