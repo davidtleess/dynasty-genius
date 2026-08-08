@@ -26,6 +26,7 @@ from __future__ import annotations
 import importlib
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -359,14 +360,37 @@ def test_status_names_the_exact_missing_piece_for_an_incomplete_automatic_entry(
 # ---------------------------------------------------------------- refresh targets
 
 
-def test_refresh_target_is_daily_for_acquisition_obligations_only():
-    """F4 — daily is David's default for things we are OBLIGED to acquire. A `static`
-    pin or a `prohibited` source has no refresh cadence, and asserting one is fiction."""
+def test_refresh_target_matches_what_the_source_can_actually_change():
+    """F4, UPDATED 2026-08-08 after David's follow-up ruling.
+
+    The original form required `daily` for EVERY obligation-bearing mode, from his directive
+    "assume we need everything refreshed DAILY - we can reduce frequency after we learn more in
+    layers 2 and 3". That was correct as a placeholder when we knew nothing about these sources.
+
+    We have now learned, and he asked directly: "why are my manual ones due? look at the data - what
+    could possibly have changed?" Measured answer: PFF and PlayerProfiler hold season-complete data
+    through 2025, no in-scope 2026 regular-season event has occurred, and our own importer returned
+    `unchanged` for all six gamelog and all six pbp seasons. A daily clock on a seasonal source
+    manufactures an obligation no vendor data can satisfy.
+
+    So `manual_download` now carries `windowed`, with the real per-stream cadence declared in
+    `sources/feed_cadence.py`. `automatic` and `blocked` keep `daily` — the placeholder still
+    stands where we have not measured otherwise. A `static` pin or a `prohibited` source still has
+    no cadence at all, and asserting one is fiction.
+    """
     m = _mod()
     for e in m.build_manifest():
-        if e.mode in MODES_WITH_REFRESH_TARGET:
+        if e.mode == "manual_download":
+            # F3 — a source with NO inventory and no marker cannot assert a determined window.
+            # RotoViz and Campus2Canton hold nothing, so `windowed` there would be fiction.
+            expected = "windowed" if e.source in {"pff", "playerprofiler"} else "undetermined"
+            assert e.refresh_target == expected, (
+                f"{e.source}: expected {expected!r}; a manual seasonal source is windowed and an "
+                "uninventoried one is undetermined — neither is daily"
+            )
+        elif e.mode in MODES_WITH_REFRESH_TARGET:
             assert e.refresh_target == "daily", (
-                f"{e.source} ({e.mode}): David's assume-daily applies to this obligation"
+                f"{e.source} ({e.mode}): David's assume-daily still applies to this obligation"
             )
         elif e.mode in MODES_WITHOUT_REFRESH_TARGET:
             assert e.refresh_target is None, (
@@ -506,7 +530,8 @@ def test_every_manual_entry_is_non_running_non_failing_and_accounted_for(tmp_pat
     for e in manual:
         r = result.by_source[e.source]
         assert r.failed is False, f"{e.source}: manual staleness is not a job failure"
-        assert r.state in ("manual_due", "manual_current", "manual_route_incomplete")
+        assert r.state in ("manual_due", "manual_current", "manual_route_incomplete",
+         "manual_undetermined", "manual_not_due")
         if r.state == "manual_route_incomplete":
             assert r.missing, f"{e.source}: must name the missing route component"
         else:
@@ -812,12 +837,16 @@ def test_every_source_result_carries_checked_at_and_nullable_last_success(tmp_pa
     for source, r in result.by_source.items():
         assert r.checked_at, f"{source}: no checked_at"
         assert hasattr(r, "last_success_at"), f"{source}: no last_success_at field"
-        assert r.freshness in ("current", "due", "unknown"), (
+        assert r.freshness in ("current", "due", "unknown", "undetermined", "not_due"), (
             f"{source}: freshness must be current|due|unknown, got {r.freshness!r}"
         )
         if r.last_success_at is None:
-            assert r.freshness == "unknown", (
-                f"{source}: no known success but freshness claims {r.freshness!r}"
+            # NON-CLAIMS only. `unknown` and `undetermined` both decline to assert a vintage —
+            # unknown means we have no evidence, undetermined means the obligation is uncomputable.
+            # `current`, `due` and `not_due` are all positive claims and remain forbidden here,
+            # so this guard keeps its teeth while admitting the second vocabulary.
+            assert r.freshness in ("unknown", "undetermined"), (
+                f"{source}: no known success but freshness CLAIMS {r.freshness!r}"
             )
 
 
@@ -1425,4 +1454,406 @@ def test_cli_preflight_exit_is_zero_when_only_manual_routes_are_incomplete(monke
     monkeypatch.setattr(cli, "build_manifest", lambda: manual_only)
     assert cli.main(["--preflight"]) == 0, (
         "a human not having downloaded something yet is not a broken pipeline"
+    )
+
+
+# ============ MANUAL CADENCE — CONTROLLER BOUNDARY (added after review w#c11gan7a-1) ==========
+#
+# These exist because three controller-boundary defects were REPAIRED WITH NO TEST, so the focused
+# count stayed at 119 and nothing pinned the repair. A fix without a test is a claim, not a contract.
+
+
+def _cal(**over):
+    base = {
+        "season": 2026,
+        "prior_final_game": "2026-01-05T20:20:00-05:00",
+        "league_year_open": "2026-03-11T16:00:00-04:00",
+        "draft_complete": "2026-04-25T19:00:00-04:00",
+        "week1_kickoff": "2026-09-10T20:20:00-04:00",
+        "final_game": "2027-01-04T20:20:00-05:00",
+    }
+    base.update(over)
+    return base
+
+
+@pytest.mark.parametrize(
+    "label,payload,expect_status",
+    [
+        ("malformed", "{not json", "invalid"),
+        ("wrong shape (list)", "[1, 2, 3]", "invalid"),
+        ("partial: no calendar", '{"unexpected": true}', "invalid"),
+        ("calendar not an object", '{"calendar": 7}', "invalid"),
+        ("calendar missing keys", '{"calendar": {"season": 2026}}', "invalid"),
+    ],
+)
+def test_governed_inputs_reject_every_broken_shape(tmp_path, label, payload, expect_status):
+    """Absent and INVALID must never collapse into one state: a corrupted governed artifact that
+    reads as 'we simply have no calendar yet' can sit there indefinitely unnoticed."""
+    m = _mod()
+    f = tmp_path / "inputs.json"
+    f.write_text(payload)
+    status, loaded, detail = m._load_cadence_inputs(f)
+    assert status == expect_status, f"{label}: expected {expect_status}, got {status}"
+    assert loaded is None
+    assert detail, f"{label}: an invalid artifact must say WHY"
+
+
+def test_absent_governed_inputs_are_distinguishable_from_invalid(tmp_path):
+    m = _mod()
+    assert m._load_cadence_inputs(tmp_path / "nope.json")[0] == "absent"
+    bad = tmp_path / "bad.json"
+    bad.write_text("{not json")
+    assert m._load_cadence_inputs(bad)[0] == "invalid"
+
+
+@pytest.mark.parametrize(
+    "label,calendar",
+    [
+        ("unparseable", _cal(week1_kickoff="not-a-timestamp")),
+        ("naive (no offset)", _cal(week1_kickoff="2026-09-10T20:20:00")),
+        ("bad completion entry", _cal(game_week_completions=["not-a-timestamp"])),
+        ("naive completion entry", _cal(game_week_completions=["2026-09-14T23:30:00"])),
+    ],
+)
+def test_calendar_TIMESTAMPS_are_validated_not_merely_present(label, calendar):
+    """KEY PRESENCE IS NOT VALIDITY. An unparseable time previously passed and then either blew up
+    mid-evaluation or — worse — did NOT, because the failure only surfaced when a stream happened to
+    carry held data. A guard whose effect depends on incidental data presence is not a guard."""
+    m = _mod()
+    status, loaded, detail = m._validate_inputs({"calendar": calendar})
+    assert status == "invalid", f"{label}: accepted a bad timestamp"
+    assert loaded is None and detail
+
+
+def test_invalid_governed_config_FAILS_CLOSED_and_still_enumerates_streams(tmp_path):
+    """Invalid configuration is a DEFECT, not an honest gap. Failing open produced a green
+    controller run over a corrupted artifact, forever."""
+    m = _mod()
+    pff = _by_source(m)["pff"]
+    r = m._manual_result(pff, "2026-08-08T00:00:00+00:00", inputs={"unexpected": True})
+    assert r.state == "manual_inputs_invalid"
+    assert r.failed is True, "invalid governed config must fail CLOSED"
+    assert r.coverage == "unknown"
+    assert r.streams, "an error fallback must still enumerate declared streams"
+
+
+def test_ABSENT_inputs_do_not_fail_only_report_undetermined(monkeypatch):
+    """Counter-test: absence is an honest gap and must NOT be a failure, or the two are conflated
+    in the other direction.
+
+    HERMETIC. An earlier version passed `inputs=None`, which read the REAL production path — so it
+    passed only because that artifact does not exist TODAY, and the next slice is explicitly meant
+    to create it. A test whose verdict depends on the developer's filesystem is not a contract.
+    """
+    m = _mod()
+    monkeypatch.setattr(m, "_load_cadence_inputs", lambda path=None: ("absent", None, "no artifact"))
+    pff = _by_source(m)["pff"]
+    r = m._manual_result(pff, "2026-08-08T00:00:00+00:00", inputs=None)
+    assert r.failed is False, "no governed artifact yet is not a defect"
+    assert r.freshness == "undetermined"
+    assert r.streams, "declared streams are enumerated even with no inputs"
+
+
+def test_manual_evaluation_uses_the_REPORT_INSTANT_not_a_fresh_clock_read(monkeypatch):
+    """BEHAVIOURAL proof, across an event boundary, with a deliberately conflicting wall clock.
+
+    The previous version grepped `inspect.getsource()` for two strings. That is the source-proxy
+    class already rejected twice in this program: it passes while a HELPER re-reads the clock, or
+    while the implementation computes at the wrong instant by any other route. It tests the text,
+    not the behaviour.
+
+    Here the wall clock is pinned FAR PAST an event that the report instant precedes. If evaluation
+    honours `checked_at`, the stream is not yet due; if it re-reads the clock anywhere in the call
+    graph, the event has passed and the state flips. The two answers are genuinely different, so the
+    test cannot pass by accident.
+    """
+    m = _mod()
+    from src.dynasty_genius.sources import feed_cadence
+
+    calendar = _cal(game_week_completions=["2026-09-14T23:30:00-04:00"])
+    held = {"gamelog": {"newest_season": 2025, "covered_seasons": [2025],
+                        "ingested_at": "2026-09-01T00:00:00+00:00"}}
+    offer = {"gamelog": {"newest_season": 2026, "covered_seasons": [2025, 2026],
+                         "observed_at": "2026-09-01T00:00:00+00:00",
+                         "provenance": "vendor_export_manifest"}}
+    inputs = {"calendar": calendar, "held": {"playerprofiler": held},
+              "offer": {"playerprofiler": offer}}
+
+    class _FarFutureClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            # Long AFTER the 2026-09-14 completion. Any clock re-read lands here.
+            return datetime(2026, 12, 1, tzinfo=timezone.utc)
+
+    monkeypatch.setattr(feed_cadence, "datetime", _FarFutureClock)
+    pp = _by_source(m)["playerprofiler"]
+
+    # Report instant is BEFORE the completion, so nothing is due at the time of record.
+    before = m._manual_result(pp, "2026-09-12T00:00:00+00:00", inputs=inputs)
+    assert before.streams["gamelog"]["cadence"] != "due", (
+        "at 2026-09-12 the week-1 completion has not happened; a `due` here means the "
+        f"implementation used the wall clock, not the report instant. got "
+        f"{before.streams['gamelog']['cadence']!r}"
+    )
+
+    # Same inputs, report instant AFTER the completion -> genuinely due. This proves the first
+    # assertion is not passing merely because nothing is ever due.
+    after = m._manual_result(pp, "2026-09-16T00:00:00+00:00", inputs=inputs)
+    assert after.streams["gamelog"]["cadence"] == "due", (
+        "at 2026-09-16 the completion HAS happened and the stream must be due; "
+        f"got {after.streams['gamelog']['cadence']!r}"
+    )
+
+
+def test_a_broken_manual_config_does_not_stop_later_independent_routes(tmp_path, monkeypatch):
+    """One malformed config file previously raised KeyError from OUTSIDE the per-source isolation
+    and took down every route in the controller."""
+    m = _mod()
+    monkeypatch.setattr(m, "_load_cadence_inputs",
+                        lambda path=None: ("ok", {"unexpected": True}, ""))
+    result = m.execute(manifest=m.build_manifest(), report_root=tmp_path, dry_run=True)
+    every = {e.source for e in m.build_manifest()}
+    assert set(result.by_source) == every, "every source must still be reported"
+    assert result.by_source["nflverse_usage_capture"].state != "failed", (
+        "an unrelated automatic route must be unaffected by a manual config defect"
+    )
+
+
+def test_every_manual_result_serializes_BOTH_axes_and_all_declared_streams(tmp_path):
+    """The report surface previously emitted coverage: null and streams: null for all four manual
+    sources, so a gap was invisible in the artifact David actually reads."""
+    m = _mod()
+    from src.dynasty_genius.sources import feed_cadence
+    result = m.execute(manifest=m.build_manifest(), report_root=tmp_path, dry_run=True)
+    for e in m.build_manifest():
+        if e.mode != "manual_download":
+            continue
+        r = result.by_source[e.source]
+        assert r.coverage in feed_cadence.COVERAGE_STATES, f"{e.source}: coverage {r.coverage!r}"
+        assert r.streams is not None, f"{e.source}: streams must not be null"
+        assert set(r.streams) == set(feed_cadence.streams_for(e.source)), (
+            f"{e.source}: every declared stream must serialize"
+        )
+        for name, s in r.streams.items():
+            assert s["cadence"] in feed_cadence.CADENCE_STATES
+            assert s["coverage"] in feed_cadence.COVERAGE_STATES
+
+
+def test_governed_inputs_are_loaded_ONCE_per_run_as_one_immutable_snapshot(tmp_path, monkeypatch):
+    """W2 — one aggregate report must describe ONE control-plane vintage.
+
+    Each `_manual_result` previously called the loader independently, so a two-source run read the
+    file twice; direct instrumentation returned load-1 for PlayerProfiler and load-2 for PFF. A
+    mid-run edit could therefore combine different vintages inside a single report, and nothing in
+    the artifact would reveal it.
+    """
+    m = _mod()
+    calls: list[int] = []
+    real = m._load_cadence_inputs
+
+    def counting(path=None):
+        calls.append(len(calls) + 1)
+        return real(path)
+
+    monkeypatch.setattr(m, "_load_cadence_inputs", counting)
+    result = m.execute(manifest=m.build_manifest(), report_root=tmp_path, dry_run=True)
+
+    manual = [e.source for e in m.build_manifest() if e.mode == "manual_download"]
+    assert len(manual) > 1, "fixture precondition: more than one manual source, or this is vacuous"
+    assert len(calls) == 1, (
+        f"the governed artifact must be read ONCE per run; it was read {len(calls)} times for "
+        f"{len(manual)} manual sources"
+    )
+    # ...and every manual source that REACHES the snapshot must have used the same one. Sources
+    # with an incomplete route return earlier with their route diagnostics and never consult it —
+    # that is correct behaviour, so comparing all four details was my error, not the code's.
+    consulted = [s for s in manual
+                 if result.by_source[s].state != "manual_route_incomplete"]
+    assert consulted, "fixture precondition: at least one manual route must be complete"
+    detail = {result.by_source[s].detail for s in consulted}
+    assert len(detail) == 1, f"sources disagree about the snapshot they used: {detail}"
+
+
+def test_a_snapshot_is_passed_through_rather_than_reloaded_per_source(tmp_path, monkeypatch):
+    """Counter-test for the above: prove the pass-through path is what is exercised, by making a
+    RELOAD return something different and showing no source picks it up."""
+    m = _mod()
+    seen: list[str] = []
+
+    def drifting(path=None):
+        seen.append("x")
+        # First read is valid; any LATER read returns a different (invalid) vintage. If the
+        # controller reloaded per source, later sources would report the drifted state.
+        if len(seen) == 1:
+            return ("absent", None, "snapshot-A")
+        return ("invalid", None, "snapshot-B-DRIFTED")
+
+    monkeypatch.setattr(m, "_load_cadence_inputs", drifting)
+    result = m.execute(manifest=m.build_manifest(), report_root=tmp_path, dry_run=True)
+    manual = [e.source for e in m.build_manifest() if e.mode == "manual_download"]
+    consulted = [s for s in manual
+                 if result.by_source[s].state != "manual_route_incomplete"]
+    assert consulted, "fixture precondition: at least one manual route must be complete"
+    for source in consulted:
+        assert result.by_source[source].detail == "snapshot-A", (
+            f"{source} used a drifted vintage: {result.by_source[source].detail!r}"
+        )
+        assert result.by_source[source].failed is False, (
+            f"{source} inherited the drifted INVALID state instead of the snapshot's ABSENT state"
+        )
+
+
+_VCAL = {"season": 2026, "week1_kickoff": "2026-09-10T20:20:00-04:00",
+         "final_game": "2027-01-04T20:20:00-05:00"}
+_VHELD = {"ingested_at": "2026-08-01T00:00:00+00:00", "newest_season": 2025,
+          "covered_seasons": [2025]}
+_VOFFER = {"observed_at": "2026-08-01T00:00:00+00:00", "provenance": "vendor_export_manifest",
+           "newest_season": 2025, "covered_seasons": [2025]}
+
+
+@pytest.mark.parametrize("label,payload", [
+    ("season not an integer", {"calendar": {**_VCAL, "season": "not-an-int"}}),
+    ("covered_seasons are strings",
+     {"calendar": _VCAL, "held": {"pff": {"grades": {**_VHELD, "covered_seasons": ["2025"]}}}}),
+    ("newest_season is a string",
+     {"calendar": _VCAL, "held": {"pff": {"grades": {**_VHELD, "newest_season": "2025"}}}}),
+    ("offer without provenance",
+     {"calendar": _VCAL, "offer": {"pff": {"grades": {"observed_at": "2026-08-01T00:00:00+00:00"}}}}),
+    ("held record with NO covered_seasons",
+     {"calendar": _VCAL,
+      "held": {"pff": {"grades": {"ingested_at": "2026-08-01T00:00:00+00:00",
+                                  "newest_season": 2025}}}}),
+    ("offer record with NO covered_seasons",
+     {"calendar": _VCAL,
+      "offer": {"pff": {"grades": {"observed_at": "2026-08-01T00:00:00+00:00",
+                                   "provenance": "vendor_export_manifest",
+                                   "newest_season": 2025}}}}),
+    ("covered_seasons is null",
+     {"calendar": _VCAL, "held": {"pff": {"grades": {**_VHELD, "covered_seasons": None}}}}),
+    ("covered_seasons is not a list",
+     {"calendar": _VCAL, "held": {"pff": {"grades": {**_VHELD, "covered_seasons": 7}}}}),
+    ("game_week_completions is not a list",
+     {"calendar": {**_VCAL, "game_week_completions": 7}}),
+    ("game_week_completions is a bare string",
+     {"calendar": {**_VCAL, "game_week_completions": "2026-09-14T23:30:00-04:00"}}),
+    ("TYPOED stream key", {"calendar": _VCAL, "held": {"pff": {"gamelogg": _VHELD}}}),
+    ("unknown source key", {"calendar": _VCAL, "held": {"pffx": {"grades": _VHELD}}}),
+    ("unknown availability window",
+     {"calendar": _VCAL, "availability": {"xfl": {"available_at": "2026-09-15T12:00:00-04:00"}}}),
+])
+def test_semantic_and_key_validation_rejects_each_malformed_class(label, payload):
+    """Shape and timestamp checks are not enough.
+
+    ASSERTING ONLY THE STATUS IS NOT ENOUGH EITHER. `_validate_inputs` wraps everything in a
+    catch-all that converts an unexpected exception into INVALID — so removing an explicit type
+    guard STILL returns "invalid", just via a crash instead of a decision. Mutation testing proved
+    every type guard here was unpinned for exactly that reason. Each case therefore also requires a
+    SPECIFIC diagnostic, not the generic containment message.
+
+    A TYPOED STREAM KEY is the most insidious of these: it is silently ignored, so an operator
+    believes the data was supplied while that stream reports `undetermined` forever. A string season
+    sorts and compares wrongly and would mis-derive every coverage gap. An offer with no stated
+    provenance is the bare oracle the cadence contract exists to refuse.
+    """
+    m = _mod()
+    status, loaded, detail = m._validate_inputs(payload)
+    assert status == "invalid", f"{label}: accepted"
+    assert loaded is None and detail, f"{label}: must say why"
+    assert not detail.startswith("governed inputs failed validation:"), (
+        f"{label}: rejected by the catch-all rather than by an explicit guard — the diagnostic is "
+        f"generic ({detail!r}), so the specific validation is missing"
+    )
+
+
+@pytest.mark.parametrize("label,payload", [
+    ("minimal", {"calendar": _VCAL}),
+    ("full artifact", {"calendar": _VCAL, "held": {"pff": {"grades": _VHELD}},
+                       "offer": {"pff": {"grades": _VOFFER}},
+                       "availability": {"nfl": {"available_at": "2026-09-15T12:00:00-04:00"}}}),
+    ("RETAINED SEASON SUPERSET",
+     {"calendar": _VCAL,
+      "held": {"pff": {"grades": {**_VHELD, "covered_seasons": [2015, 2016, 2025]}}},
+      "offer": {"pff": {"grades": _VOFFER}}}),
+])
+def test_valid_artifacts_are_ACCEPTED_so_the_validator_is_not_merely_refusing_everything(
+    label, payload
+):
+    """Counter-tests. Without these the whole validation suite passes trivially if the validator
+    rejects every input — and the retained-superset case matters because holding MORE seasons than
+    the vendor offers must never be read as a defect."""
+    m = _mod()
+    status, loaded, detail = m._validate_inputs(payload)
+    assert status == "ok", f"{label}: wrongly rejected — {detail}"
+    assert loaded is not None
+
+
+def test_a_malformed_artifact_fails_closed_AT_THE_CONTROLLER_and_preserves_isolation(
+    tmp_path, monkeypatch
+):
+    """Pin at least one malformed case at the FULL CONTROLLER SURFACE, not only at the validator.
+
+    A boundary function that returns the right verdict proves nothing if the controller ignores it.
+    """
+    m = _mod()
+    bad = {"calendar": _VCAL, "held": {"pff": {"gamelogg": _VHELD}}}   # typoed stream key
+    monkeypatch.setattr(m, "_load_cadence_inputs",
+                        lambda path=None: m._validate_inputs(bad))
+    result = m.execute(manifest=m.build_manifest(), report_root=tmp_path, dry_run=True)
+
+    complete_manual = [e.source for e in m.build_manifest()
+                       if e.mode == "manual_download"
+                       and result.by_source[e.source].state != "manual_route_incomplete"]
+    assert complete_manual, "fixture precondition: at least one complete manual route"
+    for source in complete_manual:
+        r = result.by_source[source]
+        assert r.state == "manual_inputs_invalid", f"{source}: {r.state}"
+        assert r.failed is True, f"{source}: a malformed artifact must fail CLOSED"
+        assert r.streams, f"{source}: the error path must still enumerate declared streams"
+    assert result.exit_code != 0, "a malformed governed artifact must make the run nonzero"
+    # ...and isolation holds: unrelated automatic routes are untouched.
+    assert result.by_source["nflverse_usage_capture"].state != "failed"
+    assert set(result.by_source) == {e.source for e in m.build_manifest()}
+
+
+def test_a_validator_exception_becomes_INVALID_and_never_escapes(monkeypatch):
+    """A malformed artifact must never propagate as an exception.
+
+    `game_week_completions: 7` previously raised TypeError from iterating an int — OUT of the
+    validator and past source isolation, so one bad config file crashed the whole controller. Any
+    unanticipated error is INVALID EVIDENCE, which is exactly what it is.
+    """
+    m = _mod()
+
+    def boom(payload):
+        raise RuntimeError("synthetic validator explosion")
+
+    monkeypatch.setattr(m, "_validate_inputs_inner", boom)
+    status, loaded, detail = m._validate_inputs({"calendar": _VCAL})
+    assert status == "invalid"
+    assert loaded is None
+    assert "RuntimeError" in detail, f"the failure class must be named; got {detail!r}"
+
+
+def test_a_container_type_defect_fails_closed_AT_THE_CONTROLLER(tmp_path, monkeypatch):
+    """Pinned at the full controller surface, not only at the validator: the point of the fix is
+    that the RUN survives and reports, rather than crashing."""
+    m = _mod()
+    bad = {"calendar": {**_VCAL, "game_week_completions": 7}}
+    monkeypatch.setattr(m, "_load_cadence_inputs", lambda path=None: m._validate_inputs(bad))
+    result = m.execute(manifest=m.build_manifest(), report_root=tmp_path, dry_run=True)
+
+    assert set(result.by_source) == {e.source for e in m.build_manifest()}, (
+        "the run must complete and report every source"
+    )
+    complete = [e.source for e in m.build_manifest()
+                if e.mode == "manual_download"
+                and result.by_source[e.source].state != "manual_route_incomplete"]
+    assert complete, "fixture precondition: at least one complete manual route"
+    for source in complete:
+        assert result.by_source[source].state == "manual_inputs_invalid"
+        assert result.by_source[source].failed is True
+        assert result.by_source[source].streams, "the error path still enumerates streams"
+    assert result.exit_code != 0
+    assert result.by_source["nflverse_usage_capture"].state != "failed", (
+        "isolation holds: an unrelated automatic route is untouched"
     )

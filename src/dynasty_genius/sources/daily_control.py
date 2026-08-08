@@ -128,6 +128,11 @@ class SourceResult:
     age_days: Optional[float] = None
     missing: tuple[str, ...] = ()
     detail: str = ""
+    #: The COVERAGE axis, independent of freshness/cadence. A source can be quiet and incomplete at
+    #: the same time; collapsing the two destroys the second fact.
+    coverage: Optional[str] = None
+    #: Per-stream states for manual sources. Every declared stream serializes, even unheld ones.
+    streams: Optional[dict[str, Any]] = None
 
 
 @dataclass
@@ -272,7 +277,7 @@ def build_manifest() -> list[ManifestEntry]:
             source="playerprofiler",
             mode="manual_download",
             registry_sources=("playerprofiler",),
-            refresh_target="daily",
+            refresh_target="windowed",
             connection_method="manual_export_download",
             destination="app/data/playerprofiler.db",
             success_marker="app/data/playerprofiler/playerprofiler_status_latest.json",
@@ -289,7 +294,7 @@ def build_manifest() -> list[ManifestEntry]:
             source="pff",
             mode="manual_download",
             registry_sources=("pff",),
-            refresh_target="daily",
+            refresh_target="windowed",
             connection_method="manual_export_download",
             destination="app/data/pff_exports",
             # The drop location is the human INBOX, not the canonical destination above. The two
@@ -312,7 +317,7 @@ def build_manifest() -> list[ManifestEntry]:
             source="rotoviz",
             mode="manual_download",
             registry_sources=("rotoviz",),
-            refresh_target="daily",
+            refresh_target="undetermined",
             connection_method="manual_export_download",
             note="Registry: 'Manual CSV export only. No public API.'",
         ),
@@ -320,7 +325,7 @@ def build_manifest() -> list[ManifestEntry]:
             source="campus2canton",
             mode="manual_download",
             registry_sources=("campus2canton",),
-            refresh_target="daily",
+            refresh_target="undetermined",
             connection_method="manual_export_download",
             note="Registry: 'CSV export from Player Metric Data Table.'",
         ),
@@ -525,41 +530,343 @@ def _default_runner(entry: ManifestEntry) -> SourceResult:
     )
 
 
-def _manual_result(entry: ManifestEntry, checked_at: str) -> SourceResult:
-    """A stale manual source is DUE, never FAILED — different facts entirely."""
+#: Governed inputs for per-stream cadence. Absent by design today: no season calendar and no
+#: per-stream inventory exist in this repo yet. Their absence yields `undetermined`/`unknown`, which
+#: is the honest answer — it must NEVER fall back to a daily clock.
+MANUAL_CADENCE_INPUTS = _REPO_ROOT / "app" / "config" / "manual_feed_cadence_inputs.json"
+
+
+#: R2 — three distinct load outcomes. Collapsing them was the defect: a MALFORMED artifact became
+#: indistinguishable from an ABSENT one, so a corrupted governed input read as "we simply have no
+#: calendar yet" and nobody would ever know it was broken.
+INPUTS_ABSENT, INPUTS_INVALID, INPUTS_OK = "absent", "invalid", "ok"
+
+#: The minimum a governed inputs artifact must declare to be usable at all.
+_REQUIRED_INPUT_KEYS = ("calendar",)
+_REQUIRED_CALENDAR_KEYS = ("season", "week1_kickoff", "final_game")
+#: EVERY calendar key the engine consumes. `combine_complete` was omitted while
+#: `playerprofiler.player_season` consumes it, so a bad value there survived validation and could
+#: only fail later, and only if a stream happened to reach that branch.
+_CALENDAR_TIME_KEYS = ("week1_kickoff", "final_game", "prior_final_game",
+                       "league_year_open", "draft_complete", "combine_complete")
+#: Evidence records must carry these, timezone-aware.
+_HELD_TIME_KEYS = ("ingested_at",)
+_OFFER_TIME_KEYS = ("observed_at",)
+
+
+def _load_cadence_inputs(
+    path: Optional[Path] = None,
+) -> tuple[str, Optional[dict[str, Any]], str]:
+    """Load governed cadence facts, distinguishing ABSENT from INVALID.
+
+    Returns (status, payload, detail). A schema check happens HERE, at the evidence boundary,
+    because a partial-but-valid JSON object previously passed the isinstance test and then raised
+    KeyError('calendar') deep inside evaluation — which aborted the entire controller run before any
+    later source could be isolated. One malformed config file took down every route.
+    """
+    target = Path(path) if path is not None else MANUAL_CADENCE_INPUTS
+    if not target.is_file():
+        return INPUTS_ABSENT, None, "no governed calendar/inventory artifact exists"
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (ValueError, OSError) as exc:
+        return INPUTS_INVALID, None, f"unreadable governed inputs: {type(exc).__name__}"
+    if not isinstance(payload, dict):
+        return INPUTS_INVALID, None, "governed inputs must be a JSON object"
+    return _validate_inputs(payload)
+
+
+def _validate_inputs(payload: Any) -> tuple[str, Optional[dict[str, Any]], str]:
+    """Public entry point: a malformed artifact can never escape as an exception.
+
+    An unexpected shape previously raised out of the validator (TypeError from iterating an int)
+    and crashed the controller BEFORE source isolation — one bad config file taking down every
+    route, which is the failure this boundary exists to stop. Any unanticipated error is now
+    reported as INVALID evidence, because that is what it is.
+    """
+    try:
+        return _validate_inputs_inner(payload)
+    except Exception as exc:  # noqa: BLE001 - a validator must not propagate
+        return INPUTS_INVALID, None, f"governed inputs failed validation: {type(exc).__name__}: {exc}"
+
+
+def _validate_inputs_inner(payload: Any) -> tuple[str, Optional[dict[str, Any]], str]:
+    """Schema check applied to EVERY input, however it arrived.
+
+    Validating only the file-loaded path left a hole: a caller passing a partial dict directly
+    skipped the check entirely and still raised KeyError('calendar') deep inside evaluation. The
+    boundary has to be the DATA, not the door it came through.
+    """
+    if not isinstance(payload, dict):
+        return INPUTS_INVALID, None, "governed inputs must be a JSON object"
+    missing = [k for k in _REQUIRED_INPUT_KEYS if k not in payload]
+    if missing:
+        return INPUTS_INVALID, None, f"governed inputs missing keys: {', '.join(missing)}"
+    calendar = payload.get("calendar")
+    if not isinstance(calendar, dict):
+        return INPUTS_INVALID, None, "governed inputs calendar must be an object"
+    missing_cal = [k for k in _REQUIRED_CALENDAR_KEYS if k not in calendar]
+    if missing_cal:
+        return INPUTS_INVALID, None, f"calendar missing keys: {', '.join(missing_cal)}"
+    # KEY PRESENCE IS NOT VALIDITY. An unparseable or naive timestamp previously passed this check
+    # and then blew up — or worse, did NOT blow up, because the failure only surfaced when a stream
+    # happened to carry held data. A guard whose effect depends on incidental data presence is not
+    # a guard.
+    for key in _CALENDAR_TIME_KEYS:
+        value = calendar.get(key)
+        if key not in calendar:
+            continue
+        try:
+            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            return INPUTS_INVALID, None, f"calendar {key} is not an ISO-8601 timestamp: {value!r}"
+        if parsed.tzinfo is None:
+            return INPUTS_INVALID, None, f"calendar {key} must be timezone-aware: {value!r}"
+    for key in ("game_week_completions",):
+        declared = calendar.get(key)
+        if declared is not None and not isinstance(declared, list):
+            return INPUTS_INVALID, None, (
+                f"calendar {key} must be a list, got {type(declared).__name__}"
+            )
+        for value in declared or []:
+            try:
+                parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                return INPUTS_INVALID, None, f"calendar {key} entry is not a timestamp: {value!r}"
+            if parsed.tzinfo is None:
+                return INPUTS_INVALID, None, f"calendar {key} entry must be tz-aware: {value!r}"
+
+    # NESTED SHAPES. held/offer/availability are traversed as mappings during evaluation. Leaving
+    # their container and record shapes unchecked reproduced the exact source-dependent defect this
+    # boundary exists to remove: the artifact failed only when incidental data reached a bad branch.
+    # SEMANTIC types, not just presence. A season that is a string sorts and compares wrongly and
+    # would silently mis-derive every coverage gap.
+    season = calendar.get("season")
+    if not isinstance(season, int) or isinstance(season, bool):
+        return INPUTS_INVALID, None, f"calendar season must be an integer, got {season!r}"
+
+    from . import feed_cadence
+
+    for section, time_keys in (("held", _HELD_TIME_KEYS), ("offer", _OFFER_TIME_KEYS)):
+        block = payload.get(section)
+        if block is None:
+            continue
+        if not isinstance(block, dict):
+            return INPUTS_INVALID, None, f"{section} must be an object, got {type(block).__name__}"
+        for source, streams in block.items():
+            if source not in feed_cadence.MANUAL_SOURCES:
+                return INPUTS_INVALID, None, (
+                    f"{section}.{source} is not a known manual source "
+                    f"{sorted(feed_cadence.MANUAL_SOURCES)}"
+                )
+            if not isinstance(streams, dict):
+                return INPUTS_INVALID, None, (
+                    f"{section}.{source} must be an object, got {type(streams).__name__}"
+                )
+            declared = set(feed_cadence.streams_for(source))
+            for stream, record in streams.items():
+                # A TYPOED KEY IS THE WORST FAILURE HERE: it is silently ignored, so the operator
+                # believes the data was supplied while the stream reports undetermined forever.
+                if stream not in declared:
+                    return INPUTS_INVALID, None, (
+                        f"{section}.{source}.{stream} is not a declared stream; "
+                        f"expected one of {sorted(declared)}"
+                    )
+                if record is None:
+                    continue
+                if not isinstance(record, dict):
+                    return INPUTS_INVALID, None, (
+                        f"{section}.{source}.{stream} must be an object, "
+                        f"got {type(record).__name__}"
+                    )
+                # Presence: evidence timestamps, plus provenance on an offer (an offer with no
+                # stated provenance is a bare oracle, which the cadence contract refuses).
+                required = time_keys + (("provenance",) if section == "offer" else ())
+                for key in required:
+                    if key not in record or not str(record.get(key) or "").strip():
+                        return INPUTS_INVALID, None, (
+                            f"{section}.{source}.{stream} is missing {key}"
+                        )
+                # Validity: only the TIME keys are timestamps. An earlier edit of mine orphaned this
+                # loop inside the covered_seasons block, where it reused a leaked `key` and checked
+                # `newest_season` as an ISO-8601 string — rejecting a perfectly valid artifact.
+                for key in time_keys:
+                    bad = _bad_timestamp(record[key])
+                    if bad:
+                        return INPUTS_INVALID, None, (
+                            f"{section}.{source}.{stream}.{key} {bad}: {record[key]!r}"
+                        )
+                # Semantics: seasons are integers. A string season sorts and compares wrongly and
+                # would silently mis-derive every coverage gap.
+                value = record.get("newest_season")
+                if value is not None and (not isinstance(value, int) or isinstance(value, bool)):
+                    return INPUTS_INVALID, None, (
+                        f"{section}.{source}.{stream}.newest_season must be an integer, "
+                        f"got {value!r}"
+                    )
+                # COVERAGE EVIDENCE IS MANDATORY, not optional. Omitting it validated fine and
+                # then reported coverage ADEQUATE from an empty set — completeness claimed from
+                # nothing at all, which is the false reassurance the two axes exist to prevent.
+                if "covered_seasons" not in record:
+                    return INPUTS_INVALID, None, (
+                        f"{section}.{source}.{stream} is missing covered_seasons; coverage cannot "
+                        "be asserted without the evidence for it"
+                    )
+                # `null` is not evidence. Treating it as "absent and therefore fine" reproduced
+                # the same false-adequate defect as omitting the key entirely.
+                seasons = record.get("covered_seasons")
+                if not isinstance(seasons, list):
+                    return INPUTS_INVALID, None, (
+                        f"{section}.{source}.{stream}.covered_seasons must be a list, "
+                        f"got {type(seasons).__name__}"
+                    )
+                if True:
+                    bad_season = next(
+                        (s for s in seasons if not isinstance(s, int) or isinstance(s, bool)), None
+                    )
+                    if bad_season is not None:
+                        return INPUTS_INVALID, None, (
+                            f"{section}.{source}.{stream}.covered_seasons must be integers, "
+                            f"got {bad_season!r}"
+                        )
+
+    availability = payload.get("availability")
+    if availability is not None:
+        if not isinstance(availability, dict):
+            return INPUTS_INVALID, None, (
+                f"availability must be an object, got {type(availability).__name__}"
+            )
+        known_windows = {
+            p.window for key in feed_cadence._REGISTRY
+            for p in (feed_cadence._REGISTRY[key],) if p.window
+        }
+        for window, record in availability.items():
+            if window not in known_windows:
+                return INPUTS_INVALID, None, (
+                    f"availability.{window} is not a known window {sorted(known_windows)}"
+                )
+            if not isinstance(record, dict):
+                return INPUTS_INVALID, None, (
+                    f"availability.{window} must be an object, got {type(record).__name__}"
+                )
+            if "available_at" not in record:
+                return INPUTS_INVALID, None, f"availability.{window} is missing available_at"
+            bad = _bad_timestamp(record["available_at"])
+            if bad:
+                return INPUTS_INVALID, None, (
+                    f"availability.{window}.available_at {bad}: {record['available_at']!r}"
+                )
+    return INPUTS_OK, payload, ""
+
+
+def _bad_timestamp(value: Any) -> Optional[str]:
+    """Return why a timestamp is unusable, or None when it is fine."""
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return "is not an ISO-8601 timestamp"
+    return "must be timezone-aware" if parsed.tzinfo is None else None
+
+
+def _undetermined_streams(source: str) -> dict[str, Any]:
+    """Every DECLARED stream, serialized as uncomputable.
+
+    R1 — the early-return paths previously emitted `coverage: null` and `streams: null`, so a source
+    with no governed inputs, or an incomplete route, showed NOTHING in the report. Omission is
+    exactly how a gap becomes invisible; the states exist so an unknown stream can be REPORTED.
+    """
+    from . import feed_cadence
+
+    return {
+        stream: feed_cadence.StreamState(
+            source=source, stream=stream,
+            cadence=feed_cadence.UNDETERMINED, coverage=feed_cadence.UNKNOWN,
+        ).as_dict()
+        for stream in feed_cadence.streams_for(source)
+    }
+
+
+def _manual_result(
+    entry: ManifestEntry,
+    checked_at: str,
+    inputs: Optional[dict[str, Any]] = None,
+    snapshot: Optional[tuple[str, Optional[dict[str, Any]], str]] = None,
+) -> SourceResult:
+    """A manual source reports TWO AXES, per stream, and never a one-day clock.
+
+    THE DEFECT THIS REPLACES, in David's words: "why are my manual ones due? look at the data - what
+    could possibly have changed?" The old rule was `due = age > 1.0 day` applied to sources holding
+    season-complete data whose next possible change is a game that has not been played.
+
+    R3 — evaluation uses the SAME instant the report is stamped with. Re-reading the clock here let
+    report time and evaluated state disagree across a window boundary, so a report could claim a
+    state that was not true at the moment it says it was taken.
+    """
+    from . import feed_cadence
+
+    now = _parse_checked_at(checked_at)
     status = entry_status(entry)
+    known_source = entry.source in feed_cadence.MANUAL_SOURCES
+
     if status.missing:
+        # Route diagnostics are RETAINED, and the per-stream axes are still enumerated.
         return SourceResult(
-            source=entry.source,
-            state="manual_route_incomplete",
-            failed=False,
-            checked_at=checked_at,
-            freshness="unknown",
+            source=entry.source, state="manual_route_incomplete", failed=False,
+            checked_at=checked_at, freshness=feed_cadence.UNDETERMINED,
+            coverage=feed_cadence.UNKNOWN,
+            streams=_undetermined_streams(entry.source) if known_source else {},
             missing=status.missing,
         )
-    # R2: reuse the parsed marker semantics. A fresh but FAILED marker previously
-    # returned manual_current with an invented last success.
-    if entry.success_marker:
-        last = marker_last_success(entry)
-        age = marker_age_days(entry)
+
+    last = marker_last_success(entry)
+    age = marker_age_days(entry)
+
+    if inputs is not None:
+        load_status, inputs, detail = _validate_inputs(inputs)
+    elif snapshot is not None:
+        load_status, inputs, detail = snapshot
     else:
-        last = _mtime_iso(entry.destination)
-        age = _age_days(entry.destination)
-    if last is None:
+        load_status, inputs, detail = _load_cadence_inputs()
+
+    if load_status != INPUTS_OK or not known_source:
+        # ABSENT inputs are an honest gap: nothing is broken, we simply cannot compute yet.
+        # INVALID inputs are a DEFECT in governed configuration, and failing open on those means a
+        # corrupted artifact produces a green controller run forever. Absent -> not failed;
+        # invalid -> FAILED, so the aggregate exit is nonzero and somebody looks at it.
+        invalid = load_status == INPUTS_INVALID
         return SourceResult(
-            source=entry.source, state="manual_due", failed=False,
-            checked_at=checked_at, freshness="unknown", age_days=age,
+            source=entry.source,
+            state="manual_inputs_invalid" if invalid else "manual_undetermined",
+            failed=invalid,
+            checked_at=checked_at, last_success_at=last,
+            freshness=feed_cadence.UNDETERMINED, coverage=feed_cadence.UNKNOWN,
+            streams=_undetermined_streams(entry.source) if known_source else {},
+            age_days=age,
+            detail=detail or "per-stream cadence is uncomputable without governed inputs",
         )
-    due = age is None or age > 1.0
+
+    states = feed_cadence.evaluate_source(
+        source=entry.source, now=now, calendar=inputs["calendar"],
+        held=(inputs.get("held") or {}).get(entry.source),
+        offer=(inputs.get("offer") or {}).get(entry.source),
+        availability=inputs.get("availability"),
+    )
     return SourceResult(
         source=entry.source,
-        state="manual_due" if due else "manual_current",
-        failed=False,
-        checked_at=checked_at,
-        last_success_at=last,
-        freshness="due" if due else "current",
-        age_days=age if age is not None else 0.0,
+        state=f"manual_{feed_cadence._rollup_cadence(states.values())}",
+        failed=False, checked_at=checked_at, last_success_at=last,
+        freshness=feed_cadence._rollup_cadence(states.values()),
+        coverage=feed_cadence._rollup_coverage(states.values()),
+        age_days=age,
+        streams={name: s.as_dict() for name, s in states.items()},
     )
+
+
+def _parse_checked_at(value: str) -> datetime:
+    parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def write_report(report_root: Path, payload: dict[str, Any]) -> Path:
@@ -600,13 +907,28 @@ def execute(
     manifest = list(manifest if manifest is not None else build_manifest())
     runner = runner or _default_runner
     checked_at = _now()
+    # ONE IMMUTABLE SNAPSHOT for the whole run. Loading per source meant a two-source run read the
+    # file twice, so a mid-run edit could combine different control-plane vintages inside a single
+    # aggregate report.
+    cadence_snapshot = _load_cadence_inputs()
     results: dict[str, SourceResult] = {}
 
     selected = set(only) if only is not None else None
 
     for entry in manifest:
         if entry.mode == "manual_download":
-            results[entry.source] = _manual_result(entry, checked_at)
+            # Isolation applies here too: a malformed governed input must not stop later routes.
+            try:
+                results[entry.source] = _manual_result(
+                    entry, checked_at, snapshot=cadence_snapshot
+                )
+            except Exception as exc:
+                results[entry.source] = SourceResult(
+                    source=entry.source, state="manual_inputs_invalid", failed=True,
+                    checked_at=checked_at, freshness="undetermined", coverage="unknown",
+                    streams=_undetermined_streams(entry.source),
+                    detail=f"{type(exc).__name__}: {exc}",
+                )
             continue
 
         if entry.mode != "automatic":
