@@ -15,14 +15,17 @@ DELIBERATELY OUT OF SCOPE, per the alignment:
   * provider publication cadence — ABSENT from this gate by design; the local target is
     ours to choose and a vendor's schedule is never consulted
 
-The module under test does not exist. The suite remains RED: every test that
-exercises the module fails, and one standalone registry anti-rot guard passes by
-design (it validates this file's own pin map, not the implementation).
+HISTORY OF THIS FILE: it was authored as the RED suite, when the module under test did
+not exist and every test exercising it failed. GREEN has since landed, so both of those
+statements are now false and the original wording is retained only as history. This is
+now a REGRESSION AND CONTRACT suite: it is expected to pass, and a failure here is a
+defect in the implementation, not the intended initial state.
 """
 from __future__ import annotations
 
 import importlib
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -507,7 +510,22 @@ def test_every_manual_entry_is_non_running_non_failing_and_accounted_for(tmp_pat
         if r.state == "manual_route_incomplete":
             assert r.missing, f"{e.source}: must name the missing route component"
         else:
-            assert r.age_days is not None, f"{e.source}: must carry its vintage age"
+            # The vintage age comes from a marker under a GITIGNORED data directory, so
+            # it exists on a machine that has ingested and NOT in CI or a fresh clone.
+            # Requiring it unconditionally made this contract assert against local
+            # machine state — it passed here and failed in CI, which is the defect CI
+            # caught. Assert the INVARIANT that holds everywhere: when the marker is
+            # present the age must be reported; when it is absent the state is honestly
+            # unknown rather than invented.
+            marker = Path(e.success_marker) if e.success_marker else None
+            if marker is not None and marker.exists():
+                assert r.age_days is not None, (
+                    f"{e.source}: marker present, so the vintage age must be reported"
+                )
+            else:
+                assert r.age_days is None and r.freshness == "unknown", (
+                    f"{e.source}: no marker on disk, so age must be unknown not invented"
+                )
 
 
 # -------------------------------------------------------------------- atomic report
@@ -951,6 +969,137 @@ def test_preflight_rejects_a_route_whose_command_does_not_exist():
     assert status.ok is False
     assert any("command_not_found" in x for x in status.missing), (
         f"a nonexistent command must be reported; got {status.missing!r}"
+    )
+
+
+def test_preflight_rejects_a_missing_INTERPRETER_even_when_the_script_exists():
+    """G1 counter-test — the interpreter is checked INDEPENDENTLY of the script.
+
+    The tests above fabricate commands where BOTH components are absent, so they pass
+    whether preflight checks one component or two. While chasing a CI failure I
+    weakened this check to the script only; every one of those tests still passed. The
+    real defect was a hardcoded gitignored venv path in `_py()`, not the check. This
+    case isolates the component the other tests cannot: a REAL, existing script behind
+    an interpreter that does not exist must still be refused.
+    """
+    m = _mod()
+    real_script = m._REPO_ROOT / "scripts" / "run_layer1_daily_control.py"
+    assert real_script.exists(), "fixture precondition: the script must genuinely exist"
+    entry = m.ManifestEntry(
+        source="synthetic_missing_interpreter",
+        mode="automatic",
+        refresh_target="daily",
+        connection_method="public_http_api",
+        command=("/definitely/not/a/real/interpreter", str(real_script)),
+        destination="app/data/nowhere.db",
+        success_marker="app/data/ops/nowhere.json",
+    )
+    status = m.entry_status(entry)
+    assert status.ok is False, "a missing interpreter must fail closed"
+    missing = status.missing
+    assert any(x == "command_not_found:/definitely/not/a/real/interpreter" for x in missing), (
+        f"the interpreter must be reported by its own path; got {missing!r}"
+    )
+    assert not any(str(real_script) in x for x in missing), (
+        f"the script EXISTS and must not be reported missing; got {missing!r}"
+    )
+
+
+def _write_plain_file(tmp: Path) -> Path:
+    """A real regular file with no execute bit — a valid path that cannot be launched."""
+    f = tmp / "not_executable.bin"
+    f.write_text("#!/bin/sh\nexit 0\n")
+    f.chmod(0o644)
+    return f
+
+
+@pytest.mark.parametrize(
+    "label,make_value,expected_code",
+    [
+        ("empty", lambda tmp: "", "command_interpreter_empty"),
+        ("a directory", lambda tmp: str(tmp), "command_interpreter_not_a_file"),
+        ("a non-executable file", lambda tmp: str(_write_plain_file(tmp)),
+         "command_interpreter_not_executable"),
+    ],
+)
+def test_preflight_fails_closed_on_an_unusable_dynamic_interpreter(
+    tmp_path, label, make_value, expected_code
+):
+    """G1 — `.exists()` is not the contract; a RUNNABLE route is.
+
+    Codex falsified the previous boundary and I reproduced both cases against
+    `entry_status` directly:
+      * an EMPTY interpreter passed, because `Path("")` resolves to the CWD, which
+        always exists;
+      * a DIRECTORY passed, because directories exist too.
+    Either command certifies a route that cannot launch, which is precisely the class of
+    failure preflight exists to catch. A non-executable regular file is the third member
+    of the family. All three must fail closed while a valid `sys.executable` still passes.
+    """
+    m = _mod()
+    real = sys.executable
+    try:
+        sys.executable = make_value(tmp_path)
+        entry = next(e for e in m.build_manifest() if e.command)
+        status = m.entry_status(entry)
+    finally:
+        sys.executable = real
+    assert status.ok is False, f"an interpreter that is {label} must fail closed"
+    assert any(x.startswith(expected_code) for x in status.missing), (
+        f"interpreter that is {label} must report {expected_code!r}; got {status.missing!r}"
+    )
+
+
+def test_preflight_still_passes_for_the_real_running_interpreter():
+    """The counter-case to the test above: the fail-closed tightening must not make
+    every route red. A genuine `sys.executable` is a real, executable file."""
+    m = _mod()
+    for entry in m.build_manifest():
+        if entry.command and entry.mode == "automatic":
+            status = m.entry_status(entry)
+            assert not any("command_interpreter" in x for x in status.missing), (
+                f"{entry.source}: the real interpreter must not be reported unusable; "
+                f"got {status.missing!r}"
+            )
+
+
+def test_manifest_interpreter_is_the_running_one_not_a_hardcoded_venv_path():
+    """Regression guard for the CI failure of 2026-08-08 (commit c55e645).
+
+    (The commit is dated 2026-08-08T00:48:16-04:00 per `git show -s`. An earlier draft
+    of this docstring said 08-07, conflating it with the directive date at the file
+    head; the two are different days and only the directive is 08-07.)
+
+    `_py()` returned a hardcoded `.venv/bin/python3.14`. `.venv/` is gitignored, so on
+    any tree without this repo's venv — CI, a fresh clone, a differently-located
+    environment — every automatic route reported `command_not_found`, nothing executed,
+    and three contracts failed. They passed locally because my venv exists, which is
+    precisely why the defect reached main.
+
+    The interpreter must be the process's own, and must never be a repo-relative path
+    under a gitignored directory.
+    """
+    m = _mod()
+    # A direct `_py() == sys.executable` assertion is VACUOUS on a machine whose
+    # running interpreter IS `.venv/bin/python3.14` — the defective and correct values
+    # are the same string here, and a mutation restoring the hardcoded path passed.
+    # Monkeypatching sys.executable separates them on any machine: the correct
+    # implementation FOLLOWS the running interpreter, the hardcoded one ignores it.
+    sentinel = "/synthetic/interpreter/for/this/test"
+    real = sys.executable
+    try:
+        sys.executable = sentinel
+        observed = m._py()
+        commands = [e.command[0] for e in m.build_manifest() if e.command]
+    finally:
+        sys.executable = real
+    assert observed == sentinel, (
+        "the runner interpreter must be resolved from sys.executable at call time, so "
+        "a child inherits the environment that launched it. A hardcoded repo-relative "
+        f"path under the gitignored .venv/ is what broke CI; got {observed!r}"
+    )
+    assert commands and all(c == sentinel for c in commands), (
+        f"every manifest command must launch the running interpreter; got {set(commands)!r}"
     )
 
 

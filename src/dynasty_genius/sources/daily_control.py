@@ -16,8 +16,9 @@ Three parts, deliberately separable:
   failure cannot cap the others, and writes one atomic aggregate report.
 
 WHAT THIS DELIBERATELY DOES NOT DO
-  * It never consults a provider's publication schedule. Two providers publish none, and
-    chasing that answer produced nothing usable. The refresh target is OURS to choose.
+  * It never consults a provider's publication cadence. That cadence is outside this
+    local-refresh gate and is never used to decide execution; the refresh target is
+    OURS to choose.
   * It never executes a paid source without an explicit enablement, so a daily job cannot
     quietly spend money.
   * It never runs a route another scheduler already owns, so nothing double-pulls.
@@ -29,6 +30,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -180,7 +182,15 @@ def _mtime_iso(path: Optional[str]) -> Optional[str]:
 
 
 def _py() -> str:
-    return str(_REPO_ROOT / ".venv" / "bin" / "python3.14")
+    """The interpreter to launch source runners with.
+
+    `sys.executable`, NOT a hardcoded `.venv/bin/python3.14`. The venv is gitignored, so
+    a hardcoded path made every automatic route fail preflight anywhere the venv does not
+    exist — CI, a fresh clone, or any machine with a differently-located environment. CI
+    caught exactly that. Using the running interpreter is also simply more correct: a
+    child process should inherit the environment that launched it.
+    """
+    return sys.executable
 
 
 def build_manifest() -> list[ManifestEntry]:
@@ -399,13 +409,36 @@ def entry_status(entry: ManifestEntry) -> EntryStatus:
         if not entry.command:
             missing.append("missing_command")
         else:
-            # G1: presence of a string is not existence of a route.
-            for part in list(entry.command)[:2]:
+            # G1: presence of a string is not existence of a RUNNABLE route. BOTH the
+            # interpreter and the script are checked, and `.exists()` alone is not the
+            # contract at this boundary — it fails OPEN twice over:
+            #   * `Path("")` resolves to the CWD, which always exists, so an empty
+            #     interpreter certified a command that cannot launch;
+            #   * a DIRECTORY exists too, so a path pointing at a folder passed.
+            # Both were reproduced against this function. The contract is that each
+            # component is a real FILE, and that the interpreter is one we can execute.
+            for index, part in enumerate(list(entry.command)[:2]):
+                role = "interpreter" if index == 0 else "script"
+                if not part:
+                    missing.append(f"command_{role}_empty")
+                    continue
                 candidate = Path(part)
                 if not candidate.is_absolute():
                     candidate = _REPO_ROOT / part
-                if not candidate.exists():
-                    missing.append(f"command_not_found:{part}")
+                if not candidate.is_file():
+                    # A missing path and a non-file path are distinct failures; naming
+                    # which one keeps preflight output diagnostic rather than merely red.
+                    # `command_not_found:` is preserved VERBATIM for the not-found case
+                    # because already-CLEARed contracts assert on that exact token; the
+                    # new codes cover only the genuinely new failure modes.
+                    if candidate.exists():
+                        missing.append(f"command_{role}_not_a_file:{part}")
+                    else:
+                        missing.append(f"command_not_found:{part}")
+                elif role == "interpreter" and not os.access(candidate, os.X_OK):
+                    # Executability applies to the interpreter only. Runner scripts are
+                    # launched as arguments to it and carry no +x bit in this repo.
+                    missing.append(f"command_interpreter_not_executable:{part}")
         if not entry.destination:
             missing.append("missing_destination")
         if not entry.success_marker:
