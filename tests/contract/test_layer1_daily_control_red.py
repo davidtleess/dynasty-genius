@@ -548,8 +548,17 @@ def test_every_manual_entry_is_non_running_non_failing_and_accounted_for(tmp_pat
                     f"{e.source}: marker present, so the vintage age must be reported"
                 )
             else:
-                assert r.age_days is None and r.freshness == "unknown", (
-                    f"{e.source}: no marker on disk, so age must be unknown not invented"
+                # NON-CLAIMS ONLY. `unknown` (no evidence) and `undetermined` (obligation
+                # uncomputable) both decline to assert a vintage; `current`, `due` and `not_due`
+                # are positive claims and stay forbidden. This branch is CI-ONLY on a developer
+                # machine — the marker exists locally, so only the `if` side ever runs here, and
+                # the vocabulary change that broke it was invisible to a local full-suite pass.
+                assert r.age_days is None, (
+                    f"{e.source}: no marker on disk, so age must not be invented"
+                )
+                assert r.freshness in ("unknown", "undetermined"), (
+                    f"{e.source}: no marker on disk, so freshness must be a NON-CLAIM; "
+                    f"got {r.freshness!r}"
                 )
 
 
