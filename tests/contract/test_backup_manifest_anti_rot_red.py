@@ -18,13 +18,44 @@ def _manifest_payload() -> dict[str, Any]:
     return _read_json(BACKUP_MANIFEST)
 
 
-def _covered_manifest_paths(payload: dict[str, Any]) -> set[str]:
-    covered: set[str] = set()
+def _covered_manifest_entries(payload: dict[str, Any]) -> list[tuple[str, str]]:
+    """(path, kind) for every required/optional manifest entry."""
+    entries: list[tuple[str, str]] = []
     for section in ("required", "optional"):
         for entry in payload.get(section, []):
             if isinstance(entry, dict) and isinstance(entry.get("path"), str):
-                covered.add(entry["path"])
-    return covered
+                entries.append((entry["path"], str(entry.get("kind") or "file")))
+    return entries
+
+
+def _covered_manifest_paths(payload: dict[str, Any]) -> set[str]:
+    return {path for path, _ in _covered_manifest_entries(payload)}
+
+
+def _is_covered(path: str, entries: list[tuple[str, str]]) -> bool:
+    """True if ``path`` is exactly a manifest entry, or a true descendant of a
+    declared DIRECTORY entry.
+
+    Directory scope mirrors what the backup runner actually does:
+    ``backup_irreplaceable_data.py`` expands a ``kind="directory"`` entry via
+    ``rglob("*")``, so every regular file beneath it is genuinely staged and uploaded.
+    Exact-string coverage was therefore a FALSE NEGATIVE — it reported
+    ``app/data/pff_exports/pff_metadata.db`` as uncovered while the runner was already
+    backing it up, and the "fix" it invited (adding the DB as a second required entry)
+    would have staged and uploaded the same file TWICE, because the runner does not
+    deduplicate staging units.
+
+    Scope is granted from the DECLARED ``kind``, not guessed from the path string, and
+    FILE entries stay exact-only so a store nested under a file-shaped path is never
+    silently exempted. The ``+ "/"`` boundary keeps a similarly prefixed sibling
+    (``app/data/pff_exports_OTHER/x.db``) uncovered.
+    """
+    for entry_path, kind in entries:
+        if path == entry_path:
+            return True
+        if kind == "directory" and path.startswith(entry_path.rstrip("/") + "/"):
+            return True
+    return False
 
 
 def _excluded_manifest_paths(payload: dict[str, Any]) -> set[str]:
@@ -106,14 +137,14 @@ def test_backup_manifest_has_schema_versioned_exclusions_with_reasons() -> None:
 
 def test_backup_manifest_covers_present_dbs_and_registry_references() -> None:
     payload = _manifest_payload()
-    covered = _covered_manifest_paths(payload)
+    entries = _covered_manifest_entries(payload)
     excluded = _excluded_manifest_paths(payload)
 
     required_coverage = _present_app_data_dbs() | _registry_referenced_paths()
     uncovered = sorted(
         path
         for path in required_coverage
-        if path not in covered and not _is_excluded(path, excluded)
+        if not _is_covered(path, entries) and not _is_excluded(path, excluded)
     )
 
     assert uncovered == [], (
@@ -163,3 +194,31 @@ def test_backup_manifest_exact_file_exclusion_stays_exact_only() -> None:
     # The staging DIRECTORY keeps recursive semantics; a prefixed sibling does not.
     assert _is_excluded("app/data/ops/backup_staging/run/app/data/copy.db", excluded)
     assert not _is_excluded("app/data/ops/backup_staging_OTHER/store.db", excluded)
+
+
+def test_a_required_directory_entry_covers_its_descendants_but_not_a_prefixed_sibling() -> None:
+    """Regression for the false negative that this helper produced.
+
+    `app/data/pff_exports` is a required DIRECTORY entry, and the backup runner expands it with
+    `rglob("*")`, so the metadata ledger beneath it is genuinely staged. Exact-string coverage
+    reported it uncovered anyway — and the repair that reading invited (a second required entry for
+    the DB itself) would have uploaded the same file twice, since the runner does not deduplicate.
+
+    A similarly prefixed SIBLING directory must still be uncovered: the slash boundary is the whole
+    point, and without it `app/data/pff_exports_OTHER/x.db` would be silently exempted.
+    """
+    payload = _manifest_payload()
+    entries = _covered_manifest_entries(payload)
+
+    assert ("app/data/pff_exports", "directory") in entries, (
+        "fixture precondition: pff_exports is a required directory entry"
+    )
+    assert _is_covered("app/data/pff_exports/pff_metadata.db", entries), (
+        "a file beneath a required DIRECTORY entry is backed up and must read as covered"
+    )
+    assert not _is_covered("app/data/pff_exports_OTHER/x.db", entries), (
+        "a similarly prefixed sibling directory must NOT be covered"
+    )
+    assert not _is_covered("app/data/pff_exports", [("app/data/pff_exports/x.db", "sqlite")]), (
+        "a FILE entry grants no directory scope"
+    )

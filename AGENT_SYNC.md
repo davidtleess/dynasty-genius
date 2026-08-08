@@ -11,6 +11,85 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ 2026-08-08 SESSION 8b — ⭐ PFF LAYER 1 INTAKE LIVE · CI RED FIXED · MANUAL ROUTE COMPLETE
+>
+> **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** His standing words in
+> this thread: ***"ok drive this through claude and codex with a reasonable role for gemini too.
+> commit and push when appropriate"*** and ***"guys we need to focus... fill layer 1. Stop fucking
+> around. get the data in. clean in up"***. **No scheduler-install, paid-route, provider-contact,
+> subscriber-data-access or checkbox authority is created here.**
+>
+> **NO HEAD OR AHEAD-COUNT IS ASSERTED** — probe: `git rev-list --count origin/main..HEAD`.
+>
+> ## 1. `main` WENT RED AND IS GREEN AGAIN — my defect, twice measured
+> `c55e645` failed CI run `31240289595` with **ten** failures, all in the Layer 1 daily-control
+> contract file. Cause: my committed contracts asserted against **gitignored local state** — `_py()`
+> hardcoded `.venv/bin/python3.14` (gitignored, absent on a clean runner) and a PlayerProfiler
+> assertion required a marker under a gitignored data directory. Both passed here *because this
+> machine has them*. Repaired in `27adf0c` (`sys.executable`; honest `unknown` when a marker is
+> absent), session ledger in `afc7947`. **Both commits terminal CI green on their exact SHAs.**
+> Method of record: a tracked-files-only tree (`git archive HEAD`) reproduced **all ten** before the
+> fix and **zero** after — the after-state used that archive **with the two reviewed files
+> overlaid**, since the fix commit did not yet exist.
+>
+> ## 2. ⭐ PFF IS AN OPERABLE LAYER 1 ROUTE — acquisition unchanged, intake added
+> **A human still downloads the subscriber export. No automated acquisition, no provider contact, no
+> scheduler, no paid call, no network path exists.** What now exists:
+> * `src/dynasty_genius/sources/pff_intake.py` + `scripts/run_pff_intake.py` — sidecar-declared
+>   intake and in-place backfill. **Provenance is DECLARED, never inferred from filenames.**
+> * A private SQLite **METADATA** ledger (no paid payload rows) indexing the real archive:
+>   **149 payloads · 307 offering mappings · 7 families · 12 schemas · all 6 governed statuses ·
+>   0 hash mismatches · 0 unresolved · replay idempotent.**
+> * **Raw archive provably untouched:** 149 files byte-identical, mtimes unchanged, all six governed
+>   inventory/coverage/map artifacts unchanged.
+> * Daily control reports the route **complete** (`entry_status.ok=True`) with freshness from the
+>   **newest declared SOURCE retrieval time** — `2026-08-01T09:23:59.950822-04:00` (exact), `manual_due`, ≈6.74d.
+>   Preflight: 20 routes checked, **2** incomplete (RotoViz, Campus2Canton), down from 3.
+>
+> ## 3. LAYER 1 SELECTS NOTHING — three proposals of mine were measured to destroy data
+> I proposed a single scope basis, a duplicate-winner rule, and filtering to `accepted`. All three
+> were reversed on measurement: choosing REGPO drops **1 player present only in REG**
+> (`ncaa/receiving_summary/2017`); duplicate payloads at one grain **differ on 1–2 rows**, so a
+> winner discards observations; 32 of 149 carry non-`accepted` statuses that are **evidence labels**.
+> **§3.3's "no defensible deduplicated total" is REINFORCED, not retired.** Selection belongs to a
+> later layer where an analytical question is actually posed.
+>
+> ## 4. SEVEN BLOCKING DEFECTS, ALL FOUND AFTER MY SUITE WAS GREEN
+> Cross-root contamination (a run with a custom ledger **overwrote the production freshness clock** —
+> this happened for real, via my own test) · within-batch duplicate rollback rejecting an honest drop ·
+> the documented production route quarantining all 149 · a later validation failure stranding an
+> unreported copy · `retrieved_at` string-sliced into a path so a traversal value escaped the layout ·
+> a bare-string `importer` iterated character-by-character breaking the live preflight, hidden by a
+> **vacuous substring assertion** · a backup anti-rot **false negative** whose obvious "fix" would
+> have caused **duplicate uploads** (`app/data/pff_exports` is already a required recursive directory).
+> **My own passing tests caught none of these.** CI, the independent lane, mutation tests and the
+> full suite caught all seven.
+>
+> ## 5. WHAT IS **NOT** TRUE AND MUST NOT BE READ IN
+> * **No automated PFF acquisition, provider contact, scheduler, or paid action.**
+> * **No normalized/player-row analytical store.** Payload rows stay private raw evidence; PFF grades
+>   are **not** promoted to any model or query surface.
+> * **No consumer rewiring.** Phase 13/16 manifests untouched; the single YPRR lane is unchanged and
+>   its 0/874 materialization gap is **still open and separate**.
+> * **Our local daily target is NOT a provider publication cadence** (R3). **The A-C
+>   publication-cadence fields remain OPEN and unmeasured.**
+> * **H2 QB rushing remains a registered hypothesis UNDER TEST with no result.** Nothing here bears
+>   on it.
+>
+> ## 6. OPEN FOR DAVID
+> Snapshot retention (~17.7M rows/year at daily cadence) · scheduler install · CFBD cost ·
+> PlayerProfiler/PFF manual drop cadence · send-or-discard the drafted provider questions.
+>
+> *(Bounded telemetry, NOT a blocker: Gemini's pane holds its own permission dialog, so its
+> awareness copies are undelivered. **Review was never unavailable** — Codex reviewed continuously
+> from the shared tree and issued the RED and GREEN CLEARs. An earlier draft of this block said two
+> panes were "blocked", which conflated MY carrier sends being refused with the review lane being
+> down. The lane was up; only my outbound delivery was not. Corrected before landing.)*
+>
+> **GATES.** Full suite true exit **0** — 4,846 passed / 12 skipped / 9 xfailed / **0 failed / 0
+> collection errors**. Ruff `src app` clean. Codex GREEN CLEAR:
+> `docs/agent-ledger/evidence/2026-08-08/pff_layer1_intake_green_clear_codex_v1.md`.
+
 > # ▶ 2026-08-08 SESSION 8 — ⭐ B13 `contracts` LANDED — LAST OF THE 13 BOUND SPECS · DAILY CONTROL PLANE LIVE
 >
 > **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** His words: ***"i want the

@@ -762,16 +762,33 @@ def test_playerprofiler_importers_are_an_explicit_collection_of_the_four_clis():
         assert Path(cli).is_file(), f"importer entrypoint missing at {cli}"
 
 
-def test_pff_has_no_invented_importer_and_names_the_gap():
-    """V3 — the previous form was VACUOUS when importer was truthy: it asserted nothing.
-    PFF has no import CLI in this repo; the manifest must say so rather than invent one."""
+def test_pff_declares_a_REAL_importer_that_exists_on_disk():
+    """V3 — the anti-fiction contract, updated to the measured fact.
+
+    This test previously required PFF to declare NO importer, because none existed and inventing
+    one would have been a fiction the manifest then carried as fact. That premise is now false:
+    `scripts/run_pff_intake.py` exists, runs, and has indexed the real archive. The intent is
+    unchanged — a declared importer must never be a fiction — so the assertion inverts from
+    "declare nothing" to "declare exactly the truth", the same shape as the PlayerProfiler test
+    above.
+
+    Exact tuple equality is deliberate. A bare string satisfies `in` by SUBSTRING membership and
+    is iterated CHARACTER BY CHARACTER by entry_status, which produced 23 phantom
+    `importer_not_found:<char>` errors while a substring assertion passed happily.
+    """
     m = _mod()
     pff = _by_source(m)["pff"]
-    assert not pff.importer, (
-        f"PFF has no importer entrypoint in this repo; declaring {pff.importer!r} is a "
-        "fiction the manifest would then carry as fact"
+    assert pff.importer == ("scripts/run_pff_intake.py",), (
+        f"the pff importer must be exactly that one-tuple; got {pff.importer!r}"
     )
-    assert "missing_importer" in m.entry_status(pff).missing
+    for cli in pff.importer:
+        assert Path(cli).is_file(), f"declared importer entrypoint missing at {cli}"
+    status = m.entry_status(pff)
+    assert status.ok is True, f"the pff route must be complete; missing={status.missing!r}"
+    assert status.blocking is False, "a manual route is never blocking"
+    assert not any("importer" in x for x in status.missing), (
+        f"no importer component may be reported missing; got {status.missing!r}"
+    )
 
 
 # ==================== R4 — stable report path + honest freshness ====================
@@ -1344,8 +1361,26 @@ def test_entry_status_carries_explicit_blocking_flag():
     assert m.entry_status(broken_auto).blocking is True
 
     # An incomplete MANUAL route is informational: a human has not downloaded yet.
-    manual = m.entry_status(entries["pff"])
-    assert manual.ok is False and manual.blocking is False
+    #
+    # This used PFF as its exemplar, which was correct until this program built the PFF importer.
+    # A SYNTHETIC entry keeps the invariant covered without pretending a now-complete route is
+    # still incomplete — and without the test silently going vacuous the next time a real source
+    # becomes complete.
+    synthetic_manual = m.ManifestEntry(
+        source="synthetic_incomplete_manual",
+        mode="manual_download",
+        refresh_target="daily",
+        connection_method="manual_export_download",
+        destination="app/data/nowhere",
+    )
+    manual = m.entry_status(synthetic_manual)
+    assert manual.ok is False, "a manual route with no drop location or importer is incomplete"
+    assert manual.blocking is False, (
+        "an incomplete MANUAL route is informational, never blocking: a human has not downloaded "
+        "something yet, which is an obligation and not a pipeline fault"
+    )
+    # ...and a real, COMPLETE manual route is genuinely ok, so the assertion above is not vacuous.
+    assert m.entry_status(entries["pff"]).ok is True
 
 
 def test_cli_preflight_exit_is_nonzero_for_a_broken_automatic_route(monkeypatch, tmp_path):

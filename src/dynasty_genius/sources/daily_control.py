@@ -292,8 +292,21 @@ def build_manifest() -> list[ManifestEntry]:
             refresh_target="daily",
             connection_method="manual_export_download",
             destination="app/data/pff_exports",
-            note="No importer CLI exists in this repo. Declaring one would be a fiction "
-                 "the manifest then carries as fact.",
+            # The drop location is the human INBOX, not the canonical destination above. The two
+            # are different things: a person puts files in the inbox; the importer writes the
+            # content-addressed store. Naming the canonical tree here would tell an operator to
+            # hand-place files into a machine-managed layout.
+            drop_location="app/data/pff_exports/inbox",
+            # A TUPLE, matching the declared `Optional[tuple[str, ...]]`. A bare string is
+            # iterated CHARACTER BY CHARACTER by entry_status, which reported 23 phantom
+            # `importer_not_found:s`, `:c`, `:r`... failures and kept PFF permanently incomplete.
+            importer=("scripts/run_pff_intake.py",),
+            success_marker="app/data/ops/pff_intake_status_latest.json",
+            last_good_marker="app/data/ops/pff_intake.ready.json",
+            note="Manual subscriber export. `run_pff_intake.py --batch-manifest <sidecar>` indexes "
+                 "a drop; `--backfill-existing` indexes payloads already held. Provenance is "
+                 "declared in the sidecar, never inferred from filenames. The reported age is the "
+                 "SOURCE download age, not the age of our index.",
         ),
         ManifestEntry(
             source="rotoviz",
