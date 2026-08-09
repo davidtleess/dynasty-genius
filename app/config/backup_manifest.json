@@ -185,6 +185,11 @@
       "path": "app/data/training/cfbd_promotion_history",
       "required": true,
       "kind": "directory"
+    },
+    {
+      "path": "app/data/sources/nflverse_schedules",
+      "required": true,
+      "kind": "directory"
     }
   ],
   "optional": [

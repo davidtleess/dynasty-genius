@@ -1,0 +1,19 @@
+{
+  "checks": [
+    {
+      "check_id": "c-20260809T0739190400-eeea1f47644c",
+      "created_vintage": true,
+      "observed_at": "2026-08-09T07:39:19-04:00",
+      "raw_sha256": "eeea1f47644cc498676be92b5ac0fb853fd4bce238348f0436aa786c1440d5c1",
+      "retrieved_at": "2026-08-09T07:39:25.540420-04:00",
+      "vintage_id": "v-eeea1f47644cc498"
+    }
+  ],
+  "vintages": {
+    "v-eeea1f47644cc498": {
+      "first_seen_at": "2026-08-09T07:39:19-04:00",
+      "raw_sha256": "eeea1f47644cc498676be92b5ac0fb853fd4bce238348f0436aa786c1440d5c1",
+      "schema_hash": "9bbd6413bc4c498d190db8502a9b6dd7dd326c2feffa6b7208e1ef99d6b4c6a5"
+    }
+  }
+}

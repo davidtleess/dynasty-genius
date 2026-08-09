@@ -1,0 +1,15 @@
+{
+  "byte_count": 517546,
+  "delivered_from": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/20471cd8-193e-41a5-aac5-06b3ab16148a",
+  "finality_capability": "unverified",
+  "last_changed_at": "2026-08-09T07:39:19-04:00",
+  "last_checked_at": "2026-08-09T07:39:19-04:00",
+  "observed_at": "2026-08-09T07:39:19-04:00",
+  "parser_version": "b21.schedules.v1",
+  "raw_sha256": "eeea1f47644cc498676be92b5ac0fb853fd4bce238348f0436aa786c1440d5c1",
+  "retrieved_at": "2026-08-09T07:39:25.540420-04:00",
+  "route": "b21_schedules",
+  "schema_hash": "9bbd6413bc4c498d190db8502a9b6dd7dd326c2feffa6b7208e1ef99d6b4c6a5",
+  "source_url": "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.parquet",
+  "vintage_id": "v-eeea1f47644cc498"
+}
