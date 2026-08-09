@@ -31,6 +31,89 @@
 > follows: when a live instruction and this board disagree, **that conflict is itself the escalation**,
 > and neither side wins by default.
 
+> # ▶ 2026-08-09 SESSION CLOSE — B21 LANDED + CFBD FBS LANDED · ⭐ NEXT SESSION OPENS ON THE FOOTBALLGUYS PILOT
+>
+> **AUTHORITY — David's verbatim words this session, and nothing here extends them:**
+> ***"Paid CFBD is 100% authorized at all times - i said this."*** ·
+> ***"i thought we already decided - we can use parquet to save storage. What use cases need
+> uncompressed data?"*** · ***"you're authorized to make those fixes"*** · ***"ok ask Gemini for a
+> quick sanity check - then route to codex on all issues - then commit and push"*** ·
+> ***"k close this session after codex is done and cleared the vintage change. next session starts
+> with the football guys pilot"***.
+>
+> **NO HEAD OR AHEAD-COUNT IS ASSERTED** — probe: `git rev-list --count origin/main..HEAD`.
+>
+> ## ⭐ THE NEXT SESSION STARTS HERE — DAVID'S WORD, NOT A LANE'S SUGGESTION
+> **The Footballguys `adp.csv` pilot.** Everything needed is measured and on disk; the findings are in
+> `docs/agent-ledger/evidence/2026-08-09/footballguys_web_only_data_investigation_claude_v1.md`.
+> * **The data is ALREADY LOCAL as plain CSV** inside the macOS `.app` in David's Downloads —
+>   `projections.csv` (1,546 x 68), `adp.csv` (**18 markets including `adp_sleeper-sf`** — Superflex),
+>   442 KB of attributed analyst prose, SOS, schedule. **PFR-style player ids**, which this repo
+>   already carries as `pfr_player_id`.
+> * **DO NOT SCRAPE. Footballguys ToS §13 prohibits "spider, crawl, or scrape"** and §1 bars
+>   reproduction. The AI-acquisition framing has a CONTRACTUAL answer, not a technical one; the
+>   sanctioned first-party download already delivers the same files.
+> * **CLASSIFICATION, and it is the trap:** ADP is market data and **projections are EXPERT
+>   CONSENSUS**, which `01` §Engine B disallows as a model feature outright. **Overlay / qualitative
+>   only.** The one factual item in the bundle is the NFL schedule, already captured by B21.
+> * **PILOT SHAPE:** `adp.csv` ALONE, on the `pff_intake.py` declared-provenance pattern (provenance
+>   DECLARED, never inferred from a filename). Must produce: David-declared retrieval provenance,
+>   raw bytes + SHA-256 + schema hash before parsing, row/column census, **identity resolution
+>   measured with a denominator and the unresolved list**, a landing disposition, and **redundancy
+>   against KTC / `dynastyprocess_ecr_2qb`** — the check that killed `ff_rankings` at Spearman .99.
+> * **Bonus already banked:** their `ReadMe.txt` is a 15-year changelog — 183 distinct update dates,
+>   2011-07-05 → 2026-08-05, **off-season median gap 7 days**. A provider-published cadence, free,
+>   from a local file. *(The in-season median of 4 days is WEAK: the 11 entries the parser rejected
+>   are all "Sept" spellings, biasing exactly the months it describes.)*
+>
+> ## WHAT LANDED
+> * **`901a756`** (Claude) — B21 vintages stored as **metadata only**, rows derived from the retained
+>   Parquet. David's ruling. Measured: the 9.1 MB vintage held **1,719 bytes** of real metadata; rows
+>   re-derive in 196 ms; at the measured ~7-day cadence that was **~44 MB/year of permanent history**
+>   AND a daily 9.1 MB upload, since the store is a REQUIRED backup entry. Contract **F0** pins it.
+>   The one existing vintage stripped 9.1 MB → 2,801 bytes, **proven lossless first** (derived rows
+>   byte-identical over sorted JSON, 7,548 rows). **CI SUCCESS on the exact SHA.**
+>   **⚠ NOT CODEX-CLEARED — it landed on David's commit+push word; the CLEAR is still owed.**
+> * **`5e077cf`** (Codex) — the first canonical B21 capture: 517,546 bytes, `eeea1f47…`, 7,548 x 46,
+>   272 rows for 2026, `finality_capability: unverified`. **Claude's independent post-push audit is
+>   CLEAR** (`b21_post_push_divergence_audit_claude_v1.md`): committed blobs byte-identical to the
+>   CLEARed pins, frozen wire pair untouched, CI green on the exact SHA.
+> * **CFBD FBS schedules** (Codex, uncommitted at write time) — real paid call, 73,014 quota
+>   remaining. **Its manifest entry + populated store must land TOGETHER** (below).
+>
+> ## ⚠ THE LANDING-ORDER LAW — it fired for real this session
+> **A required `backup_manifest.json` entry must NEVER precede a populated store.** A `cfbd_fbs_schedules`
+> entry was added while its store did not exist; a read-only replay of the backup's own validation
+> returned `missing_required:` and **the 10:15 run would have aborted before any upload** — the script
+> reads the manifest FROM DISK, so being uncommitted gave no protection. Resolved the same hour by
+> populating the store. **B21 honoured the order and was never at risk.** Write this into every source
+> ticket: *the manifest entry and the first capture land together, or the manifest entry does not land.*
+>
+> ## 📡 WIRE STATE — both lanes were unreachable for part of this session
+> * **Codex:** carrier refused `input_not_empty`, then `input_not_verifiable`. Messages pasted but did
+>   not submit. Resolved by the wire rule's ONE carve-out — a single submit-retry Enter on **this
+>   lane's own strand, verified by byte-length match** (3,909 file bytes = 3,908-char chip + newline).
+>   Disclosed, used once.
+> * **Gemini:** `wire_body_mismatch` on a long body, `pane_state_unknown` on a short one. **Working
+>   path remains: hand David the text and he pastes it.** It did, and Gemini answered fully.
+> * **The repo is the delivery channel when the wire is down** (`02` §Durable evidence). Used.
+>
+> ## ✅ GEMINI TELEMETRY — accurate this time, and the fix is reusable
+> Backup `completed` / `sha256_verified: true` / **20.97h old, inside the 26-hour law**. Plists:
+> **10 on disk / 8 tracked / 2 untracked**, both named. **That split was reported wrong twice before;
+> asking for the two numbers SEPARATELY rather than as one figure is what fixed it.** Reuse that framing.
+> *(Independently checked: `dg-mail-carrier` is LOADED with `StartInterval 30`, but its D9 enable
+> marker `~/dg-cockpit/carrier.enabled` does NOT exist and its log reads `held: carrier_disabled`.
+> **Loaded ≠ armed** — governance holds, and a future telemetry read could easily conflate the two.)*
+>
+> ## ⏳ OPEN FOR DAVID
+> Codex's CLEAR on the vintage change · **vintage retention policy** (the ~0.84 MB packed blob already
+> in history stays; rewriting history for it is NOT recommended) · scheduler install · the two
+> untracked plists · PlayerProfiler/PFF manual drop cadence · consumer rewiring for the Realized
+> Outcome job, which **still infers `"final"` from a populated score** while B21 deliberately refuses to.
+>
+> **Standing:** **H2 QB rushing remains a registered hypothesis UNDER TEST with no result.**
+
 > # ▶ 2026-08-08 SESSION 8c — ⭐ LEAGUE-SCOPED CADENCE ENGINE LANDED · B21 RED IN REVIEW · CONTEXT HANDOFF
 >
 > **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** His standing words in
