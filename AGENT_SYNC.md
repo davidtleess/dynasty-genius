@@ -11,6 +11,146 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ 2026-08-08 SESSION 8c — ⭐ LEAGUE-SCOPED CADENCE ENGINE LANDED · B21 RED IN REVIEW · CONTEXT HANDOFF
+>
+> **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** His standing words in
+> this thread: ***"ok drive this through claude and codex with a reasonable role for gemini too.
+> commit and push when appropriate"*** and ***"ok you can work with claude and gemini and keep
+> building towards a complete LAYER 1"***. **No scheduler-install, paid-route, live-source-call,
+> provider-contact or checkbox authority is created here.**
+>
+> **THIS BLOCK IS A DELIBERATE CONTEXT HANDOFF.** David asked for a fresh context. Every figure below
+> was re-measured at handoff time, not recalled. Verify anything load-bearing before acting on it.
+>
+> ## 1. ⭐ WHAT LANDED — both CI-green on their exact SHAs
+> * `268def2` — **competition-scoped game calendar.** The cadence engine read ONE global game
+>   calendar for every weekly policy, so NFL facts governed the seven NCAA PFF lanes. Reproduced
+>   three ways before any test was written: an NFL week completion marked FBS lanes `due`; the NFL
+>   `final_game` fired `season_final` for FBS; the NFL active window made them read `current`.
+>   Now competition-scoped with **no flat fallback**; an absent competition block is honest missing
+>   evidence yielding `undetermined`, never another league's clock.
+> * `8f436db` — landed the **32 evidence files** the committed ledger cites. `268def2` committed the
+>   shared ledger, which references 37 artifacts by name and SHA-256; only 5 were tracked.
+>
+> **`pff.grades` WAS REMOVED — it named no feed.** Measured: the PFF store holds exactly 7 families x
+> 2 leagues = **14 payload directories and no grades directory**; all **353** "grades" occurrences in
+> `pff_schema_catalog.json` are **COLUMN NAMES** inside those 14 lanes. Codex superseded its own
+> "split it" ruling on this evidence. The model-input ban is **column-level**
+> (`engine_a.PROHIBITED_COLUMNS`, `head_b.PFF_GRADE_PROHIBITED_COLUMNS`, enforced by
+> `check_head_b_feature_leakage`) and is untouched by the removal.
+>
+> ## 2. THE ENGINE IS CORRECT AND STILL PRODUCES NOTHING
+> **Say this plainly to David rather than calling the slice "done".** Measured at handoff: **21
+> declared streams — 10 NFL-scoped, 7 FBS-scoped, 4 with no game trigger.** No governed calendar
+> artifact exists, so every game-driven stream still reports `undetermined` in production. The engine
+> is now *capable* of league isolation and has no facts to isolate.
+> * **10 NFL lanes** unblock on B21 (free, no key) + the governed calendar artifact.
+> * **7 FBS lanes** are blocked on **David's CFBD cost decision**. We hold **zero dated FBS game
+>   data**: 217 `games_count_*.json` cache files — **134 null, 83 bare integers, 0 carrying
+>   `start_date`**. The route EXISTS (`scripts/build_w2b_cfbd.py:270` calls `f"{CFBD_BASE}/games"`),
+>   so this is **recoverable, not permanent**.
+> * **3 dates David must hand-declare** (no feed carries them): `league_year_open`,
+>   `draft_complete`, `combine_complete`. These alone turn on `playerprofiler.roster` and restore
+>   `player_season`'s offseason triggers. **Independent of everything else — cheapest available win.**
+>
+> ## 3. B21 IS IN REVIEW — NOT CLEAR, AND ITS CENTRAL FINDING IS A SHIPPED DEFECT
+> `tests/contract/test_b21_schedules_capture_red.py` — **UNTRACKED**, pin
+> `51067f0e85e9333921b2925069fdf1a7d8c800a2f90cc48f14a6780533db1b0e`, **26 failed / 1 disclosed pass
+> (D1) / zero errors**. Two prior pins are DEAD: `057194a`, and a **fabricated placeholder hash I
+> typed into a Codex review request** — treat that string as noise, not a superseded pin.
+>
+> **THE FINDING THAT MATTERS BEYOND THIS TICKET.** nflverse `schedules` has **no terminal-status
+> field and no end-time**, and per Codex's telemetry **may publish interim scores** during its
+> five-minute update cycle. A populated score proves play was **observed**, never that play **ENDED**.
+> `scripts/run_realized_outcome_scoring.py:346` already reads `"final" if home_score is populated` —
+> **a live defect** — and my first B21 draft encoded the identical rule into a contract, which would
+> have pinned that defect as correct. Corroborated locally without a source call: catalog row B21
+> (`docs/layer-1-data-inventory-catalog.md:749`) already lists *"exact source/finality provenance
+> before first prediction-bearing run"* as OPEN.
+> **Consequence, and it is the design, not a gap:** B21 alone can never emit `complete`. It persists
+> scores as `result_observed_unverified`; week completion stays `undetermined` until independently
+> governed terminal evidence is injected. If that evidence never exists, the week stays undetermined.
+>
+> **ALSO SELF-CERTIFYING, SEPARATE TICKET:** the same file computes `expected_game_count` as
+> `len(games)` from the **same frame it validates**, so a truncated download always agrees with
+> itself. Codex sequences the Realized Outcome migration AFTER B21.
+>
+> **Codex's close condition:** RED + GREEN + a **first actual 2026 capture in this same ticket** —
+> code-only is not a landing. **That capture is a LIVE SOURCE CALL and is DAVID-GATED. Not made.**
+>
+> ## 4. THE BOARD BELOW THIS BLOCK IS STALE IN FOUR MEASURED WAYS
+> Corrected here so a fresh agent does not inherit them:
+> 1. A prior GATES line claims **4,846 passed / 0 failed**. Measured at handoff: **4,958 passed / 38
+>    failed / 0 collection errors**. The 38 are **exclusively two withdrawn UNTRACKED REDs**
+>    (`test_b21_schedules_capture_red.py`, `test_governed_cadence_inputs_red.py`) targeting modules
+>    that do not exist. **A clean CI checkout contains neither.** Tracked-file failures: **zero**.
+>    **DO NOT COMMIT EITHER FILE** — doing so puts 38 failures straight into CI.
+> 2. **B21 appears ZERO times in this board.** It is a catalog row only, and it is now the direct
+>    blocker on 10 of 21 streams. The catalog still justifies it solely as a future Realized Outcome
+>    input — written before the cadence engine existed.
+> 3. An older block says **"GEMINI WIRE — ROOT-CAUSED AND REPAIRED. THIRD LANE LIVE."** Untrue. See §5.
+> 4. Codex's read: the block near line 711 titled **CURRENT HANDOFF / EXECUTION BOARD … READ FIRST**
+>    is **stale-but-still-shouting**; its six-loader instructions are superseded by Session 8/8b.
+>
+> ## 5. WIRE STATE — read before assuming a lane is down
+> * **Gemini:** the carrier refuses **every** send with `pane_state_unknown`. Its pane is **idle with
+>   an empty composer — no permission dialog**, so the recorded board diagnosis is WRONG and nobody
+>   has root-caused it. **Working delivery path: hand David the message text and he pastes it.** That
+>   worked; Gemini answered fully. Label such messages as relayed-on-behalf carrying **no authority**,
+>   or a message in David's voice reads as a ruling.
+> * **Codex:** two-way works. Sends return `delivery_unconfirmed` (a false negative) — **verify by
+>   grepping a distinctive phrase in its transcript**, which has succeeded every time.
+> * **OPEN AT HANDOFF:** David's text `also where is footballguys` sits **unsubmitted in Codex's input
+>   box**, and a pin correction is queued behind it. **Do not press Enter on it — it is not ours.**
+>   Also unanswered: what/where FootballGuys is as a source; it is not in the catalog.
+>
+> ## 6. GEMINI'S TELEMETRY — one finding, one error
+> * **Markers clean:** every source declaring a success marker has a real file with a real embedded
+>   timestamp. **Zero declared-but-absent** — that is the class that goes stale forever unnoticed.
+> * **Gemini reported the two loose plists as "tracked in git". They are UNTRACKED.** Codex and I
+>   caught it independently. Corrected: **8 installed jobs exactly match the 8 tracked plists, zero
+>   drift**; the 2 extras are untracked AND uninstalled, so the only two Layer 1 routes that actually
+>   execute (`nflverse_usage_capture`, `sleeper_transactions`) have **no scheduler and would vanish
+>   from a fresh clone**.
+>
+> ## 7. ⚠ MY ERROR PATTERN — the most useful thing in this block
+> Across this session Codex issued **five RED reviews and three GREEN reviews**, and **every single
+> finding was the same species: a test that would pass against broken code.** Vacuous set membership ·
+> wrong object (`getattr` default masking a missing attribute) · wrong field (state vs detail) · an
+> **unsatisfiable** map (demanded a lane while filtering it out) · **dormant sources asserted as an
+> isolation proof** (14 of 20 never execute, so they cannot fail) · **default manifest ordering** (the
+> automatic routes ran BEFORE the fault, so the test would have passed against a controller that
+> aborted) · a **special case proved as a rule**.
+> Separately, four factual errors of ONE type — **asserting from expectation instead of measuring**:
+> a fabricated pin hash; "one dangling reference" when it was **32**; "ruff is not installed" (wrong
+> invocation — it is at `.venv/bin/ruff`); "no CFBD games endpoint" (the URL is assembled from a
+> variable, so the literal never appears).
+> **Guards that actually caught things, use them:** mutation-test every guard 1:1 (7 mutants run,
+> each confirmed to catch its own defect); run the **clean-tree sim** (`git archive HEAD`) with a
+> negative control before any push touching gitignored-state branches — it is the control whose
+> absence put `main` red twice earlier today; and when two tests pass unexpectedly, **check why**
+> rather than banking the green.
+>
+> ## 8. OPEN FOR DAVID
+> **CFBD cost** (blocks 7 FBS lanes) · **live nflverse call** for the first 2026 B21 capture (free, no
+> key; Codex's close condition) · **the 3 hand-declared dates** · snapshot retention · scheduler
+> install · PlayerProfiler/PFF manual drop cadence · send-or-discard the drafted provider questions ·
+> FootballGuys (what it is, whether it is a source).
+>
+> ## 9. NEXT, per Codex's sequence
+> B21 RED → CLEAR → GREEN → **first actual capture (David-gated)** → governed calendar artifact
+> (derive NFL from B21; declare the 3 anchors with provenance; FBS honestly absent) → Realized Outcome
+> migration off its self-certified loader → scheduler decision LAST, only once routes and markers
+> exist.
+>
+> **GATES AT HANDOFF.** `HEAD == origin/main == 8f436db`, 0 unpushed. CI on `8f436db`: **success**.
+> Full suite **4,958 passed / 38 failed (both untracked withdrawn REDs) / 0 collection errors**. Ruff
+> clean on all changed src+tests (2 pre-existing F841 in `tests/contract/test_phase15_valuation.py`
+> are NOT mine and NOT fixed). **Frozen pair verified UNCHANGED:** `scripts/dg_delivery.py`
+> `b3247ec8…`, `tests/contract/test_wire_health_profile_refresh_red.py` `fd924eb1…`.
+>
+> H2 QB rushing remains a registered hypothesis **UNDER TEST** with no result and is unrelated.
+
 > # ▶ 2026-08-08 SESSION 8b — ⭐ PFF LAYER 1 INTAKE LIVE · CI RED FIXED · MANUAL ROUTE COMPLETE
 >
 > **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** His standing words in
