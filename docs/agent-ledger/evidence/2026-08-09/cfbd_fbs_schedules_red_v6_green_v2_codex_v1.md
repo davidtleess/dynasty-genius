@@ -18,9 +18,11 @@ Review answered: `cfbd_fbs_schedules_green_review_codex_v1.md`
   exit 1. Every failure was one of P0-1 through P1-5; the positive controls passed.
 - After repair: focused **191 passed**, true exit 0; Ruff clean across RED/module/CLI; backup
   anti-rot/directory suites **12 passed**; full collection **5,257**, exit 0.
-- Full-suite execution against the stabilized pins is running and will be appended before this
-  packet is offered as complete.
-- No provider request has occurred.
+- Final full suite: **5,222 passed / 15 failed / 12 skipped / 9 xfailed** in 980.23 seconds. All
+  15 failures are the separate withdrawn/untracked governed-cadence RED; no CFBD or backup test
+  failed.
+- This repair packet records the pre-capture GREEN state. The completed paid capture and landing
+  evidence are in `cfbd_fbs_schedules_capture_acceptance_codex_v1.md`.
 
 ## Consolidated disposition
 
@@ -75,5 +77,5 @@ replay nor an ordinary consumer can read a validly encoded but semantically corr
 
 ## Standing
 
-GREEN behavior is ready for independent review. No live paid request, canonical capture, catalog
-update, commit, push, scheduler, cadence input, or consumer wiring has occurred.
+This packet was superseded by independent GREEN clearance and the completed acceptance packet named
+above. No commit, push, scheduler, cadence input, or consumer wiring occurred in this lane.
