@@ -1,0 +1,192 @@
+diff --git a/tests/contract/test_b21_schedules_capture_red.py b/tests/contract/test_b21_schedules_capture_red.py
+index 4033fa4..610d054 100644
+--- a/tests/contract/test_b21_schedules_capture_red.py
++++ b/tests/contract/test_b21_schedules_capture_red.py
+@@ -707,6 +707,187 @@ def test_f0_the_STORED_vintage_holds_METADATA_ONLY_and_derives_its_rows(tmp_path
+     assert store.get_vintage(rec.vintage_id)["rows"] == _expected_rows(raw)
+ 
+ 
++def test_f0b_a_MISSING_content_object_is_a_NAMED_REFUSAL_not_a_partial_vintage(tmp_path):
++    """THE COST OF MAKING THE PARQUET THE ONLY PAYLOAD TRUTH: it must now be verified on every read.
++
++    Independently reproduced against the shipped module: deleting the content object made
++    `get_vintage()` return a dictionary that still claimed `row_count=3` and carried the original
++    `raw_sha256` — with no `rows` key at all. Silent partial success, in a store that is a REQUIRED
++    backup entry, so a restore that missed one object would be served as a vintage rather than
++    refused."""
++    store = _store(tmp_path)
++    m = _mod()
++    rec = store.record_offering(observed_at=T2, raw=_scored(), source_url=EXPECTED_URL)
++    assert len(store.get_vintage(rec.vintage_id)["rows"]) == 3, "precondition: it reads normally"
++
++    store.content_path(rec.raw_sha256).unlink()
++    with pytest.raises(m.CaptureError) as exc:
++        store.get_vintage(rec.vintage_id)
++    assert exc.value.code == "content_missing"
++
++
++def test_f0c_a_SUBSTITUTED_content_object_is_REFUSED(tmp_path):
++    """The same defect's louder half, and the one that returns WRONG DATA rather than none.
++
++    Reproduced: replacing the content object with a VALID Parquet returned the substituted score
++    while the vintage kept its original count, raw hash, schema hash and identity. *(The original
++    reproduction used a one-row payload; this fixture is now a same-length three-row mutant, because
++    a differently-sized substitute could be caught on byte count alone and so could not force the
++    SHA comparison this case is for.)* Removing the stored rows was supposed to END a second source of truth; unverified, it
++    only moved the disagreement to metadata-versus-derived-rows."""
++    store = _store(tmp_path)
++    m = _mod()
++    raw = _scored()
++    rec = store.record_offering(observed_at=T2, raw=raw, source_url=EXPECTED_URL)
++
++    # SAME LENGTH, SAME SHAPE, DIFFERENT BYTES. The first cut of this test substituted a one-row
++    # payload of a different size, which a reader comparing only `byte_count` would have caught —
++    # so it could not force the SHA comparison it claims to. Measured: both payloads are 13,499
++    # bytes with identical row/column/schema shape and different SHA-256.
++    substitute = _parquet([
++        _row("BUF", "KC", away_score=17, home_score=24),
++        _row("DAL", "PHI", away_score=10, home_score=13),
++        _row("SF", "SEA", away_score=28, home_score=20),      # 27 -> 28: one digit, same width
++    ])
++    assert len(substitute) == len(raw), "fixture precondition: byte_count cannot discriminate"
++    assert _sha(substitute) != _sha(raw), "fixture precondition: the bytes really do differ"
++    assert _expected_schema_hash(substitute) == _expected_schema_hash(raw), (
++        "fixture precondition: the schema hash cannot discriminate either"
++    )
++    store.content_path(rec.raw_sha256).write_bytes(substitute)
++
++    with pytest.raises(m.CaptureError) as exc:
++        store.get_vintage(rec.vintage_id)
++    assert exc.value.code == "content_integrity_mismatch"
++
++
++@pytest.mark.parametrize("claim", ["row_count", "column_count", "byte_count",
++                                   "dtypes_one_pair", "dtypes_order_swap", "schema_hash"])
++def test_f0d_a_vintage_whose_METADATA_disagrees_with_the_derived_rows_is_REFUSED(claim, tmp_path):
++    """Byte identity alone is not agreement. If the retained bytes are intact but the vintage's own
++    claims about them have drifted — row count, column count, ordered dtypes, schema hash — then the
++    two sources still disagree and neither is authoritative. Fail closed rather than pick one."""
++    store = _store(tmp_path)
++    m = _mod()
++    rec = store.record_offering(observed_at=T2, raw=_scored(), source_url=EXPECTED_URL)
++    path = store.vintage_path(rec.vintage_id)
++
++    # POSITIVE CONTROL first: untouched metadata still reads, so no case here can pass by refusing
++    # everything.
++    assert len(store.get_vintage(rec.vintage_id)["rows"]) == 3
++
++    # EVERY claim is mutated on its own. The first cut mutated only `row_count`, which a GREEN
++    # checking only `row_count` would satisfy while ignoring the other three.
++    meta = json.loads(path.read_text(encoding="utf-8"))
++    field = "dtypes" if claim.startswith("dtypes") else claim
++    before = json.dumps(meta[field], sort_keys=True)
++    if claim == "row_count":
++        meta[field] = meta[field] + 1
++    elif claim == "column_count":
++        meta[field] = meta[field] - 1
++    elif claim == "byte_count":
++        # The CONTENT is untouched; only the claim about its size moves. Without this case, a reader
++        # that verifies the full SHA and every derived claim but ignores `byte_count` passes — which
++        # is what making f0c same-length quietly allowed.
++        meta[field] = meta[field] + 1
++    elif claim == "dtypes_one_pair":
++        # MINIMAL: exactly one middle entry changes. Mutating all 46 (the first cut) is caught by a
++        # reader comparing only the FIRST dtype — which reopens the very one-sampled-dtype defect
++        # this case exists to close.
++        idx = len(meta[field]) // 2
++        pairs = [list(x) for x in meta[field]]
++        pairs[idx][1] = "Float64" if pairs[idx][1] != "Float64" else "Int64"
++        meta[field] = pairs
++    elif claim == "dtypes_order_swap":
++        # ORDER ONLY: same multiset of pairs, two adjacent entries transposed. A reader comparing
++        # dtypes as an unordered mapping passes this; an ordered comparison does not.
++        pairs = [list(x) for x in meta[field]]
++        idx = len(pairs) // 2
++        pairs[idx], pairs[idx + 1] = pairs[idx + 1], pairs[idx]
++        meta[field] = pairs
++    else:
++        # ONE NIBBLE, still valid hex, so a prefix-only comparison cannot pass.
++        h = meta[field]
++        meta[field] = h[:-1] + ("0" if h[-1] != "0" else "1")
++    assert json.dumps(meta[field], sort_keys=True) != before, f"fixture precondition: {claim} changed"
++    if claim == "dtypes_order_swap":
++        assert sorted(map(tuple, meta[field])) == sorted(
++            map(tuple, json.loads(before))), "precondition: order-only, same pairs"
++    path.write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n", encoding="utf-8")
++
++    with pytest.raises(m.CaptureError) as exc:
++        store.get_vintage(rec.vintage_id)
++    assert exc.value.code == "vintage_metadata_inconsistent", f"{claim} drift was accepted"
++
++
++@pytest.mark.parametrize("break_", ["content_swap", "renamed_file"])
++def test_f0f_a_vintage_IDENTITY_must_bind_to_the_bytes_it_names(break_, tmp_path):
++    """THE GAP EVERY OTHER CHECK IN THIS FILE MISSES, and it took a second valid vintage to see it.
++
++    Independently reproduced: with TWO valid same-schema three-row vintages on disk, repointing
++    vintage A's metadata at B's content — and copying B's byte count, hash, counts and schema claims
++    while keeping A's `vintage_id` — is accepted. Every derived comparison agrees, because they are
++    all now B's. A reader implementing content existence, byte count, full SHA, row/column counts,
++    dtypes AND schema hash still serves B's scores under A's identity.
++
++    What is missing is the BINDING: the vintage id is derived from the content hash, so
++    `vintage_id == "v-" + raw_sha256[:16]` is a checkable invariant, and the id asked for must equal
++    the id stored. Without it, "which capture is this?" has no answer that the store enforces.
++
++    `renamed_file` is the same break from the other end: a vintage file moved to another id's path
++    keeps its own `vintage_id`, so the requested and stored identities diverge."""
++    store = _store(tmp_path)
++    m = _mod()
++    a = store.record_offering(observed_at=T1, raw=_unplayed(), source_url=EXPECTED_URL)
++    b_raw = _scored()
++    b = store.record_offering(observed_at=T2, raw=b_raw, source_url=EXPECTED_URL)
++    assert a.vintage_id != b.vintage_id, "fixture precondition: two distinct valid vintages"
++    assert len(store.get_vintage(a.vintage_id)["rows"]) == 3, "positive control: A reads normally"
++
++    if break_ == "content_swap":
++        # A's metadata now describes B completely — hash, size, counts, dtypes, schema — while
++        # keeping A's own id. Every derived claim will agree with the bytes it points at.
++        path = store.vintage_path(a.vintage_id)
++        meta_a = json.loads(path.read_text(encoding="utf-8"))
++        meta_b = json.loads(store.vintage_path(b.vintage_id).read_text(encoding="utf-8"))
++        for field in ("raw_sha256", "byte_count", "schema_hash", "dtypes",
++                      "row_count", "column_count"):
++            meta_a[field] = meta_b[field]
++        assert meta_a["vintage_id"] == a.vintage_id, "fixture precondition: A keeps its own id"
++        path.write_text(json.dumps(meta_a, indent=2, sort_keys=True) + "\n", encoding="utf-8")
++        requested = a.vintage_id
++    else:
++        # B's whole vintage file is moved onto A's path; its stored id still says B.
++        store.vintage_path(a.vintage_id).write_text(
++            store.vintage_path(b.vintage_id).read_text(encoding="utf-8"), encoding="utf-8")
++        requested = a.vintage_id
++
++    with pytest.raises(m.CaptureError) as exc:
++        store.get_vintage(requested)
++    assert exc.value.code == "vintage_identity_mismatch", f"{break_} was accepted"
++
++
++def test_f0e_an_UNSUPPORTED_parser_version_is_REFUSED_not_silently_reinterpreted(tmp_path):
++    """Codex P1, and it is an overclaim in this module's own docstring rather than only a gap.
++
++    The module states that `parser_version` plus the retained bytes reconstructs a past parse. It
++    does not: `get_vintage()` always invokes the CURRENT parser. With rows no longer stored, that
++    version boundary became load-bearing — a vintage written by a future parser would be silently
++    reinterpreted by today's rules while still reporting the other version. Refuse it, or stop
++    claiming reconstruction."""
++    store = _store(tmp_path)
++    m = _mod()
++    rec = store.record_offering(observed_at=T2, raw=_scored(), source_url=EXPECTED_URL)
++    path = store.vintage_path(rec.vintage_id)
++    meta = json.loads(path.read_text(encoding="utf-8"))
++    meta["parser_version"] = "unknown.future.parser"
++    path.write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n", encoding="utf-8")
++
++    with pytest.raises(m.CaptureError) as exc:
++        store.get_vintage(rec.vintage_id)
++    assert exc.value.code == "parser_version_unsupported"
++
++
+ def test_f2_the_vintage_carries_a_RECOMPUTABLE_schema_hash_and_the_FULL_dtype_map(tmp_path):
+     """Column names alone cannot detect a type change. A schema hash makes drift a comparable fact;
+     the dtype map makes it a readable one, so 'the provider changed something' is answerable without
