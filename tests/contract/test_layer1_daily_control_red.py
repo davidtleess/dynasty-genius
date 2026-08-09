@@ -1472,16 +1472,35 @@ def test_cli_preflight_exit_is_zero_when_only_manual_routes_are_incomplete(monke
 # count stayed at 119 and nothing pinned the repair. A fix without a test is a claim, not a contract.
 
 
-def _cal(**over):
+#: The three facts that are COMPETITION-SCOPED. Overrides naming one of these are routed into the
+#: competition block; everything else stays at the top level, where league-year events live.
+_SCOPED_KEYS = ("week1_kickoff", "final_game", "game_week_completions")
+
+
+def _cal(competition="nfl", **over):
+    """A competition-scoped calendar.
+
+    These fixtures were flat, which is the shape the engine read globally — one league's facts
+    governing every league's streams. Overrides keep working unchanged at the call sites; they are
+    simply routed to the right level now.
+    """
+    block = {
+        "week1_kickoff": "2026-09-10T20:20:00-04:00",
+        "final_game": "2027-01-04T20:20:00-05:00",
+        "game_week_completions": [],
+    }
     base = {
         "season": 2026,
         "prior_final_game": "2026-01-05T20:20:00-05:00",
         "league_year_open": "2026-03-11T16:00:00-04:00",
         "draft_complete": "2026-04-25T19:00:00-04:00",
-        "week1_kickoff": "2026-09-10T20:20:00-04:00",
-        "final_game": "2027-01-04T20:20:00-05:00",
     }
-    base.update(over)
+    for key, value in over.items():
+        if key in _SCOPED_KEYS:
+            block[key] = value
+        else:
+            base[key] = value
+    base["competitions"] = {competition: block}
     return base
 
 
@@ -1712,8 +1731,11 @@ def test_a_snapshot_is_passed_through_rather_than_reloaded_per_source(tmp_path, 
         )
 
 
-_VCAL = {"season": 2026, "week1_kickoff": "2026-09-10T20:20:00-04:00",
-         "final_game": "2027-01-04T20:20:00-05:00"}
+#: Competition-scoped, with no flat fallback. The three game-calendar facts are scoped together.
+_VCAL = {"season": 2026, "competitions": {"nfl": {
+    "week1_kickoff": "2026-09-10T20:20:00-04:00",
+    "final_game": "2027-01-04T20:20:00-05:00",
+    "game_week_completions": []}}}
 _VHELD = {"ingested_at": "2026-08-01T00:00:00+00:00", "newest_season": 2025,
           "covered_seasons": [2025]}
 _VOFFER = {"observed_at": "2026-08-01T00:00:00+00:00", "provenance": "vendor_export_manifest",
@@ -1723,30 +1745,38 @@ _VOFFER = {"observed_at": "2026-08-01T00:00:00+00:00", "provenance": "vendor_exp
 @pytest.mark.parametrize("label,payload", [
     ("season not an integer", {"calendar": {**_VCAL, "season": "not-an-int"}}),
     ("covered_seasons are strings",
-     {"calendar": _VCAL, "held": {"pff": {"grades": {**_VHELD, "covered_seasons": ["2025"]}}}}),
+     {"calendar": _VCAL, "held": {"pff": {"nfl_passing_summary": {**_VHELD, "covered_seasons": ["2025"]}}}}),
     ("newest_season is a string",
-     {"calendar": _VCAL, "held": {"pff": {"grades": {**_VHELD, "newest_season": "2025"}}}}),
+     {"calendar": _VCAL, "held": {"pff": {"nfl_passing_summary": {**_VHELD, "newest_season": "2025"}}}}),
     ("offer without provenance",
-     {"calendar": _VCAL, "offer": {"pff": {"grades": {"observed_at": "2026-08-01T00:00:00+00:00"}}}}),
+     {"calendar": _VCAL, "offer": {"pff": {"nfl_passing_summary": {"observed_at": "2026-08-01T00:00:00+00:00"}}}}),
     ("held record with NO covered_seasons",
      {"calendar": _VCAL,
-      "held": {"pff": {"grades": {"ingested_at": "2026-08-01T00:00:00+00:00",
+      "held": {"pff": {"nfl_passing_summary": {"ingested_at": "2026-08-01T00:00:00+00:00",
                                   "newest_season": 2025}}}}),
     ("offer record with NO covered_seasons",
      {"calendar": _VCAL,
-      "offer": {"pff": {"grades": {"observed_at": "2026-08-01T00:00:00+00:00",
+      "offer": {"pff": {"nfl_passing_summary": {"observed_at": "2026-08-01T00:00:00+00:00",
                                    "provenance": "vendor_export_manifest",
                                    "newest_season": 2025}}}}),
     ("covered_seasons is null",
-     {"calendar": _VCAL, "held": {"pff": {"grades": {**_VHELD, "covered_seasons": None}}}}),
+     {"calendar": _VCAL, "held": {"pff": {"nfl_passing_summary": {**_VHELD, "covered_seasons": None}}}}),
     ("covered_seasons is not a list",
-     {"calendar": _VCAL, "held": {"pff": {"grades": {**_VHELD, "covered_seasons": 7}}}}),
-    ("game_week_completions is not a list",
+     {"calendar": _VCAL, "held": {"pff": {"nfl_passing_summary": {**_VHELD, "covered_seasons": 7}}}}),
+    # These now assert the FLAT-KEY refusal. A stray flat game-calendar key is a leftover from the
+    # deleted shape, and ignoring it would silently drop whatever the operator put there while the
+    # artifact still loaded — a worse failure than rejecting it.
+    ("flat game_week_completions is refused outright",
      {"calendar": {**_VCAL, "game_week_completions": 7}}),
-    ("game_week_completions is a bare string",
+    ("flat game_week_completions as a bare string is refused outright",
      {"calendar": {**_VCAL, "game_week_completions": "2026-09-14T23:30:00-04:00"}}),
+    ("scoped game_week_completions is not a list",
+     {"calendar": {"season": 2026, "competitions": {"nfl": {
+         "week1_kickoff": "2026-09-10T20:20:00-04:00",
+         "final_game": "2027-01-04T20:20:00-05:00",
+         "game_week_completions": 7}}}}),
     ("TYPOED stream key", {"calendar": _VCAL, "held": {"pff": {"gamelogg": _VHELD}}}),
-    ("unknown source key", {"calendar": _VCAL, "held": {"pffx": {"grades": _VHELD}}}),
+    ("unknown source key", {"calendar": _VCAL, "held": {"pffx": {"nfl_passing_summary": _VHELD}}}),
     ("unknown availability window",
      {"calendar": _VCAL, "availability": {"xfl": {"available_at": "2026-09-15T12:00:00-04:00"}}}),
 ])
@@ -1776,13 +1806,13 @@ def test_semantic_and_key_validation_rejects_each_malformed_class(label, payload
 
 @pytest.mark.parametrize("label,payload", [
     ("minimal", {"calendar": _VCAL}),
-    ("full artifact", {"calendar": _VCAL, "held": {"pff": {"grades": _VHELD}},
-                       "offer": {"pff": {"grades": _VOFFER}},
+    ("full artifact", {"calendar": _VCAL, "held": {"pff": {"nfl_passing_summary": _VHELD}},
+                       "offer": {"pff": {"nfl_passing_summary": _VOFFER}},
                        "availability": {"nfl": {"available_at": "2026-09-15T12:00:00-04:00"}}}),
     ("RETAINED SEASON SUPERSET",
      {"calendar": _VCAL,
-      "held": {"pff": {"grades": {**_VHELD, "covered_seasons": [2015, 2016, 2025]}}},
-      "offer": {"pff": {"grades": _VOFFER}}}),
+      "held": {"pff": {"nfl_passing_summary": {**_VHELD, "covered_seasons": [2015, 2016, 2025]}}},
+      "offer": {"pff": {"nfl_passing_summary": _VOFFER}}}),
 ])
 def test_valid_artifacts_are_ACCEPTED_so_the_validator_is_not_merely_refusing_everything(
     label, payload

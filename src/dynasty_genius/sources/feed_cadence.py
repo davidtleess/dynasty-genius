@@ -51,6 +51,7 @@ from typing import Any, Iterable, Mapping, Optional, Sequence
 
 __all__ = [
     "CadenceError",
+    "COMPETITIONS",
     "CADENCE_STATES",
     "COVERAGE_STATES",
     "CURRENT",
@@ -132,9 +133,37 @@ _PFF_FAMILIES: tuple[str, ...] = (
 #: Which availability window a PFF lane follows.
 _LEAGUE_WINDOW = {"nfl": "nfl", "ncaa": "fbs"}
 
+#: The COMPETITIONS whose game calendars we can hold facts about. Closed, not open-ended: a third
+#: competition would need its own evidence source, and silently accepting one would let a policy
+#: point at a calendar block nothing ever populates.
+NFL, FBS = "nfl", "fbs"
+COMPETITIONS = frozenset({NFL, FBS})
+
+#: Which competition a stream's game clock belongs to. PFF lanes carry their league in the stream
+#: key; PlayerProfiler's game-driven streams are NFL. Streams whose triggers are not game events
+#: (roster, medical, the operator-drop exports) are deliberately absent — demanding a competition of
+#: them would be noise, and `build_policy_registry` only requires it of game-triggered policies.
+_STREAM_COMPETITION = {
+    ("playerprofiler", "gamelog"): NFL,
+    ("playerprofiler", "pbp"): NFL,
+    ("playerprofiler", "player_season"): NFL,
+}
+
+#: Triggers that make a policy depend on a competition's game calendar.
+GAME_TRIGGERS = frozenset({"game_week_complete", "season_final"})
+
 
 class CadenceError(RuntimeError):
-    """A cadence question could not be answered as posed."""
+    """A cadence question could not be answered as posed.
+
+    Carries a STABLE MACHINE CODE alongside the human message. Callers and contracts match on
+    `.code`; the message is free to be reworded without breaking them, and two guards that happen to
+    share vocabulary stay distinguishable.
+    """
+
+    def __init__(self, message: str, *, code: Optional[str] = None) -> None:
+        super().__init__(message)
+        self.code = code
 
 
 @dataclass(frozen=True)
@@ -145,6 +174,10 @@ class StreamPolicy:
     coverage_basis: str = VENDOR_OFFER
     #: Which availability clock gates this stream's events, when availability facts are supplied.
     window: Optional[str] = None
+    #: WHOSE games drive this stream. `None` is legitimate only for policies with no game trigger.
+    #: Before this existed the engine read ONE global game calendar for every weekly policy, so NFL
+    #: completions marked NCAA lanes due and the NFL season being underway marked them current.
+    competition: Optional[str] = None
 
 
 @dataclass
@@ -186,7 +219,7 @@ class StreamDisposition:
 
 
 def build_policy_registry(
-    declarations: Iterable[tuple[str, str, Sequence[str]]],
+    declarations: Iterable[Sequence[Any]],
 ) -> dict[tuple[str, str], StreamPolicy]:
     """Assemble policies from RAW declarations, refusing duplicates.
 
@@ -195,19 +228,40 @@ def build_policy_registry(
     it. A policy silently shadowing another would be invisible downstream.
     """
     registry: dict[tuple[str, str], StreamPolicy] = {}
-    for source, stream, triggers in declarations:
+    for declaration in declarations:
+        # A declaration may omit the competition entirely (the pre-scope 3-tuple shape). That is
+        # accepted here only to be REJECTED below for game-triggered policies: silently defaulting a
+        # legacy declaration to `nfl` is exactly how the league leak would return, so the omission
+        # has to reach the guard rather than be filled in.
+        source, stream, triggers = declaration[0], declaration[1], declaration[2]
+        competition = declaration[3] if len(declaration) > 3 else None
         key = (source, stream)
         if key in registry:
             raise CadenceError(
-                f"duplicate policy declaration for {source}.{stream}: a stream may be declared once"
+                f"duplicate policy declaration for {source}.{stream}: a stream may be declared once",
+                code="duplicate_policy",
             )
         validate_triggers(triggers)
+        if GAME_TRIGGERS & set(triggers):
+            if competition is None:
+                raise CadenceError(
+                    f"{source}.{stream} responds to game events but declares no competition; a "
+                    "game-triggered policy must say WHOSE games drive it",
+                    code="competition_missing",
+                )
+            if competition not in COMPETITIONS:
+                raise CadenceError(
+                    f"{source}.{stream} declares competition {competition!r}, which is outside "
+                    f"the closed set {sorted(COMPETITIONS)}",
+                    code="competition_unknown",
+                )
         registry[key] = StreamPolicy(
             source=source,
             stream=stream,
             triggers=tuple(triggers),
             coverage_basis=_coverage_basis(source, stream),
             window=_window_for(source, stream),
+            competition=competition,
         )
     return registry
 
@@ -234,7 +288,7 @@ def validate_triggers(triggers: Sequence[str]) -> None:
         )
 
 
-def _declarations() -> list[tuple[str, str, tuple[str, ...]]]:
+def _declarations() -> list[tuple[Any, ...]]:
     """The shipped declarations.
 
     `player_season` carries FOUR triggers, not one. Measured: 322 columns, of which 134 are per-game
@@ -243,14 +297,22 @@ def _declarations() -> list[tuple[str, str, tuple[str, ...]]]:
     draft cycle.
     """
     weekly = ("game_week_complete", "season_final")
-    out: list[tuple[str, str, tuple[str, ...]]] = [
-        ("playerprofiler", "gamelog", weekly),
-        ("playerprofiler", "pbp", weekly),
+    out: list[tuple[Any, ...]] = [
+        ("playerprofiler", "gamelog", weekly, _STREAM_COMPETITION[("playerprofiler", "gamelog")]),
+        ("playerprofiler", "pbp", weekly, _STREAM_COMPETITION[("playerprofiler", "pbp")]),
         ("playerprofiler", "player_season",
-         ("game_week_complete", "season_final", "combine_complete", "draft_complete")),
+         ("game_week_complete", "season_final", "combine_complete", "draft_complete"),
+         _STREAM_COMPETITION[("playerprofiler", "player_season")]),
         ("playerprofiler", "roster", ("league_year_open", "draft_complete")),
         ("playerprofiler", "medical", ("operator_drop",)),
-        ("pff", "grades", weekly),
+        # `pff.grades` USED TO BE DECLARED HERE AND NAMED NO FEED. The PFF store holds exactly 7
+        # families x 2 leagues = 14 payload directories and no grades directory in either league;
+        # every "grades" occurrence in the schema catalog is a COLUMN NAME inside those 14 lanes.
+        # It carried weekly triggers and no league identity because it was never an independently
+        # acquired stream, and it resisted scoping because there was nothing to scope. Grade fields
+        # refresh exactly when the real lane carrying them refreshes. The model-input prohibition on
+        # grades is COLUMN-level and enforced elsewhere (head_b_contract and the export adapters),
+        # so removing this phantom does not touch it.
         # RotoViz and Campus2Canton hold nothing and have no marker. No stream detail is invented:
         # a single `export` stream stands in until a first-drop inventory exists.
         ("rotoviz", "export", ("operator_drop",)),
@@ -258,7 +320,7 @@ def _declarations() -> list[tuple[str, str, tuple[str, ...]]]:
     ]
     for league in ("nfl", "ncaa"):
         for family in _PFF_FAMILIES:
-            out.append(("pff", f"{league}_{family}", weekly))
+            out.append(("pff", f"{league}_{family}", weekly, _LEAGUE_WINDOW[league]))
     return out
 
 
@@ -283,14 +345,22 @@ def stream_disposition(source: str, stream: str) -> StreamDisposition:
     automated source. So ingestion is authorized and the refresh obligation stands, while model use
     stays forbidden and the raw payload is retained.
     """
-    is_grades = (source, stream) == ("pff", "grades")
+    # No stream-level model-use prohibition remains. It keyed on `pff.grades`, which named no feed
+    # and has been removed; the real grade COLUMNS live inside the 14 retained lanes and are barred
+    # by column-level contracts. Flagging those lanes here instead would suppress legitimate Layer 1
+    # inputs to enforce a restriction that operates on columns.
+    # AN UNDECLARED STREAM IS NOT AUTHORIZED FOR ANYTHING. `ingestion_authorized` was hardcoded
+    # True, so after `pff.grades` was removed the disposition still reported that ingesting it was
+    # authorized — a removed phantom answering yes to "may we acquire this?". Authorization follows
+    # the declaration: no policy, no route, nothing to authorize.
+    declared = policy_for(source, stream) is not None
     return StreamDisposition(
         source=source,
         stream=stream,
-        model_use_forbidden=is_grades,
-        retained_raw=True,
-        ingestion_authorized=True,
-        creates_refresh_obligation=policy_for(source, stream) is not None,
+        model_use_forbidden=False,
+        retained_raw=declared,
+        ingestion_authorized=declared,
+        creates_refresh_obligation=declared,
         consumer_authorized=False,
     )
 
@@ -311,6 +381,25 @@ def _ts(value: Any, *, field_name: str) -> datetime:
     if parsed.tzinfo is None:
         raise CadenceError(f"{field_name} must be timezone-aware; got naive {value!r}")
     return parsed.astimezone(timezone.utc)
+
+
+def _competition_facts(
+    calendar: Mapping[str, Any], competition: Optional[str]
+) -> Optional[Mapping[str, Any]]:
+    """The game-calendar block for one competition, or None when the calendar supplies none.
+
+    NO FLAT FALLBACK. Reading top-level `week1_kickoff` / `final_game` / `game_week_completions`
+    when a competition block is absent is precisely the defect this replaces: it made one league's
+    facts govern every league's streams. An absent block means we hold no evidence for that
+    competition, and the honest answer downstream is `undetermined` — never another league's clock.
+    """
+    if competition is None:
+        return None
+    competitions = calendar.get("competitions")
+    if not isinstance(competitions, Mapping):
+        return None
+    block = competitions.get(competition)
+    return block if isinstance(block, Mapping) else None
 
 
 def _game_week_completions(calendar: Mapping[str, Any]) -> list[datetime]:
@@ -336,6 +425,7 @@ def _last_event(
     calendar: Mapping[str, Any],
     offer: Optional[Mapping[str, Any]],
     availability: Optional[Mapping[str, Any]],
+    facts: Optional[Mapping[str, Any]] = None,
 ) -> tuple[Optional[datetime], Optional[str]]:
     """The most recent observable event on or before `now` that this stream responds to."""
     candidates: list[tuple[datetime, str]] = []
@@ -348,12 +438,20 @@ def _last_event(
             if published <= now:
                 candidates.append((published, "game_week_complete"))
         else:
-            for moment in _game_week_completions(calendar):
+            for moment in _game_week_completions(facts or {}):
                 if moment <= now:
                     candidates.append((moment, "game_week_complete"))
 
+    # SEASON FINAL IS COMPETITION-SCOPED. Read globally, the NFL season ending told every FBS lane
+    # its season had ended too.
+    if "season_final" in policy.triggers and facts and "final_game" in facts:
+        moment = _ts(facts["final_game"], field_name="final_game")
+        if moment <= now:
+            candidates.append((moment, "season_final"))
+
+    # These are LEAGUE-YEAR events, not game events: they are not competition-scoped and stay at the
+    # top level of the calendar.
     for trigger, key in (
-        ("season_final", "final_game"),
         ("league_year_open", "league_year_open"),
         ("draft_complete", "draft_complete"),
         ("combine_complete", "combine_complete"),
@@ -406,8 +504,14 @@ def _in_active_window(
         published = _ts(availability[policy.window]["available_at"], field_name="available_at")
         if published > now:
             return False
-    kickoff = _ts(calendar["week1_kickoff"], field_name="week1_kickoff")
-    final = _ts(calendar["final_game"], field_name="final_game")
+    # THE WINDOW IS COMPETITION-SCOPED. Read globally, an FBS lane reported `current` merely because
+    # the NFL season was underway. With no facts for this competition there is no window to be
+    # inside, and the caller resolves that to `undetermined` rather than to `current`.
+    facts = _competition_facts(calendar, policy.competition)
+    if not facts:
+        return False
+    kickoff = _ts(facts["week1_kickoff"], field_name="week1_kickoff")
+    final = _ts(facts["final_game"], field_name="final_game")
     return kickoff <= now <= final
 
 
@@ -482,10 +586,31 @@ def evaluate_stream(
 
     ingested = _ts(held["ingested_at"], field_name="ingested_at")
     age_days = round((now - ingested).total_seconds() / 86400.0, 3)
-    event_at, trigger = _last_event(policy, now, calendar, offer, availability)
+
+    # THE SCOPED FACTS FOR THIS STREAM'S COMPETITION, resolved ONCE. Falling back to the top-level
+    # calendar here would restore the exact leak this scoping exists to close.
+    facts = _competition_facts(calendar, policy.competition)
+
+    # A MISSING COMPETITION BLOCK SILENCES THE GAME CLOCK, NOT THE WHOLE STREAM. My first version
+    # returned `undetermined` immediately whenever a game-triggered policy had no facts. That was
+    # wrong and had a real consequence: `playerprofiler.player_season` also responds to
+    # `combine_complete` and `draft_complete`, which are LEAGUE-YEAR events living at the top level
+    # and entirely observable without any game calendar. With no NFL block, a completed draft
+    # stopped registering and the stream reported `undetermined` instead of `due` — an absent
+    # calendar fact suppressing an event we could see perfectly well.
+    #
+    # Non-game events are therefore evaluated FIRST and can still make a stream due. Only when no
+    # such event settles the question does the missing game clock become the answer.
+    event_at, trigger = _last_event(policy, now, calendar, offer, availability, facts)
 
     if event_at is not None and event_at > ingested:
         return StreamState(source, stream, DUE, coverage, age_days, missing, trigger)
+
+    # No observable event has overtaken what we hold. If this stream ALSO depends on a game clock we
+    # have no facts for, we cannot rule out a game event we simply cannot see — so the honest answer
+    # is `undetermined`, never `current` and never another competition's clock.
+    if GAME_TRIGGERS & set(policy.triggers) and not facts:
+        return StreamState(source, stream, UNDETERMINED, coverage, age_days, missing, None)
 
     # NO GOVERNED EVENT EVIDENCE means the obligation is UNCOMPUTABLE, not satisfied. A
     # game-week-driven stream evaluated mid-season with no declared completions previously reported
@@ -493,11 +618,12 @@ def evaluate_stream(
     # whether a week had even finished. Absence of evidence is not evidence of currency.
     if (
         "game_week_complete" in policy.triggers
-        and not calendar.get("game_week_completions")
+        and facts is not None
+        and not facts.get("game_week_completions")
         and not (availability and policy.window and policy.window in availability)
     ):
-        kickoff = _ts(calendar["week1_kickoff"], field_name="week1_kickoff")
-        final = _ts(calendar["final_game"], field_name="final_game")
+        kickoff = _ts(facts["week1_kickoff"], field_name="week1_kickoff")
+        final = _ts(facts["final_game"], field_name="final_game")
         if kickoff <= now <= final:
             return StreamState(source, stream, UNDETERMINED, coverage, age_days, missing, None)
 

@@ -543,11 +543,29 @@ INPUTS_ABSENT, INPUTS_INVALID, INPUTS_OK = "absent", "invalid", "ok"
 
 #: The minimum a governed inputs artifact must declare to be usable at all.
 _REQUIRED_INPUT_KEYS = ("calendar",)
-_REQUIRED_CALENDAR_KEYS = ("season", "week1_kickoff", "final_game")
+#: `week1_kickoff` and `final_game` are NO LONGER flat keys — they are competition-scoped, together
+#: with `game_week_completions`, and are validated per competition below. Keeping them here would
+#: force every artifact to carry a flat pair that nothing reads, and accepting a flat pair would
+#: silently restore the one-league-governs-all defect.
+_REQUIRED_CALENDAR_KEYS = ("season",)
+
+#: Stable machine codes for scope faults. Contracts and callers match on these; the human message
+#: beside them is free to be reworded. Matching on prose breaks on every reword and, worse, matches
+#: the wrong guard when two messages share a word.
+SCOPE_MISSING = "calendar_scope_missing"
+SCOPE_NOT_OBJECT = "calendar_scope_not_object"
+COMPETITION_UNKNOWN = "calendar_competition_unknown"
+COMPETITION_NOT_OBJECT = "calendar_competition_not_object"
+COMPETITION_PARTIAL = "calendar_competition_partial"
+
+#: The three facts that describe one competition's game calendar. They are scoped TOGETHER: a block
+#: carrying some of them claims to describe a competition and then answers only part of the
+#: question, which is undetectable downstream. Absent-entirely is honest; half-present is not.
+_COMPETITION_FACT_KEYS = ("week1_kickoff", "final_game", "game_week_completions")
 #: EVERY calendar key the engine consumes. `combine_complete` was omitted while
 #: `playerprofiler.player_season` consumes it, so a bad value there survived validation and could
 #: only fail later, and only if a stream happened to reach that branch.
-_CALENDAR_TIME_KEYS = ("week1_kickoff", "final_game", "prior_final_game",
+_CALENDAR_TIME_KEYS = ("prior_final_game",
                        "league_year_open", "draft_complete", "combine_complete")
 #: Evidence records must carry these, timezone-aware.
 _HELD_TIME_KEYS = ("ingested_at",)
@@ -622,19 +640,86 @@ def _validate_inputs_inner(payload: Any) -> tuple[str, Optional[dict[str, Any]],
             return INPUTS_INVALID, None, f"calendar {key} is not an ISO-8601 timestamp: {value!r}"
         if parsed.tzinfo is None:
             return INPUTS_INVALID, None, f"calendar {key} must be timezone-aware: {value!r}"
-    for key in ("game_week_completions",):
-        declared = calendar.get(key)
-        if declared is not None and not isinstance(declared, list):
+    # ---- COMPETITION-SCOPED GAME CALENDAR ----
+    from . import feed_cadence as _fc
+
+    # A FLAT GAME-CALENDAR KEY IS A REFUSAL, NOT A LEFTOVER TO IGNORE. Surfaced by migrating the
+    # fixtures: with the scoped reader in place, a stray flat `week1_kickoff` / `final_game` /
+    # `game_week_completions` is simply never read, so an artifact written against the deleted shape
+    # would LOAD SUCCESSFULLY while its game facts were silently dropped — the operator would see a
+    # valid artifact and `undetermined` streams with nothing connecting the two. Refusing it names
+    # the problem at the boundary.
+    stray = [k for k in _COMPETITION_FACT_KEYS if k in calendar]
+    if stray:
+        return INPUTS_INVALID, None, (
+            f"{SCOPE_MISSING}: calendar carries flat game-calendar keys {', '.join(stray)}; these "
+            "are competition-scoped now and a flat copy would be silently ignored"
+        )
+    if "competitions" not in calendar:
+        return INPUTS_INVALID, None, (
+            f"{SCOPE_MISSING}: the game calendar must be scoped by competition; a flat "
+            "week1_kickoff/final_game pair made one league's facts govern every league's streams"
+        )
+    competitions = calendar.get("competitions")
+    if not isinstance(competitions, dict):
+        return INPUTS_INVALID, None, (
+            f"{SCOPE_NOT_OBJECT}: calendar competitions must be an object, got "
+            f"{type(competitions).__name__}"
+        )
+    for name, block in competitions.items():
+        if name not in _fc.COMPETITIONS:
             return INPUTS_INVALID, None, (
-                f"calendar {key} must be a list, got {type(declared).__name__}"
+                f"{COMPETITION_UNKNOWN}: calendar competition {name!r} is outside the closed set "
+                f"{sorted(_fc.COMPETITIONS)}"
             )
-        for value in declared or []:
+        if not isinstance(block, dict):
+            return INPUTS_INVALID, None, (
+                f"{COMPETITION_NOT_OBJECT}: calendar competition {name!r} must be an object, got "
+                f"{type(block).__name__}"
+            )
+        # ABSENT vs PARTIAL. A competition we hold NO evidence for may be omitted entirely — that
+        # is true, and the engine answers `undetermined` for its lanes. Rejecting the omission would
+        # force an operator to fabricate anchors just to make the artifact load, which is how
+        # invented evidence enters a store. A block that is PRESENT must be COMPLETE.
+        absent = [k for k in _COMPETITION_FACT_KEYS if k not in block]
+        if absent:
+            return INPUTS_INVALID, None, (
+                f"{COMPETITION_PARTIAL}: calendar competition {name!r} is missing "
+                f"{', '.join(absent)}; the three game-calendar facts are scoped together, and a "
+                "half-described competition answers only part of the question"
+            )
+        for key in ("week1_kickoff", "final_game"):
+            value = block.get(key)
             try:
                 parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
             except (ValueError, TypeError):
-                return INPUTS_INVALID, None, f"calendar {key} entry is not a timestamp: {value!r}"
+                return INPUTS_INVALID, None, (
+                    f"{COMPETITION_PARTIAL}: calendar {name}.{key} is not an ISO-8601 timestamp: "
+                    f"{value!r}"
+                )
             if parsed.tzinfo is None:
-                return INPUTS_INVALID, None, f"calendar {key} entry must be tz-aware: {value!r}"
+                return INPUTS_INVALID, None, (
+                    f"{COMPETITION_PARTIAL}: calendar {name}.{key} must be timezone-aware: {value!r}"
+                )
+        declared = block.get("game_week_completions")
+        if not isinstance(declared, list):
+            return INPUTS_INVALID, None, (
+                f"{COMPETITION_PARTIAL}: calendar {name}.game_week_completions must be a list, got "
+                f"{type(declared).__name__}"
+            )
+        for value in declared:
+            try:
+                parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                return INPUTS_INVALID, None, (
+                    f"{COMPETITION_PARTIAL}: calendar {name}.game_week_completions entry is not a "
+                    f"timestamp: {value!r}"
+                )
+            if parsed.tzinfo is None:
+                return INPUTS_INVALID, None, (
+                    f"{COMPETITION_PARTIAL}: calendar {name}.game_week_completions entry must be "
+                    f"tz-aware: {value!r}"
+                )
 
     # NESTED SHAPES. held/offer/availability are traversed as mappings during evaluation. Leaving
     # their container and record shapes unchecked reproduced the exact source-dependent defect this

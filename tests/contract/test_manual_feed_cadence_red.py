@@ -94,8 +94,13 @@ _PFF_FAMILIES = (
 #: NFL and FBS publish on different clocks, so the league prefix must survive into the stream key —
 #: collapsing the 14 lanes to 7 families would erase the window distinction S7d pins.
 EXPECTED_STREAM_KEYS: frozenset[tuple[str, str]] = frozenset(
+    # `("pff", "grades")` WAS PINNED HERE AND NAMED NO FEED. Measured topology: the PFF store holds
+    # exactly 7 families x 2 leagues = 14 payload directories and NO grades directory in either
+    # league; every "grades" occurrence in the schema catalog is a COLUMN NAME inside those 14
+    # lanes. It was a phantom stream — weekly triggers, no league identity — and it could not be
+    # league-scoped because there was nothing to scope. Removed under Codex ruling
+    # league_scoped_events_red_clear_codex_v1. Grade fields refresh when their containing lane does.
     {("pff", f"{league}_{fam}") for league in ("nfl", "ncaa") for fam in _PFF_FAMILIES}
-    | {("pff", "grades")}
     | {
         ("playerprofiler", "gamelog"),
         ("playerprofiler", "pbp"),
@@ -112,7 +117,6 @@ EXPECTED_STREAM_KEYS: frozenset[tuple[str, str]] = frozenset(
 REQUIRED_TRIGGERS: dict[tuple[str, str], frozenset[str]] = {
     **{("pff", f"{league}_{fam}"): frozenset({"game_week_complete", "season_final"})
        for league in ("nfl", "ncaa") for fam in _PFF_FAMILIES},
-    ("pff", "grades"): frozenset({"game_week_complete", "season_final"}),
     ("playerprofiler", "gamelog"): frozenset({"game_week_complete", "season_final"}),
     ("playerprofiler", "pbp"): frozenset({"game_week_complete", "season_final"}),
     ("playerprofiler", "player_season"): frozenset({
@@ -148,16 +152,37 @@ CAL_2026 = {
     "prior_final_game": "2026-01-05T20:20:00-05:00",
     "league_year_open": "2026-03-11T16:00:00-04:00",
     "draft_complete": "2026-04-25T19:00:00-04:00",
-    "week1_kickoff": "2026-09-10T20:20:00-04:00",
-    "final_game": "2027-01-04T20:20:00-05:00",
-    # F4 — DECLARED completion facts, not a computed timer. An earlier implementation manufactured
-    # these as kickoff + 4 days + 7n, which is arithmetic dressed as an observable event and is
-    # simply wrong for a flexed or postponed game.
-    "game_week_completions": [
-        "2026-09-14T23:30:00-04:00",   # week 1
-        "2026-09-21T23:30:00-04:00",   # week 2
-        "2026-09-28T23:30:00-04:00",   # week 3
-    ],
+    # COMPETITION-SCOPED GAME FACTS. These were flat, and the engine read them globally, so NFL
+    # completions marked NCAA lanes due and the NFL season being underway marked them current. The
+    # three facts are scoped together; there is no flat fallback.
+    #
+    # FBS carries its OWN dates rather than a copy of the NFL block. Copying would make every test
+    # here pass identically whether the engine scoped correctly or leaked, which is the property
+    # these fixtures should never have.
+    "competitions": {
+        "nfl": {
+            "week1_kickoff": "2026-09-10T20:20:00-04:00",
+            "final_game": "2027-01-04T20:20:00-05:00",
+            # F4 — DECLARED completion facts, not a computed timer. An earlier implementation
+            # manufactured these as kickoff + 4 days + 7n, which is arithmetic dressed as an
+            # observable event and is simply wrong for a flexed or postponed game.
+            "game_week_completions": [
+                "2026-09-14T23:30:00-04:00",   # week 1
+                "2026-09-21T23:30:00-04:00",   # week 2
+                "2026-09-28T23:30:00-04:00",   # week 3
+            ],
+        },
+        "fbs": {
+            # The FBS season genuinely opens earlier and closes later than the NFL's.
+            "week1_kickoff": "2026-08-29T19:00:00-04:00",
+            "final_game": "2027-01-11T19:30:00-05:00",
+            "game_week_completions": [
+                "2026-09-13T23:30:00-04:00",
+                "2026-09-20T23:30:00-04:00",
+                "2026-09-27T23:30:00-04:00",
+            ],
+        },
+    },
 }
 
 #: F3 — what the VENDOR offers is an observation with provenance, never a bare oracle. Since no
@@ -561,35 +586,55 @@ def test_s7b_completed_history_is_refreshed_only_on_a_correction_notice():
     assert corrected.trigger == "vendor_correction_notice"
 
 
-def test_s7c_grades_ARE_ingested_at_pff_cadence_while_model_use_stays_forbidden():
-    """R1 — David's instruction supersedes my earlier framing, and I had it backwards.
+def test_s7c_the_grades_PROHIBITION_is_COLUMN_level_and_survives_the_phantom_removal():
+    """R1 — REWRITTEN. This test used to assert the model-input ban through a STREAM that named no
+    feed: `stream_disposition("pff", "grades").model_use_forbidden is True`.
 
-    He said: "we need to refresh the manual datapoints that are not covered by other data sources
-    everytime they change". Grades are INDEPENDENTLY unique — they are proprietary PFF constructs
-    with no counterpart in any automated source — so they fall INSIDE the refresh obligation.
+    That framing was wrong twice over. The store holds no grades payload, so the flag hung off an
+    empty lane; and the grade COLUMNS it was meant to protect against live inside the 14 real
+    family lanes, which carried no such flag. The prohibition it appeared to prove was therefore
+    largely decorative at the stream level.
 
-    NOTE: I earlier justified this with a "1,423 column-instances have no nflverse counterpart"
-    figure. That figure is LEXICAL column-name overlap, it cannot prove substantive uniqueness, and
-    I had already retired it once before re-citing it here. It is withdrawn again and not used.
+    The ENFORCING guards are column-level and independent of the cadence registry. This test now
+    asserts those directly, so the ban is proven where it actually operates:
+      - engine_a_contract.PROHIBITED_COLUMNS
+      - head_b_contract rejects prohibited subjective grade columns by name
 
-    An earlier draft asserted `creates_refresh_obligation is False` because no authorized consumer
-    exists. That contradicted him: Layer 1 ingestion is authorized once cadence, route and
-    prerequisites are determined, independently of whether a consumer has been wired. The
-    model-input ban and raw retention are unaffected — those are about USE, not acquisition.
+    THE BAN IS NOT WEAKENED BY THE REMOVAL — it never depended on the phantom. Removing a lane that
+    holds nothing cannot loosen a restriction enforced on column names.
     """
     m = _mod()
     engine_a = importlib.import_module("src.dynasty_genius.models.engine_a_contract")
-    assert "pff_grade" in engine_a.PROHIBITED_COLUMNS, "fixture precondition: the model-input ban is real"
-    g = m.stream_disposition("pff", "grades")
-    assert g.model_use_forbidden is True, "grades may never become a model feature"
-    assert g.retained_raw is True, "raw retention and diagnostic review remain allowed"
-    assert g.ingestion_authorized is True, (
-        "Layer 1 ingestion is authorized once cadence/route/prerequisites are determined"
+    head_b = importlib.import_module("src.dynasty_genius.models.head_b_contract")
+
+    assert "pff_grade" in engine_a.PROHIBITED_COLUMNS, "the model-input ban must remain real"
+    assert head_b.PFF_GRADE_PROHIBITED_COLUMNS, (
+        "Head B must still bar subjective grade columns by name"
     )
-    assert g.creates_refresh_obligation is True, (
-        "unique, not-covered-elsewhere data is refreshed at its cadence per David's instruction"
+    # ...and the ENFORCING function actually rejects one, not merely lists it. A constant nobody
+    # consults is documentation, not a guard.
+    # PIN THE TYPE AND THE DIAGNOSTIC. `pytest.raises(Exception)` would be satisfied by an
+    # ImportError, a TypeError from a changed signature, or any unrelated breakage — it asserts
+    # "something went wrong", not "the ban fired".
+    sample = sorted(head_b.PFF_GRADE_PROHIBITED_COLUMNS)[0]
+    with pytest.raises(ValueError) as exc:
+        head_b.check_head_b_feature_leakage([sample])
+    assert "prohibited subjective PFF grade column" in str(exc.value), (
+        f"the ban must fire for the GRADE reason, not some other leakage rule: {exc.value}"
     )
-    assert m.policy_for("pff", "grades").triggers, "and it must carry real triggers"
+
+    # The phantom is gone from the registry.
+    assert ("pff", "grades") not in EXPECTED_STREAM_KEYS, "the pin must not resurrect it"
+    assert m.policy_for("pff", "grades") is None, "`pff.grades` names no payload lane"
+    assert "grades" not in m.streams_for("pff")
+
+    # ...and the 14 REAL lanes remain ingested and retained. Over-correcting the removal into
+    # flagging them would suppress legitimate Layer 1 inputs to enforce a column-level rule.
+    for stream in m.streams_for("pff"):
+        d = m.stream_disposition("pff", stream)
+        assert d.model_use_forbidden is False, f"pff.{stream} is a real retained lane"
+        assert d.retained_raw is True and d.ingestion_authorized is True
+        assert d.creates_refresh_obligation is True
 
 
 def test_s7d_pff_nfl_and_fbs_availability_windows_are_DISTINCT():
@@ -777,10 +822,18 @@ def test_s8e_every_declared_stream_is_serialized_even_when_it_holds_nothing():
 # ============ LIFECYCLE — the four distinguishable phases ==========================
 
 
-_LC_BASE = {"season": 2026, "week1_kickoff": "2026-09-10T20:20:00-04:00",
-            "final_game": "2027-01-04T20:20:00-05:00"}
-_LC_WITH = {**_LC_BASE,
-            "game_week_completions": ["2026-09-14T23:30:00-04:00", "2026-09-21T23:30:00-04:00"]}
+#: The lifecycle fixtures exercise NFL-scoped streams. Scoped, with no flat fallback: an absent
+#: competition block is honest missing evidence and resolves to `undetermined`, so the "no
+#: completions declared" phase must supply the block WITH an empty list rather than omit it — those
+#: are two different facts and the engine answers them differently.
+_LC_BASE = {"season": 2026, "competitions": {"nfl": {
+    "week1_kickoff": "2026-09-10T20:20:00-04:00",
+    "final_game": "2027-01-04T20:20:00-05:00",
+    "game_week_completions": []}}}
+_LC_WITH = {"season": 2026, "competitions": {"nfl": {
+    "week1_kickoff": "2026-09-10T20:20:00-04:00",
+    "final_game": "2027-01-04T20:20:00-05:00",
+    "game_week_completions": ["2026-09-14T23:30:00-04:00", "2026-09-21T23:30:00-04:00"]}}}
 
 
 def _lc(calendar, now, ingested, observed):
