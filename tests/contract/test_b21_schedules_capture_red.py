@@ -679,6 +679,34 @@ def test_f1_EVERY_source_VALUE_survives_to_the_record(tmp_path):
         assert rows[0][field] == value, f"non-required source field {field!r} was corrupted"
 
 
+def test_f0_the_STORED_vintage_holds_METADATA_ONLY_and_derives_its_rows(tmp_path):
+    """DAVID'S RULING, 2026-08-09: parsed rows do not belong on disk beside the bytes they came from.
+
+    Measured on the first real capture: the vintage file was 9.1 MB, of which the actual metadata —
+    ids, hashes, dtypes, schema hash, timestamps, provenance — was **1,719 bytes**. The other 9.1 MB
+    was the parsed rows, which are fully derivable from the retained Parquet in 196 ms. At the
+    provider's measured ~7-day cadence that is ~44 MB/year of permanent history bought for a fifth of
+    a second.
+
+    It is also a correctness argument, not only a storage one: S4 exists because the parse must be a
+    VIEW of the retained bytes. Persisting both creates a second source of truth that can drift from
+    the first, and nothing would detect it.
+
+    The behavioural contract is unchanged — `get_vintage()` still returns rows, and every other test
+    in this file still reads them. Only the STORAGE changes."""
+    store = _store(tmp_path)
+    raw = _scored()
+    rec = store.record_offering(observed_at=T2, raw=raw, source_url=EXPECTED_URL)
+
+    on_disk = json.loads(store.vintage_path(rec.vintage_id).read_text(encoding="utf-8"))
+    assert "rows" not in on_disk, "parsed rows were persisted beside the bytes they derive from"
+    assert store.vintage_path(rec.vintage_id).stat().st_size < 16_384, (
+        "the stored vintage must be metadata, not a payload copy"
+    )
+    # ...and the derived view is still complete, still lossless, still the independent read.
+    assert store.get_vintage(rec.vintage_id)["rows"] == _expected_rows(raw)
+
+
 def test_f2_the_vintage_carries_a_RECOMPUTABLE_schema_hash_and_the_FULL_dtype_map(tmp_path):
     """Column names alone cannot detect a type change. A schema hash makes drift a comparable fact;
     the dtype map makes it a readable one, so 'the provider changed something' is answerable without

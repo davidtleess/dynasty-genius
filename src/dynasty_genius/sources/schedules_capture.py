@@ -713,12 +713,24 @@ class ScheduleStore:
         return _read_frame(raw).to_dicts()
 
     def get_vintage(self, vintage_id: str) -> dict | None:
+        """Metadata from disk, rows DERIVED from the retained bytes.
+
+        The parsed rows are not persisted (David, 2026-08-09). They were 9.1 MB of a 9.1 MB file
+        whose actual metadata is 1.7 KB, they re-derive in ~200 ms, and persisting them created a
+        second source of truth that could drift from the Parquet it came from — the very thing S4
+        exists to prevent. `parser_version` plus the retained bytes reconstructs any past parse.
+        """
         path = self.vintage_path(vintage_id)
         if not path.is_file():
             return None
         # A fresh object every call: a store that hands out references to its own structures lets a
-        # caller silently rewrite recorded history.
-        return json.loads(path.read_text(encoding="utf-8"))
+        # caller silently rewrite recorded history. Deriving from bytes gives that for free.
+        vintage = json.loads(path.read_text(encoding="utf-8"))
+        vintage.pop("rows", None)  # tolerate a pre-migration file without trusting its copy
+        content = self.content_path(vintage["raw_sha256"])
+        if content.is_file():
+            vintage["rows"] = self.parse(content.read_bytes())
+        return vintage
 
     def marker(self) -> dict | None:
         return self.storage.read_json(self.marker_path(), None)
@@ -887,7 +899,8 @@ class ScheduleStore:
                     "source_url": source_url,
                     "delivered_from": record.delivered_from,
                     "parser_version": PARSER_VERSION,
-                    "rows": rows,
+                    "row_count": len(rows),
+                    "column_count": len(frame.columns),
                     }))
             index["checks"] = [*index["checks"], {
                 "check_id": check_id, "vintage_id": vintage_id, "raw_sha256": raw_sha256,

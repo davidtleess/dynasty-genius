@@ -11,6 +11,26 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ✅ 2026-08-09 DAVID RULING — PAID CFBD IS AUTHORIZED, AND FOUR STALE LINES BELOW ARE VOID
+>
+> **David, verbatim (2026-08-09): *"Paid CFBD is 100% authorized at all times - i said this."*** He
+> confirms this restates an authorization he had **already given**; the board never recorded it.
+>
+> **THEREFORE VOID wherever they appear below:** *"blocked on David's CFBD cost decision"* (§2 of the
+> 8c block) · *"CFBD cost (blocks 7 FBS lanes)"* (§8 of the 8c block) · *"CFBD cost"* in Session 8b's
+> outstanding list · *"CFBD cost ruling"* in Session 8's outstanding list. **The seven FBS lanes are
+> NOT blocked on cost.** Scheduler install, provider contact and downstream/model use remain separate
+> words; this ruling is about the paid route only.
+>
+> **⚠ WHY THIS BANNER EXISTS, AND IT IS THE MORE USEFUL HALF.** On 2026-08-09 the Claude lane
+> **refused a correctly-authorized action** because those four stale lines contradicted a live
+> instruction, and it trusted the board over the report. **A stale board assertion is exactly as
+> dangerous as an unsourced claim, and it is harder to spot because it is written down.** This board
+> has now recorded that defect class — *a claim true when written, left standing after the fact
+> changed* — **four separate times** (2026-08-05 session 2 §3 records the first three). The rule that
+> follows: when a live instruction and this board disagree, **that conflict is itself the escalation**,
+> and neither side wins by default.
+
 > # ▶ 2026-08-08 SESSION 8c — ⭐ LEAGUE-SCOPED CADENCE ENGINE LANDED · B21 RED IN REVIEW · CONTEXT HANDOFF
 >
 > **AUTHORITY.** Agent-authored state reconciliation. **Not David's prose.** His standing words in
