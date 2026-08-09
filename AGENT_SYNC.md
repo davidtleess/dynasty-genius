@@ -11,6 +11,20 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⚠ 2026-08-09 CLOSE REOPENED — B21 METADATA-ONLY CHANGE NOT CLEAR
+>
+> Codex independently audited committed change `901a756`. The canonical migration is lossless and
+> its module/RED/vintage blobs have not diverged, but the new derived read is not fail-closed:
+> deleting the required content object returns partial metadata without `rows`; replacing it with a
+> valid one-row Parquet returns substituted data under the original raw hash, schema hash, vintage
+> identity and three-row count; an unsupported `parser_version` is silently interpreted by the
+> current parser. Durable review:
+> `docs/agent-ledger/evidence/2026-08-09/b21_vintage_metadata_only_review_codex_v1.md`.
+>
+> **Gate:** revised RED must fail on missing/substituted content and unsupported parser version;
+> GREEN must verify byte count/full SHA plus recomputed row/column/schema claims, then receive Codex
+> behavioral CLEAR and a post-commit divergence audit. David's team-close condition is not yet met.
+
 > # ✅ 2026-08-09 DAVID RULING — PAID CFBD IS AUTHORIZED, AND FOUR STALE LINES BELOW ARE VOID
 >
 > **David, verbatim (2026-08-09): *"Paid CFBD is 100% authorized at all times - i said this."*** He
