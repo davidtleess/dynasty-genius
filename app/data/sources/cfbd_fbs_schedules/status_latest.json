@@ -1,0 +1,32 @@
+{
+  "call_accounting_quality": "request_count_and_remaining_header",
+  "call_limit_remaining_after": 73014,
+  "check_id": "c-20260809T1315101607970000-76f0af56c903",
+  "competition": "fbs",
+  "delivered_from": "https://api.collegefootballdata.com/games",
+  "endpoint": "https://api.collegefootballdata.com/games",
+  "last_changed": "2026-08-09T13:15:10.160797+00:00",
+  "last_checked": "2026-08-09T13:15:10.160797+00:00",
+  "last_good_vintage_id": "v-76f0af56c90374ed",
+  "openapi_sha256": "f6274010fb8f3d11c4c574fd4d648fd33e6c47e0eca2cfb61b481b20ca482ea3",
+  "openapi_version": "5.21.0",
+  "parser_version": "cfbd.fbs_schedules.v1",
+  "provider": "College Football Data API",
+  "provider_date": "Sun, 09 Aug 2026 13:15:11 GMT",
+  "query": {
+    "classification": "fbs",
+    "seasonType": "both",
+    "year": 2026
+  },
+  "raw_bytes": 655068,
+  "raw_sha256": "76f0af56c90374ed37924c2a7a687cdf5931938f5efb29a7f6edf9b0b94e99e3",
+  "report_family": "games",
+  "request_count": 1,
+  "retrieved_at": "2026-08-09T13:15:10.160797+00:00",
+  "row_count": 888,
+  "schema_hash": "0a87d5754e304d6c67c21b03191ca395df9d312ed5f469ada00e7826e3130d31",
+  "source": "cfbd",
+  "status": "ok",
+  "vintage_id": "v-76f0af56c90374ed",
+  "year": 2026
+}

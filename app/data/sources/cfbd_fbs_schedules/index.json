@@ -1,0 +1,21 @@
+{
+  "checks": [
+    {
+      "check_id": "c-20260809T1315101607970000-76f0af56c903",
+      "raw_bytes": 655068,
+      "raw_sha256": "76f0af56c90374ed37924c2a7a687cdf5931938f5efb29a7f6edf9b0b94e99e3",
+      "request_count": 1,
+      "retrieved_at": "2026-08-09T13:15:10.160797+00:00",
+      "vintage_id": "v-76f0af56c90374ed",
+      "year": 2026
+    }
+  ],
+  "total_request_count": 1,
+  "vintages": {
+    "v-76f0af56c90374ed": {
+      "first_seen_at": "2026-08-09T13:15:10.160797+00:00",
+      "raw_sha256": "76f0af56c90374ed37924c2a7a687cdf5931938f5efb29a7f6edf9b0b94e99e3",
+      "schema_hash": "0a87d5754e304d6c67c21b03191ca395df9d312ed5f469ada00e7826e3130d31"
+    }
+  }
+}
