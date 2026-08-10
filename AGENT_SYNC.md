@@ -11,7 +11,34 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
-> # ✅ 2026-08-09 CLAUDE LANE RE-FLUSH — CODEX CLOSE COMMIT AUDITED CLEAR, ONE COMMIT UNPUSHED
+> # ✅ 2026-08-09 TEAM CLOSEOUT — CROSS-LANE AUDITS CLEAR, SESSION CLOSED — PARKED
+>
+> **David's word:** *"ok close out"* and *"push it and route to codex"*. Layer: `cross-lane`
+> closeout governance. This creates no scheduler-install, provider-contact, model-use,
+> data-migration, or deletion authority.
+>
+> **Codex independently audited Claude's `ed3a670` and `fa94bd6`: CLEAR on divergence.** Both are
+> documentation-only; the latter completely corrects the former's transient statement that
+> `5604a81` was unpushed. Exact-head CI run `31347246262` on `fa94bd6` completed **SUCCESS** for
+> Python and Frontend. Evidence:
+> `docs/agent-ledger/evidence/2026-08-09/claude_close_commits_ed3a670_fa94bd6_audit_codex_v1.md`.
+>
+> **One record-only residual was corrected here:** the superseded block below retained the header
+> "ONE COMMIT UNPUSHED" and later described Claude's own closeout commits as unpushed. The first was
+> internally stale after `fa94bd6`; the second became false after David authorized their push. The
+> block is now explicitly historical rather than presented as current state.
+>
+> **Final status: `closed — parked`.** `HEAD == origin/main` at the audited landing; the exact
+> parked inventory remains 41 paths with no membership drift: frozen wire pair 2 · David-gated
+> plists 2 · intentionally failing cadence RED 1 · uncited Codex evidence 36. The frozen pair is
+> byte-identical at `b3247ec8…` / `fd924eb1…`; zero stashes exist. The remaining citation REPORT
+> entries were independently classified as one deliberate forward contract and six gitignored
+> data references, not dangling evidence artifacts.
+>
+> **Next session opens on the Footballguys `adp.csv` pilot** (David's word), overlay-only. H2 QB
+> rushing remains a registered hypothesis **UNDER TEST** with no result.
+
+> # 🧾 2026-08-09 HISTORICAL AUDIT SEQUENCE — SUPERSEDED BY FINAL TEAM CLOSEOUT ABOVE
 >
 > **David's word:** *"ok prepare your close out"*. Layer: `cross-lane` (closeout governance). This
 > block creates no scheduler-install, provider-contact, model-use, data-migration, push, or deletion
@@ -32,13 +59,12 @@
 > the authoritative remote (`git ls-remote`, not the local tracking ref): `origin/main` = `5604a81`,
 > exact-head CI run **`31347018489` = SUCCESS** (Python + Frontend). Qualification withdrawn.
 >
-> **⚠ MY OWN CLOSEOUT COMMITS ARE UNPUSHED.** HEAD is ahead of `origin/main` by the Claude re-flush
-> commit(s). They are documentation-only (ledger, this board, one audit artifact). **Pushing is
-> David's word — no lane may push them.**
+> **Historical state before David's push word:** Claude's closeout commits were then unpushed and
+> documentation-only (ledger, this board, one audit artifact). David subsequently said *"push it and
+> route to codex"*; the final block above records the resulting pushed and audited state.
 >
 > **Lane status: `closed — parked`** — 41 preserved paths (frozen wire pair 2 · David-gated plists 2
-> · intentionally failing cadence RED 1 · uncited Codex evidence 36), plus the unpushed Claude
-> closeout commit(s) above.
+> · intentionally failing cadence RED 1 · uncited Codex evidence 36).
 >
 > **Model selection (asked and answered, no repo change):** the cockpit runs Opus 5 (Claude lane) and
 > `gpt-5.6-sol high` (Codex). **Nothing runs Fable 5.** Recommendation of record: stay on Opus 5.
