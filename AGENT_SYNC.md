@@ -11,6 +11,58 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⭐ 2026-08-10 FOOTBALLGUYS PILOT — FRAMING CLEAR AT ROUND 8 · RECORD LANDED ON DAVID'S WORD · TWO NEW DAVID RULINGS
+>
+> **David's words, verbatim (2026-08-10):** *"commit, but i gues my question regarding #2 is whether
+> the delta in the sources is a valuable thing to know? as for #3 keep it as a paid source of mine -
+> have a reminder or refresh notice come up once a month"*. Layer: 1 (ingest) with a Layer-2
+> identity dependency. **This block creates no scheduler-install, provider-contact, model-use,
+> comparison, RED, or push authority.**
+>
+> **CODEX ROUND-8 CLEAR on framing v9** (`footballguys_adp_pilot_framing_v9_clear_codex_v1.md`,
+> `6d8bd2b3…`) — eight rounds, sixteen findings (fifteen Codex + one lane-self-found), sixteen
+> accepts, zero contested. Four real guard defects found, reproduced before repair, closed with
+> positive AND negative controls: reported-not-enforced pins · conditional-bypass predicate in the
+> pin verifier (found independently by both lanes) · env-controlled scratch allowlist via `TMPDIR` ·
+> hard-link alias overwrite (High). **All seven substantive identity measurements byte-equal across
+> six generator generations — no measurement changed since first taken.**
+>
+> **LANDED (this block's commit, David's word):** the cleared three-file set — framing v9
+> (`70eb4773…`), generator v8 (`06b73ffd…`, `fbg-identity-census/8`), minimized census v9
+> (`1a54fcf4…`, 11,918 bytes, rank-free, aggregate windows + hash commitments only) — plus both
+> ledgers, this board, and the full review-loop record (Codex reviews, clearance, wires, ACK,
+> redundancy/admissibility docs, investigations). **Superseded framings v1–v8, generators v3–v7,
+> censuses v4–v8 stay untracked local defect exhibits per the cleared v9 §5 register — cited in
+> ledgers by name+hash as exhibits, deliberately not landed.** The full census exists only under
+> allowlisted scratch roots and is NEVER commit-eligible. **Committed, NOT pushed — push remains
+> David's word.**
+>
+> **PILOT DECISION STATE (unchanged by the CLEAR):** horizon FAILED · cohort floor FAILED ·
+> ingestion RED CLOSED · comparison not opened. The framing's own answer is **stop**; the defensible
+> landing record is `blocked_for_use` (identity correctness + horizon/use fitness unestablished;
+> safer incumbent exists), explicitly NOT a redundancy proof.
+>
+> **DAVID Q2 — "is the delta in the sources valuable?" — OPEN, answered descriptively by Claude in
+> session; needs no immediate action.** Honest position of record: a Footballguys-vs-incumbent delta
+> is market-vs-market, descriptive only, never model input; on THIS vintage it is dominated by the
+> horizon mismatch (seasonal draft ADP vs dynasty trade value), so any delta study must make the
+> horizon difference its SUBJECT, not a confound, and requires the identity contract first (34 known
+> wrong-human links corrupt any naive join). Nothing opens without David's word.
+>
+> **DAVID #3 — RULED: Footballguys stays a paid source; a MONTHLY refresh reminder/notice must
+> surface.** Cheapest honest shape: register `footballguys.adp` as a manual-drop stream in the
+> governed cadence system (30-day cadence; provider-published off-season median is 7 days, n=159, so
+> monthly is a David-chosen floor, not a provider claim) so staleness surfaces on the existing
+> capture-health/what-changed login surfaces. **Framing → Codex challenge is the next cockpit step;
+> no RED opens until the framing round completes.** Scheduler installs remain David-gated; none is
+> needed if the existing cadence read path serves the notice.
+>
+> **Wire note:** Gemini remains unreachable by carrier (`wire_body_mismatch`); its stranded
+> pasted-but-unsubmitted awareness copy from 2026-08-09 sits untouched per the wire rule. The repo is
+> the delivery channel for Gemini-relevant state.
+>
+> **Standing:** H2 QB rushing remains a registered hypothesis **UNDER TEST** with no result.
+
 > # ✅ 2026-08-09 TEAM CLOSEOUT — CROSS-LANE AUDITS CLEAR, SESSION CLOSED — PARKED
 >
 > **David's word:** *"ok close out"* and *"push it and route to codex"*. Layer: `cross-lane`
