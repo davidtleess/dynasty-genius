@@ -1,4 +1,4 @@
-"""RED v3 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v4 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -7,11 +7,13 @@ Phase A framing v25 review cleared.  This file is the prospective contract for t
 choice.  It authorizes no provider contact, GREEN implementation, runtime write,
 scheduler, downstream identity promotion, horizon comparison, or UI component.
 
-The original RED landed with GREEN at ``f9b57d3``.  Adversarial review found seven
-production-boundary failures hidden by injected outcomes and pure reducer fixtures.
-RED v3 preserves the independent vectors/table fixtures and adds real filesystem,
-SQLite, schema, semantic, attempt-ledger, and manifest-requiredness mutants.  It never
-skips; the reviewed f9b57d3 GREEN must fail these additions before repair.
+The original RED landed with GREEN at ``f9b57d3``.  RED v3 then hardened seven
+production boundaries and landed with its repair at ``8bf1518``.  Adversarial review
+found nine remaining divergences: legacy-schema incompatibility, ungoverned semantic
+evidence, sticky readiness, unordered attempt overlays, lost held-AR state, a shadow
+sidecar schema, wrong object mode, leaking test connections, and stale provenance.
+RED v4 preserves all earlier controls and makes those boundaries executable.  It never
+skips; the reviewed 8bf1518 GREEN must fail the new controls before repair.
 
 One injected seam
 -----------------
@@ -21,6 +23,7 @@ collaborators and exposes:
 
 * ``intake(archive_bytes=..., offering=..., fault_at=None)``;
 * ``write_semantic_assertion(record)``;
+* ``write_semantic_adjudication(record)``;
 * ``semantic_state(key=...)`` for durable effective-state read-back;
 * ``read_model(now=..., global_overall_status=...)``;
 * ``snapshot()`` (read-only contract evidence, never production truth by itself);
@@ -38,6 +41,7 @@ SHA-256 ``f44b5ab008c02206cbcba26dacab6efdfd85fcdc279282207c4ae5e99d7301ff``.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib
 import io
@@ -47,7 +51,7 @@ import sqlite3
 import stat
 import subprocess
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -444,6 +448,11 @@ def test_a0_contract_constants_are_independent_and_exact() -> None:
     assert m.ACTIVE_RETENTION_MODE == "full_offsite"
 
 
+def test_a0b_production_header_does_not_claim_the_superseded_original_red() -> None:
+    m = _mod()
+    assert "1130f2bc" not in (m.__doc__ or "")
+
+
 def test_a1_small_unit_positive_selects_only_roles_and_ignores_unselected_symlinks() -> None:
     m = _mod()
     opened: list[str] = []
@@ -545,8 +554,24 @@ def test_a5_decoys_never_change_exact_role_selection() -> None:
         (b"not-the-adp-schema", b"id,name,pos\nGibbJa00,Jahmyr Gibbs,RB\n", "adp"),
         (b"id,adp_sleeper-sf\nGibbJa00,1\n", b"not-the-sidecar-schema", "identity_sidecar"),
         (b"id,value\nGibbJa00,1\n", b"id,name,pos\nGibbJa00,Jahmyr Gibbs,RB\n", "adp"),
+        (
+            b"id,adp_sleeper-sf\nGibbJa00,1\n",
+            b"id,foo,bar\nGibbJa00,one,two\n",
+            "identity_sidecar",
+        ),
+        (
+            b"id,adp_sleeper-sf\nGibbJa00,1\n",
+            b"id,name,team\nGibbJa00,Jahmyr Gibbs,DET\n",
+            "identity_sidecar",
+        ),
     ),
-    ids=("malformed-adp", "malformed-sidecar", "adp-without-adp-column"),
+    ids=(
+        "malformed-adp",
+        "malformed-sidecar",
+        "adp-without-adp-column",
+        "sidecar-without-name-or-position",
+        "sidecar-without-position",
+    ),
 )
 def test_a6_real_role_member_schema_refuses_before_publish(
     tmp_path: Path, adp_payload: bytes, sidecar_payload: bytes, role: str
@@ -565,6 +590,25 @@ def test_a6_real_role_member_schema_refuses_before_publish(
     snap = driver.snapshot()
     assert snap["objects"] == []
     assert snap["receipts"] == []
+
+
+@pytest.mark.parametrize(
+    "sidecar_payload",
+    (
+        b"id,name,pos\nGibbJa00,Jahmyr Gibbs,RB\n",
+        b"id,first,last,pos\nGibbJa00,Jahmyr,Gibbs,RB\n",
+    ),
+    ids=("combined-name", "real-first-last"),
+)
+def test_a6b_pinned_identity_column_aliases_are_accepted(
+    sidecar_payload: bytes,
+) -> None:
+    result = _mod().inspect_archive(
+        _unit_zip(sidecar_payload=sidecar_payload),
+        role_paths=ROLE_PATHS,
+        limits=LIMITS,
+    )
+    assert tuple(result["roles"]) == ("adp", "identity_sidecar")
 
 
 # ---------------------------------------------------------------------------
@@ -854,6 +898,107 @@ def test_i11_changed_semantic_assertion_reusing_an_id_refuses_without_mutation(
     assert driver.semantic_state(key=SEMANTIC_KEY) == before
 
 
+def test_i12_semantic_evidence_bytes_and_adjudications_are_durable_governed_state(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    db = tmp_path / RUNTIME_PATHS["semantics"]
+    _create_legacy_acquisition_db(db)
+    driver.write_semantic_assertion(_semantic_record())
+    with contextlib.closing(sqlite3.connect(db)) as conn:
+        tables = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        assert {"semantic_evidence_objects", "semantic_adjudications"} <= tables
+        evidence = conn.execute(
+            "SELECT evidence_sha256, evidence_blob FROM semantic_evidence_objects"
+        ).fetchone()
+    assert evidence == (_sha(SEMANTIC_EVIDENCE), SEMANTIC_EVIDENCE)
+
+
+def test_i13_untrusted_semantic_provenance_refuses_without_opening_horizon(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    record = _semantic_record()
+    record["attachment"]["provenance"] = "untrusted-blog"
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_assertion(record)
+    assert "semantic_provenance_invalid" in _error_code(caught.value)
+    assert driver.semantic_state(key=SEMANTIC_KEY)["state"] == "unknown"
+
+
+def test_i14_non_horizon_claim_refuses_without_opening_horizon(tmp_path: Path) -> None:
+    driver = _driver(tmp_path)
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_assertion(
+            _semantic_record(claim="weekly_projection")
+        )
+    assert "semantic_claim_invalid" in _error_code(caught.value)
+    assert driver.semantic_state(key=SEMANTIC_KEY)["state"] == "unknown"
+
+
+def test_i15_reused_evidence_identity_with_different_bytes_is_a_conflict(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record(assertion_id="horizon-v1"))
+    changed = _semantic_record(assertion_id="horizon-v2", version=2)
+    changed["attachment"]["evidence_id"] = "evidence-horizon-v1"
+    changed["attachment"]["evidence_bytes"] = b"different evidence"
+    before = driver.semantic_state(key=SEMANTIC_KEY)
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_assertion(changed)
+    assert "evidence_identity_conflict" in _error_code(caught.value)
+    assert driver.semantic_state(key=SEMANTIC_KEY) == before
+
+
+def test_i16_tampered_retained_evidence_bytes_close_the_semantic_gate(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    db = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(db)) as conn:
+        conn.execute(
+            "UPDATE semantic_evidence_objects SET evidence_blob=?",
+            (b"corrupt",),
+        )
+        conn.commit()
+    state = _driver(tmp_path).semantic_state(key=SEMANTIC_KEY)
+    assert state == {
+        "state": "unknown",
+        "reason": "active_evidence_unverifiable",
+        "eligible_for_phase_c": False,
+    }
+
+
+def test_i17_durable_governed_adjudication_resolves_a_persisted_conflict(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record(assertion_id="old", version=1))
+    driver.write_semantic_assertion(
+        _semantic_record(assertion_id="new", claim="dynasty_startup", version=2)
+    )
+    assert driver.semantic_state(key=SEMANTIC_KEY)["state"] == "unknown"
+    result = driver.write_semantic_adjudication(
+        {
+            "adjudication_id": "adj-1",
+            "key": SEMANTIC_KEY,
+            "authority": "david",
+            "provenance": "explicit-ruling",
+            "parents": ["old", "new"],
+            "effective_assertion_id": "new",
+        }
+    )
+    assert _value(result, "status") == "written"
+    assert _driver(tmp_path).semantic_state(key=SEMANTIC_KEY)["value"] == "dynasty_startup"
+
+
 # ---------------------------------------------------------------------------
 # S — option-1 driver, filesystem/SQLite ordering, crash residue
 # ---------------------------------------------------------------------------
@@ -908,6 +1053,35 @@ def _driver(
         retention_mode=mode,
         clock=lambda: NOW,
     )
+
+
+def _clocked_driver(tmp_path: Path, clock: list[datetime]):
+    m = _mod()
+    return m.build_contract_driver(
+        repo_root=tmp_path,
+        manifest_path=_write_manifest(tmp_path),
+        retention_mode="full_offsite",
+        clock=lambda: clock[0],
+    )
+
+
+def _create_legacy_acquisition_db(path: Path) -> None:
+    """Exact schema created by the first landed GREEN before RED v3."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        assert conn.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
+        conn.execute(
+            "CREATE TABLE acquisitions ("
+            " row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, kind TEXT,"
+            " retrieved_at TEXT, readiness TEXT, retention TEXT,"
+            " content_vintage_id TEXT, archive_sha256 TEXT, archive_bytes INTEGER,"
+            " analysis_ready INTEGER, signature BLOB)"
+        )
+        conn.execute(
+            "INSERT INTO acquisitions(row_id, offering_id, kind)"
+            " VALUES ('bootstrap-marker', '_bootstrap', 'marker')"
+        )
+        conn.commit()
 
 
 @pytest.mark.parametrize(
@@ -1307,7 +1481,9 @@ def test_s21_receipt_schema_persists_every_signed_field_for_reconstruction(
 ) -> None:
     driver = _driver(tmp_path)
     driver.intake(archive_bytes=_unit_zip(), offering=_offering())
-    with sqlite3.connect(tmp_path / RUNTIME_PATHS["receipts"]) as conn:
+    with contextlib.closing(
+        sqlite3.connect(tmp_path / RUNTIME_PATHS["receipts"])
+    ) as conn:
         columns = {row[1] for row in conn.execute("PRAGMA table_info(acquisitions)")}
     assert {
         "source",
@@ -1325,7 +1501,9 @@ def test_s21_persisted_signed_field_tamper_is_not_laundered_into_a_clock(
 ) -> None:
     driver = _driver(tmp_path)
     driver.intake(archive_bytes=_unit_zip(), offering=_offering())
-    with sqlite3.connect(tmp_path / RUNTIME_PATHS["receipts"]) as conn:
+    with contextlib.closing(
+        sqlite3.connect(tmp_path / RUNTIME_PATHS["receipts"])
+    ) as conn:
         conn.execute(
             "UPDATE acquisitions SET content_vintage_id=?, retrieved_at=? "
             "WHERE offering_id=?",
@@ -1360,8 +1538,10 @@ def test_s22_skewed_cross_store_restore_yields_global_offering_conflict(
 
     source = observation_root / RUNTIME_PATHS["observations"]
     target = retained_root / RUNTIME_PATHS["observations"]
-    with sqlite3.connect(f"file:{source}?mode=ro", uri=True) as source_conn:
-        with sqlite3.connect(target) as target_conn:
+    with contextlib.closing(
+        sqlite3.connect(f"file:{source}?mode=ro", uri=True)
+    ) as source_conn:
+        with contextlib.closing(sqlite3.connect(target)) as target_conn:
             source_conn.backup(target_conn)
 
     reopened = _driver(retained_root)
@@ -1431,6 +1611,190 @@ def test_s26_effective_provider_horizon_allows_retained_receipt_to_become_ar(
     state = driver.read_model(now=NOW)
     assert state["latest_analysis_ready_id"] == result.receipt_id
     assert "awaiting data review" not in state["copy"]
+
+
+def test_s27_exact_pre_v3_schema_migrates_before_first_publication(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    receipts = tmp_path / RUNTIME_PATHS["receipts"]
+    _create_legacy_acquisition_db(receipts)
+
+    result = driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    assert result.status in {"ready", "review_required"}
+    assert len(driver.snapshot()["objects"]) == 1
+    assert len(driver.snapshot()["receipts"]) == 1
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(acquisitions)")}
+        tables = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        schema_version = conn.execute("PRAGMA user_version").fetchone()[0]
+    assert {"source", "role_records"} <= columns
+    assert "attempts" in tables
+    assert schema_version >= 1
+
+    reopened = _driver(tmp_path)
+    assert len(reopened.snapshot()["objects"]) == 1
+    assert len(reopened.snapshot()["receipts"]) == 1
+
+
+def test_s28_unmigratable_schema_refuses_before_staging_or_publication(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    receipts = tmp_path / RUNTIME_PATHS["receipts"]
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        assert conn.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
+        conn.execute("CREATE TABLE acquisitions(row_id TEXT PRIMARY KEY)")
+        conn.commit()
+
+    with pytest.raises(driver.error_type) as caught:
+        driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    assert "store_schema_unmigratable" in _error_code(caught.value)
+    snap = driver.snapshot()
+    assert "staging_create" not in snap["trace"]
+    assert snap["staging_entries"] == []
+    assert snap["objects"] == []
+    assert snap["receipts"] == []
+
+
+def test_s29_later_effective_horizon_promotes_retained_receipt_on_load(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    result = driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    assert result.status == "review_required"
+    assert driver.read_model(now=NOW)["latest_analysis_ready_id"] is None
+
+    driver.write_semantic_assertion(_semantic_record())
+    reopened = _driver(tmp_path)
+    state = reopened.read_model(now=NOW)
+    assert state["clock_id"] == result.receipt_id
+    assert state["latest_analysis_ready_id"] == result.receipt_id
+    assert "awaiting data review" not in state["copy"]
+    assert reopened.snapshot()["receipts"] == [
+        {
+            "offering_id": _offering()["offering_id"],
+            "receipt_id": result.receipt_id,
+        }
+    ]
+
+
+def test_s29b_evidence_hash_failure_demotes_ar_without_changing_acquisition_identity(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    _seed_effective_horizon(driver)
+    result = driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    assert driver.read_model(now=NOW)["latest_analysis_ready_id"] == result.receipt_id
+
+    with contextlib.closing(
+        sqlite3.connect(tmp_path / RUNTIME_PATHS["semantics"])
+    ) as conn:
+        conn.execute(
+            "UPDATE semantic_evidence_objects SET evidence_blob=?",
+            (b"corrupt",),
+        )
+        conn.commit()
+
+    reopened = _driver(tmp_path)
+    state = reopened.read_model(now=NOW)
+    assert state["clock_id"] == result.receipt_id
+    assert state["latest_analysis_ready_id"] is None
+    assert "awaiting data review" in state["copy"]
+    assert reopened.snapshot()["receipts"] == [
+        {
+            "offering_id": _offering()["offering_id"],
+            "receipt_id": result.receipt_id,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("order", "same_instant", "expects_suffix"),
+    (
+        ("failure_then_success", False, False),
+        ("success_then_failure", False, True),
+        ("failure_then_success", True, False),
+        ("success_then_failure", True, True),
+    ),
+)
+def test_s30_attempt_order_is_durable_relative_to_the_successful_acquisition(
+    tmp_path: Path, order: str, same_instant: bool, expects_suffix: bool
+) -> None:
+    clock = [NOW - timedelta(hours=1)]
+    driver = _clocked_driver(tmp_path, clock)
+
+    def fail() -> None:
+        result = driver.intake(
+            archive_bytes=b"not-a-zip",
+            offering=_offering("failed-offering"),
+        )
+        assert result.status == "failed"
+
+    def succeed() -> None:
+        result = driver.intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering("successful-offering"),
+        )
+        assert result.status in {"ready", "review_required"}
+
+    first, second = (fail, succeed) if order == "failure_then_success" else (succeed, fail)
+    first()
+    if not same_instant:
+        clock[0] = clock[0] + timedelta(minutes=30)
+    second()
+
+    copy = _clocked_driver(tmp_path, clock).read_model(now=NOW)["copy"]
+    suffix = "newest attempted drop failed intake"
+    assert (suffix in copy) is expects_suffix
+
+
+def test_s31_integrity_state_holds_ar_and_composes_newer_failed_overlay(
+    tmp_path: Path,
+) -> None:
+    clock = [NOW]
+    driver = _clocked_driver(tmp_path, clock)
+    _seed_effective_horizon(driver)
+    old = driver.intake(
+        archive_bytes=_unit_zip(extra=[("wrapper-old", b"old", False)]),
+        offering=_offering("old-ready", DUE),
+    )
+    before = set((tmp_path / RUNTIME_PATHS["objects"]).iterdir())
+    driver.intake(
+        archive_bytes=_unit_zip(extra=[("wrapper-new", b"new", False)]),
+        offering=_offering("new-ready", RECENT),
+    )
+    new_object = next(iter(set((tmp_path / RUNTIME_PATHS["objects"]).iterdir()) - before))
+    new_object.chmod(0o600)
+    new_object.write_bytes(b"corrupt")
+    clock[0] = NOW + timedelta(minutes=1)
+    failed = driver.intake(
+        archive_bytes=b"not-a-zip",
+        offering=_offering("newest-failed"),
+    )
+    assert failed.status == "failed"
+
+    state = _clocked_driver(tmp_path, clock).read_model(now=clock[0])
+    assert state["status"] == "unverifiable"
+    assert state["clock_id"] == old.receipt_id
+    assert state["latest_analysis_ready_id"] == old.receipt_id
+    assert "analysis uses the 2026-07-01 drop" in state["copy"]
+    assert "newest attempted drop failed intake" in state["copy"]
+
+
+def test_s32_published_object_is_0444_but_rehash_remains_authoritative(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    object_path = next((tmp_path / RUNTIME_PATHS["objects"]).iterdir())
+    assert stat.S_IMODE(object_path.stat().st_mode) == 0o444
+    assert _driver(tmp_path).read_model(now=NOW)["status"] == "current"
 
 
 # ---------------------------------------------------------------------------
