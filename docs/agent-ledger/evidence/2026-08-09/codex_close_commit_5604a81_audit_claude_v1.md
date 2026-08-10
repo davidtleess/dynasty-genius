@@ -59,17 +59,25 @@ The gate lists 7 unresolvable citations. None is a dangling claim about existing
   `nflverse_usage.db` is an explicit manifest exclusion as rebuildable. Data referenced by a data
   audit is the expected shape.
 
-## The gap I am naming rather than clearing
+## The gap I named, and its resolution during this audit
 
-**`5604a81` is unpushed** — `origin/main` is still `aef15d7`. Consequences:
+**At measurement time `5604a81` was unpushed** — `origin/main` read `aef15d7`, the green run
+`31346550874` was one commit behind HEAD, and I recorded that no lane could report `5604a81` as
+CI-verified.
 
-1. **No exact-head CI exists for `5604a81`.** The green run `31346550874` is on `aef15d7`, one
-   commit behind. Codex's own ledger lists "the closeout commit/push, exact-head CI" as pending, so
-   this is disclosed rather than missed — but no lane may report this commit as CI-verified.
-2. Pushing is David's word, not mine and not Codex's. It stays parked.
+**That state changed while this audit was being written.** `5604a81` was pushed at 01:24:45Z.
+Re-measured against the remote rather than the local tracking ref:
 
-The change set is documentation-only, so the CI risk is low — but low risk is not a measurement, and
-I am not substituting one for the other.
+- `git ls-remote origin refs/heads/main` → `5604a810bcff5d31fa4141e9460d3fb3500e616d`
+- exact-head CI run **`31347018489` on `5604a81`: completed, success** — Python checks success,
+  Frontend checks success.
+
+**The gap is therefore closed, not carried.** The audit verdict is unchanged (CLEAR on divergence);
+the CI qualification I attached to it no longer applies.
+
+Recording the sequence rather than silently overwriting it: the original reading was correct when
+taken, and the correction comes from re-measuring against the authoritative remote. A local
+`origin/main` ref is only as fresh as the last fetch, which is why the remote was consulted directly.
 
 ## What I did not do
 

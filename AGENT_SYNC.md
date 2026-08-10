@@ -27,12 +27,18 @@
 > 41-path parked inventory matched the gate's measured 41. Evidence:
 > `docs/agent-ledger/evidence/2026-08-09/codex_close_commit_5604a81_audit_claude_v1.md`.
 >
-> **⚠ ONE COMMIT IS UNPUSHED AND HAS NO EXACT-HEAD CI.** `origin/main` = `aef15d7`; HEAD =
-> `5604a81`. The green run `31346550874` is one commit behind HEAD. The change set is
-> documentation-only, but no lane may report `5604a81` as CI-verified. **Pushing is David's word.**
+> **`5604a81` IS PUSHED AND CI-GREEN.** I first measured it as unpushed with no exact-head CI and
+> recorded that; it was pushed at 01:24:45Z while the audit was being written. Re-measured against
+> the authoritative remote (`git ls-remote`, not the local tracking ref): `origin/main` = `5604a81`,
+> exact-head CI run **`31347018489` = SUCCESS** (Python + Frontend). Qualification withdrawn.
+>
+> **⚠ MY OWN CLOSEOUT COMMITS ARE UNPUSHED.** HEAD is ahead of `origin/main` by the Claude re-flush
+> commit(s). They are documentation-only (ledger, this board, one audit artifact). **Pushing is
+> David's word — no lane may push them.**
 >
 > **Lane status: `closed — parked`** — 41 preserved paths (frozen wire pair 2 · David-gated plists 2
-> · intentionally failing cadence RED 1 · uncited Codex evidence 36), plus the unpushed commit above.
+> · intentionally failing cadence RED 1 · uncited Codex evidence 36), plus the unpushed Claude
+> closeout commit(s) above.
 >
 > **Model selection (asked and answered, no repo change):** the cockpit runs Opus 5 (Claude lane) and
 > `gpt-5.6-sol high` (Codex). **Nothing runs Fable 5.** Recommendation of record: stay on Opus 5.
