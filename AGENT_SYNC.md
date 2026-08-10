@@ -11,6 +11,26 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⭐ 2026-08-10 (4) DAVID'S RETENTION WORD: OPTION 1 — THE PHASE A RED IS OPEN
+>
+> **David's word, verbatim: "1"** — in answer to the §8 retention choice presented with tradeoffs:
+> **full offsite raw backup.** Raw Footballguys archives are governed manifest-covered stores and
+> replicate to GCS with everything else; no historical vintage can be lost to a disk failure; the
+> compounding monthly series the Q2 order needs is protected.
+>
+> **Effect — and its exact limits:** the LAST gate before the Phase A RED is satisfied. **Codex is
+> asked to author the RED** from framing v25's named controls (~90 across the archive reader,
+> content store, identities, clocks, state table, storage physics). Per the framing's own ordering
+> laws, the GREEN may not perform a first runtime write before the narrow `.gitignore` rule is
+> committed, and no protected publish/transaction before its manifest entry exists — the RED's
+> check-ignore and coverage controls enforce exactly that. **This word authorizes RED authorship
+> and defines the retention mode. It does NOT authorize landing the GREEN, scheduler installs,
+> provider contact, Phase B/C/D, or any push — each stays on its own gate.**
+>
+> **Standing:** framing v25 CLEAR (`f44b5ab0…`, clearance `e7d93d11…`) · plan v4 CLEAR · B awaits
+> A's frozen interface + independent oracle · C closed (horizon `unverified`, cohort/estimand
+> gates) · D closed on C + David. H2 QB rushing remains **UNDER TEST** with no result.
+
 > # ✅ 2026-08-10 (3) PHASE A FRAMING CLEAR AT ROUND 25 · ONE GATE REMAINS: DAVID'S RETENTION WORD
 >
 > **Codex round-25 CLEAR on Phase A framing v25** (`f44b5ab0…`; clearance `e7d93d11…`) — the
