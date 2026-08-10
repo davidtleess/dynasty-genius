@@ -11,6 +11,27 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ✅ 2026-08-10 (3) PHASE A FRAMING CLEAR AT ROUND 25 · ONE GATE REMAINS: DAVID'S RETENTION WORD
+>
+> **Codex round-25 CLEAR on Phase A framing v25** (`f44b5ab0…`; clearance `e7d93d11…`) — the
+> Footballguys intake + monthly-refresh-notice framing survived **25 adversarial rounds: 105
+> findings accepted, zero contested**, plus one lane-self-found header defect disclosed. Codex ran
+> live probes (filesystem races, flock inode identity, SQLite WAL physics, byte-level snapshots)
+> and each probe family changed the contract. Plan v4 (Horizon Divergence) stands CLEAR from
+> round 4.
+>
+> **THE ONE REMAINING GATE BEFORE THE PHASE A RED: David's §8 retention choice** —
+> **(1)** full offsite raw backup (licensed Footballguys archives replicate to GCS) ·
+> **(2)** a named local-only exception with the loss model written in (disk loss loses historical
+> vintages) · **(3)** metadata-only `refresh_observation` (no raw retention; reminder still works;
+> Phase B/C can never consume those drops). After his word: the `.gitignore` rule lands BEFORE any
+> first runtime write, then Codex authors the RED from the framing's ~90 named controls.
+>
+> **Phase state:** A framing CLEAR, RED gated on the word above · B awaits A's frozen interface +
+> independent identity oracle · C closed (horizon `unverified` — the exact-field semantic contract
+> is a Phase-A deliverable; cohort/estimand gates registered) · D closed on C + David.
+> **Standing:** H2 QB rushing remains a registered hypothesis **UNDER TEST** with no result.
+
 > # ▶ 2026-08-10 (2) PUSH EXECUTED ON DAVID'S WORD · AUDIT CLEAR · HORIZON DIVERGENCE PLAN OPENED
 >
 > **David's words, verbatim:** *"ok - determine how to plan and execute your recmmendation in #2.
