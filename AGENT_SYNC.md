@@ -11,6 +11,35 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ✅ 2026-08-09 CLAUDE LANE RE-FLUSH — CODEX CLOSE COMMIT AUDITED CLEAR, ONE COMMIT UNPUSHED
+>
+> **David's word:** *"ok prepare your close out"*. Layer: `cross-lane` (closeout governance). This
+> block creates no scheduler-install, provider-contact, model-use, data-migration, push, or deletion
+> authority.
+>
+> **The session reopened after my terminal close.** That close landed at `aef15d7`; Codex then
+> committed `5604a81`. A commit after a flush reopens the session, so this is a re-flush and the
+> earlier `closed` does not stand unqualified.
+>
+> **Independent post-commit audit of `5604a81`: CLEAR on divergence.** Verified from the repo — 11
+> documentation files, zero deletions; all seven previously-dangling evidence citations now tracked;
+> frozen wire pair untouched at `b3247ec8…` / `fd924eb1…` and still uncommitted; Codex's predicted
+> 41-path parked inventory matched the gate's measured 41. Evidence:
+> `docs/agent-ledger/evidence/2026-08-09/codex_close_commit_5604a81_audit_claude_v1.md`.
+>
+> **⚠ ONE COMMIT IS UNPUSHED AND HAS NO EXACT-HEAD CI.** `origin/main` = `aef15d7`; HEAD =
+> `5604a81`. The green run `31346550874` is one commit behind HEAD. The change set is
+> documentation-only, but no lane may report `5604a81` as CI-verified. **Pushing is David's word.**
+>
+> **Lane status: `closed — parked`** — 41 preserved paths (frozen wire pair 2 · David-gated plists 2
+> · intentionally failing cadence RED 1 · uncited Codex evidence 36), plus the unpushed commit above.
+>
+> **Model selection (asked and answered, no repo change):** the cockpit runs Opus 5 (Claude lane) and
+> `gpt-5.6-sol high` (Codex). **Nothing runs Fable 5.** Recommendation of record: stay on Opus 5.
+> Do not re-litigate next session without new evidence.
+>
+> **Next session opens on the Footballguys `adp.csv` pilot** (David's word), overlay-only.
+
 > # ✅ 2026-08-09 CODEX LANE CLOSEOUT — SEVEN DANGLING CITATIONS LANDED, REMAINDER PARKED
 >
 > **David's word:** *"ok close out"*. This block is the Codex lane's Layer-1 postflight; it creates
