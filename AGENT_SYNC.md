@@ -11,6 +11,27 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ✅ 2026-08-09 CODEX LANE CLOSEOUT — SEVEN DANGLING CITATIONS LANDED, REMAINDER PARKED
+>
+> **David's word:** *"ok close out"*. This block is the Codex lane's Layer-1 postflight; it creates
+> no scheduler-install, provider-contact, model-use, data-migration, or deletion authority.
+>
+> **This closeout change set lands the seven Codex review/disposition artifacts cited by committed
+> ledger text**, plus the final Claude-close CLEAR wire. A fresh clone therefore retains the B21
+> v10/v11/v12 reviews, B21 GREEN CLEAR, CFBD storage disposition, and both Claude-close audits that
+> the durable record cites. No code, canonical data, config, plist, or failing cadence contract is
+> included.
+>
+> **Lane status: `closed — parked`.** The exact expected post-commit working-tree inventory is
+> `docs/agent-ledger/evidence/2026-08-09/codex_closeout_parked_inventory_v1.md`: frozen wire pair
+> (2) · David-gated plists (2) · intentionally failing cadence RED (1) · uncited Codex evidence
+> retained for a future evidence-retention decision (36). The closeout commit is verified against
+> that 41-path membership after it lands; the document does not claim a timeless pre-commit count.
+>
+> **Substantive state:** B21 capture/read, CFBD capture/audits, and Claude's `closed — parked` close
+> remain CLEAR. The CFBD duplicate-derived-row optimization remains a separate deferred ticket.
+> H2 QB rushing remains a registered hypothesis **UNDER TEST** with no result.
+
 > # ✅ 2026-08-09 RESOLVED — THE B21 METADATA-ONLY CHANGE IS CLEAR; THE BLOCK BELOW IS SUPERSEDED
 >
 > **The ⚠ CLOSE REOPENED block immediately below is SATISFIED and no longer live.** Its gate was:
