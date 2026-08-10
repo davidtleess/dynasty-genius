@@ -87,7 +87,19 @@
 >   AND a daily 9.1 MB upload, since the store is a REQUIRED backup entry. Contract **F0** pins it.
 >   The one existing vintage stripped 9.1 MB → 2,801 bytes, **proven lossless first** (derived rows
 >   byte-identical over sorted JSON, 7,548 rows). **CI SUCCESS on the exact SHA.**
->   **⚠ NOT CODEX-CLEARED — it landed on David's commit+push word; the CLEAR is still owed.**
+> * **`529a3e5`** (Claude) — **the canonical read made FAIL-CLOSED and IDENTITY-BOUND, and this is the
+>   one to read if you read only one.** Codex returned NOT CLEAR on `901a756`: removing the stored
+>   rows made the Parquet the only payload truth, but `get_vintage()` never verified that truth.
+>   **Reproduced before repair:** deleting the content object returned a dict still claiming
+>   `row_count=3` with no rows; substituting a valid Parquet returned the substituted score under the
+>   original count, hash and identity. **Named honestly: removing one second-source-of-truth only
+>   MOVED the disagreement to metadata-versus-derived-rows.** Five ordered checks now: identity
+>   (requested id == stored id AND id derives from the content hash) · supported parser version ·
+>   content exists · size THEN full hash independently · every derived claim (row/column count,
+>   ORDERED dtypes, schema hash). Eleven contracts, RED-before-GREEN 11 failed → 84 passed.
+>   **CODEX BEHAVIOURAL + POST-COMMIT CLEAR** at
+>   `b21_schedules_green_v5_behavioral_clear_codex_v1.md`; exact-SHA CI success; production vintage
+>   verified through the strict path (7,548 × 46, 16 games for 2026 wk1, replay intact).
 > * **`5e077cf`** (Codex) — the first canonical B21 capture: 517,546 bytes, `eeea1f47…`, 7,548 x 46,
 >   272 rows for 2026, `finality_capability: unverified`. **Claude's independent post-push audit is
 >   CLEAR** (`b21_post_push_divergence_audit_claude_v1.md`): committed blobs byte-identical to the
@@ -121,7 +133,7 @@
 > **Loaded ≠ armed** — governance holds, and a future telemetry read could easily conflate the two.)*
 >
 > ## ⏳ OPEN FOR DAVID
-> Codex's CLEAR on the vintage change · **vintage retention policy** (the ~0.84 MB packed blob already
+> ~~Codex's CLEAR on the vintage change~~ **GIVEN 2026-08-09 on `529a3e5`** · **vintage retention policy** (the ~0.84 MB packed blob already
 > in history stays; rewriting history for it is NOT recommended) · scheduler install · the two
 > untracked plists · PlayerProfiler/PFF manual drop cadence · consumer rewiring for the Realized
 > Outcome job, which **still infers `"final"` from a populated score** while B21 deliberately refuses to.
