@@ -32,9 +32,14 @@ Measured on the committed vintage `v-76f0af56c90374ed`:
 | Component | Bytes |
 | :-- | --: |
 | vintage file total | 908,769 |
-| `games` (parsed rows, 888 rows) | **715,506** |
-| real metadata | 1,816 |
-| separately retained raw content | 655,068 |
+| **removable duplicate** (`games`, 888 rows) | **905,555 — 99.65%** |
+| real metadata | 3,214 |
+| separately retained source-authentic raw JSON | 655,068 |
+
+*(CORRECTED. My first table mixed encodings — compact `json.dumps` for the components against
+`stat()` for the total — so the figures were not additive. Codex caught it; re-measured under the
+file's actual `indent=2, sort_keys=True` writer, its numbers reproduce exactly. **The correction
+strengthens the finding**: the removable share is 99.65%, not the ~79% my mixed figures implied.)*
 
 `load_vintage` re-parses the rows from the retained raw on **every** read and then asserts
 `vintage.get("games") != rows` → refuse. So **the stored `games` array can never be authoritative**:
