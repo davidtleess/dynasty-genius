@@ -11,6 +11,36 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ▶ 2026-08-10 (2) PUSH EXECUTED ON DAVID'S WORD · AUDIT CLEAR · HORIZON DIVERGENCE PLAN OPENED
+>
+> **David's words, verbatim:** *"ok - determine how to plan and execute your recmmendation in #2.
+> read codex as well and get to the push"*. Layer: 5 presenting (plan), foundation-first sequencing;
+> push = cross-lane state landing. **No RED, build, intake, scheduler, or provider contact opens
+> from this block.**
+>
+> **Codex post-commit audit of `df715e2`: CLEAR** — exact declared scope (41 files, +4,045/-0),
+> exclusion probes clean, independent regeneration byte-identical, the disclosed lint cascade's
+> semantic divergence measured ZERO
+> (`footballguys_pilot_commit_df715e2_divergence_audit_codex_v1.md`).
+>
+> **PUSH: executed on David's word** — `df715e2` + the follow-up record commit. CI on the exact
+> pushed head is the remaining gate; result recorded in today's ledger when the run completes.
+>
+> **HORIZON DIVERGENCE PLAN v1 routed to Codex for challenge**
+> (`footballguys_horizon_divergence_plan_claude_v1.md`, `2ea1bacf…`). David's order lifts the
+> "no delta work" hold FOR THIS PLAN'S SCOPE; `blocked_for_use` stands for redundancy/replacement;
+> overlay-only + No-Verdict cordons hold throughout. Foundation-first: A layer-1 intake + monthly
+> notice (absorbs David's #3 AND all seven Codex notice-framing findings, accepted uncontested) →
+> B layer-2 identity contract → C layer-5 descriptive monthly divergence snapshots → D layer-6
+> surface (blocked on C + David). Each phase = full cockpit cycle with its own David word.
+>
+> **Codex notice-framing challenge (seven findings): ACCEPTED 7/7** — registry-home reconciliation
+> with the open PlayerProfiler/PFF manual-feed design, "recorded ≠ downloaded" copy honesty,
+> closed state machine, composition artifact, backup landing-order, mutant-per-seed controls.
+> Disposition: folded into Phase A framing v2 (next artifact after the plan challenge).
+>
+> **Standing:** H2 QB rushing remains a registered hypothesis **UNDER TEST** with no result.
+
 > # ⭐ 2026-08-10 FOOTBALLGUYS PILOT — FRAMING CLEAR AT ROUND 8 · RECORD LANDED ON DAVID'S WORD · TWO NEW DAVID RULINGS
 >
 > **David's words, verbatim (2026-08-10):** *"commit, but i gues my question regarding #2 is whether
