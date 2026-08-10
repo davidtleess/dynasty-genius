@@ -323,6 +323,7 @@ def inspect_archive(
             if member_observer is not None:
                 member_observer(path)
             payload = archive.read(path)
+            validate_role_schema(role, payload)
             role_records.append(
                 {
                     "role": role,
@@ -337,6 +338,26 @@ def inspect_archive(
         "archive_sha256": hashlib.sha256(archive_bytes).hexdigest(),
         "archive_bytes": len(archive_bytes),
     }
+
+
+def validate_role_schema(role: str, payload: bytes) -> None:
+    """Pinned minimal schemas, validated from STAGED member bytes (GREEN-review H4)."""
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise _refuse(f"role_schema_invalid:{role}:not_utf8") from exc
+    lines = text.splitlines()
+    if not lines or "," not in lines[0]:
+        raise _refuse(f"role_schema_invalid:{role}:no_csv_header")
+    header = [column.strip() for column in lines[0].split(",")]
+    if header[0] != "id":
+        raise _refuse(f"role_schema_invalid:{role}:missing_id_column")
+    if role == "adp":
+        if not any(column.startswith("adp_") for column in header[1:]):
+            raise _refuse(f"role_schema_invalid:{role}:missing_adp_column")
+    elif role == "identity_sidecar":
+        if len(header) < 3:
+            raise _refuse(f"role_schema_invalid:{role}:missing_identity_columns")
 
 
 # ---------------------------------------------------------------------------
@@ -1150,14 +1171,38 @@ class ContractDriver:
             trace.append("pragma_journal_mode_wal")
             if mode != "wal":
                 raise _refuse(f"journal_mode_not_wal:{mode}")
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS acquisitions ("
-                " row_id TEXT PRIMARY KEY,"
-                " offering_id TEXT UNIQUE,"
-                " kind TEXT, retrieved_at TEXT, readiness TEXT, retention TEXT,"
-                " content_vintage_id TEXT, archive_sha256 TEXT, archive_bytes INTEGER,"
-                " analysis_ready INTEGER, signature BLOB)"
-            )
+            if store == "semantics":
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS acquisitions ("
+                    " row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, kind TEXT)"
+                )
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS semantic_assertions ("
+                    " assertion_id TEXT PRIMARY KEY, key TEXT, version INTEGER,"
+                    " claim TEXT, active INTEGER, evidence_id TEXT)"
+                )
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS semantic_attachments ("
+                    " evidence_id TEXT PRIMARY KEY, retrieved_at TEXT,"
+                    " provenance TEXT, retention TEXT,"
+                    " evidence_sha256 TEXT, evidence_bytes INTEGER)"
+                )
+            else:
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS acquisitions ("
+                    " row_id TEXT PRIMARY KEY,"
+                    " offering_id TEXT UNIQUE,"
+                    " source TEXT, kind TEXT, retrieved_at TEXT,"
+                    " readiness TEXT, retention TEXT,"
+                    " content_vintage_id TEXT, archive_sha256 TEXT,"
+                    " archive_bytes INTEGER, role_records TEXT,"
+                    " analysis_ready INTEGER, signature BLOB)"
+                )
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS attempts ("
+                    " seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    " status TEXT, reason TEXT)"
+                )
             trace.append("schema_write")
             conn.execute(
                 "INSERT OR IGNORE INTO acquisitions(row_id, offering_id, kind)"
@@ -1380,6 +1425,22 @@ class ContractDriver:
         stage_path = staging_dir / stage_name
         metadata_only = self.retention_mode == "metadata_only"
 
+        if not metadata_only:
+            # GREEN-review H7: active raw publication demands the objects row be a
+            # REQUIRED directory — the first-capture flip law in code, not prose.
+            objects_row = next(
+                (
+                    r
+                    for r in self._manifest_rows()
+                    if r.get("path") == RUNTIME_PATHS["objects"]
+                ),
+                None,
+            )
+            if objects_row is None or not objects_row.get("required"):
+                raise _refuse(
+                    "backup_coverage_missing:required:objects:"
+                    + RUNTIME_PATHS["objects"]
+                )
         keep_staging = False
         fd = os.open(
             stage_path, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600
@@ -1399,9 +1460,22 @@ class ContractDriver:
             if fault_at == "source_read_error":
                 raise _refuse("source_read_error")
 
-            os.write(fd, archive_bytes)
+            remaining = archive_bytes
+            while remaining:
+                written = os.write(fd, remaining)
+                remaining = remaining[written:]
             os.fsync(fd)
             self.trace.append("source_stream")
+            # GREEN-review C1: every signed fact derives from the STAGED bytes,
+            # read back through the held descriptor — never the source argument.
+            os.lseek(fd, 0, os.SEEK_SET)
+            staged_chunks: list[bytes] = []
+            while True:
+                chunk = os.read(fd, 1 << 20)
+                if not chunk:
+                    break
+                staged_chunks.append(chunk)
+            staged_bytes = b"".join(staged_chunks)
 
             if fault_at == "after_staging_fsync":
                 keep_staging = True
@@ -1417,7 +1491,7 @@ class ContractDriver:
                 raise _refuse("member_crc_mismatch:adp")
 
             inspected = inspect_archive(
-                archive_bytes, role_paths=ROLE_PATHS, limits=ARCHIVE_LIMITS
+                staged_bytes, role_paths=ROLE_PATHS, limits=ARCHIVE_LIMITS
             )
             self.trace.append("archive_validate")
             if fault_at == "schema_failure":
@@ -1482,38 +1556,65 @@ class ContractDriver:
                     attempt_recorded=True,
                 )
             canonical = objects_dir / f"{inspected['archive_sha256']}.zip"
-            if canonical.exists():
-                self._verify_existing_object(canonical, inspected)
-                if fault_at == "receipt_commit_reuse":
-                    return self._crash("no_new_residue", "keep_reference_set")
-            else:
-                self._require_coverage(RUNTIME_PATHS["objects"])
-                os.link(stage_path, canonical)
-                self.trace.append("publish_no_replace")
-                os.unlink(stage_name, dir_fd=dir_fd)
-                keep_staging = True  # name consumed by publish; nothing left to unlink
-                if fault_at == "after_publish_before_dir_fsync":
-                    keep_staging = True  # the staging NAME is already unlinked
-                    return self._crash("canonical_optional", "reuse_or_republish")
-                os.fsync(dir_fd)
-                staged_info = os.fstat(fd)
-                published = os.lstat(canonical)
-                if (
-                    not stat_module.S_ISREG(published.st_mode)
-                    or published.st_nlink != 1
-                    or (published.st_dev, published.st_ino)
-                    != (staged_info.st_dev, staged_info.st_ino)
-                ):
-                    canonical.unlink(missing_ok=True)
-                    raise _refuse("published_object_invalid")
-                self.trace.append("published_inode_verify")
+            objects_fd = os.open(
+                objects_dir, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+            )
+            try:
+                if os.fstat(objects_fd).st_dev != os.fstat(dir_fd).st_dev:
+                    self._record_attempt("failed", "staging_objects_cross_device")
+                    return IntakeResult(
+                        status="failed",
+                        reason="staging_objects_cross_device",
+                        attempt_recorded=True,
+                    )
+                if canonical.exists():
+                    self._verify_existing_object(canonical, inspected)
+                    if fault_at == "receipt_commit_reuse":
+                        return self._crash("no_new_residue", "keep_reference_set")
+                else:
+                    self._require_coverage(RUNTIME_PATHS["objects"])
+                    os.link(stage_path, canonical)
+                    self.trace.append("publish_no_replace")
+                    os.unlink(stage_name, dir_fd=dir_fd)
+                    keep_staging = True  # name consumed; nothing left to unlink
+                    if fault_at == "after_publish_before_dir_fsync":
+                        return self._crash("canonical_optional", "reuse_or_republish")
+                    # GREEN-review C2: durability belongs to the OBJECTS parent.
+                    os.fsync(objects_fd)
+                    os.fsync(dir_fd)
+                    staged_info = os.fstat(fd)
+                    published = os.lstat(canonical)
+                    if (
+                        not stat_module.S_ISREG(published.st_mode)
+                        or published.st_nlink != 1
+                        or (published.st_dev, published.st_ino)
+                        != (staged_info.st_dev, staged_info.st_ino)
+                        or published.st_size != inspected["archive_bytes"]
+                    ):
+                        canonical.unlink(missing_ok=True)
+                        os.fsync(objects_fd)
+                        raise _refuse("published_object_invalid")
+                    os.lseek(fd, 0, os.SEEK_SET)
+                    digest = hashlib.sha256()
+                    while True:
+                        chunk = os.read(fd, 1 << 20)
+                        if not chunk:
+                            break
+                        digest.update(chunk)
+                    if digest.hexdigest() != inspected["archive_sha256"]:
+                        canonical.unlink(missing_ok=True)
+                        os.fsync(objects_fd)
+                        raise _refuse("published_object_hash_mismatch")
+                    self.trace.append("published_inode_verify")
+            finally:
+                os.close(objects_fd)
                 os.close(fd)
                 self.open_raw_descriptors -= 1
                 fd = -1
                 if fault_at == "receipt_commit_fresh":
                     return self._crash("canonical_orphan", "adopt_on_reuse")
 
-            self._commit_acquisition(
+            readiness = self._commit_acquisition(
                 store="receipts",
                 row_id=acquisition_id,
                 offering=offering,
@@ -1524,7 +1625,7 @@ class ContractDriver:
             )
             self.trace.append("receipt_transaction")
             return IntakeResult(
-                status="ready",
+                status="review_required" if readiness == "review_required" else "ready",
                 raw_retained=True,
                 receipt_id=acquisition_id,
                 observation_id=acquisition_id,
@@ -1532,6 +1633,8 @@ class ContractDriver:
         except FootballguysIntakeError as exc:
             if exc.code.startswith(("offering_identity_conflict", "backup_coverage_missing")):
                 raise
+            status = "invalid" if exc.code.startswith("retrieved_at") else "failed"
+            self._record_attempt(status, exc.code)
             return IntakeResult(status="failed", reason=exc.code)
         finally:
             if fd >= 0:
@@ -1550,6 +1653,7 @@ class ContractDriver:
     def _crash(self, residue: str, restart: str) -> IntakeResult:
         self.last_crash_residue = residue
         self.restart_contract = restart
+        self._record_attempt("failed", residue)
         return IntakeResult(status="failed", reason=residue)
 
     # (staging cleanup is owned by the intake's finally block — one owner, one close)
@@ -1589,6 +1693,10 @@ class ContractDriver:
                     return row
         return None
 
+    def _horizon_is_effective(self) -> bool:
+        state = self.semantic_state(key="classic.adp_sleeper-sf.horizon")
+        return bool(state.get("state") == "known" and state.get("eligible_for_phase_c"))
+
     def _commit_acquisition(
         self,
         *,
@@ -1599,65 +1707,291 @@ class ContractDriver:
         inspected: Mapping[str, Any],
         kind: str,
         signature: bytes,
-    ) -> None:
+    ) -> str:
         if store not in self._db_initialized:
             self.initialize_database(store)
+        if kind == "receipt":
+            # GREEN-review H5: unknown horizon advances freshness only —
+            # analysis readiness requires effective provider-authentic evidence.
+            readiness = "ready" if self._horizon_is_effective() else "review_required"
+            analysis_ready = 1 if readiness == "ready" else 0
+            retention = "retained"
+        else:
+            readiness, analysis_ready, retention = "metadata_only", 0, "metadata_only"
         with contextlib.closing(sqlite3.connect(self._db_path(store))) as conn:
             conn.execute(
                 "INSERT OR IGNORE INTO acquisitions"
-                " (row_id, offering_id, kind, retrieved_at, readiness, retention,"
-                "  content_vintage_id, archive_sha256, archive_bytes,"
-                "  analysis_ready, signature)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                " (row_id, offering_id, source, kind, retrieved_at, readiness,"
+                "  retention, content_vintage_id, archive_sha256, archive_bytes,"
+                "  role_records, analysis_ready, signature)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     row_id,
                     offering["offering_id"],
+                    offering["source"],
                     kind,
                     canonical_at,
-                    "ready" if kind == "receipt" else "metadata_only",
-                    "retained" if kind == "receipt" else "metadata_only",
+                    readiness,
+                    retention,
                     inspected["content_vintage_id"],
                     inspected["archive_sha256"],
                     inspected["archive_bytes"],
-                    1 if kind == "receipt" else 0,
+                    json.dumps(inspected["role_records"]),
+                    analysis_ready,
                     signature,
                 ),
             )
             conn.commit()
+        return readiness
+
+    def _record_attempt(self, status: str, reason: str | None) -> None:
+        store = "observations" if self.retention_mode == "metadata_only" else "receipts"
+        if store not in self._db_initialized:
+            self.initialize_database(store)
+        with contextlib.closing(sqlite3.connect(self._db_path(store))) as conn:
+            conn.execute(
+                "INSERT INTO attempts(status, reason) VALUES (?,?)", (status, reason)
+            )
+            conn.commit()
+
+    def _load_attempts(self) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        for store in ("receipts", "observations"):
+            path = self._db_path(store)
+            if not path.exists():
+                continue
+            try:
+                with contextlib.closing(
+                    sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+                ) as conn:
+                    rows = conn.execute(
+                        "SELECT status, reason FROM attempts ORDER BY seq"
+                    ).fetchall()
+            except sqlite3.Error:
+                continue
+            out.extend({"status": row[0], "reason": row[1]} for row in rows)
+        return out
+
+    # -- durable semantic seam (GREEN-review H5) ---------------------------
+
+    def write_semantic_assertion(self, record: Mapping[str, Any]) -> dict[str, Any]:
+        if "semantics" not in self._db_initialized:
+            self.initialize_database("semantics")
+        assertion = record["assertion"]
+        attachment = record["attachment"]
+        evidence_bytes = attachment["evidence_bytes"]
+        evidence_sha = hashlib.sha256(evidence_bytes).hexdigest()
+        with contextlib.closing(sqlite3.connect(self._db_path("semantics"))) as conn:
+            existing = conn.execute(
+                "SELECT key, version, claim, active, evidence_id"
+                " FROM semantic_assertions WHERE assertion_id=?",
+                (assertion["assertion_id"],),
+            ).fetchone()
+            incoming = (
+                assertion["key"],
+                assertion["version"],
+                assertion["claim"],
+                1 if assertion["active"] else 0,
+                attachment["evidence_id"],
+            )
+            if existing is not None:
+                if tuple(existing) != incoming:
+                    raise _refuse(
+                        f"assertion_identity_conflict:{assertion['assertion_id']}"
+                    )
+                return {"status": "noop"}
+            conn.execute(
+                "INSERT INTO semantic_assertions"
+                " (assertion_id, key, version, claim, active, evidence_id)"
+                " VALUES (?,?,?,?,?,?)",
+                (assertion["assertion_id"], *incoming),
+            )
+            conn.execute(
+                "INSERT OR REPLACE INTO semantic_attachments"
+                " (evidence_id, retrieved_at, provenance, retention,"
+                "  evidence_sha256, evidence_bytes)"
+                " VALUES (?,?,?,?,?,?)",
+                (
+                    attachment["evidence_id"],
+                    attachment["retrieved_at"],
+                    attachment["provenance"],
+                    attachment["retention"],
+                    evidence_sha,
+                    len(evidence_bytes),
+                ),
+            )
+            conn.commit()
+        return {"status": "written"}
+
+    def semantic_state(self, *, key: str) -> dict[str, Any]:
+        path = self._db_path("semantics")
+        if not path.exists():
+            return {"state": "unknown", "reason": "no_active_assertion", "eligible_for_phase_c": False}
+        with contextlib.closing(
+            sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        ) as conn:
+            try:
+                assertion_rows = conn.execute(
+                    "SELECT assertion_id, key, version, claim, active, evidence_id"
+                    " FROM semantic_assertions WHERE key=?",
+                    (key,),
+                ).fetchall()
+                attachment_rows = conn.execute(
+                    "SELECT evidence_id, retention, evidence_sha256, evidence_bytes"
+                    " FROM semantic_attachments"
+                ).fetchall()
+            except sqlite3.Error:
+                return {"state": "unknown", "reason": "store_unreadable", "eligible_for_phase_c": False}
+        attachments = {
+            row[0]: {
+                "state": "retained_verified" if row[1] == "retained" and row[2] else row[1],
+                "evidence_sha256": row[2],
+                "evidence_bytes": row[3],
+            }
+            for row in attachment_rows
+        }
+        assertions = [
+            {
+                "assertion_id": row[0],
+                "key": row[1],
+                "version": row[2],
+                "claim": row[3],
+                "active": bool(row[4]),
+                "evidence_id": row[5],
+            }
+            for row in assertion_rows
+        ]
+        reduced = reduce_semantic_assertions(
+            assertions=assertions, attachments=attachments, adjudications=[]
+        )
+        if reduced["state"] != "known":
+            return reduced
+        chosen = next(
+            row for row in assertions if row["assertion_id"] == reduced["assertion_id"]
+        )
+        attachment = attachments[chosen["evidence_id"]]
+        return {
+            "state": "known",
+            "value": reduced["value"],
+            "assertion_id": reduced["assertion_id"],
+            "evidence_id": chosen["evidence_id"],
+            "evidence_sha256": attachment["evidence_sha256"],
+            "evidence_bytes": attachment["evidence_bytes"],
+            "eligible_for_phase_c": True,
+        }
 
     # -- effective acquisitions and read model -----------------------------
 
+    def _row_identity_valid(self, row: Mapping[str, Any]) -> bool:
+        """GREEN-review C3: reconstruct the signature from PERSISTED signed fields
+        through the production serializer and compare to the stored id."""
+        try:
+            role_records = json.loads(row["role_records"] or "[]")
+            signature = serialize_offering_signature(
+                source=row["source"],
+                offering_id=row["offering_id"],
+                content_vintage_id=row["content_vintage_id"],
+                retrieved_at=row["retrieved_at"],
+                archive_sha256=row["archive_sha256"],
+                archive_bytes=row["archive_bytes"],
+                role_records=role_records,
+            )
+        except (FootballguysIntakeError, KeyError, TypeError, ValueError):
+            return False
+        return receipt_id(signature) == row["row_id"]
+
+    def _receipt_object_valid(self, row: Mapping[str, Any]) -> bool:
+        """GREEN-review C3: descriptor-bound rehash of the receipt-bound object."""
+        canonical = self._p("objects") / f"{row['archive_sha256']}.zip"
+        try:
+            fd = os.open(canonical, os.O_RDONLY | os.O_NOFOLLOW)
+        except OSError:
+            return False
+        try:
+            info = os.fstat(fd)
+            if (
+                not stat_module.S_ISREG(info.st_mode)
+                or info.st_nlink != 1
+                or info.st_size != row["archive_bytes"]
+            ):
+                return False
+            digest = hashlib.sha256()
+            while True:
+                chunk = os.read(fd, 1 << 20)
+                if not chunk:
+                    break
+                digest.update(chunk)
+            return digest.hexdigest() == row["archive_sha256"]
+        finally:
+            os.close(fd)
+
     def _effective_acquisitions(self) -> list[dict[str, Any]]:
-        by_id: dict[str, dict[str, Any]] = {}
+        raw: list[dict[str, Any]] = []
         for store, kind in (("observations", "observation"), ("receipts", "receipt")):
             for row in self._store_rows(store):
-                recomputed = receipt_id(row["signature"])
-                if recomputed != row["row_id"]:
-                    row["integrity"] = "invalid"
-                current = by_id.get(row["row_id"])
-                if current is None or kind == "receipt":
-                    by_id[row["row_id"]] = {
-                        "id": row["row_id"],
-                        "kind": kind,
-                        "offering_id": row["offering_id"],
-                        "retrieved_at": row["retrieved_at"],
-                        "readiness": row["readiness"],
-                        "retention": row["retention"],
-                        "content_vintage_id": row["content_vintage_id"],
-                        "analysis_ready": bool(row["analysis_ready"]),
-                        "receipt_id": row["row_id"],
-                        "valid": True,
+                row["kind"] = kind
+                raw.append(row)
+
+        invalid_rows: list[dict[str, Any]] = []
+        valid_rows: list[dict[str, Any]] = []
+        for row in raw:
+            if not self._row_identity_valid(row):
+                invalid_rows.append(row)
+            elif row["kind"] == "receipt" and not self._receipt_object_valid(row):
+                invalid_rows.append(row)
+            else:
+                valid_rows.append(row)
+
+        # Global offering grouping over the union (rounds 19-22, in the load path).
+        specials: list[dict[str, Any]] = []
+        barred_offerings: set[str] = set()
+        by_offering: dict[tuple[str, str], set[str]] = {}
+        for row in valid_rows:
+            by_offering.setdefault(
+                (row["source"], row["offering_id"]), set()
+            ).add(row["row_id"])
+        for (source, offering_id), ids in by_offering.items():
+            if len(ids) > 1:
+                specials.append(
+                    {
+                        "special": "offering_identity_conflict",
+                        "members": sorted(ids),
                     }
-        return sorted(
-            by_id.values(), key=lambda row: (row["retrieved_at"], row["id"])
-        )
+                )
+                barred_offerings.add(offering_id)
+        for row in invalid_rows:
+            specials.append({"special": "integrity_failure", "id": row["row_id"]})
+            barred_offerings.add(row["offering_id"])
+
+        by_id: dict[str, dict[str, Any]] = {}
+        for row in valid_rows:
+            if row["offering_id"] in barred_offerings:
+                continue
+            current = by_id.get(row["row_id"])
+            if current is None or row["kind"] == "receipt":
+                by_id[row["row_id"]] = {
+                    "id": row["row_id"],
+                    "kind": row["kind"],
+                    "offering_id": row["offering_id"],
+                    "retrieved_at": row["retrieved_at"],
+                    "readiness": row["readiness"],
+                    "retention": row["retention"],
+                    "content_vintage_id": row["content_vintage_id"],
+                    "analysis_ready": bool(row["analysis_ready"]),
+                    "receipt_id": row["row_id"],
+                    "valid": True,
+                }
+        rows = sorted(by_id.values(), key=lambda row: (row["retrieved_at"], row["id"]))
+        self._effective_specials = specials
+        return rows
 
     def read_model(
         self, *, now: datetime, global_overall_status: str | None = None
     ) -> dict[str, Any]:
+        rows = self._effective_acquisitions()
         return evaluate_refresh_state(
-            acquisitions=self._effective_acquisitions(),
-            attempts=[],
+            acquisitions=rows + list(self._effective_specials),
+            attempts=self._load_attempts(),
             now=now,
             global_overall_status=global_overall_status,
         )
@@ -1695,7 +2029,9 @@ class ContractDriver:
             if row["kind"] == "observation"
         ]
         state = evaluate_refresh_state(
-            acquisitions=effective, attempts=[], now=self.clock()
+            acquisitions=effective + list(self._effective_specials),
+            attempts=[],
+            now=self.clock(),
         )
         return {
             "trace": list(self.trace),

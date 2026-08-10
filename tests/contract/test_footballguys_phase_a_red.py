@@ -1,4 +1,4 @@
-"""RED — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v3 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -7,9 +7,11 @@ Phase A framing v25 review cleared.  This file is the prospective contract for t
 choice.  It authorizes no provider contact, GREEN implementation, runtime write,
 scheduler, downstream identity promotion, horizon comparison, or UI component.
 
-The production module deliberately does not exist when this RED lands.  Tests which
-exercise it fail through ``_mod``; they never skip.  Independent byte vectors and
-table fixtures pass now so the future implementation cannot define its own oracle.
+The original RED landed with GREEN at ``f9b57d3``.  Adversarial review found seven
+production-boundary failures hidden by injected outcomes and pure reducer fixtures.
+RED v3 preserves the independent vectors/table fixtures and adds real filesystem,
+SQLite, schema, semantic, attempt-ledger, and manifest-requiredness mutants.  It never
+skips; the reviewed f9b57d3 GREEN must fail these additions before repair.
 
 One injected seam
 -----------------
@@ -19,6 +21,7 @@ collaborators and exposes:
 
 * ``intake(archive_bytes=..., offering=..., fault_at=None)``;
 * ``write_semantic_assertion(record)``;
+* ``semantic_state(key=...)`` for durable effective-state read-back;
 * ``read_model(now=..., global_overall_status=...)``;
 * ``snapshot()`` (read-only contract evidence, never production truth by itself);
 * ``hold_lock()`` and ``spawn(...)`` for the closed concurrency boundary;
@@ -39,6 +42,8 @@ import hashlib
 import importlib
 import io
 import json
+import os
+import sqlite3
 import stat
 import subprocess
 import zipfile
@@ -147,13 +152,27 @@ def _unit_zip(
     selected_symlink: str | None = None,
     duplicate_role: str | None = None,
     extra: list[tuple[str, bytes, bool]] | None = None,
+    adp_payload: bytes | None = None,
+    sidecar_payload: bytes | None = None,
 ) -> bytes:
     """Small integration positive.  The measured 259-entry profile is separate."""
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for role, name, payload in (
-            ("adp", ADP_PATH, b"id,adp_sleeper-sf\nGibbJa00,1\n"),
-            ("identity_sidecar", SIDECAR_PATH, b"id,name,pos\nGibbJa00,Jahmyr Gibbs,RB\n"),
+            (
+                "adp",
+                ADP_PATH,
+                adp_payload
+                if adp_payload is not None
+                else b"id,adp_sleeper-sf\nGibbJa00,1\n",
+            ),
+            (
+                "identity_sidecar",
+                SIDECAR_PATH,
+                sidecar_payload
+                if sidecar_payload is not None
+                else b"id,name,pos\nGibbJa00,Jahmyr Gibbs,RB\n",
+            ),
         ):
             if omit == role:
                 continue
@@ -520,6 +539,34 @@ def test_a5_decoys_never_change_exact_role_selection() -> None:
     assert attacked["content_vintage_id"] == clean["content_vintage_id"]
 
 
+@pytest.mark.parametrize(
+    ("adp_payload", "sidecar_payload", "role"),
+    (
+        (b"not-the-adp-schema", b"id,name,pos\nGibbJa00,Jahmyr Gibbs,RB\n", "adp"),
+        (b"id,adp_sleeper-sf\nGibbJa00,1\n", b"not-the-sidecar-schema", "identity_sidecar"),
+        (b"id,value\nGibbJa00,1\n", b"id,name,pos\nGibbJa00,Jahmyr Gibbs,RB\n", "adp"),
+    ),
+    ids=("malformed-adp", "malformed-sidecar", "adp-without-adp-column"),
+)
+def test_a6_real_role_member_schema_refuses_before_publish(
+    tmp_path: Path, adp_payload: bytes, sidecar_payload: bytes, role: str
+) -> None:
+    driver = _driver(tmp_path)
+    result = driver.intake(
+        archive_bytes=_unit_zip(
+            adp_payload=adp_payload,
+            sidecar_payload=sidecar_payload,
+        ),
+        offering=_offering(),
+    )
+    assert result.status == "failed"
+    assert result.reason is not None
+    assert result.reason.startswith(f"role_schema_invalid:{role}")
+    snap = driver.snapshot()
+    assert snap["objects"] == []
+    assert snap["receipts"] == []
+
+
 # ---------------------------------------------------------------------------
 # I — independent identity grammar and known-answer vectors
 # ---------------------------------------------------------------------------
@@ -736,17 +783,95 @@ def test_i9_only_provenance_bound_parent_adjudication_resolves_semantic_conflict
     }
 
 
+SEMANTIC_KEY = "classic.adp_sleeper-sf.horizon"
+SEMANTIC_EVIDENCE = b"provider-authentic field contract: redraft"
+
+
+def _semantic_record(
+    *, assertion_id: str = "horizon-v1", claim: str = "redraft", version: int = 1
+) -> dict[str, Any]:
+    """Closed durable writer shape; GREEN computes the attachment hash/size."""
+    return {
+        "assertion": {
+            "key": SEMANTIC_KEY,
+            "assertion_id": assertion_id,
+            "version": version,
+            "claim": claim,
+            "active": True,
+        },
+        "attachment": {
+            "evidence_id": f"evidence-{assertion_id}",
+            "retrieved_at": "2026-08-09T12:00:00-04:00",
+            "provenance": "provider-authentic-exact-field-contract",
+            "retention": "retained",
+            "evidence_bytes": SEMANTIC_EVIDENCE,
+        },
+    }
+
+
+def _seed_effective_horizon(driver: Any) -> None:
+    result = driver.write_semantic_assertion(_semantic_record())
+    assert _value(result, "status") in {"written", "noop"}
+
+
+def test_i10_semantic_assertion_writer_is_durable_hashed_and_idempotent(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    record = _semantic_record()
+    first = driver.write_semantic_assertion(record)
+    second = driver.write_semantic_assertion(record)
+    assert _value(first, "status") == "written"
+    assert _value(second, "status") == "noop"
+
+    state = driver.semantic_state(key=SEMANTIC_KEY)
+    assert state == {
+        "state": "known",
+        "value": "redraft",
+        "assertion_id": "horizon-v1",
+        "evidence_id": "evidence-horizon-v1",
+        "evidence_sha256": _sha(SEMANTIC_EVIDENCE),
+        "evidence_bytes": len(SEMANTIC_EVIDENCE),
+        "eligible_for_phase_c": True,
+    }
+
+    # Durable read-back: a fresh composition root must reproduce the same state.
+    reopened = _driver(tmp_path)
+    assert reopened.semantic_state(key=SEMANTIC_KEY) == state
+
+
+def test_i11_changed_semantic_assertion_reusing_an_id_refuses_without_mutation(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    before = driver.semantic_state(key=SEMANTIC_KEY)
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_assertion(
+            _semantic_record(assertion_id="horizon-v1", claim="dynasty_startup")
+        )
+    assert "assertion_identity_conflict" in _error_code(caught.value)
+    assert driver.semantic_state(key=SEMANTIC_KEY) == before
+
+
 # ---------------------------------------------------------------------------
 # S — option-1 driver, filesystem/SQLite ordering, crash residue
 # ---------------------------------------------------------------------------
 
 
-def _write_manifest(root: Path, *, omit: str | None = None) -> Path:
+def _write_manifest(
+    root: Path, *, omit: str | None = None, post_capture_epoch: bool = True
+) -> Path:
     required_rows = []
     optional_rows = []
     for store_path, (kind, required) in MANIFEST_REQUIREMENTS.items():
         if store_path == omit:
             continue
+        # Repository truth is pre-capture and therefore optional. Driver positives
+        # model the first-capture/post-capture epoch: raw publication is legal only
+        # after the objects row flips to required in that same reviewed act.
+        if store_path == RUNTIME_PATHS["objects"] and post_capture_epoch:
+            required = True
         row = {"path": store_path, "required": required, "kind": kind}
         (required_rows if required else optional_rows).append(row)
     path = root / "app/config/backup_manifest.json"
@@ -765,11 +890,21 @@ def _write_manifest(root: Path, *, omit: str | None = None) -> Path:
     return path
 
 
-def _driver(tmp_path: Path, *, mode: str = "full_offsite", omit_coverage: str | None = None):
+def _driver(
+    tmp_path: Path,
+    *,
+    mode: str = "full_offsite",
+    omit_coverage: str | None = None,
+    post_capture_epoch: bool = True,
+):
     m = _mod()
     return m.build_contract_driver(
         repo_root=tmp_path,
-        manifest_path=_write_manifest(tmp_path, omit=omit_coverage),
+        manifest_path=_write_manifest(
+            tmp_path,
+            omit=omit_coverage,
+            post_capture_epoch=post_capture_epoch,
+        ),
         retention_mode=mode,
         clock=lambda: NOW,
     )
@@ -819,7 +954,7 @@ def test_s_namespace_missing_root_creation_converges_without_chmodding_trusted_p
 def test_s0_option1_success_trace_is_prepare_publish_verify_receipt_last(tmp_path: Path) -> None:
     driver = _driver(tmp_path)
     result = driver.intake(archive_bytes=_unit_zip(), offering=_offering())
-    assert result.status == "ready"
+    assert result.status == "review_required"
     assert result.raw_retained is True
     assert result.receipt_id is not None
     trace = driver.snapshot()["trace"]
@@ -912,7 +1047,7 @@ def test_s5_branch_a_crash_matrix_names_residue_and_restart(
     assert snap["restart_contract"] == restart
     assert all(row["offering_id"] != "attempt" for row in snap["receipts"])
     converged = driver.intake(archive_bytes=_unit_zip(), offering=_offering("attempt"))
-    assert converged.status == "ready"
+    assert converged.status == "review_required"
     assert driver.snapshot()["staging_entries"] == []
 
 
@@ -1063,6 +1198,7 @@ def test_s15_online_backup_restores_uncheckpointed_committed_wal_row(tmp_path: P
 
 def test_s16_option1_to_option3_transition_preserves_older_raw_and_ar(tmp_path: Path) -> None:
     driver = _driver(tmp_path)
+    _seed_effective_horizon(driver)
     old = driver.intake(archive_bytes=_unit_zip(), offering=_offering("old", DUE))
     before_objects = driver.snapshot()["objects"]
     driver.set_retention_mode("metadata_only")
@@ -1078,6 +1214,7 @@ def test_s16_option1_to_option3_transition_preserves_older_raw_and_ar(tmp_path: 
 
 def test_s17_option3_to_option1_upgrade_coalesces_one_acquisition(tmp_path: Path) -> None:
     driver = _driver(tmp_path, mode="metadata_only")
+    _seed_effective_horizon(driver)
     obs = driver.intake(archive_bytes=_unit_zip(), offering=_offering("same", RECENT))
     driver.set_retention_mode("full_offsite")
     receipt = driver.intake(archive_bytes=_unit_zip(), offering=_offering("same", RECENT))
@@ -1086,6 +1223,214 @@ def test_s17_option3_to_option1_upgrade_coalesces_one_acquisition(tmp_path: Path
     assert len(snap["effective_acquisitions"]) == 1
     assert snap["effective_acquisitions"][0]["retention"] == "retained"
     assert "archive was not retained" not in driver.read_model(now=NOW)["copy"]
+
+
+def test_s18_short_writes_are_completed_and_every_signed_fact_matches_staged_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    m = _mod()
+    driver = _driver(tmp_path)
+    payload = _unit_zip()
+    real_write = m.os.write
+
+    def short_write(fd: int, data: bytes) -> int:
+        return real_write(fd, data[: max(1, len(data) // 2)])
+
+    monkeypatch.setattr(m.os, "write", short_write)
+    result = driver.intake(archive_bytes=payload, offering=_offering())
+    assert result.status in {"ready", "review_required"}
+    objects = list((tmp_path / RUNTIME_PATHS["objects"]).iterdir())
+    assert len(objects) == 1
+    retained = objects[0].read_bytes()
+    assert retained == payload
+    assert objects[0].name == f"{_sha(retained)}.zip"
+    assert len(driver.snapshot()["receipts"]) == 1
+
+
+def test_s19_publish_fsync_targets_objects_parent_not_only_staging(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    m = _mod()
+    driver = _driver(tmp_path)
+    real_fsync = m.os.fsync
+    fsynced: list[tuple[int, int]] = []
+
+    def traced_fsync(fd: int) -> None:
+        info = os.fstat(fd)
+        fsynced.append((info.st_dev, info.st_ino))
+        real_fsync(fd)
+
+    monkeypatch.setattr(m.os, "fsync", traced_fsync)
+    result = driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    assert result.status in {"ready", "review_required"}
+    staging = os.stat(tmp_path / RUNTIME_PATHS["staging"])
+    objects = os.stat(tmp_path / RUNTIME_PATHS["objects"])
+    assert staging.st_dev == objects.st_dev
+    assert (objects.st_dev, objects.st_ino) in fsynced
+
+
+def test_s20_post_receipt_object_corruption_becomes_integrity_state_on_fresh_load(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    object_path = next((tmp_path / RUNTIME_PATHS["objects"]).iterdir())
+    object_path.chmod(0o600)
+    object_path.write_bytes(b"corrupt")
+
+    reopened = _driver(tmp_path)
+    state = reopened.read_model(now=NOW)
+    assert state["status"] == "unverifiable"
+    assert "integrity check" in state["copy"]
+    assert state["clock_id"] is None
+    assert state["latest_analysis_ready_id"] is None
+
+
+def test_s20b_post_receipt_hardlink_alias_becomes_integrity_state(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    object_path = next((tmp_path / RUNTIME_PATHS["objects"]).iterdir())
+    os.link(object_path, tmp_path / "durable-alias.zip")
+
+    reopened = _driver(tmp_path)
+    state = reopened.read_model(now=NOW)
+    assert state["status"] == "unverifiable"
+    assert "integrity check" in state["copy"]
+    assert state["clock_id"] is None
+    assert state["latest_analysis_ready_id"] is None
+
+
+def test_s21_receipt_schema_persists_every_signed_field_for_reconstruction(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    with sqlite3.connect(tmp_path / RUNTIME_PATHS["receipts"]) as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(acquisitions)")}
+    assert {
+        "source",
+        "offering_id",
+        "content_vintage_id",
+        "retrieved_at",
+        "archive_sha256",
+        "archive_bytes",
+        "role_records",
+    } <= columns
+
+
+def test_s21_persisted_signed_field_tamper_is_not_laundered_into_a_clock(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    with sqlite3.connect(tmp_path / RUNTIME_PATHS["receipts"]) as conn:
+        conn.execute(
+            "UPDATE acquisitions SET content_vintage_id=?, retrieved_at=? "
+            "WHERE offering_id=?",
+            ("forged-vintage", RECENT, _offering()["offering_id"]),
+        )
+        conn.commit()
+
+    reopened = _driver(tmp_path)
+    state = reopened.read_model(now=NOW)
+    assert state["status"] == "unverifiable"
+    assert "integrity check" in state["copy"]
+    assert state["clock_id"] is None
+    assert state["latest_analysis_ready_id"] is None
+
+
+def test_s22_skewed_cross_store_restore_yields_global_offering_conflict(
+    tmp_path: Path,
+) -> None:
+    retained_root = tmp_path / "retained"
+    observation_root = tmp_path / "observation"
+    retained = _driver(retained_root)
+    observed = _driver(observation_root, mode="metadata_only")
+    shared_offering = "same-offering"
+    retained.intake(
+        archive_bytes=_unit_zip(extra=[("wrapper-a", b"a", False)]),
+        offering=_offering(shared_offering, DUE),
+    )
+    observed.intake(
+        archive_bytes=_unit_zip(extra=[("wrapper-b", b"b", False)]),
+        offering=_offering(shared_offering, RECENT),
+    )
+
+    source = observation_root / RUNTIME_PATHS["observations"]
+    target = retained_root / RUNTIME_PATHS["observations"]
+    with sqlite3.connect(f"file:{source}?mode=ro", uri=True) as source_conn:
+        with sqlite3.connect(target) as target_conn:
+            source_conn.backup(target_conn)
+
+    reopened = _driver(retained_root)
+    state = reopened.read_model(now=NOW)
+    assert state["status"] == "unverifiable"
+    assert "records conflict" in state["copy"]
+    assert state["clock_id"] is None
+    assert state["latest_analysis_ready_id"] is None
+
+
+def test_s23_precapture_optional_objects_row_refuses_raw_publication(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path, post_capture_epoch=False)
+    before = driver.snapshot()
+    with pytest.raises(driver.error_type) as caught:
+        driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    code = _error_code(caught.value)
+    assert "required" in code and "objects" in code
+    after = driver.snapshot()
+    assert after["objects"] == before["objects"] == []
+    assert after["receipts"] == before["receipts"] == []
+
+
+def test_s24_failed_intake_is_durable_and_visible_after_fresh_load(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    result = driver.intake(archive_bytes=b"not-a-zip", offering=_offering())
+    assert result.status == "failed"
+    assert result.attempt_recorded is True
+
+    reopened = _driver(tmp_path)
+    state = reopened.read_model(now=NOW)
+    assert state == _expected(
+        "no_record",
+        "No Footballguys refresh recorded · last intake attempt failed",
+        1,
+        clock=None,
+        ar=None,
+    )
+
+
+def test_s25_unknown_horizon_advances_freshness_but_not_analysis_ready(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    result = driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    assert result.status == "review_required"
+    effective = driver.snapshot()["effective_acquisitions"]
+    assert len(effective) == 1
+    assert effective[0]["readiness"] == "review_required"
+    assert effective[0]["analysis_ready"] is False
+    state = driver.read_model(now=NOW)
+    assert state["status"] == "current"
+    assert "awaiting data review" in state["copy"]
+    assert state["latest_analysis_ready_id"] is None
+
+
+def test_s26_effective_provider_horizon_allows_retained_receipt_to_become_ar(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    _seed_effective_horizon(driver)
+    result = driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    assert result.status == "ready"
+    state = driver.read_model(now=NOW)
+    assert state["latest_analysis_ready_id"] == result.receipt_id
+    assert "awaiting data review" not in state["copy"]
 
 
 # ---------------------------------------------------------------------------
