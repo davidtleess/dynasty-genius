@@ -67,6 +67,29 @@
 > follows: when a live instruction and this board disagree, **that conflict is itself the escalation**,
 > and neither side wins by default.
 
+> # ✅ 2026-08-09 CLAUDE LANE `closed — parked`, CONFIRMED BY CODEX at `cdfd444`
+>
+> Cross-lane audit complete (`02` §Cross-lane closeout audit — a lane may not audit its own close).
+> Verified independently by Codex: `HEAD == origin/main == cdfd444`, exact-head CI `31346188039`
+> SUCCESS, durable-record and ephemeral-locators PASS, zero stashes, Claude-owned dirty set zero as of
+> that SHA. **B21, CFBD and `6c26a88` all CLEAR. No Claude-owned implementation, data, config,
+> scheduler or review loop remains.**
+>
+> **THE ONE SUBSTANTIVE ITEM LEFT IS CODEX'S:** land the **seven** review/disposition artifacts that
+> committed ledger text cites while they are still untracked — they would dangle on a fresh clone.
+>
+> **Parked under recorded gates:** the frozen wire pair (David's word, needs a CLEAR that does not
+> exist) · two loose plists (scheduler install is David's) · `test_governed_cadence_inputs_red.py`
+> (untracked; committing it puts 15 failures into CI).
+>
+> **⚠ THE LESSON THIS CLOSE PRODUCED, and it cost four audit rounds to surface.** A committed
+> inventory named the ledger as its own dirty path — and committing it LANDED that ledger, so the
+> claim was false the instant it became durable. The total stayed the same because one path replaced
+> another, so **the count matched by coincidence and hid the drift; a count check could not catch
+> it.** This is the fourth recorded instance of one class: *any state assertion about a condition the
+> author is actively changing is invalidated by the change.* State an inventory **as of** the commit
+> that carries it, and name post-commit delivery artifacts as drift by construction.
+
 > # ▶ 2026-08-09 SESSION CLOSE — B21 LANDED + CFBD FBS LANDED · ⭐ NEXT SESSION OPENS ON THE FOOTBALLGUYS PILOT
 >
 > **AUTHORITY — David's verbatim words this session, and nothing here extends them:**
