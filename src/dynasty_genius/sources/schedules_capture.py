@@ -54,6 +54,12 @@ DEFAULT_ROOT = REPO_ROOT / "app" / "data" / "sources" / "nflverse_schedules"
 #: which rules produced it.
 PARSER_VERSION = "b21.schedules.v1"
 
+#: Versions this module is willing to INTERPRET. Because rows are no longer stored, the parser
+#: version became load-bearing: a vintage written by a different parser would otherwise be silently
+#: reinterpreted under today's rules while still reporting the other version. Refusing is the honest
+#: option until explicit version dispatch exists.
+SUPPORTED_PARSER_VERSIONS = frozenset({PARSER_VERSION})
+
 #: Columns this repo consumes by name. A REQUIRED SUBSET — every other provider column is retained
 #: losslessly; these are the ones whose absence is fatal rather than merely lossy.
 REQUIRED_COLUMNS = (
@@ -727,9 +733,63 @@ class ScheduleStore:
         # caller silently rewrite recorded history. Deriving from bytes gives that for free.
         vintage = json.loads(path.read_text(encoding="utf-8"))
         vintage.pop("rows", None)  # tolerate a pre-migration file without trusting its copy
-        content = self.content_path(vintage["raw_sha256"])
-        if content.is_file():
-            vintage["rows"] = self.parse(content.read_bytes())
+
+        # ── the canonical read is fail-closed, in this order ────────────────────────────────────
+        # Removing the stored rows made the Parquet the only payload truth. Unverified, that did not
+        # END a second source of truth — it MOVED the disagreement to metadata-versus-derived-rows.
+        # Every check below exists because a counterexample got past its absence.
+
+        # 1. IDENTITY. Without this, a vintage whose metadata was repointed at another vintage's
+        #    content — copying its hash, size and every derived claim — passes every other check
+        #    here and serves the other capture's rows under this one's id.
+        stored_id = vintage.get("vintage_id")
+        raw_sha256 = vintage.get("raw_sha256") or ""
+        if stored_id != vintage_id:
+            raise CaptureError("vintage_identity_mismatch",
+                               f"asked for {vintage_id!r}, file declares {stored_id!r}")
+        if stored_id != f"v-{raw_sha256[:16]}":
+            raise CaptureError(
+                "vintage_identity_mismatch",
+                f"{stored_id!r} is not derived from its own content hash {raw_sha256[:16]!r}")
+
+        # 2. PARSER VERSION, before interpreting anything under it.
+        declared = vintage.get("parser_version")
+        if declared not in SUPPORTED_PARSER_VERSIONS:
+            raise CaptureError("parser_version_unsupported", repr(declared))
+
+        # 3. THE BYTES EXIST.
+        content = self.content_path(raw_sha256)
+        if not content.is_file():
+            raise CaptureError("content_missing", content.name)
+
+        # 4. SIZE, then FULL HASH — independently. Size alone cannot detect a same-length
+        #    substitution; the hash alone leaves a stored byte_count claim unverified.
+        payload = content.read_bytes()
+        if vintage.get("byte_count") != len(payload):
+            raise CaptureError(
+                "vintage_metadata_inconsistent",
+                f"byte_count claims {vintage.get('byte_count')}, content is {len(payload)}")
+        if _sha256(payload) != raw_sha256:
+            raise CaptureError("content_integrity_mismatch",
+                               f"content hashes to {_sha256(payload)}, vintage claims {raw_sha256}")
+
+        # 5. THE DERIVED VIEW MUST AGREE WITH EVERY CLAIM. Intact bytes plus drifted claims is still
+        #    two sources disagreeing, and neither is authoritative — so refuse rather than pick one.
+        frame = _read_frame(payload)
+        rows = frame.to_dicts()
+        for label, claimed, derived in (
+            ("row_count", vintage.get("row_count"), len(rows)),
+            ("column_count", vintage.get("column_count"), len(frame.columns)),
+            ("schema_hash", vintage.get("schema_hash"), _schema_hash(frame)),
+            # ORDERED comparison: a reordered schema is a different schema, and an unordered
+            # mapping comparison would accept a transposition.
+            ("dtypes", [list(pair) for pair in (vintage.get("dtypes") or [])], _dtype_pairs(frame)),
+        ):
+            if claimed != derived:
+                raise CaptureError("vintage_metadata_inconsistent",
+                                   f"{label} claims {claimed!r}, derived {derived!r}")
+
+        vintage["rows"] = rows
         return vintage
 
     def marker(self) -> dict | None:
