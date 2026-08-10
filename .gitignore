@@ -210,3 +210,9 @@ app/data/assets/
 .gemini/
 .impeccable/
 paper.txt
+
+# Footballguys Phase A runtime namespace (framing v25; retention option 1, David 2026-08-10).
+# Paid provider archives, intake staging/lock, and the SQLite ledgers with every journal
+# companion are runtime state — NEVER committed. Narrow by design: evidence, config, and
+# tests stay trackable (RED: test_footballguys_phase_a_red.py P0 ignore controls).
+app/data/footballguys/

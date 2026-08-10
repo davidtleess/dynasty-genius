@@ -274,6 +274,27 @@ def build_manifest() -> list[ManifestEntry]:
         ),
         # ----------------------------------------------------------- manual_download
         ManifestEntry(
+            source="footballguys",
+            mode="manual_download",
+            registry_sources=("footballguys",),
+            # Uninventoried manual source: no drop exists yet, so a determined window
+            # would be fiction (F3). The MONTHLY refresh notice is the Phase A read
+            # model's contract, clocked from David's declared retrieval instant — it
+            # is not this acquisition-side field.
+            refresh_target="undetermined",
+            connection_method="manual_export_download",
+            destination="app/data/footballguys",
+            drop_location="~/Downloads",
+            paid_gated=True,
+            note=(
+                "Paid Draft Dominator bundle; ToS bars scraping, so the only route is "
+                "David's manual first-party download. One stable bundle stream — the "
+                "read model addresses it as footballguys.bundle. Phase A intake per "
+                "framing v25 (retention option 1); the monthly refresh notice clocks "
+                "from David's declared retrieval instant, season-flat, day 30 inclusive."
+            ),
+        ),
+        ManifestEntry(
             source="playerprofiler",
             mode="manual_download",
             registry_sources=("playerprofiler",),

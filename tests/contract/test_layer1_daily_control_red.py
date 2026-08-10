@@ -56,6 +56,7 @@ PINNED_FAMILIES: dict[str, tuple[str, tuple[str, ...]]] = {
     "fantasycalc":            ("automatic", ("fantasycalc",)),
     "cfbd":                   ("automatic", ("cfbd",)),   # + paid gate
     # manual_download — a human fetches the bytes
+    "footballguys":           ("manual_download", ("footballguys",)),
     "playerprofiler":         ("manual_download", ("playerprofiler",)),
     "pff":                    ("manual_download", ("pff",)),
     "rotoviz":                ("manual_download", ("rotoviz",)),
@@ -137,6 +138,7 @@ PINNED_CONNECTION_METHODS = {
     "fantasycalc":            "public_http_api",         # public FantasyCalc API
     "cfbd":                   "credentialed_http_api",   # API key + billed usage
     # --- manual_download ---
+    "footballguys":           "manual_export_download",  # paid Draft Dominator bundle; ToS bars scraping
     "playerprofiler":         "manual_export_download",  # subscriber export button
     "pff":                    "manual_export_download",  # manual export payloads
     "rotoviz":                "manual_export_download",  # "Manual CSV export only. No public API."

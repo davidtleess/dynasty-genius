@@ -195,6 +195,16 @@
       "path": "app/data/sources/cfbd_fbs_schedules",
       "required": true,
       "kind": "directory"
+    },
+    {
+      "path": "app/data/footballguys/receipts.db",
+      "required": true,
+      "kind": "sqlite"
+    },
+    {
+      "path": "app/data/footballguys/semantics.db",
+      "required": true,
+      "kind": "sqlite"
     }
   ],
   "optional": [
@@ -212,6 +222,16 @@
       "path": "app/data/features_runtime/feature_refresh_latest_report.json",
       "required": false,
       "kind": "file"
+    },
+    {
+      "path": "app/data/footballguys/observations.db",
+      "required": false,
+      "kind": "sqlite"
+    },
+    {
+      "path": "app/data/footballguys/objects",
+      "required": false,
+      "kind": "directory"
     }
   ],
   "exclude_paths": [

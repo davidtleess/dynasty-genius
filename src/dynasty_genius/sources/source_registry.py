@@ -200,6 +200,28 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
             ),
         ),
         _make(
+            name="footballguys",
+            roles=["market_overlay"],
+            allowed_fields=[],
+            prohibited_fields=[
+                "projection_points",
+                "projection_rank",
+                "projections_csv_stat_columns",
+            ],
+            provenance_required=True,
+            cache_policy="none",
+            freshness_hours=None,
+            failure_behavior="fail_closed",
+            test_gate="tests/contract/test_footballguys_phase_a_red.py",
+            notes=(
+                "Paid manual first-party download (Draft Dominator bundle); ToS bars "
+                "scraping, so acquisition is David's declared drop only. ADP fields are "
+                "market_overlay; the projections sidecar is IDENTITY EVIDENCE ONLY — "
+                "every projection value is expert consensus and is prohibited as model "
+                "or market signal (framing v25, retention option 1, David 2026-08-10)."
+            ),
+        ),
+        _make(
             name="fantasycalc",
             roles=["market_overlay"],
             allowed_fields=[],
