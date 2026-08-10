@@ -11,6 +11,28 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ✅ 2026-08-09 RESOLVED — THE B21 METADATA-ONLY CHANGE IS CLEAR; THE BLOCK BELOW IS SUPERSEDED
+>
+> **The ⚠ CLOSE REOPENED block immediately below is SATISFIED and no longer live.** Its gate was:
+> revised RED failing on missing/substituted content and unsupported parser version, GREEN verifying
+> byte count, full SHA and recomputed row/column/schema claims, then a Codex behavioural CLEAR and a
+> post-commit divergence audit. **All of it happened.**
+>
+> * RED CLEARed at `d4e5287dbdafc2ef5778a34fd4718329c1a5111c146fb828cb4fdf3ae9042b4e`.
+> * GREEN landed with it in **`529a3e5`** — the two are inseparable, since the tracked RED's eleven
+>   failing contracts would turn `main` red alone. **Exact-SHA CI success.**
+> * **Codex behavioural + post-commit CLEAR:**
+>   `docs/agent-ledger/evidence/2026-08-09/b21_schedules_green_v5_behavioral_clear_codex_v1.md`.
+> * Production vintage verified through the strict read path: 7,548 × 46, 16 games for 2026 wk1,
+>   replay intact.
+>
+> **WHY THIS BANNER EXISTS RATHER THAN AN EDIT BELOW.** This board is append-at-top and **position is
+> precedence** — a stale higher block governs regardless of what later text says. That is the exact
+> defect this same board banners two blocks down, where four stale CFBD lines caused a lane to refuse
+> a correctly-authorized action. Leaving "NOT CLEAR / team condition unmet" as the highest live block
+> would have repeated it within hours, against my own correction. **Caught by Codex's cross-lane audit
+> of the Claude close, not by the lane that wrote it.**
+
 > # ⚠ 2026-08-09 CLOSE REOPENED — B21 METADATA-ONLY CHANGE NOT CLEAR
 >
 > Codex independently audited committed change `901a756`. The canonical migration is lossless and
