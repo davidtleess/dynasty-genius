@@ -1288,10 +1288,10 @@ class ContractDriver:
     }
 
     @staticmethod
-    def _seq_declaration_is_governed(ddl: str) -> bool:
-        """v11-review H1: the AUTOINCREMENT contract is proven by PARSING the
-        column list — quoted literals and comments are stripped first, so a
-        decoy carrying the full phrase can never prove seq's declaration."""
+    def _event_table_grammar_is_governed(ddl: str) -> bool:
+        """v11-review H1 + v13-review H1: the event-table contract is proven
+        by PARSING the complete column list — quoted literals and comments are
+        stripped first, and the grammar is closed over all six segments."""
         stripped: list[str] = []
         i, n = 0, len(ddl)
         while i < n:
@@ -1348,17 +1348,21 @@ class ContractDriver:
             else:
                 current.append(ch)
         columns.append("".join(current))
-        for column in columns:
-            tokens = column.split()
-            if tokens and tokens[0].lower() == "seq":
-                # v12-review H1: EXACT grammar — the complete token list after
-                # the column name, with no suffix constraints permitted.  A
-                # trailing CHECK/UNIQUE would pass validation and then break
-                # the first governed insertion.
-                return [t.upper() for t in tokens[1:]] == [
-                    "INTEGER", "PRIMARY", "KEY", "AUTOINCREMENT",
-                ]
-        return False
+        # v12-review H1 + v13-review H1: the WHOLE table grammar is closed —
+        # exactly the six canonical column definitions, token-exact and in
+        # order, with no additional segment.  A table-level CHECK or named
+        # constraint is invisible to PRAGMA table_info, so any segment beyond
+        # these six must refuse before the first governed write can break.
+        expected = [
+            ["SEQ", "INTEGER", "PRIMARY", "KEY", "AUTOINCREMENT"],
+            ["EVENT_ID", "TEXT", "UNIQUE"],
+            ["EVENT_TYPE", "TEXT"],
+            ["STORE_NAME", "TEXT"],
+            ["SUBJECT_ID", "TEXT"],
+            ["EVENT_AT", "TEXT"],
+        ]
+        parsed = [[t.upper() for t in column.split()] for column in columns]
+        return parsed == expected
 
     @staticmethod
     def _has_exact_unique_index(
@@ -1552,7 +1556,7 @@ class ContractDriver:
                     # v10-review H2 + v11-review H1: the token proves nothing
                     # unless PARSED from seq's own declaration — decoys in
                     # literals or comments must refuse.
-                    or not self._seq_declaration_is_governed(
+                    or not self._event_table_grammar_is_governed(
                         (create_sql[0] if create_sql else "") or ""
                     )
                 ):

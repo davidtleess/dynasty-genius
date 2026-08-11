@@ -1,4 +1,4 @@
-"""RED v13 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v14 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -78,6 +78,11 @@ Adversarial review of RED v12's GREEN found one final parser-prefix defect: the 
 column's first four tokens were governed, but arbitrary suffix constraints were accepted.
 RED v13 binds the complete exact token grammar against the committed 62278ab GREEN,
 including one suffix whose first automatic value makes the operational consequence live.
+
+Adversarial review of RED v13's GREEN found the same failure mechanism one syntactic
+level higher: a canonical seq column plus a separate table-level constraint passed
+schema validation, then broke the first governed event allocation. RED v14 binds the
+complete six-segment event-table grammar against the committed e19d056 GREEN.
 
 One injected seam
 -----------------
@@ -4604,3 +4609,116 @@ def test_v13_h1_seq_declaration_requires_complete_exact_token_list(
         with pytest.raises(driver.error_type) as caught:
             reopened.initialize_database("semantics")
         assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+
+
+# ---------------------------------------------------------------------------
+# V14 — accepted e19d056 finding: the whole event-table grammar is closed
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("event_table_body", "governed"),
+    (
+        pytest.param(
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " event_id TEXT UNIQUE, event_type TEXT, store_name TEXT,"
+            " subject_id TEXT, event_at TEXT",
+            True,
+            id="canonical-six-segment-table",
+        ),
+        pytest.param(
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " event_id TEXT UNIQUE, event_type TEXT, store_name TEXT,"
+            " subject_id TEXT, event_at TEXT, CHECK(seq > 100)",
+            False,
+            id="load-bearing-table-check",
+        ),
+        pytest.param(
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " event_id TEXT UNIQUE, event_type TEXT, store_name TEXT,"
+            " subject_id TEXT, event_at TEXT,"
+            " CONSTRAINT seq_floor CHECK(seq > 100)",
+            False,
+            id="named-table-constraint",
+        ),
+        pytest.param(
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " event_id TEXT UNIQUE, event_type TEXT, store_name TEXT,"
+            " subject_id TEXT, event_at TEXT, UNIQUE(seq)",
+            False,
+            id="redundant-table-unique",
+        ),
+        pytest.param(
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " event_id TEXT UNIQUE NOT NULL, event_type TEXT, store_name TEXT,"
+            " subject_id TEXT, event_at TEXT",
+            False,
+            id="event-id-definition-suffix",
+        ),
+        pytest.param(
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " event_id TEXT UNIQUE, event_type TEXT NOT NULL, store_name TEXT,"
+            " subject_id TEXT, event_at TEXT",
+            False,
+            id="event-type-definition-suffix",
+        ),
+        pytest.param(
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " event_id TEXT UNIQUE, event_type TEXT,"
+            " store_name TEXT COLLATE BINARY, subject_id TEXT, event_at TEXT",
+            False,
+            id="store-name-definition-suffix",
+        ),
+        pytest.param(
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " event_id TEXT UNIQUE, event_type TEXT, store_name TEXT,"
+            " subject_id TEXT DEFAULT '', event_at TEXT",
+            False,
+            id="subject-id-definition-suffix",
+        ),
+        pytest.param(
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " event_id TEXT UNIQUE, event_type TEXT, store_name TEXT,"
+            " subject_id TEXT, event_at TEXT NOT NULL",
+            False,
+            id="event-at-definition-suffix",
+        ),
+        pytest.param(
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " event_id TEXT UNIQUE, store_name TEXT, event_type TEXT,"
+            " subject_id TEXT, event_at TEXT",
+            False,
+            id="canonical-definitions-wrong-order",
+        ),
+    ),
+)
+def test_v14_h1_event_sequence_requires_complete_six_segment_grammar(
+    tmp_path: Path, event_table_body: str, governed: bool
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute("ALTER TABLE event_sequence RENAME TO event_sequence_governed")
+        conn.execute(
+            "CREATE TABLE event_sequence (" + event_table_body + ")"
+        )
+        conn.execute("DROP TABLE event_sequence_governed")
+        conn.commit()
+        assert conn.execute("SELECT count(*) FROM event_sequence").fetchone()[0] == 0
+
+    reopened = _driver(tmp_path)
+    if governed:
+        reopened.initialize_database("semantics")
+        with contextlib.closing(sqlite3.connect(semantics)) as conn:
+            assert conn.execute(
+                "SELECT count(*) FROM event_sequence"
+            ).fetchone()[0] == 0
+    else:
+        with pytest.raises(driver.error_type) as caught:
+            reopened.initialize_database("semantics")
+        assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+        with contextlib.closing(sqlite3.connect(semantics)) as conn:
+            assert conn.execute(
+                "SELECT count(*) FROM event_sequence"
+            ).fetchone()[0] == 0
