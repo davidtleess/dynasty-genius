@@ -1,4 +1,4 @@
-"""RED v11 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v12 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -67,6 +67,12 @@ vanish and open Phase-C eligibility; the AUTOINCREMENT guard accepted the word a
 in the table DDL rather than binding it to ``seq``; and non-datetime clock dependencies
 raised before the row-9 fallback. RED v11 binds all three against the committed 297c52f
 GREEN without opening any downstream phase.
+
+Adversarial review of RED v11's GREEN found two surviving boundary shadows: the alleged
+seq binding was still a whole-DDL substring search spoofable through quoted literals and
+comments, and a type-correct Python integer outside SQLite's signed-64 storage domain
+raised after creating the governed store. RED v12 binds parser-level token ownership and
+the complete storable version domain against the committed c32884a GREEN.
 
 One injected seam
 -----------------
@@ -4444,3 +4450,107 @@ def test_v11_m3_every_non_datetime_read_clock_is_named_fail_closed(
     except Exception as exc:  # pragma: no cover - 297c52f leaks AttributeError
         pytest.fail(f"non-datetime read clock raised {type(exc).__name__}: {exc}")
     _v5_assert_row9(state)
+
+
+# ---------------------------------------------------------------------------
+# V12 — accepted c32884a findings: parsed seq ownership, SQLite int domain
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "event_at_suffix",
+    (
+        pytest.param(
+            "DEFAULT 'SEQ INTEGER PRIMARY KEY AUTOINCREMENT'",
+            id="quoted-literal",
+        ),
+        pytest.param(
+            "/* SEQ INTEGER PRIMARY KEY AUTOINCREMENT */",
+            id="block-comment",
+        ),
+        pytest.param(
+            "-- SEQ INTEGER PRIMARY KEY AUTOINCREMENT\n",
+            id="line-comment",
+        ),
+    ),
+)
+def test_v12_h1_seq_autoincrement_proof_ignores_literals_and_comments(
+    tmp_path: Path, event_at_suffix: str
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute("ALTER TABLE event_sequence RENAME TO event_sequence_governed")
+        conn.execute(
+            "CREATE TABLE event_sequence ("
+            "seq INTEGER PRIMARY KEY, event_id TEXT UNIQUE, event_type TEXT,"
+            "store_name TEXT, subject_id TEXT, event_at TEXT "
+            + event_at_suffix
+            + ")"
+        )
+        conn.execute("DROP TABLE event_sequence_governed")
+        conn.commit()
+        ddl = conn.execute(
+            "SELECT sql FROM sqlite_master"
+            " WHERE type='table' AND name='event_sequence'"
+        ).fetchone()[0]
+        seq_info = next(
+            row for row in conn.execute("PRAGMA table_info(event_sequence)")
+            if row[1] == "seq"
+        )
+    assert "SEQ INTEGER PRIMARY KEY AUTOINCREMENT" in ddl.upper()
+    assert seq_info[2].upper() == "INTEGER" and seq_info[5] == 1
+
+    with pytest.raises(driver.error_type) as caught:
+        _driver(tmp_path).initialize_database("semantics")
+    assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+
+
+@pytest.mark.parametrize(
+    "version",
+    (
+        pytest.param(2**63, id="positive-overflow"),
+        pytest.param(-(2**63) - 1, id="negative-overflow"),
+    ),
+)
+def test_v12_m2_unstorable_version_refuses_before_store_initialization(
+    tmp_path: Path, version: int
+) -> None:
+    driver = _driver(tmp_path)
+    record = _semantic_record(assertion_id=f"v12-overflow-{version}")
+    record["assertion"]["version"] = version
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    sidecars = (semantics, Path(f"{semantics}-wal"), Path(f"{semantics}-shm"))
+    assert not any(path.exists() for path in sidecars)
+
+    try:
+        driver.write_semantic_assertion(record)
+    except driver.error_type as exc:
+        assert _error_code(exc).startswith("semantic_version_invalid")
+    except Exception as exc:  # pragma: no cover - c32884a leaks OverflowError
+        pytest.fail(f"unstorable semantic version raised {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - values outside signed 64-bit are never accepted
+        pytest.fail("unstorable semantic version was accepted")
+
+    assert not any(path.exists() for path in sidecars)
+
+
+@pytest.mark.parametrize(
+    "version",
+    (
+        pytest.param(-(2**63), id="minimum"),
+        pytest.param(2**63 - 1, id="maximum"),
+    ),
+)
+def test_v12_m2_signed_64_boundary_versions_remain_storable(
+    tmp_path: Path, version: int
+) -> None:
+    driver = _driver(tmp_path)
+    assertion_id = f"v12-boundary-{version}"
+    record = _semantic_record(assertion_id=assertion_id)
+    record["assertion"]["version"] = version
+    assert _value(driver.write_semantic_assertion(record), "status") == "written"
+    state = driver.semantic_state(key=SEMANTIC_KEY)
+    assert state["state"] == "known"
+    assert state["assertion_id"] == assertion_id

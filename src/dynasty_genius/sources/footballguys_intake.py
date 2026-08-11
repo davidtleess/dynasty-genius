@@ -1288,6 +1288,75 @@ class ContractDriver:
     }
 
     @staticmethod
+    def _seq_declaration_is_governed(ddl: str) -> bool:
+        """v11-review H1: the AUTOINCREMENT contract is proven by PARSING the
+        column list — quoted literals and comments are stripped first, so a
+        decoy carrying the full phrase can never prove seq's declaration."""
+        stripped: list[str] = []
+        i, n = 0, len(ddl)
+        while i < n:
+            ch = ddl[i]
+            if ch == "'":
+                i += 1
+                while i < n:
+                    if ddl[i] == "'":
+                        if i + 1 < n and ddl[i + 1] == "'":
+                            i += 2
+                            continue
+                        break
+                    i += 1
+                i += 1
+            elif ch == '"':
+                i += 1
+                while i < n and ddl[i] != '"':
+                    i += 1
+                i += 1
+            elif ddl.startswith("--", i):
+                while i < n and ddl[i] != "\n":
+                    i += 1
+            elif ddl.startswith("/*", i):
+                end = ddl.find("*/", i + 2)
+                i = n if end == -1 else end + 2
+            else:
+                stripped.append(ch)
+                i += 1
+        text = "".join(stripped)
+        start = text.find("(")
+        if start == -1:
+            return False
+        depth, end = 0, -1
+        for j in range(start, len(text)):
+            if text[j] == "(":
+                depth += 1
+            elif text[j] == ")":
+                depth -= 1
+                if depth == 0:
+                    end = j
+                    break
+        if end == -1:
+            return False
+        columns: list[str] = []
+        depth, current = 0, []
+        for ch in text[start + 1:end]:
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+            if ch == "," and depth == 0:
+                columns.append("".join(current))
+                current = []
+            else:
+                current.append(ch)
+        columns.append("".join(current))
+        for column in columns:
+            tokens = column.split()
+            if tokens and tokens[0].lower() == "seq":
+                return [t.upper() for t in tokens[1:5]] == [
+                    "INTEGER", "PRIMARY", "KEY", "AUTOINCREMENT",
+                ]
+        return False
+
+    @staticmethod
     def _has_exact_unique_index(
         conn: sqlite3.Connection, table: str, column: str
     ) -> bool:
@@ -1472,17 +1541,16 @@ class ContractDriver:
                     "SELECT sql FROM sqlite_master"
                     " WHERE type='table' AND name='event_sequence'"
                 ).fetchone()
-                normalized_ddl = re.sub(
-                    r"\s+", " ", (create_sql[0] if create_sql else "") or ""
-                ).upper()
                 if (
                     seq_info is None
                     or seq_info[5] != 1
                     or (seq_info[2] or "").upper() != "INTEGER"
-                    # v10-review H2: the token proves nothing unless it is
-                    # bound to the seq declaration itself — a token hiding in
-                    # an unrelated DEFAULT expression must refuse.
-                    or "SEQ INTEGER PRIMARY KEY AUTOINCREMENT" not in normalized_ddl
+                    # v10-review H2 + v11-review H1: the token proves nothing
+                    # unless PARSED from seq's own declaration — decoys in
+                    # literals or comments must refuse.
+                    or not self._seq_declaration_is_governed(
+                        (create_sql[0] if create_sql else "") or ""
+                    )
                 ):
                     raise _refuse("store_schema_unmigratable:semantics")
         return rebuild_bare_ledger
@@ -2386,8 +2454,13 @@ class ContractDriver:
         # v4-review H3: closed record schema — an exact integer version (bool
         # is not a version) and a canonical timezone-aware retrieval instant,
         # validated through the same serializer the acquisition side uses.
-        if not isinstance(assertion["version"], int) or isinstance(
-            assertion["version"], bool
+        if (
+            not isinstance(assertion["version"], int)
+            or isinstance(assertion["version"], bool)
+            # v11-review M2: the storable domain is explicit — SQLite INTEGER
+            # is signed 64-bit; a Python int outside it must refuse here,
+            # before any store exists to overflow into.
+            or not -(2**63) <= assertion["version"] < 2**63
         ):
             raise _refuse(
                 f"semantic_version_invalid:{assertion['version']!r}"
