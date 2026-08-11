@@ -1,4 +1,4 @@
-"""RED v5 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v6 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -20,6 +20,13 @@ cross-key semantic adjudication, writer-only semantic governance, an open semant
 writer schema, unreadable ledgers erased as empty, multiple simultaneous "newest"
 attempts, per-store rather than global event order, and write-capable inactive-store
 lookup.  RED v5 binds those accepted findings without changing the GREEN.
+
+Adversarial review of RED v5's GREEN found five final sibling boundaries: the common
+semantic/event store was validated after raw publication; semantic writer/load schemas
+were still non-total; attempts-relation errors were erased; the alleged global event
+ledger was only an unbound integer allocator; and the inactive-store freeze control
+never reached lookup. RED v6 binds all five accepted findings against the committed
+21cd11d GREEN while preserving every inherited contract.
 
 One injected seam
 -----------------
@@ -2476,4 +2483,410 @@ def test_v5_h7_inactive_legacy_counterpart_is_byte_frozen_during_lookup(
         offering=_offering(f"{active_mode}-failure"),
     )
     assert result.status == "failed"
+    assert _v5_main_wal_fingerprint(inactive) == before
+
+
+# ---------------------------------------------------------------------------
+# V6 — accepted committed-GREEN findings at the remaining persistence edges
+# ---------------------------------------------------------------------------
+
+
+def _v6_real_acquisition_count(path: Path) -> int:
+    if not path.exists():
+        return 0
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        return int(
+            conn.execute(
+                "SELECT count(*) FROM acquisitions WHERE offering_id != '_bootstrap'"
+            ).fetchone()[0]
+        )
+
+
+def _v6_attempt_count(path: Path) -> int:
+    if not path.exists():
+        return 0
+    try:
+        with contextlib.closing(sqlite3.connect(path)) as conn:
+            return int(conn.execute("SELECT count(*) FROM attempts").fetchone()[0])
+    except sqlite3.Error:
+        return 0
+
+
+def _v6_staging_entries(root: Path) -> list[str]:
+    staging = root / RUNTIME_PATHS["staging"]
+    return sorted(path.name for path in staging.iterdir()) if staging.exists() else []
+
+
+def _v6_assert_no_raw_or_event_residue(root: Path) -> None:
+    objects = root / RUNTIME_PATHS["objects"]
+    assert list(objects.glob("*.zip")) == []
+    assert _v6_staging_entries(root) == []
+    assert _v6_real_acquisition_count(root / RUNTIME_PATHS["receipts"]) == 0
+    assert _v6_real_acquisition_count(root / RUNTIME_PATHS["observations"]) == 0
+    assert _v6_attempt_count(root / RUNTIME_PATHS["receipts"]) == 0
+    assert _v6_attempt_count(root / RUNTIME_PATHS["observations"]) == 0
+
+
+def test_v6_c1_corrupt_common_semantics_store_refuses_before_staging(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    semantics.write_bytes(b"not a sqlite database")
+
+    caught: BaseException | None = None
+    try:
+        driver.intake(archive_bytes=_unit_zip(), offering=_offering("corrupt-semantics"))
+    except BaseException as exc:  # assertion below checks the stable domain error
+        caught = exc
+
+    _v6_assert_no_raw_or_event_residue(tmp_path)
+    assert isinstance(caught, driver.error_type)
+    assert "semantic" in _error_code(caught) or "store_schema" in _error_code(caught)
+
+
+def test_v6_c1_unmigratable_common_event_schema_refuses_before_staging(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        assert conn.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
+        conn.execute("CREATE TABLE semantic_assertions(wrong_column TEXT)")
+        conn.commit()
+
+    caught: BaseException | None = None
+    try:
+        driver.intake(
+            archive_bytes=_unit_zip(), offering=_offering("wrong-semantics-schema")
+        )
+    except BaseException as exc:  # assertion below checks the stable domain error
+        caught = exc
+
+    _v6_assert_no_raw_or_event_residue(tmp_path)
+    assert isinstance(caught, driver.error_type)
+    assert "store_schema_unmigratable:semantics" in _error_code(caught)
+
+
+@pytest.mark.parametrize(
+    ("section", "field", "value"),
+    (
+        ("assertion", "active", "false"),
+        ("assertion", "active", 1),
+        ("assertion", "active", None),
+        ("assertion", "assertion_id", ""),
+        ("assertion", "key", ""),
+        ("attachment", "evidence_id", ""),
+        ("attachment", "retention", "not-a-retention-state"),
+        ("attachment", "evidence_bytes", "not-bytes"),
+    ),
+)
+def test_v6_c2_semantic_writer_rejects_every_open_schema_value_before_mutation(
+    tmp_path: Path, section: str, field: str, value: Any
+) -> None:
+    driver = _driver(tmp_path)
+    record = _semantic_record()
+    record[section][field] = value
+    with pytest.raises(driver.error_type):
+        driver.write_semantic_assertion(record)
+    assert driver.semantic_state(key=SEMANTIC_KEY)["state"] == "unknown"
+
+
+def test_v6_c2_explicit_false_is_valid_but_never_active(tmp_path: Path) -> None:
+    driver = _driver(tmp_path)
+    record = _semantic_record()
+    record["assertion"]["active"] = False
+    assert _value(driver.write_semantic_assertion(record), "status") == "written"
+    assert driver.semantic_state(key=SEMANTIC_KEY) == {
+        "state": "unknown",
+        "reason": "no_active_assertion",
+        "eligible_for_phase_c": False,
+    }
+
+
+@pytest.mark.parametrize(
+    ("sql", "params"),
+    (
+        (
+            "UPDATE semantic_attachments SET retrieved_at=?",
+            ("not-a-date",),
+        ),
+        (
+            "UPDATE semantic_assertions SET active=?",
+            ("false",),
+        ),
+        (
+            "UPDATE semantic_assertions SET assertion_id=?",
+            ("",),
+        ),
+    ),
+)
+def test_v6_c2_restored_malformed_semantic_scalar_fails_closed(
+    tmp_path: Path, sql: str, params: tuple[Any, ...]
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(sql, params)
+        conn.commit()
+
+    try:
+        state = _driver(tmp_path).semantic_state(key=SEMANTIC_KEY)
+    except Exception as exc:  # pragma: no cover - reviewed GREEN must not raise
+        pytest.fail(f"malformed semantic scalar raised instead of failing closed: {exc!r}")
+    assert state["state"] == "unknown"
+    assert state["eligible_for_phase_c"] is False
+
+
+def test_v6_c2_restored_non_blob_evidence_fails_closed_without_typeerror(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute("UPDATE semantic_evidence_objects SET evidence_blob=7")
+        conn.commit()
+    try:
+        state = _driver(tmp_path).semantic_state(key=SEMANTIC_KEY)
+    except Exception as exc:  # pragma: no cover - reviewed GREEN raises TypeError
+        pytest.fail(f"non-BLOB semantic evidence raised instead of failing closed: {exc!r}")
+    assert state["state"] == "unknown"
+    assert state["eligible_for_phase_c"] is False
+
+
+@pytest.mark.parametrize(
+    "parents_payload",
+    (
+        "{bad-json",
+        json.dumps({"target-old": True, "target-new": True}),
+        json.dumps(["target-old", 7, "target-new"]),
+    ),
+)
+def test_v6_c2_restored_adjudication_parents_require_a_json_string_list(
+    tmp_path: Path, parents_payload: str
+) -> None:
+    driver = _driver(tmp_path)
+    _v5_seed_target_conflict(driver)
+    driver.write_semantic_adjudication(
+        {
+            "adjudication_id": "governed-adjudication",
+            "key": SEMANTIC_KEY,
+            "authority": "david",
+            "provenance": "explicit-ruling",
+            "parents": ["target-old", "target-new"],
+            "effective_assertion_id": "target-new",
+        }
+    )
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            "UPDATE semantic_adjudications SET parents=?",
+            (parents_payload,),
+        )
+        conn.commit()
+    try:
+        state = _driver(tmp_path).semantic_state(key=SEMANTIC_KEY)
+    except Exception as exc:  # pragma: no cover - reviewed GREEN raises on bad JSON
+        pytest.fail(f"malformed adjudication parents raised: {exc!r}")
+    assert state["state"] == "unknown"
+    assert state["eligible_for_phase_c"] is False
+
+
+@pytest.mark.parametrize("shape", ("missing", "wrong_columns"))
+def test_v6_h3_attempt_relation_failure_renders_literal_row9(
+    tmp_path: Path, shape: str
+) -> None:
+    driver = _driver(tmp_path)
+    assert driver.intake(
+        archive_bytes=_unit_zip(), offering=_offering("attempt-ledger-base")
+    ).status == "review_required"
+    receipts = tmp_path / RUNTIME_PATHS["receipts"]
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        conn.execute("DROP TABLE attempts")
+        if shape == "wrong_columns":
+            conn.execute(
+                "CREATE TABLE attempts(seq INTEGER PRIMARY KEY, status TEXT)"
+            )
+        conn.commit()
+    _v5_assert_row9(_driver(tmp_path).read_model(now=NOW))
+
+
+def test_v6_h3_inactive_legacy_store_without_attempts_cannot_be_masked(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    inactive = tmp_path / RUNTIME_PATHS["observations"]
+    _create_legacy_acquisition_db(inactive)
+    assert driver.intake(
+        archive_bytes=_unit_zip(), offering=_offering("healthy-sibling")
+    ).status == "review_required"
+    _v5_assert_row9(_driver(tmp_path).read_model(now=NOW))
+
+
+_V6_EVENT_LEDGER_COLUMNS = {
+    "seq",
+    "event_id",
+    "event_type",
+    "store_name",
+    "subject_id",
+    "event_at",
+}
+
+
+def _v6_clocked_mode_driver(
+    root: Path, *, mode: str, clock: list[datetime]
+) -> Any:
+    m = _mod()
+    return m.build_contract_driver(
+        repo_root=root,
+        manifest_path=_write_manifest(root),
+        retention_mode=mode,
+        clock=lambda: clock[0],
+    )
+
+
+def _v6_seed_cross_store_event_pair(tmp_path: Path) -> tuple[Path, Path, Path]:
+    clock = [NOW]
+    retained = _v6_clocked_mode_driver(tmp_path, mode="full_offsite", clock=clock)
+    assert retained.intake(
+        archive_bytes=_unit_zip(), offering=_offering("event-retained")
+    ).status == "review_required"
+    metadata = _v6_clocked_mode_driver(tmp_path, mode="metadata_only", clock=clock)
+    assert metadata.intake(
+        archive_bytes=b"not-a-zip", offering=_offering("event-failure")
+    ).status == "failed"
+    return (
+        tmp_path / RUNTIME_PATHS["semantics"],
+        tmp_path / RUNTIME_PATHS["receipts"],
+        tmp_path / RUNTIME_PATHS["observations"],
+    )
+
+
+def _v6_assert_event_schema(
+    semantics: Path, receipts: Path, observations: Path
+) -> None:
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        central = {row[1] for row in conn.execute("PRAGMA table_info(event_sequence)")}
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        acquisition = {row[1] for row in conn.execute("PRAGMA table_info(acquisitions)")}
+    with contextlib.closing(sqlite3.connect(observations)) as conn:
+        attempts = {row[1] for row in conn.execute("PRAGMA table_info(attempts)")}
+    assert central >= _V6_EVENT_LEDGER_COLUMNS
+    assert "event_id" in acquisition
+    assert {"attempt_id", "event_id"} <= attempts
+
+
+def _v6_assert_event_integrity_fail_closed(tmp_path: Path) -> None:
+    state = _driver(tmp_path).read_model(now=NOW)
+    assert state["status"] == "unverifiable"
+    assert state["phase_c_open"] is False
+    assert state["pill_delta"] == 1
+
+
+def test_v6_h4_central_event_records_bind_type_store_subject_and_claim(
+    tmp_path: Path,
+) -> None:
+    semantics, receipts, observations = _v6_seed_cross_store_event_pair(tmp_path)
+    _v6_assert_event_schema(semantics, receipts, observations)
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        acquisition = conn.execute(
+            "SELECT row_id, event_id, event_at, event_seq FROM acquisitions"
+            " WHERE offering_id='event-retained'"
+        ).fetchone()
+    with contextlib.closing(sqlite3.connect(observations)) as conn:
+        attempt = conn.execute(
+            "SELECT attempt_id, event_id, at, event_seq FROM attempts"
+        ).fetchone()
+    assert acquisition is not None and attempt is not None
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        rows = {
+            row[0]: row[1:]
+            for row in conn.execute(
+                "SELECT event_id, event_type, store_name, subject_id, event_at, seq"
+                " FROM event_sequence"
+            )
+        }
+    assert rows[acquisition[1]] == (
+        "acquisition",
+        "receipts",
+        acquisition[0],
+        acquisition[2],
+        acquisition[3],
+    )
+    assert rows[attempt[1]] == (
+        "attempt",
+        "observations",
+        attempt[0],
+        attempt[2],
+        attempt[3],
+    )
+
+
+def test_v6_h4_missing_central_event_mapping_fails_closed(tmp_path: Path) -> None:
+    semantics, receipts, observations = _v6_seed_cross_store_event_pair(tmp_path)
+    _v6_assert_event_schema(semantics, receipts, observations)
+    with contextlib.closing(sqlite3.connect(observations)) as conn:
+        event_id = conn.execute("SELECT event_id FROM attempts").fetchone()[0]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute("DELETE FROM event_sequence WHERE event_id=?", (event_id,))
+        conn.commit()
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+def test_v6_h4_wrong_store_binding_fails_closed(tmp_path: Path) -> None:
+    semantics, receipts, observations = _v6_seed_cross_store_event_pair(tmp_path)
+    _v6_assert_event_schema(semantics, receipts, observations)
+    with contextlib.closing(sqlite3.connect(observations)) as conn:
+        event_id = conn.execute("SELECT event_id FROM attempts").fetchone()[0]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            "UPDATE event_sequence SET store_name='receipts' WHERE event_id=?",
+            (event_id,),
+        )
+        conn.commit()
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+def test_v6_h4_skewed_per_store_sequence_claim_fails_closed(tmp_path: Path) -> None:
+    semantics, receipts, observations = _v6_seed_cross_store_event_pair(tmp_path)
+    _v6_assert_event_schema(semantics, receipts, observations)
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        receipt_seq = conn.execute(
+            "SELECT event_seq FROM acquisitions WHERE offering_id='event-retained'"
+        ).fetchone()[0]
+    with contextlib.closing(sqlite3.connect(observations)) as conn:
+        conn.execute("UPDATE attempts SET event_seq=?", (receipt_seq,))
+        conn.commit()
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("active_mode", "inactive_store", "inactive_shape"),
+    (
+        ("full_offsite", "observations", "legacy"),
+        ("metadata_only", "receipts", "legacy"),
+        ("full_offsite", "observations", "current"),
+        ("metadata_only", "receipts", "current"),
+    ),
+)
+def test_v6_h5_valid_archive_reaches_lookup_and_freezes_inactive_main_wal(
+    tmp_path: Path, active_mode: str, inactive_store: str, inactive_shape: str
+) -> None:
+    # Bootstrap the verified private namespace before creating the inactive DB.
+    setup = _driver(tmp_path, mode=active_mode)
+    inactive = tmp_path / RUNTIME_PATHS[inactive_store]
+    if inactive_shape == "legacy":
+        _create_legacy_acquisition_db(inactive)
+    else:
+        setup.initialize_database(inactive_store)
+    before = _v5_main_wal_fingerprint(inactive)
+
+    driver = _driver(tmp_path, mode=active_mode)
+    result = driver.intake(
+        archive_bytes=_unit_zip(),
+        offering=_offering(f"lookup-{active_mode}-{inactive_shape}"),
+    )
+    assert result.status in {"ready", "review_required"}
     assert _v5_main_wal_fingerprint(inactive) == before

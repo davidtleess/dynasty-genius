@@ -1239,7 +1239,36 @@ class ContractDriver:
     )
     _SCHEMA_V2 = _SCHEMA_V1 | {"source", "role_records"}
     _SCHEMA_V3 = _SCHEMA_V2 | {"event_at", "event_seq"}
-    _SCHEMA_VERSION = 3
+    _SCHEMA_V4 = _SCHEMA_V3 | {"event_id"}
+    _SCHEMA_VERSION = 4
+    _ATTEMPTS_V1 = frozenset({"seq", "status", "reason"})
+    _ATTEMPTS_V2 = _ATTEMPTS_V1 | {"at", "event_seq"}
+    _ATTEMPTS_V3 = _ATTEMPTS_V2 | {"attempt_id", "event_id"}
+    # v5-review H4: the central table is a governed EVENT LEDGER, not an
+    # integer allocator — every record carries enough identity to prove the
+    # event it orders.
+    _EVENT_LEDGER_COLUMNS = frozenset(
+        {"seq", "event_id", "event_type", "store_name", "subject_id", "event_at"}
+    )
+    _SEMANTIC_TABLES: dict[str, frozenset[str]] = {
+        "semantic_assertions": frozenset(
+            {"assertion_id", "key", "version", "claim", "active", "evidence_id"}
+        ),
+        "semantic_attachments": frozenset(
+            {
+                "evidence_id", "retrieved_at", "provenance", "retention",
+                "evidence_sha256", "evidence_bytes",
+            }
+        ),
+        "semantic_evidence_objects": frozenset({"evidence_sha256", "evidence_blob"}),
+        "semantic_adjudications": frozenset(
+            {
+                "adjudication_id", "key", "authority", "provenance", "parents",
+                "effective_assertion_id",
+            }
+        ),
+        "event_sequence": _EVENT_LEDGER_COLUMNS,
+    }
 
     def _migrate_acquisition_store(self, conn: sqlite3.Connection, store: str) -> None:
         tables = {
@@ -1256,36 +1285,103 @@ class ContractDriver:
                 " content_vintage_id TEXT, archive_sha256 TEXT,"
                 " archive_bytes INTEGER, role_records TEXT,"
                 " analysis_ready INTEGER, signature BLOB,"
-                " event_at TEXT, event_seq INTEGER)"
+                " event_at TEXT, event_seq INTEGER, event_id TEXT)"
             )
         else:
             columns = {
                 row[1] for row in conn.execute("PRAGMA table_info(acquisitions)")
             }
-            if columns == self._SCHEMA_V1:
-                for ddl in ("source TEXT", "role_records TEXT", "event_at TEXT", "event_seq INTEGER"):
+            additions: dict[frozenset[str], tuple[str, ...]] = {
+                self._SCHEMA_V1: (
+                    "source TEXT", "role_records TEXT", "event_at TEXT",
+                    "event_seq INTEGER", "event_id TEXT",
+                ),
+                self._SCHEMA_V2: ("event_at TEXT", "event_seq INTEGER", "event_id TEXT"),
+                self._SCHEMA_V3: ("event_id TEXT",),
+            }
+            if frozenset(columns) in additions:
+                for ddl in additions[frozenset(columns)]:
                     conn.execute(f"ALTER TABLE acquisitions ADD COLUMN {ddl}")
-            elif columns == self._SCHEMA_V2:
-                for ddl in ("event_at TEXT", "event_seq INTEGER"):
-                    conn.execute(f"ALTER TABLE acquisitions ADD COLUMN {ddl}")
-            elif columns != self._SCHEMA_V3:
+            elif columns != self._SCHEMA_V4:
                 raise _refuse(f"store_schema_unmigratable:{store}")
         if "attempts" not in tables:
             conn.execute(
                 "CREATE TABLE attempts ("
                 " seq INTEGER PRIMARY KEY AUTOINCREMENT,"
-                " status TEXT, reason TEXT, at TEXT, event_seq INTEGER)"
+                " status TEXT, reason TEXT, at TEXT, event_seq INTEGER,"
+                " attempt_id TEXT, event_id TEXT)"
             )
         else:
-            attempt_columns = {
+            attempt_columns = frozenset(
                 row[1] for row in conn.execute("PRAGMA table_info(attempts)")
+            )
+            attempt_additions: dict[frozenset[str], tuple[str, ...]] = {
+                self._ATTEMPTS_V1: (
+                    "at TEXT", "event_seq INTEGER", "attempt_id TEXT", "event_id TEXT",
+                ),
+                self._ATTEMPTS_V2: ("attempt_id TEXT", "event_id TEXT"),
             }
-            if attempt_columns == {"seq", "status", "reason"}:
-                for ddl in ("at TEXT", "event_seq INTEGER"):
+            if attempt_columns in attempt_additions:
+                for ddl in attempt_additions[attempt_columns]:
                     conn.execute(f"ALTER TABLE attempts ADD COLUMN {ddl}")
-            elif attempt_columns != {"seq", "status", "reason", "at", "event_seq"}:
+            elif attempt_columns != self._ATTEMPTS_V3:
                 raise _refuse(f"store_schema_unmigratable:{store}")
         conn.execute(f"PRAGMA user_version={self._SCHEMA_VERSION}")
+
+    def _migrate_semantics_store(self, conn: sqlite3.Connection) -> None:
+        """v5-review C1: the semantics/event store is a write-critical
+        dependency of every intake, so its shape is validated by exact known
+        version — never discovered broken after a paid archive published."""
+        tables = {
+            row[0]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
+        creates = {
+            "semantic_assertions": (
+                "CREATE TABLE semantic_assertions ("
+                " assertion_id TEXT PRIMARY KEY, key TEXT, version INTEGER,"
+                " claim TEXT, active INTEGER, evidence_id TEXT)"
+            ),
+            "semantic_attachments": (
+                "CREATE TABLE semantic_attachments ("
+                " evidence_id TEXT PRIMARY KEY, retrieved_at TEXT,"
+                " provenance TEXT, retention TEXT,"
+                " evidence_sha256 TEXT, evidence_bytes INTEGER)"
+            ),
+            "semantic_evidence_objects": (
+                "CREATE TABLE semantic_evidence_objects ("
+                " evidence_sha256 TEXT PRIMARY KEY, evidence_blob BLOB)"
+            ),
+            "semantic_adjudications": (
+                "CREATE TABLE semantic_adjudications ("
+                " adjudication_id TEXT PRIMARY KEY, key TEXT,"
+                " authority TEXT, provenance TEXT, parents TEXT,"
+                " effective_assertion_id TEXT)"
+            ),
+            "event_sequence": (
+                "CREATE TABLE event_sequence ("
+                " seq INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT UNIQUE,"
+                " event_type TEXT, store_name TEXT, subject_id TEXT,"
+                " event_at TEXT)"
+            ),
+        }
+        for table, expected in self._SEMANTIC_TABLES.items():
+            if table not in tables:
+                conn.execute(creates[table])
+                continue
+            columns = frozenset(
+                row[1] for row in conn.execute(f"PRAGMA table_info({table})")
+            )
+            if table == "event_sequence" and columns == frozenset({"seq"}):
+                # The prior GREEN's bare allocator gains event identity.
+                for ddl in (
+                    "event_id TEXT", "event_type TEXT", "store_name TEXT",
+                    "subject_id TEXT", "event_at TEXT",
+                ):
+                    conn.execute(f"ALTER TABLE event_sequence ADD COLUMN {ddl}")
+                continue
+            if columns != expected:
+                raise _refuse("store_schema_unmigratable:semantics")
 
     def initialize_database(self, store: str) -> SimpleNamespace:
         self._ensure_namespace()
@@ -1294,7 +1390,13 @@ class ContractDriver:
         path = self._db_path(store)
         conn = sqlite3.connect(path)
         try:
-            mode = conn.execute("PRAGMA journal_mode=WAL").fetchone()[0]
+            try:
+                mode = conn.execute("PRAGMA journal_mode=WAL").fetchone()[0]
+            except sqlite3.DatabaseError as exc:
+                # v5-review C1: a governed store whose bytes are not a SQLite
+                # database refuses by name — never an uncaught DatabaseError
+                # after a paid archive already published.
+                raise _refuse(f"store_unreadable:{RUNTIME_PATHS[store]}") from exc
             trace.append("pragma_journal_mode_wal")
             if mode != "wal":
                 raise _refuse(f"journal_mode_not_wal:{mode}")
@@ -1303,36 +1405,12 @@ class ContractDriver:
                     "CREATE TABLE IF NOT EXISTS acquisitions ("
                     " row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, kind TEXT)"
                 )
-                conn.execute(
-                    "CREATE TABLE IF NOT EXISTS semantic_assertions ("
-                    " assertion_id TEXT PRIMARY KEY, key TEXT, version INTEGER,"
-                    " claim TEXT, active INTEGER, evidence_id TEXT)"
-                )
-                conn.execute(
-                    "CREATE TABLE IF NOT EXISTS semantic_attachments ("
-                    " evidence_id TEXT PRIMARY KEY, retrieved_at TEXT,"
-                    " provenance TEXT, retention TEXT,"
-                    " evidence_sha256 TEXT, evidence_bytes INTEGER)"
-                )
-                conn.execute(
-                    "CREATE TABLE IF NOT EXISTS semantic_evidence_objects ("
-                    " evidence_sha256 TEXT PRIMARY KEY, evidence_blob BLOB)"
-                )
-                conn.execute(
-                    "CREATE TABLE IF NOT EXISTS semantic_adjudications ("
-                    " adjudication_id TEXT PRIMARY KEY, key TEXT,"
-                    " authority TEXT, provenance TEXT, parents TEXT,"
-                    " effective_assertion_id TEXT)"
-                )
-                # v4-review H6: the ONE governed event ledger lives here — the
-                # semantics store is active in every retention mode, so both
+                # v4-review H6 + v5-review H4: the ONE governed event ledger
+                # lives here — active in every retention mode, so both
                 # acquisition databases order their events through a single
-                # globally comparable sequence while the inactive counterpart
-                # stays byte-frozen (H7).
-                conn.execute(
-                    "CREATE TABLE IF NOT EXISTS event_sequence ("
-                    " seq INTEGER PRIMARY KEY AUTOINCREMENT)"
-                )
+                # identity-bound record while the inactive counterpart stays
+                # byte-frozen (H7).
+                self._migrate_semantics_store(conn)
             else:
                 self._migrate_acquisition_store(conn, store)
             trace.append("schema_write")
@@ -1351,8 +1429,12 @@ class ContractDriver:
         path = self._db_path(store)
         if not path.exists():
             return []
+        # v5-review H5: immutable=1 — a plain mode=ro open of a WAL database
+        # materializes a zero-byte -wal on the (possibly inactive) store,
+        # which the byte-freeze contract forbids.  Connections are closed and
+        # checkpointed between operations, so immutable never misses rows.
         with contextlib.closing(
-            sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+            sqlite3.connect(f"file:{path}?mode=ro&immutable=1", uri=True)
         ) as conn:
             conn.row_factory = sqlite3.Row
             try:
@@ -1429,11 +1511,26 @@ class ContractDriver:
             if any(side.exists() for side in sidecars):
                 return "malformed"
             return "empty"
+        # v5-review H5: classification must be physically side-effect-free —
+        # a plain mode=ro open of a WAL database can still materialize a
+        # zero-byte -wal, which the counterpart contract forbids (only SHM
+        # residue is framed as permitted).  The journal mode therefore comes
+        # from the file header itself (an immutable connection's PRAGMA
+        # reports the connection, not the file), and the schema is read
+        # through immutable=1.  Between operations every connection is closed
+        # and checkpointed, so an immutable read never misses committed rows.
+        try:
+            with open(main, "rb") as handle:
+                header = handle.read(100)
+        except OSError:
+            return "unverifiable"
+        if len(header) < 100 or not header.startswith(b"SQLite format 3\x00"):
+            return "unverifiable"
+        mode = "wal" if header[18] == 2 and header[19] == 2 else "delete"
         try:
             with contextlib.closing(
-                sqlite3.connect(f"file:{main}?mode=ro", uri=True)
+                sqlite3.connect(f"file:{main}?mode=ro&immutable=1", uri=True)
             ) as conn:
-                mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
                 tables = {
                     row[0]
                     for row in conn.execute(
@@ -1786,6 +1883,7 @@ class ContractDriver:
                     "offering_identity_conflict",
                     "backup_coverage_missing",
                     "store_schema_unmigratable",
+                    "store_unreadable",
                 )
             ):
                 raise
@@ -1815,6 +1913,11 @@ class ContractDriver:
             "observations" if self.retention_mode == "metadata_only" else "receipts"
         )
         self.initialize_database(target)
+        # v5-review C1: the common semantics/event store is a write dependency
+        # of EVERY intake (event allocation + readiness), so it is validated
+        # here, before staging — a corrupt or unmigratable semantics store
+        # must never be discovered after a paid archive published.
+        self.initialize_database("semantics")
 
     def _crash(self, residue: str, restart: str) -> IntakeResult:
         self.last_crash_residue = residue
@@ -1884,18 +1987,21 @@ class ContractDriver:
             retention = "retained"
         else:
             readiness, analysis_ready, retention = "metadata_only", 0, "metadata_only"
-        # The acquisition and every attempt share ONE durable, cross-store
-        # event sequence (H4/H6), so later overlays can order failures against
+        # The acquisition and every attempt share ONE durable, identity-bound
+        # event ledger (H4/H6), so later overlays can order failures against
         # the successful acquisition even at equal clock instants and across
         # retention-mode transitions.
-        event_seq = self._allocate_event_seq()
+        event = self._allocate_event(
+            event_type="acquisition", store_name=store, subject_id=row_id
+        )
         with contextlib.closing(sqlite3.connect(self._db_path(store))) as conn:
             conn.execute(
                 "INSERT OR IGNORE INTO acquisitions"
                 " (row_id, offering_id, source, kind, retrieved_at, readiness,"
                 "  retention, content_vintage_id, archive_sha256, archive_bytes,"
-                "  role_records, analysis_ready, signature, event_at, event_seq)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "  role_records, analysis_ready, signature, event_at, event_seq,"
+                "  event_id)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     row_id,
                     offering["offering_id"],
@@ -1910,33 +2016,62 @@ class ContractDriver:
                     json.dumps(inspected["role_records"]),
                     analysis_ready,
                     signature,
-                    self.clock().isoformat(),
-                    event_seq,
+                    event["event_at"],
+                    event["event_seq"],
+                    event["event_id"],
                 ),
             )
             conn.commit()
         return readiness
 
-    def _allocate_event_seq(self) -> int:
+    def _allocate_event(
+        self, *, event_type: str, store_name: str, subject_id: str
+    ) -> dict[str, Any]:
+        """v5-review H4: every ordered event is a governed central RECORD —
+        identity, type, store, subject, and instant — never a bare integer.
+        Claims copied into the acquisition stores are revalidated against
+        these records on every load."""
         if "semantics" not in self._db_initialized:
             self.initialize_database("semantics")
+        event_id = hashlib.sha256(os.urandom(16)).hexdigest()[:32]
+        event_at = self.clock().isoformat()
         with contextlib.closing(
             sqlite3.connect(self._db_path("semantics"))
         ) as conn:
-            cursor = conn.execute("INSERT INTO event_sequence DEFAULT VALUES")
+            cursor = conn.execute(
+                "INSERT INTO event_sequence"
+                " (event_id, event_type, store_name, subject_id, event_at)"
+                " VALUES (?,?,?,?,?)",
+                (event_id, event_type, store_name, subject_id, event_at),
+            )
             conn.commit()
-            return int(cursor.lastrowid)
+            return {
+                "event_id": event_id,
+                "event_at": event_at,
+                "event_seq": int(cursor.lastrowid),
+            }
 
     def _record_attempt(self, status: str, reason: str | None) -> None:
         store = "observations" if self.retention_mode == "metadata_only" else "receipts"
         if store not in self._db_initialized:
             self.initialize_database(store)
-        event_seq = self._allocate_event_seq()
+        attempt_id = hashlib.sha256(os.urandom(16)).hexdigest()[:32]
+        event = self._allocate_event(
+            event_type="attempt", store_name=store, subject_id=attempt_id
+        )
         with contextlib.closing(sqlite3.connect(self._db_path(store))) as conn:
             conn.execute(
-                "INSERT INTO attempts(status, reason, at, event_seq)"
-                " VALUES (?,?,?,?)",
-                (status, reason, self.clock().isoformat(), event_seq),
+                "INSERT INTO attempts"
+                " (status, reason, at, event_seq, attempt_id, event_id)"
+                " VALUES (?,?,?,?,?,?)",
+                (
+                    status,
+                    reason,
+                    event["event_at"],
+                    event["event_seq"],
+                    attempt_id,
+                    event["event_id"],
+                ),
             )
             conn.commit()
 
@@ -1948,13 +2083,17 @@ class ContractDriver:
                 continue
             try:
                 with contextlib.closing(
-                    sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+                    sqlite3.connect(f"file:{path}?mode=ro&immutable=1", uri=True)
                 ) as conn:
                     rows = conn.execute(
-                        "SELECT status, reason, at, event_seq"
-                        " FROM attempts ORDER BY seq"
+                        "SELECT status, reason, at, event_seq, attempt_id,"
+                        " event_id FROM attempts ORDER BY seq"
                     ).fetchall()
             except sqlite3.Error:
+                # v5-review H3: an unreadable/missing attempts relation is the
+                # same row-9 unverifiable state as the acquisitions relation —
+                # never silently "no attempts".
+                self._unreadable_stores.add(store)
                 continue
             out.extend(
                 {
@@ -1962,6 +2101,9 @@ class ContractDriver:
                     "reason": row[1],
                     "at": row[2],
                     "event_seq": row[3],
+                    "attempt_id": row[4],
+                    "event_id": row[5],
+                    "store": store,
                 }
                 for row in rows
             )
@@ -1984,6 +2126,25 @@ class ContractDriver:
         # C2: the gate that decides analysis readiness accepts only governed
         # evidence — allowlisted provenance and claims, validated BEFORE any
         # write so a refusal can never leave partial semantic state behind.
+        # v5-review C2: the writer schema is TOTAL — every field has a closed
+        # type and vocabulary, checked before any mutation.  `active` must be
+        # an exact boolean: truthiness turned the string "false" into an
+        # active Phase-C-eligible assertion in the reviewed GREEN.
+        if not isinstance(assertion["active"], bool):
+            raise _refuse(f"semantic_active_invalid:{assertion['active']!r}")
+        for name, value in (
+            ("assertion_id", assertion["assertion_id"]),
+            ("key", assertion["key"]),
+            ("evidence_id", attachment["evidence_id"]),
+        ):
+            if not isinstance(value, str) or not value:
+                raise _refuse(f"semantic_id_invalid:{name}")
+        if attachment["retention"] != "retained":
+            raise _refuse(
+                f"semantic_retention_invalid:{attachment['retention']}"
+            )
+        if not isinstance(attachment["evidence_bytes"], (bytes, bytearray)):
+            raise _refuse("semantic_evidence_bytes_invalid:not_bytes")
         if attachment["provenance"] not in SEMANTIC_PROVENANCE_ALLOWED:
             raise _refuse(
                 f"semantic_provenance_invalid:{attachment['provenance']}"
@@ -2157,7 +2318,7 @@ class ContractDriver:
                 ).fetchall()
                 attachment_rows = conn.execute(
                     "SELECT evidence_id, retention, evidence_sha256,"
-                    " evidence_bytes, provenance"
+                    " evidence_bytes, provenance, retrieved_at"
                     " FROM semantic_attachments"
                 ).fetchall()
                 evidence_blobs = dict(
@@ -2176,19 +2337,26 @@ class ContractDriver:
                 return {"state": "unknown", "reason": "store_unreadable", "eligible_for_phase_c": False}
 
         # C2: "retained_verified" is a rehash performed NOW on the retained
-        # bytes, never a label trusted from a prior write — and restored rows
-        # must also re-pass the provenance allowlist, because a restore never
-        # signs the write contract.
+        # bytes, never a label trusted from a prior write — and every restored
+        # field re-passes its type and vocabulary checks, because a restore
+        # never signs the write contract.  All failures are states, not
+        # exceptions.
         def _attachment_state(
-            retention: str, sha: str, size: int, provenance: str
+            retention: Any, sha: Any, size: Any, provenance: Any, retrieved_at: Any
         ) -> str:
             if provenance not in SEMANTIC_PROVENANCE_ALLOWED:
                 return "provenance_ungoverned"
+            try:
+                _canonical_instant(retrieved_at, now=None)
+            except (FootballguysIntakeError, TypeError):
+                return "attachment_time_invalid"
             if retention != "retained":
-                return retention
+                return retention if isinstance(retention, str) else "retention_invalid"
             blob = evidence_blobs.get(sha)
             if (
-                blob is None
+                not isinstance(blob, bytes)
+                or not isinstance(size, int)
+                or isinstance(size, bool)
                 or len(blob) != size
                 or hashlib.sha256(blob).hexdigest() != sha
             ):
@@ -2197,22 +2365,50 @@ class ContractDriver:
 
         attachments = {
             row[0]: {
-                "state": _attachment_state(row[1], row[2], row[3], row[4]),
+                "state": _attachment_state(row[1], row[2], row[3], row[4], row[5]),
                 "evidence_sha256": row[2],
                 "evidence_bytes": row[3],
             }
             for row in attachment_rows
         }
-        adjudications = [
-            {
-                "adjudication_id": row[0],
-                "authority": row[1],
-                "provenance": row[2],
-                "parents": json.loads(row[3] or "[]"),
-                "effective_assertion_id": row[4],
-            }
-            for row in adjudication_rows
-        ]
+
+        # C2: restored assertion scalars must be exactly the written types —
+        # the writer stores active as 0/1, so anything else fails closed.
+        for row in assertion_rows:
+            if not isinstance(row[0], str) or not row[0] or row[4] not in (0, 1):
+                return {
+                    "state": "unknown",
+                    "reason": "assertion_row_invalid",
+                    "eligible_for_phase_c": False,
+                }
+
+        def _parse_parents(payload: Any) -> list[str] | None:
+            try:
+                parsed = json.loads(payload)
+            except (TypeError, ValueError):
+                return None
+            if not isinstance(parsed, list) or not all(
+                isinstance(item, str) and item for item in parsed
+            ):
+                return None
+            return parsed
+
+        adjudications = []
+        for row in adjudication_rows:
+            parents = _parse_parents(row[3])
+            if parents is None:
+                # Malformed persisted parents: the adjudication is simply not
+                # governed — the reducer then reports the unresolved conflict.
+                continue
+            adjudications.append(
+                {
+                    "adjudication_id": row[0],
+                    "authority": row[1],
+                    "provenance": row[2],
+                    "parents": parents,
+                    "effective_assertion_id": row[4],
+                }
+            )
         assertions = [
             {
                 "assertion_id": row[0],
@@ -2357,6 +2553,7 @@ class ContractDriver:
                     "receipt_id": row["row_id"],
                     "event_at": row.get("event_at"),
                     "event_seq": row.get("event_seq"),
+                    "event_id": row.get("event_id"),
                     "valid": True,
                 }
         rows = sorted(by_id.values(), key=lambda row: (row["retrieved_at"], row["id"]))
@@ -2395,18 +2592,72 @@ class ContractDriver:
             out.append(flagged)
         return out
 
+    def _event_claims_valid(
+        self, rows: list[Mapping[str, Any]], attempts: list[Mapping[str, Any]]
+    ) -> bool:
+        """v5-review H4: every event claim copied into an acquisition store is
+        revalidated against the central identity-bound record.  A missing,
+        re-bound, or skew-restored claim fails closed — query order can never
+        choose which copy wins."""
+        claims: list[tuple[str, tuple[Any, ...]]] = []
+        for row in rows:
+            if row.get("event_id"):
+                store = "receipts" if row["kind"] == "receipt" else "observations"
+                claims.append(
+                    (
+                        row["event_id"],
+                        ("acquisition", store, row["id"], row.get("event_at"),
+                         row.get("event_seq")),
+                    )
+                )
+        for attempt in attempts:
+            if attempt.get("event_id"):
+                claims.append(
+                    (
+                        attempt["event_id"],
+                        ("attempt", attempt.get("store"), attempt.get("attempt_id"),
+                         attempt.get("at"), attempt.get("event_seq")),
+                    )
+                )
+        if not claims:
+            return True
+        path = self._db_path("semantics")
+        try:
+            with contextlib.closing(
+                sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+            ) as conn:
+                central = {
+                    row[0]: (row[1], row[2], row[3], row[4], row[5])
+                    for row in conn.execute(
+                        "SELECT event_id, event_type, store_name, subject_id,"
+                        " event_at, seq FROM event_sequence"
+                    )
+                }
+        except sqlite3.Error:
+            return False
+        return all(central.get(event_id) == claim for event_id, claim in claims)
+
     def read_model(
         self, *, now: datetime, global_overall_status: str | None = None
     ) -> dict[str, Any]:
         rows = self._effective_acquisitions()
+        loaded = self._load_attempts()
         if self._unreadable_stores:
-            # H4: any unreadable governed ledger renders framing row 9 — a
-            # healthy sibling store must never supply a fallback clock.
+            # H4 (v5) + H3 (v6): any unreadable governed relation renders
+            # framing row 9 — a healthy sibling store never supplies a
+            # fallback clock.
             attempts: list[dict[str, Any]] = [{"status": "ledger_unreadable"}]
+            specials = list(self._effective_specials)
+        elif not self._event_claims_valid(rows, loaded):
+            attempts = []
+            specials = list(self._effective_specials) + [
+                {"special": "integrity_failure", "id": "event-ledger"}
+            ]
         else:
-            attempts = self._flag_newer_attempts(self._load_attempts(), rows)
+            attempts = self._flag_newer_attempts(loaded, rows)
+            specials = list(self._effective_specials)
         return evaluate_refresh_state(
-            acquisitions=rows + list(self._effective_specials),
+            acquisitions=rows + specials,
             attempts=attempts,
             now=now,
             global_overall_status=global_overall_status,
