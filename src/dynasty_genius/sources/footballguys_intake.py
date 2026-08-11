@@ -1472,12 +1472,17 @@ class ContractDriver:
                     "SELECT sql FROM sqlite_master"
                     " WHERE type='table' AND name='event_sequence'"
                 ).fetchone()
+                normalized_ddl = re.sub(
+                    r"\s+", " ", (create_sql[0] if create_sql else "") or ""
+                ).upper()
                 if (
                     seq_info is None
                     or seq_info[5] != 1
                     or (seq_info[2] or "").upper() != "INTEGER"
-                    or create_sql is None
-                    or "AUTOINCREMENT" not in (create_sql[0] or "").upper()
+                    # v10-review H2: the token proves nothing unless it is
+                    # bound to the seq declaration itself — a token hiding in
+                    # an unrelated DEFAULT expression must refuse.
+                    or "SEQ INTEGER PRIMARY KEY AUTOINCREMENT" not in normalized_ddl
                 ):
                     raise _refuse("store_schema_unmigratable:semantics")
         return rebuild_bare_ledger
@@ -2567,8 +2572,7 @@ class ContractDriver:
             try:
                 assertion_rows = conn.execute(
                     "SELECT assertion_id, key, version, claim, active, evidence_id"
-                    " FROM semantic_assertions WHERE key=?",
-                    (key,),
+                    " FROM semantic_assertions"
                 ).fetchall()
                 attachment_rows = conn.execute(
                     "SELECT evidence_id, retention, evidence_sha256,"
@@ -2652,13 +2656,19 @@ class ContractDriver:
                 "evidence_bytes": row[3],
             }
 
-        # C2 + v9-review C1: restored assertion scalars must be exactly the
-        # written types — active is an exact SQLite INTEGER 0/1 (REAL 1.0
-        # equality is not type validity), ids are nonempty text.
+        # C2 + v9-review C1 + v10-review C1: restored assertion scalars must
+        # be exactly the written types, validated TABLE-WIDE and BEFORE any
+        # key/active filter — a corrupt conflicting or inactive row must fail
+        # the read, never vanish from a WHERE clause and open eligibility.
         for row in assertion_rows:
             if (
                 not isinstance(row[0], str)
                 or not row[0]
+                or not isinstance(row[1], str)
+                or not row[1]
+                or type(row[2]) is not int
+                or not isinstance(row[3], str)
+                or row[3] not in SEMANTIC_CLAIMS_ALLOWED
                 or type(row[4]) is not int
                 or row[4] not in (0, 1)
                 or not isinstance(row[5], str)
@@ -2669,6 +2679,7 @@ class ContractDriver:
                     "reason": "assertion_row_invalid",
                     "eligible_for_phase_c": False,
                 }
+        assertion_rows = [row for row in assertion_rows if row[1] == key]
 
         # v9-review C1: every adjudication identity scalar is nonempty TEXT
         # on load — a restored BLOB/empty id fails closed by name before the
@@ -3014,6 +3025,16 @@ class ContractDriver:
         # dependency is the named row-9 fail-closed state, never a bare
         # aware/naive comparison error deep in reconciliation.
         clock_now = self.clock()
+        # v10-review M3: the clock dependency's TYPE is established before any
+        # method dispatch — str/None/anything non-datetime is the same named
+        # row-9 state, never an AttributeError.
+        if not isinstance(clock_now, datetime):
+            return evaluate_refresh_state(
+                acquisitions=[],
+                attempts=[{"status": "ledger_unreadable"}],
+                now=now,
+                global_overall_status=global_overall_status,
+            )
         try:
             _canonical_instant(clock_now.isoformat(), now=None)
         except FootballguysIntakeError:

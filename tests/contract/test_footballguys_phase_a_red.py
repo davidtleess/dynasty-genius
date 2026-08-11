@@ -1,4 +1,4 @@
-"""RED v10 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v11 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -60,6 +60,13 @@ an invalid read clock still leaked a bare aware/naive comparison; and the semant
 writers initialized durable state before validating a malformed record. RED v10 binds
 all five against the committed b582b1d GREEN and includes the reviewing lane's own
 fresh-root unchanged-state oracle repair.
+
+Adversarial review of RED v10's GREEN found three remaining validation shadows: assertion
+rows were key-filtered before scalar validation, allowing a corrupt conflicting row to
+vanish and open Phase-C eligibility; the AUTOINCREMENT guard accepted the word anywhere
+in the table DDL rather than binding it to ``seq``; and non-datetime clock dependencies
+raised before the row-9 fallback. RED v11 binds all three against the committed 297c52f
+GREEN without opening any downstream phase.
 
 One injected seam
 -----------------
@@ -4283,3 +4290,157 @@ def test_v10_h5_invalid_semantic_record_is_pure_before_store_initialization(
         pytest.fail(f"invalid fresh {writer} record was accepted")
 
     assert not any(path.exists() for path in sidecars)
+
+
+# ---------------------------------------------------------------------------
+# V11 — accepted 297c52f findings: pre-filter assertions, bound DDL, total clock
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "bad_key",
+    (pytest.param("", id="empty"), pytest.param(sqlite3.Binary(b"bad-key"), id="blob")),
+)
+def test_v11_c1_corrupt_conflicting_assertion_key_cannot_open_eligibility(
+    tmp_path: Path, bad_key: Any
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(
+        _semantic_record(assertion_id="v11-redraft", claim="redraft", version=1)
+    )
+    driver.write_semantic_assertion(
+        _semantic_record(
+            assertion_id="v11-dynasty", claim="dynasty_startup", version=2
+        )
+    )
+    before = driver.semantic_state(key=SEMANTIC_KEY)
+    assert before == {
+        "state": "unknown",
+        "reason": "unresolved_assertion_conflict",
+        "eligible_for_phase_c": False,
+    }
+
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            "UPDATE semantic_assertions SET key=? WHERE assertion_id='v11-dynasty'",
+            (bad_key,),
+        )
+        conn.commit()
+
+    # The corrupt conflicting row must be validated before any key filter can
+    # make it disappear and promote the healthy sibling into eligibility.
+    assert _driver(tmp_path).semantic_state(key=SEMANTIC_KEY) == {
+        "state": "unknown",
+        "reason": "assertion_row_invalid",
+        "eligible_for_phase_c": False,
+    }
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value"),
+    (
+        pytest.param("assertion_id", "", id="assertion-id-empty"),
+        pytest.param(
+            "assertion_id", sqlite3.Binary(b"bad-id"), id="assertion-id-blob"
+        ),
+        pytest.param("key", "", id="key-empty"),
+        pytest.param("key", sqlite3.Binary(b"bad-key"), id="key-blob"),
+        pytest.param("version", "version-one", id="version-text"),
+        pytest.param("version", 1.5, id="version-real"),
+        pytest.param("claim", "seasonal-ish", id="claim-off-vocabulary"),
+        pytest.param("claim", sqlite3.Binary(b"redraft"), id="claim-blob"),
+        pytest.param("evidence_id", "", id="evidence-id-empty"),
+        pytest.param(
+            "evidence_id", sqlite3.Binary(b"bad-evidence"), id="evidence-id-blob"
+        ),
+    ),
+)
+def test_v11_c1_inactive_assertion_still_validates_every_writer_scalar(
+    tmp_path: Path, field: str, bad_value: Any
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(
+        _semantic_record(assertion_id="v11-healthy", claim="redraft", version=1)
+    )
+    driver.write_semantic_assertion(
+        _semantic_record(
+            assertion_id="v11-inactive", claim="dynasty_startup", version=2
+        )
+    )
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            "UPDATE semantic_assertions SET active=0 WHERE assertion_id='v11-inactive'"
+        )
+        conn.execute(
+            f"UPDATE semantic_assertions SET {field}=?"
+            " WHERE assertion_id='v11-inactive'",
+            (bad_value,),
+        )
+        conn.commit()
+
+    # Validation is table-wide and precedes active/key projection. An inactive
+    # corrupt row cannot be ignored merely because a healthy active sibling exists.
+    assert _driver(tmp_path).semantic_state(key=SEMANTIC_KEY) == {
+        "state": "unknown",
+        "reason": "assertion_row_invalid",
+        "eligible_for_phase_c": False,
+    }
+
+
+def test_v11_h2_autoincrement_token_in_unrelated_default_does_not_prove_seq(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute("ALTER TABLE event_sequence RENAME TO event_sequence_governed")
+        conn.execute(
+            "CREATE TABLE event_sequence ("
+            "seq INTEGER PRIMARY KEY, event_id TEXT UNIQUE, event_type TEXT,"
+            "store_name TEXT, subject_id TEXT,"
+            "event_at TEXT DEFAULT 'AUTOINCREMENT')"
+        )
+        conn.execute("DROP TABLE event_sequence_governed")
+        conn.commit()
+        ddl = conn.execute(
+            "SELECT sql FROM sqlite_master"
+            " WHERE type='table' AND name='event_sequence'"
+        ).fetchone()[0]
+        seq_info = next(
+            row for row in conn.execute("PRAGMA table_info(event_sequence)")
+            if row[1] == "seq"
+        )
+    assert "AUTOINCREMENT" in ddl
+    assert "seq INTEGER PRIMARY KEY AUTOINCREMENT" not in ddl
+    assert seq_info[2].upper() == "INTEGER" and seq_info[5] == 1
+
+    with pytest.raises(driver.error_type) as caught:
+        _driver(tmp_path).initialize_database("semantics")
+    assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+
+
+@pytest.mark.parametrize(
+    "bad_clock",
+    (
+        pytest.param("2026-08-10T12:00:00-04:00", id="string"),
+        pytest.param(None, id="none"),
+        pytest.param(7, id="integer"),
+    ),
+)
+def test_v11_m3_every_non_datetime_read_clock_is_named_fail_closed(
+    tmp_path: Path, bad_clock: Any
+) -> None:
+    driver = _mod().build_contract_driver(
+        repo_root=tmp_path,
+        manifest_path=_write_manifest(tmp_path),
+        retention_mode="full_offsite",
+        clock=lambda: bad_clock,
+    )
+    try:
+        state = driver.read_model(now=NOW)
+    except Exception as exc:  # pragma: no cover - 297c52f leaks AttributeError
+        pytest.fail(f"non-datetime read clock raised {type(exc).__name__}: {exc}")
+    _v5_assert_row9(state)
