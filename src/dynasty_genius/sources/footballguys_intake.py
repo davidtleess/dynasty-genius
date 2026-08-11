@@ -367,6 +367,13 @@ def validate_role_schema(role: str, payload: bytes) -> None:
             raise _refuse(f"role_schema_invalid:{role}:missing_identity_columns")
 
 
+def _observe_sqlite_file_set(path: Path) -> tuple[bool, bool]:
+    """One observable boundary for the reader's observe-open-reobserve
+    protocol (v7-review H4).  Kept module-level so the RED can inject file-set
+    changes at exactly this seam."""
+    return (Path(f"{path}-wal").exists(), Path(f"{path}-shm").exists())
+
+
 # ---------------------------------------------------------------------------
 # Semantic assertion reducer — over ALL active records, never a row filter
 # ---------------------------------------------------------------------------
@@ -1381,23 +1388,44 @@ class ContractDriver:
                 " event_at TEXT)"
             ),
         }
+        # PASS 1 — validate every EXISTING table and refuse before any
+        # mutation, so an unreconcilable store stays byte-frozen (v7-review
+        # C1).  History is never fabricated: a populated bare allocator has
+        # rows with no provable identity and refuses; a row-empty one is
+        # rebuilt below so the event_id UNIQUE constraint is real SQLite
+        # state, and a full-shape ledger without that unique index refuses.
+        rebuild_bare_ledger = False
         for table, expected in self._SEMANTIC_TABLES.items():
             if table not in tables:
-                conn.execute(creates[table])
                 continue
             columns = frozenset(
                 row[1] for row in conn.execute(f"PRAGMA table_info({table})")
             )
             if table == "event_sequence" and columns == frozenset({"seq"}):
-                # The prior GREEN's bare allocator gains event identity.
-                for ddl in (
-                    "event_id TEXT", "event_type TEXT", "store_name TEXT",
-                    "subject_id TEXT", "event_at TEXT",
-                ):
-                    conn.execute(f"ALTER TABLE event_sequence ADD COLUMN {ddl}")
+                populated = conn.execute(
+                    "SELECT count(*) FROM event_sequence"
+                ).fetchone()[0]
+                if populated:
+                    raise _refuse("store_migration_unreconcilable:semantics")
+                rebuild_bare_ledger = True
                 continue
             if columns != expected:
                 raise _refuse("store_schema_unmigratable:semantics")
+            if table == "event_sequence":
+                unique_indexes = [
+                    row
+                    for row in conn.execute("PRAGMA index_list(event_sequence)")
+                    if row[2] == 1
+                ]
+                if not unique_indexes:
+                    raise _refuse("store_schema_unmigratable:semantics")
+        # PASS 2 — mutations, only after the whole store validated.
+        if rebuild_bare_ledger:
+            conn.execute("DROP TABLE event_sequence")
+            conn.execute(creates["event_sequence"])
+        for table in self._SEMANTIC_TABLES:
+            if table not in tables:
+                conn.execute(creates[table])
 
     def initialize_database(self, store: str) -> SimpleNamespace:
         self._ensure_namespace()
@@ -1417,16 +1445,14 @@ class ContractDriver:
             if mode != "wal":
                 raise _refuse(f"journal_mode_not_wal:{mode}")
             if store == "semantics":
+                # v4-review H6 + v5-review H4 + v7-review C1: the ONE governed
+                # event ledger lives here.  Validation/migration runs BEFORE
+                # any write so an unreconcilable store refuses byte-frozen.
+                self._migrate_semantics_store(conn)
                 conn.execute(
                     "CREATE TABLE IF NOT EXISTS acquisitions ("
                     " row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, kind TEXT)"
                 )
-                # v4-review H6 + v5-review H4: the ONE governed event ledger
-                # lives here — active in every retention mode, so both
-                # acquisition databases order their events through a single
-                # identity-bound record while the inactive counterpart stays
-                # byte-frozen (H7).
-                self._migrate_semantics_store(conn)
             else:
                 self._migrate_acquisition_store(conn, store)
             trace.append("schema_write")
@@ -1441,24 +1467,40 @@ class ContractDriver:
         self._db_initialized.add(store)
         return SimpleNamespace(effective_journal_mode="wal", trace=trace)
 
-    @staticmethod
-    def _read_uri(path: Path) -> str:
-        """v6-review C3: the read mode follows the physical file set.  When a
-        -wal is PRESENT, plain mode=ro replays its committed frames while
-        leaving main/-wal bytes frozen (only SHM materializes — the framed
-        permitted residue).  When no -wal exists, immutable=1 is the only
-        mode that creates nothing; there are no committed frames to miss."""
-        if Path(f"{path}-wal").exists():
-            return f"file:{path}?mode=ro"
-        return f"file:{path}?mode=ro&immutable=1"
+    def _open_reader(self, path: Path) -> sqlite3.Connection:
+        """v6-review C3 + v7-review H4: the read mode follows the physical
+        file set — a PRESENT -wal demands mode=ro (replays committed frames
+        byte-stably; SHM is the only residue) while an ABSENT -wal demands
+        immutable=1 (materializes nothing).  Because that choice races a
+        conforming writer, the protocol is observe → open → re-observe: if
+        the file set changed across the open, the connection is discarded and
+        the choice retried.  Persistent instability fails CLOSED as an
+        unreadable store, within a hard bound."""
+        for _ in range(8):
+            before = _observe_sqlite_file_set(path)
+            uri = (
+                f"file:{path}?mode=ro"
+                if before[0]
+                else f"file:{path}?mode=ro&immutable=1"
+            )
+            conn = sqlite3.connect(uri, uri=True)
+            # Only the -wal flag decides the mode; SHM is the framed
+            # permitted residue and may legitimately appear under this open.
+            if _observe_sqlite_file_set(path)[0] == before[0]:
+                return conn
+            conn.close()
+        raise sqlite3.OperationalError("sqlite file set unstable")
 
     def _store_rows(self, store: str) -> list[dict[str, Any]]:
         path = self._db_path(store)
         if not path.exists():
             return []
-        with contextlib.closing(
-            sqlite3.connect(self._read_uri(path), uri=True)
-        ) as conn:
+        try:
+            conn = self._open_reader(path)
+        except sqlite3.Error:
+            self._unreadable_stores.add(store)
+            return []
+        with contextlib.closing(conn):
             conn.row_factory = sqlite3.Row
             try:
                 rows = conn.execute(
@@ -1551,9 +1593,7 @@ class ContractDriver:
             return "unverifiable"
         mode = "wal" if header[18] == 2 and header[19] == 2 else "delete"
         try:
-            with contextlib.closing(
-                sqlite3.connect(self._read_uri(main), uri=True)
-            ) as conn:
+            with contextlib.closing(self._open_reader(main)) as conn:
                 tables = {
                     row[0]
                     for row in conn.execute(
@@ -1949,8 +1989,52 @@ class ContractDriver:
         # governed reconciliation, and no new acquisition may stack on top of
         # unprovable history.
         self._unreadable_stores = set()
-        if not self._event_ledger_reconciled():
+        self._refuse_unreadable_counterpart()
+        if self._event_ledger_reconciled() != "reconciled":
             raise _refuse("event_ledger_unreconciled")
+
+    def _refuse_unreadable_counterpart(self) -> None:
+        """v7-review C2: knowledge of an unreadable counterpart relation must
+        be load-bearing BEFORE any write.  A PRESENT relation that cannot
+        answer the production read shape refuses by exact relation; an absent
+        attempts relation stays tolerable at intake (the read model renders
+        row 9 for it) because a governed legacy store legitimately predates
+        the relation."""
+        inactive = (
+            "receipts" if self.retention_mode == "metadata_only" else "observations"
+        )
+        path = self._db_path(inactive)
+        if not path.exists():
+            return
+        probes = {
+            "acquisitions": (
+                "SELECT * FROM acquisitions"
+                " WHERE offering_id != '_bootstrap' LIMIT 0"
+            ),
+            "attempts": (
+                "SELECT attempt_id, event_id, at, event_seq"
+                " FROM attempts LIMIT 0"
+            ),
+        }
+        try:
+            with contextlib.closing(self._open_reader(path)) as conn:
+                tables = {
+                    row[0]
+                    for row in conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    )
+                }
+                for relation, probe in probes.items():
+                    if relation not in tables:
+                        continue
+                    try:
+                        conn.execute(probe)
+                    except sqlite3.Error as exc:
+                        raise _refuse(
+                            f"store_unreadable:{inactive}.{relation}"
+                        ) from exc
+        except sqlite3.Error as exc:
+            raise _refuse(f"store_unreadable:{inactive}") from exc
 
     def _crash(self, residue: str, restart: str) -> IntakeResult:
         self.last_crash_residue = residue
@@ -2115,9 +2199,7 @@ class ContractDriver:
             if not path.exists():
                 continue
             try:
-                with contextlib.closing(
-                    sqlite3.connect(self._read_uri(path), uri=True)
-                ) as conn:
+                with contextlib.closing(self._open_reader(path)) as conn:
                     rows = conn.execute(
                         "SELECT status, reason, at, event_seq, attempt_id,"
                         " event_id FROM attempts ORDER BY seq"
@@ -2198,12 +2280,20 @@ class ContractDriver:
             )
         if not isinstance(attachment["evidence_bytes"], (bytes, bytearray)):
             raise _refuse("semantic_evidence_bytes_invalid:not_bytes")
-        if attachment["provenance"] not in SEMANTIC_PROVENANCE_ALLOWED:
+        # v7-review H3: type established BEFORE membership — an unhashable
+        # value must reach the named refusal, never a bare TypeError.
+        if (
+            not isinstance(attachment["provenance"], str)
+            or attachment["provenance"] not in SEMANTIC_PROVENANCE_ALLOWED
+        ):
             raise _refuse(
-                f"semantic_provenance_invalid:{attachment['provenance']}"
+                f"semantic_provenance_invalid:{attachment['provenance']!r}"
             )
-        if assertion["claim"] not in SEMANTIC_CLAIMS_ALLOWED:
-            raise _refuse(f"semantic_claim_invalid:{assertion['claim']}")
+        if (
+            not isinstance(assertion["claim"], str)
+            or assertion["claim"] not in SEMANTIC_CLAIMS_ALLOWED
+        ):
+            raise _refuse(f"semantic_claim_invalid:{assertion['claim']!r}")
         # v4-review H3: closed record schema — an exact integer version (bool
         # is not a version) and a canonical timezone-aware retrieval instant,
         # validated through the same serializer the acquisition side uses.
@@ -2302,12 +2392,27 @@ class ContractDriver:
             "adjudication_id", "key", "authority", "provenance",
             "parents", "effective_assertion_id",
         )
-        if not all(record.get(field) for field in required):
+        # Presence, not truthiness: an unhashable/wrong-typed value must fall
+        # through to ITS OWN named refusal below (v7-review H3).
+        if any(
+            field not in record or record[field] is None or record[field] == ""
+            for field in required
+        ):
             raise _refuse("adjudication_invalid:missing_field")
-        if record["authority"] not in ADJUDICATION_AUTHORITY_ALLOWED:
-            raise _refuse(f"adjudication_authority_invalid:{record['authority']}")
-        if record["provenance"] not in ADJUDICATION_PROVENANCE_ALLOWED:
-            raise _refuse(f"adjudication_provenance_invalid:{record['provenance']}")
+        if (
+            not isinstance(record["authority"], str)
+            or record["authority"] not in ADJUDICATION_AUTHORITY_ALLOWED
+        ):
+            raise _refuse(f"adjudication_authority_invalid:{record['authority']!r}")
+        if (
+            not isinstance(record["provenance"], str)
+            or record["provenance"] not in ADJUDICATION_PROVENANCE_ALLOWED
+        ):
+            raise _refuse(f"adjudication_provenance_invalid:{record['provenance']!r}")
+        if not isinstance(record["parents"], list) or not all(
+            isinstance(item, str) and item for item in record["parents"]
+        ):
+            raise _refuse("adjudication_invalid:parents")
         row = (
             record["key"],
             record["authority"],
@@ -2659,7 +2764,7 @@ class ContractDriver:
             out.append(flagged)
         return out
 
-    def _event_ledger_reconciled(self) -> bool:
+    def _event_ledger_reconciled(self) -> str:
         """v5-review H4 + v6-review C2: the event ledger and the acquisition
         stores must reconcile in BOTH directions over the RAW persisted rows.
         A row without a claim, a claim without its central record, a mismatch,
@@ -2678,15 +2783,13 @@ class ContractDriver:
                     or not event_id
                     or event_id in claims
                 ):
-                    return False
+                    return "mismatch"
                 claims[event_id] = (
                     "acquisition", store, row["row_id"], row.get("event_at"),
                     row.get("event_seq"),
                 )
             try:
-                with contextlib.closing(
-                    sqlite3.connect(self._read_uri(path), uri=True)
-                ) as conn:
+                with contextlib.closing(self._open_reader(path)) as conn:
                     attempt_rows = conn.execute(
                         "SELECT attempt_id, event_id, at, event_seq"
                         " FROM attempts ORDER BY seq"
@@ -2703,31 +2806,48 @@ class ContractDriver:
                     or not attempt_id
                     or event_id in claims
                 ):
-                    return False
+                    return "mismatch"
                 claims[event_id] = ("attempt", store, attempt_id, at, event_seq)
         path = self._db_path("semantics")
-        central: dict[str, tuple[Any, ...]] = {}
+        central_rows: list[tuple[Any, ...]] = []
         if path.exists():
             try:
-                with contextlib.closing(
-                    sqlite3.connect(self._read_uri(path), uri=True)
-                ) as conn:
-                    central = {
-                        row[0]: (row[1], row[2], row[3], row[4], row[5])
-                        for row in conn.execute(
-                            "SELECT event_id, event_type, store_name, subject_id,"
-                            " event_at, seq FROM event_sequence"
-                        )
-                    }
+                with contextlib.closing(self._open_reader(path)) as conn:
+                    central_rows = conn.execute(
+                        "SELECT event_id, event_type, store_name, subject_id,"
+                        " event_at, seq FROM event_sequence"
+                    ).fetchall()
             except sqlite3.Error:
-                return not claims
+                # v7-review C1: an unreadable central ledger is NEVER success,
+                # even with zero store claims — it is the row-9 state.
+                return "unreadable"
+        # Every central row must be CLOSED — non-null text identity, a known
+        # type, and a governed store binding — and identities must be unique
+        # BEFORE any dictionary can collapse a duplicate.
+        for row in central_rows:
+            event_id, event_type, store_name, subject_id, event_at, _seq = row
+            if (
+                not isinstance(event_id, str) or not event_id
+                or event_type not in ("acquisition", "attempt")
+                or store_name not in ("receipts", "observations")
+                or not isinstance(subject_id, str) or not subject_id
+                or not isinstance(event_at, str) or not event_at
+            ):
+                return "mismatch"
+        central_ids = [row[0] for row in central_rows]
+        if len(central_ids) != len(set(central_ids)):
+            return "mismatch"
+        central = {
+            row[0]: (row[1], row[2], row[3], row[4], row[5])
+            for row in central_rows
+        }
         for event_id, claim in claims.items():
             if central.get(event_id) != claim:
-                return False
-        for event_id, record in central.items():
-            if record[0] in ("acquisition", "attempt") and event_id not in claims:
-                return False
-        return True
+                return "mismatch"
+        for event_id in central:
+            if event_id not in claims:
+                return "mismatch"
+        return "reconciled"
 
     def read_model(
         self, *, now: datetime, global_overall_status: str | None = None
@@ -2740,14 +2860,19 @@ class ContractDriver:
             # fallback clock.
             attempts: list[dict[str, Any]] = [{"status": "ledger_unreadable"}]
             specials = list(self._effective_specials)
-        elif not self._event_ledger_reconciled():
-            attempts = []
-            specials = list(self._effective_specials) + [
-                {"special": "integrity_failure", "id": "event-ledger"}
-            ]
         else:
-            attempts = self._flag_newer_attempts(loaded, rows)
-            specials = list(self._effective_specials)
+            ledger_state = self._event_ledger_reconciled()
+            if ledger_state == "unreadable":
+                attempts = [{"status": "ledger_unreadable"}]
+                specials = list(self._effective_specials)
+            elif ledger_state == "mismatch":
+                attempts = []
+                specials = list(self._effective_specials) + [
+                    {"special": "integrity_failure", "id": "event-ledger"}
+                ]
+            else:
+                attempts = self._flag_newer_attempts(loaded, rows)
+                specials = list(self._effective_specials)
         return evaluate_refresh_state(
             acquisitions=rows + specials,
             attempts=attempts,

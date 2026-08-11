@@ -1,4 +1,4 @@
-"""RED v7 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v8 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -35,6 +35,14 @@ SQLite reads preserved WAL bytes by ignoring their committed contents. RED v7 bi
 all three against the committed e8fc4ec GREEN. It deliberately does not authorize an
 orphan-deleting sweep or fabricate event identity for populated legacy rows whose
 historical order cannot be reconstructed.
+
+Adversarial review of RED v7's GREEN found four remaining real-boundary defects: a
+populated or structurally non-unique central event ledger could migrate and reconcile
+as healthy; unreadable inactive acquisition relations were noticed but did not block
+raw publication; unhashable semantic vocabulary values leaked ``TypeError``; and the
+WAL-aware URI choice raced the later SQLite open. RED v8 binds all four against the
+committed c183c11 GREEN. Reader races use a bounded observe-open-reobserve contract;
+they do not broaden the lifecycle lock or authorize any new work.
 
 One injected seam
 -----------------
@@ -3210,3 +3218,363 @@ def test_v7_c3_wal_absent_lookup_materializes_no_sidecar(
     assert _v5_main_wal_fingerprint(inactive) == before
     assert not Path(f"{inactive}-wal").exists()
     assert not Path(f"{inactive}-shm").exists()
+
+
+# ---------------------------------------------------------------------------
+# V8 — accepted c183c11 findings: central truth, prewrite refusal, read races
+# ---------------------------------------------------------------------------
+
+
+def _v8_create_bare_event_allocator(path: Path, *, populated: bool) -> None:
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        assert conn.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
+        conn.execute(
+            "CREATE TABLE event_sequence"
+            " (seq INTEGER PRIMARY KEY AUTOINCREMENT)"
+        )
+        if populated:
+            conn.execute("INSERT INTO event_sequence DEFAULT VALUES")
+        conn.commit()
+
+
+def test_v8_c1_populated_bare_central_ledger_refuses_before_mutation(
+    tmp_path: Path,
+) -> None:
+    setup = _driver(tmp_path)
+    setup.initialize_database("receipts")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    _v8_create_bare_event_allocator(semantics, populated=True)
+    before = _v5_main_wal_fingerprint(semantics)
+
+    driver = _driver(tmp_path)
+    with pytest.raises(driver.error_type) as caught:
+        driver.intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering("populated-bare-central"),
+        )
+    assert _error_code(caught.value) == (
+        "store_migration_unreconcilable:semantics"
+    )
+    assert _v5_main_wal_fingerprint(semantics) == before
+    assert driver.snapshot()["objects"] == []
+    assert "staging_create" not in driver.snapshot()["trace"]
+
+
+def test_v8_c1_empty_bare_central_rebuilds_with_real_event_id_uniqueness(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("receipts")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    _v8_create_bare_event_allocator(semantics, populated=False)
+    driver.initialize_database("semantics")
+
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        unique_indexes = [
+            row[1]
+            for row in conn.execute("PRAGMA index_list(event_sequence)")
+            if row[2] == 1
+        ]
+        assert unique_indexes, "event_id uniqueness must exist in SQLite, not prose"
+        conn.execute(
+            "INSERT INTO event_sequence"
+            " (event_id,event_type,store_name,subject_id,event_at)"
+            " VALUES ('duplicate','attempt','receipts','a','2026-08-10T00:00:00Z')"
+        )
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                "INSERT INTO event_sequence"
+                " (event_id,event_type,store_name,subject_id,event_at)"
+                " VALUES ('duplicate','attempt','receipts','a','2026-08-10T00:00:00Z')"
+            )
+
+
+def _v8_remove_event_uniqueness_and_duplicate(semantics: Path) -> None:
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        rows = conn.execute(
+            "SELECT seq,event_id,event_type,store_name,subject_id,event_at"
+            " FROM event_sequence ORDER BY seq"
+        ).fetchall()
+        assert rows
+        conn.execute("ALTER TABLE event_sequence RENAME TO event_sequence_governed")
+        conn.execute(
+            "CREATE TABLE event_sequence"
+            " (seq INTEGER, event_id TEXT, event_type TEXT, store_name TEXT,"
+            "  subject_id TEXT, event_at TEXT)"
+        )
+        conn.executemany(
+            "INSERT INTO event_sequence"
+            " (seq,event_id,event_type,store_name,subject_id,event_at)"
+            " VALUES (?,?,?,?,?,?)",
+            rows + [rows[0]],
+        )
+        conn.execute("DROP TABLE event_sequence_governed")
+        conn.commit()
+
+
+def test_v8_c1_duplicate_central_ids_cannot_hide_behind_dict_collapse(
+    tmp_path: Path,
+) -> None:
+    first = _driver(tmp_path)
+    assert first.intake(
+        archive_bytes=_unit_zip(), offering=_offering("central-duplicate-base")
+    ).status == "review_required"
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    _v8_remove_event_uniqueness_and_duplicate(semantics)
+
+    retry = _driver(tmp_path)
+    with pytest.raises(retry.error_type) as caught:
+        retry.intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering("central-duplicate-next"),
+        )
+    assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+    assert "staging_create" not in retry.snapshot()["trace"]
+
+
+def test_v8_c1_restored_duplicate_central_ids_fail_closed_on_read(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    assert driver.intake(
+        archive_bytes=_unit_zip(), offering=_offering("central-duplicate-read")
+    ).status == "review_required"
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    _v8_remove_event_uniqueness_and_duplicate(semantics)
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("event_id", "event_type", "store_name", "subject_id", "event_at"),
+    (
+        (None, "attempt", "receipts", "subject", "2026-08-10T00:00:00Z"),
+        ("event", None, "receipts", "subject", "2026-08-10T00:00:00Z"),
+        ("event", "foreign", "receipts", "subject", "2026-08-10T00:00:00Z"),
+        ("event", "attempt", None, "subject", "2026-08-10T00:00:00Z"),
+        ("event", "attempt", "receipts", None, "2026-08-10T00:00:00Z"),
+        ("event", "attempt", "receipts", "subject", None),
+    ),
+)
+def test_v8_c1_every_central_row_has_closed_identity_and_type(
+    tmp_path: Path,
+    event_id: Any,
+    event_type: Any,
+    store_name: Any,
+    subject_id: Any,
+    event_at: Any,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            "INSERT INTO event_sequence"
+            " (event_id,event_type,store_name,subject_id,event_at)"
+            " VALUES (?,?,?,?,?)",
+            (event_id, event_type, store_name, subject_id, event_at),
+        )
+        conn.commit()
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+def test_v8_c1_unreadable_central_ledger_fails_closed_without_store_claims(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("receipts")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    semantics.write_bytes(b"not-a-sqlite-database")
+    _v5_assert_row9(_driver(tmp_path).read_model(now=NOW))
+
+
+def _v8_create_unreadable_counterpart_relation(
+    path: Path, *, relation: str
+) -> None:
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        assert conn.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
+        if relation == "acquisitions":
+            conn.execute("CREATE TABLE acquisitions(row_id TEXT)")
+            conn.execute(
+                "CREATE TABLE attempts"
+                " (seq INTEGER PRIMARY KEY, status TEXT, reason TEXT, at TEXT,"
+                "  event_seq INTEGER, attempt_id TEXT, event_id TEXT)"
+            )
+        else:
+            conn.execute(
+                "CREATE TABLE acquisitions(row_id TEXT, offering_id TEXT)"
+            )
+            conn.execute("CREATE TABLE attempts(seq INTEGER PRIMARY KEY)")
+        conn.commit()
+
+
+@pytest.mark.parametrize(
+    ("active_mode", "inactive_store", "relation"),
+    (
+        ("full_offsite", "observations", "acquisitions"),
+        ("full_offsite", "observations", "attempts"),
+        ("metadata_only", "receipts", "acquisitions"),
+        ("metadata_only", "receipts", "attempts"),
+    ),
+)
+def test_v8_c2_any_unreadable_counterpart_relation_refuses_before_staging(
+    tmp_path: Path, active_mode: str, inactive_store: str, relation: str
+) -> None:
+    setup = _driver(tmp_path, mode=active_mode)
+    setup.initialize_database("semantics")
+    inactive = tmp_path / RUNTIME_PATHS[inactive_store]
+    _v8_create_unreadable_counterpart_relation(inactive, relation=relation)
+
+    driver = _driver(tmp_path, mode=active_mode)
+    with pytest.raises(driver.error_type) as caught:
+        driver.intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering(f"unreadable-{inactive_store}-{relation}"),
+        )
+    assert _error_code(caught.value) == (
+        f"store_unreadable:{inactive_store}.{relation}"
+    )
+    assert driver.snapshot()["objects"] == []
+    assert driver.snapshot()["raw_provider_entries"] == []
+    assert "staging_create" not in driver.snapshot()["trace"]
+
+
+@pytest.mark.parametrize(
+    ("section", "field", "expected_prefix"),
+    (
+        ("assertion", "claim", "semantic_claim_invalid:"),
+        ("attachment", "provenance", "semantic_provenance_invalid:"),
+        ("attachment", "retention", "semantic_retention_invalid:"),
+    ),
+)
+def test_v8_h3_unhashable_semantic_vocabulary_is_a_domain_refusal(
+    tmp_path: Path, section: str, field: str, expected_prefix: str
+) -> None:
+    driver = _driver(tmp_path)
+    before = driver.semantic_state(key=SEMANTIC_KEY)
+    record = _semantic_record()
+    record[section][field] = []
+    try:
+        driver.write_semantic_assertion(record)
+    except driver.error_type as exc:
+        assert _error_code(exc).startswith(expected_prefix)
+    except Exception as exc:  # pragma: no cover - c183c11 leaks TypeError
+        pytest.fail(f"semantic writer leaked {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - malformed vocabulary must never be accepted
+        pytest.fail(f"semantic writer accepted unhashable {section}.{field}")
+    assert driver.semantic_state(key=SEMANTIC_KEY) == before
+
+
+@pytest.mark.parametrize(
+    ("field", "expected_prefix"),
+    (
+        ("authority", "adjudication_authority_invalid:"),
+        ("provenance", "adjudication_provenance_invalid:"),
+    ),
+)
+def test_v8_h3_unhashable_adjudication_vocabulary_is_a_domain_refusal(
+    tmp_path: Path, field: str, expected_prefix: str
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    record = {
+        "adjudication_id": "unhashable-adjudication",
+        "key": SEMANTIC_KEY,
+        "authority": "david",
+        "provenance": "explicit-ruling",
+        "parents": ["parent"],
+        "effective_assertion_id": "parent",
+    }
+    record[field] = []
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        before = conn.execute(
+            "SELECT count(*) FROM semantic_adjudications"
+        ).fetchone()[0]
+    try:
+        driver.write_semantic_adjudication(record)
+    except driver.error_type as exc:
+        assert _error_code(exc).startswith(expected_prefix)
+    except Exception as exc:  # pragma: no cover - c183c11 leaks TypeError
+        pytest.fail(f"adjudication writer leaked {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - malformed vocabulary must never be accepted
+        pytest.fail(f"adjudication writer accepted unhashable {field}")
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        after = conn.execute(
+            "SELECT count(*) FROM semantic_adjudications"
+        ).fetchone()[0]
+    assert after == before
+
+
+def _v8_committed_attempts_drop_wal(path: Path) -> bytes:
+    source = path.with_name(f"{path.name}.race-source")
+    shutil.copy2(path, source)
+    writer = sqlite3.connect(source)
+    try:
+        assert writer.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
+        writer.execute("PRAGMA wal_autocheckpoint=0")
+        writer.execute("DROP TABLE attempts")
+        writer.commit()
+        wal = Path(f"{source}-wal")
+        assert wal.exists() and wal.stat().st_size > 0
+        assert source.read_bytes() == path.read_bytes()
+        return wal.read_bytes()
+    finally:
+        writer.close()
+        source.unlink(missing_ok=True)
+        Path(f"{source}-wal").unlink(missing_ok=True)
+        Path(f"{source}-shm").unlink(missing_ok=True)
+
+
+def test_v8_h4_wal_appearance_between_observe_and_open_retries_truthfully(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    setup = _driver(tmp_path)
+    setup.initialize_database("observations")
+    target = tmp_path / RUNTIME_PATHS["observations"]
+    wal_bytes = _v8_committed_attempts_drop_wal(target)
+    mod = _mod()
+    observer = getattr(mod, "_observe_sqlite_file_set", None)
+    assert callable(observer), "reader needs one observable file-set boundary"
+    injected = False
+
+    def appear_after_observation(path: Path):
+        nonlocal injected
+        observed = observer(path)
+        if Path(path) == target and not injected:
+            assert not Path(f"{target}-wal").exists()
+            Path(f"{target}-wal").write_bytes(wal_bytes)
+            injected = True
+        return observed
+
+    monkeypatch.setattr(mod, "_observe_sqlite_file_set", appear_after_observation)
+    _v5_assert_row9(_driver(tmp_path).read_model(now=NOW))
+    assert injected
+
+
+def test_v8_h4_persistently_unstable_file_set_fails_closed_with_a_bound(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    setup = _driver(tmp_path)
+    setup.initialize_database("observations")
+    target = tmp_path / RUNTIME_PATHS["observations"]
+    mod = _mod()
+    observer = getattr(mod, "_observe_sqlite_file_set", None)
+    assert callable(observer), "reader needs one observable file-set boundary"
+    stable = observer(target)
+    wal_path = Path(f"{target}-wal")
+    wal_path.write_bytes(b"unstable-sentinel")
+    changed = observer(target)
+    wal_path.unlink()
+    assert changed != stable
+    calls = 0
+
+    def never_stable(path: Path):
+        nonlocal calls
+        if Path(path) != target:
+            return observer(path)
+        calls += 1
+        return stable if calls % 2 else changed
+
+    monkeypatch.setattr(mod, "_observe_sqlite_file_set", never_stable)
+    _v5_assert_row9(_driver(tmp_path).read_model(now=NOW))
+    assert 2 <= calls <= 64, "observe-open-reobserve retries must be bounded"
