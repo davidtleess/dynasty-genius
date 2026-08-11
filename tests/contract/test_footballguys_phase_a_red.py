@@ -1,4 +1,4 @@
-"""RED v4 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v5 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -14,6 +14,12 @@ evidence, sticky readiness, unordered attempt overlays, lost held-AR state, a sh
 sidecar schema, wrong object mode, leaking test connections, and stale provenance.
 RED v4 preserves all earlier controls and makes those boundaries executable.  It never
 skips; the reviewed 8bf1518 GREEN must fail the new controls before repair.
+
+Adversarial review of RED v4's GREEN found seven further real-boundary defects:
+cross-key semantic adjudication, writer-only semantic governance, an open semantic
+writer schema, unreadable ledgers erased as empty, multiple simultaneous "newest"
+attempts, per-store rather than global event order, and write-capable inactive-store
+lookup.  RED v5 binds those accepted findings without changing the GREEN.
 
 One injected seam
 -----------------
@@ -2036,3 +2042,438 @@ def test_r3_option1_is_the_only_active_write_mode_but_transition_controls_remain
     assert m.ACTIVE_RETENTION_MODE == "full_offsite"
     assert m.active_intake_branch() == "A"
     assert m.transition_read_modes() == frozenset({"retained", "metadata_only"})
+
+
+# ---------------------------------------------------------------------------
+# V5 — accepted adversarial findings at the real persistence/read boundaries
+# ---------------------------------------------------------------------------
+
+
+def _v5_semantic_record(
+    *,
+    key: str = SEMANTIC_KEY,
+    assertion_id: str,
+    claim: str = "redraft",
+    version: Any = 1,
+    evidence_id: str | None = None,
+    retrieved_at: str = "2026-08-09T12:00:00-04:00",
+    evidence_bytes: bytes = SEMANTIC_EVIDENCE,
+) -> dict[str, Any]:
+    record = _semantic_record(
+        assertion_id=assertion_id,
+        claim=claim,
+        version=version,
+    )
+    record["assertion"]["key"] = key
+    record["attachment"]["evidence_id"] = evidence_id or f"evidence-{assertion_id}"
+    record["attachment"]["retrieved_at"] = retrieved_at
+    record["attachment"]["evidence_bytes"] = evidence_bytes
+    return record
+
+
+def _v5_seed_target_conflict(driver: Any) -> None:
+    driver.write_semantic_assertion(
+        _v5_semantic_record(assertion_id="target-old", version=1)
+    )
+    driver.write_semantic_assertion(
+        _v5_semantic_record(
+            assertion_id="target-new",
+            claim="dynasty_startup",
+            version=2,
+        )
+    )
+    assert driver.semantic_state(key=SEMANTIC_KEY)["state"] == "unknown"
+
+
+def _v5_insert_cross_key_adjudication(driver: Any, tmp_path: Path) -> None:
+    other_key = "classic.adp_sleeper-sf.scoring"
+    driver.write_semantic_assertion(
+        _v5_semantic_record(key=other_key, assertion_id="other-key")
+    )
+    db = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(db)) as conn:
+        conn.execute(
+            "INSERT INTO semantic_adjudications"
+            " (adjudication_id, key, authority, provenance, parents,"
+            "  effective_assertion_id) VALUES (?,?,?,?,?,?)",
+            (
+                "cross-key-adjudication",
+                SEMANTIC_KEY,
+                "david",
+                "explicit-ruling",
+                json.dumps(["target-old", "target-new"]),
+                "other-key",
+            ),
+        )
+        conn.commit()
+
+
+def _v5_assert_fail_closed_semantic_state(driver: Any) -> None:
+    try:
+        state = driver.semantic_state(key=SEMANTIC_KEY)
+    except Exception as exc:  # pragma: no cover - reviewed GREEN raises here
+        pytest.fail(f"semantic reducer raised instead of failing closed: {exc!r}")
+    assert state["state"] == "unknown"
+    assert state["eligible_for_phase_c"] is False
+
+
+def test_v5_c1_writer_refuses_cross_key_effective_assertion_before_mutation(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    _v5_seed_target_conflict(driver)
+    driver.write_semantic_assertion(
+        _v5_semantic_record(
+            key="classic.adp_sleeper-sf.scoring",
+            assertion_id="other-key",
+        )
+    )
+    before = driver.semantic_state(key=SEMANTIC_KEY)
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_adjudication(
+            {
+                "adjudication_id": "cross-key-adjudication",
+                "key": SEMANTIC_KEY,
+                "authority": "david",
+                "provenance": "explicit-ruling",
+                "parents": ["target-old", "target-new"],
+                "effective_assertion_id": "other-key",
+            }
+        )
+    assert "adjudication" in _error_code(caught.value)
+    assert driver.semantic_state(key=SEMANTIC_KEY) == before
+
+
+def test_v5_c1_reducer_rejects_restored_cross_key_adjudication_without_raising(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    _v5_seed_target_conflict(driver)
+    _v5_insert_cross_key_adjudication(driver, tmp_path)
+    _v5_assert_fail_closed_semantic_state(_driver(tmp_path))
+
+
+def test_v5_c1_invalid_adjudication_cannot_orphan_a_published_archive(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    _v5_seed_target_conflict(driver)
+    _v5_insert_cross_key_adjudication(driver, tmp_path)
+
+    result = driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    assert result.status == "review_required"
+    snapshot = driver.snapshot()
+    assert len(snapshot["objects"]) == 1
+    assert len(snapshot["receipts"]) == 1
+
+
+@pytest.mark.parametrize(
+    ("table", "column", "value"),
+    (
+        ("semantic_attachments", "provenance", "untrusted-blog"),
+        ("semantic_assertions", "claim", "weekly_projection"),
+    ),
+)
+def test_v5_c2_persisted_unsupported_semantic_values_fail_closed_on_read(
+    tmp_path: Path, table: str, column: str, value: str
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    db = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(db)) as conn:
+        conn.execute(f"UPDATE {table} SET {column}=?", (value,))
+        conn.commit()
+    _v5_assert_fail_closed_semantic_state(_driver(tmp_path))
+
+
+@pytest.mark.parametrize(
+    ("column", "value"),
+    (("authority", "attacker"), ("provenance", "untrusted-blog")),
+)
+def test_v5_c2_persisted_unsupported_adjudication_fails_closed_on_read(
+    tmp_path: Path, column: str, value: str
+) -> None:
+    driver = _driver(tmp_path)
+    _v5_seed_target_conflict(driver)
+    driver.write_semantic_adjudication(
+        {
+            "adjudication_id": "governed-adjudication",
+            "key": SEMANTIC_KEY,
+            "authority": "david",
+            "provenance": "explicit-ruling",
+            "parents": ["target-old", "target-new"],
+            "effective_assertion_id": "target-new",
+        }
+    )
+    db = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(db)) as conn:
+        conn.execute(
+            f"UPDATE semantic_adjudications SET {column}=?",
+            (value,),
+        )
+        conn.commit()
+    _v5_assert_fail_closed_semantic_state(_driver(tmp_path))
+
+
+def test_v5_c2_unsupported_restored_claim_cannot_promote_analysis_readiness(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    db = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(db)) as conn:
+        conn.execute(
+            "UPDATE semantic_assertions SET claim='weekly_projection'"
+        )
+        conn.commit()
+
+    result = _driver(tmp_path).intake(
+        archive_bytes=_unit_zip(),
+        offering=_offering(),
+    )
+    assert result.status == "review_required"
+    state = _driver(tmp_path).read_model(now=NOW)
+    assert state["latest_analysis_ready_id"] is None
+    assert "awaiting data review" in state["copy"]
+
+
+@pytest.mark.parametrize("changed_field", ("bytes", "retrieved_at"))
+def test_v5_h3_assertion_noop_requires_full_attachment_equality(
+    tmp_path: Path, changed_field: str
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    changed = _semantic_record()
+    if changed_field == "bytes":
+        changed["attachment"]["evidence_bytes"] = b"different retained bytes"
+    else:
+        changed["attachment"]["retrieved_at"] = "2026-08-08T12:00:00-04:00"
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_assertion(changed)
+    assert "identity_conflict" in _error_code(caught.value)
+
+
+def test_v5_h3_reused_evidence_id_requires_full_attachment_equality(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    changed = _v5_semantic_record(
+        assertion_id="horizon-v2",
+        version=2,
+        evidence_id="evidence-horizon-v1",
+        retrieved_at="2026-08-08T12:00:00-04:00",
+    )
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_assertion(changed)
+    assert "evidence_identity_conflict" in _error_code(caught.value)
+
+
+@pytest.mark.parametrize(
+    "retrieved_at",
+    ("not-a-date", "2026-08-09T12:00:00", "2026-08-09T12:00:00.5-04:00"),
+)
+def test_v5_h3_semantic_evidence_retrieved_at_has_a_closed_schema(
+    tmp_path: Path, retrieved_at: str
+) -> None:
+    driver = _driver(tmp_path)
+    record = _v5_semantic_record(
+        assertion_id="invalid-time",
+        retrieved_at=retrieved_at,
+    )
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_assertion(record)
+    assert "retrieved_at" in _error_code(caught.value)
+    assert driver.semantic_state(key=SEMANTIC_KEY)["state"] == "unknown"
+
+
+@pytest.mark.parametrize("version", ("two", 2.5, True))
+def test_v5_h3_semantic_version_is_an_integer_not_a_coercible_value(
+    tmp_path: Path, version: Any
+) -> None:
+    driver = _driver(tmp_path)
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_assertion(
+            _v5_semantic_record(assertion_id="wrong-version", version=version)
+        )
+    assert "version" in _error_code(caught.value)
+    assert driver.semantic_state(key=SEMANTIC_KEY)["state"] == "unknown"
+
+
+def test_v5_h3_restored_wrong_type_version_returns_unknown_never_typeerror(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(
+        _v5_semantic_record(assertion_id="version-one", version=1)
+    )
+    driver.write_semantic_assertion(
+        _v5_semantic_record(assertion_id="version-two", version=2)
+    )
+    db = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(db)) as conn:
+        conn.execute(
+            "UPDATE semantic_assertions SET version='two'"
+            " WHERE assertion_id='version-two'"
+        )
+        conn.commit()
+    _v5_assert_fail_closed_semantic_state(_driver(tmp_path))
+
+
+def test_v5_h3_equivalent_instant_spellings_share_canonical_evidence_identity(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    equivalent = _v5_semantic_record(
+        assertion_id="horizon-v2",
+        version=2,
+        evidence_id="evidence-horizon-v1",
+        retrieved_at="2026-08-09T16:00:00Z",
+    )
+    result = driver.write_semantic_assertion(equivalent)
+    assert _value(result, "status") == "written"
+
+
+def _v5_write_non_sqlite_store(tmp_path: Path, store: str) -> Path:
+    path = tmp_path / RUNTIME_PATHS[store]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"not a sqlite database")
+    return path
+
+
+def _v5_assert_row9(state: dict[str, Any]) -> None:
+    assert state == _expected(
+        "unverifiable",
+        "Footballguys refresh record unreadable",
+        1,
+        clock=None,
+        ar=None,
+    )
+
+
+def test_v5_h4_non_sqlite_receipt_ledger_renders_literal_row9(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    _v5_write_non_sqlite_store(tmp_path, "receipts")
+    _v5_assert_row9(driver.read_model(now=NOW))
+
+
+def test_v5_h4_unreadable_counterpart_cannot_fall_back_to_a_healthy_clock(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    result = driver.intake(archive_bytes=_unit_zip(), offering=_offering())
+    assert result.status == "review_required"
+    _v5_write_non_sqlite_store(tmp_path, "observations")
+    state = _driver(tmp_path).read_model(now=NOW)
+    _v5_assert_row9(state)
+
+
+@pytest.mark.parametrize(
+    ("order", "expected_suffix", "forbidden_suffix"),
+    (
+        (
+            "failed_then_invalid",
+            "newest attempted drop's refresh time unverifiable",
+            "newest attempted drop failed intake",
+        ),
+        (
+            "invalid_then_failed",
+            "newest attempted drop failed intake",
+            "newest attempted drop's refresh time unverifiable",
+        ),
+    ),
+)
+def test_v5_h5_only_the_single_newest_attempt_supplies_an_overlay(
+    tmp_path: Path, order: str, expected_suffix: str, forbidden_suffix: str
+) -> None:
+    clock = [NOW]
+    driver = _clocked_driver(tmp_path, clock)
+    driver.intake(archive_bytes=_unit_zip(), offering=_offering("base"))
+
+    def failed() -> None:
+        assert driver.intake(
+            archive_bytes=b"not-a-zip",
+            offering=_offering("failed"),
+        ).status == "failed"
+
+    def invalid() -> None:
+        assert driver.intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering("invalid", "2027-01-01T00:00:00Z"),
+        ).status == "failed"
+
+    first, second = (
+        (failed, invalid) if order == "failed_then_invalid" else (invalid, failed)
+    )
+    clock[0] = NOW + timedelta(minutes=1)
+    first()
+    clock[0] = NOW + timedelta(minutes=2)
+    second()
+
+    copy = _clocked_driver(tmp_path, clock).read_model(now=clock[0])["copy"]
+    assert expected_suffix in copy
+    assert forbidden_suffix not in copy
+
+
+@pytest.mark.parametrize(
+    ("order", "expects_failed_overlay"),
+    (("receipt_then_observation_failure", True), ("observation_failure_then_receipt", False)),
+)
+def test_v5_h6_equal_instant_cross_store_events_have_one_global_order(
+    tmp_path: Path, order: str, expects_failed_overlay: bool
+) -> None:
+    def receipt() -> None:
+        result = _driver(tmp_path).intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering("retained"),
+        )
+        assert result.status == "review_required"
+
+    def observation_failure() -> None:
+        result = _driver(tmp_path, mode="metadata_only").intake(
+            archive_bytes=b"not-a-zip",
+            offering=_offering("metadata-failure"),
+        )
+        assert result.status == "failed"
+
+    first, second = (
+        (receipt, observation_failure)
+        if order == "receipt_then_observation_failure"
+        else (observation_failure, receipt)
+    )
+    first()
+    second()
+    copy = _driver(tmp_path).read_model(now=NOW)["copy"]
+    assert ("newest attempted drop failed intake" in copy) is expects_failed_overlay
+
+
+def _v5_main_wal_fingerprint(path: Path) -> dict[str, tuple[int, str]]:
+    result: dict[str, tuple[int, str]] = {}
+    for candidate in (path, Path(f"{path}-wal")):
+        if candidate.exists():
+            payload = candidate.read_bytes()
+            result[candidate.name] = (len(payload), _sha(payload))
+    return result
+
+
+@pytest.mark.parametrize(
+    ("active_mode", "inactive_store"),
+    (("metadata_only", "receipts"), ("full_offsite", "observations")),
+)
+def test_v5_h7_inactive_legacy_counterpart_is_byte_frozen_during_lookup(
+    tmp_path: Path, active_mode: str, inactive_store: str
+) -> None:
+    driver = _driver(tmp_path, mode=active_mode)
+    inactive = tmp_path / RUNTIME_PATHS[inactive_store]
+    _create_legacy_acquisition_db(inactive)
+    before = _v5_main_wal_fingerprint(inactive)
+
+    result = driver.intake(
+        archive_bytes=b"not-a-zip",
+        offering=_offering(f"{active_mode}-failure"),
+    )
+    assert result.status == "failed"
+    assert _v5_main_wal_fingerprint(inactive) == before
