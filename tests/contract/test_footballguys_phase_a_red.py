@@ -1,4 +1,4 @@
-"""RED v6 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v7 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -27,6 +27,14 @@ were still non-total; attempts-relation errors were erased; the alleged global e
 ledger was only an unbound integer allocator; and the inactive-store freeze control
 never reached lookup. RED v6 binds all five accepted findings against the committed
 21cd11d GREEN while preserving every inherited contract.
+
+Adversarial review of RED v6's GREEN found three fail-open persistence edges:
+restored semantic fields could still bypass the writer and open eligibility; event
+reconciliation skipped absent claims and ignored orphan central events; and immutable
+SQLite reads preserved WAL bytes by ignoring their committed contents. RED v7 binds
+all three against the committed e8fc4ec GREEN. It deliberately does not authorize an
+orphan-deleting sweep or fabricate event identity for populated legacy rows whose
+historical order cannot be reconstructed.
 
 One injected seam
 -----------------
@@ -60,6 +68,7 @@ import importlib
 import io
 import json
 import os
+import shutil
 import sqlite3
 import stat
 import subprocess
@@ -2890,3 +2899,314 @@ def test_v6_h5_valid_archive_reaches_lookup_and_freezes_inactive_main_wal(
     )
     assert result.status in {"ready", "review_required"}
     assert _v5_main_wal_fingerprint(inactive) == before
+
+
+# ---------------------------------------------------------------------------
+# V7 — accepted e8fc4ec findings: semantic symmetry, event bijection, WAL truth
+# ---------------------------------------------------------------------------
+
+
+_V7_SEMANTIC_FIELDS = (
+    ("assertion", "assertion_id"),
+    ("assertion", "key"),
+    ("assertion", "version"),
+    ("assertion", "claim"),
+    ("assertion", "active"),
+    ("attachment", "evidence_id"),
+    ("attachment", "retrieved_at"),
+    ("attachment", "provenance"),
+    ("attachment", "retention"),
+    ("attachment", "evidence_bytes"),
+)
+
+
+@pytest.mark.parametrize("section", ("assertion", "attachment"))
+def test_v7_c1_semantic_writer_missing_section_is_named_refusal(
+    tmp_path: Path, section: str
+) -> None:
+    driver = _driver(tmp_path)
+    record = _semantic_record()
+    del record[section]
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_assertion(record)
+    assert _error_code(caught.value) == f"semantic_record_invalid:missing:{section}"
+    assert driver.semantic_state(key=SEMANTIC_KEY)["state"] == "unknown"
+
+
+@pytest.mark.parametrize(("section", "field"), _V7_SEMANTIC_FIELDS)
+def test_v7_c1_semantic_writer_missing_field_is_named_refusal(
+    tmp_path: Path, section: str, field: str
+) -> None:
+    driver = _driver(tmp_path)
+    record = _semantic_record()
+    del record[section][field]
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_assertion(record)
+    assert _error_code(caught.value) == (
+        f"semantic_record_invalid:missing:{section}.{field}"
+    )
+    assert driver.semantic_state(key=SEMANTIC_KEY)["state"] == "unknown"
+
+
+@pytest.mark.parametrize("section", ("assertion", "attachment"))
+def test_v7_c1_semantic_writer_section_type_is_named_refusal(
+    tmp_path: Path, section: str
+) -> None:
+    driver = _driver(tmp_path)
+    record = _semantic_record()
+    record[section] = []
+    with pytest.raises(driver.error_type) as caught:
+        driver.write_semantic_assertion(record)
+    assert _error_code(caught.value) == f"semantic_record_invalid:type:{section}"
+
+
+@pytest.mark.parametrize(
+    ("section", "field", "bad_value"),
+    (
+        ("assertion", "assertion_id", b"blob-id"),
+        ("assertion", "key", b"blob-key"),
+        ("assertion", "version", "1"),
+        ("assertion", "claim", b"redraft"),
+        ("assertion", "active", 1),
+        ("attachment", "evidence_id", b"blob-id"),
+        ("attachment", "retrieved_at", 7),
+        ("attachment", "provenance", b"provider-authentic-exact-field-contract"),
+        ("attachment", "retention", b"retained"),
+        ("attachment", "evidence_bytes", "not-bytes"),
+    ),
+)
+def test_v7_c1_semantic_writer_wrong_types_are_domain_refusals(
+    tmp_path: Path, section: str, field: str, bad_value: Any
+) -> None:
+    driver = _driver(tmp_path)
+    record = _semantic_record()
+    record[section][field] = bad_value
+    try:
+        driver.write_semantic_assertion(record)
+    except driver.error_type:
+        pass
+    except Exception as exc:  # pragma: no cover - reviewed GREEN leaks bare errors
+        pytest.fail(f"semantic writer leaked {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - reviewed GREEN accepts some malformed values
+        pytest.fail(f"semantic writer accepted malformed {section}.{field}")
+
+
+def test_v7_c1_restored_future_evidence_time_cannot_open_eligibility(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            "UPDATE semantic_attachments SET retrieved_at='2099-01-01T00:00:00Z'"
+        )
+        conn.commit()
+    state = _driver(tmp_path).semantic_state(key=SEMANTIC_KEY)
+    assert state["state"] == "unknown"
+    assert state["eligible_for_phase_c"] is False
+
+
+@pytest.mark.parametrize("bad_id", ("", sqlite3.Binary(b"blob-id")))
+def test_v7_c1_restored_evidence_identity_must_be_nonempty_text(
+    tmp_path: Path, bad_id: Any
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute("UPDATE semantic_attachments SET evidence_id=?", (bad_id,))
+        conn.execute("UPDATE semantic_assertions SET evidence_id=?", (bad_id,))
+        conn.commit()
+    state = _driver(tmp_path).semantic_state(key=SEMANTIC_KEY)
+    assert state["state"] == "unknown"
+    assert state["eligible_for_phase_c"] is False
+
+
+@pytest.mark.parametrize("bad_id", (None, ""))
+def test_v7_c2_missing_acquisition_event_claim_fails_closed(
+    tmp_path: Path, bad_id: str | None
+) -> None:
+    driver = _driver(tmp_path)
+    assert driver.intake(
+        archive_bytes=_unit_zip(), offering=_offering("missing-acquisition-event")
+    ).status == "review_required"
+    receipts = tmp_path / RUNTIME_PATHS["receipts"]
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        conn.execute(
+            "UPDATE acquisitions SET event_id=? WHERE offering_id=?",
+            (bad_id, "missing-acquisition-event"),
+        )
+        conn.commit()
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+@pytest.mark.parametrize("bad_id", (None, ""))
+def test_v7_c2_missing_attempt_event_claim_fails_closed(
+    tmp_path: Path, bad_id: str | None
+) -> None:
+    _, _, observations = _v6_seed_cross_store_event_pair(tmp_path)
+    with contextlib.closing(sqlite3.connect(observations)) as conn:
+        conn.execute("UPDATE attempts SET event_id=?", (bad_id,))
+        conn.commit()
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+@pytest.mark.parametrize("event_type", ("acquisition", "attempt"))
+def test_v7_c2_unpaired_central_event_fails_closed(
+    tmp_path: Path, event_type: str
+) -> None:
+    semantics, receipts, observations = _v6_seed_cross_store_event_pair(tmp_path)
+    if event_type == "acquisition":
+        with contextlib.closing(sqlite3.connect(receipts)) as conn:
+            conn.execute(
+                "DELETE FROM acquisitions WHERE offering_id='event-retained'"
+            )
+            conn.commit()
+    else:
+        with contextlib.closing(sqlite3.connect(observations)) as conn:
+            conn.execute("DELETE FROM attempts")
+            conn.commit()
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM event_sequence WHERE event_type=?", (event_type,)
+        ).fetchone()[0] == 1
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("mode", "store"),
+    (("full_offsite", "receipts"), ("metadata_only", "observations")),
+)
+def test_v7_c2_populated_unbound_legacy_store_refuses_before_staging(
+    tmp_path: Path, mode: str, store: str
+) -> None:
+    # Bootstrap the governed 0700 namespace first; then install the exact
+    # historical database shape inside it.  The refusal under test is schema
+    # provenance, never an accidental parent-mode failure.
+    driver = _driver(tmp_path, mode=mode)
+    legacy = tmp_path / RUNTIME_PATHS[store]
+    _create_legacy_acquisition_db(legacy)
+    with contextlib.closing(sqlite3.connect(legacy)) as conn:
+        conn.execute(
+            "INSERT INTO acquisitions"
+            " (row_id, offering_id, kind, retrieved_at, readiness, retention,"
+            "  content_vintage_id, archive_sha256, archive_bytes, analysis_ready,"
+            "  signature) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                "legacy-row", "legacy-offering", "receipt", RECENT,
+                "review_required", "retained", "legacy-vintage", "0" * 64,
+                1, 0, b"legacy-signature",
+            ),
+        )
+        conn.commit()
+    with pytest.raises(driver.error_type) as caught:
+        driver.intake(
+            archive_bytes=_unit_zip(), offering=_offering(f"legacy-{store}")
+        )
+    assert _error_code(caught.value) == f"store_migration_unreconcilable:{store}"
+    assert driver.snapshot()["objects"] == []
+    assert "staging_create" not in driver.snapshot()["trace"]
+
+
+def test_v7_c2_orphan_event_is_not_deleted_as_generic_crash_residue(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    offering = _offering("orphan-must-remain-visible")
+    assert driver.intake(archive_bytes=_unit_zip(), offering=offering).status == (
+        "review_required"
+    )
+    receipts = tmp_path / RUNTIME_PATHS["receipts"]
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        conn.execute(
+            "DELETE FROM acquisitions WHERE offering_id='orphan-must-remain-visible'"
+        )
+        conn.commit()
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        before = conn.execute(
+            "SELECT event_id, event_type, store_name, subject_id, event_at, seq"
+            " FROM event_sequence ORDER BY seq"
+        ).fetchall()
+    retry = _driver(tmp_path)
+    with pytest.raises(retry.error_type) as caught:
+        retry.intake(archive_bytes=_unit_zip(), offering=offering)
+    assert _error_code(caught.value) == "event_ledger_unreconciled"
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        after = conn.execute(
+            "SELECT event_id, event_type, store_name, subject_id, event_at, seq"
+            " FROM event_sequence ORDER BY seq"
+        ).fetchall()
+    assert after == before
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+def _v7_install_committed_wal_attempts_drop(path: Path) -> None:
+    """Install a closed main+WAL/no-SHM snapshot whose WAL drops attempts."""
+    source = path.with_name(path.name + ".wal-source")
+    shutil.copy2(path, source)
+    writer = sqlite3.connect(source)
+    try:
+        assert writer.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
+        writer.execute("PRAGMA wal_autocheckpoint=0")
+        writer.execute("DROP TABLE attempts")
+        writer.commit()
+        source_wal = Path(f"{source}-wal")
+        assert source_wal.exists() and source_wal.stat().st_size > 0
+        shutil.copy2(source, path)
+        shutil.copy2(source_wal, Path(f"{path}-wal"))
+        Path(f"{path}-shm").unlink(missing_ok=True)
+    finally:
+        writer.close()
+        source.unlink(missing_ok=True)
+        Path(f"{source}-wal").unlink(missing_ok=True)
+        Path(f"{source}-shm").unlink(missing_ok=True)
+
+
+@pytest.mark.parametrize(
+    ("active_mode", "inactive_store"),
+    (("full_offsite", "observations"), ("metadata_only", "receipts")),
+)
+def test_v7_c3_wal_aware_lookup_observes_committed_state_and_freezes_main_wal(
+    tmp_path: Path, active_mode: str, inactive_store: str
+) -> None:
+    setup = _driver(tmp_path, mode=active_mode)
+    setup.initialize_database(inactive_store)
+    inactive = tmp_path / RUNTIME_PATHS[inactive_store]
+    _v7_install_committed_wal_attempts_drop(inactive)
+    before = _v5_main_wal_fingerprint(inactive)
+    assert Path(f"{inactive}-wal").stat().st_size > 0
+    assert not Path(f"{inactive}-shm").exists()
+
+    result = _driver(tmp_path, mode=active_mode).intake(
+        archive_bytes=_unit_zip(),
+        offering=_offering(f"wal-aware-{active_mode}"),
+    )
+    assert result.status in {"ready", "review_required"}
+    _v5_assert_row9(_driver(tmp_path).read_model(now=NOW))
+    assert _v5_main_wal_fingerprint(inactive) == before
+    assert Path(f"{inactive}-shm").exists()  # the only permitted new residue
+
+
+@pytest.mark.parametrize(
+    ("active_mode", "inactive_store"),
+    (("full_offsite", "observations"), ("metadata_only", "receipts")),
+)
+def test_v7_c3_wal_absent_lookup_materializes_no_sidecar(
+    tmp_path: Path, active_mode: str, inactive_store: str
+) -> None:
+    setup = _driver(tmp_path, mode=active_mode)
+    setup.initialize_database(inactive_store)
+    inactive = tmp_path / RUNTIME_PATHS[inactive_store]
+    assert not Path(f"{inactive}-wal").exists()
+    assert not Path(f"{inactive}-shm").exists()
+    before = _v5_main_wal_fingerprint(inactive)
+    result = _driver(tmp_path, mode=active_mode).intake(
+        archive_bytes=_unit_zip(),
+        offering=_offering(f"wal-absent-{active_mode}"),
+    )
+    assert result.status in {"ready", "review_required"}
+    assert _v5_main_wal_fingerprint(inactive) == before
+    assert not Path(f"{inactive}-wal").exists()
+    assert not Path(f"{inactive}-shm").exists()

@@ -1300,6 +1300,17 @@ class ContractDriver:
                 self._SCHEMA_V3: ("event_id TEXT",),
             }
             if frozenset(columns) in additions:
+                # v6-review C2 (Codex correction): migration never fabricates
+                # event identity for populated historical rows — their
+                # cross-store order cannot be reconstructed.  A populated
+                # unbound legacy store refuses by name before staging; only a
+                # row-empty (marker-only) legacy store migrates.
+                populated = conn.execute(
+                    "SELECT count(*) FROM acquisitions"
+                    " WHERE offering_id != '_bootstrap'"
+                ).fetchone()[0]
+                if populated:
+                    raise _refuse(f"store_migration_unreconcilable:{store}")
                 for ddl in additions[frozenset(columns)]:
                     conn.execute(f"ALTER TABLE acquisitions ADD COLUMN {ddl}")
             elif columns != self._SCHEMA_V4:
@@ -1322,6 +1333,11 @@ class ContractDriver:
                 self._ATTEMPTS_V2: ("attempt_id TEXT", "event_id TEXT"),
             }
             if attempt_columns in attempt_additions:
+                populated_attempts = conn.execute(
+                    "SELECT count(*) FROM attempts"
+                ).fetchone()[0]
+                if populated_attempts:
+                    raise _refuse(f"store_migration_unreconcilable:{store}")
                 for ddl in attempt_additions[attempt_columns]:
                     conn.execute(f"ALTER TABLE attempts ADD COLUMN {ddl}")
             elif attempt_columns != self._ATTEMPTS_V3:
@@ -1425,16 +1441,23 @@ class ContractDriver:
         self._db_initialized.add(store)
         return SimpleNamespace(effective_journal_mode="wal", trace=trace)
 
+    @staticmethod
+    def _read_uri(path: Path) -> str:
+        """v6-review C3: the read mode follows the physical file set.  When a
+        -wal is PRESENT, plain mode=ro replays its committed frames while
+        leaving main/-wal bytes frozen (only SHM materializes — the framed
+        permitted residue).  When no -wal exists, immutable=1 is the only
+        mode that creates nothing; there are no committed frames to miss."""
+        if Path(f"{path}-wal").exists():
+            return f"file:{path}?mode=ro"
+        return f"file:{path}?mode=ro&immutable=1"
+
     def _store_rows(self, store: str) -> list[dict[str, Any]]:
         path = self._db_path(store)
         if not path.exists():
             return []
-        # v5-review H5: immutable=1 — a plain mode=ro open of a WAL database
-        # materializes a zero-byte -wal on the (possibly inactive) store,
-        # which the byte-freeze contract forbids.  Connections are closed and
-        # checkpointed between operations, so immutable never misses rows.
         with contextlib.closing(
-            sqlite3.connect(f"file:{path}?mode=ro&immutable=1", uri=True)
+            sqlite3.connect(self._read_uri(path), uri=True)
         ) as conn:
             conn.row_factory = sqlite3.Row
             try:
@@ -1529,7 +1552,7 @@ class ContractDriver:
         mode = "wal" if header[18] == 2 and header[19] == 2 else "delete"
         try:
             with contextlib.closing(
-                sqlite3.connect(f"file:{main}?mode=ro&immutable=1", uri=True)
+                sqlite3.connect(self._read_uri(main), uri=True)
             ) as conn:
                 tables = {
                     row[0]
@@ -1884,6 +1907,8 @@ class ContractDriver:
                     "backup_coverage_missing",
                     "store_schema_unmigratable",
                     "store_unreadable",
+                    "store_migration_unreconcilable",
+                    "event_ledger_unreconciled",
                 )
             ):
                 raise
@@ -1918,6 +1943,14 @@ class ContractDriver:
         # here, before staging — a corrupt or unmigratable semantics store
         # must never be discovered after a paid archive published.
         self.initialize_database("semantics")
+        # v6-review C2: an unreconciled event ledger (orphaned central event,
+        # stripped claim, skewed copy) blocks intake by name.  The orphan is
+        # never deleted as generic crash residue — it stays visible until a
+        # governed reconciliation, and no new acquisition may stack on top of
+        # unprovable history.
+        self._unreadable_stores = set()
+        if not self._event_ledger_reconciled():
+            raise _refuse("event_ledger_unreconciled")
 
     def _crash(self, residue: str, restart: str) -> IntakeResult:
         self.last_crash_residue = residue
@@ -2083,7 +2116,7 @@ class ContractDriver:
                 continue
             try:
                 with contextlib.closing(
-                    sqlite3.connect(f"file:{path}?mode=ro&immutable=1", uri=True)
+                    sqlite3.connect(self._read_uri(path), uri=True)
                 ) as conn:
                     rows = conn.execute(
                         "SELECT status, reason, at, event_seq, attempt_id,"
@@ -2118,9 +2151,29 @@ class ContractDriver:
 
     # -- durable semantic seam (GREEN-review H5) ---------------------------
 
+    _SEMANTIC_RECORD_FIELDS: dict[str, tuple[str, ...]] = {
+        "assertion": ("assertion_id", "key", "version", "claim", "active"),
+        "attachment": (
+            "evidence_id", "retrieved_at", "provenance", "retention",
+            "evidence_bytes",
+        ),
+    }
+
     def write_semantic_assertion(self, record: Mapping[str, Any]) -> dict[str, Any]:
         if "semantics" not in self._db_initialized:
             self.initialize_database("semantics")
+        # v6-review C1: the record shape itself is validated FIRST — a missing
+        # section or field is a named domain refusal, never a bare KeyError.
+        for section, fields in self._SEMANTIC_RECORD_FIELDS.items():
+            if section not in record:
+                raise _refuse(f"semantic_record_invalid:missing:{section}")
+            if not isinstance(record[section], Mapping):
+                raise _refuse(f"semantic_record_invalid:type:{section}")
+            for field in fields:
+                if field not in record[section]:
+                    raise _refuse(
+                        f"semantic_record_invalid:missing:{section}.{field}"
+                    )
         assertion = record["assertion"]
         attachment = record["attachment"]
         # C2: the gate that decides analysis readiness accepts only governed
@@ -2347,7 +2400,10 @@ class ContractDriver:
             if provenance not in SEMANTIC_PROVENANCE_ALLOWED:
                 return "provenance_ungoverned"
             try:
-                _canonical_instant(retrieved_at, now=None)
+                # v6-review C1: the load mirror keeps EVERY writer predicate,
+                # including the future-instant refusal — a restored future
+                # evidence time must never open eligibility.
+                _canonical_instant(retrieved_at, now=self.clock())
             except (FootballguysIntakeError, TypeError):
                 return "attachment_time_invalid"
             if retention != "retained":
@@ -2363,19 +2419,30 @@ class ContractDriver:
                 return "retained_unverifiable"
             return "retained_verified"
 
-        attachments = {
-            row[0]: {
+        attachments = {}
+        for row in attachment_rows:
+            # v6-review C1: an evidence identity must be nonempty TEXT on load
+            # exactly as at the writer; anything else is unclaimable and the
+            # assertions referencing it fail closed below.
+            if not isinstance(row[0], str) or not row[0]:
+                continue
+            attachments[row[0]] = {
                 "state": _attachment_state(row[1], row[2], row[3], row[4], row[5]),
                 "evidence_sha256": row[2],
                 "evidence_bytes": row[3],
             }
-            for row in attachment_rows
-        }
 
         # C2: restored assertion scalars must be exactly the written types —
-        # the writer stores active as 0/1, so anything else fails closed.
+        # the writer stores active as 0/1 with nonempty text ids, so anything
+        # else fails closed.
         for row in assertion_rows:
-            if not isinstance(row[0], str) or not row[0] or row[4] not in (0, 1):
+            if (
+                not isinstance(row[0], str)
+                or not row[0]
+                or row[4] not in (0, 1)
+                or not isinstance(row[5], str)
+                or not row[5]
+            ):
                 return {
                     "state": "unknown",
                     "reason": "assertion_row_invalid",
@@ -2592,50 +2659,75 @@ class ContractDriver:
             out.append(flagged)
         return out
 
-    def _event_claims_valid(
-        self, rows: list[Mapping[str, Any]], attempts: list[Mapping[str, Any]]
-    ) -> bool:
-        """v5-review H4: every event claim copied into an acquisition store is
-        revalidated against the central identity-bound record.  A missing,
-        re-bound, or skew-restored claim fails closed — query order can never
-        choose which copy wins."""
-        claims: list[tuple[str, tuple[Any, ...]]] = []
-        for row in rows:
-            if row.get("event_id"):
-                store = "receipts" if row["kind"] == "receipt" else "observations"
-                claims.append(
-                    (
-                        row["event_id"],
-                        ("acquisition", store, row["id"], row.get("event_at"),
-                         row.get("event_seq")),
-                    )
+    def _event_ledger_reconciled(self) -> bool:
+        """v5-review H4 + v6-review C2: the event ledger and the acquisition
+        stores must reconcile in BOTH directions over the RAW persisted rows.
+        A row without a claim, a claim without its central record, a mismatch,
+        a duplicate, or a central acquisition/attempt event without its store
+        row all fail closed — absence of proof is never success, and orphans
+        stay visible (never swept, never fabricated)."""
+        claims: dict[str, tuple[Any, ...]] = {}
+        for store in ("receipts", "observations"):
+            path = self._db_path(store)
+            if not path.exists():
+                continue
+            for row in self._store_rows(store):
+                event_id = row.get("event_id")
+                if (
+                    not isinstance(event_id, str)
+                    or not event_id
+                    or event_id in claims
+                ):
+                    return False
+                claims[event_id] = (
+                    "acquisition", store, row["row_id"], row.get("event_at"),
+                    row.get("event_seq"),
                 )
-        for attempt in attempts:
-            if attempt.get("event_id"):
-                claims.append(
-                    (
-                        attempt["event_id"],
-                        ("attempt", attempt.get("store"), attempt.get("attempt_id"),
-                         attempt.get("at"), attempt.get("event_seq")),
-                    )
-                )
-        if not claims:
-            return True
+            try:
+                with contextlib.closing(
+                    sqlite3.connect(self._read_uri(path), uri=True)
+                ) as conn:
+                    attempt_rows = conn.execute(
+                        "SELECT attempt_id, event_id, at, event_seq"
+                        " FROM attempts ORDER BY seq"
+                    ).fetchall()
+            except sqlite3.Error:
+                # The attempts relation is unreadable: any central attempt
+                # event bound to this store is unprovable below.
+                attempt_rows = []
+            for attempt_id, event_id, at, event_seq in attempt_rows:
+                if (
+                    not isinstance(event_id, str)
+                    or not event_id
+                    or not isinstance(attempt_id, str)
+                    or not attempt_id
+                    or event_id in claims
+                ):
+                    return False
+                claims[event_id] = ("attempt", store, attempt_id, at, event_seq)
         path = self._db_path("semantics")
-        try:
-            with contextlib.closing(
-                sqlite3.connect(f"file:{path}?mode=ro", uri=True)
-            ) as conn:
-                central = {
-                    row[0]: (row[1], row[2], row[3], row[4], row[5])
-                    for row in conn.execute(
-                        "SELECT event_id, event_type, store_name, subject_id,"
-                        " event_at, seq FROM event_sequence"
-                    )
-                }
-        except sqlite3.Error:
-            return False
-        return all(central.get(event_id) == claim for event_id, claim in claims)
+        central: dict[str, tuple[Any, ...]] = {}
+        if path.exists():
+            try:
+                with contextlib.closing(
+                    sqlite3.connect(self._read_uri(path), uri=True)
+                ) as conn:
+                    central = {
+                        row[0]: (row[1], row[2], row[3], row[4], row[5])
+                        for row in conn.execute(
+                            "SELECT event_id, event_type, store_name, subject_id,"
+                            " event_at, seq FROM event_sequence"
+                        )
+                    }
+            except sqlite3.Error:
+                return not claims
+        for event_id, claim in claims.items():
+            if central.get(event_id) != claim:
+                return False
+        for event_id, record in central.items():
+            if record[0] in ("acquisition", "attempt") and event_id not in claims:
+                return False
+        return True
 
     def read_model(
         self, *, now: datetime, global_overall_status: str | None = None
@@ -2648,7 +2740,7 @@ class ContractDriver:
             # fallback clock.
             attempts: list[dict[str, Any]] = [{"status": "ledger_unreadable"}]
             specials = list(self._effective_specials)
-        elif not self._event_claims_valid(rows, loaded):
+        elif not self._event_ledger_reconciled():
             attempts = []
             specials = list(self._effective_specials) + [
                 {"special": "integrity_failure", "id": "event-ledger"}
