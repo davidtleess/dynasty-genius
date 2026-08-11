@@ -1,4 +1,4 @@
-"""RED v9 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v10 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -52,6 +52,14 @@ non-integer sequences; refusal-class validation changed a rejected DELETE-mode s
 before refusing; and adjudication identity fields still leaked bare exceptions. RED v9
 binds all five against the committed 7e39763 GREEN while retaining the byte-freeze
 promise through pre-write validation.
+
+Adversarial review of RED v9's GREEN found five sibling boundaries: restored semantic
+scalar types still crossed the reducer; central sequence identity was not the whole
+ordering structure; the exact-integer claim guard covered acquisitions but not attempts;
+an invalid read clock still leaked a bare aware/naive comparison; and the semantic
+writers initialized durable state before validating a malformed record. RED v10 binds
+all five against the committed b582b1d GREEN and includes the reviewing lane's own
+fresh-root unchanged-state oracle repair.
 
 One injected seam
 -----------------
@@ -3971,3 +3979,307 @@ def test_v9_h5_adjudication_identity_fields_are_total_named_refusals(
         ).fetchone()[0]
     assert after_rows == before_rows
     assert driver.semantic_state(key=SEMANTIC_KEY) == before_state
+
+
+# ---------------------------------------------------------------------------
+# V10 — accepted b582b1d findings: load types, whole order, clock, pure refusal
+# ---------------------------------------------------------------------------
+
+
+def _v10_seed_semantic_conflict(driver: Any) -> None:
+    driver.write_semantic_assertion(
+        _semantic_record(assertion_id="v10-redraft", claim="redraft", version=1)
+    )
+    driver.write_semantic_assertion(
+        _semantic_record(
+            assertion_id="v10-dynasty", claim="dynasty_startup", version=2
+        )
+    )
+    result = driver.write_semantic_adjudication(
+        {
+            "adjudication_id": "v10-adjudication",
+            "key": SEMANTIC_KEY,
+            "authority": "david",
+            "provenance": "explicit-ruling",
+            "parents": ["v10-redraft", "v10-dynasty"],
+            "effective_assertion_id": "v10-dynasty",
+        }
+    )
+    assert _value(result, "status") == "written"
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value"),
+    (
+        ("adjudication_id", ""),
+        ("adjudication_id", sqlite3.Binary(b"blob-adjudication")),
+        ("key", ""),
+        ("key", sqlite3.Binary(b"blob-key")),
+        ("effective_assertion_id", ""),
+        ("effective_assertion_id", sqlite3.Binary(b"blob-effective")),
+    ),
+)
+def test_v10_c1_restored_adjudication_scalars_fail_before_projection(
+    tmp_path: Path, field: str, bad_value: Any
+) -> None:
+    driver = _driver(tmp_path)
+    _v10_seed_semantic_conflict(driver)
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            f"UPDATE semantic_adjudications SET {field}=?",
+            (bad_value,),
+        )
+        conn.commit()
+
+    state = _driver(tmp_path).semantic_state(key=SEMANTIC_KEY)
+    assert state == {
+        "state": "unknown",
+        "reason": "adjudication_row_invalid",
+        "eligible_for_phase_c": False,
+    }
+
+
+def test_v10_c1_restored_assertion_active_requires_exact_sqlite_integer(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        columns = [
+            row[1] for row in conn.execute("PRAGMA table_info(semantic_assertions)")
+        ]
+        conn.execute(
+            "ALTER TABLE semantic_assertions RENAME TO semantic_assertions_governed"
+        )
+        conn.execute(
+            "CREATE TABLE semantic_assertions (assertion_id TEXT PRIMARY KEY,"
+            " key TEXT, version INTEGER, claim TEXT, active REAL, evidence_id TEXT)"
+        )
+        select = ",".join(
+            "CAST(active AS REAL) AS active" if column == "active" else column
+            for column in columns
+        )
+        conn.execute(
+            f"INSERT INTO semantic_assertions SELECT {select}"
+            " FROM semantic_assertions_governed"
+        )
+        conn.execute("DROP TABLE semantic_assertions_governed")
+        conn.commit()
+        stored = conn.execute(
+            "SELECT active, typeof(active) FROM semantic_assertions"
+        ).fetchone()
+    assert stored == (1.0, "real")
+
+    state = _driver(tmp_path).semantic_state(key=SEMANTIC_KEY)
+    assert state == {
+        "state": "unknown",
+        "reason": "assertion_row_invalid",
+        "eligible_for_phase_c": False,
+    }
+
+
+def _v10_replace_event_sequence_schema(path: Path, variant: str) -> None:
+    if variant == "no_primary_key":
+        seq_ddl = "seq INTEGER"
+    elif variant == "wrong_type":
+        seq_ddl = "seq TEXT PRIMARY KEY"
+    else:
+        seq_ddl = "seq INTEGER PRIMARY KEY"
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute("ALTER TABLE event_sequence RENAME TO event_sequence_governed")
+        conn.execute(
+            f"CREATE TABLE event_sequence ({seq_ddl}, event_id TEXT UNIQUE,"
+            " event_type TEXT, store_name TEXT, subject_id TEXT, event_at TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO event_sequence"
+            " (seq,event_id,event_type,store_name,subject_id,event_at)"
+            " SELECT seq,event_id,event_type,store_name,subject_id,event_at"
+            " FROM event_sequence_governed"
+        )
+        conn.execute("DROP TABLE event_sequence_governed")
+        conn.commit()
+
+
+@pytest.mark.parametrize(
+    "variant", ("no_primary_key", "wrong_type", "no_autoincrement")
+)
+def test_v10_h2_event_sequence_requires_whole_pk_autoincrement_structure(
+    tmp_path: Path, variant: str
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    _v10_replace_event_sequence_schema(semantics, variant)
+
+    with pytest.raises(driver.error_type) as caught:
+        _driver(tmp_path).initialize_database("semantics")
+    assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+
+
+def _v10_seed_event_pair(tmp_path: Path) -> tuple[Path, Path, dict[str, str]]:
+    driver = _driver(tmp_path)
+    assert driver.intake(
+        archive_bytes=_unit_zip(), offering=_offering("v10-acquisition")
+    ).status == "review_required"
+    assert driver.intake(
+        archive_bytes=b"not-a-zip", offering=_offering("v10-attempt")
+    ).status == "failed"
+    receipts = tmp_path / RUNTIME_PATHS["receipts"]
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        event_ids = {
+            event_type: event_id
+            for event_id, event_type in conn.execute(
+                "SELECT event_id,event_type FROM event_sequence"
+            )
+        }
+    return receipts, semantics, event_ids
+
+
+@pytest.mark.parametrize(
+    ("shape", "acquisition_seq", "attempt_seq"),
+    (
+        ("duplicate", 1, 1),
+        ("nonpositive", 0, 2),
+        ("nonmonotonic", 2, 1),
+    ),
+)
+def test_v10_h2_invalid_central_sequence_fails_before_order_projection(
+    tmp_path: Path, shape: str, acquisition_seq: int, attempt_seq: int
+) -> None:
+    del shape
+    receipts, semantics, event_ids = _v10_seed_event_pair(tmp_path)
+    assigned = {
+        event_ids["acquisition"]: acquisition_seq,
+        event_ids["attempt"]: attempt_seq,
+    }
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        conn.execute(
+            "UPDATE acquisitions SET event_seq=? WHERE event_id=?",
+            (acquisition_seq, event_ids["acquisition"]),
+        )
+        conn.execute(
+            "UPDATE attempts SET event_seq=? WHERE event_id=?",
+            (attempt_seq, event_ids["attempt"]),
+        )
+        conn.commit()
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        rows = conn.execute(
+            "SELECT seq,event_id,event_type,store_name,subject_id,event_at"
+            " FROM event_sequence ORDER BY seq"
+        ).fetchall()
+        conn.execute("ALTER TABLE event_sequence RENAME TO event_sequence_governed")
+        conn.execute(
+            "CREATE TABLE event_sequence (seq INTEGER, event_id TEXT UNIQUE,"
+            " event_type TEXT, store_name TEXT, subject_id TEXT, event_at TEXT)"
+        )
+        conn.executemany(
+            "INSERT INTO event_sequence VALUES (?,?,?,?,?,?)",
+            [(assigned[row[1]], *row[1:]) for row in rows],
+        )
+        conn.execute("DROP TABLE event_sequence_governed")
+        conn.commit()
+
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+def test_v10_h3_attempt_sequence_uses_acquisition_exact_int_predicate(
+    tmp_path: Path,
+) -> None:
+    receipts, _, _ = _v10_seed_event_pair(tmp_path)
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        columns = [row[1] for row in conn.execute("PRAGMA table_info(attempts)")]
+        conn.execute("ALTER TABLE attempts RENAME TO attempts_governed")
+        select = ",".join(
+            "CAST(event_seq AS REAL) AS event_seq" if column == "event_seq" else column
+            for column in columns
+        )
+        conn.execute(f"CREATE TABLE attempts AS SELECT {select} FROM attempts_governed")
+        conn.execute("DROP TABLE attempts_governed")
+        conn.commit()
+        stored = conn.execute("SELECT event_seq, typeof(event_seq) FROM attempts").fetchone()
+    assert stored[1] == "real" and isinstance(stored[0], float)
+
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+def test_v10_h4_invalid_naive_read_clock_is_named_fail_closed(
+    tmp_path: Path,
+) -> None:
+    assert _driver(tmp_path).intake(
+        archive_bytes=_unit_zip(), offering=_offering("v10-aware-event")
+    ).status == "review_required"
+    driver = _clocked_driver(tmp_path, [datetime(2026, 8, 10, 12, 0, 0)])
+    try:
+        state = driver.read_model(now=NOW)
+    except Exception as exc:  # pragma: no cover - b582b1d leaks TypeError
+        pytest.fail(f"invalid read clock raised {type(exc).__name__}: {exc}")
+    _v5_assert_row9(state)
+
+
+def test_v10_h4_read_clock_is_validated_once_and_reused(
+    tmp_path: Path,
+) -> None:
+    seeded = _driver(tmp_path)
+    assert seeded.intake(
+        archive_bytes=_unit_zip(), offering=_offering("v10-clock-once")
+    ).status == "review_required"
+    assert seeded.intake(
+        archive_bytes=b"not-a-zip", offering=_offering("v10-clock-once-failure")
+    ).status == "failed"
+    calls = 0
+
+    def counted_clock() -> datetime:
+        nonlocal calls
+        calls += 1
+        return NOW
+
+    driver = _mod().build_contract_driver(
+        repo_root=tmp_path,
+        manifest_path=_write_manifest(tmp_path),
+        retention_mode="full_offsite",
+        clock=counted_clock,
+    )
+    driver.read_model(now=NOW)
+    assert calls == 1
+
+
+@pytest.mark.parametrize("writer", ("assertion", "adjudication"))
+def test_v10_h5_invalid_semantic_record_is_pure_before_store_initialization(
+    tmp_path: Path, writer: str
+) -> None:
+    driver = _driver(tmp_path)
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    sidecars = (semantics, Path(f"{semantics}-wal"), Path(f"{semantics}-shm"))
+    assert not any(path.exists() for path in sidecars)
+
+    if writer == "assertion":
+        record = _semantic_record()
+        record["assertion"]["key"] = []
+        expected_prefix = "semantic_id_invalid:key"
+        call = driver.write_semantic_assertion
+    else:
+        record = {
+            "adjudication_id": "v10-fresh-invalid",
+            "key": [],
+            "authority": "david",
+            "provenance": "explicit-ruling",
+            "parents": ["parent"],
+            "effective_assertion_id": "parent",
+        }
+        expected_prefix = "adjudication_key_invalid:"
+        call = driver.write_semantic_adjudication
+
+    try:
+        call(record)
+    except driver.error_type as exc:
+        assert _error_code(exc).startswith(expected_prefix)
+    except Exception as exc:  # pragma: no cover - named domain refusal only
+        pytest.fail(f"invalid fresh {writer} raised {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - invalid records are never accepted
+        pytest.fail(f"invalid fresh {writer} record was accepted")
+
+    assert not any(path.exists() for path in sidecars)

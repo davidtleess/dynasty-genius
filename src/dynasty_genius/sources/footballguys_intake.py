@@ -1454,6 +1454,32 @@ class ContractDriver:
                 conn, table, self._SEMANTIC_IDENTITY[table]
             ):
                 raise _refuse("store_schema_unmigratable:semantics")
+            if table == "event_sequence":
+                # v9-review H2: the sequencing structure is validated WHOLE —
+                # seq must be the exact INTEGER PRIMARY KEY under the frozen
+                # AUTOINCREMENT contract, not merely a present column.
+                seq_info = next(
+                    (
+                        row
+                        for row in conn.execute(
+                            "PRAGMA table_info(event_sequence)"
+                        )
+                        if row[1] == "seq"
+                    ),
+                    None,
+                )
+                create_sql = conn.execute(
+                    "SELECT sql FROM sqlite_master"
+                    " WHERE type='table' AND name='event_sequence'"
+                ).fetchone()
+                if (
+                    seq_info is None
+                    or seq_info[5] != 1
+                    or (seq_info[2] or "").upper() != "INTEGER"
+                    or create_sql is None
+                    or "AUTOINCREMENT" not in (create_sql[0] or "").upper()
+                ):
+                    raise _refuse("store_schema_unmigratable:semantics")
         return rebuild_bare_ledger
 
     def initialize_database(self, store: str) -> SimpleNamespace:
@@ -2299,8 +2325,9 @@ class ContractDriver:
     }
 
     def write_semantic_assertion(self, record: Mapping[str, Any]) -> dict[str, Any]:
-        if "semantics" not in self._db_initialized:
-            self.initialize_database("semantics")
+        # v9-review H5: ALL pure record validation precedes store
+        # initialization — an invalid record must refuse with the database
+        # and its sidecars physically absent on a fresh root.
         # v6-review C1: the record shape itself is validated FIRST — a missing
         # section or field is a named domain refusal, never a bare KeyError.
         for section, fields in self._SEMANTIC_RECORD_FIELDS.items():
@@ -2371,6 +2398,8 @@ class ContractDriver:
             attachment["retention"],
             evidence_sha,
         )
+        if "semantics" not in self._db_initialized:
+            self.initialize_database("semantics")
         with contextlib.closing(sqlite3.connect(self._db_path("semantics"))) as conn:
             existing = conn.execute(
                 "SELECT key, version, claim, active, evidence_id"
@@ -2443,8 +2472,7 @@ class ContractDriver:
         return {"status": "written"}
 
     def write_semantic_adjudication(self, record: Mapping[str, Any]) -> dict[str, Any]:
-        if "semantics" not in self._db_initialized:
-            self.initialize_database("semantics")
+        # v9-review H5: pure validation precedes store initialization.
         required = (
             "adjudication_id", "key", "authority", "provenance",
             "parents", "effective_assertion_id",
@@ -2486,6 +2514,8 @@ class ContractDriver:
             json.dumps(sorted(record["parents"])),
             record["effective_assertion_id"],
         )
+        if "semantics" not in self._db_initialized:
+            self.initialize_database("semantics")
         # v4-review C1: the effective assertion must be an ACTIVE assertion of
         # the SAME key this adjudication rules on, and a member of its own
         # declared parent set.  Anything else is refused before any mutation —
@@ -2553,9 +2583,8 @@ class ContractDriver:
                 )
                 adjudication_rows = conn.execute(
                     "SELECT adjudication_id, authority, provenance, parents,"
-                    " effective_assertion_id"
-                    " FROM semantic_adjudications WHERE key=?",
-                    (key,),
+                    " effective_assertion_id, key"
+                    " FROM semantic_adjudications"
                 ).fetchall()
                 # v8-review C1: duplicate identities are detected BEFORE any
                 # dictionary can collapse them — a restored constraint-free
@@ -2594,7 +2623,7 @@ class ContractDriver:
                 # v6-review C1: the load mirror keeps EVERY writer predicate,
                 # including the future-instant refusal — a restored future
                 # evidence time must never open eligibility.
-                _canonical_instant(retrieved_at, now=self.clock())
+                _canonical_instant(retrieved_at, now=self._now())
             except (FootballguysIntakeError, TypeError):
                 return "attachment_time_invalid"
             if retention != "retained":
@@ -2623,13 +2652,14 @@ class ContractDriver:
                 "evidence_bytes": row[3],
             }
 
-        # C2: restored assertion scalars must be exactly the written types —
-        # the writer stores active as 0/1 with nonempty text ids, so anything
-        # else fails closed.
+        # C2 + v9-review C1: restored assertion scalars must be exactly the
+        # written types — active is an exact SQLite INTEGER 0/1 (REAL 1.0
+        # equality is not type validity), ids are nonempty text.
         for row in assertion_rows:
             if (
                 not isinstance(row[0], str)
                 or not row[0]
+                or type(row[4]) is not int
                 or row[4] not in (0, 1)
                 or not isinstance(row[5], str)
                 or not row[5]
@@ -2639,6 +2669,21 @@ class ContractDriver:
                     "reason": "assertion_row_invalid",
                     "eligible_for_phase_c": False,
                 }
+
+        # v9-review C1: every adjudication identity scalar is nonempty TEXT
+        # on load — a restored BLOB/empty id fails closed by name before the
+        # row can be filtered, governed, or projected.
+        for row in adjudication_rows:
+            if any(
+                not isinstance(value, str) or not value
+                for value in (row[0], row[4], row[5])
+            ):
+                return {
+                    "state": "unknown",
+                    "reason": "adjudication_row_invalid",
+                    "eligible_for_phase_c": False,
+                }
+        adjudication_rows = [row for row in adjudication_rows if row[5] == key]
 
         def _parse_parents(payload: Any) -> list[str] | None:
             try:
@@ -2894,6 +2939,8 @@ class ContractDriver:
                     or not isinstance(attempt_id, str)
                     or not attempt_id
                     or event_id in claims
+                    or not isinstance(event_seq, int)
+                    or isinstance(event_seq, bool)
                 ):
                     return "mismatch"
                 claims[event_id] = ("attempt", store, attempt_id, at, event_seq)
@@ -2904,7 +2951,7 @@ class ContractDriver:
                 with contextlib.closing(self._open_reader(path)) as conn:
                     central_rows = conn.execute(
                         "SELECT event_id, event_type, store_name, subject_id,"
-                        " event_at, seq FROM event_sequence"
+                        " event_at, seq FROM event_sequence ORDER BY rowid"
                     ).fetchall()
             except sqlite3.Error:
                 # v7-review C1: an unreadable central ledger is NEVER success,
@@ -2927,12 +2974,21 @@ class ContractDriver:
             # v8-review H3: persisted order facts are canonical or fail
             # closed — never a bare comparison exception downstream.
             try:
-                _canonical_instant(event_at, now=self.clock())
+                _canonical_instant(event_at, now=self._now())
             except FootballguysIntakeError:
                 return "mismatch"
         central_ids = [row[0] for row in central_rows]
         if len(central_ids) != len(set(central_ids)):
             return "mismatch"
+        # v9-review H2: central sequences are a load invariant — strictly
+        # increasing in insertion order and positive.  A duplicate or
+        # reversed sequence can no longer prove which event was later, so it
+        # is an integrity failure, never an equality that suppresses overlays.
+        previous_seq = 0
+        for row in central_rows:
+            if row[5] <= previous_seq:
+                return "mismatch"
+            previous_seq = row[5]
         central = {
             row[0]: (row[1], row[2], row[3], row[4], row[5])
             for row in central_rows
@@ -2945,7 +3001,37 @@ class ContractDriver:
                 return "mismatch"
         return "reconciled"
 
+    def _now(self) -> datetime:
+        """The single clock dependency: inside read_model the validated
+        instant is pinned once and reused everywhere (v9-review H4)."""
+        pinned = getattr(self, "_read_clock", None)
+        return pinned if pinned is not None else self.clock()
+
     def read_model(
+        self, *, now: datetime, global_overall_status: str | None = None
+    ) -> dict[str, Any]:
+        # v9-review H4: the read clock is validated ONCE — an invalid clock
+        # dependency is the named row-9 fail-closed state, never a bare
+        # aware/naive comparison error deep in reconciliation.
+        clock_now = self.clock()
+        try:
+            _canonical_instant(clock_now.isoformat(), now=None)
+        except FootballguysIntakeError:
+            return evaluate_refresh_state(
+                acquisitions=[],
+                attempts=[{"status": "ledger_unreadable"}],
+                now=now,
+                global_overall_status=global_overall_status,
+            )
+        self._read_clock = clock_now
+        try:
+            return self._read_model_locked(
+                now=now, global_overall_status=global_overall_status
+            )
+        finally:
+            self._read_clock = None
+
+    def _read_model_locked(
         self, *, now: datetime, global_overall_status: str | None = None
     ) -> dict[str, Any]:
         rows = self._effective_acquisitions()
