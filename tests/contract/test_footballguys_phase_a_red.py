@@ -1,4 +1,4 @@
-"""RED v12 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v13 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -73,6 +73,11 @@ seq binding was still a whole-DDL substring search spoofable through quoted lite
 comments, and a type-correct Python integer outside SQLite's signed-64 storage domain
 raised after creating the governed store. RED v12 binds parser-level token ownership and
 the complete storable version domain against the committed c32884a GREEN.
+
+Adversarial review of RED v12's GREEN found one final parser-prefix defect: the seq
+column's first four tokens were governed, but arbitrary suffix constraints were accepted.
+RED v13 binds the complete exact token grammar against the committed 62278ab GREEN,
+including one suffix whose first automatic value makes the operational consequence live.
 
 One injected seam
 -----------------
@@ -4554,3 +4559,48 @@ def test_v12_m2_signed_64_boundary_versions_remain_storable(
     state = driver.semantic_state(key=SEMANTIC_KEY)
     assert state["state"] == "known"
     assert state["assertion_id"] == assertion_id
+
+
+# ---------------------------------------------------------------------------
+# V13 — accepted 62278ab finding: seq tokens are complete, not a prefix
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("suffix", "governed"),
+    (
+        pytest.param("", True, id="canonical"),
+        pytest.param(" CHECK(seq > 100)", False, id="load-bearing-check"),
+        pytest.param(" UNIQUE", False, id="redundant-unique"),
+    ),
+)
+def test_v13_h1_seq_declaration_requires_complete_exact_token_list(
+    tmp_path: Path, suffix: str, governed: bool
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute("ALTER TABLE event_sequence RENAME TO event_sequence_governed")
+        conn.execute(
+            "CREATE TABLE event_sequence ("
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT"
+            + suffix
+            + ", event_id TEXT UNIQUE, event_type TEXT, store_name TEXT,"
+            " subject_id TEXT, event_at TEXT)"
+        )
+        conn.execute("DROP TABLE event_sequence_governed")
+        conn.commit()
+        ddl = conn.execute(
+            "SELECT sql FROM sqlite_master"
+            " WHERE type='table' AND name='event_sequence'"
+        ).fetchone()[0]
+    assert "SEQ INTEGER PRIMARY KEY AUTOINCREMENT" in ddl.upper()
+
+    reopened = _driver(tmp_path)
+    if governed:
+        reopened.initialize_database("semantics")
+    else:
+        with pytest.raises(driver.error_type) as caught:
+            reopened.initialize_database("semantics")
+        assert _error_code(caught.value) == "store_schema_unmigratable:semantics"

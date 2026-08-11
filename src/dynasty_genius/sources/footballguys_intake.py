@@ -1351,7 +1351,11 @@ class ContractDriver:
         for column in columns:
             tokens = column.split()
             if tokens and tokens[0].lower() == "seq":
-                return [t.upper() for t in tokens[1:5]] == [
+                # v12-review H1: EXACT grammar — the complete token list after
+                # the column name, with no suffix constraints permitted.  A
+                # trailing CHECK/UNIQUE would pass validation and then break
+                # the first governed insertion.
+                return [t.upper() for t in tokens[1:]] == [
                     "INTEGER", "PRIMARY", "KEY", "AUTOINCREMENT",
                 ]
         return False
