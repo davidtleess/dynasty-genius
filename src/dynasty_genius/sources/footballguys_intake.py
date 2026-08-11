@@ -1276,6 +1276,30 @@ class ContractDriver:
         ),
         "event_sequence": _EVENT_LEDGER_COLUMNS,
     }
+    # v8-review C1/H2: every load-bearing identity is proven as a FULL,
+    # non-partial unique index on exactly this column — column names alone
+    # are never the schema.
+    _SEMANTIC_IDENTITY: dict[str, str] = {
+        "semantic_assertions": "assertion_id",
+        "semantic_attachments": "evidence_id",
+        "semantic_evidence_objects": "evidence_sha256",
+        "semantic_adjudications": "adjudication_id",
+        "event_sequence": "event_id",
+    }
+
+    @staticmethod
+    def _has_exact_unique_index(
+        conn: sqlite3.Connection, table: str, column: str
+    ) -> bool:
+        for _seq, name, unique, _origin, partial in conn.execute(
+            f"PRAGMA index_list({table})"
+        ):
+            if not unique or partial:
+                continue
+            columns = [row[2] for row in conn.execute(f"PRAGMA index_info({name})")]
+            if columns == [column]:
+                return True
+        return False
 
     def _migrate_acquisition_store(self, conn: sqlite3.Connection, store: str) -> None:
         tables = {
@@ -1390,10 +1414,25 @@ class ContractDriver:
         }
         # PASS 1 — validate every EXISTING table and refuse before any
         # mutation, so an unreconcilable store stays byte-frozen (v7-review
-        # C1).  History is never fabricated: a populated bare allocator has
-        # rows with no provable identity and refuses; a row-empty one is
-        # rebuilt below so the event_id UNIQUE constraint is real SQLite
-        # state, and a full-shape ledger without that unique index refuses.
+        # C1).  History is never fabricated, and every identity constraint is
+        # proven as a full non-partial unique index on the exact identity
+        # column (v8-review C1/H2) — never inferred from column names.
+        rebuild_bare_ledger = self._validate_semantics_schema(conn, tables)
+        # PASS 2 — mutations, only after the whole store validated.
+        if rebuild_bare_ledger:
+            conn.execute("DROP TABLE event_sequence")
+            conn.execute(creates["event_sequence"])
+        for table in self._SEMANTIC_TABLES:
+            if table not in tables:
+                conn.execute(creates[table])
+
+    def _validate_semantics_schema(
+        self, conn: sqlite3.Connection, tables: set[str]
+    ) -> bool:
+        """Pure-read validation of the semantics store; raises the refusal
+        family and never writes, so it can run on a read-only prevalidation
+        connection (v8-review H4).  Returns whether a row-empty bare event
+        allocator needs rebuilding."""
         rebuild_bare_ledger = False
         for table, expected in self._SEMANTIC_TABLES.items():
             if table not in tables:
@@ -1411,27 +1450,33 @@ class ContractDriver:
                 continue
             if columns != expected:
                 raise _refuse("store_schema_unmigratable:semantics")
-            if table == "event_sequence":
-                unique_indexes = [
-                    row
-                    for row in conn.execute("PRAGMA index_list(event_sequence)")
-                    if row[2] == 1
-                ]
-                if not unique_indexes:
-                    raise _refuse("store_schema_unmigratable:semantics")
-        # PASS 2 — mutations, only after the whole store validated.
-        if rebuild_bare_ledger:
-            conn.execute("DROP TABLE event_sequence")
-            conn.execute(creates["event_sequence"])
-        for table in self._SEMANTIC_TABLES:
-            if table not in tables:
-                conn.execute(creates[table])
+            if not self._has_exact_unique_index(
+                conn, table, self._SEMANTIC_IDENTITY[table]
+            ):
+                raise _refuse("store_schema_unmigratable:semantics")
+        return rebuild_bare_ledger
 
     def initialize_database(self, store: str) -> SimpleNamespace:
         self._ensure_namespace()
         self._require_coverage(RUNTIME_PATHS[store])
         trace: list[str] = []
         path = self._db_path(store)
+        if store == "semantics" and path.exists() and path.stat().st_size > 0:
+            # v8-review H4: refusal-class validation happens through a
+            # NON-MUTATING read BEFORE any write-capable connection touches
+            # the file — even `PRAGMA journal_mode=WAL` rewrites a DELETE-mode
+            # header, and a refused store must stay byte-frozen.
+            try:
+                with contextlib.closing(self._open_reader(path)) as ro_conn:
+                    ro_tables = {
+                        row[0]
+                        for row in ro_conn.execute(
+                            "SELECT name FROM sqlite_master WHERE type='table'"
+                        )
+                    }
+                    self._validate_semantics_schema(ro_conn, ro_tables)
+            except sqlite3.DatabaseError as exc:
+                raise _refuse(f"store_unreadable:{RUNTIME_PATHS[store]}") from exc
         conn = sqlite3.connect(path)
         try:
             try:
@@ -1949,6 +1994,7 @@ class ContractDriver:
                     "store_unreadable",
                     "store_migration_unreconcilable",
                     "event_ledger_unreconciled",
+                    "event_at_invalid",
                 )
             ):
                 raise
@@ -1988,6 +2034,11 @@ class ContractDriver:
         # never deleted as generic crash residue — it stays visible until a
         # governed reconciliation, and no new acquisition may stack on top of
         # unprovable history.
+        clock_iso = self.clock().isoformat()
+        try:
+            _canonical_instant(clock_iso, now=None)
+        except FootballguysIntakeError as exc:
+            raise _refuse(f"event_at_invalid:{clock_iso}") from exc
         self._unreadable_stores = set()
         self._refuse_unreadable_counterpart()
         if self._event_ledger_reconciled() != "reconciled":
@@ -2152,6 +2203,12 @@ class ContractDriver:
             self.initialize_database("semantics")
         event_id = hashlib.sha256(os.urandom(16)).hexdigest()[:32]
         event_at = self.clock().isoformat()
+        # v8-review H3: an event instant is canonical AT THE WRITER — a
+        # fractional or naive clock refuses before any commit.
+        try:
+            _canonical_instant(event_at, now=None)
+        except FootballguysIntakeError as exc:
+            raise _refuse(f"event_at_invalid:{event_at}") from exc
         with contextlib.closing(
             sqlite3.connect(self._db_path("semantics"))
         ) as conn:
@@ -2413,6 +2470,15 @@ class ContractDriver:
             isinstance(item, str) and item for item in record["parents"]
         ):
             raise _refuse("adjudication_invalid:parents")
+        # v8-review H5(M): every identity/key field is nonempty text BEFORE
+        # any relation check or SQLite binding — total, named, never bare.
+        for name, code in (
+            ("adjudication_id", "adjudication_id_invalid"),
+            ("key", "adjudication_key_invalid"),
+            ("effective_assertion_id", "adjudication_effective_assertion_id_invalid"),
+        ):
+            if not isinstance(record[name], str) or not record[name]:
+                raise _refuse(f"{code}:{record[name]!r}")
         row = (
             record["key"],
             record["authority"],
@@ -2491,6 +2557,26 @@ class ContractDriver:
                     " FROM semantic_adjudications WHERE key=?",
                     (key,),
                 ).fetchall()
+                # v8-review C1: duplicate identities are detected BEFORE any
+                # dictionary can collapse them — a restored constraint-free
+                # table must never resolve last-row-wins into eligibility.
+                for dup_table, dup_column in (
+                    ("semantic_assertions", "assertion_id"),
+                    ("semantic_attachments", "evidence_id"),
+                    ("semantic_evidence_objects", "evidence_sha256"),
+                    ("semantic_adjudications", "adjudication_id"),
+                ):
+                    duplicated = conn.execute(
+                        f"SELECT count(*) FROM (SELECT {dup_column}"
+                        f" FROM {dup_table} GROUP BY {dup_column}"
+                        " HAVING count(*) > 1)"
+                    ).fetchone()[0]
+                    if duplicated:
+                        return {
+                            "state": "unknown",
+                            "reason": f"semantic_identity_duplicate:{dup_table}",
+                            "eligible_for_phase_c": False,
+                        }
             except sqlite3.Error:
                 return {"state": "unknown", "reason": "store_unreadable", "eligible_for_phase_c": False}
 
@@ -2778,15 +2864,18 @@ class ContractDriver:
                 continue
             for row in self._store_rows(store):
                 event_id = row.get("event_id")
+                event_seq = row.get("event_seq")
                 if (
                     not isinstance(event_id, str)
                     or not event_id
                     or event_id in claims
+                    or not isinstance(event_seq, int)
+                    or isinstance(event_seq, bool)
                 ):
                     return "mismatch"
                 claims[event_id] = (
                     "acquisition", store, row["row_id"], row.get("event_at"),
-                    row.get("event_seq"),
+                    event_seq,
                 )
             try:
                 with contextlib.closing(self._open_reader(path)) as conn:
@@ -2825,14 +2914,21 @@ class ContractDriver:
         # type, and a governed store binding — and identities must be unique
         # BEFORE any dictionary can collapse a duplicate.
         for row in central_rows:
-            event_id, event_type, store_name, subject_id, event_at, _seq = row
+            event_id, event_type, store_name, subject_id, event_at, seq = row
             if (
                 not isinstance(event_id, str) or not event_id
                 or event_type not in ("acquisition", "attempt")
                 or store_name not in ("receipts", "observations")
                 or not isinstance(subject_id, str) or not subject_id
                 or not isinstance(event_at, str) or not event_at
+                or not isinstance(seq, int) or isinstance(seq, bool)
             ):
+                return "mismatch"
+            # v8-review H3: persisted order facts are canonical or fail
+            # closed — never a bare comparison exception downstream.
+            try:
+                _canonical_instant(event_at, now=self.clock())
+            except FootballguysIntakeError:
                 return "mismatch"
         central_ids = [row[0] for row in central_rows]
         if len(central_ids) != len(set(central_ids)):

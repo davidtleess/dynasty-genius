@@ -1,4 +1,4 @@
-"""RED v8 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v9 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -43,6 +43,15 @@ raw publication; unhashable semantic vocabulary values leaked ``TypeError``; and
 WAL-aware URI choice raced the later SQLite open. RED v8 binds all four against the
 committed c183c11 GREEN. Reader races use a bounded observe-open-reobserve contract;
 they do not broaden the lifecycle lock or authorize any new work.
+
+Adversarial review of RED v8's GREEN found five surviving persistence boundaries:
+semantic identity constraints were inferred from column names and duplicate rows could
+collapse into Phase-C eligibility; event uniqueness accepted an index on the wrong
+column; persisted event order accepted incomparable or otherwise invalid instants and
+non-integer sequences; refusal-class validation changed a rejected DELETE-mode store
+before refusing; and adjudication identity fields still leaked bare exceptions. RED v9
+binds all five against the committed 7e39763 GREEN while retaining the byte-freeze
+promise through pre-write validation.
 
 One injected seam
 -----------------
@@ -3578,3 +3587,387 @@ def test_v8_h4_persistently_unstable_file_set_fails_closed_with_a_bound(
     monkeypatch.setattr(mod, "_observe_sqlite_file_set", never_stable)
     _v5_assert_row9(_driver(tmp_path).read_model(now=NOW))
     assert 2 <= calls <= 64, "observe-open-reobserve retries must be bounded"
+
+
+# ---------------------------------------------------------------------------
+# V9 — accepted 7e39763 findings: constraint identity, event closure, freeze
+# ---------------------------------------------------------------------------
+
+
+_V9_SEMANTIC_LAYOUTS = {
+    "semantic_assertions": (
+        "assertion_id",
+        "key",
+        "CREATE TABLE semantic_assertions (assertion_id TEXT, key TEXT,"
+        " version INTEGER, claim TEXT, active INTEGER, evidence_id TEXT)",
+    ),
+    "semantic_attachments": (
+        "evidence_id",
+        "provenance",
+        "CREATE TABLE semantic_attachments (evidence_id TEXT, retrieved_at TEXT,"
+        " provenance TEXT, retention TEXT, evidence_sha256 TEXT,"
+        " evidence_bytes INTEGER)",
+    ),
+    "semantic_evidence_objects": (
+        "evidence_sha256",
+        "evidence_blob",
+        "CREATE TABLE semantic_evidence_objects (evidence_sha256 TEXT,"
+        " evidence_blob BLOB)",
+    ),
+    "semantic_adjudications": (
+        "adjudication_id",
+        "key",
+        "CREATE TABLE semantic_adjudications (adjudication_id TEXT, key TEXT,"
+        " authority TEXT, provenance TEXT, parents TEXT,"
+        " effective_assertion_id TEXT)",
+    ),
+}
+
+
+def _v9_rebuild_semantic_table_without_identity_constraint(
+    path: Path, table: str, *, substitute: str | None = None
+) -> None:
+    identity, wrong_column, ddl = _V9_SEMANTIC_LAYOUTS[table]
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute(f"ALTER TABLE {table} RENAME TO {table}_governed")
+        conn.execute(ddl)
+        columns = [
+            row[1] for row in conn.execute(f"PRAGMA table_info({table})")
+        ]
+        joined = ",".join(columns)
+        conn.execute(
+            f"INSERT INTO {table} ({joined})"
+            f" SELECT {joined} FROM {table}_governed"
+        )
+        conn.execute(f"DROP TABLE {table}_governed")
+        if substitute == "wrong_column":
+            conn.execute(
+                f"CREATE UNIQUE INDEX v9_wrong_{table}"
+                f" ON {table}({wrong_column})"
+            )
+        elif substitute == "partial_identity":
+            conn.execute(
+                f"CREATE UNIQUE INDEX v9_partial_{table}"
+                f" ON {table}({identity}) WHERE {identity} IS NOT NULL"
+            )
+        conn.commit()
+
+
+@pytest.mark.parametrize("table", tuple(_V9_SEMANTIC_LAYOUTS))
+@pytest.mark.parametrize(
+    "substitute", (None, "wrong_column", "partial_identity")
+)
+def test_v9_c1_every_semantic_identity_requires_exact_nonpartial_constraint(
+    tmp_path: Path, table: str, substitute: str | None
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    _v9_rebuild_semantic_table_without_identity_constraint(
+        semantics, table, substitute=substitute
+    )
+
+    with pytest.raises(driver.error_type) as caught:
+        _driver(tmp_path).initialize_database("semantics")
+    assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+
+
+def _v9_seed_conflicted_semantics(driver: Any) -> None:
+    driver.write_semantic_assertion(
+        _semantic_record(assertion_id="v9-redraft", claim="redraft", version=1)
+    )
+    driver.write_semantic_assertion(
+        _semantic_record(
+            assertion_id="v9-dynasty", claim="dynasty_startup", version=2
+        )
+    )
+    result = driver.write_semantic_adjudication(
+        {
+            "adjudication_id": "v9-adjudication",
+            "key": SEMANTIC_KEY,
+            "authority": "david",
+            "provenance": "explicit-ruling",
+            "parents": ["v9-redraft", "v9-dynasty"],
+            "effective_assertion_id": "v9-dynasty",
+        }
+    )
+    assert _value(result, "status") == "written"
+
+
+@pytest.mark.parametrize("table", tuple(_V9_SEMANTIC_LAYOUTS))
+def test_v9_c1_duplicate_semantic_identity_fails_before_projection(
+    tmp_path: Path, table: str
+) -> None:
+    driver = _driver(tmp_path)
+    _v9_seed_conflicted_semantics(driver)
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    _v9_rebuild_semantic_table_without_identity_constraint(semantics, table)
+    identity = _V9_SEMANTIC_LAYOUTS[table][0]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        columns = [row[1] for row in conn.execute(f"PRAGMA table_info({table})")]
+        joined = ",".join(columns)
+        conn.execute(
+            f"INSERT INTO {table} ({joined})"
+            f" SELECT {joined} FROM {table} WHERE {identity}=("
+            f" SELECT {identity} FROM {table} LIMIT 1) LIMIT 1"
+        )
+        duplicate_count = conn.execute(
+            f"SELECT count(*) FROM {table} GROUP BY {identity}"
+            " HAVING count(*) > 1"
+        ).fetchone()[0]
+        conn.commit()
+    assert duplicate_count == 2
+
+    state = _driver(tmp_path).semantic_state(key=SEMANTIC_KEY)
+    assert state == {
+        "state": "unknown",
+        "reason": f"semantic_identity_duplicate:{table}",
+        "eligible_for_phase_c": False,
+    }
+
+
+def _v9_rebuild_event_ledger_with_substitute_index(
+    path: Path, *, substitute: str
+) -> None:
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute("ALTER TABLE event_sequence RENAME TO event_sequence_governed")
+        conn.execute(
+            "CREATE TABLE event_sequence (seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " event_id TEXT, event_type TEXT, store_name TEXT, subject_id TEXT,"
+            " event_at TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO event_sequence"
+            " (seq,event_id,event_type,store_name,subject_id,event_at)"
+            " SELECT seq,event_id,event_type,store_name,subject_id,event_at"
+            " FROM event_sequence_governed"
+        )
+        conn.execute("DROP TABLE event_sequence_governed")
+        if substitute == "wrong_column":
+            conn.execute(
+                "CREATE UNIQUE INDEX v9_wrong_event_unique"
+                " ON event_sequence(subject_id)"
+            )
+        else:
+            conn.execute(
+                "CREATE UNIQUE INDEX v9_partial_event_unique"
+                " ON event_sequence(event_id) WHERE event_type='attempt'"
+            )
+        conn.commit()
+
+
+@pytest.mark.parametrize("substitute", ("wrong_column", "partial_event_id"))
+def test_v9_h2_event_id_requires_exact_full_nonpartial_unique_index(
+    tmp_path: Path, substitute: str
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    _v9_rebuild_event_ledger_with_substitute_index(
+        semantics, substitute=substitute
+    )
+
+    with pytest.raises(driver.error_type) as caught:
+        _driver(tmp_path).initialize_database("semantics")
+    assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+
+
+def _v9_seed_acquisition_and_attempt(tmp_path: Path) -> tuple[Path, Path, str]:
+    driver = _driver(tmp_path)
+    assert driver.intake(
+        archive_bytes=_unit_zip(), offering=_offering("v9-event-acquisition")
+    ).status == "review_required"
+    assert driver.intake(
+        archive_bytes=b"not-a-zip", offering=_offering("v9-event-attempt")
+    ).status == "failed"
+    receipts = tmp_path / RUNTIME_PATHS["receipts"]
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        event_id = conn.execute(
+            "SELECT event_id FROM acquisitions"
+            " WHERE offering_id='v9-event-acquisition'"
+        ).fetchone()[0]
+    return receipts, semantics, event_id
+
+
+@pytest.mark.parametrize(
+    "bad_event_at",
+    (
+        "2026-08-10T12:00:00",
+        "2026-08-10T12:00:00.123456-04:00",
+        "2099-01-01T00:00:00Z",
+        "not-an-instant",
+    ),
+    ids=("naive", "fractional", "future", "malformed"),
+)
+def test_v9_h3_persisted_event_instant_is_canonical_or_fail_closed(
+    tmp_path: Path, bad_event_at: str
+) -> None:
+    receipts, semantics, event_id = _v9_seed_acquisition_and_attempt(tmp_path)
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        conn.execute(
+            "UPDATE acquisitions SET event_at=? WHERE event_id=?",
+            (bad_event_at, event_id),
+        )
+        conn.commit()
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            "UPDATE event_sequence SET event_at=? WHERE event_id=?",
+            (bad_event_at, event_id),
+        )
+        conn.commit()
+
+    try:
+        state = _driver(tmp_path).read_model(now=NOW)
+    except Exception as exc:  # pragma: no cover - 7e39763 raises on mixed tz
+        pytest.fail(f"malformed persisted event instant raised: {exc!r}")
+    assert state["status"] == "unverifiable"
+    assert state["phase_c_open"] is False
+    assert state["pill_delta"] == 1
+
+
+def _v9_retype_event_sequence_as_text(path: Path) -> None:
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute("ALTER TABLE event_sequence RENAME TO event_sequence_governed")
+        conn.execute(
+            "CREATE TABLE event_sequence (seq TEXT, event_id TEXT UNIQUE,"
+            " event_type TEXT, store_name TEXT, subject_id TEXT, event_at TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO event_sequence"
+            " (seq,event_id,event_type,store_name,subject_id,event_at)"
+            " SELECT CAST(seq AS TEXT),event_id,event_type,store_name,subject_id,"
+            " event_at FROM event_sequence_governed"
+        )
+        conn.execute("DROP TABLE event_sequence_governed")
+        conn.commit()
+
+
+def _v9_retype_acquisition_event_sequence_as_text(path: Path) -> None:
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        columns = [row[1] for row in conn.execute("PRAGMA table_info(acquisitions)")]
+        conn.execute("ALTER TABLE acquisitions RENAME TO acquisitions_governed")
+        select = ",".join(
+            "CAST(event_seq AS TEXT) AS event_seq" if name == "event_seq" else name
+            for name in columns
+        )
+        conn.execute(f"CREATE TABLE acquisitions AS SELECT {select} FROM acquisitions_governed")
+        conn.execute("DROP TABLE acquisitions_governed")
+        conn.commit()
+
+
+def test_v9_h3_persisted_event_sequence_must_be_exact_integer(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    assert driver.intake(
+        archive_bytes=_unit_zip(), offering=_offering("v9-string-event-seq")
+    ).status == "review_required"
+    receipts = tmp_path / RUNTIME_PATHS["receipts"]
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    _v9_retype_acquisition_event_sequence_as_text(receipts)
+    _v9_retype_event_sequence_as_text(semantics)
+
+    _v6_assert_event_integrity_fail_closed(tmp_path)
+
+
+def test_v9_h3_writer_refuses_fractional_event_clock_before_commit(
+    tmp_path: Path,
+) -> None:
+    clock = [datetime.fromisoformat("2026-08-10T12:00:00.123456-04:00")]
+    driver = _clocked_driver(tmp_path, clock)
+    try:
+        result = driver.intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering("v9-fractional-event-writer"),
+        )
+    except driver.error_type as exc:
+        assert _error_code(exc).startswith("event_at_invalid:")
+    except Exception as exc:  # pragma: no cover - domain errors only
+        pytest.fail(f"fractional event clock leaked {type(exc).__name__}: {exc}")
+    else:
+        pytest.fail(f"fractional event clock was accepted: {result.status}")
+
+
+def test_v9_h4_delete_mode_unreconcilable_store_refuses_byte_frozen(
+    tmp_path: Path,
+) -> None:
+    setup = _driver(tmp_path)
+    setup.initialize_database("receipts")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        assert conn.execute("PRAGMA journal_mode=DELETE").fetchone()[0] == "delete"
+        conn.execute("CREATE TABLE event_sequence(seq INTEGER)")
+        conn.execute("INSERT INTO event_sequence VALUES (1)")
+        conn.commit()
+    before = _v5_main_wal_fingerprint(semantics)
+
+    driver = _driver(tmp_path)
+    with pytest.raises(driver.error_type) as caught:
+        driver.intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering("v9-delete-mode-unreconcilable"),
+        )
+    assert _error_code(caught.value) == "store_migration_unreconcilable:semantics"
+    assert _v5_main_wal_fingerprint(semantics) == before
+    assert driver.snapshot()["objects"] == []
+    assert "staging_create" not in driver.snapshot()["trace"]
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value", "expected_prefix"),
+    (
+        ("adjudication_id", [], "adjudication_id_invalid:"),
+        ("adjudication_id", 7, "adjudication_id_invalid:"),
+        ("key", [], "adjudication_key_invalid:"),
+        ("key", b"blob-key", "adjudication_key_invalid:"),
+        (
+            "effective_assertion_id",
+            [],
+            "adjudication_effective_assertion_id_invalid:",
+        ),
+        (
+            "effective_assertion_id",
+            7,
+            "adjudication_effective_assertion_id_invalid:",
+        ),
+    ),
+)
+def test_v9_h5_adjudication_identity_fields_are_total_named_refusals(
+    tmp_path: Path, field: str, bad_value: Any, expected_prefix: str
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(
+        _semantic_record(assertion_id="v9-parent", version=1)
+    )
+    record: dict[str, Any] = {
+        "adjudication_id": "v9-total-adjudication",
+        "key": SEMANTIC_KEY,
+        "authority": "david",
+        "provenance": "explicit-ruling",
+        "parents": ["v9-parent"],
+        "effective_assertion_id": "v9-parent",
+    }
+    record[field] = bad_value
+    before_state = driver.semantic_state(key=SEMANTIC_KEY)
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        before_rows = conn.execute(
+            "SELECT count(*) FROM semantic_adjudications"
+        ).fetchone()[0]
+
+    try:
+        driver.write_semantic_adjudication(record)
+    except driver.error_type as exc:
+        assert _error_code(exc).startswith(expected_prefix)
+    except Exception as exc:  # pragma: no cover - 7e39763 leaks bare errors
+        pytest.fail(f"adjudication writer leaked {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - malformed identity is never accepted
+        pytest.fail(f"adjudication writer accepted malformed {field}")
+
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        after_rows = conn.execute(
+            "SELECT count(*) FROM semantic_adjudications"
+        ).fetchone()[0]
+    assert after_rows == before_rows
+    assert driver.semantic_state(key=SEMANTIC_KEY) == before_state
