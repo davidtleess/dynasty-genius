@@ -29,11 +29,11 @@
 > parked for David. One gate, one ruling. Judge never overrides verification failures; consults
 > Tower for VERIFIED facts only. Gemini telemetry-only and Tower non-orchestrator UNCHANGED.
 >
-> **OPEN GATES (David):** formal ratification of the §9 authority transfer (SHIP ships without a
-> further David content-gate) · D5 churn-threshold semantics (built: combined-window exclusive
-> <10) · `install.sh --activate` refresh for Codex (/hooks trust review) + Gemini plugin ·
+> **§9 AUTHORITY TRANSFER RATIFIED — David's word, 2026-08-12 evening.** SHIP rulings ship.
+> **OPEN GATES (David):** D5 churn-threshold semantics (built: combined-window exclusive <10) ·
+> `install.sh --activate` refresh for Codex (/hooks trust review) + Gemini plugin ·
 > product-repo push. **Codex fresh-session after-the-fact CLEAR review of the whole increment is
-> the next cockpit action.** NOTE: the 13:50 dg-cockpit backup (5836106) pushed a broken
+> the next cockpit action (requested on the wire, [w#lc-judge-review-1]).** NOTE: the 13:50 dg-cockpit backup (5836106) pushed a broken
 > mid-build intermediate; the finished state supersedes it in the dg-cockpit history.
 
 > # ✅ 2026-08-12 CORRECTION TO CORRECTION — v26 INDEPENDENT CLEAR RESTORED
