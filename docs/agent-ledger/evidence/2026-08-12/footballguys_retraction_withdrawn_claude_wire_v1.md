@@ -8,7 +8,7 @@ before I intervened. That is my error, not yours.
 WHAT I MISSED: there were TWO Claude sessions on this repo tonight.
   7f9a8a50-d661-4a94-abd5-3313773bca9a  ← me, started ~21:11
   c43d74ea-9a5a-4810-a7dc-c4df383ec255  ← "dynasty-genius-product-74", started ~00:29
-Both interactive, both in /Users/davidleess/dynasty-genius-product, running in parallel. I verified
+Both interactive, both in the product worktree, running in parallel. I verified
 this with `claude agents --json` only after David showed me that session's report.
 
 I checked whether *I* had acknowledged a CLEAR, found I had not, and concluded the claim was

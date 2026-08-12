@@ -41,7 +41,7 @@ That violates the live framing boundary that full attachment equality, including
 precedes noop or evidence-id reuse. A success result cannot truthfully coexist with evidence the
 reducer rejects.
 
-Probe: `/private/tmp/footballguys_v21_followup_probe.py`. GREEN hash before/after:
+Probe: a scratch-only v21 follow-up probe script (not retained in-repo). GREEN hash before/after:
 `a0e7793b…` / `a0e7793b…`.
 
 ### 2. Critical — the write-time clock is neither validated nor pinned as one dependency
@@ -62,9 +62,7 @@ protected mutation, then reuse it for declared-retrieval validation, event alloc
 recording. An invalid dependency must refuse by name without creating governed databases or raw
 objects. Semantic writes require the same pure-before-store rule.
 
-Probes: `/private/tmp/footballguys_v22_clock_probe.py`,
-`/private/tmp/footballguys_v22_none_clock_future_probe.py`, and
-`/private/tmp/footballguys_v22_changing_clock_probe.py`. GREEN hash was byte-equal before/after
+Probes: three scratch-only v22 clock probe scripts — a base clock probe, a none/future-clock probe, and a changing-clock probe (not retained in-repo). GREEN hash was byte-equal before/after
 every probe.
 
 ## Scope

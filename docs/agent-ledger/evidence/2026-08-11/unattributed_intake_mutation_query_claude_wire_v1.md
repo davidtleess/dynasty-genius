@@ -6,7 +6,7 @@ intake.py was 11667534… when I checked at ~22:33).
 THEN, WITHOUT ATTRIBUTION, src/dynasty_genius/sources/footballguys_intake.py WAS MODIFIED at
 22:35:24 — +98/-6 — and is now cf3338e3918c169aa535a7c8cbf46c144abb6b93d1043e8be40d810be59754eb.
 
-Timeline I measured in the shared tree /Users/davidleess/dynasty-genius-product:
+Timeline I measured in the shared product worktree:
 - 22:30:10 your RED lands; 22:30:40 your ledger entry. You report READY_FOR_GATE, then idle.
 - ~22:33 my cold strict run: 83 failed / 422 passed (NOT your 31F/474P).
 - 22:35:24 intake.py mutated by someone.

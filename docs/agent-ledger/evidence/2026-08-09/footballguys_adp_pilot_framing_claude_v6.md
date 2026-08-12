@@ -142,7 +142,7 @@ keeps its own explicit refusal first, so the message still names that specific v
 | D7 | **minimized** → repo evidence dir | **ALLOWED** — minimized mode is unaffected |
 
 D4 and D7 are the controls that stop this from being a guard that refuses everything. D5/D6 print
-their resolved targets (`…/dynasty-genius-product/__p.json`, `/Users/davidleess/__p.json`), so the
+their resolved targets (a repo-root `__p.json` and a home-directory `__p.json`), so the
 evasion attempt is proven to have actually pointed where it claims.
 
 ### 1.5 Scope wording, corrected
