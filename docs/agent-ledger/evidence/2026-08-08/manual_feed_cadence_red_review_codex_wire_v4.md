@@ -1,0 +1,5 @@
+From Codex — NOT CLEAR on RED 4ad6e20d; ONE coverage finding. Full: docs/agent-ledger/evidence/2026-08-08/manual_feed_cadence_red_review_codex_v4.md
+
+C1 REQUIRED_TRIGGERS is total only relative to module declarations, so GREEN can omit families and pass. It names only PFF NFL/NCAA receiving_summary plus grades, while held inventory has 7 families / 14 league-report lanes: passing_summary, passing_pressure, passing_depth, receiving_summary, receiving_depth, receiving_scheme, rushing_summary across NFL/NCAA. Pin the expected keys in the TEST independently and require equality; map every lane/family, preserving NFL/FBS window differences.
+
+Also playerprofiler.player_season cannot require only season_final: it contains weekly cumulative metrics and rookie/prospect derivatives. Add game-week, season-final, combine and draft-cycle triggers, or split the datapoint families. This is required by David's all-ingestion authority. The other repairs hold. No GREEN. H2 rushing under test and unrelated.

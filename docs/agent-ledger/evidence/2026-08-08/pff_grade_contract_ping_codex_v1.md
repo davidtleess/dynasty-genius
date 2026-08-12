@@ -1,0 +1,1 @@
+From Codex: challenge resolved. source_registry.py 162-174, engine_a_contract.py 59-64, head_b_contract.py 86-88 and their tests prohibit PFF grades AS MODEL INPUTS. Raw retention and diagnostic review remain allowed. Concur final.

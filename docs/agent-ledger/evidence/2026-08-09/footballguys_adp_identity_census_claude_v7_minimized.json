@@ -1,0 +1,421 @@
+{
+ "artifact": "footballguys adp.csv identity census",
+ "mode": "MINIMIZED",
+ "status": "commit-intended; NOT committed at time of generation",
+ "full_mode_destination_policy": "n/a \u2014 minimized mode is repo-eligible",
+ "retention_note": "MINIMIZED and repo-eligible. Carries no ADP ranks and no bulk provider payload; wrong-human mappings are retained WITHOUT ranks as defect evidence. The full census is regenerable from pinned inputs with --full to a scratch path.",
+ "inputs": {
+  "adp_csv_sha256": "1f7afcbfdd7b9c6d08dc21a0017f05d4a30fa64e0cd580c6295c5a5fc3a57eb9",
+  "adp_csv_bytes": 30388,
+  "projections_csv_sha256": "25be2d5a10f92b9787009edbb6144f516f53e4421afe5f39549b6eb6ca019c3f",
+  "projections_csv_bytes": 260688,
+  "governed_crosswalk_repo_relative_path": "app/data/identity/_runs/ff_playerids_20260516.json",
+  "governed_crosswalk_sha256": "8ed4b67578d06a24527356f9f355ed97f12be827e34885270c0b1d28c079f593",
+  "resolver_module_path": "src/dynasty_genius/nflverse_usage.py",
+  "resolver_module_sha256": "5ee7cbb54c2682ef00e6885df5e4ff41acb8030deddf69a9e2c33748400af6c0",
+  "resolver_dependency_closure": "stdlib only \u2014 the module imports no first-party code, so this single pin closes the resolver's behaviour",
+  "generator_version": "fbg-identity-census/6",
+  "generator_sha256": "1e68600f22efb546f790bdd9d0feb0b8c0906dc73bce303d4853fc506a1b926c",
+  "pins_enforced": true,
+  "fail_closed_on_mismatch": true,
+  "pin_verification": "unconditional; no prefix, empty-pin, or skip exemption"
+ },
+ "method": {
+  "resolver": "production IdentityIndex.resolve(kind='pfr'); no parallel resolver",
+  "normalizer_version": "fbg-name-norm/2",
+  "normalizer_rules": "lowercase; strip . and '; hyphen->space; e-acute->e; drop jr/sr/ii/iii/iv/v",
+  "our_position_source": "app/data/identity/_runs/ff_playerids_20260516.json .entries[].position (7952/7952 populated)",
+  "our_team_source": null,
+  "our_team_note": "UNAVAILABLE \u2014 the governed crosswalk carries no team field, so the team half of the identity rule is UNEXECUTABLE with present sources.",
+  "nickname_whitelist": {
+   "GainKe00": "Kenneth/Kenny Gainwell",
+   "OkonCh00": "Chigoziem/Chig Okonkwo",
+   "TinsMi00": "Mitchell/Mitch Tinsley",
+   "BorrAn00": "Andres/Andy Borregales",
+   "HibnMa00": "Matthew/Matt Hibner"
+  },
+  "verdict_vocabulary": [
+   "verified_same_human",
+   "verified_wrong_human",
+   "quarantined",
+   "unverifiable",
+   "unresolved"
+  ]
+ },
+ "totals_all_608": {
+  "verified_wrong_human": 34,
+  "verified_same_human": 364,
+  "unresolved": 155,
+  "unverifiable": 55
+ },
+ "totals_sf_populated": {
+  "verified_wrong_human": 32,
+  "verified_same_human": 328,
+  "unresolved": 93,
+  "unverifiable": 47
+ },
+ "position_guard_evaluation": {
+  "note": "guard evaluation against known-positive cases; NOT code mutation testing",
+  "position_only_separates": 32,
+  "position_only_fails_to_separate": 2,
+  "name_only_separates": 34,
+  "conclusion": "position-only is INSUFFICIENT on this vintage; name separates all known wrong links, so this vintage does NOT show position necessary or name insufficient. Both retained defensively."
+ },
+ "wrong_human_mappings": [
+  {
+   "source_id": "GibbJa00",
+   "candidate_gsis": "00-0037596",
+   "provider_name": "Jahmyr Gibbs",
+   "provider_pos": "RB",
+   "our_name": "Jack Gibbens",
+   "our_pos": "LB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "SmitJa02",
+   "candidate_gsis": "00-0030123",
+   "provider_name": "Jaxon Smith-Njigba",
+   "provider_pos": "WR",
+   "our_name": "Jared Smith",
+   "our_pos": "DT",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "McCaCh00",
+   "candidate_gsis": "00-0031208",
+   "provider_name": "Christian McCaffrey",
+   "provider_pos": "RB",
+   "our_name": "Chris McCain",
+   "our_pos": "DE",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "AlleJo01",
+   "candidate_gsis": "00-0033523",
+   "provider_name": "Josh Allen",
+   "provider_pos": "QB",
+   "our_name": "Jonathan Allen",
+   "our_pos": "DT",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "SmitDe04",
+   "candidate_gsis": "00-0031934",
+   "provider_name": "DeVonta Smith",
+   "provider_pos": "WR",
+   "our_name": "Devin Smith",
+   "our_pos": "WR",
+   "pos_match": true,
+   "name_match": false
+  },
+  {
+   "source_id": "EgbuEm00",
+   "candidate_gsis": "00-0035538",
+   "provider_name": "Emeka Egbuka",
+   "provider_pos": "WR",
+   "our_name": "Emeke Egbule",
+   "our_pos": "LB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "HendTr00",
+   "candidate_gsis": "00-0033935",
+   "provider_name": "TreVeyon Henderson",
+   "provider_pos": "RB",
+   "our_name": "Trey Hendrickson",
+   "our_pos": "DE",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "WillJa09",
+   "candidate_gsis": "00-0035925",
+   "provider_name": "Jameson Williams",
+   "provider_pos": "WR",
+   "our_name": "Jarren Williams",
+   "our_pos": "CB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "PricJa00",
+   "candidate_gsis": "00-0031090",
+   "provider_name": "Jadarian Price",
+   "provider_pos": "RB",
+   "our_name": "Jabari Price",
+   "our_pos": "CB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "HarrMa05",
+   "candidate_gsis": "00-0032362",
+   "provider_name": "Marvin Harrison Jr.",
+   "provider_pos": "WR",
+   "our_name": "Maurice Harris",
+   "our_pos": "WR",
+   "pos_match": true,
+   "name_match": false
+  },
+  {
+   "source_id": "ThomBr01",
+   "candidate_gsis": "00-0029684",
+   "provider_name": "Brian Thomas Jr.",
+   "provider_pos": "WR",
+   "our_name": "Brandon Thompson",
+   "our_pos": "DT",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "JohnQu01",
+   "candidate_gsis": "00-0038368",
+   "provider_name": "Quentin Johnston",
+   "provider_pos": "WR",
+   "our_name": "Quindell Johnson",
+   "our_pos": "S",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "GoldMa00",
+   "candidate_gsis": "00-0032127",
+   "provider_name": "Matthew Golden",
+   "provider_pos": "WR",
+   "our_name": "Markus Golden",
+   "our_pos": "DE",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "McMiJa00",
+   "candidate_gsis": "00-0037384",
+   "provider_name": "Jalen McMillan",
+   "provider_pos": "WR",
+   "our_name": "Ja'Quan McMillian",
+   "our_pos": "CB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "JohnEm00",
+   "candidate_gsis": "00-0039526",
+   "provider_name": "Emmett Johnson",
+   "provider_pos": "RB",
+   "our_name": "Emany Johnson",
+   "our_pos": "S",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "SmitGe01",
+   "candidate_gsis": "SMI292320",
+   "provider_name": "Geno Smith",
+   "provider_pos": "QB",
+   "our_name": "Genesis Smith",
+   "our_pos": "S",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "AlleBr01",
+   "candidate_gsis": "00-0033467",
+   "provider_name": "Braelon Allen",
+   "provider_pos": "RB",
+   "our_name": "Brian Allen",
+   "our_pos": "CB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "ParkCo00",
+   "candidate_gsis": "00-0026599",
+   "provider_name": "Colby Parkinson",
+   "provider_pos": "TE",
+   "our_name": "Cord Parks",
+   "our_pos": "CB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "KirkCh00",
+   "candidate_gsis": "00-0031361",
+   "provider_name": "Christian Kirk",
+   "provider_pos": "WR",
+   "our_name": "Christian Kirksey",
+   "our_pos": "LB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "JohnTy00",
+   "candidate_gsis": "00-0036427",
+   "provider_name": "Ty Johnson",
+   "provider_pos": "RB",
+   "our_name": "Tyler Johnson",
+   "our_pos": "WR",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "TaylMa01",
+   "candidate_gsis": "00-0035480",
+   "provider_name": "Mason Taylor",
+   "provider_pos": "TE",
+   "our_name": "Malik Taylor",
+   "our_pos": "WR",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "WillSa00",
+   "candidate_gsis": "00-0037665",
+   "provider_name": "Savion Williams",
+   "provider_pos": "WR",
+   "our_name": "Sam Williams",
+   "our_pos": "DE",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "SlayDa00",
+   "candidate_gsis": "00-0030062",
+   "provider_name": "Darius Slayton",
+   "provider_pos": "WR",
+   "our_name": "Darius Slay",
+   "our_pos": "CB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "JoneMa04",
+   "candidate_gsis": "00-0031939",
+   "provider_name": "Mac Jones",
+   "provider_pos": "QB",
+   "our_name": "Matt Jones",
+   "our_pos": "RB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "JohnTe01",
+   "candidate_gsis": "00-0027233",
+   "provider_name": "Tez Johnson",
+   "provider_pos": "WR",
+   "our_name": "Terrence Johnson",
+   "our_pos": "CB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "LambKe00",
+   "candidate_gsis": "00-0031894",
+   "provider_name": "Keandre Lambert-Smith",
+   "provider_pos": "WR",
+   "our_name": "Keenan Lambert",
+   "our_pos": "S",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "WrigBr00",
+   "candidate_gsis": "00-0035833",
+   "provider_name": "Brock Wright",
+   "provider_pos": "TE",
+   "our_name": "Brandon Wright",
+   "our_pos": "PK",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "JohnKa01",
+   "candidate_gsis": "00-0039589",
+   "provider_name": "Kaleb Johnson",
+   "provider_pos": "RB",
+   "our_name": "Kameron Johnson",
+   "our_pos": "WR",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "SandJa00",
+   "candidate_gsis": "00-0034794",
+   "provider_name": "Ja'Tavion Sanders",
+   "provider_pos": "TE",
+   "our_name": "Jason Sanders",
+   "our_pos": "PK",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "AlleDa01",
+   "candidate_gsis": "00-0035670",
+   "provider_name": "Davis Allen",
+   "provider_pos": "TE",
+   "our_name": "Dakota Allen",
+   "our_pos": "LB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "WallDa00",
+   "candidate_gsis": "00-0028334",
+   "provider_name": "Darren Waller",
+   "provider_pos": "TE",
+   "our_name": "Darrin Walls",
+   "our_pos": "CB",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "HuntJa02",
+   "candidate_gsis": "00-0039740",
+   "provider_name": "Jarquez Hunter",
+   "provider_pos": "RB",
+   "our_name": "Jalyx Hunt",
+   "our_pos": "DE",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "BrowBa01",
+   "candidate_gsis": "00-0036995",
+   "provider_name": "Barion Brown",
+   "provider_pos": "WR",
+   "our_name": "Baron Browning",
+   "our_pos": "DE",
+   "pos_match": false,
+   "name_match": false
+  },
+  {
+   "source_id": "MoorSk00",
+   "candidate_gsis": "00-0034090",
+   "provider_name": "Skyy Moore",
+   "provider_pos": "WR",
+   "our_name": "Skai Moore",
+   "our_pos": "LB",
+   "pos_match": false,
+   "name_match": false
+  }
+ ],
+ "wrong_human_top_window_counts": {
+  "consensus_top_25": 3,
+  "consensus_top_50": 7,
+  "consensus_top_100": 12,
+  "consensus_top_200": 16
+ },
+ "unverifiable_id_commitment": {
+  "count": 55,
+  "sorted_ids_sha256": "0d4e4ae081131545695a7010af9d11c6fae1f6efa139e0eca4e8f49690335c6d"
+ },
+ "unresolved_id_commitment": {
+  "count": 155,
+  "sorted_ids_sha256": "0178d1a856d027e2206d9953b5e45a4147e26d4d75ee5fa27139cd8fa3f8b621"
+ },
+ "expected_full_census_sha256_note": "regenerate with --full to an allowlisted scratch root; the full artifact's expected SHA-256 and byte count are recorded in footballguys_adp_pilot_framing_claude_v7.md \u00a75 \u2014 the framing that ships generator fbg-identity-census/6 \u2014 rather than here, since a document cannot contain its own hash. NEVER follow this pointer to an earlier framing: their targets are superseded."
+}
