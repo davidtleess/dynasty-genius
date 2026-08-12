@@ -1,4 +1,4 @@
-"""RED v14 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v15 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -83,6 +83,11 @@ Adversarial review of RED v13's GREEN found the same failure mechanism one synta
 level higher: a canonical seq column plus a separate table-level constraint passed
 schema validation, then broke the first governed event allocation. RED v14 binds the
 complete six-segment event-table grammar against the committed e19d056 GREEN.
+
+Adversarial review of RED v14's GREEN found that byte-canonical table DDL could
+coexist with unvalidated triggers, views, tables, and surplus indexes stored as
+separate sqlite_master objects. RED v15 binds the complete semantics-store object
+inventory against the committed f971244 GREEN.
 
 One injected seam
 -----------------
@@ -4722,3 +4727,101 @@ def test_v14_h1_event_sequence_requires_complete_six_segment_grammar(
             assert conn.execute(
                 "SELECT count(*) FROM event_sequence"
             ).fetchone()[0] == 0
+
+
+# ---------------------------------------------------------------------------
+# V15 — accepted f971244 finding: semantics-store object inventory is closed
+# ---------------------------------------------------------------------------
+
+
+_V15_APPLICATION_TABLES = (
+    "acquisitions",
+    "semantic_assertions",
+    "semantic_attachments",
+    "semantic_evidence_objects",
+    "semantic_adjudications",
+    "event_sequence",
+)
+
+
+def _v15_application_rows(conn: sqlite3.Connection) -> dict[str, list[tuple[Any, ...]]]:
+    return {
+        table: [tuple(row) for row in conn.execute(f"SELECT * FROM {table} ORDER BY rowid")]
+        for table in _V15_APPLICATION_TABLES
+    }
+
+
+@pytest.mark.parametrize(
+    ("schema_object_sql", "governed"),
+    (
+        pytest.param(None, True, id="canonical-object-inventory"),
+        pytest.param(
+            "CREATE TRIGGER reject_event BEFORE INSERT ON event_sequence "
+            "BEGIN SELECT RAISE(ABORT, 'event blocked'); END",
+            False,
+            id="event-abort-trigger",
+        ),
+        pytest.param(
+            "CREATE TRIGGER ignore_event BEFORE INSERT ON event_sequence "
+            "BEGIN SELECT RAISE(IGNORE); END",
+            False,
+            id="event-ignore-trigger",
+        ),
+        pytest.param(
+            "CREATE TRIGGER reject_assertion BEFORE INSERT ON semantic_assertions "
+            "BEGIN SELECT RAISE(ABORT, 'assertion blocked'); END",
+            False,
+            id="second-governed-table-trigger",
+        ),
+        pytest.param(
+            "CREATE VIEW semantic_shadow AS SELECT * FROM semantic_assertions",
+            False,
+            id="surplus-view",
+        ),
+        pytest.param(
+            "CREATE TABLE semantic_shadow (payload TEXT)",
+            False,
+            id="surplus-table",
+        ),
+        pytest.param(
+            "CREATE UNIQUE INDEX one_event_type ON event_sequence(event_type)",
+            False,
+            id="surplus-unique-index",
+        ),
+        pytest.param(
+            "CREATE INDEX event_at_lookup ON event_sequence(event_at)",
+            False,
+            id="surplus-nonunique-index",
+        ),
+    ),
+)
+def test_v15_h1_semantics_store_requires_exact_schema_object_inventory(
+    tmp_path: Path, schema_object_sql: str | None, governed: bool
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(
+        _semantic_record(assertion_id="v15-application-marker")
+    )
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            "INSERT INTO event_sequence"
+            " (event_id, event_type, store_name, subject_id, event_at)"
+            " VALUES ('v15-central-marker', 'attempt', 'receipts', 'v15',"
+            " '2026-08-10T12:00:00-04:00')"
+        )
+        if schema_object_sql is not None:
+            conn.execute(schema_object_sql)
+        conn.commit()
+        before = _v15_application_rows(conn)
+
+    reopened = _driver(tmp_path)
+    if governed:
+        reopened.initialize_database("semantics")
+    else:
+        with pytest.raises(driver.error_type) as caught:
+            reopened.initialize_database("semantics")
+        assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        assert _v15_application_rows(conn) == before

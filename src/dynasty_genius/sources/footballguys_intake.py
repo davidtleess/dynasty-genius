@@ -1510,6 +1510,24 @@ class ContractDriver:
         family and never writes, so it can run on a read-only prevalidation
         connection (v8-review H4).  Returns whether a row-empty bare event
         allocator needs rebuilding."""
+        # v14-review H1: the store's SCHEMA-OBJECT INVENTORY is closed — the
+        # table DDL alone cannot see triggers, views, surplus tables, or
+        # extra indexes, and any of them changes writer behavior after
+        # validation.  Only the governed tables, their SQLite autoindexes,
+        # and sqlite_sequence may exist.
+        allowed_tables = set(self._SEMANTIC_TABLES) | {"acquisitions", "sqlite_sequence"}
+        for object_type, name, tbl_name in conn.execute(
+            "SELECT type, name, tbl_name FROM sqlite_master"
+        ):
+            if object_type == "table" and name in allowed_tables:
+                continue
+            if (
+                object_type == "index"
+                and name.startswith("sqlite_autoindex_")
+                and tbl_name in allowed_tables
+            ):
+                continue
+            raise _refuse("store_schema_unmigratable:semantics")
         rebuild_bare_ledger = False
         for table, expected in self._SEMANTIC_TABLES.items():
             if table not in tables:
