@@ -1364,6 +1364,117 @@ class ContractDriver:
         parsed = [[t.upper() for t in column.split()] for column in columns]
         return parsed == expected
 
+    @classmethod
+    def _table_segments_match(cls, ddl: str, expected: list[list[str]]) -> bool:
+        """Closed-grammar check for any governed table, reusing the stripped
+        top-level segment parser (v15-review H2)."""
+        return cls._parsed_table_segments(ddl) == expected
+
+    @classmethod
+    def _parsed_table_segments(cls, ddl: str) -> list[list[str]] | None:
+        stripped: list[str] = []
+        i, n = 0, len(ddl)
+        while i < n:
+            ch = ddl[i]
+            if ch == "'":
+                i += 1
+                while i < n:
+                    if ddl[i] == "'":
+                        if i + 1 < n and ddl[i + 1] == "'":
+                            i += 2
+                            continue
+                        break
+                    i += 1
+                i += 1
+            elif ch == '"':
+                i += 1
+                while i < n and ddl[i] != '"':
+                    i += 1
+                i += 1
+            elif ddl.startswith("--", i):
+                while i < n and ddl[i] != "\n":
+                    i += 1
+            elif ddl.startswith("/*", i):
+                end = ddl.find("*/", i + 2)
+                i = n if end == -1 else end + 2
+            else:
+                stripped.append(ch)
+                i += 1
+        text = "".join(stripped)
+        start = text.find("(")
+        if start == -1:
+            return None
+        depth, end = 0, -1
+        for j in range(start, len(text)):
+            if text[j] == "(":
+                depth += 1
+            elif text[j] == ")":
+                depth -= 1
+                if depth == 0:
+                    end = j
+                    break
+        if end == -1:
+            return None
+        segments: list[str] = []
+        depth, current = 0, []
+        for ch in text[start + 1:end]:
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+            if ch == "," and depth == 0:
+                segments.append("".join(current))
+                current = []
+            else:
+                current.append(ch)
+        segments.append("".join(current))
+        return [[t.upper() for t in segment.split()] for segment in segments]
+
+    # v15-review H1: exact index signatures (unique, non-partial, exact
+    # columns) AND counts per governed table — a surplus autoindex minted by
+    # a table-level UNIQUE is rejected even though SQLite named it itself.
+    _INDEX_SIGNATURES: dict[str, tuple[tuple[str, ...], ...]] = {
+        "semantic_assertions": (("assertion_id",),),
+        "semantic_attachments": (("evidence_id",),),
+        "semantic_evidence_objects": (("evidence_sha256",),),
+        "semantic_adjudications": (("adjudication_id",),),
+        "event_sequence": (("event_id",),),
+        "acquisitions": (("row_id",), ("offering_id",)),
+    }
+    # v15-review H2: the marker table carries the same closed grammar law.
+    _MARKER_TABLE_SEGMENTS = [
+        ["ROW_ID", "TEXT", "PRIMARY", "KEY"],
+        ["OFFERING_ID", "TEXT", "UNIQUE"],
+        ["KIND", "TEXT"],
+    ]
+    # The pre-v3 legacy acquisition shape is the one other governed grammar a
+    # semantics store may carry (i12: legacy stores accept semantic writes).
+    _LEGACY_MARKER_TABLE_SEGMENTS = _MARKER_TABLE_SEGMENTS + [
+        ["RETRIEVED_AT", "TEXT"],
+        ["READINESS", "TEXT"],
+        ["RETENTION", "TEXT"],
+        ["CONTENT_VINTAGE_ID", "TEXT"],
+        ["ARCHIVE_SHA256", "TEXT"],
+        ["ARCHIVE_BYTES", "INTEGER"],
+        ["ANALYSIS_READY", "INTEGER"],
+        ["SIGNATURE", "BLOB"],
+    ]
+
+    @classmethod
+    def _index_signatures_governed(
+        cls, conn: sqlite3.Connection, table: str
+    ) -> bool:
+        found: list[tuple[str, ...]] = []
+        for _seq, name, unique, _origin, partial in conn.execute(
+            f"PRAGMA index_list({table})"
+        ):
+            if not unique or partial:
+                return False
+            found.append(
+                tuple(row[2] for row in conn.execute(f"PRAGMA index_info({name})"))
+            )
+        return sorted(found) == sorted(cls._INDEX_SIGNATURES[table])
+
     @staticmethod
     def _has_exact_unique_index(
         conn: sqlite3.Connection, table: str, column: str
@@ -1549,6 +1660,8 @@ class ContractDriver:
                 conn, table, self._SEMANTIC_IDENTITY[table]
             ):
                 raise _refuse("store_schema_unmigratable:semantics")
+            if not self._index_signatures_governed(conn, table):
+                raise _refuse("store_schema_unmigratable:semantics")
             if table == "event_sequence":
                 # v9-review H2: the sequencing structure is validated WHOLE —
                 # seq must be the exact INTEGER PRIMARY KEY under the frozen
@@ -1579,6 +1692,27 @@ class ContractDriver:
                     )
                 ):
                     raise _refuse("store_schema_unmigratable:semantics")
+        if "acquisitions" in tables:
+            # v15-review H2: the marker table is admitted by GRAMMAR, not by
+            # name — wrong shape refuses during non-mutating prevalidation,
+            # never as a raw error from the bootstrap insert.
+            marker_sql = conn.execute(
+                "SELECT sql FROM sqlite_master"
+                " WHERE type='table' AND name='acquisitions'"
+            ).fetchone()
+            if (
+                marker_sql is None
+                or not (
+                    self._table_segments_match(
+                        (marker_sql[0] or ""), self._MARKER_TABLE_SEGMENTS
+                    )
+                    or self._table_segments_match(
+                        (marker_sql[0] or ""), self._LEGACY_MARKER_TABLE_SEGMENTS
+                    )
+                )
+                or not self._index_signatures_governed(conn, "acquisitions")
+            ):
+                raise _refuse("store_schema_unmigratable:semantics")
         return rebuild_bare_ledger
 
     def initialize_database(self, store: str) -> SimpleNamespace:

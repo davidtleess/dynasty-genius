@@ -1,4 +1,4 @@
-"""RED v15 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v16 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -88,6 +88,11 @@ Adversarial review of RED v14's GREEN found that byte-canonical table DDL could
 coexist with unvalidated triggers, views, tables, and surplus indexes stored as
 separate sqlite_master objects. RED v15 binds the complete semantics-store object
 inventory against the committed f971244 GREEN.
+
+Adversarial review of RED v15's GREEN found two signature shadows inside the
+new inventory allowlist: any SQLite-generated autoindex name passed regardless of
+its indexed columns, and the marker acquisitions table passed by name without a
+schema contract. RED v16 binds both exact signatures against committed ba890ec.
 
 One injected seam
 -----------------
@@ -4825,3 +4830,223 @@ def test_v15_h1_semantics_store_requires_exact_schema_object_inventory(
 
     with contextlib.closing(sqlite3.connect(semantics)) as conn:
         assert _v15_application_rows(conn) == before
+
+
+# ---------------------------------------------------------------------------
+# V16 — accepted ba890ec findings: exact autoindexes + marker-table grammar
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("surplus_autoindex_table", "governed"),
+    (
+        pytest.param(None, True, id="canonical-index-signatures"),
+        pytest.param(
+            "semantic_assertions",
+            False,
+            id="assertion-claim-surplus-autoindex",
+        ),
+        pytest.param(
+            "semantic_attachments",
+            False,
+            id="attachment-provenance-surplus-autoindex",
+        ),
+        pytest.param(
+            "semantic_evidence_objects",
+            False,
+            id="evidence-object-blob-surplus-autoindex",
+        ),
+        pytest.param(
+            "semantic_adjudications",
+            False,
+            id="adjudication-authority-surplus-autoindex",
+        ),
+    ),
+)
+def test_v16_h1_autoindex_signatures_are_exact_for_every_governed_table(
+    tmp_path: Path, surplus_autoindex_table: str | None, governed: bool
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(
+        _semantic_record(assertion_id="v16-index-marker")
+    )
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        if surplus_autoindex_table == "semantic_assertions":
+            conn.execute(
+                "ALTER TABLE semantic_assertions"
+                " RENAME TO semantic_assertions_governed"
+            )
+            conn.execute(
+                "CREATE TABLE semantic_assertions ("
+                "assertion_id TEXT PRIMARY KEY, key TEXT, version INTEGER,"
+                " claim TEXT, active INTEGER, evidence_id TEXT, UNIQUE(claim))"
+            )
+            conn.execute(
+                "INSERT INTO semantic_assertions"
+                " SELECT * FROM semantic_assertions_governed"
+            )
+            conn.execute("DROP TABLE semantic_assertions_governed")
+        elif surplus_autoindex_table == "semantic_attachments":
+            conn.execute(
+                "ALTER TABLE semantic_attachments"
+                " RENAME TO semantic_attachments_governed"
+            )
+            conn.execute(
+                "CREATE TABLE semantic_attachments ("
+                "evidence_id TEXT PRIMARY KEY, retrieved_at TEXT, provenance TEXT,"
+                " retention TEXT, evidence_sha256 TEXT, evidence_bytes INTEGER,"
+                " UNIQUE(provenance))"
+            )
+            conn.execute(
+                "INSERT INTO semantic_attachments"
+                " SELECT * FROM semantic_attachments_governed"
+            )
+            conn.execute("DROP TABLE semantic_attachments_governed")
+        elif surplus_autoindex_table == "semantic_evidence_objects":
+            conn.execute(
+                "ALTER TABLE semantic_evidence_objects"
+                " RENAME TO semantic_evidence_objects_governed"
+            )
+            conn.execute(
+                "CREATE TABLE semantic_evidence_objects ("
+                "evidence_sha256 TEXT PRIMARY KEY, evidence_blob BLOB,"
+                " UNIQUE(evidence_blob))"
+            )
+            conn.execute(
+                "INSERT INTO semantic_evidence_objects"
+                " SELECT * FROM semantic_evidence_objects_governed"
+            )
+            conn.execute("DROP TABLE semantic_evidence_objects_governed")
+        elif surplus_autoindex_table == "semantic_adjudications":
+            conn.execute(
+                "ALTER TABLE semantic_adjudications"
+                " RENAME TO semantic_adjudications_governed"
+            )
+            conn.execute(
+                "CREATE TABLE semantic_adjudications ("
+                "adjudication_id TEXT PRIMARY KEY, key TEXT, authority TEXT,"
+                " provenance TEXT, parents TEXT, effective_assertion_id TEXT,"
+                " UNIQUE(authority))"
+            )
+            conn.execute(
+                "INSERT INTO semantic_adjudications"
+                " SELECT * FROM semantic_adjudications_governed"
+            )
+            conn.execute("DROP TABLE semantic_adjudications_governed")
+        conn.commit()
+        before_rows = _v15_application_rows(conn)
+    before_bytes = _v5_main_wal_fingerprint(semantics)
+
+    reopened = _driver(tmp_path)
+    if governed:
+        reopened.initialize_database("semantics")
+    else:
+        with pytest.raises(driver.error_type) as caught:
+            reopened.initialize_database("semantics")
+        assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+        assert _v5_main_wal_fingerprint(semantics) == before_bytes
+
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        assert _v15_application_rows(conn) == before_rows
+
+
+@pytest.mark.parametrize(
+    ("table_body", "insert_columns", "insert_values", "governed"),
+    (
+        pytest.param(
+            "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, kind TEXT",
+            "row_id, offering_id, kind",
+            ("bootstrap-marker", "_bootstrap", "marker"),
+            True,
+            id="canonical-marker-table",
+        ),
+        pytest.param(
+            "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE",
+            "row_id, offering_id",
+            ("bootstrap-marker", "_bootstrap"),
+            False,
+            id="missing-kind-column",
+        ),
+        pytest.param(
+            "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE,"
+            " kind TEXT, extra TEXT",
+            "row_id, offering_id, kind, extra",
+            ("bootstrap-marker", "_bootstrap", "marker", "surplus"),
+            False,
+            id="extra-column",
+        ),
+        pytest.param(
+            "offering_id TEXT UNIQUE, row_id TEXT PRIMARY KEY, kind TEXT",
+            "row_id, offering_id, kind",
+            ("bootstrap-marker", "_bootstrap", "marker"),
+            False,
+            id="wrong-column-order",
+        ),
+        pytest.param(
+            "row_id TEXT, offering_id TEXT UNIQUE, kind TEXT",
+            "row_id, offering_id, kind",
+            ("bootstrap-marker", "_bootstrap", "marker"),
+            False,
+            id="missing-row-id-primary-key",
+        ),
+        pytest.param(
+            "row_id TEXT PRIMARY KEY, offering_id TEXT, kind TEXT",
+            "row_id, offering_id, kind",
+            ("bootstrap-marker", "_bootstrap", "marker"),
+            False,
+            id="missing-offering-id-unique",
+        ),
+        pytest.param(
+            "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE,"
+            " kind TEXT, UNIQUE(kind)",
+            "row_id, offering_id, kind",
+            ("bootstrap-marker", "_bootstrap", "marker"),
+            False,
+            id="surplus-kind-autoindex",
+        ),
+        pytest.param(
+            "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, kind TEXT NOT NULL",
+            "row_id, offering_id, kind",
+            ("bootstrap-marker", "_bootstrap", "marker"),
+            False,
+            id="kind-definition-suffix",
+        ),
+    ),
+)
+def test_v16_h2_marker_acquisitions_table_requires_exact_closed_grammar(
+    tmp_path: Path,
+    table_body: str,
+    insert_columns: str,
+    insert_values: tuple[str, ...],
+    governed: bool,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(
+        _semantic_record(assertion_id="v16-marker-application-row")
+    )
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute("ALTER TABLE acquisitions RENAME TO acquisitions_governed")
+        conn.execute("CREATE TABLE acquisitions (" + table_body + ")")
+        placeholders = ",".join("?" for _ in insert_values)
+        conn.execute(
+            f"INSERT INTO acquisitions ({insert_columns}) VALUES ({placeholders})",
+            insert_values,
+        )
+        conn.execute("DROP TABLE acquisitions_governed")
+        conn.commit()
+        before_rows = _v15_application_rows(conn)
+    before_bytes = _v5_main_wal_fingerprint(semantics)
+
+    reopened = _driver(tmp_path)
+    if governed:
+        reopened.initialize_database("semantics")
+    else:
+        with pytest.raises(driver.error_type) as caught:
+            reopened.initialize_database("semantics")
+        assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+        assert _v5_main_wal_fingerprint(semantics) == before_bytes
+
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        assert _v15_application_rows(conn) == before_rows
