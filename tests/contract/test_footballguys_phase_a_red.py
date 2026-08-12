@@ -1,4 +1,4 @@
-"""RED v17 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v26 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -102,6 +102,78 @@ RED v17 binds all three against committed 1e5492b. Its constraint mutants are
 operational on every semantic writer branch, including the evidence-object path
 whose ``INSERT OR IGNORE`` falsely reported ``written`` after storing no bytes.
 
+Adversarial review of RED v17's GREEN found the same closure discipline had never
+reached the active acquisition stores: receipts/observations accepted table bodies,
+indexes, triggers, views, and surplus schema objects by column-name set alone. A
+hidden receipt CHECK produced a success-shaped result with retained bytes but no
+receipt, while the symmetric attempts CHECK left an orphan central event. The
+event ledger also remained on a sibling parser that ignored whole-DDL suffixes.
+RED v18 binds both accepted findings against committed 82405fd without changing
+the GREEN or opening capture, provider, scheduler, or downstream-phase work.
+
+Adversarial review of orphan-authored GREEN v18 found four migration boundaries
+that the already-current fixtures could not reach: full-store validation was a
+version-conditional precheck rather than a migration postcondition; acquisition
+stores were changed to WAL before a refused schema was classified; legacy shape
+and marker-only eligibility were unordered/nullable approximations; and rebuilding
+an empty attempts table erased durable AUTOINCREMENT high-water state. RED v19
+binds all four accepted findings against the settled uncommitted v18 GREEN at
+``cf3338e…``. It authorizes no capture or downstream phase.
+
+Adversarial review of GREEN v19 found two sibling exits in its new read-only
+classifier: a store with attempts but no acquisitions returned before validating
+attempts, and an exact legacy attempts table was not checked for populated state.
+Both stores were then changed from DELETE to WAL before the later refusal. RED v20
+binds those physical-mutation failures against GREEN ``177257dd…`` and carries a
+canonical attempts-only positive control so the repair cannot refuse every partial
+store.
+
+Adversarial review of GREEN v20 found the older filter-before-reduce defect at the
+acquisition boundary: SQL ``offering_id != '_bootstrap'`` silently drops NULL rows
+and bootstrap impostors before identity validation, rendering false ``no_record``.
+The same review found that the explicitly preserved attempts AUTOINCREMENT state is
+never itself governed, so TEXT/negative/duplicate/surplus sequence rows survive and
+can reset durable order; unsupported future ``user_version`` is silently downgraded;
+and the public ``read_model(now=...)`` dependency accepts invalid values on empty
+state and renders a healthy no-record result. RED v21 binds all four families against
+frozen GREEN ``6fbac8af…``. It authorizes no capture or downstream phase.
+
+Adversarial review of GREEN v21 found two writer-boundary defects outside the
+v21 contract. Semantic assertion replay and evidence-identity reuse report
+``noop``/``written`` even when the retained attachment or evidence object is
+missing or corrupt. Intake also samples its clock repeatedly after mutation,
+while semantic writes accept ``None`` as a disabled future-time check; invalid
+or changing clock dependencies can therefore leave stores or a paid raw object
+behind without a receipt. RED v22 binds evidence verification before every
+success-shaped semantic result and a single validated operation clock before
+governed mutation. It authorizes no capture or downstream phase.
+
+Adversarial review of GREEN v22 found that content-addressed evidence-object reuse
+could bypass the referenced-evidence check and report ``written`` over a corrupt
+orphan row. It also found that clock callables raising ordinary exceptions leaked
+through both writers and the read model. RED v23 binds both boundaries.
+
+Adversarial review of GREEN v23 found the same clock discipline stopping one seam
+short: direct ``semantic_state`` reads neither validate nor pin their clock. A
+failing clock leaks, a ``None`` clock disables the restored-future guard, and one
+reduction can sample multiple instants. RED v24 binds that direct read seam while
+requiring ``read_model`` to reuse its already-pinned clock.
+
+Adversarial review of GREEN v24 found that every clock boundary first proves only
+``isinstance(value, datetime)`` and then dispatches ``value.isoformat()`` outside
+the ordinary-failure translation boundary. A real datetime subclass whose method
+raises therefore leaks from intake, semantic writes, direct semantic reads, and
+both ``read_model`` time dependencies. RED v25 binds the complete validation
+operation while preserving process-control ``BaseException`` pass-through.
+
+Adversarial review of GREEN v25 found that catching the first method failure still
+retains the caller-owned datetime subclass as the alleged pinned instant. A stateful
+``isoformat()`` can therefore pass validation and fail after database creation or
+after paid-archive publication; comparison and ``astimezone()`` overrides leak from
+semantic reduction and refresh evaluation. RED v26 binds ownership: validation must
+yield a canonical base datetime (or equivalent immutable canonical value), and no
+downstream operation may dispatch methods on the caller-owned object.
+
 One injected seam
 -----------------
 GREEN exposes ``build_contract_driver(...)`` only as the composition root used by
@@ -139,7 +211,7 @@ import sqlite3
 import stat
 import subprocess
 import zipfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -3929,9 +4001,15 @@ def test_v9_h3_writer_refuses_fractional_event_clock_before_commit(
         result = driver.intake(
             archive_bytes=_unit_zip(),
             offering=_offering("v9-fractional-event-writer"),
-        )
+    )
     except driver.error_type as exc:
-        assert _error_code(exc).startswith("event_at_invalid:")
+        # RED v22 promotes malformed public operation-clock dependencies to
+        # one named refusal.  This inherited test remains an event-writer
+        # fail-closed oracle; v22 binds the exact public code below.
+        code = _error_code(exc)
+        assert code == "operation_clock_invalid" or code.startswith(
+            "event_at_invalid:"
+        )
     except Exception as exc:  # pragma: no cover - domain errors only
         pytest.fail(f"fractional event clock leaked {type(exc).__name__}: {exc}")
     else:
@@ -5498,3 +5576,1898 @@ def test_v17_m3_marker_grammar_consumes_the_complete_table_ddl(
                 for table in _V15_APPLICATION_TABLES
             }
         assert after_rows == before_rows
+
+
+# ---------------------------------------------------------------------------
+# V18 — accepted 82405fd findings: active-store closure + event whole-DDL
+# ---------------------------------------------------------------------------
+
+
+_V18_ACTIVE_STORES = (
+    pytest.param("full_offsite", "receipts", id="retained-receipts"),
+    pytest.param("metadata_only", "observations", id="metadata-observations"),
+)
+
+_V18_ACQUISITIONS_BODY = (
+    "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, source TEXT, kind TEXT,"
+    " retrieved_at TEXT, readiness TEXT, retention TEXT,"
+    " content_vintage_id TEXT, archive_sha256 TEXT, archive_bytes INTEGER,"
+    " role_records TEXT, analysis_ready INTEGER, signature BLOB, event_at TEXT,"
+    " event_seq INTEGER, event_id TEXT"
+)
+_V18_ATTEMPTS_BODY = (
+    "seq INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT, reason TEXT, at TEXT,"
+    " event_seq INTEGER, attempt_id TEXT, event_id TEXT"
+)
+
+
+def _v18_rebuild_active_table(
+    path: Path,
+    table: str,
+    body: str,
+    *,
+    suffix: str = "",
+) -> None:
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        before_columns = [
+            row[1] for row in conn.execute(f"PRAGMA table_info({table})")
+        ]
+        conn.execute(f"ALTER TABLE {table} RENAME TO {table}_governed")
+        conn.execute(f"CREATE TABLE {table} ({body}){suffix}")
+        after_columns = [
+            row[1] for row in conn.execute(f"PRAGMA table_info({table})")
+        ]
+        assert after_columns == before_columns, "mutant must preserve column names/order"
+        quoted = ",".join(f'"{column}"' for column in before_columns)
+        conn.execute(
+            f"INSERT INTO {table} ({quoted})"
+            f" SELECT {quoted} FROM {table}_governed"
+        )
+        conn.execute(f"DROP TABLE {table}_governed")
+        conn.commit()
+
+
+def _v18_active_rows(path: Path) -> dict[str, list[tuple[Any, ...]]]:
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        return {
+            table: [
+                tuple(row)
+                for row in conn.execute(
+                    f"SELECT * FROM {table} ORDER BY "
+                    + ("row_id" if table == "acquisitions" else "seq")
+                )
+            ]
+            for table in ("acquisitions", "attempts")
+        }
+
+
+def _v18_event_count(root: Path) -> int:
+    semantics = root / RUNTIME_PATHS["semantics"]
+    if not semantics.exists():
+        return 0
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        tables = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        if "event_sequence" not in tables:
+            return 0
+        return int(conn.execute("SELECT count(*) FROM event_sequence").fetchone()[0])
+
+
+def _v18_assert_pre_staging_schema_refusal(
+    tmp_path: Path,
+    *,
+    mode: str,
+    store: str,
+    malformed_archive: bool,
+    before_rows: dict[str, list[tuple[Any, ...]]],
+    before_bytes: dict[str, tuple[int, str]],
+) -> None:
+    driver = _driver(tmp_path, mode=mode)
+    caught: BaseException | None = None
+    result: Any = None
+    try:
+        result = driver.intake(
+            archive_bytes=b"not-a-zip" if malformed_archive else _unit_zip(),
+            offering=_offering(f"v18-{store}-schema"),
+        )
+    except BaseException as exc:  # exact domain type/code asserted below
+        caught = exc
+    path = tmp_path / RUNTIME_PATHS[store]
+    observed = {
+        "result": result,
+        "exception": caught,
+        "rows": _v18_active_rows(path),
+        "events": _v18_event_count(tmp_path),
+        "objects": sorted(
+            item.name
+            for item in (tmp_path / RUNTIME_PATHS["objects"]).glob("*.zip")
+        ),
+        "staging": _v6_staging_entries(tmp_path),
+    }
+    assert isinstance(caught, driver.error_type), observed
+    assert _error_code(caught) == f"store_schema_unmigratable:{store}"
+    assert _v5_main_wal_fingerprint(path) == before_bytes
+    assert observed["rows"] == before_rows
+    assert observed["events"] == 0
+    assert observed["objects"] == []
+    assert observed["staging"] == []
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+def test_v18_c1_hidden_acquisition_check_cannot_false_success(
+    tmp_path: Path, mode: str, store: str
+) -> None:
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    path = tmp_path / RUNTIME_PATHS[store]
+    constrained = _V18_ACQUISITIONS_BODY.replace(
+        "archive_bytes INTEGER",
+        "archive_bytes INTEGER CHECK(archive_bytes < 0)",
+    )
+    _v18_rebuild_active_table(path, "acquisitions", constrained)
+    before_rows = _v18_active_rows(path)
+    before_bytes = _v5_main_wal_fingerprint(path)
+
+    _v18_assert_pre_staging_schema_refusal(
+        tmp_path,
+        mode=mode,
+        store=store,
+        malformed_archive=False,
+        before_rows=before_rows,
+        before_bytes=before_bytes,
+    )
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+def test_v18_c1_hidden_attempt_check_cannot_leave_orphan_event(
+    tmp_path: Path, mode: str, store: str
+) -> None:
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    path = tmp_path / RUNTIME_PATHS[store]
+    constrained = _V18_ATTEMPTS_BODY.replace(
+        "status TEXT", "status TEXT CHECK(status = 'never')"
+    )
+    _v18_rebuild_active_table(path, "attempts", constrained)
+    before_rows = _v18_active_rows(path)
+    before_bytes = _v5_main_wal_fingerprint(path)
+
+    _v18_assert_pre_staging_schema_refusal(
+        tmp_path,
+        mode=mode,
+        store=store,
+        malformed_archive=True,
+        before_rows=before_rows,
+        before_bytes=before_bytes,
+    )
+
+
+_V18_TABLE_GRAMMAR_MUTANTS = (
+    pytest.param(
+        "acquisitions",
+        _V18_ACQUISITIONS_BODY,
+        " STRICT",
+        "strict",
+        id="acquisitions-strict-suffix",
+    ),
+    pytest.param(
+        "acquisitions",
+        _V18_ACQUISITIONS_BODY,
+        " WITHOUT ROWID",
+        "without-rowid",
+        id="acquisitions-without-rowid-suffix",
+    ),
+    pytest.param(
+        "acquisitions",
+        _V18_ACQUISITIONS_BODY.replace(
+            "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE",
+            "row_id TEXT UNIQUE, offering_id TEXT PRIMARY KEY",
+        ),
+        "",
+        "swapped-origins",
+        id="acquisitions-pk-unique-origins-swapped",
+    ),
+    pytest.param(
+        "acquisitions",
+        _V18_ACQUISITIONS_BODY.replace(
+            "row_id TEXT PRIMARY KEY", "row_id TEXT PRIMARY KEY COLLATE NOCASE"
+        ),
+        "",
+        "nocase",
+        id="acquisitions-pk-nocase",
+    ),
+    pytest.param(
+        "acquisitions",
+        _V18_ACQUISITIONS_BODY + ", UNIQUE(kind)",
+        "",
+        "surplus-unique",
+        id="acquisitions-surplus-kind-autoindex",
+    ),
+    pytest.param(
+        "attempts",
+        _V18_ATTEMPTS_BODY,
+        " STRICT",
+        "strict",
+        id="attempts-strict-suffix",
+    ),
+    pytest.param(
+        "attempts",
+        _V18_ATTEMPTS_BODY.replace(
+            "seq INTEGER PRIMARY KEY AUTOINCREMENT",
+            "seq INTEGER PRIMARY KEY",
+        ),
+        "",
+        "missing-autoincrement",
+        id="attempts-missing-autoincrement",
+    ),
+    pytest.param(
+        "attempts",
+        _V18_ATTEMPTS_BODY + ", UNIQUE(status)",
+        "",
+        "surplus-unique",
+        id="attempts-surplus-status-autoindex",
+    ),
+)
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize(
+    ("table", "body", "suffix", "physical_mutation"),
+    _V18_TABLE_GRAMMAR_MUTANTS,
+)
+def test_v18_c1_active_store_grammar_and_indexes_are_exact(
+    tmp_path: Path,
+    mode: str,
+    store: str,
+    table: str,
+    body: str,
+    suffix: str,
+    physical_mutation: str,
+) -> None:
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    path = tmp_path / RUNTIME_PATHS[store]
+    _v18_rebuild_active_table(path, table, body, suffix=suffix)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        indexes = list(conn.execute(f"PRAGMA index_list({table})"))
+        expanded = {
+            row[1]: list(conn.execute(f"PRAGMA index_xinfo({row[1]})"))
+            for row in indexes
+        }
+        if physical_mutation == "swapped-origins":
+            origins = {
+                column[2]: row[3]
+                for row in indexes
+                for column in expanded[row[1]]
+                if column[5] == 1
+            }
+            assert origins == {"row_id": "u", "offering_id": "pk"}
+        elif physical_mutation == "nocase":
+            assert any(
+                column[4].upper() == "NOCASE" and column[5] == 1
+                for columns in expanded.values()
+                for column in columns
+            )
+        elif physical_mutation == "surplus-unique":
+            assert any(row[2] == 1 for row in indexes)
+        elif physical_mutation == "missing-autoincrement":
+            ddl = conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='attempts'"
+            ).fetchone()[0]
+            assert "AUTOINCREMENT" not in ddl.upper()
+        elif physical_mutation in {"strict", "without-rowid"}:
+            ddl = conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+                (table,),
+            ).fetchone()[0]
+            assert physical_mutation.replace("-", " ").upper() in ddl.upper()
+    before_rows = _v18_active_rows(path)
+    before_bytes = _v5_main_wal_fingerprint(path)
+
+    _v18_assert_pre_staging_schema_refusal(
+        tmp_path,
+        mode=mode,
+        store=store,
+        malformed_archive=table == "attempts",
+        before_rows=before_rows,
+        before_bytes=before_bytes,
+    )
+
+
+_V18_SCHEMA_OBJECT_MUTANTS = (
+    pytest.param(
+        "acquisitions",
+        "CREATE TRIGGER v18_ignore_acquisition BEFORE INSERT ON acquisitions "
+        "BEGIN SELECT RAISE(IGNORE); END",
+        id="acquisition-ignore-trigger",
+    ),
+    pytest.param(
+        "attempts",
+        "CREATE TRIGGER v18_ignore_attempt BEFORE INSERT ON attempts "
+        "BEGIN SELECT RAISE(IGNORE); END",
+        id="attempt-ignore-trigger",
+    ),
+    pytest.param(
+        "acquisitions",
+        "CREATE VIEW v18_acquisition_shadow AS SELECT * FROM acquisitions",
+        id="surplus-view",
+    ),
+    pytest.param(
+        "acquisitions",
+        "CREATE TABLE v18_acquisition_shadow(payload TEXT)",
+        id="surplus-table",
+    ),
+    pytest.param(
+        "acquisitions",
+        "CREATE INDEX v18_kind_lookup ON acquisitions(kind)",
+        id="surplus-nonunique-index",
+    ),
+)
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize(("write_path", "schema_sql"), _V18_SCHEMA_OBJECT_MUTANTS)
+def test_v18_c1_active_store_schema_object_inventory_is_closed(
+    tmp_path: Path,
+    mode: str,
+    store: str,
+    write_path: str,
+    schema_sql: str,
+) -> None:
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    path = tmp_path / RUNTIME_PATHS[store]
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute(schema_sql)
+        conn.commit()
+    before_rows = _v18_active_rows(path)
+    before_bytes = _v5_main_wal_fingerprint(path)
+
+    _v18_assert_pre_staging_schema_refusal(
+        tmp_path,
+        mode=mode,
+        store=store,
+        malformed_archive=write_path == "attempts",
+        before_rows=before_rows,
+        before_bytes=before_bytes,
+    )
+
+
+def test_v18_c1_exact_empty_legacy_schema_still_migrates_observations(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path, mode="metadata_only")
+    observations = tmp_path / RUNTIME_PATHS["observations"]
+    _create_legacy_acquisition_db(observations)
+
+    driver.initialize_database("observations")
+    with contextlib.closing(sqlite3.connect(observations)) as conn:
+        acquisition_columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(acquisitions)")
+        }
+        attempt_columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(attempts)")
+        }
+    assert {"source", "role_records", "event_id"} <= acquisition_columns
+    assert {"attempt_id", "event_id"} <= attempt_columns
+
+
+_V18_EVENT_BODY = (
+    "seq INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT UNIQUE,"
+    " event_type TEXT, store_name TEXT, subject_id TEXT, event_at TEXT"
+)
+
+
+@pytest.mark.parametrize(
+    ("suffix", "governed"),
+    (
+        pytest.param("", True, id="canonical-event-table"),
+        pytest.param(" STRICT", False, id="event-table-strict-suffix"),
+    ),
+)
+def test_v18_m2_event_sequence_uses_the_shared_whole_ddl_contract(
+    tmp_path: Path, suffix: str, governed: bool
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute("ALTER TABLE event_sequence RENAME TO event_sequence_governed")
+        conn.execute(f"CREATE TABLE event_sequence ({_V18_EVENT_BODY}){suffix}")
+        conn.execute("DROP TABLE event_sequence_governed")
+        conn.commit()
+    before_bytes = _v5_main_wal_fingerprint(semantics)
+
+    reopened = _driver(tmp_path)
+    if governed:
+        reopened.initialize_database("semantics")
+    else:
+        with pytest.raises(driver.error_type) as caught:
+            reopened.initialize_database("semantics")
+        assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+        assert _v5_main_wal_fingerprint(semantics) == before_bytes
+
+
+# ---------------------------------------------------------------------------
+# V19 — migration is a governed transition, not a bypass around v18 closure
+# ---------------------------------------------------------------------------
+
+
+_V19_LEGACY_ACQUISITION_BODIES = {
+    1: (
+        "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, kind TEXT,"
+        " retrieved_at TEXT, readiness TEXT, retention TEXT,"
+        " content_vintage_id TEXT, archive_sha256 TEXT, archive_bytes INTEGER,"
+        " analysis_ready INTEGER, signature BLOB"
+    ),
+    2: (
+        "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, kind TEXT,"
+        " retrieved_at TEXT, readiness TEXT, retention TEXT,"
+        " content_vintage_id TEXT, archive_sha256 TEXT, archive_bytes INTEGER,"
+        " analysis_ready INTEGER, signature BLOB, source TEXT, role_records TEXT"
+    ),
+    3: (
+        "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, kind TEXT,"
+        " retrieved_at TEXT, readiness TEXT, retention TEXT,"
+        " content_vintage_id TEXT, archive_sha256 TEXT, archive_bytes INTEGER,"
+        " analysis_ready INTEGER, signature BLOB, source TEXT, role_records TEXT,"
+        " event_at TEXT, event_seq INTEGER"
+    ),
+}
+_V19_LEGACY_ATTEMPT_BODIES = {
+    1: "seq INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT, reason TEXT",
+    2: (
+        "seq INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT, reason TEXT,"
+        " at TEXT, event_seq INTEGER"
+    ),
+}
+
+
+def _v19_create_legacy_store(
+    path: Path,
+    *,
+    acquisition_version: int = 1,
+    attempts_version: int | None = 1,
+    acquisition_body: str | None = None,
+    attempts_body: str | None = None,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # This helper installs a historical database before constructing the
+    # driver. The governed source root is the one private component it creates.
+    path.parent.chmod(0o700)
+    acq_body = acquisition_body or _V19_LEGACY_ACQUISITION_BODIES[
+        acquisition_version
+    ]
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        assert conn.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
+        conn.execute(f"CREATE TABLE acquisitions ({acq_body})")
+        conn.execute(
+            "INSERT INTO acquisitions(row_id, offering_id, kind)"
+            " VALUES ('bootstrap-marker', '_bootstrap', 'marker')"
+        )
+        if attempts_version is not None:
+            body = attempts_body or _V19_LEGACY_ATTEMPT_BODIES[attempts_version]
+            conn.execute(f"CREATE TABLE attempts ({body})")
+        conn.commit()
+
+
+def _v19_assert_init_refuses_unchanged(
+    tmp_path: Path,
+    *,
+    mode: str,
+    store: str,
+    code: str,
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    before = _v5_main_wal_fingerprint(path)
+    driver = _driver(tmp_path, mode=mode)
+    with pytest.raises(driver.error_type) as caught:
+        driver.initialize_database(store)
+    assert _error_code(caught.value) == code
+    assert _v5_main_wal_fingerprint(path) == before
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize("acquisition_version", (1, 2, 3))
+@pytest.mark.parametrize("attempts_version", (1, 2))
+def test_v19_exact_supported_legacy_shapes_migrate_to_one_current_postcondition(
+    tmp_path: Path,
+    mode: str,
+    store: str,
+    acquisition_version: int,
+    attempts_version: int,
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    _v19_create_legacy_store(
+        path,
+        acquisition_version=acquisition_version,
+        attempts_version=attempts_version,
+    )
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    # The same full current-store postcondition must hold immediately and on
+    # a later open; migration is never a one-open validation exemption.
+    _driver(tmp_path, mode=mode).initialize_database(store)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        assert [
+            row[1] for row in conn.execute("PRAGMA table_info(acquisitions)")
+        ] == [column.strip().split()[0] for column in _V18_ACQUISITIONS_BODY.split(",")]
+        assert [row[1] for row in conn.execute("PRAGMA table_info(attempts)")] == [
+            column.strip().split()[0] for column in _V18_ATTEMPTS_BODY.split(",")
+        ]
+
+
+_V19_LEGACY_GRAMMAR_MUTANTS = (
+    pytest.param(
+        "hidden-check",
+        lambda body: body.replace(
+            "archive_bytes INTEGER",
+            "archive_bytes INTEGER CHECK(archive_bytes < 0)",
+        ),
+        id="hidden-check",
+    ),
+    pytest.param(
+        "wrong-column-order",
+        lambda body: body.replace(
+            "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE",
+            "offering_id TEXT UNIQUE, row_id TEXT PRIMARY KEY",
+        ),
+        id="wrong-column-order",
+    ),
+)
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize("acquisition_version", (1, 2, 3))
+@pytest.mark.parametrize(("_name", "mutate"), _V19_LEGACY_GRAMMAR_MUTANTS)
+def test_v19_legacy_acquisition_grammar_is_exact_before_rebuild(
+    tmp_path: Path,
+    mode: str,
+    store: str,
+    acquisition_version: int,
+    _name: str,
+    mutate: Any,
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    body = mutate(_V19_LEGACY_ACQUISITION_BODIES[acquisition_version])
+    _v19_create_legacy_store(
+        path,
+        acquisition_version=acquisition_version,
+        acquisition_body=body,
+    )
+    _v19_assert_init_refuses_unchanged(
+        tmp_path,
+        mode=mode,
+        store=store,
+        code=f"store_schema_unmigratable:{store}",
+    )
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize("attempts_version", (1, 2))
+def test_v19_legacy_attempts_grammar_is_exact_before_rebuild(
+    tmp_path: Path, mode: str, store: str, attempts_version: int
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    body = _V19_LEGACY_ATTEMPT_BODIES[attempts_version].replace(
+        "status TEXT", "status TEXT CHECK(status = 'never')"
+    )
+    _v19_create_legacy_store(
+        path,
+        attempts_version=attempts_version,
+        attempts_body=body,
+    )
+    _v19_assert_init_refuses_unchanged(
+        tmp_path,
+        mode=mode,
+        store=store,
+        code=f"store_schema_unmigratable:{store}",
+    )
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize("acquisition_version", (1, 2, 3))
+@pytest.mark.parametrize(
+    "schema_sql",
+    (
+        pytest.param(
+            "CREATE TRIGGER legacy_ignore BEFORE INSERT ON acquisitions "
+            "BEGIN SELECT RAISE(IGNORE); END",
+            id="surplus-trigger",
+        ),
+        pytest.param(
+            "CREATE TABLE legacy_shadow(payload TEXT)", id="surplus-table"
+        ),
+    ),
+)
+def test_v19_legacy_store_object_inventory_is_closed_before_rebuild(
+    tmp_path: Path,
+    mode: str,
+    store: str,
+    acquisition_version: int,
+    schema_sql: str,
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    _v19_create_legacy_store(path, acquisition_version=acquisition_version)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute(schema_sql)
+        conn.commit()
+    _v19_assert_init_refuses_unchanged(
+        tmp_path,
+        mode=mode,
+        store=store,
+        code=f"store_schema_unmigratable:{store}",
+    )
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize(
+    ("rows", "case"),
+    (
+        pytest.param(
+            (
+                ("bootstrap-marker", "_bootstrap", "marker"),
+                ("null-offering-row", None, "receipt"),
+            ),
+            "null-offering",
+            id="real-null-offering-row",
+        ),
+        pytest.param(
+            (("wrong-marker-id", "_bootstrap", "marker"),),
+            "wrong-row-id",
+            id="reserved-offering-wrong-row-id",
+        ),
+        pytest.param(
+            (("bootstrap-marker", "_bootstrap", "receipt"),),
+            "wrong-kind",
+            id="reserved-ids-wrong-kind",
+        ),
+    ),
+)
+def test_v19_legacy_marker_only_identity_is_exact_and_null_safe(
+    tmp_path: Path,
+    mode: str,
+    store: str,
+    rows: tuple[tuple[str, str | None, str], ...],
+    case: str,
+) -> None:
+    del case
+    path = tmp_path / RUNTIME_PATHS[store]
+    _v19_create_legacy_store(path)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute("DELETE FROM acquisitions")
+        conn.executemany(
+            "INSERT INTO acquisitions(row_id, offering_id, kind) VALUES(?,?,?)",
+            rows,
+        )
+        conn.commit()
+    _v19_assert_init_refuses_unchanged(
+        tmp_path,
+        mode=mode,
+        store=store,
+        code=f"store_migration_unreconcilable:{store}",
+    )
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+def test_v19_acquisition_prevalidation_precedes_delete_to_wal_mutation(
+    tmp_path: Path, mode: str, store: str
+) -> None:
+    setup = _driver(tmp_path, mode=mode)
+    setup.initialize_database(store)
+    path = tmp_path / RUNTIME_PATHS[store]
+    constrained = _V18_ACQUISITIONS_BODY.replace(
+        "archive_bytes INTEGER",
+        "archive_bytes INTEGER CHECK(archive_bytes < 0)",
+    )
+    _v18_rebuild_active_table(path, "acquisitions", constrained)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        assert conn.execute("PRAGMA journal_mode=DELETE").fetchone()[0] == "delete"
+    for suffix in ("-wal", "-shm"):
+        sidecar = Path(str(path) + suffix)
+        if sidecar.exists():
+            sidecar.unlink()
+    before = _v5_main_wal_fingerprint(path)
+
+    reopened = _driver(tmp_path, mode=mode)
+    with pytest.raises(reopened.error_type) as caught:
+        reopened.initialize_database(store)
+    assert _error_code(caught.value) == f"store_schema_unmigratable:{store}"
+    assert _v5_main_wal_fingerprint(path) == before
+    assert not Path(str(path) + "-wal").exists()
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+def test_v19_full_current_validation_is_postcondition_of_legacy_migration(
+    tmp_path: Path, mode: str, store: str
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    current_attempts_with_check = _V18_ATTEMPTS_BODY.replace(
+        "status TEXT", "status TEXT CHECK(status = 'never')"
+    )
+    _v19_create_legacy_store(
+        path,
+        attempts_version=None,
+        attempts_body=current_attempts_with_check,
+    )
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute(f"CREATE TABLE attempts ({current_attempts_with_check})")
+        conn.commit()
+    driver = _driver(tmp_path, mode=mode)
+    caught: BaseException | None = None
+    try:
+        driver.intake(
+            archive_bytes=b"not-a-zip",
+            offering=_offering(f"v19-transition-{store}"),
+        )
+    except BaseException as exc:
+        caught = exc
+    observed = {
+        "exception": repr(caught),
+        "events": _v18_event_count(tmp_path),
+        "objects": driver.snapshot()["objects"],
+        "trace": driver.snapshot()["trace"],
+    }
+    assert isinstance(caught, driver.error_type), observed
+    assert _error_code(caught) == f"store_schema_unmigratable:{store}"
+    assert observed["events"] == 0
+    assert observed["objects"] == []
+    assert "staging_create" not in observed["trace"]
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize("attempts_version", (1, 2))
+def test_v19_current_acquisitions_with_exact_legacy_attempts_migrates(
+    tmp_path: Path, mode: str, store: str, attempts_version: int
+) -> None:
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    path = tmp_path / RUNTIME_PATHS[store]
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute("DROP TABLE attempts")
+        conn.execute(
+            f"CREATE TABLE attempts ({_V19_LEGACY_ATTEMPT_BODIES[attempts_version]})"
+        )
+        conn.commit()
+
+    _driver(tmp_path, mode=mode).initialize_database(store)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        assert [row[1] for row in conn.execute("PRAGMA table_info(attempts)")] == [
+            column.strip().split()[0] for column in _V18_ATTEMPTS_BODY.split(",")
+        ]
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize("attempts_version", (1, 2))
+def test_v19_empty_attempts_migration_preserves_autoincrement_high_water(
+    tmp_path: Path, mode: str, store: str, attempts_version: int
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    _v19_create_legacy_store(path, attempts_version=attempts_version)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute("INSERT INTO attempts(seq, status, reason) VALUES(41,'old','old')")
+        conn.execute("DELETE FROM attempts")
+        assert conn.execute(
+            "SELECT seq FROM sqlite_sequence WHERE name='attempts'"
+        ).fetchone() == (41,)
+        conn.commit()
+
+    _driver(tmp_path, mode=mode).initialize_database(store)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        assert conn.execute(
+            "SELECT seq FROM sqlite_sequence WHERE name='attempts'"
+        ).fetchone() == (41,)
+        conn.execute("INSERT INTO attempts(status, reason) VALUES('probe','probe')")
+        assert conn.execute("SELECT seq FROM attempts").fetchone() == (42,)
+
+
+# ---------------------------------------------------------------------------
+# V20 — every acquisition-store classifier exit is non-mutating on refusal
+# ---------------------------------------------------------------------------
+
+
+def _v20_force_delete_mode(path: Path) -> None:
+    """Put a fixture in DELETE mode and remove WAL residue before fingerprinting."""
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        assert conn.execute("PRAGMA journal_mode=DELETE").fetchone()[0] == "delete"
+    for suffix in ("-wal", "-shm"):
+        sidecar = Path(f"{path}{suffix}")
+        if sidecar.exists():
+            sidecar.unlink()
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+def test_v20_attempts_only_malformed_store_refuses_before_wal_mutation(
+    tmp_path: Path, mode: str, store: str
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.chmod(0o700)
+    constrained = _V18_ATTEMPTS_BODY.replace(
+        "status TEXT", "status TEXT CHECK(status = 'never')"
+    )
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute(f"CREATE TABLE attempts ({constrained})")
+        conn.commit()
+    before = _v5_main_wal_fingerprint(path)
+
+    driver = _driver(tmp_path, mode=mode)
+    with pytest.raises(driver.error_type) as caught:
+        driver.initialize_database(store)
+    assert _error_code(caught.value) == f"store_schema_unmigratable:{store}"
+    assert _v5_main_wal_fingerprint(path) == before
+    assert not Path(f"{path}-wal").exists()
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+def test_v20_attempts_only_canonical_current_store_migrates(
+    tmp_path: Path, mode: str, store: str
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.chmod(0o700)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute(f"CREATE TABLE attempts ({_V18_ATTEMPTS_BODY})")
+        conn.commit()
+
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    driver.initialize_database(store)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        assert [row[1] for row in conn.execute("PRAGMA table_info(acquisitions)")] == [
+            column.strip().split()[0] for column in _V18_ACQUISITIONS_BODY.split(",")
+        ]
+        assert [row[1] for row in conn.execute("PRAGMA table_info(attempts)")] == [
+            column.strip().split()[0] for column in _V18_ATTEMPTS_BODY.split(",")
+        ]
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize("attempts_version", (1, 2))
+def test_v20_empty_legacy_attempts_only_migrates_and_preserves_high_water(
+    tmp_path: Path, mode: str, store: str, attempts_version: int
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.chmod(0o700)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute(
+            f"CREATE TABLE attempts ({_V19_LEGACY_ATTEMPT_BODIES[attempts_version]})"
+        )
+        conn.execute("INSERT INTO attempts(status, reason) VALUES('old','old')")
+        conn.execute("DELETE FROM attempts")
+        assert conn.execute(
+            "SELECT seq FROM sqlite_sequence WHERE name='attempts'"
+        ).fetchone() == (1,)
+        conn.commit()
+
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    driver.initialize_database(store)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute("INSERT INTO attempts(status, reason) VALUES('probe','probe')")
+        assert conn.execute("SELECT seq FROM attempts").fetchone() == (2,)
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize("attempts_version", (1, 2))
+def test_v20_populated_legacy_attempts_refuses_before_wal_mutation(
+    tmp_path: Path, mode: str, store: str, attempts_version: int
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    _v19_create_legacy_store(path, attempts_version=attempts_version)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute("INSERT INTO attempts(status, reason) VALUES('old','old')")
+        conn.commit()
+    _v20_force_delete_mode(path)
+    before = _v5_main_wal_fingerprint(path)
+
+    driver = _driver(tmp_path, mode=mode)
+    with pytest.raises(driver.error_type) as caught:
+        driver.initialize_database(store)
+    assert _error_code(caught.value) == f"store_migration_unreconcilable:{store}"
+    assert _v5_main_wal_fingerprint(path) == before
+    assert not Path(f"{path}-wal").exists()
+
+
+# ---------------------------------------------------------------------------
+# V21 — load all persisted rows; govern sequence/version/time dependencies
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize("mutation", ("null_offering", "bootstrap_impostor"))
+def test_v21_hidden_acquisition_rows_are_integrity_failures_before_filtering(
+    tmp_path: Path, mode: str, store: str, mutation: str
+) -> None:
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    path = tmp_path / RUNTIME_PATHS[store]
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        if mutation == "null_offering":
+            conn.execute(
+                "INSERT INTO acquisitions(row_id, offering_id, kind)"
+                " VALUES('corrupt-null', NULL, 'receipt')"
+            )
+        else:
+            conn.execute(
+                "UPDATE acquisitions SET row_id='impostor-marker'"
+                " WHERE offering_id='_bootstrap'"
+            )
+        conn.commit()
+
+    result = _driver(tmp_path, mode=mode).read_model(now=NOW)
+    assert result["status"] == "unverifiable", result
+    assert "drop record failed integrity check" in result["copy"], result
+    assert result["pill_delta"] == 1
+    assert result["clock_id"] is None
+    assert result["latest_analysis_ready_id"] is None
+    assert result["phase_c_open"] is False
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+def test_v21_exact_bootstrap_marker_remains_non_record(
+    tmp_path: Path, mode: str, store: str
+) -> None:
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    result = _driver(tmp_path, mode=mode).read_model(now=NOW)
+    assert result["status"] == "no_record"
+    assert result["copy"] == "No Footballguys refresh recorded"
+
+
+def _v21_mutate_sequence(conn: sqlite3.Connection, mutation: str) -> None:
+    conn.execute("INSERT INTO attempts(status, reason) VALUES('old','old')")
+    if mutation == "below_max":
+        conn.execute("INSERT INTO attempts(status, reason) VALUES('old-2','old-2')")
+        conn.execute("UPDATE sqlite_sequence SET seq=1 WHERE name='attempts'")
+        return
+    conn.execute("DELETE FROM attempts")
+    if mutation == "text":
+        conn.execute("UPDATE sqlite_sequence SET seq='bad' WHERE name='attempts'")
+    elif mutation == "negative":
+        conn.execute("UPDATE sqlite_sequence SET seq=-7 WHERE name='attempts'")
+    elif mutation == "duplicate":
+        conn.execute("INSERT INTO sqlite_sequence(name, seq) VALUES('attempts', 99)")
+    elif mutation == "ghost":
+        conn.execute("INSERT INTO sqlite_sequence(name, seq) VALUES('ghost', 99)")
+    else:  # pragma: no cover - test authoring guard
+        raise AssertionError(mutation)
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize(
+    "mutation", ("text", "negative", "duplicate", "ghost", "below_max")
+)
+def test_v21_current_attempt_sequence_state_refuses_before_wal_mutation(
+    tmp_path: Path, mode: str, store: str, mutation: str
+) -> None:
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    path = tmp_path / RUNTIME_PATHS[store]
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        _v21_mutate_sequence(conn, mutation)
+        conn.commit()
+    _v20_force_delete_mode(path)
+    before = _v5_main_wal_fingerprint(path)
+
+    reopened = _driver(tmp_path, mode=mode)
+    with pytest.raises(reopened.error_type) as caught:
+        reopened.initialize_database(store)
+    assert _error_code(caught.value) == f"store_sequence_unreconcilable:{store}"
+    assert _v5_main_wal_fingerprint(path) == before
+    assert not Path(f"{path}-wal").exists()
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+@pytest.mark.parametrize("mutation", ("text", "duplicate"))
+def test_v21_legacy_attempt_sequence_state_refuses_before_wal_mutation(
+    tmp_path: Path, mode: str, store: str, mutation: str
+) -> None:
+    path = tmp_path / RUNTIME_PATHS[store]
+    _v19_create_legacy_store(path, attempts_version=1)
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        _v21_mutate_sequence(conn, mutation)
+        conn.commit()
+    _v20_force_delete_mode(path)
+    before = _v5_main_wal_fingerprint(path)
+
+    reopened = _driver(tmp_path, mode=mode)
+    with pytest.raises(reopened.error_type) as caught:
+        reopened.initialize_database(store)
+    assert _error_code(caught.value) == f"store_sequence_unreconcilable:{store}"
+    assert _v5_main_wal_fingerprint(path) == before
+    assert not Path(f"{path}-wal").exists()
+
+
+@pytest.mark.parametrize(("mode", "store"), _V18_ACTIVE_STORES)
+def test_v21_future_acquisition_schema_version_refuses_byte_frozen(
+    tmp_path: Path, mode: str, store: str
+) -> None:
+    driver = _driver(tmp_path, mode=mode)
+    driver.initialize_database(store)
+    path = tmp_path / RUNTIME_PATHS[store]
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        conn.execute("PRAGMA user_version=999")
+        conn.commit()
+    _v20_force_delete_mode(path)
+    before = _v5_main_wal_fingerprint(path)
+
+    reopened = _driver(tmp_path, mode=mode)
+    with pytest.raises(reopened.error_type) as caught:
+        reopened.initialize_database(store)
+    assert _error_code(caught.value) == f"store_schema_unmigratable:{store}"
+    assert _v5_main_wal_fingerprint(path) == before
+    assert not Path(f"{path}-wal").exists()
+
+
+@pytest.mark.parametrize(
+    "invalid_now",
+    (
+        pytest.param(None, id="none"),
+        pytest.param("bad", id="text"),
+        pytest.param(7, id="integer"),
+        pytest.param(datetime(2026, 8, 12, 0, 0), id="naive-datetime"),
+    ),
+)
+def test_v21_invalid_explicit_read_now_is_named_fail_closed_before_state_branch(
+    tmp_path: Path, invalid_now: Any
+) -> None:
+    driver = _driver(tmp_path)
+    before = tuple(
+        sorted(str(path.relative_to(tmp_path)) for path in tmp_path.rglob("*"))
+    )
+    result = driver.read_model(now=invalid_now)
+    after = tuple(
+        sorted(str(path.relative_to(tmp_path)) for path in tmp_path.rglob("*"))
+    )
+    assert result == {
+        "status": "unverifiable",
+        "copy": "Footballguys refresh record unreadable",
+        "pill_delta": 1,
+        "clock_id": None,
+        "latest_analysis_ready_id": None,
+        "phase_c_open": False,
+    }
+    assert after == before
+
+
+def test_v21_valid_aware_explicit_read_now_still_reads_no_record(
+    tmp_path: Path,
+) -> None:
+    result = _driver(tmp_path).read_model(now=NOW)
+    assert result["status"] == "no_record"
+    assert result["copy"] == "No Footballguys refresh recorded"
+
+
+# ---------------------------------------------------------------------------
+# V22 — writer success requires verified evidence and one pinned operation clock
+# ---------------------------------------------------------------------------
+
+
+_V22_SEMANTIC_TABLES = (
+    "semantic_assertions",
+    "semantic_attachments",
+    "semantic_evidence_objects",
+)
+
+
+def _v22_semantic_rows(path: Path) -> dict[str, list[tuple[Any, ...]]]:
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        return {
+            table: conn.execute(
+                f"SELECT * FROM {table} ORDER BY rowid"
+            ).fetchall()
+            for table in _V22_SEMANTIC_TABLES
+        }
+
+
+def _v22_break_retained_evidence(path: Path, mutation: str) -> None:
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        if mutation == "attachment_deleted":
+            conn.execute(
+                "DELETE FROM semantic_attachments WHERE evidence_id=?",
+                ("evidence-horizon-v1",),
+            )
+        elif mutation == "object_deleted":
+            conn.execute(
+                "DELETE FROM semantic_evidence_objects WHERE evidence_sha256=?",
+                (_sha(SEMANTIC_EVIDENCE),),
+            )
+        elif mutation == "object_corrupt":
+            conn.execute(
+                "UPDATE semantic_evidence_objects SET evidence_blob=?"
+                " WHERE evidence_sha256=?",
+                (b"corrupt retained evidence", _sha(SEMANTIC_EVIDENCE)),
+            )
+        else:  # pragma: no cover - test authoring guard
+            raise AssertionError(mutation)
+        conn.commit()
+
+
+def _v22_assert_evidence_refusal(
+    driver: Any,
+    record: dict[str, Any],
+    semantics: Path,
+    before: dict[str, list[tuple[Any, ...]]],
+) -> None:
+    try:
+        driver.write_semantic_assertion(record)
+    except driver.error_type as exc:
+        assert _error_code(exc) == (
+            "semantic_evidence_unverifiable:evidence-horizon-v1"
+        )
+    except Exception as exc:  # pragma: no cover - named domain refusal only
+        pytest.fail(f"unverifiable semantic evidence raised {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - success-shaped results are the reviewed defect
+        pytest.fail("unverifiable semantic evidence reported semantic write success")
+    assert _v22_semantic_rows(semantics) == before
+
+
+@pytest.mark.parametrize(
+    "mutation", ("attachment_deleted", "object_deleted", "object_corrupt")
+)
+def test_v22_identical_semantic_replay_requires_verified_retained_evidence(
+    tmp_path: Path, mutation: str
+) -> None:
+    driver = _driver(tmp_path)
+    record = _semantic_record()
+    assert _value(driver.write_semantic_assertion(record), "status") == "written"
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    _v22_break_retained_evidence(semantics, mutation)
+    before = _v22_semantic_rows(semantics)
+
+    _v22_assert_evidence_refusal(driver, record, semantics, before)
+    assert driver.semantic_state(key=SEMANTIC_KEY) == {
+        "state": "unknown",
+        "reason": "active_evidence_unverifiable",
+        "eligible_for_phase_c": False,
+    }
+
+
+@pytest.mark.parametrize(
+    "mutation", ("attachment_deleted", "object_deleted", "object_corrupt")
+)
+def test_v22_reused_evidence_identity_requires_verified_retained_evidence(
+    tmp_path: Path, mutation: str
+) -> None:
+    driver = _driver(tmp_path)
+    assert _value(
+        driver.write_semantic_assertion(_semantic_record()), "status"
+    ) == "written"
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    _v22_break_retained_evidence(semantics, mutation)
+    before = _v22_semantic_rows(semantics)
+    reused = _semantic_record(assertion_id="horizon-v2", version=2)
+    reused["attachment"]["evidence_id"] = "evidence-horizon-v1"
+
+    _v22_assert_evidence_refusal(driver, reused, semantics, before)
+
+
+def test_v22_verified_identical_semantic_replay_remains_a_noop(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    record = _semantic_record()
+    assert _value(driver.write_semantic_assertion(record), "status") == "written"
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    before = _v22_semantic_rows(semantics)
+
+    assert _value(driver.write_semantic_assertion(record), "status") == "noop"
+    assert _v22_semantic_rows(semantics) == before
+    assert driver.semantic_state(key=SEMANTIC_KEY)["eligible_for_phase_c"] is True
+
+
+def _v22_clock_driver(tmp_path: Path, clock: Any):
+    return _mod().build_contract_driver(
+        repo_root=tmp_path,
+        manifest_path=_write_manifest(tmp_path),
+        retention_mode="full_offsite",
+        clock=clock,
+    )
+
+
+def _v22_assert_no_governed_write_residue(root: Path) -> None:
+    for store in ("receipts", "semantics", "observations"):
+        path = root / RUNTIME_PATHS[store]
+        assert not path.exists()
+        assert not Path(f"{path}-wal").exists()
+        assert not Path(f"{path}-shm").exists()
+    objects = root / RUNTIME_PATHS["objects"]
+    assert not objects.exists() or list(objects.iterdir()) == []
+
+
+_V22_INVALID_OPERATION_CLOCKS = (
+    pytest.param(None, id="none"),
+    pytest.param("bad-clock", id="text"),
+    pytest.param(7, id="integer"),
+    pytest.param(datetime(2026, 8, 12, 0, 0), id="naive-datetime"),
+    pytest.param(NOW.replace(microsecond=1), id="fractional-datetime"),
+)
+
+
+@pytest.mark.parametrize("invalid_clock", _V22_INVALID_OPERATION_CLOCKS)
+def test_v22_invalid_intake_clock_refuses_before_governed_mutation(
+    tmp_path: Path, invalid_clock: Any
+) -> None:
+    driver = _v22_clock_driver(tmp_path, lambda: invalid_clock)
+    try:
+        driver.intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering("v22-invalid-intake-clock"),
+        )
+    except driver.error_type as exc:
+        assert _error_code(exc) == "operation_clock_invalid"
+    except Exception as exc:  # pragma: no cover - named domain refusal only
+        pytest.fail(f"invalid intake clock raised {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - invalid dependencies never produce a result
+        pytest.fail("invalid intake clock was accepted")
+    _v22_assert_no_governed_write_residue(tmp_path)
+
+
+@pytest.mark.parametrize("invalid_clock", _V22_INVALID_OPERATION_CLOCKS)
+def test_v22_invalid_semantic_clock_refuses_before_store_initialization(
+    tmp_path: Path, invalid_clock: Any
+) -> None:
+    driver = _v22_clock_driver(tmp_path, lambda: invalid_clock)
+    try:
+        driver.write_semantic_assertion(_semantic_record())
+    except driver.error_type as exc:
+        assert _error_code(exc) == "operation_clock_invalid"
+    except Exception as exc:  # pragma: no cover - named domain refusal only
+        pytest.fail(f"invalid semantic clock raised {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - None currently disables the future check
+        pytest.fail("invalid semantic clock was accepted")
+    _v22_assert_no_governed_write_residue(tmp_path)
+
+
+def test_v22_none_clock_cannot_disable_future_semantic_evidence_guard(
+    tmp_path: Path,
+) -> None:
+    driver = _v22_clock_driver(tmp_path, lambda: None)
+    record = _semantic_record()
+    record["attachment"]["retrieved_at"] = "2099-01-01T00:00:00Z"
+    try:
+        driver.write_semantic_assertion(record)
+    except driver.error_type as exc:
+        assert _error_code(exc) == "operation_clock_invalid"
+    except Exception as exc:  # pragma: no cover - named domain refusal only
+        pytest.fail(f"None clock with future evidence raised {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - this was a reproduced Phase-C eligibility bypass
+        pytest.fail("None clock accepted future semantic evidence")
+    _v22_assert_no_governed_write_residue(tmp_path)
+
+
+def test_v22_intake_pins_one_valid_operation_clock_before_mutation(
+    tmp_path: Path,
+) -> None:
+    calls = 0
+
+    def once_then_invalid() -> Any:
+        nonlocal calls
+        calls += 1
+        return NOW if calls == 1 else None
+
+    driver = _v22_clock_driver(tmp_path, once_then_invalid)
+    result = driver.intake(
+        archive_bytes=_unit_zip(),
+        offering=_offering("v22-clock-pinned-once"),
+    )
+    assert result.status == "review_required"
+    assert calls == 1
+    objects = tmp_path / RUNTIME_PATHS["objects"]
+    assert len(list(objects.glob("*.zip"))) == 1
+    receipts = tmp_path / RUNTIME_PATHS["receipts"]
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        assert conn.execute(
+            "SELECT count(*) FROM acquisitions WHERE kind='receipt'"
+        ).fetchone() == (1,)
+    assert calls == 1
+
+
+def test_v22_failed_intake_reuses_pinned_clock_for_attempt_record(
+    tmp_path: Path,
+) -> None:
+    calls = 0
+
+    def once_then_invalid() -> Any:
+        nonlocal calls
+        calls += 1
+        return NOW if calls == 1 else None
+
+    driver = _v22_clock_driver(tmp_path, once_then_invalid)
+    result = driver.intake(
+        archive_bytes=b"not-a-zip",
+        offering=_offering("v22-clock-pinned-failure"),
+    )
+    assert result.status == "failed"
+    assert result.attempt_recorded is True
+    receipts = tmp_path / RUNTIME_PATHS["receipts"]
+    with contextlib.closing(sqlite3.connect(receipts)) as conn:
+        assert conn.execute("SELECT count(*) FROM attempts").fetchone() == (1,)
+    assert calls == 1
+
+
+def test_v22_semantic_writer_observes_one_valid_operation_clock(
+    tmp_path: Path,
+) -> None:
+    calls = 0
+
+    def counted_clock() -> datetime:
+        nonlocal calls
+        calls += 1
+        return NOW
+
+    driver = _v22_clock_driver(tmp_path, counted_clock)
+    assert _value(
+        driver.write_semantic_assertion(_semantic_record()), "status"
+    ) == "written"
+    assert calls == 1
+
+
+# ---------------------------------------------------------------------------
+# V23 — content-address reuse verifies bytes; clock failures are domain states
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "orphan_blob",
+    (
+        pytest.param(None, id="null-blob"),
+        pytest.param(b"corrupt orphan evidence", id="wrong-bytes"),
+    ),
+)
+def test_v23_corrupt_orphan_evidence_object_refuses_before_semantic_write(
+    tmp_path: Path, orphan_blob: bytes | None
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    evidence_sha = _sha(SEMANTIC_EVIDENCE)
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            "INSERT INTO semantic_evidence_objects"
+            " (evidence_sha256, evidence_blob) VALUES (?,?)",
+            (evidence_sha, orphan_blob),
+        )
+        conn.commit()
+    before = _v22_semantic_rows(semantics)
+
+    try:
+        driver.write_semantic_assertion(_semantic_record())
+    except driver.error_type as exc:
+        assert _error_code(exc) == (
+            "semantic_evidence_unverifiable:evidence-horizon-v1"
+        )
+    except Exception as exc:  # pragma: no cover - named domain refusal only
+        pytest.fail(f"corrupt orphan evidence raised {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - INSERT OR IGNORE formerly reported success
+        pytest.fail("corrupt orphan evidence object reported semantic write success")
+
+    assert _v22_semantic_rows(semantics) == before
+    assert driver.semantic_state(key=SEMANTIC_KEY) == {
+        "state": "unknown",
+        "reason": "no_active_assertion",
+        "eligible_for_phase_c": False,
+    }
+
+
+def test_v23_verified_orphan_evidence_object_is_reused_safely(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    evidence_sha = _sha(SEMANTIC_EVIDENCE)
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            "INSERT INTO semantic_evidence_objects"
+            " (evidence_sha256, evidence_blob) VALUES (?,?)",
+            (evidence_sha, SEMANTIC_EVIDENCE),
+        )
+        conn.commit()
+
+    assert _value(
+        driver.write_semantic_assertion(_semantic_record()), "status"
+    ) == "written"
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        assert conn.execute(
+            "SELECT count(*) FROM semantic_evidence_objects"
+        ).fetchone() == (1,)
+    assert driver.semantic_state(key=SEMANTIC_KEY)["eligible_for_phase_c"] is True
+
+
+def _v23_raising_clock(error_type: type[Exception]):
+    def fail() -> datetime:
+        raise error_type("clock dependency failed")
+
+    return fail
+
+
+_V23_CLOCK_FAILURES = (
+    pytest.param(RuntimeError, id="runtime-error"),
+    pytest.param(ValueError, id="value-error"),
+)
+
+
+@pytest.mark.parametrize("error_type", _V23_CLOCK_FAILURES)
+def test_v23_intake_clock_failure_is_named_and_precedes_governed_mutation(
+    tmp_path: Path, error_type: type[Exception]
+) -> None:
+    driver = _v22_clock_driver(tmp_path, _v23_raising_clock(error_type))
+    try:
+        driver.intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering("v23-intake-clock-failure"),
+        )
+    except driver.error_type as exc:
+        assert _error_code(exc) == "operation_clock_invalid"
+    except Exception as exc:  # pragma: no cover - domain translation required
+        pytest.fail(f"intake clock failure leaked {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - failed dependency never produces a result
+        pytest.fail("intake clock failure was accepted")
+    _v22_assert_no_governed_write_residue(tmp_path)
+
+
+@pytest.mark.parametrize("error_type", _V23_CLOCK_FAILURES)
+def test_v23_semantic_clock_failure_is_named_before_store_initialization(
+    tmp_path: Path, error_type: type[Exception]
+) -> None:
+    driver = _v22_clock_driver(tmp_path, _v23_raising_clock(error_type))
+    try:
+        driver.write_semantic_assertion(_semantic_record())
+    except driver.error_type as exc:
+        assert _error_code(exc) == "operation_clock_invalid"
+    except Exception as exc:  # pragma: no cover - domain translation required
+        pytest.fail(f"semantic clock failure leaked {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - failed dependency never produces a result
+        pytest.fail("semantic clock failure was accepted")
+    _v22_assert_no_governed_write_residue(tmp_path)
+
+
+@pytest.mark.parametrize("error_type", _V23_CLOCK_FAILURES)
+def test_v23_read_clock_failure_renders_literal_record_unreadable_state(
+    tmp_path: Path, error_type: type[Exception]
+) -> None:
+    driver = _v22_clock_driver(tmp_path, _v23_raising_clock(error_type))
+    before = tuple(sorted(str(path.relative_to(tmp_path)) for path in tmp_path.rglob("*")))
+    try:
+        result = driver.read_model(now=NOW)
+    except Exception as exc:  # pragma: no cover - read boundary is a state
+        pytest.fail(f"read clock failure leaked {type(exc).__name__}: {exc}")
+    assert result == {
+        "status": "unverifiable",
+        "copy": "Footballguys refresh record unreadable",
+        "pill_delta": 1,
+        "clock_id": None,
+        "latest_analysis_ready_id": None,
+        "phase_c_open": False,
+    }
+    after = tuple(sorted(str(path.relative_to(tmp_path)) for path in tmp_path.rglob("*")))
+    assert after == before
+
+
+# ---------------------------------------------------------------------------
+# V24 — direct semantic-state reads validate and pin one operation clock
+# ---------------------------------------------------------------------------
+
+
+def _v24_assert_semantic_clock_invalid(state: dict[str, Any]) -> None:
+    assert state == {
+        "state": "unknown",
+        "reason": "operation_clock_invalid",
+        "eligible_for_phase_c": False,
+    }
+
+
+@pytest.mark.parametrize("error_type", _V23_CLOCK_FAILURES)
+def test_v24_direct_semantic_state_translates_clock_dependency_failure(
+    tmp_path: Path, error_type: type[Exception]
+) -> None:
+    driver = _driver(tmp_path)
+    assert _value(
+        driver.write_semantic_assertion(_semantic_record()), "status"
+    ) == "written"
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    before = _v22_semantic_rows(semantics)
+    driver.clock = _v23_raising_clock(error_type)
+
+    try:
+        state = driver.semantic_state(key=SEMANTIC_KEY)
+    except Exception as exc:  # pragma: no cover - direct read is a state boundary
+        pytest.fail(f"semantic-state clock failure leaked {type(exc).__name__}: {exc}")
+    _v24_assert_semantic_clock_invalid(state)
+    assert _v22_semantic_rows(semantics) == before
+
+
+@pytest.mark.parametrize("invalid_clock", _V22_INVALID_OPERATION_CLOCKS)
+def test_v24_direct_semantic_state_rejects_invalid_clock_value(
+    tmp_path: Path, invalid_clock: Any
+) -> None:
+    driver = _driver(tmp_path)
+    assert _value(
+        driver.write_semantic_assertion(_semantic_record()), "status"
+    ) == "written"
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    before = _v22_semantic_rows(semantics)
+    driver.clock = lambda: invalid_clock
+
+    _v24_assert_semantic_clock_invalid(driver.semantic_state(key=SEMANTIC_KEY))
+    assert _v22_semantic_rows(semantics) == before
+
+
+def test_v24_none_clock_cannot_make_restored_future_evidence_eligible(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    assert _value(
+        driver.write_semantic_assertion(_semantic_record()), "status"
+    ) == "written"
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute(
+            "UPDATE semantic_attachments SET retrieved_at=? WHERE evidence_id=?",
+            ("2099-01-01T00:00:00Z", "evidence-horizon-v1"),
+        )
+        conn.commit()
+    before = _v22_semantic_rows(semantics)
+    driver.clock = lambda: None
+
+    state = driver.semantic_state(key=SEMANTIC_KEY)
+    _v24_assert_semantic_clock_invalid(state)
+    assert state["eligible_for_phase_c"] is False
+    assert _v22_semantic_rows(semantics) == before
+
+
+def test_v24_direct_semantic_state_observes_clock_once_for_whole_reduction(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(_semantic_record())
+    driver.write_semantic_assertion(
+        _semantic_record(assertion_id="horizon-v2", version=2)
+    )
+    calls = 0
+
+    def once_then_fail() -> datetime:
+        nonlocal calls
+        calls += 1
+        if calls > 1:
+            raise RuntimeError("semantic reduction resampled its clock")
+        return NOW
+
+    driver.clock = once_then_fail
+    state = driver.semantic_state(key=SEMANTIC_KEY)
+    assert state["state"] == "known"
+    assert state["assertion_id"] == "horizon-v2"
+    assert state["eligible_for_phase_c"] is True
+    assert calls == 1
+
+
+def test_v24_read_model_reuses_its_pinned_clock_inside_semantic_state(
+    tmp_path: Path,
+) -> None:
+    seeded = _driver(tmp_path)
+    seeded.write_semantic_assertion(_semantic_record())
+    assert seeded.intake(
+        archive_bytes=_unit_zip(),
+        offering=_offering("v24-read-clock-shared"),
+    ).status == "ready"
+    calls = 0
+
+    def counted_clock() -> datetime:
+        nonlocal calls
+        calls += 1
+        return NOW
+
+    reader = _v22_clock_driver(tmp_path, counted_clock)
+    result = reader.read_model(now=NOW)
+    assert result["status"] != "unverifiable"
+    assert calls == 1
+
+
+# ---------------------------------------------------------------------------
+# V25 — datetime method-dispatch failures stay inside the clock boundary
+# ---------------------------------------------------------------------------
+
+
+def _v25_datetime_with_failing_isoformat(
+    error_type: type[BaseException],
+) -> datetime:
+    class FailingIsoformatDateTime(datetime):
+        def isoformat(self, *args: Any, **kwargs: Any) -> str:
+            del args, kwargs
+            raise error_type("clock isoformat failed")
+
+    return FailingIsoformatDateTime(2026, 8, 12, tzinfo=timezone.utc)
+
+
+_V25_ORDINARY_METHOD_FAILURES = (
+    pytest.param(RuntimeError, id="runtime-error"),
+    pytest.param(ValueError, id="value-error"),
+)
+
+
+@pytest.mark.parametrize("error_type", _V25_ORDINARY_METHOD_FAILURES)
+def test_v25_intake_datetime_method_failure_is_named_before_mutation(
+    tmp_path: Path, error_type: type[Exception]
+) -> None:
+    failing = _v25_datetime_with_failing_isoformat(error_type)
+    driver = _v22_clock_driver(tmp_path, lambda: failing)
+
+    try:
+        driver.intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering("v25-intake-datetime-method-failure"),
+        )
+    except driver.error_type as exc:
+        assert _error_code(exc) == "operation_clock_invalid"
+    except Exception as exc:  # pragma: no cover - domain translation required
+        pytest.fail(f"intake datetime method failure leaked {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - failed dependency never produces a result
+        pytest.fail("intake accepted a datetime whose validation method failed")
+    _v22_assert_no_governed_write_residue(tmp_path)
+
+
+@pytest.mark.parametrize("error_type", _V25_ORDINARY_METHOD_FAILURES)
+def test_v25_semantic_write_datetime_method_failure_is_named_before_store(
+    tmp_path: Path, error_type: type[Exception]
+) -> None:
+    failing = _v25_datetime_with_failing_isoformat(error_type)
+    driver = _v22_clock_driver(tmp_path, lambda: failing)
+
+    try:
+        driver.write_semantic_assertion(_semantic_record())
+    except driver.error_type as exc:
+        assert _error_code(exc) == "operation_clock_invalid"
+    except Exception as exc:  # pragma: no cover - domain translation required
+        pytest.fail(f"semantic datetime method failure leaked {type(exc).__name__}: {exc}")
+    else:  # pragma: no cover - failed dependency never produces a result
+        pytest.fail("semantic write accepted a datetime whose validation method failed")
+    _v22_assert_no_governed_write_residue(tmp_path)
+
+
+@pytest.mark.parametrize("error_type", _V25_ORDINARY_METHOD_FAILURES)
+def test_v25_direct_semantic_state_translates_datetime_method_failure(
+    tmp_path: Path, error_type: type[Exception]
+) -> None:
+    driver = _driver(tmp_path)
+    assert driver.write_semantic_assertion(_semantic_record())["status"] == "written"
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    before = _v22_semantic_rows(semantics)
+    failing = _v25_datetime_with_failing_isoformat(error_type)
+    driver.clock = lambda: failing
+
+    try:
+        state = driver.semantic_state(key=SEMANTIC_KEY)
+    except Exception as exc:  # pragma: no cover - direct read is a state boundary
+        pytest.fail(f"semantic-state datetime method failure leaked {type(exc).__name__}: {exc}")
+    _v24_assert_semantic_clock_invalid(state)
+    assert _v22_semantic_rows(semantics) == before
+
+
+@pytest.mark.parametrize("error_type", _V25_ORDINARY_METHOD_FAILURES)
+def test_v25_read_clock_datetime_method_failure_renders_row_9(
+    tmp_path: Path, error_type: type[Exception]
+) -> None:
+    failing = _v25_datetime_with_failing_isoformat(error_type)
+    driver = _v22_clock_driver(tmp_path, lambda: failing)
+    before = tuple(sorted(str(path.relative_to(tmp_path)) for path in tmp_path.rglob("*")))
+
+    try:
+        result = driver.read_model(now=NOW)
+    except Exception as exc:  # pragma: no cover - read boundary is a state
+        pytest.fail(f"read-clock datetime method failure leaked {type(exc).__name__}: {exc}")
+    assert result == {
+        "status": "unverifiable",
+        "copy": "Footballguys refresh record unreadable",
+        "pill_delta": 1,
+        "clock_id": None,
+        "latest_analysis_ready_id": None,
+        "phase_c_open": False,
+    }
+    after = tuple(sorted(str(path.relative_to(tmp_path)) for path in tmp_path.rglob("*")))
+    assert after == before
+
+
+@pytest.mark.parametrize("error_type", _V25_ORDINARY_METHOD_FAILURES)
+def test_v25_explicit_read_instant_method_failure_renders_row_9(
+    tmp_path: Path, error_type: type[Exception]
+) -> None:
+    driver = _driver(tmp_path)
+    failing = _v25_datetime_with_failing_isoformat(error_type)
+    before = tuple(sorted(str(path.relative_to(tmp_path)) for path in tmp_path.rglob("*")))
+
+    try:
+        result = driver.read_model(now=failing)
+    except Exception as exc:  # pragma: no cover - read boundary is a state
+        pytest.fail(f"explicit-now datetime method failure leaked {type(exc).__name__}: {exc}")
+    assert result == {
+        "status": "unverifiable",
+        "copy": "Footballguys refresh record unreadable",
+        "pill_delta": 1,
+        "clock_id": None,
+        "latest_analysis_ready_id": None,
+        "phase_c_open": False,
+    }
+    after = tuple(sorted(str(path.relative_to(tmp_path)) for path in tmp_path.rglob("*")))
+    assert after == before
+
+
+@pytest.mark.parametrize("boundary", ("intake", "read_model"))
+def test_v25_process_control_datetime_method_failure_passes_through(
+    tmp_path: Path, boundary: str
+) -> None:
+    failing = _v25_datetime_with_failing_isoformat(KeyboardInterrupt)
+    driver = _v22_clock_driver(tmp_path, lambda: failing)
+
+    with pytest.raises(KeyboardInterrupt, match="clock isoformat failed"):
+        if boundary == "intake":
+            driver.intake(
+                archive_bytes=_unit_zip(),
+                offering=_offering("v25-process-control-pass-through"),
+            )
+        else:
+            driver.read_model(now=NOW)
+    _v22_assert_no_governed_write_residue(tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# V26 — a validated instant is an owned canonical value, not the caller object
+# ---------------------------------------------------------------------------
+
+
+def _v26_stateful_isoformat_datetime(*, allowed_calls: int) -> datetime:
+    class StatefulIsoformatDateTime(datetime):
+        calls: int
+        allowed_calls: int
+
+        def isoformat(self, *args: Any, **kwargs: Any) -> str:
+            self.calls += 1
+            if self.calls > self.allowed_calls:
+                raise RuntimeError(f"isoformat call {self.calls} escaped validation")
+            return super().isoformat(*args, **kwargs)
+
+    value = StatefulIsoformatDateTime(2026, 8, 12, tzinfo=timezone.utc)
+    value.calls = 0
+    value.allowed_calls = allowed_calls
+    return value
+
+
+def _v26_comparison_bomb_datetime() -> datetime:
+    class ComparisonBombDateTime(datetime):
+        comparison_calls: int
+
+        def __lt__(self, other: Any) -> bool:
+            self.comparison_calls += 1
+            raise RuntimeError("caller-owned datetime comparison escaped validation")
+
+    value = ComparisonBombDateTime(2026, 8, 12, tzinfo=timezone.utc)
+    value.comparison_calls = 0
+    return value
+
+
+def _v26_astimezone_bomb_datetime() -> datetime:
+    class AstimezoneBombDateTime(datetime):
+        astimezone_calls: int
+
+        def astimezone(self, *args: Any, **kwargs: Any) -> datetime:
+            del args, kwargs
+            self.astimezone_calls += 1
+            raise RuntimeError("caller-owned datetime astimezone escaped validation")
+
+    value = AstimezoneBombDateTime(2026, 8, 12, tzinfo=timezone.utc)
+    value.astimezone_calls = 0
+    return value
+
+
+@pytest.mark.parametrize("allowed_calls", (1, 2))
+def test_v26_intake_uses_one_owned_canonical_clock_after_validation(
+    tmp_path: Path, allowed_calls: int
+) -> None:
+    supplied = _v26_stateful_isoformat_datetime(allowed_calls=allowed_calls)
+    driver = _v22_clock_driver(tmp_path, lambda: supplied)
+
+    try:
+        result = driver.intake(
+            archive_bytes=_unit_zip(),
+            offering=_offering(f"v26-owned-clock-{allowed_calls}"),
+        )
+    except Exception as exc:  # pragma: no cover - one valid observation must suffice
+        pytest.fail(f"intake reused caller-owned datetime: {type(exc).__name__}: {exc}")
+    # No effective horizon assertion is seeded in this fixture; successful
+    # intake is therefore honestly review_required, never falsely ready.
+    assert result.status == "review_required"
+    assert supplied.calls == 1
+    objects = tmp_path / RUNTIME_PATHS["objects"]
+    assert len(list(objects.glob("*.zip"))) == 1
+    with contextlib.closing(
+        sqlite3.connect(tmp_path / RUNTIME_PATHS["receipts"])
+    ) as conn:
+        assert conn.execute(
+            "SELECT count(*) FROM acquisitions WHERE row_id != ?",
+            ("bootstrap-marker",),
+        ).fetchone() == (1,)
+
+
+def test_v26_semantic_write_never_compares_caller_owned_clock(
+    tmp_path: Path,
+) -> None:
+    supplied = _v26_comparison_bomb_datetime()
+    driver = _v22_clock_driver(tmp_path, lambda: supplied)
+
+    try:
+        result = driver.write_semantic_assertion(_semantic_record())
+    except Exception as exc:  # pragma: no cover - canonical base must be compared
+        pytest.fail(f"semantic write compared caller datetime: {type(exc).__name__}: {exc}")
+    assert result["status"] == "written"
+    assert supplied.comparison_calls == 0
+
+
+def test_v26_direct_semantic_state_never_compares_caller_owned_clock(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    assert driver.write_semantic_assertion(_semantic_record())["status"] == "written"
+    supplied = _v26_comparison_bomb_datetime()
+    driver.clock = lambda: supplied
+
+    try:
+        state = driver.semantic_state(key=SEMANTIC_KEY)
+    except Exception as exc:  # pragma: no cover - canonical base must be compared
+        pytest.fail(f"semantic state compared caller datetime: {type(exc).__name__}: {exc}")
+    assert state["state"] == "known"
+    assert state["eligible_for_phase_c"] is True
+    assert supplied.comparison_calls == 0
+
+
+def test_v26_read_model_clock_pin_is_owned_before_semantic_reduction(
+    tmp_path: Path,
+) -> None:
+    seeded = _driver(tmp_path)
+    assert seeded.write_semantic_assertion(_semantic_record())["status"] == "written"
+    assert seeded.intake(
+        archive_bytes=_unit_zip(),
+        offering=_offering("v26-owned-read-clock"),
+    ).status == "ready"
+    supplied = _v26_comparison_bomb_datetime()
+    reader = _v22_clock_driver(tmp_path, lambda: supplied)
+
+    try:
+        result = reader.read_model(now=NOW)
+    except Exception as exc:  # pragma: no cover - pinned value must be canonical
+        pytest.fail(f"read model compared caller datetime: {type(exc).__name__}: {exc}")
+    assert result["status"] != "unverifiable"
+    # This phase may derive analysis readiness, but Phase C itself remains
+    # closed by its independent horizon/cohort/estimand gates.
+    assert result["phase_c_open"] is False
+    assert result["latest_analysis_ready_id"] is not None
+    assert supplied.comparison_calls == 0
+
+
+def test_v26_explicit_read_instant_is_canonical_before_state_evaluation(
+    tmp_path: Path,
+) -> None:
+    driver = _driver(tmp_path)
+    assert driver.write_semantic_assertion(_semantic_record())["status"] == "written"
+    assert driver.intake(
+        archive_bytes=_unit_zip(),
+        offering=_offering("v26-owned-explicit-now"),
+    ).status == "ready"
+    supplied = _v26_astimezone_bomb_datetime()
+    expected = driver.read_model(
+        now=datetime(2026, 8, 12, tzinfo=timezone.utc)
+    )
+
+    try:
+        result = driver.read_model(now=supplied)
+    except Exception as exc:  # pragma: no cover - evaluator gets canonical base
+        pytest.fail(f"state evaluator reused caller datetime: {type(exc).__name__}: {exc}")
+    assert result == expected
+    assert supplied.astimezone_calls == 0

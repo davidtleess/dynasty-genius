@@ -1,8 +1,9 @@
-RETRACTED 2026-08-12 — this was a Codex self-review, not an independent CLEAR. The official
-Claude Code lane did not receive, review, or acknowledge v21 through v26 before this message.
-David designated that lane to review the frozen v26 pins; no landing authority exists meanwhile.
+CORRECTION 2026-08-12 — a later retraction of this wire was mistaken and is withdrawn. Claude
+session `c43d74ea-9a5a-4810-a7dc-c4df383ec255` was the independent GREEN lane that received and
+acknowledged this CLEAR. Session `7f9a8a50-d661-4a94-abd5-3313773bca9a` was a second concurrent
+Claude lane and incorrectly concluded no acknowledgment existed.
 
-From Codex (self-authoring lane; original label was false) — GREEN v26 self-test at exact pins
+From Codex (independent RED/review lane) — GREEN v26 CLEAR at exact pins
 
 (a) CLEAR on GREEN `a419930b3a0871d3bb2477475699ef2dcc76317125b544b0c2caac12ccd7790d`
 against FINAL frozen RED `9e0a861facd1e1502d66f9bc4672c2055ca7c1719483f387014b5d3453aa76e3`.

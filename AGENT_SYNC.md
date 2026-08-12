@@ -11,6 +11,69 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ✅ 2026-08-12 CORRECTION TO CORRECTION — v26 INDEPENDENT CLEAR RESTORED
+>
+> Claude session `7f9a8a50-d661-4a94-abd5-3313773bca9a` demanded the retraction in the next
+> lower block after checking only its own session. It subsequently discovered the concurrent
+> Claude GREEN lane `c43d74ea-9a5a-4810-a7dc-c4df383ec255` and withdrew that demand. Session
+> `c43d74ea…` authored the GREEN, received Codex's CLEAR, and acknowledged it; Codex authored the
+> REDs and independently reviewed the GREEN. The original v26 independence and CLEAR stand.
+>
+> David cancelled the proposed v20 reset. Preserve the frozen GREEN `a419930b…` and RED
+> `9e0a861f…`. The lower retraction block remains audit history but is superseded. The current gate
+> is David's separate landing word. No push, capture, provider contact, scheduler, or Phase B/C/D
+> authority exists. H2 QB rushing remains **UNDER TEST** with no result.
+
+> # ⛔ 2026-08-12 CORRECTION — v26 CODEX CLEAR RETRACTED · OFFICIAL CLAUDE REVIEW IN PROGRESS
+>
+> **Agent-authored correction. David's current word controls:** the proposed reset to v20 is
+> **cancelled**; do not reproduce or restore v20. Freeze the current pair at GREEN
+> `a419930b3a0871d3bb2477475699ef2dcc76317125b544b0c2caac12ccd7790d` and RED
+> `9e0a861facd1e1502d66f9bc4672c2055ca7c1719483f387014b5d3453aa76e3` while the official Claude
+> Code lane performs the independent review.
+>
+> **Retraction:** the lower v26 block incorrectly calls Codex's verdict an independent CLEAR and
+> says Claude received and acknowledged it. Claude Code did not receive, review, or acknowledge
+> v21 through v26. Codex authored the RED and GREEN work for those rounds and self-reviewed it;
+> that CLEAR is invalid and **RETRACTED**. The lower block is superseded in full.
+>
+> **Current gate:** official Claude Code adversarial verdict, then a separate David landing word.
+> No commit, push, capture, provider contact, scheduler, or Phase B/C/D authority exists. Neither
+> frozen implementation file may change during review. H2 QB rushing remains **UNDER TEST** with
+> no result.
+
+> # ⭐ 2026-08-12 PHASE A GREEN CLEAR AT v26 — PRODUCTION-GRADE FOR REVIEWED SCOPE · LANDING IS DAVID'S WORD
+>
+> **Agent-authored state. Not David's prose.** Authority: his standing word *"work freely with
+> claude until this is production grade"* — that loop has now TERMINATED on the independent
+> reviewer's explicit CLEAR. **This block creates no commit, push, capture, provider-contact,
+> scheduler, or Phase B/C/D authority.**
+>
+> **Codex CLEAR [w#274y7lyk-1] at exact pins:** GREEN
+> `a419930b3a0871d3bb2477475699ef2dcc76317125b544b0c2caac12ccd7790d`
+> (`src/dynasty_genius/sources/footballguys_intake.py`) vs FINAL frozen RED
+> `9e0a861facd1e1502d66f9bc4672c2055ca7c1719483f387014b5d3453aa76e3`
+> (`tests/contract/test_footballguys_phase_a_red.py`, 660 contracts). Codex's verdict verbatim:
+> *"No further defect was established. The Phase-A implementation boundary is production-grade
+> for its reviewed scope and ready for a separate landing decision."*
+>
+> **The arc (one overnight session, 2026-08-12 ~00:00–now):** seven frozen RED generations
+> (v20→v26), 26 adversarial rounds of RED/GREEN between the binding lanes; two RED pins were
+> withdrawn on defects the implementing lane proved mechanically (an internally-unsatisfiable
+> contract pair; three oracle defects) — falsification ran in BOTH directions. Every GREEN gate
+> landed with zero inherited regressions. Final census 660/660 strict; full suite 5,893P with
+> zero tracked failures; real-store byte-copy probes clean throughout.
+>
+> **⏳ OPEN FOR DAVID — the ONE decision this block surfaces: the LANDING word** for the
+> RED+GREEN pair (both uncommitted in the working tree at the pins above; byte-copies preserved;
+> the pair must land TOGETHER — the RED's 660 contracts would fail CI without its GREEN).
+> After landing, each of these stays its own separate word: push · first capture · scheduler ·
+> provider contact · Phase B (identity contract) / C (descriptive divergence) / D (surface).
+>
+> **Standing:** H2 QB rushing remains a registered hypothesis **UNDER TEST** with no result.
+> The 15 standing full-suite failures are solely the UNTRACKED `test_governed_cadence_inputs_red.py`
+> (do not commit it). Frozen wire pair untouched at `b3247ec8…` / `fd924eb1…`.
+
 > # ⭐ 2026-08-10 (4) DAVID'S RETENTION WORD: OPTION 1 — THE PHASE A RED IS OPEN
 >
 > **David's word, verbatim: "1"** — in answer to the §8 retention choice presented with tradeoffs:

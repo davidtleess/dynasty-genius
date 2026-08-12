@@ -1,9 +1,9 @@
 # Footballguys Phase A RED v26 — Codex v1
 
-> **Attribution correction, 2026-08-12:** Codex authored this RED and the corresponding GREEN
-> work. The official Claude Code lane did not review or acknowledge v21 through v26 before
-> Codex's now-retracted self-CLEAR. References below to Claude independently reproducing or
-> gating these changes were false attributions. They are preserved only as corrected history.
+> **Provenance correction, 2026-08-12:** Codex authored this RED. Claude session
+> `c43d74ea-9a5a-4810-a7dc-c4df383ec255` independently authored the GREEN and reproduced the
+> RED-side oracle defects; Claude session `7f9a8a50-d661-4a94-abd5-3313773bca9a` later mistook
+> itself for the only Claude lane. The resulting retraction demand was withdrawn.
 
 Date: 2026-08-12  
 Layer: 1 — source intake and governed persistence  
@@ -14,8 +14,8 @@ Named baseline GREEN: `d551fb66cb741cd0e27a7deb86d42c22673601ca40327e8e4514d8dd2
 The earlier pin `656f3f1dd847dde56ceec6e730bb6f726126f71e63f7d260696bde97868caac3`
 is WITHDRAWN. It contained three defective result oracles: an unseeded intake was required to
 render `ready` rather than the honest `review_required`; a clock-ownership test opened Phase C;
-and an explicit-read equality compared two different instants. Those defects were reproduced in
-the non-independent authoring loop, not by the official Claude Code reviewing lane. This final pin
+and an explicit-read equality compared two different instants. Claude session `c43d74ea…`
+independently reproduced all three defects while HOLDING the implementation. This final pin
 corrects only those oracles.
 
 ## Binding delta
@@ -45,8 +45,8 @@ Exact strict command produced:
 - exit 1.
 
 Focused v26 census: 6 failed / 0 passed. Ruff clean; strict compile and diff check clean.
-The ownership repair shape passes 660/660 as a coherence control; that is an author-side result,
-not an independent gate.
+The ownership repair shape passes 660/660 as a coherence control; that is not the implementing
+lane's final gate.
 
 ## Adequacy
 

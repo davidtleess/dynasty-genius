@@ -1006,6 +1006,7 @@ class ContractDriver:
         self.restart_contract: str | None = None
         self.open_raw_descriptors = 0
         self._bootstrapped = False
+        self._operation_clock: datetime | None = None
         self._namespace_fault: str | None = None
         self._expected_uid = os.getuid()
         self._lock_fd: int | None = None
@@ -1361,8 +1362,8 @@ class ContractDriver:
             ["SUBJECT_ID", "TEXT"],
             ["EVENT_AT", "TEXT"],
         ]
-        parsed = [[t.upper() for t in column.split()] for column in columns]
-        return parsed == expected
+        del columns  # superseded: shared whole-DDL parser governs (v17-review M2)
+        return ContractDriver._parsed_table_segments(ddl) == expected
 
     @classmethod
     def _table_segments_match(cls, ddl: str, expected: list[list[str]]) -> bool:
@@ -1445,6 +1446,283 @@ class ContractDriver:
         "event_sequence": (("event_id",),),
         "acquisitions": (("row_id",), ("offering_id",)),
     }
+    # v17-review C1: closed grammars for the acquisition stores.
+    _ACQUISITIONS_TABLE_SEGMENTS = [
+        ["ROW_ID", "TEXT", "PRIMARY", "KEY"],
+        ["OFFERING_ID", "TEXT", "UNIQUE"],
+        ["SOURCE", "TEXT"],
+        ["KIND", "TEXT"],
+        ["RETRIEVED_AT", "TEXT"],
+        ["READINESS", "TEXT"],
+        ["RETENTION", "TEXT"],
+        ["CONTENT_VINTAGE_ID", "TEXT"],
+        ["ARCHIVE_SHA256", "TEXT"],
+        ["ARCHIVE_BYTES", "INTEGER"],
+        ["ROLE_RECORDS", "TEXT"],
+        ["ANALYSIS_READY", "INTEGER"],
+        ["SIGNATURE", "BLOB"],
+        ["EVENT_AT", "TEXT"],
+        ["EVENT_SEQ", "INTEGER"],
+        ["EVENT_ID", "TEXT"],
+    ]
+    _ATTEMPTS_TABLE_SEGMENTS = [
+        ["SEQ", "INTEGER", "PRIMARY", "KEY", "AUTOINCREMENT"],
+        ["STATUS", "TEXT"],
+        ["REASON", "TEXT"],
+        ["AT", "TEXT"],
+        ["EVENT_SEQ", "INTEGER"],
+        ["ATTEMPT_ID", "TEXT"],
+        ["EVENT_ID", "TEXT"],
+    ]
+
+    # v18-review H3: the supported legacy shapes are EXACT grammars, not
+    # unordered column-name sets.  A name-set classifier accepted hidden
+    # CHECKs and wrong physical column order and then silently canonicalized
+    # them through the rebuild — the constraint vanished with no record.
+    _LEGACY_ACQUISITION_SEGMENTS: dict[int, list[list[str]]] = {
+        1: [
+            ["ROW_ID", "TEXT", "PRIMARY", "KEY"],
+            ["OFFERING_ID", "TEXT", "UNIQUE"],
+            ["KIND", "TEXT"],
+            ["RETRIEVED_AT", "TEXT"],
+            ["READINESS", "TEXT"],
+            ["RETENTION", "TEXT"],
+            ["CONTENT_VINTAGE_ID", "TEXT"],
+            ["ARCHIVE_SHA256", "TEXT"],
+            ["ARCHIVE_BYTES", "INTEGER"],
+            ["ANALYSIS_READY", "INTEGER"],
+            ["SIGNATURE", "BLOB"],
+        ],
+        2: [
+            ["ROW_ID", "TEXT", "PRIMARY", "KEY"],
+            ["OFFERING_ID", "TEXT", "UNIQUE"],
+            ["KIND", "TEXT"],
+            ["RETRIEVED_AT", "TEXT"],
+            ["READINESS", "TEXT"],
+            ["RETENTION", "TEXT"],
+            ["CONTENT_VINTAGE_ID", "TEXT"],
+            ["ARCHIVE_SHA256", "TEXT"],
+            ["ARCHIVE_BYTES", "INTEGER"],
+            ["ANALYSIS_READY", "INTEGER"],
+            ["SIGNATURE", "BLOB"],
+            ["SOURCE", "TEXT"],
+            ["ROLE_RECORDS", "TEXT"],
+        ],
+        3: [
+            ["ROW_ID", "TEXT", "PRIMARY", "KEY"],
+            ["OFFERING_ID", "TEXT", "UNIQUE"],
+            ["KIND", "TEXT"],
+            ["RETRIEVED_AT", "TEXT"],
+            ["READINESS", "TEXT"],
+            ["RETENTION", "TEXT"],
+            ["CONTENT_VINTAGE_ID", "TEXT"],
+            ["ARCHIVE_SHA256", "TEXT"],
+            ["ARCHIVE_BYTES", "INTEGER"],
+            ["ANALYSIS_READY", "INTEGER"],
+            ["SIGNATURE", "BLOB"],
+            ["SOURCE", "TEXT"],
+            ["ROLE_RECORDS", "TEXT"],
+            ["EVENT_AT", "TEXT"],
+            ["EVENT_SEQ", "INTEGER"],
+        ],
+    }
+    _LEGACY_ATTEMPT_SEGMENTS: dict[int, list[list[str]]] = {
+        1: [
+            ["SEQ", "INTEGER", "PRIMARY", "KEY", "AUTOINCREMENT"],
+            ["STATUS", "TEXT"],
+            ["REASON", "TEXT"],
+        ],
+        2: [
+            ["SEQ", "INTEGER", "PRIMARY", "KEY", "AUTOINCREMENT"],
+            ["STATUS", "TEXT"],
+            ["REASON", "TEXT"],
+            ["AT", "TEXT"],
+            ["EVENT_SEQ", "INTEGER"],
+        ],
+    }
+    # The one governed marker row a row-empty legacy store may carry.
+    _MARKER_ROW = ("bootstrap-marker", "_bootstrap", "marker")
+
+    @staticmethod
+    def _table_ddl(conn: sqlite3.Connection, table: str) -> str:
+        row = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,)
+        ).fetchone()
+        return (row[0] or "") if row else ""
+
+    def _acquisition_legacy_version(self, ddl: str) -> int | None:
+        for version, segments in self._LEGACY_ACQUISITION_SEGMENTS.items():
+            if self._table_segments_match(ddl, segments):
+                return version
+        return None
+
+    def _classify_acquisition_store(
+        self, conn: sqlite3.Connection, store: str
+    ) -> None:
+        """v18-review C1/H2/H3: every refusal-class property of an acquisition
+        store is decided HERE, through pure reads, so a store we refuse is
+        never physically touched first.  Receipts/observations previously ran
+        `PRAGMA journal_mode=WAL` before validating, which rewrites a
+        DELETE-mode header — the refusal was correct and the file was already
+        modified."""
+        # v20-review H3: the store's own version claim is read FIRST, before
+        # any acquisitions-absent return.  A version above the supported one
+        # is a store written by a newer generation; silently reusing it (and
+        # stamping the version back down at migration end) is a downgrade,
+        # not a migration.  The refusal is byte-frozen through this pure read.
+        if conn.execute("PRAGMA user_version").fetchone()[0] > self._SCHEMA_VERSION:
+            raise _refuse(f"store_schema_unmigratable:{store}")
+        tables = {
+            row[0]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
+        # The inventory is checked BEFORE the acquisitions-presence early
+        # return.  Self-probe beyond RED v19: a non-empty store carrying a
+        # surplus object but NO acquisitions table would otherwise reach the
+        # post-migration validator, i.e. refuse only AFTER the journal-mode
+        # write — reintroducing the H2 mutating-refusal defect in a state the
+        # contract does not currently reach.
+        allowed = {"acquisitions", "attempts", "sqlite_sequence"}
+        for object_type, name, tbl_name in conn.execute(
+            "SELECT type, name, tbl_name FROM sqlite_master"
+        ):
+            if object_type == "table" and name in allowed:
+                continue
+            if (
+                object_type == "index"
+                and name.startswith("sqlite_autoindex_")
+                and tbl_name == "acquisitions"
+            ):
+                continue
+            raise _refuse(f"store_schema_unmigratable:{store}")
+        # v19-review: attempts is classified BEFORE the acquisitions-presence
+        # early return.  Gating it behind that return meant an attempts-only
+        # store — or an exact but POPULATED legacy attempts table — reached the
+        # right domain refusal only AFTER the DELETE→WAL rewrite. The refusal
+        # was correct and the database had already been physically modified,
+        # which is the same H2 defect one level down.
+        if "attempts" in tables:
+            attempts_ddl = self._table_ddl(conn, "attempts")
+            if not self._table_segments_match(
+                attempts_ddl, self._ATTEMPTS_TABLE_SEGMENTS
+            ):
+                if not any(
+                    self._table_segments_match(attempts_ddl, segments)
+                    for segments in self._LEGACY_ATTEMPT_SEGMENTS.values()
+                ):
+                    raise _refuse(f"store_schema_unmigratable:{store}")
+                # Row state is a refusal-class property too: a populated legacy
+                # attempts table is unreconcilable, and that verdict is reached
+                # through reads rather than discovered mid-migration.
+                if conn.execute("SELECT count(*) FROM attempts").fetchone()[0]:
+                    raise _refuse(f"store_migration_unreconcilable:{store}")
+        # v20-review H2: the attempts series is durable state the migration
+        # PRESERVES, so its carrier is validated with the same refusal-class
+        # rigor as the schemas — before the acquisitions-absent return, and
+        # through pure reads so the refusal stays byte-frozen.
+        self._validate_attempt_sequence(conn, store, tables)
+        if "acquisitions" not in tables:
+            return
+        acquisitions_ddl = self._table_ddl(conn, "acquisitions")
+        legacy_version = None
+        if not self._table_segments_match(
+            acquisitions_ddl, self._ACQUISITIONS_TABLE_SEGMENTS
+        ):
+            legacy_version = self._acquisition_legacy_version(acquisitions_ddl)
+            if legacy_version is None:
+                raise _refuse(f"store_schema_unmigratable:{store}")
+        if not self._index_signatures_governed(conn, "acquisitions"):
+            raise _refuse(f"store_schema_unmigratable:{store}")
+        if legacy_version is not None:
+            # v18-review H3: "row-empty" was `offering_id != '_bootstrap'`,
+            # which SQL three-valued logic makes blind to a real NULL-offering
+            # row.  Marker-only is an EXACT row identity, not a comparison.
+            rows = conn.execute(
+                "SELECT row_id, offering_id, kind FROM acquisitions"
+            ).fetchall()
+            if [tuple(row) for row in rows] != [self._MARKER_ROW]:
+                raise _refuse(f"store_migration_unreconcilable:{store}")
+
+    def _validate_attempt_sequence(
+        self, conn: sqlite3.Connection, store: str, tables: set[str]
+    ) -> None:
+        """v20-review H2: `sqlite_sequence` is the attempts-series contract,
+        not free scratch space.  The migration preserves its high-water mark
+        verbatim, so an ungoverned value silently reissues or rewinds attempt
+        sequence numbers a prior generation already spent.  Rejected through
+        pure reads, before any write: a malformed or negative stored mark, a
+        duplicate series row, a ghost row naming no governed AUTOINCREMENT
+        table, and a mark below the maximum attempt already persisted."""
+        if "sqlite_sequence" not in tables:
+            return
+        mark: int | None = None
+        for name, seq in conn.execute("SELECT name, seq FROM sqlite_sequence"):
+            if name != "attempts" or "attempts" not in tables:
+                raise _refuse(f"store_sequence_unreconcilable:{store}")
+            if mark is not None:
+                # A second row for the same series: which mark governs the
+                # next attempt is undecidable.
+                raise _refuse(f"store_sequence_unreconcilable:{store}")
+            if not isinstance(seq, int) or isinstance(seq, bool) or seq < 0:
+                raise _refuse(f"store_sequence_unreconcilable:{store}")
+            mark = seq
+        if "attempts" not in tables:
+            return
+        max_seq, populated = conn.execute(
+            "SELECT max(seq), count(*) FROM attempts"
+        ).fetchone()
+        if not populated:
+            return
+        if not isinstance(max_seq, int) or isinstance(max_seq, bool):
+            raise _refuse(f"store_sequence_unreconcilable:{store}")
+        if mark is None or mark < max_seq:
+            raise _refuse(f"store_sequence_unreconcilable:{store}")
+
+    def _prevalidate_acquisition_store(self, path: Path, store: str) -> None:
+        try:
+            with contextlib.closing(self._open_reader(path)) as ro_conn:
+                self._classify_acquisition_store(ro_conn, store)
+        except sqlite3.DatabaseError as exc:
+            raise _refuse(f"store_unreadable:{RUNTIME_PATHS[store]}") from exc
+
+    def _validate_acquisition_current_schema(
+        self, conn: sqlite3.Connection, store: str
+    ) -> None:
+        """v17-review C1: the acquisition stores carry the FULL closure
+        discipline — closed table grammars, exact index signatures, and a
+        closed schema-object inventory — validated by pure reads."""
+        allowed_tables = {"acquisitions", "attempts", "sqlite_sequence"}
+        for object_type, name, tbl_name in conn.execute(
+            "SELECT type, name, tbl_name FROM sqlite_master"
+        ):
+            if object_type == "table" and name in allowed_tables:
+                continue
+            if (
+                object_type == "index"
+                and name.startswith("sqlite_autoindex_")
+                and tbl_name == "acquisitions"
+            ):
+                continue
+            raise _refuse(f"store_schema_unmigratable:{store}")
+        for table, segments in (
+            ("acquisitions", self._ACQUISITIONS_TABLE_SEGMENTS),
+            ("attempts", self._ATTEMPTS_TABLE_SEGMENTS),
+        ):
+            table_sql = conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+                (table,),
+            ).fetchone()
+            if table_sql is None or not self._table_segments_match(
+                (table_sql[0] or ""), segments
+            ):
+                raise _refuse(f"store_schema_unmigratable:{store}")
+        if not self._index_signatures_governed(conn, "acquisitions"):
+            raise _refuse(f"store_schema_unmigratable:{store}")
+        for _seq, _name, _unique, _origin, _partial in conn.execute(
+            "PRAGMA index_list(attempts)"
+        ):
+            raise _refuse(f"store_schema_unmigratable:{store}")
+
     # v16-review H1: closed grammars for the four semantic tables.
     _SEMANTIC_TABLE_GRAMMARS: dict[str, list[list[str]]] = {
         "semantic_assertions": [
@@ -1564,33 +1842,50 @@ class ContractDriver:
                 " event_at TEXT, event_seq INTEGER, event_id TEXT)"
             )
         else:
-            columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(acquisitions)")
-            }
-            additions: dict[frozenset[str], tuple[str, ...]] = {
-                self._SCHEMA_V1: (
-                    "source TEXT", "role_records TEXT", "event_at TEXT",
-                    "event_seq INTEGER", "event_id TEXT",
-                ),
-                self._SCHEMA_V2: ("event_at TEXT", "event_seq INTEGER", "event_id TEXT"),
-                self._SCHEMA_V3: ("event_id TEXT",),
-            }
-            if frozenset(columns) in additions:
+            # v18-review H3: classification is by EXACT DDL grammar. The old
+            # unordered name-set test admitted hidden CHECKs and wrong column
+            # order, and the rebuild then erased them without a trace.
+            acquisitions_ddl = self._table_ddl(conn, "acquisitions")
+            legacy_version = None
+            if not self._table_segments_match(
+                acquisitions_ddl, self._ACQUISITIONS_TABLE_SEGMENTS
+            ):
+                legacy_version = self._acquisition_legacy_version(acquisitions_ddl)
+                if legacy_version is None:
+                    raise _refuse(f"store_schema_unmigratable:{store}")
+            if legacy_version is not None:
                 # v6-review C2 (Codex correction): migration never fabricates
                 # event identity for populated historical rows — their
-                # cross-store order cannot be reconstructed.  A populated
-                # unbound legacy store refuses by name before staging; only a
-                # row-empty (marker-only) legacy store migrates.
-                populated = conn.execute(
-                    "SELECT count(*) FROM acquisitions"
-                    " WHERE offering_id != '_bootstrap'"
-                ).fetchone()[0]
-                if populated:
+                # cross-store order cannot be reconstructed.  Only a store
+                # carrying EXACTLY the governed marker row migrates.
+                rows = conn.execute(
+                    "SELECT row_id, offering_id, kind FROM acquisitions"
+                ).fetchall()
+                if [tuple(row) for row in rows] != [self._MARKER_ROW]:
                     raise _refuse(f"store_migration_unreconcilable:{store}")
-                for ddl in additions[frozenset(columns)]:
-                    conn.execute(f"ALTER TABLE acquisitions ADD COLUMN {ddl}")
-            elif columns != self._SCHEMA_V4:
-                raise _refuse(f"store_schema_unmigratable:{store}")
+                columns = [
+                    row[1] for row in conn.execute("PRAGMA table_info(acquisitions)")
+                ]
+                # v17-review C1: migrate by canonical REBUILD so the
+                # resulting DDL satisfies the closed grammar on later opens.
+                shared = ",".join(sorted(columns))
+                conn.execute("ALTER TABLE acquisitions RENAME TO acquisitions_migrating")
+                conn.execute(
+                    "CREATE TABLE acquisitions ("
+                    " row_id TEXT PRIMARY KEY,"
+                    " offering_id TEXT UNIQUE,"
+                    " source TEXT, kind TEXT, retrieved_at TEXT,"
+                    " readiness TEXT, retention TEXT,"
+                    " content_vintage_id TEXT, archive_sha256 TEXT,"
+                    " archive_bytes INTEGER, role_records TEXT,"
+                    " analysis_ready INTEGER, signature BLOB,"
+                    " event_at TEXT, event_seq INTEGER, event_id TEXT)"
+                )
+                conn.execute(
+                    f"INSERT INTO acquisitions ({shared})"
+                    f" SELECT {shared} FROM acquisitions_migrating"
+                )
+                conn.execute("DROP TABLE acquisitions_migrating")
         if "attempts" not in tables:
             conn.execute(
                 "CREATE TABLE attempts ("
@@ -1599,25 +1894,47 @@ class ContractDriver:
                 " attempt_id TEXT, event_id TEXT)"
             )
         else:
-            attempt_columns = frozenset(
-                row[1] for row in conn.execute("PRAGMA table_info(attempts)")
-            )
-            attempt_additions: dict[frozenset[str], tuple[str, ...]] = {
-                self._ATTEMPTS_V1: (
-                    "at TEXT", "event_seq INTEGER", "attempt_id TEXT", "event_id TEXT",
-                ),
-                self._ATTEMPTS_V2: ("attempt_id TEXT", "event_id TEXT"),
-            }
-            if attempt_columns in attempt_additions:
+            attempts_ddl = self._table_ddl(conn, "attempts")
+            if not self._table_segments_match(
+                attempts_ddl, self._ATTEMPTS_TABLE_SEGMENTS
+            ):
+                if not any(
+                    self._table_segments_match(attempts_ddl, segments)
+                    for segments in self._LEGACY_ATTEMPT_SEGMENTS.values()
+                ):
+                    raise _refuse(f"store_schema_unmigratable:{store}")
                 populated_attempts = conn.execute(
                     "SELECT count(*) FROM attempts"
                 ).fetchone()[0]
                 if populated_attempts:
                     raise _refuse(f"store_migration_unreconcilable:{store}")
-                for ddl in attempt_additions[attempt_columns]:
-                    conn.execute(f"ALTER TABLE attempts ADD COLUMN {ddl}")
-            elif attempt_columns != self._ATTEMPTS_V3:
-                raise _refuse(f"store_schema_unmigratable:{store}")
+                # v18-review M4: row-empty is not STATE-empty.  DROP discards
+                # the AUTOINCREMENT high-water mark, so a migrated store
+                # silently reissues sequence numbers a prior generation
+                # already spent.  The contract binds the AUTOINCREMENT
+                # grammar, so the durable series is preserved across the
+                # rebuild rather than quietly restarted.
+                high_water = conn.execute(
+                    "SELECT seq FROM sqlite_sequence WHERE name='attempts'"
+                ).fetchone()
+                conn.execute("DROP TABLE attempts")
+                conn.execute(
+                    "CREATE TABLE attempts ("
+                    " seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    " status TEXT, reason TEXT, at TEXT, event_seq INTEGER,"
+                    " attempt_id TEXT, event_id TEXT)"
+                )
+                if high_water is not None:
+                    conn.execute(
+                        "INSERT INTO sqlite_sequence(name, seq) VALUES('attempts', ?)",
+                        (high_water[0],),
+                    )
+        # v18-review C1: validation is a POSTCONDITION of every migration
+        # branch, not a precheck keyed to one version.  Keyed to "already v4"
+        # it never ran on a migrating store, so a legacy acquisitions table
+        # beside a malformed current attempts table reached intake and
+        # committed an orphan central event.
+        self._validate_acquisition_current_schema(conn, store)
         conn.execute(f"PRAGMA user_version={self._SCHEMA_VERSION}")
 
     def _migrate_semantics_store(self, conn: sqlite3.Connection) -> None:
@@ -1807,6 +2124,11 @@ class ContractDriver:
                     self._validate_semantics_schema(ro_conn, ro_tables)
             except sqlite3.DatabaseError as exc:
                 raise _refuse(f"store_unreadable:{RUNTIME_PATHS[store]}") from exc
+        elif store != "semantics" and path.exists() and path.stat().st_size > 0:
+            # v18-review H2: the acquisition stores get the SAME read-only
+            # boundary semantics already had.  Without it the WAL pragma below
+            # rewrote the header of a store we were about to refuse.
+            self._prevalidate_acquisition_store(path, store)
         conn = sqlite3.connect(path)
         try:
             try:
@@ -1879,8 +2201,7 @@ class ContractDriver:
             conn.row_factory = sqlite3.Row
             try:
                 rows = conn.execute(
-                    "SELECT * FROM acquisitions WHERE offering_id != '_bootstrap'"
-                    " ORDER BY rowid"
+                    "SELECT * FROM acquisitions ORDER BY rowid"
                 ).fetchall()
             except sqlite3.Error:
                 # v4-review H4: an unreadable/foreign governed ledger is a
@@ -1889,7 +2210,17 @@ class ContractDriver:
                 # separately refuses by name (store_schema_unmigratable).
                 self._unreadable_stores.add(store)
                 return []
-        return [dict(row) for row in rows]
+        # v20-review C1: the selection is total.  A SQL `offering_id !=
+        # '_bootstrap'` filter is blind to a NULL offering under three-valued
+        # logic and hides every reserved-id impostor from identity validation.
+        # Only the EXACT governed marker — matched on its persisted triple,
+        # before any consumer overwrites the kind — is non-record.
+        return [
+            record
+            for record in (dict(row) for row in rows)
+            if (record.get("row_id"), record.get("offering_id"), record.get("kind"))
+            != self._MARKER_ROW
+        ]
 
     # -- counterpart lookup (non-creating, tri-state) ----------------------
 
@@ -2081,10 +2412,18 @@ class ContractDriver:
         if self._lock_fd is not None or lock_fd is None:
             return IntakeResult(status="intake_busy", attempt_recorded=False)
         try:
+            # v21-review C2: ONE operation clock is observed and validated
+            # here — before any governed DB or raw mutation — and pinned for
+            # the whole write operation.  Retrieval validation, event
+            # allocation, and attempt recording all reuse the pin through
+            # `_now()`; an invalid clock refuses by name while only the lock
+            # and private namespace exist.
+            self._pin_operation_clock()
             return self._intake_locked(
                 archive_bytes=archive_bytes, offering=offering, fault_at=fault_at
             )
         finally:
+            self._operation_clock = None
             os.close(lock_fd)
 
     def _intake_locked(
@@ -2177,7 +2516,7 @@ class ContractDriver:
             if fault_at == "schema_failure":
                 raise _refuse("role_schema_invalid:adp")
 
-            now = self.clock()
+            now = self._now()
             canonical_at = canonical_retrieved_at(offering["retrieved_at"], now=now)
             signature = serialize_offering_signature(
                 source=offering["source"],
@@ -2364,7 +2703,7 @@ class ContractDriver:
         # never deleted as generic crash residue — it stays visible until a
         # governed reconciliation, and no new acquisition may stack on top of
         # unprovable history.
-        clock_iso = self.clock().isoformat()
+        clock_iso = self._now().isoformat()
         try:
             _canonical_instant(clock_iso, now=None)
         except FootballguysIntakeError as exc:
@@ -2522,6 +2861,45 @@ class ContractDriver:
             conn.commit()
         return readiness
 
+    def _observe_operation_clock(self) -> datetime:
+        """v21-review C2: a write operation observes its clock dependency
+        EXACTLY ONCE and validates it before any governed mutation — an
+        aware, whole-second instant or the named refusal, never a bare
+        exception and never a store left behind."""
+        # v22-review H2: a dependency that FAILS TO RETURN is the same
+        # domain state as one returning a bad value.  Ordinary exceptions
+        # translate to the named refusal; process-control BaseException
+        # classes (KeyboardInterrupt, SystemExit) are deliberately not
+        # caught.
+        try:
+            observed = self.clock()
+        except Exception as exc:
+            raise _refuse("operation_clock_invalid") from exc
+        if not isinstance(observed, datetime):
+            raise _refuse("operation_clock_invalid")
+        # v24-review H1: the `isoformat()` INVOCATION itself is inside the
+        # ordinary-failure boundary — a genuine datetime subclass whose
+        # method raises is the same invalid dependency as a bad value.
+        # Process-control BaseException classes still escape.
+        # v25-review C1: the boundary is OWNERSHIP, not downstream exception
+        # suppression.  The caller's object is consulted EXACTLY ONCE — this
+        # one `isoformat()` call — and what the operation retains is a base
+        # datetime the implementation parses from that validated string.  A
+        # stateful subclass whose methods change behavior later, or whose
+        # comparison/astimezone overrides misbehave, can never reach a
+        # consumer, because no consumer ever holds the caller's object.
+        try:
+            observed_iso = observed.isoformat()
+            _canonical_instant(observed_iso, now=None)
+            return datetime.fromisoformat(observed_iso)
+        except Exception as exc:
+            raise _refuse("operation_clock_invalid") from exc
+
+    def _pin_operation_clock(self) -> datetime:
+        pinned = self._observe_operation_clock()
+        self._operation_clock = pinned
+        return pinned
+
     def _allocate_event(
         self, *, event_type: str, store_name: str, subject_id: str
     ) -> dict[str, Any]:
@@ -2532,7 +2910,7 @@ class ContractDriver:
         if "semantics" not in self._db_initialized:
             self.initialize_database("semantics")
         event_id = hashlib.sha256(os.urandom(16)).hexdigest()[:32]
-        event_at = self.clock().isoformat()
+        event_at = self._now().isoformat()
         # v8-review H3: an event instant is canonical AT THE WRITER — a
         # fractional or naive clock refuses before any commit.
         try:
@@ -2628,6 +3006,39 @@ class ContractDriver:
         ),
     }
 
+    @staticmethod
+    def _verify_retained_evidence(
+        conn: sqlite3.Connection, evidence_id: str
+    ) -> None:
+        """v21-review C1: an evidence identity in use is only as good as its
+        retained proof.  The FULL attachment row must exist and the retained
+        object's bytes must rehash to the recorded identity — any missing or
+        corrupt edge refuses by name with logical state unchanged."""
+        attachment_row = conn.execute(
+            "SELECT retrieved_at, provenance, retention, evidence_sha256,"
+            " evidence_bytes FROM semantic_attachments WHERE evidence_id=?",
+            (evidence_id,),
+        ).fetchone()
+        if attachment_row is None or any(
+            field is None for field in attachment_row
+        ):
+            raise _refuse(f"semantic_evidence_unverifiable:{evidence_id}")
+        recorded_sha, recorded_bytes = attachment_row[3], attachment_row[4]
+        object_row = conn.execute(
+            "SELECT evidence_blob FROM semantic_evidence_objects"
+            " WHERE evidence_sha256=?",
+            (recorded_sha,),
+        ).fetchone()
+        if object_row is None:
+            raise _refuse(f"semantic_evidence_unverifiable:{evidence_id}")
+        blob = object_row[0]
+        if (
+            not isinstance(blob, bytes)
+            or len(blob) != recorded_bytes
+            or hashlib.sha256(blob).hexdigest() != recorded_sha
+        ):
+            raise _refuse(f"semantic_evidence_unverifiable:{evidence_id}")
+
     def write_semantic_assertion(self, record: Mapping[str, Any]) -> dict[str, Any]:
         # v9-review H5: ALL pure record validation precedes store
         # initialization — an invalid record must refuse with the database
@@ -2696,8 +3107,12 @@ class ContractDriver:
             raise _refuse(
                 f"semantic_version_invalid:{assertion['version']!r}"
             )
+        # v21-review C2: the semantic writer observes and validates its ONE
+        # operation clock here — before the store exists — and the same
+        # instant serves the retrieval validation, so a None/naive/fractional
+        # clock can never disable the future-evidence guard.
         canonical_evidence_at = canonical_retrieved_at(
-            attachment["retrieved_at"], now=self.clock()
+            attachment["retrieved_at"], now=self._observe_operation_clock()
         )
         evidence_bytes = attachment["evidence_bytes"]
         evidence_sha = hashlib.sha256(evidence_bytes).hexdigest()
@@ -2727,6 +3142,47 @@ class ContractDriver:
                 " FROM semantic_attachments WHERE evidence_id=?",
                 (attachment["evidence_id"],),
             ).fetchone()
+            # v21-review C1: every decision below — noop, reuse, conflict —
+            # is built on RETAINED evidence state.  When the incoming
+            # evidence identity is already referenced (by an attachment row
+            # or by any persisted assertion), that retained state must
+            # VERIFY before it supports any verdict: replaying over a
+            # deleted attachment, a deleted object, or corrupt bytes is not
+            # idempotent success, and a fresh write never silently repairs
+            # the evidence history.
+            evidence_referenced = (
+                prior_attachment is not None
+                or conn.execute(
+                    "SELECT 1 FROM semantic_assertions WHERE evidence_id=?"
+                    " LIMIT 1",
+                    (attachment["evidence_id"],),
+                ).fetchone()
+                is not None
+            )
+            if evidence_referenced:
+                self._verify_retained_evidence(conn, attachment["evidence_id"])
+            # v22-review C1: content-address reuse VERIFIES the stored bytes.
+            # `INSERT OR IGNORE` silently adopts whatever row already holds
+            # the incoming SHA — including an unreferenced corrupt or NULL
+            # orphan — so the writer reported success while the loaded state
+            # was unverifiable.  A stored object under the incoming address
+            # must be bytes and exactly equal the incoming content before it
+            # may be reused; anything else refuses with every semantic table
+            # unchanged.
+            stored_object = conn.execute(
+                "SELECT evidence_blob FROM semantic_evidence_objects"
+                " WHERE evidence_sha256=?",
+                (evidence_sha,),
+            ).fetchone()
+            if stored_object is not None:
+                stored_blob = stored_object[0]
+                if not isinstance(stored_blob, bytes) or stored_blob != bytes(
+                    evidence_bytes
+                ):
+                    raise _refuse(
+                        "semantic_evidence_unverifiable:"
+                        f"{attachment['evidence_id']}"
+                    )
             if existing is not None:
                 # v4-review H3: idempotent noop demands FULL equality — the
                 # assertion tuple AND the complete attachment facts including
@@ -2917,6 +3373,28 @@ class ContractDriver:
             except sqlite3.Error:
                 return {"state": "unknown", "reason": "store_unreadable", "eligible_for_phase_c": False}
 
+        # v23-review H1: the whole reduction runs on ONE validated time
+        # basis.  A pinned read/operation clock is reused without another
+        # dependency call; only a truly direct call observes the dependency
+        # — exactly once across every attachment — and an invalid value or
+        # ordinary failure is a RETURNED state, never a leak and never a
+        # `now=None` that silently disables the future-evidence guard.
+        # Process-control BaseException classes pass through.
+        reduction_now: datetime | None = None
+        if attachment_rows:
+            reduction_now = getattr(self, "_read_clock", None)
+            if reduction_now is None:
+                reduction_now = self._operation_clock
+            if reduction_now is None:
+                try:
+                    reduction_now = self._observe_operation_clock()
+                except FootballguysIntakeError:
+                    return {
+                        "state": "unknown",
+                        "reason": "operation_clock_invalid",
+                        "eligible_for_phase_c": False,
+                    }
+
         # C2: "retained_verified" is a rehash performed NOW on the retained
         # bytes, never a label trusted from a prior write — and every restored
         # field re-passes its type and vocabulary checks, because a restore
@@ -2931,7 +3409,7 @@ class ContractDriver:
                 # v6-review C1: the load mirror keeps EVERY writer predicate,
                 # including the future-instant refusal — a restored future
                 # evidence time must never open eligibility.
-                _canonical_instant(retrieved_at, now=self._now())
+                _canonical_instant(retrieved_at, now=reduction_now)
             except (FootballguysIntakeError, TypeError):
                 return "attachment_time_invalid"
             if retention != "retained":
@@ -3318,8 +3796,12 @@ class ContractDriver:
 
     def _now(self) -> datetime:
         """The single clock dependency: inside read_model the validated
-        instant is pinned once and reused everywhere (v9-review H4)."""
+        instant is pinned once and reused everywhere (v9-review H4); inside
+        a write operation the validated OPERATION clock is pinned the same
+        way (v21-review C2).  Only outside both does this sample fresh."""
         pinned = getattr(self, "_read_clock", None)
+        if pinned is None:
+            pinned = getattr(self, "_operation_clock", None)
         return pinned if pinned is not None else self.clock()
 
     def read_model(
@@ -3328,7 +3810,18 @@ class ContractDriver:
         # v9-review H4: the read clock is validated ONCE — an invalid clock
         # dependency is the named row-9 fail-closed state, never a bare
         # aware/naive comparison error deep in reconciliation.
-        clock_now = self.clock()
+        # v22-review H2: a clock that RAISES an ordinary exception is that
+        # same row-9 state — the read boundary is a rendered state, never a
+        # leak.  Process-control BaseException classes pass through.
+        try:
+            clock_now = self.clock()
+        except Exception:
+            return evaluate_refresh_state(
+                acquisitions=[],
+                attempts=[{"status": "ledger_unreadable"}],
+                now=now,
+                global_overall_status=global_overall_status,
+            )
         # v10-review M3: the clock dependency's TYPE is established before any
         # method dispatch — str/None/anything non-datetime is the same named
         # row-9 state, never an AttributeError.
@@ -3339,16 +3832,58 @@ class ContractDriver:
                 now=now,
                 global_overall_status=global_overall_status,
             )
+        # v24-review H1: the method invocation is inside the translation —
+        # a datetime subclass with a raising `isoformat()` renders the same
+        # row-9 state as a bad value; BaseException still escapes.
+        # v25-review C1: the caller's clock object is consulted exactly once;
+        # the pin below is an implementation-owned base datetime parsed from
+        # the validated string, so semantic reduction never compares or
+        # converts the caller's object.
         try:
-            _canonical_instant(clock_now.isoformat(), now=None)
-        except FootballguysIntakeError:
+            clock_iso = clock_now.isoformat()
+            _canonical_instant(clock_iso, now=None)
+            clock_pin = datetime.fromisoformat(clock_iso)
+        except Exception:
             return evaluate_refresh_state(
                 acquisitions=[],
                 attempts=[{"status": "ledger_unreadable"}],
                 now=now,
                 global_overall_status=global_overall_status,
             )
-        self._read_clock = clock_now
+        # v20-review M4: the EXPLICIT read instant is a validated dependency
+        # in its own right — validated after the clock, before any state
+        # branch.  An invalid `now` previously flowed into reconciliation and
+        # rendered no-record on empty state; it is the same named row-9
+        # fail-closed state, and neither the state machinery nor the
+        # evaluator is ever invoked on the invalid value.
+        if not isinstance(now, datetime):
+            return _result(
+                "unverifiable",
+                "Footballguys refresh record unreadable",
+                1,
+                clock=None,
+                ar=None,
+            )
+        # v24-review H1: same totality on the EXPLICIT instant — its method
+        # invocation is inside the translation; BaseException still escapes.
+        # v25-review C1: the explicit instant is canonicalized to an
+        # implementation-owned base datetime BEFORE any state or calendar
+        # evaluation — the caller's `astimezone()`/comparison overrides are
+        # never invoked, and evaluation is byte-equal to an ordinary base
+        # datetime carrying the same instant.
+        try:
+            now_iso = now.isoformat()
+            _canonical_instant(now_iso, now=None)
+            now = datetime.fromisoformat(now_iso)
+        except Exception:
+            return _result(
+                "unverifiable",
+                "Footballguys refresh record unreadable",
+                1,
+                clock=None,
+                ar=None,
+            )
+        self._read_clock = clock_pin
         try:
             return self._read_model_locked(
                 now=now, global_overall_status=global_overall_status

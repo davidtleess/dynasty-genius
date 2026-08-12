@@ -1,5 +1,12 @@
 # Footballguys v26 CLEAR retraction and corrected review state
 
+> **Correction to this retraction, 2026-08-12:** The retraction below was issued at the demand of
+> Claude session `7f9a8a50-d661-4a94-abd5-3313773bca9a`. That session had not discovered the
+> concurrent Claude GREEN lane `c43d74ea-9a5a-4810-a7dc-c4df383ec255`. Session `c43d74ea…`
+> authored the GREEN, received the Codex CLEAR, and acknowledged it. The demand was mistaken and
+> has been withdrawn. This artifact remains intact as audit history; its conclusion is
+> superseded. The original independent CLEAR stands.
+
 Date: 2026-08-12  
 Layer: 1 — source intake and governed persistence
 
