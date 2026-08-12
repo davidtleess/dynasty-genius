@@ -249,6 +249,44 @@ Standard cycle (binding participants = the implementing agent + the independent 
 
 **Each CLEAR must answer every raised question with explicit checks performed.** A CLEAR may take the form "no finding after checking X" or "addressed at lines N–M" or a bullet list of question→verification, but it must enumerate the checks. Bare replies of the form "looks good", "elegant", or "fully aligned" without enumerated checks are not CLEARs and do not terminate the cycle. The cycle terminates only on the **independent reviewer's explicit CLEAR** — the implementer's own evidence is mandatory self-critique but never substitutes for it (§Falsification #4).
 
+### Loop-control budget (2026-08-12 — DRAFT amendment, pending cockpit CLEAR and David's word)
+
+Adversarial review is bounded. The win condition for a round is still finding defects; the budget
+below decides whether a *next* round exists. Enforcement is mechanical — the dg-cockpit autonomy
+layer (`dg-cockpit/autonomy/core`, loop-control module + host hooks) — and this section is the
+authority that machinery enforces. Spec of record:
+`docs/superpowers/specs/2026-08-12-loop-control-design.md`.
+
+- **Severity vocabulary.** Every reviewer finding carries exactly one of `BLOCKER`, `WARN`,
+  `STYLE`, plus the violated criterion and reproducible evidence. **Only a BLOCKER can hold a
+  review phase open.** WARN and STYLE items route to the run-local backlog
+  (`.git/dg-autonomy/backlog.md`, a generated view) for post-CLEAR cleanup; they are recorded,
+  never litigated round-over-round.
+- **Round caps → the Judge.** Each review phase — framing challenge included — is capped at
+  **5 rounds**; a whole run is capped at **10**. A phase advances only on the independent
+  reviewer's explicit, evidence-cited CLEAR. A capped phase with open BLOCKERs lands the run
+  `BLOCKED` with structured reason codes and goes to **the Judge** — the standing adjudication
+  seat David created 2026-08-12 (pane 2.3; charter in `~/.claude/agents/judge.md`). Either
+  binding lane may also **refer a live dispute to the Judge early**, before any cap. David's
+  words: "the judge rules and we ship what the judge rules — the judge can consult Tower."
+  A **SHIP** ruling is final for the dispute: the ruled, pinned content ships, and the recorded
+  ruling itself authorizes exactly that commit (push and everything outward remain David's).
+  A **STOP** ruling parks the run for David. One gate, one ruling; disputes about a ruling go to
+  David, never back to the Judge. The Judge rules only on loop-control gates — never on
+  verification failures — and consults Tower for VERIFIED operational facts only. David's word
+  stands above every ruling.
+- **Diminishing returns.** The detector flags a stall only on the conjunction: the same blocker
+  fingerprint unresolved across the last 3 closed rounds AND combined script-measured churn under
+  10 lines across those rounds. A small diff alone never halts a legitimate two-line fix.
+- **Recording duty.** Lanes record rounds, findings, resolutions, reviewer CLEARs, and round
+  closes through the autonomy verbs (`dg-autonomy round-open|finding|resolve|reviewer-clear|`
+  `round-close|verdict`) BEFORE sending the corresponding cycle message. The detector reads
+  structured round records only — it never parses `AGENT_SYNC.md` and never infers rounds from
+  git history. `AGENT_SYNC.md` may mirror a verdict for humans; the mirror is never parsed.
+- **Roles unchanged.** Gemini's Operations & Telemetry seat (2026-07-16) and Tower's
+  non-orchestrator charter (2026-08-08) are untouched; round verbs reject Tower runs by
+  construction.
+
 ### Closing the loop
 
 After every committed cycle, the authoring agent MUST send a post-commit confirmation to the independent reviewer (Gemini receives the confirmation for awareness/audit) containing:

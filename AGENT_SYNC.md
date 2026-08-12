@@ -11,6 +11,31 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⚖ 2026-08-12 LOOP CONTROL + JUDGE LANE STAND (evening) — READ THE NEW SEQUENCE
+>
+> On David's words ("build it yourself" · "the judge rules and we ship what the judge rules"),
+> the cockpit now runs **write · review · judge**. Built TDD (F1–F22 + J1–J8 green; serial suite
+> 50/50 fast + 9/10 slow, the 1 failure is the pre-existing flight-deck launcher-path test).
+> Spec of record + dispositions + as-built: `docs/superpowers/specs/2026-08-12-loop-control-design.md`.
+> Authority text: `02` §Loop-control budget (labeled DRAFT). Judge charter: `~/.claude/agents/judge.md`
+> (mirrored in dg-cockpit); pane **2.3** in window 2; flight deck §7b spawns it.
+>
+> **The sequence now:** reviewer findings carry BLOCKER/WARN/STYLE — only BLOCKERs continue
+> remediation (WARN/STYLE → run-local backlog). Rounds are recorded via the dg-autonomy verbs
+> (`round-open|finding|resolve|reviewer-clear|round-close|verdict|refer|adjudicate`). Caps: 5
+> per phase (framing included), 10 per run; caps and the diminishing-returns detector yield
+> `ADJUDICATION_REQUIRED` → **the Judge**. Either lane may `refer` early. Judge **SHIP** = the
+> pinned content ships (hooks permit exactly that `git commit`; push stays David's); **STOP** =
+> parked for David. One gate, one ruling. Judge never overrides verification failures; consults
+> Tower for VERIFIED facts only. Gemini telemetry-only and Tower non-orchestrator UNCHANGED.
+>
+> **OPEN GATES (David):** formal ratification of the §9 authority transfer (SHIP ships without a
+> further David content-gate) · D5 churn-threshold semantics (built: combined-window exclusive
+> <10) · `install.sh --activate` refresh for Codex (/hooks trust review) + Gemini plugin ·
+> product-repo push. **Codex fresh-session after-the-fact CLEAR review of the whole increment is
+> the next cockpit action.** NOTE: the 13:50 dg-cockpit backup (5836106) pushed a broken
+> mid-build intermediate; the finished state supersedes it in the dg-cockpit history.
+
 > # ✅ 2026-08-12 CORRECTION TO CORRECTION — v26 INDEPENDENT CLEAR RESTORED
 >
 > Claude session `7f9a8a50-d661-4a94-abd5-3313773bca9a` demanded the retraction in the next
