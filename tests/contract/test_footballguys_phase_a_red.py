@@ -1,4 +1,4 @@
-"""RED v16 — Footballguys Phase A archive intake and monthly refresh notice.
+"""RED v17 — Footballguys Phase A archive intake and monthly refresh notice.
 
 Authority and scope
 -------------------
@@ -93,6 +93,14 @@ Adversarial review of RED v15's GREEN found two signature shadows inside the
 new inventory allowlist: any SQLite-generated autoindex name passed regardless of
 its indexed columns, and the marker acquisitions table passed by name without a
 schema contract. RED v16 binds both exact signatures against committed ba890ec.
+
+Adversarial review of RED v16's GREEN found three remaining schema shadows:
+the four non-event semantic tables still had no closed DDL grammar; index
+validation discarded origin, collation, direction, and key metadata; and marker
+grammar accepted trailing table options after the matched close parenthesis.
+RED v17 binds all three against committed 1e5492b. Its constraint mutants are
+operational on every semantic writer branch, including the evidence-object path
+whose ``INSERT OR IGNORE`` falsely reported ``written`` after storing no bytes.
 
 One injected seam
 -----------------
@@ -5050,3 +5058,443 @@ def test_v16_h2_marker_acquisitions_table_requires_exact_closed_grammar(
 
     with contextlib.closing(sqlite3.connect(semantics)) as conn:
         assert _v15_application_rows(conn) == before_rows
+
+
+# ---------------------------------------------------------------------------
+# V17 — accepted 1e5492b findings: complete grammar + exact physical indexes
+# ---------------------------------------------------------------------------
+
+
+_V17_CANONICAL_SEMANTIC_BODIES = {
+    "semantic_assertions": (
+        "assertion_id TEXT PRIMARY KEY, key TEXT, version INTEGER,"
+        " claim TEXT, active INTEGER, evidence_id TEXT"
+    ),
+    "semantic_attachments": (
+        "evidence_id TEXT PRIMARY KEY, retrieved_at TEXT, provenance TEXT,"
+        " retention TEXT, evidence_sha256 TEXT, evidence_bytes INTEGER"
+    ),
+    "semantic_evidence_objects": (
+        "evidence_sha256 TEXT PRIMARY KEY, evidence_blob BLOB"
+    ),
+    "semantic_adjudications": (
+        "adjudication_id TEXT PRIMARY KEY, key TEXT, authority TEXT,"
+        " provenance TEXT, parents TEXT, effective_assertion_id TEXT"
+    ),
+}
+
+_V17_CONSTRAINED_SEMANTIC_BODIES = {
+    "semantic_assertions": (
+        "assertion_id TEXT PRIMARY KEY, key TEXT,"
+        " version INTEGER CHECK(version > 100), claim TEXT,"
+        " active INTEGER, evidence_id TEXT"
+    ),
+    "semantic_attachments": (
+        "evidence_id TEXT PRIMARY KEY, retrieved_at TEXT, provenance TEXT,"
+        " retention TEXT, evidence_sha256 TEXT,"
+        " evidence_bytes INTEGER CHECK(evidence_bytes < 0)"
+    ),
+    "semantic_evidence_objects": (
+        "evidence_sha256 TEXT PRIMARY KEY,"
+        " evidence_blob BLOB CHECK(length(evidence_blob) < 0)"
+    ),
+    "semantic_adjudications": (
+        "adjudication_id TEXT PRIMARY KEY, key TEXT,"
+        " authority TEXT CHECK(authority = 'nobody'), provenance TEXT,"
+        " parents TEXT, effective_assertion_id TEXT"
+    ),
+}
+
+
+def _v17_rebuild_empty_semantic_table(
+    path: Path, table: str, body: str
+) -> None:
+    with contextlib.closing(sqlite3.connect(path)) as conn:
+        assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0
+        conn.execute(f"ALTER TABLE {table} RENAME TO {table}_governed")
+        conn.execute(f"CREATE TABLE {table} ({body})")
+        conn.execute(f"DROP TABLE {table}_governed")
+        conn.commit()
+
+
+def _v17_exercise_semantic_writer(driver: Any, table: str) -> Any:
+    if table != "semantic_adjudications":
+        return driver.write_semantic_assertion(
+            _semantic_record(assertion_id=f"v17-{table}")
+        )
+    return driver.write_semantic_adjudication(
+        {
+            "adjudication_id": "v17-adjudication",
+            "key": SEMANTIC_KEY,
+            "authority": "david",
+            "provenance": "explicit-ruling",
+            "parents": ["v17-old", "v17-new"],
+            "effective_assertion_id": "v17-new",
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    ("table", "constrained"),
+    tuple(
+        pytest.param(table, constrained, id=f"{table}-{'check' if constrained else 'canonical'}")
+        for table in _V17_CANONICAL_SEMANTIC_BODIES
+        for constrained in (False, True)
+    ),
+)
+def test_v17_h1_every_semantic_table_has_closed_operational_grammar(
+    tmp_path: Path, table: str, constrained: bool
+) -> None:
+    setup = _driver(tmp_path)
+    if table == "semantic_adjudications":
+        setup.write_semantic_assertion(
+            _semantic_record(assertion_id="v17-old", version=1)
+        )
+        setup.write_semantic_assertion(
+            _semantic_record(
+                assertion_id="v17-new",
+                claim="dynasty_startup",
+                version=2,
+            )
+        )
+    else:
+        setup.initialize_database("semantics")
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    body = (
+        _V17_CONSTRAINED_SEMANTIC_BODIES[table]
+        if constrained
+        else _V17_CANONICAL_SEMANTIC_BODIES[table]
+    )
+    _v17_rebuild_empty_semantic_table(semantics, table, body)
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        before_rows = _v15_application_rows(conn)
+    before_bytes = _v5_main_wal_fingerprint(semantics)
+
+    reopened = _driver(tmp_path)
+    if not constrained:
+        result = _v17_exercise_semantic_writer(reopened, table)
+        assert _value(result, "status") == "written"
+        return
+
+    # One operational CHECK per writer branch proves the grammar is
+    # load-bearing. In particular, the evidence-object case must not return
+    # `written` after INSERT OR IGNORE silently omits the required bytes.
+    try:
+        result = _v17_exercise_semantic_writer(reopened, table)
+    except reopened.error_type as caught:
+        assert _error_code(caught) == "store_schema_unmigratable:semantics"
+    else:
+        if table == "semantic_evidence_objects":
+            assert _value(result, "status") != "written", (
+                "evidence bytes rejected by SQLite must never be reported written"
+            )
+        pytest.fail("closed semantic grammar must refuse before its writer branch")
+    assert _v5_main_wal_fingerprint(semantics) == before_bytes
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        assert _v15_application_rows(conn) == before_rows
+
+
+@pytest.mark.parametrize(
+    ("case", "table", "statements", "governed"),
+    (
+        pytest.param(
+            "assertion-pk-canonical",
+            "semantic_assertions",
+            ("CREATE TABLE semantic_assertions (assertion_id TEXT PRIMARY KEY, key TEXT)",),
+            True,
+            id="assertion-pk-canonical",
+        ),
+        pytest.param(
+            "assertion-unique-substitute",
+            "semantic_assertions",
+            ("CREATE TABLE semantic_assertions (assertion_id TEXT UNIQUE, key TEXT)",),
+            False,
+            id="assertion-pk-replaced-by-unique",
+        ),
+        pytest.param(
+            "assertion-nocase",
+            "semantic_assertions",
+            (
+                "CREATE TABLE semantic_assertions ("
+                "assertion_id TEXT PRIMARY KEY COLLATE NOCASE, key TEXT)",
+            ),
+            False,
+            id="assertion-primary-key-nocase",
+        ),
+        pytest.param(
+            "assertion-descending",
+            "semantic_assertions",
+            ("CREATE TABLE semantic_assertions (assertion_id TEXT PRIMARY KEY DESC, key TEXT)",),
+            False,
+            id="assertion-primary-key-descending",
+        ),
+        pytest.param(
+            "assertion-partial",
+            "semantic_assertions",
+            (
+                "CREATE TABLE semantic_assertions (assertion_id TEXT, key TEXT)",
+                "CREATE UNIQUE INDEX assertion_partial"
+                " ON semantic_assertions(assertion_id) WHERE key IS NOT NULL",
+            ),
+            False,
+            id="assertion-partial-index",
+        ),
+        pytest.param(
+            "assertion-expression",
+            "semantic_assertions",
+            (
+                "CREATE TABLE semantic_assertions (assertion_id TEXT, key TEXT)",
+                "CREATE UNIQUE INDEX assertion_expression"
+                " ON semantic_assertions(lower(assertion_id))",
+            ),
+            False,
+            id="assertion-expression-index",
+        ),
+        pytest.param(
+            "assertion-wrong-column",
+            "semantic_assertions",
+            (
+                "CREATE TABLE semantic_assertions (assertion_id TEXT, key TEXT)",
+                "CREATE UNIQUE INDEX assertion_wrong ON semantic_assertions(key)",
+            ),
+            False,
+            id="assertion-wrong-key-column",
+        ),
+        pytest.param(
+            "assertion-composite",
+            "semantic_assertions",
+            (
+                "CREATE TABLE semantic_assertions (assertion_id TEXT, key TEXT)",
+                "CREATE UNIQUE INDEX assertion_composite"
+                " ON semantic_assertions(assertion_id, key)",
+            ),
+            False,
+            id="assertion-composite-column-sequence",
+        ),
+        pytest.param(
+            "event-unique-canonical",
+            "event_sequence",
+            ("CREATE TABLE event_sequence (event_id TEXT UNIQUE, seq INTEGER)",),
+            True,
+            id="event-id-unique-canonical",
+        ),
+        pytest.param(
+            "event-pk-substitute",
+            "event_sequence",
+            ("CREATE TABLE event_sequence (event_id TEXT PRIMARY KEY, seq INTEGER)",),
+            False,
+            id="event-unique-replaced-by-primary-key",
+        ),
+        pytest.param(
+            "acquisitions-canonical",
+            "acquisitions",
+            (
+                "CREATE TABLE acquisitions ("
+                "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, kind TEXT)",
+            ),
+            True,
+            id="acquisitions-origin-map-canonical",
+        ),
+        pytest.param(
+            "acquisitions-swapped-origins",
+            "acquisitions",
+            (
+                "CREATE TABLE acquisitions ("
+                "row_id TEXT UNIQUE, offering_id TEXT PRIMARY KEY, kind TEXT)",
+            ),
+            False,
+            id="acquisitions-pk-and-unique-origins-swapped",
+        ),
+    ),
+)
+def test_v17_h2_index_signatures_bind_physical_index_metadata(
+    tmp_path: Path,
+    case: str,
+    table: str,
+    statements: tuple[str, ...],
+    governed: bool,
+) -> None:
+    driver = _driver(tmp_path)
+    predicate = getattr(driver, "_index_signatures_governed", None)
+    assert callable(predicate), "exact physical signature predicate required"
+    with contextlib.closing(sqlite3.connect(":memory:")) as conn:
+        for statement in statements:
+            conn.execute(statement)
+        indexes = list(conn.execute(f"PRAGMA index_list({table})"))
+        assert indexes, "fixture must create a real SQLite index"
+        expanded = {
+            row[1]: list(conn.execute(f"PRAGMA index_xinfo({row[1]})"))
+            for row in indexes
+        }
+
+        if case == "assertion-unique-substitute":
+            assert {row[3] for row in indexes} == {"u"}
+        elif case == "assertion-nocase":
+            assert any(
+                column[4].upper() == "NOCASE" and column[5] == 1
+                for columns in expanded.values()
+                for column in columns
+            )
+        elif case == "assertion-descending":
+            assert any(
+                column[3] == 1 and column[5] == 1
+                for columns in expanded.values()
+                for column in columns
+            )
+        elif case == "assertion-partial":
+            assert any(row[4] == 1 for row in indexes)
+        elif case == "assertion-expression":
+            assert any(
+                column[2] is None and column[5] == 1
+                for columns in expanded.values()
+                for column in columns
+            )
+        elif case == "assertion-wrong-column":
+            assert any(
+                column[2] == "key" and column[5] == 1
+                for columns in expanded.values()
+                for column in columns
+            )
+        elif case == "assertion-composite":
+            assert any(
+                [column[2] for column in columns if column[5] == 1]
+                == ["assertion_id", "key"]
+                for columns in expanded.values()
+            )
+        elif case == "event-pk-substitute":
+            assert {row[3] for row in indexes} == {"pk"}
+        elif case == "acquisitions-swapped-origins":
+            origins = {
+                column[2]: row[3]
+                for row in indexes
+                for column in expanded[row[1]]
+                if column[5] == 1
+            }
+            assert origins == {"row_id": "u", "offering_id": "pk"}
+
+        assert predicate(conn, table) is governed
+
+
+_V17_CANONICAL_MARKER_BODY = (
+    "row_id TEXT PRIMARY KEY, offering_id TEXT UNIQUE, kind TEXT"
+)
+_V17_LEGACY_MARKER_BODY = (
+    _V17_CANONICAL_MARKER_BODY
+    + ", retrieved_at TEXT, readiness TEXT, retention TEXT,"
+    " content_vintage_id TEXT, archive_sha256 TEXT, archive_bytes INTEGER,"
+    " analysis_ready INTEGER, signature BLOB"
+)
+
+
+@pytest.mark.parametrize(
+    ("table_body", "suffix", "governed"),
+    (
+        pytest.param(
+            _V17_CANONICAL_MARKER_BODY,
+            " /* trailing comment is not a table option */",
+            True,
+            id="canonical-comment-only-suffix",
+        ),
+        pytest.param(
+            _V17_LEGACY_MARKER_BODY,
+            " -- trailing comment only\n",
+            True,
+            id="legacy-comment-only-suffix",
+        ),
+        pytest.param(
+            _V17_CANONICAL_MARKER_BODY,
+            " STRICT",
+            False,
+            id="canonical-strict-option",
+        ),
+        pytest.param(
+            _V17_CANONICAL_MARKER_BODY,
+            " WITHOUT ROWID",
+            False,
+            id="canonical-without-rowid-option",
+        ),
+        pytest.param(
+            _V17_LEGACY_MARKER_BODY,
+            " STRICT",
+            False,
+            id="legacy-strict-option",
+        ),
+        pytest.param(
+            _V17_LEGACY_MARKER_BODY,
+            " WITHOUT ROWID",
+            False,
+            id="legacy-without-rowid-option",
+        ),
+    ),
+)
+def test_v17_m3_marker_grammar_consumes_the_complete_table_ddl(
+    tmp_path: Path, table_body: str, suffix: str, governed: bool
+) -> None:
+    driver = _driver(tmp_path)
+    driver.write_semantic_assertion(
+        _semantic_record(assertion_id="v17-marker-row")
+    )
+    semantics = tmp_path / RUNTIME_PATHS["semantics"]
+    with contextlib.closing(sqlite3.connect(semantics)) as conn:
+        conn.execute("ALTER TABLE acquisitions RENAME TO acquisitions_governed")
+        conn.execute(f"CREATE TABLE acquisitions ({table_body}){suffix}")
+        conn.execute(
+            "INSERT INTO acquisitions(row_id, offering_id, kind)"
+            " VALUES ('v17-marker', 'v17-offering', 'marker')"
+        )
+        conn.execute("DROP TABLE acquisitions_governed")
+        conn.commit()
+        before_rows = {
+            table: (
+                [
+                    tuple(row)
+                    for row in conn.execute(
+                        "SELECT * FROM acquisitions ORDER BY row_id"
+                    )
+                ]
+                if table == "acquisitions"
+                else [
+                    tuple(row)
+                    for row in conn.execute(
+                        f"SELECT * FROM {table} ORDER BY rowid"
+                    )
+                ]
+            )
+            for table in _V15_APPLICATION_TABLES
+        }
+    before_bytes = _v5_main_wal_fingerprint(semantics)
+
+    reopened = _driver(tmp_path)
+    if governed:
+        reopened.initialize_database("semantics")
+        with contextlib.closing(sqlite3.connect(semantics)) as conn:
+            retained = conn.execute(
+                "SELECT row_id, offering_id, kind FROM acquisitions"
+                " WHERE row_id='v17-marker'"
+            ).fetchone()
+        assert retained == ("v17-marker", "v17-offering", "marker")
+    else:
+        with pytest.raises(driver.error_type) as caught:
+            reopened.initialize_database("semantics")
+        assert _error_code(caught.value) == "store_schema_unmigratable:semantics"
+        assert _v5_main_wal_fingerprint(semantics) == before_bytes
+        with contextlib.closing(sqlite3.connect(semantics)) as conn:
+            after_rows = {
+                table: (
+                    [
+                        tuple(row)
+                        for row in conn.execute(
+                            "SELECT * FROM acquisitions ORDER BY row_id"
+                        )
+                    ]
+                    if table == "acquisitions"
+                    else [
+                        tuple(row)
+                        for row in conn.execute(
+                            f"SELECT * FROM {table} ORDER BY rowid"
+                        )
+                    ]
+                )
+                for table in _V15_APPLICATION_TABLES
+            }
+        assert after_rows == before_rows

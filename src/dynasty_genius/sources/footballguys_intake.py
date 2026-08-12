@@ -1415,6 +1415,10 @@ class ContractDriver:
                     break
         if end == -1:
             return None
+        # v16-review M3: the WHOLE DDL is consumed — any non-comment token
+        # after the matching close paren (STRICT, WITHOUT ROWID) refuses.
+        if text[end + 1:].strip().strip(";").strip():
+            return None
         segments: list[str] = []
         depth, current = 0, []
         for ch in text[start + 1:end]:
@@ -1441,6 +1445,38 @@ class ContractDriver:
         "event_sequence": (("event_id",),),
         "acquisitions": (("row_id",), ("offering_id",)),
     }
+    # v16-review H1: closed grammars for the four semantic tables.
+    _SEMANTIC_TABLE_GRAMMARS: dict[str, list[list[str]]] = {
+        "semantic_assertions": [
+            ["ASSERTION_ID", "TEXT", "PRIMARY", "KEY"],
+            ["KEY", "TEXT"],
+            ["VERSION", "INTEGER"],
+            ["CLAIM", "TEXT"],
+            ["ACTIVE", "INTEGER"],
+            ["EVIDENCE_ID", "TEXT"],
+        ],
+        "semantic_attachments": [
+            ["EVIDENCE_ID", "TEXT", "PRIMARY", "KEY"],
+            ["RETRIEVED_AT", "TEXT"],
+            ["PROVENANCE", "TEXT"],
+            ["RETENTION", "TEXT"],
+            ["EVIDENCE_SHA256", "TEXT"],
+            ["EVIDENCE_BYTES", "INTEGER"],
+        ],
+        "semantic_evidence_objects": [
+            ["EVIDENCE_SHA256", "TEXT", "PRIMARY", "KEY"],
+            ["EVIDENCE_BLOB", "BLOB"],
+        ],
+        "semantic_adjudications": [
+            ["ADJUDICATION_ID", "TEXT", "PRIMARY", "KEY"],
+            ["KEY", "TEXT"],
+            ["AUTHORITY", "TEXT"],
+            ["PROVENANCE", "TEXT"],
+            ["PARENTS", "TEXT"],
+            ["EFFECTIVE_ASSERTION_ID", "TEXT"],
+        ],
+    }
+
     # v15-review H2: the marker table carries the same closed grammar law.
     _MARKER_TABLE_SEGMENTS = [
         ["ROW_ID", "TEXT", "PRIMARY", "KEY"],
@@ -1460,20 +1496,41 @@ class ContractDriver:
         ["SIGNATURE", "BLOB"],
     ]
 
+    # v16-review H2: a signature is (origin, ((column, desc, collation), ...))
+    # over KEY columns in stable order — origin distinguishes PRIMARY KEY from
+    # table-level UNIQUE, and collation/direction changes identity semantics.
+    _INDEX_ORIGINS: dict[str, tuple[str, ...]] = {
+        "semantic_assertions": ("pk",),
+        "semantic_attachments": ("pk",),
+        "semantic_evidence_objects": ("pk",),
+        "semantic_adjudications": ("pk",),
+        "event_sequence": ("u",),
+        "acquisitions": ("pk", "u"),
+    }
+
     @classmethod
     def _index_signatures_governed(
         cls, conn: sqlite3.Connection, table: str
     ) -> bool:
-        found: list[tuple[str, ...]] = []
-        for _seq, name, unique, _origin, partial in conn.execute(
+        found: list[tuple[str, tuple[tuple[str, int, str], ...]]] = []
+        for _seq, name, unique, origin, partial in conn.execute(
             f"PRAGMA index_list({table})"
         ):
             if not unique or partial:
                 return False
-            found.append(
-                tuple(row[2] for row in conn.execute(f"PRAGMA index_info({name})"))
+            key_columns = tuple(
+                (row[2], row[3], (row[4] or "").upper())
+                for row in conn.execute(f"PRAGMA index_xinfo({name})")
+                if row[5] == 1
             )
-        return sorted(found) == sorted(cls._INDEX_SIGNATURES[table])
+            found.append(((origin or ""), key_columns))
+        expected = sorted(
+            (origin, tuple((column, 0, "BINARY") for column in columns))
+            for origin, columns in zip(
+                cls._INDEX_ORIGINS[table], cls._INDEX_SIGNATURES[table]
+            )
+        )
+        return sorted(found) == expected
 
     @staticmethod
     def _has_exact_unique_index(
@@ -1655,6 +1712,20 @@ class ContractDriver:
                 rebuild_bare_ledger = True
                 continue
             if columns != expected:
+                raise _refuse("store_schema_unmigratable:semantics")
+            # v16-review H1: every governed table's DDL is a CLOSED grammar —
+            # a hidden CHECK survives column-name checks and then breaks or
+            # falsifies the writer.
+            table_sql = conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+                (table,),
+            ).fetchone()
+            if table in self._SEMANTIC_TABLE_GRAMMARS and (
+                table_sql is None
+                or not self._table_segments_match(
+                    (table_sql[0] or ""), self._SEMANTIC_TABLE_GRAMMARS[table]
+                )
+            ):
                 raise _refuse("store_schema_unmigratable:semantics")
             if not self._has_exact_unique_index(
                 conn, table, self._SEMANTIC_IDENTITY[table]
