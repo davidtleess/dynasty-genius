@@ -22,9 +22,11 @@
 >
 > **The sequence now:** reviewer findings carry BLOCKER/WARN/STYLE — only BLOCKERs continue
 > remediation (WARN/STYLE → run-local backlog). Rounds are recorded via the dg-autonomy verbs
-> (`round-open|finding|resolve|reviewer-clear|round-close|verdict|refer|adjudicate`). Caps: 5
+> (`round-open|finding|resolve|reviewer-clear|round-close|verdict|adjudicate`). Caps: 5
 > per phase (framing included), 10 per run; caps and the diminishing-returns detector yield
-> `ADJUDICATION_REQUIRED` → **the Judge**. Either lane may `refer` early. Judge **SHIP** = the
+> `ADJUDICATION_REQUIRED` → **the Judge** — the caps and the detector are the ONLY routes
+> (David locked routing to the quantifiable loop, evening 2026-08-12; the referral verb was
+> removed). Judge **SHIP** = the
 > pinned content ships (hooks permit exactly that `git commit`; push stays David's); **STOP** =
 > parked for David. One gate, one ruling. Judge never overrides verification failures; consults
 > Tower for VERIFIED facts only. Gemini telemetry-only and Tower non-orchestrator UNCHANGED.

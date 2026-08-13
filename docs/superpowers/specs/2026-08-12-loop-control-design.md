@@ -257,8 +257,8 @@ David's design intent, stated after the build: a **three-agent system — write,
 
 **What changed (built TDD, seeds J1–J8 in `autonomy/tests/judge-adjudication.test.mjs`):**
 
-- The gate verdict renamed `HUMAN_GATE_REQUIRED` → **`ADJUDICATION_REQUIRED`**: caps and the diminishing-returns detector now route to the Judge, not directly to David.
-- **Early referral** (`referToJudge` / CLI `refer`): either binding lane may send a live dispute to the Judge before any cap, with named reason and evidence (J1, J1b).
+- The gate verdict renamed `HUMAN_GATE_REQUIRED` → **`ADJUDICATION_REQUIRED`**: caps and the diminishing-returns detector — the only routes — send the case to the Judge, not directly to David.
+- ~~Early referral~~ **REMOVED — David's word, 2026-08-12 evening ("lock it to a quantifiable loop"):** routing to the Judge is purely counter-driven (phase cap 5, run cap 10, diminishing returns). The discretionary referral verb was built, then deleted the same evening on his ruling; J1/J1b now pin its absence, and legacy referral fields in run records carry no weight. This supersedes the morning's "it can go to the judge before then."
 - **Binding ruling** (`adjudicateRun` / CLI `adjudicate`): `SHIP` resolves the gate to `READY_FOR_GATE`, records evidence + content pins, and is itself the commit authorization — the Claude/Codex hooks then permit **exactly `git commit`**: no edits, no push (J2, J7, J8). `STOP` keeps the run `BLOCKED` with `JUDGE_STOP`, parked for David (J3). One gate, one ruling (J6). The Judge can never override a verification-failure block (J4); malformed rulings fail closed (J5).
 - **The Judge lane itself:** agent charter at `~/.claude/agents/judge.md` (rules only on loop-control gates; enumerated-evidence standard; bootstraps from source per ruling; may consult Tower for VERIFIED facts — Tower does not co-rule; Studio wall TW29-WALL-35 binds it; No-Verdict Line not waivable by ruling). Pane 2.3 in the Studio–Tower window, spawned live and wired into `dynasty_flight_deck.sh` §7b.
 

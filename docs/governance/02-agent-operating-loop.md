@@ -266,9 +266,10 @@ authority that machinery enforces. Spec of record:
   **5 rounds**; a whole run is capped at **10**. A phase advances only on the independent
   reviewer's explicit, evidence-cited CLEAR. A capped phase with open BLOCKERs lands the run
   `BLOCKED` with structured reason codes and goes to **the Judge** — the standing adjudication
-  seat David created 2026-08-12 (pane 2.3; charter in `~/.claude/agents/judge.md`). Either
-  binding lane may also **refer a live dispute to the Judge early**, before any cap. David's
-  words: "the judge rules and we ship what the judge rules — the judge can consult Tower."
+  seat David created 2026-08-12 (pane 2.3; charter in `~/.claude/agents/judge.md`). Routing is **locked to the quantifiable loop** (David's word, 2026-08-12 evening): only the
+  counters — the caps and the diminishing-returns detector — send a case to the Judge; no
+  discretionary referral exists. David's words: "the judge rules and we ship what the judge
+  rules — the judge can consult Tower."
   A **SHIP** ruling is final for the dispute: the ruled, pinned content ships, and the recorded
   ruling itself authorizes exactly that commit (push and everything outward remain David's).
   A **STOP** ruling parks the run for David. One gate, one ruling; disputes about a ruling go to
