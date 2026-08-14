@@ -259,6 +259,7 @@ def test_f5_not_finalized_week_allows_prediction_and_schedule_only(
         util_loader=_fail_loader("util_loader"),
         prediction_loader=prediction_loader,
         identity_snapshot_loader=_fail_loader("identity_snapshot_loader"),
+        now_fn=lambda: datetime(2026, 9, 23, tzinfo=timezone.utc),
     )
 
     assert result["status"] == "noop"

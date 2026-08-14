@@ -291,13 +291,21 @@ def score(
         if record["has_outcome"]:
             cohort_members[position] += 1
             if settled and record["games_played"] == 0:
-                floor = survivorship_floor.get(position)
-                if floor is not None:
-                    realized = floor
-                    realized_outcome_status = "survivorship_floor_applied"
-                    is_rank_eligible = True
+                # v4 core delta (TW0813-SCORER-1 R3-B1): an UNVERIFIED zero-game absence is
+                # not evidence of a washout, so no floor may be fabricated for it. The row
+                # keeps cohort membership (counted above) and is never rank-eligible.
+                if record.get("player_status") == "status_unverified":
+                    realized_outcome_status = (
+                        "survivorship_floor_withheld_status_unverified"
+                    )
                 else:
-                    realized_outcome_status = "survivorship_floor_unavailable"
+                    floor = survivorship_floor.get(position)
+                    if floor is not None:
+                        realized = floor
+                        realized_outcome_status = "survivorship_floor_applied"
+                        is_rank_eligible = True
+                    else:
+                        realized_outcome_status = "survivorship_floor_unavailable"
             elif settled and realized is not None:
                 is_rank_eligible = True
             elif (not settled) and record["games_played"] >= ELIGIBLE_GAMES_MIN and realized is not None:

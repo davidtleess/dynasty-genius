@@ -1,0 +1,20 @@
+{
+  "_doc": "Governed frozen-prediction-set declaration for the Realized-Outcome Loop. The frozen capture is DECLARED by David, never inferred (DG-09). Loader contract: scripts/run_realized_outcome_scoring.py::_load_frozen_declaration requires frozen_capture_date, source, declared_by, declared_at per season; extra fields are audit context.",
+  "seasons": {
+    "2026": {
+      "frozen_capture_date": "2026-08-05",
+      "source": "model_pvo",
+      "declared_by": "David",
+      "declared_at": "2026-08-13T23:59:00-04:00",
+      "word_verbatim": "the frozen set is 2026-08-05",
+      "relay": "Tower dispatch TW0813-DG09-DECLARED, 2026-08-13 late",
+      "basis_context": "day before the Hall of Fame Game - zero football observed",
+      "measured_at_declaration": {
+        "captured_predictions_with_projection_2y": 501,
+        "five_key_join_coverage": "501/501",
+        "crosswalk_gsis_coverage": "501/501",
+        "snapshot_rows_total_on_date": 12209
+      }
+    }
+  }
+}

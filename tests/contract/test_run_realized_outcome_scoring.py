@@ -12,6 +12,7 @@ import json
 import plistlib
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -34,7 +35,13 @@ def _not_final_schedule() -> dict:
         "week": 1,
         "expected_game_count": 1,
         "games": [
-            {"season": 2026, "week": 1, "game_id": "g1", "status": "postponed"}
+            {
+                "season": 2026,
+                "week": 1,
+                "game_id": "g1",
+                "status": "postponed",
+                "gameday": "2026-09-10",
+            }
         ],
     }
 
@@ -162,6 +169,7 @@ def test_week_not_finalized_noops_before_loading_or_writing(tmp_path):
         util_loader=fail_loader,
         prediction_loader=lambda *_args, **_kwargs: _prediction_rows(),
         identity_snapshot_loader=fail_loader,
+        now_fn=lambda: datetime(2026, 9, 11, tzinfo=timezone.utc),
     )
 
     assert result["status"] == "noop"

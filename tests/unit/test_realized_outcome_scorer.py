@@ -302,6 +302,41 @@ def test_settled_zero_game_player_gets_survivorship_floor_and_stays_in_cohort() 
     assert cohort["eligible_count"] == 10
 
 
+def test_status_unverified_withholds_settled_floor_but_retains_cohort_membership() -> None:
+    predictions = [_prediction(index, projection=float(index)) for index in range(1, 11)]
+    outcomes = _outcomes(9, games_played=8)
+    outcomes["players"]["00-0010"] = _outcome(
+        10,
+        points=None,
+        games_played=0,
+        player_status="status_unverified",
+        weekly_snap_values=[],
+    )
+
+    partial = _dump(score(predictions, outcomes, _bridge(10), as_of_week=33))
+    partial_row = next(
+        item for item in partial["tracking_rows"] if item["gsis_id"] == "00-0010"
+    )
+    assert partial_row["settlement_status"] == "partial"
+    assert partial_row["realized_ppg_to_date"] is None
+    assert partial_row["realized_outcome_status"] == "observed"
+
+    settled = _dump(score(predictions, outcomes, _bridge(10), as_of_week=34))
+    settled_row = next(
+        item for item in settled["tracking_rows"] if item["gsis_id"] == "00-0010"
+    )
+    cohort = settled["cohort_metrics"]["WR"]
+
+    assert settled_row["settlement_status"] == "settled"
+    assert settled_row["realized_ppg_to_date"] is None
+    assert (
+        settled_row["realized_outcome_status"]
+        == "survivorship_floor_withheld_status_unverified"
+    )
+    assert cohort["eligible_count"] == 10  # member denominator retains the frozen player
+    assert cohort["status"] == "power_floor_not_met"  # only 9 are rank-eligible
+
+
 def test_non_finite_prediction_or_outcome_rejects() -> None:
     with pytest.raises(RealizedOutcomeScoringValidationError):
         score([_prediction(1, projection=math.inf)], _outcomes(1), _bridge(1), as_of_week=8)
