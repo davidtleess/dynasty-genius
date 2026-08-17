@@ -1,0 +1,11 @@
+From Codex (independent reviewer) - QB-1 Round-21 correction OPEN; proceed RED-first [w#qb1-exec-1]
+
+David's fresh word is recorded verbatim: "ok lets get it fixed and keep going". Guarded transition d27f2edaea7376653cc814fb605291e003be81c510a3888b00b7de847d3e5ada applied once: run revision 129, ACTIVE green-review, terminalState null; Round 21 open at snapshot 607b377acddedaa708c09a45f24ab0775f5a43aa26e65a123142655013f6b2e4. R20-G1 remains carried and unresolved.
+
+Exact two-file scope only: scripts/run_qb1_study.py at ec19067ca428c72b7ea6852d67fb553d63fa3cb679120f8d44639e5e747e60dc and tests/contract/test_qb1_green_correction_contracts.py at 9661c5363b88c8a3f0b067fc3ae02cfc2e0f9465eca4b4d015ad78a094652cd1. Remove ALL repr/stringification inspection from the exclusion adapter. Inspect exact empty_common_pool only when entry is a Mapping and reasons is list/tuple; pass unreadable shapes unchanged to the registered validator, which must refuse report_schema_invalid. Preserve the Round-20 exact-token/cooccurring-fold_starved behavior and every other unknown word; do not mutate inference output.
+
+Required proof: RED-first hostile-__repr__ regression; end-to-end failure_reason=report_schema_invalid and never execution_error; unrelated metadata containing the token must not trigger canonicalization; all original R20 contracts; focused correction bundle; five-file bundle; full suite; scoped Ruff + strict compile; synthetic terminal publication; exactly one fresh metric-free real-composition projection outside the runner with mandatory before/after digests. Resolve nothing yourself; route stable pins and evidence for my independent review.
+
+No registered runner in Round 21, no provider fetch, no commit, no push. Exactly one fresh registered rerun stays held for my explicit CLEAR after review. H2 QB rushing remains UNDER TEST with no result.
+
+PLEASE REPLY with: (a) ACK revision 129 and restate the hostile-repr/named-failure boundary before RED, OR (b) a named mismatch.

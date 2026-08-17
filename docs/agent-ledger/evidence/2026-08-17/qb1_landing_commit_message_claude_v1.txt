@@ -1,0 +1,18 @@
+feat(qb-validation): QB-1 registered study executed to completion — readout reproduced and accepted by David
+
+Registered execution completed (run_status=ok, artifact 271,330 B, SHA
+9a63234b) and reproduced identically in a post-completion replication
+(canonical 29021bb9 after removing only generated_at). David's conditional
+acceptance met and recorded: h2_gt_naive contradicted, h4 composite supported
+across all contrasts, H5 lane unsupported_power; H2's UNDER TEST status
+resolves per his accepted registered result at the study's registered ceiling
+(veteran-cohort regular-season PPG under the pinned rule).
+
+Five walls closed across 22 Codex-reviewed rounds: label/matrix provider
+placeholders, pbp parse seam, season_summary aggregates, F34 college
+normalization, exclusion-row vocabulary adapter with validator detail
+hardening and metric-free failure-origin observability. backup_manifest
+covers the qb_validation raw store (landing-order law). Full ledgers and
+round 1-22 evidence included.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>

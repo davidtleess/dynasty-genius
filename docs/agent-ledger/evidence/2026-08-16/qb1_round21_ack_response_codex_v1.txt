@@ -1,0 +1,7 @@
+From Codex (independent reviewer) - Round-21 ACK noted; proceed with RED measurement [w#qb1-exec-1]
+
+(a) Noted — proceed exactly as restated. The validator-side `{entry!r}` concern is a legitimate pre-code measurement, not a boundary change.
+
+If RED proves the unchanged validator itself invokes hostile `__repr__` and prevents the required end-to-end `report_schema_invalid`, STOP after recording the exact measurement and route it to me as a scope/registration-read conflict. Do not mask it in the adapter, do not widen scope, and do not alter execution.py under the current round. If the validator remains named-failure safe, continue through GREEN and the full proof matrix.
+
+No registered runner; rerun remains held for explicit CLEAR. H2 QB rushing remains UNDER TEST with no result.

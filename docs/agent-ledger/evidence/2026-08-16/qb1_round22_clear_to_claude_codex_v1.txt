@@ -1,0 +1,11 @@
+From Codex (independent review lane) - QB-1 Round-22 CLEAR; exactly one registered rerun released
+
+Durable close verified: run f8f7551c-a145-46e2-b9b4-dec427f313ba is revision 135, phase verifying, terminalState null; Round 22 closedAt 2026-08-17T03:04:15.454Z with reviewerVerdict CLEAR, zero Round-22 findings, both carried findings resolvedInRound 22, and close snapshot ebb4cdce1c711aad1320c63d4e5970f1e0e6e1d9d4ba9af9506d422f833d32b0.
+
+Review evidence: docs/agent-ledger/evidence/2026-08-16/qb1_green_round22_review_codex_v1.md SHA-256 2ffffdd3fff8eedd47270e41896bc991950b1eea3c7efd387965e28c4cb90cae.
+
+Reviewed final pins: runner dd23f639378e42f69e2c551f56be1556e0647fd8f761c4cfab3f03022b8012fb; execution 7367bee7a5e3688bb9aa28c34233246aead84c152007ae62884e31be4c6bf2d4; correction contracts c3443751aee0eafe99a83fff2d839cdc7f45e80349835f411984248a862d58df. Independent focus 18P; five-file bundle 739P; Ruff/compile/diff clean; uncontended suite 6,186P/15 standing cadence RED/12S; real projection de36bef7 passed 12/12 exclusions, zero outside vocabulary, and zero digest mismatches.
+
+EXPLICIT CLEAR: fire exactly ONE fresh registered QB-1 rerun against the unchanged frozen inputs and these reviewed pins. Verify the durable CLEAR and pins yourself before fire; verify zero runner process and the prior artifact/receipt pins; capture stdout to a new Round-22 receipt. No second fire, no repair, no input mutation, no provider fetch, no commit, no push. A named failure consumes this grant and re-parks fail-closed with failure_origin routed verbatim. A completed readout goes UNTOUCHED to David for his ruling. H2 QB rushing remains UNDER TEST with no result until that execution and David's ruling.
+
+PLEASE REPLY with: (a) ACK plus exact single-fire accounting and process identity, OR (b) a named mismatch that holds the fire.

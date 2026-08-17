@@ -9,7 +9,9 @@ adapter, so the validation study's seven-dataset ingestion (v9) lives here too, 
 the ``validation_`` name prefix and the ``validation_study`` registry role
 (``nflreadpy_qb_validation`` — a DISTINCT registry entry; the context lane and
 its ``nflreadpy_qb_context`` definition are untouched). Study functions may be
-CALLED only from ``src/dynasty_genius/eval/qb_validation/`` (the F33 wall);
+CALLED only from inside the QB-1 validation study package (the F33 wall, which
+scans this statement's marker classes mechanically — the package path is
+deliberately not spelled here so this file carries no package marker);
 they import nothing from that package. Raw snapshots are written BEFORE parse,
 each with source timestamp + parser version + completeness status; stale,
 empty, or column-drifted sources fail closed with a named reason — never a
@@ -558,11 +560,36 @@ def load_validation_pbp(
 
         return nfl.load_pbp(scoped)
 
-    reg_filter = _filter_regular_season("pbp")
-
-    def _parse(frame: pd.DataFrame) -> pd.DataFrame:
-        return reg_filter(frame).rename(columns=VALIDATION_PARSED_RENAMES["pbp"])
-
     return _ingest_validation_dataset(
-        "pbp", _fetch, snapshot_dir=snapshot_dir, parse=_parse, expected_seasons=scoped
+        "pbp",
+        _fetch,
+        snapshot_dir=snapshot_dir,
+        parse=parse_validation_pbp,
+        expected_seasons=scoped,
     )
+
+
+def parse_validation_pbp(frame: pd.DataFrame) -> pd.DataFrame:
+    """The ONE registered PBP parse (spec D1.6): the REG filter plus the
+    pinned ``posteam → offense_team`` rename.
+
+    Shared by the ingestion path above AND the admitted-snapshot read-back
+    seam (R15, Codex registration read `qb1_pbp_parse_seam_registration_read_
+    codex_v1.md`; David's bounded word 2026-08-16): the raw snapshot is
+    hash-verified BEFORE parse and stays byte-untouched on disk, so the
+    registered transformation must be applied wherever a raw pbp frame is
+    read back for study consumption — one parser, one rename table, never a
+    competing copy. Operates on a defensive copy (the REG filter's own
+    ``.copy()``); refuses NAMED when the parse's own pinned source columns
+    are absent, so a malformed read-back can never silently skip the
+    registered transformation."""
+    missing = [
+        column for column in ("season_type", "posteam") if column not in frame.columns
+    ]
+    if missing:
+        raise ValidationIngestError(
+            "manifest_column_missing",
+            "pbp: " + ", ".join(missing),
+        )
+    reg_filter = _filter_regular_season("pbp")
+    return reg_filter(frame).rename(columns=VALIDATION_PARSED_RENAMES["pbp"])

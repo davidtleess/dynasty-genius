@@ -1,0 +1,11 @@
+defensive weekly records: 199868
+excluded at matrix seam: 236
+  of which REG (must be 192): 192
+  of which non-REG: 44
+kept rows with missing player_id (must be 0): 0
+matrix weekly validation (_validated_weekly_row) passed over all 199632 kept records; REG validated rows: 191089
+raw REG rows unparseable for team totals (expect 0): 0
+team-rushing (team, season) keys compared: 352
+team-rushing total mismatches (must be 0): 0
+admitted weekly frame digest unchanged: True
+PROBE VERDICT: PASS

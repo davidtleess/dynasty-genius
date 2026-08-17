@@ -235,14 +235,70 @@ def _age_check(
     }
 
 
+# R18 (David's bounded word, revision 111; Codex registration read
+# `qb1_f34_college_normalization_registration_read_codex_v1.md` — an
+# IMPLEMENTATION of the registered F34 cross-check, not an amendment): the
+# measured fourth wall was 69/179 matrix study QBs landing TRIAGE
+# cross_check_conflict on a whole-string college comparison. Of those 69, the
+# 49 players whose 143 rows reached the H4 refusal were morphology-censused as
+# 23 multi-school histories containing the draft school · 22 single-school
+# provider alias/abbreviation/punctuation variants · 4 compound (multi-school
+# AND draft-side abbreviation); the other 20 TRIAGE players never survived the
+# earlier H4 gates. The final real-surface reconciliation covers all 69: 67
+# representation-only conflicts repaired by this law + the 2 genuine residual
+# conflicts (00-0029857, 00-0037175) the cross-check exists to catch. The law
+# below is deliberately CLOSED: terminal-token-boundary expansions and an
+# exact alias set only — no substring/prefix/fuzzy matching, no city/qualifier
+# dropping, no open-ended heuristics, no player allowlists, no GSIS/name/age
+# bypass.
+_COLLEGE_TERMINAL_TOKEN_EXPANSIONS = {"st": "state", "col": "college"}
+_COLLEGE_CLOSED_ALIASES = {
+    "n c state": "north carolina state",
+    "ucf": "central florida",
+    "miami oh": "miami ohio",
+    "uab": "ala birmingham",
+}
+
+
+def _canonical_college_institution(value: Any) -> str | None:
+    """ONE canonical institution string from ONE college value: the pinned
+    F32 `normalize_name` law, then the terminal-token expansion (LAST token
+    only — a leading 'St.' as in 'St. Johns' is never touched), then the
+    closed exact alias map. Empty/missing normalizes to None (no key)."""
+    normalized = normalize_name(value)
+    if not normalized:
+        return None
+    tokens = normalized.split(" ")
+    last = tokens[-1]
+    if last in _COLLEGE_TERMINAL_TOKEN_EXPANSIONS:
+        tokens[-1] = _COLLEGE_TERMINAL_TOKEN_EXPANSIONS[last]
+    canonical = " ".join(tokens)
+    return _COLLEGE_CLOSED_ALIASES.get(canonical, canonical)
+
+
 def _college_check(
     study_row: Mapping[str, Any], draft_row: Mapping[str, Any]
 ) -> dict[str, Any]:
-    study_college = normalize_name(study_row.get("college_name"))
-    draft_college = normalize_name(draft_row.get("college"))
-    if not study_college or not draft_college:
+    """Both-present passes iff the canonical draft institution is an EXACT
+    member of the canonical study-institution set (the provider's
+    `college_name` is a `;`-separated attendance history; the draft side is a
+    single institution). Disjoint remains ``conflict``; either side missing
+    remains ``missing`` and the registered degraded age law governs."""
+    study_raw = study_row.get("college_name")
+    parts = study_raw.split(";") if isinstance(study_raw, str) else [study_raw]
+    study_institutions = {
+        canonical
+        for part in parts
+        if (canonical := _canonical_college_institution(part)) is not None
+    }
+    draft_institution = _canonical_college_institution(draft_row.get("college"))
+    if not study_institutions or draft_institution is None:
         return {"result": "missing"}
-    return {"result": "pass" if study_college == draft_college else "conflict"}
+    return {
+        "result": "pass"
+        if draft_institution in study_institutions
+        else "conflict"
+    }
 
 
 def _cross_check_conflict(

@@ -1,0 +1,11 @@
+From Codex (registration/read lane) - QB-1 exclusion-row registration read complete; bounded Round 20 open at revision 126
+
+Classification: IMPLEMENTATION, not amendment, only at the terminal-report adapter. Registration read docs/agent-ledger/evidence/2026-08-16/qb1_exclusion_row_registration_read_codex_v1.md SHA-256 0453ca804e2bd8ee62451e953a7762583cbdf93e9bdd677e39226207521509ac. Independent audit reproduced diagnostic d83f5be1… / 37d935dd… and all 33 digest pins with zero mismatches.
+
+Durable transition: revision 126, ACTIVE green-review, Round 20 open, snapshot cf5062ed249249b79b86d0b2a8134cab729518fed6ac86232ae644d9b1a7bd92. Transition script 8784f0bf18a46c512ad5b82a5c5c167f9e64b334d91df1afd6a53edf1b1a81cc; open receipt fd6e54e5109fe447056e63c6a0a834b9532089462a5b941fd34a39ced7f0ca29.
+
+Exact scope: scripts/run_qb1_study.py and tests/contract/test_qb1_green_correction_contracts.py. Implement at contrast_status terminal-report adaptation only. Remove exact internal reason empty_common_pool only when fold_starved co-occurs. Preserve internal inference, publication vocabulary, registration, all other words/order/metadata, and every metric/uncertainty/status/claim. Refuse report_schema_invalid if empty_common_pool lacks fold_starved, occurs more than once, or sits in malformed entry/reasons shape. Preserve any unrelated unknown word so the unchanged gate rejects it. Preserve None/empty exclusions.
+
+RED first over the full matrix in the registration read. Run focused correction and five-file suites, scoped Ruff/compile, synthetic terminal publication, then exactly one final metric-free real composition projection outside the runner with before/after hashes. Do not change execution.py, inference.py, comparisons.py, either registration file, inputs, or artifacts. No registered runner/rerun, provider fetch, commit, or push. Fresh rerun remains held for Codex explicit CLEAR after review. H2 QB rushing remains UNDER TEST with no result.
+
+PLEASE REPLY with: (a) ACK revision 126 and restate the terminal-adapter-only boundary before writing RED, OR (b) a named state, pin, or interpretation mismatch.

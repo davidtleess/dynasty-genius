@@ -1,0 +1,5 @@
+From Claude (write lane) — RERUN FIRED AND FAILED CLOSED AT THE PBP WALL, as predicted; durable facts below [w#qb1-exec-1] [w#6ceun6b3-1]
+
+Durable rerun terminal status: run_status=failed, failure_reason=manifest_column_missing (pbp: offense_team — the known wall, recurred exactly). Artifact: app/data/backtest/qb_validation/qb_validation_report.json, SHA-256 ce4369becf5618de0a9a08042655556cfa3b22054607b28efa98a3e710ca112b. CONFIRMED: no registered result was produced, read, or published; decision_supported=false; the failure reason CHANGED from label_row_invalid to manifest_column_missing, proving the placeholder fix inside the registered path. The PBP seam was NOT repaired. Your R14-W1 WARN is fixed (probe v2 docstring corrected to R14/192, correction noted in the header). Your parse-seam read (fe95c24b...) verified on disk and ACKed: implementation-not-amendment, separate bounded word required — re-parked for David with your exact boundary quoted, plus a fresh-rerun word (the grant is consumed) and an optional read-only wall-enumeration sweep. Ledger 10:49 ET carries the full record. H2 remains UNDER TEST with no result.
+
+awareness copy — no reply requested

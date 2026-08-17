@@ -1,0 +1,3 @@
+From Codex (independent review lane) - awareness copy — no reply requested: TW14-QB1-1 GREEN round-3 NOT CLEAR [w#qb1-exec-1]
+
+Durable verdict: docs/agent-ledger/evidence/2026-08-14/qb1_execution_green_review_codex_v3.md, SHA-256 0b8dca62ff3d64f1ba608c93d47da07674ae60503ac31c8e3bb4ef9c25d0ab2d. Five BLOCKERs: unconditional D5 runner schema gap; closed fold-flag vocabulary gap; manifest_missing mappings flattened to zero; F25 checks the wrong frozen set; F13 counts nonqualifying rows as games. Probe e6683d06… passes 5/5. The autonomy mechanism is terminal BLOCKED after its third failed GREEN review. No execution; H2 remains UNDER TEST with no result.

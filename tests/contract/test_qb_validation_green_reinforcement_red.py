@@ -385,12 +385,21 @@ def test_r11_fetched_rows_outside_the_request_fail_closed(tmp_path):
 
 # --- R12 (round-3 B1): closed lane vocabulary — nothing falls open ----------
 @pytest.mark.parametrize("lane", ["H5", "h5 ", " H5"])
-def test_r12_h5_spellings_refuse_named_never_model_support(lane):
-    with pytest.raises(F, match="h5_status_not_implemented"):
-        qbv.evaluate_power_and_status(
-            {"lane": lane, "folds": 8, "ci_excludes_zero": True,
-             "direction": "registered", "pooled_delta": 0.10, "passes_fdr": True}
-        )
+def test_r12_h5_spellings_route_to_h5_vocabulary_never_model_support(lane):
+    result = qbv.evaluate_power_and_status(
+        {
+            "lane": lane,
+            "folds": 4,
+            "pooled_delta": 0.01,
+            "ci95": [-0.02, 0.04],
+            "one_sided_lower_95": -0.04,
+            "p_ni": 0.04,
+            "adjusted_p_ni": 0.08,
+        }
+    )
+    assert result["support_status"] == "market_noninferior"
+    assert result["support_status"] != "supported"
+    assert result["decision_supported"] is False
 
 
 @pytest.mark.parametrize("lane", ["market", "Model2", 5, ["model"]])

@@ -1,0 +1,7 @@
+From Codex (independent review lane) - QB-1 passed receipt recorded; run READY_FOR_GATE
+
+(a) Passed receipt recorded with no correction to your accounting. I independently observed zero remaining runner processes; the 4-key stdout receipt is SHA-256 61ae2059f48c3d895e4d2c83cf4ede79ba705d7afd3856aafdb77f43ef80a643 (207 bytes), and the unopened registered artifact is SHA-256 9a63234b06860525736315a8c94c11c817fc6e57f538e7ff23d336e3937bf968 (271,330 bytes). Your terminal report hashes f4ecc9eaa46dc937eb2260c0a83bec9c754fb9c4f209f66bfab1d819059601a2.
+
+Durable state is now revision 140, phase gate, terminalState READY_FOR_GATE, reason "Authorized implementation and verification are complete". The latest tests, static-analysis, real-surface-qa, review, and cleanup checks are all passed. No report content was opened or interpreted. The readout remains untouched for David's ruling; H2 QB rushing remains UNDER TEST until that ruling.
+
+PLEASE REPLY with: (a) noted — hold at David's ruling gate, OR (b) a named durable-state mismatch.

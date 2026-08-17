@@ -1,0 +1,1046 @@
+ONE-PASS PROOF: admit_and_load_validation_pool invoked once; 17 paths, each loaded exactly once: True
+label lookup keys (existence set only): 3933
+matrix rows: 577
+cohort_admitted rows: 577
+no_target_season rows skipped pre-capital: 206
+>50%-missingness drops pre-capital: 25 [('00-0023436', 2020), ('00-0026300', 2021), ('00-0026898', 2018), ('00-0027688', 2018), ('00-0027948', 2020), ('00-0028957', 2017), ('00-0029623', 2019), ('00-0029668', 2018), ('00-0029701', 2018), ('00-0030151', 2020), ('00-0030533', 2018), ('00-0031076', 2019), ('00-0031237', 2017), ('00-0031288', 2017), ('00-0031800', 2020), ('00-0032156', 2019), ('00-0032245', 2021), ('00-0032436', 2022), ('00-0033537', 2022), ('00-0033662', 2021), ('00-0033949', 2020), ('00-0033958', 2020), ('00-0034343', 2021), ('00-0034438', 2023), ('00-0034771', 2023)]
+cross-check mismatches (must be 0): 0 []
+rows surviving the pre-draft-capital H4 gates: 346
+
+H4 NULL-CAPITAL rows (the refusal set): 143
+distinct (player_id, target_season) keys: 143
+distinct players: 49 ['00-0021206', '00-0022924', '00-0022942', '00-0023459', '00-0023645', '00-0025430', '00-0026143', '00-0026158', '00-0027939', '00-0028012', '00-0029263', '00-0029567', '00-0029604', '00-0029682', '00-0030520', '00-0030526', '00-0031076', '00-0031280', '00-0031395', '00-0031407', '00-0031503', '00-0032245', '00-0032436', '00-0032950', '00-0033077', '00-0033119', '00-0033958', '00-0034401', '00-0034771', '00-0034855', '00-0034857', '00-0035228', '00-0035232', '00-0035264', '00-0035289', '00-0035652', '00-0036264', '00-0036389', '00-0036442', '00-0036945', '00-0037012', '00-0037834', '00-0038108', '00-0038128', '00-0039152', '00-0039376', '00-0039398', '00-0039917', '00-0039918']
+
+=== PER-PLAYER F34 REPLAY (exact shipped resolver) ===
+
+player 00-0021206:
+  players-row present: True
+  identity fields: display_name='Josh McCown' player_name=None birth_date='1979-07-04' college='Sam Houston State; SMU'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0021206' norm_study_name='josh mccown' norm_draft_name='josh mccown'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2002 round=3 pick=81 name='Josh McCown' gsis='00-0021206' college='Sam Houston St.'
+    considered[name]: season=2002 round=3 pick=81 name='Josh McCown' gsis='00-0021206' college='Sam Houston St.'
+  raw_study_college='Sam Houston State; SMU'
+  raw_matched_draft_college='Sam Houston St.'
+  norm_study_college='sam houston state smu' norm_draft_college='sam houston st'
+  semicolon_tokens=['sam houston state', 'smu']
+  morphology (non-authoritative label): multi_school_not_containing_draft_school
+
+player 00-0022924:
+  players-row present: True
+  identity fields: display_name='Ben Roethlisberger' player_name=None birth_date='1982-03-02' college='Miami (Ohio)'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0022924' norm_study_name='ben roethlisberger' norm_draft_name='ben roethlisberger'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2004 round=1 pick=11 name='Ben Roethlisberger' gsis='00-0022924' college='Miami (OH)'
+    considered[name]: season=2004 round=1 pick=11 name='Ben Roethlisberger' gsis='00-0022924' college='Miami (OH)'
+  raw_study_college='Miami (Ohio)'
+  raw_matched_draft_college='Miami (OH)'
+  norm_study_college='miami ohio' norm_draft_college='miami oh'
+  semicolon_tokens=['miami ohio']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0022942:
+  players-row present: True
+  identity fields: display_name='Philip Rivers' player_name=None birth_date='1981-12-08' college='N.C. State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0022942' norm_study_name='philip rivers' norm_draft_name='philip rivers'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2004 round=1 pick=4 name='Philip Rivers' gsis='00-0022942' college='North Carolina St.'
+    considered[name]: season=2004 round=1 pick=4 name='Philip Rivers' gsis='00-0022942' college='North Carolina St.'
+  raw_study_college='N.C. State'
+  raw_matched_draft_college='North Carolina St.'
+  norm_study_college='n c state' norm_draft_college='north carolina st'
+  semicolon_tokens=['n c state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0023459:
+  players-row present: True
+  identity fields: display_name='Aaron Rodgers' player_name=None birth_date='1983-12-02' college='California; Butte College'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0023459' norm_study_name='aaron rodgers' norm_draft_name='aaron rodgers'
+  age_check={'draft_age': 21, 'computed_age': 21, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2005 round=1 pick=24 name='Aaron Rodgers' gsis='00-0023459' college='California'
+    considered[name]: season=2005 round=1 pick=24 name='Aaron Rodgers' gsis='00-0023459' college='California'
+  raw_study_college='California; Butte College'
+  raw_matched_draft_college='California'
+  norm_study_college='california butte college' norm_draft_college='california'
+  semicolon_tokens=['california', 'butte college']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0023645:
+  players-row present: True
+  identity fields: display_name='Derek Anderson' player_name=None birth_date='1983-06-15' college='Oregon State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0023645' norm_study_name='derek anderson' norm_draft_name='derek anderson'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2005 round=6 pick=213 name='Derek Anderson' gsis='00-0023645' college='Oregon St.'
+    considered[name]: season=2005 round=6 pick=213 name='Derek Anderson' gsis='00-0023645' college='Oregon St.'
+  raw_study_college='Oregon State'
+  raw_matched_draft_college='Oregon St.'
+  norm_study_college='oregon state' norm_draft_college='oregon st'
+  semicolon_tokens=['oregon state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0025430:
+  players-row present: True
+  identity fields: display_name='Drew Stanton' player_name=None birth_date='1984-05-07' college='Michigan State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0025430' norm_study_name='drew stanton' norm_draft_name='drew stanton'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2007 round=2 pick=43 name='Drew Stanton' gsis='00-0025430' college='Michigan St.'
+    considered[name]: season=2007 round=2 pick=43 name='Drew Stanton' gsis='00-0025430' college='Michigan St.'
+  raw_study_college='Michigan State'
+  raw_matched_draft_college='Michigan St.'
+  norm_study_college='michigan state' norm_draft_college='michigan st'
+  semicolon_tokens=['michigan state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0026143:
+  players-row present: True
+  identity fields: display_name='Matt Ryan' player_name=None birth_date='1985-05-17' college='Boston College'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0026143' norm_study_name='matt ryan' norm_draft_name='matt ryan'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2008 round=1 pick=3 name='Matt Ryan' gsis='00-0026143' college='Boston Col.'
+    considered[name]: season=2008 round=1 pick=3 name='Matt Ryan' gsis='00-0026143' college='Boston Col.'
+  raw_study_college='Boston College'
+  raw_matched_draft_college='Boston Col.'
+  norm_study_college='boston college' norm_draft_college='boston col'
+  semicolon_tokens=['boston college']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0026158:
+  players-row present: True
+  identity fields: display_name='Joe Flacco' player_name=None birth_date='1985-01-16' college='Delaware; Pittsburgh'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0026158' norm_study_name='joe flacco' norm_draft_name='joe flacco'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2008 round=1 pick=18 name='Joe Flacco' gsis='00-0026158' college='Delaware'
+    considered[name]: season=2008 round=1 pick=18 name='Joe Flacco' gsis='00-0026158' college='Delaware'
+  raw_study_college='Delaware; Pittsburgh'
+  raw_matched_draft_college='Delaware'
+  norm_study_college='delaware pittsburgh' norm_draft_college='delaware'
+  semicolon_tokens=['delaware', 'pittsburgh']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0027939:
+  players-row present: True
+  identity fields: display_name='Cam Newton' player_name=None birth_date='1989-05-11' college='Auburn; Blinn College; Florida'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0027939' norm_study_name='cam newton' norm_draft_name='cam newton'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2011 round=1 pick=1 name='Cam Newton' gsis='00-0027939' college='Auburn'
+    considered[name]: season=2011 round=1 pick=1 name='Cam Newton' gsis='00-0027939' college='Auburn'
+  raw_study_college='Auburn; Blinn College; Florida'
+  raw_matched_draft_college='Auburn'
+  norm_study_college='auburn blinn college florida' norm_draft_college='auburn'
+  semicolon_tokens=['auburn', 'blinn college', 'florida']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0028012:
+  players-row present: True
+  identity fields: display_name='Ryan Mallett' player_name=None birth_date='1988-06-05' college='Arkansas; Michigan'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0028012' norm_study_name='ryan mallett' norm_draft_name='ryan mallett'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2011 round=3 pick=74 name='Ryan Mallett' gsis='00-0028012' college='Arkansas'
+    considered[name]: season=2011 round=3 pick=74 name='Ryan Mallett' gsis='00-0028012' college='Arkansas'
+  raw_study_college='Arkansas; Michigan'
+  raw_matched_draft_college='Arkansas'
+  norm_study_college='arkansas michigan' norm_draft_college='arkansas'
+  semicolon_tokens=['arkansas', 'michigan']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0029263:
+  players-row present: True
+  identity fields: display_name='Russell Wilson' player_name=None birth_date='1988-11-29' college='Wisconsin; N.C. State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0029263' norm_study_name='russell wilson' norm_draft_name='russell wilson'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2012 round=3 pick=75 name='Russell Wilson' gsis='00-0029263' college='Wisconsin'
+    considered[name]: season=2012 round=3 pick=75 name='Russell Wilson' gsis='00-0029263' college='Wisconsin'
+  raw_study_college='Wisconsin; N.C. State'
+  raw_matched_draft_college='Wisconsin'
+  norm_study_college='wisconsin n c state' norm_draft_college='wisconsin'
+  semicolon_tokens=['wisconsin', 'n c state']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0029567:
+  players-row present: True
+  identity fields: display_name='Nick Foles' player_name=None birth_date='1989-01-20' college='Arizona; Michigan State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0029567' norm_study_name='nick foles' norm_draft_name='nick foles'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2012 round=3 pick=88 name='Nick Foles' gsis='00-0029567' college='Arizona'
+    considered[name]: season=2012 round=3 pick=88 name='Nick Foles' gsis='00-0029567' college='Arizona'
+  raw_study_college='Arizona; Michigan State'
+  raw_matched_draft_college='Arizona'
+  norm_study_college='arizona michigan state' norm_draft_college='arizona'
+  semicolon_tokens=['arizona', 'michigan state']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0029604:
+  players-row present: True
+  identity fields: display_name='Kirk Cousins' player_name=None birth_date='1988-08-19' college='Michigan State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0029604' norm_study_name='kirk cousins' norm_draft_name='kirk cousins'
+  age_check={'draft_age': 24, 'computed_age': 24, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2012 round=4 pick=102 name='Kirk Cousins' gsis='00-0029604' college='Michigan St.'
+    considered[name]: season=2012 round=4 pick=102 name='Kirk Cousins' gsis='00-0029604' college='Michigan St.'
+  raw_study_college='Michigan State'
+  raw_matched_draft_college='Michigan St.'
+  norm_study_college='michigan state' norm_draft_college='michigan st'
+  semicolon_tokens=['michigan state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0029682:
+  players-row present: True
+  identity fields: display_name='Brock Osweiler' player_name=None birth_date='1990-11-22' college='Arizona State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0029682' norm_study_name='brock osweiler' norm_draft_name='brock osweiler'
+  age_check={'draft_age': 21, 'computed_age': 21, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2012 round=2 pick=57 name='Brock Osweiler' gsis='00-0029682' college='Arizona St.'
+    considered[name]: season=2012 round=2 pick=57 name='Brock Osweiler' gsis='00-0029682' college='Arizona St.'
+  raw_study_college='Arizona State'
+  raw_matched_draft_college='Arizona St.'
+  norm_study_college='arizona state' norm_draft_college='arizona st'
+  semicolon_tokens=['arizona state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0030520:
+  players-row present: True
+  identity fields: display_name='Mike Glennon' player_name=None birth_date='1989-12-12' college='N.C. State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0030520' norm_study_name='mike glennon' norm_draft_name='mike glennon'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2013 round=3 pick=73 name='Mike Glennon' gsis='00-0030520' college='North Carolina St.'
+    considered[name]: season=2013 round=3 pick=73 name='Mike Glennon' gsis='00-0030520' college='North Carolina St.'
+  raw_study_college='N.C. State'
+  raw_matched_draft_college='North Carolina St.'
+  norm_study_college='n c state' norm_draft_college='north carolina st'
+  semicolon_tokens=['n c state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0030526:
+  players-row present: True
+  identity fields: display_name='EJ Manuel' player_name=None birth_date='1990-03-19' college='Florida State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0030526' norm_study_name='ej manuel' norm_draft_name='ej manuel'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2013 round=1 pick=16 name='EJ Manuel' gsis='00-0030526' college='Florida St.'
+    considered[name]: season=2013 round=1 pick=16 name='EJ Manuel' gsis='00-0030526' college='Florida St.'
+  raw_study_college='Florida State'
+  raw_matched_draft_college='Florida St.'
+  norm_study_college='florida state' norm_draft_college='florida st'
+  semicolon_tokens=['florida state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0031076:
+  players-row present: True
+  identity fields: display_name='David Fales' player_name=None birth_date='1990-10-04' college='San Jose State; Monterey Peninsula; Nevada'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0031076' norm_study_name='david fales' norm_draft_name='david fales'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2014 round=6 pick=183 name='David Fales' gsis='00-0031076' college='San Jose St.'
+    considered[name]: season=2014 round=6 pick=183 name='David Fales' gsis='00-0031076' college='San Jose St.'
+  raw_study_college='San Jose State; Monterey Peninsula; Nevada'
+  raw_matched_draft_college='San Jose St.'
+  norm_study_college='san jose state monterey peninsula nevada' norm_draft_college='san jose st'
+  semicolon_tokens=['san jose state', 'monterey peninsula', 'nevada']
+  morphology (non-authoritative label): multi_school_not_containing_draft_school
+
+player 00-0031280:
+  players-row present: True
+  identity fields: display_name='Derek Carr' player_name=None birth_date='1991-03-28' college='Fresno State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0031280' norm_study_name='derek carr' norm_draft_name='derek carr'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2014 round=2 pick=36 name='Derek Carr' gsis='00-0031280' college='Fresno St.'
+    considered[name]: season=2014 round=2 pick=36 name='Derek Carr' gsis='00-0031280' college='Fresno St.'
+  raw_study_college='Fresno State'
+  raw_matched_draft_college='Fresno St.'
+  norm_study_college='fresno state' norm_draft_college='fresno st'
+  semicolon_tokens=['fresno state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0031395:
+  players-row present: True
+  identity fields: display_name='Garrett Gilbert' player_name=None birth_date='1991-07-01' college='SMU; Texas'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0031395' norm_study_name='garrett gilbert' norm_draft_name='garrett gilbert'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2014 round=6 pick=214 name='Garrett Gilbert' gsis='00-0031395' college='SMU'
+    considered[name]: season=2014 round=6 pick=214 name='Garrett Gilbert' gsis='00-0031395' college='SMU'
+  raw_study_college='SMU; Texas'
+  raw_matched_draft_college='SMU'
+  norm_study_college='smu texas' norm_draft_college='smu'
+  semicolon_tokens=['smu', 'texas']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0031407:
+  players-row present: True
+  identity fields: display_name='Blake Bortles' player_name=None birth_date='1992-04-28' college='UCF'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0031407' norm_study_name='blake bortles' norm_draft_name='blake bortles'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2014 round=1 pick=3 name='Blake Bortles' gsis='00-0031407' college='Central Florida'
+    considered[name]: season=2014 round=1 pick=3 name='Blake Bortles' gsis='00-0031407' college='Central Florida'
+  raw_study_college='UCF'
+  raw_matched_draft_college='Central Florida'
+  norm_study_college='ucf' norm_draft_college='central florida'
+  semicolon_tokens=['ucf']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0031503:
+  players-row present: True
+  identity fields: display_name='Jameis Winston' player_name=None birth_date='1994-01-06' college='Florida State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0031503' norm_study_name='jameis winston' norm_draft_name='jameis winston'
+  age_check={'draft_age': 21, 'computed_age': 21, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2015 round=1 pick=1 name='Jameis Winston' gsis='00-0031503' college='Florida St.'
+    considered[name]: season=2015 round=1 pick=1 name='Jameis Winston' gsis='00-0031503' college='Florida St.'
+  raw_study_college='Florida State'
+  raw_matched_draft_college='Florida St.'
+  norm_study_college='florida state' norm_draft_college='florida st'
+  semicolon_tokens=['florida state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0032245:
+  players-row present: True
+  identity fields: display_name='Sean Mannion' player_name=None birth_date='1992-04-25' college='Oregon State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0032245' norm_study_name='sean mannion' norm_draft_name='sean mannion'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2015 round=3 pick=89 name='Sean Mannion' gsis='00-0032245' college='Oregon St.'
+    considered[name]: season=2015 round=3 pick=89 name='Sean Mannion' gsis='00-0032245' college='Oregon St.'
+  raw_study_college='Oregon State'
+  raw_matched_draft_college='Oregon St.'
+  norm_study_college='oregon state' norm_draft_college='oregon st'
+  semicolon_tokens=['oregon state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0032436:
+  players-row present: True
+  identity fields: display_name='Jeff Driskel' player_name=None birth_date='1993-04-23' college='Louisiana Tech; Florida'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0032436' norm_study_name='jeff driskel' norm_draft_name='jeff driskel'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2016 round=6 pick=207 name='Jeff Driskel' gsis='00-0032436' college='Louisiana Tech'
+    considered[name]: season=2016 round=6 pick=207 name='Jeff Driskel' gsis='00-0032436' college='Louisiana Tech'
+  raw_study_college='Louisiana Tech; Florida'
+  raw_matched_draft_college='Louisiana Tech'
+  norm_study_college='louisiana tech florida' norm_draft_college='louisiana tech'
+  semicolon_tokens=['louisiana tech', 'florida']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0032950:
+  players-row present: True
+  identity fields: display_name='Carson Wentz' player_name=None birth_date='1992-12-30' college='North Dakota State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0032950' norm_study_name='carson wentz' norm_draft_name='carson wentz'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2016 round=1 pick=2 name='Carson Wentz' gsis='00-0032950' college='North Dakota St.'
+    considered[name]: season=2016 round=1 pick=2 name='Carson Wentz' gsis='00-0032950' college='North Dakota St.'
+  raw_study_college='North Dakota State'
+  raw_matched_draft_college='North Dakota St.'
+  norm_study_college='north dakota state' norm_draft_college='north dakota st'
+  semicolon_tokens=['north dakota state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0033077:
+  players-row present: True
+  identity fields: display_name='Dak Prescott' player_name=None birth_date='1993-07-29' college='Mississippi State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0033077' norm_study_name='dak prescott' norm_draft_name='dak prescott'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2016 round=4 pick=135 name='Dak Prescott' gsis='00-0033077' college='Mississippi St.'
+    considered[name]: season=2016 round=4 pick=135 name='Dak Prescott' gsis='00-0033077' college='Mississippi St.'
+  raw_study_college='Mississippi State'
+  raw_matched_draft_college='Mississippi St.'
+  norm_study_college='mississippi state' norm_draft_college='mississippi st'
+  semicolon_tokens=['mississippi state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0033119:
+  players-row present: True
+  identity fields: display_name='Jacoby Brissett' player_name=None birth_date='1992-12-11' college='N.C. State; Florida'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0033119' norm_study_name='jacoby brissett' norm_draft_name='jacoby brissett'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2016 round=3 pick=91 name='Jacoby Brissett' gsis='00-0033119' college='North Carolina St.'
+    considered[name]: season=2016 round=3 pick=91 name='Jacoby Brissett' gsis='00-0033119' college='North Carolina St.'
+  raw_study_college='N.C. State; Florida'
+  raw_matched_draft_college='North Carolina St.'
+  norm_study_college='n c state florida' norm_draft_college='north carolina st'
+  semicolon_tokens=['n c state', 'florida']
+  morphology (non-authoritative label): multi_school_not_containing_draft_school
+
+player 00-0033958:
+  players-row present: True
+  identity fields: display_name='Nathan Peterman' player_name=None birth_date='1994-05-04' college='Pittsburgh; Tennessee'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0033958' norm_study_name='nathan peterman' norm_draft_name='nathan peterman'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2017 round=5 pick=171 name='Nathan Peterman' gsis='00-0033958' college='Pittsburgh'
+    considered[name]: season=2017 round=5 pick=171 name='Nathan Peterman' gsis='00-0033958' college='Pittsburgh'
+  raw_study_college='Pittsburgh; Tennessee'
+  raw_matched_draft_college='Pittsburgh'
+  norm_study_college='pittsburgh tennessee' norm_draft_college='pittsburgh'
+  semicolon_tokens=['pittsburgh', 'tennessee']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0034401:
+  players-row present: True
+  identity fields: display_name='Mike White' player_name=None birth_date='1995-03-25' college='Western Kentucky; University of South Florida'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0034401' norm_study_name='mike white' norm_draft_name='mike white'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2018 round=5 pick=171 name='Mike White' gsis='00-0034401' college='Western Kentucky'
+    considered[name]: season=2018 round=5 pick=171 name='Mike White' gsis='00-0034401' college='Western Kentucky'
+  raw_study_college='Western Kentucky; University of South Florida'
+  raw_matched_draft_college='Western Kentucky'
+  norm_study_college='western kentucky university of south florida' norm_draft_college='western kentucky'
+  semicolon_tokens=['western kentucky', 'university of south florida']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0034771:
+  players-row present: True
+  identity fields: display_name='Mason Rudolph' player_name=None birth_date='1995-07-17' college='Oklahoma State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0034771' norm_study_name='mason rudolph' norm_draft_name='mason rudolph'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2018 round=3 pick=76 name='Mason Rudolph' gsis='00-0034771' college='Oklahoma St.'
+    considered[name]: season=2018 round=3 pick=76 name='Mason Rudolph' gsis='00-0034771' college='Oklahoma St.'
+  raw_study_college='Oklahoma State'
+  raw_matched_draft_college='Oklahoma St.'
+  norm_study_college='oklahoma state' norm_draft_college='oklahoma st'
+  semicolon_tokens=['oklahoma state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0034855:
+  players-row present: True
+  identity fields: display_name='Baker Mayfield' player_name=None birth_date='1995-04-14' college='Oklahoma; Texas Tech'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0034855' norm_study_name='baker mayfield' norm_draft_name='baker mayfield'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2018 round=1 pick=1 name='Baker Mayfield' gsis='00-0034855' college='Oklahoma'
+    considered[name]: season=2018 round=1 pick=1 name='Baker Mayfield' gsis='00-0034855' college='Oklahoma'
+  raw_study_college='Oklahoma; Texas Tech'
+  raw_matched_draft_college='Oklahoma'
+  norm_study_college='oklahoma texas tech' norm_draft_college='oklahoma'
+  semicolon_tokens=['oklahoma', 'texas tech']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0034857:
+  players-row present: True
+  identity fields: display_name='Josh Allen' player_name=None birth_date='1996-05-21' college='Wyoming; Reedley'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0034857' norm_study_name='josh allen' norm_draft_name='josh allen'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2018 round=1 pick=7 name='Josh Allen' gsis='00-0034857' college='Wyoming'
+    considered[name]: season=2018 round=1 pick=7 name='Josh Allen' gsis='00-0034857' college='Wyoming'
+  raw_study_college='Wyoming; Reedley'
+  raw_matched_draft_college='Wyoming'
+  norm_study_college='wyoming reedley' norm_draft_college='wyoming'
+  semicolon_tokens=['wyoming', 'reedley']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0035228:
+  players-row present: True
+  identity fields: display_name='Kyler Murray' player_name=None birth_date='1997-08-07' college='Oklahoma; Texas A&M'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0035228' norm_study_name='kyler murray' norm_draft_name='kyler murray'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2019 round=1 pick=1 name='Kyler Murray' gsis='00-0035228' college='Oklahoma'
+    considered[name]: season=2019 round=1 pick=1 name='Kyler Murray' gsis='00-0035228' college='Oklahoma'
+  raw_study_college='Oklahoma; Texas A&M'
+  raw_matched_draft_college='Oklahoma'
+  norm_study_college='oklahoma texas a m' norm_draft_college='oklahoma'
+  semicolon_tokens=['oklahoma', 'texas a m']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0035232:
+  players-row present: True
+  identity fields: display_name='Dwayne Haskins' player_name=None birth_date='1997-05-03' college='Ohio State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0035232' norm_study_name='dwayne haskins' norm_draft_name='dwayne haskins'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2019 round=1 pick=15 name='Dwayne Haskins' gsis='00-0035232' college='Ohio St.'
+    considered[name]: season=2019 round=1 pick=15 name='Dwayne Haskins' gsis='00-0035232' college='Ohio St.'
+  raw_study_college='Ohio State'
+  raw_matched_draft_college='Ohio St.'
+  norm_study_college='ohio state' norm_draft_college='ohio st'
+  semicolon_tokens=['ohio state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0035264:
+  players-row present: True
+  identity fields: display_name='Jarrett Stidham' player_name=None birth_date='1996-08-08' college='Auburn; McLennan CC; Baylor'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0035264' norm_study_name='jarrett stidham' norm_draft_name='jarrett stidham'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2019 round=4 pick=133 name='Jarrett Stidham' gsis='00-0035264' college='Auburn'
+    considered[name]: season=2019 round=4 pick=133 name='Jarrett Stidham' gsis='00-0035264' college='Auburn'
+  raw_study_college='Auburn; McLennan CC; Baylor'
+  raw_matched_draft_college='Auburn'
+  norm_study_college='auburn mclennan cc baylor' norm_draft_college='auburn'
+  semicolon_tokens=['auburn', 'mclennan cc', 'baylor']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0035289:
+  players-row present: True
+  identity fields: display_name='Gardner Minshew' player_name=None birth_date='1996-05-16' college='Washington State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0035289' norm_study_name='gardner minshew' norm_draft_name='gardner minshew'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2019 round=6 pick=178 name='Gardner Minshew II' gsis='00-0035289' college='Washington St.'
+    considered[name]: season=2019 round=6 pick=178 name='Gardner Minshew II' gsis='00-0035289' college='Washington St.'
+  raw_study_college='Washington State'
+  raw_matched_draft_college='Washington St.'
+  norm_study_college='washington state' norm_draft_college='washington st'
+  semicolon_tokens=['washington state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0035652:
+  players-row present: True
+  identity fields: display_name='Ryan Finley' player_name=None birth_date='1994-12-26' college='N.C. State; Boise State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0035652' norm_study_name='ryan finley' norm_draft_name='ryan finley'
+  age_check={'draft_age': 24, 'computed_age': 24, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2019 round=4 pick=104 name='Ryan Finley' gsis='00-0035652' college='North Carolina St.'
+    considered[name]: season=2019 round=4 pick=104 name='Ryan Finley' gsis='00-0035652' college='North Carolina St.'
+  raw_study_college='N.C. State; Boise State'
+  raw_matched_draft_college='North Carolina St.'
+  norm_study_college='n c state boise state' norm_draft_college='north carolina st'
+  semicolon_tokens=['n c state', 'boise state']
+  morphology (non-authoritative label): multi_school_not_containing_draft_school
+
+player 00-0036264:
+  players-row present: True
+  identity fields: display_name='Jordan Love' player_name=None birth_date='1998-11-02' college='Utah State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0036264' norm_study_name='jordan love' norm_draft_name='jordan love'
+  age_check={'draft_age': 21, 'computed_age': 21, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2020 round=1 pick=26 name='Jordan Love' gsis='00-0036264' college='Utah St.'
+    considered[name]: season=2020 round=1 pick=26 name='Jordan Love' gsis='00-0036264' college='Utah St.'
+  raw_study_college='Utah State'
+  raw_matched_draft_college='Utah St.'
+  norm_study_college='utah state' norm_draft_college='utah st'
+  semicolon_tokens=['utah state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0036389:
+  players-row present: True
+  identity fields: display_name='Jalen Hurts' player_name=None birth_date='1998-08-07' college='Oklahoma; Alabama'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0036389' norm_study_name='jalen hurts' norm_draft_name='jalen hurts'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2020 round=2 pick=53 name='Jalen Hurts' gsis='00-0036389' college='Oklahoma'
+    considered[name]: season=2020 round=2 pick=53 name='Jalen Hurts' gsis='00-0036389' college='Oklahoma'
+  raw_study_college='Oklahoma; Alabama'
+  raw_matched_draft_college='Oklahoma'
+  norm_study_college='oklahoma alabama' norm_draft_college='oklahoma'
+  semicolon_tokens=['oklahoma', 'alabama']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0036442:
+  players-row present: True
+  identity fields: display_name='Joe Burrow' player_name=None birth_date='1996-12-10' college='LSU; Ohio State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0036442' norm_study_name='joe burrow' norm_draft_name='joe burrow'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2020 round=1 pick=1 name='Joe Burrow' gsis='00-0036442' college='LSU'
+    considered[name]: season=2020 round=1 pick=1 name='Joe Burrow' gsis='00-0036442' college='LSU'
+  raw_study_college='LSU; Ohio State'
+  raw_matched_draft_college='LSU'
+  norm_study_college='lsu ohio state' norm_draft_college='lsu'
+  semicolon_tokens=['lsu', 'ohio state']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0036945:
+  players-row present: True
+  identity fields: display_name='Justin Fields' player_name=None birth_date='1999-03-05' college='Ohio State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0036945' norm_study_name='justin fields' norm_draft_name='justin fields'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2021 round=1 pick=11 name='Justin Fields' gsis='00-0036945' college='Ohio St.'
+    considered[name]: season=2021 round=1 pick=11 name='Justin Fields' gsis='00-0036945' college='Ohio St.'
+  raw_study_college='Ohio State'
+  raw_matched_draft_college='Ohio St.'
+  norm_study_college='ohio state' norm_draft_college='ohio st'
+  semicolon_tokens=['ohio state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0037012:
+  players-row present: True
+  identity fields: display_name='Trey Lance' player_name=None birth_date='2000-05-09' college='North Dakota State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0037012' norm_study_name='trey lance' norm_draft_name='trey lance'
+  age_check={'draft_age': 21, 'computed_age': 21, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2021 round=1 pick=3 name='Trey Lance' gsis='00-0037012' college='North Dakota St.'
+    considered[name]: season=2021 round=1 pick=3 name='Trey Lance' gsis='00-0037012' college='North Dakota St.'
+  raw_study_college='North Dakota State'
+  raw_matched_draft_college='North Dakota St.'
+  norm_study_college='north dakota state' norm_draft_college='north dakota st'
+  semicolon_tokens=['north dakota state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0037834:
+  players-row present: True
+  identity fields: display_name='Brock Purdy' player_name=None birth_date='1999-12-27' college='Iowa State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0037834' norm_study_name='brock purdy' norm_draft_name='brock purdy'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2022 round=7 pick=262 name='Brock Purdy' gsis='00-0037834' college='Iowa St.'
+    considered[name]: season=2022 round=7 pick=262 name='Brock Purdy' gsis='00-0037834' college='Iowa St.'
+  raw_study_college='Iowa State'
+  raw_matched_draft_college='Iowa St.'
+  norm_study_college='iowa state' norm_draft_college='iowa st'
+  semicolon_tokens=['iowa state']
+  morphology (non-authoritative label): single_school_string_mismatch_alias_or_variant
+
+player 00-0038108:
+  players-row present: True
+  identity fields: display_name='Bailey Zappe' player_name=None birth_date='1999-04-26' college='Western Kentucky; Houston Christian University'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0038108' norm_study_name='bailey zappe' norm_draft_name='bailey zappe'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2022 round=4 pick=137 name='Bailey Zappe' gsis='00-0038108' college='Western Kentucky'
+    considered[name]: season=2022 round=4 pick=137 name='Bailey Zappe' gsis='00-0038108' college='Western Kentucky'
+  raw_study_college='Western Kentucky; Houston Christian University'
+  raw_matched_draft_college='Western Kentucky'
+  norm_study_college='western kentucky houston christian university' norm_draft_college='western kentucky'
+  semicolon_tokens=['western kentucky', 'houston christian university']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0038128:
+  players-row present: True
+  identity fields: display_name='Malik Willis' player_name=None birth_date='1999-05-25' college='Liberty; Auburn'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0038128' norm_study_name='malik willis' norm_draft_name='malik willis'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2022 round=3 pick=86 name='Malik Willis' gsis='00-0038128' college='Liberty'
+    considered[name]: season=2022 round=3 pick=86 name='Malik Willis' gsis='00-0038128' college='Liberty'
+  raw_study_college='Liberty; Auburn'
+  raw_matched_draft_college='Liberty'
+  norm_study_college='liberty auburn' norm_draft_college='liberty'
+  semicolon_tokens=['liberty', 'auburn']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0039152:
+  players-row present: True
+  identity fields: display_name='Will Levis' player_name=None birth_date='1999-06-27' college='Kentucky; Penn State'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0039152' norm_study_name='will levis' norm_draft_name='will levis'
+  age_check={'draft_age': 24, 'computed_age': 24, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2023 round=2 pick=33 name='Will Levis' gsis='00-0039152' college='Kentucky'
+    considered[name]: season=2023 round=2 pick=33 name='Will Levis' gsis='00-0039152' college='Kentucky'
+  raw_study_college='Kentucky; Penn State'
+  raw_matched_draft_college='Kentucky'
+  norm_study_college='kentucky penn state' norm_draft_college='kentucky'
+  semicolon_tokens=['kentucky', 'penn state']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0039376:
+  players-row present: True
+  identity fields: display_name='Spencer Rattler' player_name=None birth_date='2000-09-28' college='South Carolina; Oklahoma'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0039376' norm_study_name='spencer rattler' norm_draft_name='spencer rattler'
+  age_check={'draft_age': 23, 'computed_age': 23, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2024 round=5 pick=150 name='Spencer Rattler' gsis='00-0039376' college='South Carolina'
+    considered[name]: season=2024 round=5 pick=150 name='Spencer Rattler' gsis='00-0039376' college='South Carolina'
+  raw_study_college='South Carolina; Oklahoma'
+  raw_matched_draft_college='South Carolina'
+  norm_study_college='south carolina oklahoma' norm_draft_college='south carolina'
+  semicolon_tokens=['south carolina', 'oklahoma']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0039398:
+  players-row present: True
+  identity fields: display_name='Joe Milton III' player_name=None birth_date='2000-03-06' college='Tennessee; Michigan'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0039398' norm_study_name='joe milton' norm_draft_name='joe milton'
+  age_check={'draft_age': 24, 'computed_age': 24, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2024 round=6 pick=193 name='Joe Milton' gsis='00-0039398' college='Tennessee'
+    considered[name]: season=2024 round=6 pick=193 name='Joe Milton' gsis='00-0039398' college='Tennessee'
+  raw_study_college='Tennessee; Michigan'
+  raw_matched_draft_college='Tennessee'
+  norm_study_college='tennessee michigan' norm_draft_college='tennessee'
+  semicolon_tokens=['tennessee', 'michigan']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0039917:
+  players-row present: True
+  identity fields: display_name='Michael Penix Jr.' player_name=None birth_date='2000-05-08' college='Washington; Indiana'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0039917' norm_study_name='michael penix' norm_draft_name='michael penix'
+  age_check={'draft_age': 24, 'computed_age': 24, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2024 round=1 pick=8 name='Michael Penix' gsis='00-0039917' college='Washington'
+    considered[name]: season=2024 round=1 pick=8 name='Michael Penix' gsis='00-0039917' college='Washington'
+  raw_study_college='Washington; Indiana'
+  raw_matched_draft_college='Washington'
+  norm_study_college='washington indiana' norm_draft_college='washington'
+  semicolon_tokens=['washington', 'indiana']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+player 00-0039918:
+  players-row present: True
+  identity fields: display_name='Caleb Williams' player_name=None birth_date='2001-11-18' college='USC; Oklahoma'
+  resolution=TRIAGE reason=cross_check_conflict matched_by=gsis
+  audit: draft_row_id='00-0039918' norm_study_name='caleb williams' norm_draft_name='caleb williams'
+  age_check={'draft_age': 22, 'computed_age': 22, 'delta': 0, 'pass': True, 'computable': True}
+  college_check={'result': 'conflict'}
+  multiplicity: usable-GSIS candidates=1 normalized-name candidates=1
+    considered[gsis]: season=2024 round=1 pick=1 name='Caleb Williams' gsis='00-0039918' college='USC'
+    considered[name]: season=2024 round=1 pick=1 name='Caleb Williams' gsis='00-0039918' college='USC'
+  raw_study_college='USC; Oklahoma'
+  raw_matched_draft_college='USC'
+  norm_study_college='usc oklahoma' norm_draft_college='usc'
+  semicolon_tokens=['usc', 'oklahoma']
+  morphology (non-authoritative label): multi_school_containing_draft_school
+
+=== D1: COMPLETE AFFECTED (player_id, target_season) ENUMERATION ===
+  00-0021206 2016 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0021206 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0021206 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0021206 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0022924 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0022924 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0022942 2016 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0022942 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0022942 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0022942 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0023459 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0023459 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0023459 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0023459 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=5/18 (0.278) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0023459 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0023645 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0025430 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026143 2016 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026143 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026143 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026143 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026143 2022 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026158 2016 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026158 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026158 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026158 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026158 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026158 2022 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026158 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0026158 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0027939 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0027939 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0027939 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0027939 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0028012 2016 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0028012 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029263 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029263 2022 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029263 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029263 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029567 2016 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029567 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029567 2022 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029604 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029604 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029604 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029604 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029604 2022 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029604 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029604 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0029682 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0030520 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=4/18 (0.222) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0030520 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0030520 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=4/18 (0.222) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0030520 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0030520 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0030526 2016 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0030526 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031076 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031280 2016 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031280 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031280 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031280 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031280 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031280 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031280 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031395 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=4/18 (0.222) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031395 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031395 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031407 2016 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031407 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031407 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031503 2016 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031503 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031503 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031503 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031503 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031503 2022 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031503 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031503 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0031503 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0032245 2016 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=4/18 (0.222) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0032245 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0032436 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0032436 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0032436 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0032950 2017 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0032950 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0032950 2022 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0032950 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033077 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033077 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033077 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033077 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033119 2018 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033119 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033119 2022 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033119 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033119 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033119 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033958 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0033958 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0034401 2022 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0034401 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0034771 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0034771 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0034855 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0034855 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0034855 2022 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0034855 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0034857 2019 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035228 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035228 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035228 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035228 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035228 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035232 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035264 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035264 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035289 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035289 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035289 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035289 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0035652 2020 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0036264 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0036389 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0036442 2021 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0036442 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0036442 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0036945 2022 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0036945 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0036945 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0037012 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0037834 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0038108 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0038108 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0038128 2023 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0038128 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0039152 2024 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0039376 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0039398 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0039917 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+  00-0039918 2025 target=target_evaluable eligibility=cohort_admitted label_present=True h4_missing=3/18 (0.167) null_members=['draft_round', 'draft_overall', 'is_udfa'] f34=TRIAGE/cross_check_conflict/gsis
+D1 reconciliation: rows=143 (must be 143: True)
+D1 reconciliation: distinct keys=143, duplicates=[] (must be unique: True)
+D1 reconciliation: player set == the 49 audited players: True
+D1 reconciliation: season histogram == published v1 table: True ({2016: 11, 2017: 15, 2018: 12, 2019: 14, 2020: 19, 2021: 14, 2022: 11, 2023: 17, 2024: 14, 2025: 16})
+
+=== D2: MORPHOLOGY GROUPS (non-authoritative labels) ===
+morphology counts: {'multi_school_not_containing_draft_school': 4, 'single_school_string_mismatch_alias_or_variant': 22, 'multi_school_containing_draft_school': 23}
+D2 reconciliation: sum=49 (must be 49: True)
+CORRECTED CLAIM OF RECORD: the single REFUSAL CLAUSE is college whole-string inequality (identity.py:238-245); the measured CAUSES are plural — multi-school semicolon histories containing the draft school AND single-school provider alias/abbreviation/punctuation variants. The v1 'ALL from multi-college strings' wording is RETIRED as an overclaim.
+
+=== RECONCILIATION (both directions) ===
+matrix distinct players: 179
+F34 TRIAGE players among them: 69 [('00-0007091', 'cross_check_conflict'), ('00-0021206', 'cross_check_conflict'), ('00-0022924', 'cross_check_conflict'), ('00-0022942', 'cross_check_conflict'), ('00-0023459', 'cross_check_conflict'), ('00-0023645', 'cross_check_conflict'), ('00-0024279', 'cross_check_conflict'), ('00-0025430', 'cross_check_conflict'), ('00-0026143', 'cross_check_conflict'), ('00-0026158', 'cross_check_conflict'), ('00-0026993', 'cross_check_conflict'), ('00-0027796', 'cross_check_conflict'), ('00-0027939', 'cross_check_conflict'), ('00-0028012', 'cross_check_conflict'), ('00-0029263', 'cross_check_conflict'), ('00-0029531', 'cross_check_conflict'), ('00-0029567', 'cross_check_conflict'), ('00-0029604', 'cross_check_conflict'), ('00-0029677', 'cross_check_conflict'), ('00-0029682', 'cross_check_conflict'), ('00-0029857', 'cross_check_conflict'), ('00-0030520', 'cross_check_conflict'), ('00-0030526', 'cross_check_conflict'), ('00-0031064', 'cross_check_conflict'), ('00-0031076', 'cross_check_conflict'), ('00-0031266', 'cross_check_conflict'), ('00-0031280', 'cross_check_conflict'), ('00-0031395', 'cross_check_conflict'), ('00-0031407', 'cross_check_conflict'), ('00-0031503', 'cross_check_conflict'), ('00-0032245', 'cross_check_conflict'), ('00-0032431', 'cross_check_conflict'), ('00-0032436', 'cross_check_conflict'), ('00-0032893', 'cross_check_conflict'), ('00-0032950', 'cross_check_conflict'), ('00-0033077', 'cross_check_conflict'), ('00-0033098', 'cross_check_conflict'), ('00-0033119', 'cross_check_conflict'), ('00-0033958', 'cross_check_conflict'), ('00-0034401', 'cross_check_conflict'), ('00-0034412', 'cross_check_conflict'), ('00-0034771', 'cross_check_conflict'), ('00-0034855', 'cross_check_conflict'), ('00-0034857', 'cross_check_conflict'), ('00-0035146', 'cross_check_conflict'), ('00-0035228', 'cross_check_conflict'), ('00-0035232', 'cross_check_conflict'), ('00-0035251', 'cross_check_conflict'), ('00-0035264', 'cross_check_conflict'), ('00-0035282', 'cross_check_conflict'), ('00-0035289', 'cross_check_conflict'), ('00-0035652', 'cross_check_conflict'), ('00-0036264', 'cross_check_conflict'), ('00-0036312', 'cross_check_conflict'), ('00-0036389', 'cross_check_conflict'), ('00-0036442', 'cross_check_conflict'), ('00-0036945', 'cross_check_conflict'), ('00-0037012', 'cross_check_conflict'), ('00-0037175', 'cross_check_conflict'), ('00-0037327', 'cross_check_conflict'), ('00-0037834', 'cross_check_conflict'), ('00-0038108', 'cross_check_conflict'), ('00-0038128', 'cross_check_conflict'), ('00-0038998', 'cross_check_conflict'), ('00-0039152', 'cross_check_conflict'), ('00-0039376', 'cross_check_conflict'), ('00-0039398', 'cross_check_conflict'), ('00-0039917', 'cross_check_conflict'), ('00-0039918', 'cross_check_conflict')]
+matrix rows carrying any null capital (all rows): 219; distinct players: ['00-0007091', '00-0021206', '00-0022924', '00-0022942', '00-0023459', '00-0023645', '00-0024279', '00-0025430', '00-0026143', '00-0026158', '00-0026993', '00-0027796', '00-0027939', '00-0028012', '00-0029263', '00-0029531', '00-0029567', '00-0029604', '00-0029677', '00-0029682', '00-0029857', '00-0030520', '00-0030526', '00-0031064', '00-0031076', '00-0031266', '00-0031280', '00-0031395', '00-0031407', '00-0031503', '00-0032245', '00-0032431', '00-0032436', '00-0032893', '00-0032950', '00-0033077', '00-0033098', '00-0033119', '00-0033958', '00-0034401', '00-0034412', '00-0034771', '00-0034855', '00-0034857', '00-0035146', '00-0035228', '00-0035232', '00-0035251', '00-0035264', '00-0035282', '00-0035289', '00-0035652', '00-0036264', '00-0036312', '00-0036389', '00-0036442', '00-0036945', '00-0037012', '00-0037175', '00-0037327', '00-0037834', '00-0038108', '00-0038128', '00-0038998', '00-0039152', '00-0039376', '00-0039398', '00-0039917', '00-0039918']
+TRIAGE players with NO null-capital matrix row: []
+null-capital players with NO TRIAGE resolution: []
+  00-0007091: {'matrix_rows': 1, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0021206: {'matrix_rows': 5, 'gate_surviving_rows': 4, 'h4_null_refusal_rows': 4}
+  00-0022924: {'matrix_rows': 2, 'gate_surviving_rows': 2, 'h4_null_refusal_rows': 2}
+  00-0022942: {'matrix_rows': 4, 'gate_surviving_rows': 4, 'h4_null_refusal_rows': 4}
+  00-0023459: {'matrix_rows': 5, 'gate_surviving_rows': 5, 'h4_null_refusal_rows': 5}
+  00-0023645: {'matrix_rows': 2, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0024279: {'matrix_rows': 1, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0025430: {'matrix_rows': 4, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0026143: {'matrix_rows': 7, 'gate_surviving_rows': 5, 'h4_null_refusal_rows': 5}
+  00-0026158: {'matrix_rows': 8, 'gate_surviving_rows': 8, 'h4_null_refusal_rows': 8}
+  00-0026993: {'matrix_rows': 2, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0027796: {'matrix_rows': 1, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0027939: {'matrix_rows': 5, 'gate_surviving_rows': 4, 'h4_null_refusal_rows': 4}
+  00-0028012: {'matrix_rows': 3, 'gate_surviving_rows': 2, 'h4_null_refusal_rows': 2}
+  00-0029263: {'matrix_rows': 4, 'gate_surviving_rows': 4, 'h4_null_refusal_rows': 4}
+  00-0029531: {'matrix_rows': 1, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0029567: {'matrix_rows': 4, 'gate_surviving_rows': 3, 'h4_null_refusal_rows': 3}
+  00-0029604: {'matrix_rows': 7, 'gate_surviving_rows': 7, 'h4_null_refusal_rows': 7}
+  00-0029677: {'matrix_rows': 1, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0029682: {'matrix_rows': 2, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0029857: {'matrix_rows': 1, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0030520: {'matrix_rows': 6, 'gate_surviving_rows': 5, 'h4_null_refusal_rows': 5}
+  00-0030526: {'matrix_rows': 4, 'gate_surviving_rows': 2, 'h4_null_refusal_rows': 2}
+  00-0031064: {'matrix_rows': 3, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0031076: {'matrix_rows': 5, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0031266: {'matrix_rows': 1, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0031280: {'matrix_rows': 8, 'gate_surviving_rows': 7, 'h4_null_refusal_rows': 7}
+  00-0031395: {'matrix_rows': 5, 'gate_surviving_rows': 3, 'h4_null_refusal_rows': 3}
+  00-0031407: {'matrix_rows': 5, 'gate_surviving_rows': 3, 'h4_null_refusal_rows': 3}
+  00-0031503: {'matrix_rows': 9, 'gate_surviving_rows': 9, 'h4_null_refusal_rows': 9}
+  00-0032245: {'matrix_rows': 5, 'gate_surviving_rows': 2, 'h4_null_refusal_rows': 2}
+  00-0032431: {'matrix_rows': 4, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0032436: {'matrix_rows': 5, 'gate_surviving_rows': 3, 'h4_null_refusal_rows': 3}
+  00-0032893: {'matrix_rows': 2, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0032950: {'matrix_rows': 4, 'gate_surviving_rows': 4, 'h4_null_refusal_rows': 4}
+  00-0033077: {'matrix_rows': 4, 'gate_surviving_rows': 4, 'h4_null_refusal_rows': 4}
+  00-0033098: {'matrix_rows': 2, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0033119: {'matrix_rows': 6, 'gate_surviving_rows': 6, 'h4_null_refusal_rows': 6}
+  00-0033958: {'matrix_rows': 6, 'gate_surviving_rows': 2, 'h4_null_refusal_rows': 2}
+  00-0034401: {'matrix_rows': 2, 'gate_surviving_rows': 2, 'h4_null_refusal_rows': 2}
+  00-0034412: {'matrix_rows': 1, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0034771: {'matrix_rows': 3, 'gate_surviving_rows': 2, 'h4_null_refusal_rows': 2}
+  00-0034855: {'matrix_rows': 4, 'gate_surviving_rows': 4, 'h4_null_refusal_rows': 4}
+  00-0034857: {'matrix_rows': 1, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0035146: {'matrix_rows': 2, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0035228: {'matrix_rows': 5, 'gate_surviving_rows': 5, 'h4_null_refusal_rows': 5}
+  00-0035232: {'matrix_rows': 2, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0035251: {'matrix_rows': 4, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0035264: {'matrix_rows': 3, 'gate_surviving_rows': 2, 'h4_null_refusal_rows': 2}
+  00-0035282: {'matrix_rows': 3, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0035289: {'matrix_rows': 4, 'gate_surviving_rows': 4, 'h4_null_refusal_rows': 4}
+  00-0035652: {'matrix_rows': 2, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0036264: {'matrix_rows': 1, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0036312: {'matrix_rows': 5, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0036389: {'matrix_rows': 1, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0036442: {'matrix_rows': 3, 'gate_surviving_rows': 3, 'h4_null_refusal_rows': 3}
+  00-0036945: {'matrix_rows': 3, 'gate_surviving_rows': 3, 'h4_null_refusal_rows': 3}
+  00-0037012: {'matrix_rows': 1, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0037175: {'matrix_rows': 1, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0037327: {'matrix_rows': 1, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0037834: {'matrix_rows': 1, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0038108: {'matrix_rows': 3, 'gate_surviving_rows': 2, 'h4_null_refusal_rows': 2}
+  00-0038128: {'matrix_rows': 2, 'gate_surviving_rows': 2, 'h4_null_refusal_rows': 2}
+  00-0038998: {'matrix_rows': 1, 'gate_surviving_rows': 0, 'h4_null_refusal_rows': 0}
+  00-0039152: {'matrix_rows': 2, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0039376: {'matrix_rows': 1, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0039398: {'matrix_rows': 1, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0039917: {'matrix_rows': 1, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+  00-0039918: {'matrix_rows': 1, 'gate_surviving_rows': 1, 'h4_null_refusal_rows': 1}
+TRIAGE identities never reaching an H4 refusal row: ['00-0007091', '00-0024279', '00-0026993', '00-0027796', '00-0029531', '00-0029677', '00-0029857', '00-0031064', '00-0031266', '00-0032431', '00-0032893', '00-0033098', '00-0034412', '00-0035146', '00-0035251', '00-0035282', '00-0036312', '00-0037175', '00-0037327', '00-0038998']
+
+=== GROUPED COUNTS ===
+affected H4-refusal rows by target season: {2016: 11, 2017: 15, 2018: 12, 2019: 14, 2020: 19, 2021: 14, 2022: 11, 2023: 17, 2024: 14, 2025: 16}
+affected players' TRIAGE reasons: {'cross_check_conflict': 49}
+
+=== DIGEST PROOF ===
+  draft_picks: unchanged=True
+  ff_playerids: unchanged=True
+  pbp: unchanged=True
+  players: unchanged=True
+  rosters: unchanged=True
+  season_summary: unchanged=True
+  weekly: unchanged=True
+ALL FRAMES UNMUTATED: True
+
+BOUNDARY: this diagnostic covers the F34/H4 seam only; no claim is made that no other wall remains. No fold, ridge fit, inference, comparison, or report was computed; label values served as an existence set only.
+exit=0

@@ -205,6 +205,11 @@
       "path": "app/data/footballguys/semantics.db",
       "required": true,
       "kind": "sqlite"
+    },
+    {
+      "path": "app/data/backtest/qb_validation/raw",
+      "required": true,
+      "kind": "directory"
     }
   ],
   "optional": [

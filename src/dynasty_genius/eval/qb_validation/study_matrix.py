@@ -24,6 +24,7 @@ from src.dynasty_genius.eval.qb_validation.qb_ppg_labels import (
     _usable_player_id,
     _usable_text,
     _valid_label_season,
+    exclude_provider_placeholder_rows,
 )
 from src.dynasty_genius.eval.qb_validation.registration import (
     require_registration_hash,
@@ -191,6 +192,48 @@ def _qualifying(row: Mapping[str, Any]) -> bool:
     return (row["attempts"] + row["sacks_suffered"]) >= 1 or row["carries"] >= 1
 
 
+def _is_provider_season_aggregate_row(row: Mapping[str, Any]) -> bool:
+    """R17 (David's bounded word, revision 104; Codex registration read
+    `qb1_season_summary_aggregate_registration_read_codex_v1.md` — an
+    IMPLEMENTATION of the registered player-season cohort, not an amendment):
+    the exact measured provider non-player LEAGUE-AGGREGATE shape in the
+    admitted season_summary store — 11 rows, one per season 2015–2025.
+
+    Exact five-clause conjunction, nothing wider: missing ``player_id`` AND a
+    valid REGISTERED study season AND missing ``position`` AND null
+    ``passing_cpoe`` (the sole stat stage 1b consumes — these rows can
+    contribute nothing to any per-player CPOE join) AND ``games`` an exact
+    validated integer >= 256 (a full-league season game count; the maximum
+    real player season is 17 regular / 21 with postseason). Names
+    (``Team`` / anonymous / the 2018 ``R.Rodgers`` mislabel) are AUDIT
+    EVIDENCE ONLY and never predicate inputs. Every near miss — usable id,
+    bearing position, non-null CPOE, out-of-window season, missing or
+    non-integral or sub-league ``games`` — falls through UNTOUCHED to the
+    stage-1b fail-closed identity/duplicate/CPOE law below."""
+    if _usable_player_id(row.get("player_id")) is not None:
+        return False
+    season = _valid_label_season(row.get("season"))
+    if season is None or season not in _STUDY_SEASONS:
+        return False
+    if _usable_text(row.get("position")) is not None:
+        return False
+    if not _is_null(row.get("passing_cpoe")):
+        return False
+    games = _lossless_int(row.get("games"))
+    return games is not None and games >= 256
+
+
+def _exclude_provider_season_aggregate_rows(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Matrix-PRIVATE (deliberately NOT shared with the weekly classifier —
+    different dataset, different consumed columns, different exact ruled
+    predicate). Returns a new list; input records are never mutated."""
+    return [
+        row for row in records if not _is_provider_season_aggregate_row(row)
+    ]
+
+
 def build_study_matrix(
     sources: Mapping[str, Any],
     *,
@@ -236,9 +279,15 @@ def build_study_matrix(
         validate_manifest_columns(frame, pinned, dataset=name)
         frames[name] = _records(frame)
 
-    # (4) Semantic validation + exact-plain normalization.
+    # (4) Semantic validation + exact-plain normalization. R16 (David's
+    # bounded word; Codex R15 registration read): the ONE shared placeholder
+    # classifier runs on these DEFENSIVE records immediately before row
+    # validation — the admitted pool and the copied frame above are
+    # untouched; an excluded row is validated zero in every consumed column,
+    # so no all-position team aggregate can change; every near miss falls
+    # through to the fail-closed identity law below.
     weekly_all: list[dict[str, Any]] = []
-    for index, raw in enumerate(frames["weekly"]):
+    for index, raw in enumerate(exclude_provider_placeholder_rows(frames["weekly"])):
         row = _validated_weekly_row(raw, index)
         if row["season_type"] == "REG":
             weekly_all.append(row)
@@ -297,8 +346,17 @@ def build_study_matrix(
     )
 
     # 1b season summary: duplicate refusal BEFORE the one-to-one join (S33).
+    # R17: the exact provider LEAGUE-AGGREGATE rows (missing id + missing
+    # position + null consumed CPOE + full-league games) are classified out
+    # of the defensive records here — after F1 admission, F14/F15, and exact
+    # season coverage, immediately before the identity/duplicate/CPOE law.
+    # The admitted pool, the copied frame, and every other dataset are
+    # untouched; every near miss still refuses by name below.
     summary: dict[tuple[str, int], dict[str, Any]] = {}
-    for index, raw in enumerate(frames["season_summary"]):
+    summary_records = _exclude_provider_season_aggregate_rows(
+        frames["season_summary"]
+    )
+    for index, raw in enumerate(summary_records):
         pid = _usable_player_id(raw.get("player_id"))
         season = _valid_label_season(raw.get("season"))
         if pid is None or season is None:

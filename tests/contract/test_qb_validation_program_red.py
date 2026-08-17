@@ -60,17 +60,11 @@ ROWS = {
 # FAILS the suite until its marking is removed — parked can never rot into
 # silently-green. Building a seam and un-marking its row happen in the SAME
 # reviewed change.
-PARKED_SEAMS = {
-    "F10": "D5 report assembly (case panel)",
-    "F13": "D5 report assembly (threshold-sensitivity panel)",
-    "F16": "D4 static identity join (duplicate/conflict semantics)",
-    "F18": "D4 static identity join (coverage gate)",
-    "F25": "D5 report assembly (frozen-boundary assertion)",
-    "F29": "D5 report assembly (sensitivity panel)",
-    "F31": "D5 report assembly (artifact tracking)",
-    "F32": "D4 static identity join (name reconciliation gate)",
-    "F33": "the F33 consumer-boundary tripwire deliverable",
-}
+# QB-1 execution RED (2026-08-14): all nine remaining seams are in the active
+# build, so none may remain hidden behind strict XFAIL.  The behavioral rows in
+# test_qb1_execution_red.py pin the implementation; these callable rows make
+# same-change export from the public study package mandatory.
+PARKED_SEAMS = {}
 
 SEAM_PARAMS = [
     pytest.param(

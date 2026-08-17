@@ -11,6 +11,1169 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⭐⭐⭐ 2026-08-17 QB-1 POST-COMPLETION REPLICATION: EXACT CANONICAL MATCH — DAVID'S STATED REPRODUCIBILITY CONDITION SATISFIED
+>
+> David directly authorized one more run: *"why not run it 1 more time? if it
+> is the same i will accept it"*. Codex declared the equality rule BEFORE
+> firing: entire JSON equality after deleting only root `generated_at`, because
+> that timestamp is rebound at process start. Exactly one unchanged-input run
+> completed: exit 0, `run_status=ok`, `failure_reason=null`,
+> `decision_supported=false`; zero runner processes remain.
+>
+> **MATCH:** Round-22 and replication canonical SHA-256 are both
+> **`29021bb98bb9cca647f6240836a857be53609d0b7db3fa9eb2a08f73caa972c0`**.
+> The raw hashes differ only on the predeclared timestamp-sensitive byte surface;
+> both files are 271,330 bytes. Reviewed code pins and the ordered 22-file frozen
+> input digest manifest are unchanged. No study value was opened, rendered,
+> diffed, summarized, or interpreted.
+>
+> Durable report: `docs/agent-ledger/evidence/2026-08-17/qb1_postcompletion_replication_terminal_report_codex_v1.md`
+> SHA-256 `3af0a0b2…`. Autonomy run `d5736357…` is `READY_FOR_GATE`; all
+> five required checks passed. The match satisfies David's stated condition.
+> **H2 QB rushing remains UNDER TEST until David applies his separate ruling to
+> the registered result.** No commit, no push.
+
+> # ⭐⭐⭐ 2026-08-16 THE REGISTERED QB-1 STUDY COMPLETED — `run_status=ok`; READOUT UNREAD, AWAITING DAVID'S RULING
+>
+> Round 22 earned Codex CLEAR (review `2ffffdd3…`; zero findings; both
+> carried findings resolved) and the released rerun fired EXACTLY ONCE
+> (PID 87628, 23:04→23:40 ET, ~36 min): **`run_status=ok`** — the FIRST
+> completed registered QB-1 execution. Atomic registered artifact
+> `app/data/backtest/qb_validation/qb_validation_report.json` SHA-256
+> **`9a63234b06860525736315a8c94c11c817fc6e57f538e7ff23d336e3937bf968`**
+> (**271,330 bytes**; `decision_supported=false` per the No-Verdict law);
+> stdout receipt `61ae2059…` (4-key summary, the only fields any lane read).
+>
+> **THE READOUT IS UNREAD BY BOTH LANES AND GOES TO DAVID UNTOUCHED** for
+> his ruling under the frozen registration's inference contract and status
+> vocabulary. **H2 QB rushing remains UNDER TEST** until he rules —
+> a completed execution is not a result ruling, and any result speaks only
+> to the registered contrasts' own ceilings (regular-season PPG, veteran
+> cohort — never "dynasty value").
+>
+> Terminal report routed (`qb1_r22_rerun_terminal_report_claude_v1.md`
+> `f4ecc9ea…`, delivery verified). Owed: Codex passed-receipt + durable
+> close. Open landing state: ALL Round 13–22 code (identity/matrix/labels/
+> runner/execution/contracts) remains UNCOMMITTED in the working tree at the
+> reviewed pins — commit/push are separate David words. No commit, no push.
+
+> # ▶ 2026-08-16 QB-1 ROUND 22 IMPLEMENTED + PROVEN — ROUTED; CODEX VERDICT PENDING; RERUN ON CLEAR
+>
+> Round 22 (revision 130, read `063f8453…`) closed the R20-G1/R21 repr seam
+> at BOTH surfaces: the adapter is derivation-free (unreadable shapes pass
+> through untouched; built-in list/tuple construction only; docstring states
+> the implemented truth) and the validator's two exclusion-clause refusals
+> carry FIXED structural wording (zero access/repr/str/type-naming of the
+> refused value — Codex's hostile-metaclass correction included). Three
+> mid-round Codex corrections incorporated RED-first; zero-leakage proven on
+> BOTH stdout and artifact surfaces with a sentinel inside the refused entry.
+>
+> **Proofs at final pins** (runner `dd23f639…` · execution `7367bee7…` ·
+> contracts `c3443751…`): contracts 184/184 · five-file 739/739 · full suite
+> **6,186P/15F/12S run ALONE** (15 = standing untracked cadence RED; a
+> contended run's verify_closeout 120s timeout was root-caused as my own
+> CPU-contention and solo-reproduced PASS — disclosed, not cited) ·
+> Ruff/compile clean · **real-surface projection PASSED: 12/12 real
+> exclusion entries satisfy the clause, 0 words outside vocabulary, digests
+> unchanged** (`c043279e…`/`de36bef7…`).
+>
+> **Routed** `qb1_green_round22_review_request_claude_v1.md` (`57aa3ee3…`,
+> delivery verified). **Pending: Codex verdict on BOTH carried findings.**
+> On explicit CLEAR the one fresh registered rerun fires; a completed
+> readout goes untouched to David; a failure names its origin frames. No
+> commit, no push. H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ⛔ 2026-08-16 QB-1 ROUND 21 STOPPED AT THE RULED TRIPWIRE — VALIDATOR ITSELF IS REPR-VULNERABLE; SCOPE CONFLICT ROUTED TO CODEX
+>
+> Sequence: R20 adapter GREEN (helper canonicalizes `empty_common_pool` →
+> registered `fold_starved` implication) → **Codex NOT CLEAR R20-G1**: the
+> adapter's `repr(entry)` probe lets a hostile `__repr__` convert the named
+> refusal into `execution_error` and can false-match metadata → David:
+> *"ok lets get it fixed and keep going"* → Round 21 opened (revision 129).
+>
+> **R21 RED measurement hit Codex's pre-ruled STOP tripwire:** the UNCHANGED
+> validator's own `_refuse(f"… {entry!r}")` (`execution.py:1301`, reached
+> from the ok-path gate call at `:2413`) invokes hostile `__repr__` BEFORE
+> any named failure exists; on the publication path the RuntimeError escapes
+> `run_qb1_study` **artifact-less** (catch accepts QBValidationFailure only).
+> The required e2e proof is unachievable in the two-file scope; the failing
+> surface is `execution.py`, forbidden this round. Measurement routed
+> (`qb1_r21_validator_repr_measurement_claude_v1.md` `27ef7207…`, delivery
+> verified); adapter GREEN held pending the ruling; contracts hold the R21
+> RED state. **Pending: Codex's scope/registration-read ruling** →
+> re-specified proof matrix OR staged validator hardening → GREEN → full
+> proof matrix → re-review → rerun on explicit CLEAR. No commit, no push.
+> H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 EXCLUSION-ROW ALIGNMENT ROUND 20 OPEN — REVISION 126
+>
+> Codex independently audited diagnostic script `d83f5be1…`, output
+> `37d935dd…`, and all 33 current digest pins with zero mismatches.
+> Registration read **`0453ca80…`** classifies the measured seam as
+> **IMPLEMENTATION, not amendment — at the terminal-report adapter only**.
+> The frozen registration names `fold_starved` for every pool below 20; zero
+> is already covered. Internal `empty_common_pool` remains a legitimate,
+> lossless inference reason and is NOT erased there. Adding it to the terminal
+> vocabulary is not authorized.
+>
+> Revision-guarded transition **125 → 126** opened green-review Round **20**
+> over exactly `scripts/run_qb1_study.py` and the correction contracts; open
+> snapshot **`cf5062ed…`**. The adapter may remove only exact
+> `empty_common_pool` when `fold_starved` co-occurs, preserving all other
+> words/order/metadata and every metric/status/claim. Missing fold_starved,
+> duplicate internal word, malformed shapes, or unrelated unknown words stay
+> fail-closed. `execution.py`, `inference.py`, `comparisons.py`, and the
+> registration are frozen.
+>
+> RED-first matrix, 166+ correction baseline, five-file bundle, static checks,
+> synthetic terminal publication, and one final metric-free real projection
+> are required. No registered runner or rerun during the round. Fresh rerun
+> remains held for Codex explicit CLEAR after independent review. Transition
+> script `8784f0bf…`; open receipt `fd6e54e5…`. No commit or push. H2 QB
+> rushing remains **UNDER TEST with no result**.
+
+> # ⭐ 2026-08-16 QB-1 FIFTH WALL FULLY MEASURED — ONE UNREGISTERED REASON WORD (`empty_common_pool`); CODEX REGISTRATION READ PENDING
+>
+> The revision-125 intercept replay measured the report_schema_invalid wall
+> to a single word. Registered vocabulary (`execution.py:817`):
+> degenerate_input · fold_starved · join_coverage_low ·
+> join_reconciliation_failed. The real composed report: 14 comparison rows,
+> all shapes law-perfect; c01–c10 carry zero exclusion entries; **all 12
+> entries sit on the H5 contrasts (c11–c14) × folds 2021/2022/2023 and every
+> one fails exactly one conjunct — an unregistered reason word
+> `empty_common_pool`** (its co-occurring words are members). Producer site:
+> `comparisons.py:445-451` (zero common pool appends the word; zero <
+> _STARVED_N explains the 12/12 co-occurrence with fold_starved).
+>
+> Boundary held and proven: intercept fired once, aborted BEFORE the
+> validator returned, hashes before==after across pinned code + terminal
+> artifact + R19 receipt + the whole frozen raw root; no metric, status,
+> identity, panel, or detail persisted. Evidence: script `d83f5be1…`,
+> output `37d935dd…`, report `b064f660…` (delivery verified).
+>
+> **Pending: Codex's registration read** — producer alignment
+> (`comparisons.py`) vs vocabulary admission (`execution.py:817`),
+> implementation vs amendment → bounded Round 20 → fresh rerun only on Codex
+> explicit CLEAR → readout untouched to David. David's continuation word
+> ("…until we get throught h5" · "go") stands. No commit, no push. H2 QB
+> rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 EXCLUSION-ROW DIAGNOSTIC STAGED — REVISION 125
+>
+> Codex independently reproduced the R19 failed receipt: six-key artifact
+> `0c0cd630…`, five-key stdout `ceb2fba7…`, terminal report `0f05fadd…`, phase
+> `execute`, and terminal clause `validate_registered_report_blocks`
+> `execution.py:1298` → `_refuse` `:965`. No registered result exists; the
+> one-run grant is consumed; zero registered runner processes remain.
+>
+> The failed `real-surface-qa` receipt was recorded. The accumulated safety
+> threshold correctly moved revision 124 to BLOCKED, then David's standing
+> continuation words guardedly reopened revision **125**, ACTIVE `verifying`,
+> for one diagnostic only. Static inspection identifies a possible
+> producer/gate vocabulary mismatch (`empty_common_pool` exists producer-side
+> but not in the publication vocabulary), but the actual real row/conjunct is
+> still UNMEASURED and no root-cause claim is registered.
+>
+> **Boundary:** exactly one frozen-input composition replay outside the runner,
+> intercepted at the measured self-check and aborted there. Persist only
+> comparison ID/lane, registered season, container/key shapes, reason words,
+> vocabulary membership, violated conjuncts, and structural counts. No
+> deltas/correlations/CIs/p-values/statuses, predictions, labels, player IDs,
+> pool sizes, panels, raw payload, or failure detail; no terminal write,
+> product/test change, repair, implementation round, registered rerun, fetch,
+> mutation, commit, or push. Unsafe projection →
+> `diagnostic_projection_unavailable`.
+>
+> Transition script `07d9ae3c…`; receipt `61fa6f74…`. Diagnostic results route
+> to Codex for implementation-vs-amendment classification before any round can
+> open. H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ⛔⭐ 2026-08-16 QB-1 R19 RERUN FAILED CLOSED — SAME WALL, NOW MEASURED TO THE LINE; OBSERVABILITY WORKED FIRST FIRE; CODEX RECEIPT/STAGING PENDING
+>
+> The Round-19-CLEAR-released rerun fired EXACTLY ONCE (PID 24181,
+> 19:48→20:16 ET, ~28 min) and terminated fail closed:
+> `run_status=failed`, `failure_reason=report_schema_invalid`,
+> `decision_supported=false`. Artifact SHA-256 **`0c0cd630…`** (296 B,
+> six-key metric-free); stdout receipt WITH the new R19 `failure_origin`
+> SHA-256 **`ceb2fba7…`** (981 B). No registered result exists; grant
+> consumed; no repair, no second run.
+>
+> **THE WALL IS MEASURED.** `failure_origin`: phase `execute` —
+> run_qb1_study:2358 → execute:1283 → **compose_study:1199 (defense-in-depth
+> registered-schema self-check at the composition seam)** →
+> **validate_registered_report_blocks:1298** → _refuse:965. **Refusing
+> clause: the exclusion-row law (`execution.py:1288-1302`)** — every
+> comparison `excluded_folds` entry needs Mapping shape, non-negative-int
+> `test_season`, non-empty `reasons` ⊆ `_FOLD_FLAG_VOCABULARY`; the REAL
+> composed report violates the conjunction. Which row/conjunct/value remains
+> UNMEASURED (receipt correctly discloses no values — the R19 metric-free
+> discipline held on its first real fire).
+>
+> Terminal report routed (`qb1_r19_rerun_terminal_report_claude_v1.md`
+> `0f05fadd…`, delivery verified). **Pending: Codex failed-receipt record +
+> staged continuation** (expected: read-only exclusion-row census bounded to
+> shapes/vocabulary words, no metric values → registration read → bounded
+> round → rerun on explicit CLEAR). David's continuation word stands. No
+> commit, no push. H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 ROUND 19 CLEAR — REVISION 123; ONE FRESH REGISTERED RERUN RELEASED
+>
+> Codex independently reviewed the exact three-file Round-19 scope and found
+> **no blocking correctness, safety, scope, or evidence issue**. The closed
+> failure diagnostic is limited to `phase` plus repository-relative
+> `path/function/line` sites; the two named-failure catches publish the exact
+> six-key metric-free artifact before observation; raw detail, rejected payload
+> values, exception text, locals, and metrics remain absent. Generic exceptions
+> still emit no diagnostic; successful stdout remains exactly four keys.
+>
+> **Independent proof:** correction contracts **166/166** · five-file bundle
+> **721/721** · Codex falsification probe **5/5** · Claude adversarial probe
+> **5/5** · scoped Ruff/compile/diff-check clean. Submitted pins remained exact;
+> the existing failed artifact remained `80d06019…`; no registered composition
+> or runner occurred during review.
+>
+> Durable review `qb1_green_round19_review_codex_v1.md` SHA-256
+> **`0cd53b74b9b18085ba1209e457f977db222225473a86d1d594474fa29890558a`**.
+> The machinery records Round 19 closed at revision **123**, verdict **CLEAR**,
+> zero findings, 407 lines across three scoped files, close snapshot `2d64450f…`.
+> Exactly one fresh registered rerun is released under the existing authority;
+> the completed readout returns untouched to David. No commit or push. H2 QB
+> rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 ROUND 19 IMPLEMENTED + PROVEN — ROUTED; CODEX VERDICT PENDING; RERUN ON CLEAR
+>
+> Round-19 GREEN complete RED-first (11 new contracts, 9 failed pre-impl, 2
+> disclosed regression guards). Implemented exactly the read's boundary: the
+> runner's optional OUTPUT-ONLY `failure_observer`; closed diagnostic
+> `{phase: execute|publication_gate, sites: [repo-relative path/function/line]}`
+> emitted AFTER the atomic write, only for the two `QBValidationFailure`
+> catches (`execution_error` emits nothing per Codex's confirmed two-catch
+> ruling); CLI stdout is the ONLY persistence surface, failed runs only;
+> success stdout stays exactly 4 keys; raw `failure.detail` never serialized.
+>
+> **Proofs:** contracts **166/166** · five-file **721/721** (710+11) · full
+> suite **6,168P/15F/12S** (all 15 = standing untracked cadence RED) ·
+> Ruff/compile clean · adversarial observer self-probe **5/5** · sentinel law
+> end-to-end (detail/payload-value/exception-message reach nothing durable).
+> Final pins: execution `3fd4144c…` · runner `898e5042…` · contracts
+> `26c1766c…`; out-of-scope pins byte-identical; real store untouched.
+> Two contract-change disclosures flagged loudly: R12 signature pin widened
+> for the sanctioned output-only 7th param; CLI gate-probe origin corrected
+> to measured truth (`assemble_terminal_report`).
+>
+> **Routed** `qb1_green_round19_review_request_claude_v1.md` (`d94c249b…`,
+> delivery verified). **Pending: Codex round-19 verdict.** On explicit CLEAR
+> the one fresh registered rerun fires; a completed readout goes untouched to
+> David for HIS ruling; a failed run now names its refusing clause's origin
+> frames in stdout. No commit, no push. H2 QB rushing remains **UNDER TEST
+> with no result**.
+
+> # ▶ 2026-08-16 QB-1 REPORT-SCHEMA OBSERVABILITY ROUND 19 OPEN — REVISION 120
+>
+> Codex accepted the revision-119 diagnostic disposition
+> **`diagnostic_payload_unavailable`** and classified the next correction as
+> **IMPLEMENTATION, not amendment**. Independent reads reproduced diagnostic
+> `1fee1253…`, failed report `80d06019…`, stdout `ecc7b05d…`, the frozen
+> registration, the two erasing catches, and the unchanged six-key failed-report
+> contract. Registration read SHA-256 **`86bace11…`**.
+>
+> Raw `QBValidationFailure.detail` is explicitly forbidden from every durable
+> surface: existing raise sites can interpolate registered deltas, intervals,
+> p-values, statuses, exclusion rows, and H5 values. Round 19 may surface only
+> the catch phase (`execute` or `publication_gate`) and ordered repository-relative
+> traceback sites (`path`, `function`, `line`) in the failed CLI stdout receipt.
+> No raw detail, rejected payload, exception text, locals, content-derived digest,
+> absolute path, traversal path, metric value, or diagnostic sidecar. The failed
+> terminal JSON remains exactly its existing six keys; success remains unchanged.
+>
+> Revision-guarded transition **119 → 120** opened green-review Round **19** over
+> exactly `execution.py`, `run_qb1_study.py`, and the correction contracts. Open
+> snapshot **`9b6c656d7bd98948799810d363f1daeed7504116f1c5cf8a90b0f9c167129abf`**.
+> RED-first contracts and CLI-level synthetic probes must cover both catch phases,
+> helper caller/origin trace, sentinel non-disclosure, ordinary exceptions,
+> observer failure, unchanged success, and path confinement.
+>
+> No registered composition or execution is authorized during implementation.
+> A fresh registered rerun remains held until Codex independently reviews Round 19
+> and issues explicit CLEAR. No commit or push. Any completed registered readout
+> returns untouched to David for his ruling. H2 QB rushing remains **UNDER TEST
+> with no result**.
+
+> # ▶ 2026-08-16 QB-1 REPORT-SCHEMA DIAGNOSTIC COMPLETE — `diagnostic_payload_unavailable`; CODEX REGISTRATION READ PENDING
+>
+> The revision-119 read-only diagnostic ran to completion within its exact
+> boundary. **Inventory:** the failed ~70-min process left exactly TWO durable
+> artifacts — the 296-byte metric-free envelope (`80d06019…`) and the 230-byte
+> stdout receipt (`ecc7b05d…`); no rejected payload, no clause-detail record,
+> no temp files. **Validator replay not performed — precondition unmet;**
+> nothing reconstructed. **Disposition: `diagnostic_payload_unavailable`.**
+>
+> Erasure chain cited exactly: every `report_schema_invalid` raise carries a
+> clause-naming `detail` (`errors.py:19-22`); both publication-boundary
+> catches drop it (`execution.py:2303-2304`, `:2353-2354` →
+> `_publish_failed(failure.reason)`); the failed-envelope schema forbids extra
+> blocks (`execution.py:693-699`); stdout prints the 4-key summary only
+> (`run_qb1_study.py:1294-1304`). Which catch fired and the refusing clause
+> both remain UNMEASURED. The `generated_at`/mtime gap is designed: the stamp
+> binds once at process start (`run_qb1_study.py:1220`).
+>
+> **Proofs:** 32/32 before/after digests byte-identical (envelope, receipt,
+> 9 code files, all 22 registered raw inputs). Evidence
+> `qb1_report_schema_diagnostic_claude_v1.md` SHA-256 **`1fee12534ceab2419722
+> 89dfbf7baaf31e7ff09b943ae3671e88b803d590b734`**, routed to Codex, delivery
+> positively verified. **Pending: Codex's registration read** (implementation
+> vs amendment on durable failure detail) → staged bounded round → rerun only
+> on Codex explicit CLEAR → readout untouched to David. David's continuation
+> word ("ok lets continue until we get throught h5" · "go") stands in the
+> durable transition. H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 REPORT-SCHEMA DIAGNOSTIC CONTINUATION — REVISION 119 ACTIVE
+>
+> Codex independently reproduced the Round-18 terminal envelope: report
+> `80d06019…` / stdout `ecc7b05d…` / terminal report `46211e9e…`,
+> `run_status=failed`, `failure_reason=report_schema_invalid`,
+> `decision_supported=false`, no metric blocks and no registered result. The
+> failed real-surface receipt advanced revision **117 → 118**, terminal
+> `BLOCKED`.
+>
+> Under David's direct words *"ok lets continue until we get throught h5"*,
+> then *"go"*, Codex applied the revision-guarded transition **118 → 119**.
+> Run `f8f7551c…` is ACTIVE `verifying`; **no implementation round is open**.
+> Transition script SHA-256 **`ad38349f…`**.
+>
+> Claude's only authorized action is one read-only publication-path diagnostic:
+> inventory durable failed-process artifacts for the rejected full payload or
+> clause detail; replay the shipped validator only if that exact payload already
+> exists; otherwise report **`diagnostic_payload_unavailable`** and cite the
+> source path that erased the detail. Do not reconstruct the payload through a
+> composition run. Prove terminal/input/code hashes unchanged before and after.
+>
+> No runner, composition, folds/model fit/inference/comparisons, registered-value
+> read/publication, repair, product-code/test write, input mutation, provider
+> fetch, implementation round, rerun, commit, or push. Evidence routes to Codex
+> for a registration read; a separately guarded round may open only after that
+> read. Future execution remains held on Codex explicit CLEAR. H2 QB rushing
+> remains **UNDER TEST with no result**.
+>
+> **Wire verified / ACK received:** Claude independently verified revision 119,
+> ACTIVE `verifying`, the transition-script hash, and terminal-report hash;
+> accepted the four-step boundary verbatim; and reported zero durable-state,
+> authority, or feasibility mismatch. Codex replied `noted — proceed`; scope is
+> unchanged.
+
+> # ⛔ 2026-08-16 QB-1 R18 CLEAR → ONE RERUN FIRED (~70 MIN, DEEPEST YET) → FAILED CLOSED AT A FIFTH WALL (`report_schema_invalid`) — DAVID CONTINUATION WORD STANDS; CODEX RECEIPT/STAGING PENDING
+>
+> Codex's Round-18 CLEAR (review `eeba301f…`, revision 117) released exactly one
+> fresh registered rerun. Before firing, a single-fire ambiguity was resolved
+> from the durable record: the cut-off prior session had left a 0-byte R18
+> stdout receipt (17:10 ET, empty-file SHA) with zero runner processes, the
+> artifact unchanged from R17, and no record anywhere — proven NO-EXECUTION;
+> the grant was unconsumed.
+>
+> **Exactly one process fired** (PID 90353, 17:35→18:45 ET, ~70 minutes — past
+> all four closed walls and through the registered compute; prior best ~9 min).
+> Terminal, fail closed at the PUBLICATION GATE: `run_status=failed`,
+> `failure_reason=report_schema_invalid`, `decision_supported=false`, exit 1.
+> Atomic metric-free artifact SHA-256
+> **`80d060195858da20dfa3b56a35bb6db929e60a46b1e7f53bc15500da8b9c4e62`**;
+> stdout receipt SHA-256
+> **`ecc7b05d3ca3778a825c8ebfef846d2e0569d52bd8fd17d4a23bc7d5b3930311`**.
+> **No registered result was produced, read, or published. Grant consumed; no
+> second run; no repair.** The refusing schema clause is UNMEASURED (artifact
+> detail-free by design) — one observed next wall, no last-wall claim.
+>
+> **DAVID'S CONTINUATION WORD, verbatim (direct to Claude this session):**
+> *"ok lets continue until we get throught h5"*, then *"go"* — standing
+> continuation authority for the staged loop until a registered execution
+> completes through H5. Codex gates intact; walls fail-closed; no commit or
+> push; a completed readout goes untouched to David for HIS ruling.
+>
+> Terminal report routed to Codex
+> (`qb1_r18_rerun_terminal_report_claude_v1.md`, delivery verified after the
+> one sanctioned submit-retry Enter on Claude's own byte-verified strand).
+> **Pending: Codex failed-receipt record + staged continuation** (expected: one
+> read-only report-schema wall diagnostic → registration read → bounded round →
+> rerun on explicit CLEAR). H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 F34 COLLEGE-NORMALIZATION ROUND 18 OPEN — REVISION 111
+>
+> Diagnostic v2 completed and reconciled the fourth wall: 143 unique H4
+> player-season refusals across 49 exact-GSIS players; morphologies 23 exact
+> multi-school members + 4 multi-school alias variants + 22 single-school
+> alias/qualifier variants. Codex's registration read is **IMPLEMENTATION, not
+> amendment** under §10's normalized-college cross-check; read SHA-256
+> **`58509f3c…`**.
+>
+> Guarded transition **110 → 111** opened green-review Round **18**. Open
+> snapshot **`c6e9dc22c5dd11730976311175d703a37fcd53a7f104784641e7ebc0b25922bd`**.
+> Exact scope: `identity.py` + correction contracts. Study college history is
+> semicolon-tokenized; existing normalization applies per institution;
+> terminal `st`/`col` and the four closed provider aliases in the durable round
+> record canonicalize exact institutions. Canonical draft school must be exact
+> set membership. No fuzzy/substring/bypass behavior; true mismatches and all
+> other named closures remain fail closed.
+>
+> Required real-surface proof: all 67 representation-only conflicts resolve
+> DRAFTED; exact residual TRIAGE is Ryan Griffin `00-0029857` and Anthony Brown
+> `00-0037175`; 49 affected players / 143 H4 rows gain authoritative capital;
+> zero H4 gate-surviving capital nulls; frame digests unchanged. No composition
+> or rerun during implementation. Fresh rerun only after Codex explicit CLEAR;
+> readout then goes untouched to David. H2 QB rushing remains **UNDER TEST with
+> no result**.
+
+> # ▶ 2026-08-16 QB-1 F34/TRIAGE DIAGNOSTIC CONTINUATION — REVISION 110 ACTIVE
+>
+> David authorized the staged continuation from revision 109. Codex applied the
+> revision-guarded transition **109 → 110**; run `f8f7551c…` is ACTIVE in
+> `verifying`. **Round 18 is not open.** Transition script SHA-256
+> **`5cf7a7c5c6b25124aaeab08ca976847fef61c7516cf9bb4d51d39bad13e97213`**.
+>
+> Claude's only authorized action now is one read-only F34 draft-join diagnostic
+> over the frozen admitted study-QB surface: enumerate every affected
+> player-season; exact shipped resolution state/reason; GSIS and fallback-name
+> candidate multiplicities and keys; exact reconciliation to every H4 row with
+> null draft capital; and before/after frame digests. It may exercise the
+> admitted matrix/F34 stage only. No runner, top-level composition, folds/model
+> fit, inference, report, repair, product-code/test change, input mutation,
+> provider fetch, commit, push, or rerun.
+>
+> Facts route to Codex for a fresh registration read. Only after that read may
+> a separate revision-guarded transition open one bounded implementation round
+> per the read. Fresh registered execution is already granted but remains held
+> until Codex independently reviews that round and explicitly CLEARs it. The
+> registered readout then goes untouched to David for his ruling. H2 QB rushing
+> remains **UNDER TEST with no result**.
+
+> # ⚠ 2026-08-16 QB-1 F34 DIAGNOSTIC CORRECTION PENDING — NO REGISTRATION READ / ROUND 18 YET
+>
+> Codex reproduced the v1 diagnostic hashes and accepts its one-pass,
+> no-mutation, matrix/F34-ceiling and bidirectional reconciliation facts, but
+> the evidence is not yet registration-readable. The v1 output counts **143**
+> affected H4 player-season rows without enumerating the 143 keys required by
+> David's word. Its lower-board/routed claim that all conflicts arise from
+> semicolon multi-college strings is also too broad: the measured 49-player
+> affected set includes semicolon containment **and** single-school provider
+> abbreviations/aliases (`Boston College`/`Boston Col.`, `N.C. State`/`North
+> Carolina St.`, `UCF`/`Central Florida`) plus qualifier variants.
+>
+> Claude is correcting evidence only: full 143-key gate/resolution
+> enumeration; raw/normalized/tokenized college values and reconciled
+> morphology counts for all 49 affected players; and complete candidate
+> enumeration or proof the existing display bound cannot truncate. The single
+> measured **refusal clause** remains whole-string college inequality; an exact
+> causal predicate and IMPLEMENTATION-vs-amendment read remain pending those
+> facts. **Round 18 is NOT open.** No repair, composition, rerun, or registered
+> result access. H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ⛔ 2026-08-16 QB-1 R17 RERUN FAILED CLOSED — REVISION 109 BLOCKED
+>
+> Codex's Round-17 CLEAR released exactly one fresh registered rerun. The one
+> `scripts/run_qb1_study.py` process exited at a new named wall:
+> **`draft_capital_unresolved`**. Atomic metric-free report SHA-256
+> **`bb70130db52c4eb6a704911b7f953461400a0e10ad9ccaa9168a9365e5d35167`**;
+> stdout receipt SHA-256 **`f303f2a6bae4ff9cf4f00ccb4cfb75b9f9e2b8fbd2108374c5aa7c1ac3972a80`**.
+> `decision_supported=false`; no registered result was produced, read, or
+> published. The rerun grant is consumed; no second run or repair occurred.
+>
+> Codex recorded the failed real-surface receipt and the sanctioned machinery
+> parked the run at **revision 109**, terminal **BLOCKED**, reason
+> `real-surface-qa failed 3 times in green-review`. Source inspection locates
+> the refusal at the H4 ridge lane where an F34 `TRIAGE` draft join supplies
+> null registered draft-capital features, but the affected player-season rows,
+> named F34 states, and counts are **unmeasured**. Static candidates are not a
+> registration read.
+>
+> Smallest resume action requires a fresh David word: one read-only F34/TRIAGE
+> membership diagnostic over the frozen admitted inputs, with affected
+> player-season keys, exact named resolution states/reasons, candidate-match
+> multiplicities, and before/after frame digests; no composition, repair, or
+> rerun. H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ✅ 2026-08-16 QB-1 ROUND 17 CLEAR — REVISION 108; ONE FRESH RERUN RELEASED
+>
+> Codex independently CLEARed Round 17. Review SHA-256 **`08027873…`**;
+> exact two-file churn 223 lines; close snapshot
+> **`5fd53a7f5f519c5b6072e5b96b5dbdba60643364e9d1a58e9c8f147b29aa75f6`**.
+> Independent evidence: 704/704 bundle; R17 5/5; real store 11/11 exact
+> exclusions, first index 1845, zero residual, 21,366 stage-1b-valid unique
+> keys, frame digest unchanged; Ruff/compile/diff clean. No BLOCKER.
+>
+> The staged fresh rerun is now released: exactly one registered runner
+> invocation. No repair or second run. A completed readout goes untouched to
+> David for his ruling; a failure remains fail closed and is routed by name and
+> hash. H2 QB rushing remains **UNDER TEST** until David rules.
+
+> # ▶ 2026-08-16 QB-1 SEASON-SUMMARY AGGREGATE ROUND 17 OPEN — REVISION 104
+>
+> The revision-103 one-pass identity census measured exactly one remaining
+> identity refusal: 11 provider non-player league aggregates in
+> `season_summary`, one per 2015–2025. Codex audited the census and ruled
+> **IMPLEMENTATION, not amendment** under registration §§3–5. Read SHA-256
+> **`4dda5d2b…`**. These are the same upstream aggregate class as weekly, but
+> require a consumer-specific exact predicate because they carry nonzero
+> unconsumed league totals.
+>
+> Guarded transition **103 → 104** opened green-review Round **17**. Open
+> snapshot **`225761eeeb7d334e16dab11a8ef2449c38e8743b868a9c9dc5aa8dfb18728688`**.
+> Exact scope: `study_matrix.py` + correction contracts. Predicate: missing
+> player id + valid study season + missing position + null `passing_cpoe` +
+> exact integral `games >= 256`; names audit-only. Defensive copied
+> season-summary records only, after gates/coverage and before stage 1b. Every
+> near miss remains fail closed; pool/frame/raw inputs untouched.
+>
+> No rerun during implementation. Fresh rerun only after Codex explicit CLEAR;
+> readout then goes to David. No last-wall claim beyond identity law. H2 QB
+> rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 SEVEN-DATASET IDENTITY CENSUS CONTINUATION — REVISION 103 ACTIVE
+>
+> David reopened the revision-102 failed-closed state for one diagnostic-only
+> continuation. Codex's revision-guarded state repair advanced **102 → 103**;
+> run `f8f7551c…` is ACTIVE in `verifying`. Round 17 is **not open**: the
+> implementation boundary depends on the measured census and Codex's subsequent
+> registration read.
+>
+> Claude is authorized for exactly one read-only admission/load pass and
+> identity census across all seven admitted datasets: `weekly`,
+> `season_summary`, `players`, `rosters`, `ff_playerids`, `draft_picks`, and
+> `pbp`. Route census facts to Codex. No composition, registered-result access,
+> repair, product-code write, input mutation, provider fetch, commit, push, or
+> rerun. Any accidental registered output is discarded unread.
+>
+> Open receipt: `qb1_identity_census_continuation_open_receipt_codex_v1.md`.
+> State transition script SHA-256 **`73634eda…`**. Census wire
+> `qb1_identity_census_request_codex_v1.md` SHA-256 **`2585e06b…`** is staged
+> in Claude's input, but the helper returned `wire_body_mismatch` and the text
+> remained unsubmitted after the one Wire-Rule Enter retry; no further key was
+> injected. Claude subsequently ACKed revision 103 and the exact census
+> boundary from durable state, providing semantic receipt; execution of the
+> read-only census is now in progress.
+> If — and only if — Codex's
+> read finds the measured walls are the same provider-placeholder class, a
+> separate guarded transition may open one bounded implementation round per
+> that read. Fresh rerun remains held until Codex explicit CLEAR; readout then
+> goes to David. H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ⛔ 2026-08-16 QB-1 ROUND 16 CLEAR, RERUN FAILED CLOSED — REVISION 102 BLOCKED
+>
+> Codex independently CLEARed and closed Round 16: one shared exact
+> placeholder classifier, 24/24 missing-id near misses refused, 699/699 bundle,
+> and real-store proof (236 = 192 REG + 44 non-REG exclusions; zero residual;
+> 352 team-season rushing totals with zero mismatches; frame digest unchanged).
+> Review SHA-256
+> **`332766dfbd56a478083c422368d75bcaf252f0718bd2e483e75aed2702f854d5`**;
+> close snapshot
+> **`1220791a59a6a3f2a10eb010a5c68e72808777b8d21de25036b222252da64058`**.
+>
+> The one granted registered rerun fired exactly once and terminated
+> fail-closed: `run_status=failed`, `failure_reason=stat_value_invalid`,
+> `decision_supported=false`. Atomic artifact `qb_validation_report.json`
+> SHA-256
+> **`7ebeedb031953fd54a2a7a37d386bc52b332ec4471e4e4f67162059f1147105e`**;
+> stdout/exit receipt SHA-256 **`fe90756113cd6c84457ff907fa31a935f6c3970b18def8035e1c6236b2c2b1d5`**.
+> No registered result exists.
+>
+> The metric-free artifact carries no exception detail, so the later refusal
+> site's identity is **unmeasured**. No diagnostic replay, inference from
+> runtime, repair, second run, commit, push, or publication is authorized.
+> Failed real-surface QA persisted revision **102**, terminal `BLOCKED`.
+> Any diagnostic or remediation requires David's fresh bounded word. H2 QB
+> rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 ROUND 18 IMPLEMENTED + REAL-SURFACE PROVEN — ROUTED; CODEX VERDICT PENDING; RERUN ON CLEAR
+>
+> Codex's registration read: **IMPLEMENTATION** (`58509f3c…`); Round 18 opened
+> at revision **111**, two-file scope (identity.py + correction contracts).
+> Implemented: the exact registered F34 college normalization — identity-
+> PRIVATE canonicalizer used only by `_college_check` (`normalize_name` →
+> terminal-token `st`/`col` expansion, last token only → CLOSED alias set:
+> n c state / ucf / miami oh / uab); study `;`-split institution-set
+> membership; disjoint→conflict; missing→missing; forbidden list contract-
+> pinned. Negative controls pinned forever-TRIAGE: Ryan Griffin `00-0029857`,
+> Anthony Brown `00-0037175`.
+>
+> **Proofs:** RED-before-GREEN (4/6 failed pre-impl; 2 disclosed regression
+> guards) · contracts **155/155** · bundle **710/710** · full suite
+> **6,157P/15F/12S** (all 15 = standing untracked cadence RED) · real-surface
+> replay **PASS on every mandated expectation**: 49 previously-affected →
+> DRAFTED with ORIGINAL round/pick across 181 matrix rows; all 67 flipped →
+> DRAFTED; residual TRIAGE exactly the two controls; **zero H4 null-capital
+> survivors**; monotone; one admission pass; all frame digests unchanged.
+> Final pins: identity `2d146de5…` · contracts `5b2ae908…`.
+>
+> **Routed** `qb1_green_round18_review_request_claude_v1.md` (`cb8a57ef…`,
+> delivery verified). **Pending: Codex round-18 verdict.** On explicit CLEAR
+> the fresh registered rerun fires and the readout goes to David untouched for
+> HIS ruling. F34/H4 seam only — no last-wall claim. No commit, no push.
+> H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 FOURTH WALL — DIAGNOSTIC v2 (corrected): ONE refusal clause, THREE cause morphologies (23/22/4); CODEX READ PENDING
+>
+> Codex held its registration read on two exact evidence gaps; both delivered
+> in v2 (`qb1_f34_triage_diagnostic_claude_v2.py` `af612c03…`, output
+> `404fefce…`; routed `c8b69157…`, delivery verified). **The v1 "ALL from
+> multi-college strings" claim is RETIRED as an overclaim (subset→whole,
+> owned):** the single refusal CLAUSE is college whole-string inequality
+> (`identity.py:238-245`); the measured CAUSES across the 49 affected players
+> are **23** multi-school-containing-draft-school · **22** single-school
+> alias/abbreviation/punctuation variants (Boston College vs Boston Col.,
+> N.C. State vs North Carolina St., UCF vs Central Florida, Miami (Ohio) vs
+> Miami (OH)) · **4 COMPOUND** (multi-school AND draft-side abbreviation) —
+> the 4 bound any future predicate: token containment alone leaves them
+> refusing. D1's complete 143-key enumeration + all four reconciliations TRUE;
+> one-pass + digest proofs preserved; 69-TRIAGE↔69-null bidirectional
+> reconciliation stands.
+>
+> **Pending: Codex's registration read** (implementation vs amendment on the
+> registered F34 cross-check comparison semantics) → David's bounded word →
+> Codex CLEAR → fresh rerun → readout to David. F34/H4 seam only; no last-wall
+> claim. No repair, no rerun, no commit, no push. H2 QB rushing remains
+> **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 FOURTH WALL MEASURED — SYSTEMIC SINGLE-CAUSE (college cross-check vs multi-college strings); CODEX READ PENDING
+>
+> Revision-110 diagnostic (David's word; Codex-staged) is COMPLETE. The
+> `draft_capital_unresolved` wall is measured exactly: **69 of 179 matrix study
+> QBs resolve F34 TRIAGE — ALL 69 `cross_check_conflict`** — and every one is a
+> UNIQUE GSIS self-join (draft_row_id == study gsis, names identical, age
+> checks pass delta 0) failing ONLY the college clause: `identity.py:238-245`
+> compares whole normalized strings while the admitted players dataset carries
+> SEMICOLON MULTI-COLLEGE values (Josh Allen `'Wyoming; Reedley'` vs draft
+> `'Wyoming'`). Every multi-school player conflicts by construction. 49 of the
+> 69 survive the H4 pre-capital gates → **143 refusal rows** across every
+> target season; the other 20 never reach H4. Reconciliation airtight both
+> directions; one admission pass; all seven frame digests unchanged; matrix/F34
+> ceiling held (no folds/ridge/inference/report).
+>
+> Evidence: `qb1_f34_triage_diagnostic_claude_v1.py` (`41aeb59c…`) + output
+> (`53be3a55…`); routed `qb1_f34_triage_routing_claude_v1.md` (`48c9fca7…`,
+> delivery verified). **Pending: Codex's independent audit + registration read**
+> (format fact vs registered comparison semantics — implementation vs
+> amendment) → David's bounded word → Codex CLEAR → fresh rerun → readout to
+> David. F34/H4 seam only — no last-wall claim. No repair, no rerun, no
+> commit, no push. H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ⛔ 2026-08-16 QB-1 R17 CLEAR + RERUN FIRED ONCE — FAILED CLOSED AT A FOURTH WALL (`draft_capital_unresolved`); PARKED
+>
+> Codex CLEARed Round 17 (review `08027873…`, revision 108; independent
+> real-store replay matched 11/11 / zero residual / 21,366 unique stage-1b
+> keys). The staged rerun fired EXACTLY ONCE and terminated fail-closed after
+> ~9 minutes — past all three closed walls, through matrix and folds, at the
+> registered **H4 ridge lane**: `failure_reason=draft_capital_unresolved`,
+> metric-free artifact `bb70130d…` (17:47:44Z), `decision_supported=false`.
+> **No result exists; the grant is consumed. H2 QB rushing remains UNDER TEST
+> with no result.**
+>
+> Static code-read (cited, not a measured root): `ridge_lane.py:194-200`
+> refuses a null draft-capital feature; `study_matrix._draft_capital` (S30)
+> maps an F34 TRIAGE draft-join to exactly those nulls → ≥1 study QB resolves
+> TRIAGE; row/state/count UNMEASURED. A NON-identity wall — the domain the
+> seven-dataset census explicitly disclaimed; census findings stand.
+>
+> **Owed:** Codex failed-receipt + read · a David word for the smallest next
+> measurement (read-only TRIAGE-membership diagnostic: join replay over study
+> QBs, no composition) · then the loop as staged. Terminal report routed
+> (`qb1_r17_rerun_terminal_report_claude_v1.md` `50d19d93…`, delivery
+> verified). No repair, no second run, no commit, no push.
+
+> # ▶ 2026-08-16 QB-1 ROUND 17 IMPLEMENTED + REAL-SURFACE PROVEN — ROUTED; CODEX VERDICT PENDING; RERUN ON CLEAR
+>
+> Codex's registration read of the measured season_summary wall: **IMPLEMENTATION,
+> not amendment** (`qb1_season_summary_aggregate_registration_read_codex_v1.md`
+> `4dda5d2b…`); Round 17 opened at revision **104**, exact two-file scope. Claude
+> implemented the matrix-PRIVATE five-clause classifier (missing id · valid
+> registered study season · missing position · null passing_cpoe · games exact
+> validated integer >= 256; names audit-only; near misses fail closed; NOT
+> shared with the weekly classifier) at defensive season_summary records
+> immediately before stage 1b.
+>
+> **Proofs:** RED-before-GREEN (4/5 failed pre-impl; the 5th is the disclosed
+> regression guard) · contracts **149/149** · bundle **704/704** · **full suite
+> 6,151P/15F/12S** (all 15 = the standing untracked cadence RED; zero tracked
+> failures) · real-surface probe **PASS**: 11/11 aggregates classify at the
+> exact census indices (first = 1845, the round-16 refusal point), zero residual,
+> **full stage-1b law incl. duplicate + CPOE passes over all 21,366 kept records
+> (zero duplicates)**, frame digest unchanged, NO composition run. Current pins:
+> matrix `6c607bad…` · contracts `200c6dee…`; out-of-scope pins byte-identical.
+>
+> **David's word: "route it to codex when the suite is green" — executed** on the
+> measured state: request `qb1_green_round17_review_request_claude_v1.md`
+> (`d51724a2…`), delivery verified. **Pending: Codex round-17 verdict.** On
+> explicit CLEAR the staged fresh rerun fires and the registered readout goes to
+> David untouched for HIS ruling. Identity-domain discipline: no claim that no
+> non-identity wall remains. No commit, no push. H2 QB rushing remains **UNDER
+> TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 REVISION 103 — THIRD WALL MEASURED (season_summary, 11 rows); CODEX REGISTRATION READ PENDING
+>
+> Sequence since the round-16 CLEAR: the one granted rerun fired ONCE and failed
+> closed at a new wall (`stat_value_invalid`, artifact `7ebeedb0…`, no result;
+> grant consumed) → third real-surface failure terminalized the run BLOCKED at
+> revision 102 → the **Judge DECLINED jurisdiction** (verification-failure
+> counter, empty reasonCodes, prior ruling spent — proven from machinery source;
+> case returned to David) → **David's word** ("ok i want this test complete -
+> lets make it happen. go forward with your recommendation"), given to Codex
+> directly after Tower correctly refused a second-hand relay → Codex staged the
+> diagnostic continuation: **revision 103, ACTIVE `verifying`, Round 17
+> deliberately NOT open** (receipt `91bea20f…`).
+>
+> **The seven-dataset identity census ran (one pass, digests proven unchanged):**
+> the ONLY remaining identity wall is `season_summary` — **11 league-total
+> aggregate rows, ONE per season 2015–2025** (first refusing index 1845;
+> "Team"/"R.Rodgers"/anonymous shapes mirroring the weekly class; position
+> missing and `passing_cpoe` NULL in all 11 = content-free in every consumed
+> column; league-total content in unconsumed columns — NOT the exact ruled
+> 17-D2-zero class). players/rosters/draft_picks/ff_playerids/pbp: zero refusal-
+> class rows (skip/join-inert/team-keyed laws recorded). Census
+> `qb1_seven_dataset_identity_census_claude_v1.py` (`6b1321cb…`), output
+> `a8cfb6c6…`; routed `qb1_seven_dataset_census_routing_claude_v1.md`
+> (`fc80584f…`, delivery verified). Identity-law walls only — no last-wall claim
+> beyond that domain.
+>
+> **Pending: Codex's registration read** of the measured season_summary wall →
+> (if implementation) David-worded bounded round → fresh rerun ONLY on Codex
+> explicit CLEAR → registered readout to David for HIS ruling. No repair, no
+> commit, no push. H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 ROUND 16 IMPLEMENTED + REAL-SURFACE PROVEN — ROUTED TO CODEX, VERDICT PENDING
+>
+> The R16 shared classifier is GREEN and the matrix seam is proven on the REAL
+> store: probe `qb1_matrix_placeholder_real_surface_probe_claude_v3.py` (output
+> `4f9546a8…`) — **192/192 REG** exact placeholders classify at the defensive
+> seam (**236 total excluded incl. 44 non-REG rows of the identical exact
+> predicate shape** — the seam runs pre-REG-filter; 236 reconciles the original
+> full-pool census); residual missing-id **0**; `_validated_weekly_row` passes
+> over all 199,632 kept records (the exact R15-G1 refusal is gone); all-position
+> team-rushing totals identical over 352 keys; admitted frame digest unchanged.
+> **No composition run** — the round-16 boundary held; wall language stays the
+> mandated **one observed next wall**, no last-wall claim.
+>
+> Census at current pins: correction contracts **144/144** · five-file bundle
+> **699/699** (696+3 reconciles) · full suite **6,146P/15F/12S in 7:34**, all 15
+> BY NAME the standing untracked cadence RED · scoped Ruff/compile clean.
+> Current pins: labels `e5cb3955…` · matrix `518e4b82…` · runner **`7de911cc…`**
+> (stale-comment removal AFTER the GREEN, disclosed) · contracts `7407dc6c…`.
+> `finding-green-review-15-1` resolved via the verb AFTER the proof.
+>
+> **Routed:** `qb1_green_round16_review_request_claude_v1.md` SHA-256
+> **`0b8af1c4d082fee71bd5ddce84101587ff98ae8ed97e56934620a1a5fbe19385`**,
+> delivery positively verified in Codex's transcript (helper's
+> `delivery_unconfirmed` is the known false negative). Gemini awareness copy
+> refused `input_not_verifiable`; durable at
+> `qb1_round16_awareness_gemini_claude_v1.md` (repo as delivery channel).
+>
+> **Pending: Codex round-16 verdict.** On explicit CLEAR the already-granted
+> fresh registered rerun fires and the readout goes to David for HIS ruling. On
+> NOT CLEAR: route to the Judge per David's standing word, verbatim: "if this
+> turn doest clear . send it to the judge". No rerun before CLEAR; no commit; no
+> push. H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 SHARED MATRIX-PLACEHOLDER ROUND 16 OPEN — REVISION 95 ACTIVE
+>
+> David approved one bounded implementation round for the one shared exact
+> placeholder classifier at the matrix defensive weekly-record seam, and a
+> fresh registered rerun only after Codex's explicit CLEAR. Codex applied the
+> revision-guarded transition **94 → 95**. Run `f8f7551c…` is ACTIVE
+> `green-review`, Round **16** open. Independently reproduced snapshot:
+> **`a9c212426e55cbcd08a96428c184703d2e273e821fe20406150fbc0f810fb542`**.
+>
+> Exact scope: `qb_ppg_labels.py`, `study_matrix.py`, `run_qb1_study.py`, and
+> `test_qb1_green_correction_contracts.py`. Boundary: one classifier shared by
+> label and matrix consumers — missing player id + missing position + validated
+> exact zero across all 17 D2 inputs; names audit-only. Keep the admitted pool
+> untouched through matrix entry and the defensive frame untouched through
+> source/shape/manifest gates; classify defensive records immediately before
+> `_validated_weekly_row`. Every near miss remains fail-closed. Prove all 192
+> exact placeholders classify and all-position team-rushing totals plus input
+> digests remain unchanged.
+>
+> Round-15 census language is pinned to **one observed next wall**, never “the
+> last wall.” No second composition run, execution, publication, input or
+> registered-value change, provider fetch, commit, or push before independent
+> review. Fresh rerun authority is held for Codex CLEAR. H2 remains **UNDER
+> TEST with no result**.
+
+> # ⛔ 2026-08-16 QB-1 ROUND 15 NOT CLEAR — REVISION 94 BLOCKED, NO RERUN
+>
+> Codex independently accepted the PBP parse-seam implementation: one shared
+> parser, correct admission → parse → F1-gate ordering, REG-only parsed frame,
+> named refusals preserved, and no raw/provenance or non-PBP mutation.
+> Independent five-file bundle passed **696/696**; the routed 695 count is
+> stale by the late gate-spy contract. Scoped Ruff/compile/diff-check pass.
+>
+> **Two blockers remain.** First, the real composition now fails closed at
+> `study_matrix._validated_weekly_row` on the same 192 exact provider
+> placeholders; therefore the fresh rerun was not fired. Second, the authorized
+> wall census is fail-fast and records only the first named refusal: it proves
+> **one observed next wall**, not “ONE remaining wall,” and cannot enumerate
+> unreachable later stages. The census evidence script also has Ruff `I001`
+> despite the request's unqualified clean claim.
+>
+> Review `qb1_green_round15_review_codex_v1.md` SHA-256
+> **`7ea5cab44aafd4435eb5579c46ebbd41fce132d4ed1dccc5bea25a6c357de0a9`**.
+> Round 15 closed at snapshot
+> **`e428e9fe9d7493def5f1c02a4b9ea1825119292e80b60510487dee6dbca4e09a`**;
+> run revision **94**, terminal `BLOCKED` at the review limit.
+>
+> Codex registration read: matrix-local handling of the exact already-ruled
+> placeholder class is **IMPLEMENTATION, not amendment**, but requires David's
+> fresh bounded word because Round 14 was expressly label-only. Keep the full
+> admitted pool/frame untouched through matrix entry and gates; on defensive
+> weekly records immediately before `_validated_weekly_row`, use one shared
+> classifier for missing player id + missing position + validated exact zero
+> across all 17 D2 inputs, names audit-only; preserve fail-closed near misses
+> and prove all-position team-rushing totals unchanged. Fresh rerun authority
+> remains unconsumed and still requires a later Codex CLEAR. No result exists;
+> H2 QB rushing remains **UNDER TEST**.
+
+> # ▶ 2026-08-16 QB-1 PBP PARSE-SEAM ROUND 15 OPEN — REVISION 89 ACTIVE
+>
+> David approved one bounded implementation round for the already-registered
+> PBP parse seam, one read-only diagnostic sweep enumerating all remaining named
+> composition walls with study results discarded unread and no repairs, and a
+> fresh registered rerun only after Codex's explicit CLEAR.
+>
+> Codex applied the revision-guarded transition **88 → 89**. Run `f8f7551c…`
+> is ACTIVE `green-review`, Round **15** open. Exact three-file scope:
+> `src/dynasty_genius/adapters/nflreadpy_qb_adapter.py`,
+> `src/dynasty_genius/eval/qb_validation/execution.py`, and
+> `tests/contract/test_qb1_green_correction_contracts.py`. Independently
+> reproduced open snapshot:
+> **`bae7112c4e2c397162417544cd47703993906915ebc0ba27873776c090b1e769`**.
+>
+> **Implementation boundary:** after receipt admission and before the parsed
+> source gate/matrix, call shared adapter semantics on a defensive copy: PBP
+> REG filter plus exact `posteam → offense_team`; preserve hash-before-parse,
+> raw inputs, provenance, registration, and named failures; no second parser or
+> competing rename table. Diagnostic authority is read-only, names walls only,
+> discards study results unread, and authorizes no repairs. No registered rerun
+> before Codex CLEAR. H2 remains **UNDER TEST with no result**.
+
+> # ⛔ 2026-08-16 QB-1 ROUND 14 CLEAR, RERUN FAILED CLOSED — REVISION 88 BLOCKED
+>
+> Codex independently CLEARed Round 14 and closed it at revision 86: exact
+> two-file scope, 269 changed lines, close snapshot
+> **`6147a09aa7c2fcc88a56cd6418430d333642bfc970d43d1f843904c3cb848f23`**.
+> Review: `qb1_green_round14_review_codex_v1.md` SHA-256
+> **`2a9f535ec7a228f7d400646a7e39af03d03fbb7c7834c4df7a23c6355d93d88f`**.
+>
+> The already-granted rerun fired and terminated fail-closed at the next
+> registered wall: `run_status=failed`,
+> `failure_reason=manifest_column_missing`, detail `pbp: offense_team`.
+> Atomic artifact `app/data/backtest/qb_validation/qb_validation_report.json`
+> SHA-256 **`ce4369becf5618de0a9a08042655556cfa3b22054607b28efa98a3e710ca112b`**;
+> `decision_supported=false`. No registered result was produced, read, or
+> published. The trigger is consumed. H2 QB rushing remains **UNDER TEST with
+> no result**.
+>
+> Codex registration read: **IMPLEMENTATION, not amendment**. Registration §5
+> pins `pbp posteam → offense_team at parse`; §11 describes the admitted
+> input as a parsed frame. Exact future boundary is recorded at
+> `qb1_pbp_parse_seam_registration_read_codex_v1.md` SHA-256
+> **`fe95c24b436af3e8355fbffd8ee432675da8edeae41200335ebbebf53042016f`**.
+> Run revision **88** is terminal `BLOCKED`, awaiting David's separate bounded
+> parse-seam implementation word; any further rerun also needs fresh authority.
+
+> # ▶ 2026-08-16 QB-1 REVISED-PLACEHOLDER ROUND 14 OPEN — REVISION 81 ACTIVE
+>
+> **David approved one bounded implementation round** for the corrected
+> placeholder boundary and preserved the already-granted registered rerun only
+> after Codex's explicit CLEAR. The registered readout returns to David for his
+> separate ruling.
+>
+> Codex applied the revision-guarded transition from **80 → 81**. Run
+> `f8f7551c…` is ACTIVE `green-review`, Round **14** open. Exact two-file scope:
+> `scripts/run_qb1_study.py` and
+> `tests/contract/test_qb1_green_correction_contracts.py`. Independently
+> recomputed open snapshot:
+> **`0ebb1bf627a928389ab52df8e6ede6b763be62e077c6f81419df284efe1ba027`**,
+> exactly equal to the Round-13 close. Opening pins: runner `8a559c31…`,
+> contracts `634d7ce7…`.
+>
+> **Exact boundary:** missing `player_id` AND missing `position` AND exact
+> validated zero across all 17 D2 inputs; names are audit evidence only. Apply
+> only to copied records passed to `build_label_table`; the full admitted pool
+> remains untouched for `build_study_matrix`. No input mutation, global filter,
+> registration/gate/source-pin/provider/commit/push change. Every row outside
+> that exact predicate remains fail-closed. The rerun is held until Codex's
+> independent explicit CLEAR. H2 QB rushing remains **UNDER TEST with no
+> result**.
+
+> # ⛔ 2026-08-16 QB-1 ROUND 13 NOT CLEAR — REVISION 80 BLOCKED, NO RERUN
+>
+> The exact name-based predicate was refuted by the mandatory real-store
+> check: **192** REG rows have missing player id, but exact
+> `player_name="Team"` matches only **10**. The implementation leaves 182
+> missing identities and the label builder still refuses
+> `label_row_invalid`. Corrected full shapes: 181 anonymous + 10 `Team` + 1
+> `R.Rodgers`. All 192 are exact zero across the complete 17-field D2 input
+> set. The earlier 236-all-`Team` claim was a sampled-head generalization and
+> is superseded.
+>
+> Codex verdict: **NOT CLEAR**, finding
+> `R13-G1-LABEL-PLACEHOLDER-PREDICATE-INCOMPLETE`. The two-file diff is in
+> scope; focused contracts 133/133, five-file bundle 688/688, Ruff/compile
+> clean, but the real-surface acceptance condition fails. Review
+> `qb1_green_round13_review_codex_v1.md` SHA `30100ea3…`.
+>
+> Round 13 closed with 2 files / 190 lines, open hash `aba351da…`, close hash
+> `0ebb1bf6…`; failed review receipt persisted revision **80** and terminal
+> state `blocked/BLOCKED`. No registered rerun occurred.
+>
+> **Corrected registration read:** IMPLEMENTATION, not amendment, only for
+> missing player id + missing position + exact validated zero across all 17
+> D2 inputs, at copied label records only; names are audit evidence; the full
+> pool remains untouched. Read `qb1_label_placeholder_registration_read_codex_v2.md`
+> SHA `729c68e0…`. This materially differs from David's name-based Round-13
+> word and requires a fresh bounded-round word. The already-granted rerun
+> remains conditional on a future Codex CLEAR. H2 remains **UNDER TEST with
+> no result**.
+
+> # ▶ 2026-08-16 QB-1 TEAM-AGGREGATE ROUND 13 OPEN — REVISION 77 ACTIVE
+>
+> **David granted both controlled steps:** one bounded implementation round at
+> the exact label-input boundary, and the registered rerun only after Codex's
+> explicit CLEAR. The resulting registered readout returns to David for his
+> separate ruling.
+>
+> Codex applied the revision-guarded transition from **76 → 77**. Run
+> `f8f7551c…` is ACTIVE `green-review`, Round **13** open. Exact two-file scope:
+> `scripts/run_qb1_study.py` and
+> `tests/contract/test_qb1_green_correction_contracts.py`. Independently
+> recomputed open snapshot:
+> **`aba351da7093f7cdb2768b57ba3d7c00779f6a33d784e534ea357a00212f4a00`**;
+> opening pins runner `7c8893ca…`, contracts `88a39cb8…`.
+>
+> **Boundary:** exclude only missing `player_id` + exact
+> `player_name == "Team"`, and only from records passed to
+> `build_label_table`. The admitted pool and frozen input remain untouched;
+> `build_study_matrix` receives the full original pool for §5 team aggregation;
+> every other unusable or one-sided identity remains fail-closed. No
+> registration, publication-gate, source-pin, provider, commit, or push change.
+> The rerun remains held until Codex CLEAR. H2 QB rushing remains **UNDER
+> TEST** pending David's post-readout ruling.
+
+> # ⛔ 2026-08-16 QB-1 FIRST EXECUTION FAILED CLOSED — REVISION 76 BLOCKED
+>
+> Round 12 earned Codex CLEAR (review `8d5ca258…`; independent 130/130,
+> 685/685, boundary probe 2/2 expected, carried R8 probe 4/4 refused) and closed
+> at revision 74, 2 files / 147 lines, close hash `95b511a6…`. David's held
+> trigger then fired exactly once.
+>
+> The registered runner wrote its atomic metric-free failure artifact:
+> `run_status=failed`, `failure_reason=label_row_invalid`, SHA-256
+> `fb222a60957e2ae4a353ed730ff5ddccdfac5cb9bbc803cdc2cefe6c62306244`.
+> No result exists. Independent diagnostic reproduced row 1026 with
+> `player_id=nan`; independent census reproduced **236/199,868** admitted
+> provider team-aggregate rows (`player_name="Team"`, null player id and
+> position), 21–22 per season across 2015–2025.
+>
+> Codex's frozen-registration read: **implementation, not amendment**, only as
+> an exact-sentinel classifier at the records passed to `build_label_table`.
+> The admitted pool must remain untouched for §5's all-position, pre-QB-filter
+> team aggregation; every other unusable identity must still refuse. Full read
+> `qb1_team_aggregate_registration_read_codex_v1.md`, SHA-256 `cb64ddf5…`;
+> Claude ACKed with zero dispute.
+>
+> Run `f8f7551c…` is durably revision **76**, `BLOCKED`. No fix, input mutation,
+> provider fetch, registered-value change, commit, push, or rerun. Re-parked for
+> two separate David words: a bounded implementation round under that exact
+> boundary, then rerun authority after independent CLEAR. H2 QB rushing remains
+> **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 PUBLICATION-GATE BOUNDARY ROUND 12 OPEN — REVISION 67 ACTIVE
+>
+> **David's ruling:** the publication gate's registered guarantee is coherence plus
+> registration conformance. Provenance grounding is outside that gate; source truth remains
+> with the pinned inputs, shipped composition, and end-to-end contracts. He authorized one
+> bounded round for Claude to document that boundary, followed by Codex re-review; execution
+> remains conditional on Codex's explicit CLEAR.
+>
+> Codex applied the revision-guarded transition from blocked revision **66 → 67**. Run
+> `f8f7551c…` is ACTIVE `green-review`, round **12** open. The independently recomputed
+> open-snapshot hash is
+> **`7db01034eb5cb418127d71448263a1dd846dbf259686c5c1dee45fcbace24527`**,
+> exactly equal to Round 11 close; opening pins remain execution `7b88dc77…`, runner
+> `7c8893ca…`, contracts `c539e97e…`.
+>
+> **Bounded scope:** the same three files, documentation and boundary contracts only. No
+> semantic behavior, schema, calculation, input, or output change; no new provenance
+> enforcement. `R11-G1-F13-SOURCE-TOTALITY` is carried solely for disposition under David's
+> ruling and resolves only after the boundary is documented and independently reviewed.
+> No study execution, publication, registered-value change, provider fetch, commit, or push.
+> H2 QB rushing remains **UNDER TEST with no result**. Transition script
+> `qb1_publication_gate_boundary_round12_open_codex_v1.mjs` SHA-256 `6022fb2b…`.
+
+> # ⛔ 2026-08-16 QB-1 GREEN ROUND 11 NOT CLEAR — RE-PARKED FOR DAVID
+>
+> Codex reproduced all three submitted pins and the exact three-file scope.
+> Independent five-file bundle: **682/682**; the Round 10 probe now rejects
+> **2/2**; Ruff and strict compilation clean. Fresh public-runner probe **2/2
+> passed** (passing is the defect): after the shipped producer computes a real
+> `401 yards / 5 games` dual/boundary/+1-flip row, the returned payload can
+> replace its complete observed window with `[]` and publish a self-consistent
+> pocket/no-boundary story; it can also replace the actual evaluable player ID
+> while preserving all evidence and totals. The new gate derives values from
+> disclosed rows but never binds those identities or rows to an independently
+> known producer-input census.
+>
+> Finding `R11-G1-F13-SOURCE-TOTALITY`; review
+> `qb1_green_round11_review_codex_v1.md` SHA-256 `48748094…`; probe
+> `qb1_green_round11_adversarial_probe_codex_v1.py` SHA-256 `84a68be5…`.
+> Round 11 closed at revision **65**, measured churn **3 files / 538 lines**,
+> open hash `54dd7c64…`, close hash `7db01034…`; failed review receipt
+> terminalized revision **66**. Run `f8f7551c…` is `BLOCKED`. No CLEAR, study
+> execution, publication, commit, or push. This is not a new-round request and
+> is re-parked for David. H2 QB rushing remains **UNDER TEST with no result**.
+
+> # ▶ 2026-08-16 QB-1 FULL-EVIDENCE REDESIGN ROUND OPEN — REVISION 62 ACTIVE
+>
+> David directed Codex to re-run the redesign-round apply after verifying that the
+> earlier transition had not persisted. Codex rebuilt the missing sanctioned artifact,
+> syntax-checked it, ran its non-mutating preflight at exact blocked revision **61**, then
+> applied through the revision-guarded atomic `persistRun` writer. Run `f8f7551c…` is now
+> revision **62**, ACTIVE `green-review`, round **11** open. The independently recomputed
+> open-snapshot hash is
+> **`54dd7c6444ca3dc884cefb6fa40de7c9f476d1bb35ace1fdbc4e30670f928730`**,
+> exactly equal to round 10 close.
+>
+> **Bounded redesign:** the three-file scope is unchanged (`execution.py`,
+> `run_qb1_study.py`, correction contracts). Claude discloses one unique evidence row for
+> every evaluable F13 player and derives dual/pocket totals, exact boundary membership, and
+> flip totals from those rows. `R10-G1-F13-AGGREGATE-TOTALITY` remains carried unresolved;
+> Codex independently reviews. No study execution, publication, commit, push, provider fetch,
+> or registered-value change. Execution remains held until Codex's explicit CLEAR. H2 QB
+> rushing remains **UNDER TEST with no result**. Script
+> `qb1_full_evidence_redesign_round_open_codex_v1.mjs` SHA-256 `ac86517f…`; receipt
+> `qb1_full_evidence_redesign_round_open_receipt_codex_v1.md`.
+
+> # ⛔ 2026-08-15 QB-1 GREEN ROUND 10 NOT CLEAR — FINAL BOUNDED ROUND RE-PARKED
+>
+> Codex reproduced all three stable pins and the exact authorized scope. Independent
+> five-file census: **673/673**; the R9 defect probe now rejects **5/5**; static checks
+> clean. Fresh public-runner probe **2/2 passed** (passing is the defect): F13 recomputes
+> each disclosed boundary player's binary classification but does not reconcile those
+> booleans to caller-supplied `dual_threat_count` / `pocket_count`. With an evaluable
+> pool of one, both impossible opposite-class aggregates publish `ok`. Finding
+> `R10-G1-F13-AGGREGATE-TOTALITY`; review `qb1_green_round10_review_codex_v1.md`
+> SHA-256 `77f431e…`; probe `qb1_green_round10_adversarial_probe_codex_v1.py`
+> SHA-256 `8e9e072f…`.
+>
+> Structured state is authoritative: finding `green-review-10-1`, failed review receipt,
+> Round 10 closed at revision **61**, measured churn **3 files / 561 lines**, close hash
+> `54dd7c64…`, run `BLOCKED`. The close-only state repair preserved the blocker and
+> terminal state; it did not authorize execution. Exact totality requires
+> per-evaluable-player classification evidence because boundary rows alone cannot derive
+> exact dual/pocket totals. This is David's redesign decision, **not** a round-11 request.
+> No study execution, publication, commit, or push. H2 QB rushing remains **UNDER TEST
+> with no result**. The lower Round-10-OPEN block is now historical.
+
+> # ▶ 2026-08-15 QB-1 GREEN ROUND 10 OPEN — DAVID-AUTHORIZED BOUNDED EXCEPTION
+>
+> **David's word, verbatim:** *“one more bounded round - open round 10 per your sanctioned
+> mechanism, claude implements your two R9 smallest corrections, execution only on your clear”*.
+> Codex opened exactly that round through a syntax-check + dry-run-first,
+> revision-guarded `persistRun` transition: run `f8f7551c…` revision **55 → 56**,
+> ACTIVE `green-review`, round 10 open, open-snapshot hash **`78b1d9f7…`** exactly
+> matching round 9 close. Scope remains only `execution.py`, `run_qb1_study.py`,
+> and the correction contracts; `R9-G1-H5-ADMISSION-TOTALITY` and
+> `R9-G2-F13-EVIDENCE-TOTALITY` are carried unresolved. Receipt
+> `qb1_round10_open_receipt_codex_v1.md`; script SHA-256 `f6ed96f4…`.
+>
+> **Boundary:** Claude implements only the two recorded smallest corrections; Codex
+> independently reviews. No execution, publication, push, registered-value change,
+> provider fetch, commit, or wider product change. The prior Judge STOP remains in the
+> structured record; David's direct word is the bounded exception. Study execution
+> remains held until Codex's explicit CLEAR. H2 QB rushing remains **UNDER TEST** with
+> no result. The round-9 parked state immediately below is historical and superseded by
+> this higher block only for the bounded round-10 opening.
+
+> # ⛔ 2026-08-15 QB-1 GREEN ROUND 9 NOT CLEAR — RE-PARKED FOR DAVID
+>
+> Codex reviewed stable exact pins execution `f4ec0b5b…`, runner `605c8b22…`,
+> contracts `5c596422…`. The submitted correction contracts pass **105/105**, the original
+> R8 probe rejects **4/4**, and execution/program/inference pass **211/211**, but a fresh
+> public-runner probe **5/5 passed** (passing is the defect): H5 admission still accepts a
+> computable fold with a deleted delta, a starved one-row fold with point statistics, and a
+> delta inconsistent with its Spearmans; F13 trusts an impossible high-season count and permits
+> duplicate player rows to inflate aggregates. Review `qb1_green_round9_review_codex_v1.md`
+> SHA-256 `16d504dd…`; probe `qb1_green_round9_adversarial_probe_codex_v1.py`
+> `e9ae56d9…`.
+>
+> Interpreter isolation addendum: unchanged reinforcement pin `db351f8c…` fails collection only
+> after the active venv's mid-round Homebrew Python drift from 3.14.4→3.14.7. Without changing
+> the venv or machine, Codex ran the full comparable bundle through the still-installed
+> 3.14.4_1 interpreter: **660/660 passed**. Addendum `qb1_green_round9_review_codex_v1_addendum.md`
+> SHA-256 `da10e890…`. The NOT CLEAR rests on the two content findings below, not the interpreter.
+> Findings
+> `green-review-9-1..2` are recorded; round 9 closed with **3 files / 528 lines**, open hash
+> `205d84b2…`, close hash `78b1d9f7…`; failed review receipt terminalized revision **55**.
+> Run `f8f7551c…` is `BLOCKED`; no further round is inferred. The prior Judge STOP is spent,
+> so the read-only empty-reason `ADJUDICATION_REQUIRED` result was not applied or re-docketed.
+> No study execution, publication, commit, or push. H2 QB rushing remains **UNDER TEST** with
+> no result.
+>
+> **Wire status:** final corrected wire `qb1_green_round9_not_clear_wire_codex_v2.md`
+> SHA-256 `bda90c63…`. Claude's pane is blocked on David's interpreter-choice prompt; the
+> cockpit helper refused `pane_state_unknown`, pasted nothing, and Codex pressed no key. Durable
+> run state + this board are authoritative until Claude can receive it safely.
+
+> # ▶ 2026-08-15 QB-1 GREEN ROUND 9 OPEN — DAVID-AUTHORIZED BOUNDED EXCEPTION
+>
+> **David's word, verbatim:** *“one more bounded round - open round 9 per your sanctioned
+> mechanism, claude implements your three R8 smallest corrections, execution only on your clear”*.
+> Codex opened exactly that round through a dry-run-first, revision-guarded `persistRun`
+> transition: run `f8f7551c…` revision **50 → 51**, ACTIVE `green-review`, round 9 open,
+> open-snapshot hash **`205d84b…`** exactly matching round 8 close. Scope is only
+> `execution.py`, `run_qb1_study.py`, and the correction contracts; the three R8 BLOCKERs
+> are carried unresolved. Script `qb1_round9_open_codex_v1.mjs` SHA-256 `49c66578…`;
+> receipt `qb1_round9_open_receipt_codex_v1.md` SHA-256 `a8d5f017…`.
+>
+> **Boundary:** Claude implements only the three recorded smallest corrections; Codex
+> independently reviews. No execution, publication, push, registered-value change, provider
+> fetch, or wider product change. The non-applying verdict reports the expected
+> `ADJUDICATION_REQUIRED: PHASE_ROUND_CAP`; it was not applied or re-docketed. Study execution
+> remains held until Codex's explicit CLEAR. H2 QB rushing remains **UNDER TEST** with no result.
+> The revision-50 fresh-session handoff is historical and is superseded by this higher block.
+
+> # ⛔ 2026-08-15 QB-1 GREEN ROUND 8 NOT CLEAR — RE-PARKED FOR DAVID
+>
+> Codex reviewed exact pins execution `913225f5…`, runner `ef7a8244…`, contracts
+> `513ed1bd…`. Submitted/frozen bundle **646/646** and all nine R7 examples now reject,
+> but a fresh public-runner probe **4/4 passed** (passing is the defect): below-floor H5
+> partial evidence can claim `ni_met=True`; H5 reconciliation counts metric keys rather than
+> mechanically evaluable content; F13 trusts false-negative flip booleans and aggregate counts
+> that contradict case rows. Review `qb1_green_round8_review_codex_v1.md` SHA-256
+> `4f155f1e…`; probe `qb1_green_round8_adversarial_probe_codex_v1.py` `750f8213…`.
+>
+> Findings `green-review-8-1..3` are recorded, round 8 closed at revision 49 with measured
+> churn **3 files / 657 lines**, and failed-review receipt terminalized revision 50. Run
+> `f8f7551c…` is `BLOCKED`; no further round is inferred from any standing word. The prior Judge
+> STOP is already spent, so the read-only verdict's empty-reason `ADJUDICATION_REQUIRED` is not
+> applied or re-docketed. No study execution, publication, or push. H2 QB rushing remains
+> **UNDER TEST** with no result.
+>
+> **Fresh-session handoff:**
+> `docs/agent-ledger/evidence/2026-08-15/qb1_round8_fresh_session_handoff_codex_v1.md`,
+> SHA-256 `3ae93beb55a1d03c59fb4b16249ca1dd3f1d95ad554ce2228583d6d14101fd80`.
+
+> # ▶ 2026-08-15 QB-1 GREEN ROUND 8 OPEN — DAVID-AUTHORIZED BOUNDED EXCEPTION
+>
+> **David's word, verbatim:** *"one more bounded round - open round 8 per your sanctioned
+> mechanism, claude implements your four R7 smallest corrections, execution only on your clear"*.
+> Codex opened exactly that round through a dry-run-first, revision-guarded `persistRun`
+> transition: run `f8f7551c…` revision **40 → 41**, ACTIVE `green-review`, round 8 open,
+> open-snapshot hash **`d937ec4d…`** exactly matching round 7 close. Scope is only
+> `execution.py`, `run_qb1_study.py`, and the correction contracts; the four R7 BLOCKERs are
+> carried unchanged. Script `qb1_round8_open_codex_v1.mjs` SHA-256 `18397142…`.
+>
+> **Boundary:** Claude implements only the four recorded smallest corrections; Codex independently
+> reviews. No execution, publication, push, registered-value change, or wider product change. The
+> installed non-applying verdict still reports `ADJUDICATION_REQUIRED: PHASE_ROUND_CAP`, expected
+> because the ratified counters remain intact; David's direct word is the recorded exception.
+> Study execution remains held until Codex's explicit CLEAR. H2 QB rushing remains **UNDER TEST**
+> with no result.
+
 > # ⚖ 2026-08-12 LOOP CONTROL + JUDGE LANE STAND (evening) — READ THE NEW SEQUENCE
 >
 > On David's words ("build it yourself" · "the judge rules and we ship what the judge rules"),

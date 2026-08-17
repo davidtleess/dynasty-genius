@@ -359,6 +359,68 @@ def _stat_decimal(column: str, value: Any) -> Decimal | None:
     return Decimal(count)
 
 
+# The 17 D2 inputs the placeholder predicate must prove exactly zero: this
+# module's OWN pinned set — the 3 qualifying-predicate inputs plus the 14
+# SCORING_COMPONENTS columns. Derived, never retyped, so the predicate and
+# the label builder can never drift apart.
+PLACEHOLDER_D2_COLUMNS: tuple[str, ...] = (*_PREDICATE_COLUMNS, *_STAT_COLUMNS)
+
+
+def _missing_identity_value(value: Any) -> bool:
+    """Both missing forms an admitted frame can carry: None, and float NaN
+    (pandas materializes a null object column as NaN in ``to_dict``)."""
+    return value is None or (isinstance(value, float) and value != value)
+
+
+def _validated_zero(column: str, value: Any) -> bool:
+    """True iff ``value`` is a VALIDATED exact zero under this module's own
+    ``_stat_decimal`` semantics (yardage: finite real; counts: non-negative
+    lossless integers; booleans and malformed values are never valid). An
+    unproven zero is not a zero."""
+    validated = _stat_decimal(column, value)
+    return validated is not None and validated == 0
+
+
+def exclude_provider_placeholder_rows(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """The ONE shared placeholder classifier (R16, David's bounded word —
+    extending the R14 label-only ruling to every consumer; Codex registration
+    reads `qb1_label_placeholder_registration_read_codex_v2.md` and the R15
+    matrix read): the admitted weekly frame carries provider PLACEHOLDER
+    rows — no ``player_id``, no ``position``, and exact validated zero across
+    all 17 D2 inputs (measured: 192 REG rows in three name shapes — names
+    are AUDIT EVIDENCE ONLY and never predicate inputs). Registration §3
+    defines the target and qualifying predicate per PLAYER, §2.1 requires
+    complete scoring inputs, §4 pins the QB cohort, and §5's all-position
+    team aggregation is untouched by construction — an excluded row is
+    validated zero in every consumed column, so no aggregate can change.
+
+    This function lives HERE, beside the ``_stat_decimal`` semantics it
+    mirrors, and is the single source for BOTH consumers: the label seam
+    (`scripts/run_qb1_study.py`, which re-exports it) and the matrix's
+    defensive weekly records (`study_matrix.build_study_matrix`, immediately
+    before `_validated_weekly_row`). The predicate is a strict conjunction:
+    missing id AND missing position AND all 17 cells validated exactly zero.
+    Every nonmatching row — identified, position-bearing, stat-bearing, or
+    merely unproven — passes through UNTOUCHED to each consumer's fail-closed
+    guards. Exclusion never widens into forgiveness. Returns a new list; the
+    input records are never mutated."""
+    kept: list[dict[str, Any]] = []
+    for row in records:
+        is_placeholder = (
+            _missing_identity_value(row.get("player_id"))
+            and _missing_identity_value(row.get("position"))
+            and all(
+                column in row and _validated_zero(column, row[column])
+                for column in PLACEHOLDER_D2_COLUMNS
+            )
+        )
+        if not is_placeholder:
+            kept.append(row)
+    return kept
+
+
 def _frozen_settings(settings: Mapping[str, Any]) -> tuple[dict[str, Any], str]:
     """Freeze a settings mapping into ``(decoded_snapshot, canonical_json)``.
 

@@ -1471,22 +1471,11 @@ def test_d3d_behavioral_drive_coverage_matches_declared_vocabularies() -> None:
     assert driven_refusals == set(inference.REFUSAL_REASONS)
 
 
-def test_d3d_red_does_not_move_the_nine_seam_ratchet() -> None:
+def test_qb1_execution_unparks_the_nine_seam_ratchet() -> None:
     red = importlib.import_module(
         "tests.contract.test_qb_validation_program_red"
     )
-    assert set(red.PARKED_SEAMS) == {
-        "F10",
-        "F13",
-        "F16",
-        "F18",
-        "F25",
-        "F29",
-        "F31",
-        "F32",
-        "F33",
-    }
-    assert len(red.PARKED_SEAMS) == 9
+    assert red.PARKED_SEAMS == {}
 
 
 # ── D3-d GREEN review r1 disposition rows ───────────────────────────────────

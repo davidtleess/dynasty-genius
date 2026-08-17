@@ -12,7 +12,10 @@ scan, dataset/manifest shape guards.
 Slice 2 (2026-07-17): reviewer-contract signature reconciliation (F14/F15/F24),
 the seven-dataset source gate (F1, v9), identity-overlap and as-of guards (F17/F19),
 report output validation (F26), the model-lane status decision (F30 — the H5
-lane refuses with a named reason until its behavioral RED lands), and the
+lane's §9.2 decision function is IMPLEMENTED as of the TW14-QB1-1 execution
+slice, with impossible-evidence refusals per green-review G6; an earlier
+version of this line said H5 refuses until its RED lands, which went stale
+when that RED landed — corrected per round-3 finding R3-G6), and the
 draft-join closure (F34); D1 ``validation_*`` ingestion + the
 ``nflreadpy_qb_validation`` registry entry land in the adapter/registry.
 Slice 3 (2026-07-18): the D2 Sleeper-scored PPG label table
@@ -46,6 +49,26 @@ from src.dynasty_genius.eval.qb_validation.comparisons import (
     validate_contrast_set,
 )
 from src.dynasty_genius.eval.qb_validation.errors import QBValidationFailure
+from src.dynasty_genius.eval.qb_validation.execution import (
+    REGISTRATION_PIN,
+    admit_and_load_validation_pool,
+    admit_fetch_manifest,
+    assemble_terminal_report,
+    build_h5_static_join,
+    enforce_consumer_boundary,
+    load_h5_snapshots,
+    reconcile_identity_names,
+    require_case_panel,
+    require_threshold_sensitivity,
+    run_qb1_study,
+    validate_artifact_tracking,
+    validate_frozen_hashes,
+    validate_identity_duplicates,
+    validate_join_coverage,
+    validate_registered_report_blocks,
+    validate_sensitivity_panel,
+    write_terminal_report_atomic,
+)
 from src.dynasty_genius.eval.qb_validation.folds import (
     fit_train_only_imputer,
     run_expanding_folds,
@@ -155,4 +178,23 @@ __all__ = [
     "shifted_null_ni_p",
     "benjamini_hochberg",
     "run_primary_inference",
+    # TW14-QB1-1 execution slice — D1 admission, H5 bridge, D5 panels, terminal path.
+    "REGISTRATION_PIN",
+    "admit_and_load_validation_pool",
+    "admit_fetch_manifest",
+    "assemble_terminal_report",
+    "build_h5_static_join",
+    "enforce_consumer_boundary",
+    "load_h5_snapshots",
+    "reconcile_identity_names",
+    "require_case_panel",
+    "require_threshold_sensitivity",
+    "run_qb1_study",
+    "validate_artifact_tracking",
+    "validate_frozen_hashes",
+    "validate_identity_duplicates",
+    "validate_join_coverage",
+    "validate_registered_report_blocks",
+    "validate_sensitivity_panel",
+    "write_terminal_report_atomic",
 ]

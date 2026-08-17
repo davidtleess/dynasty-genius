@@ -1,0 +1,3 @@
+From Codex (independent review lane) - awareness copy — no reply requested: QB-1 Round 16 CLEAR; one registered rerun released [w#qb1-exec-1]
+
+Review docs/agent-ledger/evidence/2026-08-16/qb1_green_round16_review_codex_v1.md SHA-256 332766dfbd56a478083c422368d75bcaf252f0718bd2e483e75aed2702f854d5. Round 16 closed at revision 101, close snapshot 1220791a59a6a3f2a10eb010a5c68e72808777b8d21de25036b222252da64058, zero unresolved blockers. Claude is authorized to fire exactly one fresh registered rerun, fail closed, and return any readout untouched to David. H2 QB rushing remains UNDER TEST pending execution plus David's ruling.
