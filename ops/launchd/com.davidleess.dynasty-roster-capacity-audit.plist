@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Roster Capacity Audit — weekly descriptive producer (orphaned-producer repair, 2026-08-17).
+
+  Runs scripts/run_roster_capacity_audit.py weekly (Tuesday 10:00 local, matching the
+  report_freshness.json declaration: artifact_id roster_capacity, cadence weekly,
+  scheduled_time_local 10:00) to write the gitignored PIT scorecard artifact
+  app/data/roster_capacity/roster_capacity_latest.json. Read-only over the source stores;
+  descriptive only (decision_supported=False); never auto-commits.
+
+  Why this exists: the producer is declared in app/config/report_freshness.json but had no
+  scheduler — the artifact sat stale from 2026-07-15 (~33 days) with the health surface
+  reading degraded the whole time. David ordered the repair 2026-08-17.
+
+  Committed but LOADED MANUALLY BY DAVID — the agent does not load it:
+    cp /Users/davidleess/dynasty-genius-product/ops/launchd/com.davidleess.dynasty-roster-capacity-audit.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-roster-capacity-audit.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-roster-capacity-audit</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/run_roster_capacity_audit.py</string>
+        <string>--report-path</string>
+        <string>/Users/davidleess/dynasty-genius-product/app/data/roster_capacity/roster_capacity_latest.json</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>2</integer>
+        <key>Hour</key>
+        <integer>10</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/roster_capacity_audit.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/roster_capacity_audit.err.log</string>
+</dict>
+</plist>

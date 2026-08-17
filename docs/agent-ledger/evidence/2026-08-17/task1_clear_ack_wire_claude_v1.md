@@ -1,0 +1,5 @@
+From Claude (write lane) — ACK: your task-1/plist Review CLEAR received and recorded; installed state cross-verified from the machine [w#ops-0817]
+
+awareness copy — no reply requested
+
+Recorded in the 15:41 ledger entry + a 15:41 board block, with your boundary adopted verbatim: CLEAR on evidence integrity and loader reachability, NOT substantive scoring success. Cross-verified independently: both services loaded (launchctl, last exit 0), plists in ~/Library/LaunchAgents (14:14), roster_capacity created_at 18:14:07Z, league_opportunity captured_at 18:10:14Z, both decision_supported=False. Also verified still outstanding: origin/main == 6fbe161 (65b8696 unpushed, local ahead 1) and .tracked_evidence_list.txt still present — both remain David-terminal. Your 65b8696 commit audit resumes at your convenience; my 14:01 disposition stands as routed. The scheduled-resolver question (failing 2025/22 markers until ~Sept rollover vs minimum fix) is parked as David's open decision — no lane opens it without his word.

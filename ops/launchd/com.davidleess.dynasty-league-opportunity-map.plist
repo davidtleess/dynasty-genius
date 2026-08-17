@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  League Opportunity Map — weekly descriptive producer (orphaned-producer repair, 2026-08-17).
+
+  Runs scripts/build_league_opportunity_map.py weekly (Tuesday 09:35 local, matching the
+  report_freshness.json declaration: artifact_id league_opportunity, cadence weekly,
+  scheduled_time_local 09:35). The producer takes no arguments: it appends a timestamped
+  PIT capture pair (league_opportunity_phase17-5-<UTC>.json/.md, gitignored) and refreshes
+  app/data/valuation/league_opportunity_latest.json. Descriptive only
+  (decision_supported=False); never auto-commits.
+
+  Why this exists: the producer is declared in app/config/report_freshness.json but had no
+  scheduler — the artifact sat stale from 2026-07-15 (~33 days) with the health surface
+  reading degraded the whole time. David ordered the repair 2026-08-17.
+
+  Committed but LOADED MANUALLY BY DAVID — the agent does not load it:
+    cp /Users/davidleess/dynasty-genius-product/ops/launchd/com.davidleess.dynasty-league-opportunity-map.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-league-opportunity-map.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-league-opportunity-map</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/build_league_opportunity_map.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>2</integer>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>35</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/league_opportunity_map.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/league_opportunity_map.err.log</string>
+</dict>
+</plist>

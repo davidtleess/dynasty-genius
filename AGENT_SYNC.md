@@ -11,6 +11,123 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⭐ 2026-08-17 16:19 FOOTBALLGUYS FIRST CAPTURE LANDED — RECEIPT `77984aaf…`; `review_required` PENDING THE HORIZON ADJUDICATION (DAVID'S GATE)
+>
+> David's gate word given (first-capture pick + "lets go"). The landed
+> Phase A intake (`e6b6775`) fired over HIS OWN 2026-08-09 download
+> (`DraftDominator_v2026i.zip`, SHA-256 `d8af0985…`, 8,540,590 B) —
+> provider contact was David's act, no lane fetched. **Receipt
+> `77984aaf…`** in receipts.db: offering `fbg-offering-2026-08-09-a`,
+> content_vintage `201d2484…`, retention `retained`, raw archive
+> content-addressed in the objects store, event ledger seq 1. TWO
+> invocations disclosed: first refused PRE-MUTATION (`operation_clock_
+> invalid` — the reviewed C2 clock law working); second (whole-second
+> clock) landed. **`review_required` is the DESIGNED state, decoded from
+> code:** analysis-readiness needs `classic.adp_sleeper-sf.horizon` =
+> known + Phase-C-eligible (semantics.db has zero adjudications) — the
+> 08-10 horizon-divergence question, still David's open gate. First-
+> capture flip law satisfied: backup_manifest.json objects → required
+> (anti-rot 5/5); objects is REQUIRED backup coverage from the next
+> 10:15 run. Fire script + prefire/postfire wires durable under
+> `docs/agent-ledger/evidence/2026-08-17/`; post-fire report routed to
+> Codex, review pending. Staged set for David's ONE commit now = state
+> docs + plists + Codex audits + capture change set. Then: `git push` ·
+> `rm .tracked_evidence_list.txt .commitmsg` · horizon adjudication word.
+
+> # ✅ 2026-08-17 16:04 CODEX COMMIT-SPECIFIC AUDIT — `65b8696` CLEAR; HISTORICAL FLUSH MAY CLAIM `closed — parked`
+>
+> **Zero material commit/staged-set divergence established.** `65b8696` is exactly five
+> documentation/evidence paths, +473/−0, and remains local-only one commit above remote
+> `6fbe161`. Codex's committed audit artifact is byte-exact at
+> `dea60e3655a0986027fe42c2869b78a6aa43392186f4acd55a8fe7ec26f8f72b`.
+> C1–C6 are resolved at that boundary: corrected postflight/sync committed; 41 surviving parked
+> paths path-complete with next gates; six disclosures present; all ENFORCE reasons named; complete
+> review/disposition set landed. **Ruling:** the `65b8696` flush may claim `closed — parked`, never
+> clean. Boundary qualification: later ops work reopened the session, and its newer staged board,
+> ledger, plists, and evidence need their own flush before the current session can close.
+> Review: `docs/agent-ledger/evidence/2026-08-17/qb1_closeout_commit_65b8696_audit_codex_v1.md`
+> SHA-256 `d996ffb7310da3531500142d64a54a6b78f419acbb813d02dba1dc24fc171749`.
+
+> # 📌 2026-08-17 16:0x THREE DAVID RULINGS + STALE-STATE CORRECTION: FOOTBALLGUYS PHASE A LANDED LONG AGO (`e6b6775`, 08-12, ON ORIGIN)
+>
+> **David ruled (recorded 16:0x ledger):** (1) scheduled-resolver — ACCEPT
+> the weekly failing 2025/22 marker until nflreadpy rollover; NO fix cycle.
+> (2) both new plists ride the prepared state-doc commit (staged; 9 files,
+> +454). (3) next thread: Footballguys.
+> **CORRECTION — the 08-12 "⏳ OPEN FOR DAVID: the LANDING word" line below
+> is STALE:** Phase A landed at **`e6b6775`** (2026-08-12 07:38 ET), both
+> files byte-exact at the reviewed pins (`a419930b…`/`9e0a861f…`), ancestor
+> of the pushed head — on origin ~5 days. Verified by hash + ancestor check
+> this session. Root `.commitmsg` is that commit's dead draft (David rm
+> pending). The thread's REAL open gates are the post-landing set, each its
+> own David word: **first capture · scheduler · provider contact ·
+> Phase B / C / D.** Memory refreshes owed from an unhooked session:
+> `project_qb_research_program_state.md` +
+> `project_footballguys_pilot_state.md` (both say "uncommitted/awaiting" —
+> stale). David-terminal sequence owed: `git commit` (staged set) →
+> `git push` → `rm .tracked_evidence_list.txt .commitmsg`.
+
+> # ✅ 2026-08-17 15:41 CODEX REVIEW CLEAR + INSTALLED STATE CROSS-VERIFIED — TWO DAVID-TERMINAL ITEMS REMAIN
+>
+> Codex issued **(a) Review CLEAR** on the task-1 evidence + both plists
+> (checks enumerated in its verdict; recorded in the 15:41 ledger entry) —
+> **bounded to evidence integrity and loader reachability, NOT substantive
+> scoring success** (zero graded; coverage not computable; unattended
+> resolver still selects undeclared 2025/22 pending David's clearance).
+> Claude independently verified the installed state from the machine:
+> both services loaded (last exit 0), plists in `~/Library/LaunchAgents`,
+> `roster_capacity` fresh 18:14Z (Codex launchd fire, David-instructed),
+> `league_opportunity` fresh 18:10Z, both `decision_supported=False` —
+> **task 2 CLOSED end-to-end; both health lights carry information again.**
+> Still outstanding, David's own terminal (verified, not assumed):
+> `git push` (`origin/main == 6fbe161`, local ahead 1 = `65b8696`) ·
+> `rm .tracked_evidence_list.txt` (file still present). Open: Codex's
+> paused `65b8696` commit audit · David's scheduled-resolver decision
+> (accept failing 2025/22 markers until ~Sept rollover vs a minimum fix).
+
+> # ✅ 2026-08-17 14:16 OPS PRIORITY POSTFLIGHT — SCORER HAS ZERO SUBSTANCE; ORPHANED PRODUCERS INSTALLED AND FRESH
+>
+> **Correction to the lower 14:1x block:** Claude, not both lanes, executed the two scorer
+> invocations. Codex stopped before duplicate execution, independently reviewed the evidence, and
+> then installed the two cleared plists under David's direct order. **Scorer verdict:** declared
+> 2026/1 loads 501/581 frozen predictions (80 `capture_incomplete`) but grades **zero** because all
+> 16 Week-1 games are unplayed; marker = `noop/week_not_finalized`, scorecard absent. This is not a
+> substantive success. Separately, the unattended Tuesday route still resolves undeclared 2025/22
+> and will fail unless repaired or upstream resolution changes; no fix attempted pending David.
+> **Producer result:** `com.davidleess.dynasty-roster-capacity-audit` (Tue 10:00) and
+> `com.davidleess.dynasty-league-opportunity-map` (Tue 09:35) are installed and loaded in `gui/501`.
+> Roster launchd proof: runs=1, exit=0, artifact refreshed 18:14:07Z. League-opportunity artifact
+> refreshed 18:10:14Z by Claude's disclosed accidental producer fire; its scheduler is loaded with
+> runs=0. The report-freshness evaluator now marks both `fresh`; both artifacts retain
+> `decision_supported=false`. Plists remain untracked pending a separately authorized commit.
+> Evidence: `docs/agent-ledger/evidence/2026-08-17/realized_scorer_and_orphaned_producers_codex_v1.md`.
+
+> # ▶ 2026-08-17 14:1x DAVID'S TWO-TASK OPS PRIORITY EXECUTED — SCORER PROVEN TO ITS HONEST CEILING · TWO ORPHAN-PRODUCER PLISTS AUTHORED · THREE DAVID-TERMINAL ACTIONS OWED
+>
+> **Task 1 (realized-outcome scorer):** fix PROVEN for the declared season —
+> explicit `--season 2026 --week 1` run loads the 501-prediction frozen set
+> (581 declared − 80 `capture_incomplete`) through the gates to the honest
+> `noop/week_not_finalized`; marker now 2026/1/noop. **ZERO predictions
+> graded — no finalized 2026 week exists**; per David's own criterion this
+> is NOT success, it is the measured ceiling until ~mid-Sept. MEASURED:
+> tomorrow's 10:00 ET scheduled fire will fail again (`2025/22` undeclared —
+> resolver returns the completed season until nflreadpy rolls); accepting
+> that until rollover vs a minimum fix is an OPEN DAVID DECISION. Both
+> lanes executed the same run under the same order (identical results);
+> dedup wire delivered; Codex reviewing.
+> **Task 2 (orphaned producers):** `roster_capacity` + `league_opportunity`
+> (both stale from 2026-07-15) now have plists —
+> `ops/launchd/com.davidleess.dynasty-roster-capacity-audit.plist` (Tue
+> 10:00) + `com.davidleess.dynasty-league-opportunity-map.plist` (Tue
+> 09:35), lint-clean, untracked, committed-but-David-loads pattern.
+> **Disclosed defect (Claude):** a `--help` probe EXECUTED
+> `build_league_opportunity_map.py` (no argparse) — one unauthorized fire;
+> PIT-append + `_latest` refresh only, gitignored, 07-15 capture preserved.
+> **Owed to David's own terminal (all hook-gated from lanes):** `git push`
+> (65b8696, his word given) · `rm .tracked_evidence_list.txt` (his word
+> given) · `cp`+`launchctl load` of both plists. Codex's `65b8696` audit
+> is PAUSED at preflight (its 14:07 entry), resumes after the ops tasks.
+
 > # ⛔ 2026-08-17 CODEX CROSS-LANE AUDIT — `6fbe161` CLEAR; LATER SESSION FLUSH NOT CLEAR / `closeout-blocked`
 >
 > Independent commit-level audit: **CLEAR on `6fbe161` itself** — exact four-file

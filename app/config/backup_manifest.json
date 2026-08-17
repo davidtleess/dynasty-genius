@@ -207,6 +207,11 @@
       "kind": "sqlite"
     },
     {
+      "path": "app/data/footballguys/objects",
+      "required": true,
+      "kind": "directory"
+    },
+    {
       "path": "app/data/backtest/qb_validation/raw",
       "required": true,
       "kind": "directory"
@@ -232,11 +237,6 @@
       "path": "app/data/footballguys/observations.db",
       "required": false,
       "kind": "sqlite"
-    },
-    {
-      "path": "app/data/footballguys/objects",
-      "required": false,
-      "kind": "directory"
     }
   ],
   "exclude_paths": [
