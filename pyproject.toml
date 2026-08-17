@@ -22,3 +22,11 @@ select = ["E4", "E7", "E9", "F", "I"]
 "**/__init__.py" = ["F401"]   # package re-exports are not "unused imports"
 "tests/**" = ["E402"]          # late imports after fixture / path / env setup are intentional
 "scripts/**" = ["E402"]        # one-shot scripts set up sys.path / env before importing
+# ONE grandfathered byte-frozen exhibit: its SHA-256 pin is cited by the
+# committed QB-1 review record, so it must land hash-exact and can never be
+# "cleaned". Deliberately file-scoped, not folder-scoped — evidence scripts
+# are expected Ruff-clean BEFORE freezing; a future frozen-dirty exhibit is a
+# deliberate one-line addition here, never a silent pass. Ratified per 03
+# §Rule-Change Process (cockpit cycle + David's word, 2026-08-17) after the
+# first-ever local pre-commit run blocked the QB-1 landing on this file.
+"docs/agent-ledger/evidence/2026-08-14/qb1_d1_substrate_audit_codex_v1.py" = ["E402", "I001"]

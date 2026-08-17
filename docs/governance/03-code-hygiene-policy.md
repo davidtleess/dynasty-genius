@@ -34,7 +34,15 @@ select = ["E4", "E7", "E9", "F", "I"]
 
 - `target-version = "py314"`, `line-length = 88`.
 - Per-file ignores: `**/__init__.py` → `F401` (re-exports); `tests/**` and
-  `scripts/**` → `E402` (late imports after fixture/path/env setup).
+  `scripts/**` → `E402` (late imports after fixture/path/env setup); ONE
+  grandfathered byte-frozen evidence exhibit
+  (`docs/agent-ledger/evidence/2026-08-14/qb1_d1_substrate_audit_codex_v1.py`)
+  → `E402`, `I001` — its SHA-256 pin is cited by the committed QB-1 review
+  record, so it must land hash-exact. The exemption is deliberately
+  file-scoped: evidence scripts are expected Ruff-clean BEFORE freezing, and
+  any future frozen-dirty exhibit is a deliberate one-line addition through
+  this same rule-change process, never a silent pass. [Cockpit cycle +
+  David's word, 2026-08-17.]
 - `E712` stays **selected**, never globally ignored: pandas/Polars/NumPy boolean
   masks are hand-reviewed and given a narrow `# noqa: E712` where the comparison is
   intentional.
