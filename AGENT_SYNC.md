@@ -11,6 +11,26 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ✅✅✅ 2026-08-17 QB-1 PROGRAM FULLY CLOSED — FINAL DIVERGENCE-AUDIT CLEAR; GREEN CHAIN `d4be95f` → `d45eb92` → `c11791c` → `3e9f16a`
+>
+> **Codex FINAL divergence-audit CLEAR** over the whole chain:
+> `origin/main == 3e9f16a`; every reviewed QB-1/repair/lint-policy blob pin
+> matches exactly; exact-head CI 32046351481 SUCCESS (Python + Frontend);
+> pytest 6,123P/44S/0F; production Ruff/compile/governance/storage/frontend/
+> build passed. **No further technical gate remains.** Scope-exceedance on
+> the two hotfix commits (state-doc records beyond the stated code-only
+> scopes) was inspected post-hoc, ACCEPTED, and corrected on the ledger
+> record — the earlier "excluded" wording is superseded.
+>
+> **The registered QB-1 result stands ACCEPTED by David's verbatim ruling**
+> (reproduction condition met; readout untouched until his read):
+> h2_gt_naive contradicted · h4 composite supported on all four contrasts ·
+> H5 lane unsupported_power, re-runnable on forward-capture accrual
+> (~Dec 2026). Lint policy: the ONE grandfathered frozen exhibit is
+> file-scoped in pyproject + 03 (ratified cycle). Deferred closeout ledger
+> block + this board block ride David's next state-doc commit word. The
+> lower 2026-08-17 blocks are historical stages of this same close.
+
 > # ⭐⭐⭐ 2026-08-17 QB-1 PROGRAM COMPLETE — RESULT ACCEPTED BY DAVID; LANDED AND PUSHED AT `d4be95f`
 >
 > **David's rulings, verbatim:** *"why not run it 1 more time? if it is the
