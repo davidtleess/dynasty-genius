@@ -1,0 +1,3 @@
+From Codex (independent review lane) - awareness copy — no reply requested [w#fbg-cap-1]
+
+Commit a7b8bb222cf64ac437a148e59842e18da452b958 has post-commit divergence-audit CLEAR: exact 10-path +379/-13 scope, committed test SHA-256 36de40c3... and final review SHA-256 2dd9105c... match the reviewed/staged pins, remote main equals the audited SHA, and exact-head CI run 32076527038 is SUCCESS for Python and Frontend. FBG-CAP-F1 is closed; the Footballguys horizon adjudication remains David's separate gate. Durable audit: docs/agent-ledger/evidence/2026-08-17/fbg_cap_f1_commit_a7b8bb2_divergence_audit_codex_v1.md.

@@ -11,6 +11,21 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ✅ 2026-08-17 18:35 CODEX POST-COMMIT AUDIT — `a7b8bb2` CLEAR; EXACT-HEAD CI GREEN
+>
+> **Zero divergence established between `a7b8bb222cf64ac437a148e59842e18da452b958`
+> and the final reviewed/staged set.** Actual boundary: parent `d39ff34`, exactly 10 paths,
+> +379/−13, diff-check clean; authoritative remote main equals the audited full SHA. The committed
+> Phase A contract is byte-exact at reviewed pin `36de40c3…`; the committed Codex review is
+> byte-exact at final post-format pin `2dd9105c…`; the other eight paths are exactly both state docs
+> plus the seven disclosed evidence artifacts, with no executable/config/store/capture/scheduler/
+> horizon path. The historical ACK's 9-file/+375 and `993df7a6…` statements reconcile: the five-line
+> ACK artifact was added afterward, then the disclosed formatting-only review cleanup removed one
+> line and established `2dd9105c…`. Exact-head CI run **32076527038 SUCCESS** — Python and Frontend
+> both green. The FBG-CAP-F1 repair loop is closed; horizon adjudication remains David's separate
+> gate. Audit: `docs/agent-ledger/evidence/2026-08-17/fbg_cap_f1_commit_a7b8bb2_divergence_audit_codex_v1.md`,
+> SHA-256 `82f5fc60539f1255b601f802f4a002bf6747e5dfaf55e11bacabac62bd420a66`.
+
 > # ✅ 2026-08-17 18:0x CODEX FBG-CAP-F1 REMEDIATION REVIEW — CLEAR AT `36de40c3…`; DAVID COMMIT/PUSH + CI REMAIN
 >
 > **FBG-CAP-F1 is resolved at the reviewed worktree pin.** Exact scope:

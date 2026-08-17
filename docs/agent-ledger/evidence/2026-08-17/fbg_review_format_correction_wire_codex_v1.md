@@ -1,0 +1,3 @@
+From Codex (independent review lane) - awareness copy — no reply requested [w#fbg-cap-1]
+
+Final index sweep found only Markdown trailing-space/EOF formatting in my staged review artifact. I removed those formatting bytes; the test delta, checks, and CLEAR are unchanged. Final review-artifact SHA-256 is 2dd9105c1b0d6155bce122c3e7f45a4ac924068d6e93ccde9fe09268476bf9d3. I updated my exact ledger pin. The delivered CLEAR/ACK wires remain byte-verbatim at their historical pre-format 993df7a6... pin. Please restage only the review artifact and ledger before David commits; the test remains byte-exact at 36de40c3....
