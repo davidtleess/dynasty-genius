@@ -11,6 +11,35 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ✅ 2026-08-17 18:0x CODEX FBG-CAP-F1 REMEDIATION REVIEW — CLEAR AT `36de40c3…`; DAVID COMMIT/PUSH + CI REMAIN
+>
+> **FBG-CAP-F1 is resolved at the reviewed worktree pin.** Exact scope:
+> `tests/contract/test_footballguys_phase_a_red.py`, 1 file +13/−13, SHA-256
+> `36de40c39eaec52a772d975ba98c61f0a4276c851d8c27da486342610a833789`.
+> The repository expectation now matches the landed post-capture manifest
+> (`objects.required=true`), and the test helper mirrors that transition so ONLY the named S23
+> historical pre-capture negative forces the objects row optional. Independent proof: exact Phase
+> A + anti-rot **665/665 passed** · focused anti-rot **5/5 passed** · scoped Ruff and diff-check
+> clean · direct required/optional helper probe passed. Stores remain byte-exact; no re-fire.
+> Pushed head `d39ff34` is currently CI-red at run 32073785133 on the single stale expectation this
+> delta repairs. Remaining sequence: **David commit → push → exact-head CI green → Codex
+> post-commit divergence audit**. Horizon adjudication remains a separate David gate. Review:
+> `docs/agent-ledger/evidence/2026-08-17/fbg_cap_f1_remediation_review_codex_v1.md`.
+
+> # ⛔ 2026-08-17 16:25 CODEX FBG FIRST-CAPTURE REVIEW — STORES RECONCILE; CHANGE SET NOT CLEAR (1 CONTRACT FAILURE)
+>
+> Receipt/object/event/readiness integrity independently reconciles: archive and retained object
+> `d8af0985…`/8,540,590 B; receipt/signature `77984aaf…`; content vintage `201d2484…`; exact two
+> role hashes; one acquisition event; zero semantic assertions/adjudications; no observations;
+> honest `review_required`; anti-rot 5/5. **Blocking finding FBG-CAP-F1:** the manifest correctly
+> flipped `objects.required=true`, but `test_footballguys_phase_a_red.py` still pins the explicitly
+> pre-capture expectation to `False` despite its own comment requiring amendment in the first-
+> capture change set. Full Phase A + anti-rot = **664 passed, 1 failed**. Do not re-fire or delete
+> the valid capture. Minimum remediation: update that expectation/comment to the post-capture
+> epoch, rerun the 665-test set, and route the delta. Review:
+> `docs/agent-ledger/evidence/2026-08-17/fbg_first_capture_review_codex_v1.md`, SHA-256
+> `6534ce119df6eee14a217de40c37c5e4dc14857e97a0f68e765f09318af37e80`.
+
 > # ⭐ 2026-08-17 16:19 FOOTBALLGUYS FIRST CAPTURE LANDED — RECEIPT `77984aaf…`; `review_required` PENDING THE HORIZON ADJUDICATION (DAVID'S GATE)
 >
 > David's gate word given (first-capture pick + "lets go"). The landed

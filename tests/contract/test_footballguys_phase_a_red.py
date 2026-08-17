@@ -563,14 +563,13 @@ def test_p0_ignore_rule_does_not_hide_commit_intended_paths(path: str) -> None:
 
 
 MANIFEST_REQUIREMENTS = {
-    # PRE-CAPTURE EPOCH ONLY. DGX-02 correctly aborts a required directory that
-    # expands to zero files, and objects/ is empty until David authorizes the first
-    # real paid drop. Presence as an OPTIONAL directory is coverage before first
-    # write without breaking the nightly backup. The first-real-capture change set
-    # MUST amend this expectation to True and land the manifest flip in the same
-    # reviewed act, before any provider byte is written. This is a landing-order
-    # obligation, not permission for a forever-optional irreplaceable store.
-    "app/data/footballguys/objects": ("directory", False),
+    # POST-CAPTURE EPOCH (first real capture landed 2026-08-17, receipt
+    # 77984aafe1052e8c7b9649a32ba16e9c7e2a3c1877cfa8cd05367451fe5d316c): the
+    # objects store holds David-authorized paid provider bytes and is REQUIRED
+    # backup coverage — the first-capture change set amended this expectation
+    # from False together with the manifest flip, per the landing-order
+    # obligation the pre-capture comment recorded here.
+    "app/data/footballguys/objects": ("directory", True),
     "app/data/footballguys/receipts.db": ("sqlite", True),
     "app/data/footballguys/semantics.db": ("sqlite", True),
     # Option 3 is not the active write mode. Its transition/counterpart store is
@@ -1172,11 +1171,12 @@ def _write_manifest(
     for store_path, (kind, required) in MANIFEST_REQUIREMENTS.items():
         if store_path == omit:
             continue
-        # Repository truth is pre-capture and therefore optional. Driver positives
-        # model the first-capture/post-capture epoch: raw publication is legal only
-        # after the objects row flips to required in that same reviewed act.
-        if store_path == RUNTIME_PATHS["objects"] and post_capture_epoch:
-            required = True
+        # Repository truth is post-capture (first capture 2026-08-17) and therefore
+        # required. The S23 negative models the retired pre-capture epoch: an
+        # optional objects row must still refuse raw publication, so that scenario
+        # forces the row back to optional here.
+        if store_path == RUNTIME_PATHS["objects"] and not post_capture_epoch:
+            required = False
         row = {"path": store_path, "required": required, "kind": kind}
         (required_rows if required else optional_rows).append(row)
     path = root / "app/config/backup_manifest.json"
