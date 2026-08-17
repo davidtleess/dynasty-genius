@@ -2077,8 +2077,10 @@ _EXTREME_FINITE = Decimal("9e999999")
 
 @pytest.mark.parametrize(
     "ambient",
-    [decimal.Context(), decimal.Context(traps={t: False for t in
-                                               decimal.Context().traps})],
+    # traps=[] disables every trap and is portable across CPython 3.14
+    # patch releases; the all-False dict form raises "ValueError: invalid
+    # signal dict" on newer 3.14 patches (first surfaced by CI on d4be95f).
+    [decimal.Context(), decimal.Context(traps=[])],
     ids=["default_traps", "all_traps_disabled"],
 )
 def test_r52_extreme_finite_operand_refuses_named_on_score(ambient):
@@ -2091,8 +2093,10 @@ def test_r52_extreme_finite_operand_refuses_named_on_score(ambient):
 
 @pytest.mark.parametrize(
     "ambient",
-    [decimal.Context(), decimal.Context(traps={t: False for t in
-                                               decimal.Context().traps})],
+    # traps=[] disables every trap and is portable across CPython 3.14
+    # patch releases; the all-False dict form raises "ValueError: invalid
+    # signal dict" on newer 3.14 patches (first surfaced by CI on d4be95f).
+    [decimal.Context(), decimal.Context(traps=[])],
     ids=["default_traps", "all_traps_disabled"],
 )
 def test_r52_extreme_finite_operand_refuses_named_on_build(ambient):

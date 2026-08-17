@@ -11,6 +11,31 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⭐⭐⭐ 2026-08-17 QB-1 PROGRAM COMPLETE — RESULT ACCEPTED BY DAVID; LANDED AND PUSHED AT `d4be95f`
+>
+> **David's rulings, verbatim:** *"why not run it 1 more time? if it is the
+> same i will accept it"* → replication canonical-identical (`29021bb9…`,
+> Codex whole-file + Claude field-level verification) → *"ok"* → *"ok lets
+> go"*. **The registered QB-1 result stands ACCEPTED:** h2_gt_naive
+> `contradicted` · h1_gt_naive `contradicted` · h3 `not_separable` · **h4
+> composite `supported` on all four contrasts** · H5 lane
+> `unsupported_power` (1/4 folds; re-runnable when forward-captured market
+> data accrues). Ceiling: veteran-cohort regular-season PPG under the pinned
+> rule — never "dynasty value". This satisfies registration Addendum A
+> (execution + David's ruling); the CLAUDE.md/board **UNDER TEST** standing
+> language for H2 now resolves to this accepted registered result.
+>
+> **LANDED + PUSHED:** gate released by David (`dg-autonomy release --as
+> land-qb1-program`); he personally ran commit + push. **`d4be95f`** on
+> `main` (320 files, +48,413/−56; `--no-verify` on his word — first-ever
+> local pre-commit run flagged import-order in a byte-frozen Codex exhibit
+> that must land hash-exact; CI's src/app Ruff scope unaffected). Committed
+> blobs byte-identical to the reviewed pins; `origin/main == d4be95f` by
+> ls-remote; **CI run 32032357295 in progress on the exact head** — result
+> recorded in the 08-17 ledger. Open loop-close items: Codex post-commit
+> divergence audit · CI result · state-doc commit of this board + ledger ·
+> queued lint-policy follow-up (evidence-dir per-file-ignore).
+
 > # ⭐⭐⭐ 2026-08-17 QB-1 POST-COMPLETION REPLICATION: EXACT CANONICAL MATCH — DAVID'S STATED REPRODUCIBILITY CONDITION SATISFIED
 >
 > David directly authorized one more run: *"why not run it 1 more time? if it
