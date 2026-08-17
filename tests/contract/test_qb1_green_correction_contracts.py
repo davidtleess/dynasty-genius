@@ -27,6 +27,23 @@ import tests.contract.qb_validation_study_matrix_contract as matrix_fixtures
 
 runner = importlib.import_module("scripts.run_qb1_study")
 
+# CI substrate guard (first surfaced by run 32033730571 on d45eb92): these
+# contracts exercise the REAL gitignored stores — the F25 frozen product set
+# and the QB-1 raw store — which live on the capture machine and in the GCS
+# backup, never in git. On a fresh clone the F25 gate refuses
+# frozen_boundary_drift before the pinned behavior under test is reachable,
+# so absence SKIPS BY NAME (the repo's established substrate idiom); the
+# contracts still run in full wherever the substrate exists.
+_QB1_FROZEN_SET_PRESENT = all(
+    path.exists() for path in runner.f25_frozen_expected()
+)
+requires_frozen_substrate = pytest.mark.skipif(
+    not _QB1_FROZEN_SET_PRESENT,
+    reason="F25 frozen product set absent (gitignored, backup-manifest-"
+    "covered store) — the frozen gate refuses frozen_boundary_drift before "
+    "the behavior under test is reachable on a fresh clone",
+)
+
 PIN = qb.REGISTRATION_PIN
 DATASETS = (
     "weekly",
@@ -744,6 +761,7 @@ def _h5_inputs(tmp_path: Path) -> dict[str, Any]:
     }
 
 
+@requires_frozen_substrate
 def test_g4_composition_runs_end_to_end_and_publishes(tmp_path: Path) -> None:
     """The whole registered pipeline on synthetic data: labels → matrix →
     8 folds → H1–H4 + naive + gated H5 → 14 contrasts → seeded inference →
@@ -1197,6 +1215,7 @@ def test_r4g1_deep_gate_refuses_every_codex_reproducer(tmp_path: Path) -> None:
         }
 
 
+@requires_frozen_substrate
 def test_r2g4_frozen_gate_runs_before_and_after_composition(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1375,6 +1394,7 @@ def test_r3g3_manifest_missing_mapping_count_is_read_not_zeroed() -> None:
         runner.lane_manifest_missing({"missingness": {"test_manifest_missing": None}})
 
 
+@requires_frozen_substrate
 def test_r3g4_f25_set_is_runner_owned_and_exactly_the_registered_five() -> None:
     """R3-G4: the F25 set is the registered product/model boundary, pinned at
     Codex's independently measured hashes, resolved against the script's OWN
@@ -3407,6 +3427,7 @@ def test_r16_shared_classifier_is_one_object() -> None:
     assert "exclude_provider_placeholder_rows(" in matrix_source
 
 
+@requires_frozen_substrate
 def test_r16_composition_identical_with_and_without_placeholders(
     tmp_path: Path,
 ) -> None:
@@ -3453,6 +3474,7 @@ def test_r16_composition_identical_with_and_without_placeholders(
     assert salted_inputs == baseline_inputs
 
 
+@requires_frozen_substrate
 def test_r16_matrix_near_misses_remain_fail_closed(tmp_path: Path) -> None:
     """A stat-bearing or position-bearing missing-id weekly row still refuses
     the WHOLE matrix build by the registered name — the shared exclusion
@@ -3580,6 +3602,7 @@ def test_r17_one_field_mutants_never_classify() -> None:
     assert exclude(mutants) == mutants
 
 
+@requires_frozen_substrate
 def test_r17_composition_identical_with_and_without_aggregates(
     tmp_path: Path,
 ) -> None:
@@ -3625,6 +3648,7 @@ def test_r17_composition_identical_with_and_without_aggregates(
     assert salted_inputs == baseline_inputs
 
 
+@requires_frozen_substrate
 def test_r17_summary_near_misses_still_refuse_composition(
     tmp_path: Path,
 ) -> None:

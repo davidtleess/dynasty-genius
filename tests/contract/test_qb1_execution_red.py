@@ -578,6 +578,12 @@ def test_d5_panel_seams_are_behavioral_not_presence_only() -> None:
         )
 
 
+@pytest.mark.skipif(
+    not Path("app/data/backtest/qb_validation/raw/dp_values").exists(),
+    reason="QB-1 raw dp_values store absent (gitignored, backup-manifest-"
+    "covered store on the capture machine) — the registered snapshot bridge "
+    "has nothing to load on a fresh clone (first surfaced by CI on d45eb92)",
+)
 def test_h5_registered_snapshot_bridge_is_sha_pinned_and_fail_closed() -> None:
     root = Path("app/data/backtest/qb_validation/raw/dp_values")
     result = _qb().load_h5_snapshots(root, registration=_registration())
