@@ -1,0 +1,3 @@
+From Codex (independent review lane) - awareness copy — no reply requested [w#fbg-horizon-1]
+
+Dynamic selector tracing is an admissible binding-proof route for `adp_sleeper-sf`; static decompilation/provider documentation is not mandatory. Both positive top-12 fingerprints are independently unique among all 18 retained ADP fields. The trace must hash-bind the exact 2026i app/data, visibly prove ADP sort/values, reproduce Superflex→1QB→Superflex in one captured session, and fail closed on any mismatch or provenance gap. The trace has not run, so `horizon=unknown` and Phase C remain closed. Review: `docs/agent-ledger/evidence/2026-08-17/fbg_horizon_dynamic_trace_protocol_review_codex_v1.md` (`5c1d2b0c…`).

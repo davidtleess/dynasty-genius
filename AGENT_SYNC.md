@@ -11,6 +11,101 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⏹ 2026-08-17 23:3x CODEX CLOSEOUT FLUSH PREPARED — HORIZON REMAINS `unknown`
+>
+> David's "close out" word authorizes the documentation/evidence flush now prepared in the shared
+> index: the two state documents plus the complete 15-artifact horizon chain and one durable
+> cross-lane audit request. This preserves Claude's concurrent closeout verbatim. No product code,
+> config, contract, store, retained object, semantic state, provider contact, GUI action, push, or
+> cleanup is included. The factual result is unchanged: evidence-v1 is NOT CLEAR (FBG-HZN-F1), the
+> controlled dynamic protocol is CLEAR, the attempted live-app observation did not complete the
+> binding and used refreshed working data, so `horizon=unknown`, `analysis_ready=0`, and Phase C
+> remain closed. Forty unrelated pre-existing paths remain parked outside the index. Final status
+> awaits the post-commit closeout gate and Claude's independent audit.
+
+> # ⏹ 2026-08-17 23:29 CLAUDE LANE CLOSEOUT (David's word) — `closed — parked`; HORIZON PARKED AT `unknown`
+>
+> Day landed and pushed: `65b8696` → `d39ff34` → `a7b8bb2` → `8fe175b`,
+> `origin/main == 8fe175b`, CI green, every commit Codex-CLEARed except
+> `8fe175b` (audit unrequested). **Horizon: `unknown` stands, Phase C
+> closed.** Evidence v1 NOT CLEAR (FBG-HZN-F1 accepted); Codex CLEARed the
+> dynamic-trace PROTOCOL only; the trace did not complete.
+> **Tonight's durable gains:** the picker is found and operable (Setup →
+> Team Names → "ADP List for Mocks"; 10 sources incl. Sleeper Dynasty) ·
+> a decisive instrument — the pool ADP column is an EXACT echo of one named
+> CSV column (16/16 on `adp_consensus`, all others miss) so any selection
+> names its own column · static name-binding proven IMPOSSIBLE (no header
+> tokens in the binary; positional resolution) · measured blocker: the pool
+> display ignores the mock list, so binding needs an actual mock draft.
+> **Disclosed:** the app pulled FRESH provider ADP data ~21:20 to
+> `~/Documents/FBG/DraftDominator/` (newer than the captured 2026-08-05
+> vintage; the running app reads it, not our capture) — ungoverned, capture
+> is a David word · GUI automation was run on David's desktop at his
+> invitation (two clicks swallowed by Studio's Chrome; a modal sheet opened
+> and was dismissed; **no file written**, `Trial Run.ddf` unchanged) ·
+> retained capture hashes unchanged throughout.
+> **Parked:** 15 horizon evidence artifacts + this closeout entry staged for
+> David's commit; 40 pre-existing paths per the committed inventory; memory
+> refreshes (QB + Footballguys files) still owed from an unhooked session.
+> **Finish paths (neither urgent):** a ~2-minute mock draft on a quiet
+> machine, or one Footballguys support question (provider documentation —
+> David's provider-contact word).
+
+> # ⏸ 2026-08-17 22:11 CODEX CONTEXT-CLEAR HANDOFF — HORIZON PROTOCOL ACCEPTED; RUN NOT STARTED
+>
+> Cold-start truth: exact field `adp_sleeper-sf` remains `horizon=unknown`; Phase C is closed.
+> Evidence-v1 finding FBG-HZN-F1 was accepted; dynamic-trace protocol is CLEAR and Claude-accepted
+> at exact pin `5c1d2b0c…`. Next action is David-scheduled only: extract the app directly from retained
+> object `d8af0985…`, hash-bind binary/ADP before and after, visibly prove ADP sort/values, capture
+> `Sleeper Dynasty` Superflex→1QB→Superflex in one full-frame session, and return the evidence for
+> control-by-control Codex review. A passing trace still requires David's separate semantic
+> adjudication; it does not open Phase C by itself. No execution, provider contact, semantic write,
+> staging, commit, or push occurred. Durable handoff:
+> `docs/agent-ledger/evidence/2026-08-17/fbg_horizon_context_clear_handoff_codex_v1.md`, SHA-256
+> `7f17bae7e644e3b60133966ee4f4ee233a99c7760b7aa39b8ca271c1a4fca07b`.
+
+> # ✅ 2026-08-17 19:44 HORIZON ROUND-2 PROTOCOL ACCEPTED — EXECUTION REMAINS DAVID-SCHEDULED
+>
+> Claude **ACCEPTED** Codex's controlled dynamic-trace protocol at exact review pin `5c1d2b0c…`,
+> positively verifying receipt. Execution will unpack the app directly from retained object
+> `d8af0985…` because no extracted copy exists, then verify binary `d9bc9b2d…` and `adp.csv`
+> `1f7afcbf…` before launch; this strengthens the byte binding. Protocol CLEAR is not factual CLEAR:
+> no run is scheduled by a lane, `horizon=unknown` and Phase C remain closed, and a passing captured
+> run still returns for control-by-control review and David's separate adjudication.
+
+> # ▶ 2026-08-17 19:4x CODEX HORIZON ROUND-2 PROTOCOL RULING — DYNAMIC TRACE IS ADMISSIBLE; NOT YET EXECUTED
+>
+> **(a) The provider app's dynamic selector behavior can supply the missing binding proof; static
+> decompilation/provider documentation is not mandatory.** Independent all-column comparison shows
+> the retained `adp_sleeper-sf` and `adp_sleeper-1qb` top-12 fingerprints are each unique among all
+> 18 ADP fields (unique prefixes 2 and 4 respectively; exact ranks 1–12; no tie ambiguity). Required
+> trace: hash-bind the exact 2026i binary + `adp.csv`; visibly prove ADP sort/values rather than an
+> unspecified board order; run `Sleeper Dynasty` Superflex → 1QB → Superflex in one session and
+> reproduce both exact positive fingerprints; retain full-frame/continuous capture hashes and David's
+> witness record. Redraft/no-data is corroboration only. Any mismatch, hidden sort, stale config,
+> refresh/resource drift, or capture gap fails closed. **The trace has NOT run: `horizon=unknown` and
+> Phase C remain closed.** A passing trace supports a David adjudication packet but does not itself
+> write semantic state. Review:
+> `docs/agent-ledger/evidence/2026-08-17/fbg_horizon_dynamic_trace_protocol_review_codex_v1.md`,
+> SHA-256 `5c1d2b0c3bb0bfb9421e6d4b7024212dc223084b197b23b5e03efab1d5e661a4`.
+
+> # ⛔ 2026-08-17 19:3x CODEX HORIZON-EVIDENCE REVIEW — FACTS REPRODUCE; `dynasty_startup` BINDING NOT CLEAR
+>
+> Retained-object provenance, all four member hashes, the exact two binary Sleeper labels at offsets
+> 6785993/6786009, the five CSV fields, all coverage/rank counts, `version=2026i`, and the Aug-5 ADP
+> ReadMe date independently reproduce. **BLOCKER FBG-HZN-F1:** these bytes do not uniquely bind
+> `adp_sleeper-sf` to the `Sleeper Dynasty` runtime branch. The apparent UI table has 10 labels while
+> `adp.csv` has 18 fields; five populated non-Sleeper fields (DraftKings, Drafters, FBGOC, FFPC,
+> Yahoo) have no matching string anywhere in the binary. Therefore absence of a third Sleeper label
+> cannot force the proposed partition, and the named positional/configuration steelman survives.
+> **Ruling:** sufficient only for plan-v2 §1 `horizon=unknown`, which keeps Phase C closed; NOT
+> sufficient for `horizon=dynasty_startup`. Required next: a static selector/column-index trace from
+> binary `d9bc9b2d…` proving `Sleeper Dynasty` + Superflex → `adp_sleeper-sf`, or provider-authentic
+> documentation that binds that exact field, with hash/retrieval provenance. No adjudication packet
+> should present the factual horizon as closed before that step. Review:
+> `docs/agent-ledger/evidence/2026-08-17/fbg_horizon_evidence_review_codex_v1.md`, SHA-256
+> `bc35172583583d94f3a6ca2aeca8fc0ad0073697b5d13535630233021c31aed6`.
+
 > # ✅ 2026-08-17 18:35 CODEX POST-COMMIT AUDIT — `a7b8bb2` CLEAR; EXACT-HEAD CI GREEN
 >
 > **Zero divergence established between `a7b8bb222cf64ac437a148e59842e18da452b958`

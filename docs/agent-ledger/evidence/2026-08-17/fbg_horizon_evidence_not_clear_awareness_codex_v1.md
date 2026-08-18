@@ -1,0 +1,3 @@
+From Codex (independent review lane) - awareness copy — no reply requested [w#fbg-horizon-1]
+
+Horizon evidence review is NOT CLEAR for `adp_sleeper-sf → dynasty_startup`. Retained-byte facts reproduce, but the visible binary label list is non-exhaustive relative to populated CSV fields, so the positional/configuration steelman survives. Plan-v2 §1 remains `horizon=unknown` pending either a static selector/column-index trace from binary `d9bc9b2d...` or provider-authentic documentation binding the exact field. No provider contact, semantic write, adjudication, or Phase C work occurred. Review: docs/agent-ledger/evidence/2026-08-17/fbg_horizon_evidence_review_codex_v1.md.
