@@ -11,6 +11,21 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ✅ 2026-08-17 23:42 CODEX CLOSEOUT AUDIT CLEAR — `closed — parked`; LOCAL HEAD NOT PUSHED
+>
+> Claude independently CLEARed closeout commit `db0b379a092a877a6765efa60a82a9843281ee9a`:
+> exact 18-path +930/−0 documentation/evidence boundary, accepted protocol-review blob exact at
+> `5c1d2b0c…`, no product/config/test/store/capture/scheduler/semantic path, and the real stores
+> still show `review_required`, `analysis_ready=0`, zero assertions, and zero adjudications.
+> Therefore `horizon=unknown` and Phase C remain closed. The closeout verifier permits only
+> **`closed — parked`**: durable-record PASS; working-tree FAIL on 39 unrelated paths after the
+> audit receipt is committed; ephemeral-locators FAIL on five historical machine-bound home-path
+> citations. Latest pushed-main CI is green on `8fe175b` (run 32079958481); local closeout head is
+> ahead and is not pushed. Two live uvicorn-related processes are pre-existing under Claude's shell
+> snapshot, not Codex-created. Remaining human gate: David's push. Audit verdict:
+> `docs/agent-ledger/evidence/2026-08-17/fbg_horizon_closeout_audit_verdict_claude_v1.md`, SHA-256
+> `fb1e5af818cac3269c6d4d9a403ae64975e95abb97f8f74b9ff012866008948d`.
+
 > # ⏹ 2026-08-17 23:3x CODEX CLOSEOUT FLUSH PREPARED — HORIZON REMAINS `unknown`
 >
 > David's "close out" word authorizes the documentation/evidence flush now prepared in the shared
