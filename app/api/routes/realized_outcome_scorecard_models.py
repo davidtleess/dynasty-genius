@@ -88,6 +88,30 @@ class TrackingRow(_Strict):
     decision_supported: Literal[False]
 
 
+class Coverage(_Strict):
+    """How much of the frozen prediction set actually reached a grade.
+
+    Added 2026-08-18 from a REAL produced artifact. The scaffolding models were written
+    against ``score()``'s source shape while no artifact existed, and they missed this
+    block entirely — so with ``extra="forbid"`` the route rejected the first real
+    scorecard and returned 503 ``malformed scorecard (schema contract)``. That would have
+    fired on Week 1 morning, showing an error where the record belongs. Reproduced against
+    the dress-rehearsal artifact before the fix and after.
+
+    These counts are the honest denominators the surface must show beside any metric: a
+    rank statistic over 318 of 501 predictions is a different claim than one over 501.
+    """
+
+    declared_count: Optional[int] = None
+    eligible_count: Optional[int] = None
+    resolved_count: Optional[int] = None
+    outcome_present_count: Optional[int] = None
+    graded_count: Optional[int] = None
+    rank_eligible_count: Optional[int] = None
+    identity_excluded_counts: dict[str, int] = Field(default_factory=dict)
+    prediction_excluded_counts: dict[str, int] = Field(default_factory=dict)
+
+
 class RealizedOutcomeScorecardResponse(_Strict):
     """Read-only serve of the latest realized-outcome scorecard.
 
@@ -105,6 +129,7 @@ class RealizedOutcomeScorecardResponse(_Strict):
     cohort_metrics: dict[str, CohortMetric] = Field(default_factory=dict)
     tracking_rows: list[TrackingRow] = Field(default_factory=list)
     excluded_counts: dict[str, int] = Field(default_factory=dict)
+    coverage: Coverage = Field(default_factory=Coverage)
     decision_supported: Literal[False]
 
     @field_validator("decision_supported", mode="before")

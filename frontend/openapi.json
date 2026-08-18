@@ -415,6 +415,94 @@
         "title": "CounterArgumentField",
         "type": "object"
       },
+      "Coverage": {
+        "additionalProperties": false,
+        "description": "How much of the frozen prediction set actually reached a grade.\n\nAdded 2026-08-18 from a REAL produced artifact. The scaffolding models were written\nagainst ``score()``'s source shape while no artifact existed, and they missed this\nblock entirely \u2014 so with ``extra=\"forbid\"`` the route rejected the first real\nscorecard and returned 503 ``malformed scorecard (schema contract)``. That would have\nfired on Week 1 morning, showing an error where the record belongs. Reproduced against\nthe dress-rehearsal artifact before the fix and after.\n\nThese counts are the honest denominators the surface must show beside any metric: a\nrank statistic over 318 of 501 predictions is a different claim than one over 501.",
+        "properties": {
+          "declared_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared Count"
+          },
+          "eligible_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligible Count"
+          },
+          "graded_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graded Count"
+          },
+          "identity_excluded_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Identity Excluded Counts",
+            "type": "object"
+          },
+          "outcome_present_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Present Count"
+          },
+          "prediction_excluded_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Prediction Excluded Counts",
+            "type": "object"
+          },
+          "rank_eligible_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank Eligible Count"
+          },
+          "resolved_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Count"
+          }
+        },
+        "title": "Coverage",
+        "type": "object"
+      },
       "DegradationField": {
         "properties": {
           "message": {
@@ -3347,6 +3435,9 @@
             },
             "title": "Cohort Metrics",
             "type": "object"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
           },
           "decision_supported": {
             "const": false,
