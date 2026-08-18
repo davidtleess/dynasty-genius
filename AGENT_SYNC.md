@@ -11,6 +11,51 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⏹ 2026-08-18 06:27 TEAM CLOSEOUT FLUSH — STUDIO-024 RESPONSE DURABLE; PRIOR FBG RECEIPT ABSORBED; `closed — parked`
+>
+> David's word: **"close out"**. This state/evidence-only flush preserves Claude's already-staged
+> Studio-024 response and read-only verifier byte-for-byte, adds today's shared ledger and board,
+> absorbs the previously untracked final CLEAR receipt for `505d62f`, and carries a durable request
+> for Claude's independent audit of the commit containing this block. No product, frontend, config,
+> contract, store, capture, scheduler, semantic state, provider contact, or push is included.
+>
+> Repo facts measured before this flush: `HEAD == origin/main == 505d62f986a8178944787d957363595876dabbf6`;
+> exact-head CI run `32096785939` completed **SUCCESS**. The prior Footballguys close is fully
+> pushed and independently CLEAR; its factual state remains `horizon=unknown`, receipt readiness
+> `review_required`, `analysis_ready=0`, zero semantic assertions/adjudications, and Phase C closed.
+> Studio-024 remains findings/recommendations only: David has not ruled and no implementation opens.
+>
+> Closeout classification is **`closed — parked`**, never clean: after this flush the 39 older
+> working-tree paths remain deliberately untouched, and the verifier continues to report five
+> historical machine-bound citations. There are no matching long-running test/dev-server processes.
+> Claude's cross-lane divergence audit is requested in the committed evidence record; until it
+> returns CLEAR, that audit is the only closeout loop opened by this flush.
+
+> # 📋 2026-08-18 06:21 STUDIO RELAY 024 ANSWERED — FIVE FINDINGS VERIFIED; NOTHING AUTHORIZED, NOTHING IMPLEMENTED
+>
+> Tower relayed Studio brief **TW17-STUDIO-024**; David has NOT ruled and
+> attached no priority — **no implementation opened, no product path
+> touched, Studio's directory not read** (TW29-WALL-35 held). Response of
+> record: `docs/agent-ledger/evidence/2026-08-17/
+> studio_024_relay_technical_response_claude_v1.md`; probe
+> `studio_024_relay_verification_claude_v1.py` (read-only, Ruff-clean).
+> **Verdicts:** R1 **CONFIRMED + escalated** — DVS is a valuation ceiling
+> (`pvo_assembler.py:407` clamps `projection_2y ÷ P90 × 100`), reproduced
+> exactly on the served artifact (RB 6 / WR 6 / TE 11 at 100.0; McCaffrey
+> raw 120.1 → 100.0), and **the designed disclosure is dark**: `dvs_clamped`
+> + `dvs_p90_ref` are computed but never serialized — the silent-clamp
+> failure `00` §No-Verdict Line names. R2 **CONFIRMED `deferred`** (Gate-4
+> input needs forward-accrued PIT, ~Dec 2026; not withheld). R3 **CONFIRMED
+> exactly** (constants = `100 ÷ {20.1,15.7,14.5,9.4}`; DVS is PPG rescaled
+> AND truncated; one open check flagged at
+> `roster_cut_engine._tier_sort_key`). R4 **neither confirmed nor refuted** —
+> display-only constants; any change is a CONSTITUTION AMENDMENT, David's
+> ruling. R5 **CONFIRMED** — zero routes reach 1.3 GB of usage stores;
+> `ParkedSurfaceCard.tsx:23` copy misstates *why* (current-season absent, not
+> the data class). **Two cheapest true statements named as RECOMMENDATIONS,
+> not tickets — priority is never authorization (`05` §2).** Horizon thread
+> unchanged: `unknown`, Phase C closed.
+
 > # ✅ 2026-08-17 23:42 CODEX CLOSEOUT AUDIT CLEAR — `closed — parked`; LOCAL HEAD NOT PUSHED
 >
 > Claude independently CLEARed closeout commit `db0b379a092a877a6765efa60a82a9843281ee9a`:
