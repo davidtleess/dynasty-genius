@@ -26,9 +26,17 @@
 > `7feecf0492762403…` · assembler `8baf25c73f014af2ed…` · engine_a `77a48c513b2c5155…` · batch
 > `188307a5f6fd42d7…`.
 >
-> **⚠️ CLEAR IS NOT A COMMIT AUTHORIZATION. Nothing is committed. Nothing is pushed.** The working
-> tree still holds **three** uncommitted threads (DVS, capture-health, wire-health). Both gates are
-> David's.
+> **✅ COMMITTED on David's word ("commit it") — `f29a1b7`, branch `feature/dvs-ceiling-disclosure`,
+> parent `33562fd`.** Exact 27-path boundary, +1,859/−4: 3 production, 4 contract tests, board,
+> ledger, 18 `dvs_clamp_*` evidence artifacts. Post-commit verification: committed blobs hash to the
+> reviewed pins exactly (`8baf25c7…` / `7f1cad1b…` / `7feecf04…`), bundle 23 passed, pre-commit ruff
+> gate passed, zero stashes left behind. **Zero cross-thread leakage** — capture-health, wire-health,
+> the four generated frontend files, `.mcp.json` and the plists were stashed and restored intact by
+> the hook and remain uncommitted.
+>
+> **⚠️ NOT PUSHED. No PR opened.** Both remain David's separate gates; local branch is ahead of
+> `origin/main`. The working tree still holds **two** other uncommitted threads (capture-health,
+> wire-health).
 >
 > **Read this before the closeout blocks below it.** Those blocks are accurate for the work they
 > describe and were true at 06:3x — but the session did **not** end there. Work reopened at 08:35
