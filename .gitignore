@@ -146,6 +146,12 @@ app/data/playerprofiler/
 # Realized-Outcome Loop (T5) — gitignored weekly scorecard artifact (descriptive, decision_supported=false)
 app/data/realized_outcome/
 
+# Scorer dress-rehearsal output (scripts/run_scorer_rehearsal.py) — generated, and NEVER a
+# model result: its outcomes are substituted from a completed season, so the numbers describe
+# plumbing, not accuracy. Ignored for the same reason as the production scorecard above, and
+# so a rehearsal run can never be swept into a commit and later read as the model's record.
+app/data/backtest/rehearsal/
+
 # Roster Capacity Simulator (T4) — gitignored read-only capacity scorecard artifact (descriptive, decision_supported=false)
 app/data/roster_capacity/
 

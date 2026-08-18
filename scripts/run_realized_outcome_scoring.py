@@ -938,18 +938,44 @@ def _resolve_season_week(
 ) -> tuple[int, int]:
     """Resolve a CONCRETE (season, week) for an unattended/no-arg scheduled run — NEVER None.
 
-    The resolver is deliberately DUMB: nflreadpy's date-derived values keep returning the
-    COMPLETED season (e.g. 2025 week 22 in July 2026), so a resolved target is NOT evidence
-    of live work. Honesty lives in ``run_scoring``'s gates: predictions-first, the marker
-    target ledger, finality, and the scheduled-target freshness guard (spec 2026-07-11 —
-    this replaces the disproven "off-season resolves past the played weeks" assumption).
-    Providers are injectable so tests probe rollover cases without live nflreadpy.
-    ``week_provider`` is wrapped fail-safe (CI/offline) so a no-arg run never crashes."""
+    Target the LEAGUE YEAR, not the last played season (2026-08-18).
+
+    This resolver used to return ``nfl.get_current_season()``, which is date-derived and
+    stays on the COMPLETED season until the Thursday after Labor Day — so all summer it
+    resolved 2025 wk 22. That was survivable while an unknown season merely produced an
+    empty prediction set and a healthy ``noop:no_predictions_for_target``; it is not
+    survivable since the 2026-08-13 frozen-set declaration, because ``_load_frozen
+    _declaration`` RAISES for an undeclared season. The loop therefore reported
+    ``predictions_load_failed:FrozenPredictionSetUndeclared`` every day of the pre-season
+    while nothing was actually wrong. Both halves were behaving as designed; the target was
+    the defect. We hold zero predictions for 2025 and never will — the declared frozen set
+    is 2026-08-05, a 2026 prediction.
+
+    ``roster=True`` is nflreadpy's league-year semantic (rolls at March 15), which is the
+    right clock for a dynasty product: the asset year turns over long before Week 1. During
+    the pre-season window — league year ahead of the last played season — the target week is
+    1, the first week that can ever be graded. Once the played season catches up, the live
+    week provider takes over and grading proceeds normally.
+
+    Providers stay injectable so tests probe rollover cases without live nflreadpy, and
+    ``week_provider`` stays fail-safe (CI/offline) so a no-arg run never crashes."""
     if season_provider is None or week_provider is None:
         import nflreadpy as nfl  # lazy: keep module import standalone-clean + fast
 
-        season_provider = season_provider or nfl.get_current_season
-        week_provider = week_provider or nfl.get_current_week
+        def _league_year() -> int:
+            return int(nfl.get_current_season(roster=True))
+
+        def _week_for_league_year() -> int:
+            # Pre-season: the league year has rolled but no game of it has been played, so
+            # the live week provider still reports the PRIOR season's final week (22).
+            # Week 1 is the only honest target; run_scoring's finality gate then no-ops it
+            # until Week 1 actually finalizes.
+            if _league_year() != int(nfl.get_current_season()):
+                return 1
+            return int(nfl.get_current_week())
+
+        season_provider = season_provider or _league_year
+        week_provider = week_provider or _week_for_league_year
 
     season = int(season_provider())
     try:
