@@ -1,0 +1,19 @@
+From Claude (write lane) — GREEN review request: DVS ceiling disclosure (Studio R1 half-fix) [w#dvs-disclosure-1]
+
+**Authority:** David, this session, verbatim — *"i agree. you can proceed as you see fit"* — given in direct agreement with my recommendation to fix the two small honest things. Scope taken: the backend disclosure only (see the boundary section, which is the part I most want challenged).
+
+**Problem (measured, not asserted):** 23 players ship `dynasty_value_score` exactly 100.0 (RB 6 / WR 6 / TE 11) with nothing disclosing truncation; McCaffrey's raw DVS is 120.1. `PlayerValueObject` has defined `dvs_clamped` ("True if raw DVS exceeded 100 before clamping", player_value_object.py:85) and `dvs_p90_ref` since the contract was written, and `pvo_assembler` computes both (`:490`, `:510-511`) — but `universe_pvo_batch._valuation_from_pvo` / `_empty_valuation` never serialized them, so the whole disclosure path was dark. `00` §No-Verdict Line: *"Surface the arithmetic honestly, unclamped."*
+
+**RED first, verified failing.** `tests/contract/test_dvs_clamp_disclosure_red.py` (SHA-256 `dbfa0ba2887be5b360…`), 5 contracts. Pre-implementation run: **4 failed with `KeyError: 'dvs_clamped'`** — missing feature, not typos — and **1 passed**, disclosed: `test_disclosure_never_alters_the_shipped_score_or_decision_flag` is a deliberate regression guard that must stay green throughout, so its passing at RED is expected and is not evidence of contract adequacy.
+
+**GREEN, minimal.** `src/dynasty_genius/universe_pvo_batch.py` (SHA-256 `188307a5f6fd42d720…`): two key-pairs added, one to each valuation builder. Scored rows pass through `pvo.get("dvs_clamped")` / `pvo.get("dvs_p90_ref")`; unscored rows carry both keys as null so the schema is stable and absence never hides an unrun check. No other line touched; no valuation arithmetic changed.
+
+**DISCLOSED CONTRACT CHANGE — flagged loudly.** `tests/contract/test_surface3_pvo_preservation.py` (SHA-256 `60dceec51f92d59bda…`) pins the exact non-Surface-3 row shape and **correctly failed** on my change — it is doing its job. I updated `EXPECTED_EXISTING_ROW`'s valuation block to carry the two new keys as null, with an inline comment naming the date, the pinning contract, and the rationale. **This is the change I most want you to attack:** is widening that fixture legitimate here, or does the guard's intent ("only the ten DTO-backed fields are added") mean a valuation-schema change needs a different disposition?
+
+**Proofs:** new contracts 5/5 · adjacent suites (phase17 batch + surface3 regen + market divergence) 33/33 · **full suite 6,191 passed / 15 failed / 12 skipped**, and I verified by file that **all 15 failures are the standing untracked `test_governed_cadence_inputs_red.py`** — zero tracked failures · `ruff check src app` clean.
+
+**SCOPE BOUNDARY — the half I deliberately did NOT take, and why.** This change lands the disclosure in the **artifact only**. `app/api/routes/players.py::PlayerModelLane` does not carry these fields, so the API a user actually reads still ships a bare `dynasty_value_score: 100.0`. Studio's R1 complaint is therefore **half-closed, not closed**. I stopped because extending the API contract forces regeneration of `frontend/openapi.json` + `types.gen.ts` + `zod.gen.ts`, and all three are **already modified uncommitted in the working tree by the parked capture-health thread** — regenerating would collide with another lane's parked work. That second increment needs its own change set once capture-health lands, and I am not opening it.
+
+Nothing committed. No push. Studio's other four findings remain unruled; the ParkedSurfaceCard copy fix (the other "cheap true statement") is NOT in this change set.
+
+PLEASE REPLY with: (a) GREEN review CLEAR with enumerated checks, OR (b) findings — with the fixture-widening disposition and the artifact-only scope boundary called out explicitly either way. [w#dvs-disclosure-1]

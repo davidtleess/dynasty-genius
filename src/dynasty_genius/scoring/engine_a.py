@@ -111,11 +111,17 @@ class EngineAScorer:
         p90 = _P90_PPG[pos]
         raw_score = max(0.0, y24_ppg) / p90 * 100.0
         dynasty_value_score = round(min(100.0, raw_score), 2)
+        # Clamp truth is knowable only HERE, before rounding: a raw 99.996 rounds
+        # to 100.0 while truncating nothing, so an output-based `>= 100.0` guess
+        # produces a false disclosure. Strictly greater — raw exactly 100.0 loses
+        # nothing. (Codex review finding, 2026-08-18.)
+        dvs_clamped = raw_score > 100.0
 
         caveats = list(_UNIVERSAL_CAVEATS) + list(_POSITION_CAVEATS.get(pos, []))
 
         return {
             "dynasty_value_score": dynasty_value_score,
+            "dvs_clamped": dvs_clamped,
             "engine_used": "engine_a_rookie_forecast_ridge",
             "model_version": self._version,
             "model_grade": _ENGINE_A_GRADES[pos],
@@ -210,6 +216,9 @@ class EngineAV3Scorer:
         raw_score = max(0.0, y_ppg) / p90 * 100.0
         dynasty_value_score = round(min(100.0, raw_score), 2)
 
+        # Same clamp-truth rule as the v2 head above: measured pre-round.
+        dvs_clamped = raw_score > 100.0
+
         caveats = (
             ["head_a_v3_college_features_used"]
             + list(_UNIVERSAL_CAVEATS)
@@ -218,6 +227,7 @@ class EngineAV3Scorer:
 
         return {
             "dynasty_value_score": dynasty_value_score,
+            "dvs_clamped": dvs_clamped,
             "engine_used": "engine_a_v3_head_a_ridge",
             "model_version": "head_a_te_v3_ridge",
             "model_grade": _ENGINE_A_V3_GRADES[pos],

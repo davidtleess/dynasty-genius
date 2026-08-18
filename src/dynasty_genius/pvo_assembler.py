@@ -359,8 +359,10 @@ def assemble_pvo(
         dynasty_value_score = engine_a_result["dynasty_value_score"]
         dvs_engine = "A"
         dvs_p90_ref_val = _P90_PPG.get(identity.position.upper())
-        dvs_clamped_val = engine_a_result["dynasty_value_score"] >= 100.0
-        
+        # Consume the producer's clamp truth; never re-infer it from the rounded
+        # output (a raw 99.996 rounds to 100.0 and would read as clamped).
+        dvs_clamped_val = engine_a_result.get("dvs_clamped")
+
         # BUT: Engine A model metadata only overrides PRE_MODEL if is_prospect is True.
         # This prevents veterans with draft capital from appearing as PROSPECT_C.
         if is_prospect:
@@ -426,7 +428,15 @@ def assemble_pvo(
                 dynasty_value_score = round((1 - _w_b) * _dvs_a + _w_b * _dvs_b, 1)
                 dvs_engine = "blend"
                 dvs_blend_weight_b = round(_w_b, 3)
-                dvs_clamped_val = dynasty_value_score >= 100.0
+                # Blend semantics (Codex review round 2, 2026-08-18): the field
+                # states what happened to THIS score. Both components enter the
+                # blend already clamped to [0,100] and the weights sum to 1, so a
+                # weighted average can never exceed 100 — the blend arithmetic
+                # never truncates. False is therefore the accurate claim, and it
+                # keeps `xvar_ceiling_bound` (derived from this flag) truthful.
+                # Component-level truncation is a DIFFERENT fact; exposing it
+                # would need its own named field, deliberately not invented here.
+                dvs_clamped_val = False
                 dvs_p90_ref_val = _P90_PPG.get(pos_upper)  # Engine A prior dominates blend window
                 _blend_caveat = (
                     f"Low professional sample (games={int(_n)}) — Engine A/B blend active "
@@ -439,7 +449,8 @@ def assemble_pvo(
                 dynasty_value_score = engine_a_result["dynasty_value_score"]
                 dvs_engine = "A"
                 dvs_p90_ref_val = _P90_PPG.get(pos_upper)
-                dvs_clamped_val = engine_a_result["dynasty_value_score"] >= 100.0
+                # Dead-window fallback is Engine A only — use its clamp truth.
+                dvs_clamped_val = engine_a_result.get("dvs_clamped")
                 _dw_caveat = (
                     "Insufficient professional season data — Engine A prospect score used as prior"
                 )

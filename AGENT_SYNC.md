@@ -11,6 +11,70 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ✅ 2026-08-18 14:2x DVS CEILING DISCLOSURE — ROUND 6 CODEX CLEAR; BACKEND HALF CLOSED, UNCOMMITTED; THE DAY IS NOT CLOSED
+>
+> **Supersedes this block's own earlier 13:2x "round 5 under review" state** (same lane, same
+> thread, rewritten rather than duplicated so the board carries one current statement about this
+> thread instead of two contradictory ones).
+>
+> **Codex returned GREEN review CLEAR on round 6.** F1–F6 are closed for the **backend/artifact
+> increment only**. Verdict: `docs/agent-ledger/evidence/2026-08-18/dvs_clamp_disclosure_green_review_codex_v6.md`
+> (SHA-256 `fe580af8da19895e…`). Claude independently re-verified all five pins, the 23-test bundle,
+> and that artifact's hash before ACKing — the CLEAR was checked, not relayed.
+>
+> **Pins of record (all verified exact by both lanes):** truth `7f1cad1b227fe23a…` · connected
+> `7feecf0492762403…` · assembler `8baf25c73f014af2ed…` · engine_a `77a48c513b2c5155…` · batch
+> `188307a5f6fd42d7…`.
+>
+> **⚠️ CLEAR IS NOT A COMMIT AUTHORIZATION. Nothing is committed. Nothing is pushed.** The working
+> tree still holds **three** uncommitted threads (DVS, capture-health, wire-health). Both gates are
+> David's.
+>
+> **Read this before the closeout blocks below it.** Those blocks are accurate for the work they
+> describe and were true at 06:3x — but the session did **not** end there. Work reopened at 08:35
+> under David's word, verbatim: ***"i agree. you can proceed as you see fit"***, given to the
+> recommendation to fix the two cheapest true statements from Studio-024. **Do not read the
+> `closed — parked` blocks below as the current state of the day.**
+>
+> **Thread `w#dvs-disclosure-1` — backend/artifact half of Studio R1.** 23 players ship
+> `dynasty_value_score` exactly 100.0 (RB 6 / WR 6 / TE 11; McCaffrey raw 120.1) with nothing
+> disclosing truncation. `dvs_clamped` + `dvs_p90_ref` were computed but never serialized — the
+> silent-clamp failure `00` §No-Verdict Line names. Layer 3 (models), layers 1–2 check run and
+> recorded: substrate present, genuinely at layer 3.
+>
+> **Five rounds, four Codex verdicts, every one NOT CLEAR and every one a real defect:**
+> F1 Engine A inferred clamp truth from the *rounded* score (raw 99.99589 → shipped 100.0 →
+> disclosed `clamped=true`, a FALSE disclosure in the change meant to make the surface honest) ·
+> F2 the blend definition overloaded the field and falsified `xvar_ceiling_bound` on every blended
+> row · F3/F4 two seams survived mutation with 14 contracts green · F5 both Engine A consumers
+> could *discard* a genuine `True` with all 19 green.
+>
+> F5 closed in round 5 — `test_dvs_clamp_connected_red.py` parameterized to 13 contracts so each
+> Engine A seam carries its own positive control; both of Codex's F5 mutations re-run in-file and
+> independently, failing 2 / 1 on their own paths. **F6** (round 5's finding) closed in round 6: the
+> truth file's semantics paragraph still declared the blend rule rejected in round 2 while the code
+> had abandoned it in round 3 — stale contract prose beside correct code, which would have led the
+> next reader to "repair" the code back to the defect with every contract green. Docstring-only fix;
+> no assertion or production line touched.
+>
+> **Evidence at CLEAR:** clamp bundle **22 passed**, with Surface-3 **23 passed**; Ruff and
+> `git diff --check` clean; zero `MUTATION` residue; production byte-identical to the round-4 pins
+> across rounds 5 and 6. Full suite last measured in round 5 at **6,208 passed / 15 failed / 12
+> skipped**, all 15 the standing untracked `test_governed_cadence_inputs_red.py`, zero tracked
+> failures, zero collection errors. **Per Codex's point 6, that count is round-5 evidence and must
+> not be cited as fresh round-6 evidence** — the round-6 delta was a docstring.
+>
+> **Standing cautions.** (1) **Studio R1 is HALF-CLOSED, never closed** — `PlayerModelLane` still
+> ships a bare `dynasty_value_score`, and the API increment is deliberately blocked behind the
+> parked capture-health client regeneration (`openapi.json` / `types.gen.ts` / `zod.gen.ts` are all
+> concurrently dirty). (2) Studio-024's other four findings remain **unruled by David**; the two
+> named repairs were RECOMMENDATIONS — priority is never authorization. (3) The working tree holds
+> **three** uncommitted threads at once (DVS, capture-health, wire-health); nothing here is
+> committed and nothing is pushed. Both remain David's gate.
+>
+> Detail in `docs/agent-ledger/2026-08-18.md` (rounds 1–5) and
+> `docs/agent-ledger/evidence/2026-08-18/dvs_clamp_*`.
+
 > # ✅ 2026-08-18 06:3x `eda9cc0` CLOSEOUT DIVERGENCE CLEAR — FINAL RECEIPT FLUSH; `closed — parked`
 >
 > Claude independently audited `eda9cc062a6eb58bbbfbf841a2835658712e1df0` and returned

@@ -81,6 +81,10 @@ def _empty_valuation(route: str, pvo: dict[str, Any] | None = None) -> dict[str,
         "model_version": None,
         "model_grade": "PRE_MODEL" if route == "PRE_MODEL" else None,
         "feature_completeness": 0.0,
+        # DVS ceiling disclosure (00 §No-Verdict Line): unscored rows carry the keys
+        # as null so the schema is stable and absence never hides an unrun check.
+        "dvs_clamped": None,
+        "dvs_p90_ref": None,
         "decision_supported": False,
     }
 
@@ -96,6 +100,10 @@ def _valuation_from_pvo(route: str, pvo: dict[str, Any]) -> dict[str, Any]:
         "model_version": pvo.get("model_version"),
         "model_grade": pvo.get("model_grade"),
         "feature_completeness": pvo.get("signal_completeness"),
+        # A clamped DVS is a truncated number; ship the fact and the denominator
+        # that produced it rather than a bare ceiling value (00 §No-Verdict Line).
+        "dvs_clamped": pvo.get("dvs_clamped"),
+        "dvs_p90_ref": pvo.get("dvs_p90_ref"),
         "decision_supported": False,
     }
 
