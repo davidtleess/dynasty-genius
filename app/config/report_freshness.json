@@ -33,6 +33,7 @@
       "tier": "daily_diagnostics",
       "min_size_bytes": 64,
       "timestamp_field": "generated_at",
+      "input_provenance_field": "stream_provenance",
       "dormant_ok": true,
       "season_windows": {
         "in_season_months": [

@@ -3558,7 +3558,8 @@
               "corrupt_or_empty",
               "dormant",
               "missing",
-              "producer_failed"
+              "producer_failed",
+              "inputs_degraded"
             ],
             "title": "Status",
             "type": "string"
