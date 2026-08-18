@@ -53,6 +53,13 @@ EXPECTED_EXISTING_ROW = {
         "model_version": "engine_a_v3",
         "model_grade": "PROSPECT_A",
         "feature_completeness": 0.93,
+        # DISCLOSED CONTRACT CHANGE (2026-08-18): the valuation block gained two
+        # DVS-ceiling disclosure keys. This fixture PVO carries neither field, so
+        # both serialize as null here. Pinned by
+        # tests/contract/test_dvs_clamp_disclosure_red.py; rationale in
+        # 00 §No-Verdict Line ("surface the arithmetic honestly, unclamped").
+        "dvs_clamped": None,
+        "dvs_p90_ref": None,
         "decision_supported": False,
     },
     "market_overlay": None,
