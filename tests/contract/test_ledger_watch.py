@@ -336,3 +336,61 @@ def test_widening_the_window_is_disclosed_not_reported_as_new_content() -> None:
     assert d["added"] == [] and d["new_files"] == []
     assert lw.has_change(d) is False, "widening the window must not wake a reader"
     assert "SCOPE WIDENED" in lw.render_delta(d, snap, "r")
+
+
+# ----------------------------------------------------------- retraction
+# Measured 2026-08-19: a ballot artifact was written under the wrong voter name, the
+# authoring lane marked it SUPERSEDED, and the watcher went on presenting it as a live
+# vote — the same class of error the retraction existed to correct.
+
+SUPERSEDED_ARTIFACT = """# SUPERSEDED — misattributed pre-channel-change vote
+
+This artifact was authored by **Codex (crew)**. It was incorrectly labeled
+`Codex Consultant`; it is **not** the outside Codex Consultant's ballot and must not be counted.
+
+Voter: Codex crew — originally mislabeled; superseded by the shared-ledger slot
+
+Q3: **c** — Given Q2(a), both tickets should wait.
+"""
+
+
+def test_superseded_artifact_is_reported_but_not_counted(tmp_path: Path) -> None:
+    f = tmp_path / "vote.md"
+    f.write_text(SUPERSEDED_ARTIFACT)
+    votes = lw.extract_votes(f, SUPERSEDED_ARTIFACT, None)
+    assert votes, "the artifact must still be REPORTED, never silently dropped"
+    assert votes[0]["superseded"] is True
+    assert votes[0]["voter"] == "Codex crew", "explanatory clause is not part of the voter's name"
+
+
+def test_a_superseded_vote_cannot_create_a_conflict() -> None:
+    """A retracted vote must not resurrect the conflict it was retracted to settle."""
+    snap = _snap({
+        "/t/a.md": {"label": "trunk", "name": "2026-08-19.md", "sha": "1", "evidence": False,
+                    "_votes": [{"voter": "Codex Consultant", "answers": {"Q3": "**b**"},
+                                "abstain": False, "source": "x:1", "shape": "slot"}]},
+        "/w/b.md": {"label": "wt:DG-021", "name": "vote.md", "sha": "2", "evidence": True,
+                    "_votes": [{"voter": "Codex Consultant", "answers": {"Q3": "**c**"},
+                                "abstain": False, "source": "vote.md", "shape": "artifact",
+                                "superseded": True}]},
+    })
+    assert lw.vote_conflicts(snap) == []
+
+
+def test_rewrite_reports_one_edit_site_not_the_shifted_remainder() -> None:
+    """An in-place insertion shifts every block after it; only the first locates the edit."""
+    # Insert near the top AND drop the last line, so the line count — and therefore the
+    # block count — is unchanged and every block below the edit genuinely shifts. That is
+    # the shape that previously reported six separate "edit sites" for one edit.
+    lines = [f"line {i}" for i in range(200)]
+    old = "\n".join(lines)
+    new = "\n".join(lines[:50] + ["INSERTED"] + lines[50:-1])
+    assert len(old.splitlines()) == len(new.splitlines())
+    cur = {"schema": lw.SCHEMA, "day": "2026-08-19", "days": ["2026-08-19"], "trees": ["trunk"],
+           "files": {"/t/a.md": {"sha": "old", "sigs": [], "blocks": lw.block_hashes(old)}}}
+    snap = _snap({"/t/a.md": {"label": "trunk", "name": "a.md", "day": "2026-08-19", "sha": "new",
+                              "sigs": [], "blocks": lw.block_hashes(new), "evidence": False,
+                              "_votes": [], "_siglines": {}}})
+    d = lw.compute_delta(cur, snap)
+    assert len(d["rewrites"]) == 1
+    assert len(d["rewrites"][0][1]) == 1, "one edit site, not every shifted block"

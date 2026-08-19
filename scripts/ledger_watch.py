@@ -89,6 +89,14 @@ VOTE_LINE_RE = re.compile(
 )
 ABSTAIN_RE = re.compile(r"\b(abstain|abstention|no vote|recuse)\b", re.I)
 PLACEHOLDER_RE = re.compile(r"^\s*[*_]?\(.*(append|left empty|your .*line|tbd|pending).*\)[*_]?\s*$", re.I)
+# An artifact can be retracted by its author. Measured 2026-08-19: a vote artifact was
+# mislabeled, then marked SUPERSEDED by the lane that wrote it. Continuing to count a
+# retracted vote is the same class of error the retraction exists to correct, so a
+# supersede marker is honoured — the artifact is still REPORTED, never silently dropped,
+# but its answers stop counting as a live vote.
+SUPERSEDED_RE = re.compile(
+    r"(^#{1,3}\s*SUPERSEDED\b|\bSUPERSEDED\b.*\bvote\b|\bmust not be counted\b|\\bsuperseded by\\b|\\bRETRACTED\\b)",
+    re.I | re.M)
 VOTER_FIELD_RE = re.compile(r"^\s*[*_]{0,2}Voter[*_]{0,2}\s*[:：]\s*[*_`]{0,2}(?P<voter>[^*_`\n]+)", re.I)
 THREAD_RE = re.compile(r"\[w\#([A-Za-z0-9._-]+)\]")
 ATTENTION_RE = re.compile(
@@ -280,9 +288,12 @@ def extract_votes(path: Path, text: str, parsed: Parsed | None) -> list[dict]:
         m = VOTER_FIELD_RE.match(line)
         if m:
             voter = m.group("voter").strip()
+            # a Voter: field may carry an explanatory clause; the name is the head of it
+            voter = re.split(r"\s+[—–-]{1,2}\s+|\s*[;,]\s*", voter)[0].strip()
             break
     if voter is None:
         return found
+    superseded = bool(SUPERSEDED_RE.search(text))
     answers: dict[str, str] = {}
     for n, line in enumerate(text.splitlines(), start=1):
         vm = VOTE_LINE_RE.match(line)
@@ -290,7 +301,7 @@ def extract_votes(path: Path, text: str, parsed: Parsed | None) -> list[dict]:
             answers[vm.group("q").upper()] = vm.group("raw").strip()
     if answers:
         found.append({"voter": voter, "answers": answers, "abstain": bool(ABSTAIN_RE.search(text)),
-                      "source": path.name, "shape": "artifact"})
+                      "source": path.name, "shape": "artifact", "superseded": superseded})
     return found
 
 
@@ -362,7 +373,8 @@ def signatures(label: str, path: Path, is_evidence: bool) -> tuple[list[str], di
                 detail["votes"] = extract_votes(path, text, None)
                 for v in detail["votes"]:
                     ans = " ".join(f"{q}={a}" for q, a in sorted(v["answers"].items()))
-                    sigs.append(f"vote|{rel}|{v['voter']}|filled|{ans}|{v['source']}")
+                    state = "superseded" if v.get("superseded") else "filled"
+                    sigs.append(f"vote|{rel}|{v['voter']}|{state}|{ans}|{v['source']}")
             except OSError:
                 pass
         return sigs, detail
@@ -505,7 +517,10 @@ def compute_delta(cursor: dict, snapshot: dict) -> dict:
         ob, nb = old.get("blocks", []), cur.get("blocks", [])
         changed = [i for i, (x, y) in enumerate(zip(ob, nb)) if x != y] if ob and nb else []
         if changed and len(ob) == len(nb):
-            d["rewrites"].append((cur, [i * BLOCK_LINES + 1 for i in changed]))
+            # Everything after an in-place insertion shifts, so only the FIRST divergent
+            # block locates the edit; listing the shifted remainder as separate sites
+            # overstates how much changed.
+            d["rewrites"].append((cur, [changed[0] * BLOCK_LINES + 1]))
         else:
             d["prose"].append(cur)
 
@@ -565,6 +580,8 @@ def vote_conflicts(snapshot: dict) -> list[str]:
     by: dict[str, dict[str, set[tuple[str, str]]]] = {}
     for f in snapshot["files"].values():
         for v in f.get("_votes", []):
+            if v.get("superseded"):
+                continue        # retracted by its author; counting it would re-create the error
             key = v["voter"].strip().lower()
             for q, a in v["answers"].items():
                 norm = re.sub(r"[^a-z]", "", a.lower())
@@ -598,6 +615,8 @@ def sig_render(label: str, sig: str, line: int | None = None) -> str | None:
     if kind == "vote" and len(p) >= 4:
         if p[2] in ("empty", "placeholder"):
             return None
+        if p[2] == "superseded":
+            return f"  RETRACTED [{label}] {p[1]} → {p[3]} — marked superseded; NOT counted"
         tag = "VOTE" if p[2] == "filled" else "VOTE?"
         return f"  {tag:<9} [{label}] {p[1]} → {p[3] or '(no parseable answer)'}   @{p[0].split(':',1)[-1]}{at}"
     if kind == "evidence":
@@ -660,8 +679,8 @@ def render_delta(delta: dict, snapshot: dict, reader: str) -> str:
     for label, sig in delta["removed"]:
         L.append(f"  ⚠ REMOVED [{label}] {sig[:150]}")
     for f, starts in delta["rewrites"]:
-        rng = ", ".join(f"~line {s}" for s in starts[:6])
-        L.append(f"  ⚠ REWRITE [{f['label']}] {f['name']} edited IN PLACE at {rng} — not append-only")
+        L.append(f"  ⚠ REWRITE [{f['label']}] {f['name']} edited IN PLACE at or after ~line "
+                 f"{starts[0]} — not append-only; everything below it shifted")
     for f in delta["prose"]:
         L.append(f"  ~ PROSE   [{f['label']}] {f['name']} changed below heading level "
                  f"(sha {f['sha'][:8]}) — no structural delta")
@@ -730,7 +749,13 @@ def render_status(snapshot: dict) -> str:
         L.append("")
         L.append(f"  evidence artifacts ({len(ev)}):")
         for f in sorted(ev, key=lambda x: (x["name"], x["label"])):
-            v = "  ← CARRIES A VOTE" if f.get("_votes") else ""
+            votes = f.get("_votes") or []
+            if any(x.get("superseded") for x in votes):
+                v = "  ← SUPERSEDED VOTE, not counted"
+            elif votes:
+                v = "  ← CARRIES A VOTE"
+            else:
+                v = ""
             L.append(f"    [{f['label']:<12}] {f['name']}  ({f['size']}B){v}")
 
     alerts = render_alerts(snapshot)
