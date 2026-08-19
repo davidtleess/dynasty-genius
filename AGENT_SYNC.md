@@ -11,6 +11,59 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⏹ 2026-08-18 21:3x CLAUDE CLOSEOUT — `closed — parked`; SIX COMMITS PUSHED; R1 ROOT-CAUSED
+>
+> **⚠️ CORRECTED 22:0x BY CODEX — DO NOT OPEN A FEATURE-STORE REBUILD.** Claude's 21:0x diagnosis
+> ("2024 absent, 2025 partial") is **REFUTED**. 2024 is withheld from the runtime OUTPUT by design
+> (`apply_inference_partition`, ratified BUILD-4 spec) while its data still feeds the model as lag
+> features — Wilson's 2025 `ppg_t_minus_1=14.817647` is his 17-game 2024 PPG, and his
+> `ppg_t_minus_2` matches his 2023 `ppg_t` exactly. All 505/505 runtime 2025 rows match an
+> independent Aug-14 snapshot on `games_t`: **complete-season data, not a truncated store.**
+> Wilson's seven games are a fact about Wilson, not about our pipeline. Claude's inference was drawn
+> from missing ROWS without checking the lag columns that were in the same output it had printed.
+>
+> **The real cause (Codex, cited):** the 114 low-game served rows receive a projection, but the
+> bridge asks for an Engine A **rookie** prior the active builder never supplies — 85 of 114 have
+> 3+ years of experience, 38 have 7+. The no-prior branch then falsely writes `dvs_engine=A` and
+> "Engine A prospect score used as prior", and the API reports `modeled` with no degradation.
+> The two 115 counts overlap at **114**, not 115 (Nick Kallerup is a feature-side identity orphan;
+> Bo Melton is a served-side stale-crosswalk position mismatch, the only one across 503 rows).
+> **Also found:** a hidden cohort of 108 players with 1–3 source games removed by the four-game
+> floor before inference (99 in the served universe, 4 rostered, none with projection or DVS);
+> Engine B includes **postseason** (162 participants, 160 changed PPG, six cross the eight-game gate
+> only via postseason) — unsettled against David's intended PPG definition; and the health
+> provenance itself is wrong (participation labelled `loaded_empty` while WR/TE route features are
+> >99% populated).
+> **Rerun verdict:** QB-1 does **not** need rerunning — it used a separate pinned seven-dataset root
+> with 2024/2025 present and REG-only labels. Engine A unaffected. Engine B + P90/replacement/xVAR/
+> calibration need rerun **only if David rules REG-only PPG**.
+> **R1 is points-first presentation and honest state semantics — before any modelling.**
+> Full cited report: `docs/agent-ledger/evidence/2026-08-18/product_substrate_investigation_codex_v1.md`.
+> **R2 is separate and real:** Tank Dell has `dg_player_id: None`, joins to nothing, and cannot be
+> graded by the scorer at all. Full chain: today's ledger, 21:0x entry.
+>
+> **PUSHED — `origin/feature/outcome-loop-week1`, head `b599f1b`, six commits:** league-year scorer
+> fix (`38b377b`) · scorecard `Coverage` contract, the 503 that would have fired Week 1 morning
+> (`e691f5e`) · health grades artifact INPUTS and names why (`62768d0`) · Model Scoreboard surface
+> (`ee22a5d`) · record (`d0c87db`, `b599f1b`). Earlier today `29ca4d1` merged PR #158 to `main`;
+> latest `main` CI run `32178894397` is **success**.
+>
+> **⚠️ Unmerged, no PR, CI has not seen this branch.** No independent post-commit divergence audit
+> exists for any of the six commits — Codex is mid-investigation. That open audit is why this is
+> `parked` and not `clean`; the durability gate's ENFORCE reason is `working-tree` (30+ paths, mostly
+> the other lanes' parked work).
+>
+> **Open, owner named:** Codex investigation `[w#product-investigation]` — David's six questions on
+> what else the missing data changes, whether QB-1 must be re-run, and what is now obviously
+> improvable. Brief at `docs/agent-ledger/evidence/2026-08-18/product_investigation_brief_claude_v1.md`.
+> Gemini received the R1 finding; the brief itself could not be delivered by carrier
+> (`pane_state_unknown` ×3, nothing landing) and was handed to David to paste.
+>
+> **David's order for next session:** R1, then R2, then A7 and the descriptive cluster (DVS clamp,
+> unlabelled/unitless projections, do-not-use copy). **Not before Week 1:** market-superiority work,
+> the decision-grade gate, frontend bundle freshness, the grounding build, and any large unvalidated
+> model push in late August.
+
 > # ✅ 2026-08-18 14:2x DVS CEILING DISCLOSURE — ROUND 6 CODEX CLEAR; BACKEND HALF CLOSED, UNCOMMITTED; THE DAY IS NOT CLOSED
 >
 > **Supersedes this block's own earlier 13:2x "round 5 under review" state** (same lane, same
