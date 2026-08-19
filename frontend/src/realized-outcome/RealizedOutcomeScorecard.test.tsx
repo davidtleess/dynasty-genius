@@ -19,6 +19,16 @@ function scorecardResponse(
     cohort_metrics: {},
     tracking_rows: [],
     excluded_counts: {},
+    coverage: {
+      declared_count: null,
+      eligible_count: null,
+      resolved_count: null,
+      outcome_present_count: null,
+      graded_count: null,
+      rank_eligible_count: null,
+      identity_excluded_counts: {},
+      prediction_excluded_counts: {},
+    },
     decision_supported: false,
     ...overrides,
   }) as RealizedOutcomeScorecardResponse;

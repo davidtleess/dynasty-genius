@@ -933,30 +933,63 @@ def _default_identity_snapshot_loader(season: int, week: int) -> list[dict[str, 
 
 def _resolve_season_week(
     *,
-    season_provider: Callable[[], Any] | None = None,
+    roster_season_provider: Callable[[], Any] | None = None,
+    played_season_provider: Callable[[], Any] | None = None,
     week_provider: Callable[[], Any] | None = None,
+    schedule_loader: Callable[..., dict[str, Any]] | None = None,
 ) -> tuple[int, int]:
     """Resolve a CONCRETE (season, week) for an unattended/no-arg scheduled run — NEVER None.
 
-    The resolver is deliberately DUMB: nflreadpy's date-derived values keep returning the
-    COMPLETED season (e.g. 2025 week 22 in July 2026), so a resolved target is NOT evidence
-    of live work. Honesty lives in ``run_scoring``'s gates: predictions-first, the marker
-    target ledger, finality, and the scheduled-target freshness guard (spec 2026-07-11 —
-    this replaces the disproven "off-season resolves past the played weeks" assumption).
-    Providers are injectable so tests probe rollover cases without live nflreadpy.
-    ``week_provider`` is wrapped fail-safe (CI/offline) so a no-arg run never crashes."""
-    if season_provider is None or week_provider is None:
+    The roster season is the league year and rolls before games begin. During that preseason
+    window the ordinary played-season clock still points at the prior season's final week, so
+    the first potentially gradeable target is the new league year's week 1. Once both season
+    clocks agree, nflreadpy's week helper identifies either the next unfinished week or, when
+    the season is complete, the final week. We inspect that candidate's schedule: a finalized
+    candidate is the target; an unfinished candidate means the prior week is the latest week
+    that can be graded.
+
+    Providers remain injectable for hermetic rollover tests. Required season-provider failures
+    stay loud; only the live week lookup retains the existing fail-safe to week 1."""
+    if (
+        roster_season_provider is None
+        or played_season_provider is None
+        or week_provider is None
+    ):
         import nflreadpy as nfl  # lazy: keep module import standalone-clean + fast
 
-        season_provider = season_provider or nfl.get_current_season
+        roster_season_provider = roster_season_provider or (
+            lambda: nfl.get_current_season(roster=True)
+        )
+        played_season_provider = (
+            played_season_provider or nfl.get_current_season
+        )
         week_provider = week_provider or nfl.get_current_week
+    schedule_loader = schedule_loader or _default_schedule_loader
 
-    season = int(season_provider())
+    roster_season = int(roster_season_provider())
+    played_season = int(played_season_provider())
+    if roster_season != played_season:
+        return roster_season, 1
     try:
-        week = int(week_provider())
+        candidate_week = int(week_provider())
     except Exception:
-        week = 1
-    return season, week
+        return roster_season, 1
+    if candidate_week <= 1:
+        return roster_season, 1
+
+    candidate_schedule = schedule_loader(roster_season, candidate_week)
+    if not _schedule_shape_ok(candidate_schedule):
+        raise ValueError("candidate schedule shape invalid")
+    if (
+        week_status(
+            roster_season,
+            candidate_week,
+            schedule=candidate_schedule,
+        )
+        == "finalized"
+    ):
+        return roster_season, candidate_week
+    return roster_season, candidate_week - 1
 
 
 def _parse_args(argv: Optional[list[str]]) -> argparse.Namespace:

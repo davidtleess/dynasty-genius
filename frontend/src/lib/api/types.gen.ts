@@ -255,6 +255,50 @@ export type CounterArgumentField = {
 };
 
 /**
+ * Coverage
+ *
+ * Counts that disclose how much of the frozen prediction set reached a grade.
+ */
+export type Coverage = {
+    /**
+     * Declared Count
+     */
+    declared_count: number | null;
+    /**
+     * Eligible Count
+     */
+    eligible_count: number | null;
+    /**
+     * Graded Count
+     */
+    graded_count: number | null;
+    /**
+     * Identity Excluded Counts
+     */
+    identity_excluded_counts: {
+        [key: string]: number;
+    };
+    /**
+     * Outcome Present Count
+     */
+    outcome_present_count: number | null;
+    /**
+     * Prediction Excluded Counts
+     */
+    prediction_excluded_counts: {
+        [key: string]: number;
+    };
+    /**
+     * Rank Eligible Count
+     */
+    rank_eligible_count: number | null;
+    /**
+     * Resolved Count
+     */
+    resolved_count: number | null;
+};
+
+/**
  * DegradationField
  */
 export type DegradationField = {
@@ -1865,6 +1909,7 @@ export type RealizedOutcomeScorecardResponse = {
     cohort_metrics?: {
         [key: string]: CohortMetric;
     };
+    coverage: Coverage;
     /**
      * Decision Supported
      */
@@ -1886,7 +1931,7 @@ export type RealizedOutcomeScorecardResponse = {
     /**
      * Status
      */
-    status: string;
+    status: 'inactive' | 'ok';
     /**
      * Status Reason
      */
@@ -4078,6 +4123,26 @@ export type GetSystemHealthApiHealthGetResponses = {
 };
 
 export type GetSystemHealthApiHealthGetResponse = GetSystemHealthApiHealthGetResponses[keyof GetSystemHealthApiHealthGetResponses];
+
+export type MorningTapeSurfaceApiLeagueMorningTapeGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/league/morning-tape';
+};
+
+export type MorningTapeSurfaceApiLeagueMorningTapeGetResponses = {
+    /**
+     * Response Morning Tape Surface Api League Morning Tape Get
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type MorningTapeSurfaceApiLeagueMorningTapeGetResponse = MorningTapeSurfaceApiLeagueMorningTapeGetResponses[keyof MorningTapeSurfaceApiLeagueMorningTapeGetResponses];
 
 export type LeaguePulseSurfaceApiLeaguePulseGetData = {
     body?: never;

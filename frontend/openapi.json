@@ -415,6 +415,112 @@
         "title": "CounterArgumentField",
         "type": "object"
       },
+      "Coverage": {
+        "additionalProperties": false,
+        "description": "Counts that disclose how much of the frozen prediction set reached a grade.",
+        "properties": {
+          "declared_count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared Count"
+          },
+          "eligible_count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligible Count"
+          },
+          "graded_count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graded Count"
+          },
+          "identity_excluded_counts": {
+            "additionalProperties": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Identity Excluded Counts",
+            "type": "object"
+          },
+          "outcome_present_count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Present Count"
+          },
+          "prediction_excluded_counts": {
+            "additionalProperties": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Prediction Excluded Counts",
+            "type": "object"
+          },
+          "rank_eligible_count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank Eligible Count"
+          },
+          "resolved_count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Count"
+          }
+        },
+        "required": [
+          "declared_count",
+          "eligible_count",
+          "resolved_count",
+          "outcome_present_count",
+          "graded_count",
+          "rank_eligible_count",
+          "identity_excluded_counts",
+          "prediction_excluded_counts"
+        ],
+        "title": "Coverage",
+        "type": "object"
+      },
       "DegradationField": {
         "properties": {
           "message": {
@@ -3348,6 +3454,9 @@
             "title": "Cohort Metrics",
             "type": "object"
           },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
           "decision_supported": {
             "const": false,
             "title": "Decision Supported",
@@ -3376,6 +3485,10 @@
             "type": "string"
           },
           "status": {
+            "enum": [
+              "inactive",
+              "ok"
+            ],
             "title": "Status",
             "type": "string"
           },
@@ -3401,6 +3514,7 @@
         "required": [
           "status",
           "settlement_status",
+          "coverage",
           "decision_supported"
         ],
         "title": "RealizedOutcomeScorecardResponse",

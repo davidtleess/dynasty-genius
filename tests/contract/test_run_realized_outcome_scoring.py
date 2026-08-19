@@ -7,6 +7,7 @@ invokes git, and treats off-season/not-finalized weeks as healthy no-ops.
 
 from __future__ import annotations
 
+import builtins
 import importlib
 import json
 import plistlib
@@ -14,6 +15,9 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 
 def _load_cli():
@@ -271,6 +275,143 @@ def test_main_without_season_week_resolves_concrete_values_before_run_scoring(
     assert seen[0]["week"] == 5
     assert seen[0]["season"] is not None
     assert seen[0]["week"] is not None
+
+
+def test_resolver_targets_roster_year_week_one_during_preseason_rollover():
+    cli = _load_cli()
+
+    target = cli._resolve_season_week(
+        roster_season_provider=lambda: 2026,
+        played_season_provider=lambda: 2025,
+        week_provider=lambda: 22,
+    )
+
+    assert target == (2026, 1)
+
+
+def test_resolver_targets_latest_finalized_week_not_next_scheduled_week():
+    cli = _load_cli()
+
+    target = cli._resolve_season_week(
+        roster_season_provider=lambda: 2026,
+        played_season_provider=lambda: 2026,
+        week_provider=lambda: 6,
+        schedule_loader=lambda season, week: {
+            "season": season,
+            "week": week,
+            "expected_game_count": 1,
+            "games": [
+                {
+                    "season": season,
+                    "week": week,
+                    "status": "scheduled",
+                }
+            ],
+        },
+    )
+
+    assert target == (2026, 5)
+
+
+def test_resolver_keeps_candidate_when_its_entire_schedule_is_finalized():
+    cli = _load_cli()
+
+    target = cli._resolve_season_week(
+        roster_season_provider=lambda: 2026,
+        played_season_provider=lambda: 2026,
+        week_provider=lambda: 22,
+        schedule_loader=lambda season, week: {
+            "season": season,
+            "week": week,
+            "expected_game_count": 1,
+            "games": [
+                {
+                    "season": season,
+                    "week": week,
+                    "status": "final",
+                }
+            ],
+        },
+    )
+
+    assert target == (2026, 22)
+
+
+def test_resolver_falls_back_to_week_one_when_live_week_provider_fails():
+    cli = _load_cli()
+
+    def unavailable_week():
+        raise RuntimeError("week provider unavailable")
+
+    target = cli._resolve_season_week(
+        roster_season_provider=lambda: 2026,
+        played_season_provider=lambda: 2026,
+        week_provider=unavailable_week,
+        schedule_loader=lambda *_args: pytest.fail(
+            "week-provider failure must fall back before schedule loading"
+        ),
+    )
+
+    assert target == (2026, 1)
+
+
+def test_resolver_keeps_required_season_provider_failure_loud():
+    cli = _load_cli()
+
+    def unavailable_roster_year():
+        raise RuntimeError("roster season unavailable")
+
+    with pytest.raises(RuntimeError, match="roster season unavailable"):
+        cli._resolve_season_week(
+            roster_season_provider=unavailable_roster_year,
+            played_season_provider=lambda: 2025,
+            week_provider=lambda: 22,
+            schedule_loader=lambda *_args: pytest.fail(
+                "season-provider failure must stop before schedule loading"
+            ),
+        )
+
+
+def test_resolver_with_all_injected_providers_never_imports_nflreadpy(monkeypatch):
+    cli = _load_cli()
+    real_import = builtins.__import__
+
+    def forbid_nflreadpy(name, *args, **kwargs):
+        if name == "nflreadpy":
+            raise AssertionError("injected resolver must not import nflreadpy")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", forbid_nflreadpy)
+
+    assert cli._resolve_season_week(
+        roster_season_provider=lambda: 2026,
+        played_season_provider=lambda: 2025,
+        week_provider=lambda: 22,
+        schedule_loader=lambda *_args: pytest.fail(
+            "preseason rollover must not load a played-week schedule"
+        ),
+    ) == (2026, 1)
+
+
+def test_resolver_default_provider_requests_nflreadpy_roster_year(monkeypatch):
+    cli = _load_cli()
+    season_calls: list[bool] = []
+
+    def fake_current_season(roster: bool = False) -> int:
+        season_calls.append(roster)
+        return 2026 if roster else 2025
+
+    monkeypatch.setitem(
+        sys.modules,
+        "nflreadpy",
+        SimpleNamespace(
+            get_current_season=fake_current_season,
+            get_current_week=lambda: 22,
+        ),
+    )
+
+    assert cli._resolve_season_week() == (2026, 1)
+    assert season_calls == [True, False]
 
 
 def test_main_default_offseason_path_noops_without_artifact_mutation(
