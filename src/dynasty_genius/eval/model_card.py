@@ -58,7 +58,7 @@ class ModelCardSubgroup(BaseModel):
 
 class ModelCard(BaseModel):
     """Mitchell et al. (2018) model card schema — 9 sections."""
-    schema_version: str = "1.0.0"
+    schema_version: str = "1.1.0"  # DG-015: training_window now states the deployed fit
     generated_at: datetime
     position: Literal["QB", "RB", "WR", "TE"]
     backtest_run_id: str
@@ -68,7 +68,11 @@ class ModelCard(BaseModel):
     model_version: str
     model_artifact_hash: str
     ridge_alpha: float
+    # DG-015: this states what the DEPLOYED artifact was fitted on, and names the
+    # seasons held back. It previously carried the walk-forward folds' span, which
+    # is a different fact and is now published separately as evaluation_window.
     training_window: str
+    evaluation_window: str = "not recorded"
     feature_list: List[str]
     retrain_mode: str
 

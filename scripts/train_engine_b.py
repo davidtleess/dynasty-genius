@@ -27,6 +27,9 @@ from sklearn.metrics import mean_squared_error, r2_score
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from src.dynasty_genius.eval.training_provenance import (  # noqa: E402
+    HOLDOUT_SEASONS as _HOLDOUT_SEASONS,
+)
 from src.dynasty_genius.models.engine_b_contract import (
     COMPOSITE_GATE_MIN_PASSING,
     ENGINE_B_ALLOWED_FEATURES,
@@ -63,7 +66,11 @@ FEATURES_UNIFIED = sorted([
     and not f.startswith("ngs_")
 ])
 
-HOLDOUT_SEASONS = [2022, 2023]
+# DG-015: the holdout set is defined once, in the shared provenance module, and
+# imported by both this trainer and scripts/generate_model_cards.py. It used to be
+# a literal here and nowhere else, so the published model card could — and did —
+# describe a training window this script had never fitted on.
+HOLDOUT_SEASONS = list(_HOLDOUT_SEASONS)
 
 # Alpha candidates for RidgeCV search
 ALPHA_CANDIDATES = [0.1, 1.0, 10.0, 50.0, 100.0, 200.0, 500.0, 1000.0]

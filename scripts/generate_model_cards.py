@@ -36,6 +36,11 @@ from src.dynasty_genius.eval.model_card import (
     ModelCardMetrics,
     ModelCardSubgroup,
 )
+from src.dynasty_genius.eval.training_provenance import (  # noqa: E402
+    evaluation_window,
+    seasons_from_training_data,
+    training_window_statement,
+)
 
 RUNS_DIR = Path("app/data/backtest/runs")
 OUTPUT_DIR = Path("app/data/backtest/model_cards")
@@ -312,7 +317,18 @@ def generate_card_for_position(
         f"n_train={f.n_train}, n_test={f.n_test}, tau={f.kendall_tau:.3f}"
         for f in folds
     )
-    training_years_all = sorted({y for f in folds for y in f.train_years})
+    # DG-015: the union of the folds' train_years describes the EVALUATION, not the
+    # deployed fit. Publishing it as `training_window` is what made all four cards
+    # claim a season the trainer had held out and omit one it had used.
+    trainable_seasons, ungradable_seasons = seasons_from_training_data()
+    if not trainable_seasons:
+        # Never guess the fit from the folds; say the data was unreadable instead.
+        training_window_text = "unknown (training data not readable at card generation)"
+    else:
+        training_window_text = training_window_statement(
+            trainable_seasons, ungradable_seasons
+        )
+    evaluation_window_text = evaluation_window([f.train_years for f in folds])
 
     card = ModelCard(
         generated_at=datetime.now(timezone.utc),
@@ -322,7 +338,8 @@ def generate_card_for_position(
         model_version=result.model_version,
         model_artifact_hash=result.model_artifact_hash,
         ridge_alpha=result.ridge_alpha,
-        training_window=f"{min(training_years_all)}–{max(training_years_all)} (expanding; {len(folds)} folds)",
+        training_window=training_window_text,
+        evaluation_window=evaluation_window_text,
         feature_list=sorted(folds[0].train_years.__class__.__name__ and
                            list({col for col in (pred_df.columns if pred_df is not None else [])
                                  if col not in {"player_id", "position", "fold_index",
