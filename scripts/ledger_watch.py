@@ -88,7 +88,12 @@ VOTE_LINE_RE = re.compile(
     r"^\s*(?P<q>Q\d+)\s*[:.]\s*(?P<raw>\*{0,2}[`_]?[A-Za-z]+[`_]?\*{0,2})\s*(?:[-–—]+\s*(?P<why>.+?))?\s*$"
 )
 ABSTAIN_RE = re.compile(r"\b(abstain|abstention|no vote|recuse)\b", re.I)
-PLACEHOLDER_RE = re.compile(r"^\s*[*_]?\(.*(append|left empty|your .*line|tbd|pending).*\)[*_]?\s*$", re.I)
+# A bare "Q4:" with no answer is the ballot template, not content. Reporting it as
+# "grammar unmatched" tells a reader to go look at something that is not there, and
+# blurs the line between a slot awaiting a vote and one holding an unreadable answer.
+PLACEHOLDER_RE = re.compile(
+    r"^\s*(?:[*_]?\(.*(?:append|left empty|your .*line|tbd|pending).*\)[*_]?|Q\d+\s*[:.]\s*)\s*$",
+    re.I)
 # An artifact can be retracted by its author. Measured 2026-08-19: a vote artifact was
 # mislabeled, then marked SUPERSEDED by the lane that wrote it. Continuing to count a
 # retracted vote is the same class of error the retraction exists to correct, so a
@@ -487,16 +492,24 @@ def compute_delta(cursor: dict, snapshot: dict) -> dict:
             or cursor.get("schema") != SCHEMA)
     prev = (cursor or {}).get("files", {})
     d = {"cold_start": bool(cold), "new_files": [], "added": [], "removed": [],
-         "rewrites": [], "prose": [], "gone_files": [], "gone_trees": [], "widened": {}}
+         "rewrites": [], "prose": [], "gone_files": [], "gone_trees": [], "widened": {}, "new_trees": {}}
     # Widening the window pulls in days the cursor never observed. Those files are not
     # new content and reporting them as new entries buries the real delta — measured
     # 2026-08-19, when a 1d cursor read against a 3d scan reported ~39 historical
     # entries as fresh. They are disclosed as newly-in-scope instead.
     prior_days = set((cursor or {}).get("days", []) or [])
+    # A worktree appearing is a checkout of existing history, not new writing. Measured
+    # 2026-08-19: DG-031 was created and the watcher reported ~40 historical entries as
+    # fresh, burying the real delta. A new tree is disclosed once, like a widened window.
+    prior_trees = set((cursor or {}).get("trees", []) or [])
 
     for path, cur in snapshot["files"].items():
         old = prev.get(path)
         if old is None:
+            if prior_trees and cur["label"] not in prior_trees:
+                d["new_trees"].setdefault(cur["label"], 0)
+                d["new_trees"][cur["label"]] += 1
+                continue
             if prior_days and cur.get("day") not in prior_days:
                 d["widened"].setdefault(cur["day"], 0)
                 d["widened"][cur["day"]] += 1
@@ -657,6 +670,10 @@ def render_delta(delta: dict, snapshot: dict, reader: str) -> str:
         return "\n".join(L)
 
     widened = ""
+    if delta.get("new_trees"):
+        t = ", ".join(f"{k} ({n} files)" for k, n in sorted(delta["new_trees"].items()))
+        widened += (f"\n  ⓘ NEW TREE now watched: {t}. Existing history checked out, "
+                    f"not new writing — its future changes WILL be reported.")
     if delta.get("widened"):
         days = ", ".join(f"{d} ({n} files)" for d, n in sorted(delta["widened"].items()))
         widened = (f"\n  ⓘ SCOPE WIDENED — days now watched that your checkpoint never covered: "
@@ -819,7 +836,29 @@ def cmd_wait(args) -> int:
     return 2
 
 
+def _verify_in_pane(pane: str, needle: str) -> bool:
+    """Read the pane back and confirm the text is actually there.
+
+    A send that returned 0 is not a send that arrived. Delivery is only claimed on
+    evidence read back out of the target, never on the exit code of the write.
+    """
+    try:
+        cap = subprocess.run(["tmux", "capture-pane", "-p", "-t", pane],
+                             capture_output=True, text=True, timeout=10)
+    except (FileNotFoundError, subprocess.SubprocessError):
+        return False
+    return cap.returncode == 0 and needle in cap.stdout
+
+
 def cmd_broadcast(args) -> int:
+    """One-line alert into the cockpit panes.
+
+    Delivery state advances ONLY for panes whose transcript proves the message landed.
+    Previously this advanced the cursor for every target regardless of whether the send
+    succeeded, so a failed broadcast was recorded as delivered and — because the cursor
+    had moved — was never re-reported. Silent permanent loss, flagged by Codex review
+    2026-08-19.
+    """
     snap = scan(args.day, args.window)
     delta = compute_delta(load_cursor("broadcast"), snap)
     if not has_change(delta) and not delta["cold_start"]:
@@ -831,6 +870,7 @@ def cmd_broadcast(args) -> int:
         counts[k] = counts.get(k, 0) + 1
     summary = ", ".join(f"{n} {k}" for k, n in sorted(counts.items())) or "changes"
     msg = f"LEDGER {snap['day']}: {summary}. Run scripts/ledger_watch.py since --as <you>"
+
     try:
         out = subprocess.run(
             ["tmux", "list-panes", "-a", "-F",
@@ -839,19 +879,46 @@ def cmd_broadcast(args) -> int:
     except (FileNotFoundError, subprocess.SubprocessError) as exc:
         print(f"[broadcast] tmux unavailable: {exc}")
         return 3
+    if out.returncode != 0:
+        print(f"[broadcast] tmux list-panes failed rc={out.returncode}; nothing sent.")
+        return 3
+
+    targets = []
     for line in out.stdout.splitlines():
         pane, _, title = line.partition(" ")
+        if not pane.strip():
+            continue
         if "studio" in title.lower():
             continue                                   # TW29-WALL-35
-        if args.send:
-            subprocess.run(["tmux", "send-keys", "-t", pane, msg], check=False)
-            print(f"[broadcast] typed (no Enter) → {pane} {title.strip()}")
-        else:
-            print(f"[broadcast] DRY RUN → {pane} {title.strip()}: {msg}")
-    if args.send:
-        save_cursor("broadcast", snap)
-    else:
+        targets.append((pane, title.strip()))
+
+    if not args.send:
+        for pane, title in targets:
+            print(f"[broadcast] DRY RUN → {pane} {title}: {msg}")
         print("\n[broadcast] dry run. Re-run with --send to type into panes.")
+        return 0
+
+    verified, failed = [], []
+    for pane, title in targets:
+        try:
+            r = subprocess.run(["tmux", "send-keys", "-t", pane, msg],
+                               capture_output=True, text=True, timeout=10)
+            ok = r.returncode == 0 and _verify_in_pane(pane, msg)
+        except (FileNotFoundError, subprocess.SubprocessError):
+            ok = False
+        (verified if ok else failed).append((pane, title))
+        print(f"[broadcast] {'VERIFIED' if ok else 'NOT VERIFIED'} → {pane} {title}")
+
+    print(f"\n[broadcast] {len(verified)} verified, {len(failed)} unverified "
+          f"of {len(targets)} targets.")
+    if failed:
+        # Delivery is all-or-nothing on purpose: advancing on a partial send would mark
+        # this delta delivered to panes that never received it, and it would never be
+        # re-reported.
+        print("[broadcast] cursor NOT advanced — this delta will be re-offered next run.")
+        return 1
+    save_cursor("broadcast", snap)
+    print("[broadcast] cursor advanced; every target verified by transcript.")
     return 0
 
 

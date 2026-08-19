@@ -394,3 +394,72 @@ def test_rewrite_reports_one_edit_site_not_the_shifted_remainder() -> None:
     d = lw.compute_delta(cur, snap)
     assert len(d["rewrites"]) == 1
     assert len(d["rewrites"][0][1]) == 1, "one edit site, not every shifted block"
+
+
+# ----------------------------------------------------------- delivery honesty
+# Flagged by Codex review 2026-08-19: broadcast advanced its cursor for every target
+# regardless of whether the send succeeded, so a failed broadcast was recorded as
+# delivered and — the cursor having moved — was never re-reported. Silent permanent
+# loss, in the watcher's own code.
+
+def test_delivery_is_claimed_only_on_transcript_evidence(monkeypatch) -> None:
+    """A send that returned 0 is not a send that arrived."""
+    calls = []
+
+    def fake_run(cmd, **kw):
+        calls.append(cmd)
+        class R:
+            returncode = 0
+            stdout = ""
+        if cmd[1] == "capture-pane":
+            R.stdout = ""          # the message is NOT in the pane
+        return R
+
+    monkeypatch.setattr(lw.subprocess, "run", fake_run)
+    assert lw._verify_in_pane("dynasty:1.1", "LEDGER 2026-08-19") is False
+    assert any(c[1] == "capture-pane" for c in calls), "must read the pane back"
+
+
+def test_verification_passes_when_the_message_is_actually_present(monkeypatch) -> None:
+    def fake_run(cmd, **kw):
+        class R:
+            returncode = 0
+            stdout = "some prior output\nLEDGER 2026-08-19: 2 heading\n"
+        return R
+    monkeypatch.setattr(lw.subprocess, "run", fake_run)
+    assert lw._verify_in_pane("dynasty:1.1", "LEDGER 2026-08-19") is True
+
+
+def test_broadcast_does_not_advance_its_cursor_on_an_unverified_send() -> None:
+    """The all-or-nothing rule: a partial send must be re-offered, never banked."""
+    src = Path("scripts/ledger_watch.py").read_text()
+    fn = src.split("def cmd_broadcast(")[1].split("\ndef main(")[0]
+    tail = fn.split("verified, failed = [], []")[1]
+    guard = tail.split("save_cursor(")[0]
+    assert "if failed:" in guard and "return 1" in guard, (
+        "cmd_broadcast must return before save_cursor when any target is unverified"
+    )
+
+
+def test_a_bare_question_label_is_awaiting_not_unreadable() -> None:
+    """An empty "Q4:" is the ballot template. Calling it unparseable sends a reader to
+    look at content that does not exist, and blurs awaiting against unreadable."""
+    p = lw.parse_ledger("## Votes\n\n### Claude Consultant\n\nQ4:\n\n### Codex Consultant\n\nQ4: **a** — yes.\n")
+    state = {v.voter: v.state for v in p.votes}
+    assert state["Claude Consultant"] == "placeholder"
+    assert state["Codex Consultant"] == "filled"
+
+
+def test_a_new_worktree_is_disclosed_not_replayed_as_new_content() -> None:
+    """Measured 2026-08-19: worktree DG-031 was created and the watcher reported ~40
+    historical entries as fresh. A checkout is not writing. Its FUTURE changes still are."""
+    snap = _snap({"/w2/d.md": {"label": "wt:DG-031", "name": "2026-08-18.md", "day": "2026-08-18",
+                               "sha": "z", "sigs": ["heading|wt:DG-031:2026-08-18.md|P|ancient"],
+                               "blocks": [], "evidence": False, "_votes": [], "_siglines": {}}})
+    cursor = {"schema": lw.SCHEMA, "day": "2026-08-19", "days": ["2026-08-19", "2026-08-18"],
+              "files": {}, "trees": ["trunk", "wt:DG-021"]}
+    d = lw.compute_delta(cursor, snap)
+    assert d["new_trees"] == {"wt:DG-031": 1}
+    assert d["added"] == [] and d["new_files"] == []
+    assert lw.has_change(d) is False, "a new tree alone must not wake a reader"
+    assert "NEW TREE" in lw.render_delta(d, snap, "r")
