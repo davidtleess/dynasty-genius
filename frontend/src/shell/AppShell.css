@@ -169,3 +169,11 @@
   color: var(--dg-text);
   white-space: nowrap;
 }
+
+/* Vertical stack for a surface that composes more than one region (Accuracy Tracker:
+   the record, then the per-cohort drill-down). Spacing only — no card nesting. */
+.dg-shell__stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-4);
+}

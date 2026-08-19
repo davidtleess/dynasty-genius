@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  color: #1f2430;
+  color: var(--dg-text);
 }
 
 .dg-ro__eyebrow {
@@ -14,7 +14,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #7a828e;
+  color: var(--dg-text-muted);
 }
 
 .dg-ro__title {
@@ -23,10 +23,10 @@
 }
 
 .dg-ro__state {
-  border: 1px dashed #d5d9e0;
+  border: 1px dashed var(--dg-border);
   border-radius: 6px;
   padding: 0.7rem 0.9rem;
-  background: #fafbfc;
+  background: var(--dg-surface);
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -41,16 +41,16 @@
 .dg-ro__meta {
   margin: 0;
   font-size: 0.85rem;
-  color: #55606f;
+  color: var(--dg-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .dg-ro__note {
   margin: 0;
   font-size: 0.82rem;
-  color: #55606f;
+  color: var(--dg-text-muted);
 }
 
 .dg-ro__notice {
-  color: #55606f;
+  color: var(--dg-text-muted);
 }
