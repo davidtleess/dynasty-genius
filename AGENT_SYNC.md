@@ -11,7 +11,54 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
-> # ⏹ 2026-08-18 21:3x CLAUDE CLOSEOUT — `closed — parked`; SIX COMMITS PUSHED; R1 ROOT-CAUSED
+> # ⏹ 2026-08-19 17:0x CLAUDE CREW CLOSEOUT — `closed — parked`; LAND DEADLOCK FIXED, DG-023 STAGED
+>
+> **The board moved to DG 3.0 today** — tickets are `DG-001`–`DG-034` at `~/dg-build/`, committed as
+> the opening bootstrap hook by Tower at 06:37 (`16a1e54`). The old `R1/R2/A7` vocabulary maps on:
+> R1 = **DG-021**, R2 = **DG-022**, both held by `CodexTeam20260819`.
+>
+> **✅ SHIPPED — the tooling deadlock that stopped EVERY lane landing anything.** `dg-work.sh`
+> symlinks 16 shared paths into each ticket worktree; `dg-land.sh` refuses on **any** non-empty
+> `git status --porcelain`. Two classes of false dirt resulted, both artifacts of `dg-work.sh`:
+> (1) three shared paths (`app/data/backtest`, `identity`, `sources`) contain **tracked** files and
+> git will not traverse a symlinked directory, so each reads as **deleted** — **72** measured in one
+> worktree; (2) the symlinks themselves read as untracked — 10 more. `~/dg-build/bin/dg-work.sh` now
+> writes the linked paths to the **per-worktree** `$GIT_DIR/info/exclude` and `skip-worktree`s the
+> phantom deletions at creation. Writable copies deliberately stay visible. `bash -n` clean. **Index
+> state and one per-worktree file only — nothing written to the shared 15 GB store, no shared git
+> config touched, nothing committed.** DG-023's live worktree: status **84 → 12**.
+> *(Codex hit the same wall on DG-022 at 14:28 and repaired it by hand; this fixes the cause.)*
+>
+> **⏸ DG-023 — built, mutation-verified, STAGED, NOT COMMITTED.** `~/dg-wt/DG-023` on
+> `ticket/DG-023` @ `552733c`; 2 files, **+162 / −1**. `status` was derived from `seasons_present`,
+> fusing *did rows load* with *is a season observable*; participation carries no `season` column, so
+> loaded rows read `loaded_empty` and `/api/health` printed `EMPTY: participation` over good data.
+> `status` now follows the row count; `row_count` added because without it the artifact cannot tell
+> "rows loaded, no season column" from "zero rows". `unavailable` → `row_count: None`, never `0`.
+> `effective_season` untouched — F1 preserved. **7 tests pass, ruff clean, and BOTH halves
+> mutation-tested** (revert the status line → `assert 'loaded_empty' == 'loaded'`; falsify
+> `row_count` → `assert 0 == 3`), because the box was too loaded to run the RED first and green
+> alone would have proved nothing. **Next gate: the commit command, which the harness classifier
+> requires be run in-session — David's spoken approval cannot reach it.**
+>
+> **📋 FILED — DG-033 and DG-034**, both re-derived at source by this lane, board rows added:
+> **DG-033** a producer can abort and still grade `fresh` (`run_pvo_refresh.py` writes
+> `"status": "aborted"` at **five** sites; its `report_freshness.json` entry declares no
+> `status_field`, which is opt-in, so the gate reads mtime alone — and `pvo_refresh` is
+> `tier: core_substrate`). **DG-034** backup health reports `ok` while failing (a **future-dated**
+> `finished_at` is never stale, and `failures` is echoed but **never appended to `reasons`** while
+> status is `"degraded" if reasons else "ok"`) — against `02` §Standing Infrastructure ruling 3.
+> The same sweep's third finding is **NOT filed**: not independently reproduced.
+>
+> **Corrections this lane made against itself, on the record:** the branch is **8** commits ahead,
+> not the six I carried from ledger prose (caught by the Claude Consultant); and its contested
+> `17 files / 1,757 insertions` **does** reproduce, under `-- app src frontend` — the scope I had
+> not tried, and the one where `openapi.json (+492)` lives.
+>
+> **⚠️ Shared tooling changed without a cockpit cycle** (`dg-work.sh`), on David's "u decide". The
+> block is contiguous and commented, touches no product code, and is reversible.
+
+> # ⏹ 2026-08-18 22:0x CLOSEOUT — `closed — parked`; SEVEN COMMITS PUSHED; INVESTIGATION CLOSED
 >
 > **⚠️ CORRECTED 22:0x BY CODEX — DO NOT OPEN A FEATURE-STORE REBUILD.** Claude's 21:0x diagnosis
 > ("2024 absent, 2025 partial") is **REFUTED**. 2024 is withheld from the runtime OUTPUT by design
@@ -42,22 +89,26 @@
 > **R2 is separate and real:** Tank Dell has `dg_player_id: None`, joins to nothing, and cannot be
 > graded by the scorer at all. Full chain: today's ledger, 21:0x entry.
 >
-> **PUSHED — `origin/feature/outcome-loop-week1`, head `b599f1b`, six commits:** league-year scorer
+> **PUSHED — `origin/feature/outcome-loop-week1`, head `36f7cdf`, seven commits:** league-year scorer
 > fix (`38b377b`) · scorecard `Coverage` contract, the 503 that would have fired Week 1 morning
 > (`e691f5e`) · health grades artifact INPUTS and names why (`62768d0`) · Model Scoreboard surface
-> (`ee22a5d`) · record (`d0c87db`, `b599f1b`). Earlier today `29ca4d1` merged PR #158 to `main`;
-> latest `main` CI run `32178894397` is **success**.
+> (`ee22a5d`) · record (`d0c87db`, `b599f1b`) · corrected closeout and investigation evidence
+> (`36f7cdf`). Earlier today `29ca4d1` merged PR #158 to `main`; latest `main` CI run
+> `32178894397` is **success**.
 >
 > **⚠️ Unmerged, no PR, CI has not seen this branch.** No independent post-commit divergence audit
-> exists for any of the six commits — Codex is mid-investigation. That open audit is why this is
-> `parked` and not `clean`; the durability gate's ENFORCE reason is `working-tree` (30+ paths, mostly
-> the other lanes' parked work).
+> exists for the six product/record commits through `b599f1b`. The Codex investigation is complete,
+> but it was not that divergence audit. The open audit is why this is `parked` and not `clean`; the
+> durability gate's ENFORCE reason is `working-tree` (30+ paths, mostly other lanes' parked work).
 >
-> **Open, owner named:** Codex investigation `[w#product-investigation]` — David's six questions on
-> what else the missing data changes, whether QB-1 must be re-run, and what is now obviously
-> improvable. Brief at `docs/agent-ledger/evidence/2026-08-18/product_investigation_brief_claude_v1.md`.
-> Gemini received the R1 finding; the brief itself could not be delivered by carrier
-> (`pane_state_unknown` ×3, nothing landing) and was handed to David to paste.
+> **✅ INVESTIGATION COMPLETE — CLOSED EVIDENCE-COMPLETE, NO IMPLEMENTATION.** Codex answered
+> David's six questions in `[w#product-investigation]`; Claude accepted the refutation in full and
+> corrected the durable record. Ranked findings, reproduced queries, costs, explicit unknowns, and
+> the rerun matrix are at
+> `docs/agent-ledger/evidence/2026-08-18/product_substrate_investigation_codex_v1.md`; the portable
+> HTML report passed source-dialog and responsive browser verification at 1440px and 390px. No
+> product code, feature store, model, migration, test, config, or surface changed. No feature-store
+> rebuild was opened. Next action remains David's definition/authorization decision.
 >
 > **David's order for next session:** R1, then R2, then A7 and the descriptive cluster (DVS clamp,
 > unlabelled/unitless projections, do-not-use copy). **Not before Week 1:** market-superiority work,
