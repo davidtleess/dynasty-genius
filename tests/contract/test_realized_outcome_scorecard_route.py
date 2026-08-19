@@ -81,6 +81,16 @@ def _valid_scorecard() -> dict[str, Any]:
             }
         ],
         "excluded_counts": {"identity_unresolved": 0},
+        "coverage": {
+            "declared_count": 501,
+            "eligible_count": 476,
+            "resolved_count": 450,
+            "outcome_present_count": 421,
+            "graded_count": 405,
+            "rank_eligible_count": 318,
+            "identity_excluded_counts": {"not_found": 26},
+            "prediction_excluded_counts": {"invalid_position": 25},
+        },
         "decision_supported": False,
     }
 
@@ -111,6 +121,16 @@ def test_missing_scorecard_is_healthy_inactive_200_without_live_artifact_depende
         "cohort_metrics": {},
         "tracking_rows": [],
         "excluded_counts": {},
+        "coverage": {
+            "declared_count": None,
+            "eligible_count": None,
+            "resolved_count": None,
+            "outcome_present_count": None,
+            "graded_count": None,
+            "rank_eligible_count": None,
+            "identity_excluded_counts": {},
+            "prediction_excluded_counts": {},
+        },
         "decision_supported": False,
     }
     assert not scorecard_path.exists()
@@ -143,6 +163,7 @@ def test_scorecard_route_serves_typed_scorecard_without_player_verdict_language(
         "status": "diagnostic_only",
         "delta": None,
     }
+    assert body["coverage"] == _valid_scorecard()["coverage"]
     assert _decision_supported_true_count(body) == 0
     text = json.dumps(body).lower()
     for forbidden in [
@@ -193,6 +214,9 @@ def test_present_but_malformed_scorecard_fails_closed_503(
             "recommendation", "trust this player"
         ),
         lambda body: body["tracking_rows"][0].__setitem__("verdict", "start"),
+        lambda body: body.pop("coverage"),
+        lambda body: body["coverage"].__setitem__("graded_count", "many"),
+        lambda body: body["coverage"].__setitem__("recommendation", "trust it"),
     ],
 )
 def test_scorecard_schema_fails_closed_on_missing_non_finite_or_verdict_fields(
@@ -217,6 +241,47 @@ def test_scorecard_schema_fails_closed_on_missing_non_finite_or_verdict_fields(
     assert detail["decision_supported"] is False
 
 
+@pytest.mark.parametrize(
+    "coverage",
+    [
+        {},
+        {
+            **_valid_scorecard()["coverage"],
+            "identity_excluded_counts": {"not_found": -1},
+        },
+        {**_valid_scorecard()["coverage"], "graded_count": True},
+        {**_valid_scorecard()["coverage"], "graded_count": "405"},
+        {**_valid_scorecard()["coverage"], "graded_count": 422},
+        {
+            **_valid_scorecard()["coverage"],
+            "prediction_excluded_counts": {"invalid_position": 24},
+        },
+        {
+            **_valid_scorecard()["coverage"],
+            "identity_excluded_counts": {"not_found": 25},
+        },
+    ],
+)
+def test_ok_scorecard_fails_closed_on_empty_negative_coercive_or_impossible_coverage(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    coverage: dict[str, Any],
+) -> None:
+    body = _valid_scorecard()
+    body["coverage"] = coverage
+    scorecard_path = _write_scorecard(tmp_path / "scorecard_latest.json", body)
+
+    response = _client_with_scorecard(monkeypatch, scorecard_path).get(
+        "/api/realized-outcome/scorecard"
+    )
+
+    assert response.status_code == 503
+    detail = response.json()["detail"]
+    assert detail["error"] == "realized_outcome_scorecard_unavailable"
+    assert "schema" in detail["message"].lower()
+    assert detail["decision_supported"] is False
+
+
 def test_realized_outcome_scorecard_openapi_uses_typed_response_and_structured_503() -> None:
     from app.main import app
 
@@ -229,3 +294,22 @@ def test_realized_outcome_scorecard_openapi_uses_typed_response_and_structured_5
     assert operation["responses"]["503"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/RealizedOutcomeScorecardErrorResponse"
     }
+    assert schema["components"]["schemas"]["RealizedOutcomeScorecardResponse"][
+        "properties"
+    ]["coverage"] == {"$ref": "#/components/schemas/Coverage"}
+
+
+def test_committed_openapi_and_generated_clients_all_expose_coverage() -> None:
+    root = Path(__file__).resolve().parents[2]
+    openapi = json.loads((root / "frontend/openapi.json").read_text(encoding="utf-8"))
+    generated = {
+        name: (root / f"frontend/src/lib/api/{name}").read_text(encoding="utf-8")
+        for name in ("types.gen.ts", "zod.gen.ts", "index.ts")
+    }
+
+    assert "Coverage" in openapi["components"]["schemas"]
+    assert "export type Coverage" in generated["types.gen.ts"]
+    assert "coverage: Coverage" in generated["types.gen.ts"]
+    assert "export const zCoverage" in generated["zod.gen.ts"]
+    assert "coverage: zCoverage" in generated["zod.gen.ts"]
+    assert " Coverage," in generated["index.ts"]

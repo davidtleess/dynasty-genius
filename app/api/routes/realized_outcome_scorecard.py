@@ -31,6 +31,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import ValidationError
 
 from app.api.routes.realized_outcome_scorecard_models import (
+    Coverage,
     RealizedOutcomeScorecardErrorResponse,
     RealizedOutcomeScorecardResponse,
 )
@@ -82,6 +83,16 @@ def _inactive_response() -> RealizedOutcomeScorecardResponse:
         cohort_metrics={},
         tracking_rows=[],
         excluded_counts={},
+        coverage=Coverage(
+            declared_count=None,
+            eligible_count=None,
+            resolved_count=None,
+            outcome_present_count=None,
+            graded_count=None,
+            rank_eligible_count=None,
+            identity_excluded_counts={},
+            prediction_excluded_counts={},
+        ),
         decision_supported=False,
     )
 

@@ -21,9 +21,9 @@ BCa ``bca_ci`` shape is modeled as ``[low, high]`` pending the first real artifa
 """
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional, Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class _Strict(BaseModel):
@@ -88,6 +88,22 @@ class TrackingRow(_Strict):
     decision_supported: Literal[False]
 
 
+NonNegativeStrictInt = Annotated[int, Field(strict=True, ge=0)]
+
+
+class Coverage(_Strict):
+    """Counts that disclose how much of the frozen prediction set reached a grade."""
+
+    declared_count: Optional[NonNegativeStrictInt]
+    eligible_count: Optional[NonNegativeStrictInt]
+    resolved_count: Optional[NonNegativeStrictInt]
+    outcome_present_count: Optional[NonNegativeStrictInt]
+    graded_count: Optional[NonNegativeStrictInt]
+    rank_eligible_count: Optional[NonNegativeStrictInt]
+    identity_excluded_counts: dict[str, NonNegativeStrictInt]
+    prediction_excluded_counts: dict[str, NonNegativeStrictInt]
+
+
 class RealizedOutcomeScorecardResponse(_Strict):
     """Read-only serve of the latest realized-outcome scorecard.
 
@@ -97,7 +113,7 @@ class RealizedOutcomeScorecardResponse(_Strict):
     market data is excluded from scoring.
     """
 
-    status: str
+    status: Literal["inactive", "ok"]
     status_reason: Optional[str] = None
     as_of_week: Optional[int] = None
     settlement_status: str
@@ -105,12 +121,45 @@ class RealizedOutcomeScorecardResponse(_Strict):
     cohort_metrics: dict[str, CohortMetric] = Field(default_factory=dict)
     tracking_rows: list[TrackingRow] = Field(default_factory=list)
     excluded_counts: dict[str, int] = Field(default_factory=dict)
+    coverage: Coverage
     decision_supported: Literal[False]
 
     @field_validator("decision_supported", mode="before")
     @classmethod
     def _lock_decision_supported(cls, _v: object) -> bool:
         return False
+
+    @model_validator(mode="after")
+    def _coverage_matches_status_and_reconciles(self) -> Self:
+        coverage = self.coverage
+        count_names = (
+            "declared_count",
+            "eligible_count",
+            "resolved_count",
+            "outcome_present_count",
+            "graded_count",
+            "rank_eligible_count",
+        )
+        raw_counts = [getattr(coverage, name) for name in count_names]
+        if self.status == "inactive":
+            if any(value is not None for value in raw_counts):
+                raise ValueError("inactive coverage counts must be null")
+            if coverage.identity_excluded_counts or coverage.prediction_excluded_counts:
+                raise ValueError("inactive coverage exclusions must be empty")
+            return self
+
+        if any(value is None for value in raw_counts):
+            raise ValueError("ok coverage counts must all be present")
+        counts = [int(value) for value in raw_counts if value is not None]
+        if any(left < right for left, right in zip(counts, counts[1:])):
+            raise ValueError("ok coverage counts must be non-increasing")
+
+        declared, eligible, resolved, *_ = counts
+        if declared - eligible != sum(coverage.prediction_excluded_counts.values()):
+            raise ValueError("prediction exclusions do not reconcile")
+        if eligible - resolved != sum(coverage.identity_excluded_counts.values()):
+            raise ValueError("identity exclusions do not reconcile")
+        return self
 
 
 class RealizedOutcomeScorecardErrorResponse(BaseModel):

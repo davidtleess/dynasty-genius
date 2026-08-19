@@ -117,6 +117,22 @@ export const zCounterArgumentField = z.object({
 });
 
 /**
+ * Coverage
+ *
+ * Counts that disclose how much of the frozen prediction set reached a grade.
+ */
+export const zCoverage = z.object({
+    declared_count: z.int().gte(0).nullable(),
+    eligible_count: z.int().gte(0).nullable(),
+    graded_count: z.int().gte(0).nullable(),
+    identity_excluded_counts: z.record(z.string(), z.int().gte(0)),
+    outcome_present_count: z.int().gte(0).nullable(),
+    prediction_excluded_counts: z.record(z.string(), z.int().gte(0)),
+    rank_eligible_count: z.int().gte(0).nullable(),
+    resolved_count: z.int().gte(0).nullable()
+});
+
+/**
  * DegradationField
  */
 export const zDegradationField = z.object({
@@ -1264,11 +1280,12 @@ export const zTrackingRow = z.object({
 export const zRealizedOutcomeScorecardResponse = z.object({
     as_of_week: z.int().nullish(),
     cohort_metrics: z.record(z.string(), zCohortMetric).optional(),
+    coverage: zCoverage,
     decision_supported: z.literal(false),
     excluded_counts: z.record(z.string(), z.int()).optional(),
     maturity_pct: z.number().nullish(),
     settlement_status: z.string(),
-    status: z.string(),
+    status: z.enum(['inactive', 'ok']),
     status_reason: z.string().nullish(),
     tracking_rows: z.array(zTrackingRow).optional()
 });
@@ -1831,6 +1848,13 @@ export const zGetEngineBScoresApiEngineBScoresGetResponse = z.record(z.string(),
  * Successful Response
  */
 export const zGetSystemHealthApiHealthGetResponse = zSystemHealthResponse;
+
+/**
+ * Response Morning Tape Surface Api League Morning Tape Get
+ *
+ * Successful Response
+ */
+export const zMorningTapeSurfaceApiLeagueMorningTapeGetResponse = z.record(z.string(), z.unknown());
 
 /**
  * Successful Response
