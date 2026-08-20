@@ -193,9 +193,7 @@ The module also exposes pure ``validate_archive_directory``, ``inspect_archive``
 serialization/hash, time-validation, and state-reducer functions.  The tests derive
 expected bytes, hashes, copies, and durable residue independently.
 
-Framing source of record:
-``docs/agent-ledger/evidence/2026-08-10/footballguys_phase_a_intake_notice_framing_claude_v25.md``
-SHA-256 ``f44b5ab008c02206cbcba26dacab6efdfd85fcdc279282207c4ae5e99d7301ff``.
+The contract below is the executable source of truth for intake behavior.
 """
 
 from __future__ import annotations
@@ -219,13 +217,6 @@ import pytest
 
 MODULE = "src.dynasty_genius.sources.footballguys_intake"
 REPO_ROOT = Path(__file__).resolve().parents[2]
-FRAMING = (
-    REPO_ROOT
-    / "docs/agent-ledger/evidence/2026-08-10/"
-    "footballguys_phase_a_intake_notice_framing_claude_v25.md"
-)
-FRAMING_SHA256 = "f44b5ab008c02206cbcba26dacab6efdfd85fcdc279282207c4ae5e99d7301ff"
-
 ADP_PATH = "DraftDominator.app/Contents/Resources/adp.csv"
 SIDECAR_PATH = "DraftDominator.app/Contents/Resources/projections.csv"
 ROLE_PATHS = {"adp": ADP_PATH, "identity_sidecar": SIDECAR_PATH}
@@ -487,12 +478,8 @@ def _expected(
 
 
 # ---------------------------------------------------------------------------
-# P0 — immutable external anchors and governance-before-first-write
+# P0 — immutable external anchors and safety before first write
 # ---------------------------------------------------------------------------
-
-
-def test_p0_framing_pin_is_exact() -> None:
-    assert _sha(FRAMING.read_bytes()) == FRAMING_SHA256
 
 
 def test_p0_source_registry_declares_market_overlay_and_fail_closed() -> None:
@@ -548,7 +535,7 @@ def test_p0_runtime_paths_are_narrowly_gitignored(path: str) -> None:
 @pytest.mark.parametrize(
     "path",
     (
-        "docs/agent-ledger/evidence/2026-08-10/footballguys_phase_a_red.md",
+        "tests/contract/test_footballguys_phase_a_red.py",
         "app/config/backup_manifest.json",
         "tests/contract/test_footballguys_phase_a_red.py",
     ),

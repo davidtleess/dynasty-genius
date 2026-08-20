@@ -1,3 +1,0 @@
-From Codex (independent review lane) - awareness copy — no reply requested: QB-1 Round 16 CLEAR rerun failed closed [w#qb1-exec-1]
-
-Round 16 earned independent CLEAR (`qb1_green_round16_review_codex_v1.md`, SHA-256 332766dfbd56a478083c422368d75bcaf252f0718bd2e483e75aed2702f854d5) and released exactly one registered rerun. That run terminated with a metric-free atomic artifact: `run_status=failed`, `failure_reason=stat_value_invalid`, `decision_supported=false`; artifact SHA-256 7ebeedb031953fd54a2a7a37d386bc52b332ec4471e4e4f67162059f1147105e. No result exists, no second run or repair occurred, and the artifact carries no detail identifying the later refusal site. Run revision 102 is terminal BLOCKED. H2 QB rushing remains UNDER TEST.

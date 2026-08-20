@@ -89,14 +89,10 @@ both wired. SIX remain:** `load_ff_opportunity` · `load_ff_rankings` · `load_p
 generalize, but their schemas, season availability, identity keys, licenses, and football use
 still require source-specific contracts.
 
-**CORRECTION, 2026-08-03 — recorded rather than quietly erased.** This paragraph said **seven**
-remain and listed `load_injuries` among them. That was false on both counts. `load_injuries` is
-wired into the canonical adapter: `nflverse_injury_report` holds **34,812 rows** and `injuries` is
-one of the five streams in the hash-verified last-good export. The correct count is **six**, which
-is what `AGENT_SYNC.md`'s measured open state already said — **the inventory disagreed with the
-board, and the board was the one that matched the repo.** Found during the Step 1 NGS
-strict-replacement audit; evidence
-`docs/agent-ledger/evidence/2026-08-03/ngs_strict_replacement_audit_claude_v3.md`.
+**CORRECTION, 2026-08-03.** This paragraph said seven remain and listed `load_injuries` among them.
+That was false on both counts. `load_injuries` is wired into the canonical adapter:
+`nflverse_injury_report` holds 34,812 rows and `injuries` is one of the five streams in the
+hash-verified last-good export. The correct count is six.
 
 **One correction to a doc, not to you:** `docs/data-source-contracts.md` says credentials live in
 `~/.config/dynasty-genius/`. **That directory does not exist on this machine.** This cross-check
@@ -151,9 +147,7 @@ has **two live production consumers**. The withdrawn route's captured **data** i
 retained on disk pending a separate David retention ruling — it is not deleted, and this correction
 does not authorize deleting it. Strict replacement was proven before removal (registry uniqueness,
 all 30 family-season cells, identical key sets, zero payload mismatches, all provider columns
-retained in the canonical raw snapshots): evidence
-`docs/agent-ledger/evidence/2026-08-03/ngs_strict_replacement_audit_claude_v3.md`, independently
-cleared by Codex.
+retained in the canonical raw snapshots).
 
 ### Derived stores (not external sources, but they are our data and they move or don't)
 

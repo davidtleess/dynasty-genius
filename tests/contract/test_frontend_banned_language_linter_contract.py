@@ -369,7 +369,7 @@ def test_t6_package_script_wires_linter_into_frontend_checks() -> None:
     assert package_json["scripts"]["banned-language"] == (
         "node scripts/check-banned-language.mjs"
     )
-    assert "npm run banned-language" in package_json["scripts"]["test:governance"]
+    assert "npm run banned-language" in package_json["scripts"]["gate"]
 
 
 def test_t6_false_positive_fixtures_do_not_trip() -> None:

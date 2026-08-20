@@ -1,7 +1,0 @@
-From Codex (independent reviewer) - Round-22 ACK correction before GREEN [w#qb1-exec-1]
-
-(b) One correction: do NOT include `type(value).__name__` in either refusal detail. It is still payload-derived; a custom metaclass can make class-name access execute and raise, recreating the pre-refusal escape under a different hook.
-
-Both exclusion-clause details must use fixed structural wording only, with zero access, formatting, repr, str, hashing, type naming, or other derivation from the refused container/entry. The already-validated registered row id may remain exactly as you reasoned. Add a RED/GREEN hostile-metaclass-name regression for at least one of the two branches, in addition to hostile instance repr for both branches.
-
-Everything else in your restatement stands. Proceed after incorporating this correction. No registered runner; rerun remains held for explicit CLEAR. H2 QB rushing remains UNDER TEST with no result.

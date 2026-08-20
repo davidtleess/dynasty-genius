@@ -1,135 +1,42 @@
-# STOP. DYNASTY GENIUS BOOTSTRAP PROTOCOL.
+# Dynasty Genius: Build the Product
 
-# ⛔ PARALLEL WORK PROTOCOL — read before you touch anything
+Dynasty Genius is a decision-support product for David's Superflex PPR dynasty league. Agents on
+this repository are product builders: understand the problem, design the solution, implement it,
+and prove that it works.
 
-Multiple agents work this repo at the same time. These rules exist so you cannot destroy someone
-else's work by accident. They are mechanical, not procedural: follow them and collisions become
-impossible rather than merely forbidden.
+## What good work looks like
 
-## 1. Never work in the shared trunk
+- Own outcomes end to end. Investigate the real product, data, and code before choosing a fix.
+- Solve root causes and simplify the system. Prefer working product code and user-visible value over
+  coordination machinery, status artifacts, or process documents.
+- Make reasonable product and technical decisions autonomously. Ask David only when a choice changes
+  the product direction, creates material risk, spends money, or requires access he has not granted.
+- Keep scope coherent. Fix adjacent breakage required by the solution; leave unrelated changes alone.
+- Test behavior in proportion to risk. For UI work, exercise the actual rendered surface—not only
+  component tests. For data/model work, verify lineage, replayability, and failure behavior.
+- Finish with a concise handoff: outcome, important decisions, tests run, and any remaining risk.
 
-`~/dynasty-genius-product` is shared. Do not edit files there, do not commit there, do not run
-experiments there.
+## Product truth
 
-```bash
-~/dg-build/bin/dg-work.sh DG-014        # your own worktree + branch, correctly linked
-```
+- `PRODUCT.md` defines the experience and product intent. `DESIGN.md` defines the visual system.
+- Model output and market opinion are different signals. Keep market values out of model features
+  and present disagreement honestly.
+- Never fabricate certainty, evidence, freshness, or successful data. Missing or stale inputs must be
+  visible and fail closed where they could produce a misleading decision.
+- Preserve source provenance, identity resolution, point-in-time integrity, deterministic replay, and
+  reproducible model artifacts.
+- Do not hardcode aging cliffs or turn athletic testing into a mechanical score boost without
+  validated backtesting.
+- Do not turn an unvalidated hypothesis into product truth. In particular, QB rushing remains a
+  registered hypothesis under test until the study is completed and its result is accepted.
+- User-facing language should help make a fantasy-football decision; do not expose internal pipeline
+  or governance vocabulary as product copy.
 
-One ticket → one worktree → one branch (`ticket/DG-NNN`). When you are done, `dg-land.sh` merges it
-and removes the worktree.
+## Engineering boundaries
 
-## 2. Claim your ticket before you start
-
-Open `~/dg-build/tickets/DG-NNN-*.md` and put your session name in the `Lane:` field. If a lane is
-already there, pick a different ticket. First writer wins; there is no arbitration.
-
-## 3. Never `git add -A`, `git add .`, or `git commit -a`
-
-The trunk carries dozens of uncommitted files that are not yours. Add explicit paths only:
-
-```bash
-git add src/dynasty_genius/models/engine_b_contract.py    # yes
-git add -A                                                # never
-```
-
-## 4. The heavy data is shared and READ-ONLY
-
-`app/data` is 15 GB and `.venv` is 2.3 GB. `dg-work.sh` symlinks them so your worktree is instant
-instead of a 17 GB copy. **A symlink means you are reading the real thing.** Do not write to,
-migrate, vacuum, or delete anything under a symlinked path.
-
-If your ticket genuinely needs to write to a shared store, say so:
-
-```bash
-~/dg-build/bin/dg-work.sh DG-020 --writable app/data/fc_snapshots.db   # copies that one store
-```
-
-## 5. Write outputs run-scoped. Never in place.
-
-New artifacts go to `runs/<UTC timestamp>/`. Never overwrite an existing run directory, model
-artifact, or report — even yours, even if it looks wrong.
-
-*A 23-round run record was overwritten with no backup on 2026-08-17. That is the rule's origin.*
-
-## 6. Do not touch `.venv`
-
-It is shared and symlinked. No `pip install`, no upgrades, no `requirements.txt` edits without a
-ticket. A dependency change breaks every session running at that moment.
-
-## 7. Stay out of the 09:00–10:15 ET window
-
-Ten launchd jobs write to `app/data` in that window. Do not hand-run a scheduled producer while it
-is scheduled to fire, and do not assume a file is stable if you read it then.
-
-## 8. Land one at a time
-
-```bash
-~/dg-build/bin/dg-land.sh DG-014
-```
-
-It rebases on trunk, runs the tests, merges, pushes and removes the worktree — and refuses if the
-tests fail or someone else is mid-merge. Do not merge by hand.
-
-## 9. ⛔ Studio's directory is off limits
-
-No agent reads, lists, writes, copies, backs up or inspects anything in `~/frontend-studio`.
-If a task appears to require it, the task is wrong. Stop.
-
-## 10. Say the command you ran
-
-Every claim about the repo carries the command that produced it or the `file:line` you read. Your own
-earlier statement is not a source — re-run it. A close that says "done" is worth less than one that
-pastes the output.
-
----
-
-**If two of these ever conflict, take the one that touches less.**
-
----
-
-
-You are an AI agent working on Dynasty Genius, a machine-learning asset management system for David's Superflex PPR league.
-
-You do not rely on prior chat memory. You do not rely on summaries. Before executing any command, writing any code, reviewing any pull request, or making any analytical recommendation, you must read the following files in this exact order:
-
-1. `docs/governance/02-agent-operating-loop.md` (How you must work and log your session)
-2. `docs/governance/00-product-constitution.md` (The immutable football rules)
-2a. `docs/governance/05-layer-doctrine.md` — **ALWAYS, EVERY SESSION. Read it; it is short.** **Do not rely on any summary of it, including this pointer** — §1 forbids paraphrase, so the doctrine's own words are supplied only by the mandatory read. §1 is David's words verbatim; §2 onward is agent-authored codification — cite them differently and never attribute the whole file to him. His ruling, quoted exactly: *"Steps 1 and 2 are the foundation - if we don't have this our app WILL NOT WORK. we shouldn't be wasting cycles until we've built this foundation."* **Obligations (pending — see ACTIVATION STATUS at the end of this item):** name the layer your work serves in every preflight; work at layers 3-6 records the layers 1-2 dependency check (what you ran, what it showed, your conclusion). Priority is never authorization, and a conclusion is not a licence to fix. **ACTIVATION STATUS — read this before treating anything in this item as binding.** **`05` §1 is David's own words and stands on his authority.** But **the every-session read requirement AND the obligations stated above are BOTH agent-authored codification, PENDING DAVID'S RATIFICATION and NOT YET BINDING** — he never issued a read command; that delivery mechanism is ours. The lanes follow both voluntarily pending his word, but no agent may cite either as law, hold another agent to them, or block work on them until he ratifies. Ratification is tracked on `AGENT_SYNC.md`.
-3. `docs/governance/01-north-star-architecture.md` (The codebase structure)
-4. `docs/governance/03-code-hygiene-policy.md` (Lint scope, enforcement, and unsafe-change guardrails — for Python work)
-5. The design foundation — root `PRODUCT.md` + `DESIGN.md` — when your task touches the frontend / UI / any visual surface. It is the ratified visual-design source of record (honesty is the substrate; fantasy-native legibility is the aesthetic; never a developer diagnostics console in a fantasy skin). Read the two files directly (Claude Code loads them via the `impeccable` skill). Contract-green is never a visual GREEN — the whole viewport is the review unit and an independent, unanchored fresh-agent visual audit (mid-scroll captures mandatory) is the pre-David gate.
-6. `AGENT_SYNC.md` (The current sprint state)
-   **HOW TO READ IT.** The file is ~400 KB and **append-at-top**. Read from line 1 **through the
-   `⏹ END CURRENT BOARD` marker** and stop there. Everything below that marker is **historical
-   context and is not live unless the current board reopens it** — reading further costs context
-   and risks inheriting superseded commands. Several older blocks still say "READ FIRST" or
-   "READ THIS BLOCK BEFORE ANYTHING BELOW IT"; **those are stale claims from when they were
-   newest.** Precedence is by position, newest first — if two blocks conflict, the higher governs.
-
-If you attempt to write code or analyze players without logging your work in `docs/agent-ledger/` and adhering to the governance files, you are failing your prime directive.
-
-## THE WIRE RULE — sender owns delivery (David's word, 2026-07-21)
-
-Inter-agent messages are delivered by pasting into another pane's input box. The paste and the Enter keystroke are separate operations and they race, so a message can land in the box unsubmitted — the sender believes it sent, the recipient never saw it.
-
-1. **Verify your own sends — positively.** After sending to another pane, confirm the message CONTENT actually appears in the recipient's transcript. Do NOT infer delivery from an empty input box: an empty box is equally what you see when the paste never landed at all. Do not infer it from a spinner either — the recipient may be busy with unrelated earlier work. If the content is not there, re-send it yourself. Delivery is the sender's responsibility and nobody else's.
-   *Long-message gotcha:* Claude Code collapses long pastes to `[Pasted text #N]` in scrollback, so a literal grep of the full text fails on a message that DID arrive. Grep a short distinctive phrase from the message, or take the recipient's own acknowledgment as the confirmation.
-2. **Never submit text you did not send.** Do not press Enter on text sitting in another agent's input box, however stuck the cockpit appears. Text you did not put there is not yours to complete: it may be a UI suggestion, a half-finished thought, or a message whose sender deliberately stopped.
-3. **No message needs rescuing.** If an expected reply never arrives, re-send it yourself. Never ask a third party to complete a delivery on your behalf.
-4. **Ghost text is furniture.** Dim (SGR-2) text in an input box is the CLI's own prompt suggestion, not a message. Read panes with `tmux capture-pane -e` so dim styling stays visible. Never submit it and never report it — David likes the feature and reads the dim rendering himself.
-
-Rationale of record: the mail-carrier daemon existed to rescue stranded messages. Codex's 2026-07-21 bounded verification reproduced three failures — it can press Enter on an open permission dialog, can take over a live sender's message without proving the sender is gone, and can submit an unattributed strand. It remains paused and unarmed. This rule replaces it.
-
-## UNDER TEST — QB rushing is a live hypothesis, not a finding (David's word, 2026-07-22)
-
-The QB-1 study pre-registration (`docs/validation/2026-07-21-qb-1-study-registration.md`) registers QB **rushing production (H2)** as a hypothesis **under test**. The study has not run. There is no result.
-
-Until the pre-registered study is executed and David rules on the registered result:
-
-1. **Do not assert rushing as established.** Not in David-facing output, prose, specs, plans, briefs, or your own reasoning; not as a premise for a feature, threshold, tier, or recommendation. "Under test" is the only status it has.
-2. **A registered hypothesis is not evidence for itself.** Do not cite the registration, its manifests, or any interim or partial output as support for rushing mattering. Pre-registration exists to stop exactly that.
-3. **Know the ceiling.** The study's registered target is regular-season fantasy points per qualifying game under a pinned scoring rule, in a veteran cohort — **not "dynasty value."** Any result on one of the five registered contrasts involving H2 (§8) would, at most, support that corresponding registered comparison, under that contrast's registered status vocabulary and the study's inference contract and David's ruling — never a general "rushing is established" claim, never a marginal/conditional "rushing adds value on top of the other features" claim (no registered contrast tests it), and never the broader value construct without separate validation.
-4. **Say the status out loud when you use it.** Naming rushing as a hypothesis under test is always allowed, and is the required form.
-5. **Only execution-plus-ruling lifts this.** Not a partial run, not an interim table, not a plausible coefficient, not the passage of time.
-
-Pre-existing rushing language and shipped model mechanics elsewhere in the repo are **not** cleared by this section. Full text: Addendum A at the foot of the registration document.
+- Work in an isolated branch/worktree and preserve other people's changes.
+- Never mutate shared data or environments as a side effect of testing.
+- Do not overwrite versioned model, capture, or report artifacts. Produce run-scoped outputs.
+- Keep secrets and paid-provider data out of git.
+- Use ordinary code review, tests, linting, and real-surface QA. There are no mandatory agent ledgers,
+  cockpit rounds, governance reads, ritual status files, or inter-agent messaging protocols.

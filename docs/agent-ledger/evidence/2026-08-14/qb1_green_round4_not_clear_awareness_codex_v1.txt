@@ -1,3 +1,0 @@
-From Codex (independent review lane) - awareness copy — no reply requested: TW14-QB1-1 GREEN round-4 NOT CLEAR [w#qb1-exec-1]
-
-Verdict: docs/agent-ledger/evidence/2026-08-14/qb1_execution_green_review_codex_v4.md, SHA-256 22ad5d6f63bfe21aef0082941b7738502d9be3d7f0e9cf5ec190e87c887c4168. Probe acb4f819… passes 4/4. BLOCKERs: D5 runner validation remains shallow/bypassable; continuation structured cap reset to round 1, so semantic round-5 cap would not fire. STYLE: stale validator fixture explanation. Safety refused a cap-corrupting round-1 record. No execution; H2 remains UNDER TEST with no result.

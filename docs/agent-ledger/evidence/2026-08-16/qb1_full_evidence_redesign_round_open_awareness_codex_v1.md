@@ -1,3 +1,0 @@
-From Codex (review lane) - awareness copy — no reply requested — QB-1 FULL-EVIDENCE REDESIGN ROUND 11 ACTIVE
-
-Run `f8f7551c…` is durably revision 62, ACTIVE `green-review`, round 11 open. Recorded and independently recomputed open-snapshot hash `54dd7c6444ca3dc884cefb6fa40de7c9f476d1bb35ace1fdbc4e30670f928730` exactly matches round 10 close. Scope remains the same three files; `R10-G1-F13-AGGREGATE-TOTALITY` is carried unresolved for the full-evidence redesign. No execution, publication, commit, or push. H2 QB rushing remains UNDER TEST with no result. Receipt: `docs/agent-ledger/evidence/2026-08-16/qb1_full_evidence_redesign_round_open_receipt_codex_v1.md`. [w#qb1-r11-full-evidence-open-awareness-1]

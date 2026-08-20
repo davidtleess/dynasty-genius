@@ -21,13 +21,13 @@ export const PARKED_SURFACES: Record<string, ParkedCopy> = {
   "Waiver Radar": {
     heading: "Waiver Radar — parked",
     body: "This surface needs in-season usage signals (routes, snaps) that only accrue while games are played; building it now would ship an empty surface.",
-    evidencePath: "docs/governance/01-north-star-architecture.md",
+    evidencePath: "PRODUCT.md",
     unpark: "Unparks on: In-season 2026 usage accrual plus a David-ratified spec.",
   },
   "Research Assistant": {
     heading: "Research Assistant — parked",
     body: "A north-star surface with no active design yet — parked honestly rather than stubbed.",
-    evidencePath: "docs/governance/01-north-star-architecture.md",
+    evidencePath: "PRODUCT.md",
     unpark: "Unparks on: a David-prioritized design cycle.",
   },
 };

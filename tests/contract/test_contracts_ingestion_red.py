@@ -1,10 +1,6 @@
 """RED contract — `load_contracts` (Layer 1, board block C, stream 5 of 6).
 
-Design cleared through THREE review rounds before any code was written:
-  design v1 -> Codex NOT CLEAR · v2 -> NOT CLEAR (D1-D5) · v3 -> DESIGN CLEAR
-  docs/agent-ledger/evidence/2026-08-05/contracts_design_note_claude_v3.md
-  docs/agent-ledger/evidence/2026-08-05/contracts_design_clear_codex_v3.md
-Generator: docs/agent-ledger/evidence/2026-08-05/build_contracts_fixture_claude_v1.py
+Fixture generator: tests/fixture_generators/build_contracts_fixture.py
 
 DAVID'S RULING (obtained before the design was finalised): ACCUMULATE FROM CAPTURE ONE, WEEKLY.
 Retention indefinite, no pruning. Cadence authorizes NO scheduler.
