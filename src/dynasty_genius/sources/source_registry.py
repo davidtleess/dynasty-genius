@@ -411,10 +411,7 @@ SOURCE_REGISTRY: dict[str, SourceDefinition] = {
                 "family-season cells, identical key sets, zero shared-payload "
                 "mismatches, and every provider column retained in the canonical "
                 "pre-parse raw snapshots; independently cleared by Codex. Its "
-                "captured DATA tree is deliberately RETAINED pending a separate "
-                "David retention ruling — do not delete it. Evidence: "
-                "docs/agent-ledger/evidence/2026-08-03/"
-                "ngs_strict_replacement_audit_claude_v3.md."
+                "captured DATA tree is deliberately RETAINED; do not delete it."
             ),
         ),
         _make(

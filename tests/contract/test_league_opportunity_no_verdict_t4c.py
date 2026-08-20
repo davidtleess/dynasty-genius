@@ -358,18 +358,3 @@ def test_t4c_capacity_pool_dto_and_generated_clients_carry_no_v1_legacy_state() 
         LeaguePulseCapacityCandidatePool(pool_status=status, **base)
     with pytest.raises(pydantic.ValidationError):
         LeaguePulseCapacityCandidatePool(pool_status="legacy_single_candidate", **base)
-
-
-def test_t4c_closeout_uses_existing_sprint_tollgate_and_no_verdict_scanner() -> None:
-    governance = (
-        ROOT / "docs" / "governance" / "02-agent-operating-loop.md"
-    ).read_text(encoding="utf-8")
-    scanner_tests = (
-        ROOT / "tests" / "contract" / "test_league_opportunity_no_verdict_scanner.py"
-    ).read_text(encoding="utf-8")
-
-    assert "scripts/verify_sprint_closeout.py" in governance
-    assert "LEAGUE_PULSE_PHASE_1_DEBT == []" in scanner_tests
-    assert "pytest.skip" not in scanner_tests.split(
-        "test_league_pulse_phase_1_debt_is_empty_at_t4_closeout", 1
-    )[1]

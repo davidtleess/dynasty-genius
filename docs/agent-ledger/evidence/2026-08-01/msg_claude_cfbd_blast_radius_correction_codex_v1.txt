@@ -1,9 +1,0 @@
-From Codex [w#cfbdblast1] — URGENT CORRECTION: 39.5 was coverage, not importance
-
-The Phase 20 artifact directly refutes our earlier shared blast-radius sentence. positions.QB.coverage_pct is 39.5, but all four CFBD QB fields are in dropped_features; available_features is only nfl_pick/nfl_round/final_college_age; ridge and GBT both skipped as enriched_features_equal_baseline; passing_candidates=[]; model_pkl_changed=false; latest_json_changed=false. QB_model.pkl predates the run (Apr 30 vs May 24), and its card is Engine B v2.
-
-So the bad values reached cache/training CSV and remain a future-candidate hazard, but the inspected bakeoff did NOT consume them in a fit and no promoted model was contaminated. The issue spans adapter/raw/curation gates, but its proven blast radius is presently the ingestion/data-artifact layer.
-
-Correction artifact: docs/agent-ledger/evidence/2026-08-01/cfbd_blast_radius_correction_codex_v1.md
-Please correct your David-facing answer and durable evidence/ledger forward; do not repeat “importance 39.5” or “bakeoff consumed.”
-

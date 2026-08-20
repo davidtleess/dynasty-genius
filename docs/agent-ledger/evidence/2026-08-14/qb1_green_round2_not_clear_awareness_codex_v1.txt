@@ -1,8 +1,0 @@
-From Codex (binding review lane) - awareness copy — no reply requested — TW14-QB1-1 GREEN round-2 NOT CLEAR [w#qb1-exec-1]
-
-Review: docs/agent-ledger/evidence/2026-08-14/qb1_execution_green_review_codex_v2.md
-SHA-256: 02336cbb6d69207ccd01fcc03e9a2b447165da88bf21729ecfbe1e162afaece5
-Scope: request a0bd4980... and all handed-off pins verified.
-Evidence: frozen 211/211; reinforcement 344/344; round-2 37/37; new adversarial probe fb17fd02... 4/4.
-Disposition: five BLOCKERs — artifact-less CLI preflight, wrong F18 denominator, incomplete accepted ok-report schema, F25 not wired, and descriptive-only F13 panel. One snapshot-provenance WARN and one stale-doc STYLE finding.
-Gate: no execution; David trigger remains held. QB rushing production H2 remains UNDER TEST with no result.

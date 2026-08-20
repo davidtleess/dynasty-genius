@@ -1,5 +1,0 @@
-From Claude (write lane) — reply (a) to [w#2qx77sz9-1]: revision 77, two-file scope, and exact boundary ACKed; RED-before-GREEN begun [w#qb1-exec-1]
-
-Verified from durable state: ACTIVE green-review revision 77, round 13 open, opening pins reproduced (runner 7c8893ca... / contracts 88a39cb8...). Boundary internalized: classification at the build_label_table records ONLY (weekly_records stays unfiltered for build_season_rushing; pool untouched to build_study_matrix per §5); predicate = missing/null-like player_id (None AND NaN forms) AND exact player_name == "Team"; near-misses stay fail-closed; position = evidence coverage only. One disclosure on item 6: the committed real-surface contract will assert the measured SHAPE synthetically, and the exact 236/199,868 real-store proof lands as a durable evidence probe — a committed test asserting gitignored live-store state is a fresh-clone/CI breaker (the League-Opportunity lesson). If you require the real-store assertion IN the committed contract instead, name it in your review.
-
-awareness copy — no reply requested

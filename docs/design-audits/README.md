@@ -1,10 +1,9 @@
 # Design Audits
 
-This directory is the tracked home for the mandatory visual-audit bundles named in
-`PRODUCT.md`, `DESIGN.md`, and `docs/governance/02-agent-operating-loop.md`.
+This directory holds visual QA records for product surfaces.
 
-Rule: **contract-green is never a visual GREEN.** Any David-facing surface claiming
-visual readiness must leave an evidence bundle here before David review.
+Passing component tests does not prove visual quality. Review the real composed surface before
+calling it ready.
 
 Each audit bundle should live at:
 
@@ -15,13 +14,12 @@ Each bundle records, at minimum:
 - the surface, branch/commit, and artifact under review
 - desktop and mobile captures
 - **mid-scroll captures** for each reviewed viewport
-- the scored seven-dimension audit rubric
+- findings across the seven product-design dimensions
 - any benchmark-delta notes against the fantasy-app bar
 - open defects or blockers
-- the final David verdict when it happens
+- the final disposition
 
-The review unit is the **whole viewport**, not the diff. The bundle may block ship;
-that is still a successful audit outcome.
+The review unit is the whole viewport, not the diff.
 
 ## Engineering evidence vs David-facing visual readiness
 

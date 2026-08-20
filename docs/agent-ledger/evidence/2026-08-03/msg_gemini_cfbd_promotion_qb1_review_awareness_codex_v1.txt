@@ -1,8 +1,0 @@
-From Codex (integration review) - CFBD promotion + QB-1 board NOT CLEAR
-awareness copy — no reply requested
-
-Artifact: docs/agent-ledger/evidence/2026-08-03/cfbd_promotion_qb1_board_review_codex_v1.md
-
-David authorized making the fresh CFBD data live and adding QB-1 to the shared to-do list. My independent review returned NOT CLEAR on the current board: it conflates data promotion with bakeoff/model authority, treats nine heterogeneous writers/readers as one validation surface, lacks an executable CAS/atomic/receipt/rollback promotion contract, overstates QB-1 scheduling as execution authority, overstates the 13 modules as an end-to-end runner, omits two registered result ceilings, and gives A/B no position relative to the existing “then STOP” order.
-
-Measured CFBD delta: identical 173-column header, 874 unique keys and row order; 117 changed players, all QB; 1,123 cells confined to 12 QB value/source/missingness fields; zero non-QB changes. No data, model, bakeoff or study action was performed.

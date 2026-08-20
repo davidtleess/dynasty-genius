@@ -1,6 +1,6 @@
 # Dynasty Genius — Developer Quick Reference
 
-Read the governance files and `AGENT_SYNC.md` before using this guide. This document is a stable reference for the module layout, commands, and architecture — it does not replace governance or sprint state.
+Stable reference for the module layout, commands, and architecture. Start from the user or product problem, then use the smallest relevant section below.
 
 ## Stack
 
@@ -41,17 +41,17 @@ FastAPI routes          app/api/routes/
 # API server
 uvicorn app.main:app --reload
 
-# Tests (check AGENT_SYNC.md for current --ignore flags)
+# Tests
 .venv/bin/python3.14 -m pytest
 
 # Single test file
 .venv/bin/python3.14 -m pytest tests/contract/test_pvo_schema.py -v
 
-# Backtest (check AGENT_SYNC.md for which positions are ACTIVE_B)
+# Backtest
 .venv/bin/python3.14 scripts/run_backtest.py --position WR
 .venv/bin/python3.14 scripts/run_backtest.py --all
 
-# Refresh prospect cards — GATED: check AGENT_SYNC.md for current phase gate before running
+# Refresh prospect cards
 .venv/bin/python3.14 scripts/refresh_prospect_cards.py
 
 # DVS percentiles
@@ -60,7 +60,7 @@ uvicorn app.main:app --reload
 # FantasyCalc snapshot — market data is overlay-only; run only within approved task scope
 .venv/bin/python3.14 scripts/snapshot_fantasycalc.py
 
-# Draft state refresh — GATED: check AGENT_SYNC.md for the current run condition
+# Draft state refresh
 .venv/bin/python3.14 scripts/refresh_draft_state.py
 
 # What-Changed daily report — read-only producer over the capture stores; writes the

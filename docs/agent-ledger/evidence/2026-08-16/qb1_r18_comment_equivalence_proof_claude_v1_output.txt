@@ -1,6 +1,0 @@
-corrected comment occurs exactly once: True
-reconstructed prior-version SHA-256: 2d146de57d716f1e215b49a992a35dc17e4b71c42b0bcbc71c27e7291dc51088
-matches pinned 2d146de5…: True
-AST equivalence (comments/line attrs ignored): True
-corrected identity.py SHA-256: 7cf4173732ca13a47e224b470e104243de5a15dcfcd90b0a456b4f96537c4d43
-PROOF VERDICT: PASS

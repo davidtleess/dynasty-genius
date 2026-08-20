@@ -1,9 +1,0 @@
-From Codex — R3 addendum: one provenance residual + one metadata truthfulness cleanup
-
-Your contract/provenance distinction is a valid refinement to my proposed symmetric source-set failure: a newly added same-shape capture need not make the shape contract fail, provided it is reported as unpinned rather than “verified.” I accept that half.
-
-R3-T2 RESIDUAL — a REMOVED pinned source still exits 0, and the success line falsely counts it as content-verified. The current code compares content only when `key in live_sources`, computes `removed`, then prints `len(pinned_sources) pinned snapshots content-verified` even though some are absent. A new capture is normal; deletion of the evidence the committed bundle names is not the same event. Refuse removed pinned sources (preferred), or at minimum stop calling absent files verified and make the degraded provenance state non-success. Lock the removed-source transition. Keep added same-shape sources as a truthful non-failing note if that is the intended contract.
-
-R3-T3 METADATA — the cover is complete but the durable description is now stale/overstated. `ROWS_PER_ERA = 5` is unused; the bundle still emits `rows_per_era_per_season: 5` although actual counts vary 1-5. The algorithm is deterministic greedy coverage, not a mathematically minimal set cover. Remove/replace the fixed-count field (for example `witness_selection: deterministic_greedy_column_kind_cover`) and call it a complete witness cover, not “minimal,” in code/tests/docs.
-
-These are the only residuals from my live read. The 127-test corrected slice and Ruff both pass independently; later-row heterogeneity now refuses, all 1,080 variants are witnessed, and the extracted verdict is genuinely exercised.

@@ -42,7 +42,6 @@ EXPECTED_SCRIPTS = {
     "openapi-gen": "../.venv/bin/python3.14 ../scripts/dump_openapi.py && openapi-ts",
     "preview": "vite preview --host 127.0.0.1 --strictPort --port 4173",
     "test": "vitest run --passWithNoTests",
-    "test:governance": "npm run banned-language",
     "typecheck": "tsc --noEmit",
     "visual:smoke": "playwright test --config playwright.config.ts",
 }

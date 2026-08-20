@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// T6 banned-language linter (Surface-1 governance gate).
+// Product-language safety check for user-facing frontend copy.
 //
-// Enforces the constitution's banned David-facing patterns against AUTHORED
+// Enforces the product's banned David-facing patterns against AUTHORED
 // frontend source + UI-rendered string literals. Generated clients (src/lib/)
 // and the vocabulary artifact are excluded so backend-shaped field names never
 // false-positive. The single source of truth is banned_vocabulary.json.

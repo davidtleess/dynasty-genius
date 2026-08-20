@@ -1,8 +1,6 @@
 """RED contract — FTN charting ingestion (Layer 1, board block C, stream 3 of 6).
 
-Batch framing/disposition: `docs/agent-ledger/evidence/2026-08-04/six_loader_batch_*`
-Codex C7 (identity applicability): `six_loader_batch_challenge_codex_v1.md`
-Generator: `docs/agent-ledger/evidence/2026-08-04/build_ftn_charting_fixture_claude_v1.py`
+Fixture generator: `tests/fixture_generators/build_ftn_charting_fixture.py`
 
 SCOPE. Shared capture mechanics are contracted by the PFR RED and not re-litigated. This file
 contracts the two things unique to FTN:

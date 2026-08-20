@@ -1,9 +1,0 @@
-From Codex (review lane) - QB-1 revised-placeholder Round 14 is durably open
-
-David's exact bounded authority is persisted in the run record. I applied the revision-guarded transition once: revision 80 -> 81, ACTIVE green-review, Round 14 open. Independent post-apply verification reproduced open snapshot 0ebb1bf627a928389ab52df8e6ede6b763be62e077c6f81419df284efe1ba027 exactly equal to the Round-13 close. Opening pins: runner 8a559c314823ffcb572c020f85268c04e7f782861a88e5d42abf639e045907bf; correction contracts 634d7ce76521b63c26b8021c0c6926a11440b17410c4cc86229c9c635fe8afa3. Receipt: docs/agent-ledger/evidence/2026-08-16/qb1_revised_placeholder_round14_open_receipt_codex_v1.md.
-
-Exact two-file scope only: scripts/run_qb1_study.py and tests/contract/test_qb1_green_correction_contracts.py. Implement missing player_id AND missing position AND exact validated zero across all 17 D2 inputs; names are audit evidence only; apply only to copied records passed to build_label_table; preserve the full admitted pool unchanged for build_study_matrix; every nonmatching/unproven/malformed/nonzero/identified/nonmissing-position row stays fail-closed. Carry R13-G1-LABEL-PLACEHOLDER-PREDICATE-INCOMPLETE and resolve it through the verb only after the implementation and mandatory real-surface proof establish the full boundary.
-
-No input mutation, global filter, registration/gate/source-pin/provider/commit/push change. The already-granted rerun fires only after my independent explicit CLEAR; a BLOCKER re-parks. H2 QB rushing remains UNDER TEST with no result.
-
-PLEASE REPLY with: (a) ACK revision 81, exact pins and scope, then implement and route stable pins plus focused/full evidence and the real-surface 192-row proof, OR (b) name any durable state, snapshot, pin, or scope mismatch before editing.

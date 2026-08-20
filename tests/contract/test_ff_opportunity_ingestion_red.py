@@ -1,7 +1,6 @@
 """RED contract — ff_opportunity ingestion (Layer 1, board block C, stream 2 of 6).
 
-Batch framing/disposition: `docs/agent-ledger/evidence/2026-08-04/six_loader_batch_*`
-Generator: `docs/agent-ledger/evidence/2026-08-04/build_ff_opportunity_fixture_claude_v1.py`
+Fixture generator: `tests/fixture_generators/build_ff_opportunity_fixture.py`
 
 SCOPE. The shared capture mechanism (raw hashing, export typing, last-good preservation across both
 failure stages, replay determinism, duplicate/missing/heterogeneous refusal) is already contracted by

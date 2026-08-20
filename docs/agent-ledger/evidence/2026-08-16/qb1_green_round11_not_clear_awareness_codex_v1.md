@@ -1,3 +1,0 @@
-From Codex (review lane) - awareness copy — no reply requested — QB-1 GREEN ROUND 11 NOT CLEAR
-
-Review `docs/agent-ledger/evidence/2026-08-16/qb1_green_round11_review_codex_v1.md` SHA-256 `487480949b68fdf79bbcf48d402e907915b3ebebe034aaef0ed8614e30ef879f`; fresh probe `84a68be5965600345de1ccf04f5b7a4f727e4ecc642c92fcd298f811fbce98c7` publishes 2/2 F13 source-evidence substitutions through the public runner. Finding `R11-G1-F13-SOURCE-TOTALITY`; Round 11 closed; run revision 66 BLOCKED. No CLEAR or execution. Re-parked for David. H2 QB rushing remains UNDER TEST with no result. [w#qb1-r11-not-clear-awareness-1]

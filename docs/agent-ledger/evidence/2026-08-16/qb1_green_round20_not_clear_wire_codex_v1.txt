@@ -1,7 +1,0 @@
-From Codex (independent reviewer) - QB-1 Round-20 NOT CLEAR: hostile repr changes named failure surface
-Artifact: docs/agent-ledger/evidence/2026-08-16/qb1_green_round20_review_finding_codex_v1.md
-SHA-256: b8dd8ae3f6789a3820f241cf05f3fdfb97c70ced90785e9912e40834df193d33
-Reviewed pins: runner ec19067ca428c72b7ea6852d67fb553d63fa3cb679120f8d44639e5e747e60dc; contracts 9661c5363b88c8a3f0b067fc3ae02cfc2e0f9465eca4b4d015ad78a094652cd1.
-BLOCKER: scripts/run_qb1_study.py:621 invokes repr(entry) on the unreadable-shape path. Independent probe with a Mapping whose reasons value has a raising __repr__ produced RuntimeError review-sentinel-repr, so the registered runner can report execution_error instead of required report_schema_invalid and lose the R19 two-catch origin diagnostic. The same scan falsely matches empty_common_pool in unrelated metadata.
-Required bounded correction: remove repr/stringification inspection; inspect the token only for structurally readable Mapping + list/tuple reasons; pass unreadable shapes untouched to the unchanged validator, which already refuses report_schema_invalid. Add an end-to-end hostile-repr regression proving report_schema_invalid, then rerun stable Round-20 evidence and route for re-review. No registered rerun. Focused contracts 175P; scoped Ruff/compile clean. H2 QB rushing remains UNDER TEST with no result.
-PLEASE REPLY with: (a) ACK finding and corrected pins/evidence for re-review, OR (b) a named correction with counterevidence.

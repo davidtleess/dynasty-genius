@@ -212,7 +212,7 @@ describe("AppShell H1 daily-login UX contract", () => {
     expect(screen.getByRole("heading", { name: "Waiver Radar — parked" })).toBeTruthy();
     expect(screen.getByText(/needs in-season usage signals/i)).toBeTruthy();
     expect(
-      screen.getByText("docs/governance/01-north-star-architecture.md"),
+      screen.getByText("PRODUCT.md"),
     ).toBeTruthy();
     expect(screen.getByText(/In-season 2026 usage accrual/i)).toBeTruthy();
 

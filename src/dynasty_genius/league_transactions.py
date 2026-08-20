@@ -4,8 +4,6 @@ Layer 1. Fetch, store durably, resolve identities. Nothing downstream: no analys
 manager behaviour, no scoring, no surface. Callable, never self-scheduling — a scheduler is
 a separate decision and a separate word.
 
-Design note: ``docs/agent-ledger/evidence/2026-07-30/transaction_ingestion_design_claude_v1.md``.
-
 Shape facts measured from the live endpoint (2026-07-30), each of which the code must survive:
 ``adds``/``drops`` arrive as ``null`` rather than ``{}``; ``type`` includes ``commissioner``
 alongside the three David named; ``status`` includes ``failed``; trades carry ``draft_picks``;

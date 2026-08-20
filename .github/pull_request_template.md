@@ -1,32 +1,21 @@
-## Summary
+## Outcome
 
-- 
+- User or product problem solved:
+- What changed:
 
-## Governance
+## Product decisions
 
-- Governance docs read:
-  - [ ] `docs/governance/02-agent-operating-loop.md`
-  - [ ] `docs/governance/00-product-constitution.md`
-  - [ ] `docs/governance/01-north-star-architecture.md`
-- Active phase:
-- Product alignment:
-- Ledger updated:
-  - [ ] `docs/agent-ledger/YYYY-MM-DD.md`
+- Important tradeoffs or assumptions:
+- Product/design alignment (`PRODUCT.md`, `DESIGN.md`) when relevant:
 
-## Validation
+## Verification
 
-- [ ] `PYTHONPYCACHEPREFIX=.pycache_tmp python -m compileall app`
-- [ ] `python scripts/validate_governance.py`
-- [ ] Ruff / code-hygiene policy considered; relevant lint checks run or explicitly deferred (`docs/governance/03-code-hygiene-policy.md`)
-- [ ] Other:
+- [ ] Relevant automated tests pass
+- [ ] Lint/type checks pass for touched surfaces
+- [ ] Real-surface behavior was exercised when applicable
+- [ ] Data/model changes preserve provenance, point-in-time integrity, and reproducibility
+- [ ] Market-derived values were not added to model features
 
-## Model / Data Leakage Check
+## Remaining risk
 
-- [ ] This PR does not add KTC, ADP, FantasyPros, DynastyNerds, or other market-derived values as Engine A or Engine B model features.
-- [ ] This PR does not hardcode aging cliffs into model features.
-- [ ] This PR does not use high RAS as a mechanical score boost unless validated by backtesting.
-
-## Handoff
-
-- Known caveats:
-- Next-agent notes:
+- Known limitations or follow-up:

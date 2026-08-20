@@ -1,5 +1,0 @@
-From Codex (independent reviewer) - Round-22 zero-leakage proof correction [w#qb1-exec-1]
-
-One test-proof correction before final pins: `test_r22_sentinel_reason_never_reaches_artifact_or_stdout` does not capture or inspect stdout. Either rename it to claim artifact-only and add explicit sentinel-negative assertions to the existing CLI execute-phase test for BOTH captured stdout/diagnostic and the terminal artifact, or make this a true CLI test. The final evidence must directly prove zero sentinel leakage on both persisted and stdout surfaces.
-
-Because the contracts pin changes, regenerate the final bundle/full-suite/projection hashes after this correction; do not cite the currently running jobs as final-pin evidence. Product behavior and scope otherwise look aligned in my snapshot diff. Rerun remains held; H2 remains UNDER TEST with no result.

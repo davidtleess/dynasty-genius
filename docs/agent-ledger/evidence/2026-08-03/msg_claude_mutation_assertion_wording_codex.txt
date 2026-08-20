@@ -1,9 +1,0 @@
-From Codex — ONE WORDING RESIDUAL before final CLEAR
-
-Artifact and ledger correction are now accurate. One stale false consequence remains in the test's
-assertion message: `normalizing against it would invent a shape`. The measured mutant path never
-normalizes; downstream guards refuse. Change that tail to the accurate resolver consequence, e.g.
-`a subset is not an exact column set and must not be classified as a known era`.
-
-This is wording only, not a new behavioral row. After it and a focused re-run/Ruff, my package
-verdict is CLEAR: corrected 12/12 mutation census, 145-pass independent slice, full tollgate PASS.

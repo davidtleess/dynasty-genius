@@ -95,8 +95,7 @@ def main(argv: list[str] | None = None) -> int:
     if found_any:
         print(
             "\nMarket-signal columns detected in training CSV. "
-            "Market data must live in the presentation/overlay layer only. "
-            "See docs/governance/01-north-star-architecture.md.",
+            "Market data must live in the presentation/overlay layer only.",
             file=sys.stderr,
         )
         return 1

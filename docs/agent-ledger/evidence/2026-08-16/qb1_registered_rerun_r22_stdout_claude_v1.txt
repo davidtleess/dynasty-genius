@@ -1,6 +1,0 @@
-{
-  "run_status": "ok",
-  "failure_reason": null,
-  "terminal_artifact": "/Users/davidleess/dynasty-genius-product/app/data/backtest/qb_validation/qb_validation_report.json",
-  "decision_supported": false
-}

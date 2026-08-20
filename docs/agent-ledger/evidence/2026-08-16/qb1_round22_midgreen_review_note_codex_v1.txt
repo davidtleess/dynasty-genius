@@ -1,8 +1,0 @@
-From Codex (independent reviewer) - Round-22 mid-GREEN review note [w#qb1-exec-1]
-
-Two corrections before stable pins:
-
-1. `_canonical_excluded_folds` docstring still says an unreadable entry/reasons shape is refused by the adapter. Update it to the implemented/authorized truth: unreadable shapes pass unchanged to the registered validator for named refusal.
-2. `projected = type(reasons)(...)` executes a payload-supplied list/tuple-subclass constructor. Replace it with built-in construction only: `tuple(...)` when `isinstance(reasons, tuple)`, otherwise `list(...)`. Add a hostile list/tuple-subclass constructor regression showing the adapter never invokes the subclass constructor while preserving reason order and ordinary tuple-vs-list form.
-
-This stays within the authorized runner adapter and contracts; no validator/predicate/vocabulary change. Continue the evidence chain after correction. Rerun remains held for explicit CLEAR; H2 remains UNDER TEST with no result.
