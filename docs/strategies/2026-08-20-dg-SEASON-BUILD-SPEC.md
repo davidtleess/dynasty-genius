@@ -272,21 +272,33 @@ print(len(rows), hashlib.sha256(repr(rows).encode()).hexdigest()[:16])"
      the recompute is not deterministic — stop and investigate before the 14:00 fire.
 
 # THE GAP INVARIANT — run daily from here on (referenced by every later ticket)
+# CORRECTED 2026-08-20 by adversarial verification. The original iterated
+# min(existing)..MAX(EXISTING), which made it structurally blind to the one failure mode
+# goal 1 exists to catch: a store that STOPS producing. Measured against the real
+# market_divergence_history dates, the original printed FOUR gaps whether capture was
+# healthy or had been dead for a week — and at 14 days of total loss it printed THREE,
+# fewer than healthy, because the known 08-12 hole fell outside the shrunken range. An
+# operator reads that as improvement. The fix is one clause: iterate to TODAY, and say so.
 ./.venv/bin/python3.14 -c "
 import sqlite3, datetime
+today = datetime.date.today()
 for db,t,col in [('app/data/market_divergence_history.db','market_divergence_history','capture_date'),
                  ('app/data/model_forward_capture.db','model_forward_capture_raw','capture_date'),
                  ('app/data/fc_forward_capture.db','fc_forward_capture_raw','snapshot_date')]:
     c=sqlite3.connect('file:'+db+'?mode=ro',uri=True)
     ds=sorted({str(r[0])[:10] for r in c.execute('select distinct '+col+' from '+t) if r[0]})
-    d0=datetime.date.fromisoformat(ds[0]); d1=datetime.date.fromisoformat(ds[-1]); h=set(ds)
-    print(t,'MISSING',[(d0+datetime.timedelta(days=i)).isoformat()
-          for i in range((d1-d0).days+1)
-          if (d0+datetime.timedelta(days=i)).isoformat() not in h])"
-   → today: market_divergence_history MISSING ['2026-07-10','2026-07-12','2026-07-17','2026-08-12']
-            model_forward_capture_raw MISSING ['2026-08-12']
-            fc_forward_capture_raw    MISSING []
+    d0=datetime.date.fromisoformat(ds[0]); h=set(ds)
+    missing=[(d0+datetime.timedelta(days=i)).isoformat()
+             for i in range((today-d0).days+1)
+             if (d0+datetime.timedelta(days=i)).isoformat() not in h]
+    print(t,'last='+ds[-1],'reached_today='+str(ds[-1]==today.isoformat()),'MISSING',missing)"
+   → today: market_divergence_history last=2026-08-20 reached_today=True
+                MISSING ['2026-07-10','2026-07-12','2026-07-17','2026-08-12']
+            model_forward_capture_raw last=2026-08-20 reached_today=True MISSING ['2026-08-12']
+            fc_forward_capture_raw    last=2026-08-20 reached_today=True MISSING []
    → NO NEW DATE may join any list, for the rest of the season.
+   → AND every reached_today must be True. A False is a live outage, not a historical gap,
+     and it is the reading that matters most — the original command could not produce it.
 ```
 
 **Done looks like.** Both plists carry three intervals, both parse in `plistlib`, both agents loaded, and a real 11:30 fire left `market_divergence_history` byte-identical for today's `capture_date`. A morning where the FC snapshot lands at 11:42 now still produces a divergence row.
