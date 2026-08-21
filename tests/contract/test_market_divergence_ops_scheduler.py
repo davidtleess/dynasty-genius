@@ -33,7 +33,16 @@ def test_market_divergence_launchd_plist_runs_refresh_wrapper_only() -> None:
     assert data["Label"] == "com.davidleess.dynasty-market-divergence-refresh"
     assert data["RunAtLoad"] is False
     assert data["WorkingDirectory"] == str(ROOT)
-    assert data["StartCalendarInterval"] == {"Hour": 9, "Minute": 40}
+    # SR-00 (2026-08-20): same-day retry insurance. The dominant observed capture
+    # loss is a prior-date abort -- a timing race against a source that never fails --
+    # recovered completely by rerunning the same day from the DB-resident snapshot with
+    # no network call. All three slots are pinned exactly, so an accidental schedule
+    # change is still caught; only the approved shape moved.
+    assert data["StartCalendarInterval"] == [
+        {"Hour": 9, "Minute": 40},
+        {"Hour": 11, "Minute": 30},
+        {"Hour": 14, "Minute": 0},
+    ]
     assert args[0] == str(ROOT / ".venv" / "bin" / "python3.14")
     assert args[1] == str(ROOT / "scripts" / "run_market_divergence_refresh.py")
     assert "scripts/build_universe_market_divergence.py" not in args
