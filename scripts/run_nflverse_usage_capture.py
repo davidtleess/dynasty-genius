@@ -22,11 +22,17 @@ if str(REPO_ROOT) not in sys.path:
 
 from src.dynasty_genius.nflverse_usage import (  # noqa: E402
     DEFAULT_DB_PATH,
+    default_capture_seasons,
     read_only_summary,
     run_usage_capture,
 )
 
-DEFAULT_SEASONS = (2023, 2024, 2025)
+#: The LaunchAgent passes NO flags — `ProgramArguments` is exactly
+#: `[.venv/bin/python3.14, scripts/run_nflverse_usage_capture.py]` — so this default IS the
+#: schedule. It was the literal `(2023, 2024, 2025)` until 2026-08-21, which meant the 06:15 job
+#: re-fetched three finished seasons every morning and requested the live season from nothing.
+#: Derived, so the rollover needs no code change in any later year.
+DEFAULT_SEASONS = default_capture_seasons()
 
 
 def _print_summary(db_path: Path) -> None:
