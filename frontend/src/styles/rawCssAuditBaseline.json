@@ -64,7 +64,7 @@
     },
     {
       "path": "realized-outcome/RealizedOutcomeScorecard.css",
-      "raw_hex": 7,
+      "raw_hex": 0,
       "raw_oklch": 0,
       "raw_rgb": 0,
       "raw_spacing_values": 0,
@@ -204,7 +204,7 @@
     }
   ],
   "totals": {
-    "raw_hex": 17,
+    "raw_hex": 10,
     "raw_oklch": 69,
     "raw_rgb": 0,
     "raw_spacing_values": 71,
