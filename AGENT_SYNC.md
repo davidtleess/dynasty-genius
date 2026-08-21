@@ -11,6 +11,50 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⏹ 2026-08-21 DAY 1 CLOSEOUT — SEASON SPRINT UNDERWAY; SR-00 LANDED BUT **NOT PROVEN**
+>
+> **Full postflight: `docs/agent-ledger/2026-08-20.md`, second session block.** Ran 2026-08-20
+> ~20:40 → ~23:00, a day ahead of the spec's Day 1. No seat claimed (verified `tty` + `tmux` first —
+> **Tower was not claimed**). Pushed `7736f4b..e7ff334`; **zero laptop-only commits**; the 56 dirty
+> files belonging to other lanes were untouched throughout.
+>
+> **SHIPPED.** SR-02 (two live plists tracked, illegal XML comment fixed — all 12 plists now parse
+> under plistlib, was 11/1) · SR-04 (frontend gate green end to end, 72 files / 293 tests) ·
+> SR-03 **David adopted the freeze: EOD Fri 2026-09-04**, four-tier rollback, Tier 3 refused ·
+> SR-05 **David ruled "do option A"**, applied as `pmset -b sleep 45` **not the ticket's 30** (a
+> 30-minute timer from the 06:00 wake expires at exactly 06:30, the same minute the
+> league-transaction job fires). Full Python suite at baseline: **6,258 / 17 / 12, zero collection
+> errors.**
+>
+> **⚠ SR-00 IS LANDED AND UNPROVEN.** Its acceptance criterion is a real 11:30 fire leaving the day's
+> rows byte-identical; it landed at 20:59, nine hours after that slot. The digest is still
+> `12222 / 7deb11f17867ff8f`. **First opportunity 2026-08-21 11:30 — take the digest before and
+> after; a changed digest on a healthy day means the recompute is not deterministic, stop before
+> 14:00.**
+>
+> **🩹 TWO SELF-INFLICTED DEFECTS, BOTH FIXED, NEITHER CAUGHT BY THE TICKET'S OWN VERIFICATION.**
+> **(1)** `0efbd59` added `ops/launchd` to `backup_manifest.json` and would have **aborted the entire
+> nightly backup — 637 files / 3.1 GB — at 10:15** (`ALLOWED_ROOTS = ("app/data","app/config")`;
+> the loop collects entry failures then raises before any staging). **REVERTED `26ef542`.**
+> **SR-02's backup half is therefore UNDONE, now needs an `ALLOWED_ROOTS` code change rather than a
+> config line, is no longer 0.25d, and is on no calendar.** **(2)** `a977db4` left two schedule
+> contract tests red; `launchctl list` does not surface `StartCalendarInterval` at all, so nothing in
+> the ticket's block could catch it. Re-pinned to the full three-element list in `917e597`.
+>
+> **🔧 SPEC DEFECT REPAIRED — `e7ff334`.** The GAP INVARIANT, *"referenced by every later ticket,"*
+> iterated `min(existing)..MAX(EXISTING)` and so was **structurally blind to a store that stops
+> producing**: healthy → 4 gaps, 7 days of total loss → 4 gaps, 14 days → **3 gaps, fewer than
+> healthy.** It now iterates to today and prints `reached_today`. **Every later ticket should use the
+> repaired form.**
+>
+> **⛔ DO NOT RE-CHASE.** A claim that SR-09/SR-11 rest on a false symlink premise is **WRONG**. The
+> 6-symlink/6-copy split is real but the spec **already records it** (line 697, and it is the stated
+> reason SR-09 `git mv`s rather than deletes), and **SR-11 has no schedule audit** — it never reads
+> `ops/launchd/*.plist`.
+>
+> **SUPERSEDES the "12 commits exist only on this laptop" line in the banner below** — SR-01 closed
+> 2026-08-20 and laptop-only commits are **0**. The branch is now **22 ahead / 6 behind `origin/main`**.
+
 > # ⏹ 2026-08-20 CLAUDE JUDGE-SEAT CLOSEOUT — `closed — parked`; ARCHITECTURE ADJUDICATED, SEASON SPEC READY
 >
 > **Full postflight: `docs/agent-ledger/2026-08-20.md`.** No code, model, config or product-logic
