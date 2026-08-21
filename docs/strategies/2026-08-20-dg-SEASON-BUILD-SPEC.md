@@ -121,7 +121,7 @@ Thu 08-27  D5  SR-09 (1 of 2)                Wed 09-09  unmodified cycle 5   run
 Fri 08-28  D6  SR-09 (2 of 2) ← CHAIN LANDS  Thu 09-10  KICKOFF 20:20 ET     weekly jobs
 Mon 08-31  D7  SR-12 SR-10a
 Tue 09-01  D8  SR-14 SR-19  ← Tuesday 2: FIRST post-chain exercise of the three weekly jobs
-Wed 09-02  D9  SR-13 SR-15  ← SR-18 go/no-go checkpoint, end of day
+Wed 09-02  D9  SR-13 SR-21 SR-15  ← SR-18 go/no-go checkpoint, end of day
 Thu 09-03  D10 SR-16 SR-20
 Fri 09-04  D11 ← BUFFER (unallocated) · FREEZE, end of day
 ```
@@ -1014,7 +1014,7 @@ git status --porcelain                  → unchanged.  Must not touch the live 
 
 ---
 
-## DAY 9 (Wed 09-02) — the two correctness items that reach an act David takes · 1.0d
+## DAY 9 (Wed 09-02) — the two correctness items that reach an act David takes · 1.25d
 
 > **First: run the SR-14 fabrication check** before touching anything else. This is the transition morning.
 >
@@ -1063,6 +1063,80 @@ The real TE defect is an **ordering** defect at the clamp (`pvo_assembler.py:408
 **Done looks like.** The lambda-only edit is struck in the code, not just in a document. A contract test fails if any one of the three coupled constants moves alone. The TE defect is restated, in the repo, as 11 of 89 TEs tied at the DVS ceiling.
 
 > **If a day is lost:** keep step 1 and drop steps 2-3.
+
+---
+
+### SR-21 · Guard the PPG season-type set — David's "all games" ruling is protected by nothing · S · 0.25d · Tier 0 *(filed 2026-08-20, David: "agreed ... file a ticket")*
+
+**Why.** David ruled 2026-08-19 that PPG counts **all games, postseason included** — verbatim
+*"all games"* — and that `fetch_and_agg_stats` having no `season_type` filter is **correct by decision,
+not a defect.** That ruling stands and this ticket does not touch it.
+
+But the ruling is currently honoured **by accident, not by design.**
+`scripts/assemble_engine_b_dataset.py:158` `fetch_and_agg_stats` loads
+`nfl.load_player_stats(seasons)` and filters on **position only** — there is no `season_type` guard
+anywhere in that path. Preseason stays out purely because nflverse does not publish it in that
+dataset. That is an upstream behaviour, not a decision this repo enforces.
+
+Measured 2026-08-20:
+```
+load_player_stats([2025]).season_type   → {'REG': 18540, 'POST': 882}   ← the column EXISTS
+engine_b_features_v2.csv  games_t       → max 21, p99 20   (17 REG + 4 POST; PRE would exceed 21)
+```
+
+**The failure this prevents.** If nflverse ever adds `PRE` to that dataset, PPG silently absorbs it and
+**nothing alarms**. A player at 3 preseason + 17 regular + 4 postseason reads as 24 games, and his
+points-per-game is diluted by snaps where starters play five plays and deep-bench players play forty —
+the exact opposite of what PPG measures. It would present as a real decline rather than a definition
+change, in a compounding archive where the affected rows are permanent.
+
+This is the same pattern as the P90 drift found the same day: **a number that was correct when someone
+derived it, protected by nothing that would notice if the world moved.** SR-13 guards the coupled
+constants; this guards the coupled *definition*.
+
+**Files.**
+- `scripts/assemble_engine_b_dataset.py` (`fetch_and_agg_stats`, 158+ — the position filter is the
+  insertion point)
+- `src/dynasty_genius/models/engine_b_contract.py` (record the ruled set beside the feature contract —
+  the brief's second PPG definition site)
+- `src/dynasty_genius/eval/qb_validation/qb_ppg_labels.py` (~817-824 — the **third** site; its
+  predicate gates on whether a QB played at all and is orthogonal to season type, so it needs a
+  comment, not a filter)
+- `tests/contract/` — new guard test
+
+**Steps.**
+1. In `fetch_and_agg_stats`, after loading the frame and before aggregating, assert the observed
+   season types are a subset of the ruled set `{"REG", "POST"}`. **Fail loudly and name the offender**
+   — do not filter silently. A silent filter would overturn David's ruling; a loud failure asks him.
+2. Define the ruled set **once**, exported, and import it at all three definition sites so the value
+   cannot drift apart. Cite David's 2026-08-19 ruling in the docstring so a future agent does not
+   "fix" the absent filter — that exact misreading has already happened once.
+3. Handle the frame not carrying `season_type` at all (older vintages): treat a missing column as
+   `unknown` and fail the same way. Absent is not the same as clean.
+4. Add the games-count invariant as a second cheap tripwire: `games_t` may not exceed 21 for any row.
+   It catches the same drift from the other direction and needs no upstream column.
+5. **Do not backfill or re-derive anything.** The ruling forbade the retraining cascade; this is a
+   guard on future builds only.
+
+**Verification.**
+```
+./.venv/bin/python3.14 -c "import warnings;warnings.filterwarnings('ignore');import nflreadpy as nfl;print(sorted(set(nfl.load_player_stats([2025]).to_pandas()['season_type'])))"
+   → ['POST', 'REG']            — the ruled set, unchanged
+
+./.venv/bin/python3.14 -c "import pandas as pd;print(pd.read_csv('app/data/training/engine_b_features_v2.csv')['games_t'].max())"
+   → 21                          — invariant holds today
+
+# the guard must FAIL on a synthetic PRE row, not silently drop it:
+./.venv/bin/python3.14 -m pytest tests/contract/test_ppg_season_type_guard.py -q
+   → passes, including the case asserting a PRE row RAISES and names 'PRE'
+```
+
+**Done looks like.** A synthetic preseason row raises with the offending value named, rather than
+being averaged into PPG. The ruled set is defined once and imported at all three definition sites.
+David's ruling is unchanged — it is now enforced rather than assumed.
+
+> **If a day is lost:** keep steps 1 and 4 only. The assertion and the games-count tripwire are the
+> whole protective value; the single-definition refactor is the polish.
 
 ---
 
