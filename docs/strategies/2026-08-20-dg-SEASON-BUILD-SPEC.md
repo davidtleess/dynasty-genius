@@ -535,7 +535,7 @@ Two consequences. The 13-day gap is recoverable by one command (`max(created_at)
 
 **This ticket is also SR-18's data source.** The League Activity strip reads `league_transaction_movement` and cannot say anything true until this store is current.
 
-**Files.** `scripts/run_league_transaction_capture.py`; `src/dynasty_genius/sources/daily_control.py` (lines 235-236); `app/config/backup_manifest.json` (leave the exclusion as-is).
+**Files.** `scripts/run_league_transaction_capture.py`; `src/dynasty_genius/sources/daily_control.py` (lines 235-236); `app/config/backup_manifest.json` (leave the exclusion as-is); **`ops/launchd/com.davidleess.dynasty-league-transaction-capture.plist` — ADDED 2026-08-21.** That plist's header comment carries the SAME claim this ticket adjudicates — *"not recoverable later by re-reading — the endpoint serves current state, not an archive we can backfill at leisure"* — and SR-02 made it a **tracked** file, so it is now part of the repo's record rather than untracked scratch. It was not in this Files list. Without it, SR-08 closes with a corrected `daily_control.py` and an uncorrected plist stating the opposite — **recreating the exact "two in-repo declarations contradict each other" condition this ticket exists to end.** Whichever way the adjudication lands, the plist comment moves with it.
 
 **Steps.**
 1. **Recover first.** `./.venv/bin/python3.14 scripts/run_league_transaction_capture.py --summary`

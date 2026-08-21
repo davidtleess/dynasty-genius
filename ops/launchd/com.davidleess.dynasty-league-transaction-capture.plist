@@ -3,8 +3,10 @@
 <!--
   Daily Sleeper transaction capture.
 
-  Committable configuration ONLY. Installing/reloading this with launchctl is a
-  separate David-gated machine change and has NOT been performed.
+  INSTALLED AND LOADED 2026-08-20 09:44 — symlinked into ~/Library/LaunchAgents and
+  loaded with RunAtLoad false; first scheduled run 2026-08-21. Corrected 2026-08-21:
+  this header previously read "has NOT been performed", which was already false when
+  SR-02 tracked this file, and tracking it is what made the claim the repo's record.
 
   WHY THIS EXISTS: `app/data/league_transactions.db` holds the league's transaction
   history (932 transactions / 1,692 movements as of 2026-08-07) and its capture runner
