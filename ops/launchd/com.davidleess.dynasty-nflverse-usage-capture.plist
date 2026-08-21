@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Daily canonical nflverse capture.
+
+  Committable configuration ONLY. Installing/reloading this with launchctl is a
+  separate David-gated machine change and has NOT been performed.
+
+  WHY THIS EXISTS: `app/data/nflverse_usage.db` holds ~1.49M rows and is our largest
+  FREE dataset, and its capture runner already exists, works, and is tested — but as of
+  2026-08-07 NOTHING INVOKED IT. Measured by grep across every installed
+  ~/Library/LaunchAgents/com.davidleess.dynasty-*.plist. The store only ever advanced
+  when someone ran the script by hand.
+
+  NOT a duplicate of feature-refresh (09:15): that job reads five nflverse streams LIVE,
+  inline, and RETAINS NOTHING. This one captures to the durable store. They are
+  different acts on the same upstream.
+
+  Runs 06:15 local — deliberately BEFORE feature-refresh (09:15), so the canonical
+  store is fresh before any consumer chain starts, and far from the 09:00-09:45 cluster
+  so a long capture cannot delay the serving jobs.
+
+  Cadence: DAILY, per David's 2026-08-07 directive to assume daily for every source and
+  reduce only after Layers 2-3 teach us otherwise. The runner is idempotent — unchanged
+  upstream content is a no-change check, not a duplicate write.
+
+  Fails closed: a failed run leaves the last good store in place. Seasons default to the
+  runner's DEFAULT_SEASONS; db path defaults to app/data/nflverse_usage.db. No flags are
+  passed so the runner's own defaults stay the single source of truth.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.davidleess.dynasty-nflverse-usage-capture</string>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>WorkingDirectory</key>
+  <string>/Users/davidleess/dynasty-genius-product</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>6</integer>
+    <key>Minute</key>
+    <integer>15</integer>
+  </dict>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+    <string>/Users/davidleess/dynasty-genius-product/scripts/run_nflverse_usage_capture.py</string>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/davidleess/dynasty-genius-product/app/data/logs/nflverse_usage_capture.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/davidleess/dynasty-genius-product/app/data/logs/nflverse_usage_capture.err.log</string>
+</dict>
+</plist>

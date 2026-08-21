@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Daily Sleeper transaction capture.
+
+  Committable configuration ONLY. Installing/reloading this with launchctl is a
+  separate David-gated machine change and has NOT been performed.
+
+  WHY THIS EXISTS: `app/data/league_transactions.db` holds the league's transaction
+  history (932 transactions / 1,692 movements as of 2026-08-07) and its capture runner
+  exists and works — but as of 2026-08-07 NOTHING INVOKED IT. Measured by grep across
+  every installed ~/Library/LaunchAgents/com.davidleess.dynasty-*.plist. The store only
+  advanced when someone ran it by hand.
+
+  NOT a duplicate of league-capture (09:20): that job snapshots league/rosters/users via
+  build_universe_snapshot. Transactions are a DIFFERENT Sleeper endpoint family that the
+  snapshot job does not read.
+
+  WHY DAILY MATTERS HERE MORE THAN ELSEWHERE: transactions are EVENT data. A waiver
+  claim, trade or drop that is not captured is not recoverable later by re-reading —
+  the endpoint serves current state, not an archive we can backfill at leisure. Every
+  day unscheduled is a day of league behaviour we may simply never hold.
+
+  Runs 06:30 local — after the nflverse capture (06:15), well before the 09:00-09:45
+  serving cluster.
+
+  Cadence: DAILY, per David's 2026-08-07 directive. No flags passed: league id and db
+  path default inside the runner, and the full-season sweep is the safe default —
+  `current-season-only` would narrow it and is deliberately NOT used here.
+
+  Fails closed: a failed run leaves the last good store in place.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.davidleess.dynasty-league-transaction-capture</string>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>WorkingDirectory</key>
+  <string>/Users/davidleess/dynasty-genius-product</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>6</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+    <string>/Users/davidleess/dynasty-genius-product/scripts/run_league_transaction_capture.py</string>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/davidleess/dynasty-genius-product/app/data/logs/league_transaction_capture.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/davidleess/dynasty-genius-product/app/data/logs/league_transaction_capture.err.log</string>
+</dict>
+</plist>
