@@ -11,6 +11,53 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⏹ 2026-08-20 CLAUDE JUDGE-SEAT CLOSEOUT — `closed — parked`; ARCHITECTURE ADJUDICATED, SEASON SPEC READY
+>
+> **Full postflight: `docs/agent-ledger/2026-08-20.md`.** No code, model, config or product-logic
+> change was made. Repo writes are six `docs/strategies/2026-08-20-*` documents plus the ledger.
+>
+> **✅ DAVID APPROVED** the master architecture plan (`2026-08-20-dynasty-genius-MASTER-architecture-and-build-plan.md`,
+> a 3-way adjudication of the competing proposals, 10 rulings) and **Revision 2** of the product law
+> amendments (`2026-08-20-dg-product-law-amendments-REV2.md`). Revision 1 is retained for comparison
+> and **its centrepiece A1 is WITHDRAWN** — the argument that the no-verdict law made
+> `decision_supported` unreachable was falsified three ways; the route runs through rank predictions
+> and G3, which WR already passes with zero recommendations issued.
+>
+> **⏭ SEASON BUILD SPEC READY** — `2026-08-20-dg-SEASON-BUILD-SPEC.md`. 20 tickets, **8.5d committed
+> against 11 build days**, freeze **2026-09-04 EOD**, kickoff 2026-09-10. **Day 1 is Fri 2026-08-21.**
+> Scoping ruling: **no architecture migration before the season** — identity re-keying while
+> irreplaceable capture flows is the worst risk pairing. Architecture program starts off-season.
+> Decision record for fresh-context agents: `~/dg-build/SEASON-BRIEF.md`.
+>
+> **⚠ SEAM SPEC HAS 3 CONFIRMED BREAKS** — `2026-08-20-dg-seam-specification-v1-DRAFT.md` is marked
+> **do-not-build-on**. Lane admissibility cannot be carried by the Lane type (5 guards ship, only 1 is
+> lane-expressible); media×time breaks at re-extraction; distributional model output is inexpressible.
+>
+> **🔧 MACHINE STATE CHANGED (ops lanes read this).** `pmset repeat wakeorpoweron` **6:00 AM daily**,
+> verified via `pmset -g sched`. **Two launchd jobs INSTALLED and LOADED** that were present in
+> `ops/launchd/` but never installed: `dynasty-league-transaction-capture` (06:30) and
+> `dynasty-nflverse-usage-capture` (06:15), symlinked, `RunAtLoad=false`, first run **2026-08-21**.
+>
+> **🩹 FIVE CORRECTIONS ISSUED AGAINST MY OWN EARLIER CLAIMS** (detail in the ledger). The two that
+> bind other lanes: **(1)** the branch is **12 AHEAD / 3 behind `origin/main`**, not the reverse — the
+> gate's own `repo-facts` block confirms it, and 12 commits exist only on this laptop (SR-01, Day 1).
+> **(2) The "TE lambda is 8.4% wrong" finding is RETRACTED** — the three constant families are
+> algebraically coupled and `P90[pos]` **cancels out of xVAR entirely**; editing the lambda alone
+> introduces **+8.5% error**. **Do not edit `XVAR_LAMBDA_ENGINE_B`.** The real TE defect is the DVS
+> **clamp** (11 of 89 TEs at ceiling vs QB 0/37, RB 5/99, WR 6/163) — ordering, not scaling.
+>
+> **⏸ PARKED / NOT MINE.** 58 uncommitted paths belong to other lanes and were not touched — including
+> `system_capture_health*.py` (+124/+11) and the untracked cadence RED file, both of which the season
+> spec's SR-10a depends on and flags as a hand-over blocker.
+>
+> **⚠ UNVERIFIED, NEEDS A NETWORK CALL:** `infrastructure/resources/jobs.yml` declares
+> `refresh_genius_state` with `pause_status: UNPAUSED` and Quartz `0 * * * * ?` — that fires **every
+> minute**, not hourly. Deployment/billing status unconfirmed. Nothing in `app/` or `src/` imports
+> Databricks.
+>
+> **Cross-lane audit: NOT OBTAINED** — no peer binding lane was active. These claims are **unaudited**;
+> the next lane should verify them against the repo before relying on them.
+
 > # ⏹ 2026-08-19 17:0x CLAUDE CREW CLOSEOUT — `closed — parked`; LAND DEADLOCK FIXED, DG-023 STAGED
 >
 > **The board moved to DG 3.0 today** — tickets are `DG-001`–`DG-034` at `~/dg-build/`, committed as
