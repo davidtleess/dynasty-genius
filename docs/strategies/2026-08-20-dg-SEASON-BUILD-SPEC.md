@@ -50,9 +50,159 @@
 > test showed 1.25 days was one surprise from failing.
 
 
+## Headline
+
+By kickoff David gets, on Day 1 and before anything else, a **same-day retry** on the two jobs that are actually bleeding — a plist edit that recovers the dominant observed failure at near-zero risk. Then a capture chain that runs in dependency order and **fails soft rather than halting wholesale**, an nflverse job pointed at 2026, exit codes that can report failure, the store with four measured holes finally monitored, and — for the first time in this product's life, and **before** the riskiest change rather than after it — a 10:30 notification that names the store and the date when something is missing.
+
+Plus an app that starts on its own, a Morning Room headline aimed at **his own 26 roster movers** instead of league-wide churn he does not act on, a Trade Lab search that stops offering Brock Purdy for "brown", an archive that finally records xVAR after 57 days of nulls **without fabricating 468 model moves the morning it lands**, a guard against the TE constant edit an earlier brief instructed, and the end of the false staleness alarm that fires six mornings out of seven.
+
+**Committed work is 10.0 days against 11. Day 11 is deliberately unallocated** — it is the single surprise buffer, and a hard freeze with zero buffer is how goal 1 fails.
+
+---
+
+## Freeze date
+
+**2026-09-04, end of day Friday.** Hard freeze; after it only Tier 0 changes land — a change without which a capture job does not run or writes wrong data.
+
+The daily chain runs once per calendar day, so confidence in a scheduler change is bought in calendar days, not working hours. Freezing Fri Sep 4 leaves 11 working days (Fri 08-21 → Fri 09-04, verified by counting weekdays) and yields six consecutive unmodified cycles: Sat 09-05 … Thu 09-10.
+
+**Three Tuesdays matter, not one.** Three of the twelve jobs run Tuesday-only — verified with plutil: `league-opportunity-map` `{'Weekday': 2, 'Hour': 9, 'Minute': 35}`; `roster-capacity-audit` and `realized-outcome-scoring` both `{'Weekday': 2, 'Hour': 10, 'Minute': 0}`. **Tue 08-25 and Tue 09-01 are inside the build window; Tue 09-08 is inside the frozen window.** Revision 1 claimed "Sep 8 is the ONLY post-change Tuesday" — true only because of its own sequence, and false the moment the sequence changed. This revision lands SR-09 by end of Fri 08-28, buying a second exercise of the three weekly jobs on **Tue 09-01, inside the window where a finding is still a fix.**
+
+Refusing the freeze to buy four more build days is how goal 1 fails: SR-09 rewires the morning chain and SR-11 adds a new agent, both Tier 2, and a Tier 2 mistake discovered on Sep 11 is a permanent hole in a store whose gaps cannot be backfilled.
+
+One stated exception: pushing commits to origin (SR-01) is not a product change and is not frozen.
+
+---
+
+## WHAT DAVID GETS BY KICKOFF
+
+**Goal 1 — nothing is lost.**
+- A **same-day retry at 11:30 and 14:00** on `market-divergence-refresh` and `model-pvo-refresh`, landing Day 1 (SR-00). The dominant observed loss is a prior-date abort — a timing race against a source that never fails — recovered completely from the DB-resident 09:00 snapshot with no network call. Provably a no-op on healthy days.
+- One 09:00 job runs the six morning producers **in dependency order with named edges**, so a late start can no longer create a permanent hole and one producer's network flake can no longer take the morning down with it (SR-09).
+- nflverse captures 2026 instead of re-downloading 2023-2025 (SR-06). Both new capture jobs can report failure (SR-07). The 13-day transaction gap is recovered (SR-08).
+- `market_divergence_history` — the store with four measured holes — is registered and monitored (SR-10a).
+- **At 10:30 every morning, a macOS notification names the store and the date when something is missing** (SR-11). It lands on Day 4, **before** the chain rewire.
+- The season rollover the six soak cycles structurally cannot exercise is rehearsed by hand before the freeze (SR-19).
+
+**Goal 2 — nothing is wrong.**
+- The archive starts recording xVAR after 57 days of nulls — **and does not fabricate ~468 model moves on the morning it lands** (SR-14).
+- Trade Lab stops showing results for the query you typed three characters ago (SR-15).
+- A contract test blocks the TE constant edit that would introduce an 8.4% distortion where none exists (SR-13).
+
+**Goal 3 — something is useful.**
+- The app starts on its own and survives a reboot (SR-12).
+- The headline is aimed at **his own roster** — 26 movers, largest name shown — with league-wide 456 kept as an honest secondary line (SR-16).
+- The Morning Room stops crying wolf: the weekly `league_opportunity` artifact is judged against its declared cadence instead of a flat 24-hour threshold (SR-20).
+
+## WHAT HE DOES NOT GET
+
+- **No 39-trade replay.** The largest block of value in the draft and the hardest cut. It contributes nothing to goals 1 or 2 and is not calendar-gated — exactly as valuable on Sep 20 as on Sep 9.
+- **No xVAR unclamp (was SR-17).** Dropped this revision. Two of its three named consumers are the exact sites Product Law Ruling 10 forbids ranking by a scalar; the third is trade side-value, reached ~2x a season. A Tier 1 rescale of every xVAR he sees, to improve an ordering the product's own law says should not exist, is not what the last 1.5 days of a capture-reliability sprint are for.
+- **No event-stream freshness for `league_transactions` / `nflverse_usage` (SR-10b).** Deferred: the cadence analyzer cannot hold them without a new store kind. Those two stores stay unmonitored this season.
+- **No consensus/market lane, no DynastyProcess data.** Zero of the 39 trades have a local point-in-time market snapshot; the probe needs a 10.89 GB clone on the laptop that must capture reliably for 17 weeks.
+- **No P90 constant refresh** (under 1% effect on every unclamped player; rescales 27,021 archived DVS rows mid-season). **No `market_divergence_rebase` cutover** (rewrites ~37% of divergence classifications).
+- **No performance work beyond the search fix.** `/api/health` still costs ~16s cold on the first open of the day.
+- **The `posture_label` contradiction stays.** `team_posture.david_posture = REBUILDING` against `team_value.david_value_summary.posture_label = UNCLASSIFIED`, both on the same surface. Real, unfixed, named here so it is not lost.
+- **No architecture migration.** Off-season, per the ruling.
+
+---
+
+## THE CALENDAR
+
+Today is **Thursday 2026-08-20**. Day 1 is **Friday 2026-08-21**, not Monday.
+
+```
+BUILD (11 working days)                      FROZEN — soak only (6 capture cycles)
+Fri 08-21  D1  SR-00 SR-02 SR-04  (SR-01 ✅ done 08-20)       Sat 09-05  unmodified cycle 1
+Mon 08-24  D2  SR-03 SR-05 SR-06             Sun 09-06  unmodified cycle 2
+Tue 08-25  D3  SR-07 SR-08     ← Tuesday 1   Mon 09-07  unmodified cycle 3
+Wed 08-26  D4  SR-11  ← THE ALERT, FIRST     Tue 09-08  cycle 4 ← Tuesday 3: confirmation
+Thu 08-27  D5  SR-09 (1 of 2)                Wed 09-09  unmodified cycle 5   run of the three
+Fri 08-28  D6  SR-09 (2 of 2) ← CHAIN LANDS  Thu 09-10  KICKOFF 20:20 ET     weekly jobs
+Mon 08-31  D7  SR-12 SR-10a
+Tue 09-01  D8  SR-14 SR-19  ← Tuesday 2: FIRST post-chain exercise of the three weekly jobs
+Wed 09-02  D9  SR-13 SR-15  ← SR-18 go/no-go checkpoint, end of day
+Thu 09-03  D10 SR-16 SR-20
+Fri 09-04  D11 ← BUFFER (unallocated) · FREEZE, end of day
+```
+
+**Why this order and not revision 1's.**
+
+1. **SR-00 is first** because it is the cheapest thing in the document and it protects the store that is actually bleeding. Every morning it does not exist is a morning it cannot save.
+2. **SR-11 moved from D7-D8 to D4, ahead of SR-09.** Revision 1 scheduled the only detection channel this product will ever have *after* the change that retires six LaunchAgents, leaving 4-5 live capture mornings in which a brand-new single point of failure wrote to irreplaceable stores with no way to tell David it had failed. **Detection precedes risk.**
+3. **SR-09 lands end of D6 (Fri 08-28), before Tue 09-01.** It changes the wall-clock position of the producers `league-opportunity-map` reads at its fixed 09:35 slot. Landing before Sep 1 gives the three Tuesday-only jobs two post-change exercises instead of one.
+4. **SR-14 sits on D8 so its transition morning (Wed 09-02) is a build day** — the one morning where the `None → real` xVAR transition is observable.
+
+**If David starts Monday 08-24 he has 10 build days, not 11.** SR-18 falls off entirely and the buffer is consumed; the first surprise then costs SR-20, then SR-16, in that order.
+
+---
+
+## THE DAY BUDGET — the arithmetic
+
+| Ticket | Size | Tier | Goal | Note |
+|---|---|---|---|---|
+| SR-00 Same-day retry insurance | 0.25 | 2 | 1 | **NEW** (PT-5) |
+| SR-01 Push the 12 unpushed commits | 0.10 | 0 | — | |  ← ✅ DONE 2026-08-20
+| SR-02 Track plists, back up `ops/launchd`, fix XML | 0.25 | 0 | 1 | |
+| SR-03 Freeze date + rollback tiers | 0.25 | — | — | David's word |
+| SR-04 Unstick the frontend gate | 0.25 | 0 | 3 | |
+| SR-05 Battery-sleep option | 0.25 | — | 1 | David's word |
+| SR-06 nflverse capture → current season | 0.50 | 0 | 1 | |
+| SR-07 Real exit codes on both new producers | 0.50 | 0 | 1 | |
+| SR-08 Recover the transaction gap | 0.50 | 0 | 1 | |
+| SR-11 The daily gap alert | 1.00 | 2 | 1 | **moved to D4** (PT-2) |
+| SR-09 Dependency-ordered, fail-soft chain | 2.00 | 2 | 1 | **rewritten** (PT-4) |
+| SR-12 Make the app openable at all | 0.50 | 2 | 3 | |
+| SR-10a Register `market_divergence_history` | 0.50 | 0 | 1 | **split** (PT-3), was 1.5 |
+| SR-14 xVAR archive + the fabrication guard | 0.75 | 0 | 2 | **amended** (PT-1), was 0.5 |
+| SR-19 Season-rollover rehearsal | 0.25 | 0 | 1 | **NEW** (PT-4b) |
+| SR-13 Block the TE lambda edit | 0.50 | 0 | 2 | |
+| SR-15 Trade Lab search correctness | 0.50 | 0 | 2 | |
+| SR-16 Morning Room hero → his own roster | 0.50 | 0 | 3 | **re-aimed** (PT-6) |
+| SR-20 Cadence-aware staleness | 0.50 | 0 | 3 | **NEW** (PT-8) |
+| **COMMITTED** | **10.00** | | | |
+| SR-18 League Activity strip | *1.50* | *0* | *3* | **CONDITIONAL** (PT-7 replaces SR-17) |
+
+```
+0.25 × 7   (SR-00, 01, 02, 03, 04, 05, 19)              = 1.75
+0.50 × 9   (SR-06, 07, 08, 10a, 12, 13, 15, 16, 20)     = 4.50
+0.75 × 1   (SR-14)                                      = 0.75
+1.00 × 1   (SR-11)                                      = 1.00
+2.00 × 1   (SR-09)                                      = 2.00
+                                                COMMITTED 10.00 days
+                                                AVAILABLE 11.00 days
+                                                   BUFFER  1.00 day (D11)
+```
+
+**Reconciliation against revision 1 (9.75 committed, 1.25 buffer):**
+
+```
+  9.75  revision 1 committed
++ 0.25  SR-00   NEW — same-day retry insurance (PT-5)
+- 1.00  SR-10   split to SR-10a (1.5 → 0.5); SR-10b deferred (PT-3)
++ 0.25  SR-14   amended — the None-guard and its regression test (PT-1)
++ 0.25  SR-19   NEW — season-rollover rehearsal (PT-4b)
++ 0.50  SR-20   NEW — cadence-aware staleness (PT-8)
+─────
+ 10.00  revision 2 committed
+```
+
+Every scheduled day sums to exactly 1.00 (D1-D10); D11 is 0.00. The conditional line is unchanged in size: SR-17's 1.5d left it and SR-18's 1.5d took it. Neither was ever in the committed total.
+
+**Why the buffer is 1.0 and not 0.** Seven of these nineteen tickets touch a producer that writes to a store whose gaps cannot be backfilled (SR-00, SR-06, SR-07, SR-08, SR-09, SR-14, SR-19) and four are Tier 2 (SR-00, SR-09, SR-11, SR-12). The freeze is hard. An 11-day sprint with 11 days committed has no answer to the first thing that goes wrong, the thing that goes wrong will be a Tier 2 capture change, and the cost is a permanent hole.
+
+**Why SR-18 does not fit.** It needs 1.5 days; the buffer is 1.0. On plan it does not ship. It ships only if the sprint arrives at the end of D9 with SR-00 through SR-15, SR-19 and SR-20 all complete **and at least a half-day banked**, leaving D10+D11 = 2.0 days for SR-16 (0.5) + SR-18 (1.5) — zero slack before a hard freeze. **The checkpoint's default answer is no.**
+
+---
+
 # WEEK 1 — Fri 08-21 → Fri 08-28 (6 build days)
 
-## DAY 1 (Fri 08-21) — buy the insurance, then clear what blocks everything else · 1.0d
+## DAY 1 (Fri 08-21) — buy the insurance, then clear what blocks everything else · 0.85d
+
+> **SR-01 is already done** — pushed 2026-08-20 (`63bac58..ce7b540`), remote level with local, zero
+> laptop-only commits. Its 0.15d is released back to slack, not to new work. Day 1 opens on **SR-00**,
+> which is the ticket that actually matters here.
+
 
 **Also on D1, not a ticket:** open the conversation with the lane holding the uncommitted `BUILD-3` work in `system_capture_health_models.py` (+124 lines), `system_capture_health.py` (+11), `test_system_capture_health_t1.py` (+20), `_t4.py` (+16). Those are SR-10a's and SR-11's primary files. It takes days to resolve a cross-lane conflict and one minute to ask on the first morning. Hand SR-03 and SR-05 to David this morning so his answers are back for D2.
 
@@ -177,9 +327,33 @@ launchctl list | grep -c dynasty      → 12
 
 ---
 
-### SR-01 · Push the 12 unpushed commits · S · 0.25d · Tier 0 *(draft: RISK-6)*
+### SR-01 · Push the branch · S · 0.1d · Tier 0 — ✅ **DONE 2026-08-20** *(draft: RISK-6)*
 
-**Why.** `git rev-list --left-right --count origin/main...HEAD` returns `3	12`. Left is behind, right is ahead — the branch is **12 AHEAD and 3 behind**. An earlier version of SEASON-BRIEF.md line 24 said "3 ahead / 12 behind"; acting on that would be exactly backwards. Those 12 commits are real product work — feat(scoreboard), fix(health) grade artifact inputs, fix(api) scorecard coverage, fix(outcome-loop) — living on one laptop that also holds 15 GB of untracked `app/data`.
+**Why — corrected 2026-08-20, and the correction is the reusable part.**
+
+The original ticket said "push the 12 unpushed commits" and described twelve commits of product work
+living on one laptop. **That overstated the exposure by roughly six times, and the error is one worth
+naming because it is easy to repeat.**
+
+`git rev-list --left-right --count origin/main...HEAD` returned `3	12`, which does mean **12 ahead,
+3 behind** — an earlier brief had that direction inverted and acting on it would have been backwards.
+But *ahead of `origin/main`* is **not** the same question as *unpushed*. Measured:
+
+```
+git rev-list --count origin/main..HEAD                        → 13   (ahead of main)
+git rev-list --count origin/feature/outcome-loop-week1..HEAD   →  2   (actually laptop-only)
+```
+
+**Eleven of those commits were already safe on the remote feature branch.** They were unmerged, not
+unbacked-up. Only two existed nowhere but the laptop, and one of those was the same day's closeout.
+
+**The lesson for the rest of the sprint:** `origin/main...HEAD` answers *"how far is this branch from
+trunk?"* It does **not** answer *"is my work backed up?"* For that, always ask
+`origin/<current-branch>..HEAD`. On a machine whose cockpit backup has never succeeded, those two
+questions get confused easily and only one of them is about data loss.
+
+Real exposure was therefore two commits, not twelve — still worth pushing immediately, but a two-minute
+housekeeping item rather than the day-one emergency the original framing implied.
 
 **Files.** None edited. Repo `the product repo root`, branch `feature/outcome-loop-week1`.
 
@@ -189,13 +363,19 @@ launchctl list | grep -c dynasty      → 12
 3. **Do NOT merge or rebase onto `origin/main` during this sprint.** Pulling 3 unreviewed commits into the tree that runs the daily capture chain is a Tier 2-equivalent change with no soak budget. The 3 behind stay behind until the freeze lifts.
 4. Leave the dirty files alone — they belong to other lanes.
 
-**Verification.**
+**Verification.** Run after pushing — these are the actual results from 2026-08-20:
 ```
-git rev-list --left-right --count origin/feature/outcome-loop-week1...HEAD   → 0	0
-git status --porcelain | wc -l                                               → unchanged (64 today)
+git ls-remote --heads origin feature/outcome-loop-week1   → ce7b540...  (matches local HEAD)
+git rev-list --count origin/feature/outcome-loop-week1..HEAD              → 0
+git status --porcelain | wc -l                             → 58, unchanged (other lanes' files)
 ```
 
-**Done looks like.** `origin/feature/outcome-loop-week1` exists on GitHub and is level with local HEAD. The dirty working tree is untouched.
+**Done looks like.** `origin/feature/outcome-loop-week1` is level with local HEAD and zero commits
+exist only on the laptop. The dirty working tree is untouched.
+
+> **✅ CLOSED 2026-08-20.** Pushed `63bac58..ce7b540`, a clean fast-forward, no force. Remote and local
+> both at `ce7b540`; laptop-only commits now **0**; all six `docs/strategies/2026-08-20-*` documents
+> confirmed present on the remote tree. **Day 1 begins at SR-00.**
 
 ---
 
