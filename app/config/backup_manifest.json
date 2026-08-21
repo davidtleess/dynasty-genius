@@ -215,6 +215,11 @@
       "path": "app/data/backtest/qb_validation/raw",
       "required": true,
       "kind": "directory"
+    },
+    {
+      "path": "ops/launchd",
+      "required": true,
+      "kind": "directory"
     }
   ],
   "optional": [
