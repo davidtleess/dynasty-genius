@@ -573,7 +573,7 @@ Two consequences. The 13-day gap is recoverable by one command (`max(created_at)
    note above).** Confirm with the Verification block, then go straight to step 2.
 2. Only then correct the note at 235-236: Sleeper serves per-leg transaction history for the league chain, so re-reading recovers missed days.
 3. **Keep the residual risk honestly rather than deleting the warning.** A transaction is re-readable, but the free-agent pool state and pending-waiver context *at the moment it was processed* are not served by that endpoint and are genuinely one-shot. If that is what the note was protecting, say so precisely instead of over-claiming about the transactions themselves.
-4. Keep the `backup_manifest.json` exclusion. Do not add this store to a backup that fails 18% of runs.
+4. Keep the `backup_manifest.json` exclusion. **The "fails 18% of runs" / "9 runs in 49" figure here and at the top of this ticket is STALE — verified against the bucket 2026-08-22: the last backup failure was 2026-08-05, with 16 consecutive clean runs since, and the latest run has ZERO inventory files missing from GCS across all 43 required manifest entries.** The exclusion still stands, on the better ground that the store is rebuildable from a public API — not because the backup is unreliable. Do not re-quote the failure rate as a live condition.
 
 **Verification.**
 ```

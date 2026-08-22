@@ -83,6 +83,15 @@
 > channel that will exist. Fresh context, clean board, and a second reviewer if one is available.
 > Running order is unchanged and the sprint is **2 days AHEAD** (D1 08-20, D2 08-21, D3 08-22).
 >
+> **BACKUP VERIFIED 2026-08-22 (read-only, against the bucket):** GCS data copy is **healthy** —
+> last run `20260821T141500Z` completed, `sha256_verified`, 642 files / 3.16 GB, **0 inventory files
+> missing from GCS**, all **43** required manifest entries covered (`league_runtime/runs` = 222
+> files). **Last failure was 2026-08-05; 16 consecutive clean runs since — the "fails 18% of runs"
+> line in SR-08 is STALE and is now annotated in the spec.** ⚠️ **Copy 3 (`dg-cockpit`) IS stale:**
+> last commit `1cc9836` dated 08-19, **47 files uncommitted**, 0 unpushed — consistent with the known
+> `verify.sh` exit 127 (`node: command not found`) aborting before `git add -A`. Untouched, outside
+> the sprint, David informed.
+>
 > **STILL OPEN:** (a) the `contracts` upstream schema break — `load_contracts()` now returns
 > `contract_history`/`season_history`, no `cols`; fails 06:15 daily and holds the export marker at
 > 2026-08-08. Harmless to the stats (verified: no downstream consumer outside health reporting) —
