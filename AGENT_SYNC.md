@@ -74,8 +74,14 @@
 > Its `app/data` is untouched as a fallback. **Split-brain risk CLOSED.** The orphaned run
 > `20260822T173058Z` — David ruled **leave it**; the bucket lifecycle deletes it 2026-09-05.
 >
-> **⚠️ STILL OPEN: (1) `pmset repeat` is NOT set** — `pmset -g sched` returns zero bytes at close.
-> Does NOT address DG-035 either way. **(2) `~/dg-build` HAS NO GIT REMOTE** — all 35 tickets live on
+> ✅ **`pmset repeat` IS NOW SET** (David, 15:5x): `pmset -g sched` → `wakepoweron at 6:00AM every
+> day`, 58 bytes, was 0 all session. Battery sleep still 45. Does NOT address DG-035 — a wake does
+> not create a login session. **⚠️ VERIFY IT WITH `pmset -g sched` AND NOTHING ELSE:** neither
+> `/Library/Preferences/com.apple.AutoWake.plist` NOR
+> `/Library/Preferences/SystemConfiguration/com.apple.AutoWake.xml` exists on macOS 26 even with the
+> schedule live. Both were cited as corroboration today and BOTH ARE WRONG.
+>
+> **⚠️ STILL OPEN: `~/dg-build` HAS NO GIT REMOTE** — all 35 tickets live on
 > one machine; the `dg-cockpit` mirror is stale at DG-034 (08-19, 47 uncommitted) and `dg-build` is
 > absent from `backup_manifest.json`. **The ticket board is backed up NOWHERE.**
 >
