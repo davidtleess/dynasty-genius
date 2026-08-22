@@ -11,6 +11,66 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⏹ 2026-08-22 15:00 HARDWARE MIGRATION INCIDENT — NEW MAC IS THE HEARTBEAT · SCHEDULER REPAIRED · FIRST VERIFIED BACKUP
+>
+> **Full postflight: `docs/agent-ledger/2026-08-22.md`, second session block.** Tier 2 — launchd
+> state changed on David's explicit word. **SR-11 (D4) NOT STARTED** — preempted by a live incident.
+>
+> **🖥 READ THIS FIRST: the machine changed.** David migrated MacBook Air → **MacBook Pro (M5 Pro,
+> arm64)** on 2026-08-22 and ruled: *"this is my new MAIN machine ... this machine is now the
+> heartbeat."* **The Air was INTEL.** Anything migrated from it is x86_64 and **Rosetta is not
+> installed**, so a migrated binary does not fail slowly — it cannot exec at all (`EBADARCH`).
+> The `.venv` was rebuilt arm64 at 12:13. **If something that used to work now dies with no output,
+> check the architecture first.**
+>
+> **⚠️ THE AIR IS STILL POWERED ON AND UNRESOLVED.** If its LaunchAgents fire it captures into a
+> divergent store and pushes to the SAME bucket; `latest.json` then points at whichever machine
+> finished last, with nothing recording which. Bootout + move-aside commands are with David.
+>
+> **✅ FIRST VERIFIED BACKUP ON THIS HARDWARE** — `20260822T180700Z`, `sha256_verified: true`,
+> 648 files / 3.21 GB, `latest.json` advanced. Before it the new Mac had **never** produced one.
+> Two distinct defects had to be fixed: **(1)** launchd's minimal PATH resolved gcloud's python to
+> **system 3.9** → `auth_unavailable`; fixed by `CLOUDSDK_PYTHON` in the plist. **(2)** the ~1GB DBs
+> upload as **composite objects (crc32c only, NO MD5)** and gcloud's `gcloud-crc32c` helper was
+> **quarantined by Gatekeeper**, so the destination hash computed as `AAAAAA==` and every large
+> object mismatched **after a full 3.2GB upload**. Cleared by David with `xattr -d`.
+> **A gcloud upgrade re-downloads that binary and can re-quarantine it** — tripwire test shipped.
+>
+> ## 🚨 SR-11's SPEC IS NOT SUFFICIENT — today produced the counter-example
+>
+> The ticket reads status markers, exit codes and logs. **Every failure today was invisible to all
+> three.** An SR-11 built verbatim would have reported this morning CLEAN.
+> **1.** Seven producers that never ran wrote **no marker, no log, no exit code** (`runs = 0`,
+> `never exited`). **2.** Three jobs sat in launchd's **penalty box** — recorded ONLY in launchd's
+> in-memory state, which dies at reboot; their logs still read Aug 21; **`kickstart` does not clear
+> it**, only `bootout` + `bootstrap`. **3.** The backup marker read yesterday's `completed` while
+> today's run never started. **4.** **nflverse reports `status: failed` EVERY morning by design** —
+> `contracts` is the LAST of 13 streams and always refuses the upstream shape, so the 12 before it
+> all capture and the prior "harmless, deliberately not fixed" ruling HOLDS — but any alert keying on
+> "producer reported failure" fires daily about an accepted condition. **nflverse has no entry in
+> `report_freshness.json` at all.** Register it and pin contracts as known-accepted, or SR-11 cries
+> wolf from day one (the SR-20 failure).
+>
+> **⛔ DO NOT RE-CHASE.** The `--`-in-XML-comment and array-form `StartCalendarInterval` leads are
+> dead ends. The array form was a **coincidence** — the three affected jobs are simply the only ones
+> whose fire time fell between login (10:48:52) and the venv rebuild (12:13).
+>
+> **🩹 feature-refresh published DEGRADED and I destroyed the evidence.** It reads `status: ok` while
+> its own provenance carries `participation: loaded_empty` and pbp/player_stats/snap_counts on
+> **2025 cached** streams; rollup is `degraded`. The report is overwrite-in-place and gitignored, so
+> whether it was ALREADY degraded is now unanswerable. **Treat today's Engine B runtime as
+> provenance-degraded.**
+>
+> **NEW TICKET `~/dg-build/tickets/DG-035`** — the capture chain silently does not run unless David
+> is logged in. Booted 09:04:39, logged in 10:48:52, **13 slots skipped**, no replay, no record.
+> Restoring the 6:00 wake does **not** fix it: a wake does not create a login session.
+>
+> **SHIPPED:** `tests/contract/test_backup_irreplaceable_ops_scheduler.py` (6 tests, TDD) + the plist
+> fix. Suite **6,297 / 17 / 12** — +5 vs 6,292, exactly the new tests; 17 failures unchanged, other
+> lanes. `.venv/bin/python` trap is **GONE** (now 3.14.7, not system 3.9.6) — the brief is stale on
+> it. `pre-commit` cache cleared (its ruff was x86_64, killing the lint gate across all 15 worktrees).
+> **STILL OPEN:** the Air; `pmset` wake (needs sudo); 649 orphaned GCS objects from the failed run.
+
 > # ⏹ 2026-08-22 DAYS 2+3 CLOSEOUT — SR-06 · SR-07 SHIPPED AND PROVEN LIVE · **SR-00 NOW PROVEN** · THREE TICKET PREMISES FALSIFIED
 >
 > **Ledgers: `docs/agent-ledger/2026-08-21.md` and `-08-22.md`.** No seat claimed (`tty` = not a
