@@ -518,6 +518,15 @@ pmset -g sched | grep wakepoweron
 ./.venv/bin/python3.14 scripts/run_league_transaction_capture.py --current-season-only \
     --league-id 0 --db-path "$SCRATCH/probe.db"; echo $?
    → NON-ZERO.  Today this exact command prints 0.
+
+# ⚠️ THIS COMMAND WAS DESTRUCTIVE UNTIL 2026-08-22 — fixed, recorded so nobody re-introduces it.
+# `--db-path` redirected the DATABASE only. `raw_root` carries BOTH the status marker and the
+# raw snapshot directory and the runner never passed it, so running the line above OVERWROTE
+# `app/data/league_transactions/transaction_capture_status_latest.json` — the source's declared
+# success_marker — with a league-0 result, and left junk raw files in production. It did exactly
+# that when this ticket was executed. Now `--db-path` sandboxes the whole run (`--raw-root`
+# overrides). Verified: production marker sha256 byte-identical before and after, raw file count
+# unchanged at 40, probe artifacts landed in the scratch dir.
 ```
 (`--league-id`, `--db-path`, `--current-season-only`, `--summary` are all real flags — verified at `run_league_transaction_capture.py:143-150`.)
 

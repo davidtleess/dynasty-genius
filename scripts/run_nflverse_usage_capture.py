@@ -15,6 +15,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any, Mapping
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -33,6 +34,22 @@ from src.dynasty_genius.nflverse_usage import (  # noqa: E402
 #: re-fetched three finished seasons every morning and requested the live season from nothing.
 #: Derived, so the rollover needs no code change in any later year.
 DEFAULT_SEASONS = default_capture_seasons()
+
+
+def capture_is_healthy(status: Mapping[str, Any]) -> bool:
+    """0 = healthy, 1 = anything else. SR-09's dependency edges read this as a boolean.
+
+    Unlike the transaction capture, `status == "ok"` IS sufficient here: a stream that fails
+    raises out of `run_usage_capture`, so a returned "ok" already means all thirteen streams
+    were reached.
+
+    **A recorded `not_yet_available` skip is HEALTHY and must stay that way.** Until nflverse
+    publishes 2026, most streams are skipped every single morning — that is the designed
+    behaviour SR-06 landed, not a fault. Counting a skip as failure would exit non-zero every
+    day until week 1, poisoning SR-09's dependency edges and SR-11's alert from the day they
+    land, and an alert that is wrong every morning is one nobody reads by September.
+    """
+    return status.get("status") == "ok"
 
 
 def _print_summary(db_path: Path) -> None:
@@ -78,7 +95,7 @@ def main() -> int:
         k: v for k, v in status["totals"].items() if k != "by_stream_season"
     }
     print(json.dumps(slim, indent=1, sort_keys=True, default=str))
-    return 0
+    return 0 if capture_is_healthy(status) else 1
 
 
 if __name__ == "__main__":

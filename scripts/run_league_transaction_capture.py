@@ -21,6 +21,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any, Mapping
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -31,6 +32,7 @@ from src.dynasty_genius.league_capture import load_production_league_set  # noqa
 from src.dynasty_genius.league_transactions import (  # noqa: E402
     DEFAULT_DB_PATH,
     DEFAULT_LEGS,
+    DEFAULT_RAW_ROOT,
     IdentityResolver,
     LeagueChainLink,
     TransactionStore,
@@ -38,6 +40,68 @@ from src.dynasty_genius.league_transactions import (  # noqa: E402
     run_chain_transaction_capture,
     run_transaction_capture,
 )
+
+
+def _manager_counts(status: Mapping[str, Any]) -> list[int]:
+    """Every league this run actually contacted, by how many managers it reported.
+
+    Two status shapes, because there are two capture modes: the chain nests one coverage
+    block per season under `chain_coverage.by_season`, while `--current-season-only`
+    reports a single league at the top level.
+    """
+    by_season = (status.get("chain_coverage") or {}).get("by_season")
+    if by_season is not None:
+        return [int(block.get("managers_total") or 0) for block in by_season.values()]
+    if "managers_total" in status:
+        return [int(status.get("managers_total") or 0)]
+    return []
+
+
+def capture_is_healthy(status: Mapping[str, Any]) -> bool:
+    """0 = healthy, 1 = anything else. SR-09's dependency edges read this as a boolean.
+
+    `status == "ok"` is NECESSARY BUT NOT SUFFICIENT, and that is the whole point of this
+    function. Measured live 2026-08-22: pointing the runner at `--league-id 0` — a league that
+    does not exist — returns `status: "ok"` with `managers_total: 0`, zero transactions and all
+    eighteen legs empty. The house one-liner
+    (`return 0 if report.get("status") == "ok" else 1`) would still exit 0 there, so SR-07's own
+    verification block could never pass. The capture's self-assessment reports that the MECHANICS
+    ran, not that it reached anything.
+
+    **The discriminator is managers, never transaction count.** A real league always has managers
+    even in a week with no moves — David's reports 12/12/12/11 across the four chain seasons — so
+    zero managers means we did not reach a league. Transaction count would have flagged the
+    entirely legitimate 2026-08-05..08-21 quiet stretch as a failure, and an alert that cries wolf
+    every off-season is one nobody reads by September.
+    """
+    if status.get("status") != "ok":
+        return False
+    # A chain that walked only part of its seasons is a PARTIAL, and a partial must never
+    # exit 0 silently (SR-07 step 3). Absent on the single-season path, which walks no chain.
+    if status.get("chain_complete") is False:
+        return False
+    counts = _manager_counts(status)
+    return bool(counts) and all(count > 0 for count in counts)
+
+
+def resolve_raw_root(db_path: Path | str, raw_root: Path | str | None) -> Path:
+    """Where the status marker and raw snapshots go — beside the database they describe.
+
+    `raw_root` carries BOTH `transaction_capture_status_latest.json` and the `raw/` snapshot
+    directory, and the runner never used to pass it, so `--db-path` redirected the store while
+    the paperwork kept landing in production. On 2026-08-22 running SR-07's own verification
+    command overwrote the real morning marker with a league-0 result and left two junk raw files
+    in `app/data/league_transactions/raw/`. Any agent following the ticket verbatim does the same.
+
+    A redirected database takes its paperwork with it: point `--db-path` somewhere and the whole
+    run is sandboxed. The default path is unchanged, so the 06:30 job — which passes no flags —
+    still writes exactly where it always has.
+    """
+    if raw_root is not None:
+        return Path(raw_root)
+    if Path(db_path) == Path(DEFAULT_DB_PATH):
+        return Path(DEFAULT_RAW_ROOT)
+    return Path(db_path).parent
 
 # Same environment convention the existing Sleeper producers already use.
 DEFAULT_LEAGUE_ID = "1314363401744416768"
@@ -142,6 +206,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--league-id", default=None)
     parser.add_argument("--db-path", default=str(DEFAULT_DB_PATH))
+    parser.add_argument(
+        "--raw-root",
+        default=None,
+        help="where the status marker and raw snapshots go. Defaults to production for the "
+             "default --db-path, and BESIDE the database otherwise, so redirecting the store "
+             "sandboxes the whole run rather than half of it.",
+    )
     parser.add_argument("--summary", action="store_true", help="print manager activity after capture")
     parser.add_argument(
         "--current-season-only",
@@ -151,6 +222,7 @@ def main() -> int:
     args = parser.parse_args()
 
     league_id = args.league_id or _league_id()
+    raw_root = resolve_raw_root(args.db_path, args.raw_root)
     if args.current_season_only:
         status = run_transaction_capture(
             league_id=league_id,
@@ -159,6 +231,7 @@ def main() -> int:
             resolver=_resolver(),
             legs=DEFAULT_LEGS,
             db_path=Path(args.db_path),
+            raw_root=raw_root,
         )
     else:
         status = run_chain_transaction_capture(
@@ -168,11 +241,12 @@ def main() -> int:
             build_resolver=_season_resolver_factory(_base_resolver()),
             legs=DEFAULT_LEGS,
             db_path=Path(args.db_path),
+            raw_root=raw_root,
         )
     print(json.dumps(status, indent=1, sort_keys=True))
     if args.summary:
         _print_summary(Path(args.db_path))
-    return 0
+    return 0 if capture_is_healthy(status) else 1
 
 
 if __name__ == "__main__":
