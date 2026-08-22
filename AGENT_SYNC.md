@@ -69,7 +69,22 @@
 > fix. Suite **6,297 / 17 / 12** — +5 vs 6,292, exactly the new tests; 17 failures unchanged, other
 > lanes. `.venv/bin/python` trap is **GONE** (now 3.14.7, not system 3.9.6) — the brief is stale on
 > it. `pre-commit` cache cleared (its ruff was x86_64, killing the lint gate across all 15 worktrees).
-> **STILL OPEN:** the Air; `pmset` wake (needs sudo); 649 orphaned GCS objects from the failed run.
+> **CLOSE-OUT.** ✅ **The Air is QUIET** — 14 agents booted out, 18 plists moved to
+> `~/Library/LaunchAgents/disabled-20260822/`, `pmset repeat cancel` run, `launchctl list` clean.
+> Its `app/data` is untouched as a fallback. **Split-brain risk CLOSED.** The orphaned run
+> `20260822T173058Z` — David ruled **leave it**; the bucket lifecycle deletes it 2026-09-05.
+>
+> **⚠️ STILL OPEN: (1) `pmset repeat` is NOT set** — `pmset -g sched` returns zero bytes at close.
+> Does NOT address DG-035 either way. **(2) `~/dg-build` HAS NO GIT REMOTE** — all 35 tickets live on
+> one machine; the `dg-cockpit` mirror is stale at DG-034 (08-19, 47 uncommitted) and `dg-build` is
+> absent from `backup_manifest.json`. **The ticket board is backed up NOWHERE.**
+>
+> **📦 THE OFFSITE ARCHIVE HAS A 14-DAY HORIZON.** Bucket lifecycle deletes `runs/` at age 14;
+> the declared 365-day `archive/` tier **has never existed**. History is NOT lost (each run is a
+> full 3.2 GB backup, not an incremental) but **rollback depth is 14 days**. Pair that with today's
+> lesson — every failure was silent — and the position is: *rollback window 14 days, detection
+> latency unbounded.* A corruption unnoticed for 15 days is unrecoverable. **The strongest argument
+> for SR-11 yet.**
 
 > # ⏹ 2026-08-22 DAYS 2+3 CLOSEOUT — SR-06 · SR-07 SHIPPED AND PROVEN LIVE · **SR-00 NOW PROVEN** · THREE TICKET PREMISES FALSIFIED
 >
