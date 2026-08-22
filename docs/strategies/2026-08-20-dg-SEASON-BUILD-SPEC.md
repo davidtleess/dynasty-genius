@@ -546,8 +546,31 @@ Two consequences. The 13-day gap is recoverable by one command (`max(created_at)
 
 **Files.** `scripts/run_league_transaction_capture.py`; `src/dynasty_genius/sources/daily_control.py` (lines 235-236); `app/config/backup_manifest.json` (leave the exclusion as-is); **`ops/launchd/com.davidleess.dynasty-league-transaction-capture.plist` — ADDED 2026-08-21.** That plist's header comment carries the SAME claim this ticket adjudicates — *"not recoverable later by re-reading — the endpoint serves current state, not an archive we can backfill at leisure"* — and SR-02 made it a **tracked** file, so it is now part of the repo's record rather than untracked scratch. It was not in this Files list. Without it, SR-08 closes with a corrected `daily_control.py` and an uncorrected plist stating the opposite — **recreating the exact "two in-repo declarations contradict each other" condition this ticket exists to end.** Whichever way the adjudication lands, the plist comment moves with it.
 
+> ### ⚠️ RE-SCOPE BEFORE EXECUTING — measured 2026-08-22, step 1 is a NO-OP
+>
+> **There is no 13-day gap.** Every season is COMPLETE against Sleeper's own reported totals:
+> 2023 243 txn/466 mov, 2024 323/524, 2025 299/450, 2026 73/132 — stored counts identical in
+> every case. `max(created_at)` for 2026 is `2026-08-21T18:53:15`, already current; a real
+> transaction landed 08-21 evening and the 06:30 job captured it unprompted, no intervention.
+> `legs_with_activity=[1]` — it was a quiet August in a dynasty league, not a gap.
+>
+> **"`league_transactions.db` last advanced 2026-08-07" described WRITE TIME, not missing data.**
+> Same error class as the nflverse false alarm the day before: absence of a write is not evidence
+> of loss. Re-verify with the two commands in this ticket's own Verification block before assuming
+> otherwise.
+>
+> **The adjudication half STANDS and is now better evidenced.** The stored counts matching
+> Sleeper's totals — after the 07-31 backfill pulled 739 rows spanning 2023-2026 in one run, and
+> 08-21 recovered 179 more historical rows — proves the endpoint IS an archive and re-reading DOES
+> recover missed days. So `daily_control.py:235-236` is the wrong declaration, the plist comment
+> carrying the same claim moves with it, and the `backup_manifest.json` exclusion is correct and
+> stays. Step 3's nuance also stands: the transactions are re-readable, but free-agent pool state
+> and pending-waiver context AT THE MOMENT OF PROCESSING are genuinely one-shot — say that
+> precisely instead of over-claiming about the transactions themselves.
+
 **Steps.**
-1. **Recover first.** `./.venv/bin/python3.14 scripts/run_league_transaction_capture.py --summary`
+1. ~~**Recover first.**~~ **NO-OP — the store is already complete and current (see the re-scope
+   note above).** Confirm with the Verification block, then go straight to step 2.
 2. Only then correct the note at 235-236: Sleeper serves per-leg transaction history for the league chain, so re-reading recovers missed days.
 3. **Keep the residual risk honestly rather than deleting the warning.** A transaction is re-readable, but the free-agent pool state and pending-waiver context *at the moment it was processed* are not served by that endpoint and are genuinely one-shot. If that is what the note was protecting, say so precisely instead of over-claiming about the transactions themselves.
 4. Keep the `backup_manifest.json` exclusion. Do not add this store to a backup that fails 18% of runs.

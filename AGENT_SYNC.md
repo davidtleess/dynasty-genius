@@ -11,6 +11,87 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⏹ 2026-08-22 DAYS 2+3 CLOSEOUT — SR-06 · SR-07 SHIPPED AND PROVEN LIVE · **SR-00 NOW PROVEN** · THREE TICKET PREMISES FALSIFIED
+>
+> **Ledgers: `docs/agent-ledger/2026-08-21.md` and `-08-22.md`.** No seat claimed (`tty` = not a
+> tty, no tmux server). Pushed `a9a4e6b..04c7211`; **zero laptop-only commits**; the 56 dirty files
+> belonging to other lanes were untouched throughout — `git add -A` was never used.
+>
+> **SHIPPED.** **SR-06** `4c4b7fa` (D2, run 08-21) · **SR-07** `04c7211` (D3, run 08-22).
+> Suite **6,292 / 17 / 12, zero collection errors** — failures unchanged at the documented 17
+> (untracked `test_governed_cadence_inputs_red.py` + 2 OpenAPI drift, both other lanes, neither
+> touched). Passes 6,258 → 6,292 = **+34, exactly the 34 new tests.** `ruff check src app` clean
+> (ruff 0.15.12 now installed in the venv, matching the CI and pre-commit pin).
+>
+> **✅ SR-00 IS PROVEN — the Day 1 block's open item is CLOSED.** Not by the digest-before/after
+> method (nobody took the baseline in the window), but by a stronger retroactive proof:
+> `model_forward_capture_raw` has PK including `semantic_output_hash` under `INSERT OR IGNORE`, so a
+> non-deterministic recompute inserts NEW rows. Measured: **2026-08-21 → 12,222 rows, exactly ONE
+> distinct `semantic_output_hash`, across THREE runs** (`launchctl print` shows `runs = 3`, all
+> exit 0, on both plists). Three fires, one hash = byte-identical output. Determinism established.
+>
+> ## ⚠️ THREE TICKET PREMISES DID NOT SURVIVE MEASUREMENT — read before executing any SR ticket
+>
+> **1 · SR-06 as written would have BROKEN capture.** It said "add 2026 to `DEFAULT_SEASONS`". The
+> unpublished streams **raise**, they do not return empty —
+> `load_nextgen_stats(seasons=[2026]) → ValueError: Season must be between 2016 and 2025`. Since
+> `ngs_passing` is stream #1, the ticket written to protect goal 1 would have killed the run on the
+> first stream of the first morning. Shipped instead: the source's own bound is read off the refusal
+> and recorded as `not_yet_available`, so **week 1 opens the season with NO code change during the
+> freeze**, and the season list is DERIVED (no annual edit due, ever).
+> **PROVEN LIVE 2026-08-22 06:15:** `seasons: [2023,2024,2025,2026]`, **`depth_charts` 2026 landed —
+> 459,221 rows, 155 daily snapshots, latest `2026-08-22T07:26:29Z`**, exactly ONE ledger row written
+> (everything else `unchanged` or skipped). First live 2026 data this product has ever held.
+>
+> **2 · SR-07's prescribed fix was insufficient.** Step 1 says match the house one-liner
+> `return 0 if status == "ok" else 1`. Measured: `--league-id 0` (a league that DOES NOT EXIST)
+> returns **`status: "ok"`** with `managers_total: 0`, zero transactions, all 18 legs empty — so the
+> one-liner still exits 0 and SR-07's own verification could never pass. **Step 3 is load-bearing.**
+> Shipped rule: `status == "ok"` AND `chain_complete` is not False AND every league contacted
+> reported ≥1 manager. **The discriminator is MANAGERS, never transaction count** — a real league
+> has managers in a dead week (12/12/12/11 across the chain), and transaction count would have
+> flagged the legitimate 08-05..08-21 quiet stretch as failure. `not_yet_available` skips are
+> HEALTHY and pinned as such, or the job exits non-zero every morning until week 1 and poisons
+> SR-09's edges and SR-11's alert from the day they land.
+>
+> **3 · SR-08 HAS NO 13-DAY GAP. DO NOT RUN ITS STEP 1.** Measured 2026-08-22: **every season is
+> COMPLETE** against Sleeper's own reported totals — 2023 243/466, 2024 323/524, 2025 299/450,
+> 2026 73/132, stored counts identical. `max(created_at)` 2026 = `2026-08-21T18:53:15`, already
+> current; a real transaction landed 08-21 evening and the 06:30 job took it unprompted.
+> `legs_with_activity=[1]` — a quiet August, not a gap. "Store last advanced 08-07" described WRITE
+> TIME, not missing data. **SR-08's adjudication half still stands and is better evidenced** (the
+> counts matching proves re-reading recovers history, so `daily_control.py:235-236` is the wrong
+> declaration, and the plist comment moves with it). **Re-scope before executing.**
+>
+> ## 🩹 A PRODUCTION MARKER WAS CORRUPTED BY THE SPEC'S OWN COMMAND — fixed, and the trap is defused
+>
+> SR-07's verification line, **as the spec wrote it**, overwrote
+> `app/data/league_transactions/transaction_capture_status_latest.json` — the source's declared
+> `success_marker` — with a league-0 result, and left junk raw files in production. `--db-path`
+> redirected the DATABASE only; `raw_root` carries BOTH the marker and the raw snapshot directory
+> and the runner never passed it. **Any agent following that ticket verbatim does the same.**
+> Repaired (junk deleted, marker regenerated by re-running the real capture — idempotent by design;
+> store never touched, verified 938 rows). `--db-path` now sandboxes the whole run; `--raw-root`
+> overrides; the default path is unchanged so the 06:30 job is untouched. Verified: production
+> marker sha256 **byte-identical** before/after, raw count unchanged at 40, probe artifacts landed
+> in scratch. The spec's verification block now carries a ⚠️ note.
+>
+> ## ⏭ NEXT — SR-11 (D4), and it should start FRESH
+>
+> **Do not bolt SR-11 onto a session that already ran a destructive command.** It is the largest
+> remaining ticket (1.0d), it is **Tier 2 — it touches launchd**, and it is the only detection
+> channel that will exist. Fresh context, clean board, and a second reviewer if one is available.
+> Running order is unchanged and the sprint is **2 days AHEAD** (D1 08-20, D2 08-21, D3 08-22).
+>
+> **STILL OPEN:** (a) the `contracts` upstream schema break — `load_contracts()` now returns
+> `contract_history`/`season_history`, no `cols`; fails 06:15 daily and holds the export marker at
+> 2026-08-08. Harmless to the stats (verified: no downstream consumer outside health reporting) —
+> **filed, deliberately not fixed.** (b) `ops/launchd/...nflverse-usage-capture.plist:30` documents
+> the runner's old literal `DEFAULT_SEASONS`; comment-only drift, Tier 2 file, not edited.
+> (c) Manager/team-name reconciliation — **David 2026-08-22: "after the 9/4 freeze alongside league
+> activity."** Raw history is captured daily and backed up (`league_runtime/runs` = `required[30]`),
+> 37 snapshots, zero gaps, so it is fully reconstructable retroactively and nothing is being lost.
+
 > # ⏹ 2026-08-21 DAY 1 CLOSEOUT — SEASON SPRINT UNDERWAY; SR-00 LANDED BUT **NOT PROVEN**
 >
 > **Full postflight: `docs/agent-ledger/2026-08-20.md`, second session block.** Ran 2026-08-20
