@@ -155,11 +155,41 @@ class StoreHealth(_Strict):
     decision_supported: Literal[False]
 
 
+class BackupMarkerEcho(_Strict):
+    """Descriptive echo of the backup status marker — never the bucket path."""
+
+    run_id: str | None
+    status: str | None
+    started_at: str | None
+    finished_at: str
+    sha256_verified: bool | None
+    files: int | None
+    bytes: int | None
+    failures: list[str]
+
+
+class BackupHealth(_Strict):
+    """The 26-hour backup law (02 §Standing Infrastructure ruling 3) as facts.
+
+    Marker absence, staleness past one daily interval plus grace (26h), a
+    non-completed terminal status, or unearned ``sha256_verified`` each
+    degrade — silence is not success. Descriptive only.
+    """
+
+    status: Literal["ok", "degraded"]
+    reasons: list[str]
+    marker_present: bool
+    marker: BackupMarkerEcho | None
+    threshold_hours: int
+    decision_supported: Literal[False]
+
+
 class CaptureHealthResponse(_Strict):
     overall_status: OverallStatus
     config_version: int
     checked_at: str
     stores: list[StoreHealth]
+    backup: BackupHealth
     decision_supported: Literal[False]
 
 
@@ -655,4 +685,98 @@ def inspect_capture_store(
         now=now,
         timezone=timezone,
         season_windows=season_windows,
+    )
+
+
+# --- BUILD-3: the 26-hour backup law as a capture-health block ------------------
+
+BACKUP_STALENESS_THRESHOLD_HOURS = 26
+
+
+def _echo_str(value: object) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def _echo_int(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def inspect_backup_marker(*, marker_path: Path, now: datetime) -> BackupHealth:
+    """Evaluate the backup status marker against the 26-hour law (read-only).
+
+    Fail-closed and never raising: an absent marker, unreadable bytes,
+    non-object JSON, or an unusable ``finished_at`` (missing, malformed, or
+    naive) each degrade with a named reason instead of erroring — the health
+    surface must not pretend health it cannot prove. ``finished_at`` is the
+    one load-bearing timestamp; staleness is a strict ``> 26h`` age so a
+    marker at exactly one interval plus grace is not flagged.
+    """
+
+    def _degraded(reasons: list[str], *, present: bool) -> BackupHealth:
+        return BackupHealth(
+            status="degraded",
+            reasons=reasons,
+            marker_present=present,
+            marker=None,
+            threshold_hours=BACKUP_STALENESS_THRESHOLD_HOURS,
+            decision_supported=False,
+        )
+
+    if not marker_path.is_file():
+        return _degraded(["backup_marker_absent"], present=False)
+
+    try:
+        raw = json.loads(marker_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return _degraded(["backup_marker_unparseable"], present=True)
+    if not isinstance(raw, dict):
+        return _degraded(["backup_marker_unparseable"], present=True)
+
+    finished_at_raw = raw.get("finished_at")
+    finished_at: datetime | None = None
+    if isinstance(finished_at_raw, str):
+        try:
+            parsed = datetime.fromisoformat(finished_at_raw)
+        except ValueError:
+            parsed = None
+        if parsed is not None and parsed.tzinfo is not None:
+            finished_at = parsed
+    if finished_at is None:
+        return _degraded(["backup_marker_unparseable"], present=True)
+
+    reasons: list[str] = []
+    if now - finished_at > timedelta(hours=BACKUP_STALENESS_THRESHOLD_HOURS):
+        reasons.append("backup_stale")
+    if raw.get("status") != "completed":
+        reasons.append("backup_run_failed")
+    if raw.get("sha256_verified") is not True:
+        reasons.append("backup_unverified")
+
+    raw_failures = raw.get("failures")
+    failures = (
+        [item for item in raw_failures if isinstance(item, str)]
+        if isinstance(raw_failures, list)
+        else []
+    )
+    marker = BackupMarkerEcho(
+        run_id=_echo_str(raw.get("run_id")),
+        status=_echo_str(raw.get("status")),
+        started_at=_echo_str(raw.get("started_at")),
+        finished_at=finished_at_raw,
+        sha256_verified=(
+            raw.get("sha256_verified")
+            if isinstance(raw.get("sha256_verified"), bool)
+            else None
+        ),
+        files=_echo_int(raw.get("files")),
+        bytes=_echo_int(raw.get("bytes")),
+        failures=failures,
+    )
+    return BackupHealth(
+        status="degraded" if reasons else "ok",
+        reasons=reasons,
+        marker_present=True,
+        marker=marker,
+        threshold_hours=BACKUP_STALENESS_THRESHOLD_HOURS,
+        decision_supported=False,
     )

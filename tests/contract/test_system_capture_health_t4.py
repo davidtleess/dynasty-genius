@@ -227,6 +227,21 @@ def test_capture_health_route_reports_ok_for_temp_healthy_stores_and_openapi(
     for day in ["2026-06-30", "2026-07-01", "2026-07-02"]:
         _insert_fc_rows(fc_db, snapshot_date=day)
         _insert_model_rows(model_db, capture_date=day)
+    # BUILD-3: overall "ok" now also requires a fresh, verified backup marker.
+    _write_json(
+        tmp_path / "app/data/ops/backup_status_latest.json",
+        {
+            "schema_version": "backup_status.v1",
+            "run_id": "20260702T141500Z",
+            "status": "completed",
+            "sha256_verified": True,
+            "files": 1,
+            "bytes": 1,
+            "failures": [],
+            "started_at": "2026-07-02T14:15:00+00:00",
+            "finished_at": "2026-07-02T14:54:02+00:00",
+        },
+    )
     client = _client_with_temp_config(monkeypatch, config_path=config_path, repo_root=tmp_path)
 
     response = client.get("/api/system/capture-health")
@@ -234,6 +249,7 @@ def test_capture_health_route_reports_ok_for_temp_healthy_stores_and_openapi(
     assert response.status_code == 200
     body = response.json()
     assert body["overall_status"] == "ok"
+    assert body["backup"]["status"] == "ok"
     assert body["config_version"] == 1
     assert body["checked_at"] == "2026-07-02T13:00:00-04:00"
     assert body["decision_supported"] is False

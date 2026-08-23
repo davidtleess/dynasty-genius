@@ -41,6 +41,40 @@ export const zArtifactProvenance = z.object({
 });
 
 /**
+ * BackupMarkerEcho
+ *
+ * Descriptive echo of the backup status marker — never the bucket path.
+ */
+export const zBackupMarkerEcho = z.object({
+    bytes: z.int().nullable(),
+    failures: z.array(z.string()),
+    files: z.int().nullable(),
+    finished_at: z.string(),
+    run_id: z.string().nullable(),
+    sha256_verified: z.boolean().nullable(),
+    started_at: z.string().nullable(),
+    status: z.string().nullable()
+});
+
+/**
+ * BackupHealth
+ *
+ * The 26-hour backup law (02 §Standing Infrastructure ruling 3) as facts.
+ *
+ * Marker absence, staleness past one daily interval plus grace (26h), a
+ * non-completed terminal status, or unearned ``sha256_verified`` each
+ * degrade — silence is not success. Descriptive only.
+ */
+export const zBackupHealth = z.object({
+    decision_supported: z.literal(false),
+    marker: zBackupMarkerEcho.nullable(),
+    marker_present: z.boolean(),
+    reasons: z.array(z.string()),
+    status: z.enum(['ok', 'degraded']),
+    threshold_hours: z.int()
+});
+
+/**
  * CapacityCandidate
  *
  * One roster player surfaced in the capacity-ordered review list.
@@ -117,6 +151,32 @@ export const zCounterArgumentField = z.object({
 });
 
 /**
+ * Coverage
+ *
+ * How much of the frozen prediction set actually reached a grade.
+ *
+ * Added 2026-08-18 from a REAL produced artifact. The scaffolding models were written
+ * against ``score()``'s source shape while no artifact existed, and they missed this
+ * block entirely — so with ``extra="forbid"`` the route rejected the first real
+ * scorecard and returned 503 ``malformed scorecard (schema contract)``. That would have
+ * fired on Week 1 morning, showing an error where the record belongs. Reproduced against
+ * the dress-rehearsal artifact before the fix and after.
+ *
+ * These counts are the honest denominators the surface must show beside any metric: a
+ * rank statistic over 318 of 501 predictions is a different claim than one over 501.
+ */
+export const zCoverage = z.object({
+    declared_count: z.int().nullish(),
+    eligible_count: z.int().nullish(),
+    graded_count: z.int().nullish(),
+    identity_excluded_counts: z.record(z.string(), z.int()).optional(),
+    outcome_present_count: z.int().nullish(),
+    prediction_excluded_counts: z.record(z.string(), z.int()).optional(),
+    rank_eligible_count: z.int().nullish(),
+    resolved_count: z.int().nullish()
+});
+
+/**
  * DegradationField
  */
 export const zDegradationField = z.object({
@@ -150,6 +210,41 @@ export const zDivergenceResult = z.object({
     n_flagged: z.int(),
     n_matched_controls_per_flag: z.int().optional().default(3),
     position_beta: z.number()
+});
+
+/**
+ * Effect
+ *
+ * One measured difference, with its unit and its uncertainty attached.
+ *
+ * `value`, `ci_low` and `ci_high` are meaningless without `unit`; they are modelled
+ * together so a client cannot render the point estimate alone.
+ */
+export const zEffect = z.object({
+    adjusted_p: z.number().nullish(),
+    ci_high: z.number().nullish(),
+    ci_low: z.number().nullish(),
+    evaluable_folds: z.int().nullish(),
+    total_folds: z.int().nullish(),
+    unit: z.literal('spearman_rank_correlation').optional().default('spearman_rank_correlation'),
+    value: z.number()
+});
+
+/**
+ * BaselineQuestion
+ *
+ * Question 2 — does the model beat carrying last year's points forward?
+ */
+export const zBaselineQuestion = z.object({
+    below_materiality_floor: z.boolean(),
+    counterweight_effect: zEffect,
+    counterweight_headline: z.string(),
+    effect: zEffect,
+    headline: z.string(),
+    materiality_floor: z.number(),
+    materiality_note: z.string(),
+    position: z.string(),
+    state: z.enum(['answered', 'unanswered'])
 });
 
 /**
@@ -367,6 +462,22 @@ export const zLeaguePulseResponse = z.object({
 });
 
 /**
+ * LiveAccrual
+ *
+ * The weekly record accruing against real outcomes.
+ */
+export const zLiveAccrual = z.object({
+    headline: z.string(),
+    predictions_declared: z.int().nullish(),
+    predictions_graded: z.int().nullish(),
+    rank_availability_note: z.string(),
+    rank_eligible: z.int().nullish(),
+    rank_metrics_available: z.boolean(),
+    state: z.enum(['not_started', 'accruing']),
+    weeks_graded: z.int()
+});
+
+/**
  * MarketAssetRef
  */
 export const zMarketAssetRef = z.object({
@@ -428,6 +539,24 @@ export const zMarketAssetOverlay = z.object({
     source: z.literal('fantasycalc'),
     source_timestamp: z.string().nullish(),
     trend_30d: z.int().nullish()
+});
+
+/**
+ * MarketQuestion
+ *
+ * Question 1 — the one that decides whether this product has an edge at all.
+ */
+export const zMarketQuestion = z.object({
+    effect_direction_note: z.string(),
+    evaluable_folds: z.int(),
+    excluded_fold_reasons: z.array(z.string()).optional(),
+    headline: z.string(),
+    observed_effects: z.array(zEffect).optional(),
+    position: z.string(),
+    state: z.enum(['unanswered', 'answered']),
+    total_folds: z.int(),
+    what_would_answer_it: z.string(),
+    why: z.string()
 });
 
 /**
@@ -562,6 +691,15 @@ export const zModelReliability = z.object({
 });
 
 /**
+ * ModelScoreboardErrorResponse
+ */
+export const zModelScoreboardErrorResponse = z.object({
+    decision_supported: z.literal(false),
+    error: z.string(),
+    message: z.string()
+});
+
+/**
  * NdcgStat
  */
 export const zNdcgStat = z.object({
@@ -660,6 +798,30 @@ export const zPoolRange = z.object({
     pool_size: z.int().nullable(),
     status: z.enum(['ok', 'waiver_range_unavailable']),
     top_k_values: z.array(z.number()).optional()
+});
+
+/**
+ * PositionScope
+ *
+ * Which positions have a study at all. Unstudied positions are stated, not omitted.
+ */
+export const zPositionScope = z.object({
+    note: z.string(),
+    studied: z.array(z.string()).optional(),
+    unstudied: z.array(z.string()).optional()
+});
+
+/**
+ * ModelScoreboardResponse
+ */
+export const zModelScoreboardResponse = z.object({
+    baseline_question: zBaselineQuestion,
+    decision_supported: z.literal(false),
+    generated_at: z.string(),
+    live: zLiveAccrual,
+    market_question: zMarketQuestion,
+    position_scope: zPositionScope,
+    study_label: z.string()
 });
 
 /**
@@ -773,7 +935,8 @@ export const zReportHealth = z.object({
         'corrupt_or_empty',
         'dormant',
         'missing',
-        'producer_failed'
+        'producer_failed',
+        'inputs_degraded'
     ]),
     tier: z.enum([
         'core_substrate',
@@ -1090,6 +1253,7 @@ export const zStoreHealth = z.object({
  * CaptureHealthResponse
  */
 export const zCaptureHealthResponse = z.object({
+    backup: zBackupHealth,
     checked_at: z.string(),
     config_version: z.int(),
     decision_supported: z.literal(false),
@@ -1264,6 +1428,7 @@ export const zTrackingRow = z.object({
 export const zRealizedOutcomeScorecardResponse = z.object({
     as_of_week: z.int().nullish(),
     cohort_metrics: z.record(z.string(), zCohortMetric).optional(),
+    coverage: zCoverage.optional(),
     decision_supported: z.literal(false),
     excluded_counts: z.record(z.string(), z.int()).optional(),
     maturity_pct: z.number().nullish(),
@@ -1833,6 +1998,13 @@ export const zGetEngineBScoresApiEngineBScoresGetResponse = z.record(z.string(),
 export const zGetSystemHealthApiHealthGetResponse = zSystemHealthResponse;
 
 /**
+ * Response Morning Tape Surface Api League Morning Tape Get
+ *
+ * Successful Response
+ */
+export const zMorningTapeSurfaceApiLeagueMorningTapeGetResponse = z.record(z.string(), z.unknown());
+
+/**
  * Successful Response
  */
 export const zLeaguePulseSurfaceApiLeaguePulseGetResponse = zLeaguePulseResponse;
@@ -1841,6 +2013,11 @@ export const zLeaguePulseSurfaceApiLeaguePulseGetResponse = zLeaguePulseResponse
  * Successful Response
  */
 export const zWhatChangedSurfaceApiLeagueWhatChangedGetResponse = zWhatChangedResponse;
+
+/**
+ * Successful Response
+ */
+export const zGetModelScoreboardApiModelScoreboardGetResponse = zModelScoreboardResponse;
 
 export const zGetPlayerDetailApiPlayersSleeperIdGetPath = z.object({
     sleeper_id: z.string()

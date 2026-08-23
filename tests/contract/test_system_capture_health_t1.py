@@ -240,12 +240,30 @@ def test_response_models_lock_enums_recursive_decision_supported_and_extra_forbi
         "caveats": [],
         "decision_supported": False,
     }
+    backup_health = {
+        "status": "ok",
+        "reasons": [],
+        "marker_present": True,
+        "marker": {
+            "run_id": "20260702T141500Z",
+            "status": "completed",
+            "started_at": "2026-07-02T14:15:00+00:00",
+            "finished_at": "2026-07-02T14:54:02+00:00",
+            "sha256_verified": True,
+            "files": 559,
+            "bytes": 2520054611,
+            "failures": [],
+        },
+        "threshold_hours": 26,
+        "decision_supported": False,
+    }
     response = models.CaptureHealthResponse.model_validate(
         {
             "overall_status": "ok",
             "config_version": 1,
             "checked_at": "2026-07-02T13:00:00-04:00",
             "stores": [store_health],
+            "backup": backup_health,
             "decision_supported": False,
         }
     )
@@ -265,6 +283,8 @@ def test_response_models_lock_enums_recursive_decision_supported_and_extra_forbi
         models.CaptureHealthResponse.model_validate(
             response.model_dump() | {"overall_status": "blocked"}
         )
+    with pytest.raises(ValidationError):
+        models.BackupHealth.model_validate(backup_health | {"status": "blocked"})
     with pytest.raises(ValidationError):
         models.StoreHealth.model_validate(store_health | {"store_presence": "unknown"})
     with pytest.raises(ValidationError):

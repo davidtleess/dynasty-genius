@@ -51,6 +51,117 @@ export type ArtifactProvenance = {
 };
 
 /**
+ * BackupHealth
+ *
+ * The 26-hour backup law (02 §Standing Infrastructure ruling 3) as facts.
+ *
+ * Marker absence, staleness past one daily interval plus grace (26h), a
+ * non-completed terminal status, or unearned ``sha256_verified`` each
+ * degrade — silence is not success. Descriptive only.
+ */
+export type BackupHealth = {
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    marker: BackupMarkerEcho | null;
+    /**
+     * Marker Present
+     */
+    marker_present: boolean;
+    /**
+     * Reasons
+     */
+    reasons: Array<string>;
+    /**
+     * Status
+     */
+    status: 'ok' | 'degraded';
+    /**
+     * Threshold Hours
+     */
+    threshold_hours: number;
+};
+
+/**
+ * BackupMarkerEcho
+ *
+ * Descriptive echo of the backup status marker — never the bucket path.
+ */
+export type BackupMarkerEcho = {
+    /**
+     * Bytes
+     */
+    bytes: number | null;
+    /**
+     * Failures
+     */
+    failures: Array<string>;
+    /**
+     * Files
+     */
+    files: number | null;
+    /**
+     * Finished At
+     */
+    finished_at: string;
+    /**
+     * Run Id
+     */
+    run_id: string | null;
+    /**
+     * Sha256 Verified
+     */
+    sha256_verified: boolean | null;
+    /**
+     * Started At
+     */
+    started_at: string | null;
+    /**
+     * Status
+     */
+    status: string | null;
+};
+
+/**
+ * BaselineQuestion
+ *
+ * Question 2 — does the model beat carrying last year's points forward?
+ */
+export type BaselineQuestion = {
+    /**
+     * Below Materiality Floor
+     */
+    below_materiality_floor: boolean;
+    counterweight_effect: Effect;
+    /**
+     * Counterweight Headline
+     */
+    counterweight_headline: string;
+    effect: Effect;
+    /**
+     * Headline
+     */
+    headline: string;
+    /**
+     * Materiality Floor
+     */
+    materiality_floor: number;
+    /**
+     * Materiality Note
+     */
+    materiality_note: string;
+    /**
+     * Position
+     */
+    position: string;
+    /**
+     * State
+     */
+    state: 'answered' | 'unanswered';
+};
+
+/**
  * CapacityCandidate
  *
  * One roster player surfaced in the capacity-ordered review list.
@@ -167,6 +278,7 @@ export type CaptureHealthErrorResponse = {
  * CaptureHealthResponse
  */
 export type CaptureHealthResponse = {
+    backup: BackupHealth;
     /**
      * Checked At
      */
@@ -252,6 +364,60 @@ export type CounterArgumentField = {
      * Text
      */
     text: string | null;
+};
+
+/**
+ * Coverage
+ *
+ * How much of the frozen prediction set actually reached a grade.
+ *
+ * Added 2026-08-18 from a REAL produced artifact. The scaffolding models were written
+ * against ``score()``'s source shape while no artifact existed, and they missed this
+ * block entirely — so with ``extra="forbid"`` the route rejected the first real
+ * scorecard and returned 503 ``malformed scorecard (schema contract)``. That would have
+ * fired on Week 1 morning, showing an error where the record belongs. Reproduced against
+ * the dress-rehearsal artifact before the fix and after.
+ *
+ * These counts are the honest denominators the surface must show beside any metric: a
+ * rank statistic over 318 of 501 predictions is a different claim than one over 501.
+ */
+export type Coverage = {
+    /**
+     * Declared Count
+     */
+    declared_count?: number | null;
+    /**
+     * Eligible Count
+     */
+    eligible_count?: number | null;
+    /**
+     * Graded Count
+     */
+    graded_count?: number | null;
+    /**
+     * Identity Excluded Counts
+     */
+    identity_excluded_counts?: {
+        [key: string]: number;
+    };
+    /**
+     * Outcome Present Count
+     */
+    outcome_present_count?: number | null;
+    /**
+     * Prediction Excluded Counts
+     */
+    prediction_excluded_counts?: {
+        [key: string]: number;
+    };
+    /**
+     * Rank Eligible Count
+     */
+    rank_eligible_count?: number | null;
+    /**
+     * Resolved Count
+     */
+    resolved_count?: number | null;
 };
 
 /**
@@ -342,6 +508,45 @@ export type DivergenceResult = {
      * Position Beta
      */
     position_beta: number;
+};
+
+/**
+ * Effect
+ *
+ * One measured difference, with its unit and its uncertainty attached.
+ *
+ * `value`, `ci_low` and `ci_high` are meaningless without `unit`; they are modelled
+ * together so a client cannot render the point estimate alone.
+ */
+export type Effect = {
+    /**
+     * Adjusted P
+     */
+    adjusted_p?: number | null;
+    /**
+     * Ci High
+     */
+    ci_high?: number | null;
+    /**
+     * Ci Low
+     */
+    ci_low?: number | null;
+    /**
+     * Evaluable Folds
+     */
+    evaluable_folds?: number | null;
+    /**
+     * Total Folds
+     */
+    total_folds?: number | null;
+    /**
+     * Unit
+     */
+    unit?: 'spearman_rank_correlation';
+    /**
+     * Value
+     */
+    value: number;
 };
 
 /**
@@ -1082,6 +1287,46 @@ export type LeaguePulseValueViews = {
 };
 
 /**
+ * LiveAccrual
+ *
+ * The weekly record accruing against real outcomes.
+ */
+export type LiveAccrual = {
+    /**
+     * Headline
+     */
+    headline: string;
+    /**
+     * Predictions Declared
+     */
+    predictions_declared?: number | null;
+    /**
+     * Predictions Graded
+     */
+    predictions_graded?: number | null;
+    /**
+     * Rank Availability Note
+     */
+    rank_availability_note: string;
+    /**
+     * Rank Eligible
+     */
+    rank_eligible?: number | null;
+    /**
+     * Rank Metrics Available
+     */
+    rank_metrics_available: boolean;
+    /**
+     * State
+     */
+    state: 'not_started' | 'accruing';
+    /**
+     * Weeks Graded
+     */
+    weeks_graded: number;
+};
+
+/**
  * MarketAssetOverlay
  */
 export type MarketAssetOverlay = {
@@ -1203,6 +1448,54 @@ export type MarketDivergenceContext = {
      * Source Signal Status
      */
     source_signal_status: string | null;
+};
+
+/**
+ * MarketQuestion
+ *
+ * Question 1 — the one that decides whether this product has an edge at all.
+ */
+export type MarketQuestion = {
+    /**
+     * Effect Direction Note
+     */
+    effect_direction_note: string;
+    /**
+     * Evaluable Folds
+     */
+    evaluable_folds: number;
+    /**
+     * Excluded Fold Reasons
+     */
+    excluded_fold_reasons?: Array<string>;
+    /**
+     * Headline
+     */
+    headline: string;
+    /**
+     * Observed Effects
+     */
+    observed_effects?: Array<Effect>;
+    /**
+     * Position
+     */
+    position: string;
+    /**
+     * State
+     */
+    state: 'unanswered' | 'answered';
+    /**
+     * Total Folds
+     */
+    total_folds: number;
+    /**
+     * What Would Answer It
+     */
+    what_would_answer_it: string;
+    /**
+     * Why
+     */
+    why: string;
 };
 
 /**
@@ -1466,6 +1759,46 @@ export type ModelReliability = {
 };
 
 /**
+ * ModelScoreboardErrorResponse
+ */
+export type ModelScoreboardErrorResponse = {
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Error
+     */
+    error: string;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * ModelScoreboardResponse
+ */
+export type ModelScoreboardResponse = {
+    baseline_question: BaselineQuestion;
+    /**
+     * Decision Supported
+     */
+    decision_supported: false;
+    /**
+     * Generated At
+     */
+    generated_at: string;
+    live: LiveAccrual;
+    market_question: MarketQuestion;
+    position_scope: PositionScope;
+    /**
+     * Study Label
+     */
+    study_label: string;
+};
+
+/**
  * NdcgStat
  */
 export type NdcgStat = {
@@ -1677,6 +2010,26 @@ export type PoolRange = {
 };
 
 /**
+ * PositionScope
+ *
+ * Which positions have a study at all. Unstudied positions are stated, not omitted.
+ */
+export type PositionScope = {
+    /**
+     * Note
+     */
+    note: string;
+    /**
+     * Studied
+     */
+    studied?: Array<string>;
+    /**
+     * Unstudied
+     */
+    unstudied?: Array<string>;
+};
+
+/**
  * PrecisionAtK
  */
 export type PrecisionAtK = {
@@ -1865,6 +2218,7 @@ export type RealizedOutcomeScorecardResponse = {
     cohort_metrics?: {
         [key: string]: CohortMetric;
     };
+    coverage?: Coverage;
     /**
      * Decision Supported
      */
@@ -1936,7 +2290,7 @@ export type ReportHealth = {
     /**
      * Status
      */
-    status: 'fresh' | 'freshness_overdue' | 'stale' | 'corrupt_or_empty' | 'dormant' | 'missing' | 'producer_failed';
+    status: 'fresh' | 'freshness_overdue' | 'stale' | 'corrupt_or_empty' | 'dormant' | 'missing' | 'producer_failed' | 'inputs_degraded';
     /**
      * Tier
      */
@@ -4079,6 +4433,26 @@ export type GetSystemHealthApiHealthGetResponses = {
 
 export type GetSystemHealthApiHealthGetResponse = GetSystemHealthApiHealthGetResponses[keyof GetSystemHealthApiHealthGetResponses];
 
+export type MorningTapeSurfaceApiLeagueMorningTapeGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/league/morning-tape';
+};
+
+export type MorningTapeSurfaceApiLeagueMorningTapeGetResponses = {
+    /**
+     * Response Morning Tape Surface Api League Morning Tape Get
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type MorningTapeSurfaceApiLeagueMorningTapeGetResponse = MorningTapeSurfaceApiLeagueMorningTapeGetResponses[keyof MorningTapeSurfaceApiLeagueMorningTapeGetResponses];
+
 export type LeaguePulseSurfaceApiLeaguePulseGetData = {
     body?: never;
     path?: never;
@@ -4110,6 +4484,31 @@ export type WhatChangedSurfaceApiLeagueWhatChangedGetResponses = {
 };
 
 export type WhatChangedSurfaceApiLeagueWhatChangedGetResponse = WhatChangedSurfaceApiLeagueWhatChangedGetResponses[keyof WhatChangedSurfaceApiLeagueWhatChangedGetResponses];
+
+export type GetModelScoreboardApiModelScoreboardGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/model-scoreboard';
+};
+
+export type GetModelScoreboardApiModelScoreboardGetErrors = {
+    /**
+     * Service Unavailable
+     */
+    503: ModelScoreboardErrorResponse;
+};
+
+export type GetModelScoreboardApiModelScoreboardGetError = GetModelScoreboardApiModelScoreboardGetErrors[keyof GetModelScoreboardApiModelScoreboardGetErrors];
+
+export type GetModelScoreboardApiModelScoreboardGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ModelScoreboardResponse;
+};
+
+export type GetModelScoreboardApiModelScoreboardGetResponse = GetModelScoreboardApiModelScoreboardGetResponses[keyof GetModelScoreboardApiModelScoreboardGetResponses];
 
 export type GetPlayerDetailApiPlayersSleeperIdGetData = {
     body?: never;

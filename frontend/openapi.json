@@ -95,6 +95,155 @@
         "title": "ArtifactProvenance",
         "type": "object"
       },
+      "BackupHealth": {
+        "additionalProperties": false,
+        "description": "The 26-hour backup law (02 \u00a7Standing Infrastructure ruling 3) as facts.\n\nMarker absence, staleness past one daily interval plus grace (26h), a\nnon-completed terminal status, or unearned ``sha256_verified`` each\ndegrade \u2014 silence is not success. Descriptive only.",
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "marker": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackupMarkerEcho"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "marker_present": {
+            "title": "Marker Present",
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "threshold_hours": {
+            "title": "Threshold Hours",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "reasons",
+          "marker_present",
+          "marker",
+          "threshold_hours",
+          "decision_supported"
+        ],
+        "title": "BackupHealth",
+        "type": "object"
+      },
+      "BackupMarkerEcho": {
+        "additionalProperties": false,
+        "description": "Descriptive echo of the backup status marker \u2014 never the bucket path.",
+        "properties": {
+          "bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bytes"
+          },
+          "failures": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failures",
+            "type": "array"
+          },
+          "files": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files"
+          },
+          "finished_at": {
+            "title": "Finished At",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "sha256_verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sha256 Verified"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "run_id",
+          "status",
+          "started_at",
+          "finished_at",
+          "sha256_verified",
+          "files",
+          "bytes",
+          "failures"
+        ],
+        "title": "BackupMarkerEcho",
+        "type": "object"
+      },
       "BaselineQuestion": {
         "additionalProperties": false,
         "description": "Question 2 \u2014 does the model beat carrying last year's points forward?",
@@ -316,6 +465,9 @@
       "CaptureHealthResponse": {
         "additionalProperties": false,
         "properties": {
+          "backup": {
+            "$ref": "#/components/schemas/BackupHealth"
+          },
           "checked_at": {
             "title": "Checked At",
             "type": "string"
@@ -350,6 +502,7 @@
           "config_version",
           "checked_at",
           "stores",
+          "backup",
           "decision_supported"
         ],
         "title": "CaptureHealthResponse",
