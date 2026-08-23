@@ -150,7 +150,7 @@ Fri 09-04  D11 ← BUFFER (unallocated) · FREEZE, end of day
 | SR-06 nflverse capture → current season | 0.50 | 0 | 1 | |
 | SR-07 Real exit codes on both new producers | 0.50 | 0 | 1 | |
 | SR-08 Recover the transaction gap | 0.50 | 0 | 1 | |
-| SR-11 The daily gap alert | 1.00 | 2 | 1 | **moved to D4** (PT-2) |
+| SR-11 The daily gap alert | **1.50** | 2 | 1 | **moved to D4** (PT-2) · **AMENDED 2026-08-23 (MIG-1)** |
 | SR-09 Dependency-ordered, fail-soft chain | 2.00 | 2 | 1 | **rewritten** (PT-4) |
 | SR-12 Make the app openable at all | 0.50 | 2 | 3 | |
 | SR-10a Register `market_divergence_history` | 0.50 | 0 | 1 | **split** (PT-3), was 1.5 |
@@ -160,18 +160,18 @@ Fri 09-04  D11 ← BUFFER (unallocated) · FREEZE, end of day
 | SR-15 Trade Lab search correctness | 0.50 | 0 | 2 | |
 | SR-16 Morning Room hero → his own roster | 0.50 | 0 | 3 | **re-aimed** (PT-6) |
 | SR-20 Cadence-aware staleness | 0.50 | 0 | 3 | **NEW** (PT-8) |
-| **COMMITTED** | **10.00** | | | |
+| **COMMITTED** | **10.50** | | | |
 | SR-18 League Activity strip | *1.50* | *0* | *3* | **CONDITIONAL** (PT-7 replaces SR-17) |
 
 ```
 0.25 × 7   (SR-00, 01, 02, 03, 04, 05, 19)              = 1.75
 0.50 × 9   (SR-06, 07, 08, 10a, 12, 13, 15, 16, 20)     = 4.50
 0.75 × 1   (SR-14)                                      = 0.75
-1.00 × 1   (SR-11)                                      = 1.00
+1.50 × 1   (SR-11)   AMENDED 2026-08-23, was 1.00       = 1.50
 2.00 × 1   (SR-09)                                      = 2.00
-                                                COMMITTED 10.00 days
+                                                COMMITTED 10.50 days
                                                 AVAILABLE 11.00 days
-                                                   BUFFER  1.00 day (D11)
+                                                   BUFFER  0.50 day (D11)
 ```
 
 **Reconciliation against revision 1 (9.75 committed, 1.25 buffer):**
@@ -591,11 +591,41 @@ Two consequences. The 13-day gap is recoverable by one command (`max(created_at)
 
 ---
 
-## DAY 4 (Wed 08-26) — the alert, BEFORE the risk · 1.0d
+## DAY 4 (Wed 08-26) — the alert, BEFORE the risk · 1.5d
 
 > **The single biggest sequencing change in this revision.** Revision 1 put SR-11 on days 7-8, *after* SR-09. That left 4-5 live capture mornings in which a brand-new single-point-of-failure chain wrote to irreplaceable stores with no way to tell David it had failed — with the spec's own words, in this ticket, being *"nothing in this repo can notify David."*
 
-### SR-11 · The daily gap alert — the only detection channel that will exist · M · 1.0d · **Tier 2** *(draft: CAP-6)*
+### SR-11 · The daily gap alert — the only detection channel that will exist · M · **1.5d** · **Tier 2** *(draft: CAP-6 · **AMENDED 2026-08-23 — MIG-1**)*
+
+> ## AMENDED 2026-08-23 — AS ORIGINALLY WRITTEN, THIS TICKET REPORTS A CLEAN MORNING ON THE WORST MORNING THIS PRODUCT HAS HAD
+>
+> **The counter-example is real and dated.** On 2026-08-22 the Mac booted at **09:04:39** and the
+> console login landed at **10:48:52**. **Thirteen scheduled slots fell inside that window and not one
+> of them ran** — including the 10:15 offsite backup, the product's disaster floor. Steps 1-6 below
+> read **stores, markers, exit codes and logs**. A job that never spawned writes **none of those
+> four**. Built verbatim, this alert would have reported that morning **clean**, and step 2's rule
+> that *silence means healthy* would have turned the silence into a lie.
+>
+> **Three failure classes sit outside the original design. All three occurred on 08-22.**
+> **(i) Never attempted** — `launchctl print` read `runs = 0`, `last exit code = (never exited)` on
+> seven producers. **(ii) The penalty box** — three jobs held in launchd's *in-memory* state, which
+> dies at reboot and which **`kickstart` does not clear** (only `bootout` + `bootstrap`), while their
+> logs still read the previous day. **(iii) The boot-to-login gap itself** — launchd does **not**
+> replay a `StartCalendarInterval` slot that elapsed while nobody was logged in, and nothing anywhere
+> records the skip. (Missed-while-**asleep** is a different case, and launchd does handle that one.)
+>
+> **The fix is a SECOND detection channel that reads launchd directly and depends on no registry.**
+> Steps 1-6 ask the stores *"did the data arrive?"* New steps 7-9 ask launchd *"did the job even
+> try?"* — a question no store, marker, log or exit code can answer. Because a plist label is a fact
+> about the schedule rather than about a store's shape, that channel also reaches the producers
+> SR-10a deliberately leaves unregistered until SR-10b in the off-season.
+>
+> **This absorbs `~/dg-build` ticket DG-035 option (b)** at near-zero marginal cost. DG-035 option (a)
+> — moving the chain to LaunchDaemons so it needs no login at all — stays open, is Tier 2, and is
+> David's call after this ticket lands.
+>
+> **Cost: 1.0d → 1.5d**, which halves the sprint buffer from 1.00d to 0.50d. The calendar slack is
+> real (D1-D3 each ran a day early), but **the stated buffer is now half of what it was.**
 
 **Why.** **Nothing in this repo can notify David.** `grep -rnE "osascript|terminal-notifier|display notification|smtplib|sendmail" scripts/ src/ --exclude-dir=.oa3` returns **zero matches**. Every failure found in this investigation was silent: the 08-12 capture gap, the two `market_source_prior_date` aborts, the two `refusing to publish` exits in `feature_refresh.out.log`, the 9 failed backup runs out of 49, the 2026-08-18 realized-outcome failure. Each is in a log or a store, and none reached him. This ticket converts every other monitoring fix into something that changes an outcome — and it now lands two days before the chain rewire rather than three days after it.
 
@@ -603,16 +633,70 @@ Two consequences. The 13-day gap is recoverable by one command (`max(created_at)
 
 **Steps.**
 1. **Call the inspectors directly** — `load_capture_cadence(config_path=...)` (`system_capture_health_models.py:241`) and `inspect_capture_store(...)` (line 644). Do **not** require the API server to be running, or the alert dies exactly when the server is down. **Check first whether the other lane's uncommitted +124 lines in this module have landed** (raised on D1); if not, import against the committed surface and note the coupling.
+   **Re-measured 2026-08-23: that lane's +124 lines are STILL uncommitted** (`git diff --stat` on
+   `app/api/routes/system_capture_health_models.py` → `124 +++`). Import against the committed
+   surface. Both line references below were re-verified accurate the same day: `load_capture_cadence`
+   at **:241**, `inspect_capture_store` at **:644**.
 2. **One line per problem, and nothing at all when everything is clean.** Silence must mean healthy; a daily "all good" trains him to ignore it.
 3. Deliver where he sees it without opening the app: `osascript -e 'display notification ...'` plus a plain-text file at a fixed path. No new dependency.
 4. Schedule **10:30**, after the 10:15 backup, so one run covers 06:15, 06:30, the 09:00 chain and the backup. **It does NOT cover SR-00's 11:30/14:00 retries — by design.** The 10:30 alert reports the morning's state; if a retry then recovers the day, the next morning's alert is silent and the gap invariant confirms it. An alert that waits until 14:30 to report a 09:00 failure is worse than one that reports at 10:30 and is sometimes overtaken by good news.
 5. Cover the failure classes this investigation actually found, by name:
    (a) a store missing yesterday's date;
-   (b) a producer that exited non-zero (SR-07 and SR-09 make this readable);
+   (b) a producer that exited non-zero (SR-07 and SR-09 make this readable) — **but do not arm this
+       class until step 9 lands: one producer exits non-zero on a perfectly healthy morning, every
+       morning, by design;**
    (c) **a chain step recorded `failed` or `skipped_upstream_failed` in the SR-09 report** — from D6 this is how a fail-soft chain stays honest, because a chain that carries on past a failure must still say a failure happened;
-   (d) `app/data/ops/backup_status_latest.json` `status != "completed"` — the marker exists and today reads `completed`, 636 files, 3,107,327,429 bytes; the log shows **40 completed / 9 failed** all-time, an 18% failure rate nobody is told about;
+   (d) `app/data/ops/backup_status_latest.json` `status != "completed"` — the marker exists and today reads `completed`, 636 files, 3,107,327,429 bytes; the log shows **40 completed / 9 failed** all-time, an 18% failure rate nobody is told about
+       — ⚠️ **the 18% figure is STALE and must not be quoted.** The read-only bucket verification of
+       2026-08-22 found the **last failure on 2026-08-05 with 16 consecutive clean runs since**, and
+       the first verified run on the new hardware is `20260822T180700Z` (`sha256_verified: true`,
+       648 files / 3.21 GB). **Re-measure at build time and cite the measurement;**
    (e) `pmset -g sched` no longer showing the 6:00 AM wake (SR-05).
 6. Keep it dumb and dependency-free. An alerting system that can itself fail silently is worse than none.
+7. **Ask launchd whether each job attempted at all — the channel steps 1-6 cannot reach.** For every
+   label under `ops/launchd/*.plist` (**12 today**), run `launchctl print gui/501/<label>` and parse
+   **`runs`** and **`last exit code`**. Report one line each for:
+   **(f) never attempted** — `runs = 0` / `last exit code = (never exited)` on a job whose slot has
+   already passed today. This is the 08-22 class, and **nothing else in this ticket can see it.**
+   **(g) held in the penalty box** — launchd reports the job throttled or held. Say so, and say that
+   **`kickstart` will not clear it** — the operator needs `bootout` + `bootstrap`. This state lives
+   **only in launchd's memory and is destroyed by a reboot**, so an alert that does not read it at
+   10:30 loses the evidence permanently.
+   **(h) the boot-to-login gap** — compare `sysctl -n kern.boottime` against the console login time
+   from `who`. If any of today's scheduled slots fell inside that window, name every job whose slot it
+   was and state plainly that **launchd did not replay them and will not.**
+   **Derive the label list from the plist directory, never from a hand-kept list** — a producer added
+   later without anyone touching this script must not be invisible to it.
+8. **The alert has to survive the conditions it reports on.** It runs at 10:30 on a
+   `StartCalendarInterval` slot, which means **the alert can itself be the thing that did not run** —
+   and on the boot-to-login case it certainly will not have fired. Write a heartbeat line (timestamp
+   only) to the plain-text file on every run, include the alert's own label in the step 7 sweep, and
+   on each successful run check the heartbeat's age and **report a missed self-run retroactively.**
+   A detection channel that can fail silently is the exact failure this ticket exists to end.
+9. **Pin the known-accepted non-zero exits BEFORE arming class 5(b), or this alert cries wolf from day
+   one.** Measured 2026-08-23 10:15:44Z (run `nflverse-usage-20260823T1015...`):
+   `scripts/run_nflverse_usage_capture.py` ends `return 0 if capture_is_healthy(status) else 1`, and
+   `capture_is_healthy` is exactly `status.get("status") == "ok"`. The live marker
+   `app/data/nflverse_usage/nflverse_usage_status_latest.json` reads **`status: failed`**,
+   **`failed_stream: contracts`**, reason `nflverse_unexpected_columns: ... unexpected
+   ['contract_history', 'season_history'] and missing ['cols']`. **`contracts` is the last of 13
+   streams and refuses the upstream shape every single morning** — while that same run captured
+   **36 stream-seasons successfully, including 2026 `depth_charts`.** So this producer **exits 1 daily
+   while doing its job correctly**, and class 5(b) as written fires on it every morning forever. That
+   is precisely the **SR-20 failure — the surface that cries wolf six mornings out of seven —
+   reproduced inside the ticket meant to cure it.**
+   **Required before 5(b) is armed:** a small checked-in pin file of
+   `(producer, accepted_condition, review_date)` — today exactly one row: nflverse / `contracts`. A
+   pinned producer is reported **only** when its failure differs from the pinned condition, so the pin
+   must match on **`failed_stream`, never on exit code alone** — otherwise a real nflverse failure
+   hides behind the pin. **Every pin carries a review date**; a pin with no expiry is how an accepted
+   defect becomes a permanent one.
+   *(Separately, and NOT a substitute: nflverse has **no entry at all** in
+   `app/config/report_freshness.json` — 8 artifacts registered, zero nflverse. Registering it there
+   fixes the **freshness** surface and does nothing for this alert, which reads
+   `app/config/capture_cadence.json`. **These are two different files and two different registries** —
+   an earlier close-out note prescribed "register nflverse in `report_freshness.json`" as the cry-wolf
+   fix, and that is the wrong file for this purpose.)*
 
 **Verification.**
 ```
@@ -630,9 +714,38 @@ Two consequences. The 13-day gap is recoverable by one command (`max(created_at)
 # prove it reads a failure it cannot see today: hand-write a scratch chain report with
 # one step {"exit_code": 1} and one {"status": "skipped_upstream_failed"}
    → names both, one line each
+
+# ---- AMENDED 2026-08-23: the four checks the 08-22 morning demanded ----
+
+# (f) never-attempted — replay the 08-22 counter-example
+launchctl print gui/501/com.davidleess.dynasty-what-changed-report | grep -E 'runs|last exit code'
+   → point the sweep at a scratch label list holding one bootstrapped-but-never-run
+     job whose slot has passed → named, one line. A runs = 0 job MUST NOT pass unnamed.
+
+# (g) penalty box — in-memory state, so capture it BEFORE any reboot
+   → feed a scratch parse a launchctl block showing a throttled/held job
+     → named, and the line says bootout + bootstrap, NOT kickstart
+
+# (h) boot-to-login gap — provable without waiting for another incident
+   → feed a scratch (kern.boottime, who-login) pair spanning a known slot
+     → names every job whose slot fell inside, and says launchd will not replay
+
+# the pin, BOTH directions — this is the SR-20 regression test
+./.venv/bin/python3.14 scripts/run_capture_gap_alert.py --dry-run
+   → SILENT about nflverse while its marker reads status=failed / failed_stream=contracts
+   → NOT silent when a scratch marker reads failed on any OTHER stream
+
+# the alert notices its own absence
+   → age the heartbeat past one day → the next run reports the missed self-run
 ```
 
 **Done looks like.** On a morning where a capture was missed or a chain step failed, David gets a notification naming the store and the date before he opens anything. On a clean morning he gets nothing. **And it exists before SR-09 does.**
+
+**AMENDED 2026-08-23 — and:** on a morning when a job never ran at all — no marker, no log, no exit
+code, because nothing ever spawned — David is told which jobs those were and that launchd will not
+replay them. On a morning when nflverse refuses `contracts` for the two-hundredth time, he is told
+nothing. **This ticket is not done while `--dry-run` says anything at all about nflverse/`contracts`,
+and it is not done while a `runs = 0` job can pass unnamed.**
 
 ---
 
