@@ -172,8 +172,9 @@ class BackupHealth(_Strict):
     """The 26-hour backup law (02 §Standing Infrastructure ruling 3) as facts.
 
     Marker absence, staleness past one daily interval plus grace (26h), a
-    non-completed terminal status, or unearned ``sha256_verified`` each
-    degrade — silence is not success. Descriptive only.
+    ``finished_at`` ahead of now beyond clock skew, a non-completed terminal
+    status, unearned ``sha256_verified``, or a reported failure outside the
+    tolerated set each degrade — silence is not success. Descriptive only.
     """
 
     status: Literal["ok", "degraded"]
@@ -692,6 +693,40 @@ def inspect_capture_store(
 
 BACKUP_STALENESS_THRESHOLD_HOURS = 26
 
+# Marker and reader share a host clock (the producer stamps finished_at from
+# now_utc(); the route reads datetime.now(UTC)), so the only honest gap is NTP
+# skew and the write-to-read latency of a health check racing the marker write.
+# Anything beyond this is not skew — and a future timestamp is not a harmless
+# oddity: staleness is `now - finished_at`, so a future stamp makes the delta
+# negative and the 26-hour law can never fire again while it stands.
+BACKUP_FUTURE_GRACE_SECONDS = 60
+
+# The one failure token the producer can emit beside a SUCCESSFUL run.
+# scripts/backup_irreplaceable_data.py:229 is the only append to the run-level
+# `failures` list that does not sit inside an `except` clause, so it is the only
+# token that can accompany status="completed" — every other one leaves
+# status="failed", which already degrades. A declared-optional file that is
+# absent is tolerated by design (`required: false` still means tolerated), and
+# this repo's steady state carries exactly one such token, so degrading on it
+# would pin this block to "degraded" every day forever and teach the reader to
+# ignore the one surface guarding the disaster floor.
+#
+# Everything else degrades, INCLUDING a token this producer has never emitted.
+# That direction is deliberate: the marker is gitignored, carries no validated
+# schema_version, and has a documented unlocked concurrent writer, so the
+# producer's vocabulary is a convention this consumer cannot assume. Unknown
+# must therefore mean loud, not benign.
+_TOLERATED_FAILURE_PREFIX = "missing_optional:"
+
+
+def _is_tolerated_failure(token: object) -> bool:
+    """Exact prefix plus a non-empty path — never a substring match."""
+    return (
+        isinstance(token, str)
+        and token.startswith(_TOLERATED_FAILURE_PREFIX)
+        and len(token) > len(_TOLERATED_FAILURE_PREFIX)
+    )
+
 
 def _echo_str(value: object) -> str | None:
     return value if isinstance(value, str) else None
@@ -745,8 +780,13 @@ def inspect_backup_marker(*, marker_path: Path, now: datetime) -> BackupHealth:
         return _degraded(["backup_marker_unparseable"], present=True)
 
     reasons: list[str] = []
-    if now - finished_at > timedelta(hours=BACKUP_STALENESS_THRESHOLD_HOURS):
+    age = now - finished_at
+    if age > timedelta(hours=BACKUP_STALENESS_THRESHOLD_HOURS):
         reasons.append("backup_stale")
+    elif age < -timedelta(seconds=BACKUP_FUTURE_GRACE_SECONDS):
+        # Mutually exclusive with staleness by construction: a timestamp cannot
+        # be both ahead of now and more than 26h behind it.
+        reasons.append("backup_marker_future_dated")
     if raw.get("status") != "completed":
         reasons.append("backup_run_failed")
     if raw.get("sha256_verified") is not True:
@@ -758,6 +798,14 @@ def inspect_backup_marker(*, marker_path: Path, now: datetime) -> BackupHealth:
         if isinstance(raw_failures, list)
         else []
     )
+    # A `failures` present but not a list is a malformed marker, and malformed
+    # is not evidence of health. Judge the RAW entries, not the string-filtered
+    # echo, so a non-string entry cannot be dropped into silence.
+    if raw_failures is not None and (
+        not isinstance(raw_failures, list)
+        or any(not _is_tolerated_failure(item) for item in raw_failures)
+    ):
+        reasons.append("backup_failures_present")
     marker = BackupMarkerEcho(
         run_id=_echo_str(raw.get("run_id")),
         status=_echo_str(raw.get("status")),

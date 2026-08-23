@@ -62,8 +62,9 @@ export const zBackupMarkerEcho = z.object({
  * The 26-hour backup law (02 §Standing Infrastructure ruling 3) as facts.
  *
  * Marker absence, staleness past one daily interval plus grace (26h), a
- * non-completed terminal status, or unearned ``sha256_verified`` each
- * degrade — silence is not success. Descriptive only.
+ * ``finished_at`` ahead of now beyond clock skew, a non-completed terminal
+ * status, unearned ``sha256_verified``, or a reported failure outside the
+ * tolerated set each degrade — silence is not success. Descriptive only.
  */
 export const zBackupHealth = z.object({
     decision_supported: z.literal(false),

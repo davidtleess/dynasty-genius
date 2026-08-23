@@ -97,7 +97,7 @@
       },
       "BackupHealth": {
         "additionalProperties": false,
-        "description": "The 26-hour backup law (02 \u00a7Standing Infrastructure ruling 3) as facts.\n\nMarker absence, staleness past one daily interval plus grace (26h), a\nnon-completed terminal status, or unearned ``sha256_verified`` each\ndegrade \u2014 silence is not success. Descriptive only.",
+        "description": "The 26-hour backup law (02 \u00a7Standing Infrastructure ruling 3) as facts.\n\nMarker absence, staleness past one daily interval plus grace (26h), a\n``finished_at`` ahead of now beyond clock skew, a non-completed terminal\nstatus, unearned ``sha256_verified``, or a reported failure outside the\ntolerated set each degrade \u2014 silence is not success. Descriptive only.",
         "properties": {
           "decision_supported": {
             "const": false,
