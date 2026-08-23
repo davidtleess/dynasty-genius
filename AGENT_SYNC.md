@@ -11,6 +11,62 @@
 > Tower owns Studio's separate protection channel. Incidental pane-list working-directory metadata
 > is not a breach; routing to Studio, reading from it, or acting on it is.
 
+> # ⏹ 2026-08-23 — SR-11 SPEC AMENDED (MIG-1) · DG-035 SCOPED INTO IT · THE TICKET BOARD IS NOW BACKED UP
+>
+> **Ledger: `docs/agent-ledger/2026-08-23.md`.** No seat claimed (`tty` = not a tty, no tmux server).
+> **Tier 0 — documents and git only.** No code, no launchd, no model output, no product artifact.
+>
+> **⚠️ SR-11 IS STILL NOT STARTED AND IS STILL NEXT (D4). Its spec changed today; its state did not.**
+>
+> **SR-11 AMENDED — as written it would have reported 2026-08-22 CLEAN.** Steps 1-6 read stores,
+> markers, exit codes and logs; a job that never spawned writes **none of those four**. New **steps
+> 7-9** add a second detection channel reading launchd directly (`launchctl print gui/501/<label>` →
+> `runs`, `last exit code`), covering **never-attempted**, **the penalty box** (in-memory only, dies
+> at reboot, `kickstart` does NOT clear it — only `bootout` + `bootstrap`) and **the boot-to-login
+> gap** (`kern.boottime` vs `who`). Label list derived from `ops/launchd/*.plist`, never hand-kept.
+> **Step 8** gives the alert a heartbeat — at 10:30 it is itself a `StartCalendarInterval` job and on
+> this exact failure **will not have fired either**. **1.0d → 1.5d; COMMITTED 10.00 → 10.50; buffer
+> 1.00d → 0.50d.** Pushed `25760c7`.
+>
+> **🚨 MEASURED 2026-08-23 10:15:44Z — step 9 blocks failure class 5(b) until pins exist.**
+> `run_nflverse_usage_capture.py` ends `return 0 if capture_is_healthy(status) else 1`, and
+> `capture_is_healthy` is exactly `status == "ok"`. The live marker reads **`status: failed`,
+> `failed_stream: contracts`** — while the SAME run captured **36 stream-seasons successfully,
+> including 2026 `depth_charts`**. That producer **exits 1 every morning while working correctly**, so
+> class 5(b) as written cries wolf daily and forever — **the SR-20 failure reproduced inside the
+> ticket meant to cure it.** The pin must match on **`failed_stream`, never exit code alone**, or a
+> real nflverse failure hides behind it.
+>
+> **⛔ CORRECTION — TWO REGISTRIES, DO NOT CONFLATE.** The 08-22 close-out prescribed "register
+> nflverse in `report_freshness.json`" as the cry-wolf fix. **Wrong file for that purpose.**
+> `load_capture_cadence` validates `config.stores` and reads **`app/config/capture_cadence.json`**;
+> `report_freshness.json` is a separate **artifact** registry (8 artifacts, **zero** nflverse).
+> Registering there fixes the freshness surface and does nothing for the alert. Both are now in the spec.
+>
+> **🔒 BLOCKER RE-MEASURED, STILL OPEN, AND IT GATES SR-11's START.** The other lane's **+124
+> uncommitted lines** in `app/api/routes/system_capture_health_models.py` are **still uncommitted as
+> of 2026-08-23**. SR-10a names this an explicit do-not-start blocker and **SR-11 step 1 imports from
+> that same module.** Its `:241` / `:644` refs re-verified accurate. **Not an agent's call to override.**
+>
+> **NOT a finding (checked, discarded):** `capture_cadence.json` declaring only two stores is already
+> measured and deliberately deferred by SR-10a to **SR-10b (off-season)**. What survives is narrower —
+> that deferral leaves *did-the-job-run* unowned, which the new launchd channel closes.
+>
+> **✅ `~/dg-build` IS BACKED UP — "backed up NOWHERE" is RESOLVED.** Private remote
+> **`github.com/davidtleess/dg-build`** created and pushed; **all 35 tickets + `SEASON-BRIEF.md` on
+> `origin/main`**. `DG-031` had been **untracked** while `BOARD.md` records it done/merged in PR #159.
+> Credential-scanned before publishing — clean. **Still absent from `backup_manifest.json`, and that
+> is now correct**: it is code, and the three-copy architecture puts code on GitHub. The `dg-cockpit`
+> mirror at DG-034 is **superseded, not repaired.** `bin/dg-work.sh` (+30/-1) deliberately left
+> uncommitted — another lane's in-flight tooling.
+>
+> **DG-035 updated** (`68f40cc`): option **(b)** is **SCOPED INTO SR-11, NOT BUILT** — it closes when
+> SR-11 ships and names a `runs = 0` job in a dry run. Option **(a)** (LaunchDaemons — the only route
+> that *removes* the login dependency rather than reporting on it) **remains open, Tier 2, David's call.**
+>
+> **STILL OPEN, UNOWNED:** the offsite archive's **14-day horizon** — the declared 365-day `archive/`
+> tier has never existed. **Rollback 14 days, detection latency unbounded** until SR-11 ships.
+
 > # ⏹ 2026-08-22 15:00 HARDWARE MIGRATION INCIDENT — NEW MAC IS THE HEARTBEAT · SCHEDULER REPAIRED · FIRST VERIFIED BACKUP
 >
 > **Full postflight: `docs/agent-ledger/2026-08-22.md`, second session block.** Tier 2 — launchd
