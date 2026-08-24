@@ -6,6 +6,7 @@ import type { z } from "zod";
 
 import type { zPlayerDetailResponse } from "../lib/api/zod.gen";
 import { EvidenceSection } from "./EvidenceSection";
+import { FrozenPredictionStatus } from "./FrozenPredictionStatus";
 import "./PlayerDetail.css";
 import { ValuationTwoLane } from "./ValuationTwoLane";
 
@@ -39,6 +40,8 @@ export function PlayerDetailCard({ detail }: { detail: PlayerDetail }) {
           {detail.degradation?.message && <p>{detail.degradation.message}</p>}
         </div>
       )}
+
+      <FrozenPredictionStatus frozen={detail.frozen_prediction} />
 
       <ValuationTwoLane
         model={detail.model}

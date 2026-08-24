@@ -22,6 +22,19 @@ function playerDetail() {
       risk_flags: { caveats: [], items: [] },
       top_drivers: { caveats: [], items: ["age window"] },
     },
+    frozen_prediction: {
+      basis: "model_supported_prediction_captured",
+      coverage: {
+        current_rostered_skill_in_frozen_prediction_cohort_count: 221,
+        current_rostered_skill_not_in_frozen_prediction_cohort_count: 53,
+        current_rostered_skill_player_count: 274,
+      },
+      decision_supported: false,
+      frozen_capture_date: "2026-08-05",
+      message: "A model prediction was frozen for 2026 outcome evaluation.",
+      season: 2026,
+      status: "included",
+    },
     identity: {
       age: 22,
       draft_class: 2026,

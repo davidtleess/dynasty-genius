@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import type { z } from "zod";
 
 import { zPlayerDetailResponse } from "../lib/api/zod.gen";
+import { FrozenPredictionStatus } from "./FrozenPredictionStatus";
 
 type PlayerDetail = z.infer<typeof zPlayerDetailResponse>;
 type PreviewState =
@@ -37,6 +38,7 @@ function NeutralPreview({ detail }: { detail: PlayerDetail }) {
       <p className="dg-player-inspector__market">
         {marketAvailable ? "Market available" : "Market unavailable"}
       </p>
+      <FrozenPredictionStatus frozen={detail.frozen_prediction} compact />
       {evidence && (
         <>
           <p className="dg-player-inspector__counts">

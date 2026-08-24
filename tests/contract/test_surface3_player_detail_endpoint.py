@@ -38,7 +38,36 @@ def _response_keys(value: object) -> set[str]:
     return set()
 
 
-def _client(monkeypatch, *, pvo: dict[str, Any], divergence: dict[str, Any]) -> TestClient:
+def _frozen_prediction(
+    *,
+    status: str = "unavailable",
+    basis: str = "store_unavailable_or_ambiguous",
+    message: str = "Frozen prediction membership is currently unavailable.",
+    included: int = 0,
+    excluded: int = 1,
+) -> dict[str, Any]:
+    return {
+        "season": 2026,
+        "frozen_capture_date": "2026-08-05",
+        "status": status,
+        "basis": basis,
+        "message": message,
+        "coverage": {
+            "current_rostered_skill_player_count": included + excluded,
+            "current_rostered_skill_in_frozen_prediction_cohort_count": included,
+            "current_rostered_skill_not_in_frozen_prediction_cohort_count": excluded,
+        },
+        "decision_supported": False,
+    }
+
+
+def _client(
+    monkeypatch,
+    *,
+    pvo: dict[str, Any],
+    divergence: dict[str, Any],
+    frozen_prediction: dict[str, Any] | None = None,
+) -> TestClient:
     monkeypatch.setattr(
         players_route,
         "_load_player_detail_artifacts",
@@ -49,6 +78,12 @@ def _client(monkeypatch, *, pvo: dict[str, Any], divergence: dict[str, Any]) -> 
         players_route,
         "_load_market_divergence_artifact",
         lambda: divergence,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        players_route,
+        "_load_frozen_prediction_membership",
+        lambda _sleeper_id, _rostered_ids: frozen_prediction or _frozen_prediction(),
         raising=False,
     )
     app = FastAPI()
@@ -161,6 +196,50 @@ def _divergence(
 def test_player_detail_named_loader_seams_exist() -> None:
     assert hasattr(players_route, "_load_player_detail_artifacts")
     assert hasattr(players_route, "_load_market_divergence_artifact")
+    assert hasattr(players_route, "_load_frozen_prediction_membership")
+
+
+def test_current_pre_model_can_still_be_in_frozen_prediction_cohort(monkeypatch) -> None:
+    frozen = _frozen_prediction(
+        status="included",
+        basis="model_supported_prediction_captured",
+        message="A model prediction was frozen for 2026 outcome evaluation.",
+        included=1,
+        excluded=0,
+    )
+    client = _client(
+        monkeypatch,
+        pvo=_pvo(_pvo_row(engine_path="PRE_MODEL")),
+        divergence=_divergence(),
+        frozen_prediction=frozen,
+    )
+
+    data = client.get("/api/players/13269").json()
+
+    assert data["model_status"] == "experimental"
+    assert data["frozen_prediction"]["status"] == "included"
+    assert data["frozen_prediction"]["basis"] == "model_supported_prediction_captured"
+
+
+def test_current_modeled_player_can_be_outside_frozen_prediction_cohort(monkeypatch) -> None:
+    frozen = _frozen_prediction(
+        status="not_in_frozen_prediction_cohort",
+        basis="non_model_route_at_freeze",
+        message="No model prediction was frozen for 2026 outcome evaluation.",
+        included=218,
+        excluded=54,
+    )
+    client = _client(
+        monkeypatch,
+        pvo=_pvo(_pvo_row(engine_path="ENGINE_B")),
+        divergence=_divergence(),
+        frozen_prediction=frozen,
+    )
+
+    data = client.get("/api/players/13269").json()
+
+    assert data["model_status"] == "modeled"
+    assert data["frozen_prediction"] == frozen
 
 
 def test_modeled_player_returns_full_shell_with_mapped_model_market_and_evidence(
