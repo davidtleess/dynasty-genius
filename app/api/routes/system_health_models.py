@@ -523,6 +523,21 @@ def evaluate_report_freshness(
             )
             if fact.embedded_timestamp_value is not None:
                 observed_at = fact.embedded_timestamp_value
+            elif fact.mtime is not None:
+                # DG-033: the same mtime fallback the freshness arm uses at the
+                # `else:` below. Without it, an artifact that declares
+                # `status_field` but no `timestamp_field` — pvo_refresh is the
+                # first — reports a failure with no clock at all, and the card
+                # renders "no observable timestamp". A run that died twenty
+                # minutes ago and one that died twenty days ago then look
+                # identical, which is the opposite of what a failure row is for.
+                # The producer rewrote this file as it aborted, so its mtime is
+                # the failure's own timestamp, not a stale proxy.
+                mtime = fact.mtime
+                if mtime.tzinfo is None:
+                    mtime = mtime.replace(tzinfo=tz)
+                observed_at = mtime.isoformat()
+                disclosures.append("timestamp_source:mtime_fallback")
         # ── substance gate: AFTER the producer status, BEFORE freshness ──────
         # Ordering is the contract, exactly as it is for the status gate above. A
         # successful, punctual run built on empty or cached inputs is precisely what

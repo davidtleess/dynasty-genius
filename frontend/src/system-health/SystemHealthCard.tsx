@@ -198,7 +198,11 @@ function reportStatusCountLabel(status: ReportRow["status"]): string {
     case "missing":
       return "no data";
     case "producer_failed":
-      return "daily divergence sync failed";
+      // A COUNT label, so it has to read correctly at any n: the line renders
+      // `${count} ${label}` (:183). "2 run failed" is ungrammatical; every
+      // sibling here is a phrase that survives counting ("pending",
+      // "unreadable", "no data"), and this one now matches them.
+      return "failed";
     // fresh / stale / dormant already read as plain words.
     default:
       return status;
@@ -374,6 +378,15 @@ function subsystemStatusLabel(status: SubsystemRow["status"]): string {
 // names no date, because the contract carries no last-successful-run timestamp;
 // `observed_at` here is when the run FAILED, and printing that as "last
 // successful" would be the build-clock lie this whole change removed.
+//
+// DG-033: it also names no SUBSYSTEM. It used to say "Daily divergence sync
+// failed. Showing margins from the last successful sync." for every artifact,
+// so an aborted pvo_refresh — rendered one span away as "Model valuations" —
+// told the manager a different subsystem had broken. The row already carries
+// its own name and timestamp; the sentence only has to be true of all of them.
+// It also stops short of asserting WHICH values are on screen: a pvo capture-
+// stage abort (run_pvo_refresh.py:429, :558) publishes its runtime, while a
+// refresh- or publish-stage abort (:345, :388, :492) restores the prior one.
 function reportStatusLabel(status: ReportRow["status"]): string {
   switch (status) {
     case "fresh":
@@ -389,7 +402,7 @@ function reportStatusLabel(status: ReportRow["status"]): string {
     case "missing":
       return "No data recorded";
     case "producer_failed":
-      return "Daily divergence sync failed. Showing margins from the last successful sync.";
+      return "Last run failed. Earlier values may still be in use.";
     default:
       return status;
   }

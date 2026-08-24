@@ -241,16 +241,47 @@ describe("SystemHealthCard RED contract", () => {
     );
 
     const card = await screen.findByRole("status", { name: "Data freshness" });
-    expect(within(card).getByText(/1 daily divergence sync failed/i)).toBeTruthy();
+    expect(within(card).getByText(/1 failed/i)).toBeTruthy();
     expect(card.textContent).not.toContain("producer_failed");
     const row = await screen.findByTestId("health-report-market_divergence");
     expect(row.getAttribute("data-health-status")).toBe("producer_failed");
     expect(row.getAttribute("data-severity")).toBe("degraded");
     expect(
-      within(row).getByText(
-        "Daily divergence sync failed. Showing margins from the last successful sync.",
-      ),
+      within(row).getByText("Last run failed. Earlier values may still be in use."),
     ).toBeTruthy();
+  });
+
+  it("names the failing artifact without blaming a different subsystem (DG-033)", async () => {
+    // The producer_failed copy hardcoded "daily divergence sync failed" for EVERY
+    // artifact. pvo_refresh renders as "Model valuations", so an aborted valuation
+    // run told the manager the divergence sync broke and that they were looking at
+    // last-good margins — wrong subsystem, wrong claim. DG-033 declares
+    // pvo_refresh's status_field, which is what makes this row reachable at all.
+    await renderCard(
+      healthResponse({
+        overall_status: "degraded",
+        reports: [
+          report({
+            artifact_id: "pvo_refresh",
+            artifact_path: "app/data/model_capture/pvo_refresh_latest_report.json",
+            basis: "producer_failure:refresh stage raised",
+            producer: "scripts/run_pvo_refresh.py",
+            status: "producer_failed",
+            tier: "core_substrate",
+          }),
+        ],
+        worst_affected_tier: "core_substrate",
+      }),
+    );
+
+    const row = await screen.findByTestId("health-report-pvo_refresh");
+    expect(within(row).getByText("Model valuations")).toBeTruthy();
+    expect(row.textContent).not.toMatch(/divergence/i);
+    expect(row.textContent).not.toMatch(/margins/i);
+
+    const card = await screen.findByRole("status", { name: "Data freshness" });
+    expect(card.textContent).not.toMatch(/divergence/i);
+    expect(card.textContent).not.toContain("producer_failed");
   });
 
   it("leads degraded collapsed copy with the worst affected tier and exposes tier severity attributes", async () => {

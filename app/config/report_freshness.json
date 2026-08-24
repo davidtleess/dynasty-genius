@@ -21,13 +21,16 @@
           12,
           1
         ]
-      }
+      },
+      "status_field": "status",
+      "success_status": "ok",
+      "failure_reason_field": "aborted_reason"
     },
     {
       "artifact_id": "feature_refresh",
       "path": "app/data/features_runtime/feature_refresh_latest_report.json",
       "producer": "scripts/run_feature_refresh.py",
-      "cadence": "weekly",
+      "cadence": "daily",
       "scheduled_time_local": "09:15",
       "grace_hours": 3,
       "tier": "daily_diagnostics",
@@ -43,7 +46,13 @@
           12,
           1
         ]
-      }
+      },
+      "status_field": "status",
+      "success_status": [
+        "ok",
+        "noop"
+      ],
+      "failure_reason_field": "blocked_reason"
     },
     {
       "artifact_id": "what_changed",
