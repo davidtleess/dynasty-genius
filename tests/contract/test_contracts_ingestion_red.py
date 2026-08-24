@@ -20,6 +20,15 @@ MEASURED LIVE 2026-08-05 (`nflreadpy 0.1.5`):
   All 45,875 non-null `cols` lists: numeric years ascending and unique, every list ending in
   exactly one non-numeric token 'Total'. `year` is NOT always numeric; never sort the list.
 
+RE-MEASURED 2026-08-24 (DG-040 — upstream DATA release changed shape; `nflreadpy` still 0.1.5):
+  51,994 source rows / 26 columns. `cols` is now published as `season_history` — the SAME 13
+  fields, same trailing 'Total' row — plus a genuinely new `contract_history` List(Struct) of
+  11 fields. Census over the full 2026-08-24 raw blob: ONE homogeneous top-level keyset across
+  all 51,994 records; every one of 3,243,422 entries per nested column carries its exact field
+  set; 62 records are null in BOTH nested columns; `is_active` bool everywhere; zero integer or
+  non-finite violations. The fixture is sliced from that retained blob by
+  docs/agent-ledger/evidence/2026-08-24/build_contracts_fixture_claude_v2.py.
+
 Imports are lazy: an unbuilt symbol at module level is a COLLECTION error and the standing
 invariant is zero collection errors.
 """
@@ -37,12 +46,20 @@ FIXTURE = REPO_ROOT / "tests" / "fixtures" / "contracts_slice.json"
 MANIFEST = REPO_ROOT / "tests" / "fixtures" / "contracts_slice_manifest.json"
 
 STREAM = "contracts"
-EXPECTED_COLUMN_COUNT = 25
-NESTED_FIELDS = (
+EXPECTED_COLUMN_COUNT = 26
+SEASON_HISTORY_FIELDS = (
     "year", "team", "base_salary", "prorated_bonus", "roster_bonus", "guaranteed_salary",
     "cap_number", "cap_percent", "cash_paid", "workout_bonus", "other_bonus",
     "per_game_roster_bonus", "option_bonus",
 )
+CONTRACT_HISTORY_FIELDS = (
+    "team", "contract_type", "status", "year_signed", "yrs", "total", "apy", "guarantees",
+    "amount_earned", "percent_earned", "effective_apy",
+)
+NESTED_BY_COLUMN = {
+    "season_history": SEASON_HISTORY_FIELDS,
+    "contract_history": CONTRACT_HISTORY_FIELDS,
+}
 EXPECTED_INTEGERS = ("year_signed", "years", "otc_id", "draft_year", "draft_round",
                      "draft_overall")
 EXPECTED_FLOATS = ("value", "apy", "guaranteed", "apy_cap_pct", "inflated_value",
@@ -88,13 +105,14 @@ def identity():
 
 #: Columns EXCLUDED from the content digest — capture and derived identity metadata only.
 #: Pinned here so the test computes the oracle itself rather than calling production (S3).
-#: T4: an ALLOW-LIST of the pinned 25 source columns, not a metadata deny-list. A deny-list
+#: T4: an ALLOW-LIST of the pinned 26 source columns, not a metadata deny-list. A deny-list
 #: silently admits any new column the provider or our own pipeline adds.
 DIGEST_COLUMNS = (
     "player", "position", "team", "is_active", "year_signed", "years", "value", "apy",
     "guaranteed", "apy_cap_pct", "inflated_value", "inflated_apy", "inflated_guaranteed",
     "player_page", "otc_id", "gsis_id", "date_of_birth", "height", "weight", "college",
-    "draft_year", "draft_round", "draft_overall", "draft_team", "cols",
+    "draft_year", "draft_round", "draft_overall", "draft_team", "season_history",
+    "contract_history",
 )
 
 
@@ -156,8 +174,9 @@ def test_the_fixture_exercises_every_contract_path(manifest) -> None:
     assert manifest["exact_duplicate_excess"] >= 1, "collapse path untested"
     assert manifest["null_gsis_rows"] >= 1, "unknown-identity path untested"
     assert manifest["year_signed_zero_rows"] >= 1, "the 1,106 zero rows are unrepresented"
-    assert manifest["null_cols_rows"] >= 1, "SQL-NULL cols path untested"
-    assert manifest["every_list_ends_in_total"] is True
+    assert manifest["null_season_history_rows"] >= 1, "SQL-NULL season_history path untested"
+    assert manifest["null_contract_history_rows"] >= 1, "SQL-NULL contract_history path untested"
+    assert manifest["every_season_list_ends_in_total"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -193,21 +212,27 @@ def test_the_snapshot_spec_declares_no_min_season() -> None:
     assert _spec().min_season is None
 
 
-def test_all_twenty_five_columns_are_type_pinned(rows) -> None:
+def test_all_twenty_six_columns_are_type_pinned(rows) -> None:
     spec = _spec()
     assert set(spec.columns) == set(rows[0])
     assert len(spec.columns) == EXPECTED_COLUMN_COUNT
     assert set(spec.integer_columns) == set(EXPECTED_INTEGERS)
     assert set(spec.float_columns) == set(EXPECTED_FLOATS)
     assert set(spec.boolean_columns) == set(EXPECTED_BOOLEANS)
-    assert "cols" in getattr(spec, "json_columns", ()), "the nested column must be declared JSON"
+    assert set(getattr(spec, "json_columns", ())) == set(NESTED_BY_COLUMN), (
+        "both nested columns must be declared JSON"
+    )
+    for column, fields in NESTED_BY_COLUMN.items():
+        assert set(spec.nested_fields.get(column, ())) == set(fields), (
+            f"{column} nested fields diverge from the measured upstream shape"
+        )
 
 
-def test_the_emitted_parquet_reconciles_all_twenty_five_columns(
+def test_the_emitted_parquet_reconciles_all_twenty_six_columns(
     tmp_path, rows, identity
 ) -> None:
     """R2: the declaration test pins the SPEC. This reads the EMITTED contracts.parquet and
-    reconciles dtype AND non-null counts for every one of the 25 columns — the fixtures
+    reconciles dtype AND non-null counts for every one of the 26 columns — the fixtures
     happened to carry the right Python types, so a declaration-only assertion cannot see a
     publisher that types correctly while dropping values."""
     import polars as pl
@@ -225,7 +250,8 @@ def test_the_emitted_parquet_reconciles_all_twenty_five_columns(
         assert dtypes[column] == pl.Float64, f"{column} published as {dtypes[column]}"
     for column in EXPECTED_BOOLEANS:
         assert dtypes[column] == pl.Boolean, f"{column} published as {dtypes[column]}"
-    assert dtypes["cols"] == pl.Utf8, "the nested column publishes as canonical JSON text"
+    for column in NESTED_BY_COLUMN:
+        assert dtypes[column] == pl.Utf8, f"{column} must publish as canonical JSON text"
     # T2: the ten strings were unpinned, so categorical/enum output carrying identical Python
     # values would pass. Metadata columns too.
     for column in EXPECTED_STRINGS:
@@ -234,7 +260,7 @@ def test_the_emitted_parquet_reconciles_all_twenty_five_columns(
         assert dtypes[column] == pl.Utf8, f"{column} published as {dtypes[column]}, not Utf8"
 
     # S2: an earlier version checked 15 of 25 columns and only NON-NULL COUNTS, so replacing
-    # every value with another non-null value passed. Reconcile EXACT VALUES for ALL 25.
+    # every value with another non-null value passed. Reconcile EXACT VALUES for ALL 26.
     mod = _mod()
     normalized, _ = mod.normalize_rows(
         [dict(r) for r in rows], spec=_spec(), season=None, identity=identity
@@ -565,24 +591,30 @@ def test_the_row_digest_matches_a_test_side_oracle_for_every_row(
         )
 
 
-def test_a_change_confined_to_the_nested_column_changes_the_digest(rows, identity) -> None:
-    """S3: without this, `cols` could be excluded from the digest and two contracts differing
-    only in year-by-year cap detail would share an identity."""
+@pytest.mark.parametrize(
+    ("column", "mutable_field"),
+    [("season_history", "base_salary"), ("contract_history", "total")],
+)
+def test_a_change_confined_to_a_nested_column_changes_the_digest(
+    rows, identity, column, mutable_field
+) -> None:
+    """S3: without this, a nested column could be excluded from the digest and two contracts
+    differing only in year-by-year cap detail (or contract history) would share an identity."""
     mod = _mod()
     spec = _spec()
     base, _ = mod.normalize_rows(
         [dict(r) for r in rows], spec=spec, season=None, identity=identity
     )
     mutated_rows = [dict(r) for r in rows]
-    target = next(i for i, r in enumerate(mutated_rows) if r.get("cols"))
-    changed = [dict(e) for e in mutated_rows[target]["cols"]]
-    changed[0] = {**changed[0], "base_salary": (changed[0]["base_salary"] or 0) + 1.0}
-    mutated_rows[target]["cols"] = changed
+    target = next(i for i, r in enumerate(mutated_rows) if r.get(column))
+    changed = [dict(e) for e in mutated_rows[target][column]]
+    changed[0] = {**changed[0], mutable_field: (changed[0][mutable_field] or 0) + 1.0}
+    mutated_rows[target][column] = changed
     mutated, _ = mod.normalize_rows(
         mutated_rows, spec=spec, season=None, identity=identity
     )
     assert {r["content_sha256"] for r in base} != {r["content_sha256"] for r in mutated}, (
-        "a change confined to the nested column did not change any row digest"
+        f"a change confined to {column} did not change any row digest"
     )
 
 
@@ -917,7 +949,8 @@ def test_an_empty_snapshot_is_durable_and_typed(tmp_path, identity) -> None:
         assert dtypes[column] == pl.Float64
     for column in EXPECTED_BOOLEANS:
         assert dtypes[column] == pl.Boolean
-    assert dtypes["cols"] == pl.Utf8
+    for column in NESTED_BY_COLUMN:
+        assert dtypes[column] == pl.Utf8
     for column in EXPECTED_STRINGS:
         assert dtypes[column] == pl.Utf8, f"empty snapshot: {column} is {dtypes[column]}"
     for column in ("content_sha256", "snapshot_id", "observed_at"):
@@ -1235,38 +1268,51 @@ def test_the_nested_column_round_trips_against_the_source_deeply(
     for row in source:
         expected_by_digest.setdefault(_test_side_digest(_normalized_view(row)), row)
 
-    matched = nulls = 0
+    matched = {column: 0 for column in NESTED_BY_COLUMN}
+    nulls = {column: 0 for column in NESTED_BY_COLUMN}
     for row in normalized:
         origin = expected_by_digest.get(row["content_sha256"])
         assert origin is not None, (
             f"normalized row {row['content_sha256'][:12]} pairs to no source row"
         )
-        expected, stored = origin.get("cols"), row["cols"]
-        if expected is None:
-            assert stored is None
-            nulls += 1
-            continue
-        parsed = json.loads(stored)
-        assert parsed == expected, "nested round-trip diverged"
-        assert [e["year"] for e in parsed] == [e["year"] for e in expected]
-        for got, want in zip(parsed, expected):
-            assert set(got) == set(NESTED_FIELDS)
-            for field in NESTED_FIELDS:
-                assert got[field] == want[field]
-                assert type(got[field]) is type(want[field])
-        matched += 1
+        for column, fields in NESTED_BY_COLUMN.items():
+            expected, stored = origin.get(column), row[column]
+            if expected is None:
+                assert stored is None
+                nulls[column] += 1
+                continue
+            parsed = json.loads(stored)
+            assert parsed == expected, f"{column} round-trip diverged"
+            for got, want in zip(parsed, expected):
+                assert set(got) == set(fields)
+                for field in fields:
+                    assert got[field] == want[field]
+                    assert type(got[field]) is type(want[field])
+            matched[column] += 1
+        # season_history order carries meaning (the trailing 'Total'); pin it explicitly.
+        if origin.get("season_history") is not None:
+            assert (
+                [e["year"] for e in json.loads(row["season_history"])]
+                == [e["year"] for e in origin["season_history"]]
+            )
 
-    assert matched + nulls == len(normalized), "not every normalized row was reconciled"
-    assert matched >= 1 and nulls >= 1, "both the populated and null cols paths must run"
+    for column in NESTED_BY_COLUMN:
+        assert matched[column] + nulls[column] == len(normalized), (
+            f"not every normalized row was reconciled for {column}"
+        )
+        assert matched[column] >= 1 and nulls[column] >= 1, (
+            f"both the populated and null {column} paths must run"
+        )
 
 
 def _normalized_view(source_row: dict) -> dict:
-    """The source row as the digest should see it: cols as canonical JSON, nothing else."""
+    """The source row as the digest should see it: nested lists as canonical JSON, nothing else."""
     view = dict(source_row)
-    if view.get("cols") is not None:
-        view["cols"] = json.dumps(
-            view["cols"], sort_keys=True, separators=(",", ":"), allow_nan=False
-        )
+    for column in NESTED_BY_COLUMN:
+        if view.get(column) is not None:
+            view[column] = json.dumps(
+                view[column], sort_keys=True, separators=(",", ":"), allow_nan=False
+            )
     return view
 
 
@@ -1276,8 +1322,8 @@ def test_the_encoder_accepts_a_polars_series_not_only_a_python_list(rows) -> Non
     import polars as pl
 
     mod = _mod()
-    payload = next(r["cols"] for r in rows if r.get("cols"))
-    series = pl.Series("cols", [payload]).explode()
+    payload = next(r["season_history"] for r in rows if r.get("season_history"))
+    series = pl.Series("season_history", [payload]).explode()
     encoded = mod.encode_nested_json(series)
     assert json.loads(encoded) == payload, "Series conversion must preserve structure and order"
 
@@ -1285,7 +1331,9 @@ def test_the_encoder_accepts_a_polars_series_not_only_a_python_list(rows) -> Non
 def test_the_encoder_refuses_a_non_json_scalar_rather_than_stringifying(rows) -> None:
     """No `default=` fallback anywhere. An unexpected type RAISES."""
     mod = _mod()
-    payload = [dict(e) for e in next(r["cols"] for r in rows if r.get("cols"))]
+    payload = [
+        dict(e) for e in next(r["season_history"] for r in rows if r.get("season_history"))
+    ]
     payload[0]["base_salary"] = object()
     with pytest.raises((mod.UsageCaptureError, TypeError)):
         mod.encode_nested_json(payload)
@@ -1298,28 +1346,33 @@ def test_a_null_nested_column_is_sql_null_not_the_string_null(
     normalized, _ = mod.normalize_rows(
         [dict(r) for r in rows], spec=_spec(), season=None, identity=identity
     )
-    nulls = [r for r in normalized if r["cols"] is None]
-    assert nulls, "the fixture must exercise a null cols row"
-    assert not any(r["cols"] == "null" for r in normalized)
+    for column in NESTED_BY_COLUMN:
+        nulls = [r for r in normalized if r[column] is None]
+        assert nulls, f"the fixture must exercise a null {column} row"
+        assert not any(r[column] == "null" for r in normalized)
 
 
-def test_a_nested_shape_that_is_not_thirteen_fields_refuses(rows, identity) -> None:
-    """Codex: validate the plain value is a list of mappings with exactly 13 fields and
-    JSON-compatible types, THEN strict JSON. No fallback coercion."""
+@pytest.mark.parametrize("column", sorted(NESTED_BY_COLUMN))
+def test_a_nested_shape_that_is_not_the_declared_fields_refuses(
+    rows, identity, column
+) -> None:
+    """Codex: validate the plain value is a list of mappings with exactly the declared fields
+    and JSON-compatible types, THEN strict JSON. No fallback coercion."""
     mod = _mod()
     mutated = [dict(r) for r in rows]
-    target = next(i for i, r in enumerate(mutated) if r.get("cols"))
-    mutated[target]["cols"] = [{"year": "2024"}]
-    with pytest.raises(mod.UsageCaptureError, match="nested|cols"):
+    target = next(i for i, r in enumerate(mutated) if r.get(column))
+    mutated[target][column] = [{"year": "2024"}]
+    with pytest.raises(mod.UsageCaptureError, match="nested"):
         mod.normalize_rows(mutated, spec=_spec(), season=None, identity=identity)
 
 
-def test_a_non_json_compatible_nested_value_refuses(rows, identity) -> None:
+@pytest.mark.parametrize("column", sorted(NESTED_BY_COLUMN))
+def test_a_non_json_compatible_nested_value_refuses(rows, identity, column) -> None:
     mod = _mod()
     mutated = [dict(r) for r in rows]
-    target = next(i for i, r in enumerate(mutated) if r.get("cols"))
-    mutated[target]["cols"] = "not a list"
-    with pytest.raises(mod.UsageCaptureError, match="nested|cols"):
+    target = next(i for i, r in enumerate(mutated) if r.get(column))
+    mutated[target][column] = "not a list"
+    with pytest.raises(mod.UsageCaptureError, match="nested"):
         mod.normalize_rows(mutated, spec=_spec(), season=None, identity=identity)
 
 
@@ -1907,3 +1960,46 @@ def test_the_exact_column_diagnostic_names_both_sets_by_value(
     reason = _reason(exc)
     assert f"record {index} has unexpected {expected_unexpected}" in reason, reason
     assert f"and missing {expected_missing}" in reason, reason
+
+
+# ---------------------------------------------------------------------------
+# DG-040 — the 2026-08 upstream rename (`cols` -> `season_history` + new `contract_history`)
+# ---------------------------------------------------------------------------
+
+
+def test_dg040_the_pre_rename_shape_refuses_by_name(rows, identity) -> None:
+    """The gate that caught this drift must keep working in the other direction: a payload in
+    the RETIRED 2026-08-05 shape (`cols`, no history columns) is drift now, and it must refuse
+    with the record index and both offending sets named — never be silently accepted or nulled.
+    Live incident of record: every scheduled run of the 06:15 capture, 2026-08-21 through
+    2026-08-24, failed at exactly this gate in the opposite direction."""
+    mod = _mod()
+    old_shape = []
+    for r in rows[:3]:
+        row = {k: v for k, v in r.items() if k not in NESTED_BY_COLUMN}
+        row["cols"] = r.get("season_history")
+        old_shape.append(row)
+    with pytest.raises(mod.UsageCaptureError) as excinfo:
+        mod.normalize_rows(old_shape, spec=_spec(), season=None, identity=identity)
+    message = str(excinfo.value)
+    assert "nflverse_unexpected_columns" in message
+    assert "cols" in message and "season_history" in message and "contract_history" in message
+
+
+def test_dg040_a_row_null_in_both_nested_columns_stores_sql_null(
+    tmp_path, rows, identity
+) -> None:
+    """Measured 2026-08-24: 62 upstream rows are null in BOTH nested columns. They must store
+    as SQL NULL — never the string "null" — and still be captured, not dropped."""
+    target = [dict(r) for r in rows if r.get("season_history") is None]
+    assert target, "fixture must carry the measured null-in-both row"
+    assert all(r.get("contract_history") is None for r in target), (
+        "the 2026-08-24 measurement says null season_history implies null contract_history"
+    )
+    mod = _mod()
+    normalized, _ = mod.normalize_rows(
+        target, spec=_spec(), season=None, identity=identity
+    )
+    for row in normalized:
+        assert row["season_history"] is None
+        assert row["contract_history"] is None
