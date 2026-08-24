@@ -38,6 +38,19 @@ function modeledDetail(overrides = {}) {
         items: ["age window", "draft capital"],
       },
     },
+    frozen_prediction: {
+      basis: "model_supported_prediction_captured",
+      coverage: {
+        current_rostered_skill_in_frozen_prediction_cohort_count: 221,
+        current_rostered_skill_not_in_frozen_prediction_cohort_count: 53,
+        current_rostered_skill_player_count: 274,
+      },
+      decision_supported: false,
+      frozen_capture_date: "2026-08-05",
+      message: "A model prediction was frozen for 2026 outcome evaluation.",
+      season: 2026,
+      status: "included",
+    },
     identity: {
       age: 22,
       draft_class: 2026,
@@ -193,6 +206,31 @@ describe("PlayerInspector neutral preview", () => {
     expect(within(inspector).getByText("Market unavailable")).toBeTruthy();
     expect(within(inspector).queryByText(/evidence incomplete/i)).toBeNull();
     expect(within(inspector).queryByText(/dynasty value score/i)).toBeNull();
+  });
+
+  it("previews frozen evaluation membership separately from current modeled state", async () => {
+    mockPlayerDetail(
+      modeledDetail({
+        frozen_prediction: {
+          basis: "non_model_route_at_freeze",
+          coverage: {
+            current_rostered_skill_in_frozen_prediction_cohort_count: 221,
+            current_rostered_skill_not_in_frozen_prediction_cohort_count: 53,
+            current_rostered_skill_player_count: 274,
+          },
+          decision_supported: false,
+          frozen_capture_date: "2026-08-05",
+          message: "No model prediction was frozen for 2026 outcome evaluation.",
+          season: 2026,
+          status: "not_in_frozen_prediction_cohort",
+        },
+      }),
+    );
+
+    const inspector = renderInspector();
+
+    expect(await within(inspector).findByText("Modeled")).toBeTruthy();
+    expect(within(inspector).getByText("Not in 2026 model snapshot")).toBeTruthy();
   });
 
   it("degrades partial detail into status and presence labels without fabricating data", async () => {

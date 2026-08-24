@@ -18,6 +18,9 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from src.dynasty_genius.outcome_loop.frozen_prediction_membership import (
+    resolve_frozen_prediction_membership,
+)
 from src.dynasty_genius.pvo_source import (
     PvoSourceNotReadyError,
     resolve_pvo_source,
@@ -36,6 +39,11 @@ MARKET_DIVERGENCE_PATH = (
     ROOT / "app" / "data" / "valuation" / "universe_market_divergence_latest.json"
 )
 BANNED_VOCAB_PATH = ROOT / "frontend" / "src" / "shell" / "banned_vocabulary.json"
+FROZEN_PREDICTION_DECLARATION_PATH = (
+    ROOT / "app" / "config" / "realized_outcome_frozen_predictions.json"
+)
+MODEL_FORWARD_CAPTURE_DB = ROOT / "app" / "data" / "model_forward_capture.db"
+FROZEN_PREDICTION_SEASON = 2026
 
 MODELED_ENGINE_PATHS = {"ENGINE_A", "ENGINE_B", "BLEND_AB"}
 
@@ -111,6 +119,33 @@ class DegradationField(BaseModel):
     message: str
 
 
+class FrozenPredictionCoverage(BaseModel):
+    current_rostered_skill_player_count: int
+    current_rostered_skill_in_frozen_prediction_cohort_count: int
+    current_rostered_skill_not_in_frozen_prediction_cohort_count: int
+
+
+class FrozenPredictionField(BaseModel):
+    season: int
+    frozen_capture_date: str | None
+    status: Literal[
+        "included",
+        "not_in_frozen_prediction_cohort",
+        "prediction_capture_incomplete",
+        "unavailable",
+    ]
+    basis: Literal[
+        "model_supported_prediction_captured",
+        "non_model_route_at_freeze",
+        "not_present_in_frozen_universe",
+        "prediction_capture_incomplete",
+        "store_unavailable_or_ambiguous",
+    ]
+    message: str
+    coverage: FrozenPredictionCoverage | None
+    decision_supported: Literal[False] = False
+
+
 class PlayerDetailResponse(BaseModel):
     sleeper_id: str
     identity: PlayerIdentity
@@ -119,6 +154,7 @@ class PlayerDetailResponse(BaseModel):
     evidence: PlayerEvidence | None
     market: PlayerMarketLane
     divergence: DivergenceField
+    frozen_prediction: FrozenPredictionField
     degradation: DegradationField | None
     source_timestamps: dict[str, str | None]
     caveats: list[str] = []
@@ -150,6 +186,18 @@ def _load_player_detail_artifacts() -> dict[str, Any]:
 def _load_market_divergence_artifact() -> dict[str, Any]:
     with open(MARKET_DIVERGENCE_PATH) as handle:
         return json.load(handle)
+
+
+def _load_frozen_prediction_membership(
+    sleeper_id: str, current_rostered_skill_sleeper_ids: list[str]
+) -> dict[str, Any]:
+    return resolve_frozen_prediction_membership(
+        sleeper_id,
+        season=FROZEN_PREDICTION_SEASON,
+        declaration_path=FROZEN_PREDICTION_DECLARATION_PATH,
+        db_path=MODEL_FORWARD_CAPTURE_DB,
+        current_rostered_skill_sleeper_ids=current_rostered_skill_sleeper_ids,
+    )
 
 
 @lru_cache(maxsize=1)
@@ -195,6 +243,18 @@ def _find_row(artifact: dict[str, Any], sleeper_id: str) -> dict[str, Any] | Non
         if str(row.get("sleeper_player_id")) == sleeper_id:
             return row
     return None
+
+
+def _current_rostered_skill_sleeper_ids(artifact: dict[str, Any]) -> list[str]:
+    skill_positions = {"QB", "RB", "WR", "TE"}
+    return [
+        str(row.get("sleeper_player_id"))
+        for row in artifact.get("players") or []
+        if (row.get("league_context") or {}).get("rostered") is True
+        and str((row.get("player") or {}).get("position") or "").upper()
+        in skill_positions
+        and row.get("sleeper_player_id") is not None
+    ]
 
 
 def _market_and_divergence(
@@ -261,6 +321,11 @@ def get_player_detail(sleeper_id: str) -> PlayerDetailResponse:
 
     divergence_artifact = _load_market_divergence_artifact()
     market, divergence = _market_and_divergence(divergence_artifact, sleeper_id)
+    frozen_prediction = FrozenPredictionField.model_validate(
+        _load_frozen_prediction_membership(
+            sleeper_id, _current_rostered_skill_sleeper_ids(pvo)
+        )
+    )
 
     if modeled:
         model: PlayerModelLane | None = PlayerModelLane(
@@ -309,6 +374,7 @@ def get_player_detail(sleeper_id: str) -> PlayerDetailResponse:
         evidence=evidence,
         market=market,
         divergence=divergence,
+        frozen_prediction=frozen_prediction,
         degradation=degradation,
         source_timestamps={
             "pvo": pvo.get("captured_at"),

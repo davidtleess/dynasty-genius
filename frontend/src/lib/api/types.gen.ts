@@ -699,6 +699,55 @@ export type FoldResult = {
 };
 
 /**
+ * FrozenPredictionCoverage
+ */
+export type FrozenPredictionCoverage = {
+    /**
+     * Current Rostered Skill In Frozen Prediction Cohort Count
+     */
+    current_rostered_skill_in_frozen_prediction_cohort_count: number;
+    /**
+     * Current Rostered Skill Not In Frozen Prediction Cohort Count
+     */
+    current_rostered_skill_not_in_frozen_prediction_cohort_count: number;
+    /**
+     * Current Rostered Skill Player Count
+     */
+    current_rostered_skill_player_count: number;
+};
+
+/**
+ * FrozenPredictionField
+ */
+export type FrozenPredictionField = {
+    /**
+     * Basis
+     */
+    basis: 'model_supported_prediction_captured' | 'non_model_route_at_freeze' | 'not_present_in_frozen_universe' | 'prediction_capture_incomplete' | 'store_unavailable_or_ambiguous';
+    coverage: FrozenPredictionCoverage | null;
+    /**
+     * Decision Supported
+     */
+    decision_supported?: false;
+    /**
+     * Frozen Capture Date
+     */
+    frozen_capture_date: string | null;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Season
+     */
+    season: number;
+    /**
+     * Status
+     */
+    status: 'included' | 'not_in_frozen_prediction_cohort' | 'prediction_capture_incomplete' | 'unavailable';
+};
+
+/**
  * GateResult
  */
 export type GateResult = {
@@ -1823,6 +1872,7 @@ export type PlayerDetailResponse = {
     degradation: DegradationField | null;
     divergence: DivergenceField;
     evidence: PlayerEvidence | null;
+    frozen_prediction: FrozenPredictionField;
     identity: PlayerIdentity;
     market: PlayerMarketLane;
     model: PlayerModelLane | null;

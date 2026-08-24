@@ -1245,6 +1245,99 @@
         "title": "FoldResult",
         "type": "object"
       },
+      "FrozenPredictionCoverage": {
+        "properties": {
+          "current_rostered_skill_in_frozen_prediction_cohort_count": {
+            "title": "Current Rostered Skill In Frozen Prediction Cohort Count",
+            "type": "integer"
+          },
+          "current_rostered_skill_not_in_frozen_prediction_cohort_count": {
+            "title": "Current Rostered Skill Not In Frozen Prediction Cohort Count",
+            "type": "integer"
+          },
+          "current_rostered_skill_player_count": {
+            "title": "Current Rostered Skill Player Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "current_rostered_skill_player_count",
+          "current_rostered_skill_in_frozen_prediction_cohort_count",
+          "current_rostered_skill_not_in_frozen_prediction_cohort_count"
+        ],
+        "title": "FrozenPredictionCoverage",
+        "type": "object"
+      },
+      "FrozenPredictionField": {
+        "properties": {
+          "basis": {
+            "enum": [
+              "model_supported_prediction_captured",
+              "non_model_route_at_freeze",
+              "not_present_in_frozen_universe",
+              "prediction_capture_incomplete",
+              "store_unavailable_or_ambiguous"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FrozenPredictionCoverage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision_supported": {
+            "const": false,
+            "default": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "frozen_capture_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frozen Capture Date"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "season": {
+            "title": "Season",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "included",
+              "not_in_frozen_prediction_cohort",
+              "prediction_capture_incomplete",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "season",
+          "frozen_capture_date",
+          "status",
+          "basis",
+          "message",
+          "coverage"
+        ],
+        "title": "FrozenPredictionField",
+        "type": "object"
+      },
       "GateResult": {
         "properties": {
           "g1_rank_correlation_pass": {
@@ -3171,6 +3264,9 @@
               }
             ]
           },
+          "frozen_prediction": {
+            "$ref": "#/components/schemas/FrozenPredictionField"
+          },
           "identity": {
             "$ref": "#/components/schemas/PlayerIdentity"
           },
@@ -3218,6 +3314,7 @@
           "evidence",
           "market",
           "divergence",
+          "frozen_prediction",
           "degradation",
           "source_timestamps"
         ],

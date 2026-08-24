@@ -256,6 +256,39 @@ export const zEvidenceListField = z.object({
 });
 
 /**
+ * FrozenPredictionCoverage
+ */
+export const zFrozenPredictionCoverage = z.object({
+    current_rostered_skill_in_frozen_prediction_cohort_count: z.int(),
+    current_rostered_skill_not_in_frozen_prediction_cohort_count: z.int(),
+    current_rostered_skill_player_count: z.int()
+});
+
+/**
+ * FrozenPredictionField
+ */
+export const zFrozenPredictionField = z.object({
+    basis: z.enum([
+        'model_supported_prediction_captured',
+        'non_model_route_at_freeze',
+        'not_present_in_frozen_universe',
+        'prediction_capture_incomplete',
+        'store_unavailable_or_ambiguous'
+    ]),
+    coverage: zFrozenPredictionCoverage.nullable(),
+    decision_supported: z.literal(false).optional().default(false),
+    frozen_capture_date: z.string().nullable(),
+    message: z.string(),
+    season: z.int(),
+    status: z.enum([
+        'included',
+        'not_in_frozen_prediction_cohort',
+        'prediction_capture_incomplete',
+        'unavailable'
+    ])
+});
+
+/**
  * LeaguePulseCapacityCandidate
  *
  * One descriptive roster-capacity candidate. No nomination: the surface
@@ -767,6 +800,7 @@ export const zPlayerDetailResponse = z.object({
     degradation: zDegradationField.nullable(),
     divergence: zDivergenceField,
     evidence: zPlayerEvidence.nullable(),
+    frozen_prediction: zFrozenPredictionField,
     identity: zPlayerIdentity,
     market: zPlayerMarketLane,
     model: zPlayerModelLane.nullable(),
