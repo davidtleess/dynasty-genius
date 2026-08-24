@@ -66,7 +66,7 @@ def test_blend_caveat_present_when_blend_fires():
 
 
 def test_blend_single_engine_fallback():
-    """5.10: Dead Window with no Engine A inputs -> dvs_engine != 'blend', DW caveat present."""
+    """5.10: Dead Window with no Engine A inputs -> dvs_engine is None, no Engine A prior caveat."""
     identity = _mock_identity("WR")
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
@@ -74,8 +74,25 @@ def test_blend_single_engine_fallback():
         "feature_season": 2024,
     }
     pvo = assemble_pvo(identity, features)
-    assert pvo.dvs_engine != "blend"
+    assert pvo.dvs_engine is None
     assert pvo.dynasty_value_score is None
-    assert any("Engine A prospect score used as prior" in c for c in pvo.caveats), (
-        f"Expected DW caveat in caveats, got: {pvo.caveats}"
+    assert not any("Engine A prospect score used as prior" in c for c in pvo.caveats), (
+        f"Unexpected false DW caveat in caveats, got: {pvo.caveats}"
     )
+
+
+def test_dg021_no_engine_a_prior_removes_false_attribution_and_caveat():
+    """DG-021: Veteran / dead-window player with no Engine A prospect score must not carry dvs_engine='A' or false prior caveat."""
+    identity = _mock_identity("RB")
+    features = {
+        "engine_b_score": {"predicted_avg_ppg_t1_t2": 8.5, "engine": "test_v2"},
+        "games_t": 2,
+        "feature_season": 2024,
+    }
+    pvo = assemble_pvo(identity, features)
+    assert pvo.dynasty_value_score is None
+    assert pvo.dvs_engine is None
+    assert pvo.dvs_p90_ref is None
+    assert pvo.dvs_clamped is None
+    assert not any("Engine A prospect score used as prior" in c for c in pvo.caveats)
+

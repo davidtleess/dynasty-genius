@@ -444,7 +444,7 @@ def assemble_pvo(
                 )
                 if _blend_caveat not in caveats:
                     caveats.append(_blend_caveat)
-            elif engine_a_result:
+            elif engine_a_result and engine_a_result.get("dynasty_value_score") is not None:
                 # Single-engine fallback: Engine A prior only (n=0 or B inputs absent).
                 dynasty_value_score = engine_a_result["dynasty_value_score"]
                 dvs_engine = "A"
@@ -457,14 +457,11 @@ def assemble_pvo(
                 if _dw_caveat not in caveats:
                     caveats.append(_dw_caveat)
             else:
-                # Spec 3.4: no A or B — DVS = None; dvs_engine = 'A' as provenance marker.
+                # Dead window with no Engine A prior: no DVS produced, no Engine A attribution.
                 dynasty_value_score = None
-                dvs_engine = "A"
-                _dw_caveat = (
-                    "Insufficient professional season data — Engine A prospect score used as prior"
-                )
-                if _dw_caveat not in caveats:
-                    caveats.append(_dw_caveat)
+                dvs_engine = None
+                dvs_p90_ref_val = None
+                dvs_clamped_val = None
 
         # TE-specific caveat: G3 (market superiority) deferred; decision_supported = False.
         if pos_upper == "TE" and model_grade == "ACTIVE_B":
