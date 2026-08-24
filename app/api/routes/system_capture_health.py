@@ -47,6 +47,7 @@ _CLOCK: Callable[[], datetime] = _now_utc
 # Resolved against _REPO_ROOT at request time so tests that monkeypatch
 # _REPO_ROOT never read the real gitignored ops marker.
 _BACKUP_MARKER_RELPATH = Path("app/data/ops/backup_status_latest.json")
+_BACKUP_SENTINEL_RELPATH = Path("app/data/ops/backup_run_active.json")
 
 _SANITIZED_MESSAGE = "capture health configuration unavailable"
 
@@ -87,7 +88,9 @@ def get_capture_health():
         for store_config in config.stores
     ]
     backup = inspect_backup_marker(
-        marker_path=_REPO_ROOT / _BACKUP_MARKER_RELPATH, now=now
+        marker_path=_REPO_ROOT / _BACKUP_MARKER_RELPATH,
+        now=now,
+        sentinel_path=_REPO_ROOT / _BACKUP_SENTINEL_RELPATH,
     )
     overall = (
         "degraded"

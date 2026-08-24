@@ -38,6 +38,20 @@ from typing import Any, Callable
 # loadable so the committed backup test fixtures remain valid.
 ACCEPTED_SCHEMA_VERSIONS = {"backup_manifest.v1", "backup_manifest.v2"}
 MARKER_REL_PATH = "app/data/ops/backup_status_latest.json"
+# The marker answers "how did the last run that PUBLISHED go?". This answers
+# "how did the last run that STARTED go?" — and the two diverge exactly when a
+# run begins and never publishes: killed process, machine asleep mid-upload, or
+# a marker write that itself fails. Two have happened here and are on the record:
+# docs/agent-ledger/2026-08-01.md:460-463 (a manual run killed mid-flight), and
+# the 2026-08-12 scheduled run, which app/data/logs/backup_irreplaceable.out.log
+# skips entirely between 20260811T141500Z and 20260813T143035Z.
+#
+# It is written once at run start and NEVER deleted — the next run overwrites it.
+# Deleting on success would add a step that can fail on a run that otherwise
+# succeeded (a false alarm), would need the very disk space a full-disk failure
+# denies, and would destroy the only local record that a run began. Overwriting
+# is idempotent, self-healing, and needs nothing to go right at cleanup time.
+SENTINEL_REL_PATH = "app/data/ops/backup_run_active.json"
 ALLOWED_ROOTS = ("app/data", "app/config")
 _MANIFEST_KEYS = {"schema_version", "required", "optional", "exclude_paths", "exclusions"}
 _ENTRY_KEYS = {"path", "required", "kind"}
@@ -197,6 +211,30 @@ def run_backup(
     inventory: list[dict[str, Any]] = []
     failures: list[str] = []
     status = "failed"
+
+    # Before any work that can die. A bookkeeping failure must never cancel a
+    # 3.2 GB backup of irreplaceable stores, so this records the problem and
+    # carries on: data safety outranks marker honesty when the two conflict.
+    sentinel_path = repo_root / SENTINEL_REL_PATH
+    try:
+        sentinel_path.parent.mkdir(parents=True, exist_ok=True)
+        sentinel_path.write_text(
+            json.dumps(
+                {
+                    "run_id": run_id,
+                    "started_at": started.isoformat(),
+                    # So the reader can ask "is that run still going?" instead of
+                    # guessing from elapsed time alone. A dead pid is the fastest
+                    # honest answer available; on 2026-08-12 it would have named
+                    # the failure hours before the 26-hour law did.
+                    "pid": os.getpid(),
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+    except OSError:
+        failures.append("sentinel_write_failed")
 
     try:
         try:
@@ -399,6 +437,10 @@ def run_backup(
         failures.append("marker_write_failed")
         marker["status"] = status
         marker["sha256_verified"] = False
+        # `run_prefix` is gated on status where the dict is BUILT, so a run that
+        # completed and then could not publish still carries the live gs:// URI
+        # that gate exists to withhold. Reset it with the rest of the verdict.
+        marker["run_prefix"] = None
 
     return {**marker, "exit_code": 0 if status == "completed" else 1}
 
