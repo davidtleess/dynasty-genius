@@ -1112,16 +1112,28 @@ DEPTH_CHARTS = StreamSpec(
 #
 # `year_signed == 0` on 1,106 rows: preserved literally, no meaning inferred.
 # `is_active` is Boolean upstream and must be declared, or it publishes as text.
-# `cols` is List(Struct) of 13 cap fields; SQLite cannot hold it, so it is canonical
-# JSON with the order preserved exactly — never sorted, and `year` is not always
-# numeric (every one of 45,875 lists ends in a non-numeric 'Total').
+#
+# RE-MEASURED 2026-08-24 (DG-040): the upstream DATA release changed shape between
+# 2026-08-08 and 2026-08-21 with `nflreadpy` unchanged at 0.1.5. `cols` — List(Struct)
+# of 13 cap fields — is now published as `season_history`: the SAME 13 fields, order
+# still meaningful and never sorted, `year` still not always numeric (every non-null
+# list ends in a non-numeric 'Total'). A genuinely new `contract_history` List(Struct)
+# of 11 fields arrived beside it. Census over the full 2026-08-24 raw blob (51,994
+# records): ONE homogeneous 26-key top-level shape, every nested entry exactly on its
+# declared field set, 62 records null in BOTH nested columns. SQLite cannot hold
+# either list, so both are canonical JSON with order preserved exactly.
+#
+# The store's legacy `cols` column keeps the 2026-08-08 vintages; the two new columns
+# arrive via the explicit `UsageStore.migrate_additive_columns` path. No reader of
+# `cols` exists outside this module (verified 2026-08-24 by grep over src/, app/api/,
+# scripts/), so nothing consumes across the rename boundary.
 
 _CONTRACTS_COLUMNS = (
     'player', 'position', 'team', 'is_active', 'year_signed', 'years', 'value',
     'apy', 'guaranteed', 'apy_cap_pct', 'inflated_value', 'inflated_apy',
     'inflated_guaranteed', 'player_page', 'otc_id', 'gsis_id', 'date_of_birth',
     'height', 'weight', 'college', 'draft_year', 'draft_round', 'draft_overall',
-    'draft_team', 'cols',
+    'draft_team', 'season_history', 'contract_history',
 )
 
 CONTRACTS = StreamSpec(
@@ -1137,14 +1149,18 @@ CONTRACTS = StreamSpec(
     integer_columns=('year_signed', 'years', 'otc_id', 'draft_year', 'draft_round', 'draft_overall'),
     float_columns=('value', 'apy', 'guaranteed', 'apy_cap_pct', 'inflated_value', 'inflated_apy', 'inflated_guaranteed'),
     boolean_columns=('is_active',),
-    json_columns=("cols",),
+    json_columns=("season_history", "contract_history"),
     refuse_unexpected_columns=True,
     nested_fields={
-        "cols": (
+        "season_history": (
             "year", "team", "base_salary", "prorated_bonus", "roster_bonus",
             "guaranteed_salary", "cap_number", "cap_percent", "cash_paid", "workout_bonus",
             "other_bonus", "per_game_roster_bonus", "option_bonus",
-        )
+        ),
+        "contract_history": (
+            "team", "contract_type", "status", "year_signed", "yrs", "total", "apy",
+            "guarantees", "amount_earned", "percent_earned", "effective_apy",
+        ),
     },
     collapse_exact_duplicates=True,
     refuse_non_finite=True,
