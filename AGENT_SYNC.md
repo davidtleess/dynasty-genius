@@ -43,10 +43,14 @@
 > `report_freshness.json` is a separate **artifact** registry (8 artifacts, **zero** nflverse).
 > Registering there fixes the freshness surface and does nothing for the alert. Both are now in the spec.
 >
-> **🔒 BLOCKER RE-MEASURED, STILL OPEN, AND IT GATES SR-11's START.** The other lane's **+124
-> uncommitted lines** in `app/api/routes/system_capture_health_models.py` are **still uncommitted as
-> of 2026-08-23**. SR-10a names this an explicit do-not-start blocker and **SR-11 step 1 imports from
-> that same module.** Its `:241` / `:644` refs re-verified accurate. **Not an agent's call to override.**
+> **🔓 BLOCKER CLOSED 2026-08-23 — SR-11 IS NO LONGER GATED. Struck by a later session; the text
+> below is kept only so the change is visible.** ~~BLOCKER RE-MEASURED, STILL OPEN, AND IT GATES
+> SR-11's START. The other lane's +124 uncommitted lines in
+> `app/api/routes/system_capture_health_models.py` are still uncommitted as of 2026-08-23.~~
+> Those lines were committed at 10:17 as `2c793603` and amended at 19:35 by `52e7dfc9` (DG-034).
+> `git status --porcelain app/api/routes/system_capture_health_models.py` is **empty**. Nothing in
+> that module is uncommitted and **SR-11 may start.** Leaving this banner as it stood was telling the
+> next lane not to begin, for a reason that had already been removed.
 >
 > **NOT a finding (checked, discarded):** `capture_cadence.json` declaring only two stores is already
 > measured and deliberately deferred by SR-10a to **SR-10b (off-season)**. What survives is narrower —
@@ -57,8 +61,10 @@
 > `origin/main`**. `DG-031` had been **untracked** while `BOARD.md` records it done/merged in PR #159.
 > Credential-scanned before publishing — clean. **Still absent from `backup_manifest.json`, and that
 > is now correct**: it is code, and the three-copy architecture puts code on GitHub. The `dg-cockpit`
-> mirror at DG-034 is **superseded, not repaired.** `bin/dg-work.sh` (+30/-1) deliberately left
-> uncommitted — another lane's in-flight tooling.
+> mirror at DG-034 is **superseded, not repaired.** ~~`bin/dg-work.sh` (+30/-1) deliberately left
+> uncommitted — another lane's in-flight tooling.~~ **Superseded 2026-08-23:** taken over on David's
+> word and committed as `7e568c2` (DG-037). Its `skip-worktree` half is superseded; its exclude half
+> wrote to `rev-parse --git-dir`, which git never reads, and never did anything.
 >
 > **DG-035 updated** (`68f40cc`): option **(b)** is **SCOPED INTO SR-11, NOT BUILT** — it closes when
 > SR-11 ships and names a `runs = 0` job in a dry run. Option **(a)** (LaunchDaemons — the only route
@@ -335,7 +341,17 @@
 > the opening bootstrap hook by Tower at 06:37 (`16a1e54`). The old `R1/R2/A7` vocabulary maps on:
 > R1 = **DG-021**, R2 = **DG-022**, both held by `CodexTeam20260819`.
 >
-> **✅ SHIPPED — the tooling deadlock that stopped EVERY lane landing anything.** `dg-work.sh`
+> **❌ FALSIFIED 2026-08-23 — this did NOT ship and the deadlock was never fixed. See DG-037.**
+> The per-worktree `$GIT_DIR/info/exclude` written below is **a path git never reads**: in a worktree
+> `rev-parse --git-dir` is `.git/worktrees/<T>/`, while git reads `--git-common-dir`. That half did
+> nothing while printing `landable : 72 phantom deletions skip-worktree'd`, which read as success.
+> Only the `skip-worktree` half ever worked. Three symlinks stayed untracked, so `dg-land.sh` still
+> refused every tree — and it could not have run regardless, because it died opening its own lock at
+> `:33` (`$REPO/.git` is a FILE; the product repo is itself a linked worktree). **`dg-land.sh` had
+> never once run to completion.** Genuinely fixed 2026-08-23 by `7e568c2` in `dg-build`, verified by
+> `dg-land.sh --dry-run` reaching `✔ rebase clean, tests pass` at 6270 passed. Original text follows.
+>
+> ~~**✅ SHIPPED — the tooling deadlock that stopped EVERY lane landing anything.**~~ `dg-work.sh`
 > symlinks 16 shared paths into each ticket worktree; `dg-land.sh` refuses on **any** non-empty
 > `git status --porcelain`. Two classes of false dirt resulted, both artifacts of `dg-work.sh`:
 > (1) three shared paths (`app/data/backtest`, `identity`, `sources`) contain **tracked** files and
