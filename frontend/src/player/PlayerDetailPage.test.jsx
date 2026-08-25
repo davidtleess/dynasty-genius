@@ -294,6 +294,12 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
         "221 of 274 current rostered skill players were included.",
       ),
     ).toBeTruthy();
+    // The card's full section is THE "<season> model evaluation" landmark —
+    // exactly one on the page (the inspector's compact preview must not mint
+    // a duplicate; axe landmark-unique, measured 2026-08-25).
+    expect(
+      within(card).getByRole("region", { name: "2026 model evaluation" }),
+    ).toBeTruthy();
   });
 
   it("can show a frozen prediction for a player who is unmodeled now", async () => {

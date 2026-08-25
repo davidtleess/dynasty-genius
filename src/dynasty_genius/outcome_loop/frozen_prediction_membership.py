@@ -7,6 +7,7 @@ changing capture, scorer, or identity eligibility.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import math
 import sqlite3
@@ -215,7 +216,9 @@ def resolve_frozen_prediction_membership(
 
     try:
         uri = f"file:{Path(db_path).resolve().as_posix()}?mode=ro"
-        with sqlite3.connect(uri, uri=True) as conn:
+        # closing(), not the bare connection context: `with conn` only ends the
+        # transaction and leaks the handle until GC (same idiom as the scorer).
+        with contextlib.closing(sqlite3.connect(uri, uri=True)) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 _MEMBERSHIP_QUERY, (capture_date, source, str(sleeper_id))

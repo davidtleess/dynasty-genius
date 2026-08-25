@@ -235,6 +235,26 @@ def test_joinable_row_without_captured_prediction_is_incomplete(tmp_path: Path) 
     assert result["basis"] == "prediction_capture_incomplete"
 
 
+def test_captured_status_with_null_projection_is_incomplete(tmp_path: Path) -> None:
+    # Pin added at rebase (2026-08-25): this arm was reachable but unpinned.
+    # The store coerces a non-finite projection to None at write while keeping
+    # status="captured", so captured+None is a live shape, not a hypothetical.
+    db_path = _database(tmp_path / "capture.db")
+    _insert(
+        db_path,
+        sleeper_id="captured-null",
+        engine_path="ENGINE_B",
+        joinable=True,
+        prediction_status="captured",
+        projection_2y=None,
+    )
+
+    result = _resolve(tmp_path, "captured-null")
+
+    assert result["status"] == "prediction_capture_incomplete"
+    assert result["basis"] == "prediction_capture_incomplete"
+
+
 def test_incomplete_status_with_finite_projection_fails_closed(tmp_path: Path) -> None:
     db_path = _database(tmp_path / "capture.db")
     _insert(

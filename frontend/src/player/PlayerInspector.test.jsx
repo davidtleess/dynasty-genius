@@ -233,6 +233,20 @@ describe("PlayerInspector neutral preview", () => {
     expect(within(inspector).getByText("Not in 2026 model snapshot")).toBeTruthy();
   });
 
+  it("renders the compact frozen preview without a region landmark", async () => {
+    // The full detail card owns the "<season> model evaluation" region; a
+    // second landmark with the same name from the compact preview is an
+    // axe landmark-unique violation (measured on the real surface 2026-08-25).
+    mockPlayerDetail(modeledDetail());
+
+    const inspector = renderInspector();
+
+    expect(await within(inspector).findByText("Modeled")).toBeTruthy();
+    expect(
+      within(inspector).queryByRole("region", { name: /model evaluation/i }),
+    ).toBeNull();
+  });
+
   it("degrades partial detail into status and presence labels without fabricating data", async () => {
     mockPlayerDetail(partialDetail());
 

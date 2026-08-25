@@ -28,9 +28,20 @@ export function FrozenPredictionStatus({
 }) {
   const coverage = frozen.coverage;
 
+  // Compact renders inline inside the inspector, which sits beside the full
+  // card — a second region landmark named "<season> model evaluation" is an
+  // axe landmark-unique violation, so only the full section is a landmark.
+  if (compact) {
+    return (
+      <div className="dg-frozen-prediction dg-frozen-prediction--compact">
+        <p className="dg-frozen-prediction__state">{stateLabel(frozen)}</p>
+      </div>
+    );
+  }
+
   return (
     <section
-      className={`dg-frozen-prediction${compact ? " dg-frozen-prediction--compact" : ""}`}
+      className="dg-frozen-prediction"
       aria-label={`${frozen.season} model evaluation`}
     >
       {!compact && (
