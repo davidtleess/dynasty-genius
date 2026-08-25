@@ -49,12 +49,24 @@ _MIN_TOTAL_ROWS = 4
 _MIN_POSITION_ROWS = {"QB": 1, "RB": 1, "WR": 1, "TE": 1}
 
 
+# (name, loader attr, season floor, source ceiling). DG-041: a ceiling is a
+# structural bound of the SOURCE, not an outage — `load_participation` refuses
+# anything past `get_current_season(roster=True) - 1` by its own first line
+# ("participation only available on a historical basis"), so asking for the
+# current season is a guaranteed ValueError, a recorded fallback, and a false
+# "inputs_degraded" on every scheduled run. Capping the request keeps
+# `fallback_used` meaning *something happened*.
 _STREAM_LOADERS = (
-    ("player_stats", "load_player_stats", None),
-    ("rosters", "load_rosters", None),
-    ("snap_counts", "load_snap_counts", None),
-    ("pbp", "load_pbp", None),
-    ("participation", "load_participation", 2019),
+    ("player_stats", "load_player_stats", None, None),
+    ("rosters", "load_rosters", None, None),
+    ("snap_counts", "load_snap_counts", None, None),
+    ("pbp", "load_pbp", None, None),
+    (
+        "participation",
+        "load_participation",
+        2019,
+        lambda nfl: nfl.get_current_season(roster=True) - 1,
+    ),
 )
 
 
@@ -152,8 +164,9 @@ def _load_source(seasons_window: list[int] | None) -> dict:
     """Lazily load the full upstream source frame set (nflreadpy) for the shared builder.
 
     Loads every frame `build_engine_b_features` consumes so the regenerated candidate is
-    fully scoreable. Participation is only available from 2019 on, so it is scoped to the
-    in-window seasons >= 2019. The real invocation is David-gated (T3 catch-up run).
+    fully scoreable. Participation is only available from 2019 on and only through the
+    last completed roster season, so it is scoped to the in-window seasons its source
+    can actually serve (DG-041). The real invocation is David-gated (T3 catch-up run).
     """
     import nflreadpy as nfl  # lazy: keep standalone import light + optional
 
@@ -161,8 +174,13 @@ def _load_source(seasons_window: list[int] | None) -> dict:
     ng_seasons = [s for s in window if s >= 2016]
     sources: dict = {}
     provenance: dict = {}
-    for name, attr, floor in _STREAM_LOADERS:
-        stream_window = [s for s in window if floor is None or s >= floor]
+    for name, attr, floor, source_ceiling in _STREAM_LOADERS:
+        cap = source_ceiling(nfl) if source_ceiling is not None else None
+        stream_window = [
+            s
+            for s in window
+            if (floor is None or s >= floor) and (cap is None or s <= cap)
+        ]
         sources[name], provenance[name] = _load_stream_isolated(nfl, attr, stream_window)
     # F3: refuse when ANY of the five is still unavailable after its bounded attempts.
     # A schema-less empty frame is NOT a safe substitute for a required stream: the real
