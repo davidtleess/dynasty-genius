@@ -106,6 +106,35 @@ DVS_BLEND_K: dict[str, int] = {
 # with explicit caveat, or stay PRE_MODEL if Engine A data is also absent.
 ENGINE_B_MIN_GAMES_T: int = 8
 
+# ── PPG season-type ruling (DG-024, David 2026-08-19) ────────────────────────
+# David ruled, verbatim, "all games" — Engine B's points-per-game counts every
+# game a player played, POSTSEASON INCLUDED. `fetch_and_agg_stats` therefore has
+# no `season_type` filter, and that absence is CORRECT BY DECISION, NOT A DEFECT.
+# If you are reading this because you found the missing filter and thought it was
+# a bug: it is not, and this is the record. That misreading has happened once.
+#
+# What the ruling does NOT license is silence when the world moves. Preseason is
+# absent from `load_player_stats` because nflverse does not publish it there — an
+# upstream behaviour, not an invariant this repo enforces. The ruled set below is
+# the enforcement: an unruled season type RAISES and names itself, so David is
+# asked rather than having his ruling silently reinterpreted. A silent filter
+# would overturn the ruling; a loud failure escalates it.
+PPG_RULED_SEASON_TYPES: frozenset[str] = frozenset({"REG", "POST"})
+
+# Secondary tripwire: the most games a player can appear in under the ruled set.
+# 17 regular-season games (18 week-slots, one bye) + 4 postseason games. Measured
+# 2026-08-25 against engine_b_features_v2.csv: max 21, p99 20.
+#
+# This is the WEAKER of the two checks and must not be mistaken for a second
+# guarantee. `games_t` counts DISTINCT WEEKS, and POST continues the regular-season
+# numbering (REG 1–18, POST 19–22), so postseason raises it. A hypothetical PRE
+# numbered 1–3 would collide with REG weeks and NOT raise it at all, while still
+# diluting `ppg_t` — a mean over weekly rows. The season-type assertion is the
+# load-bearing check; this one catches only the range-extending case.
+#
+# If the NFL schedule itself changes, update this deliberately. That is the point.
+PPG_MAX_GAMES_T: int = 21
+
 # ── QB Archetype (Q4) ────────────────────────────────────────────────────────
 DUAL_THREAT_RUSHING_THRESHOLD = 400  # rushing yards/season in any T-2 to T
 
@@ -272,6 +301,45 @@ _LEAKAGE_PATTERNS: list[re.Pattern] = [
     re.compile(r"^future_"),   # future_ppg
     re.compile(r"_future"),    # snap_share_future
 ]
+
+
+def validate_ppg_season_types(observed: object) -> None:
+    """Raise ValueError if PPG is about to be computed over an unruled season type.
+
+    `observed` is the set of `season_type` values present in the rows that feed the
+    points-per-game aggregate, or **None** when the frame carries no `season_type`
+    column at all.
+
+    Fail-closed in both directions. An unruled value is rejected because it would
+    silently redefine David's 2026-08-19 ruling (DG-024). An absent column is also
+    rejected: absence is not evidence of cleanliness, and a guard that passes when
+    it cannot see anything is worth nothing. Measured 2026-08-25, `season_type` is
+    present for every vintage 2016-2025, so the absent branch does not fire against
+    today's nflreadpy.
+
+    This guard NEVER filters. Filtering would overturn the ruling by quietly
+    changing what PPG means; raising escalates the decision to David, which is
+    where a definition change belongs.
+    """
+    if observed is None:
+        raise ValueError(
+            "PPG season-type guard: the player-stats frame carries no `season_type` "
+            "column, so David's 2026-08-19 'all games' ruling "
+            f"({', '.join(sorted(PPG_RULED_SEASON_TYPES))}) cannot be verified. "
+            "Absent is not the same as clean — refusing to compute PPG rather than "
+            "assume it is safe."
+        )
+    unruled = sorted({str(value) for value in observed} - PPG_RULED_SEASON_TYPES)
+    if unruled:
+        raise ValueError(
+            "PPG season-type guard: unruled season type(s) "
+            f"{', '.join(repr(value) for value in unruled)} present in the rows "
+            "feeding points-per-game. David ruled 2026-08-19 that PPG counts "
+            f"{', '.join(sorted(PPG_RULED_SEASON_TYPES))} — all games, postseason "
+            "included (DG-024). This is NOT filtered automatically: a silent filter "
+            "would reinterpret his ruling. Take the new season type to David and "
+            "extend PPG_RULED_SEASON_TYPES only on his word."
+        )
 
 
 def validate_no_temporal_leakage(feature_columns: list[str]) -> None:

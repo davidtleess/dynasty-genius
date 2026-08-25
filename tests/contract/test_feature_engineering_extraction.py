@@ -160,7 +160,11 @@ def _feature_frames() -> dict[str, pd.DataFrame]:
         )
 
     return {
-        "player_stats": pd.DataFrame(rows),
+        # DG-042: every real nflverse player-stats frame carries `season_type`
+        # (measured present for 2016-2025), and PPG is now guarded against unruled
+        # values. These rows are regular-season weeks, so they say so rather than
+        # modelling a frame that cannot exist.
+        "player_stats": pd.DataFrame(rows).assign(season_type="REG"),
         "rosters": pd.DataFrame(roster_rows),
         "snap_counts": pd.DataFrame(snap_rows),
         "pbp": pd.DataFrame(pbp_rows),

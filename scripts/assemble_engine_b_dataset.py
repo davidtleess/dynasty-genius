@@ -44,8 +44,10 @@ from src.dynasty_genius.features.feature_assembly import (
 )
 from src.dynasty_genius.models.engine_b_contract import (
     OUTCOME_COLUMN,
+    PPG_MAX_GAMES_T,
     validate_no_prohibited_features,
     validate_no_temporal_leakage,
+    validate_ppg_season_types,
 )
 
 OUTPUT_PATH = ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
@@ -165,6 +167,16 @@ def fetch_and_agg_stats(seasons: list[int], weekly: pd.DataFrame | None = None) 
         stats_weekly = _to_pandas(nfl.load_player_stats(seasons))
     # Filter to skill positions
     stats_weekly = stats_weekly[stats_weekly["position"].isin(["QB", "RB", "WR", "TE"])]
+
+    # DG-042: enforce David's 2026-08-19 "all games" ruling instead of assuming it.
+    # Graded AFTER the position filter, so this asks only about the rows that actually
+    # reach the PPG mean — a preseason kicker row would be a false alarm, not a threat
+    # to the ruling. An empty frame feeds nothing and is therefore not graded: this
+    # guard must not invent a failure the ruling has no opinion about.
+    if not stats_weekly.empty:
+        validate_ppg_season_types(
+            stats_weekly["season_type"] if "season_type" in stats_weekly.columns else None
+        )
     
     # Aggregation
     agg_map = {
@@ -185,6 +197,23 @@ def fetch_and_agg_stats(seasons: list[int], weekly: pd.DataFrame | None = None) 
         "yards_t", "rushing_yards_t", "rushing_tds_t", "air_yards_t", "games_t"
     ]
     
+    # DG-042: secondary tripwire. Catches a season-type drift that EXTENDS the week
+    # range even if `season_type` itself went missing or was renamed upstream. See
+    # PPG_MAX_GAMES_T for why this is the weaker of the two checks.
+    _over = stats_seasonal[stats_seasonal["games_t"] > PPG_MAX_GAMES_T]
+    if not _over.empty:
+        _named = ", ".join(
+            f"{row.player_id} ({row.season}): {row.games_t} games"
+            for row in _over.head(10).itertuples()
+        )
+        raise ValueError(
+            f"PPG games-count guard: {len(_over)} player-season(s) exceed "
+            f"PPG_MAX_GAMES_T={PPG_MAX_GAMES_T} (17 regular + 4 postseason), which no "
+            f"schedule under David's 2026-08-19 ruling can produce: {_named}. Either an "
+            "unruled season type entered the frame, or the NFL schedule changed. Both are "
+            "decisions, not repairs — take it to David."
+        )
+
     # Team Aggregates for Shares
     team_stats = stats_weekly.groupby(["team", "season"]).agg({
         "targets": "sum",
