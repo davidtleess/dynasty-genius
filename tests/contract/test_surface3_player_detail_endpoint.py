@@ -409,6 +409,15 @@ def test_main_app_mounts_player_detail_route_with_same_monkeypatched_seams(
         lambda: _divergence(),
         raising=False,
     )
+    # Hermeticity (2026-08-25 rebase review): without this third seam the test
+    # reads the production capture DB — and on a machine without it exercises
+    # the fail-closed path instead, a different branch than it pins here.
+    monkeypatch.setattr(
+        players_route,
+        "_load_frozen_prediction_membership",
+        lambda _sleeper_id, _rostered_ids: _frozen_prediction(),
+        raising=False,
+    )
 
     response = TestClient(main_app).get("/api/players/13269")
 
