@@ -66,7 +66,14 @@ def test_blend_caveat_present_when_blend_fires():
 
 
 def test_blend_single_engine_fallback():
-    """5.10: Dead Window with no Engine A inputs -> dvs_engine != 'blend', DW caveat present."""
+    """5.10: Dead Window with no Engine A inputs -> dvs_engine != 'blend', honest caveat.
+
+    DISCLOSED CONTRACT CHANGE (DG-021, 2026-08-25): this test previously asserted the
+    caveat "Engine A prospect score used as prior" on a row constructed with NO Engine A
+    inputs — it pinned a false self-description (spec 3.4/5.10 as originally written).
+    A row with no prior now says so; the prior claim survives only where a prior exists
+    (see test_dg021_no_prior_says_so.py, which pins both directions).
+    """
     identity = _mock_identity("WR")
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
@@ -76,6 +83,9 @@ def test_blend_single_engine_fallback():
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine != "blend"
     assert pvo.dynasty_value_score is None
-    assert any("Engine A prospect score used as prior" in c for c in pvo.caveats), (
-        f"Expected DW caveat in caveats, got: {pvo.caveats}"
+    assert any("no dynasty value score available" in c for c in pvo.caveats), (
+        f"Expected honest no-score caveat in caveats, got: {pvo.caveats}"
+    )
+    assert not any("Engine A prospect score used as prior" in c for c in pvo.caveats), (
+        f"No Engine A result exists here; the prior claim is false: {pvo.caveats}"
     )

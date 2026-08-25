@@ -457,11 +457,14 @@ def assemble_pvo(
                 if _dw_caveat not in caveats:
                     caveats.append(_dw_caveat)
             else:
-                # Spec 3.4: no A or B — DVS = None; dvs_engine = 'A' as provenance marker.
+                # Spec 3.4 as amended by DG-021: no A and no B — DVS = None, and the
+                # row says so. dvs_engine names the engine that PRODUCED the score;
+                # no engine produced one, so it stays None. The old 'A'-as-provenance
+                # marker put a false claim on 114 served player cards.
                 dynasty_value_score = None
-                dvs_engine = "A"
                 _dw_caveat = (
-                    "Insufficient professional season data — Engine A prospect score used as prior"
+                    "Insufficient professional season data — no dynasty value score "
+                    "available (no Engine A prior, no reliable Engine B projection)"
                 )
                 if _dw_caveat not in caveats:
                     caveats.append(_dw_caveat)
