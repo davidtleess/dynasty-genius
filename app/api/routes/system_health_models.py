@@ -43,7 +43,8 @@ ReportFreshnessStatus = Literal[
     # `evaluate_report_freshness`.
     "producer_failed",
     # The producer succeeded and wrote on time, but its declared INPUT provenance
-    # shows streams that loaded empty or fell back to cache. The file is fresh; what
+    # shows streams that loaded empty or stepped back to an earlier season. The
+    # file is fresh; what
     # it was built from is not. Distinct from `producer_failed` (the run failed) and
     # from `stale` (the run never happened) — here the run succeeded on bad inputs,
     # which is the only one of the three that looks healthy from the outside.
@@ -107,11 +108,13 @@ class ReportArtifactConfig(_Strict):
     # `fallback_used`, `effective_season`, `error_type`.
     #
     # Freshness alone grades the artifact's SHAPE — it wrote a file, on time, with a
-    # success status. It cannot see that the file was built from empty or cached
-    # inputs. `feature_refresh` graded `fresh` all summer while participation loaded
-    # completely empty and three other streams silently served prior-season cache;
-    # the producer recorded all of it every run and nothing outside the producer
-    # ever read it. In August that is harmless because the season has not happened.
+    # success status. It cannot see that the file was built from empty inputs, or
+    # from a season earlier than the one requested. `feature_refresh` graded `fresh`
+    # all summer while participation was recorded `loaded_empty` and three other
+    # streams silently served the prior season; the producer recorded all of it every
+    # run and nothing outside the producer ever read it. (DG-023, 2026-08-25: the
+    # participation half of that sentence was itself false — 45,184 rows loaded and
+    # the frame simply has no `season` column. The three step-backs are real.) In August that is harmless because the season has not happened.
     # From Week 1 it is the failure mode that makes numbers wrong and fine-looking
     # at the same time, and anything grading predictions built on those features
     # inherits it.
@@ -377,18 +380,60 @@ class ReportArtifactFact(_Strict):
     input_provenance: dict[str, Any] | None = None
 
 
+def _describe_stream(name: str, entry: dict) -> str:
+    """Render one stream as a phrase that asserts only what the block records.
+
+    DG-023: the season is stated when it was OBSERVED and described when it was not.
+    ``load_participation`` returns 45,184 rows across 26 columns with no ``season``
+    among them, so an unobservable season is a routine, permanent property of a
+    healthy stream — not a value to render as ``None`` and not a fact to invent.
+    The row count is shown only when the producer recorded one; an artifact written
+    before that field existed says nothing rather than claiming zero.
+    """
+    season = entry.get("effective_season")
+    head = name if season is None else f"{name} {season}"
+    details: list[str] = []
+    if season is None:
+        rows = entry.get("row_count")
+        if isinstance(rows, int) and not isinstance(rows, bool):
+            details.append(f"{rows:,} rows")
+        details.append("season not reported by source")
+    error_type = entry.get("error_type")
+    if error_type:
+        details.append(str(error_type))
+    return f"{head} ({'; '.join(details)})" if details else head
+
+
 def summarize_input_provenance(block: Any) -> tuple[bool, str]:
     """Turn a declared input-provenance object into (degraded, plain-language basis).
 
     Grades on two self-describing signals, so no per-season configuration is needed
     and the check cannot rot as seasons roll:
       * ``status`` other than ``loaded`` — the stream did not load;
-      * ``fallback_used`` true — it loaded, but from cache rather than the live source.
+      * ``fallback_used`` true — the season it was ASKED for was refused, and it
+        served an earlier window instead.
 
     The message names every affected stream, WHY (its `error_type`), and which season
     it actually served — and it names the healthy streams too. A signal that only ever
     says "degraded" is as useless as one that only ever says "fresh": if four streams
-    are on cache and one is empty, say that; if the rest are genuinely live, say that.
+    stepped back and one is empty, say that; if the rest are genuinely live, say that.
+
+    DG-023 removed two false statements from this function, both measured 2026-08-25:
+
+    1. A stream was bucketed empty on ``status != "loaded"`` **or a null season**, so
+       ``participation`` — 45,184 rows, no ``season`` column, feeding features that are
+       populated 498/505 — was rendered "EMPTY: participation" every run. Emptiness is
+       now read from ``status`` alone, which is a fact about ROWS. A missing column is
+       frame shape, and degrading on frame shape is the defect this gate exists to
+       remove. David's ruling 2026-08-25: healthy, and disclosed in the basis.
+
+    2. ``fallback_used`` was rendered "on 2025 cache". It means ``attempts_made > 1``:
+       the requested season was refused and an earlier one was served. It records
+       nothing about a cache, and cannot — ``nflreadpy``'s ``cache_mode`` is ``MEMORY``,
+       which is per-process, so every scheduled run starts cold and fetches live.
+
+    Deliberately unchanged: an empty stream, an unavailable stream and a season
+    step-back all still degrade. Only the words changed.
     """
     if not isinstance(block, dict) or not block:
         # Declared but unreadable is not silently fine — a config that says a
@@ -396,26 +441,28 @@ def summarize_input_provenance(block: Any) -> tuple[bool, str]:
         return True, "input_provenance_unreadable"
 
     empty: list[str] = []
-    cached: list[str] = []
+    stepped_back: list[str] = []
     live: list[str] = []
     reasons: dict[str, str] = {}
-    for name in sorted(block):
-        entry = block[name]
+    for key in sorted(block):
+        name = str(key)
+        entry = block[key]
         if not isinstance(entry, dict):
-            empty.append(str(name))
+            empty.append(name)
             continue
         error_type = entry.get("error_type")
         if error_type:
-            reasons[str(name)] = str(error_type)
-        season = entry.get("effective_season")
-        if str(entry.get("status")) != "loaded" or season is None:
-            empty.append(str(name))
+            reasons[name] = str(error_type)
+        # DG-023: emptiness is read from `status` ALONE. `effective_season` answers a
+        # different question and must not be allowed to re-create the false label.
+        if str(entry.get("status")) != "loaded":
+            empty.append(name)
         elif entry.get("fallback_used") is True:
-            cached.append(f"{name} on {season} cache")
+            stepped_back.append(_describe_stream(name, entry))
         else:
-            live.append(f"{name} {season}")
+            live.append(_describe_stream(name, entry))
 
-    if not empty and not cached:
+    if not empty and not stepped_back:
         return False, ("inputs_live: " + ", ".join(live)) if live else "inputs_live"
 
     parts: list[str] = []
@@ -424,16 +471,10 @@ def summarize_input_provenance(block: Any) -> tuple[bool, str]:
             "EMPTY: "
             + ", ".join(f"{n} ({reasons[n]})" if n in reasons else n for n in empty)
         )
-    if cached:
-        parts.append(
-            "CACHED: "
-            + ", ".join(
-                f"{c} ({reasons[c.split(' ')[0]]})"
-                if c.split(" ")[0] in reasons
-                else c
-                for c in cached
-            )
-        )
+    if stepped_back:
+        # The requested season was refused; this is the one that was served. Naming it
+        # "cache" told an operator the data was stale when it was freshly fetched.
+        parts.append("EARLIER SEASON: " + ", ".join(stepped_back))
     if live:
         parts.append("LIVE: " + ", ".join(live))
     return True, " | ".join(parts)
@@ -540,7 +581,7 @@ def evaluate_report_freshness(
                 disclosures.append("timestamp_source:mtime_fallback")
         # ── substance gate: AFTER the producer status, BEFORE freshness ──────
         # Ordering is the contract, exactly as it is for the status gate above. A
-        # successful, punctual run built on empty or cached inputs is precisely what
+        # successful, punctual run built on empty or earlier-season inputs is what
         # a healthy artifact looks like on disk, so freshness must not get to speak
         # first. The producer already writes this block every run; until now nothing
         # outside the producer read it.

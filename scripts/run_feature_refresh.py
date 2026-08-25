@@ -109,10 +109,24 @@ def _load_stream_isolated(nfl, attr: str, seasons: list[int]):
             non_null = frame["season"].dropna()
             if len(non_null):
                 seasons_present = int(non_null.astype(int).max())
-        status = "loaded" if seasons_present is not None else "loaded_empty"
+        # DG-023: `status` is a fact about ROWS; `effective_season` is a fact about
+        # the SEASON COLUMN. Deriving the first from the second fused two independent
+        # questions, so `participation` -- which loads tens of thousands of rows and
+        # carries no `season` column at all -- was reported `loaded_empty`, and
+        # /api/health rendered that as "EMPTY: participation" over good data.
+        # Measured 2026-08-19: the features participation feeds
+        # (route_participation / tprr / yprr) are each populated 498/505 in the
+        # inference season. A health signal that cries wolf on good data is worse
+        # than none, because a real failure looks identical.
+        row_count = int(len(frame))
+        status = "loaded" if row_count else "loaded_empty"
         return frame, {
             "status": status,
             "effective_season": seasons_present,
+            # Recorded so a reader can tell an UNOBSERVABLE season from a genuinely
+            # empty load. Without it the artifact cannot distinguish the two, which
+            # is precisely why the false label stood unexamined for eleven days.
+            "row_count": row_count,
             "fallback_used": attempts_made > 1,
             # F4: the TRIGGERING error is preserved when a fallback succeeds — that is
             # the contract, and it is what tells a reader why the season stepped back.
@@ -122,6 +136,9 @@ def _load_stream_isolated(nfl, attr: str, seasons: list[int]):
     return pd.DataFrame(), {
         "status": "unavailable",
         "effective_season": None,
+        # A stream that never loaded has NO row count. Zero would assert a
+        # successful empty read, which is a different fact.
+        "row_count": None,
         "fallback_used": attempts_made > 1,
         "error_type": error_type,
     }
