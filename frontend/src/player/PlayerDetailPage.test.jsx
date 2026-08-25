@@ -36,6 +36,19 @@ function modeledDetail(overrides = {}) {
         items: ["Round 1 draft capital", "age-adjusted production"],
       },
     },
+    frozen_prediction: {
+      basis: "model_supported_prediction_captured",
+      coverage: {
+        current_rostered_skill_in_frozen_prediction_cohort_count: 221,
+        current_rostered_skill_not_in_frozen_prediction_cohort_count: 53,
+        current_rostered_skill_player_count: 274,
+      },
+      decision_supported: false,
+      frozen_capture_date: "2026-08-05",
+      message: "A model prediction was frozen for 2026 outcome evaluation.",
+      season: 2026,
+      status: "included",
+    },
     identity: {
       age: 22,
       draft_class: 2026,
@@ -243,6 +256,62 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     expect(within(card).getByText("Market unavailable")).toBeTruthy();
     expect(within(card).getByText("Evidence unavailable")).toBeTruthy();
     expect(within(card).queryByText(/evidence incomplete/i)).toBeNull();
+  });
+
+  it("keeps current model status separate from frozen evaluation membership", async () => {
+    mockPlayerDetail(
+      modeledDetail({
+        frozen_prediction: {
+          basis: "non_model_route_at_freeze",
+          coverage: {
+            current_rostered_skill_in_frozen_prediction_cohort_count: 221,
+            current_rostered_skill_not_in_frozen_prediction_cohort_count: 53,
+            current_rostered_skill_player_count: 274,
+          },
+          decision_supported: false,
+          frozen_capture_date: "2026-08-05",
+          message: "No model prediction was frozen for 2026 outcome evaluation.",
+          season: 2026,
+          status: "not_in_frozen_prediction_cohort",
+        },
+      }),
+    );
+
+    renderPage();
+
+    const card = await screen.findByRole("article", {
+      name: /player detail for chase/i,
+    });
+    expect(within(card).getByTestId("player-model-lane")).toBeTruthy();
+    expect(within(card).getByText("Not in 2026 model snapshot")).toBeTruthy();
+    expect(
+      within(card).getByText(
+        "No model prediction was frozen for 2026 outcome evaluation.",
+      ),
+    ).toBeTruthy();
+    expect(
+      within(card).getByText(
+        "221 of 274 current rostered skill players were included.",
+      ),
+    ).toBeTruthy();
+    // The card's full section is THE "<season> model evaluation" landmark —
+    // exactly one on the page (the inspector's compact preview must not mint
+    // a duplicate; axe landmark-unique, measured 2026-08-25).
+    expect(
+      within(card).getByRole("region", { name: "2026 model evaluation" }),
+    ).toBeTruthy();
+  });
+
+  it("can show a frozen prediction for a player who is unmodeled now", async () => {
+    mockPlayerDetail(unmodeledDetail());
+
+    renderPage();
+
+    const card = await screen.findByRole("article", {
+      name: /player detail for chase/i,
+    });
+    expect(within(card).getByText("Experimental")).toBeTruthy();
+    expect(within(card).getByText("Included in 2026 model snapshot")).toBeTruthy();
   });
 
   it("degrades missing evidence elements independently without fabricating text", async () => {

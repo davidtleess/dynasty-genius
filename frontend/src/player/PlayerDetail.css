@@ -20,6 +20,40 @@
   color: var(--dg-model-muted);
 }
 
+.dg-frozen-prediction {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--dg-border);
+  background: var(--dg-surface-raised);
+  color: var(--dg-text);
+}
+
+.dg-frozen-prediction--compact {
+  padding: 0.45rem 0.6rem;
+}
+
+.dg-frozen-prediction p {
+  margin: 0;
+}
+
+.dg-frozen-prediction__eyebrow {
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+  font-weight: 600;
+}
+
+.dg-frozen-prediction__state {
+  font-weight: 650;
+}
+
+.dg-frozen-prediction__message,
+.dg-frozen-prediction__coverage {
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+  line-height: 1.4;
+}
+
 .dg-two-lane {
   display: grid;
   gap: 0.75rem;

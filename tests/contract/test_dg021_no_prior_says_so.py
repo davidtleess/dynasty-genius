@@ -111,6 +111,23 @@ def _client(monkeypatch, pvo_artifact: dict[str, Any]) -> TestClient:
         lambda: {"captured_at": "2026-08-25T00:00:00Z", "players": []},
         raising=False,
     )
+    # DISCLOSED TEST CHANGE (DG-022 rebase, 2026-08-25): the route gained a
+    # third artifact seam. Without this patch these tests silently read the
+    # production capture DB — the same hermeticity rule the header states.
+    monkeypatch.setattr(
+        players_route,
+        "_load_frozen_prediction_membership",
+        lambda _sleeper_id, _rostered_ids: {
+            "season": 2026,
+            "frozen_capture_date": "2026-08-05",
+            "status": "not_in_frozen_prediction_cohort",
+            "basis": "not_present_in_frozen_universe",
+            "message": "No model prediction was frozen for 2026 outcome evaluation.",
+            "coverage": None,
+            "decision_supported": False,
+        },
+        raising=False,
+    )
     app = FastAPI()
     app.include_router(players_route.router, prefix="/api")
     return TestClient(app)
