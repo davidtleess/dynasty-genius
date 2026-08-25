@@ -812,6 +812,14 @@ def build_label_table(
             )
 
         observed.add((player_id, season))
+        # DG-042 / DG-024: this is the THIRD site where PPG is defined, and it is
+        # deliberately NOT guarded by PPG_RULED_SEASON_TYPES. The predicate below
+        # asks whether a QB played at all, which is orthogonal to season type — it
+        # neither counts nor excludes postseason as such, so David's 2026-08-19
+        # "all games" ruling passes through it unchanged. The ruled-set assertion
+        # lives where the season_type column actually reaches a mean:
+        # scripts/assemble_engine_b_dataset.py fetch_and_agg_stats. Do not add a
+        # season_type filter here — it would silently narrow the ruling.
         # The pinned predicate is `(attempts + sacks_suffered) >= 1 OR
         # carries >= 1`; the counts are validated non-negative, so the sum
         # test is ALGEBRAICALLY IDENTICAL to the individual comparisons
