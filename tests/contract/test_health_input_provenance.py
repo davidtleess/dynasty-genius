@@ -1,9 +1,15 @@
 """The freshness layer must grade an artifact's INPUTS, not just its shape.
 
 `feature_refresh` graded `fresh` on `embedded_timestamp_fresh` all summer while its
-own `stream_provenance` recorded participation loading completely empty and three
-other streams silently serving prior-season cache. The producer wrote that block
-every run; nothing outside the producer read it. Harmless in August because 2026 had
+own `stream_provenance` recorded participation as `loaded_empty` and three other
+streams silently serving the season BEFORE the one requested. The producer wrote that
+block every run; nothing outside the producer read it.
+
+(DG-023, 2026-08-25 corrected two words in that sentence, and this file inherited both.
+Participation was never empty — it loads 45,184 rows and its frame carries no `season`
+column, which the reader was treating as emptiness. And a step-back is not a "cache"
+read: `fallback_used` means the requested season was REFUSED and an earlier window was
+served live. The three step-backs are real; only the labels were wrong.) Harmless in August because 2026 had
 not happened — but from Week 1 it is the failure that makes numbers wrong and
 fine-looking at the same time, and anything grading predictions built on those
 features inherits it.
@@ -96,8 +102,9 @@ def test_an_otherwise_fresh_artifact_with_an_empty_stream_is_not_fresh():
     assert "participation" in report.basis
 
 
-def test_a_stream_served_from_cache_is_not_fresh():
-    """`fallback_used` is the quiet one — the stream loaded, just not from this season."""
+def test_a_stream_that_stepped_back_a_season_is_not_fresh():
+    """`fallback_used` is the quiet one — the stream loaded, just not from the season
+    it was asked for. Named for what it is: a season step-back, never a cache read."""
     report = _evaluate(
         {
             "pbp": _stream(season=2025, fallback=True, error="ConnectionError"),
