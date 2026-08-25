@@ -92,7 +92,13 @@ def test_dead_window_caveat_engine_a_fallback_present():
     assert pvo.dynasty_value_score is not None
 
 def test_dead_window_caveat_engine_a_fallback_absent():
-    """5.5 Dead Window Caveat (Fallback Absent): games_t < 8, no Engine A inputs -> DVS None + caveat."""
+    """5.5 Dead Window Caveat (Fallback Absent): games_t < 8, no Engine A inputs -> DVS None + caveat.
+
+    DISCLOSED CONTRACT CHANGE (DG-021, 2026-08-25): this test previously asserted
+    ``dvs_engine == "A"`` on a row whose whole premise is that no Engine A result
+    exists — spec 5.5's 'A'-as-provenance-marker put a false claim on 114 served
+    player cards. dvs_engine names the engine that produced the score; here none did.
+    """
     identity = _mock_identity("WR")
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
@@ -102,7 +108,7 @@ def test_dead_window_caveat_engine_a_fallback_absent():
     }
     pvo = assemble_pvo(identity, features)
     assert pvo.dynasty_value_score is None
-    assert pvo.dvs_engine == "A"
+    assert pvo.dvs_engine is None
     assert any("Insufficient professional season data" in c for c in pvo.caveats)
 
 def test_te_g3_deferred_caveat():

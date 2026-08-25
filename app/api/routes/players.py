@@ -281,7 +281,18 @@ def get_player_detail(sleeper_id: str) -> PlayerDetailResponse:
             caveats=_evidence_list_field(row.get("caveats")),
         )
         model_status = "modeled"
-        degradation: DegradationField | None = None
+        # A modeled lane with no score must say so (DG-021): a null score beside
+        # degradation=None reads as a confident label over a blank.
+        degradation: DegradationField | None = (
+            DegradationField(
+                message=(
+                    "Model lane active without a dynasty value score — "
+                    "insufficient professional season data for a reliable number."
+                )
+            )
+            if valuation.get("dynasty_value_score") is None
+            else None
+        )
     else:
         model = None
         evidence = None
