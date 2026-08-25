@@ -18,6 +18,13 @@
   gcloud auth login); the script preflights non-interactively and fails loudly
   (never hangs) if credentials are absent.
 
+  CLOUDSDK_PYTHON (2026-08-22): launchd runs this job with
+  PATH=/usr/bin:/bin:/usr/sbin:/sbin, so the gcloud wrapper resolves python3 to
+  /usr/bin/python3 (system 3.9) and refuses to load. The run then fails with
+  failures:["auth_unavailable"], bytes:0, and says so only in a gitignored marker.
+  Credentials are fine; the interpreter is not. Do not remove without reading
+  tests/contract/test_backup_irreplaceable_ops_scheduler.py.
+
   Committed AND loaded per David's explicit 2026-07-05 authorization
   ("commit and load the launchagent"):
     launchctl load ~/Library/LaunchAgents/com.davidleess.dynasty-backup-irreplaceable.plist
@@ -46,6 +53,12 @@
 
     <key>RunAtLoad</key>
     <false/>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>CLOUDSDK_PYTHON</key>
+        <string>/opt/homebrew/opt/python@3.14/bin/python3.14</string>
+    </dict>
 
     <key>StandardOutPath</key>
     <string>/Users/davidleess/dynasty-genius-product/app/data/logs/backup_irreplaceable.out.log</string>

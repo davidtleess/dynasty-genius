@@ -42,6 +42,12 @@ ReportFreshnessStatus = Literal[
     # A fresh timestamp NEVER launders this away — see the status gate in
     # `evaluate_report_freshness`.
     "producer_failed",
+    # The producer succeeded and wrote on time, but its declared INPUT provenance
+    # shows streams that loaded empty or fell back to cache. The file is fresh; what
+    # it was built from is not. Distinct from `producer_failed` (the run failed) and
+    # from `stale` (the run never happened) — here the run succeeded on bad inputs,
+    # which is the only one of the three that looks healthy from the outside.
+    "inputs_degraded",
 ]
 SubsystemStatus = Literal["ok", "degraded", "unavailable"]
 
@@ -96,6 +102,20 @@ class ReportArtifactConfig(_Strict):
     # anonymous pydantic union error.
     success_status: str | list[Any] | None = None
     failure_reason_field: str | None = None
+    # Opt-in SUBSTANCE check. Names a top-level object whose values describe the
+    # producer's INPUTS, one entry per stream, each carrying `status`,
+    # `fallback_used`, `effective_season`, `error_type`.
+    #
+    # Freshness alone grades the artifact's SHAPE — it wrote a file, on time, with a
+    # success status. It cannot see that the file was built from empty or cached
+    # inputs. `feature_refresh` graded `fresh` all summer while participation loaded
+    # completely empty and three other streams silently served prior-season cache;
+    # the producer recorded all of it every run and nothing outside the producer
+    # ever read it. In August that is harmless because the season has not happened.
+    # From Week 1 it is the failure mode that makes numbers wrong and fine-looking
+    # at the same time, and anything grading predictions built on those features
+    # inherits it.
+    input_provenance_field: str | None = None
 
 
 class ReportFreshnessConfig(_Strict):
@@ -335,7 +355,7 @@ def _success_statuses(success_status: str | list[Any] | None) -> tuple[str, ...]
 # --- T2: pure freshness evaluator + tier rollup (spec §2–§3) --------------------
 
 _DEGRADING_STATUSES: frozenset[str] = frozenset(
-    ("stale", "corrupt_or_empty", "missing", "producer_failed")
+    ("stale", "corrupt_or_empty", "missing", "producer_failed", "inputs_degraded")
 )
 _TIER_SEVERITY: dict[str, int] = {"core_substrate": 2, "daily_diagnostics": 1}
 
@@ -352,6 +372,71 @@ class ReportArtifactFact(_Strict):
     # Both fail closed at the status gate; neither may reach the freshness gate.
     status_value: str | None = None
     failure_reason: str | None = None
+    # Raw declared input-provenance object, populated only when the artifact config
+    # declares `input_provenance_field`. Kept raw so the evaluator stays pure.
+    input_provenance: dict[str, Any] | None = None
+
+
+def summarize_input_provenance(block: Any) -> tuple[bool, str]:
+    """Turn a declared input-provenance object into (degraded, plain-language basis).
+
+    Grades on two self-describing signals, so no per-season configuration is needed
+    and the check cannot rot as seasons roll:
+      * ``status`` other than ``loaded`` — the stream did not load;
+      * ``fallback_used`` true — it loaded, but from cache rather than the live source.
+
+    The message names every affected stream, WHY (its `error_type`), and which season
+    it actually served — and it names the healthy streams too. A signal that only ever
+    says "degraded" is as useless as one that only ever says "fresh": if four streams
+    are on cache and one is empty, say that; if the rest are genuinely live, say that.
+    """
+    if not isinstance(block, dict) or not block:
+        # Declared but unreadable is not silently fine — a config that says a
+        # provenance block exists and finds none has lost the thing it was watching.
+        return True, "input_provenance_unreadable"
+
+    empty: list[str] = []
+    cached: list[str] = []
+    live: list[str] = []
+    reasons: dict[str, str] = {}
+    for name in sorted(block):
+        entry = block[name]
+        if not isinstance(entry, dict):
+            empty.append(str(name))
+            continue
+        error_type = entry.get("error_type")
+        if error_type:
+            reasons[str(name)] = str(error_type)
+        season = entry.get("effective_season")
+        if str(entry.get("status")) != "loaded" or season is None:
+            empty.append(str(name))
+        elif entry.get("fallback_used") is True:
+            cached.append(f"{name} on {season} cache")
+        else:
+            live.append(f"{name} {season}")
+
+    if not empty and not cached:
+        return False, ("inputs_live: " + ", ".join(live)) if live else "inputs_live"
+
+    parts: list[str] = []
+    if empty:
+        parts.append(
+            "EMPTY: "
+            + ", ".join(f"{n} ({reasons[n]})" if n in reasons else n for n in empty)
+        )
+    if cached:
+        parts.append(
+            "CACHED: "
+            + ", ".join(
+                f"{c} ({reasons[c.split(' ')[0]]})"
+                if c.split(" ")[0] in reasons
+                else c
+                for c in cached
+            )
+        )
+    if live:
+        parts.append("LIVE: " + ", ".join(live))
+    return True, " | ".join(parts)
 
 
 def _last_scheduled(artifact: ReportArtifactConfig, now_local: datetime) -> datetime:
@@ -436,6 +521,33 @@ def evaluate_report_freshness(
                 "producer_failed",
                 f"producer_failure:{fact.failure_reason or 'unreported'}",
             )
+            if fact.embedded_timestamp_value is not None:
+                observed_at = fact.embedded_timestamp_value
+            elif fact.mtime is not None:
+                # DG-033: the same mtime fallback the freshness arm uses at the
+                # `else:` below. Without it, an artifact that declares
+                # `status_field` but no `timestamp_field` — pvo_refresh is the
+                # first — reports a failure with no clock at all, and the card
+                # renders "no observable timestamp". A run that died twenty
+                # minutes ago and one that died twenty days ago then look
+                # identical, which is the opposite of what a failure row is for.
+                # The producer rewrote this file as it aborted, so its mtime is
+                # the failure's own timestamp, not a stale proxy.
+                mtime = fact.mtime
+                if mtime.tzinfo is None:
+                    mtime = mtime.replace(tzinfo=tz)
+                observed_at = mtime.isoformat()
+                disclosures.append("timestamp_source:mtime_fallback")
+        # ── substance gate: AFTER the producer status, BEFORE freshness ──────
+        # Ordering is the contract, exactly as it is for the status gate above. A
+        # successful, punctual run built on empty or cached inputs is precisely what
+        # a healthy artifact looks like on disk, so freshness must not get to speak
+        # first. The producer already writes this block every run; until now nothing
+        # outside the producer read it.
+        elif artifact.input_provenance_field is not None and (
+            degraded_basis := summarize_input_provenance(fact.input_provenance)
+        )[0]:
+            status, basis = "inputs_degraded", degraded_basis[1]
             if fact.embedded_timestamp_value is not None:
                 observed_at = fact.embedded_timestamp_value
         else:
@@ -593,12 +705,22 @@ def read_report_artifact_facts(
         failure_reason: str | None = None
         # One read serves both gates. An unreadable payload leaves every derived
         # fact at its closed default, so the evaluator degrades rather than guesses.
-        if artifact.timestamp_field is not None or artifact.status_field is not None:
+        input_provenance: dict[str, Any] | None = None
+        if (
+            artifact.timestamp_field is not None
+            or artifact.status_field is not None
+            or artifact.input_provenance_field is not None
+        ):
             try:
                 payload = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, ValueError, UnicodeDecodeError):
                 payload = None
             if isinstance(payload, dict):
+                if artifact.input_provenance_field is not None:
+                    raw_prov = payload.get(artifact.input_provenance_field)
+                    # A declared block that is absent or not an object stays None and
+                    # the evaluator degrades it — never a silent pass.
+                    input_provenance = raw_prov if isinstance(raw_prov, dict) else {}
                 if artifact.timestamp_field is not None:
                     value = payload.get(artifact.timestamp_field)
                     embedded = value if isinstance(value, str) else None
@@ -617,5 +739,6 @@ def read_report_artifact_facts(
             embedded_timestamp_value=embedded,
             status_value=status_value,
             failure_reason=failure_reason,
+            input_provenance=input_provenance,
         )
     return facts

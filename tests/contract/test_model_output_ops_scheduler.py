@@ -51,7 +51,16 @@ def test_model_output_launchd_plist_runs_refresh_then_capture_runner() -> None:
     ]
 
     assert data["WorkingDirectory"] == str(ROOT)
-    assert data["StartCalendarInterval"] == {"Hour": 9, "Minute": 30}
+    # SR-00 (2026-08-20): same-day retry insurance. The dominant observed capture
+    # loss is a prior-date abort -- a timing race against a source that never fails --
+    # recovered completely by rerunning the same day from the DB-resident snapshot with
+    # no network call. All three slots are pinned exactly, so an accidental schedule
+    # change is still caught; only the approved shape moved.
+    assert data["StartCalendarInterval"] == [
+        {"Hour": 9, "Minute": 30},
+        {"Hour": 11, "Minute": 30},
+        {"Hour": 14, "Minute": 0},
+    ]
     assert data["RunAtLoad"] is False
     assert data["StandardOutPath"] == str(
         ROOT / "app" / "data" / "logs" / "pvo_refresh.out.log"

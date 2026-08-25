@@ -15,9 +15,10 @@ Plan: docs/superpowers/plans/2026-07-02-debt6-capture-health-slice1b-plan.md
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import date, datetime, time, timedelta
 from pathlib import Path, PurePosixPath
 from statistics import median_low
@@ -155,11 +156,42 @@ class StoreHealth(_Strict):
     decision_supported: Literal[False]
 
 
+class BackupMarkerEcho(_Strict):
+    """Descriptive echo of the backup status marker — never the bucket path."""
+
+    run_id: str | None
+    status: str | None
+    started_at: str | None
+    finished_at: str
+    sha256_verified: bool | None
+    files: int | None
+    bytes: int | None
+    failures: list[str]
+
+
+class BackupHealth(_Strict):
+    """The 26-hour backup law (02 §Standing Infrastructure ruling 3) as facts.
+
+    Marker absence, staleness past one daily interval plus grace (26h), a
+    ``finished_at`` ahead of now beyond clock skew, a non-completed terminal
+    status, unearned ``sha256_verified``, or a reported failure outside the
+    tolerated set each degrade — silence is not success. Descriptive only.
+    """
+
+    status: Literal["ok", "degraded"]
+    reasons: list[str]
+    marker_present: bool
+    marker: BackupMarkerEcho | None
+    threshold_hours: int
+    decision_supported: Literal[False]
+
+
 class CaptureHealthResponse(_Strict):
     overall_status: OverallStatus
     config_version: int
     checked_at: str
     stores: list[StoreHealth]
+    backup: BackupHealth
     decision_supported: Literal[False]
 
 
@@ -655,4 +687,273 @@ def inspect_capture_store(
         now=now,
         timezone=timezone,
         season_windows=season_windows,
+    )
+
+
+# --- BUILD-3: the 26-hour backup law as a capture-health block ------------------
+
+BACKUP_STALENESS_THRESHOLD_HOURS = 26
+
+# Marker and reader share a host clock (the producer stamps finished_at from
+# now_utc(); the route reads datetime.now(UTC)), so the only honest gap is NTP
+# skew and the write-to-read latency of a health check racing the marker write.
+# Anything beyond this is not skew — and a future timestamp is not a harmless
+# oddity: staleness is `now - finished_at`, so a future stamp makes the delta
+# negative and the 26-hour law can never fire again while it stands.
+BACKUP_FUTURE_GRACE_SECONDS = 60
+
+# The one failure token the producer can emit beside a SUCCESSFUL run.
+# `missing_optional:` is the only tolerated one. DG-036 added a SECOND token that
+# can accompany status="completed" — `sentinel_write_failed`, appended from an
+# `except OSError` that deliberately does not fail the run, because a bookkeeping
+# write must never cancel a 3.2 GB backup of irreplaceable stores. That token is
+# NOT tolerated and degrades, which is correct: the run succeeded, but the
+# evidence trail that proves the NEXT run published is missing. A declared-optional file that is
+# absent is tolerated by design (`required: false` still means tolerated), and
+# this repo's steady state carries exactly one such token, so degrading on it
+# would pin this block to "degraded" every day forever and teach the reader to
+# ignore the one surface guarding the disaster floor.
+#
+# Everything else degrades, INCLUDING a token this producer has never emitted.
+# That direction is deliberate: the marker is gitignored, carries no validated
+# schema_version, and has a documented unlocked concurrent writer, so the
+# producer's vocabulary is a convention this consumer cannot assume. Unknown
+# must therefore mean loud, not benign.
+_TOLERATED_FAILURE_PREFIX = "missing_optional:"
+
+# How long a backup can plausibly still be running. Measured, not guessed: every
+# run in app/data/logs/backup_irreplaceable.out.log with both timestamps (52 of
+# them, 2026-07-05..2026-08-23) took between 0.11h and 12.64h, median 1.25h, and
+# consecutive runs land 20-24h apart. The bound must clear the longest real run
+# — 20260804T143449Z at 12.64h — or a slow morning cries wolf, and stay under the
+# inter-run interval, or a dead run is never named before the next run overwrites
+# its sentinel. 18h sits in that gap with margin on both sides.
+BACKUP_MAX_RUN_HOURS = 18
+
+
+def _process_is_alive(pid: int) -> bool:
+    """Signal 0 checks existence without delivering anything.
+
+    EPERM means the pid exists and belongs to someone else — alive. Any other
+    OSError is unknowable, and unknowable liveness must not be read as proof a
+    run is still going, so it reads as dead and lets the caller degrade.
+    """
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
+def _marker_covers(marker_run_id: object, started_run_id: str) -> bool:
+    """Has a run at least as recent as ``started_run_id`` published this marker?
+
+    Equality is too strict. A run whose sentinel write failed leaves the PREVIOUS
+    run's id in the sentinel and then publishes a NEWER marker; that backup is
+    verified and complete, and reading it as incomplete forever would be the
+    worst kind of false alarm. run_ids are ``%Y%m%dT%H%M%SZ``, so lexical order
+    is chronological order and ``>=`` is the whole test.
+    """
+    return isinstance(marker_run_id, str) and marker_run_id >= started_run_id
+
+
+def _run_still_in_flight(
+    sentinel: dict[str, object],
+    *,
+    now: datetime,
+    process_is_alive: Callable[[int], bool],
+) -> bool:
+    """Is the run named by this sentinel plausibly still running right now?
+
+    Only a run we can positively excuse stays silent. A missing or unusable
+    ``started_at`` is not an excuse, because liveness without a clock cannot be
+    bounded, and a pid can be recycled.
+    """
+    started_at_raw = sentinel.get("started_at")
+    started_at: datetime | None = None
+    if isinstance(started_at_raw, str):
+        try:
+            parsed = datetime.fromisoformat(started_at_raw)
+        except ValueError:
+            parsed = None
+        if parsed is not None and parsed.tzinfo is not None:
+            started_at = parsed
+    if started_at is None:
+        return False
+    if now - started_at > timedelta(hours=BACKUP_MAX_RUN_HOURS):
+        return False
+    pid = sentinel.get("pid")
+    if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+        # No pid to interrogate. The duration bound above is then the only
+        # evidence, and it has not been breached.
+        return True
+    return process_is_alive(pid)
+
+
+def _is_tolerated_failure(token: object) -> bool:
+    """Exact prefix plus a non-empty path — never a substring match."""
+    return (
+        isinstance(token, str)
+        and token.startswith(_TOLERATED_FAILURE_PREFIX)
+        and len(token) > len(_TOLERATED_FAILURE_PREFIX)
+    )
+
+
+def _echo_str(value: object) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def _echo_int(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def inspect_backup_marker(
+    *,
+    marker_path: Path,
+    now: datetime,
+    sentinel_path: Path | None = None,
+    process_is_alive: Callable[[int], bool] = _process_is_alive,
+) -> BackupHealth:
+    """Evaluate the backup status marker against the 26-hour law (read-only).
+
+    Fail-closed and never raising: an absent marker, unreadable bytes,
+    non-object JSON, or an unusable ``finished_at`` (missing, malformed, or
+    naive) each degrade with a named reason instead of erroring — the health
+    surface must not pretend health it cannot prove. ``finished_at`` is the
+    one load-bearing timestamp; staleness is a strict ``> 26h`` age so a
+    marker at exactly one interval plus grace is not flagged.
+
+    ``sentinel_path`` is the producer's run-start record, and the invariant is
+    that the marker must never describe an EARLIER run than the last one that
+    started. Equality is NOT the test: a marker from a later run is healthy, and
+    that is what a run whose sentinel write failed produces.
+
+    A violation alone is not a fault, because the sentinel is written at run
+    start and the marker at run end — so every healthy run violates it for its
+    whole duration (measured: 0.11h to 12.64h). The reason therefore fires only
+    once the started run can no longer be in flight: its process is gone, or it
+    has been running longer than any run plausibly runs. See
+    ``_run_still_in_flight``.
+
+    The sentinel is a DETECTOR, not a proof obligation: it can only ever add a
+    reason. An absent one is therefore benign — degrading on absence would pin
+    this block to "degraded" from the moment the producer half ships until the
+    next 10:15 run, which is exactly the cry-wolf DG-034 refused when it
+    tolerated ``missing_optional:``. A sentinel that is PRESENT and unusable is
+    different: that is data we hold and cannot interpret, so it degrades like
+    any other unknown.
+
+    KNOWN LIMIT, deliberately not closed here: the sentinel and the marker share
+    a directory, so whatever makes one unwritable usually makes the other
+    unwritable too. Both then keep their previous values, they agree, and only
+    the 26-hour law catches it. That bound is why this is acceptable.
+    """
+
+    def _degraded(reasons: list[str], *, present: bool) -> BackupHealth:
+        return BackupHealth(
+            status="degraded",
+            reasons=reasons,
+            marker_present=present,
+            marker=None,
+            threshold_hours=BACKUP_STALENESS_THRESHOLD_HOURS,
+            decision_supported=False,
+        )
+
+    if not marker_path.is_file():
+        return _degraded(["backup_marker_absent"], present=False)
+
+    try:
+        raw = json.loads(marker_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return _degraded(["backup_marker_unparseable"], present=True)
+    if not isinstance(raw, dict):
+        return _degraded(["backup_marker_unparseable"], present=True)
+
+    finished_at_raw = raw.get("finished_at")
+    finished_at: datetime | None = None
+    if isinstance(finished_at_raw, str):
+        try:
+            parsed = datetime.fromisoformat(finished_at_raw)
+        except ValueError:
+            parsed = None
+        if parsed is not None and parsed.tzinfo is not None:
+            finished_at = parsed
+    if finished_at is None:
+        return _degraded(["backup_marker_unparseable"], present=True)
+
+    reasons: list[str] = []
+    age = now - finished_at
+    if age > timedelta(hours=BACKUP_STALENESS_THRESHOLD_HOURS):
+        reasons.append("backup_stale")
+    elif age < -timedelta(seconds=BACKUP_FUTURE_GRACE_SECONDS):
+        # Mutually exclusive with staleness by construction: a timestamp cannot
+        # be both ahead of now and more than 26h behind it.
+        reasons.append("backup_marker_future_dated")
+    if raw.get("status") != "completed":
+        reasons.append("backup_run_failed")
+    if raw.get("sha256_verified") is not True:
+        reasons.append("backup_unverified")
+
+    raw_failures = raw.get("failures")
+    failures = (
+        [item for item in raw_failures if isinstance(item, str)]
+        if isinstance(raw_failures, list)
+        else []
+    )
+    # A `failures` present but not a list is a malformed marker, and malformed
+    # is not evidence of health. Judge the RAW entries, not the string-filtered
+    # echo, so a non-string entry cannot be dropped into silence.
+    if raw_failures is not None and (
+        not isinstance(raw_failures, list)
+        or any(not _is_tolerated_failure(item) for item in raw_failures)
+    ):
+        reasons.append("backup_failures_present")
+    if sentinel_path is not None and sentinel_path.is_file():
+        try:
+            sentinel_raw: object = json.loads(
+                sentinel_path.read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+            sentinel_raw = None
+        started_run_id = (
+            sentinel_raw.get("run_id") if isinstance(sentinel_raw, dict) else None
+        )
+        if not isinstance(started_run_id, str) or not started_run_id:
+            reasons.append("backup_sentinel_unparseable")
+        elif not _marker_covers(
+            raw.get("run_id"), started_run_id
+        ) and not _run_still_in_flight(
+            sentinel_raw,  # type: ignore[arg-type]
+            now=now,
+            process_is_alive=process_is_alive,
+        ):
+            # Compared against the RAW run_id, never the echo: a marker with no
+            # usable run_id cannot cover a sentinel that names one.
+            reasons.append("backup_run_incomplete")
+
+    marker = BackupMarkerEcho(
+        run_id=_echo_str(raw.get("run_id")),
+        status=_echo_str(raw.get("status")),
+        started_at=_echo_str(raw.get("started_at")),
+        finished_at=finished_at_raw,
+        sha256_verified=(
+            raw.get("sha256_verified")
+            if isinstance(raw.get("sha256_verified"), bool)
+            else None
+        ),
+        files=_echo_int(raw.get("files")),
+        bytes=_echo_int(raw.get("bytes")),
+        failures=failures,
+    )
+    return BackupHealth(
+        status="degraded" if reasons else "ok",
+        reasons=reasons,
+        marker_present=True,
+        marker=marker,
+        threshold_hours=BACKUP_STALENESS_THRESHOLD_HOURS,
+        decision_supported=False,
     )

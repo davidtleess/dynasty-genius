@@ -37,6 +37,15 @@
       "card_treatment_selectors": 0
     },
     {
+      "path": "model-scoreboard/ModelScoreboard.css",
+      "focus_visible_selectors": 0,
+      "focus_token_consumers": 0,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 0,
+      "card_treatment_selectors": 0
+    },
+    {
       "path": "player/PlayerDetail.css",
       "focus_visible_selectors": 0,
       "focus_token_consumers": 0,

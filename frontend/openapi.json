@@ -95,6 +95,212 @@
         "title": "ArtifactProvenance",
         "type": "object"
       },
+      "BackupHealth": {
+        "additionalProperties": false,
+        "description": "The 26-hour backup law (02 \u00a7Standing Infrastructure ruling 3) as facts.\n\nMarker absence, staleness past one daily interval plus grace (26h), a\n``finished_at`` ahead of now beyond clock skew, a non-completed terminal\nstatus, unearned ``sha256_verified``, or a reported failure outside the\ntolerated set each degrade \u2014 silence is not success. Descriptive only.",
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "marker": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackupMarkerEcho"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "marker_present": {
+            "title": "Marker Present",
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "threshold_hours": {
+            "title": "Threshold Hours",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "reasons",
+          "marker_present",
+          "marker",
+          "threshold_hours",
+          "decision_supported"
+        ],
+        "title": "BackupHealth",
+        "type": "object"
+      },
+      "BackupMarkerEcho": {
+        "additionalProperties": false,
+        "description": "Descriptive echo of the backup status marker \u2014 never the bucket path.",
+        "properties": {
+          "bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bytes"
+          },
+          "failures": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failures",
+            "type": "array"
+          },
+          "files": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files"
+          },
+          "finished_at": {
+            "title": "Finished At",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "sha256_verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sha256 Verified"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "run_id",
+          "status",
+          "started_at",
+          "finished_at",
+          "sha256_verified",
+          "files",
+          "bytes",
+          "failures"
+        ],
+        "title": "BackupMarkerEcho",
+        "type": "object"
+      },
+      "BaselineQuestion": {
+        "additionalProperties": false,
+        "description": "Question 2 \u2014 does the model beat carrying last year's points forward?",
+        "properties": {
+          "below_materiality_floor": {
+            "title": "Below Materiality Floor",
+            "type": "boolean"
+          },
+          "counterweight_effect": {
+            "$ref": "#/components/schemas/Effect"
+          },
+          "counterweight_headline": {
+            "title": "Counterweight Headline",
+            "type": "string"
+          },
+          "effect": {
+            "$ref": "#/components/schemas/Effect"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "materiality_floor": {
+            "title": "Materiality Floor",
+            "type": "number"
+          },
+          "materiality_note": {
+            "title": "Materiality Note",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "answered",
+              "unanswered"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "state",
+          "headline",
+          "effect",
+          "materiality_floor",
+          "below_materiality_floor",
+          "materiality_note",
+          "counterweight_headline",
+          "counterweight_effect"
+        ],
+        "title": "BaselineQuestion",
+        "type": "object"
+      },
       "CapacityCandidate": {
         "description": "One roster player surfaced in the capacity-ordered review list.\n\nRaw value fields are re-joined from the universe PVO (the cut engine exposes\nonly percentile/dvs). Each field carries a provenance status so a consumer\ncan tell an \"ok\" join from an \"unavailable\"/\"pre_model\"/\"unknown_position\"\none without guessing from a null.",
         "properties": {
@@ -259,6 +465,9 @@
       "CaptureHealthResponse": {
         "additionalProperties": false,
         "properties": {
+          "backup": {
+            "$ref": "#/components/schemas/BackupHealth"
+          },
           "checked_at": {
             "title": "Checked At",
             "type": "string"
@@ -293,6 +502,7 @@
           "config_version",
           "checked_at",
           "stores",
+          "backup",
           "decision_supported"
         ],
         "title": "CaptureHealthResponse",
@@ -417,7 +627,7 @@
       },
       "Coverage": {
         "additionalProperties": false,
-        "description": "Counts that disclose how much of the frozen prediction set reached a grade.",
+        "description": "How much of the frozen prediction set actually reached a grade.\n\nAdded 2026-08-18 from a REAL produced artifact: the scaffolding models were written\nagainst ``score()``'s source shape while no artifact existed and missed this block,\nso ``extra=\"forbid\"`` made the route 503 on the first real scorecard \u2014 an error where\nthe record belongs, on Week 1 morning. PR #159 hardened the counts to strict\nnon-negative ints and added the status/count reconciliation validator below.\n\nThese counts are the honest denominators the surface must show beside any metric: a\nrank statistic over 318 of 501 predictions is a different claim than one over 501.",
         "properties": {
           "declared_count": {
             "anyOf": [
@@ -651,6 +861,82 @@
           "hit_rate_wilson_ci95"
         ],
         "title": "DivergenceResult",
+        "type": "object"
+      },
+      "Effect": {
+        "additionalProperties": false,
+        "description": "One measured difference, with its unit and its uncertainty attached.\n\n`value`, `ci_low` and `ci_high` are meaningless without `unit`; they are modelled\ntogether so a client cannot render the point estimate alone.",
+        "properties": {
+          "adjusted_p": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adjusted P"
+          },
+          "ci_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci High"
+          },
+          "ci_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Low"
+          },
+          "evaluable_folds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluable Folds"
+          },
+          "total_folds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Folds"
+          },
+          "unit": {
+            "const": "spearman_rank_correlation",
+            "default": "spearman_rank_correlation",
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "Effect",
         "type": "object"
       },
       "EvidenceListField": {
@@ -1904,6 +2190,78 @@
         "title": "LeaguePulseValueViews",
         "type": "object"
       },
+      "LiveAccrual": {
+        "additionalProperties": false,
+        "description": "The weekly record accruing against real outcomes.",
+        "properties": {
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "predictions_declared": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predictions Declared"
+          },
+          "predictions_graded": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predictions Graded"
+          },
+          "rank_availability_note": {
+            "title": "Rank Availability Note",
+            "type": "string"
+          },
+          "rank_eligible": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank Eligible"
+          },
+          "rank_metrics_available": {
+            "title": "Rank Metrics Available",
+            "type": "boolean"
+          },
+          "state": {
+            "enum": [
+              "not_started",
+              "accruing"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "weeks_graded": {
+            "title": "Weeks Graded",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "state",
+          "headline",
+          "weeks_graded",
+          "rank_metrics_available",
+          "rank_availability_note"
+        ],
+        "title": "LiveAccrual",
+        "type": "object"
+      },
       "MarketAssetOverlay": {
         "properties": {
           "asset_ref": {
@@ -2187,6 +2545,74 @@
           "caveats"
         ],
         "title": "MarketDivergenceContext",
+        "type": "object"
+      },
+      "MarketQuestion": {
+        "additionalProperties": false,
+        "description": "Question 1 \u2014 the one that decides whether this product has an edge at all.",
+        "properties": {
+          "effect_direction_note": {
+            "title": "Effect Direction Note",
+            "type": "string"
+          },
+          "evaluable_folds": {
+            "title": "Evaluable Folds",
+            "type": "integer"
+          },
+          "excluded_fold_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Excluded Fold Reasons",
+            "type": "array"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "observed_effects": {
+            "items": {
+              "$ref": "#/components/schemas/Effect"
+            },
+            "title": "Observed Effects",
+            "type": "array"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "unanswered",
+              "answered"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "total_folds": {
+            "title": "Total Folds",
+            "type": "integer"
+          },
+          "what_would_answer_it": {
+            "title": "What Would Answer It",
+            "type": "string"
+          },
+          "why": {
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "state",
+          "headline",
+          "why",
+          "what_would_answer_it",
+          "evaluable_folds",
+          "total_folds",
+          "effect_direction_note"
+        ],
+        "title": "MarketQuestion",
         "type": "object"
       },
       "MarketRealismWarning": {
@@ -2621,6 +3047,71 @@
           "caveat"
         ],
         "title": "ModelReliability",
+        "type": "object"
+      },
+      "ModelScoreboardErrorResponse": {
+        "properties": {
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "decision_supported"
+        ],
+        "title": "ModelScoreboardErrorResponse",
+        "type": "object"
+      },
+      "ModelScoreboardResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "baseline_question": {
+            "$ref": "#/components/schemas/BaselineQuestion"
+          },
+          "decision_supported": {
+            "const": false,
+            "title": "Decision Supported",
+            "type": "boolean"
+          },
+          "generated_at": {
+            "title": "Generated At",
+            "type": "string"
+          },
+          "live": {
+            "$ref": "#/components/schemas/LiveAccrual"
+          },
+          "market_question": {
+            "$ref": "#/components/schemas/MarketQuestion"
+          },
+          "position_scope": {
+            "$ref": "#/components/schemas/PositionScope"
+          },
+          "study_label": {
+            "title": "Study Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "generated_at",
+          "market_question",
+          "baseline_question",
+          "position_scope",
+          "live",
+          "study_label",
+          "decision_supported"
+        ],
+        "title": "ModelScoreboardResponse",
         "type": "object"
       },
       "NdcgStat": {
@@ -3119,6 +3610,35 @@
         "title": "PoolRange",
         "type": "object"
       },
+      "PositionScope": {
+        "additionalProperties": false,
+        "description": "Which positions have a study at all. Unstudied positions are stated, not omitted.",
+        "properties": {
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "studied": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Studied",
+            "type": "array"
+          },
+          "unstudied": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unstudied",
+            "type": "array"
+          }
+        },
+        "required": [
+          "note"
+        ],
+        "title": "PositionScope",
+        "type": "object"
+      },
       "PrecisionAtK": {
         "additionalProperties": false,
         "properties": {
@@ -3581,7 +4101,8 @@
               "corrupt_or_empty",
               "dormant",
               "missing",
-              "producer_failed"
+              "producer_failed",
+              "inputs_degraded"
             ],
             "title": "Status",
             "type": "string"
@@ -7775,6 +8296,37 @@
         "summary": "What Changed Surface",
         "tags": [
           "league-what-changed"
+        ]
+      }
+    },
+    "/api/model-scoreboard": {
+      "get": {
+        "operationId": "get_model_scoreboard_api_model_scoreboard_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelScoreboardResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelScoreboardErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Model Scoreboard",
+        "tags": [
+          "system"
         ]
       }
     },

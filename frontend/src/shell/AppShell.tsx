@@ -3,6 +3,7 @@ import { useState } from "react";
 import { type Command, CommandPalette } from "../command/CommandPalette";
 import { AssetPrimitiveCapture } from "../dev/AssetPrimitiveCapture";
 import { LeaguePulse } from "../league-pulse/LeaguePulse";
+import { ModelScoreboard } from "../model-scoreboard/ModelScoreboard";
 import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { PlayerInspector } from "../player/PlayerInspector";
 import { ProjectTracker } from "../project/ProjectTracker";
@@ -168,7 +169,15 @@ export function AppShell() {
             {activeSurface === "Roster Audit" && <RosterAudit />}
             {activeSurface === "Roster Capacity" && <RosterCapacitySandbox />}
             {activeSurface === "Daily What-Changed" && <DailyWhatChanged />}
-            {activeSurface === "Accuracy Tracker" && <RealizedOutcomeScorecard />}
+            {activeSurface === "Accuracy Tracker" && (
+              <div className="dg-shell__stack">
+                {/* The record leads: what has actually been measured about this model,
+                    market question first. The per-cohort scorecard beneath it is the
+                    drill-down for a live week once one exists. */}
+                <ModelScoreboard />
+                <RealizedOutcomeScorecard />
+              </div>
+            )}
             {activeSurface === "Trade Lab" && (
               <TradeLab onSelectPlayer={selectPlayer} />
             )}

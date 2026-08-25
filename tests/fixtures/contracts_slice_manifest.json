@@ -1,6 +1,7 @@
 {
   "appended_to_exercise": [
-    "null_gsis"
+    "null_gsis",
+    "null_season_history"
   ],
   "base_otc_ids": [
     1,
@@ -44,29 +45,47 @@
     39,
     40
   ],
-  "every_list_ends_in_total": true,
-  "exact_duplicate_excess": 2,
-  "n_columns": 25,
-  "nested_fields": [
-    "year",
-    "team",
-    "base_salary",
-    "prorated_bonus",
-    "roster_bonus",
-    "guaranteed_salary",
-    "cap_number",
-    "cap_percent",
-    "cash_paid",
-    "workout_bonus",
-    "other_bonus",
-    "per_game_roster_bonus",
-    "option_bonus"
-  ],
+  "every_season_list_ends_in_total": true,
+  "exact_duplicate_excess": 1,
+  "n_columns": 26,
+  "nested_fields": {
+    "contract_history": [
+      "team",
+      "contract_type",
+      "status",
+      "year_signed",
+      "yrs",
+      "total",
+      "apy",
+      "guarantees",
+      "amount_earned",
+      "percent_earned",
+      "effective_apy"
+    ],
+    "season_history": [
+      "year",
+      "team",
+      "base_salary",
+      "prorated_bonus",
+      "roster_bonus",
+      "guaranteed_salary",
+      "cap_number",
+      "cap_percent",
+      "cash_paid",
+      "workout_bonus",
+      "other_bonus",
+      "per_game_roster_bonus",
+      "option_bonus"
+    ]
+  },
   "nflreadpy_version": "0.1.5",
-  "null_cols_rows": 20,
+  "null_contract_history_rows": 1,
   "null_gsis_rows": 1,
-  "slice_rows": 195,
-  "upstream_rows": 51808,
-  "upstream_sha256": "169d5b4f76ca69ffbe0a04f748b074fa64dc2188cf0190a6a548c261f6319f8b",
+  "null_season_history_rows": 1,
+  "slice_rows": 196,
+  "source_raw_file": "contracts_nflverse-usage-20260824T1015007632980000-contracts_20260824T1015007632980000.json",
+  "source_snapshot_id": "nflverse-usage-20260824T1015007632980000:contracts",
+  "upstream_rows": 51994,
+  "upstream_sha256": "db2d91231699c0f47f92e407c1c81529a19d2086e550576f975e0a97e5d071b2",
   "year_signed_zero_rows": 1
 }

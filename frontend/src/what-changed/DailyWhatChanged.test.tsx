@@ -264,6 +264,23 @@ function captureHealthResponse(
   overrides: Partial<CaptureHealthResponse> = {},
 ): CaptureHealthResponse {
   return {
+    backup: {
+      decision_supported: false,
+      marker: {
+        bytes: 1,
+        failures: [],
+        files: 1,
+        finished_at: "2026-07-05T14:54:02+00:00",
+        run_id: "20260705T141500Z",
+        sha256_verified: true,
+        started_at: "2026-07-05T14:15:00+00:00",
+        status: "completed",
+      },
+      marker_present: true,
+      reasons: [],
+      status: "ok",
+      threshold_hours: 26,
+    },
     checked_at: "2026-07-05T09:00:00-04:00",
     config_version: 3,
     decision_supported: false,

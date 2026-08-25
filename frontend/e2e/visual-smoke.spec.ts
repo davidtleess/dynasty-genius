@@ -10,6 +10,96 @@ import { mkdirSync, writeFileSync } from "node:fs";
 
 const ARTIFACT_DIR = "artifacts/visual";
 
+// Captured verbatim from GET /api/model-scoreboard on the running app so the evidence
+// shows the real copy and the real figures, not placeholders.
+const MODEL_SCOREBOARD_FIXTURE = {
+  generated_at: "2026-08-17T11:14:54.209097+00:00",
+  study_label: "QB-1 validation study",
+  market_question: {
+    position: "QB",
+    state: "unanswered",
+    headline: "We cannot say yet whether the QB model beats the market.",
+    why: "Only 1 of 4 test seasons produced a usable model-versus-market comparison. The other 3 were thrown out before any result was read, because the market data for those seasons was too thin to compare against.",
+    what_would_answer_it:
+      "Market prices captured forward, season by season. The comparison is scored per test season, so usable seasons — not weeks — are what accrue; the study can be re-run once enough of them exist. No date is promised here because the rate depends on capture coverage, not on the calendar.",
+    evaluable_folds: 1,
+    total_folds: 4,
+    excluded_fold_reasons: ["degenerate_input", "fold_starved"],
+    observed_effects: [],
+    effect_direction_note:
+      "On the single usable season the market ranked ahead of the model, but one season cannot settle it — these numbers are shown for completeness and support no conclusion in either direction.",
+  },
+  baseline_question: {
+    position: "QB",
+    state: "answered",
+    headline:
+      "The full QB model ranks quarterbacks better than carrying last year's points forward.",
+    effect: {
+      value: 0.09789663913191639,
+      ci_low: 0.0035794842180143097,
+      ci_high: 0.18600350362745874,
+      unit: "spearman_rank_correlation",
+      adjusted_p: 0.0441,
+      evaluable_folds: 8,
+      total_folds: 8,
+    },
+    materiality_floor: 0.05,
+    below_materiality_floor: true,
+    materiality_note:
+      "Both of these are true: the model does rank better, and the effect may be too small to matter. The plausible range runs 0.004 to 0.186, and the study's own floor for a difference worth acting on is 0.05.",
+    counterweight_headline:
+      "Efficiency alone ranked worse than carrying last year's points forward.",
+    counterweight_effect: {
+      value: -0.2651,
+      ci_low: -0.428,
+      ci_high: -0.13,
+      unit: "spearman_rank_correlation",
+      adjusted_p: 0.0104,
+      evaluable_folds: 8,
+      total_folds: 8,
+    },
+  },
+  position_scope: {
+    studied: ["QB"],
+    unstudied: ["RB", "WR", "TE"],
+    note: "This study measured quarterbacks only. Running backs, receivers and tight ends have no equivalent study yet, so nothing here describes them.",
+  },
+  live: {
+    state: "not_started",
+    headline: "No weeks graded yet — the first live week is Week 1.",
+    weeks_graded: 0,
+    predictions_declared: null,
+    predictions_graded: null,
+    rank_eligible: null,
+    rank_metrics_available: false,
+    rank_availability_note:
+      "Ranking accuracy needs four games per player before it can be computed, so those columns stay empty until roughly Week 5 even once grading starts.",
+  },
+  decision_supported: false,
+};
+
+const SCORECARD_INACTIVE_FIXTURE = {
+  status: "inactive",
+  status_reason: "awaiting_first_finalized_week",
+  as_of_week: null,
+  settlement_status: "unsettled",
+  maturity_pct: null,
+  cohort_metrics: {},
+  tracking_rows: [],
+  excluded_counts: {},
+  coverage: {
+    declared_count: null,
+    eligible_count: null,
+    resolved_count: null,
+    outcome_present_count: null,
+    graded_count: null,
+    rank_eligible_count: null,
+    identity_excluded_counts: {},
+    prediction_excluded_counts: {},
+  },
+  decision_supported: false,
+};
+
 async function captureMidScroll(page: Page, path: string) {
   await page.evaluate(() => {
     const maxY = Math.max(
@@ -426,5 +516,53 @@ test("asset primitive capture evidence bundle asserts axe zero", async ({ page }
   await captureMidScroll(
     page,
     `${ARTIFACT_DIR}/asset-primitive-capture-mobile-mid-scroll.png`,
+  );
+});
+
+// Accuracy Tracker — Model Scoreboard visual evidence. Mocked with the REAL payload
+// captured from the running app, so the capture shows the copy that will actually be
+// read rather than placeholder values.
+test("model scoreboard evidence bundle", async ({ page }) => {
+  mkdirSync(ARTIFACT_DIR, { recursive: true });
+
+  await page.route("**/api/model-scoreboard", (route) =>
+    route.fulfill({ json: MODEL_SCOREBOARD_FIXTURE }),
+  );
+  await page.route("**/api/realized-outcome/scorecard", (route) =>
+    route.fulfill({ json: SCORECARD_INACTIVE_FIXTURE }),
+  );
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/?surface=accuracy-tracker");
+  await page.getByText("QB model record").waitFor();
+  await expectNoHorizontalOverflow(page);
+  await expectTrustStripPainted(page);
+  await page.screenshot({
+    path: `${ARTIFACT_DIR}/model-scoreboard-desktop.png`,
+    fullPage: true,
+  });
+  await captureMidScroll(
+    page,
+    `${ARTIFACT_DIR}/model-scoreboard-desktop-mid-scroll.png`,
+  );
+
+  const axeResults = await new AxeBuilder({ page }).include("main").analyze();
+  writeFileSync(
+    `${ARTIFACT_DIR}/model-scoreboard-axe-report.json`,
+    JSON.stringify({ violations: axeResults.violations }, null, 2),
+  );
+  expect(axeResults.violations).toEqual([]);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?surface=accuracy-tracker");
+  await page.getByText("QB model record").waitFor();
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({
+    path: `${ARTIFACT_DIR}/model-scoreboard-mobile.png`,
+    fullPage: true,
+  });
+  await captureMidScroll(
+    page,
+    `${ARTIFACT_DIR}/model-scoreboard-mobile-mid-scroll.png`,
   );
 });

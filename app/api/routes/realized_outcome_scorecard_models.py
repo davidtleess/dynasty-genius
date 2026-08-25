@@ -92,7 +92,17 @@ NonNegativeStrictInt = Annotated[int, Field(strict=True, ge=0)]
 
 
 class Coverage(_Strict):
-    """Counts that disclose how much of the frozen prediction set reached a grade."""
+    """How much of the frozen prediction set actually reached a grade.
+
+    Added 2026-08-18 from a REAL produced artifact: the scaffolding models were written
+    against ``score()``'s source shape while no artifact existed and missed this block,
+    so ``extra="forbid"`` made the route 503 on the first real scorecard — an error where
+    the record belongs, on Week 1 morning. PR #159 hardened the counts to strict
+    non-negative ints and added the status/count reconciliation validator below.
+
+    These counts are the honest denominators the surface must show beside any metric: a
+    rank statistic over 318 of 501 predictions is a different claim than one over 501.
+    """
 
     declared_count: Optional[NonNegativeStrictInt]
     eligible_count: Optional[NonNegativeStrictInt]

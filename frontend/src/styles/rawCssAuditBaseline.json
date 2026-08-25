@@ -33,6 +33,16 @@
       "non_token_font_families": 0
     },
     {
+      "path": "model-scoreboard/ModelScoreboard.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 6,
+      "raw_radius_values": 2,
+      "raw_font_size_values": 3,
+      "non_token_font_families": 0
+    },
+    {
       "path": "player/PlayerDetail.css",
       "raw_hex": 0,
       "raw_oklch": 2,
@@ -54,7 +64,7 @@
     },
     {
       "path": "realized-outcome/RealizedOutcomeScorecard.css",
-      "raw_hex": 7,
+      "raw_hex": 0,
       "raw_oklch": 0,
       "raw_rgb": 0,
       "raw_spacing_values": 0,
@@ -194,12 +204,12 @@
     }
   ],
   "totals": {
-    "raw_hex": 17,
+    "raw_hex": 10,
     "raw_oklch": 69,
     "raw_rgb": 0,
-    "raw_spacing_values": 65,
-    "raw_radius_values": 28,
-    "raw_font_size_values": 42,
+    "raw_spacing_values": 71,
+    "raw_radius_values": 30,
+    "raw_font_size_values": 45,
     "non_token_font_families": 0
   }
 }

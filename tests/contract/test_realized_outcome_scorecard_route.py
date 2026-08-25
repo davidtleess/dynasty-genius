@@ -121,6 +121,12 @@ def test_missing_scorecard_is_healthy_inactive_200_without_live_artifact_depende
         "cohort_metrics": {},
         "tracking_rows": [],
         "excluded_counts": {},
+        # DISCLOSED CONTRACT CHANGE (2026-08-18): the response gained a `coverage` block,
+        # added after a REAL produced scorecard (the dress-rehearsal artifact) proved the
+        # scaffolding models rejected it — `extra="forbid"` made the route 503 on the first
+        # real artifact. Inactive carries the block with null counts rather than omitting
+        # it, so the shape is stable across inactive→ok and the UI never has to branch on
+        # a missing key. Nothing has been graded in this state, and the nulls say so.
         "coverage": {
             "declared_count": None,
             "eligible_count": None,

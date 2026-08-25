@@ -1,0 +1,51 @@
+feat(pvo): disclose DVS ceiling clamp in the served artifact
+
+Studio-024 R1, backend/artifact half. 23 players ship dynasty_value_score
+exactly 100.0 (RB 6 / WR 6 / TE 11; McCaffrey raw 120.1) with nothing disclosing
+truncation. PlayerValueObject defined dvs_clamped and dvs_p90_ref since the
+contract was written and pvo_assembler computed both, but universe_pvo_batch
+never serialized them, so the disclosure path was built and dark. 00 No-Verdict
+Line requires surfacing the arithmetic honestly, unclamped.
+
+Changes: universe_pvo_batch serializes both keys (null on unscored rows so
+absence never hides an unrun check); engine_a derives clamp truth as
+raw_score > 100.0 before rounding in both heads; pvo_assembler consumes producer
+truth at all three former inference sites; blend discloses False because a
+weighted average of already-clamped components cannot truncate, which keeps the
+derived xvar_ceiling_bound truthful. No valuation arithmetic changed.
+test_surface3_pvo_preservation fixture widened for the two additive valuation
+keys, flagged inline as a disclosed contract change.
+
+Six-round adversarial cockpit cycle, Claude GREEN / Codex independent review.
+Five real defects found, four by Codex: F1 clamp truth inferred from the rounded
+score (raw 99.99589 disclosed as clamped, the exact inversion of the field
+contract); F2 blend definition falsifying xvar_ceiling_bound on every blended
+row; F3/F4 two seams surviving mutation; F5 both Engine A consumers able to
+discard a genuine True; F6 stale contract prose beside corrected code. Round-6
+verdict CLEAR:
+docs/agent-ledger/evidence/2026-08-18/dvs_clamp_disclosure_green_review_codex_v6.md
+
+Governance read: 02 v1.5.0, 00 v1.1.0, 05 v1.3.1 in full, 03 v1.1.0, 01
+targeted, AGENT_SYNC through the END CURRENT BOARD marker, today's ledger.
+Layer 3 (models); layers 1-2 dependency check run and recorded (substrate
+present and populated; genuinely layer 3).
+
+Validation: full suite 6,208 passed / 15 failed / 12 skipped. All 15 failures
+are tests/contract/test_governed_cadence_inputs_red.py, which is UNTRACKED and
+deliberately not in this commit, so a clean checkout of this branch does not
+contain it. Zero collection errors. Clamp bundle 22 passed, with Surface-3
+preservation 23 passed. ruff check src app clean. Both F5 mutations re-run
+in-file and independently, failing 2 and 1 on their own paths; zero MUTATION
+residue.
+
+Caveats: Studio R1 is HALF-CLOSED, not closed. PlayerModelLane still ships a
+bare dynasty_value_score, so the API a user reads is unchanged; that increment
+is blocked behind the parked capture-health generated-client regeneration and is
+deliberately not opened here. Studio-024 findings R2-R5 remain unruled by David.
+decision_supported=False unchanged throughout.
+
+No market-derived features entered Engine A or Engine B training. This change
+touches disclosure serialization only; KTC and all market data remain
+overlay-only per 00.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>

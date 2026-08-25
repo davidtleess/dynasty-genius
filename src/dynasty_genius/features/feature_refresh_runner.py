@@ -105,6 +105,25 @@ def run_feature_refresh(
     # when no validated runtime was produced (Codex F1: noop poisoning). A bare legacy
     # report (no status) and accepted states (candidate_ready / ok) remain noop-eligible.
     if last_hash is not None and last_hash == source_hash and last_status != "blocked":
+        # Stamp the report we are about to skip. A noop is a HEALTHY outcome, but
+        # it used to leave the file byte-identical, so a genuinely unchanged
+        # upstream and a producer that never ran looked the same on disk. The
+        # freshness gate reads `generated_at` (report_freshness.json), and now
+        # that feature_refresh is registered `daily` — matching a plist with no
+        # Weekday key — an unstamped noop would read stale roughly one day in
+        # five. The write MERGES, so `stream_provenance` (the declared
+        # input_provenance_field) and `source_hash` (the gate just above)
+        # survive untouched.
+        try:
+            _record_source_hash(report_path, source_hash, now_fn, status="noop")
+        except OSError:
+            # Bookkeeping never cancels the run. Losing the stamp is already
+            # self-punishing: the report keeps its old generated_at and the
+            # freshness gate reports it stale, which is the true signal. Raising
+            # here would instead turn a healthy skip into a producer failure via
+            # run_feature_refresh.py's exit code. Same rule DG-036 applied to the
+            # backup sentinel.
+            pass
         return {
             "status": "noop",
             "publish_performed": False,
@@ -189,8 +208,13 @@ def _record_source_hash(
     source_hash: Optional[str],
     now_fn: Callable[[], Any],
     stream_provenance: Any = None,
+    status: Optional[str] = None,
 ) -> None:
-    """Merge the source hash into the refresh report (preserves noop gating post-publish)."""
+    """Merge the source hash into the refresh report (preserves noop gating post-publish).
+
+    ``status`` is written only when supplied, so the publish path keeps whatever
+    terminal status it already recorded and only the noop path relabels the file.
+    """
     report: dict[str, Any] = {}
     if report_path.exists():
         try:
@@ -204,5 +228,7 @@ def _record_source_hash(
     # like a healthy `ok` run.
     if stream_provenance is not None:
         report["stream_provenance"] = stream_provenance
+    if status is not None:
+        report["status"] = status
     report["generated_at"] = now_fn().isoformat()
     report_path.write_text(json.dumps(report, sort_keys=True))

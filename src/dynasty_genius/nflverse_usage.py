@@ -57,12 +57,13 @@ import hashlib
 import json
 import numbers
 import os
+import re
 import shutil
 import sqlite3
 import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -1111,16 +1112,28 @@ DEPTH_CHARTS = StreamSpec(
 #
 # `year_signed == 0` on 1,106 rows: preserved literally, no meaning inferred.
 # `is_active` is Boolean upstream and must be declared, or it publishes as text.
-# `cols` is List(Struct) of 13 cap fields; SQLite cannot hold it, so it is canonical
-# JSON with the order preserved exactly — never sorted, and `year` is not always
-# numeric (every one of 45,875 lists ends in a non-numeric 'Total').
+#
+# RE-MEASURED 2026-08-24 (DG-040): the upstream DATA release changed shape between
+# 2026-08-08 and 2026-08-21 with `nflreadpy` unchanged at 0.1.5. `cols` — List(Struct)
+# of 13 cap fields — is now published as `season_history`: the SAME 13 fields, order
+# still meaningful and never sorted, `year` still not always numeric (every non-null
+# list ends in a non-numeric 'Total'). A genuinely new `contract_history` List(Struct)
+# of 11 fields arrived beside it. Census over the full 2026-08-24 raw blob (51,994
+# records): ONE homogeneous 26-key top-level shape, every nested entry exactly on its
+# declared field set, 62 records null in BOTH nested columns. SQLite cannot hold
+# either list, so both are canonical JSON with order preserved exactly.
+#
+# The store's legacy `cols` column keeps the 2026-08-08 vintages; the two new columns
+# arrive via the explicit `UsageStore.migrate_additive_columns` path. No reader of
+# `cols` exists outside this module (verified 2026-08-24 by grep over src/, app/api/,
+# scripts/), so nothing consumes across the rename boundary.
 
 _CONTRACTS_COLUMNS = (
     'player', 'position', 'team', 'is_active', 'year_signed', 'years', 'value',
     'apy', 'guaranteed', 'apy_cap_pct', 'inflated_value', 'inflated_apy',
     'inflated_guaranteed', 'player_page', 'otc_id', 'gsis_id', 'date_of_birth',
     'height', 'weight', 'college', 'draft_year', 'draft_round', 'draft_overall',
-    'draft_team', 'cols',
+    'draft_team', 'season_history', 'contract_history',
 )
 
 CONTRACTS = StreamSpec(
@@ -1136,14 +1149,18 @@ CONTRACTS = StreamSpec(
     integer_columns=('year_signed', 'years', 'otc_id', 'draft_year', 'draft_round', 'draft_overall'),
     float_columns=('value', 'apy', 'guaranteed', 'apy_cap_pct', 'inflated_value', 'inflated_apy', 'inflated_guaranteed'),
     boolean_columns=('is_active',),
-    json_columns=("cols",),
+    json_columns=("season_history", "contract_history"),
     refuse_unexpected_columns=True,
     nested_fields={
-        "cols": (
+        "season_history": (
             "year", "team", "base_salary", "prorated_bonus", "roster_bonus",
             "guaranteed_salary", "cap_number", "cap_percent", "cash_paid", "workout_bonus",
             "other_bonus", "per_game_roster_bonus", "option_bonus",
-        )
+        ),
+        "contract_history": (
+            "team", "contract_type", "status", "year_signed", "yrs", "total", "apy",
+            "guarantees", "amount_earned", "percent_earned", "effective_apy",
+        ),
     },
     collapse_exact_duplicates=True,
     refuse_non_finite=True,
@@ -3082,7 +3099,24 @@ def _run_locked_capture(
                         }
                     )
                     continue
-                records = fetch(spec, season)
+                try:
+                    records = fetch(spec, season)
+                except ValueError as exc:
+                    # Recorded, not silently omitted — the same rule as `before_min_season`
+                    # directly above: a reader must be able to tell "the source has not
+                    # published this season yet" from "we forgot to fetch it".
+                    bound = _unpublished_season_bound(exc, season)
+                    if bound is None:
+                        raise
+                    results.append(
+                        {
+                            "stream": spec.name,
+                            "season": season,
+                            "skipped": "not_yet_available",
+                            "source_bound": bound,
+                        }
+                    )
+                    continue
                 raw_path = write_raw_snapshot(
                     records,
                     stream=spec.name,
@@ -3212,6 +3246,73 @@ _SNAPSHOT_CENSUS_KEYS = (
     "rows_unknown",
     "rows_not_canonically_identified",
 )
+
+
+#: The finished seasons the daily job still re-fetches. Measured 2026-08-21: their records come
+#: back byte-identical every morning, so every one of them costs a full download to learn
+#: nothing. Splitting archival backfill out of the daily path is the OFF-SEASON program's work —
+#: it is a scheduler change with persisted-output blast radius, and the same scoping ruling that
+#: deferred the architecture migration applies. This constant only names what is in scope today.
+ARCHIVE_SEASONS: tuple[int, ...] = (2023, 2024, 2025)
+
+#: The NFL league year opens in mid-March — the live 2026 depth chart series begins 2026-03-22.
+#: Using the month boundary can flip up to ~two weeks early, which is safe by construction: an
+#: early flip requests a season the source has not published, and `_unpublished_season_bound`
+#: records that as a skip instead of failing the run.
+_LEAGUE_YEAR_OPENS_MONTH = 3
+
+
+def current_league_season(today: date | None = None) -> int:
+    """The season currently being played, derived — never hardcoded.
+
+    January and February belong to the PREVIOUS season: the playoffs of the 2026 season are
+    played in January 2027.
+
+    Derived rather than declared because a hardcoded season is an edit due every year, and from
+    2027 that edit falls inside the season, after the freeze, when only Tier 0 lands.
+    """
+    day = today if today is not None else datetime.now(timezone.utc).date()
+    return day.year if day.month >= _LEAGUE_YEAR_OPENS_MONTH else day.year - 1
+
+
+def default_capture_seasons(today: date | None = None) -> tuple[int, ...]:
+    """What the scheduled capture asks for: the archive plus the live season.
+
+    Deduplicated because a season requested twice would fetch, normalize and reconcile the same
+    rows twice — and `apply_season` DELETEs the season before re-inserting it, so a duplicate is
+    not merely wasted work.
+    """
+    return tuple(sorted(set(ARCHIVE_SEASONS) | {current_league_season(today)}))
+
+
+#: `nflreadpy` refuses a season it has not published yet by naming its OWN bounds:
+#: `ValueError: Season must be between 2016 and 2025`. Measured live 2026-08-21 — the streams
+#: without 2026 data do not return empty, they raise.
+_SOURCE_SEASON_BOUND = re.compile(r"Season must be between \d+ and (\d+)")
+
+
+def _unpublished_season_bound(exc: BaseException, season: int) -> int | None:
+    """The source's own upper bound, IFF this refusal means "that season is not out yet".
+
+    Read the bound off the refusal rather than declaring a `max_season` per stream. A
+    hardcoded bound would have to be edited the week the season starts — in-season, after the
+    2026-09-04 freeze, when only Tier 0 lands. Reading it means week 1 opens the season with no
+    code change at all: the day nflverse publishes 2026 snap counts, the refusal stops and the
+    capture just starts storing them.
+
+    Returns None — meaning FATAL, unchanged from before — for everything else: a season BELOW
+    the bound (that is a misconfiguration, and `min_season` is the declared way to say it), a
+    message naming no bound, and any non-ValueError. The narrowness is the whole safety
+    argument: a capture that swallows errors it does not understand is how a season goes
+    missing quietly, which is precisely the failure this sprint exists to prevent.
+    """
+    if not isinstance(exc, ValueError):
+        return None
+    match = _SOURCE_SEASON_BOUND.search(str(exc))
+    if match is None:
+        return None
+    bound = int(match.group(1))
+    return bound if season > bound else None
 
 
 def _totals(results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:

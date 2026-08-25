@@ -1,0 +1,35 @@
+fix(health): a stream with rows is loaded, not empty (DG-023)
+
+`_load_stream_isolated` derived `status` from `seasons_present`, fusing two
+independent facts: whether rows loaded, and whether a season is observable.
+`nflreadpy.load_participation` returns a frame with no `season` column, so tens
+of thousands of loaded rows were reported `loaded_empty` and /api/health
+rendered "EMPTY: participation" over good data.
+
+Measured from both directions before the change:
+- feature_refresh_latest_report.json -> participation.status == "loaded_empty"
+- engine_b_features_runtime.csv, 2025 inference season -> route_participation,
+  tprr and yprr each populated 498/505 (98.6%). The data reached the build.
+
+`status` now follows the row count. `row_count` is recorded because without it
+the artifact cannot distinguish "rows loaded, no season column" from "genuinely
+zero rows" -- the indistinguishability that let the false label stand. An
+`unavailable` stream reports `row_count: None`, never 0: never-loaded is not
+loaded-nothing.
+
+`effective_season` is unchanged and still None when unobservable. The F1 ruling
+(an observed fact, never the requested ceiling) is preserved, not weakened.
+
+Both halves are mutation-tested, because the machine was too loaded to run the
+RED before the fix and green alone would have proved nothing:
+- revert the status line -> test_rows_without_a_season_column_are_loaded_not_empty
+  fails, `assert 'loaded_empty' == 'loaded'`
+- falsify row_count -> test_provenance_reports_the_row_count[3] fails, `assert 0 == 3`
+
+7 contract tests pass; ruff clean on both files.
+
+Not included: the "pbp / player_stats / snap_counts on 2025 cache" half of the
+ticket. That string lives in app/api/routes/system_health_models.py, which is
+not on main -- health work is deferred to a remediation ticket per DG-031/Q4(a).
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>

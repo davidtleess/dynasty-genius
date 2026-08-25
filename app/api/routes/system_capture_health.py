@@ -29,6 +29,7 @@ from app.api.routes.system_capture_health_models import (
     CaptureHealthConfigError,
     CaptureHealthErrorResponse,
     CaptureHealthResponse,
+    inspect_backup_marker,
     inspect_capture_store,
     load_capture_cadence,
 )
@@ -43,6 +44,10 @@ def _now_utc() -> datetime:
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _CONFIG_PATH = _REPO_ROOT / "app" / "config" / "capture_cadence.json"
 _CLOCK: Callable[[], datetime] = _now_utc
+# Resolved against _REPO_ROOT at request time so tests that monkeypatch
+# _REPO_ROOT never read the real gitignored ops marker.
+_BACKUP_MARKER_RELPATH = Path("app/data/ops/backup_status_latest.json")
+_BACKUP_SENTINEL_RELPATH = Path("app/data/ops/backup_run_active.json")
 
 _SANITIZED_MESSAGE = "capture health configuration unavailable"
 
@@ -82,9 +87,15 @@ def get_capture_health():
         )
         for store_config in config.stores
     ]
+    backup = inspect_backup_marker(
+        marker_path=_REPO_ROOT / _BACKUP_MARKER_RELPATH,
+        now=now,
+        sentinel_path=_REPO_ROOT / _BACKUP_SENTINEL_RELPATH,
+    )
     overall = (
         "degraded"
-        if any(store.store_status == "degraded" for store in stores)
+        if backup.status == "degraded"
+        or any(store.store_status == "degraded" for store in stores)
         else "ok"
     )
     return CaptureHealthResponse(
@@ -92,5 +103,6 @@ def get_capture_health():
         config_version=config.config_version,
         checked_at=now.isoformat(),
         stores=stores,
+        backup=backup,
         decision_supported=False,
     )

@@ -39,15 +39,35 @@ EXPECTED_ARTIFACTS: dict[str, dict[str, Any]] = {
         "scheduled_time_local": "09:30",
         "tier": "core_substrate",
         "timestamp_field": None,
+        # DG-033: all five abort sites in run_pvo_refresh.py reach a _persist()
+        # that rewrites this report, so a failed run leaves a FRESH mtime. Pinned
+        # here because an undeclared status_field made the gate skip the file
+        # entirely and grade on stat() alone.
+        "status_field": "status",
+        "success_status": "ok",
+        "failure_reason_field": "aborted_reason",
         "dormant_ok": False,
     },
     "feature_refresh": {
         "path": "app/data/features_runtime/feature_refresh_latest_report.json",
         "producer": "scripts/run_feature_refresh.py",
-        "cadence": "weekly",
+        # DG-033: its plist carries no Weekday key, so it runs every morning.
+        # Registered `weekly` it got a six-day window and could write nothing
+        # for six days while still grading fresh.
+        "cadence": "daily",
         "scheduled_time_local": "09:15",
         "tier": "daily_diagnostics",
         "timestamp_field": "generated_at",
+        # DG-033: `blocked` is this producer's one write-on-failure path
+        # (feature_publish.py:130/:162 write into the very file the gate reads),
+        # so the status IS declarable. `noop` joins `ok` as a success because a
+        # healthy unchanged-source day is a real terminal state and the runner
+        # now stamps that word into the report. `candidate_ready` is absent on
+        # purpose: run_feature_refresh.py:394 always supplies publish_fn, so the
+        # T1 branch that writes it cannot be reached from the CLI.
+        "status_field": "status",
+        "success_status": ["ok", "noop"],
+        "failure_reason_field": "blocked_reason",
         "dormant_ok": True,
     },
     "what_changed": {
@@ -115,7 +135,7 @@ EXPECTED_ARTIFACTS: dict[str, dict[str, Any]] = {
 }
 
 
-def test_real_report_freshness_config_loads_and_pins_the_seven_report_artifacts() -> None:
+def test_real_report_freshness_config_loads_and_pins_every_report_artifact() -> None:
     config = load_report_freshness(config_path=CONFIG_PATH)
 
     assert config.config_version == 2

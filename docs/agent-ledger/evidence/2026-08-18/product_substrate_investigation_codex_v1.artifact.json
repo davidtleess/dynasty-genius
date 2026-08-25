@@ -1,0 +1,256 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "The 115 blanks are not a missing-season feature-store failure",
+    "description": "Read-only product-substrate investigation of the unscored-player cohort, Engine B season semantics, health provenance, and QB-1 rerun impact.",
+    "generatedAt": "2026-08-18T21:48:12-04:00",
+    "sources": [
+      {
+        "id": "investigation",
+        "label": "Product substrate investigation with reproduced queries and repository citations",
+        "path": "docs/agent-ledger/evidence/2026-08-18/product_substrate_investigation_codex_v1.md",
+        "query": {
+          "description": "Read-only pandas joins over the runtime feature CSV, served PVO JSON, Aug-14 QB-validation weekly and identity snapshots, plus direct repository inspection.",
+          "engine": "sqlite over reviewed pandas measurements",
+          "language": "python",
+          "executed_at": "2026-08-18T21:48:12-04:00",
+          "sql": "SELECT * FROM (SELECT '4–7 games: projection hidden by missing composite' AS cohort, 114 AS players, 16 AS rostered UNION ALL SELECT '1–3 games: removed before inference', 108, 4)",
+          "tables_used": [
+            "app/data/features_runtime/engine_b_features_runtime.csv",
+            "app/data/valuation_runtime/universe_pvo_runtime.json",
+            "app/data/backtest/qb_validation/raw/weekly/weekly_2015_2025.parquet",
+            "app/data/backtest/qb_validation/raw/ff_playerids/ff_playerids_full.parquet",
+            "app/data/features_runtime/feature_refresh_latest_report.json",
+            "app/data/backtest/qb_validation/qb_validation_report.json"
+          ],
+          "filters": [
+            "2025 inference rows",
+            "QB/RB/WR/TE skill positions",
+            "DVS null and projection_2y present",
+            "games_t below 8 or source game count between 1 and 3"
+          ],
+          "metric_definitions": [
+            "Exact game match compares runtime games_t to source nunique(week) by player_id.",
+            "Scoreless projection means dynasty_value_score is null while projection_2y is nonnull.",
+            "Postseason exposure compares all-season player aggregates to season_type REG aggregates for the same 505 inference IDs."
+          ]
+        }
+      }
+    ],
+    "charts": [
+      {
+        "id": "affected_cohorts",
+        "title": "Two distinct low-volume populations lose different outputs",
+        "subtitle": "Four-to-seven-game players retain a hidden projection; one-to-three-game players are removed before inference.",
+        "type": "bar",
+        "dataset": "cohort_counts",
+        "sourceId": "investigation",
+        "encodings": {
+          "x": { "field": "cohort", "type": "nominal", "label": "Pipeline cohort" },
+          "y": { "field": "players", "type": "quantitative", "label": "Players", "format": "number" }
+        },
+        "yAxisTitle": "Players",
+        "valueFormat": "number",
+        "layout": "full"
+      }
+    ],
+    "tables": [
+      {
+        "id": "ranked_findings",
+        "title": "Ranked findings",
+        "subtitle": "The first finding reverses the proposed repair; the remaining findings locate the actual failures.",
+        "dataset": "ranked_findings",
+        "sourceId": "investigation",
+        "density": "dense",
+        "layout": "full",
+        "columns": [
+          { "field": "rank", "label": "Rank", "type": "number" },
+          { "field": "severity", "label": "Severity", "type": "text" },
+          { "field": "finding", "label": "Finding", "type": "text" },
+          { "field": "measured_evidence", "label": "Measured evidence", "type": "text" },
+          { "field": "cost", "label": "Cost to David", "type": "text" }
+        ]
+      },
+      {
+        "id": "rerun_matrix",
+        "title": "What must be rerun",
+        "subtitle": "Most work is not invalidated by tonight; Engine B-family reruns depend on one unresolved season-type definition.",
+        "dataset": "rerun_matrix",
+        "sourceId": "investigation",
+        "density": "comfortable",
+        "layout": "full",
+        "columns": [
+          { "field": "asset", "label": "Asset or finding", "type": "text" },
+          { "field": "rerun", "label": "Rerun?", "type": "text" },
+          { "field": "reason", "label": "Disposition", "type": "text" }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# The 115 blanks are not a missing-season feature-store failure"
+      },
+      {
+        "id": "executive_summary",
+        "type": "markdown",
+        "sourceId": "investigation",
+        "body": "## Executive Summary\n\n**Do not rebuild Engine B from `ff_opportunity` as the R1 repair.** The absent 2024 output row is deliberate partitioning, 2024 data is present inside the 2025 lag features, and all 505 runtime 2025 rows exactly match a separate full-season weekly snapshot on game count.\n\nThe real failure is downstream: 114 low-game players receive a points projection but no composite because the bridge asks for a rookie Engine A prior that the active builder does not supply. Eighty-five of those players are veterans with at least three years of experience. Production then falsely claims Engine A was used, and the API calls the null-score row modeled with no degradation.\n\nA separate 108-player one-to-three-game cohort is removed before inference; Engine B also includes postseason unless David intended all-game PPG. QB-1 is insulated because it used a separate pinned, REG-only snapshot and does not need a rerun because of tonight's premise."
+      },
+      {
+        "id": "finding_intro",
+        "type": "markdown",
+        "body": "## Key findings and evidence\n\nThe full source memo contains file-and-line citations and the reproduced query definitions for every count."
+      },
+      { "id": "cohort_chart", "type": "chart", "chartId": "affected_cohorts", "layout": "full" },
+      { "id": "findings", "type": "table", "tableId": "ranked_findings", "layout": "full" },
+      {
+        "id": "count_reconciliation",
+        "type": "markdown",
+        "sourceId": "investigation",
+        "body": "## Why the 115 looked conclusive\n\nThe runtime set `games_t < 8` has 115 feature IDs. The served set `DVS is null AND projection_2y is present` also has 115 rows. But the overlap is **114**, not 115. Nick Kallerup is the feature-side orphan; Bo Melton is the served-side replacement because a stale position mapping changes WR to CB and prevents normalization. Count equality concealed two separate defects."
+      },
+      {
+        "id": "points_first",
+        "type": "markdown",
+        "sourceId": "investigation",
+        "body": "## Recommended next steps\n\n1. **Surface existing points first** with PPG units, horizon, feature season, and game basis even when DVS/xVAR is absent or withheld.\n2. Separate `projection available / composite unavailable`, `composite withheld`, `pre-model`, `identity unresolved`, and `source degraded`; one blank must not represent all five.\n3. Do not inject current age and draft capital into a rookie model for veterans. If David retains a bridge, preserve the historical rookie-time prior and its vintage.\n4. Resolve whether Engine B PPG means regular season or all games. If regular season, rebuild and revalidate the full dependent family.\n5. Correct health facts: nonempty row count is not season coverage, retry is not cache, and no-prior must not claim an engine ran."
+      },
+      { "id": "reruns", "type": "table", "tableId": "rerun_matrix", "layout": "full" },
+      {
+        "id": "qb1",
+        "type": "markdown",
+        "sourceId": "investigation",
+        "body": "## QB-1 conclusion\n\nQB-1 did not read the runtime Engine B feature CSV. It used a separate Aug-14 seven-dataset snapshot, pins its inputs, includes 2024 and 2025, filters weekly rows to `REG`, and rejects postseason in the label builder. Tonight's alleged store gap therefore does **not** invalidate it.\n\nThe report remains `decision_supported=false`. QB rushing remains a hypothesis **under test**; no result, marginal-contribution claim, or dynasty-value claim is licensed until David rules. The registration's existing provenance caveat remains: file presence is proven, but content binding and source/parser authenticity are not."
+      },
+      {
+        "id": "questions",
+        "type": "markdown",
+        "body": "## Further questions\n\n- Does David define Engine B PPG over regular season only or all NFL games?\n- For low-volume veterans, should the product show projection only, use a stored historical prior, or abstain from composite scoring? No alternative was validated here.\n- What exact source should support a points fallback for the 1–3-game cohort? The current Engine B pipeline emits no projection for them."
+      },
+      {
+        "id": "caveats",
+        "type": "markdown",
+        "sourceId": "investigation",
+        "body": "## Caveats and assumptions\n\nThe pinned local Aug-14 nflreadpy snapshots were treated as the independent source; NFL-official truth was not externally verified. No Studio filesystem or browser was inspected. Removing postseason was measured but not simulated through retraining, so impact direction is unknown. The current decision record does not settle regular-season versus all-game PPG. No alternative composite model was evaluated.\n\nOne count chart is included to distinguish the adjacent 114-player and 108-player cohorts. No causal trend chart is included because the remaining findings are heterogeneous defects and decision states."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-18T21:48:12-04:00",
+    "status": "ready",
+    "datasets": {
+      "cohort_counts": [
+        {
+          "cohort": "4–7 games: projection hidden by missing composite",
+          "players": 114,
+          "rostered": 16
+        },
+        {
+          "cohort": "1–3 games: removed before inference",
+          "players": 108,
+          "rostered": 4
+        }
+      ],
+      "ranked_findings": [
+        {
+          "rank": 1,
+          "severity": "Critical",
+          "finding": "The missing-season feature-store diagnosis is false; do not rebuild from ff_opportunity.",
+          "measured_evidence": "2024 absent by design; its PPG appears as the 2025 T-1 lag. All 505 runtime rows match a separate 2025 snapshot on games. The two 115 sets overlap for only 114 players.",
+          "cost": "Consumes R1 on the wrong repair, changes model substrate, and still leaves blanks and false provenance."
+        },
+        {
+          "rank": 2,
+          "severity": "High",
+          "finding": "The dead-window bridge applies a rookie-prior design mostly to veterans.",
+          "measured_evidence": "Of 114 served low-game rows, 85 have 3+ years and 38 have 7+; 16 are rostered and two are David's.",
+          "cost": "Hides real points and risks feeding current age into a rookie forecast if repaired naively."
+        },
+        {
+          "rank": 3,
+          "severity": "High",
+          "finding": "Production says Engine A was used when no Engine A result exists.",
+          "measured_evidence": "114 null-DVS rows carry dvs_engine=A and a prior-used caveat; the API returns modeled with no degradation.",
+          "cost": "David cannot distinguish unavailable composite, used prior, withheld score, or no model."
+        },
+        {
+          "rank": 4,
+          "severity": "High",
+          "finding": "A second 1–3-game cohort is dropped before inference.",
+          "measured_evidence": "108 source players; 99 map into the universe; four are rostered; none has projection_2y or DVS.",
+          "cost": "A short-season star silently looks like any other pre-model player."
+        },
+        {
+          "rank": 5,
+          "severity": "High, conditional",
+          "finding": "Engine B aggregates postseason into game counts and PPG.",
+          "measured_evidence": "162 of 505 inference players have postseason rows; 160 change PPG; six cross the eight-game threshold; mean absolute change 0.412 PPG.",
+          "cost": "If David means regular-season PPG, the model family and dependent calibrations use the wrong population."
+        },
+        {
+          "rank": 6,
+          "severity": "High",
+          "finding": "Health provenance confuses nonempty shape, season coverage, retry, and cache.",
+          "measured_evidence": "Participation is reported loaded_empty while WR and TE route features are more than 99% populated and candidate/prior drift is zero.",
+          "cost": "Alerts point investigation at a false empty/cache cause."
+        },
+        {
+          "rank": 7,
+          "severity": "Medium",
+          "finding": "Feature publish readiness is structurally fail-closed but semantically weak.",
+          "measured_evidence": "Floors are four total and one per position; the ready marker lacks source_as_of and source row-count evidence.",
+          "cost": "A future degraded but nonempty frame can publish without explainable source vintage."
+        },
+        {
+          "rank": 8,
+          "severity": "Medium / low scope",
+          "finding": "Stale position precedence turns Bo Melton from WR into CB and erases DVS.",
+          "measured_evidence": "Exactly one mismatch among 503 joined Engine B PVO rows; it is the one-row offset that made both counts equal 115.",
+          "cost": "One fringe-player defect masked the causal mismatch and validated the wrong story."
+        }
+      ],
+      "rerun_matrix": [
+        {
+          "asset": "QB-1",
+          "rerun": "No",
+          "reason": "Separate pinned seven-dataset source, 2024/2025 present, REG-only labels; report remains decision_supported=false."
+        },
+        {
+          "asset": "Engine A",
+          "rerun": "No",
+          "reason": "Tonight's false runtime-store premise does not touch prospect training. Preserve historical priors if the bridge survives."
+        },
+        {
+          "asset": "R2 / R3 / R4 findings",
+          "rerun": "No",
+          "reason": "Independent identity and unused/dead-source findings are unchanged."
+        },
+        {
+          "asset": "PVO universe",
+          "rerun": "Rescore after decision",
+          "reason": "Reassemble after an authorized low-volume state/prior correction; preserve old captures."
+        },
+        {
+          "asset": "Engine B model family",
+          "rerun": "Conditional",
+          "reason": "Required if David rules regular-season-only PPG; includes QB/RB/WR v2 and TE v3."
+        },
+        {
+          "asset": "P90, replacement DVS, xVAR, calibration and derived studies",
+          "rerun": "Conditional",
+          "reason": "Recompute with the Engine B population if season-type semantics change."
+        },
+        {
+          "asset": "ff_opportunity consumer",
+          "rerun": "Not authorized",
+          "reason": "Third-party expected-points output remains substrate-only pending separate validation."
+        }
+      ]
+    }
+  }
+}
