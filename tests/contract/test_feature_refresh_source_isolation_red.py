@@ -35,6 +35,10 @@ def _provider(
         return load
 
     return SimpleNamespace(
+        # DG-041: the real module exposes get_current_season, and the
+        # participation source ceiling in _STREAM_LOADERS derives from it.
+        # 2026 keeps this fixture in the same season geometry as the tests.
+        get_current_season=lambda roster=False: 2026,
         load_player_stats=loader("player_stats"),
         load_rosters=loader("rosters"),
         load_snap_counts=loader("snap_counts"),
@@ -157,11 +161,18 @@ def test_ch1_connection_and_value_errors_are_isolated_per_stream(
     for name, error_type in {
         "player_stats": "ConnectionError",
         "snap_counts": "ValueError",
-        "participation": "ValueError",
     }.items():
         assert provenance[name]["effective_season"] == 2025
         assert provenance[name]["fallback_used"] is True
         assert provenance[name]["error_type"] == error_type
+    # DISCLOSED TEST CHANGE (DG-041): participation is no longer ASKED for the
+    # season its source refuses by construction — the request is capped at the
+    # source's own ceiling, so there is no refusal and no fallback to record.
+    # Same frame, same effective season; only the provenance stopped claiming
+    # an event that never needed to happen.
+    assert provenance["participation"]["effective_season"] == 2025
+    assert provenance["participation"]["fallback_used"] is False
+    assert provenance["participation"]["error_type"] is None
 
 
 def test_ch1_dynamic_default_path_also_preserves_each_stream_frontier(
