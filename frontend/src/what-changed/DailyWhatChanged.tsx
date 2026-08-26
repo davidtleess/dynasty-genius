@@ -301,10 +301,25 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
     from_date?: string | null;
     to_date?: string | null;
   } | null;
-  const moveCount =
-    (daily.market.top_movers?.length ?? 0) +
-    (daily.market.roster_deltas?.length ?? 0) +
-    (daily.model.deltas?.length ?? 0);
+  // SR-16: the hero is the number David acts on — how many of HIS players
+  // moved. roster_deltas is NOT a mover list (it holds every roster player
+  // present in both snapshots, flat ones included), so filter on value_delta;
+  // counting .length would print a near-constant roster size every morning.
+  const rosterMovers = (daily.market.roster_deltas ?? []).filter(
+    (row) => row.value_delta !== 0,
+  );
+  const largestMover = rosterMovers.reduce<(typeof rosterMovers)[number] | null>(
+    (best, row) =>
+      best === null || Math.abs(row.value_delta) > Math.abs(best.value_delta)
+        ? row
+        : best,
+    null,
+  );
+  const heroBasis = largestMover
+    ? `${rosterMovers.length} of your players; largest ${
+        largestMover.player_name ?? largestMover.player_key
+      } ${largestMover.value_delta > 0 ? "+" : ""}${largestMover.value_delta}`
+    : "no movement on your roster since the prior snapshot";
 
   const hours = staleHours(data.generated_at);
   const isStale = hours === null || hours >= STALE_HOURS_THRESHOLD;
@@ -321,7 +336,7 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
         | null;
     }
   ).baseline_roster_rows;
-  const quietDay = moveCount === 0;
+  const quietDay = rosterMovers.length === 0;
 
   return (
     <section
@@ -332,9 +347,9 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
         <div className="dg-wc__masthead">
           <h2 className="dg-wc__title">{deskDate(data.generated_at)}</h2>
           <ValueHero
-            label="Moves on the tape"
-            value={String(moveCount)}
-            basis="market and model changes since the prior snapshot"
+            label="Your roster moved"
+            value={String(rosterMovers.length)}
+            basis={heroBasis}
           />
         </div>
         {isStale && (
@@ -360,8 +375,9 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
           {quietDay && (
             <div className="dg-wc__quiet-day">
               <p className="dg-wc__quiet">
-                No valuation deltas observed since the last capture (checked{" "}
-                {deskDate(data.generated_at)}). The roster holds its baseline below.
+                No valuation deltas observed on your roster since the last capture
+                (checked {deskDate(data.generated_at)}). The roster holds its baseline
+                below.
               </p>
               {baselineRows && baselineRows.length > 0 && (
                 <BaselineRosterRows rows={baselineRows} />
@@ -481,7 +497,17 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
           No player movement on this tape — market values held steady overnight.
         </p>
       ) : (
-        <MarketRows rows={topMovers} />
+        <>
+          <MarketRows rows={topMovers} />
+          {/* SR-16: honest truncation — the league-wide total stays on the
+              surface but never pretends to be about his roster, and a nullish
+              total is never invented. */}
+          <p className="dg-wc__overlay-note">
+            {market.total_movers_count != null
+              ? `Showing ${topMovers.length} of ${market.total_movers_count} market movers league-wide`
+              : `Showing ${topMovers.length} market movers`}
+          </p>
+        </>
       )}
 
       <h4 className="dg-wc__group">Entered</h4>

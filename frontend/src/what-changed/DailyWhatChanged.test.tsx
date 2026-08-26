@@ -963,8 +963,18 @@ describe("DailyWhatChanged", () => {
     render(<DailyWhatChanged />);
 
     await waitFor(() =>
-      expect(screen.getByText(/No valuation deltas observed since the last capture/i)),
+      // Copy amended with SR-16: quietDay is derived from HIS roster's movers,
+      // so the sentence scopes itself to the roster to stay true on days the
+      // league moved but his roster held.
+      expect(
+        screen.getByText(
+          /No valuation deltas observed on your roster since the last capture/i,
+        ),
+      ),
     );
+    expect(
+      screen.getByText("no movement on your roster since the prior snapshot"),
+    ).toBeTruthy();
     expect(screen.getByText("Tetairoa McMillan")).toBeTruthy();
     const row = screen.getByText("Tetairoa McMillan").closest("[data-asset-row]");
     expect(row).toBeTruthy();
@@ -989,5 +999,118 @@ describe("DailyWhatChanged", () => {
     expect(row).toBeTruthy();
     expect((row as HTMLElement).querySelector("[data-team-id]")).toBeNull();
     expect(within(row as HTMLElement).getByText(/series pending/i)).toBeTruthy();
+  });
+});
+
+// SR-16 / DG-081 — the hero is the number David acts on: how many of HIS
+// players moved, not a list-length sum (51) and not league-wide churn (456).
+// Flat roster rows are present-in-both-snapshots rows, NOT movers — counting
+// .length would print a near-constant 26 every morning (wallpaper).
+describe("DailyWhatChanged roster-mover hero", () => {
+  function marketRow(name: string, delta: number, idx: number) {
+    return {
+      sleeper_id: `hero-${idx}`,
+      player_key: `hero-${idx}`,
+      player_name: name,
+      position: "WR",
+      value_delta: delta,
+      value_delta_direction: delta > 0 ? "up" : delta < 0 ? "down" : "flat",
+      overall_rank_delta: 0,
+      overall_rank_delta_direction: "flat",
+      position_rank_delta: 0,
+      position_rank_delta_direction: "flat",
+    };
+  }
+
+  function heroElement(): HTMLElement {
+    return screen
+      .getByText("Your roster moved")
+      .closest(".dg-ui-value-hero") as HTMLElement;
+  }
+
+  it("derives the hero from his roster's movers with the largest name in the basis, and keeps the league total honest", async () => {
+    const rosterDeltas = [
+      marketRow("Tank Dell", 139, 0),
+      marketRow("Fernando Mendoza", -84, 1),
+      ...Array.from({ length: 24 }, (_, i) =>
+        marketRow(`Roster Mover ${i + 1}`, i + 1, i + 2),
+      ),
+    ];
+    const topMovers = Array.from({ length: 25 }, (_, i) =>
+      marketRow(`League Mover ${i + 1}`, 50 - i, 100 + i),
+    );
+    mockFetch(
+      200,
+      whatChangedResponse({
+        daily_diff: {
+          market: {
+            roster_deltas: rosterDeltas,
+            top_movers: topMovers,
+            total_movers_count: 456,
+          },
+          model: { deltas: [] },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+    await waitFor(() => expect(screen.getByText("Your roster moved")).toBeTruthy());
+
+    const hero = heroElement();
+    expect(within(hero).getByText("26")).toBeTruthy();
+    expect(within(hero).getByText(/largest Tank Dell \+139/)).toBeTruthy();
+    expect(
+      screen.getByText("Showing 25 of 456 market movers league-wide"),
+    ).toBeTruthy();
+  });
+
+  it("counts only rows that actually moved — flat roster rows never inflate the hero", async () => {
+    const rosterDeltas = [
+      ...Array.from({ length: 20 }, (_, i) => marketRow(`Flat Holder ${i + 1}`, 0, i)),
+      ...Array.from({ length: 6 }, (_, i) =>
+        marketRow(`True Mover ${i + 1}`, (i + 1) * 10, 20 + i),
+      ),
+    ];
+    mockFetch(
+      200,
+      whatChangedResponse({
+        daily_diff: {
+          market: {
+            roster_deltas: rosterDeltas,
+            top_movers: [],
+            total_movers_count: 456,
+          },
+          model: { deltas: [] },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+    await waitFor(() => expect(screen.getByText("Your roster moved")).toBeTruthy());
+
+    const hero = heroElement();
+    expect(within(hero).getByText("6")).toBeTruthy();
+    expect(within(hero).queryByText("26")).toBeNull();
+    expect(within(hero).getByText(/largest True Mover 6 \+60/)).toBeTruthy();
+  });
+
+  it("never renders a league-wide total the payload does not carry", async () => {
+    const topMovers = Array.from({ length: 25 }, (_, i) =>
+      marketRow(`League Mover ${i + 1}`, 50 - i, 100 + i),
+    );
+    mockFetch(
+      200,
+      whatChangedResponse({
+        daily_diff: {
+          market: { top_movers: topMovers, total_movers_count: null },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+    await waitFor(() => expect(screen.getByText("Your roster moved")).toBeTruthy());
+
+    expect(screen.getByText("Showing 25 market movers")).toBeTruthy();
+    expect(screen.queryByText(/Showing 25 of/)).toBeNull();
   });
 });
