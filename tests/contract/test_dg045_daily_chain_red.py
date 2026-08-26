@@ -376,11 +376,12 @@ class TestCli:
         rc = chain.main(["--repo-root", str(tmp_path)])
         assert rc == 0
         out = capsys.readouterr().out
-        for name in EXPECTED_ORDER:
-            assert name in out
-        assert "run_fc_forward_capture" in out
-        # The market line names its hard upstream so the graph is readable.
-        assert "run_market_divergence_refresh" in out
+        # Dependency order is printed in order, and the one hard edge is named
+        # on the market line while edge-free steps say so explicitly.
+        positions = [out.index(name) for name in EXPECTED_ORDER]
+        assert positions == sorted(positions)
+        assert "hard upstreams: run_fc_forward_capture" in out
+        assert "hard upstreams: none" in out
         assert not (tmp_path / "app" / "data" / "ops").exists()
 
     def test_dry_run_false_executes_the_scratch_table(self, tmp_path):
@@ -508,3 +509,236 @@ class TestSpawnFailure:
             spec.loader.exec_module(alert)
         lines = alert.chain_report_lines(report_path)
         assert len(lines) == 1 and "s2" in lines[0]
+
+
+class TestReviewFindingA:
+    """MAJOR: a scratch step table must never write the LIVE alert-read path.
+    The spec's own proof commands omit --report-path; the code must refuse."""
+
+    def test_steps_from_without_report_path_or_override_is_refused(self, tmp_path):
+        chain = _chain()
+        table = tmp_path / "steps.json"
+        table.write_text(
+            json.dumps([{"name": "s1", "argv": [sys.executable, "-c", "pass"]}]),
+            encoding="utf-8",
+        )
+        rc = chain.main(
+            ["--dry-run=false", "--steps-from", str(table), "--repo-root", str(tmp_path)]
+        )
+        assert rc != 0
+        assert not (tmp_path / "app" / "data" / "ops").exists()
+
+
+class TestReviewFindingB:
+    """MAJOR: SR-19 must be able to force --season-end 2026 through the chain."""
+
+    def test_step_extra_appends_to_the_named_step_only(self):
+        chain = _chain()
+        steps = (_stub("s1"), _stub("s2"))
+        out = chain.apply_step_extras(
+            steps, [("s2", "--season-end"), ("s2", "2026")]
+        )
+        by_name = {s.name: s for s in out}
+        assert by_name["s2"].argv[-2:] == ("--season-end", "2026")
+        assert by_name["s1"].argv == steps[0].argv
+
+    def test_step_extra_for_an_unknown_step_is_refused(self):
+        import pytest
+
+        chain = _chain()
+        with pytest.raises(ValueError, match="no_such"):
+            chain.apply_step_extras((_stub("s1"),), [("no_such", "--x")])
+
+    def test_step_extra_flows_through_the_cli_with_override(self, tmp_path):
+        chain = _chain()
+        table = tmp_path / "steps.json"
+        table.write_text(
+            json.dumps(
+                [{"name": "s1", "argv": [sys.executable, "-c", "import sys; print(sys.argv[1:]); raise SystemExit(0)"]}]
+            ),
+            encoding="utf-8",
+        )
+        override = tmp_path / "scratch"
+        rc = chain.main(
+            [
+                "--dry-run=false",
+                "--steps-from",
+                str(table),
+                "--runtime-override",
+                str(override),
+                "--step-extra",
+                "s1=--season-end",
+                "--step-extra",
+                "s1=2026",
+                "--repo-root",
+                str(tmp_path),
+            ]
+        )
+        assert rc == 0
+        report = _report(override / "daily_chain_latest_report.json")
+        assert report["steps"][0]["status"] == "ok"
+
+
+class TestReviewFindingD:
+    """MINOR: a hard_upstreams entry must name an EARLIER step — a typo'd or
+    forward-referencing edge must die loudly at launch, not perma-skip quietly."""
+
+    def test_typoed_upstream_name_refuses_to_run(self, tmp_path):
+        import pytest
+
+        chain = _chain()
+        steps = (_stub("s1"), _stub("s2", upstreams=("s1_typo",)))
+        with pytest.raises(ValueError, match="s1_typo"):
+            chain.execute_chain(steps, report_path=tmp_path / "r.json")
+        assert not (tmp_path / "r.json").exists()
+
+    def test_forward_reference_refuses_to_run(self, tmp_path):
+        import pytest
+
+        chain = _chain()
+        steps = (_stub("s1", upstreams=("s2",)), _stub("s2"))
+        with pytest.raises(ValueError, match="s2"):
+            chain.execute_chain(steps, report_path=tmp_path / "r.json")
+
+    def test_dry_run_also_validates_the_table(self, tmp_path):
+        chain = _chain()
+        table = tmp_path / "steps.json"
+        table.write_text(
+            json.dumps(
+                [
+                    {"name": "s1", "argv": ["x"], "hard_upstreams": ["nope"]},
+                ]
+            ),
+            encoding="utf-8",
+        )
+        rc = chain.main(
+            ["--dry-run", "--steps-from", str(table), "--repo-root", str(tmp_path)]
+        )
+        assert rc != 0
+
+
+class TestReviewFindingE:
+    """MINOR: a past-midnight catch-up run must not record huge NEGATIVE drift —
+    a 00:10 fire chasing yesterday's 09:00 target is ~+905 minutes late."""
+
+    def test_past_midnight_run_records_positive_drift_against_yesterday(self, tmp_path):
+        import datetime as dt
+
+        chain = _chain()
+        after_midnight = dt.datetime(2026, 8, 27, 0, 10, 0).astimezone()
+        report_path = tmp_path / "chain.json"
+        chain.execute_chain(
+            (_stub("a"),), report_path=report_path, now_fn=lambda: after_midnight
+        )
+        top = _report(report_path)["chain"]
+        assert top["drift_minutes"] == 910
+        assert top["target_start"] == "09:00"
+
+    def test_slightly_early_start_keeps_small_negative_drift(self, tmp_path):
+        import datetime as dt
+
+        chain = _chain()
+        early = dt.datetime(2026, 8, 26, 8, 58, 0).astimezone()
+        report_path = tmp_path / "chain.json"
+        chain.execute_chain(
+            (_stub("a"),), report_path=report_path, now_fn=lambda: early
+        )
+        assert _report(report_path)["chain"]["drift_minutes"] == -2
+
+
+class TestReviewFindingG:
+    """MINOR (tests): the atomic write is load-bearing — a serialization crash
+    mid-write must leave the previous report intact and parseable."""
+
+    def test_failed_write_leaves_previous_report_standing(self, tmp_path, monkeypatch):
+        import pytest
+
+        chain = _chain()
+        report_path = tmp_path / "chain.json"
+        chain.execute_chain((_stub("a"),), report_path=report_path)
+        before = _report(report_path)
+
+        def boom(*a, **k):
+            raise RuntimeError("serializer died")
+
+        monkeypatch.setattr(chain.json, "dumps", boom)
+        with pytest.raises(RuntimeError):
+            chain.execute_chain((_stub("b"),), report_path=report_path)
+        assert _report(report_path) == before
+
+
+class TestReviewFindingH:
+    """MINOR (tests): pin the default repo-root resolution (Path(__file__) rail)."""
+
+    def test_bare_dry_run_resolves_the_real_repo_root(self, capsys):
+        chain = _chain()
+        assert chain.main(["--dry-run"]) == 0
+        out = capsys.readouterr().out
+        for name in EXPECTED_ORDER:
+            assert name in out
+
+
+class TestAllSixVectorsPinned:
+    """MAJOR (tests): every argv vector pinned verbatim — a table edit must
+    consciously update this expectation, not slide past the two spot-checks."""
+
+    def test_the_full_six_vector_table(self):
+        root = Path("/scratch/rooted")
+        steps = _chain().build_steps(root)
+        expected = {
+            "run_fc_forward_capture": (
+                str(root / PY),
+                str(root / "scripts" / "run_fc_forward_capture.py"),
+                "--db-path",
+                str(root / "app" / "data" / "fc_forward_capture.db"),
+                "--report-path",
+                str(root / "app" / "data" / "capture" / "fc_forward_capture_latest_report.json"),
+            ),
+            "run_feature_refresh": (
+                str(root / PY),
+                str(root / "scripts" / "run_feature_refresh.py"),
+            ),
+            "run_league_snapshot_capture": (
+                str(root / PY),
+                str(root / "scripts" / "run_league_snapshot_capture.py"),
+                "--runtime-root",
+                str(root / "app" / "data" / "league_runtime"),
+            ),
+            "run_pvo_refresh": (
+                str(root / PY),
+                str(root / "scripts" / "run_pvo_refresh.py"),
+                "--runtime-dir",
+                str(root / "app" / "data" / "valuation_runtime"),
+                "--capture-db-path",
+                str(root / "app" / "data" / "model_forward_capture.db"),
+                "--report-path",
+                str(root / "app" / "data" / "model_capture" / "pvo_refresh_latest_report.json"),
+                "--capture-report-path",
+                str(root / "app" / "data" / "model_capture" / "model_forward_capture_latest_report.json"),
+            ),
+            "run_market_divergence_refresh": (
+                str(root / PY),
+                str(root / "scripts" / "run_market_divergence_refresh.py"),
+                "--latest-path",
+                str(root / "app" / "data" / "valuation" / "universe_market_divergence_latest.json"),
+                "--coverage-latest-path",
+                str(root / "app" / "data" / "valuation" / "universe_market_divergence_coverage_latest.json"),
+                "--history-db-path",
+                str(root / "app" / "data" / "market_divergence_history.db"),
+                "--fc-forward-capture-db-path",
+                str(root / "app" / "data" / "fc_forward_capture.db"),
+                "--fc-source",
+                "fc_native",
+                "--fc-settings-hash",
+                "e27351d720e9fcf0",
+                "--marker-path",
+                str(root / "app" / "data" / "valuation_runtime" / "market_divergence_refresh_status_latest.json"),
+                "--report-path",
+                str(root / "app" / "data" / "valuation_runtime" / "market_divergence_refresh_latest_report.json"),
+            ),
+            "run_what_changed_report": (
+                str(root / PY),
+                str(root / "scripts" / "run_what_changed_report.py"),
+            ),
+        }
+        assert {s.name: s.argv for s in steps} == expected

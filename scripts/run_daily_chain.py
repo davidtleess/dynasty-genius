@@ -17,7 +17,7 @@ import os
 import subprocess
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 _PY = Path(".venv") / "bin" / "python3.14"
@@ -139,6 +139,46 @@ def _write_report(report_path: Path, payload: dict) -> None:
     os.replace(tmp, report_path)
 
 
+def validate_steps(steps: tuple[ChainStep, ...]) -> None:
+    """Every hard_upstreams entry must name a step that appears EARLIER in the
+    table. A typo'd or forward-referencing edge would otherwise perma-skip its
+    dependent every morning while the chain exits 0 — a config error must die
+    loudly at launch, not cost a store date quietly (review finding, 2026-08-26)."""
+    seen: set[str] = set()
+    for step in steps:
+        for up in step.hard_upstreams:
+            if up not in seen:
+                raise ValueError(
+                    f"hard upstream '{up}' of step '{step.name}' does not name an "
+                    "earlier step in the table"
+                )
+        seen.add(step.name)
+
+
+def apply_step_extras(
+    steps: tuple[ChainStep, ...], extras: list[tuple[str, str]]
+) -> tuple[ChainStep, ...]:
+    """Append CLI-supplied per-step arguments (SR-19's rehearsal needs to force
+    ``--season-end 2026`` through the chain's feature_refresh step). An extra
+    naming an unknown step is refused — a typo must not silently vanish."""
+    names = {s.name for s in steps}
+    for name, _arg in extras:
+        if name not in names:
+            raise ValueError(f"--step-extra names unknown step '{name}'")
+    by_step: dict[str, list[str]] = {}
+    for name, arg in extras:
+        by_step.setdefault(name, []).append(arg)
+    return tuple(
+        ChainStep(
+            name=s.name,
+            argv=s.argv + tuple(by_step.get(s.name, ())),
+            hard_upstreams=s.hard_upstreams,
+            target=s.target,
+        )
+        for s in steps
+    )
+
+
 def execute_chain(
     steps: tuple[ChainStep, ...],
     *,
@@ -148,12 +188,19 @@ def execute_chain(
     """Run every step in order. A failure is reported, never amplified: only a
     step whose declared hard upstream did not finish ``ok`` is skipped."""
 
+    validate_steps(steps)
     now_fn = now_fn or _now_local
     chain_started = now_fn()
     target_dt = chain_started.replace(
         hour=_CHAIN_TARGET[0], minute=_CHAIN_TARGET[1], second=0, microsecond=0
     )
     drift_minutes = round((chain_started - target_dt).total_seconds() / 60)
+    if drift_minutes < -120:
+        # A past-midnight catch-up (e.g. 00:10) is chasing YESTERDAY's 09:00
+        # target — hours late, not hours early. Nothing legitimately starts
+        # hours before its slot; small negative jitter is kept as-is.
+        target_dt -= timedelta(days=1)
+        drift_minutes = round((chain_started - target_dt).total_seconds() / 60)
 
     statuses: dict[str, str] = {}
     step_rows: list[dict] = []
@@ -316,7 +363,32 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--runtime-override", type=Path, default=None)
     parser.add_argument("--report-path", type=Path, default=None)
     parser.add_argument("--repo-root", type=Path, default=None)
+    parser.add_argument(
+        "--step-extra",
+        action="append",
+        default=[],
+        metavar="STEP=ARG",
+        help="append ARG to STEP's argv (repeatable; SR-19's rehearsal forces "
+        "--season-end through feature_refresh this way)",
+    )
     args = parser.parse_args(argv)
+
+    if (
+        args.steps_from is not None
+        and args.dry_run == "false"
+        and args.report_path is None
+        and args.runtime_override is None
+    ):
+        # Review finding (2026-08-26): the spec's own proof commands omit
+        # --report-path, and a scratch step table writing the LIVE report path
+        # feeds the 10:30 alert stub data — or silences a real failed morning.
+        print(
+            "refusing: --steps-from requires an explicit --report-path or "
+            "--runtime-override — a scratch table must never write the "
+            "production report the capture-gap alert reads",
+            flush=True,
+        )
+        return 2
 
     repo_root = args.repo_root or Path(__file__).resolve().parents[1]
     steps = (
@@ -326,6 +398,20 @@ def main(argv: list[str] | None = None) -> int:
         steps = apply_runtime_override(
             steps, repo_root=repo_root, override_dir=args.runtime_override
         )
+    extras: list[tuple[str, str]] = []
+    for raw in args.step_extra:
+        name, sep, value = raw.partition("=")
+        if not sep or not name or not value:
+            print(f"refusing: malformed --step-extra '{raw}' (want STEP=ARG)", flush=True)
+            return 2
+        extras.append((name, value))
+    try:
+        if extras:
+            steps = apply_step_extras(steps, extras)
+        validate_steps(steps)
+    except ValueError as exc:
+        print(f"refusing: {exc}", flush=True)
+        return 2
 
     if args.dry_run == "true":
         _print_plan(steps)
