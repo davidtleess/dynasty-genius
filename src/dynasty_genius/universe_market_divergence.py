@@ -127,6 +127,40 @@ def _blocked_signal(failed_gates: list[str]) -> str:
     return "UNAVAILABLE"
 
 
+# The same rule `market_divergence_rebase.INCLUSION_RULE` names; the wiring test
+# asserts the two strings never drift apart.
+COMMON_COHORT_INCLUSION_RULE = "model_backed_and_market_priced"
+
+
+def _common_cohorts(
+    rows: list[dict[str, Any]], fc_by_sleeper: dict[str, dict[str, Any]]
+) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
+    """Per-position ranking populations restricted to the COMMON cohort — exactly
+    the rows the loop below will hand a delta. Ranking each lane against a
+    population the other lane does not share was the mismatched-percentile defect
+    (DG-046): the 60th percentile of 300 model rows and the 60th of 500 market
+    rows describe different positions in different fields. The inclusion
+    conditions here MUST mirror the row loop's skip conditions."""
+    model: dict[str, list[float]] = defaultdict(list)
+    market: dict[str, list[float]] = defaultdict(list)
+    for row in rows:
+        if _is_unresolved(row):
+            continue
+        fc_entry = fc_by_sleeper.get(str(row.get("sleeper_player_id")))
+        if fc_entry is None:
+            continue
+        valuation = row.get("valuation") or {}
+        if (
+            not _is_model_backed(row)
+            or valuation.get("engine_path") in INACTIVE_OR_CONTEXT_ROUTES
+        ):
+            continue
+        position = str((row.get("player") or {}).get("position") or "")
+        model[position].append(float(valuation["xvar"]))
+        market[position].append(float(fc_entry.get("value") or 0.0))
+    return model, market
+
+
 def build_universe_market_divergence(
     universe_pvo_batch: dict[str, Any],
     fc_response: list[dict[str, Any]],
@@ -158,8 +192,8 @@ def build_universe_market_divergence(
     )
     result = copy.deepcopy(universe_pvo_batch)
     rows = result.get("players") or []
-    fc_by_sleeper, market_cohorts = _market_lookup(fc_response)
-    model_cohorts = _model_cohorts(rows)
+    fc_by_sleeper, _ = _market_lookup(fc_response)
+    model_cohorts, market_cohorts = _common_cohorts(rows, fc_by_sleeper)
 
     for row in rows:
         sleeper_id = str(row.get("sleeper_player_id"))
@@ -221,6 +255,10 @@ def build_universe_market_divergence(
         market_percentile = round(pct_rank(market_cohort, market_value), 3)
         delta = round(model_percentile - market_percentile, 3)
 
+        cohort_disclosure = {
+            "inclusion_rule": COMMON_COHORT_INCLUSION_RULE,
+            "population": len(model_cohort),
+        }
         if failed_gates:
             row["divergence"] = {
                 "signal": _blocked_signal(failed_gates),
@@ -231,6 +269,7 @@ def build_universe_market_divergence(
                 "failed_gates": failed_gates,
                 "notes": failed_gates.copy(),
                 "decision_supported": False,
+                "cohort": cohort_disclosure,
             }
         else:
             signal, status = _signal_from_delta(delta)
@@ -243,6 +282,7 @@ def build_universe_market_divergence(
                 "failed_gates": [],
                 "notes": [],
                 "decision_supported": False,
+                "cohort": cohort_disclosure,
             }
 
         if position == "TE":
@@ -258,6 +298,10 @@ def build_universe_market_divergence(
     result["market_source_timestamp"] = source_timestamp
     result["market_snapshot_date"] = market_snapshot_date
     result["volatility_schema_effective_date"] = volatility_schema_effective_date
+    result["divergence_cohort_method"] = {
+        "inclusion_rule": COMMON_COHORT_INCLUSION_RULE,
+        "populations": {pos: len(vals) for pos, vals in sorted(model_cohorts.items())},
+    }
     result["coverage"] = build_market_divergence_coverage(result)
     return result
 
