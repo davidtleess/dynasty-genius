@@ -82,6 +82,26 @@ def _print_result(result) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # ── RETIRED — David's ruling 2026-08-26 ("retire daily control") ────────────
+    # The scheduled-control-plane role this runner held is superseded by the
+    # capture-gap alert (DG-044), the capture-health surface (SR-10a), and
+    # event-stream attestation (DG-049). It never had a schedule, its last real
+    # report was 2026-08-08, and a control surface that has stopped being
+    # consulted is worse than none. Every mode refuses — a stray invocation must
+    # not write a marker that resurrects the illusion of a consulted control
+    # plane (one such stray run on 2026-08-26 reached a production store through
+    # worktree symlinks; see dg-build DG-048). The daily_control MODULE lives on
+    # as library code. Restoring this runner is a David-ruling-sized decision.
+    print(
+        "RETIRED (David 2026-08-26, DG-048): the Layer 1 Daily Control runner no "
+        "longer runs in any mode.\nIts role is served by the capture-gap alert "
+        "(DG-044), the capture-health surface, and\nevent-stream attestation "
+        "(DG-049). The last real report (2026-08-08) is preserved in\n"
+        "dg-build/preserved/2026-08-26-daily-control-last-real-report.json.",
+        flush=True,
+    )
+    return 2
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--preflight", action="store_true",
