@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 
 # Imported so the never-calls-git guard seam exists (tests patch
 # `subprocess.run` to forbid it); the producer itself never shells out.
@@ -53,6 +54,9 @@ PVO_RUNTIME_DIR = ROOT / "app" / "data" / "valuation_runtime"
 DEFAULT_REPORT_PATH = (
     ROOT / "app" / "data" / "roster_capacity" / "roster_capacity_latest.json"
 )
+DEFAULT_STATUS_MARKER_PATH = (
+    ROOT / "app" / "data" / "ops" / "roster_capacity_audit_status_latest.json"
+)
 
 
 def _now() -> str:
@@ -73,18 +77,50 @@ def _load_sleeper_snapshot() -> dict[str, Any]:
     return json.loads(SNAPSHOT_PATH.read_text())
 
 
+def _write_status_marker(
+    status_marker_path: Path | None,
+    *,
+    producer_status: str,
+    finished_at: str,
+    artifact_written: bool,
+) -> None:
+    """DG-039: the always-written attestation. The artifact keeps its
+    preserve-last-good guarantee; THIS file is where a refused run becomes
+    legible. Atomic so a reader never sees a half-written status."""
+    if status_marker_path is None:
+        return
+    status_marker_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = status_marker_path.with_suffix(status_marker_path.suffix + ".tmp")
+    tmp.write_text(
+        json.dumps(
+            {
+                "producer_status": producer_status,
+                "finished_at": finished_at,
+                "artifact_written": artifact_written,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    os.replace(tmp, status_marker_path)
+
+
 def run_audit(
     *,
     report_path: Path,
     universe_pvo_loader: Callable[[], dict[str, Any]],
     sleeper_snapshot_loader: Callable[[], dict[str, Any]],
     now_fn: Callable[[], str],
+    status_marker_path: Path | None = None,
 ) -> dict[str, Any]:
     """Run one audit and, on success only, write the enriched artifact.
 
     Returns the `ProducerReport` as a dict. Fail-closed: missing/corrupt input
     yields a blocked report and writes no artifact (a prior good `_latest` is
-    left untouched).
+    left untouched). The status marker (DG-039) is written on EVERY exit path,
+    so a refused run is legible without the artifact losing preserve-last-good.
     """
     report_path = Path(report_path)
 
@@ -96,9 +132,21 @@ def run_audit(
         # Missing/unreadable/malformed input — fail closed with no scorecard and
         # no artifact. Distinct from a blocked CapacityAuditResult (corrupt
         # CONTENT), which still carries a scorecard below.
+        _write_status_marker(
+            status_marker_path,
+            producer_status="blocked",
+            finished_at=now_fn(),
+            artifact_written=False,
+        )
         return ProducerReport(producer_status="blocked", scorecard=None).model_dump()
 
     if result.status != "ok":
+        _write_status_marker(
+            status_marker_path,
+            producer_status="blocked",
+            finished_at=now_fn(),
+            artifact_written=False,
+        )
         return ProducerReport(
             producer_status="blocked", scorecard=result
         ).model_dump()
@@ -116,6 +164,12 @@ def run_audit(
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n")
 
+    _write_status_marker(
+        status_marker_path,
+        producer_status="ok",
+        finished_at=now_fn(),
+        artifact_written=True,
+    )
     return ProducerReport(producer_status="ok", scorecard=result).model_dump()
 
 
@@ -149,6 +203,7 @@ def main(argv: list[str] | None = None) -> int:
         universe_pvo_loader=_load_universe_pvo,
         sleeper_snapshot_loader=_load_sleeper_snapshot,
         now_fn=_now,
+        status_marker_path=DEFAULT_STATUS_MARKER_PATH,
     )
     print(json.dumps(report))
     return 0 if report["producer_status"] in ("ok", "preflight_ready") else 1

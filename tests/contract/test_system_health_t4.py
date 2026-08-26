@@ -90,6 +90,23 @@ EXPECTED_ARTIFACTS: dict[str, dict[str, Any]] = {
         "timestamp_field": "created_at",
         "dormant_ok": False,
     },
+    # DG-039: the ALWAYS-written status marker beside the on-ok-only artifact —
+    # status_field is honest here (every exit path writes it), and deliberately
+    # absent on roster_capacity above (its failures are structurally invisible
+    # there; declaring it would be a gate that can never fire).
+    "roster_capacity_status": {
+        "path": "app/data/ops/roster_capacity_audit_status_latest.json",
+        "producer": "scripts/run_roster_capacity_audit.py",
+        "cadence": "weekly",
+        "scheduled_time_local": "10:00",
+        "grace_hours": 3,
+        "tier": "daily_diagnostics",
+        "min_size_bytes": 32,
+        "timestamp_field": "finished_at",
+        "status_field": "producer_status",
+        "success_status": "ok",
+        "dormant_ok": False,
+    },
     "league_opportunity": {
         "path": "app/data/valuation/league_opportunity_latest.json",
         "producer": "scripts/build_league_opportunity_map.py",

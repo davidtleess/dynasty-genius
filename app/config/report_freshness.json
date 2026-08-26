@@ -97,6 +97,29 @@
       }
     },
     {
+      "artifact_id": "roster_capacity_status",
+      "path": "app/data/ops/roster_capacity_audit_status_latest.json",
+      "producer": "scripts/run_roster_capacity_audit.py",
+      "cadence": "weekly",
+      "scheduled_time_local": "10:00",
+      "grace_hours": 3,
+      "tier": "daily_diagnostics",
+      "min_size_bytes": 32,
+      "timestamp_field": "finished_at",
+      "status_field": "producer_status",
+      "dormant_ok": false,
+      "season_windows": {
+        "in_season_months": [
+          9,
+          10,
+          11,
+          12,
+          1
+        ]
+      },
+      "success_status": "ok"
+    },
+    {
       "artifact_id": "league_opportunity",
       "path": "app/data/valuation/league_opportunity_latest.json",
       "producer": "scripts/build_league_opportunity_map.py",
