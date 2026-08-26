@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  DG-053 — daily ff_playerids crosswalk snapshot (06:45).
+
+  COMMITTED, NOT INSTALLED: a plist in this directory is configuration under
+  version control. It does nothing until installed, which is a David-gated
+  machine change (batched with the SR-09 D5/D6 launchctl session):
+
+    ln -s /Users/davidleess/dynasty-genius-product/ops/launchd/com.davidleess.dynasty-ff-playerids-snapshot.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.davidleess.dynasty-ff-playerids-snapshot.plist
+
+  Symlink, never copy (2026-08-23 convention): a repo edit must BE the live edit.
+  06:45 joins the early-capture family (06:15 nflverse, 06:30 transactions),
+  after the 06:00 scheduled wake and clear of the 09:00 chain. RunAtLoad stays
+  false — the job runs on its slot, never as a side effect of a bootstrap.
+  ProgramArguments carries the ABSOLUTE venv interpreter because launchd's bare
+  PATH resolves python3 to Apple's 3.9.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-ff-playerids-snapshot</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/run_ff_playerids_snapshot_capture.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>6</integer>
+        <key>Minute</key>
+        <integer>45</integer>
+    </dict>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/ff_playerids_snapshot.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/ff_playerids_snapshot.err.log</string>
+</dict>
+</plist>
