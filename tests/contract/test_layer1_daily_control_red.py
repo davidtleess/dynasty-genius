@@ -1463,8 +1463,13 @@ def test_cli_preflight_exit_is_zero_when_only_manual_routes_are_incomplete(monke
         )
     ]
     monkeypatch.setattr(cli, "build_manifest", lambda: manual_only)
-    assert cli.main(["--preflight"]) == 0, (
-        "a human not having downloaded something yet is not a broken pipeline"
+    # DG-048 (David 2026-08-26: "retire daily control"): the RUNNER refuses in
+    # every mode now — its control-plane role is superseded by DG-044/DG-049.
+    # The manual-route semantics this test originally pinned live on in the
+    # MODULE and are still bound by the module tests above; the CLI-level pin
+    # flips to the retirement contract (see test_dg048_daily_control_retired).
+    assert cli.main(["--preflight"]) != 0, (
+        "the retired runner must refuse even preflight"
     )
 
 
