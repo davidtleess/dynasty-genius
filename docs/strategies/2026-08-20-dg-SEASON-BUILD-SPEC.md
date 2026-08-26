@@ -122,6 +122,7 @@ Fri 08-28  D6  SR-09 (2 of 2) ← CHAIN LANDS  Thu 09-10  KICKOFF 20:20 ET     w
 Mon 08-31  D7  SR-12 SR-10a
 Tue 09-01  D8  SR-14 SR-19  ← Tuesday 2: FIRST post-chain exercise of the three weekly jobs
 Wed 09-02  D9  SR-13 SR-21 SR-15  ← SR-18 go/no-go checkpoint, end of day
+                   (SR-21 ✅ DONE early, 2026-08-25 — D9 slot freed)
 Thu 09-03  D10 SR-16 SR-20
 Fri 09-04  D11 ← BUFFER (unallocated) · FREEZE, end of day
 ```
@@ -1223,7 +1224,7 @@ The real TE defect is an **ordering** defect at the clamp (`pvo_assembler.py:408
 
 ---
 
-### SR-21 · Guard the PPG season-type set — David's "all games" ruling is protected by nothing · S · 0.25d · Tier 0 *(filed 2026-08-20, David: "agreed ... file a ticket")*
+### SR-21 · Guard the PPG season-type set — David's "all games" ruling is protected by nothing · S · 0.25d · Tier 0 *(filed 2026-08-20, David: "agreed ... file a ticket")*  ← ✅ DONE 2026-08-25 (DG-042, merge `c2b11f0a`)
 
 **Why.** David ruled 2026-08-19 that PPG counts **all games, postseason included** — verbatim
 *"all games"* — and that `fetch_and_agg_stats` having no `season_type` filter is **correct by decision,
