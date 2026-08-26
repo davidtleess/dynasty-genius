@@ -35,6 +35,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -622,22 +623,127 @@ class Runtime:
     dry_run: bool = False
 
 
-def _load_state(state_path: Path) -> tuple[dict[str, list[str]], dict[str, list[int]]]:
+def event_stream_lines(
+    config_path: Path,
+    repo_root: Path,
+    now: datetime,
+    known_issues: dict[str, str],
+) -> tuple[list[str], dict[str, str]]:
+    """DG-049 / SR-10b: the two event-stream stores, judged by ATTESTATION.
+
+    Bursty streams have legitimately quiet days and (nflverse) deliberately
+    unchanged store bytes, so cadence semantics do not fit — but both producers
+    write an atomic status marker on EVERY run, no-op days included. After the
+    slot plus grace, the marker must attest TODAY with status ok. Alert-once
+    semantics mirror the store channel's known-holes design: a NEW failure
+    signature alerts exactly once and persists silently; recovery clears it so
+    the next failure is loud again.
+    """
+
+    from app.api.routes.system_capture_health_models import (
+        CaptureHealthConfigError,
+        load_capture_cadence,
+    )
+
+    try:
+        config = load_capture_cadence(config_path=config_path)
+    except CaptureHealthConfigError:
+        # store_lines already screams about an unusable config; a second
+        # identical scream here would be noise, not signal.
+        return [], dict(known_issues)
+
+    tz = ZoneInfo(config.timezone)
+    today = now.astimezone(tz).date()
+    lines: list[str] = []
+    issues: dict[str, str] = {}
+
+    for stream in config.event_streams:
+        due_at = now.astimezone(tz).replace(
+            hour=stream.hour, minute=stream.minute, second=0, microsecond=0
+        ) + timedelta(hours=stream.grace_hours)
+        if now.astimezone(tz) < due_at:
+            # Slot not yet due: nothing is demanded, nothing is verified —
+            # carry any existing issue forward unchanged.
+            if stream.stream_id in known_issues:
+                issues[stream.stream_id] = known_issues[stream.stream_id]
+            continue
+
+        marker_path = repo_root / stream.marker
+        signature: str | None = None
+        line: str | None = None
+        if not marker_path.is_file():
+            signature = "absent"
+            line = (
+                f"GAP event stream {stream.stream_id}: no attestation marker at "
+                f"{stream.marker}"
+            )
+        else:
+            try:
+                marker = json.loads(marker_path.read_text(encoding="utf-8"))
+                status = str(marker["status"])
+                finished_local = datetime.fromisoformat(
+                    marker["finished_at"]
+                ).astimezone(tz)
+            except Exception:
+                signature = "unreadable"
+                line = (
+                    f"GAP event stream {stream.stream_id}: attestation marker is "
+                    "unreadable"
+                )
+            else:
+                finished_date = finished_local.date()
+                if finished_date > today:
+                    signature = f"future:{finished_date.isoformat()}"
+                    line = (
+                        f"GAP event stream {stream.stream_id}: attestation marker is "
+                        f"future-dated ({finished_date.isoformat()}) — unreadable as "
+                        "evidence"
+                    )
+                elif finished_date < today:
+                    signature = f"stale:{finished_date.isoformat()}"
+                    line = (
+                        f"GAP event stream {stream.stream_id}: no attestation today — "
+                        f"last attested {finished_date.isoformat()} (status {status})"
+                    )
+                elif status != "ok":
+                    detail = str(marker.get("failed_stream") or "")
+                    signature = f"status:{status}:{detail}"
+                    line = f"GAP event stream {stream.stream_id}: attested status {status}"
+                    if detail:
+                        line += f" — failed_stream {detail}"
+
+        if signature is None:
+            # Attested today, status ok: healthy. The issue (if any) clears so a
+            # future failure is loud again.
+            continue
+        issues[stream.stream_id] = signature
+        if known_issues.get(stream.stream_id) != signature:
+            lines.append(line)
+
+    return lines, issues
+
+
+def _load_state(
+    state_path: Path,
+) -> tuple[dict[str, list[str]], dict[str, list[int]], dict[str, str]]:
     """(known holes, reported exit evidence). Unreadable state means
     over-reporting once, never under-reporting."""
     if not state_path.is_file():
-        return {}, {}
+        return {}, {}, {}
     try:
         raw = json.loads(state_path.read_text(encoding="utf-8"))
         holes = raw.get("holes_by_store", {})
         exits = raw.get("reported_exits", {})
+        stream_issues = raw.get("event_stream_issues", {})
         assert isinstance(holes, dict) and isinstance(exits, dict)
+        assert isinstance(stream_issues, dict)
         return (
             {str(k): [str(d) for d in v] for k, v in holes.items()},
             {str(k): [int(x) for x in v] for k, v in exits.items()},
+            {str(k): str(v) for k, v in stream_issues.items()},
         )
     except Exception:
-        return {}, {}
+        return {}, {}, {}
 
 
 def _save_state(
@@ -645,6 +751,7 @@ def _save_state(
     holes_by_store: dict[str, list[str]],
     reported_exits: dict[str, list[int]],
     now: datetime,
+    event_stream_issues: dict[str, str] | None = None,
 ) -> None:
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(
@@ -654,6 +761,7 @@ def _save_state(
                 "updated_at": now.isoformat(),
                 "holes_by_store": holes_by_store,
                 "reported_exits": reported_exits,
+                "event_stream_issues": event_stream_issues or {},
             },
             indent=2,
         )
@@ -682,7 +790,7 @@ def run_alert(rt: Runtime) -> list[str]:
     last_heartbeat = read_last_heartbeat(rt.alert_file)
     lines.extend(filter(None, [missed_self_line(last_heartbeat, now=rt.now)]))
 
-    known_holes, reported_exits = _load_state(rt.state_path)
+    known_holes, reported_exits, known_stream_issues = _load_state(rt.state_path)
     store_ls, holes_by_store = store_lines(
         config_path=rt.config_path,
         repo_root=rt.repo_root,
@@ -690,6 +798,10 @@ def run_alert(rt: Runtime) -> list[str]:
         known_holes=known_holes,
     )
     lines.extend(store_ls)
+    stream_ls, event_stream_issues = event_stream_lines(
+        rt.config_path, rt.repo_root, rt.now, known_stream_issues
+    )
+    lines.extend(stream_ls)
 
     lines.extend(
         backup_lines(
@@ -796,7 +908,9 @@ def run_alert(rt: Runtime) -> list[str]:
         # Merge, don't replace: exit evidence for a label with no new failure
         # this run must survive (the stale code persists in launchd).
         merged_exits = {**reported_exits, **exit_evidence}
-        _save_state(rt.state_path, holes_by_store, merged_exits, rt.now)
+        _save_state(
+            rt.state_path, holes_by_store, merged_exits, rt.now, event_stream_issues
+        )
         if lines:
             delivered = rt.notify(notification_message(lines))
             if delivered is False:

@@ -2,7 +2,13 @@
   "config_version": 2,
   "timezone": "America/New_York",
   "season_windows": {
-    "in_season_months": [9, 10, 11, 12, 1],
+    "in_season_months": [
+      9,
+      10,
+      11,
+      12,
+      1
+    ],
     "comment": "Deliberately narrower than the market producers' Aug 16 - Jan 15 in-season definition (fantasycalc_adapter.py, run_market_divergence_refresh.py): this window is month-granular and gates only warn_consecutive_missing leniency, and mid-August tightening was declined during the season sprint to avoid changing warn behavior on live stores days before kickoff (SR-10a step 2, 2026-08-26)."
   },
   "stores": [
@@ -19,7 +25,10 @@
       "grace_hours": 3,
       "density_floor_pct": 50,
       "density_baseline_window": 14,
-      "warn_consecutive_missing": { "in_season": 1, "off_season": 3 },
+      "warn_consecutive_missing": {
+        "in_season": 1,
+        "off_season": 3
+      },
       "window_risk_contiguous_days": 7,
       "companion_tables": []
     },
@@ -36,7 +45,10 @@
       "grace_hours": 3,
       "density_floor_pct": 50,
       "density_baseline_window": 14,
-      "warn_consecutive_missing": { "in_season": 1, "off_season": 3 },
+      "warn_consecutive_missing": {
+        "in_season": 1,
+        "off_season": 3
+      },
       "window_risk_contiguous_days": 7,
       "companion_tables": [
         {
@@ -59,9 +71,28 @@
       "grace_hours": 3,
       "density_floor_pct": 50,
       "density_baseline_window": 14,
-      "warn_consecutive_missing": { "in_season": 1, "off_season": 3 },
+      "warn_consecutive_missing": {
+        "in_season": 1,
+        "off_season": 3
+      },
       "window_risk_contiguous_days": 7,
       "companion_tables": []
+    }
+  ],
+  "event_streams": [
+    {
+      "stream_id": "nflverse_usage",
+      "marker": "app/data/nflverse_usage/nflverse_usage_status_latest.json",
+      "hour": 6,
+      "minute": 15,
+      "grace_hours": 3.0
+    },
+    {
+      "stream_id": "league_transactions",
+      "marker": "app/data/league_transactions/transaction_capture_status_latest.json",
+      "hour": 6,
+      "minute": 30,
+      "grace_hours": 3.0
     }
   ]
 }
