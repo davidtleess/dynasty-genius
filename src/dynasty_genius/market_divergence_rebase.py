@@ -15,6 +15,14 @@ Descriptive only. It reports quantities, counts, and populations; it issues no
 recommendation and every row carries `decision_supported=False`
 (00 §Descriptive Tools Issue No Verdicts). Market values are used only to rank the market
 lane — they never touch the model value (00 §KTC And Market Data).
+
+DG-046 (2026-08-26): production now serves the COMMON-cohort computation —
+`build_universe_market_divergence` ranks both lanes against the common cohort
+directly. This module's `current_*` fields reproduce the retired
+mismatched-population method as a historical baseline, and its `rebased_*` fields
+are what production serves; the wiring test
+(`tests/contract/test_dg046_divergence_common_cohort_wiring_red.py`) pins the two
+computations together so they cannot drift apart silently.
 """
 from __future__ import annotations
 
