@@ -433,6 +433,44 @@ class TestStoreLines:
 
         assert any("scratch_store" in line and "store_absent" in line for line in lines)
 
+    def test_a_new_hole_is_named_even_past_the_display_cap(self, tmp_path: Path) -> None:
+        """Review IMPORTANT: the API's 20-range display cap must not blind the
+        alert — a brand-new 'missing yesterday' in a store already holding 21+
+        ranges is chronologically the LAST range and would be truncated out."""
+        m = _alert()
+        config_path = _scratch_store_config(tmp_path)
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["stores"][0]["capture_start_date"] = "2026-06-01"
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+        # every other day present through 08-24 => far more than 20 single-day
+        # ranges; 08-25 (yesterday) newly missing is the range past the cap
+        from datetime import date as _date
+
+        present = [
+            (_date(2026, 6, 1) + timedelta(days=offset)).isoformat()
+            for offset in range(0, 85, 2)
+        ]
+        present = [d for d in present if d <= "2026-08-24"]
+        _scratch_db(tmp_path, present)
+        known = sorted(
+            {
+                (_date(2026, 6, 1) + timedelta(days=offset)).isoformat()
+                for offset in range(0, 85)
+            }
+            - set(present)
+        )
+        known = [d for d in known if d <= "2026-08-24"]
+
+        lines, holes = m.store_lines(
+            config_path=config_path,
+            repo_root=tmp_path,
+            now=NOW,
+            known_holes={"scratch_store": known},
+        )
+
+        assert any("2026-08-25" in line for line in lines)
+        assert "2026-08-25" in holes["scratch_store"]
+
     def test_a_clean_store_is_silent(self, tmp_path: Path) -> None:
         m = _alert()
         config_path = _scratch_store_config(tmp_path)
@@ -584,7 +622,12 @@ class TestPins:
         marker_dir.mkdir(parents=True)
         (marker_dir / "nflverse_usage_status_latest.json").write_text(
             json.dumps(
-                {"status": "failed" if failed_stream else "ok", "failed_stream": failed_stream}
+                {
+                    "status": "failed" if failed_stream else "ok",
+                    "failed_stream": failed_stream,
+                    # fresh: a pin honors only a marker from this morning's run
+                    "finished_at": (NOW - timedelta(hours=4)).isoformat(),
+                }
             ),
             encoding="utf-8",
         )
@@ -599,7 +642,7 @@ class TestPins:
 
     def test_no_pin_file_means_class_b_is_disarmed(self, tmp_path: Path) -> None:
         m = _alert()
-        lines = m.exit_code_lines(
+        lines, _ = m.exit_code_lines(
             self._states(m, 1), pin_path=tmp_path / "absent.json", repo_root=tmp_path, now=NOW
         )
         assert lines == []
@@ -608,7 +651,7 @@ class TestPins:
         m = _alert()
         pin_path = self._pin_file(tmp_path, [])
 
-        lines = m.exit_code_lines(
+        lines, _ = m.exit_code_lines(
             self._states(m, 127), pin_path=pin_path, repo_root=tmp_path, now=NOW
         )
 
@@ -621,7 +664,7 @@ class TestPins:
         pin_path = self._pin_file(tmp_path, [self._contracts_pin()])
         self._nflverse_marker(tmp_path, failed_stream="contracts")
 
-        lines = m.exit_code_lines(
+        lines, _ = m.exit_code_lines(
             self._states(m, 1), pin_path=pin_path, repo_root=tmp_path, now=NOW
         )
 
@@ -632,7 +675,7 @@ class TestPins:
         pin_path = self._pin_file(tmp_path, [self._contracts_pin()])
         self._nflverse_marker(tmp_path, failed_stream="depth_charts")
 
-        lines = m.exit_code_lines(
+        lines, _ = m.exit_code_lines(
             self._states(m, 1), pin_path=pin_path, repo_root=tmp_path, now=NOW
         )
 
@@ -645,7 +688,7 @@ class TestPins:
         pin_path = self._pin_file(tmp_path, [pin])
         self._nflverse_marker(tmp_path, failed_stream="contracts")
 
-        lines = m.exit_code_lines(
+        lines, _ = m.exit_code_lines(
             self._states(m, 1), pin_path=pin_path, repo_root=tmp_path, now=NOW
         )
 
@@ -656,11 +699,287 @@ class TestPins:
         m = _alert()
         pin_path = self._pin_file(tmp_path, [])
 
-        assert (
-            m.exit_code_lines(
-                self._states(m, 0), pin_path=pin_path, repo_root=tmp_path, now=NOW
+        lines, _ = m.exit_code_lines(
+            self._states(m, 0), pin_path=pin_path, repo_root=tmp_path, now=NOW
+        )
+        assert lines == []
+
+
+# Drifted launchctl output: fields renamed by a hypothetical macOS update.
+LAUNCHCTL_DRIFTED = """\
+	state = not running
+	run count: 0
+	exit status: (never exited)
+"""
+
+
+class TestCrashResilience:
+    """Review CRITICAL 2026-08-26: an uncaught exception must never kill the
+    detection channel silently. The crash itself becomes the alert."""
+
+    def test_an_unreadable_config_degrades_to_a_loud_line_not_a_crash(
+        self, tmp_path: Path
+    ) -> None:
+        import pytest
+
+        from app.api.routes.system_capture_health_models import (
+            CaptureHealthConfigError,
+            load_capture_cadence,
+        )
+
+        with pytest.raises(CaptureHealthConfigError):
+            load_capture_cadence(config_path=tmp_path)  # a directory: OSError inside
+
+        lines, _ = _alert().store_lines(
+            config_path=tmp_path, repo_root=tmp_path, now=NOW, known_holes={}
+        )
+        assert any("config unusable" in line for line in lines)
+
+    def test_an_out_of_range_plist_slot_is_dropped_not_fatal(self, tmp_path: Path) -> None:
+        _write_plist(tmp_path / "com.typo.plist", "com.typo", {"Hour": 10, "Minute": 75})
+
+        (schedule,) = _alert().derive_job_schedules(tmp_path)
+
+        assert schedule.label == "com.typo"
+        assert schedule.slots == []
+
+    def test_a_crash_mid_run_still_delivers_a_crash_alert(self, tmp_path: Path) -> None:
+        m = _alert()
+        kwargs, notifications = TestRunAlert()._scaffold(
+            m, tmp_path, store_dates=TestRunAlert.ALL_DATES
+        )
+
+        def _boom(label: str) -> str:
+            raise RuntimeError("launchctl exploded")
+
+        kwargs["launchctl_print"] = _boom
+
+        code = m.run_and_deliver(m.Runtime(**kwargs))
+
+        assert code == 1
+        content = (tmp_path / "alerts.txt").read_text(encoding="utf-8")
+        assert "crashed" in content
+        assert "UNVERIFIED" in content
+        assert len(notifications) == 1 and "crashed" in notifications[0]
+
+    def test_a_crash_in_dry_run_returns_1_and_writes_nothing(self, tmp_path: Path) -> None:
+        m = _alert()
+        kwargs, notifications = TestRunAlert()._scaffold(
+            m, tmp_path, store_dates=TestRunAlert.ALL_DATES
+        )
+
+        def _boom(label: str) -> str:
+            raise RuntimeError("boom")
+
+        kwargs["launchctl_print"] = _boom
+        kwargs["dry_run"] = True
+
+        code = m.run_and_deliver(m.Runtime(**kwargs))
+
+        assert code == 1
+        assert notifications == []
+        assert not (tmp_path / "alerts.txt").exists()
+
+
+class TestRebootSemantics:
+    """Review IMPORTANT: launchd's runs counter is per-bootstrap. A slot that
+    predates today's boot/login cannot be judged by runs=0 — a mid-morning
+    reboot after a healthy 06:15 capture must not flood the channel with
+    false 'never attempted' lines. Unverifiable is one consolidated line,
+    naming the jobs (so a genuinely un-run job never passes unnamed) without
+    asserting they never ran."""
+
+    def test_a_reboot_after_a_healthy_run_does_not_cry_never_attempted(
+        self, tmp_path: Path
+    ) -> None:
+        m = _alert()
+        kwargs, _ = TestRunAlert()._scaffold(m, tmp_path, store_dates=TestRunAlert.ALL_DATES)
+        kwargs["launchctl_print"] = lambda label: LAUNCHCTL_HEALTHY_NEVER_RAN
+        kwargs["boot_time"] = datetime(2026, 8, 26, 9, 50, tzinfo=TZ)
+        kwargs["login_time"] = datetime(2026, 8, 26, 9, 52, tzinfo=TZ)
+
+        lines = m.run_alert(m.Runtime(**kwargs))
+
+        assert not any("never attempted" in line for line in lines)
+        consolidated = [line for line in lines if "cannot verify" in line]
+        assert len(consolidated) == 1
+        assert "com.x.capture" in consolidated[0]
+
+    def test_a_slot_swallowed_by_the_gap_is_not_double_reported(self, tmp_path: Path) -> None:
+        m = _alert()
+        kwargs, _ = TestRunAlert()._scaffold(m, tmp_path, store_dates=TestRunAlert.ALL_DATES)
+        kwargs["launchctl_print"] = lambda label: LAUNCHCTL_HEALTHY_NEVER_RAN
+        kwargs["boot_time"] = datetime(2026, 8, 26, 5, 50, tzinfo=TZ)
+        kwargs["login_time"] = datetime(2026, 8, 26, 10, 28, tzinfo=TZ)
+
+        lines = m.run_alert(m.Runtime(**kwargs))
+
+        gap_lines = [line for line in lines if "com.x.capture" in line]
+        assert any("will not replay" in line for line in gap_lines)
+        assert not any("cannot verify" in line for line in gap_lines)
+        assert not any("never attempted" in line for line in gap_lines)
+
+
+class TestDayTwoGapEnumeration:
+    """Review IMPORTANT: on the true 08-22 shape (login after 10:30) the
+    alert's own slot fell in the gap, so the enumeration must be delivered by
+    the FIRST run after the gap — a heartbeat older than the login proves
+    this run is that first run."""
+
+    def test_the_first_run_after_the_gap_still_enumerates_it(self, tmp_path: Path) -> None:
+        m = _alert()
+        kwargs, _ = TestRunAlert()._scaffold(m, tmp_path, store_dates=TestRunAlert.ALL_DATES)
+        # the gap happened YESTERDAY; login after 10:30 meant no run that day
+        kwargs["boot_time"] = datetime(2026, 8, 25, 9, 4, tzinfo=TZ)
+        kwargs["login_time"] = datetime(2026, 8, 25, 10, 48, tzinfo=TZ)
+        _write_plist(
+            tmp_path / "launchd" / "com.x.morning.plist", "com.x.morning", {"Hour": 9, "Minute": 45}
+        )
+        m.append_heartbeat(tmp_path / "alerts.txt", now=datetime(2026, 8, 24, 10, 30, tzinfo=TZ))
+
+        lines = m.run_alert(m.Runtime(**kwargs))
+
+        assert any(
+            "com.x.morning" in line and "will not replay" in line for line in lines
+        )
+
+
+class TestLaunchctlDrift:
+    """Review IMPORTANT: launchctl print is not a stable interface. A loaded
+    job whose output no longer parses must be a loud line, never a silently
+    blind channel — data we hold and cannot interpret is not health."""
+
+    def test_unparseable_output_for_a_loaded_job_is_named(self, tmp_path: Path) -> None:
+        m = _alert()
+        kwargs, _ = TestRunAlert()._scaffold(m, tmp_path, store_dates=TestRunAlert.ALL_DATES)
+        kwargs["launchctl_print"] = lambda label: (
+            LAUNCHCTL_DRIFTED if label == "com.x.capture" else LAUNCHCTL_RAN_OK
+        )
+
+        lines = m.run_alert(m.Runtime(**kwargs))
+
+        assert any(
+            "com.x.capture" in line and "unparseable" in line for line in lines
+        )
+
+
+class TestExitDedup:
+    """Review: launchd's last exit code persists per-bootstrap, so one stale
+    failure must not re-alert every morning until the job's next run. The
+    state file remembers the (runs, exit) evidence already reported."""
+
+    def _states(self, m, runs: int, exit_code: int) -> dict:
+        return {
+            "com.x.job": m.LaunchdJobState(
+                runs=runs, last_exit_code=exit_code, never_exited=False, penalty_box=False
             )
-            == []
+        }
+
+    def test_the_same_stale_failure_is_reported_once(self, tmp_path: Path) -> None:
+        m = _alert()
+        pin_path = tmp_path / "pins.json"
+        pin_path.write_text(json.dumps({"pins": []}), encoding="utf-8")
+
+        first, reported = m.exit_code_lines(
+            self._states(m, 1, 127), pin_path=pin_path, repo_root=tmp_path, now=NOW
+        )
+        second, _ = m.exit_code_lines(
+            self._states(m, 1, 127),
+            pin_path=pin_path,
+            repo_root=tmp_path,
+            now=NOW,
+            reported_exits=reported,
+        )
+        third, _ = m.exit_code_lines(
+            self._states(m, 2, 127),
+            pin_path=pin_path,
+            repo_root=tmp_path,
+            now=NOW,
+            reported_exits=reported,
+        )
+
+        assert len(first) == 1
+        assert second == []
+        assert len(third) == 1  # a NEW run failed — new news
+
+
+class TestPinFreshness:
+    """Review: a pin must never honor a STALE marker — a producer that
+    crashed before writing today's marker would otherwise hide behind
+    yesterday's accepted failure."""
+
+    def test_a_stale_accepted_marker_does_not_suppress(self, tmp_path: Path) -> None:
+        m = _alert()
+        pins = TestPins()
+        pin_path = pins._pin_file(tmp_path, [pins._contracts_pin()])
+        marker_dir = tmp_path / "app" / "data" / "nflverse_usage"
+        marker_dir.mkdir(parents=True)
+        (marker_dir / "nflverse_usage_status_latest.json").write_text(
+            json.dumps(
+                {
+                    "status": "failed",
+                    "failed_stream": "contracts",
+                    "finished_at": "2026-08-23T10:16:00+00:00",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        lines, _ = m.exit_code_lines(
+            pins._states(m, 1), pin_path=pin_path, repo_root=tmp_path, now=NOW
+        )
+
+        assert len(lines) == 1
+        assert "stale" in lines[0]
+
+
+class TestChainUnknownShape:
+    """Review: a chain step carrying neither exit_code nor status must degrade
+    loudly — renamed keys must not parse as all-healthy."""
+
+    def test_a_step_with_unrecognized_keys_is_named(self, tmp_path: Path) -> None:
+        report = tmp_path / "daily_chain_latest_report.json"
+        report.write_text(
+            json.dumps({"steps": [{"name": "x", "exit": 1}]}), encoding="utf-8"
+        )
+
+        lines = _alert().chain_report_lines(report)
+
+        assert len(lines) == 1
+        assert "unreadable" in lines[0]
+
+
+class TestNotifyDeliveryFailure:
+    """Review: osascript failing must leave a trace in the one channel that
+    cannot be permission-suppressed — the alert file."""
+
+    def test_a_failed_notification_is_recorded_in_the_file(self, tmp_path: Path) -> None:
+        m = _alert()
+        kwargs, _ = TestRunAlert()._scaffold(m, tmp_path, store_dates=TestRunAlert.HOLE_DATES)
+        kwargs["notify"] = lambda message: False
+
+        m.run_alert(m.Runtime(**kwargs))
+
+        content = (tmp_path / "alerts.txt").read_text(encoding="utf-8")
+        assert "delivery failed" in content
+
+
+class TestDryRunNamesNeverAttempted:
+    """DG-035 option (b)'s close condition, self-evidencing in the suite:
+    a dry run must name a runs = 0 job."""
+
+    def test_dry_run_names_a_never_attempted_job(self, tmp_path: Path) -> None:
+        m = _alert()
+        kwargs, _ = TestRunAlert()._scaffold(m, tmp_path, store_dates=TestRunAlert.ALL_DATES)
+        kwargs["dry_run"] = True
+        kwargs["launchctl_print"] = lambda label: (
+            LAUNCHCTL_HEALTHY_NEVER_RAN if label == "com.x.capture" else LAUNCHCTL_RAN_OK
+        )
+
+        lines = m.run_alert(m.Runtime(**kwargs))
+
+        assert any(
+            "com.x.capture" in line and "never attempted" in line for line in lines
         )
 
 
@@ -721,6 +1040,14 @@ class TestHeartbeat:
     def test_a_fresh_heartbeat_is_silent(self) -> None:
         m = _alert()
         assert m.missed_self_line(NOW - timedelta(hours=24), now=NOW) is None
+
+    def test_a_sleep_delayed_late_run_is_not_a_missed_run(self) -> None:
+        # launchd DOES replay a slot missed while asleep; a 13:05 wake-and-run
+        # with yesterday's 10:30 heartbeat is the day's (late) run, not a miss.
+        m = _alert()
+        late_now = NOW.replace(hour=13, minute=5)
+
+        assert m.missed_self_line(NOW - timedelta(days=1), now=late_now) is None
 
     def test_an_aged_heartbeat_reports_the_missed_self_run(self) -> None:
         m = _alert()

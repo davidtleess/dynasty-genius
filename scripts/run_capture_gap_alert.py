@@ -101,15 +101,22 @@ def derive_job_schedules(plist_dir: Path) -> list[JobSchedule]:
             if isinstance(calendar, dict)
             else []
         )
-        slots = [
-            Slot(
-                hour=int(entry.get("Hour", 0)),
-                minute=int(entry.get("Minute", 0)),
-                weekday=int(entry["Weekday"]) if "Weekday" in entry else None,
-            )
-            for entry in entries
-            if isinstance(entry, dict)
-        ]
+        slots: list[Slot] = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            try:
+                hour = int(entry.get("Hour", 0))
+                minute = int(entry.get("Minute", 0))
+                weekday = int(entry["Weekday"]) if "Weekday" in entry else None
+            except (TypeError, ValueError):
+                continue
+            # A typo'd slot (Minute=75) must never crash the whole alert at
+            # now.replace() — the job still appears under its label, and the
+            # other classes still cover it.
+            if not (0 <= hour <= 23 and 0 <= minute <= 59):
+                continue
+            slots.append(Slot(hour=hour, minute=minute, weekday=weekday))
         schedules.append(JobSchedule(label=label, slots=slots, path=path))
     return schedules
 
@@ -231,7 +238,18 @@ def boot_to_login_lines(
     slots swallowed silently). Missed-while-asleep is different and handled.
     """
 
-    lines: list[str] = []
+    return [
+        _gap_hit_line(label, slot_time, boot_time, login_time)
+        for label, slot_time in _boot_to_login_hits(
+            schedules, boot_time=boot_time, login_time=login_time
+        )
+    ]
+
+
+def _boot_to_login_hits(
+    schedules: list[JobSchedule], *, boot_time: datetime, login_time: datetime
+) -> list[tuple[str, datetime]]:
+    hits: list[tuple[str, datetime]] = []
     for schedule in schedules:
         for slot in schedule.slots:
             if not _slot_matches_day(slot, login_time.isoweekday()):
@@ -240,13 +258,8 @@ def boot_to_login_lines(
                 hour=slot.hour, minute=slot.minute, second=0, microsecond=0
             )
             if boot_time < slot_time < login_time:
-                lines.append(
-                    f"GAP {schedule.label}: its {slot_time.strftime('%H:%M')} "
-                    f"slot fell between boot ({boot_time.strftime('%H:%M:%S')}) "
-                    f"and console login ({login_time.strftime('%H:%M:%S')}) — "
-                    f"launchd did not run it and will not replay it"
-                )
-    return lines
+                hits.append((schedule.label, slot_time))
+    return hits
 
 
 def not_loaded_line(label: str, *, own_label: str = OWN_LABEL) -> str | None:
@@ -313,6 +326,11 @@ def store_lines(
             now=now,
             timezone=config.timezone,
             season_windows=config.season_windows,
+            # The API's 20-range display cap must not blind the alert: a new
+            # "missing yesterday" in a store already past the cap is the LAST
+            # range chronologically and would be truncated out of both the
+            # lines and the known-holes state (review finding, 2026-08-26).
+            missing_ranges_cap=100_000,
         )
 
         current: list[str] = []
@@ -405,10 +423,20 @@ def chain_report_lines(report_path: Path) -> list[str]:
             lines.append(f"GAP chain step {name}: recorded exit_code {exit_code}")
         elif status in _CHAIN_FAILED_STATUSES:
             lines.append(f"GAP chain step {name}: recorded status {status}")
+        elif exit_code is None and status is None:
+            # Renamed keys must not parse as all-healthy: a step carrying
+            # neither signal is uninterpretable, and uninterpretable is loud.
+            lines.append(f"GAP chain step {name}: unreadable entry in chain report")
     return lines
 
 
 # --- step 9: the pin file, and class (b) armed only behind it ------------------
+
+
+# A pin honors only a marker written recently enough to describe the failing
+# run — the same one-interval-plus-grace bound the backup law uses. A stale
+# accepted-failure marker must never hide a NEW failure of a pinned producer.
+_PIN_MARKER_FRESH_HOURS = 26
 
 
 def exit_code_lines(
@@ -417,34 +445,50 @@ def exit_code_lines(
     pin_path: Path,
     repo_root: Path,
     now: datetime,
-) -> list[str]:
+    reported_exits: dict[str, list[int]] | None = None,
+) -> tuple[list[str], dict[str, list[int]]]:
     """Class (b): a producer that exited non-zero — DISARMED until the pin
     file exists (spec step 9: one producer can exit non-zero on a perfectly
     healthy morning by design, and unpinned this class cries wolf from day
     one — the SR-20 failure reproduced inside the ticket meant to cure it).
 
     A pin suppresses a failure only when the producer's own marker names
-    exactly the accepted ``failed_stream`` — never on exit code alone, or a
-    real failure hides behind the pin. An expired review date turns the pin
-    into a demand for review instead of a silent forever-acceptance.
+    exactly the accepted ``failed_stream`` AND that marker is fresh — a
+    producer that crashed before writing today's marker must not hide behind
+    yesterday's accepted failure. An expired review date turns the pin into a
+    demand for review instead of a silent forever-acceptance.
+
+    launchd's ``last exit code`` persists per-bootstrap, so one stale failure
+    would otherwise re-alert every morning until the job's next run:
+    ``reported_exits`` remembers the (runs, exit) evidence already delivered,
+    and a line fires only on new evidence. Returns ``(lines, evidence)`` for
+    the caller's state file.
     """
 
+    current_evidence: dict[str, list[int]] = {}
     if not pin_path.is_file():
-        return []
+        return [], current_evidence
     try:
         pins_raw = json.loads(pin_path.read_text(encoding="utf-8"))
         pins = pins_raw["pins"]
         assert isinstance(pins, list)
     except Exception:
-        return [f"GAP pin file: {pin_path.name} is unreadable — class (b) blind"]
+        return (
+            [f"GAP pin file: {pin_path.name} is unreadable — class (b) blind"],
+            current_evidence,
+        )
 
+    already = reported_exits or {}
     lines: list[str] = []
     for label in sorted(states):
         state = states[label]
         if state is None or state.last_exit_code in (None, 0):
             continue
+        evidence = [state.runs if state.runs is not None else -1, state.last_exit_code]
+        current_evidence[label] = evidence
 
         failed_stream: str | None = None
+        marker_stale = False
         pin = next(
             (p for p in pins if isinstance(p, dict) and p.get("producer_label") == label),
             None,
@@ -454,10 +498,18 @@ def exit_code_lines(
             try:
                 marker = json.loads(marker_path.read_text(encoding="utf-8"))
                 failed_stream = marker.get("failed_stream")
+                finished = datetime.fromisoformat(str(marker.get("finished_at")))
+                if finished.tzinfo is None or now - finished > timedelta(
+                    hours=_PIN_MARKER_FRESH_HOURS
+                ):
+                    marker_stale = True
             except Exception:
                 failed_stream = None
-            if failed_stream is not None and failed_stream == pin.get(
-                "accepted_failed_stream"
+                marker_stale = True
+            if (
+                not marker_stale
+                and failed_stream is not None
+                and failed_stream == pin.get("accepted_failed_stream")
             ):
                 review_raw = pin.get("review_date")
                 review = _parse_iso_date(review_raw)
@@ -469,11 +521,19 @@ def exit_code_lines(
                     )
                 continue
 
-        suffix = f" (failed_stream: {failed_stream})" if failed_stream else ""
+        if already.get(label) == evidence:
+            continue
+        suffix = ""
+        if failed_stream and marker_stale:
+            suffix = f" (marker stale: names '{failed_stream}' — pin not applied)"
+        elif failed_stream:
+            suffix = f" (failed_stream: {failed_stream})"
+        elif pin is not None and marker_stale:
+            suffix = " (pin marker stale or unreadable — pin not applied)"
         lines.append(
             f"GAP {label}: exited {state.last_exit_code} on its last run{suffix}"
         )
-    return lines
+    return lines, current_evidence
 
 
 def _parse_iso_date(value: object) -> date | None:
@@ -487,9 +547,12 @@ def _parse_iso_date(value: object) -> date | None:
 
 _HEARTBEAT_PREFIX = "HEARTBEAT "
 
-# One daily interval plus the same 2h grace the backup law uses: a heartbeat
-# older than this means the alert itself missed at least one 10:30 run.
-_HEARTBEAT_STALE_HOURS = 26
+# Calendar days, not wall-clock hours: launchd DOES replay a slot missed
+# while asleep, so a lid-closed morning yields a LATE same-day run — a
+# heartbeat dated yesterday is that late run's normal predecessor, never a
+# miss. A genuinely missed day always leaves the previous heartbeat two or
+# more calendar days old by the time the next run fires.
+_HEARTBEAT_STALE_DAYS = 2
 
 
 def append_heartbeat(alert_file: Path, *, now: datetime) -> None:
@@ -523,7 +586,7 @@ def missed_self_line(last_heartbeat: datetime | None, *, now: datetime) -> str |
 
     if last_heartbeat is None:
         return None
-    if now - last_heartbeat <= timedelta(hours=_HEARTBEAT_STALE_HOURS):
+    if (now.date() - last_heartbeat.date()).days < _HEARTBEAT_STALE_DAYS:
         return None
     return (
         f"GAP {OWN_LABEL}: the alert itself missed at least one run — last "
@@ -559,24 +622,39 @@ class Runtime:
     dry_run: bool = False
 
 
-def _load_known_holes(state_path: Path) -> dict[str, list[str]]:
+def _load_state(state_path: Path) -> tuple[dict[str, list[str]], dict[str, list[int]]]:
+    """(known holes, reported exit evidence). Unreadable state means
+    over-reporting once, never under-reporting."""
     if not state_path.is_file():
-        return {}
+        return {}, {}
     try:
         raw = json.loads(state_path.read_text(encoding="utf-8"))
-        holes = raw["holes_by_store"]
-        assert isinstance(holes, dict)
-        return {str(k): [str(d) for d in v] for k, v in holes.items()}
+        holes = raw.get("holes_by_store", {})
+        exits = raw.get("reported_exits", {})
+        assert isinstance(holes, dict) and isinstance(exits, dict)
+        return (
+            {str(k): [str(d) for d in v] for k, v in holes.items()},
+            {str(k): [int(x) for x in v] for k, v in exits.items()},
+        )
     except Exception:
-        # An unreadable state means over-reporting once, never under-reporting.
-        return {}
+        return {}, {}
 
 
-def _save_state(state_path: Path, holes_by_store: dict[str, list[str]], now: datetime) -> None:
+def _save_state(
+    state_path: Path,
+    holes_by_store: dict[str, list[str]],
+    reported_exits: dict[str, list[int]],
+    now: datetime,
+) -> None:
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(
         json.dumps(
-            {"schema": 1, "updated_at": now.isoformat(), "holes_by_store": holes_by_store},
+            {
+                "schema": 2,
+                "updated_at": now.isoformat(),
+                "holes_by_store": holes_by_store,
+                "reported_exits": reported_exits,
+            },
             indent=2,
         )
         + "\n",
@@ -601,11 +679,10 @@ def run_alert(rt: Runtime) -> list[str]:
     lines: list[str] = []
 
     # Step 8 first: read the heartbeat BEFORE this run writes its own.
-    lines.extend(
-        filter(None, [missed_self_line(read_last_heartbeat(rt.alert_file), now=rt.now)])
-    )
+    last_heartbeat = read_last_heartbeat(rt.alert_file)
+    lines.extend(filter(None, [missed_self_line(last_heartbeat, now=rt.now)]))
 
-    known_holes = _load_known_holes(rt.state_path)
+    known_holes, reported_exits = _load_state(rt.state_path)
     store_ls, holes_by_store = store_lines(
         config_path=rt.config_path,
         repo_root=rt.repo_root,
@@ -624,34 +701,90 @@ def run_alert(rt: Runtime) -> list[str]:
     lines.extend(chain_report_lines(rt.chain_report_path))
     lines.extend(filter(None, [pmset_wake_line(rt.pmset_sched)]))
 
+    # Class (h) fires on THIS morning's gap, or on the FIRST run after a gap
+    # that swallowed the alert's own slot (login after 10:30 — the true 08-22
+    # shape): a heartbeat older than the login proves this run is that first
+    # run. Replaying an old boot/login pair on ordinary mornings is noise.
+    gap_hits: list[tuple[str, datetime]] = []
     schedules = derive_job_schedules(rt.plist_dir)
+    if (
+        rt.boot_time is not None
+        and rt.login_time is not None
+        and (
+            rt.login_time.date() == rt.now.date()
+            or (last_heartbeat is not None and last_heartbeat < rt.login_time)
+        )
+    ):
+        gap_hits = _boot_to_login_hits(
+            schedules, boot_time=rt.boot_time, login_time=rt.login_time
+        )
+        lines.extend(
+            _gap_hit_line(label, slot_time, rt.boot_time, rt.login_time)
+            for label, slot_time in gap_hits
+        )
+    gap_slot_keys = {(label, slot.strftime("%H:%M")) for label, slot in gap_hits}
+
+    # launchd's counters are per-bootstrap: a slot that predates today's
+    # boot/login cannot be judged by runs = 0 (a mid-morning reboot after a
+    # healthy 06:15 capture must not cry "never attempted"). Unverifiable
+    # slots are collected into ONE consolidated line naming the jobs — so a
+    # genuinely un-run job never passes unnamed — without asserting a miss.
+    counter_cutoff: datetime | None = None
+    if (
+        rt.boot_time is not None
+        and rt.login_time is not None
+        and rt.login_time.date() == rt.now.date()
+    ):
+        counter_cutoff = max(rt.boot_time, rt.login_time)
+
     states: dict[str, LaunchdJobState | None] = {}
+    unverifiable: list[tuple[str, datetime]] = []
     for schedule in schedules:
         state = parse_launchctl_print(rt.launchctl_print(schedule.label))
         states[schedule.label] = state
         if state is None:
             lines.extend(filter(None, [not_loaded_line(schedule.label)]))
             continue
+        if state.runs is None:
+            # launchctl print is not a stable interface; a loaded job whose
+            # output no longer parses is a BLIND channel, and blind is loud.
+            lines.append(
+                f"GAP {schedule.label}: loaded but `launchctl print` output is "
+                f"unparseable (no runs field) — the launchd channel cannot "
+                f"verify this job"
+            )
+            continue
         passed = slots_passed_today(schedule.slots, rt.now)
+        if counter_cutoff is not None and state.runs == 0:
+            hard = [t for t in passed if t > counter_cutoff]
+            for slot_time in passed:
+                if slot_time <= counter_cutoff and (
+                    (schedule.label, slot_time.strftime("%H:%M")) not in gap_slot_keys
+                ):
+                    unverifiable.append((schedule.label, slot_time))
+            passed = hard
         lines.extend(filter(None, [never_attempted_line(schedule.label, state, passed)]))
         lines.extend(filter(None, [penalty_box_line(schedule.label, state)]))
 
-    lines.extend(
-        exit_code_lines(states, pin_path=rt.pin_path, repo_root=rt.repo_root, now=rt.now)
-    )
-
-    # Class (h) covers THIS morning's gap only: (f) and the stores carry the
-    # ongoing consequences; replaying an old boot/login pair daily is noise.
-    if (
-        rt.boot_time is not None
-        and rt.login_time is not None
-        and rt.login_time.date() == rt.now.date()
-    ):
-        lines.extend(
-            boot_to_login_lines(
-                schedules, boot_time=rt.boot_time, login_time=rt.login_time
-            )
+    if unverifiable:
+        named = ", ".join(
+            f"{label} ({slot.strftime('%H:%M')})" for label, slot in unverifiable
         )
+        lines.append(
+            f"GAP launchd: run counters were reset by today's "
+            f"{counter_cutoff.strftime('%H:%M')} boot/login after these slots — "
+            f"cannot verify they ran: {named}; the store channel is "
+            f"authoritative this morning"
+        )
+
+    exit_ls, exit_evidence = exit_code_lines(
+        states,
+        pin_path=rt.pin_path,
+        repo_root=rt.repo_root,
+        now=rt.now,
+        reported_exits=reported_exits,
+    )
+    lines.extend(exit_ls)
 
     if not rt.dry_run:
         if lines:
@@ -660,11 +793,66 @@ def run_alert(rt: Runtime) -> list[str]:
                 for line in lines:
                     handle.write(f"{rt.now.isoformat()} {line}\n")
         append_heartbeat(rt.alert_file, now=rt.now)
-        _save_state(rt.state_path, holes_by_store, rt.now)
+        # Merge, don't replace: exit evidence for a label with no new failure
+        # this run must survive (the stale code persists in launchd).
+        merged_exits = {**reported_exits, **exit_evidence}
+        _save_state(rt.state_path, holes_by_store, merged_exits, rt.now)
         if lines:
-            rt.notify(notification_message(lines))
+            delivered = rt.notify(notification_message(lines))
+            if delivered is False:
+                # The one channel permissions cannot suppress is this file.
+                with rt.alert_file.open("a", encoding="utf-8") as handle:
+                    handle.write(
+                        f"{rt.now.isoformat()} GAP notification: delivery "
+                        f"failed (osascript) — this file is the record\n"
+                    )
 
     return lines
+
+
+def _gap_hit_line(
+    label: str, slot_time: datetime, boot_time: datetime, login_time: datetime
+) -> str:
+    return (
+        f"GAP {label}: its {slot_time.strftime('%H:%M')} slot fell between boot "
+        f"({boot_time.strftime('%H:%M:%S')}) and console login "
+        f"({login_time.strftime('%H:%M:%S')}) — launchd did not run it and "
+        f"will not replay it"
+    )
+
+
+def run_and_deliver(rt: Runtime) -> int:
+    """The crash guard: an uncaught exception must never kill the detection
+    channel silently (review CRITICAL, 2026-08-26). The crash itself becomes
+    the alert — best-effort file line, best-effort notification, exit 1 —
+    because a persistent crash otherwise means permanent false silence: every
+    self-detection path needs a LATER successful run to fire."""
+
+    try:
+        for line in run_alert(rt):
+            print(line)
+        return 0
+    except Exception as exc:  # noqa: BLE001 — the whole point is catching everything
+        message = (
+            f"GAP {OWN_LABEL}: the alert itself crashed: {exc!r} — this "
+            f"morning is UNVERIFIED, not clean"
+        )
+        if not rt.dry_run:
+            try:
+                rt.alert_file.parent.mkdir(parents=True, exist_ok=True)
+                with rt.alert_file.open("a", encoding="utf-8") as handle:
+                    handle.write(f"{rt.now.isoformat()} {message}\n")
+            except Exception:
+                pass
+            try:
+                rt.notify(message)
+            except Exception:
+                pass
+        try:
+            print(message, file=sys.stderr)
+        except Exception:
+            pass
+        return 1
 
 
 # --- the real machine ----------------------------------------------------------
@@ -727,11 +915,14 @@ def _live_login_time(tz, now: datetime) -> datetime | None:
     return None
 
 
-def _live_notify(message: str) -> None:
+def _live_notify(message: str) -> bool:
+    """True only when osascript itself succeeded — exit 0 still cannot prove
+    the banner RENDERED (Focus, permissions), which is why delivery failure
+    lands in the alert file and the first live run gets human eyes."""
     import subprocess
 
     body = message.replace('"', "'")
-    subprocess.run(
+    result = subprocess.run(
         [
             "osascript",
             "-e",
@@ -740,6 +931,7 @@ def _live_notify(message: str) -> None:
         capture_output=True,
         check=False,
     )
+    return result.returncode == 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -787,12 +979,11 @@ def main(argv: list[str] | None = None) -> int:
         dry_run=args.dry_run,
     )
 
-    for line in run_alert(runtime):
-        print(line)
     # Exit 0 whether or not gaps were found: the alert JOB succeeded at
     # alerting, and a non-zero exit here would trip class (b) on the alert
-    # itself every problem morning. Non-zero means the alert crashed.
-    return 0
+    # itself every problem morning. Non-zero means the alert crashed — and
+    # run_and_deliver makes even that crash loud.
+    return run_and_deliver(runtime)
 
 
 if __name__ == "__main__":
