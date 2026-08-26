@@ -94,11 +94,30 @@ class CadenceStoreConfig(_Strict):
     companion_tables: list[CompanionTableConfig] = Field(default_factory=list)
 
 
+class EventStreamConfig(_Strict):
+    """DG-049 / SR-10b: a bursty producer judged by its ATTESTATION, not its rows.
+
+    Event streams (league transactions, nflverse usage) have legitimately quiet
+    days and deliberately unchanged store bytes, so cadence-store semantics do
+    not fit. What they do guarantee is an atomic status marker written on every
+    run, no-op days included — health is "the marker attests today, status ok"
+    after the slot plus grace has passed. Consumed by the capture-gap alert;
+    deliberately absent from this API's response surface for now."""
+
+    stream_id: str
+    marker: str
+    hour: int
+    minute: int
+    grace_hours: float
+
+
 class CaptureCadenceConfig(_Strict):
     config_version: int
     timezone: str
     season_windows: SeasonWindows
     stores: list[CadenceStoreConfig]
+    # Optional and additive: configs predating DG-049 stay valid.
+    event_streams: list[EventStreamConfig] = Field(default_factory=list)
 
 
 # --- response models -----------------------------------------------------------
@@ -280,6 +299,27 @@ def load_capture_cadence(*, config_path: Path) -> CaptureCadenceConfig:
 
     if not config.stores:
         raise _reject(f"declares an empty stores list at {config_path}")
+
+    seen_streams: set[str] = set()
+    for stream in config.event_streams:
+        if stream.stream_id in seen_streams:
+            raise _reject(f"has duplicate stream_id {stream.stream_id!r}")
+        seen_streams.add(stream.stream_id)
+        marker = Path(stream.marker)
+        if marker.is_absolute() or ".." in marker.parts:
+            raise _reject(
+                f"invalid for stream {stream.stream_id!r}: marker "
+                f"{stream.marker!r} must be a repo-relative path"
+            )
+        if not (0 <= stream.hour <= 23 and 0 <= stream.minute <= 59):
+            raise _reject(
+                f"invalid for stream {stream.stream_id!r}: slot "
+                f"{stream.hour:02d}:{stream.minute:02d} is not a valid time"
+            )
+        if stream.grace_hours < 0:
+            raise _reject(
+                f"invalid for stream {stream.stream_id!r}: negative grace_hours"
+            )
 
     seen_ids: set[str] = set()
     for store in config.stores:
