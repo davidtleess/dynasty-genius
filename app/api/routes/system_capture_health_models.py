@@ -70,6 +70,10 @@ class WarnConsecutiveMissing(_Strict):
 
 class SeasonWindows(_Strict):
     in_season_months: list[int]
+    # SR-10a step 2: the cadence window is month-granular and deliberately
+    # narrower than the market producers' Aug-16..Jan-15 definition; two silent
+    # definitions are forbidden, so the config must be able to say why.
+    comment: str | None = None
 
 
 class CadenceStoreConfig(_Strict):

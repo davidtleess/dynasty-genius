@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The daily capture gap alert — the only detection channel that exists (DG-044 / SR-11).
+
+  COMMITTED, NOT INSTALLED. Installing is a separate David-gated machine change:
+  symlink into ~/Library/LaunchAgents (the 08-23 convention — symlink, never copy,
+  so the live config cannot drift from the repo) and `launchctl bootstrap gui/501 ...`.
+  A committed plist is not an installed plist; only
+  `launchctl print gui/501/com.davidleess.dynasty-capture-gap-alert` proves installation.
+
+  WHY 10:30: after the 10:15 backup, so one run covers 06:15 (nflverse), 06:30
+  (league transactions), the 09:00-09:45 chain and the backup. It deliberately does
+  NOT cover SR-00's 11:30/14:00 retries: the 10:30 alert reports the morning's
+  state; a retry that recovers the day makes the NEXT morning silent.
+
+  Silence means healthy: on a clean morning the script prints nothing, notifies
+  nothing, and exits 0. One line per problem otherwise, delivered as a macOS
+  notification plus a plain-text file David can read without opening anything.
+
+  The interpreter is the ABSOLUTE venv path: launchd's PATH is
+  /usr/bin:/bin:/usr/sbin:/sbin, where a bare python3 is Apple's 3.9.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.davidleess.dynasty-capture-gap-alert</string>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>WorkingDirectory</key>
+  <string>/Users/davidleess/dynasty-genius-product</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>10</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+    <string>/Users/davidleess/dynasty-genius-product/scripts/run_capture_gap_alert.py</string>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/davidleess/dynasty-genius-product/app/data/logs/capture_gap_alert.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/davidleess/dynasty-genius-product/app/data/logs/capture_gap_alert.err.log</string>
+</dict>
+</plist>
