@@ -123,6 +123,7 @@ Mon 08-31  D7  SR-12 SR-10a
 Tue 09-01  D8  SR-14 SR-19  ← Tuesday 2: FIRST post-chain exercise of the three weekly jobs
 Wed 09-02  D9  SR-13 SR-21 SR-15  ← SR-18 go/no-go checkpoint, end of day
                    (SR-21 ✅ DONE early, 2026-08-25 — D9 slot freed)
+                   (SR-15 ✅ DONE early, 2026-08-26 — D9 = SR-13 only)
 Thu 09-03  D10 SR-16 SR-20
 Fri 09-04  D11 ← BUFFER (unallocated) · FREEZE, end of day
 ```
@@ -1298,7 +1299,7 @@ David's ruling is unchanged — it is now enforced rather than assumed.
 
 ---
 
-### SR-15 · Trade Lab asset search renders results for the WRONG query · S · 0.5d · Tier 0 *(draft: PERF-4, absorbs MR-8)*
+### SR-15 · Trade Lab asset search renders results for the WRONG query · S · 0.5d · Tier 0 *(draft: PERF-4, absorbs MR-8)*  ← ✅ DONE 2026-08-26 (DG-080, merge `ab32a605`)
 
 **This is a correctness bug, not a latency one.**
 
