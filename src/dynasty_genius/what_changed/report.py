@@ -52,6 +52,11 @@ _PVO_RUNTIME_DIR = _REPO_ROOT / "app" / "data" / "valuation_runtime"
 # Structural artifacts refresh on the daily cadence, so a full cadence-period (24h)
 # or older is "a prior day's context" — flagged stale for the daily-login product.
 _STALE_THRESHOLD_HOURS = 24.0
+# league_opportunity is a Tuesday-only producer (Weekday 2, 09:35). Judging a weekly
+# artifact against a 24h threshold marks it stale on six mornings out of seven, which
+# is not a staleness signal — it is the cadence. 7 days + a 3h grace matches the
+# grace_hours convention in capture_cadence.json. (SR-20 / DG-047)
+_WEEKLY_STALE_THRESHOLD_HOURS = 24.0 * 7 + 3.0  # 171.0
 # Cap allowlisted list summaries so a structural section can never become a raw dump.
 _STRUCTURAL_TOP_K = 5
 
@@ -346,7 +351,13 @@ def _build_league_opportunity_section(
         path = source
     if artifact is None:
         return _unavailable_section(source)
-    section = _section_envelope(path, artifact, generated_at)
+    section = _section_envelope(
+        path,
+        artifact,
+        generated_at,
+        stale_after_hours=_WEEKLY_STALE_THRESHOLD_HOURS,
+        basis="captured_at_vs_weekly_producer_cadence",
+    )
     partners = artifact.get("partner_rankings") or []
     cards = artifact.get("cards") or []
     section["top_partner_rankings"] = [
@@ -437,9 +448,17 @@ def _build_sleeper_snapshot_section(
 
 # ── section helpers ──────────────────────────────────────────────────────────
 def _section_envelope(
-    path: Path | str | None, artifact: dict, generated_at: datetime | None = None
+    path: Path | str | None,
+    artifact: dict,
+    generated_at: datetime | None = None,
+    *,
+    stale_after_hours: float = _STALE_THRESHOLD_HOURS,
+    basis: str = "captured_at_vs_report_generated_at",
 ) -> dict[str, Any]:
-    """Standard current-context envelope: provenance + staleness caveat (no summary)."""
+    """Standard current-context envelope: provenance + staleness caveat (no summary).
+
+    Defaults preserve the daily sections' behaviour byte-for-byte; a section
+    whose producer runs on a longer cadence passes its own threshold + basis."""
     captured_at = artifact.get("captured_at")
     if captured_at is None or generated_at is None:
         # Decoupled dict-source build (T4a): no captured_at / report-generated
@@ -461,10 +480,10 @@ def _section_envelope(
         "source_path": str(path),
         "captured_at": captured_dt.isoformat(),
         "staleness_caveat": {
-            "basis": "captured_at_vs_report_generated_at",
+            "basis": basis,
             "report_generated_at": generated_at.isoformat(),
             "age_hours": age_hours,
-            "is_stale": age_hours >= _STALE_THRESHOLD_HOURS,
+            "is_stale": age_hours >= stale_after_hours,
         },
     }
 
