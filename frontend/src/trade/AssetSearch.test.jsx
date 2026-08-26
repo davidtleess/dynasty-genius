@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AssetSearch } from "./AssetSearch";
@@ -76,7 +76,12 @@ describe("AssetSearch", () => {
     fireEvent.click(screen.getByRole("button", { name: "Chase" }));
 
     await waitFor(() => {
-      expect(globalThis.fetch).toHaveBeenCalledWith("/api/trade/assets?q=cha");
+      // Pins the SR-15 contract: every request carries an abort signal so a
+      // superseded query can never render over the current one.
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/api/trade/assets?q=cha",
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
     });
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ asset_id: "100" }));
   });
@@ -121,5 +126,123 @@ describe("AssetSearch", () => {
       expect(globalThis.fetch).toHaveBeenCalled();
     });
     expect(screen.queryByRole("button", { name: "Chase" })).toBeNull();
+  });
+});
+
+// SR-15 / DG-080 — the stale-response race. Each request parses ~30 MB
+// server-side, so completion order is scrambled: without an abort + debounce,
+// whichever response resolves LAST wins the dropdown, and "brown" can render
+// the results for "bro" (Brock Purdy offered as a match for "brown").
+describe("AssetSearch stale-response and debounce guards", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  // Fetch stub with per-query latency. Honors the AbortController contract:
+  // an aborted request rejects with AbortError and never resolves.
+  function fetchWithLatency(routes) {
+    return vi.fn((url, init) => {
+      const q = new URL(url, "http://localhost").searchParams.get("q");
+      const route = routes[q] ?? {
+        body: catalogResponse({ query: q, results: [] }),
+        delayMs: 5,
+      };
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          resolve({
+            json: () => Promise.resolve(route.body),
+            ok: true,
+            status: 200,
+          });
+        }, route.delayMs);
+        init?.signal?.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(new DOMException("The operation was aborted.", "AbortError"));
+        });
+      });
+    });
+  }
+
+  it("never renders results for a query that is no longer in the box", async () => {
+    const staleResults = [
+      catalogEntry({ asset_id: "200", label: "Brock Purdy" }),
+      catalogEntry({ asset_id: "201", label: "A.J. Brown" }),
+    ];
+    globalThis.fetch = fetchWithLatency({
+      bro: {
+        body: catalogResponse({ query: "bro", results: staleResults }),
+        delayMs: 400,
+      },
+      brow: {
+        body: catalogResponse({ query: "brow", results: staleResults }),
+        delayMs: 400,
+      },
+      brown: {
+        body: catalogResponse({
+          query: "brown",
+          results: [catalogEntry({ asset_id: "201", label: "A.J. Brown" })],
+        }),
+        delayMs: 10,
+      },
+    });
+
+    render(<AssetSearch onSelect={vi.fn()} />);
+    const box = screen.getByRole("searchbox");
+    fireEvent.change(box, { target: { value: "b" } });
+    fireEvent.change(box, { target: { value: "br" } });
+    fireEvent.change(box, { target: { value: "bro" } });
+    // Let the slow q=bro request take flight (each act boundary is a React
+    // flush point, so the fetch effect actually issues its request)...
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    // ...then finish typing while it is still pending...
+    fireEvent.change(box, { target: { value: "brow" } });
+    fireEvent.change(box, { target: { value: "brown" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    // ...and let every response timer settle. q=bro resolves LAST by design.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(screen.getByRole("button", { name: "A.J. Brown" })).toBeTruthy();
+    expect(screen.queryByText("Brock Purdy")).toBeNull();
+  });
+
+  it("debounces typing into exactly one request, for the final query", async () => {
+    globalThis.fetch = fetchWithLatency({
+      brown: {
+        body: catalogResponse({
+          query: "brown",
+          results: [catalogEntry({ asset_id: "201", label: "A.J. Brown" })],
+        }),
+        delayMs: 10,
+      },
+    });
+
+    render(<AssetSearch onSelect={vi.fn()} />);
+    const box = screen.getByRole("searchbox");
+    for (const value of ["b", "br", "bro", "brow", "brown"]) {
+      fireEvent.change(box, { target: { value } });
+    }
+    // First advance fires the debounce (one fetch); second lets the response
+    // timer resolve after the act boundary has flushed the fetch effect.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(750);
+    });
+
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch.mock.calls[0][0]).toBe("/api/trade/assets?q=brown");
+    expect(screen.getByRole("button", { name: "A.J. Brown" })).toBeTruthy();
   });
 });
