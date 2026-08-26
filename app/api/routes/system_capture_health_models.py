@@ -70,6 +70,10 @@ class WarnConsecutiveMissing(_Strict):
 
 class SeasonWindows(_Strict):
     in_season_months: list[int]
+    # SR-10a step 2: the cadence window is month-granular and deliberately
+    # narrower than the market producers' Aug-16..Jan-15 definition; two silent
+    # definitions are forbidden, so the config must be able to say why.
+    comment: str | None = None
 
 
 class CadenceStoreConfig(_Strict):
@@ -256,6 +260,11 @@ def load_capture_cadence(*, config_path: Path) -> CaptureCadenceConfig:
         raw = json.loads(config_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise _reject(f"malformed JSON at {config_path}: {exc}") from exc
+    except OSError as exc:
+        # DG-044: an unreadable config (permissions, a directory at the path)
+        # must degrade like any other broken config, never escape as a crash —
+        # the gap alert dies silently on exactly that escape.
+        raise _reject(f"unreadable at {config_path}: {exc}") from exc
 
     try:
         config = CaptureCadenceConfig.model_validate(raw)
@@ -355,6 +364,7 @@ def analyze_store_health(
     now: datetime,
     timezone: str,
     season_windows: SeasonWindows,
+    missing_ranges_cap: int = _MISSING_RANGES_DISPLAY_CAP,
 ) -> StoreHealth:
     """Analyze one store's captured-date observations into StoreHealth (pure).
 
@@ -481,7 +491,7 @@ def analyze_store_health(
         ):
             caveats.append("companion_rows_missing")
 
-    if len(ranges) > _MISSING_RANGES_DISPLAY_CAP:
+    if len(ranges) > missing_ranges_cap:
         caveats.append("missing_ranges_truncated")
     caveats = _ordered_unique(caveats + list(external_caveats))
 
@@ -507,7 +517,7 @@ def analyze_store_health(
                 MissingRange(
                     from_date=r[0].isoformat(), to_date=r[-1].isoformat(), days=len(r)
                 )
-                for r in ranges[:_MISSING_RANGES_DISPLAY_CAP]
+                for r in ranges[:missing_ranges_cap]
             ],
             missing_ranges_total=len(ranges),
             max_contiguous_gap_days=max_gap,
@@ -650,6 +660,7 @@ def inspect_capture_store(
     now: datetime,
     timezone: str,
     season_windows: SeasonWindows,
+    missing_ranges_cap: int = _MISSING_RANGES_DISPLAY_CAP,
 ) -> StoreHealth:
     """Inspect one capture store on disk and analyze its health (read-only).
 
@@ -687,6 +698,7 @@ def inspect_capture_store(
         now=now,
         timezone=timezone,
         season_windows=season_windows,
+        missing_ranges_cap=missing_ranges_cap,
     )
 
 

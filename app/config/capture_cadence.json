@@ -1,7 +1,10 @@
 {
-  "config_version": 1,
+  "config_version": 2,
   "timezone": "America/New_York",
-  "season_windows": { "in_season_months": [9, 10, 11, 12, 1] },
+  "season_windows": {
+    "in_season_months": [9, 10, 11, 12, 1],
+    "comment": "Deliberately narrower than the market producers' Aug 16 - Jan 15 in-season definition (fantasycalc_adapter.py, run_market_divergence_refresh.py): this window is month-granular and gates only warn_consecutive_missing leniency, and mid-August tightening was declined during the season sprint to avoid changing warn behavior on live stores days before kickoff (SR-10a step 2, 2026-08-26)."
+  },
   "stores": [
     {
       "store_id": "fc_forward_capture",
@@ -42,6 +45,23 @@
           "capture_start_date": "2026-06-28"
         }
       ]
+    },
+    {
+      "store_id": "market_divergence_history",
+      "db_path": "app/data/market_divergence_history.db",
+      "table": "market_divergence_history",
+      "date_column": "capture_date",
+      "source_filter": null,
+      "expected_settings_hash": null,
+      "capture_start_date": "2026-07-09",
+      "expected_cadence": "daily",
+      "scheduled_time_local": "09:40",
+      "grace_hours": 3,
+      "density_floor_pct": 50,
+      "density_baseline_window": 14,
+      "warn_consecutive_missing": { "in_season": 1, "off_season": 3 },
+      "window_risk_contiguous_days": 7,
+      "companion_tables": []
     }
   ]
 }

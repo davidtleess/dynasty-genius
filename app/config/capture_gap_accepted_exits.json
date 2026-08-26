@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "purpose": "Known-accepted non-zero producer exits for the capture gap alert (DG-044 / SR-11 step 9). While this file exists, class (b) — a producer that exited non-zero — is ARMED; a pin suppresses a failure only when the producer's own marker names exactly the accepted failed_stream (never on exit code alone), and every pin must carry a review_date. The alert reports an expired pin instead of honoring it.",
+  "measured": "2026-08-26 06:22 ET: app/data/nflverse_usage/nflverse_usage_status_latest.json reads status=ok, failed_stream=None (finished 2026-08-26T10:16:54Z) — the second consecutive scheduled success since DG-040 (merge 6b5dceb9) fixed the contracts schema drift. The nflverse/contracts pin the spec drafted on its 2026-08-23 measurement is therefore NOT warranted: contracts failing again would be a regression worth a loud line, not an accepted condition.",
+  "pin_shape_example": {
+    "producer_label": "com.davidleess.dynasty-nflverse-usage-capture",
+    "marker_path": "app/data/nflverse_usage/nflverse_usage_status_latest.json",
+    "accepted_failed_stream": "contracts",
+    "review_date": "2026-09-30"
+  },
+  "pins": []
+}
