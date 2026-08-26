@@ -1,0 +1,13 @@
+-	0	com.davidleess.dynasty-model-pvo-refresh
+-	0	com.davidleess.dynasty-backup-irreplaceable
+-	0	com.davidleess.dynasty-feature-refresh
+-	0	com.davidleess.dynasty-league-capture
+-	0	com.davidleess.dynasty-league-transaction-capture
+-	0	com.davidleess.dynasty-market-divergence-refresh
+-	0	com.davidleess.dynasty-capture-gap-alert
+-	0	com.davidleess.dynasty-roster-capacity-audit
+-	0	com.davidleess.dynasty-fc-snapshot
+-	0	com.davidleess.dynasty-realized-outcome-scoring
+-	0	com.davidleess.dynasty-nflverse-usage-capture
+-	0	com.davidleess.dynasty-what-changed-report
+-	0	com.davidleess.dynasty-league-opportunity-map

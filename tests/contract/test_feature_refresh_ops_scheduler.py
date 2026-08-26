@@ -7,7 +7,17 @@ import plistlib
 import re
 from pathlib import Path
 
-PLIST = Path("ops/launchd/com.davidleess.dynasty-feature-refresh.plist")
+# SR-09 step 7: retired into ops/launchd/retired/ byte-identical (the 09:15 slot
+# lives in the daily chain now; the retired copy IS the rollback). The active
+# location must stay empty — a plist reappearing there would double-run the
+# producer against the chain.
+PLIST = Path("ops/launchd/retired/com.davidleess.dynasty-feature-refresh.plist")
+RETIRED_FROM = Path("ops/launchd/com.davidleess.dynasty-feature-refresh.plist")
+
+
+def test_feature_refresh_plist_is_retired_not_active() -> None:
+    assert PLIST.is_file()
+    assert not RETIRED_FROM.exists()
 ARTIFACTS = Path("docs/ARTIFACTS.md")
 QUICK_REFERENCE = Path("docs/development/quick-reference.md")
 ROOT = Path("/Users/davidleess/dynasty-genius-product")

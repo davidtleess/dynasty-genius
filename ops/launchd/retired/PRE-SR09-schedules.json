@@ -1,0 +1,215 @@
+{
+  "com.davidleess.dynasty-backup-irreplaceable.plist": {
+    "Label": "com.davidleess.dynasty-backup-irreplaceable",
+    "StartCalendarInterval": {
+      "Hour": 10,
+      "Minute": 15
+    },
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/backup_irreplaceable_data.py"
+    ]
+  },
+  "com.davidleess.dynasty-capture-gap-alert.plist": {
+    "Label": "com.davidleess.dynasty-capture-gap-alert",
+    "StartCalendarInterval": {
+      "Hour": 10,
+      "Minute": 30
+    },
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/run_capture_gap_alert.py"
+    ]
+  },
+  "com.davidleess.dynasty-fc-snapshot.plist": {
+    "Label": "com.davidleess.dynasty-fc-snapshot",
+    "StartCalendarInterval": {
+      "Hour": 9,
+      "Minute": 0
+    },
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/run_fc_forward_capture.py",
+      "--db-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/fc_forward_capture.db",
+      "--report-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/capture/fc_forward_capture_latest_report.json"
+    ]
+  },
+  "com.davidleess.dynasty-feature-refresh.plist": {
+    "Label": "com.davidleess.dynasty-feature-refresh",
+    "StartCalendarInterval": {
+      "Hour": 9,
+      "Minute": 15
+    },
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/run_feature_refresh.py"
+    ]
+  },
+  "com.davidleess.dynasty-league-capture.plist": {
+    "Label": "com.davidleess.dynasty-league-capture",
+    "StartCalendarInterval": {
+      "Hour": 9,
+      "Minute": 20
+    },
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/run_league_snapshot_capture.py",
+      "--runtime-root",
+      "/Users/davidleess/dynasty-genius-product/app/data/league_runtime"
+    ]
+  },
+  "com.davidleess.dynasty-league-opportunity-map.plist": {
+    "Label": "com.davidleess.dynasty-league-opportunity-map",
+    "StartCalendarInterval": {
+      "Weekday": 2,
+      "Hour": 9,
+      "Minute": 35
+    },
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/build_league_opportunity_map.py"
+    ]
+  },
+  "com.davidleess.dynasty-league-transaction-capture.plist": {
+    "Label": "com.davidleess.dynasty-league-transaction-capture",
+    "StartCalendarInterval": {
+      "Hour": 6,
+      "Minute": 30
+    },
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/run_league_transaction_capture.py"
+    ]
+  },
+  "com.davidleess.dynasty-market-divergence-refresh.plist": {
+    "Label": "com.davidleess.dynasty-market-divergence-refresh",
+    "StartCalendarInterval": [
+      {
+        "Hour": 9,
+        "Minute": 40
+      },
+      {
+        "Hour": 11,
+        "Minute": 30
+      },
+      {
+        "Hour": 14,
+        "Minute": 0
+      }
+    ],
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/run_market_divergence_refresh.py",
+      "--latest-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/valuation/universe_market_divergence_latest.json",
+      "--coverage-latest-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/valuation/universe_market_divergence_coverage_latest.json",
+      "--history-db-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/market_divergence_history.db",
+      "--fc-forward-capture-db-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/fc_forward_capture.db",
+      "--fc-source",
+      "fc_native",
+      "--fc-settings-hash",
+      "e27351d720e9fcf0",
+      "--marker-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/valuation_runtime/market_divergence_refresh_status_latest.json",
+      "--report-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/valuation_runtime/market_divergence_refresh_latest_report.json"
+    ]
+  },
+  "com.davidleess.dynasty-model-pvo-refresh.plist": {
+    "Label": "com.davidleess.dynasty-model-pvo-refresh",
+    "StartCalendarInterval": [
+      {
+        "Hour": 9,
+        "Minute": 30
+      },
+      {
+        "Hour": 11,
+        "Minute": 30
+      },
+      {
+        "Hour": 14,
+        "Minute": 0
+      }
+    ],
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/run_pvo_refresh.py",
+      "--runtime-dir",
+      "/Users/davidleess/dynasty-genius-product/app/data/valuation_runtime",
+      "--capture-db-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/model_forward_capture.db",
+      "--report-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/model_capture/pvo_refresh_latest_report.json",
+      "--capture-report-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/model_capture/model_forward_capture_latest_report.json"
+    ]
+  },
+  "com.davidleess.dynasty-nflverse-usage-capture.plist": {
+    "Label": "com.davidleess.dynasty-nflverse-usage-capture",
+    "StartCalendarInterval": {
+      "Hour": 6,
+      "Minute": 15
+    },
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/run_nflverse_usage_capture.py"
+    ]
+  },
+  "com.davidleess.dynasty-realized-outcome-scoring.plist": {
+    "Label": "com.davidleess.dynasty-realized-outcome-scoring",
+    "StartCalendarInterval": {
+      "Weekday": 2,
+      "Hour": 10,
+      "Minute": 0
+    },
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/run_realized_outcome_scoring.py",
+      "--report-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/realized_outcome/scorecard_latest.json"
+    ]
+  },
+  "com.davidleess.dynasty-roster-capacity-audit.plist": {
+    "Label": "com.davidleess.dynasty-roster-capacity-audit",
+    "StartCalendarInterval": {
+      "Weekday": 2,
+      "Hour": 10,
+      "Minute": 0
+    },
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/run_roster_capacity_audit.py",
+      "--report-path",
+      "/Users/davidleess/dynasty-genius-product/app/data/roster_capacity/roster_capacity_latest.json"
+    ]
+  },
+  "com.davidleess.dynasty-what-changed-report.plist": {
+    "Label": "com.davidleess.dynasty-what-changed-report",
+    "StartCalendarInterval": {
+      "Hour": 9,
+      "Minute": 45
+    },
+    "RunAtLoad": false,
+    "ProgramArguments": [
+      "/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14",
+      "/Users/davidleess/dynasty-genius-product/scripts/run_what_changed_report.py"
+    ]
+  }
+}
