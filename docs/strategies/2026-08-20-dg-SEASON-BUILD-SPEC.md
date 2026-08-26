@@ -124,6 +124,8 @@ Tue 09-01  D8  SR-14 SR-19  ← Tuesday 2: FIRST post-chain exercise of the thre
 Wed 09-02  D9  SR-13 SR-21 SR-15  ← SR-18 go/no-go checkpoint, end of day
                    (SR-21 ✅ DONE early, 2026-08-25 — D9 slot freed)
                    (SR-15 ✅ DONE early, 2026-08-26 — D9 = SR-13 only)
+                   (SR-20 ✅ DONE early, 2026-08-26 as DG-047 · SR-16 ✅ DONE early,
+                    2026-08-26 — D10 fully freed to buffer)
 Thu 09-03  D10 SR-16 SR-20
 Fri 09-04  D11 ← BUFFER (unallocated) · FREEZE, end of day
 ```
@@ -1332,7 +1334,7 @@ Then `npm run gate` → green (requires SR-04).
 
 ## DAY 10 (Thu 09-03) — aim the one number at him, and stop crying wolf · 1.0d
 
-### SR-16 · The Morning Room headline counts a number David does not act on · S · 0.5d · Tier 0 *(draft: MR-3 · RE-AIMED — PT-6)*
+### SR-16 · The Morning Room headline counts a number David does not act on · S · 0.5d · Tier 0 *(draft: MR-3 · RE-AIMED — PT-6)*  ← ✅ DONE 2026-08-26 (DG-081, merge `c606fc53`)
 
 **Why.** `frontend/src/what-changed/DailyWhatChanged.tsx:304-307` computes the hero as `top_movers.length + roster_deltas.length + model.deltas.length`. Measured against the live report: **25 + 26 + 0 = 51**, rendered by `ValueHero` at line 334 as *"Moves on the tape — 51 — market and model changes since the prior snapshot."*
 
@@ -1371,7 +1373,7 @@ Then `npm run gate` → green (requires SR-04).
 
 ---
 
-### SR-20 · The Morning Room cries wolf six mornings out of seven · S · 0.5d · Tier 0 *(NEW — PT-8)*
+### SR-20 · The Morning Room cries wolf six mornings out of seven · S · 0.5d · Tier 0 *(NEW — PT-8)*  ← ✅ DONE 2026-08-26 (DG-047, merge `eac43215`)
 
 **Why. This is the specific mechanism by which a daily habit dies.**
 
