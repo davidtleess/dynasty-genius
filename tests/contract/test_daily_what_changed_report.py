@@ -7,7 +7,7 @@ backend-only: no API and no frontend surface.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -817,3 +817,46 @@ def test_report_emitter_requires_injected_clock_and_paths(tmp_path) -> None:
     assert report["daily_diff"]["market"]["total_movers_count"] == 2
     assert len(report["daily_diff"]["market"]["top_movers"]) == 1
     assert report_path.exists()
+
+
+class TestSr20CadenceAwareStaleness:
+    """DG-047 / SR-20 (pulled forward from D10 on David's 'keep filling the
+    layers', 2026-08-26): league_opportunity is a Tuesday-only producer — a flat
+    24h threshold marks its section stale six mornings out of seven, which is
+    the cadence, not a staleness signal. Judged against its declared weekly
+    cadence instead. The four daily sections keep the flat threshold and the
+    old basis byte-for-byte (pinned above at exactly 24.0h -> is_stale True)."""
+
+    def _section(self, age_hours: float) -> dict:
+        from src.dynasty_genius.what_changed.report import (
+            _build_league_opportunity_section,
+        )
+
+        generated = datetime(2026, 8, 26, 13, 45, 0, tzinfo=timezone.utc)
+        captured = generated - timedelta(hours=age_hours)
+        artifact = {
+            "captured_at": captured.isoformat(),
+            "partner_rankings": [],
+            "cards": [],
+        }
+        return _build_league_opportunity_section(artifact, generated)
+
+    def test_two_day_old_weekly_artifact_is_fresh_not_stale(self):
+        caveat = self._section(48.2)["staleness_caveat"]
+        assert caveat["is_stale"] is False
+        assert caveat["basis"] == "captured_at_vs_weekly_producer_cadence"
+        assert caveat["age_hours"] == 48.2
+
+    def test_six_day_old_weekly_artifact_is_still_fresh(self):
+        assert self._section(144.0)["staleness_caveat"]["is_stale"] is False
+
+    def test_nine_day_old_weekly_artifact_is_genuinely_stale(self):
+        # The Tuesday job failing IS what the Sep 1 / Sep 8 exercises watch for —
+        # the flag must still fire when the artifact outlives its cadence + grace.
+        caveat = self._section(216.0)["staleness_caveat"]
+        assert caveat["is_stale"] is True
+        assert caveat["basis"] == "captured_at_vs_weekly_producer_cadence"
+
+    def test_the_boundary_is_cadence_plus_grace(self):
+        assert self._section(170.9)["staleness_caveat"]["is_stale"] is False
+        assert self._section(171.0)["staleness_caveat"]["is_stale"] is True
