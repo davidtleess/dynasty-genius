@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  DG-045 / SR-09 step 6 — THE morning chain (09:00). One dependency-ordered,
+  fail-soft job replaces the six wall-clock producers (fc 09:00, feature 09:15,
+  league 09:20, pvo 09:30, market 09:40, what-changed 09:45).
+
+  COMMITTED, NOT INSTALLED: this file does nothing until installed, and the
+  install is COUPLED to the retirement of the six superseded agents in ONE
+  David-gated launchctl session — never land the retirement without the swap:
+
+    ln -s /Users/davidleess/dynasty-genius-product/ops/launchd/com.davidleess.dynasty-daily-chain.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.davidleess.dynasty-daily-chain.plist
+
+  Symlink, never copy (2026-08-23 convention): a repo edit must BE the live edit.
+  The "dry-run=false" argument is LOAD-BEARING: the runner is safe-by-default
+  and a plist without the flag prints a plan every morning and captures nothing
+  (the contract test pins it). Absolute venv python because launchd's bare PATH
+  resolves python3 to Apple's 3.9. RunAtLoad stays false — the chain runs on
+  its slot, never as a side effect of a bootstrap. The report lands at
+  app/data/ops/daily_chain_latest_report.json, where the SR-11 alert reads it.
+  Kept separate: 06:15/06:30/06:45 early captures (no downstream dependents),
+  10:15 backup (must run even if the chain failed), the three Tuesday-only jobs.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-daily-chain</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/run_daily_chain.py</string>
+        <string>--dry-run=false</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/daily_chain.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/daily_chain.err.log</string>
+</dict>
+</plist>

@@ -38,8 +38,11 @@ def test_market_divergence_launchd_plist_runs_refresh_wrapper_only() -> None:
     # recovered completely by rerunning the same day from the DB-resident snapshot with
     # no network call. All three slots are pinned exactly, so an accidental schedule
     # change is still caught; only the approved shape moved.
+    # SR-09 step 7 b-EXCEPTION (David 2026-08-20: "put it back up"): the 09:40
+    # slot moved into the daily chain; this plist survives as a retry-only job
+    # carrying exactly SR-00's 11:30/14:00 entries. A 09:40 entry reappearing
+    # here would double-run the producer against the chain.
     assert data["StartCalendarInterval"] == [
-        {"Hour": 9, "Minute": 40},
         {"Hour": 11, "Minute": 30},
         {"Hour": 14, "Minute": 0},
     ]

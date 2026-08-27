@@ -171,8 +171,8 @@ PINNED_PLAYERPROFILER_IMPORTERS = (
 
 #: R6 — externally-scheduled families name their CHECKED-IN plist, asserted to exist.
 PINNED_SCHEDULER_EVIDENCE = {
-    "fantasycalc": "ops/launchd/com.davidleess.dynasty-fc-snapshot.plist",
-    "sleeper":     "ops/launchd/com.davidleess.dynasty-league-capture.plist",
+    "fantasycalc": "ops/launchd/com.davidleess.dynasty-daily-chain.plist",
+    "sleeper":     "ops/launchd/com.davidleess.dynasty-daily-chain.plist",
 }
 
 #: R4 — one stable aggregate report path. A random timestamped file cannot be the

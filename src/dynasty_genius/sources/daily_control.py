@@ -244,7 +244,7 @@ def build_manifest() -> list[ManifestEntry]:
             command=(_py(), str(_REPO_ROOT / "scripts/run_league_snapshot_capture.py")),
             destination="app/data/league_runtime",
             success_marker="app/data/league_runtime/capture_status_latest.json",
-            scheduler_evidence="ops/launchd/com.davidleess.dynasty-league-capture.plist",
+            scheduler_evidence="ops/launchd/com.davidleess.dynasty-daily-chain.plist",
             note="Already scheduled elsewhere; the controller must not double-pull.",
         ),
         ManifestEntry(
@@ -256,7 +256,7 @@ def build_manifest() -> list[ManifestEntry]:
             command=(_py(), str(_REPO_ROOT / "scripts/run_fc_forward_capture.py")),
             destination="app/data/fc_forward_capture.db",
             success_marker="app/data/capture/fc_forward_capture_latest_report.json",
-            scheduler_evidence="ops/launchd/com.davidleess.dynasty-fc-snapshot.plist",
+            scheduler_evidence="ops/launchd/com.davidleess.dynasty-daily-chain.plist",
             note="Already scheduled elsewhere.",
         ),
         ManifestEntry(

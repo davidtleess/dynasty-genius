@@ -42,13 +42,10 @@
     <string>/Users/davidleess/dynasty-genius-product</string>
 
     <key>StartCalendarInterval</key>
+    <!-- SR-09 step 7 b-EXCEPTION (David 2026-08-20: "put it back up"): the 09:30
+         slot moved into the daily chain; this job survives as SR-00's retry-only
+         pair. Re-adding a 09:30 entry would double-run the producer. -->
     <array>
-        <dict>
-            <key>Hour</key>
-            <integer>9</integer>
-            <key>Minute</key>
-            <integer>30</integer>
-        </dict>
         <dict>
             <key>Hour</key>
             <integer>11</integer>

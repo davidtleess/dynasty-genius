@@ -207,10 +207,11 @@ def test_a_pvo_report_with_an_unreadable_status_is_not_treated_as_success() -> N
 
 def test_feature_refresh_cadence_matches_the_schedule_it_actually_runs_on() -> None:
     """The live defect. A weekly registration buys a six-day trailing window
-    (_freshness_window_start:456-457); the job runs every morning."""
+    (_freshness_window_start:456-457); the job runs every morning — since SR-09
+    as a step of the daily chain, whose plist now carries the schedule."""
     plist = plistlib.loads(
         (
-            REPO_ROOT / "ops/launchd/com.davidleess.dynasty-feature-refresh.plist"
+            REPO_ROOT / "ops/launchd/com.davidleess.dynasty-daily-chain.plist"
         ).read_bytes()
     )
     schedule = plist["StartCalendarInterval"]
@@ -227,7 +228,7 @@ def test_every_weekly_artifact_is_weekly_because_its_plist_says_so() -> None:
     side now has to keep them honest.
     """
     plists = {
-        "feature_refresh": "com.davidleess.dynasty-feature-refresh.plist",
+        "feature_refresh": "com.davidleess.dynasty-daily-chain.plist",
         "roster_capacity": "com.davidleess.dynasty-roster-capacity-audit.plist",
         "league_opportunity": "com.davidleess.dynasty-league-opportunity-map.plist",
     }
