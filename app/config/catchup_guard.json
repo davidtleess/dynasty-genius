@@ -10,17 +10,13 @@
    "receipt_path": "app/data/league_transactions/transaction_capture_status_latest.json",
    "timestamp_fields": ["finished_at", "started_at"]
   },
-  "com.davidleess.dynasty-fc-snapshot": {
-   "receipt_path": "app/data/capture/fc_forward_capture_latest_report.json",
-   "timestamp_fields": ["retrieved_at"]
+  "com.davidleess.dynasty-daily-chain": {
+   "receipt_path": "app/data/ops/daily_chain_latest_report.json",
+   "timestamp_fields": []
   },
-  "com.davidleess.dynasty-feature-refresh": {
-   "receipt_path": "app/data/features_runtime/feature_refresh_latest_report.json",
-   "timestamp_fields": ["generated_at"]
-  },
-  "com.davidleess.dynasty-league-capture": {
-   "receipt_path": "app/data/league_runtime/capture_status_latest.json",
-   "timestamp_fields": ["finished_at", "started_at"]
+  "com.davidleess.dynasty-ff-playerids-snapshot": {
+   "receipt_path": "app/data/ops/ff_playerids_snapshot_status_latest.json",
+   "timestamp_fields": ["finished_at"]
   },
   "com.davidleess.dynasty-model-pvo-refresh": {
    "receipt_path": "app/data/model_capture/pvo_refresh_latest_report.json",
@@ -33,10 +29,6 @@
   "com.davidleess.dynasty-market-divergence-refresh": {
    "receipt_path": "app/data/valuation_runtime/market_divergence_refresh_status_latest.json",
    "timestamp_fields": ["finished_at", "started_at"]
-  },
-  "com.davidleess.dynasty-what-changed-report": {
-   "receipt_path": "app/data/what_changed/what_changed_latest_report.json",
-   "timestamp_fields": ["generated_at"]
   },
   "com.davidleess.dynasty-realized-outcome-scoring": {
    "receipt_path": "app/data/valuation_runtime/realized_outcome_scoring_status_latest.json",
@@ -56,7 +48,6 @@
   }
  },
  "unguarded": {
-  "com.davidleess.dynasty-catchup-guard": "the guard itself — StartInterval, no calendar slot to miss",
-  "com.davidleess.dynasty-ff-playerids-snapshot": "plist exists in ops/launchd but is NOT installed in ~/Library/LaunchAgents on the M5 (verified 2026-08-27) — it never runs at all; David to decide install-or-retire, then guard it"
+  "com.davidleess.dynasty-catchup-guard": "the guard itself — StartInterval, no calendar slot to miss"
  }
 }

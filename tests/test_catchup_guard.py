@@ -405,7 +405,7 @@ class TestBuildSpecs:
         ]
         assert specs[0].slots == (Slot(6, 15),)
         # everything else scheduled in ops/launchd must be surfaced, not hidden
-        assert "com.davidleess.dynasty-feature-refresh" in unconfigured
+        assert "com.davidleess.dynasty-daily-chain" in unconfigured
         assert GUARD_LABEL not in unconfigured
 
     def test_a_schedule_that_lost_its_slots_is_surfaced_not_dropped(self):
