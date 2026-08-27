@@ -555,9 +555,20 @@ class TestPmsetWake:
         output = "Repeating power events:\n  wakepoweron at 6:00AM every day\n"
         assert _alert().pmset_wake_line(output) is None
 
+    def test_the_moved_613_wake_is_also_silent(self) -> None:
+        # 2026-08-27: the 6:00 wake measurably fails its purpose — the Mac
+        # idles back to sleep before the 06:15 capture — so David moves it to
+        # 6:13. Any wake in the 6:00-6:14 window serves the captures.
+        output = "Repeating power events:\n  wakepoweron at 6:13AM every day\n"
+        assert _alert().pmset_wake_line(output) is None
+
+    def test_a_wake_after_the_capture_window_is_named(self) -> None:
+        output = "Repeating power events:\n  wakepoweron at 6:15AM every day\n"
+        assert _alert().pmset_wake_line(output) is not None
+
     def test_a_cleared_schedule_is_named(self) -> None:
         assert _alert().pmset_wake_line("No scheduled events.\n") is not None
-        assert "6:00" in _alert().pmset_wake_line("")
+        assert "daily wake" in _alert().pmset_wake_line("")
 
 
 class TestChainReportLines:

@@ -1,0 +1,62 @@
+{
+ "config_version": 2,
+ "timezone": "America/New_York",
+ "receipts": {
+  "com.davidleess.dynasty-nflverse-usage-capture": {
+   "receipt_path": "app/data/nflverse_usage/nflverse_usage_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-league-transaction-capture": {
+   "receipt_path": "app/data/league_transactions/transaction_capture_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-fc-snapshot": {
+   "receipt_path": "app/data/capture/fc_forward_capture_latest_report.json",
+   "timestamp_fields": ["retrieved_at"]
+  },
+  "com.davidleess.dynasty-feature-refresh": {
+   "receipt_path": "app/data/features_runtime/feature_refresh_latest_report.json",
+   "timestamp_fields": ["generated_at"]
+  },
+  "com.davidleess.dynasty-league-capture": {
+   "receipt_path": "app/data/league_runtime/capture_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-model-pvo-refresh": {
+   "receipt_path": "app/data/model_capture/pvo_refresh_latest_report.json",
+   "timestamp_fields": []
+  },
+  "com.davidleess.dynasty-league-opportunity-map": {
+   "receipt_path": "app/data/valuation/league_opportunity_latest.json",
+   "timestamp_fields": ["captured_at"]
+  },
+  "com.davidleess.dynasty-market-divergence-refresh": {
+   "receipt_path": "app/data/valuation_runtime/market_divergence_refresh_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-what-changed-report": {
+   "receipt_path": "app/data/what_changed/what_changed_latest_report.json",
+   "timestamp_fields": ["generated_at"]
+  },
+  "com.davidleess.dynasty-realized-outcome-scoring": {
+   "receipt_path": "app/data/valuation_runtime/realized_outcome_scoring_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-roster-capacity-audit": {
+   "receipt_path": "app/data/ops/roster_capacity_audit_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-backup-irreplaceable": {
+   "receipt_path": "app/data/ops/backup_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-capture-gap-alert": {
+   "receipt_path": "app/data/ops/capture_gap_alert_state.json",
+   "timestamp_fields": ["updated_at"]
+  }
+ },
+ "unguarded": {
+  "com.davidleess.dynasty-catchup-guard": "the guard itself — StartInterval, no calendar slot to miss",
+  "com.davidleess.dynasty-ff-playerids-snapshot": "plist exists in ops/launchd but is NOT installed in ~/Library/LaunchAgents on the M5 (verified 2026-08-27) — it never runs at all; David to decide install-or-retire, then guard it"
+ }
+}

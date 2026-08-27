@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.davidleess.dynasty-catchup-guard</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+		<string>/Users/davidleess/dynasty-genius-product/scripts/run_catchup_guard.py</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>/Users/davidleess/dynasty-genius-product</string>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StartInterval</key>
+	<integer>900</integer>
+	<key>StandardOutPath</key>
+	<string>/Users/davidleess/dynasty-genius-product/app/data/logs/catchup_guard.out.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/davidleess/dynasty-genius-product/app/data/logs/catchup_guard.err.log</string>
+</dict>
+</plist>

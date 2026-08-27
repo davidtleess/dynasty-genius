@@ -28,7 +28,6 @@ its own sweep.
 from __future__ import annotations
 
 import json
-import plistlib
 import re
 import sys
 from collections.abc import Callable
@@ -52,21 +51,14 @@ SLOT_GRACE_MINUTES = 15
 # --- the launchd channel (spec steps 7-9) --------------------------------------
 
 
-@dataclass(frozen=True)
-class Slot:
-    """One StartCalendarInterval entry. ``weekday`` uses launchd's convention
-    (0/7 = Sunday, 2 = Tuesday); ``None`` means every day."""
-
-    hour: int
-    minute: int
-    weekday: int | None = None
-
-
-@dataclass(frozen=True)
-class JobSchedule:
-    label: str
-    slots: list[Slot]
-    path: Path
+# Slot / JobSchedule / derive_job_schedules moved to
+# src.dynasty_genius.launchd_schedules (2026-08-27) so the catch-up guard
+# derives from the same source of schedule truth; re-imported here unchanged.
+from src.dynasty_genius.launchd_schedules import (  # noqa: E402
+    JobSchedule,
+    Slot,
+    derive_job_schedules,
+)
 
 
 @dataclass(frozen=True)
@@ -75,51 +67,6 @@ class LaunchdJobState:
     last_exit_code: int | None
     never_exited: bool
     penalty_box: bool
-
-
-def derive_job_schedules(plist_dir: Path) -> list[JobSchedule]:
-    """Derive the sweep's label list from the plist directory itself.
-
-    Never a hand-kept list (spec step 7): a producer added later without anyone
-    touching this script must not be invisible to it. Non-recursive on purpose:
-    ``ops/launchd/retired/`` must never leak back into the sweep after SR-09.
-    """
-
-    schedules: list[JobSchedule] = []
-    for path in sorted(plist_dir.glob("*.plist")):
-        try:
-            data = plistlib.loads(path.read_bytes())
-        except Exception:
-            # An unparseable plist still names a job we cannot watch; carry it
-            # under its filename so the sweep reports it instead of hiding it.
-            data = {}
-        label = data.get("Label") or path.stem
-        calendar = data.get("StartCalendarInterval")
-        entries = (
-            calendar
-            if isinstance(calendar, list)
-            else [calendar]
-            if isinstance(calendar, dict)
-            else []
-        )
-        slots: list[Slot] = []
-        for entry in entries:
-            if not isinstance(entry, dict):
-                continue
-            try:
-                hour = int(entry.get("Hour", 0))
-                minute = int(entry.get("Minute", 0))
-                weekday = int(entry["Weekday"]) if "Weekday" in entry else None
-            except (TypeError, ValueError):
-                continue
-            # A typo'd slot (Minute=75) must never crash the whole alert at
-            # now.replace() — the job still appears under its label, and the
-            # other classes still cover it.
-            if not (0 <= hour <= 23 and 0 <= minute <= 59):
-                continue
-            slots.append(Slot(hour=hour, minute=minute, weekday=weekday))
-        schedules.append(JobSchedule(label=label, slots=slots, path=path))
-    return schedules
 
 
 _RUNS_RE = re.compile(r"^\s*runs = (\d+)\s*$", re.MULTILINE)
@@ -167,11 +114,6 @@ def parse_launchctl_print(text: str | None) -> LaunchdJobState | None:
     )
 
 
-def _slot_matches_day(slot: Slot, day_isoweekday: int) -> bool:
-    # launchd: 0 and 7 both mean Sunday; isoweekday: Sunday is 7. Mod-7 aligns.
-    return slot.weekday is None or slot.weekday % 7 == day_isoweekday % 7
-
-
 def slots_passed_today(
     slots: list[Slot],
     now: datetime,
@@ -181,7 +123,7 @@ def slots_passed_today(
 
     passed: list[datetime] = []
     for slot in slots:
-        if not _slot_matches_day(slot, now.isoweekday()):
+        if not slot.fires_on(now.date()):
             continue
         slot_time = now.replace(
             hour=slot.hour, minute=slot.minute, second=0, microsecond=0
@@ -253,7 +195,7 @@ def _boot_to_login_hits(
     hits: list[tuple[str, datetime]] = []
     for schedule in schedules:
         for slot in schedule.slots:
-            if not _slot_matches_day(slot, login_time.isoweekday()):
+            if not slot.fires_on(login_time.date()):
                 continue
             slot_time = login_time.replace(
                 hour=slot.hour, minute=slot.minute, second=0, microsecond=0
@@ -378,20 +320,23 @@ def backup_lines(
     return [f"GAP backup: {reason}" for reason in health.reasons]
 
 
-_WAKE_RE = re.compile(r"wakepoweron at 0?6:00AM", re.IGNORECASE)
+# Any wake from 6:00 through 6:14 serves the 06:15 capture. David set 6:00 on
+# 08-20; 2026-08-27 measured the Mac idling back to sleep before 06:15, so the
+# wake moves to 6:13 — both shapes are healthy while the change rolls out.
+_WAKE_RE = re.compile(r"wakepoweron at 0?6:(0\d|1[0-4])AM", re.IGNORECASE)
 
 
 def pmset_wake_line(pmset_output: str) -> str | None:
-    """Class (e): the 6:00 AM wake David set on 08-20. Some macOS updates
-    clear ``pmset repeat`` and nothing today would notice; ``pmset -g sched``
+    """Class (e): the pre-06:15 daily wake. Some macOS updates clear
+    ``pmset repeat`` and nothing today would notice; ``pmset -g sched``
     is the only reliable check on macOS 26."""
 
     if _WAKE_RE.search(pmset_output):
         return None
     return (
-        "GAP pmset: the 6:00 AM daily wake is no longer scheduled — "
-        "`pmset -g sched` shows no `wakepoweron at 6:00AM`; the 06:15/06:30 "
-        "captures depend on it when the lid is closed"
+        "GAP pmset: the early-morning daily wake (6:00-6:14) is no longer "
+        "scheduled — `pmset -g sched` shows no matching `wakepoweron`; the "
+        "06:15/06:30 captures depend on it when the lid is closed"
     )
 
 
