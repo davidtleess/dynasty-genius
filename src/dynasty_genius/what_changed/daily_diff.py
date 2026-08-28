@@ -350,8 +350,24 @@ def _model_score_deltas(
         dvs_delta = _float(latest[key].get("dynasty_value_score")) - _float(
             prior[key].get("dynasty_value_score")
         )
-        dvs_pct_delta = _float(latest[key].get("dvs_pct")) - _float(prior[key].get("dvs_pct"))
-        xvar_delta = _float(latest[key].get("xvar")) - _float(prior[key].get("xvar"))
+        # DG-084 / SR-14 guard (PT-1: BOTH fields — David's 2026-08-20 ruling).
+        # The archive stored NULL dvs_pct/xvar for its entire pre-fix life, so
+        # on the first morning after the capture fix every prior side is None.
+        # _float coerces None -> 0.0, and real-minus-0.0 would fabricate a move
+        # for every scored player (~468). Either side None means NO SIGNAL:
+        # delta 0.0, so a row whose only difference is the None -> real
+        # transition falls to the zero-delta skip below. 0.0 stays the emitted
+        # value (the field is non-Optional in the API/frontend schemas), and
+        # _float itself must not change — its other callers here rely on the
+        # None -> 0.0 coercion.
+        _lp, _pp = latest[key].get("dvs_pct"), prior[key].get("dvs_pct")
+        dvs_pct_delta = (
+            (_float(_lp) - _float(_pp)) if (_lp is not None and _pp is not None) else 0.0
+        )
+        _lx, _px = latest[key].get("xvar"), prior[key].get("xvar")
+        xvar_delta = (
+            (_float(_lx) - _float(_px)) if (_lx is not None and _px is not None) else 0.0
+        )
         if dvs_delta == 0 and dvs_pct_delta == 0 and xvar_delta == 0:
             continue
         sleeper_id = latest[key].get("sleeper_id")

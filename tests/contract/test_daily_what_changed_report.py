@@ -860,3 +860,70 @@ class TestSr20CadenceAwareStaleness:
     def test_the_boundary_is_cadence_plus_grace(self):
         assert self._section(170.9)["staleness_caveat"]["is_stale"] is False
         assert self._section(171.0)["staleness_caveat"]["is_stale"] is True
+
+
+class TestSr14NoneCoercionGuard:
+    """DG-084 / SR-14 (pulled forward to D6 on David's 2026-08-28 word): the
+    archive stored NULL xVAR for its entire life, so the morning the driver's
+    nesting fix lands, every scored player's prior xvar is None. ``_float``
+    coerces that None to 0.0, and real-minus-0.0 would fabricate ~468 model
+    moves that never happened — defeating the zero-delta skip and flooding the
+    Morning Room. The guard: a delta whose either side is None is NO SIGNAL
+    (0.0), never movement. PT-1 amendment (David, 2026-08-20): dvs_pct_delta
+    runs through the identical coercion — guard BOTH fields. ``_float`` itself
+    must not change; its other callers rely on None -> 0.0."""
+
+    @staticmethod
+    def _deltas(prior: dict, latest: dict) -> list[dict]:
+        from src.dynasty_genius.what_changed.daily_diff import _model_score_deltas
+
+        base = {
+            "player_key": "sleeper:9509",
+            "sleeper_id": "9509",
+            "player_name": "Bijan Robinson",
+            "position": "RB",
+            "dynasty_value_score": None,
+            "dvs_pct": None,
+            "xvar": None,
+        }
+        return _model_score_deltas([{**base, **prior}], [{**base, **latest}])
+
+    def test_none_to_real_xvar_transition_alone_emits_zero_deltas(self):
+        # The 468: prior xvar None (57+ null capture days), latest real, DVS
+        # unchanged. Today's code coerces None -> 0.0 and emits a fabricated
+        # move for every such row.
+        deltas = self._deltas(
+            {"xvar": None, "dynasty_value_score": 50.0},
+            {"xvar": 12.3, "dynasty_value_score": 50.0},
+        )
+        assert deltas == []
+
+    def test_real_dvs_move_still_appears_with_no_xvar_signal(self):
+        # A genuine DVS move on the transition morning must still surface —
+        # with xvar_delta honestly 0.0 (no signal), not a fabricated 12.3.
+        deltas = self._deltas(
+            {"xvar": None, "dynasty_value_score": 50.0},
+            {"xvar": 12.3, "dynasty_value_score": 55.0},
+        )
+        assert len(deltas) == 1
+        assert deltas[0]["xvar_delta"] == 0.0
+        assert deltas[0]["dynasty_value_score_delta"] == 5.0
+
+    def test_none_to_real_dvs_pct_transition_alone_emits_zero_deltas(self):
+        # PT-1: the neighbouring field. dvs_pct has also been NULL for the
+        # archive's whole life; guarding xvar alone leaves the same ~468-row
+        # fabrication armed through dvs_pct_delta.
+        deltas = self._deltas(
+            {"dvs_pct": None, "dynasty_value_score": 50.0},
+            {"dvs_pct": 41.0, "dynasty_value_score": 50.0},
+        )
+        assert deltas == []
+
+    def test_both_sides_present_is_real_movement_not_no_signal(self):
+        # The guard must not eat genuine xVAR movement once history exists.
+        deltas = self._deltas(
+            {"xvar": 10.0, "dynasty_value_score": 50.0},
+            {"xvar": 12.5, "dynasty_value_score": 50.0},
+        )
+        assert len(deltas) == 1
+        assert deltas[0]["xvar_delta"] == 2.5
