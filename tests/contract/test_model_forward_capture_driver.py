@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -72,9 +73,14 @@ def _model_row(
             "engine_path": engine_path,
             "model_grade": "MODEL" if score is not None else None,
             "model_version": "engine_b_v2" if engine_path == "ENGINE_B" else "engine_a_v2",
+            # DG-084 / SR-14: the real producer emits these INSIDE valuation.
+            # The old fixture put dvs_pct/xvar at the row root, mirroring the
+            # driver's bug instead of the artifact — which is what let the
+            # archive record NULL xVAR for 57+ capture days with a green suite.
+            "xvar": 18.5 if score is not None else None,
+            "xvar_percentile_position": 97.0 if score is not None else None,
+            "xvar_percentile_overall": 96.0 if score is not None else None,
         },
-        "dvs_pct": 97.0 if score is not None else None,
-        "xvar": 18.5 if score is not None else None,
         "lineage": {
             "governance_version": "1.0.0",
             "sleeper_snapshot_hash": "sleeper-snapshot-v1",
@@ -305,6 +311,14 @@ def test_capture_reads_artifacts_appends_store_and_emits_section5_report(tmp_pat
         "sleeper:9509",
         "sleeper:6786",
     }
+    # DG-084 / SR-14: the archive exists to answer "what did the model say
+    # then" — pin that the valuation-sourced fields actually reach the store.
+    # (dvs_pct maps from valuation.xvar_percentile_position — the field the
+    # producer populates from pvo dvs_pct; choice recorded on the driver.)
+    bijan = next(row for row in joinable if row["player_key"] == "sleeper:9509")
+    assert bijan["xvar"] == 18.5
+    assert bijan["dvs_pct"] == 97.0
+    assert bijan["dynasty_value_score"] == 98.5
     assert any(
         row["player_key"].startswith(
             f"unresolved:{report['semantic_output_hash']}:3:"
@@ -756,3 +770,47 @@ def test_missing_model_supported_row_lineage_aborts_before_write(
     assert store.get_raw_entries(
         "2026-06-24", MODEL_PVO_SOURCE, "anything", "anything"
     ) == []
+
+
+# ── DG-084 / SR-14: the real-artifact tripwire ───────────────────────────────
+# Worktrees materialise app/data/valuation_runtime empty (the runtime artifact
+# is not in the shared-symlink set), so the env override lets a lane point at
+# the real file read-only; the land gate's trunk run always finds the relative
+# path. Skipping when absent is the spec's own allowance — never a reason to
+# fake the artifact.
+PVO_RUNTIME_PATH = Path(
+    os.environ.get(
+        "DG_PVO_RUNTIME_JSON",
+        "app/data/valuation_runtime/universe_pvo_runtime.json",
+    )
+)
+
+
+@pytest.mark.skipif(
+    not PVO_RUNTIME_PATH.exists(),
+    reason="real universe_pvo_runtime.json absent (spec SR-14 step 6: skip, never fake)",
+)
+def test_real_runtime_artifact_rows_map_xvar_from_valuation() -> None:
+    """DG-084 / SR-14 step 6: a fixture-only suite is what let the nesting bug
+    archive NULL xVAR for 57+ days — the fixture mirrored the driver instead of
+    the artifact. Map rows of the REAL published runtime artifact through the
+    driver's entry builder and assert the archive would store what the model
+    actually said."""
+    from src.dynasty_genius.capture.model_forward_capture_driver import (
+        map_pvo_row_valuation_fields,
+    )
+
+    players = json.loads(PVO_RUNTIME_PATH.read_text()).get("players") or []
+    assert players, "runtime artifact has no players"
+    scored = [p for p in players if (p.get("valuation") or {}).get("xvar") is not None]
+    assert scored, "runtime artifact carries no non-null xVAR rows"
+    for row in scored:
+        mapped = map_pvo_row_valuation_fields(row)
+        valuation = row["valuation"]
+        assert mapped["xvar"] == valuation["xvar"]
+        assert mapped["dynasty_value_score"] == valuation.get("dynasty_value_score")
+        # The deliberate SR-14 step-3 choice: dvs_pct maps to the field the
+        # producer populates from pvo dvs_pct (xvar_percentile_position) and
+        # therefore honestly records NULL until the upstream defect at
+        # universe_pvo_batch.py:99 is fixed — never a silent substitute.
+        assert mapped["dvs_pct"] == valuation.get("xvar_percentile_position")

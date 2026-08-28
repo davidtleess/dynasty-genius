@@ -74,6 +74,32 @@ def _semantic_projection(row: dict) -> dict:
     }
 
 
+def map_pvo_row_valuation_fields(row: dict) -> dict[str, Any]:
+    """The valuation-sourced slice of a capture entry (DG-084 / SR-14).
+
+    The producer emits every one of these INSIDE ``row["valuation"]``. Reading
+    ``dvs_pct``/``xvar`` from the row root is the bug that archived NULL xVAR on
+    every capture date from 2026-06-24 onward. Those historical rows stay NULL —
+    NULL is the honest mark for "never captured"; they are never backfilled.
+
+    ``dvs_pct`` deliberately maps to ``valuation["xvar_percentile_position"]``
+    (SR-14 step 3, choice stated): that is the field the producer populates from
+    ``pvo.get("dvs_pct")`` at universe_pvo_batch.py:99. It is NULL for every
+    scored row in today's runtime — an upstream producer defect, out of scope
+    here — so this column keeps recording NULL, honestly, rather than silently
+    substituting ``xvar_percentile_overall`` under a name that means something
+    else.
+    """
+    valuation = row.get("valuation") or {}
+    return {
+        "dynasty_value_score": valuation.get("dynasty_value_score"),
+        "dvs_pct": valuation.get("xvar_percentile_position"),
+        "xvar": valuation.get("xvar"),
+        "model_grade": valuation.get("model_grade"),
+        "model_version": valuation.get("model_version"),
+    }
+
+
 def _derived_training_cutoff(feature_csv_bytes: bytes) -> Optional[int]:
     lines = feature_csv_bytes.decode().strip().splitlines()
     if not lines:
@@ -503,11 +529,7 @@ def capture_model_pvo_snapshot(
                 "player_name": player.get("full_name"),
                 "position": player.get("position"),
                 "engine_path": engine_path,
-                "dynasty_value_score": valuation.get("dynasty_value_score"),
-                "dvs_pct": row.get("dvs_pct"),
-                "xvar": row.get("xvar"),
-                "model_grade": valuation.get("model_grade"),
-                "model_version": valuation.get("model_version"),
+                **map_pvo_row_valuation_fields(row),
                 "artifact_vintage": artifact_vintage,
                 "row_index": index,
                 "semantic_row_hash": semantic_row_hash,
