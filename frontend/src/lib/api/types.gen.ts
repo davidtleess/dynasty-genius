@@ -2887,6 +2887,7 @@ export type StoreHealth = {
     decision_supported: false;
     density: StoreDensity;
     flags: StoreFlags;
+    schedule_drift: StoreScheduleDrift;
     staleness: StoreStaleness;
     /**
      * Store Id
@@ -2901,6 +2902,50 @@ export type StoreHealth = {
      */
     store_status: 'ok' | 'degraded';
     timeline: StoreTimeline;
+};
+
+/**
+ * StoreScheduleDrift
+ *
+ * DG-083 / SR-10a step 3: target-vs-actual start for the producing step.
+ *
+ * A capture that landed at 11:42 for a 09:40 slot is present-but-degraded,
+ * and before this field the surface reported it as simply present. SR-09's
+ * chain report records the number per step; this block surfaces it against
+ * the store's OWN ``scheduled_time_local`` (deliberately NOT the chain's
+ * 09:00 slot — moving the target would hide the drift, spec:993).
+ *
+ * DESCRIPTIVE ONLY: ``store_status`` and the SR-11 alert lines do not move
+ * on drift — the same no-warn-behavior-change-days-before-kickoff reasoning
+ * as the season-window comment (SR-10a step 2). ``basis`` names where the
+ * number came from, or exactly why there is none; absence of wiring or of
+ * the report yields nulls with a reason, never a fabricated value.
+ */
+export type StoreScheduleDrift = {
+    /**
+     * Basis
+     */
+    basis: string;
+    /**
+     * Chain Step
+     */
+    chain_step: string | null;
+    /**
+     * Drift Minutes
+     */
+    drift_minutes: number | null;
+    /**
+     * Exceeds Grace
+     */
+    exceeds_grace: boolean | null;
+    /**
+     * Recorded Start
+     */
+    recorded_start: string | null;
+    /**
+     * Target Local
+     */
+    target_local: string;
 };
 
 /**

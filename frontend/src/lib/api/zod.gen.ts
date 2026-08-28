@@ -1243,6 +1243,32 @@ export const zStoreFlags = z.object({
 });
 
 /**
+ * StoreScheduleDrift
+ *
+ * DG-083 / SR-10a step 3: target-vs-actual start for the producing step.
+ *
+ * A capture that landed at 11:42 for a 09:40 slot is present-but-degraded,
+ * and before this field the surface reported it as simply present. SR-09's
+ * chain report records the number per step; this block surfaces it against
+ * the store's OWN ``scheduled_time_local`` (deliberately NOT the chain's
+ * 09:00 slot — moving the target would hide the drift, spec:993).
+ *
+ * DESCRIPTIVE ONLY: ``store_status`` and the SR-11 alert lines do not move
+ * on drift — the same no-warn-behavior-change-days-before-kickoff reasoning
+ * as the season-window comment (SR-10a step 2). ``basis`` names where the
+ * number came from, or exactly why there is none; absence of wiring or of
+ * the report yields nulls with a reason, never a fabricated value.
+ */
+export const zStoreScheduleDrift = z.object({
+    basis: z.string(),
+    chain_step: z.string().nullable(),
+    drift_minutes: z.int().nullable(),
+    exceeds_grace: z.boolean().nullable(),
+    recorded_start: z.string().nullable(),
+    target_local: z.string()
+});
+
+/**
  * StoreStaleness
  */
 export const zStoreStaleness = z.object({
@@ -1276,6 +1302,7 @@ export const zStoreHealth = z.object({
     decision_supported: z.literal(false),
     density: zStoreDensity,
     flags: zStoreFlags,
+    schedule_drift: zStoreScheduleDrift,
     staleness: zStoreStaleness,
     store_id: z.string(),
     store_presence: z.enum(['present', 'absent']),
