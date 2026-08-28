@@ -919,6 +919,17 @@ class TestSr14NoneCoercionGuard:
         )
         assert deltas == []
 
+    def test_none_to_real_dvs_transition_alone_emits_no_delta_row(self):
+        # D6 pre-land review find: the SAME fabrication class through the
+        # third call site. 115 of today's 583 joinable rows carry NULL
+        # dynasty_value_score (MODEL_UNCERTAIN) — each becoming scored would
+        # fabricate a full-score dvs_delta wearing a rose/fell badge.
+        deltas = self._deltas(
+            {"dynasty_value_score": None},
+            {"dynasty_value_score": 74.5},
+        )
+        assert deltas == []
+
     def test_both_sides_present_is_real_movement_not_no_signal(self):
         # The guard must not eat genuine xVAR movement once history exists.
         deltas = self._deltas(

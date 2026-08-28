@@ -347,8 +347,15 @@ def _model_score_deltas(
     latest = {r["player_key"]: r for r in latest_rows}
     deltas: list[dict] = []
     for key in sorted(set(prior) & set(latest)):
-        dvs_delta = _float(latest[key].get("dynasty_value_score")) - _float(
-            prior[key].get("dynasty_value_score")
+        # Same guard as dvs_pct/xvar below (D6 pre-land review find): 115 of
+        # today's joinable rows are MODEL_UNCERTAIN with NULL score — scoring
+        # one must not fabricate a full-score "rose" delta.
+        _ld, _pd = (
+            latest[key].get("dynasty_value_score"),
+            prior[key].get("dynasty_value_score"),
+        )
+        dvs_delta = (
+            _float(_ld) - _float(_pd) if _ld is not None and _pd is not None else 0.0
         )
         # DG-084 / SR-14 guard (PT-1: BOTH fields — David's 2026-08-20 ruling).
         # The archive stored NULL dvs_pct/xvar for its entire pre-fix life, so
