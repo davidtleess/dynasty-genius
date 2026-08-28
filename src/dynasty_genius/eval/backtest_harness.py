@@ -61,14 +61,19 @@ _MARKET_SOURCE_MAP: dict[str, str] = {
     "fc_native": "fc_native",
     "ktc_community_csv": "ktc_community_csv",
     "dp_archive": "dp_archive",
+    "fc_history_api": "fc_history_api",
 }
 
 # Honest David-facing labels for each market source. dp_archive is DynastyProcess
 # expert-consensus ECR (2QB), NOT a FantasyCalc trade-market value.
+# fc_history_api is FantasyCalc's own historical series (DG-020 backfill) with
+# a TODAY-anchored player universe — survivor-biased for players who have left
+# FC rankings, unlike a same-day fc_native capture.
 _MARKET_SOURCE_LABELS: dict[str, str] = {
     "fc_native": "fantasycalc_native",
     "ktc_community_csv": "ktc_community_csv",
     "dp_archive": "dynastyprocess_ecr_2qb",
+    "fc_history_api": "fantasycalc_history_api_survivor_biased",
     "unavailable": "unavailable",
 }
 
