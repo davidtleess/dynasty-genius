@@ -1,5 +1,5 @@
 {
-  "config_version": 2,
+  "config_version": 3,
   "timezone": "America/New_York",
   "season_windows": {
     "in_season_months": [
@@ -30,7 +30,8 @@
         "off_season": 3
       },
       "window_risk_contiguous_days": 7,
-      "companion_tables": []
+      "companion_tables": [],
+      "chain_step": "run_fc_forward_capture"
     },
     {
       "store_id": "model_forward_capture",
@@ -56,7 +57,8 @@
           "date_column": "capture_date",
           "capture_start_date": "2026-06-28"
         }
-      ]
+      ],
+      "chain_step": "run_pvo_refresh"
     },
     {
       "store_id": "market_divergence_history",
@@ -76,7 +78,8 @@
         "off_season": 3
       },
       "window_risk_contiguous_days": 7,
-      "companion_tables": []
+      "companion_tables": [],
+      "chain_step": "run_market_divergence_refresh"
     }
   ],
   "event_streams": [

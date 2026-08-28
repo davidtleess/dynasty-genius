@@ -35,6 +35,10 @@ StorePresence = Literal["present", "absent"]
 # names are confined to a strict identifier alphabet (Codex R3).
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
+# A chain_step must look like a scripts/run_daily_chain.py step name
+# (snake_case module names) — anything else is config corruption, fail-closed.
+_CHAIN_STEP_RE = re.compile(r"^[a-z][a-z0-9_]*$")
+
 
 class _Strict(BaseModel):
     """Base model: reject unknown fields AND type coercion.
@@ -92,6 +96,11 @@ class CadenceStoreConfig(_Strict):
     warn_consecutive_missing: WarnConsecutiveMissing
     window_risk_contiguous_days: int
     companion_tables: list[CompanionTableConfig] = Field(default_factory=list)
+    # DG-083 / SR-10a step 3: the chain step (scripts/run_daily_chain.py table)
+    # that produces this store, so the surface can state target-vs-actual
+    # drift. Optional and additive — configs predating it stay valid, and a
+    # store no chain step writes simply has none.
+    chain_step: str | None = None
 
 
 class EventStreamConfig(_Strict):
@@ -167,6 +176,30 @@ class StoreFlags(_Strict):
     window_risk_basis: str
 
 
+class StoreScheduleDrift(_Strict):
+    """DG-083 / SR-10a step 3: target-vs-actual start for the producing step.
+
+    A capture that landed at 11:42 for a 09:40 slot is present-but-degraded,
+    and before this field the surface reported it as simply present. SR-09's
+    chain report records the number per step; this block surfaces it against
+    the store's OWN ``scheduled_time_local`` (deliberately NOT the chain's
+    09:00 slot — moving the target would hide the drift, spec:993).
+
+    DESCRIPTIVE ONLY: ``store_status`` and the SR-11 alert lines do not move
+    on drift — the same no-warn-behavior-change-days-before-kickoff reasoning
+    as the season-window comment (SR-10a step 2). ``basis`` names where the
+    number came from, or exactly why there is none; absence of wiring or of
+    the report yields nulls with a reason, never a fabricated value.
+    """
+
+    target_local: str
+    chain_step: str | None
+    recorded_start: str | None
+    drift_minutes: int | None
+    exceeds_grace: bool | None
+    basis: str
+
+
 class StoreHealth(_Strict):
     store_id: str
     store_status: StoreStatus
@@ -175,6 +208,7 @@ class StoreHealth(_Strict):
     staleness: StoreStaleness
     density: StoreDensity
     flags: StoreFlags
+    schedule_drift: StoreScheduleDrift
     caveats: list[str]
     decision_supported: Literal[False]
 
@@ -341,6 +375,11 @@ def load_capture_cadence(*, config_path: Path) -> CaptureCadenceConfig:
             raise _reject(
                 f"schema invalid for store {store.store_id!r}: "
                 f"capture_start_date {store.capture_start_date!r} is not an ISO date"
+            )
+        if store.chain_step is not None and not _CHAIN_STEP_RE.match(store.chain_step):
+            raise _reject(
+                f"schema invalid for store {store.store_id!r}: "
+                f"chain_step {store.chain_step!r} is not a chain step name"
             )
         for companion in store.companion_tables:
             _validate_identifier(store.store_id, "companion table", companion.table)
@@ -585,8 +624,117 @@ def analyze_store_health(
                 f">={store_config.window_risk_contiguous_days} contiguous missing days"
             ),
         ),
+        # The pure analyzer sees observations, never the chain report;
+        # inspect_capture_store overrides this with the real evaluation.
+        schedule_drift=_drift_unavailable(store_config, "not_evaluated"),
         caveats=caveats,
         decision_supported=False,
+    )
+
+
+# --- DG-083 / SR-10a step 3: schedule drift from the SR-09 chain report --------
+
+# Mirror of run_daily_chain.py's own floor: a start more than two hours
+# "early" is a past-midnight catch-up chasing YESTERDAY's target — hours
+# late, not hours early. Same constant, same re-anchoring, so SR-09's
+# recorded number and this surface can never disagree about the same run.
+_PAST_MIDNIGHT_DRIFT_FLOOR_MINUTES = -120
+
+
+def _drift_unavailable(
+    store_config: CadenceStoreConfig, basis: str
+) -> StoreScheduleDrift:
+    return StoreScheduleDrift(
+        target_local=store_config.scheduled_time_local,
+        chain_step=store_config.chain_step,
+        recorded_start=None,
+        drift_minutes=None,
+        exceeds_grace=None,
+        basis=basis,
+    )
+
+
+def evaluate_schedule_drift(
+    *,
+    store_config: CadenceStoreConfig,
+    chain_report: Any,
+    timezone: str,
+) -> StoreScheduleDrift:
+    """Evaluate one store's start drift from a parsed chain report (pure).
+
+    Only a step that actually ran ``ok`` yields a number — a failed or
+    skipped step produced no capture, so its wall-clock time is not a drift.
+    The report is external gitignored data: any shape surprise is reported as
+    ``chain_report_unreadable``, never raised (fail-closed stays reserved for
+    the endpoint's own config).
+    """
+
+    step_name = store_config.chain_step
+    steps = chain_report.get("steps") if isinstance(chain_report, Mapping) else None
+    if not isinstance(steps, list):
+        return _drift_unavailable(store_config, "chain_report_unreadable")
+    row = next(
+        (s for s in steps if isinstance(s, Mapping) and s.get("name") == step_name),
+        None,
+    )
+    if row is None:
+        return _drift_unavailable(store_config, "chain_step_not_in_report")
+    status = row.get("status")
+    if status != "ok":
+        return _drift_unavailable(store_config, f"chain_step_not_ok:{status}")
+    started_raw = row.get("started_at")
+    try:
+        started = datetime.fromisoformat(started_raw)
+    except (TypeError, ValueError):
+        return _drift_unavailable(store_config, "chain_report_unreadable")
+    if started.tzinfo is None:
+        # The chain runner always stamps an offset (datetime.now().astimezone());
+        # a naive stamp is outside the report's contract — never guess a zone.
+        return _drift_unavailable(store_config, "chain_report_unreadable")
+
+    tz = ZoneInfo(timezone)
+    started_local = started.astimezone(tz)
+    hour, minute = (int(part) for part in store_config.scheduled_time_local.split(":"))
+    target = datetime.combine(started_local.date(), time(hour, minute), tzinfo=tz)
+    drift = round((started_local - target).total_seconds() / 60)
+    if drift < _PAST_MIDNIGHT_DRIFT_FLOOR_MINUTES:
+        target -= timedelta(days=1)
+        drift = round((started_local - target).total_seconds() / 60)
+    return StoreScheduleDrift(
+        target_local=store_config.scheduled_time_local,
+        chain_step=step_name,
+        recorded_start=started_raw,
+        drift_minutes=drift,
+        # Judged by the store's OWN grace window (late side only — the chain
+        # legitimately starts every store at its 09:00 slot, so routine
+        # negative drift is visible but never "late").
+        exceeds_grace=drift > store_config.grace_hours * 60,
+        basis="chain_report",
+    )
+
+
+def _schedule_drift_from_report(
+    *,
+    store_config: CadenceStoreConfig,
+    chain_report_path: Path | None,
+    timezone: str,
+) -> StoreScheduleDrift:
+    """Disk wrapper: read the SR-09 report and evaluate, naming every absence."""
+
+    if chain_report_path is None:
+        # Callers that never wired a report path (system_health rollups, the
+        # gap alert) keep their exact prior behavior, honestly labeled.
+        return _drift_unavailable(store_config, "not_evaluated")
+    if store_config.chain_step is None:
+        return _drift_unavailable(store_config, "no_chain_step_configured")
+    if not chain_report_path.is_file():
+        return _drift_unavailable(store_config, "chain_report_absent")
+    try:
+        report = json.loads(chain_report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return _drift_unavailable(store_config, "chain_report_unreadable")
+    return evaluate_schedule_drift(
+        store_config=store_config, chain_report=report, timezone=timezone
     )
 
 
@@ -701,6 +849,7 @@ def inspect_capture_store(
     timezone: str,
     season_windows: SeasonWindows,
     missing_ranges_cap: int = _MISSING_RANGES_DISPLAY_CAP,
+    chain_report_path: Path | None = None,
 ) -> StoreHealth:
     """Inspect one capture store on disk and analyze its health (read-only).
 
@@ -708,11 +857,21 @@ def inspect_capture_store(
     NEVER created by the health check (mode=ro open + presence check first).
     Any SQLite-level failure (0-byte file, missing table/column, non-database
     bytes) degrades as ``store_unreadable`` rather than raising to the client.
+
+    ``chain_report_path`` (DG-083) points at the SR-09 chain report; when
+    given, the returned health carries a real ``schedule_drift`` evaluation —
+    on EVERY path, including absent/unreadable stores, because the report
+    still knows whether and when the producing step ran.
     """
 
+    drift = _schedule_drift_from_report(
+        store_config=store_config,
+        chain_report_path=chain_report_path,
+        timezone=timezone,
+    )
     db_path = repo_root / store_config.db_path
     if not db_path.is_file():
-        return _empty_observation_health(
+        health = _empty_observation_health(
             store_config=store_config,
             now=now,
             timezone=timezone,
@@ -720,26 +879,31 @@ def inspect_capture_store(
             presence="absent",
             caveat="store_absent",
         )
-    try:
-        observations, companion_date_sets = _read_capture_store(db_path, store_config)
-    except sqlite3.Error:
-        return _empty_observation_health(
-            store_config=store_config,
-            now=now,
-            timezone=timezone,
-            season_windows=season_windows,
-            presence="present",
-            caveat="store_unreadable",
-        )
-    return analyze_store_health(
-        store_config=store_config,
-        date_row_counts=observations,
-        companion_date_sets=companion_date_sets,
-        now=now,
-        timezone=timezone,
-        season_windows=season_windows,
-        missing_ranges_cap=missing_ranges_cap,
-    )
+    else:
+        try:
+            observations, companion_date_sets = _read_capture_store(
+                db_path, store_config
+            )
+        except sqlite3.Error:
+            health = _empty_observation_health(
+                store_config=store_config,
+                now=now,
+                timezone=timezone,
+                season_windows=season_windows,
+                presence="present",
+                caveat="store_unreadable",
+            )
+        else:
+            health = analyze_store_health(
+                store_config=store_config,
+                date_row_counts=observations,
+                companion_date_sets=companion_date_sets,
+                now=now,
+                timezone=timezone,
+                season_windows=season_windows,
+                missing_ranges_cap=missing_ranges_cap,
+            )
+    return health.model_copy(update={"schedule_drift": drift})
 
 
 # --- BUILD-3: the 26-hour backup law as a capture-health block ------------------

@@ -48,6 +48,10 @@ _CLOCK: Callable[[], datetime] = _now_utc
 # _REPO_ROOT never read the real gitignored ops marker.
 _BACKUP_MARKER_RELPATH = Path("app/data/ops/backup_status_latest.json")
 _BACKUP_SENTINEL_RELPATH = Path("app/data/ops/backup_run_active.json")
+# DG-083: the SR-09 chain report feeding per-store schedule drift. MUST equal
+# scripts/run_daily_chain.py default_report_path — a cross-contract test in
+# test_dg083_schedule_drift_red.py holds the two together.
+_CHAIN_REPORT_RELPATH = Path("app/data/ops/daily_chain_latest_report.json")
 
 _SANITIZED_MESSAGE = "capture health configuration unavailable"
 
@@ -84,6 +88,7 @@ def get_capture_health():
             now=now,
             timezone=config.timezone,
             season_windows=config.season_windows,
+            chain_report_path=_REPO_ROOT / _CHAIN_REPORT_RELPATH,
         )
         for store_config in config.stores
     ]
