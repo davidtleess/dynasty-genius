@@ -181,12 +181,37 @@ def boot_to_login_lines(
     slots swallowed silently). Missed-while-asleep is different and handled.
     """
 
-    return [
-        _gap_hit_line(label, slot_time, boot_time, login_time)
-        for label, slot_time in _boot_to_login_hits(
-            schedules, boot_time=boot_time, login_time=login_time
+    return _gap_lines_for_hits(
+        _boot_to_login_hits(schedules, boot_time=boot_time, login_time=login_time),
+        boot_time=boot_time,
+        login_time=login_time,
+    )
+
+
+def _gap_lines_for_hits(
+    hits: list[tuple[str, datetime]], *, boot_time: datetime, login_time: datetime
+) -> list[str]:
+    """One line per LABEL, never per slot (DG-082): the guard's 15-minute
+    lattice would otherwise turn one overnight reboot into dozens of lines.
+    A single-hit label keeps the classic exact line."""
+
+    by_label: dict[str, list[datetime]] = {}
+    for label, slot_time in hits:
+        by_label.setdefault(label, []).append(slot_time)
+    lines: list[str] = []
+    for label, slot_times in by_label.items():
+        if len(slot_times) == 1:
+            lines.append(_gap_hit_line(label, slot_times[0], boot_time, login_time))
+            continue
+        slot_times.sort()
+        lines.append(
+            f"GAP {label}: {len(slot_times)} slots "
+            f"({slot_times[0].strftime('%H:%M')}–{slot_times[-1].strftime('%H:%M')}) "
+            f"fell between boot ({boot_time.strftime('%H:%M:%S')}) and console "
+            f"login ({login_time.strftime('%H:%M:%S')}) — launchd did not run "
+            f"them and will not replay them"
         )
-    ]
+    return lines
 
 
 def _boot_to_login_hits(
@@ -776,8 +801,9 @@ def run_alert(rt: Runtime) -> list[str]:
             schedules, boot_time=rt.boot_time, login_time=rt.login_time
         )
         lines.extend(
-            _gap_hit_line(label, slot_time, rt.boot_time, rt.login_time)
-            for label, slot_time in gap_hits
+            _gap_lines_for_hits(
+                gap_hits, boot_time=rt.boot_time, login_time=rt.login_time
+            )
         )
     gap_slot_keys = {(label, slot.strftime("%H:%M")) for label, slot in gap_hits}
 

@@ -48,6 +48,6 @@
   }
  },
  "unguarded": {
-  "com.davidleess.dynasty-catchup-guard": "the guard itself — StartInterval, no calendar slot to miss"
+  "com.davidleess.dynasty-catchup-guard": "the guard itself — self-guarding is circular; hybrid schedule since DG-082 (15-min calendar lattice + StartInterval 900 + RunAtLoad); manual remedy is launchctl kickstart"
  }
 }
