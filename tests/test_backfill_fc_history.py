@@ -249,3 +249,14 @@ def test_backfill_skips_player_whose_history_fetch_fails(
     assert summary["rows_written"] == 3
     rows = MarketSnapshotStore(db_path=db_path).get_snapshot("2025-07-01")
     assert {r["sleeper_id"] for r in rows} == {"4984"}
+
+
+def test_every_backfill_source_is_known_to_the_backtest_harness():
+    """D6 pre-land review find: an fc_history_api row resolving in a future
+    fold must not fall through to market_source='unavailable' or wear another
+    source's label — silent provenance mislabeling of exactly this backfill."""
+    from src.dynasty_genius.eval import backtest_harness as bh
+
+    for source in ("fc_native", "dp_archive", "fc_history_api"):
+        assert source in bh._MARKET_SOURCE_MAP, source
+        assert bh._MARKET_SOURCE_MAP[source] in bh._MARKET_SOURCE_LABELS, source
