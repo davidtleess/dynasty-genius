@@ -237,6 +237,16 @@ def test_response_models_lock_enums_recursive_decision_supported_and_extra_forbi
             "window_risk": False,
             "window_risk_basis": ">=7 contiguous missing days",
         },
+        # DG-083 / SR-10a step 3: the schedule-drift block is part of the
+        # locked response shape — always present, descriptive only.
+        "schedule_drift": {
+            "target_local": "09:00",
+            "chain_step": "run_fc_forward_capture",
+            "recorded_start": "2026-07-02T09:00:04-04:00",
+            "drift_minutes": 0,
+            "exceeds_grace": False,
+            "basis": "chain_report",
+        },
         "caveats": [],
         "decision_supported": False,
     }
