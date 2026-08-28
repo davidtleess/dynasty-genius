@@ -285,6 +285,42 @@ class TestBootToLoginGap:
         assert all("will not replay" in line for line in lines)
         assert not any("com.x.afternoon" in line for line in lines)
 
+    def test_many_slots_of_one_label_aggregate_to_one_line(self) -> None:
+        """DG-082: the guard's 15-minute lattice must not turn one reboot into
+        dozens of lines — one label, ONE line, slot count and range named. A
+        single-hit label keeps the classic exact line."""
+        m = _alert()
+        boot = datetime(2026, 8, 28, 1, 0, tzinfo=TZ)
+        login = datetime(2026, 8, 28, 6, 42, tzinfo=TZ)
+        schedules = [
+            m.JobSchedule(
+                label="com.x.guard",
+                slots=[
+                    m.Slot(hour=h, minute=mi, weekday=None)
+                    for h in range(24)
+                    for mi in (2, 17, 32, 47)
+                ],
+                path=Path("g.plist"),
+            ),
+            m.JobSchedule(
+                label="com.x.solo",
+                slots=[m.Slot(hour=6, minute=15, weekday=None)],
+                path=Path("s.plist"),
+            ),
+        ]
+
+        lines = m.boot_to_login_lines(schedules, boot_time=boot, login_time=login)
+
+        guard_lines = [line for line in lines if "com.x.guard" in line]
+        solo_lines = [line for line in lines if "com.x.solo" in line]
+        assert len(guard_lines) == 1
+        # window (01:00, 06:42) holds 01:02..06:32 — hours 1-5 all four + 06:02/17/32
+        assert "23 slots" in guard_lines[0]
+        assert "01:02" in guard_lines[0] and "06:32" in guard_lines[0]
+        assert "will not replay" in guard_lines[0]
+        assert len(solo_lines) == 1
+        assert "its 06:15 slot" in solo_lines[0]
+
     def test_no_gap_no_lines(self) -> None:
         m = _alert()
         boot = datetime(2026, 8, 26, 5, 0, tzinfo=TZ)
