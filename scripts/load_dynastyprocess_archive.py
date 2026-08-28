@@ -34,6 +34,52 @@ _VALUES_PATH = "files/values.csv"
 _IDS_PATH = "files/db_playerids.csv"
 
 
+def monthly_targets(start_month: str, end_month: str) -> list[str]:
+    """First-of-month target dates for [start_month, end_month], both ``YYYY-MM``.
+
+    DG-020: the loader was only ever asked for four annual dates; a monthly grid
+    is just more targets. Kept as a pure helper so the grid a run used is
+    reproducible from its arguments.
+    """
+    try:
+        start = date.fromisoformat(f"{start_month}-01")
+        end = date.fromisoformat(f"{end_month}-01")
+    except ValueError as exc:
+        raise ValueError(
+            f"months must be YYYY-MM, got {start_month!r}..{end_month!r}"
+        ) from exc
+    if start > end:
+        raise ValueError(f"inverted month range: {start_month} > {end_month}")
+    targets: list[str] = []
+    y, m = start.year, start.month
+    while (y, m) <= (end.year, end.month):
+        targets.append(f"{y:04d}-{m:02d}-01")
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return targets
+
+
+def monthly_commit_targets(
+    repo_path, start_month: str, end_month: str
+) -> list[str]:
+    """One target per month: the FIRST values.csv commit date in that month.
+
+    DG-020: derived from the archive's own history so every target is a real
+    publish date (delta 0 — no ±7-day staleness) and months without data are
+    skipped honestly instead of reported as window misses. Range is inclusive,
+    both ends ``YYYY-MM`` (validated by monthly_targets).
+    """
+    wanted = {t[:7] for t in monthly_targets(start_month, end_month)}
+    first_per_month: dict[str, str] = {}
+    for _sha, cdate in _commits_for(Path(repo_path), _VALUES_PATH):
+        month = cdate.isoformat()[:7]
+        if month not in wanted:
+            continue
+        iso = cdate.isoformat()
+        if month not in first_per_month or iso < first_per_month[month]:
+            first_per_month[month] = iso
+    return sorted(first_per_month.values())
+
+
 def _git_show(repo: Path, sha: str, path: str) -> str | None:
     try:
         return subprocess.run(
@@ -168,12 +214,43 @@ if __name__ == "__main__":
         description="Load verified DynastyProcess commits into the backfill store."
     )
     parser.add_argument("--repo-path", required=True, type=Path)
-    parser.add_argument("--target-dates", nargs="+", required=True)
+    parser.add_argument("--target-dates", nargs="+")
+    parser.add_argument(
+        "--monthly-from", help="YYYY-MM: first month of a first-of-month grid."
+    )
+    parser.add_argument(
+        "--monthly-to", help="YYYY-MM: last month of the grid (inclusive)."
+    )
+    parser.add_argument(
+        "--monthly-mode",
+        choices=("commit", "calendar"),
+        default="commit",
+        help="commit (default): each month's first real values.csv commit date "
+        "(delta-0 point-in-time); calendar: first-of-month dates, resolved "
+        "on-or-before within the 7-day window.",
+    )
     parser.add_argument("--db-path", type=Path, default=DEFAULT_DB_PATH)
     args = parser.parse_args()
+
+    monthly = bool(args.monthly_from or args.monthly_to)
+    if monthly and args.target_dates:
+        parser.error("--target-dates and --monthly-from/--monthly-to are exclusive")
+    if monthly and not (args.monthly_from and args.monthly_to):
+        parser.error("--monthly-from and --monthly-to must be given together")
+    if not monthly and not args.target_dates:
+        parser.error("give --target-dates or a --monthly-from/--monthly-to range")
+
+    if monthly and args.monthly_mode == "commit":
+        targets = monthly_commit_targets(
+            args.repo_path, args.monthly_from, args.monthly_to
+        )
+    elif monthly:
+        targets = monthly_targets(args.monthly_from, args.monthly_to)
+    else:
+        targets = args.target_dates
     out = load_dynastyprocess_archive(
         repo_path=args.repo_path,
-        target_dates=args.target_dates,
+        target_dates=targets,
         db_path=args.db_path,
     )
     print(json.dumps(out, indent=2))

@@ -265,3 +265,98 @@ def test_loader_fails_closed_when_value_2qb_column_missing(tmp_path: Path) -> No
     assert "value_2qb_missing" in target["findings"]
     assert target["rows_written"] == 0
     assert MarketSnapshotStore(db_path=db_path).get_snapshot("2021-09-08") == []
+
+
+# ── DG-020: the loader asked for a monthly grid, not just four annual dates ────
+
+
+def test_monthly_targets_generates_first_of_month_dates() -> None:
+    from scripts.load_dynastyprocess_archive import monthly_targets
+
+    assert monthly_targets("2021-11", "2022-02") == [
+        "2021-11-01",
+        "2021-12-01",
+        "2022-01-01",
+        "2022-02-01",
+    ]
+    # Single month → single target; inclusive on both ends.
+    assert monthly_targets("2024-06", "2024-06") == ["2024-06-01"]
+
+
+def test_monthly_targets_rejects_malformed_or_inverted_ranges() -> None:
+    import pytest
+
+    from scripts.load_dynastyprocess_archive import monthly_targets
+
+    with pytest.raises(ValueError):
+        monthly_targets("2021-13", "2022-01")  # not a month
+    with pytest.raises(ValueError):
+        monthly_targets("2022-03", "2022-01")  # inverted range
+
+
+def test_monthly_commit_targets_picks_first_commit_date_per_month(
+    tmp_path: Path,
+) -> None:
+    # DG-020: a calendar first-of-month grid misses months where the weekly
+    # scrape didn't land within the 7-day on-or-before window (2021-01 in the
+    # real archive). Deriving targets from the repo's own commit dates gives a
+    # delta-0 point-in-time date for every month that has data — and honestly
+    # skips months that have none.
+    from scripts.load_dynastyprocess_archive import monthly_commit_targets
+
+    repo = _init_repo(tmp_path, "dp-commit-grid")
+    _write_ids(repo)
+    _write_values(repo, scrape_date="2021-08-30", qb_value=4000, wr_value=3000)
+    _commit(repo, when="2021-08-30", message="aug scrape")
+    _write_values(repo, scrape_date="2021-09-02", qb_value=4050, wr_value=3050)
+    _commit(repo, when="2021-09-02", message="first sept scrape")
+    _write_values(repo, scrape_date="2021-09-29", qb_value=4100, wr_value=3100)
+    _commit(repo, when="2021-09-29", message="second sept scrape")
+    _write_values(repo, scrape_date="2021-10-28", qb_value=4200, wr_value=3200)
+    _commit(repo, when="2021-10-28", message="oct scrape")
+
+    # July has no commits → skipped; September's FIRST commit wins.
+    assert monthly_commit_targets(repo, "2021-07", "2021-10") == [
+        "2021-08-30",
+        "2021-09-02",
+        "2021-10-28",
+    ]
+
+
+def test_loader_loads_a_monthly_grid_of_targets(tmp_path: Path) -> None:
+    # DG-020: the loader is general; a monthly grid is just more target dates.
+    # Three months of commits → three point-in-time dates in the store, each
+    # carrying its own commit's values (no cross-month bleed).
+    from scripts.load_dynastyprocess_archive import (
+        load_dynastyprocess_archive,
+        monthly_targets,
+    )
+
+    repo = _init_repo(tmp_path, "dp-monthly")
+    _write_ids(repo)
+    _write_values(repo, scrape_date="2021-08-30", qb_value=4000, wr_value=3000)
+    _commit(repo, when="2021-08-30", message="values for sept target")
+    _write_values(repo, scrape_date="2021-09-29", qb_value=4100, wr_value=3100)
+    _commit(repo, when="2021-09-29", message="values for oct target")
+    _write_values(repo, scrape_date="2021-10-28", qb_value=4200, wr_value=3200)
+    _commit(repo, when="2021-10-28", message="values for nov target")
+    db_path = tmp_path / "snapshots.db"
+
+    targets = monthly_targets("2021-09", "2021-11")
+    stats = load_dynastyprocess_archive(
+        repo_path=repo, target_dates=targets, db_path=db_path
+    )
+
+    assert targets == ["2021-09-01", "2021-10-01", "2021-11-01"]
+    for td in targets:
+        assert stats["targets"][td]["status"] == "loaded"
+        assert stats["targets"][td]["rows_written"] == 2
+
+    store = MarketSnapshotStore(db_path=db_path)
+    qb_by_date = {
+        td: {r["sleeper_id"]: r["value"] for r in store.get_snapshot(td)}
+        for td in targets
+    }
+    assert qb_by_date["2021-09-01"]["sleeper_qb_old"] == 4000
+    assert qb_by_date["2021-10-01"]["sleeper_qb_old"] == 4100
+    assert qb_by_date["2021-11-01"]["sleeper_qb_old"] == 4200
