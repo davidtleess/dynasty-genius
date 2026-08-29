@@ -1,8 +1,12 @@
-export function EmptySuppression() {
+type SleeperTrade = {
+  roster_action: string;
+};
+
+export function EmptySuppression({ trade }: { trade: SleeperTrade }) {
   return (
-    <dialog open>
+    <p>
       {/* banned-language-ok: */}
-      <p>Are you sure you want to accept this trade?</p>
-    </dialog>
+      {trade.roster_action}
+    </p>
   );
 }

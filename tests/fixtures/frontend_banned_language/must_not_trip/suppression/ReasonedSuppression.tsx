@@ -1,8 +1,12 @@
-export function ReasonedSuppression() {
+type SleeperTrade = {
+  roster_action: string;
+};
+
+export function ReasonedSuppression({ trade }: { trade: SleeperTrade }) {
   return (
-    <dialog open>
-      {/* banned-language-ok: confirmation dialog mirrors Sleeper user action */}
-      <p>Are you sure you want to accept this trade?</p>
-    </dialog>
+    <p>
+      {/* banned-language-ok: mirrors the raw Sleeper transaction field for audit display */}
+      {trade.roster_action}
+    </p>
   );
 }
