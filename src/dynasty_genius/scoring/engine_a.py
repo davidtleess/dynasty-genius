@@ -14,11 +14,20 @@ A first-round elite pick scores ~80-100; late-round speculative picks score 0-30
 from __future__ import annotations
 
 import json
+import logging
 import pickle
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
+
+from src.dynasty_genius.models.artifact_verification import (
+    SpecVerification,
+    load_pre_spec_grandfather,
+    verify_artifact,
+)
+
+logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[3]
 MODELS_DIR = ROOT / "app" / "data" / "models"
@@ -71,6 +80,7 @@ class EngineAScorer:
         self._models: dict[str, object] = {}
         self._version: Optional[str] = None
         self._loaded = False
+        self._spec_verifications: dict[str, SpecVerification] = {}
 
     def _load(self) -> None:
         if self._loaded:
@@ -80,13 +90,46 @@ class EngineAScorer:
         pointer = json.loads(LATEST_POINTER.read_text())
         self._version = pointer["model_version"]
         run_dir = ROOT / pointer["run_dir"]
+        # DG-057 (§8.2): every artifact is verified before it is unpickled.
+        # A pointer stamped with training_spec_hash (the 2027 promotion path)
+        # pins the spec every artifact must have been trained under; today's
+        # pointer carries no pin, and the deployed pre-spec artifacts pass via
+        # the frozen grandfather list with a disclosed state. Anything else —
+        # wrong spec, tampered bytes, unknown sidecar-less pickle — raises
+        # ArtifactSpecRefusal and serving refuses to come up on it.
+        expected_spec_hash = pointer.get("training_spec_hash")
+        grandfathered = load_pre_spec_grandfather()
         for pos in _ENGINE_A_GRADES:
             artifact = run_dir / f"{pos}_model.pkl"
             if not artifact.exists():
                 raise FileNotFoundError(f"Engine A artifact missing: {artifact}")
+            verdict = verify_artifact(
+                artifact,
+                expected_spec_hash=expected_spec_hash,
+                grandfathered_sha256s=grandfathered,
+            )
+            self._spec_verifications[pos] = verdict
+            logger.info(
+                "Engine A artifact %s: %s (sha256=%s spec_hash=%s)",
+                artifact.name,
+                verdict.state,
+                verdict.artifact_sha256[:12],
+                (verdict.spec_hash or "pre-spec")[:12],
+            )
             with open(artifact, "rb") as f:
                 self._models[pos] = pickle.load(f)
         self._loaded = True
+
+    def spec_verification_state(self) -> dict[str, str]:
+        """Disclosed per-position verification state after load.
+
+        "verified" = spec-hashed artifact proven against its sidecar (and the
+        pointer's pin when present); "pre_spec_artifact" = a grandfathered
+        artifact that predates the TrainingSpec (DG-057). Loads the artifacts
+        if they are not loaded yet.
+        """
+        self._load()
+        return {pos: v.state for pos, v in self._spec_verifications.items()}
 
     def score(
         self,
