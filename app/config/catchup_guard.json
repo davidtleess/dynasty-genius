@@ -45,9 +45,14 @@
   "com.davidleess.dynasty-capture-gap-alert": {
    "receipt_path": "app/data/ops/capture_gap_alert_state.json",
    "timestamp_fields": ["updated_at"]
+  },
+  "com.davidleess.dynasty-replay-verify": {
+   "receipt_path": "app/data/ops/replay_reproducibility_latest.json",
+   "timestamp_fields": ["generated_at"]
   }
  },
  "unguarded": {
-  "com.davidleess.dynasty-catchup-guard": "the guard itself — self-guarding is circular; hybrid schedule since DG-082 (15-min calendar lattice + StartInterval 900 + RunAtLoad); manual remedy is launchctl kickstart"
+  "com.davidleess.dynasty-catchup-guard": "the guard itself — self-guarding is circular; hybrid schedule since DG-082 (15-min calendar lattice + StartInterval 900 + RunAtLoad); manual remedy is launchctl kickstart",
+  "com.davidleess.dynasty-api": "KeepAlive service, not a scheduled job (DG-087/SR-12) — no calendar slot to miss; launchd itself restarts it, and a receipts entry for a slotless label would surface as unconfigured and degrade the guard; manual remedy is launchctl kickstart -k"
  }
 }
