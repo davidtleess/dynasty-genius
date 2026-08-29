@@ -1,0 +1,58 @@
+{
+  "grandfather_schema_version": 1,
+  "frozen_date": "2026-08-28",
+  "ticket": "DG-057",
+  "reason": "These artifacts were already deployed when the hashed TrainingSpec (Master Proposal 3 \u00a78.2) landed; they predate the spec and carry no sidecar. Loading them succeeds with a disclosed 'pre_spec_artifact' state instead of a refusal, so nothing about pre-DG-057 serving behavior changes. This list is FROZEN: no artifact may ever be added. Every artifact trained after DG-057 must be spec-hashed at training time (write_spec_sidecar) and verifies or is refused at load. All sha256s were verified byte-for-byte against the deployed files on 2026-08-28.",
+  "artifacts": [
+    {
+      "artifact_id": "engine_a:QB",
+      "sha256": "2e55c31e7609f5647a36246ac529c689668eaf9dcedfd736451fa29054fcb49a",
+      "source": "app/config/model_registry.json (latest_run_dir -> app/data/models/runs/20260502T153931Z/QB_model.pkl)"
+    },
+    {
+      "artifact_id": "engine_a:RB",
+      "sha256": "3f390cb1de362ad79ae868cbe06b03a248a5e27472bbaf1f4240cabe58a5f99b",
+      "source": "app/config/model_registry.json (latest_run_dir -> app/data/models/runs/20260502T153931Z/RB_model.pkl)"
+    },
+    {
+      "artifact_id": "engine_a:TE",
+      "sha256": "4a70aa48429c7355eb4dac48f45328da6be81ab81217e3871e553fcd1d1b76cc",
+      "source": "app/config/model_registry.json (latest_run_dir -> app/data/models/runs/20260502T153931Z/TE_model.pkl)"
+    },
+    {
+      "artifact_id": "engine_a:WR",
+      "sha256": "bd51c69a522643593af7c7b4726b537c2c32690d851c76103f2373bb64b9444d",
+      "source": "app/config/model_registry.json (latest_run_dir -> app/data/models/runs/20260502T153931Z/WR_model.pkl)"
+    },
+    {
+      "artifact_id": "engine_b:qb_v2",
+      "sha256": "d7acb6808e4a6caf412ec05b41aa90324e04f90ef219bbf78f680f66ea7d304f",
+      "source": "app/config/model_registry.json (app/data/models/engine_b/runs/20260513T012309Z/qb_v2.pkl)"
+    },
+    {
+      "artifact_id": "engine_b:rb_v2",
+      "sha256": "5507e37feda9ba9d8f2bda7f1f259df5a59edcb2880e7ff7af6938d34401c4f9",
+      "source": "app/config/model_registry.json (app/data/models/engine_b/runs/20260513T012309Z/rb_v2.pkl)"
+    },
+    {
+      "artifact_id": "engine_b:wr_v2",
+      "sha256": "3b83bbf98118d272196a0942a4190cc539b08409cbb3b23da570ed42b4ec873e",
+      "source": "app/config/model_registry.json (app/data/models/engine_b/runs/20260513T012309Z/wr_v2.pkl)"
+    },
+    {
+      "artifact_id": "engine_b:te_v3",
+      "sha256": "e8f5d7451aa0524aeb17dbc80992c35bfa97f9428366085330643bbb3109389b",
+      "source": "app/config/model_registry.json (app/data/models/engine_b/runs/20260626T165649Z/te_v3.pkl)"
+    },
+    {
+      "artifact_id": "head_a:te_v3",
+      "sha256": "9e1b0b7fc7f707fba9831662fd792067f26e37370fb5aa5fd6532c02cf3e8618",
+      "source": "app/config/model_registry.json (app/data/models/head_a/runs/20260524T140748Z/te_v3.pkl)"
+    },
+    {
+      "artifact_id": "engine_b:v1_fallback",
+      "sha256": "5c52f811d7f9a4a78f564e822013ace7001275b6209063f9f4854577482c23d0",
+      "source": "measured from app/data/models/engine_b/runs/20260512T032635Z/engine_b_v1.pkl on 2026-08-28 (serving v1 fallback path; unregistered in model_registry.json \u2014 custodial gap noted in the DG-057 build record)"
+    }
+  ]
+}
