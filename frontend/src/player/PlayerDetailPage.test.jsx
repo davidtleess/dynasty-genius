@@ -196,10 +196,20 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
 
     expect(within(marketLane).getByText("FantasyCalc")).toBeTruthy();
     expect(within(marketLane).getByText("4371")).toBeTruthy();
-    expect(within(marketLane).getByText("Overall 42")).toBeTruthy();
-    expect(within(marketLane).getByText("Position 8")).toBeTruthy();
-    expect(within(marketLane).getByText("2026-05-24T17:19:52Z")).toBeTruthy();
-    expect(within(marketLane).getByText("market_overlay_static_caveat")).toBeTruthy();
+    // DG-043: ranks, dates, and caveats speak plain language as labeled pairs —
+    // no raw pipeline keys, no raw ISO timestamps (2026-08-29 prose ruling).
+    expect(within(marketLane).getByText("Overall rank")).toBeTruthy();
+    expect(within(marketLane).getByText("42")).toBeTruthy();
+    expect(within(marketLane).getByText("Position rank")).toBeTruthy();
+    expect(within(marketLane).getByText("8")).toBeTruthy();
+    expect(within(marketLane).getByText("May 24, 2026")).toBeTruthy();
+    expect(within(marketLane).queryByText("2026-05-24T17:19:52Z")).toBeNull();
+    expect(within(marketLane).queryByText("market_overlay_static_caveat")).toBeNull();
+    expect(
+      within(marketLane).getByText(
+        "Market values come from a saved FantasyCalc snapshot, not a live feed.",
+      ),
+    ).toBeTruthy();
     expect(within(marketLane).queryByText("85.14")).toBeNull();
 
     const divergence = within(card).getByTestId("player-divergence");
