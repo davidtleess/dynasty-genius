@@ -641,6 +641,35 @@ def analyze_store_health(
 _PAST_MIDNIGHT_DRIFT_FLOOR_MINUTES = -120
 
 
+def _report_recorded_date(chain_report: Mapping[str, Any], tz: ZoneInfo) -> date | None:
+    """The config-tz date of the run a chain report records, or None.
+
+    DG-085: judged from the NEWEST tz-aware ``started_at`` anywhere in the
+    report (the chain block and every step), so a midnight-spanning run is
+    dated by where it ended up and a skipped step's null stamp costs nothing.
+    None means the report carries no parseable stamp at all — staleness cannot
+    be judged, and the caller falls back to per-step semantics rather than
+    guessing a date.
+    """
+
+    stamps: list[datetime] = []
+    chain = chain_report.get("chain")
+    rows: list[Any] = [chain] if isinstance(chain, Mapping) else []
+    steps = chain_report.get("steps")
+    if isinstance(steps, list):
+        rows.extend(s for s in steps if isinstance(s, Mapping))
+    for row in rows:
+        try:
+            stamp = datetime.fromisoformat(row.get("started_at"))
+        except (TypeError, ValueError):
+            continue
+        if stamp.tzinfo is not None:
+            stamps.append(stamp)
+    if not stamps:
+        return None
+    return max(stamps).astimezone(tz).date()
+
+
 def _drift_unavailable(
     store_config: CadenceStoreConfig, basis: str
 ) -> StoreScheduleDrift:
@@ -659,6 +688,7 @@ def evaluate_schedule_drift(
     store_config: CadenceStoreConfig,
     chain_report: Any,
     timezone: str,
+    now: datetime,
 ) -> StoreScheduleDrift:
     """Evaluate one store's start drift from a parsed chain report (pure).
 
@@ -667,12 +697,27 @@ def evaluate_schedule_drift(
     The report is external gitignored data: any shape surprise is reported as
     ``chain_report_unreadable``, never raised (fail-closed stays reserved for
     the endpoint's own config).
+
+    DG-085: the math anchors to the report's own date, so without a clock a
+    morning the chain never ran would serve YESTERDAY's run as a current
+    reading (``chain_report``, drift ~0). A report whose recorded date is not
+    today (config tz, judged from the injected ``now``) is therefore named
+    ``chain_report_stale:<date>`` and carries no numbers — for EVERY per-step
+    outcome, because yesterday's failure or skip must not read as today's
+    either. ``chain_report`` stays the only basis that ever carries numbers.
     """
 
     step_name = store_config.chain_step
     steps = chain_report.get("steps") if isinstance(chain_report, Mapping) else None
     if not isinstance(steps, list):
         return _drift_unavailable(store_config, "chain_report_unreadable")
+    recorded_date = _report_recorded_date(chain_report, ZoneInfo(timezone))
+    if recorded_date is not None and recorded_date != now.astimezone(
+        ZoneInfo(timezone)
+    ).date():
+        return _drift_unavailable(
+            store_config, f"chain_report_stale:{recorded_date.isoformat()}"
+        )
     row = next(
         (s for s in steps if isinstance(s, Mapping) and s.get("name") == step_name),
         None,
@@ -718,6 +763,7 @@ def _schedule_drift_from_report(
     store_config: CadenceStoreConfig,
     chain_report_path: Path | None,
     timezone: str,
+    now: datetime,
 ) -> StoreScheduleDrift:
     """Disk wrapper: read the SR-09 report and evaluate, naming every absence."""
 
@@ -734,7 +780,7 @@ def _schedule_drift_from_report(
     except (OSError, json.JSONDecodeError):
         return _drift_unavailable(store_config, "chain_report_unreadable")
     return evaluate_schedule_drift(
-        store_config=store_config, chain_report=report, timezone=timezone
+        store_config=store_config, chain_report=report, timezone=timezone, now=now
     )
 
 
@@ -868,6 +914,7 @@ def inspect_capture_store(
         store_config=store_config,
         chain_report_path=chain_report_path,
         timezone=timezone,
+        now=now,
     )
     db_path = repo_root / store_config.db_path
     if not db_path.is_file():
