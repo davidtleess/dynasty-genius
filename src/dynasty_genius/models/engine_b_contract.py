@@ -17,7 +17,7 @@ copy is stale — this docstring is the record.
 The lambdas are not free parameters. The cancellation identity:
 
     XVAR_LAMBDA_ENGINE_B[pos] = ENGINE_B_P90_PPG[pos] / ENGINE_B_P90_PPG['WR']
-    (exact for all four positions: QB 1.386, RB 1.083, WR 1.000, TE 0.648)
+    (exact at 3-decimal rounding, all four: QB 1.386, RB 1.083, WR 1.000, TE 0.648)
 
 and because ``dvs_raw = projection_2y / _b_p90 * 100.0`` (pvo_assembler.py:407),
 the position P90 CANCELS in the unclamped xVAR:

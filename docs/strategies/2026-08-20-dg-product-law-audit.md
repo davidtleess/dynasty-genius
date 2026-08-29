@@ -350,6 +350,7 @@ So the TE *feature list* is defended by five mechanical guards — exact-equalit
 **Next, ~1 week:**
 
 7. Recompute the P90s, fix `XVAR_LAMBDA['TE']` to 0.703, and add the two cheap guards: the derivation test and the drift report. **Gate the publication, never the measurement.**
+   > **[SR-13/DG-092 annotation, 2026-08-29]** The lambda-ONLY form of this edit is RETRACTED (2026-08-20) and now blocked by the coupled-identity guards in `tests/contract/test_phase15_xvar.py` — editing `XVAR_LAMBDA_ENGINE_B['TE']` to 0.703 without moving `ENGINE_B_P90_PPG` and `ENGINE_B_REPLACEMENT_DVS` with it CREATES an 8.4% TE distortion (the position P90 cancels in unclamped xVAR). The joint recompute recommended here remains the legitimate path and requires a new diagnostic run plus David approval. See the `engine_b_contract.py` module docstring.
 8. Fix `train_te_deployment_model` to hold out seasons and call `_gate()`.
 9. Restore the two-part Spearman criterion; drop `CI_WIDTH_MAX`.
 10. Delete `MARKET_FIELD_PATTERNS`, the `MARKET_FEATURE_RE` CI scan, `_safe_source_status`, the `banned_fields` gate, and 27 of the 30 prose pins. **Every one of these is pure cost.**
@@ -446,6 +447,8 @@ You are not over-governed because you have too many rules. **You are over-govern
 **Why:** A freeze with no drift detector is not a freeze, it is a slow silent failure. I recomputed P90 of avg_ppg_t1_t2 from the live app/data/training/engine_b_features_v2.csv (2,741 rows, identical on the training_eligible subset): QB 20.445 / RB 15.691 / WR 14.628 / TE 10.284, giving lambdas of QB 1.398, RB 1.073, WR 1.000, TE 0.703. Shipped: 1.386 / 1.083 / 1.000 / 0.648. The shipped multipliers reproduce the shipped P90s to three decimals — the arithmetic is honest and jointly stale. TE ships 7.8% low. Every test that touches XVAR_LAMBDA computes its expected value FROM the constant, so no test can ever detect this. The rule says recompute 'when the training distribution materially changes' and nothing anywhere measures whether it changed. AGENT_SYNC's own 2026-08-18 board records that PPG now includes postseason and 'P90/replacement/xVAR/calibration need rerun'. The trigger fired; nothing was listening.
 
 **Replacement:** Keep the freeze on PUBLISHING. Add two cheap things: one test asserting XVAR_LAMBDA[pos] == round(P90[pos]/P90['WR'], 3), and a recompute-and-diff on every training assembly that REPORTS drift rather than requiring permission to measure. Gate the change, never the measurement.
+
+> **[SR-13/DG-092 annotation, 2026-08-29]** The derivation test recommended above now exists (`tests/contract/test_phase15_xvar.py`, Engine B), and the "TE lambda should be 0.703" lambda-only edit is RETRACTED (2026-08-20) — any move to 0.703 must recompute P90, lambda, and replacement DVS together (new diagnostic + David approval). See the `engine_b_contract.py` module docstring. The drift REPORT half of this recommendation remains unbuilt.
 
 ### [RELOCATE] ENGINE_B_PROHIBITED_FEATURES — 19 Engine A pre-NFL columns banned from Engine B (engine_b_contract.py:250-258)
 

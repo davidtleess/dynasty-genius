@@ -139,10 +139,13 @@ _XVAR_POSITIONS = ("QB", "RB", "WR", "TE")
 # comments on ENGINE_B_REPLACEMENT_DVS in
 # src/dynasty_genius/models/engine_b_contract.py:111-115
 # ("QB": 64.2,  # 12.91 / 20.1 ... "TE": 95.6,  # 8.99 / 9.4). No
-# REPLACEMENT_PPG constant exists in the code — those comments are the only
-# in-repo statement of the numerators, restated here so the coupled identity
-# is executable. If a new calibration audit moves these, it moves the DVS
-# values on the same line, and this test forces both to move together.
+# REPLACEMENT_PPG constant exists in the code; the same numerators also
+# appear in the ENGINE_A_REPLACEMENT_DVS inline comments (same file, e.g.
+# "QB": 77.3,  # 12.91 / 16.7 — Engine A side unguarded, out of SR-13 scope)
+# and in the SR-13 section of docs/strategies/2026-08-20-dg-SEASON-BUILD-SPEC.md.
+# Restated here so the coupled identity is executable. If a new calibration
+# audit moves these, it moves the DVS values on the same line (BOTH engines'
+# comments), and this test forces the Engine B pair to move together.
 _REPLACEMENT_PPG: dict[str, float] = {
     "QB": 12.91,
     "RB": 7.29,
