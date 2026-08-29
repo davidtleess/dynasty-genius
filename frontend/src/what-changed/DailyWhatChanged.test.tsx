@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -9,6 +9,7 @@ import type {
   WhatChangedResponse,
 } from "../lib/api/types.gen";
 import { zWhatChangedResponse } from "../lib/api/zod.gen";
+import { AppShell } from "../shell/AppShell";
 import { DailyWhatChanged } from "./DailyWhatChanged";
 
 type ResponseOverrides = Partial<
@@ -1122,5 +1123,63 @@ describe("DailyWhatChanged roster-mover hero", () => {
 
     expect(screen.getByText("Showing 25 market movers")).toBeTruthy();
     expect(screen.queryByText(/Showing 25 of/)).toBeNull();
+  });
+});
+
+// DG-089: David's first real session found the product's most natural gesture —
+// "this player moved, let me click him" — did nothing. Rows open the shared
+// player-selection plumbing when the surface is given a handler, and stay
+// non-interactive when it is not (a bare render must not grow phantom buttons).
+describe("DG-089 player selection from the change feed", () => {
+  it("mover rows expose an open-player button that reports the sleeper id", async () => {
+    mockFetch(200, whatChangedResponse());
+    const onSelectPlayer = vi.fn();
+
+    render(<DailyWhatChanged onSelectPlayer={onSelectPlayer} />);
+
+    const button = await screen.findByRole("button", { name: "Open Market Mover" });
+    fireEvent.click(button);
+    expect(onSelectPlayer).toHaveBeenCalledWith("player-2", "Market Mover");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Delta Receiver" }));
+    expect(onSelectPlayer).toHaveBeenCalledWith("player-1", "Delta Receiver");
+  });
+
+  it("rows stay non-interactive when no selection handler is provided", async () => {
+    mockFetch(200, whatChangedResponse());
+
+    render(<DailyWhatChanged />);
+
+    await screen.findByRole("region", { name: /daily what-changed/i });
+    expect(screen.queryByRole("button", { name: /open market mover/i })).toBeNull();
+  });
+
+  it("AppShell wires the feed to the inspector: clicking a mover opens it", async () => {
+    // Default-503 variant of mockFetchByUrl: AppShell fetches more endpoints
+    // than this test cares about; each degrades honestly on 503.
+    const responses: Record<string, { status: number; body: unknown }> = {
+      "/api/league/what-changed": { status: 200, body: whatChangedResponse() },
+    };
+    globalThis.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      const response = responses[url] ?? { status: 503, body: { detail: "down" } };
+      return Promise.resolve({
+        ok: response.status >= 200 && response.status < 300,
+        status: response.status,
+        json: async () => response.body,
+      });
+    });
+
+    render(<AppShell />);
+
+    const button = await screen.findByRole("button", { name: "Open Market Mover" });
+    fireEvent.click(button);
+
+    const inspector = await screen.findByRole("complementary", {
+      name: "Player inspector",
+    });
+    await waitFor(() => {
+      expect(within(inspector).getByText("Market Mover")).toBeTruthy();
+    });
   });
 });

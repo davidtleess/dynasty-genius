@@ -182,8 +182,8 @@
     },
     {
       "path": "what-changed/DailyWhatChanged.css",
-      "focus_visible_selectors": 1,
-      "focus_token_consumers": 1,
+      "focus_visible_selectors": 2,
+      "focus_token_consumers": 2,
       "hover_selectors": 1,
       "elevation_consumers": 0,
       "row_treatment_selectors": 6,
@@ -191,8 +191,8 @@
     }
   ],
   "totals": {
-    "focus_visible_selectors": 6,
-    "focus_token_consumers": 4,
+    "focus_visible_selectors": 7,
+    "focus_token_consumers": 5,
     "hover_selectors": 1,
     "elevation_consumers": 0,
     "row_treatment_selectors": 27,

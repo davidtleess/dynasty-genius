@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 import { TEAM_COLORS } from "../generated/teamColors";
 import type {
   WhatChangedEnteredExited,
@@ -35,6 +35,15 @@ type State =
   | { status: "unavailable" }
   | { status: "parse-error" };
 
+// DG-089 (found by David, first real user session): "this player moved — let
+// me click him" did nothing. Rows open the shell's shared player-selection
+// plumbing when the surface is given a handler. Context rather than prop
+// threading: AssetRow sits several layers beneath the surface prop, and every
+// player row on the feed should behave identically. With no handler (bare
+// mounts, tests), rows stay non-interactive — no phantom buttons.
+type SelectPlayer = (sleeperId: string, name: string) => void;
+const SelectPlayerContext = createContext<SelectPlayer | null>(null);
+
 // Read-only Daily What-Changed surface, restarted on the governed primitive
 // library (H2 reset Task 5). It reports the day-over-day market and model
 // DELTAS — what changed since the prior snapshot — and issues no verdict.
@@ -42,7 +51,11 @@ type State =
 // structurally isolated regions so a market price swing never reads as a model
 // signal. The desk reads top-down: one dated masthead with the tape, then the
 // change feed, with feed diagnostics and receipts in a subordinate right rail.
-export function DailyWhatChanged() {
+export function DailyWhatChanged({
+  onSelectPlayer,
+}: {
+  onSelectPlayer?: SelectPlayer | undefined;
+} = {}) {
   const [state, setState] = useState<State>({ status: "loading" });
 
   useEffect(() => {
@@ -77,7 +90,11 @@ export function DailyWhatChanged() {
   if (state.status === "parse-error") {
     return <p className="dg-wc__notice">Could not read daily What-Changed.</p>;
   }
-  return <ReadyView data={state.data} />;
+  return (
+    <SelectPlayerContext.Provider value={onSelectPlayer ?? null}>
+      <ReadyView data={state.data} />
+    </SelectPlayerContext.Provider>
+  );
 }
 
 // Signed and neutral: the sign encodes direction, so there is no arrow, color,
@@ -231,17 +248,32 @@ function AssetRow({
   currentValue?: string | undefined;
 }) {
   const otherLane = lane === "model" ? "market" : "model";
+  const selectPlayer = useContext(SelectPlayerContext);
+  const identity = (
+    <PlayerIdentity
+      name={name}
+      team={teamId ?? ""}
+      position={position}
+      {...headshotProps(sleeperId)}
+      teamId={teamId ?? undefined}
+      teamAccent={teamAccentFor(teamId)}
+    />
+  );
   return (
     <li data-asset-row data-row-density="32px" className="dg-wc__player-row">
       {rank !== undefined && <span className="dg-wc__rank">{rank}</span>}
-      <PlayerIdentity
-        name={name}
-        team={teamId ?? ""}
-        position={position}
-        {...headshotProps(sleeperId)}
-        teamId={teamId ?? undefined}
-        teamAccent={teamAccentFor(teamId)}
-      />
+      {selectPlayer && sleeperId ? (
+        <button
+          type="button"
+          className="dg-wc__player-open"
+          aria-label={`Open ${name}`}
+          onClick={() => selectPlayer(sleeperId, name)}
+        >
+          {identity}
+        </button>
+      ) : (
+        identity
+      )}
       <span data-lane={lane} className="dg-wc__lane">
         {currentValue !== undefined && (
           <span
