@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Replay-reproducibility verify — weekly proof of the section 6.2 guarantee
+  (DG-050 harness, landed 2026-08-28; scheduled per David's 2026-08-29 panel
+  selection "Weekly scheduled run", riding the DG-087 lane).
+
+  Runs scripts/run_replay_reproducibility.py weekly (Monday 12:00 local —
+  clear of the 06:15-10:30 capture cluster and 15+ min past the 11:30 retry
+  slot; DG-050 scheduling addendum). The harness replays one sampled snapshot
+  per stream through the pinned parser and byte-compares against the stores.
+  READ-ONLY over every store (SQLite mode=ro, plain file reads); its only
+  writes are its own receipts, at the harness defaults:
+    app/data/ops/replay_reproducibility_latest.json
+    app/data/ops/replay_reproducibility/runs/replay-UTC.json
+  Exit codes: 0 reproduced / 1 not_reproduced (a real section 6.2 failure,
+  named in the receipt) / 2 nothing_replayed or environment condition.
+
+  Guarded by the catch-up guard (app/config/catchup_guard.json): a Monday
+  slot slept through is re-kicked within the weekly 7-day lookback, keyed on
+  the receipt's embedded generated_at timestamp.
+
+  First run after install fires within one guard tick — the guard back-fills
+  the phantom prior Monday slot (weekly lookback); expect the first receipt
+  minutes after bootstrap, not next Monday. (Panel-proved with real
+  plan_kicks 2026-08-29. Corollary: between trunk-pull and bootstrap the
+  guard kick-fails this label every 15-min tick and reports degraded — the
+  cure is bootstrapping, never seeding a fake receipt.)
+
+  Committed but LOADED MANUALLY BY DAVID — the agent does not load it.
+  Installed as a symlink (ticket DG-087; rollback = bootout + remove symlink):
+    ln -s /Users/davidleess/dynasty-genius-product/ops/launchd/com.davidleess.dynasty-replay-verify.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.davidleess.dynasty-replay-verify.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-replay-verify</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/run_replay_reproducibility.py</string>
+        <string>--repo-root</string>
+        <string>/Users/davidleess/dynasty-genius-product</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>1</integer>
+        <key>Hour</key>
+        <integer>12</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/replay_verify.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/replay_verify.err.log</string>
+</dict>
+</plist>

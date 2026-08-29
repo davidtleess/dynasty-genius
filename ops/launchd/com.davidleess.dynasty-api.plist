@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Dynasty Genius API — the KeepAlive service that makes the product openable
+  without a terminal (DG-087 / season sprint SR-12, filed 2026-08-29).
+
+  Serves uvicorn on http://127.0.0.1:8000 — David's bookmark. RunAtLoad +
+  KeepAlive: launchd starts it at login and restarts it if it dies; there is
+  no calendar slot, so the catch-up guard explicitly unguards this label
+  (app/config/catchup_guard.json) — launchd itself is the supervisor here.
+  ThrottleInterval 60 bounds a deterministic startup failure (port taken,
+  import error) to one respawn a minute instead of launchd's default 10s
+  (~8,600/day with unbounded err-log growth).
+
+  Manual remedy: launchctl kickstart -k gui/501/<label> for a HANG; a SPAWN
+  failure (penalty box) clears only with bootout gui/501/<label> then
+  bootstrap gui/501 <plist> — kickstart cannot clear it (this machine's
+  documented launchd trap).
+
+  Two constraints are load-bearing (spec SR-12, verbatim; XML comments cannot
+  hold a double hyphen, so the flag names here are spelled with dots):
+  1. NO uvicorn ..reload flag: reload watches the working tree and app/data
+     holds ~15 GB; a file watcher over it thrashes the machine.
+  2. WorkingDirectory MUST be the trunk repo root: app/main.py mounts
+     app/data/assets/headshots and frontend/dist via CWD-relative Path()
+     (main.py:63, :76); the wrong WD serves the API but 404s on /.
+
+  Committed but LOADED MANUALLY BY DAVID — the agent does not load it.
+  Installed as a symlink (ticket DG-087; rollback = bootout + remove symlink):
+    ln -s /Users/davidleess/dynasty-genius-product/ops/launchd/com.davidleess.dynasty-api.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.davidleess.dynasty-api.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-api</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>-m</string>
+        <string>uvicorn</string>
+        <string>app.main:app</string>
+        <string>--host</string>
+        <string>127.0.0.1</string>
+        <string>--port</string>
+        <string>8000</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/dynasty_api.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/dynasty_api.err.log</string>
+</dict>
+</plist>
