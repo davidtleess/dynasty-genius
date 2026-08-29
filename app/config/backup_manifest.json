@@ -127,6 +127,11 @@
       "kind": "file"
     },
     {
+      "path": "app/data/models/engine_b/runs/20260512T032635Z/engine_b_v1.pkl",
+      "required": true,
+      "kind": "file"
+    },
+    {
       "path": "app/data/models/engine_b/runs/20260513T012309Z/qb_v2.pkl",
       "required": true,
       "kind": "file"
