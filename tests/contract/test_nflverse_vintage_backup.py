@@ -228,6 +228,25 @@ def test_dry_run_uploads_nothing_and_writes_no_marker(
     assert not (tmp_path / "repo" / SENTINEL_REL_PATH).exists()
 
 
+def test_failing_dry_run_writes_no_marker_and_exits_non_zero(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A dry run that finds a conflict reports it and exits 1 — but still
+    mutates NOTHING: no marker (it would clobber the last real run's record),
+    no sentinel, no uploads."""
+    _make_raw(tmp_path, {"a.json": b"aaa"})
+    gcloud = FakeGcloud({f"{PREFIX}/a.json": b"DIFFERENT-SIZE"})
+    result = _run(tmp_path, gcloud, dry_run=True)
+
+    assert result["status"] == "dry_run_failed"
+    assert result["exit_code"] == 1
+    assert result["failures"] == ["remote_size_mismatch:a.json"]
+    report = json.loads(capsys.readouterr().out)
+    assert report["failures"] == ["remote_size_mismatch:a.json"]
+    assert not (tmp_path / "repo" / MARKER_REL_PATH).exists()
+    assert not (tmp_path / "repo" / SENTINEL_REL_PATH).exists()
+
+
 def test_no_match_listing_is_an_empty_remote_not_a_failure(tmp_path: Path) -> None:
     """gcloud's 'matched no objects' on the first-ever run is the empty remote,
     not remote_list_failed."""

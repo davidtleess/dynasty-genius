@@ -248,6 +248,19 @@ def run_vintage_sync(
     except Exception as exc:  # fail closed on anything unforeseen
         failures.append(f"unexpected:{type(exc).__name__}")
 
+    if dry_run:
+        # A dry run must never mutate state — including the marker. Without this
+        # gate a FAILING dry run fell through to the marker write below and
+        # clobbered the last real run's record with a rehearsal's verdict.
+        print(
+            json.dumps(
+                {"dry_run": True, "status": "failed", "failures": failures},
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return {"status": "dry_run_failed", "failures": failures, "exit_code": 1}
+
     finished = now_utc()
     marker = {
         "schema_version": "nflverse_vintage_backup.v1",
