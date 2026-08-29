@@ -314,3 +314,83 @@ def test_real_registry_records_a_hash_for_every_artifact() -> None:
         entry.artifact_id for entry in registry.artifacts if entry.sha256 is None
     ]
     assert missing == [], f"registry entries with no recorded hash: {missing}"
+
+
+# --- pre-land review blockers: the guard must see what SERVING loads ----------
+
+
+def test_manifest_key_hijack_is_caught(tmp_path: Path) -> None:
+    """Review blocker 1: serving loads what the MANIFEST values say, and the
+    old pointer health was only a membership test — adding/repointing another
+    key at an unregistered pickle left every registry row clean while serving
+    loads poison. Every manifest value must be a registered artifact path."""
+    _build_repo(tmp_path)
+    poison_rel = "app/data/models/engine_b/runs/20260101T000000Z/poison.pkl"
+    (tmp_path / poison_rel).write_bytes(b"poisoned-bytes")
+    (tmp_path / MANIFEST_REL).write_text(
+        json.dumps({"qb": LITERAL_REL, "te": poison_rel}), encoding="utf-8"
+    )
+    report = _check().run_check(repo_root=tmp_path)
+    assert not report.clean
+    assert any(
+        row.label == "SERVED-UNREGISTERED" and "poison.pkl" in row.path
+        for row in report.rows
+    )
+
+
+def test_unreadable_manifest_fails_closed(tmp_path: Path) -> None:
+    _build_repo(tmp_path)
+    (tmp_path / MANIFEST_REL).write_text("{not json", encoding="utf-8")
+    report = _check().run_check(repo_root=tmp_path)
+    assert not report.clean
+    assert any(row.label == "MANIFEST-UNREADABLE" for row in report.rows)
+
+
+def test_newer_unregistered_v1_fallback_is_caught(tmp_path: Path) -> None:
+    """Review blocker 2: serving's v1 fallback scans runs/*/engine_b_v1.pkl
+    and loads the LAST sorted dir (engine_b_service._load_v1_bundle). A newer
+    drop-in becomes what serving loads; the guard must flag it instead of
+    hashing only the registered one."""
+    _build_repo(tmp_path)
+    v1_rel = "app/data/models/engine_b/runs/20260101T000000Z/engine_b_v1.pkl"
+    (tmp_path / v1_rel).write_bytes(b"v1-bytes")
+    body = _registry_body()
+    body["artifacts"].append(
+        _artifact(
+            {
+                "artifact_id": "engine_b:v1_fallback",
+                "path": v1_rel,
+                "path_resolution": "literal",
+                "governing_pointer": None,
+                "sha256": _sha(b"v1-bytes"),
+                "kind": "local_operational",
+                "required_by_env": ["serving", "production"],
+            }
+        )
+    )
+    (tmp_path / "app/config/model_registry.json").write_text(
+        json.dumps(body), encoding="utf-8"
+    )
+    assert _check().run_check(repo_root=tmp_path).clean
+
+    newer = tmp_path / "app/data/models/engine_b/runs/20260201T000000Z"
+    newer.mkdir(parents=True)
+    (newer / "engine_b_v1.pkl").write_bytes(b"drop-in")
+    report = _check().run_check(repo_root=tmp_path)
+    assert not report.clean
+    assert any(
+        row.label == "SERVED-UNREGISTERED" and "20260201T000000Z" in row.path
+        for row in report.rows
+    )
+
+
+def test_real_registry_names_the_served_v1_fallback() -> None:
+    """Review blocker 2's coverage half: the real registry must name the
+    engine_b v1 fallback pickle that serving's scan actually loads."""
+    registry = json.loads(
+        (REPO_ROOT / "app/config/model_registry.json").read_text()
+    )
+    assert any(
+        entry["path"].endswith("engine_b_v1.pkl")
+        for entry in registry["artifacts"]
+    )

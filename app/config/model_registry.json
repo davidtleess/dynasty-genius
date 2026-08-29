@@ -161,6 +161,23 @@
       "approved_by": "David",
       "approved_date": "2026-07-02",
       "updated_by_commit": "e1c76e0"
+    },
+    {
+      "artifact_id": "engine_b:v1_fallback",
+      "path": "app/data/models/engine_b/runs/20260512T032635Z/engine_b_v1.pkl",
+      "path_resolution": "literal",
+      "governing_pointer": null,
+      "sha256": "5c52f811d7f9a4a78f564e822013ace7001275b6209063f9f4854577482c23d0",
+      "kind": "local_operational",
+      "promotion_status": "active",
+      "required_by_env": [
+        "serving",
+        "production"
+      ],
+      "allow_local_override": false,
+      "approved_by": "custodial registration (DG-028 pre-land review) \u2014 records the ALREADY-served fallback engine_b_service._load_v1_bundle scans for; not a new approval",
+      "approved_date": "2026-08-28",
+      "updated_by_commit": "DG-028"
     }
   ]
 }

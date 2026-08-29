@@ -17,14 +17,26 @@ traversal guards. It fails loudly, one line per deviation, when a live
 artifact moves, disappears, loses its governing pointer, or has no recorded
 hash to verify against.
 
-Usage::
+Usage (pass ``--repo-root`` explicitly when run from a ticket worktree — the
+gitignored live artifacts exist only in the trunk checkout)::
 
-    .venv/bin/python scripts/check_model_no_mutation.py
+    .venv/bin/python scripts/check_model_no_mutation.py \
+        --repo-root /Users/davidleess/dynasty-genius-product
 
-Exit codes: 0 — every registry-named artifact matches its recorded hash;
-1 — at least one deviates (MUTATED / MISSING / POINTER-BROKEN /
-UNVERIFIABLE); 2 — the registry itself is missing or malformed
-(fail-closed: a guard with no source of truth must not report cleanliness).
+Beyond per-artifact hashing, the guard verifies the SERVING BINDINGS
+(pre-land review blockers, 2026-08-28): every path a governing manifest
+serves must itself be a registered artifact (a hijacked manifest key serving
+an unregistered pickle is SERVED-UNREGISTERED), and the engine_b v1 fallback
+scan (``_load_v1_bundle``: last sorted ``runs/*/engine_b_v1.pkl``) must
+resolve to a registered path — a newer drop-in pickle is flagged, not
+silently served.
+
+Exit codes: 0 — every registry-named artifact matches its recorded hash and
+every serving binding resolves to a registered artifact; 1 — at least one
+deviates (MUTATED / MISSING / POINTER-BROKEN / UNVERIFIABLE /
+SERVED-UNREGISTERED / MANIFEST-UNREADABLE); 2 — the registry itself is
+missing or malformed (fail-closed: a guard with no source of truth must not
+report cleanliness).
 
 Read-only by construction: the guard opens artifacts for hashing and never
 writes anywhere.
@@ -33,6 +45,7 @@ writes anywhere.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -170,7 +183,94 @@ def run_check(
                 observed_sha256=hashed[-1] if hashed else None,
             )
         )
+    rows.extend(_serving_binding_rows(repo_root=repo_root, registry=registry))
+    rows.extend(_v1_fallback_rows(repo_root=repo_root, registry=registry))
     return NoMutationReport(rows=tuple(rows))
+
+
+def _serving_binding_rows(*, repo_root: Path, registry) -> list[ArtifactRow]:
+    """Every path a governing MANIFEST serves must be a registered artifact.
+
+    Serving loads what the manifest values say (engine_b `_load_v2_bundles`,
+    head_a v3) — the registry row's own hash stays clean when a DIFFERENT
+    manifest key is repointed at poison, which is exactly the hijack the
+    pre-land review proved exits 0. An unreadable manifest fails closed."""
+
+    registered = {entry.path for entry in registry.artifacts}
+    manifests = sorted(
+        {
+            entry.governing_pointer
+            for entry in registry.artifacts
+            if entry.path_resolution == "literal" and entry.governing_pointer
+        }
+    )
+    rows: list[ArtifactRow] = []
+    for rel in manifests:
+        try:
+            payload = json.loads((repo_root / rel).read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("manifest is not a JSON object")
+        except Exception:
+            rows.append(
+                ArtifactRow(
+                    artifact_id=f"manifest:{rel}",
+                    path=rel,
+                    label="MANIFEST-UNREADABLE",
+                    observed_status="manifest_unreadable",
+                    pointer_status="unreadable",
+                    expected_sha256=None,
+                    observed_sha256=None,
+                )
+            )
+            continue
+        for key, served in payload.items():
+            if served is None:
+                continue
+            if not isinstance(served, str) or served not in registered:
+                rows.append(
+                    ArtifactRow(
+                        artifact_id=f"manifest:{rel}:{key}",
+                        path=str(served),
+                        label="SERVED-UNREGISTERED",
+                        observed_status="served_path_not_registered",
+                        pointer_status="hijacked",
+                        expected_sha256=None,
+                        observed_sha256=None,
+                    )
+                )
+    return rows
+
+
+def _v1_fallback_rows(*, repo_root: Path, registry) -> list[ArtifactRow]:
+    """Mirror serving's v1 fallback scan and require its pick be registered.
+
+    `engine_b_service._load_v1_bundle` loads the LAST sorted
+    ``runs/*/engine_b_v1.pkl`` — a newer drop-in silently becomes what
+    serving loads while the registered pickle still hashes clean."""
+
+    registered = {entry.path for entry in registry.artifacts}
+    runs = repo_root / "app" / "data" / "models" / "engine_b" / "runs"
+    if not runs.is_dir():
+        return []
+    candidates = sorted(
+        d for d in runs.iterdir() if d.is_dir() and (d / "engine_b_v1.pkl").is_file()
+    )
+    if not candidates:
+        return []
+    served_rel = (candidates[-1] / "engine_b_v1.pkl").relative_to(repo_root).as_posix()
+    if served_rel in registered:
+        return []
+    return [
+        ArtifactRow(
+            artifact_id="engine_b:v1_fallback(scan)",
+            path=served_rel,
+            label="SERVED-UNREGISTERED",
+            observed_status="served_path_not_registered",
+            pointer_status="scan_resolved",
+            expected_sha256=None,
+            observed_sha256=None,
+        )
+    ]
 
 
 def main(argv: list[str] | None = None) -> int:
