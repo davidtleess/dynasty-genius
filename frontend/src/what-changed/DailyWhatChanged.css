@@ -411,8 +411,11 @@
   color: inherit;
   text-align: inherit;
   cursor: pointer;
-  display: block;
-  width: 100%;
+  /* Shrink-wrap the identity cluster: a 100%-width flex item cannot share a
+     line inside the flex-wrap row and would shatter the 32px tape geometry
+     (panel finding, proven in-browser). The focus ring hugs the affordance. */
+  display: inline-flex;
+  align-items: center;
 }
 
 .dg-wc__player-open:focus-visible {

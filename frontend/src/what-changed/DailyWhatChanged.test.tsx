@@ -1137,12 +1137,40 @@ describe("DG-089 player selection from the change feed", () => {
 
     render(<DailyWhatChanged onSelectPlayer={onSelectPlayer} />);
 
-    const button = await screen.findByRole("button", { name: "Open Market Mover" });
+    const button = await screen.findByRole("button", { name: /^Open Market Mover/ });
     fireEvent.click(button);
     expect(onSelectPlayer).toHaveBeenCalledWith("player-2", "Market Mover");
 
-    fireEvent.click(screen.getByRole("button", { name: "Open Delta Receiver" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Open Delta Receiver/ }));
     expect(onSelectPlayer).toHaveBeenCalledWith("player-1", "Delta Receiver");
+  });
+
+  it("quiet-day baseline roster rows are clickable too — the founding gesture's most common morning", async () => {
+    const body = JSON.parse(JSON.stringify(whatChangedResponse())) as {
+      daily_diff: { market: { roster_deltas: unknown[] } };
+      structural_context: { baseline_roster_rows?: unknown };
+    };
+    // Baseline rows render only on a quiet day (no roster movers).
+    body.daily_diff.market.roster_deltas = [];
+    body.structural_context.baseline_roster_rows = [
+      {
+        sleeper_id: "player-9",
+        player_name: "Quiet Roster Guy",
+        position: "TE",
+        team_id: "KC",
+        market_lane_value: 0,
+        model_lane_value: 0,
+      },
+    ];
+    mockFetch(200, body);
+    const onSelectPlayer = vi.fn();
+
+    render(<DailyWhatChanged onSelectPlayer={onSelectPlayer} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /^Open Quiet Roster Guy/ }),
+    );
+    expect(onSelectPlayer).toHaveBeenCalledWith("player-9", "Quiet Roster Guy");
   });
 
   it("rows stay non-interactive when no selection handler is provided", async () => {
@@ -1172,7 +1200,7 @@ describe("DG-089 player selection from the change feed", () => {
 
     render(<AppShell />);
 
-    const button = await screen.findByRole("button", { name: "Open Market Mover" });
+    const button = await screen.findByRole("button", { name: /^Open Market Mover/ });
     fireEvent.click(button);
 
     const inspector = await screen.findByRole("complementary", {

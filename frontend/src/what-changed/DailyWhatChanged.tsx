@@ -249,6 +249,10 @@ function AssetRow({
 }) {
   const otherLane = lane === "model" ? "market" : "model";
   const selectPlayer = useContext(SelectPlayerContext);
+  // Trim before the truthiness gate — the file's boundary rule (see
+  // headshotProps): a whitespace-only id is as blank as null, and a blank id
+  // must degrade to the non-interactive identity, never a live button.
+  const openId = sleeperId?.trim() || null;
   const identity = (
     <PlayerIdentity
       name={name}
@@ -259,15 +263,18 @@ function AssetRow({
       teamAccent={teamAccentFor(teamId)}
     />
   );
+  // The button's aria-label replaces name-from-content, so carry the row
+  // context (position/team) the label would otherwise swallow for SR users.
+  const openContext = [position, teamId].filter(Boolean).join(" ");
   return (
     <li data-asset-row data-row-density="32px" className="dg-wc__player-row">
       {rank !== undefined && <span className="dg-wc__rank">{rank}</span>}
-      {selectPlayer && sleeperId ? (
+      {selectPlayer && openId ? (
         <button
           type="button"
           className="dg-wc__player-open"
-          aria-label={`Open ${name}`}
-          onClick={() => selectPlayer(sleeperId, name)}
+          aria-label={openContext ? `Open ${name}, ${openContext}` : `Open ${name}`}
+          onClick={() => selectPlayer(openId, name)}
         >
           {identity}
         </button>
@@ -603,7 +610,7 @@ function MarketRows({ rows }: { rows: WhatChangedMarketDelta[] }) {
             key={r.sleeper_id ?? i}
             rank={i + 1}
             sleeperId={r.sleeper_id}
-            name={r.player_name ?? r.player_key}
+            name={r.player_name ?? humanAssetKey(r.player_key)}
             position={r.position ?? ""}
             teamId={(r as { team_id?: string | null }).team_id}
             currentValue={
@@ -718,7 +725,7 @@ function ModelRows({ rows }: { rows: WhatChangedModelDelta[] }) {
           key={r.sleeper_id ?? i}
           rank={i + 1}
           sleeperId={r.sleeper_id}
-          name={r.player_name ?? r.player_key}
+          name={r.player_name ?? humanAssetKey(r.player_key)}
           position={r.position ?? ""}
           teamId={(r as { team_id?: string | null }).team_id}
           currentValue={
@@ -757,30 +764,55 @@ function BaselineRosterRows({
     team_id?: string | null;
   }[];
 }) {
+  // DG-089: quiet-day mornings show ONLY these rows — David's founding gesture
+  // ("this is my player, let me click him") must work here too, same context
+  // gate, same trim rule as AssetRow.
+  const selectPlayer = useContext(SelectPlayerContext);
   return (
     <ul className="dg-wc__rows">
-      {rows.map((r) => (
-        <li
-          key={r.sleeper_id}
-          data-asset-row
-          data-row-density="32px"
-          className="dg-wc__player-row"
-        >
+      {rows.map((r) => {
+        const name = r.player_name ?? r.sleeper_id;
+        const openId = r.sleeper_id?.trim() || null;
+        const openContext = [r.position, r.team_id].filter(Boolean).join(" ");
+        const identity = (
           <PlayerIdentity
-            name={r.player_name ?? r.sleeper_id}
+            name={name}
             team={r.team_id ?? ""}
             position={r.position ?? ""}
             {...headshotProps(r.sleeper_id)}
             teamId={r.team_id ?? undefined}
           />
-          <span data-lane="model" className="dg-wc__lane dg-wc__lane--flat">
-            {NEUTRAL_DASH}
-          </span>
-          <span data-lane="market" className="dg-wc__lane dg-wc__lane--flat">
-            {NEUTRAL_DASH}
-          </span>
-        </li>
-      ))}
+        );
+        return (
+          <li
+            key={r.sleeper_id}
+            data-asset-row
+            data-row-density="32px"
+            className="dg-wc__player-row"
+          >
+            {selectPlayer && openId ? (
+              <button
+                type="button"
+                className="dg-wc__player-open"
+                aria-label={
+                  openContext ? `Open ${name}, ${openContext}` : `Open ${name}`
+                }
+                onClick={() => selectPlayer(openId, name)}
+              >
+                {identity}
+              </button>
+            ) : (
+              identity
+            )}
+            <span data-lane="model" className="dg-wc__lane dg-wc__lane--flat">
+              {NEUTRAL_DASH}
+            </span>
+            <span data-lane="market" className="dg-wc__lane dg-wc__lane--flat">
+              {NEUTRAL_DASH}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }
