@@ -44,9 +44,18 @@ The product needs no terminal: the API runs as a launchd agent
 
 The agent serves uvicorn on `127.0.0.1:8000` with the repo root as its
 working directory — `app/main.py` mounts the frontend bundle and headshot
-cache CWD-relative, so a wrong working directory serves the API but 404s
-on `/`. Deliberately no `--reload`: it would watch the ~15 GB under
-`app/data/`.
+cache CWD-relative, and the `/` mount is conditional on a built
+`frontend/dist` existing, so a wrong working directory or a missing build
+serves the API but 404s on `/`. Deliberately no `--reload`: it would watch
+the ~15 GB under `app/data/`.
+
+After a trunk pull, build the frontend BEFORE bootstrapping (or restarting)
+the API agent — the agent serves whatever `frontend/dist` holds, and a
+stale or absent build renders a stale or absent page:
+
+```bash
+cd frontend && npm ci && npm run build
+```
 
 One-time install (the plist is committed unloaded; loading it is a manual,
 human step):
@@ -58,7 +67,12 @@ launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.davidleess.dynasty-api.pl
 
 Verify: `launchctl list | grep dynasty-api` shows a numeric PID, and
 `curl -s http://127.0.0.1:8000/` returns the app shell (a 404 on `/` means
-the WorkingDirectory is wrong).
+the WorkingDirectory is wrong OR `frontend/dist` was never built).
+
+After retraining models, restart the agent —
+`launchctl kickstart -k gui/501/com.davidleess.dynasty-api` — because
+`app.main` pins the four rookie model pickles in memory at import; a
+running agent keeps serving the old models until restarted.
 
 To run by hand instead (development only):
 

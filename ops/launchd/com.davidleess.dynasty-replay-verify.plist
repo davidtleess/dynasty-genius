@@ -20,6 +20,13 @@
   slot slept through is re-kicked within the weekly 7-day lookback, keyed on
   the receipt's embedded generated_at timestamp.
 
+  First run after install fires within one guard tick — the guard back-fills
+  the phantom prior Monday slot (weekly lookback); expect the first receipt
+  minutes after bootstrap, not next Monday. (Panel-proved with real
+  plan_kicks 2026-08-29. Corollary: between trunk-pull and bootstrap the
+  guard kick-fails this label every 15-min tick and reports degraded — the
+  cure is bootstrapping, never seeding a fake receipt.)
+
   Committed but LOADED MANUALLY BY DAVID — the agent does not load it.
   Installed as a symlink (ticket DG-087; rollback = bootout + remove symlink):
     ln -s /Users/davidleess/dynasty-genius-product/ops/launchd/com.davidleess.dynasty-replay-verify.plist ~/Library/LaunchAgents/

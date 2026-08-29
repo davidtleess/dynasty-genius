@@ -105,6 +105,14 @@ def test_api_is_a_service_not_a_scheduled_job() -> None:
     assert "StartInterval" not in data
 
 
+def test_api_throttle_interval_bounds_a_crash_loop() -> None:
+    # KeepAlive + launchd's default 10s throttle turns a deterministic
+    # startup failure (port taken, import error) into ~8,600 respawns/day
+    # with unbounded err-log growth; 60s bounds it at no cost to normal
+    # restarts (panel finding 2, 2026-08-29)
+    assert _plist(API_PLIST)["ThrottleInterval"] == 60
+
+
 @pytest.mark.skipif(shutil.which("plutil") is None, reason="plutil is macOS-only")
 def test_api_plist_is_valid_plist() -> None:
     proc = subprocess.run(
@@ -187,6 +195,14 @@ def test_api_is_explicitly_unguarded_with_a_reason_and_never_a_receipt() -> None
     # a receipts entry for a slotless label is surfaced as unconfigured by
     # build_specs — registration there would degrade the guard, not help it
     assert API_LABEL not in receipts
+    # the remedy must not send an operator at a SPAWN failure with kickstart:
+    # this machine's penalty-box trap clears only with bootout + bootstrap
+    # (panel finding 1, 2026-08-29; reference_sleep_catchup_guard / gap-alert
+    # class (g)) — kickstart -k is the remedy for a HANG only
+    reason = unguarded[API_LABEL]
+    assert "kickstart -k" in reason and "hang" in reason
+    assert "bootout" in reason and "bootstrap" in reason
+    assert "penalty box" in reason
 
 
 def test_real_config_over_real_plists_leaves_nothing_unconfigured() -> None:
