@@ -258,3 +258,31 @@ def test_grandfather_config_is_frozen_schema():
     for entry in grandfather["artifacts"]:
         assert set(entry) == {"artifact_id", "sha256", "source"}
         assert len(entry["sha256"]) == 64
+
+
+def test_grandfather_list_is_frozen_byte_for_byte():
+    """Pre-land review minor: the FROZEN contract was unenforced — a
+    same-commit edit adding or swapping an entry would pass every test. The
+    exact (artifact_id, sha256) set as measured 2026-08-28 is pinned here;
+    growing or changing this list is a deliberate two-file diff forever."""
+    import json
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[1]
+    d = json.loads((repo_root / "app/config/pre_spec_grandfather.json").read_text())
+    frozen = {
+        ("engine_a:QB", "2e55c31e7609f5647a36246ac529c689668eaf9dcedfd736451fa29054fcb49a"),
+        ("engine_a:RB", "3f390cb1de362ad79ae868cbe06b03a248a5e27472bbaf1f4240cabe58a5f99b"),
+        ("engine_a:TE", "4a70aa48429c7355eb4dac48f45328da6be81ab81217e3871e553fcd1d1b76cc"),
+        ("engine_a:WR", "bd51c69a522643593af7c7b4726b537c2c32690d851c76103f2373bb64b9444d"),
+        ("engine_b:qb_v2", "d7acb6808e4a6caf412ec05b41aa90324e04f90ef219bbf78f680f66ea7d304f"),
+        ("engine_b:rb_v2", "5507e37feda9ba9d8f2bda7f1f259df5a59edcb2880e7ff7af6938d34401c4f9"),
+        ("engine_b:wr_v2", "3b83bbf98118d272196a0942a4190cc539b08409cbb3b23da570ed42b4ec873e"),
+        ("engine_b:te_v3", "e8f5d7451aa0524aeb17dbc80992c35bfa97f9428366085330643bbb3109389b"),
+        ("head_a:te_v3", "9e1b0b7fc7f707fba9831662fd792067f26e37370fb5aa5fd6532c02cf3e8618"),
+        ("engine_b:v1_fallback", "5c52f811d7f9a4a78f564e822013ace7001275b6209063f9f4854577482c23d0"),
+    }
+    actual = {(a["artifact_id"], a["sha256"]) for a in d["artifacts"]}
+    assert actual == frozen
+    assert len(d["artifacts"]) == 10
+    assert d["frozen_date"] == "2026-08-28"
