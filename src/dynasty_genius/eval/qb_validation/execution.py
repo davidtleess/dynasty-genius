@@ -617,6 +617,11 @@ _CONSUMER_ALLOWED_CLASSES: dict[str, frozenset[str]] = {
     # root in route prose; neither may import the package or touch the loaders.
     "src/dynasty_genius/sources/source_registry.py": frozenset({"raw_root"}),
     "src/dynasty_genius/sources/daily_control.py": frozenset({"raw_root"}),
+    # DG-054: the name normalizer's docstring CITES the legacy qb_validation
+    # normalization chains it supersedes (file:line prose, the module's
+    # migration map). Prose naming, never an import or call — the same
+    # allowance class as the governance surfaces above.
+    "src/dynasty_genius/identity/name_normalizer.py": frozenset({"package"}),
 }
 _STUDY_PACKAGE_CLASSES = frozenset({"package", "raw_root", "loaders"})
 
