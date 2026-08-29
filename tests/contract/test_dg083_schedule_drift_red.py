@@ -34,6 +34,11 @@ CONFIG_PATH = REPO_ROOT / "app" / "config" / "capture_cadence.json"
 TZ = "America/New_York"
 REPORT_RELPATH = Path("app/data/ops/daily_chain_latest_report.json")
 
+# The fixtures' run day, threaded as ``now`` everywhere so DG-085's staleness
+# rule (a report recorded on another day never impersonates a current reading)
+# is judged against an explicit clock, never the wall clock.
+FIXTURE_NOW = datetime(2026, 8, 27, 13, 30, tzinfo=ZoneInfo(TZ))
+
 
 def _models():
     from app.api.routes import system_capture_health_models as models
@@ -141,12 +146,14 @@ def _evaluate(
     *,
     store_overrides: dict[str, Any] | None = None,
     report: dict[str, Any] | None = None,
+    now: datetime = FIXTURE_NOW,
 ):
     models = _models()
     return models.evaluate_schedule_drift(
         store_config=_store_config(store_overrides),
         chain_report=report if report is not None else _report(steps),
         timezone=TZ,
+        now=now,
     )
 
 
@@ -213,7 +220,12 @@ class TestEvaluateScheduleDrift:
         # run_daily_chain.py:198 — a start hours "early" is a catch-up chasing
         # YESTERDAY's target. Same floor (-120), same re-anchoring, so SR-09's
         # recorded number and this surface can never disagree about one run.
-        drift = _evaluate([_step(started_at="2026-08-28T00:10:00-04:00")])
+        # Viewed the same morning: the 00:10 start IS today's run (DG-085),
+        # so the number still surfaces.
+        drift = _evaluate(
+            [_step(started_at="2026-08-28T00:10:00-04:00")],
+            now=datetime(2026, 8, 28, 8, 0, tzinfo=ZoneInfo(TZ)),
+        )
         assert drift.drift_minutes == 870
         assert drift.exceeds_grace is True
 
@@ -247,6 +259,64 @@ class TestEvaluateScheduleDrift:
         assert drift.drift_minutes is None
 
 
+class TestStaleReport:
+    """DG-085: a report recorded on another day never impersonates today.
+
+    The block anchors its math to the report's own date, so before this rule a
+    morning where the chain never ran served YESTERDAY's run as
+    ``basis=chain_report``, drift ~0, ``exceeds_grace False`` — the exact
+    degraded-reported-as-fine failure the field exists to prevent, one level
+    up. A stale report is named (``chain_report_stale:<date>``) and carries no
+    numbers: ``chain_report`` stays the ONLY basis that ever does. Staleness is
+    judged from the newest tz-aware start stamp anywhere in the report (chain
+    block + steps), so a midnight-spanning run is dated by where it ended up.
+    """
+
+    NEXT_MORNING = datetime(2026, 8, 28, 9, 30, tzinfo=ZoneInfo(TZ))
+
+    def test_yesterday_ok_run_never_impersonates_current(self) -> None:
+        drift = _evaluate(
+            [_step(started_at="2026-08-27T09:41:00-04:00")], now=self.NEXT_MORNING
+        )
+        assert drift.basis == "chain_report_stale:2026-08-27"
+        assert drift.recorded_start is None
+        assert drift.drift_minutes is None
+        assert drift.exceeds_grace is None
+
+    def test_stale_failed_step_is_not_a_current_failure(self) -> None:
+        drift = _evaluate([_step(status="failed")], now=self.NEXT_MORNING)
+        assert drift.basis == "chain_report_stale:2026-08-27"
+        assert drift.drift_minutes is None
+
+    def test_stale_skipped_step_is_not_a_current_skip(self) -> None:
+        drift = _evaluate(
+            [_step(status="skipped_upstream_failed")], now=self.NEXT_MORNING
+        )
+        assert drift.basis == "chain_report_stale:2026-08-27"
+        assert drift.drift_minutes is None
+
+    def test_skipped_step_with_no_stamp_is_judged_from_the_chain_block(self) -> None:
+        drift = _evaluate(
+            [_step(status="skipped_upstream_failed", started_at=None)],
+            now=self.NEXT_MORNING,
+        )
+        assert drift.basis == "chain_report_stale:2026-08-27"
+
+    def test_undateable_report_falls_back_to_step_semantics(self) -> None:
+        # No parseable stamp anywhere: staleness cannot be judged, so the
+        # per-step label stands rather than a guessed date.
+        step = _step(status="failed", started_at=None)
+        drift = _evaluate(
+            [], report={"schema": 1, "steps": [step]}, now=self.NEXT_MORNING
+        )
+        assert drift.basis == "chain_step_not_ok:failed"
+
+    def test_todays_report_keeps_its_reading(self) -> None:
+        drift = _evaluate([_step()], now=FIXTURE_NOW)
+        assert drift.basis == "chain_report"
+        assert drift.drift_minutes == 1
+
+
 class TestInspectWiring:
     """inspect_capture_store attaches the drift block on EVERY path."""
 
@@ -261,6 +331,7 @@ class TestInspectWiring:
         report_body: dict[str, Any] | None = None,
         pass_report_path: bool = True,
         create_db: bool = False,
+        now: datetime | None = None,
     ):
         models = _models()
         repo_root = tmp_path
@@ -278,7 +349,7 @@ class TestInspectWiring:
         return models.inspect_capture_store(
             store_config=_store_config(store_overrides),
             repo_root=repo_root,
-            now=self.NOW,
+            now=now if now is not None else self.NOW,
             timezone=TZ,
             season_windows=_models().SeasonWindows(in_season_months=[9, 10, 11, 12, 1]),
             **kwargs,
@@ -316,6 +387,18 @@ class TestInspectWiring:
         health = self._inspect(tmp_path, pass_report_path=False)
         assert health.schedule_drift.basis == "not_evaluated"
         assert health.schedule_drift.drift_minutes is None
+
+    def test_stale_report_rides_the_wiring(self, tmp_path: Path) -> None:
+        # DG-085: the disk wrapper threads the caller's clock, so yesterday's
+        # report is named stale on the surface, numbers withheld.
+        health = self._inspect(
+            tmp_path,
+            report_body=_report([_step()]),
+            now=datetime(2026, 8, 28, 9, 30, tzinfo=ZoneInfo(TZ)),
+        )
+        assert health.schedule_drift.basis == "chain_report_stale:2026-08-27"
+        assert health.schedule_drift.drift_minutes is None
+        assert health.schedule_drift.exceeds_grace is None
 
     def test_drift_never_flips_store_status(self, tmp_path: Path) -> None:
         # DESCRIPTIVE ONLY, pinned: a healthy store whose capture ran late
@@ -391,6 +474,24 @@ class TestRouteWiring:
             "exceeds_grace": False,
             "basis": "chain_report",
         }
+
+    def test_route_names_a_stale_report(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        # DG-085 end to end: the chain never ran today, yesterday's report is
+        # on disk — the route says so instead of serving yesterday's reading.
+        _write_json(
+            tmp_path / REPORT_RELPATH,
+            _report([_step(started_at="2026-08-27T11:42:00-04:00")]),
+        )
+        client = self._client(
+            monkeypatch, tmp_path, datetime(2026, 8, 28, 9, 30, tzinfo=ZoneInfo(TZ))
+        )
+        body = client.get("/api/system/capture-health").json()
+        (store,) = body["stores"]
+        assert store["schedule_drift"]["basis"] == "chain_report_stale:2026-08-27"
+        assert store["schedule_drift"]["drift_minutes"] is None
+        assert store["schedule_drift"]["recorded_start"] is None
 
     def test_route_report_path_matches_the_chain_writers_contract(self) -> None:
         # The same cross-contract that holds the gap alert to the chain writer:
