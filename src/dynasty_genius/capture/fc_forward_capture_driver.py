@@ -41,10 +41,32 @@ def _content_hash(payload_fields: dict) -> str:
     ).hexdigest()
 
 
+def _storage_faithful_int(value: Any) -> Any:
+    """A float-integral value in an INTEGER-affinity column comes back an int.
+
+    Lossless (`float.is_integer()` gates it); anything else passes through
+    untouched so a genuinely fractional or non-numeric value still fails loud
+    downstream rather than being coerced here.
+    """
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return value
+
+
 def map_fantasycalc_payload_to_entries(
     payload: list[dict], *, retrieved_at: datetime
 ) -> list[dict[str, Any]]:
-    """Map FantasyCalc rows to T1 store entries (stable player_key + per-row hash)."""
+    """Map FantasyCalc rows to T1 store entries (stable player_key + per-row hash).
+
+    DG-050 (measured live, 2026-08-28): `payload_hash` is the row's content
+    address and must be re-derivable from the STORED row, so every hashed value
+    is normalized here to the exact shape SQLite will return. FantasyCalc sends
+    integral volatilities as ints; hashed as `2` but read back from the REAL
+    column as `2.0`, the address failed replay on 172 of 474 live rows. Floats
+    are hashed for volatility (REAL column), ints for the INTEGER columns —
+    both losslessly. Rows captured before this normalization are the
+    `legacy_content_shape` vintage the DG-050 replay harness names.
+    """
     snapshot_date = retrieved_at.date().isoformat()
     retrieved_iso = retrieved_at.isoformat()
     entries: list[dict[str, Any]] = []
@@ -59,14 +81,24 @@ def map_fantasycalc_payload_to_entries(
         market_volatility_status = (
             "captured" if market_volatility is not None else "source_omitted"
         )
+        if isinstance(market_volatility, int) and not isinstance(
+            market_volatility, bool
+        ):
+            # REAL column: an int would round-trip to a float and break the
+            # content address (the DG-050 live finding). Lossless widening.
+            market_volatility = float(market_volatility)
+        value = _storage_faithful_int(row.get("value"))
+        overall_rank = _storage_faithful_int(row.get("overallRank"))
+        position_rank = _storage_faithful_int(row.get("positionRank"))
+        trend_30day = _storage_faithful_int(row.get("trend30Day"))
         content = {
             "sleeper_id": sleeper_id,
             "player_name": player.get("name"),
             "position": player.get("position"),
-            "value": row.get("value"),
-            "overall_rank": row.get("overallRank"),
-            "position_rank": row.get("positionRank"),
-            "trend_30day": row.get("trend30Day"),
+            "value": value,
+            "overall_rank": overall_rank,
+            "position_rank": position_rank,
+            "trend_30day": trend_30day,
             "market_volatility": market_volatility,
             "market_volatility_status": market_volatility_status,
         }
@@ -79,10 +111,10 @@ def map_fantasycalc_payload_to_entries(
                 "sleeper_id": sleeper_id,
                 "player_name": player.get("name"),
                 "position": player.get("position"),
-                "value": row.get("value"),
-                "overall_rank": row.get("overallRank"),
-                "position_rank": row.get("positionRank"),
-                "trend_30day": row.get("trend30Day"),
+                "value": value,
+                "overall_rank": overall_rank,
+                "position_rank": position_rank,
+                "trend_30day": trend_30day,
                 "retrieved_at": retrieved_iso,
                 "payload_hash": _content_hash(content),
                 "market_volatility": market_volatility,
