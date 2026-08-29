@@ -17,8 +17,12 @@ const DIVERGENCE_LABELS: Record<string, string> = {
   inside_band: "Inside band",
 };
 
+// The artifact emits percentiles on a 0-100 scale (compute_dvs_pct_batch rounds
+// to one decimal; the sibling xvar_percentile_overall is 0-100 too), so render
+// as-is. Multiplying by 100 here was a latent unit bug that never fired while
+// the field was NULL on every row (pre-DG-086).
 function percent(value: number | null | undefined): string {
-  return value === null || value === undefined ? "—" : `${Math.round(value * 100)}%`;
+  return value === null || value === undefined ? "—" : `${Math.round(value)}%`;
 }
 
 function marketSourceLabel(source: string | null | undefined): string {

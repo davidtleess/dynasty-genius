@@ -84,11 +84,14 @@ def map_pvo_row_valuation_fields(row: dict) -> dict[str, Any]:
 
     ``dvs_pct`` deliberately maps to ``valuation["xvar_percentile_position"]``
     (SR-14 step 3, choice stated): that is the field the producer populates from
-    ``pvo.get("dvs_pct")`` at universe_pvo_batch.py:99. It is NULL for every
-    scored row in today's runtime — an upstream producer defect, out of scope
-    here — so this column keeps recording NULL, honestly, rather than silently
-    substituting ``xvar_percentile_overall`` under a name that means something
-    else.
+    ``pvo.get("dvs_pct")`` at universe_pvo_batch.py:99. That field was NULL for
+    every scored row on every capture date up to 2026-08-29 — the producer never
+    called its one computer (DG-086) — so those historical rows recorded NULL,
+    honestly, and stay un-backfilled. From the first post-DG-086 refresh the
+    producer wires compute_dvs_pct_batch over the ACTIVE_B population, so this
+    column records the real within-position percentile (~388 rows; prospects
+    stay NULL per spec 5.14) rather than silently substituting
+    ``xvar_percentile_overall`` under a name that means something else.
     """
     valuation = row.get("valuation") or {}
     return {

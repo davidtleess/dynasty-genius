@@ -159,3 +159,86 @@ def test_dvs_pct_as_of_never_reaches_the_published_artifact():
     row = next(r for r in batch["players"] if r["sleeper_player_id"] == "202")
     assert row["valuation"]["xvar_percentile_position"] == 77.0
     assert "dvs_pct_as_of" not in set(_keys_recursive(batch))
+
+
+def _active(sleeper_id: str, dvs: float | None, dvs_pct: float | None) -> dict:
+    return {
+        "sleeper_id": sleeper_id,
+        "player_id": f"gsis-{sleeper_id}",
+        "full_name": f"Active {sleeper_id}",
+        "position": "RB",
+        "model_grade": "ACTIVE_B",
+        "dynasty_value_score": dvs,
+        "xvar": 8.5 if dvs is not None else None,
+        "dvs_pct": dvs_pct,
+        "dvs_engine": "B",
+        "decision_supported": False,
+        "market_overlay": None,
+    }
+
+
+def _snapshot_rows(ids: list[str]) -> dict:
+    return {
+        "schema_version": "sleeper_universe_snapshot.v1",
+        "league_id": "league-1",
+        "captured_at": "2026-08-29T00:00:00+00:00",
+        "players": [
+            {
+                "sleeper_player_id": sid,
+                "cohort": "FANTASY_RELEVANT",
+                "identity_status": "sleeper_resolved",
+                "player": {"full_name": f"Active {sid}", "position": "RB", "team": "KC"},
+                "league_context": {"rostered": True, "roster_id": int(sid)},
+            }
+            for sid in ids
+        ],
+        "lineage": {"sleeper_players_hash": "sha256:test"},
+    }
+
+
+def test_coverage_counts_the_position_percentile_population():
+    """DG-086 observability: the 2026-06-24→08-28 all-NULL defect went unnoticed
+    because nothing counted this field. The coverage artifact now reports the
+    populated count against the spec-5.14 reference population (ACTIVE_B with
+    non-null DVS) and an exit criterion that goes false the day either a
+    reference row misses its percentile or a non-reference row gains one."""
+    actives = [
+        _active("1", 72.0, 100.0),
+        _active("2", 60.0, 0.0),  # 0.0 is a real percentile — must count as populated
+        _active("3", None, None),  # ACTIVE_B but unscored: outside the reference population
+    ]
+
+    batch = build_universe_pvo_batch(
+        _snapshot_rows(["1", "2", "3"]),
+        active_pvos=actives,
+        captured_at="2026-08-29T00:00:01+00:00",
+    )
+
+    coverage = batch["coverage"]
+    assert coverage["xvar_percentile_position_populated_count"] == 2
+    assert coverage["xvar_percentile_position_reference_count"] == 2
+    assert (
+        coverage["dg086_exit_criteria"]["position_percentile_covers_reference_population"]
+        is True
+    )
+
+
+def test_coverage_exit_criterion_fails_when_a_reference_row_misses_its_percentile():
+    actives = [
+        _active("1", 72.0, 100.0),
+        _active("2", 60.0, None),  # scored ACTIVE_B with NO percentile — the regression state
+    ]
+
+    batch = build_universe_pvo_batch(
+        _snapshot_rows(["1", "2"]),
+        active_pvos=actives,
+        captured_at="2026-08-29T00:00:01+00:00",
+    )
+
+    coverage = batch["coverage"]
+    assert coverage["xvar_percentile_position_populated_count"] == 1
+    assert coverage["xvar_percentile_position_reference_count"] == 2
+    assert (
+        coverage["dg086_exit_criteria"]["position_percentile_covers_reference_population"]
+        is False
+    )
