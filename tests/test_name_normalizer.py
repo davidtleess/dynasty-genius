@@ -243,3 +243,44 @@ def test_is_staging_key_recognizes_only_staging_keys() -> None:
 def test_staging_key_for_convenience_helper() -> None:
     assert staging_key_for("A.J. Brown") == "stg1:aj_brown"
     assert staging_key_for(None) is None
+
+
+# --- pre-land review: sentinel strings, bytes, and freeze pins ---------------
+
+
+class TestReviewHardening:
+    def test_string_form_missing_sentinels_mint_no_key(self):
+        """Review find: pandas astype(str) turns NaN into the STRING 'nan' —
+        every stringified-missing row would pour into one shared candidate
+        group, the exact sentinel-matching failure the step-1 guard cites.
+        (Bare 'na' is included deliberately: a single-token 'Na' has no
+        discriminative power anyway, and no-key is the safer failure.)"""
+        from src.dynasty_genius.identity.name_normalizer import normalize_person_name
+
+        for s in ("nan", "NaN", "NAN", "None", "none", "<NA>", "NaT", "null",
+                  "NULL", "n/a", "N/A", "na", "", "   "):
+            out = normalize_person_name(s)
+            assert out.staging_key is None, s
+            assert out.normalized == "", s
+
+    def test_bytes_input_raises_instead_of_minting_corrupted_key(self):
+        """Review find: str(b'Josh Allen') leaks the b-prefix repr into the
+        key ('stg1:bjosh_allen'), silently failing to collide with str rows.
+        A bytes name is a caller bug — refuse loudly."""
+        import pytest
+
+        from src.dynasty_genius.identity.name_normalizer import normalize_person_name
+
+        with pytest.raises(TypeError):
+            normalize_person_name(b"Josh Allen")
+        with pytest.raises(TypeError):
+            normalize_person_name(bytearray(b"Josh Allen"))
+
+    def test_v1_pipeline_definition_is_pinned(self):
+        """Review find: the freeze was enforced only on sampled behaviors.
+        Pin the suffix set and version literal — editing either without a
+        version bump is now a loud two-site diff."""
+        from src.dynasty_genius.identity import name_normalizer as nn
+
+        assert nn.NAME_NORMALIZER_VERSION == "dg_name_normalizer.v1"
+        assert nn._GENERATIONAL_SUFFIXES == frozenset({"jr", "sr", "ii", "iii", "iv", "v"})

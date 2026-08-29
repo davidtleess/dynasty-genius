@@ -121,13 +121,33 @@ def _is_missing(raw: Any) -> bool:
     return False
 
 
+#: String forms of missingness (pre-land review): pandas ``astype(str)`` turns
+#: NaN into the literal string ``"nan"`` — without this guard every
+#: stringified-missing row pours into one shared candidate group. Compared
+#: case-insensitively against the stripped raw string BEFORE any folding.
+#: Bare ``"na"`` is included deliberately: a single-token "Na" carries no
+#: discriminative power anyway, and no-key is the safer failure than a giant
+#: false candidate pool.
+_MISSING_SENTINEL_STRINGS = frozenset(
+    {"", "nan", "none", "na", "<na>", "nat", "null", "n/a"}
+)
+
+
 def normalize_person_name(raw: Any) -> NormalizedName:
     """Run the frozen v1 pipeline. Deterministic, idempotent, total.
 
     Accepts any scalar: strings normalize; missing-like values (None, NaN,
-    pd.NA, pd.NaT) return the empty no-key outcome rather than raising, so
-    ingest lanes can call this row-wise without pre-filtering.
+    pd.NA, pd.NaT — and their STRING forms per
+    :data:`_MISSING_SENTINEL_STRINGS`) return the no-key outcome rather than
+    raising, so ingest lanes can call this row-wise without pre-filtering.
+    ``bytes`` raises: ``str(b'...')`` leaks the ``b``-prefix repr into the
+    key, silently failing to collide with the same player's str rows.
     """
+    if isinstance(raw, (bytes, bytearray)):
+        raise TypeError(
+            "normalize_person_name received bytes — decode to str first; "
+            "str(bytes) would leak the b-prefix repr into the staging key"
+        )
     if _is_missing(raw):
         return NormalizedName(
             raw="",
@@ -142,6 +162,19 @@ def normalize_person_name(raw: Any) -> NormalizedName:
         unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
     )
     lowered = folded.lower()
+    # Sentinel test runs on the FOLDED form, not the raw: folding is
+    # idempotent, so both passes of normalize(normalize(x)) agree (the
+    # hypothesis suite caught 'ÑA' → 'na' → sentinel breaking idempotence
+    # when this tested the raw). An input that folds to empty (pure
+    # non-decomposable glyphs) lands here too — no key, never a junk key.
+    if lowered.strip() in _MISSING_SENTINEL_STRINGS:
+        return NormalizedName(
+            raw=text,
+            normalized="",
+            suffix=None,
+            staging_key=None,
+            normalizer_version=NAME_NORMALIZER_VERSION,
+        )
     joined = _INTRA_TOKEN_PUNCTUATION_RE.sub("", lowered)
     tokens = [token for token in _TOKEN_SEPARATOR_RE.split(joined) if token]
 
