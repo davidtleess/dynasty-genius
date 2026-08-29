@@ -349,6 +349,12 @@ def test_landing_ff_opportunity_adds_no_engine_consumer() -> None:
         for path in base.rglob("*.py"):
             if path.resolve() == adapter:
                 continue
+            # DG-050: the replay-reproducibility harness re-runs the pinned
+            # parsers to PROVE stored content reproduces from raw — a
+            # read-only verifier, not an engine consumer. It is the one
+            # sanctioned second reference to ingestion symbols.
+            if path.resolve() == (REPO_ROOT / "src/dynasty_genius/replay/replay_harness.py").resolve():
+                continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             hits = [s for s in symbols if s in text]
             if hits:
