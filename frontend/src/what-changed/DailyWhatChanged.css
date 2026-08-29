@@ -397,3 +397,28 @@
   outline: 2px solid var(--dg-focus);
   outline-offset: 2px;
 }
+
+/* DG-089: the identity cluster becomes a real button when the surface has a
+   selection handler. Visually transparent — the row keeps its tape look; the
+   affordance is the cursor and the focus ring, not chrome. */
+.dg-wc__player-open {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  /* Shrink-wrap the identity cluster: a 100%-width flex item cannot share a
+     line inside the flex-wrap row and would shatter the 32px tape geometry
+     (panel finding, proven in-browser). The focus ring hugs the affordance. */
+  display: inline-flex;
+  align-items: center;
+}
+
+.dg-wc__player-open:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}

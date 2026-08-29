@@ -80,6 +80,13 @@ export function AppShell() {
   // inspector. Players only; non-player catalog entries are not inspectable in v1.
   // The sleeper id lives on market_ref (the catalog entry's top-level sleeper_id
   // is not part of the generated schema, so it is stripped at the Zod boundary).
+  // DG-089: one selection sink for every surface — catalog entries (Trade Lab,
+  // asset search) and the change feed's mover rows land in the same inspector.
+  function selectPlayerById(sleeperId: string, label: string): void {
+    setSelectedPlayer({ sleeperId, label });
+    setInspectorOpen(true);
+  }
+
   function selectPlayer(entry: CatalogEntry): void {
     if (entry.kind !== "player") {
       return;
@@ -88,8 +95,7 @@ export function AppShell() {
     if (sleeperId === null) {
       return;
     }
-    setSelectedPlayer({ sleeperId, label: entry.label });
-    setInspectorOpen(true);
+    selectPlayerById(sleeperId, entry.label);
   }
 
   const commands: Command[] = SURFACES.map((surface) => ({
@@ -168,7 +174,9 @@ export function AppShell() {
             {activeSurface === "Asset Primitive Capture" && <AssetPrimitiveCapture />}
             {activeSurface === "Roster Audit" && <RosterAudit />}
             {activeSurface === "Roster Capacity" && <RosterCapacitySandbox />}
-            {activeSurface === "Daily What-Changed" && <DailyWhatChanged />}
+            {activeSurface === "Daily What-Changed" && (
+              <DailyWhatChanged onSelectPlayer={selectPlayerById} />
+            )}
             {activeSurface === "Accuracy Tracker" && (
               <div className="dg-shell__stack">
                 {/* The record leads: what has actually been measured about this model,

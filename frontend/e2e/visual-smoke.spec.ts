@@ -416,7 +416,7 @@ test("daily open evidence bundle: desktop, mobile, focus capture, axe report", a
   // Desktop evidence.
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.goto("/?surface=what-changed");
-  await page.getByText("Market Mover").waitFor();
+  await page.getByText("Market Mover", { exact: true }).waitFor();
   await expectNoHorizontalOverflow(page);
   await expectTrustStripPainted(page);
   await page.screenshot({
@@ -455,7 +455,7 @@ test("daily open evidence bundle: desktop, mobile, focus capture, axe report", a
   // Mobile evidence.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?surface=what-changed");
-  await page.getByText("Market Mover").waitFor();
+  await page.getByText("Market Mover", { exact: true }).waitFor();
   await expectNoHorizontalOverflow(page);
   await expectTrustStripPainted(page);
   await page.screenshot({
