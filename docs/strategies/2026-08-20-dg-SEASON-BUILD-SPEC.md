@@ -881,12 +881,16 @@ All six verified present; all six already carry `WorkingDirectory: the product r
 
 # THE FAIL-SOFT PROOF — the test that separates this design from revision 1's.
 # Scratch step table with step 2 (feature_refresh) replaced by `python3.14 -c "raise SystemExit(1)"`.
-./.venv/bin/python3.14 scripts/run_daily_chain.py --steps-from "$SCRATCH/steps_fail2.json" --dry-run=false
+# AMENDED per DG-045 review finding A: as of 6038d2d6 the CLI REFUSES --steps-from without an
+# explicit scratch --report-path — this spec's original printed command would have overwritten
+# the live alert-read report at app/data/ops/daily_chain_latest_report.json.
+./.venv/bin/python3.14 scripts/run_daily_chain.py --steps-from "$SCRATCH/steps_fail2.json" --dry-run=false --report-path "$SCRATCH/chain_report.json"
    → step 2 status "failed", exit_code 1
    → steps 3, 4, 5, 6 ALL status "ok"      ← revision 1's design would show them skipped
    → chain exit code NON-ZERO
 
-# THE HARD-EDGE PROOF — replace step 1 (fc_forward_capture) with the same failing stub.
+# THE HARD-EDGE PROOF — replace step 1 (fc_forward_capture) with the same failing stub
+# (same finding-A rule: carry the scratch --report-path).
    → step 1 "failed"
    → step 5 status "skipped_upstream_failed", exit_code null
    → steps 2, 3, 4, 6 ALL "ok"
@@ -1166,7 +1170,12 @@ Today it resolves to 2025. In mid-September it will resolve to 2026 on its own, 
 ls -la "$SCRATCH/rollover_rehearsal"   → NO lock file remains, whatever the exit code
 git status --porcelain                  → unchanged.  Must not touch the live runtime or tree.
 
-./.venv/bin/python3.14 scripts/run_daily_chain.py --dry-run=false --runtime-override "$SCRATCH/rollover_rehearsal"
+# AMENDED per DG-045 review finding B (supersedes the original --runtime-override-only form,
+# which never forwarded --season-end 2026 to feature_refresh). This is the ticket's recorded
+# command, EXECUTED in the SR-19 rehearsal Sat 08-29. No --report-path needed here:
+# run_daily_chain.py:420-425 re-roots the chain's own report under --runtime-override.
+./.venv/bin/python3.14 scripts/run_daily_chain.py --dry-run=false --runtime-override "$SCRATCH/rollover_rehearsal" \
+  --step-extra run_feature_refresh=--season-end --step-extra run_feature_refresh=2026
    → step 2 "failed" (outcome b) and steps 3,4,5,6 all "ok" — the fail-soft proof,
      against a REAL refusal
 ```
