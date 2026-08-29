@@ -50,3 +50,16 @@
 .dg-status-drawer__panel[data-open="false"] {
   display: none;
 }
+
+/* DG-076 build stamp: one muted mono line at the panel's foot — receipts,
+   never chrome. Token-only values (raw CSS census stays unchanged). */
+.dg-build-stamp {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--dg-space-2);
+  margin: 0;
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}

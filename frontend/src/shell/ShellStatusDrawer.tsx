@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { zSystemHealthResponse } from "../lib/api/zod.gen";
 import { SystemHealthCard } from "../system-health/SystemHealthCard";
 import "./ShellStatusDrawer.css";
+import { BuildStamp } from "./BuildStamp";
 import { TrustStrip } from "./TrustStrip";
 
 type PillState =
@@ -94,6 +95,8 @@ export function ShellStatusDrawer() {
             drawer only governs visibility. Distinct axes, never merged. */}
         <TrustStrip position="QB" />
         <SystemHealthCard />
+        {/* DG-076: which build is serving — receipts, not chrome. */}
+        <BuildStamp />
       </div>
     </div>
   );
