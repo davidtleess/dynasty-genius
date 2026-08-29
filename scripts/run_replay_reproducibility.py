@@ -74,7 +74,15 @@ def main(argv: list[str] | None = None) -> int:
               f"{check['status']}" + (f" ({ref})" if ref else ""))
 
     ops_root = args.ops_root or (args.repo_root / "app" / "data" / "ops")
-    latest, dated = write_receipt(receipt, ops_root=ops_root)
+    try:
+        latest, dated = write_receipt(receipt, ops_root=ops_root)
+    except FileExistsError as exc:
+        # A same-second duplicate run collides on the 1s-granular run_id.
+        # That is an environment condition, never a §6.2 verdict — exit 1 is
+        # reserved for not_reproduced (pre-land review, 2026-08-28).
+        print(f"RECEIPT NOT WRITTEN — {exc}", file=sys.stderr)
+        print(f"verdict (unrecorded): {receipt['verdict']}  ({receipt['totals']})")
+        return 2
     print(f"verdict: {receipt['verdict']}  ({receipt['totals']})")
     print(f"receipt: {latest}")
     print(f"receipt: {dated}")

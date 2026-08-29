@@ -582,3 +582,27 @@ def test_script_exit_codes_and_receipt(tmp_path, capsys):
     empty = tmp_path / "empty"
     (empty / "app" / "data").mkdir(parents=True)
     assert _script().main(["--repo-root", str(empty)]) == 2
+
+
+def test_duplicate_receipt_within_one_second_is_config_exit_not_false_alarm(
+    tmp_path, monkeypatch
+):
+    """Pre-land review minor: write_receipt's overwrite refusal escaped main()
+    as an unhandled FileExistsError → exit 1, the code reserved for a REAL
+    §6.2 failure. A same-second duplicate run must exit 2 (environment), never
+    masquerade as not_reproduced."""
+    import scripts.run_replay_reproducibility as cli
+
+    def fake_run_replay(**_kwargs):
+        return {"checks": [], "verdict": "reproduced", "totals": {},
+                "run_id": "replay-20260828T000000Z",
+                "generated_at": "2026-08-28T00:00:00+00:00"}
+
+    monkeypatch.setattr(cli, "run_replay", fake_run_replay)
+
+    def fake_write_receipt(_receipt, *, ops_root):
+        raise FileExistsError("run receipt already exists, refusing to overwrite")
+
+    monkeypatch.setattr(cli, "write_receipt", fake_write_receipt)
+    rc = cli.main(["--repo-root", str(tmp_path), "--ops-root", str(tmp_path)])
+    assert rc == 2
