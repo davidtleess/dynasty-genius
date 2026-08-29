@@ -54,7 +54,7 @@
     },
     {
       "path": "project/ProjectTracker.css",
-      "raw_hex": 1,
+      "raw_hex": 0,
       "raw_oklch": 0,
       "raw_rgb": 0,
       "raw_spacing_values": 3,
@@ -74,7 +74,7 @@
     },
     {
       "path": "roster-capacity/RosterCapacitySandbox.css",
-      "raw_hex": 9,
+      "raw_hex": 0,
       "raw_oklch": 0,
       "raw_rgb": 0,
       "raw_spacing_values": 4,
@@ -165,7 +165,7 @@
     {
       "path": "trade/TradeLab.css",
       "raw_hex": 0,
-      "raw_oklch": 1,
+      "raw_oklch": 0,
       "raw_rgb": 0,
       "raw_spacing_values": 5,
       "raw_radius_values": 1,
@@ -175,7 +175,7 @@
     {
       "path": "trust/TrustConsole.css",
       "raw_hex": 0,
-      "raw_oklch": 26,
+      "raw_oklch": 0,
       "raw_rgb": 0,
       "raw_spacing_values": 6,
       "raw_radius_values": 0,
@@ -204,8 +204,8 @@
     }
   ],
   "totals": {
-    "raw_hex": 10,
-    "raw_oklch": 67,
+    "raw_hex": 0,
+    "raw_oklch": 40,
     "raw_rgb": 0,
     "raw_spacing_values": 70,
     "raw_radius_values": 30,

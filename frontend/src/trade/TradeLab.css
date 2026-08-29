@@ -52,7 +52,7 @@
 .dg-caveat-note {
   margin: 0.25rem 0 0.75rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid oklch(0.55 0 0);
+  border: 1px solid var(--dg-border-strong);
   border-radius: 4px;
   font-size: 0.875rem;
   overflow-wrap: anywhere;

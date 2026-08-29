@@ -17,24 +17,24 @@
 
 .dg-trust-console__tab {
   padding: 0.3rem 0.7rem;
-  border: 1px solid oklch(0.82 0.01 255);
+  border: 1px solid var(--dg-border);
   border-radius: 0.3rem;
   background: transparent;
-  color: oklch(0.55 0.02 255);
+  color: var(--dg-text-muted);
   font-size: 0.85rem;
   cursor: pointer;
 }
 
 /* Active position — neutral slate emphasis (NOT a success/green highlight). */
 .dg-trust-console__tab[aria-pressed="true"] {
-  border-color: oklch(0.5 0.02 255);
-  color: oklch(0.32 0.02 255);
+  border-color: var(--dg-border-strong);
+  color: var(--dg-text);
   font-weight: 600;
 }
 
 .dg-trust-console__status {
   font-size: 0.85rem;
-  color: oklch(0.5 0.02 255);
+  color: var(--dg-text-muted);
 }
 
 /* Truth panel — neutral slate; the G3 truth statement is the lede, decision/experimental
@@ -43,19 +43,19 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  border-left: 3px solid oklch(0.7 0.02 255);
+  border-left: 3px solid var(--dg-border-strong);
   padding-left: 0.7rem;
 }
 
 .dg-trust-truth__statement {
   font-size: 0.95rem;
-  color: oklch(0.32 0.02 255);
+  color: var(--dg-text);
 }
 
 .dg-trust-truth__decision,
 .dg-trust-truth__experimental {
   font-size: 0.8rem;
-  color: oklch(0.5 0.02 255);
+  color: var(--dg-text-muted);
 }
 
 /* Gate matrix — neutral point-estimate labels. The status word (MET/UNMET/DEFERRED/
@@ -78,13 +78,13 @@
 
 .dg-trust-gates__row {
   font-size: 0.85rem;
-  color: oklch(0.32 0.02 255);
+  color: var(--dg-text);
 }
 
 .dg-trust-gates__disclaimer,
 .dg-trust-gates__justification {
   font-size: 0.8rem;
-  color: oklch(0.5 0.02 255);
+  color: var(--dg-text-muted);
 }
 
 /* Fold table — per-fold evidence in neutral slate. The "CI includes zero" note is a
@@ -98,12 +98,12 @@
 .dg-trust-folds__table {
   border-collapse: collapse;
   font-size: 0.8rem;
-  color: oklch(0.32 0.02 255);
+  color: var(--dg-text);
 }
 
 .dg-trust-folds__table th,
 .dg-trust-folds__table td {
-  border: 1px solid oklch(0.88 0.01 255);
+  border: 1px solid var(--dg-border);
   padding: 0.25rem 0.5rem;
   text-align: left;
   white-space: nowrap;
@@ -111,16 +111,16 @@
 
 .dg-trust-folds__table th {
   font-weight: 600;
-  color: oklch(0.4 0.02 255);
+  color: var(--dg-text);
 }
 
 .dg-trust-folds__ci-note {
-  color: oklch(0.5 0.02 255);
+  color: var(--dg-text-muted);
 }
 
 .dg-trust-folds__empty {
   font-size: 0.85rem;
-  color: oklch(0.5 0.02 255);
+  color: var(--dg-text-muted);
 }
 
 /* Model-card essentials — full-text safety instructions; neutral slate, muted headings. */
@@ -129,14 +129,14 @@
   flex-direction: column;
   gap: 0.3rem;
   font-size: 0.85rem;
-  color: oklch(0.32 0.02 255);
+  color: var(--dg-text);
 }
 
 .dg-trust-card__heading {
   margin: 0.3rem 0 0;
   font-size: 0.8rem;
   font-weight: 600;
-  color: oklch(0.4 0.02 255);
+  color: var(--dg-text);
 }
 
 .dg-trust-card__list {
@@ -146,7 +146,7 @@
 
 .dg-trust-card__unavailable {
   font-size: 0.85rem;
-  color: oklch(0.5 0.02 255);
+  color: var(--dg-text-muted);
 }
 
 /* QB reliability — elevated-uncertainty caveat. Neutral slate, NOT a warning/defect hue. */
@@ -154,20 +154,20 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  border-left: 3px solid oklch(0.7 0.02 255);
+  border-left: 3px solid var(--dg-border-strong);
   padding-left: 0.7rem;
 }
 
 .dg-trust-qb__label {
   font-size: 0.85rem;
   font-weight: 600;
-  color: oklch(0.4 0.02 255);
+  color: var(--dg-text);
 }
 
 .dg-trust-qb__caveat,
 .dg-trust-qb__metric {
   font-size: 0.8rem;
-  color: oklch(0.5 0.02 255);
+  color: var(--dg-text-muted);
 }
 
 /* Provenance footer — small, neutral, copyable. The demoted grade is plain text bound to
@@ -176,10 +176,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  border-top: 1px solid oklch(0.88 0.01 255);
+  border-top: 1px solid var(--dg-border);
   padding-top: 0.5rem;
   font-size: 0.78rem;
-  color: oklch(0.5 0.02 255);
+  color: var(--dg-text-muted);
 }
 
 .dg-trust-prov__row,
@@ -189,12 +189,12 @@
 }
 
 .dg-trust-prov__label {
-  color: oklch(0.55 0.02 255);
+  color: var(--dg-text-muted);
   min-width: 9rem;
 }
 
 .dg-trust-prov__value {
-  color: oklch(0.4 0.02 255);
+  color: var(--dg-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -208,6 +208,6 @@
 }
 
 .dg-trust-prov__qualifier {
-  color: oklch(0.55 0.02 255);
+  color: var(--dg-text-muted);
   font-style: italic;
 }
