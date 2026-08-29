@@ -6,6 +6,36 @@ Outcome is 2-year average PPG (T+1, T+2). See 03-engine-b-decision-record.md.
 Phase 6 (v2): per-position feature contracts enforce hard exclusion — excluded
 features are dropped from the X matrix entirely, never zero-filled.
 See docs/superpowers/plans/2026-05-12-engine-b-v2-stratification.md.
+
+RETRACTED EDIT — DO NOT APPLY (SR-13 / DG-092; retraction 2026-08-20):
+an earlier SEASON-BRIEF.md instructed that ``XVAR_LAMBDA_ENGINE_B['TE']``
+should be 0.703 rather than the shipped 0.648, claiming "every TE is
+undervalued ~8% in every cross-positional comparison". That finding is
+RETRACTED. If you are reading a copy of the brief that still says it, the
+copy is stale — this docstring is the record.
+
+The lambdas are not free parameters. The cancellation identity:
+
+    XVAR_LAMBDA_ENGINE_B[pos] = ENGINE_B_P90_PPG[pos] / ENGINE_B_P90_PPG['WR']
+    (exact for all four positions: QB 1.386, RB 1.083, WR 1.000, TE 0.648)
+
+and because ``dvs_raw = projection_2y / _b_p90 * 100.0`` (pvo_assembler.py:407),
+the position P90 CANCELS in the unclamped xVAR:
+
+    unclamped xVAR = (DVS - replacement_DVS) * lambda
+                   = (ppg - replacement_ppg) * 100 / P90['WR']
+
+No position-specific scale survives, so TE is not undervalued by the lambda at
+all. Editing the lambda alone breaks the cancellation and CREATES a genuine
+8.4% TE distortion where none exists today. ENGINE_B_P90_PPG,
+XVAR_LAMBDA_ENGINE_B, and ENGINE_B_REPLACEMENT_DVS are one coupled system:
+move all three together (new diagnostic + David approval) or none. The
+coupled-identity contract tests in tests/contract/test_phase15_xvar.py fail
+if any one moves alone.
+
+The REAL TE defect is clamp ORDERING at pvo_assembler.py:408-409 — 11 of 89
+TEs sit at the DVS ceiling (vs QB 0/37, RB 5/99, WR 6/163) — the subject of
+dropped SR-17, measurement preserved in that test module's docstring.
 """
 from __future__ import annotations
 
@@ -44,6 +74,12 @@ ENGINE_B_VAR_THRESHOLDS: dict[str, int] = {
 # ── Cross-Positional Scarcity Multipliers (Λ_pos) ─────────────────────────────
 # Derived from P90 ratios relative to the WR anchor (WR = 1.000).
 # Allows comparing DVS points above replacement across positions.
+#
+# DO NOT edit any single value here. "TE should be 0.703" is RETRACTED
+# (2026-08-20) — see the module docstring: lambda[pos] = P90[pos]/P90['WR']
+# exactly, the position P90 cancels in unclamped xVAR, and a lambda-only edit
+# CREATES an 8.4% TE distortion. tests/contract/test_phase15_xvar.py enforces
+# the coupled identity.
 XVAR_LAMBDA_ENGINE_B: dict[str, float] = {
     "QB": 1.386,
     "RB": 1.083,
