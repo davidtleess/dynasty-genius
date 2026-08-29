@@ -77,7 +77,7 @@ function modeledDetail(overrides = {}) {
       projection_2y: 9.8,
       projection_3y: 12.4,
       xvar: 10.31,
-      xvar_percentile_position: 0.91,
+      xvar_percentile_position: 91.0,
     },
     model_status: "modeled",
     sleeper_id: "13269",

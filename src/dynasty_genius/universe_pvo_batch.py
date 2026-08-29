@@ -223,6 +223,13 @@ def build_universe_pvo_coverage(batch: dict[str, Any]) -> dict[str, Any]:
     xvar_percentile_populated = 0
     non_model_rows_with_overall_percentile = []
     populated_rows_without_xvar = []
+    # DG-086: the within-position percentile went NULL-on-every-row for two months
+    # with nothing counting it. Reference population per spec 5.14: ACTIVE_B with a
+    # non-null dynasty_value_score. The criterion goes false the day a reference row
+    # misses its percentile OR a non-reference row gains one.
+    position_percentile_populated = 0
+    position_percentile_reference = 0
+    position_percentile_outside_reference = 0
     for row in rows:
         position = str((row.get("player") or {}).get("position") or "").upper()
         league_context = row.get("league_context") or {}
@@ -236,6 +243,16 @@ def build_universe_pvo_coverage(batch: dict[str, Any]) -> dict[str, Any]:
                 populated_rows_without_xvar.append(row.get("sleeper_player_id"))
             if route not in {"ENGINE_A", "ENGINE_B", "BLEND_AB"}:
                 non_model_rows_with_overall_percentile.append(row.get("sleeper_player_id"))
+        in_reference = (
+            valuation.get("model_grade") == "ACTIVE_B"
+            and valuation.get("dynasty_value_score") is not None
+        )
+        if in_reference:
+            position_percentile_reference += 1
+        if valuation.get("xvar_percentile_position") is not None:
+            position_percentile_populated += 1
+            if not in_reference:
+                position_percentile_outside_reference += 1
 
     return {
         "total_players": len(rows),
@@ -261,6 +278,14 @@ def build_universe_pvo_coverage(batch: dict[str, Any]) -> dict[str, Any]:
             "overall_percentile_internal_xvar_only": not populated_rows_without_xvar,
             "non_model_rows_overall_percentile_null": not non_model_rows_with_overall_percentile,
             "market_fields_absent_from_percentile": True,
+        },
+        "xvar_percentile_position_populated_count": position_percentile_populated,
+        "xvar_percentile_position_reference_count": position_percentile_reference,
+        "dg086_exit_criteria": {
+            "position_percentile_covers_reference_population": (
+                position_percentile_populated == position_percentile_reference
+                and position_percentile_outside_reference == 0
+            ),
         },
     }
 

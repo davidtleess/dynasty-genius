@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.services.engine_b_service import score_inference_partition  # noqa: E402
+from scripts.compute_dvs_pct_batch import compute_dvs_pct_batch  # noqa: E402
 from src.dynasty_genius.features.feature_source import (  # noqa: E402
     resolve_feature_source,
 )
@@ -275,7 +276,7 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
             raise ValueError("engine_b_prediction_conflict")
         unique_predictions[gsis_key] = prediction
 
-    pvos: list[dict[str, Any]] = []
+    pvo_objects: list[Any] = []
     orphan_records: list[dict[str, Any]] = []
 
     for gsis_id, prediction in unique_predictions.items():
@@ -321,15 +322,24 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
                 "ff_playerids": str(FF_PLAYERIDS_PATH.relative_to(ROOT)),
             },
         )
-        pvos.append(pvo.model_dump())
+        pvo_objects.append(pvo)
 
     # Zero successful joins is refused. David's split rationale names the empty-board
     # publication risk directly, so an artifact carrying no model value at all does not
     # ship. This deliberately states NO partial-coverage floor: what fraction of missing
     # joins makes the artifact untrustworthy is a David-owned policy question (framing
     # v4 §0.2), and neither this code nor its comments assert that no threshold exists.
-    if not pvos:
+    if not pvo_objects:
         raise ValueError("engine_b_identity_join_zero_success")
+
+    # DG-086: the within-position percentile is a POPULATION statistic, so it runs after
+    # the whole join, on the objects, before any dump. compute_dvs_pct_batch is the one
+    # authority (David 2026-08-29: wire it, no twin); it also stamps dvs_pct_as_of on the
+    # objects. The stamp deliberately stays OUT of the published artifact: the capture
+    # vintage excludes only top-level volatile row keys, so a wall-clock value inside a
+    # row would mint a new semantic_output_hash on every rerun of the same content.
+    compute_dvs_pct_batch(pvo_objects)
+    pvos: list[dict[str, Any]] = [pvo.model_dump() for pvo in pvo_objects]
 
     batch = _ActivePvoBatch(pvos)
     batch.join_accounting = {

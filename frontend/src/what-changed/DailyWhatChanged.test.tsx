@@ -301,6 +301,16 @@ function captureHealthResponse(
           window_risk: false,
           window_risk_basis: "ok",
         },
+        // schedule_drift became a required store field with DG-083 (config v3);
+        // this fixture predated it and silently fell to the degraded parse path.
+        schedule_drift: {
+          basis: "chain_report",
+          chain_step: "run_fc_forward_capture",
+          drift_minutes: 0,
+          exceeds_grace: false,
+          recorded_start: "2026-07-05T09:00:02-04:00",
+          target_local: "09:00",
+        },
         staleness: {
           expected_by: "2026-07-05T10:00:00-04:00",
           grace_hours: 24,

@@ -119,7 +119,18 @@ def _configure_producer(
             "dynasty_value_score": 50.0,
             "xvar": 0.0,
         }
-        return SimpleNamespace(model_dump=lambda: payload)
+        # DG-086: the assembly output is no longer only dumped — the whole population
+        # runs through compute_dvs_pct_batch first, which reads position / model_grade /
+        # dynasty_value_score and writes dvs_pct / dvs_pct_as_of. The fake must carry
+        # that PVO-shaped surface (production's assemble_pvo always did).
+        return SimpleNamespace(
+            position=identity.position,
+            model_grade="ACTIVE_B",
+            dynasty_value_score=50.0,
+            dvs_pct=None,
+            dvs_pct_as_of=None,
+            model_dump=lambda: payload,
+        )
 
     monkeypatch.setattr(producer, "assemble_pvo", fake_assemble)
     return producer, crosswalk_path
