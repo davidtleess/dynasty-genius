@@ -14,6 +14,7 @@ pins.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -60,7 +61,9 @@ class FakeGcloud:
             ]
             return _Result(0, "\n".join(lines))
         if args[:2] == ["storage", "cp"]:
-            source, destination = args[2], args[3]
+            # Positional operands only — the runner passes flags (--no-clobber)
+            # before them, so indexing args[2:4] blindly would read a flag.
+            source, destination = [a for a in args[2:] if not a.startswith("--")]
             if destination.startswith("gs://"):  # upload
                 if destination in self.fail_upload_for:
                     return _Result(1, "", "upload exploded")
@@ -99,11 +102,29 @@ def _make_raw(tmp_path: Path, files: dict[str, bytes]) -> Path:
     return raw
 
 
+def _age(path: Path, seconds: float) -> None:
+    """Backdate a file past the quiesce window (fixtures write files 'now')."""
+    stamp = _fixed_now().timestamp() - seconds
+    os.utime(path, (stamp, stamp))
+
+
+def _age_tree(raw: Path, seconds: float = 3600.0) -> None:
+    for member in raw.rglob("*"):
+        if member.is_file() and not member.is_symlink():
+            _age(member, seconds)
+
+
 def _run(tmp_path: Path, gcloud: FakeGcloud, **overrides: Any) -> dict[str, Any]:
     repo_root = tmp_path / "repo"
+    raw = repo_root / "app" / "data" / "nflverse_usage" / "raw"
+    if raw.is_dir() and "quiesce_seconds" not in overrides:
+        # Fixtures create files at wall-clock now; the run's clock is fixed at
+        # 2026-08-29T23:00Z, so ages are meaningless unless backdated. Tests
+        # that exercise the quiesce gate itself pass quiesce_seconds explicitly.
+        _age_tree(raw)
     kwargs: dict[str, Any] = dict(
         repo_root=repo_root,
-        raw_root=repo_root / "app" / "data" / "nflverse_usage" / "raw",
+        raw_root=raw,
         bucket_uri=BUCKET,
         gcloud_runner=gcloud,
         file_fingerprint=_real_fingerprint,
@@ -320,6 +341,93 @@ def test_nested_files_keep_their_relative_keys(tmp_path: Path) -> None:
 
     assert result["status"] == "completed"
     assert f"{PREFIX}/2027/a.json" in gcloud.remote
+
+
+def test_a_freshly_written_snapshot_is_deferred_not_uploaded(tmp_path: Path) -> None:
+    """BLOCKING-class guard: the 06:15 capture writes raw snapshots with a plain
+    write_text, so a file younger than the quiesce window may hold only part of
+    its bytes. Uploading it would store a truncated vintage permanently and then
+    trip remote_size_mismatch forever. It is deferred to the next run instead."""
+    raw = _make_raw(tmp_path, {"settled.json": b"aaa", "still_writing.json": b"partial"})
+    _age(raw / "settled.json", 3600.0)  # yesterday's snapshot
+    _age(raw / "still_writing.json", 5.0)  # written five seconds ago
+    gcloud = FakeGcloud()
+    result = _run(tmp_path, gcloud, quiesce_seconds=300.0)
+
+    assert result["status"] == "completed"
+    assert result["files_uploaded"] == 1
+    assert f"{PREFIX}/settled.json" in gcloud.remote
+    assert f"{PREFIX}/still_writing.json" not in gcloud.remote
+    assert result["deferred_unstable"] == ["still_writing.json"]
+    assert _marker(tmp_path)["files_deferred_unstable"] == 1
+
+
+def test_a_file_changing_during_its_fingerprint_is_deferred(tmp_path: Path) -> None:
+    """The quiesce gate cannot see a write that STARTS mid-hash; the
+    before/after stat comparison catches it, and it is checked before the
+    upload so nothing partial is ever stored."""
+    raw = _make_raw(tmp_path, {"a.json": b"aaa"})
+    target = raw / "a.json"
+
+    def _mutating_fingerprint(path: Path) -> tuple[int, str]:
+        result = _real_fingerprint(path)
+        if path == target:  # a writer lands while we were hashing
+            path.write_bytes(b"aaaa-grown")
+            _age(path, 3600.0)
+        return result
+
+    gcloud = FakeGcloud()
+    result = _run(tmp_path, gcloud, file_fingerprint=_mutating_fingerprint)
+
+    assert result["status"] == "completed"
+    assert result["files_uploaded"] == 0
+    assert result["deferred_unstable"] == ["a.json"]
+    assert gcloud.remote == {}
+
+
+def test_dotfiles_are_skipped_and_counted(tmp_path: Path) -> None:
+    """Finder's .DS_Store is not a vintage. Uploading it would make a junk file
+    a permanent remote object whose later size change stops the whole channel."""
+    _make_raw(tmp_path, {"a.json": b"aaa", ".DS_Store": b"junk"})
+    gcloud = FakeGcloud()
+    result = _run(tmp_path, gcloud)
+
+    assert result["files_uploaded"] == 1
+    assert f"{PREFIX}/.DS_Store" not in gcloud.remote
+    assert result["files_skipped_dotfiles"] == 1
+
+
+def test_unparseable_listing_fails_closed(tmp_path: Path) -> None:
+    """If gcloud's --long format ever drifts, output we cannot parse must NOT
+    read as an empty remote — that would re-upload the tree over itself nightly
+    and kill the remote_size_mismatch tripwire."""
+    _make_raw(tmp_path, {"a.json": b"aaa"})
+
+    class DriftedGcloud(FakeGcloud):
+        def __call__(self, args: list[str]) -> _Result:
+            if args[:2] == ["storage", "ls"]:
+                return _Result(0, "TOTAL: 1 objects, 3 bytes\nsome-new-format-line")
+            return super().__call__(args)
+
+    result = _run(tmp_path, DriftedGcloud({f"{PREFIX}/a.json": b"aaa"}))
+
+    assert result["status"] == "failed"
+    assert result["failures"] == ["remote_list_unparseable"]
+
+
+def test_uploads_pass_no_clobber(tmp_path: Path) -> None:
+    """Append-only, belt and braces: an object that somehow re-enters the plan
+    must be skipped by gcloud rather than overwriting stored history."""
+    _make_raw(tmp_path, {"a.json": b"aaa"})
+    gcloud = FakeGcloud()
+    _run(tmp_path, gcloud)
+
+    uploads = [
+        call
+        for call in gcloud.calls
+        if call[:2] == ["storage", "cp"] and call[-1].startswith("gs://")
+    ]
+    assert uploads and all("--no-clobber" in call for call in uploads)
 
 
 def test_sentinel_written_before_work_and_survives(tmp_path: Path) -> None:

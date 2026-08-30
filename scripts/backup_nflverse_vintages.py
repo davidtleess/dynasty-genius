@@ -58,6 +58,18 @@ DEFAULT_PREFIX_REL = "dynasty-genius/nflverse-vintages/raw"
 # failure. Any other non-zero listing is a named remote_list_failed.
 _NO_MATCH_FRAGMENTS = ("matched no objects", "One or more URLs matched no objects")
 
+# A snapshot younger than this is treated as possibly still being written and is
+# DEFERRED to the next run. The capture writes raw snapshots with a plain
+# ``path.write_text`` (src/dynasty_genius/nflverse_usage.py:2409 — NOT the
+# module's own ``_atomic_write_json``), so a file can exist on disk holding only
+# part of its final bytes. Uploading during that window is permanently
+# destructive under an append-only contract: the truncated bytes become the
+# stored vintage, and from the moment capture finishes, local size != remote
+# size for that key FOREVER — every later run then raises remote_size_mismatch
+# and syncs nothing. Deferral costs one day of latency on one file; the damage
+# it prevents is unrepairable without the remote surgery this channel forbids.
+_QUIESCE_SECONDS = 300.0
+
 
 class SyncScanError(BackupError):
     """Every conflict found in one scan, sorted — the reported set is a property
@@ -73,12 +85,20 @@ class SyncScanError(BackupError):
         return list(self._reasons)
 
 
-def _scan_local(raw_root: Path) -> list[tuple[str, Path]]:
-    """(relative key, path) for every regular file under raw_root, sorted.
+def _scan_local(raw_root: Path) -> tuple[list[tuple[str, Path]], list[str]]:
+    """((relative key, path) for every vintage file, sorted; skipped dotfiles).
 
     Symlinks are rejected loudly: this channel protects the record, and a link
     that points elsewhere would upload bytes the tree does not actually hold
     (the DG-048 lesson — writers and readers crossing symlinks bite).
+
+    Dotfiles are SKIPPED, not uploaded. They are never vintages, and OS junk
+    (``.DS_Store`` — written the first time anyone opens the tree in Finder,
+    then rewritten at a different size as view state accretes) would otherwise
+    become a permanent remote object whose later size change trips
+    ``remote_size_mismatch`` and stops the channel syncing real vintages. The
+    count is reported in the marker, never silently dropped.
+
     An empty tree is a named failure: on this machine the capture writes daily,
     so nothing-to-protect means something upstream is wrong (the DGX-02
     empty-inventory principle).
@@ -87,10 +107,15 @@ def _scan_local(raw_root: Path) -> list[tuple[str, Path]]:
         raise BackupError(f"missing_raw_root:{raw_root}")
     files: list[tuple[str, Path]] = []
     symlinks: list[str] = []
+    skipped_dotfiles: list[str] = []
     for member in sorted(raw_root.rglob("*")):
         rel = member.relative_to(raw_root).as_posix()
         if member.is_symlink():
             symlinks.append(f"raw_symlink:{rel}")
+            continue
+        if any(part.startswith(".") for part in Path(rel).parts):
+            if member.is_file():
+                skipped_dotfiles.append(rel)
             continue
         if member.is_file():
             files.append((rel, member))
@@ -98,7 +123,7 @@ def _scan_local(raw_root: Path) -> list[tuple[str, Path]]:
         raise SyncScanError(symlinks)
     if not files:
         raise BackupError("empty_local_raw")
-    return files
+    return files, skipped_dotfiles
 
 
 def _list_remote(
@@ -111,13 +136,23 @@ def _list_remote(
         if any(fragment in stderr for fragment in _NO_MATCH_FRAGMENTS):
             return {}
         raise BackupError("remote_list_failed")
+    stdout = getattr(listing, "stdout", "") or ""
     remote: dict[str, int] = {}
-    for line in (getattr(listing, "stdout", "") or "").splitlines():
+    for line in stdout.splitlines():
         parts = line.split()
         if len(parts) >= 3 and parts[0].isdigit() and parts[-1].startswith("gs://"):
             url = parts[-1]
             if url.startswith(prefix + "/"):
                 remote[url[len(prefix) + 1 :]] = int(parts[0])
+    # Fail CLOSED on an unparseable listing. This parse is the ONLY thing
+    # standing between the channel and overwriting the record it protects: a
+    # line it cannot read looks like "not on the remote", which puts the object
+    # back in the upload plan. If gcloud's --long format ever drifts, a silent
+    # fail-open would re-upload the whole tree over itself every night and
+    # report a healthy run, with the remote_size_mismatch tripwire dead. A
+    # successful listing with output but zero parsed objects is that drift.
+    if stdout.strip() and not remote:
+        raise BackupError("remote_list_unparseable")
     return remote
 
 
@@ -133,6 +168,7 @@ def run_vintage_sync(
     now_utc: Callable[[], datetime],
     dry_run: bool = False,
     max_uploads: int | None = None,
+    quiesce_seconds: float = _QUIESCE_SECONDS,
 ) -> dict[str, Any]:
     started = now_utc()
     run_id = started.strftime("%Y%m%dT%H%M%SZ")
@@ -140,7 +176,9 @@ def run_vintage_sync(
     failures: list[str] = []
     status = "failed"
     uploaded: list[dict[str, Any]] = []
+    deferred_unstable: list[str] = []
     files_local = files_remote_before = files_already = files_capped = 0
+    files_dotfiles = 0
 
     sentinel_path = repo_root / SENTINEL_REL_PATH
     if not dry_run:
@@ -163,8 +201,9 @@ def run_vintage_sync(
             failures.append("sentinel_write_failed")
 
     try:
-        local = _scan_local(raw_root)
+        local, skipped_dotfiles = _scan_local(raw_root)
         files_local = len(local)
+        files_dotfiles = len(skipped_dotfiles)
 
         if gcloud_runner is None:
             if gcloud_runner_factory is None:
@@ -174,10 +213,21 @@ def run_vintage_sync(
         remote = _list_remote(gcloud_runner, prefix)
         files_remote_before = len(remote)
 
+        now_ts = now_utc().timestamp()
         plan: list[tuple[str, Path]] = []
         conflicts: list[str] = []
         for rel, path in local:
             if rel not in remote:
+                # Quiesce gate: a snapshot the capture may still be writing is
+                # deferred to the next run, never uploaded half-written (see
+                # _QUIESCE_SECONDS). Cheap stat, no read of the file's bytes.
+                try:
+                    if now_ts - path.stat().st_mtime < quiesce_seconds:
+                        deferred_unstable.append(rel)
+                        continue
+                except OSError:
+                    deferred_unstable.append(rel)
+                    continue
                 plan.append((rel, path))
                 continue
             size, _ = file_fingerprint(path)
@@ -206,6 +256,8 @@ def run_vintage_sync(
                         "files_already_synced": files_already,
                         "planned_uploads": [rel for rel, _ in plan],
                         "files_skipped_by_cap": files_capped,
+                        "files_deferred_unstable": sorted(deferred_unstable),
+                        "files_skipped_dotfiles": sorted(skipped_dotfiles),
                     },
                     indent=2,
                     sort_keys=True,
@@ -220,9 +272,28 @@ def run_vintage_sync(
         verify_dir = Path(tempfile.mkdtemp(prefix="dg-vintage-verify-"))
         try:
             for rel, path in plan:
+                stat_before = path.stat()
                 size, digest = file_fingerprint(path)
+                # The fingerprint READ takes time; if the file changed while we
+                # were hashing it, the digest describes bytes that no longer
+                # exist and uploading them would store a vintage the tree never
+                # held. Defer instead — the quiesce gate above makes this rare,
+                # and this catches the case it cannot see (a write that starts
+                # mid-hash). Checked BEFORE the upload, so nothing is stored.
+                stat_after = path.stat()
+                if (stat_after.st_size, stat_after.st_mtime_ns) != (
+                    stat_before.st_size,
+                    stat_before.st_mtime_ns,
+                ):
+                    deferred_unstable.append(rel)
+                    continue
+                # --no-clobber: defense in depth for the append-only law. If the
+                # listing ever misreads and an existing object re-enters the
+                # plan, the copy is SKIPPED rather than overwriting history;
+                # the verify below then compares the old remote bytes against
+                # this file and fails named, instead of destroying evidence.
                 upload = gcloud_runner(
-                    ["storage", "cp", str(path), f"{prefix}/{rel}"]
+                    ["storage", "cp", "--no-clobber", str(path), f"{prefix}/{rel}"]
                 )
                 if getattr(upload, "returncode", 1) != 0:
                     raise BackupError(f"upload_failed:{rel}")
@@ -275,6 +346,11 @@ def run_vintage_sync(
         "files_uploaded": len(uploaded),
         "bytes_uploaded": sum(item["bytes"] for item in uploaded),
         "files_skipped_by_cap": files_capped,
+        # Deferred, not lost: these ride the next run. A count that stays
+        # non-zero across days means a file is being rewritten, not settling.
+        "files_deferred_unstable": len(deferred_unstable),
+        "deferred_unstable": sorted(deferred_unstable),
+        "files_skipped_dotfiles": files_dotfiles,
         "sha256_verified": status == "completed",
         "failures": failures,
     }
@@ -301,6 +377,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prefix-rel", default=DEFAULT_PREFIX_REL)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--max-uploads", type=int, default=None)
+    parser.add_argument(
+        "--quiesce-seconds",
+        type=float,
+        default=_QUIESCE_SECONDS,
+        help=(
+            "defer snapshots modified within this many seconds (they may still "
+            f"be being written; default {_QUIESCE_SECONDS:.0f})"
+        ),
+    )
     args = parser.parse_args(argv)
 
     raw_root = args.raw_root if args.raw_root is not None else args.repo_root / RAW_REL_PATH
@@ -314,6 +399,7 @@ def main(argv: list[str] | None = None) -> int:
         now_utc=lambda: datetime.now(timezone.utc),
         dry_run=args.dry_run,
         max_uploads=args.max_uploads,
+        quiesce_seconds=args.quiesce_seconds,
     )
     if result.get("status") != "dry_run":
         print(json.dumps(result, indent=2, sort_keys=True))
