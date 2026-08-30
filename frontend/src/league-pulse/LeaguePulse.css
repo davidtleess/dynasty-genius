@@ -17,7 +17,7 @@
 
 .dg-league-pulse__experimental {
   color: var(--dg-caveat);
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
 }
 
 .dg-league-pulse__asof,

@@ -130,8 +130,16 @@ describe("TrustStrip", () => {
     const css = readFileSync(TRUST_STRIP_CSS, "utf8");
     const gradeRule = css.match(/\.dg-trust__grade\s*\{[^}]*\}/)?.[0] ?? "";
 
-    expect(gradeRule).toContain("color: var(--dg-model-muted)");
+    // DG-115 re-points this at --dg-chrome. The assertion's purpose is
+    // unchanged — the grade must not be painted as a success tier — but the
+    // old token was model blue, which is a LANE hue on a strip that reports
+    // provenance rather than model output. Chrome is achromatic by contract
+    // (visualFoundation.test.js), so this is a strictly stronger neutrality
+    // claim than the one it replaces, not a relaxation.
+    expect(gradeRule).toContain("color: var(--dg-chrome)");
     expect(gradeRule).not.toContain("--dg-model-emphasis");
+    expect(gradeRule).not.toContain("--dg-chrome-strong");
+    expect(gradeRule).not.toMatch(/var\(--dg-(?:up|down)\)/);
     expect(gradeRule).not.toMatch(/font-weight:\s*600/);
     expect(css).not.toMatch(/(^|[\s,{])\.(?:green|red|pass|success)\b/i);
     expect(css).not.toMatch(new RegExp("ver" + "dict", "i"));

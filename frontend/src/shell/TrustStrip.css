@@ -2,7 +2,12 @@
  * Trust strip (Surface-1, T5b). Read-only MODEL trust: grade + source freshness +
  * an Unvalidated badge for experimental/pre-model engines, degrading visibly to
  * "Trust data unavailable" on fetch/validation failure (never a confident fallback).
- * Model-axis (blue) tokens only; no market edge claim, no green/red.
+ *
+ * DG-115: painted in NEUTRAL CHROME, not the model lane. The strip used to be
+ * model-muted end to end — the honesty surface itself wearing the hue that is
+ * supposed to mean "the model computed this number", on text that is provenance
+ * rather than output. Chrome is achromatic by contract, so nothing here can be
+ * read as a lane, a direction or a call. No direction hues on this strip.
  */
 .dg-trust {
   display: flex;
@@ -21,39 +26,39 @@
 }
 
 .dg-trust__label {
-  color: var(--dg-model-muted);
+  color: var(--dg-chrome);
   text-transform: uppercase;
 }
 
 /* Grade is neutral/muted in the shell — NOT an emphasized success tier. It is provenance,
  * not a headline; the adjacent qualifier keeps it from reading as a decision/edge claim. */
 .dg-trust__grade {
-  color: var(--dg-model-muted);
+  color: var(--dg-chrome);
   font-family: var(--dg-font-mono);
 }
 
 .dg-trust__grade-qualifier {
-  color: var(--dg-model-muted);
+  color: var(--dg-chrome);
   font-style: italic;
 }
 
 .dg-trust__badge {
   color: var(--dg-cliff);
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
 }
 
 .dg-trust__source,
 .dg-trust__freshness {
-  color: var(--dg-model-muted);
+  color: var(--dg-chrome);
   font-family: var(--dg-font-mono);
 }
 
 .dg-trust__caveat {
-  color: var(--dg-model-muted);
+  color: var(--dg-chrome);
   font-style: italic;
 }
 
 .dg-trust__unavailable {
-  color: var(--dg-model-muted);
+  color: var(--dg-chrome);
   font-style: italic;
 }

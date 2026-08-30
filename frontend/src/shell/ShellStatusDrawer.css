@@ -13,7 +13,7 @@
   align-items: center;
   gap: var(--dg-space-2);
   border: 1px solid var(--dg-border-strong);
-  border-radius: 999px;
+  border-radius: var(--dg-radius-round);
   background: var(--dg-surface-raised);
   color: var(--dg-text);
   font: inherit;
@@ -30,7 +30,7 @@
 .dg-status-drawer__dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--dg-radius-round);
   background: var(--dg-text-muted);
 }
 

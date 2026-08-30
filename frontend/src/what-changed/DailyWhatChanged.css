@@ -1,7 +1,12 @@
-/* Daily What-Changed — neutral, grayscale tokens only. A delta surface must not
-   color changes as good/bad (no red/green), so direction is carried by the signed
-   value alone, never by hue or arrow glyphs. Market and model regions are visually
-   separated to reinforce the price-discovery-vs-model-output boundary.
+/* Daily What-Changed. DG-115 amends the old rule at the top of this file, which
+   read "neutral, grayscale tokens only … direction is carried by the signed
+   value alone, never by hue". Direction now HAS a hue — David ruled it on
+   2026-08-30 — and the rule underneath it survives intact: a delta may be
+   colored by WHICH WAY it moved, never by whether that is good or bad for you.
+   Up and down are arithmetic. The signed value is still printed on every delta,
+   so the fact never depends on seeing the color, and there are still no arrow
+   glyphs. Market and model regions stay visually separated to reinforce the
+   price-discovery-vs-model-output boundary.
 
    H2 reset Task 5: the surface is a desk — one dated masthead with the tape, a
    primary change feed, and a subordinate right rail for feed diagnostics and
@@ -40,9 +45,10 @@
 
 .dg-wc__title {
   margin: 0;
-  font-family: var(--dg-font-display, inherit);
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-2xl);
+  font-weight: var(--dg-weight-bold);
+  line-height: var(--dg-leading-tight);
   letter-spacing: 0.01em;
 }
 
@@ -100,15 +106,15 @@
   gap: var(--dg-space-1);
   padding: var(--dg-space-2) var(--dg-space-3);
   border: 1px solid var(--dg-border);
-  border-radius: 6px;
+  border-radius: var(--dg-radius-card);
   background: var(--dg-surface-raised);
 }
 
 .dg-wc__rail-title {
   margin: 0;
-  font-family: var(--dg-font-display, inherit);
+  font-family: var(--dg-font-display);
   font-size: var(--dg-text-sm);
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--dg-text);
@@ -127,13 +133,13 @@
   gap: var(--dg-space-2);
   padding: var(--dg-space-3) var(--dg-space-4);
   border: 1px solid var(--dg-border);
-  border-radius: 6px;
+  border-radius: var(--dg-radius-card);
   background: var(--dg-surface);
 }
 
 .dg-wc__region-title {
   margin: 0;
-  font-family: var(--dg-font-display, inherit);
+  font-family: var(--dg-font-display);
   font-size: var(--dg-text-lg);
 }
 
@@ -227,7 +233,7 @@
   padding: var(--dg-space-2) var(--dg-space-3);
   margin-top: var(--dg-space-1);
   border: 1px dashed var(--dg-border-strong);
-  border-radius: 6px;
+  border-radius: var(--dg-radius-card);
   background: var(--dg-surface-raised);
 }
 
@@ -308,7 +314,7 @@
   margin: 0;
   padding: var(--dg-space-1) var(--dg-space-3);
   border: 1px solid var(--dg-caveat);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
   font-size: var(--dg-text-sm);
   color: var(--dg-text);
 }
@@ -370,12 +376,24 @@
   flex: none;
 }
 
-.dg-wc__lane[data-lane="market"] .dg-ui-metric__value--emphasis {
-  color: var(--dg-market);
+/* DG-115 direction color, David's 2026-08-30 panel: "Green up / red down".
+   The row-focal delta used to be painted its LANE hue, which said where the
+   number came from — a fact the lane heading and the sparkline already carry —
+   while the one thing a delta is actually about, which way it moved, had no
+   color at all. The lanes keep the sparkline and the endpoint dot; the number
+   gets its direction.
+
+   The direction is set from the signed value by deltaDirection() in
+   DailyWhatChanged.tsx, off the same zero rule that prints the characters, so
+   the hue cannot disagree with the sign. An exact zero carries NO
+   data-direction and stays neutral: nothing is not a movement. And the sign is
+   printed either way, so the fact never depends on seeing the color. */
+.dg-wc__delta-cell[data-direction="up"] .dg-ui-metric__value {
+  color: var(--dg-up);
 }
 
-.dg-wc__lane[data-lane="model"] .dg-ui-metric__value--emphasis {
-  color: var(--dg-model);
+.dg-wc__delta-cell[data-direction="down"] .dg-ui-metric__value {
+  color: var(--dg-down);
 }
 
 .dg-wc__current-value {
@@ -403,7 +421,7 @@
   font: inherit;
   font-size: var(--dg-text-sm);
   padding: var(--dg-space-1) var(--dg-space-3);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
   cursor: pointer;
   align-self: flex-start;
 }

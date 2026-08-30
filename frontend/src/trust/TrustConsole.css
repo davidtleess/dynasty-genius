@@ -18,7 +18,7 @@
 .dg-trust-console__tab {
   padding: 0.3rem 0.7rem;
   border: 1px solid var(--dg-border);
-  border-radius: 0.3rem;
+  border-radius: var(--dg-radius-control);
   background: transparent;
   color: var(--dg-text-muted);
   font-size: 0.85rem;
@@ -29,7 +29,7 @@
 .dg-trust-console__tab[aria-pressed="true"] {
   border-color: var(--dg-border-strong);
   color: var(--dg-text);
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
 }
 
 .dg-trust-console__status {
@@ -110,7 +110,7 @@
 }
 
 .dg-trust-folds__table th {
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   color: var(--dg-text);
 }
 
@@ -151,7 +151,7 @@
 .dg-trust-card__heading {
   margin: 0.3rem 0 0;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   color: var(--dg-text);
 }
 
@@ -176,7 +176,7 @@
 
 .dg-trust-qb__label {
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   color: var(--dg-text);
 }
 

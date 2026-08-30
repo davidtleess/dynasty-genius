@@ -2,7 +2,7 @@
   max-width: 44rem;
   padding: 1rem 1.25rem;
   border: 1px solid var(--dg-border-strong);
-  border-radius: 6px;
+  border-radius: var(--dg-radius-card);
 }
 
 .dg-parked-card__heading {
@@ -12,12 +12,12 @@
 
 .dg-parked-card__body {
   margin: 0 0 0.75rem;
-  line-height: 1.5;
+  line-height: var(--dg-leading-normal);
 }
 
 .dg-parked-card__unpark {
   margin: 0 0 0.75rem;
-  line-height: 1.5;
+  line-height: var(--dg-leading-normal);
 }
 
 .dg-parked-card__evidence {

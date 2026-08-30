@@ -52,6 +52,11 @@
   opacity: 0.55;
 }
 
+/* DG-115: the rail is chrome, not a reading. It used to be painted
+   --dg-model-muted, which put the model's blue on furniture that has nothing
+   to do with the model — so the lane hue meant "this is navigation" in one
+   place and "the model computed this" in another. Neutral chrome now, and the
+   active item is a filled pill instead of a hue change. */
 .dg-shell__nav-item {
   appearance: none;
   border: 0;
@@ -60,12 +65,14 @@
   padding: var(--dg-space-2) var(--dg-space-3);
   font: inherit;
   cursor: pointer;
-  color: var(--dg-model-muted);
+  color: var(--dg-chrome);
+  border-radius: var(--dg-radius-control);
 }
 
 .dg-shell__nav-item[aria-current="page"] {
-  color: var(--dg-model-emphasis);
-  font-weight: 600;
+  color: var(--dg-chrome-strong);
+  background: var(--dg-chrome-surface);
+  font-weight: var(--dg-weight-semibold);
 }
 
 .dg-shell__trust {
@@ -132,7 +139,7 @@
   font: inherit;
   background: var(--dg-surface);
   border: 1px solid var(--dg-border);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
   color: var(--dg-text);
 }
 
@@ -165,7 +172,7 @@
 }
 
 .dg-shell__search .dg-asset-search__results button:hover {
-  color: var(--dg-model-emphasis);
+  color: var(--dg-chrome-strong);
 }
 
 .dg-shell__search .dg-asset-search__results button:focus-visible {
@@ -188,7 +195,7 @@
   font: inherit;
   background: var(--dg-surface);
   border: 1px solid var(--dg-border);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
   color: var(--dg-text);
   cursor: pointer;
 }
@@ -203,7 +210,7 @@
   background: transparent;
   font: inherit;
   cursor: pointer;
-  color: var(--dg-market);
+  color: var(--dg-chrome);
 }
 
 /* Worklist #1: the bar is the product's — wordmark left, status pill right.
@@ -266,7 +273,7 @@
 .dg-shell__wordmark {
   font-family: var(--dg-font-display);
   font-size: var(--dg-text-lg);
-  font-weight: 700;
+  font-weight: var(--dg-weight-bold);
   letter-spacing: 0.01em;
   color: var(--dg-text);
   white-space: nowrap;

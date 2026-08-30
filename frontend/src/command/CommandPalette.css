@@ -15,7 +15,7 @@
   font-family: var(--dg-font-sans);
   background: var(--dg-surface-raised);
   border: 1px solid var(--dg-border-strong);
-  border-radius: 8px;
+  border-radius: var(--dg-radius-card);
   color: var(--dg-text);
   z-index: 50;
 }
@@ -27,7 +27,7 @@
   font-size: var(--dg-text-lg);
   background: var(--dg-surface);
   border: 1px solid var(--dg-border);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
   color: var(--dg-text);
 }
 
@@ -57,7 +57,9 @@
   font-size: var(--dg-text-base);
 }
 
+/* DG-115: the palette is chrome. Selection is neutral emphasis, not the
+   model lane. */
 .dg-cmdk__option[aria-selected="true"] {
-  color: var(--dg-model-emphasis);
-  font-weight: 600;
+  color: var(--dg-chrome-strong);
+  font-weight: var(--dg-weight-semibold);
 }

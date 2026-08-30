@@ -535,6 +535,11 @@ describe("DailyWhatChanged", () => {
     }
   });
 
+  // DG-115 note: "neutrally" here means the LANGUAGE and the row, not the hue.
+  // Since David's 2026-08-30 direction-color ruling a delta cell carries an
+  // up/down hue (see the next test); what this one still pins is that the row
+  // itself takes no verdict class, no arrow glyph is fabricated, and no
+  // directive word reaches the screen.
   it("renders signed deltas neutrally without directive language or fabricated arrows", async () => {
     mockFetch(200, whatChangedResponse());
 
@@ -558,6 +563,62 @@ describe("DailyWhatChanged", () => {
         /buy|sell|positive|negative|success|danger|green|red/,
       );
       expect(row.getAttribute("aria-selected")).toBeNull();
+    }
+  });
+
+  // DG-115: David ruled "Green up / red down" on 2026-08-30. The hue is set
+  // from a data attribute derived from the SAME zero rule that prints the
+  // characters, so the color and the sign can never tell different stories —
+  // and the sign is always printed, so nothing here depends on seeing color.
+  it("marks each delta with the direction it actually moved", async () => {
+    mockFetch(200, whatChangedResponse());
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() => expect(screen.getByText("-8")).toBeTruthy());
+
+    const cellFor = (text: string) =>
+      screen.getAllByText(text)[0]?.closest(".dg-wc__delta-cell");
+
+    expect(cellFor("-8")?.getAttribute("data-direction")).toBe("down");
+    expect(cellFor("+11")?.getAttribute("data-direction")).toBe("up");
+    expect(cellFor("-1.25")?.getAttribute("data-direction")).toBe("down");
+    expect(cellFor("+0.04")?.getAttribute("data-direction")).toBe("up");
+    expect(cellFor("-0.75")?.getAttribute("data-direction")).toBe("down");
+  });
+
+  it("leaves an exact zero with no direction at all — nothing is not a movement", async () => {
+    const body = whatChangedResponse({
+      daily_diff: {
+        model: {
+          deltas: [
+            {
+              sleeper_id: "player-5",
+              player_key: "player-5",
+              player_name: "Model Delta",
+              position: "QB",
+              dynasty_value_score_delta: 0,
+              dynasty_value_score_delta_direction: "flat",
+              dvs_pct_delta: 0,
+              xvar_delta: 0,
+            },
+          ],
+        },
+      },
+    });
+    mockFetch(200, body);
+
+    const { container } = render(<DailyWhatChanged />);
+
+    await waitFor(() => expect(screen.getByText("Model Delta")).toBeTruthy());
+
+    const zeroCells = [...container.querySelectorAll(".dg-wc__delta-cell")].filter(
+      (cell) => cell.textContent?.includes("—"),
+    );
+
+    expect(zeroCells.length).toBeGreaterThanOrEqual(3);
+    for (const cell of zeroCells) {
+      expect(cell.getAttribute("data-direction")).toBeNull();
     }
   });
 

@@ -137,6 +137,19 @@ function formatZeroDelta(value: number): string {
   return fmtSigned(value);
 }
 
+/**
+ * DG-115 direction color (David's 2026-08-30 panel: "Green up / red down").
+ * Derived from the SAME zero rule as the printed text so the hue and the
+ * characters can never disagree: an exact zero is not movement and gets no
+ * direction, while a negative zero — "declined by less than display
+ * precision" — is a decline and gets one. The sign is still printed, so color
+ * is never the only channel carrying the fact.
+ */
+function deltaDirection(value: number): "up" | "down" | undefined {
+  if (formatZeroDelta(value) === NEUTRAL_DASH) return undefined;
+  return value > 0 ? "up" : "down";
+}
+
 function DeltaCell({
   label,
   value,
@@ -151,10 +164,12 @@ function DeltaCell({
   labelHidden?: boolean | undefined;
 }) {
   const text = formatZeroDelta(value);
+  const direction = deltaDirection(value);
   return (
     <span
       className="dg-wc__delta-cell"
       title={text === NEUTRAL_DASH ? EXACT_ZERO_NOTE : undefined}
+      {...(direction !== undefined ? { "data-direction": direction } : {})}
     >
       {/* When the column header carries the visible label, the per-row label
           moves to a screen-reader-only element so assistive tech still names

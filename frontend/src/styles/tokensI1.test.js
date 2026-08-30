@@ -20,6 +20,14 @@ const SEMANTIC_TOKENS = [
   "--dg-caveat",
 ];
 
+/*
+ * Guarded against the two direction arcs in BOTH theme scopes. DG-115 added
+ * the chrome family here — the shell's own colors are the likeliest place for
+ * a stray signal hue to reappear — and left --dg-up / --dg-down out, because
+ * those two are REQUIRED to sit in those arcs. See the amended-rule comment in
+ * tokens.test.js; the direction pair is contracted there and in
+ * visualFoundation.test.js, which checks both scopes.
+ */
 const GUARDED_COLOR_TOKENS = [
   "--dg-bg",
   "--dg-surface",
@@ -36,15 +44,26 @@ const GUARDED_COLOR_TOKENS = [
   "--dg-market-emphasis",
   "--dg-market-muted",
   "--dg-cliff",
+  "--dg-chrome",
+  "--dg-chrome-strong",
+  "--dg-chrome-surface",
 ];
+
+const DIRECTION_TOKENS = ["--dg-up", "--dg-down"];
 
 function readTokensCss() {
   return readFileSync(tokensPath, "utf8");
 }
 
+function stripComments(cssText) {
+  return cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
 function parseDeclarationsForSelector(cssText, selector) {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = cssText.match(new RegExp(`${escapedSelector}\\s*\\{([^}]+)\\}`, "m"));
+  const match = stripComments(cssText).match(
+    new RegExp(`${escapedSelector}\\s*\\{([^}]+)\\}`, "m"),
+  );
   expect(match, `${selector} block must exist`).not.toBeNull();
   return Object.fromEntries(
     [...match[1].matchAll(/(--dg-[a-z0-9-]+)\s*:\s*([^;]+);/g)].map(
@@ -54,8 +73,9 @@ function parseDeclarationsForSelector(cssText, selector) {
 }
 
 function parseAllCustomProperties(cssText) {
+  // Comments first: a token NAME mentioned in prose is not a declaration.
   return Object.fromEntries(
-    [...cssText.matchAll(/(--dg-[a-z0-9-]+)\s*:\s*([^;]+);/g)].map(
+    [...stripComments(cssText).matchAll(/(--dg-[a-z0-9-]+)\s*:\s*([^;]+);/g)].map(
       ([, name, value]) => [name, value.trim()],
     ),
   );
@@ -70,11 +90,11 @@ function parseOklchHue(value) {
   return ((hue % 360) + 360) % 360;
 }
 
-function isRedHue(hue) {
+function isDownHue(hue) {
   return hue <= 30 || hue >= 350;
 }
 
-function isGreenHue(hue) {
+function isUpHue(hue) {
   return hue >= 120 && hue <= 160;
 }
 
@@ -167,9 +187,14 @@ describe("H2 I1 token foundation", () => {
 
   it("guards both token scopes against verdict hues while preserving model and market families", () => {
     const cssText = readTokensCss();
+    const rootTokens = parseDeclarationsForSelector(cssText, ":root");
+    const darkTokens = parseDeclarationsForSelector(cssText, '[data-theme="dark"]');
     const allTokens = parseAllCustomProperties(cssText);
 
-    expect(cssText).not.toMatch(/\b(red|green)\b/i);
+    // DG-115: named CSS colors in DECLARATIONS. The check used to cover the
+    // whole file, comments included, which made the amended direction-color
+    // rule impossible to write down next to the tokens it governs.
+    expect(stripComments(cssText)).not.toMatch(/\b(red|green)\b/i);
 
     for (const tokenName of GUARDED_COLOR_TOKENS) {
       expect(allTokens, `missing guarded token ${tokenName}`).toHaveProperty(tokenName);
@@ -178,8 +203,19 @@ describe("H2 I1 token foundation", () => {
         hue,
         `${tokenName} must be an OKLCH color with explicit hue`,
       ).not.toBeNull();
-      expect(isRedHue(hue), `${tokenName} uses banned red hue ${hue}`).toBe(false);
-      expect(isGreenHue(hue), `${tokenName} uses banned green hue ${hue}`).toBe(false);
+      expect(isDownHue(hue), `${tokenName} uses reserved down hue ${hue}`).toBe(false);
+      expect(isUpHue(hue), `${tokenName} uses reserved up hue ${hue}`).toBe(false);
+    }
+
+    // The direction pair is the ONE exemption, and it is an obligation rather
+    // than a licence: both scopes must actually carry the direction hues, so
+    // the exemption cannot be used to smuggle an arbitrary color in.
+    for (const scope of [rootTokens, darkTokens]) {
+      for (const tokenName of DIRECTION_TOKENS) {
+        expect(scope, `missing direction token ${tokenName}`).toHaveProperty(tokenName);
+      }
+      expect(isUpHue(parseOklchHue(scope["--dg-up"]))).toBe(true);
+      expect(isDownHue(parseOklchHue(scope["--dg-down"]))).toBe(true);
     }
 
     for (const tokenName of ["--dg-model", "--dg-model-emphasis", "--dg-model-muted"]) {
@@ -203,11 +239,21 @@ describe("H2 I1 token foundation", () => {
     const rootTokens = parseDeclarationsForSelector(readTokensCss(), ":root");
     const mismatches = [];
 
+    // DG-115 widens this from the eight semantic aliases to EVERY token
+    // declared in :root. A fallback that disagrees with the root value is a
+    // second, invisible palette that only shows up when the token is missing;
+    // the wave-1 additions (chrome, direction, radius, the type scale) land
+    // inside the same contract rather than beside it.
+    // Whitespace between CSS values paints no pixels, and the formatter wraps
+    // a long font stack across lines on its own — so the comparison is on the
+    // collapsed value. Every other character still has to match exactly.
+    const collapse = (value) => value.replace(/\s+/g, " ").trim();
+
     for (const filePath of cssFiles()) {
       const text = readFileSync(filePath, "utf8");
-      for (const tokenName of SEMANTIC_TOKENS) {
+      for (const tokenName of Object.keys(rootTokens)) {
         for (const fallback of varFallbacks(text, tokenName)) {
-          if (rootTokens[tokenName] !== fallback) {
+          if (collapse(rootTokens[tokenName]) !== collapse(fallback)) {
             mismatches.push(
               `${relative(srcDir, filePath)} ${tokenName}: fallback ${fallback} != root ${rootTokens[tokenName]}`,
             );
