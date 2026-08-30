@@ -45,7 +45,20 @@ export function FoldTable({ folds }: { folds: TrustConsoleViewModel["folds"] }) 
 
   return (
     <section className="dg-trust-folds" aria-label="Per-fold backtest results section">
-      <table className="dg-trust-folds__table" aria-label="Per-fold backtest results">
+      {/* DG-109: this table IS the receipt for "edge unproven" — a statistician's
+          worksheet, cited by its real statistic names (Kendall tau, RMSE, MAE) so
+          the numbers can be checked against the artifact. Renaming the columns
+          would stop it being a receipt, so the exemption is DECLARED here rather
+          than left implicit. The sentence a manager reads is the truth panel
+          above it; this is the working underneath. */}
+      <p className="dg-trust-lede">
+        The season-by-season working behind that, in the statistician's own terms.
+      </p>
+      <table
+        className="dg-trust-folds__table"
+        aria-label="Per-fold backtest results"
+        data-receipt
+      >
         <thead>
           <tr>
             {COLUMNS.map((col) => (

@@ -1,0 +1,1368 @@
+{
+  "daily_diff": {
+    "decision_supported": false,
+    "market": {
+      "comparison_window": {
+        "from_date": "2026-08-29",
+        "to_date": "2026-08-30"
+      },
+      "decision_supported": false,
+      "entered": [
+        {
+          "player_key": "sleeper:11577",
+          "player_name": "Will Shipley",
+          "position": "RB",
+          "sleeper_id": "11577",
+          "team_id": "PHI"
+        },
+        {
+          "player_key": "sleeper:1234",
+          "player_name": "Russell Wilson",
+          "position": "QB",
+          "sleeper_id": "1234"
+        },
+        {
+          "player_key": "sleeper:12496",
+          "player_name": "Tai Felton",
+          "position": "WR",
+          "sleeper_id": "12496",
+          "team_id": "MIN"
+        }
+      ],
+      "exited": [
+        {
+          "player_key": "sleeper:11292",
+          "player_name": "Tommy DeVito",
+          "position": "QB",
+          "sleeper_id": "11292",
+          "team_id": "NE"
+        },
+        {
+          "player_key": "sleeper:11748",
+          "player_name": "Bub Means",
+          "position": "WR",
+          "sleeper_id": "11748",
+          "team_id": "NO"
+        },
+        {
+          "player_key": "sleeper:12542",
+          "player_name": "Efton Chism",
+          "position": "WR",
+          "sleeper_id": "12542",
+          "team_id": "NE"
+        }
+      ],
+      "market_source": "fantasycalc_overlay",
+      "roster_deltas": [
+        {
+          "current_value": 5204,
+          "market_series": {
+            "basis": "fc_forward_capture_joinable.value",
+            "points": [
+              {
+                "date": "2026-08-01",
+                "value": 5381.0
+              },
+              {
+                "date": "2026-08-02",
+                "value": 5308.0
+              },
+              {
+                "date": "2026-08-03",
+                "value": 5317.0
+              },
+              {
+                "date": "2026-08-04",
+                "value": 5298.0
+              },
+              {
+                "date": "2026-08-05",
+                "value": 5290.0
+              },
+              {
+                "date": "2026-08-06",
+                "value": 5224.0
+              },
+              {
+                "date": "2026-08-07",
+                "value": 5237.0
+              },
+              {
+                "date": "2026-08-08",
+                "value": 5164.0
+              },
+              {
+                "date": "2026-08-09",
+                "value": 5154.0
+              },
+              {
+                "date": "2026-08-10",
+                "value": 5086.0
+              },
+              {
+                "date": "2026-08-11",
+                "value": 5153.0
+              },
+              {
+                "date": "2026-08-12",
+                "value": 5214.0
+              },
+              {
+                "date": "2026-08-13",
+                "value": 5135.0
+              },
+              {
+                "date": "2026-08-14",
+                "value": 4952.0
+              },
+              {
+                "date": "2026-08-15",
+                "value": 4955.0
+              },
+              {
+                "date": "2026-08-16",
+                "value": 4958.0
+              },
+              {
+                "date": "2026-08-17",
+                "value": 5111.0
+              },
+              {
+                "date": "2026-08-18",
+                "value": 5003.0
+              },
+              {
+                "date": "2026-08-19",
+                "value": 4995.0
+              },
+              {
+                "date": "2026-08-20",
+                "value": 5066.0
+              },
+              {
+                "date": "2026-08-21",
+                "value": 5060.0
+              },
+              {
+                "date": "2026-08-22",
+                "value": 5059.0
+              },
+              {
+                "date": "2026-08-23",
+                "value": 5153.0
+              },
+              {
+                "date": "2026-08-24",
+                "value": 5195.0
+              },
+              {
+                "date": "2026-08-25",
+                "value": 5050.0
+              },
+              {
+                "date": "2026-08-26",
+                "value": 5057.0
+              },
+              {
+                "date": "2026-08-27",
+                "value": 4857.0
+              },
+              {
+                "date": "2026-08-28",
+                "value": 4776.0
+              },
+              {
+                "date": "2026-08-29",
+                "value": 5082.0
+              },
+              {
+                "date": "2026-08-30",
+                "value": 5204.0
+              }
+            ]
+          },
+          "overall_rank_delta": -1,
+          "overall_rank_delta_direction": "improved",
+          "player_key": "sleeper:12508",
+          "player_name": "Jaxson Dart",
+          "position": "QB",
+          "position_rank_delta": -1,
+          "position_rank_delta_direction": "improved",
+          "sleeper_id": "12508",
+          "team_id": "NYG",
+          "value_delta": 122,
+          "value_delta_direction": "rose"
+        },
+        {
+          "current_value": 555,
+          "market_series": {
+            "basis": "fc_forward_capture_joinable.value",
+            "points": [
+              {
+                "date": "2026-08-01",
+                "value": 693.0
+              },
+              {
+                "date": "2026-08-02",
+                "value": 798.0
+              },
+              {
+                "date": "2026-08-03",
+                "value": 889.0
+              },
+              {
+                "date": "2026-08-04",
+                "value": 1078.0
+              },
+              {
+                "date": "2026-08-05",
+                "value": 1111.0
+              },
+              {
+                "date": "2026-08-06",
+                "value": 1111.0
+              },
+              {
+                "date": "2026-08-07",
+                "value": 1067.0
+              },
+              {
+                "date": "2026-08-08",
+                "value": 990.0
+              },
+              {
+                "date": "2026-08-09",
+                "value": 946.0
+              },
+              {
+                "date": "2026-08-10",
+                "value": 920.0
+              },
+              {
+                "date": "2026-08-11",
+                "value": 869.0
+              },
+              {
+                "date": "2026-08-12",
+                "value": 856.0
+              },
+              {
+                "date": "2026-08-13",
+                "value": 787.0
+              },
+              {
+                "date": "2026-08-14",
+                "value": 751.0
+              },
+              {
+                "date": "2026-08-15",
+                "value": 751.0
+              },
+              {
+                "date": "2026-08-16",
+                "value": 749.0
+              },
+              {
+                "date": "2026-08-17",
+                "value": 906.0
+              },
+              {
+                "date": "2026-08-18",
+                "value": 817.0
+              },
+              {
+                "date": "2026-08-19",
+                "value": 749.0
+              },
+              {
+                "date": "2026-08-20",
+                "value": 744.0
+              },
+              {
+                "date": "2026-08-21",
+                "value": 763.0
+              },
+              {
+                "date": "2026-08-22",
+                "value": 785.0
+              },
+              {
+                "date": "2026-08-23",
+                "value": 711.0
+              },
+              {
+                "date": "2026-08-24",
+                "value": 575.0
+              },
+              {
+                "date": "2026-08-25",
+                "value": 596.0
+              },
+              {
+                "date": "2026-08-26",
+                "value": 696.0
+              },
+              {
+                "date": "2026-08-27",
+                "value": 614.0
+              },
+              {
+                "date": "2026-08-28",
+                "value": 590.0
+              },
+              {
+                "date": "2026-08-29",
+                "value": 652.0
+              },
+              {
+                "date": "2026-08-30",
+                "value": 555.0
+              }
+            ]
+          },
+          "overall_rank_delta": 9,
+          "overall_rank_delta_direction": "declined",
+          "player_key": "sleeper:12499",
+          "player_name": "Elic Ayomanor",
+          "position": "WR",
+          "position_rank_delta": 2,
+          "position_rank_delta_direction": "declined",
+          "sleeper_id": "12499",
+          "team_id": "TEN",
+          "value_delta": -97,
+          "value_delta_direction": "fell"
+        },
+        {
+          "current_value": 3443,
+          "market_series": {
+            "basis": "fc_forward_capture_joinable.value",
+            "points": [
+              {
+                "date": "2026-08-01",
+                "value": 3403.0
+              },
+              {
+                "date": "2026-08-02",
+                "value": 3377.0
+              },
+              {
+                "date": "2026-08-03",
+                "value": 3461.0
+              },
+              {
+                "date": "2026-08-04",
+                "value": 3485.0
+              },
+              {
+                "date": "2026-08-05",
+                "value": 3664.0
+              },
+              {
+                "date": "2026-08-06",
+                "value": 3614.0
+              },
+              {
+                "date": "2026-08-07",
+                "value": 3590.0
+              },
+              {
+                "date": "2026-08-08",
+                "value": 3454.0
+              },
+              {
+                "date": "2026-08-09",
+                "value": 3228.0
+              },
+              {
+                "date": "2026-08-10",
+                "value": 3338.0
+              },
+              {
+                "date": "2026-08-11",
+                "value": 3288.0
+              },
+              {
+                "date": "2026-08-12",
+                "value": 3326.0
+              },
+              {
+                "date": "2026-08-13",
+                "value": 3390.0
+              },
+              {
+                "date": "2026-08-14",
+                "value": 3335.0
+              },
+              {
+                "date": "2026-08-15",
+                "value": 3336.0
+              },
+              {
+                "date": "2026-08-16",
+                "value": 3339.0
+              },
+              {
+                "date": "2026-08-17",
+                "value": 3362.0
+              },
+              {
+                "date": "2026-08-18",
+                "value": 3321.0
+              },
+              {
+                "date": "2026-08-19",
+                "value": 3304.0
+              },
+              {
+                "date": "2026-08-20",
+                "value": 3344.0
+              },
+              {
+                "date": "2026-08-21",
+                "value": 3375.0
+              },
+              {
+                "date": "2026-08-22",
+                "value": 3420.0
+              },
+              {
+                "date": "2026-08-23",
+                "value": 3297.0
+              },
+              {
+                "date": "2026-08-24",
+                "value": 3378.0
+              },
+              {
+                "date": "2026-08-25",
+                "value": 3396.0
+              },
+              {
+                "date": "2026-08-26",
+                "value": 3472.0
+              },
+              {
+                "date": "2026-08-27",
+                "value": 3447.0
+              },
+              {
+                "date": "2026-08-28",
+                "value": 3513.0
+              },
+              {
+                "date": "2026-08-29",
+                "value": 3533.0
+              },
+              {
+                "date": "2026-08-30",
+                "value": 3443.0
+              }
+            ]
+          },
+          "overall_rank_delta": 1,
+          "overall_rank_delta_direction": "declined",
+          "player_key": "sleeper:9484",
+          "player_name": "Tucker Kraft",
+          "position": "TE",
+          "position_rank_delta": 0,
+          "position_rank_delta_direction": "unchanged",
+          "sleeper_id": "9484",
+          "team_id": "GB",
+          "value_delta": -90,
+          "value_delta_direction": "fell"
+        }
+      ],
+      "status": "ok",
+      "top_movers": [
+        {
+          "current_value": 4312,
+          "market_series": {
+            "basis": "fc_forward_capture_joinable.value",
+            "points": [
+              {
+                "date": "2026-08-01",
+                "value": 3905.0
+              },
+              {
+                "date": "2026-08-02",
+                "value": 3834.0
+              },
+              {
+                "date": "2026-08-03",
+                "value": 3903.0
+              },
+              {
+                "date": "2026-08-04",
+                "value": 3991.0
+              },
+              {
+                "date": "2026-08-05",
+                "value": 4015.0
+              },
+              {
+                "date": "2026-08-06",
+                "value": 4039.0
+              },
+              {
+                "date": "2026-08-07",
+                "value": 4119.0
+              },
+              {
+                "date": "2026-08-08",
+                "value": 3941.0
+              },
+              {
+                "date": "2026-08-09",
+                "value": 3927.0
+              },
+              {
+                "date": "2026-08-10",
+                "value": 3904.0
+              },
+              {
+                "date": "2026-08-11",
+                "value": 3943.0
+              },
+              {
+                "date": "2026-08-12",
+                "value": 3925.0
+              },
+              {
+                "date": "2026-08-13",
+                "value": 3800.0
+              },
+              {
+                "date": "2026-08-14",
+                "value": 3868.0
+              },
+              {
+                "date": "2026-08-15",
+                "value": 3863.0
+              },
+              {
+                "date": "2026-08-16",
+                "value": 3861.0
+              },
+              {
+                "date": "2026-08-17",
+                "value": 3986.0
+              },
+              {
+                "date": "2026-08-18",
+                "value": 3934.0
+              },
+              {
+                "date": "2026-08-19",
+                "value": 4020.0
+              },
+              {
+                "date": "2026-08-20",
+                "value": 3849.0
+              },
+              {
+                "date": "2026-08-21",
+                "value": 3872.0
+              },
+              {
+                "date": "2026-08-22",
+                "value": 3869.0
+              },
+              {
+                "date": "2026-08-23",
+                "value": 3975.0
+              },
+              {
+                "date": "2026-08-24",
+                "value": 3787.0
+              },
+              {
+                "date": "2026-08-25",
+                "value": 3699.0
+              },
+              {
+                "date": "2026-08-26",
+                "value": 3892.0
+              },
+              {
+                "date": "2026-08-27",
+                "value": 3984.0
+              },
+              {
+                "date": "2026-08-28",
+                "value": 3852.0
+              },
+              {
+                "date": "2026-08-29",
+                "value": 4020.0
+              },
+              {
+                "date": "2026-08-30",
+                "value": 4312.0
+              }
+            ]
+          },
+          "overall_rank_delta": -3,
+          "overall_rank_delta_direction": "improved",
+          "player_key": "sleeper:11635",
+          "player_name": "Ladd McConkey",
+          "position": "WR",
+          "position_rank_delta": -1,
+          "position_rank_delta_direction": "improved",
+          "sleeper_id": "11635",
+          "team_id": "LAC",
+          "value_delta": 292,
+          "value_delta_direction": "rose"
+        },
+        {
+          "current_value": 5298,
+          "market_series": {
+            "basis": "fc_forward_capture_joinable.value",
+            "points": [
+              {
+                "date": "2026-08-01",
+                "value": 5646.0
+              },
+              {
+                "date": "2026-08-02",
+                "value": 5794.0
+              },
+              {
+                "date": "2026-08-03",
+                "value": 5820.0
+              },
+              {
+                "date": "2026-08-04",
+                "value": 5681.0
+              },
+              {
+                "date": "2026-08-05",
+                "value": 5651.0
+              },
+              {
+                "date": "2026-08-06",
+                "value": 5611.0
+              },
+              {
+                "date": "2026-08-07",
+                "value": 5619.0
+              },
+              {
+                "date": "2026-08-08",
+                "value": 5610.0
+              },
+              {
+                "date": "2026-08-09",
+                "value": 5713.0
+              },
+              {
+                "date": "2026-08-10",
+                "value": 5687.0
+              },
+              {
+                "date": "2026-08-11",
+                "value": 5960.0
+              },
+              {
+                "date": "2026-08-12",
+                "value": 5962.0
+              },
+              {
+                "date": "2026-08-13",
+                "value": 5818.0
+              },
+              {
+                "date": "2026-08-14",
+                "value": 5784.0
+              },
+              {
+                "date": "2026-08-15",
+                "value": 5787.0
+              },
+              {
+                "date": "2026-08-16",
+                "value": 5791.0
+              },
+              {
+                "date": "2026-08-17",
+                "value": 5630.0
+              },
+              {
+                "date": "2026-08-18",
+                "value": 5377.0
+              },
+              {
+                "date": "2026-08-19",
+                "value": 5530.0
+              },
+              {
+                "date": "2026-08-20",
+                "value": 5538.0
+              },
+              {
+                "date": "2026-08-21",
+                "value": 5732.0
+              },
+              {
+                "date": "2026-08-22",
+                "value": 5620.0
+              },
+              {
+                "date": "2026-08-23",
+                "value": 5596.0
+              },
+              {
+                "date": "2026-08-24",
+                "value": 5520.0
+              },
+              {
+                "date": "2026-08-25",
+                "value": 5567.0
+              },
+              {
+                "date": "2026-08-26",
+                "value": 5485.0
+              },
+              {
+                "date": "2026-08-27",
+                "value": 5590.0
+              },
+              {
+                "date": "2026-08-28",
+                "value": 5546.0
+              },
+              {
+                "date": "2026-08-29",
+                "value": 5547.0
+              },
+              {
+                "date": "2026-08-30",
+                "value": 5298.0
+              }
+            ]
+          },
+          "overall_rank_delta": 1,
+          "overall_rank_delta_direction": "declined",
+          "player_key": "sleeper:8112",
+          "player_name": "Drake London",
+          "position": "WR",
+          "position_rank_delta": 0,
+          "position_rank_delta_direction": "unchanged",
+          "sleeper_id": "8112",
+          "team_id": "ATL",
+          "value_delta": -249,
+          "value_delta_direction": "fell"
+        },
+        {
+          "current_value": 1156,
+          "market_series": {
+            "basis": "fc_forward_capture_joinable.value",
+            "points": [
+              {
+                "date": "2026-08-01",
+                "value": 1132.0
+              },
+              {
+                "date": "2026-08-02",
+                "value": 1253.0
+              },
+              {
+                "date": "2026-08-03",
+                "value": 1197.0
+              },
+              {
+                "date": "2026-08-04",
+                "value": 1306.0
+              },
+              {
+                "date": "2026-08-05",
+                "value": 1571.0
+              },
+              {
+                "date": "2026-08-06",
+                "value": 1549.0
+              },
+              {
+                "date": "2026-08-07",
+                "value": 1624.0
+              },
+              {
+                "date": "2026-08-08",
+                "value": 1884.0
+              },
+              {
+                "date": "2026-08-09",
+                "value": 1834.0
+              },
+              {
+                "date": "2026-08-10",
+                "value": 1846.0
+              },
+              {
+                "date": "2026-08-11",
+                "value": 1845.0
+              },
+              {
+                "date": "2026-08-12",
+                "value": 1829.0
+              },
+              {
+                "date": "2026-08-13",
+                "value": 1799.0
+              },
+              {
+                "date": "2026-08-14",
+                "value": 1846.0
+              },
+              {
+                "date": "2026-08-15",
+                "value": 1842.0
+              },
+              {
+                "date": "2026-08-16",
+                "value": 1843.0
+              },
+              {
+                "date": "2026-08-17",
+                "value": 1807.0
+              },
+              {
+                "date": "2026-08-18",
+                "value": 1829.0
+              },
+              {
+                "date": "2026-08-19",
+                "value": 1699.0
+              },
+              {
+                "date": "2026-08-20",
+                "value": 1795.0
+              },
+              {
+                "date": "2026-08-21",
+                "value": 1600.0
+              },
+              {
+                "date": "2026-08-22",
+                "value": 1524.0
+              },
+              {
+                "date": "2026-08-23",
+                "value": 1389.0
+              },
+              {
+                "date": "2026-08-24",
+                "value": 1419.0
+              },
+              {
+                "date": "2026-08-25",
+                "value": 1522.0
+              },
+              {
+                "date": "2026-08-26",
+                "value": 1400.0
+              },
+              {
+                "date": "2026-08-27",
+                "value": 1332.0
+              },
+              {
+                "date": "2026-08-28",
+                "value": 1398.0
+              },
+              {
+                "date": "2026-08-29",
+                "value": 1339.0
+              },
+              {
+                "date": "2026-08-30",
+                "value": 1156.0
+              }
+            ]
+          },
+          "overall_rank_delta": 23,
+          "overall_rank_delta_direction": "declined",
+          "player_key": "sleeper:13272",
+          "player_name": "Carson Beck",
+          "position": "QB",
+          "position_rank_delta": 2,
+          "position_rank_delta_direction": "declined",
+          "sleeper_id": "13272",
+          "team_id": "ARI",
+          "value_delta": -183,
+          "value_delta_direction": "fell"
+        }
+      ],
+      "total_movers_count": 457
+    },
+    "model": {
+      "comparison_window": {
+        "ambiguous_dates": ["2026-08-29"],
+        "from_date": "2026-08-29",
+        "status": "model_multi_vintage_ambiguous",
+        "to_date": "2026-08-30"
+      },
+      "decision_supported": false,
+      "deltas": [],
+      "feature_freshness": {
+        "decision_supported": false,
+        "feature_csv_path": "app/data/features_runtime/engine_b_features_runtime.csv",
+        "feature_csv_sha256": "9d274ac34f4fbe84de01c765b18a320f29675a92cb75baf2548dfbb52fe1d056",
+        "feature_source_kind": "runtime",
+        "published_seed_sha256": "50a83ff016ae890607ab9265a6d0d8cccbe644cc6dc14e8a3120ee63e9d6d8b6"
+      },
+      "pvo_staleness": {
+        "coverage_path": "/Users/davidleess/dynasty-genius-product/app/data/valuation_runtime/universe_pvo_coverage_runtime.json",
+        "coverage_sha256": "3cc993d55d634d45e3d29b1a78d2fd2defe4a84bedbf131fe7770b56d2acbbbf",
+        "decision_supported": false,
+        "pvo_path": "/Users/davidleess/dynasty-genius-product/app/data/valuation_runtime/universe_pvo_runtime.json",
+        "pvo_sha256": "7dad40b902907c9a1f3c9217c5d10df6648d4a1d1aaa899b22ef2b21c3ded226",
+        "pvo_source_kind": "runtime",
+        "source_as_of": "2026-08-30T13:00:49.344012+00:00"
+      },
+      "status": "model_multi_vintage_ambiguous"
+    },
+    "overall_status": "degraded"
+  },
+  "decision_supported": false,
+  "generated_at": "2026-08-30T13:00:52.519264+00:00",
+  "overall_status": "degraded",
+  "schema_version": "war_room_2_what_changed_v1",
+  "structural_context": {
+    "baseline_roster_rows": [
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "AJ Barner",
+        "position": "TE",
+        "sleeper_id": "11603",
+        "team_id": "SEA"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Adonai Mitchell",
+        "position": "WR",
+        "sleeper_id": "11625",
+        "team_id": "NYJ"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Ashton Jeanty",
+        "position": "RB",
+        "sleeper_id": "12527",
+        "team_id": "LV"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Braelon Allen",
+        "position": "RB",
+        "sleeper_id": "11576",
+        "team_id": "NYJ"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Chimere Dike",
+        "position": "WR",
+        "sleeper_id": "12540",
+        "team_id": "TEN"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Chris Bell",
+        "position": "WR",
+        "sleeper_id": "13311",
+        "team_id": "MIA"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Dillon Gabriel",
+        "position": "QB",
+        "sleeper_id": "12486",
+        "team_id": "CLE"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Elic Ayomanor",
+        "position": "WR",
+        "sleeper_id": "12499",
+        "team_id": "TEN"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Fernando Mendoza",
+        "position": "QB",
+        "sleeper_id": "13269",
+        "team_id": "LV"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Garrett Wilson",
+        "position": "WR",
+        "sleeper_id": "8146",
+        "team_id": "NYJ"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "J.J. McCarthy",
+        "position": "QB",
+        "sleeper_id": "11565",
+        "team_id": "MIN"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Jaxson Dart",
+        "position": "QB",
+        "sleeper_id": "12508",
+        "team_id": "NYG"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Kaelon Black",
+        "position": "RB",
+        "sleeper_id": "13414",
+        "team_id": "SF"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Kyle Williams",
+        "position": "WR",
+        "sleeper_id": "12547",
+        "team_id": "NE"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Luther Burden",
+        "position": "WR",
+        "sleeper_id": "12519",
+        "team_id": "CHI"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Mac Jones",
+        "position": "QB",
+        "sleeper_id": "7527",
+        "team_id": "SF"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Omar Cooper",
+        "position": "WR",
+        "sleeper_id": "13276",
+        "team_id": "NYJ"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Parker Washington",
+        "position": "WR",
+        "sleeper_id": "9487",
+        "team_id": "JAX"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Pat Bryant",
+        "position": "WR",
+        "sleeper_id": "12492",
+        "team_id": "DEN"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Rasheen Ali",
+        "position": "RB",
+        "sleeper_id": "11570",
+        "team_id": "BAL"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Rome Odunze",
+        "position": "WR",
+        "sleeper_id": "11620",
+        "team_id": "CHI"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Tank Dell",
+        "position": "WR",
+        "sleeper_id": "9502",
+        "team_id": "HOU"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Theo Johnson",
+        "position": "TE",
+        "sleeper_id": "11597",
+        "team_id": "NYG"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Tre' Harris",
+        "position": "WR",
+        "sleeper_id": "12509",
+        "team_id": "LAC"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "TreVeyon Henderson",
+        "position": "RB",
+        "sleeper_id": "12529",
+        "team_id": "NE"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Tucker Kraft",
+        "position": "TE",
+        "sleeper_id": "9484",
+        "team_id": "GB"
+      },
+      {
+        "market_lane_value": 0,
+        "model_lane_value": 0,
+        "player_name": "Xavier Legette",
+        "position": "WR",
+        "sleeper_id": "11626",
+        "team_id": "CAR"
+      }
+    ],
+    "current_not_delta": true,
+    "decision_supported": false,
+    "sections": {
+      "drop_pressure": {
+        "captured_at": "2026-08-30T13:00:47.823861+00:00",
+        "current_not_delta": true,
+        "decision_supported": false,
+        "source_path": "/Users/davidleess/dynasty-genius-product/app/data/league_runtime/runs/league-20260830T130046Z/roster_cut_report.json",
+        "staleness_caveat": {
+          "age_hours": 0.0,
+          "basis": "captured_at_vs_report_generated_at",
+          "is_stale": false,
+          "report_generated_at": "2026-08-30T13:00:52.519264+00:00"
+        },
+        "status": "ok",
+        "summary": {
+          "cuts_required": 1,
+          "roster_id": 1,
+          "total_capacity": 26,
+          "total_players": 27
+        },
+        "top_candidates": [
+          {
+            "cut_priority": 1,
+            "dvs": 20.7,
+            "player_name": "Rasheen Ali",
+            "position": "RB",
+            "sleeper_player_id": "11570",
+            "xvar_pct": 36.8
+          },
+          {
+            "cut_priority": 2,
+            "dvs": 37.8,
+            "player_name": "Kyle Williams",
+            "position": "WR",
+            "sleeper_player_id": "12547",
+            "xvar_pct": 42.9
+          },
+          {
+            "cut_priority": 3,
+            "dvs": 40.1,
+            "player_name": "Adonai Mitchell",
+            "position": "WR",
+            "sleeper_player_id": "11625",
+            "xvar_pct": 46.6
+          },
+          {
+            "cut_priority": 4,
+            "dvs": 49.7,
+            "player_name": "Dillon Gabriel",
+            "position": "QB",
+            "sleeper_player_id": "12486",
+            "xvar_pct": 46.8
+          },
+          {
+            "cut_priority": 5,
+            "dvs": 43.1,
+            "player_name": "Tre Harris",
+            "position": "WR",
+            "sleeper_player_id": "12509",
+            "xvar_pct": 50.9
+          }
+        ]
+      },
+      "league_opportunity": {
+        "captured_at": "2026-08-25T13:35:02.862720+00:00",
+        "current_not_delta": true,
+        "decision_supported": false,
+        "source_path": "/Users/davidleess/dynasty-genius-product/app/data/valuation/league_opportunity_latest.json",
+        "staleness_caveat": {
+          "age_hours": 119.4,
+          "basis": "captured_at_vs_weekly_producer_cadence",
+          "is_stale": false,
+          "report_generated_at": "2026-08-30T13:00:52.519264+00:00"
+        },
+        "status": "ok",
+        "top_cards": [
+          {
+            "asset_name": "Zach Ertz",
+            "card_id": "opp-0141",
+            "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+            "roster_capacity_context": {
+              "candidate_count": 21,
+              "hard_conflict_count": 0,
+              "pool_status": "available"
+            }
+          },
+          {
+            "asset_name": "Sam Roush",
+            "card_id": "opp-0139",
+            "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+            "roster_capacity_context": {
+              "candidate_count": 21,
+              "hard_conflict_count": 0,
+              "pool_status": "available"
+            }
+          },
+          {
+            "asset_name": "Colby Parkinson",
+            "card_id": "opp-0162",
+            "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+            "roster_capacity_context": {
+              "candidate_count": 21,
+              "hard_conflict_count": 0,
+              "pool_status": "available"
+            }
+          },
+          {
+            "asset_name": "Cyrus Allen",
+            "card_id": "opp-0060",
+            "card_type": "DIVERGENCE_MARKET_HIGH",
+            "roster_capacity_context": {
+              "candidate_count": 0,
+              "hard_conflict_count": 0
+            }
+          },
+          {
+            "asset_name": "Tommy Tremble",
+            "card_id": "opp-0165",
+            "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+            "roster_capacity_context": {
+              "candidate_count": 21,
+              "hard_conflict_count": 0,
+              "pool_status": "available"
+            }
+          }
+        ],
+        "top_partner_rankings": [
+          {
+            "counterparty_roster_id": 7,
+            "counterparty_team_name": "YippeKiYay MarshalFaulker",
+            "matched_positions": ["RB", "WR"],
+            "partner_score": 2.091
+          },
+          {
+            "counterparty_roster_id": 4,
+            "counterparty_team_name": "Free Kelly",
+            "matched_positions": ["QB", "WR"],
+            "partner_score": 1.936
+          },
+          {
+            "counterparty_roster_id": 3,
+            "counterparty_team_name": "MDEF",
+            "matched_positions": ["QB", "RB"],
+            "partner_score": 1.895
+          },
+          {
+            "counterparty_roster_id": 8,
+            "counterparty_team_name": "jspringe88",
+            "matched_positions": ["WR"],
+            "partner_score": 1.661
+          },
+          {
+            "counterparty_roster_id": 2,
+            "counterparty_team_name": "jgil96",
+            "matched_positions": ["RB"],
+            "partner_score": 1.572
+          }
+        ]
+      },
+      "sleeper_snapshot": {
+        "captured_at": "2026-08-30T13:00:47.629704+00:00",
+        "current_not_delta": true,
+        "david_roster_id": 1,
+        "david_roster_player_count": 27,
+        "decision_supported": false,
+        "league_roster_count": 12,
+        "source_path": "/Users/davidleess/dynasty-genius-product/app/data/league_runtime/runs/league-20260830T130046Z/snapshot.json",
+        "staleness_caveat": {
+          "age_hours": 0.0,
+          "basis": "captured_at_vs_report_generated_at",
+          "is_stale": false,
+          "report_generated_at": "2026-08-30T13:00:52.519264+00:00"
+        },
+        "status": "ok"
+      },
+      "team_posture": {
+        "captured_at": "2026-08-30T13:00:47.822653+00:00",
+        "current_not_delta": true,
+        "david_posture": "REBUILDING",
+        "david_roster_id": 1,
+        "david_team_name": "Woodbury Riders",
+        "decision_supported": false,
+        "source_path": "/Users/davidleess/dynasty-genius-product/app/data/league_runtime/runs/league-20260830T130046Z/team_posture.json",
+        "staleness_caveat": {
+          "age_hours": 0.0,
+          "basis": "captured_at_vs_report_generated_at",
+          "is_stale": false,
+          "report_generated_at": "2026-08-30T13:00:52.519264+00:00"
+        },
+        "status": "ok",
+        "team_count": 12
+      },
+      "team_value": {
+        "captured_at": "2026-08-30T13:00:47.818918+00:00",
+        "current_not_delta": true,
+        "david_value_summary": {
+          "depth_credit_xvar": 0.0,
+          "lineup_xvar": 97.39,
+          "posture_label": "UNCLASSIFIED",
+          "roster_id": 1,
+          "starter_weighted_xvar": 97.39,
+          "team_name": "Woodbury Riders",
+          "top_n_xvar": 116.19,
+          "total_xvar_capped": 117.98
+        },
+        "decision_supported": false,
+        "source_path": "/Users/davidleess/dynasty-genius-product/app/data/league_runtime/runs/league-20260830T130046Z/team_value_matrix.json",
+        "staleness_caveat": {
+          "age_hours": 0.0,
+          "basis": "captured_at_vs_report_generated_at",
+          "is_stale": false,
+          "report_generated_at": "2026-08-30T13:00:52.519264+00:00"
+        },
+        "status": "ok"
+      }
+    },
+    "status": "ok"
+  }
+}

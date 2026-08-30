@@ -8,21 +8,36 @@
 // status word itself is the entire signal, in neutral slate.
 import type { TrustConsoleViewModel } from "./trustViewModel";
 
+// DG-109: the gate names carried their internal G1..G4 labels and the raw
+// statistic names. The check each one runs is unchanged; it is now named in
+// words, and the internal identifier rides the row's `data-gate` attribute for
+// CSS and tests rather than the screen.
 const GATE_ROWS = [
-  { key: "g1_rank_correlation_pass", label: "G1 Rank correlation" },
-  { key: "g2_rmse_stability_pass", label: "G2 RMSE stability" },
-  { key: "g3_market_superiority_pass", label: "G3 Market superiority" },
-  { key: "g4_divergence_validity_pass", label: "G4 Divergence validity" },
+  {
+    key: "g1_rank_correlation_pass",
+    label: "Does it rank players in roughly the right order?",
+  },
+  {
+    key: "g2_rmse_stability_pass",
+    label: "Is its error steady from one test season to the next?",
+  },
+  { key: "g3_market_superiority_pass", label: "Does it beat the market?" },
+  {
+    key: "g4_divergence_validity_pass",
+    label: "Do its disagreements with the market hold up?",
+  },
 ] as const;
 
-// Point-estimate gate state -> neutral label. bool gates yield MET/UNMET; the
-// market/divergence gates can additionally be deferred or (G4) insufficient-data.
+// Point-estimate gate state -> neutral words. DG-109: these were MET / UNMET /
+// DEFERRED / INSUFFICIENT DATA on screen. The state each one reports is
+// unchanged — in particular "met" stays a point-estimate reading and never
+// becomes "passed", which the disclaimer below still spells out.
 function gateStatus(value: boolean | string): string {
-  if (value === true) return "MET";
-  if (value === false) return "UNMET";
-  if (value === "deferred") return "DEFERRED";
-  if (value === "insufficient_data") return "INSUFFICIENT DATA";
-  return "UNKNOWN";
+  if (value === true) return "met";
+  if (value === false) return "not met";
+  if (value === "deferred") return "not tested yet";
+  if (value === "insufficient_data") return "not enough data to test";
+  return "unknown";
 }
 
 export function GateMatrix({ gates }: { gates: TrustConsoleViewModel["gates"] }) {
@@ -30,14 +45,14 @@ export function GateMatrix({ gates }: { gates: TrustConsoleViewModel["gates"] })
     <section className="dg-trust-gates" aria-label="Validation gates">
       <ul className="dg-trust-gates__list">
         {GATE_ROWS.map((row) => (
-          <li key={row.key} className="dg-trust-gates__row">
+          <li key={row.key} className="dg-trust-gates__row" data-gate={row.key}>
             {row.label}: {gateStatus(gates[row.key])}
           </li>
         ))}
       </ul>
-      {/* MET is a point-estimate gate state, NOT decision support — non-dismissible. */}
+      {/* "met" is a point-estimate gate state, NOT decision support — non-dismissible. */}
       <p className="dg-trust-gates__disclaimer">
-        MET = point-estimate gate state, not decision support
+        A gate reading "met" is a single point estimate, not decision support
       </p>
       <p className="dg-trust-gates__justification">{gates.promotion_justification}</p>
     </section>

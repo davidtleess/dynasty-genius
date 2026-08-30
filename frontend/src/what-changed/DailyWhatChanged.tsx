@@ -708,6 +708,9 @@ function DailyTape() {
 function ModelRegion({ model }: { model: WhatChangedModelSection }) {
   const deltas = model.deltas ?? [];
   const modelWindow = model.comparison_window ?? null;
+  // These three are raw producer enums. CaveatBlock now runs them through the
+  // dictionary itself (see its header) — on a quiet day all three are absent,
+  // which is exactly why the fixture-pinned test never caught them here.
   const caveats = [
     modelWindow?.status ?? null,
     model.feature_freshness?.aborted_reason ?? null,

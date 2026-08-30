@@ -31,9 +31,42 @@ describe("the copy dictionary", () => {
     );
     // Stale still says stale; unscored still says unscored.
     expect(describeToken("vintage_changed_no_score_delta")).toMatch(
-      /not one player's score moved/,
+      /rebuilt on a newer model run/,
+    );
+    // ...and the SCOPE of that "nothing moved" is stated, because the producer
+    // only ever compared players present in both captures (daily_diff.py:349).
+    // An earlier draft said "not one player's score moved" — a universal
+    // negative over the whole league that the producer never computes.
+    expect(describeToken("vintage_changed_no_score_delta")).toMatch(
+      /none of the players we could compare moved/,
     );
     expect(valueWord("PRE_MODEL")).toBe("Not scored yet");
+  });
+
+  // The three sentences the DG-109 review panel found asserting MORE than their
+  // token knows. Each token is a statement about the SCOPE of an analysis, and
+  // each earlier draft turned it into a claim about the world that the same card
+  // disproves a few lines further up.
+  it("keeps a scope statement a scope statement, and never a claim about the world", () => {
+    // `ROSTER_CAVEATS`/`_PVO_CAVEATS` are constants applied to every row
+    // (roster_auditor.py:59, :81, :492). The card that carries this caveat also
+    // prints "Market value 5082 · 30th overall".
+    const market = describeToken("no_market_overlay");
+    expect(market).toMatch(/left out/i);
+    expect(market).not.toMatch(/nobody|no one|not quoting|no market price/i);
+
+    // Emitted when `biological_debt_score()` returns None for want of an input
+    // (roster_auditor.py:493-494) — on cards that print "Dynasty value 77.5".
+    const internal = describeToken("no_internal_value_signal");
+    expect(internal).toMatch(/age-weighted value risk/i);
+    expect(internal).not.toMatch(/no value score|not scored/i);
+
+    // Hardcoded structurally on every roster-fit card
+    // (league_opportunity_map.py:292), where no gate ran and OpportunityCards
+    // renders the card's full evidence regardless.
+    const gated = valueWord("evidence_gated");
+    expect(gated).toMatch(/not cleared/i);
+    expect(gated).not.toMatch(/held back|withheld|suppressed/i);
   });
 
   it("keeps the numbers and the full missing list in the signal-completeness sentence", () => {

@@ -10,9 +10,12 @@ describe("RosterAuditTable", () => {
     const rows = within(screen.getByRole("table")).getAllByRole("row").slice(1);
     expect(rows.length).toBe(2);
     expect(within(rows[0]).getByText("Active WR")).toBeTruthy();
-    expect(
-      within(rows[0]).getByText(/VALIDATED|PROVISIONAL|EXPERIMENTAL|ACTIVE_B/),
-    ).toBeTruthy();
+    // DG-109: this used to assert the raw grade enum was on screen. The GRADE is
+    // still on the row and still assert-able — the raw value rides `data-grade`
+    // for CSS and tests, exactly as the trust strip keeps its own — and the cell
+    // now says which model scored him instead of shouting `ACTIVE_B`.
+    expect(rows[0].getAttribute("data-grade")).toBe("ACTIVE_B");
+    expect(within(rows[0]).getByText("Scored by the active-player model")).toBeTruthy();
   });
 
   it("shows '—' for absent scores and de-emphasizes non-applicable rows", () => {

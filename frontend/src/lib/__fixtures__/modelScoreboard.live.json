@@ -1,0 +1,96 @@
+{
+  "baseline_question": {
+    "below_materiality_floor": true,
+    "counterweight_effect": {
+      "adjusted_p": 0.010398960103989599,
+      "ci_high": -0.13016803559556847,
+      "ci_low": -0.427914880369422,
+      "evaluable_folds": 8,
+      "total_folds": 8,
+      "unit": "spearman_rank_correlation",
+      "value": -0.26510254231800073
+    },
+    "counterweight_headline": "Efficiency alone ranked worse than carrying last year's points forward.",
+    "effect": {
+      "adjusted_p": 0.0440955904409559,
+      "ci_high": 0.18600350362745874,
+      "ci_low": 0.0035794842180143097,
+      "evaluable_folds": 8,
+      "total_folds": 8,
+      "unit": "spearman_rank_correlation",
+      "value": 0.09789663913191639
+    },
+    "headline": "The full QB model ranks quarterbacks better than carrying last year's points forward.",
+    "materiality_floor": 0.05,
+    "materiality_note": "Both of these are true: the model does rank better, and the effect may be too small to matter. The plausible range runs 0.004 to 0.186, and the study's own floor for a difference worth acting on is 0.05.",
+    "position": "QB",
+    "state": "answered"
+  },
+  "decision_supported": false,
+  "generated_at": "2026-08-17T11:14:54.209097+00:00",
+  "live": {
+    "headline": "No weeks graded yet \u2014 the first live week is Week 1.",
+    "predictions_declared": null,
+    "predictions_graded": null,
+    "rank_availability_note": "Ranking accuracy needs four games per player before it can be computed, so those columns stay empty until roughly Week 5 even once grading starts.",
+    "rank_eligible": null,
+    "rank_metrics_available": false,
+    "state": "not_started",
+    "weeks_graded": 0
+  },
+  "market_question": {
+    "effect_direction_note": "On the single usable season the market ranked ahead of the model, but one season cannot settle it \u2014 these numbers are shown for completeness and support no conclusion in either direction.",
+    "evaluable_folds": 1,
+    "excluded_fold_reasons": ["degenerate_input", "fold_starved"],
+    "headline": "We cannot say yet whether the QB model beats the market.",
+    "observed_effects": [
+      {
+        "adjusted_p": 0.0009332400093324001,
+        "ci_high": 1.0710316996074918,
+        "ci_low": 0.2756333733470946,
+        "evaluable_folds": 1,
+        "total_folds": 4,
+        "unit": "spearman_rank_correlation",
+        "value": 0.6762351232627017
+      },
+      {
+        "adjusted_p": 0.0022397760223977605,
+        "ci_high": 0.9203379854325057,
+        "ci_low": 0.1861878586513038,
+        "evaluable_folds": 1,
+        "total_folds": 4,
+        "unit": "spearman_rank_correlation",
+        "value": 0.5594284005736261
+      },
+      {
+        "adjusted_p": 0.04230688042306881,
+        "ci_high": 0.6312686610156416,
+        "ci_low": -0.011009508727593868,
+        "evaluable_folds": 1,
+        "total_folds": 4,
+        "unit": "spearman_rank_correlation",
+        "value": 0.27371411485934033
+      },
+      {
+        "adjusted_p": 0.2908478382930938,
+        "ci_high": 0.3350231481350626,
+        "ci_low": -0.20642425028604916,
+        "evaluable_folds": 1,
+        "total_folds": 4,
+        "unit": "spearman_rank_correlation",
+        "value": 0.03225753222628713
+      }
+    ],
+    "position": "QB",
+    "state": "unanswered",
+    "total_folds": 4,
+    "what_would_answer_it": "Market prices captured forward, season by season. The comparison is scored per test season, so usable seasons \u2014 not weeks \u2014 are what accrue; the study can be re-run once enough of them exist. No date is promised here because the rate depends on capture coverage, not on the calendar.",
+    "why": "Only 1 of 4 test seasons produced a usable model-versus-market comparison. The other 3 were thrown out before any result was read, because the market data for those seasons was too thin to compare against."
+  },
+  "position_scope": {
+    "note": "This study measured quarterbacks only. Running backs, receivers and tight ends have no equivalent study yet, so nothing here describes them.",
+    "studied": ["QB"],
+    "unstudied": ["RB", "WR", "TE"]
+  },
+  "study_label": "QB-1 validation study"
+}

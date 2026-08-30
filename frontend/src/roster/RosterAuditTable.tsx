@@ -10,7 +10,10 @@ const COLUMNS = [
   "Age",
   "Model grade",
   "Model status",
-  "DVS",
+  // DG-109: was "DVS". Three capitals slipped under the render rule's four-capital
+  // floor, but it is machinery either way — the dictionary already calls this
+  // field "Dynasty value" everywhere else.
+  "Dynasty value",
   "Age signal",
   "Signal completeness",
   "Caveats",

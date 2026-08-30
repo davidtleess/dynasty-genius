@@ -29,8 +29,30 @@ function gates(overrides = {}) {
   };
 }
 
+// DG-109: the gates are now addressed by the internal identifier they carry on
+// `data-gate`, not by the `G1 Rank correlation` text they used to print. The
+// STATE each one reports is asserted exactly as strictly as before — the row is
+// located by its identifier and its verdict word is checked — but the assertions
+// no longer require the pipeline's own vocabulary to be on David's screen.
+const GATE_KEYS = {
+  "G1 Rank correlation": "g1_rank_correlation_pass",
+  "G2 RMSE stability": "g2_rmse_stability_pass",
+  "G3 Market superiority": "g3_market_superiority_pass",
+  "G4 Divergence validity": "g4_divergence_validity_pass",
+};
+
+const GATE_WORDS = {
+  MET: "met",
+  UNMET: "not met",
+  DEFERRED: "not tested yet",
+  "INSUFFICIENT DATA": "not enough data to test",
+};
+
 function expectGate(panel, label, status) {
-  expect(within(panel).getByText(`${label}: ${status}`)).toBeTruthy();
+  const row = panel.querySelector(`[data-gate="${GATE_KEYS[label]}"]`);
+  expect(row, `no gate row for ${label}`).toBeTruthy();
+  // "not met" contains "met", so the verdict is matched at the end of the line.
+  expect(row.textContent.trim().endsWith(`: ${GATE_WORDS[status]}`)).toBe(true);
 }
 
 describe("GateMatrix", () => {
@@ -104,7 +126,9 @@ describe("GateMatrix", () => {
     const matrix = screen.getByRole("region", { name: "Validation gates" });
     expectGate(matrix, "G3 Market superiority", "MET");
     expect(
-      within(matrix).getByText("MET = point-estimate gate state, not decision support"),
+      within(matrix).getByText(
+        'A gate reading "met" is a single point estimate, not decision support',
+      ),
     ).toBeTruthy();
     expect(within(matrix).getByText(/CIs include zero/i)).toBeTruthy();
     expect(within(matrix).queryByText(/proven edge|validated win/i)).toBeNull();

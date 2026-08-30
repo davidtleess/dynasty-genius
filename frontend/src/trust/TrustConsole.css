@@ -132,6 +132,22 @@
   color: var(--dg-text);
 }
 
+/* DG-109 grouped two subtrees so their receipt exemption could be DECLARED
+   rather than left implicit: the provenance rows, and the model card quoted
+   verbatim. `display: contents` means the wrapper exists for the render rule
+   and for nothing else — the children stay direct participants in their
+   section's own flex column, so not one pixel moves. */
+.dg-trust-prov__receipts,
+.dg-trust-quoted {
+  display: contents;
+}
+
+.dg-trust-lede {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
 .dg-trust-card__heading {
   margin: 0.3rem 0 0;
   font-size: 0.8rem;

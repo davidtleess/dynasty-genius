@@ -1,0 +1,21 @@
+{
+  "as_of_week": null,
+  "cohort_metrics": {},
+  "coverage": {
+    "declared_count": null,
+    "eligible_count": null,
+    "graded_count": null,
+    "identity_excluded_counts": {},
+    "outcome_present_count": null,
+    "prediction_excluded_counts": {},
+    "rank_eligible_count": null,
+    "resolved_count": null
+  },
+  "decision_supported": false,
+  "excluded_counts": {},
+  "maturity_pct": null,
+  "settlement_status": "unsettled",
+  "status": "inactive",
+  "status_reason": "awaiting_first_finalized_week",
+  "tracking_rows": []
+}

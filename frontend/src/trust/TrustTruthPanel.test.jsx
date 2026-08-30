@@ -7,7 +7,9 @@ import { describe, expect, it } from "vitest";
 
 const TRUST_DIR = join(process.cwd(), "src", "trust");
 const EXPECTED_TRUTH_COPY =
-  "Consensus-competitive, edge unproven. Engine B is statistically tied with DynastyProcess ECR expert consensus; per-fold NDCG-diff bootstrap CIs include zero.";
+  "Consensus-competitive, edge unproven. Engine B is statistically tied with " +
+  "DynastyProcess expert consensus rankings; season by season, the range around " +
+  "its ranking-quality edge still includes zero.";
 
 function authoredTrustFiles() {
   if (!existsSync(TRUST_DIR)) {
@@ -70,7 +72,12 @@ describe("TrustTruthPanel", () => {
     render(<TrustTruthPanel vm={trustViewModel()} />);
 
     const panel = screen.getByRole("region", { name: "Model trust truth" });
-    expect(within(panel).getByText("decision_supported = false")).toBeTruthy();
+    // DG-109: was `decision_supported = false`. The state is unchanged and still
+    // non-dismissible; it is now stated in the product's one shared disclosure
+    // sentence instead of by quoting the API field name at the user.
+    expect(
+      within(panel).getByText("Descriptive only — not decision-grade."),
+    ).toBeTruthy();
     expect(within(panel).queryByRole("button", { name: /dismiss/i })).toBeNull();
     expect(within(panel).getByText("Experimental — not validated")).toBeTruthy();
   });

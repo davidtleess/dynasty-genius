@@ -10,7 +10,9 @@ import { TrustConsole } from "./TrustConsole";
 
 const TRUST_DIR = join(process.cwd(), "src", "trust");
 const TRUST_TRUTH_COPY =
-  "Consensus-competitive, edge unproven. Engine B is statistically tied with DynastyProcess ECR expert consensus; per-fold NDCG-diff bootstrap CIs include zero.";
+  "Consensus-competitive, edge unproven. Engine B is statistically tied with " +
+  "DynastyProcess expert consensus rankings; season by season, the range around " +
+  "its ranking-quality edge still includes zero.";
 
 function authoredTrustFiles() {
   if (!existsSync(TRUST_DIR)) {
@@ -232,12 +234,19 @@ describe("TrustConsole", () => {
 
     await screen.findByText("Trust data loaded");
     const matrix = screen.getByRole("region", { name: "Validation gates" });
-    expect(within(matrix).getByText("G1 Rank correlation: MET")).toBeTruthy();
-    expect(within(matrix).getByText("G2 RMSE stability: UNMET")).toBeTruthy();
-    expect(within(matrix).getByText("G3 Market superiority: DEFERRED")).toBeTruthy();
+    // DG-109: each gate is addressed by the identifier it carries on
+    // `data-gate` rather than by the `G2 RMSE stability` text it used to print,
+    // and its verdict is checked exactly as strictly as before.
+    const verdict = (key) =>
+      matrix.querySelector(`[data-gate="${key}"]`).textContent.trim();
+    expect(verdict("g1_rank_correlation_pass").endsWith(": met")).toBe(true);
+    expect(verdict("g2_rmse_stability_pass").endsWith(": not met")).toBe(true);
+    expect(verdict("g3_market_superiority_pass").endsWith(": not tested yet")).toBe(
+      true,
+    );
     expect(
-      within(matrix).getByText("G4 Divergence validity: INSUFFICIENT DATA"),
-    ).toBeTruthy();
+      verdict("g4_divergence_validity_pass").endsWith(": not enough data to test"),
+    ).toBe(true);
   });
 
   it("renders the fold table from the ready-state view model", async () => {
@@ -275,8 +284,16 @@ describe("TrustConsole", () => {
     expect(
       within(callout).getByText("QB magnitude predictions carry elevated uncertainty."),
     ).toBeTruthy();
-    expect(within(callout).getByText("OOS R2: 0.14")).toBeTruthy();
-    expect(within(callout).getByText("Spearman: 0.31")).toBeTruthy();
+    // DG-109: both numbers unchanged; only their names left the data-science
+    // register. See QbReliabilityCallout.test.jsx for the same pair.
+    expect(
+      within(callout).getByText(
+        "Share of the variation it explains on unseen seasons: 0.14",
+      ),
+    ).toBeTruthy();
+    expect(
+      within(callout).getByText("How closely its ranking tracks the real one: 0.31"),
+    ).toBeTruthy();
   });
 
   it("renders provenance footer with the demoted model grade outside the truth panel", async () => {
@@ -289,7 +306,11 @@ describe("TrustConsole", () => {
     expect(within(panel).queryByText("ACTIVE_B_VALIDATED")).toBeNull();
 
     const footer = screen.getByRole("contentinfo", { name: "Model trust provenance" });
-    expect(within(footer).getByText("ACTIVE_B_VALIDATED")).toBeTruthy();
+    // DG-109: the grade is still demoted to the footer and still bound to its
+    // qualifier — the two things this test exists to hold. It is now said in
+    // words, with the raw enum on `data-grade` for CSS and for this assertion.
+    expect(footer.querySelector('[data-grade="ACTIVE_B_VALIDATED"]')).toBeTruthy();
+    expect(within(footer).getByText("In use, ranks well in testing")).toBeTruthy();
     expect(
       within(footer).getByText(
         "internal model grade — not a market-edge or decision-support claim",

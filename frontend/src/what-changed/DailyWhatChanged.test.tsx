@@ -626,7 +626,16 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByText(/no entered assets/i)).toBeTruthy();
     expect(screen.getByText(/no exited assets/i)).toBeTruthy();
     expect(screen.getByText(/Projections held steady/i)).toBeTruthy();
-    expect(screen.getByText(/insufficient_history/i)).toBeTruthy();
+    // DG-109 review fix: this line used to assert that the RAW key
+    // `insufficient_history` was on David's screen — one of the 359 green tests
+    // pinning the exact violation the ticket exists to remove, and positive
+    // proof that ModelRegion's caveat branch rendered unconverted. Meanwhile the
+    // dictionary entry for it was added by this branch and no render path
+    // consulted it. Same fact, same branch, said in words now.
+    expect(
+      screen.getByText("Not enough days captured yet to compare one to the next."),
+    ).toBeTruthy();
+    expect(screen.queryByText(/insufficient_history/i)).toBeNull();
     expect(screen.queryByText(/top mover unavailable/i)).toBeNull();
     expect(screen.queryByText(/0\.00/i)).toBeNull();
   });

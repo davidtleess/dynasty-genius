@@ -172,16 +172,34 @@ function HealthBody({ data, now }: { data: SystemHealth; now: Date }) {
 // a mostly-fresh count. Describes state; never a verdict or a prescribed action.
 // The raw taxonomy (`core_substrate`) still rides the `data-affected-tier`
 // attribute for CSS and tests; it just no longer surfaces as snake_case.
+//
+// THE ROLLUP IS NARROWER THAN IT LOOKS, and this line must not be wider than the
+// rollup. `rollup_health_status` (system_health_models.py:683-704) returns "ok"
+// whenever no CORE-or-DAILY report is stale/unreadable/missing/failed/degraded-
+// input: `_TIER_SEVERITY` (:363) has no `auxiliary` key, so an auxiliary report
+// scores rank 0 and can never degrade the root — the backend knows it is
+// suppressing those and tags them `auxiliary_info_only` (:653-654). Neither
+// `freshness_overdue` nor `dormant` degrades anything either. An earlier draft
+// printed "Nothing needs attention" for that state, which the card's own rows
+// can contradict on the same screen (a failed auxiliary feed prints "Last run
+// failed. Earlier values may still be in use." two lines below). So: the ok line
+// claims only what the rollup actually checked, and when a feed outside that
+// scope IS in a bad state, it says so instead of swallowing it.
 function overallLine(data: SystemHealth): string {
   if (data.overall_status === "degraded" && data.worst_affected_tier !== null) {
-    return `Running behind — ${tierName(data.worst_affected_tier)} affected`;
+    return `Something needs attention — ${tierName(data.worst_affected_tier)} affected`;
   }
-  // The rollup's `ok` means no feed is in a degrading state. It deliberately
-  // does NOT claim everything just ran — a dormant off-season feed is `ok` too
-  // — so the sentence says what the rollup actually knows.
-  return data.overall_status === "ok"
-    ? "Nothing needs attention"
-    : subsystemStateLabel(data.overall_status);
+  if (data.overall_status !== "ok") return subsystemStateLabel(data.overall_status);
+  // Reachable only when the rollup said ok, so by its own logic every one of
+  // these sits outside the tiers it scores.
+  const quiet = data.reports.filter((row) => DEGRADING_REPORT_STATUSES.has(row.status));
+  if (quiet.length === 1) {
+    return "Main feeds are healthy — one feed outside them is not; it is listed below";
+  }
+  if (quiet.length > 1) {
+    return `Main feeds are healthy — ${quiet.length} feeds outside them are not; they are listed below`;
+  }
+  return "No main feed is stale, missing or failed";
 }
 
 function countsLine(reports: ReportRow[]): string {

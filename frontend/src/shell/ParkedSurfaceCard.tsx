@@ -13,7 +13,11 @@ type ParkedCopy = {
 export const PARKED_SURFACES: Record<string, ParkedCopy> = {
   "Rookie Board": {
     heading: "Rookie Board — parked",
-    body: "Rookie valuation stands on the draft-capital + age prior and the ratified cohort-prior table. The college-enrichment path failed its pre-registered promotion gates (0 of 2 positions), so a richer board surface is parked rather than built on an unproven signal. The legacy rookie_board.html remains available outside the app.",
+    // DG-109: the last sentence used to name the legacy file (`rookie_board.html`)
+    // in plain body copy. The fact — that the old standalone board still exists
+    // outside this app — is unchanged; the filename moved to the evidence line,
+    // which is the receipt layer.
+    body: "Rookie valuation stands on the draft-capital + age prior and the ratified cohort-prior table. The college-enrichment path failed its pre-registered promotion gates (0 of 2 positions), so a richer board surface is parked rather than built on an unproven signal. The legacy standalone rookie board page remains available outside the app.",
     evidencePath: "docs/validation/engine_a_v2_cfbd_backtest_report.md",
     unpark:
       "Unparks on: a David-ratified spec for a React rookie surface over the existing prior.",
@@ -42,8 +46,11 @@ export function ParkedSurfaceCard({ surface }: { surface: string }) {
       <h2 className="dg-parked-card__heading">{copy.heading}</h2>
       <p className="dg-parked-card__body">{copy.body}</p>
       <p className="dg-parked-card__unpark">{copy.unpark}</p>
+      {/* A cited path IS the receipt layer — a receipt that renamed the document
+          it cites would stop being a receipt — so the exemption is declared
+          rather than left to slip under the rule. */}
       <p className="dg-parked-card__evidence">
-        Evidence: <span>{copy.evidencePath}</span>
+        Evidence: <span data-receipt>{copy.evidencePath}</span>
       </p>
     </section>
   );

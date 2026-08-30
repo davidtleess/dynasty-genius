@@ -1,4 +1,6 @@
 import type { RosterAuditResponse } from "../lib/api";
+import { positionTrustWord, valueWord } from "../lib/copy";
+import { TokenNotes } from "../ui/TokenNotes";
 
 type Props = {
   status: RosterAuditResponse["status"];
@@ -17,14 +19,21 @@ export function RosterAuditHeader({
 }: Props) {
   return (
     <section className="dg-roster__header" aria-label="Roster audit status">
+      {/* DG-109: the envelope status and the per-position trust chips printed
+          their own enums (`active`, `VALIDATED`, `PROVISIONAL`). The state each
+          one reports is unchanged and still rides `data-status` for CSS and
+          tests; only the word a person reads changed. The chips get their OWN
+          vocabulary — `EXPERIMENTAL` here means the position's validation record
+          is missing or stale (roster_audit_models.py:55-76), which is not what
+          the same word means on a player's model grade. */}
       <div className="dg-roster__status" data-status={status}>
-        Status: <strong>{status}</strong>
+        Status: <strong>{valueWord(status)}</strong>
       </div>
       <p className="dg-roster__disclaimer">Experimental — not decision-grade.</p>
       <ul className="dg-roster__model-status">
         {Object.entries(modelStatusByPosition).map(([pos, st]) => (
           <li key={pos} className="dg-roster__chip" data-status={st}>
-            <span>{pos}</span> <span>{st}</span>
+            <span>{pos}</span> <span>{positionTrustWord(st)}</span>
           </li>
         ))}
       </ul>
@@ -34,11 +43,7 @@ export function RosterAuditHeader({
         </p>
       )}
       {caveats.length > 0 && (
-        <ul className="dg-roster__caveats">
-          {caveats.map((c) => (
-            <li key={c}>{c}</li>
-          ))}
-        </ul>
+        <TokenNotes className="dg-roster__caveats" tokens={caveats} />
       )}
     </section>
   );

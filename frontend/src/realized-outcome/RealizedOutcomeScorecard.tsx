@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { RealizedOutcomeScorecardResponse } from "../lib/api/types.gen";
 import { zRealizedOutcomeScorecardResponse } from "../lib/api/zod.gen";
+import { describeToken, valueWord } from "../lib/copy";
 import "./RealizedOutcomeScorecard.css";
 
 type State =
@@ -72,8 +73,12 @@ function ReadyView({ data }: { data: RealizedOutcomeScorecardResponse }) {
           <p className="dg-ro__lead">
             Realized-outcome loop inactive — 2026 data accrues from September.
           </p>
+          {/* DG-109: printed the producer's own enum
+              (`awaiting_first_finalized_week`) as manager-facing text — and not
+              on a degraded branch, but on the pre-season state the product is in
+              right now, so it was what this surface said on a good day. */}
           {data.status_reason && (
-            <p className="dg-ro__meta">Reason: {data.status_reason}</p>
+            <p className="dg-ro__meta">Reason: {describeToken(data.status_reason)}</p>
           )}
           <p className="dg-ro__note">
             Once the season is underway, this surface will track how the frozen model's
@@ -92,7 +97,9 @@ function ReadyView({ data }: { data: RealizedOutcomeScorecardResponse }) {
         </div>
       )}
 
-      <p className="dg-ro__meta">Settlement status: {data.settlement_status}</p>
+      <p className="dg-ro__meta">
+        Settlement status: {valueWord(data.settlement_status)}
+      </p>
       <p className="dg-ro__meta">
         {maturity === "unset"
           ? "Data maturity: not yet started"

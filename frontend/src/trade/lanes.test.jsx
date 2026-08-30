@@ -187,8 +187,19 @@ describe("Trade Lab lane panels", () => {
       within(lane).getByText("We price him higher than the market does"),
     ).toBeTruthy();
     expect(within(lane).getByText(/advisory/i)).toBeTruthy();
-    expect(within(lane).getByText("fantasycalc_uncovered")).toBeTruthy();
-    expect(within(lane).getByText("fantasycalc_cache_warm")).toBeTruthy();
+    // DG-109 review fix: these two lines used to assert that the RAW keys
+    // `fantasycalc_uncovered` and `fantasycalc_cache_warm` were on screen — the
+    // branch's own test pinning the violation the branch exists to remove. The
+    // FACT each one carries still has to be on screen, which is what is asserted
+    // now. A coverage gap the dictionary can say, it says:
+    expect(
+      within(lane).getByText("FantasyCalc does not carry a price for this asset."),
+    ).toBeTruthy();
+    // ...and one it cannot is still never dropped — it goes to the labelled
+    // receipt line rather than being humanized into prose nobody wrote.
+    expect(within(lane).getByTestId("untranslated-tokens").textContent).toContain(
+      "fantasycalc_cache_warm",
+    );
     expect(lane.textContent).not.toMatch(/\bwin\b|\bloss\b|\bmust\b/i);
   });
 

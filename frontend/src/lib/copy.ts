@@ -164,9 +164,16 @@ const VALUE_WORDS: Record<string, string> = {
   model_lower_than_market: "The market prices him higher than we do",
   inside_band: "Our price and the market's agree",
 
-  // Evidence status (league_opportunity_map.py:82-84).
+  // Evidence status (league_opportunity_map.py:82-84). `evidence_gated` covers
+  // TWO producers: a divergence row whose gates genuinely failed
+  // (universe_market_divergence.py:265) and a roster-fit card where
+  // `gates_blocked` is hardcoded structurally because there is no divergence
+  // gate to run (league_opportunity_map.py:292). The sentence has to be true of
+  // both, so it states the gate state and nothing more — in particular it does
+  // NOT say evidence is withheld, because OpportunityCards.tsx renders the
+  // card's full allowlisted evidence either way.
   evidence_complete: "Every input we wanted was there",
-  evidence_gated: "Some checks did not pass, so part of this is held back",
+  evidence_gated: "This one has not cleared our evidence check",
   inputs_unavailable: "The inputs for this were not available",
 
   // Which model scored a player (universe_pvo_batch.py:9-20).
@@ -219,10 +226,42 @@ const VALUE_WORDS: Record<string, string> = {
   fantasycalc_history_api_survivor_biased:
     "FantasyCalc history — survivor-biased, it only sees players still ranked today",
 
-  // Plain health words.
+  // Plain health words. `degraded` is NOT lateness — the rollup raises it for a
+  // stale, unreadable, missing, failed or degraded-input feed alike
+  // (system_health_models.py:360-362), and what-changed raises it for an
+  // ambiguous comparison. "Running behind" named only one of those and read as
+  // the mildest, so the word says that attention is due and leaves the specific
+  // state to the rows that carry it.
   ok: "Running normally",
-  degraded: "Running behind",
+  degraded: "Something needs attention",
   unavailable: "Unavailable",
+
+  // Roster-audit envelope status (roster_audit_models.py:197).
+  active: "Running normally",
+
+  // Realized-outcome settlement (realized_outcome_scorecard.py:74-96). Unsettled
+  // is the honest pre-season state, not a failure.
+  unsettled: "Not enough finished weeks for this to settle",
+  settled: "Settled",
+
+  // Roster-audit age signal (roster_auditor.py:475-490). The cliff age is per
+  // position (RB 26, WR 28, TE 30, QB 33) and rides the row beside this word.
+  past_cliff: "Past the usual decline age",
+  at_cliff: "At the usual decline age",
+  approaching_cliff: "Within two years of the usual decline age",
+  no_age_signal: "No age signal",
+
+  // Age-and-value display context (roster_auditor.py:255-279). Display-only
+  // annotation over age proximity + the active-player projection.
+  past_cliff_depreciation_risk: "Past the decline age — value can fall from here",
+  approaching_cliff_high_projection:
+    "Near the decline age, but still projecting above average for his position",
+  approaching_cliff_low_projection:
+    "Near the decline age and projecting below average for his position",
+  prime_window_high_projection:
+    "In his prime window and projecting above average for his position",
+  stable_age_low_projection:
+    "Age is not the issue — he simply projects below average for his position",
 };
 
 /**
@@ -252,8 +291,24 @@ const TOKEN_SENTENCES: Record<string, string> = {
   age_curve_only:
     "His projection rests on the age curve alone; there is no usage data behind it.",
   no_usage_signal: "We have no snap or usage data for him.",
-  no_market_overlay: "Nobody is quoting a market price for him right now.",
-  no_internal_value_signal: "We have no value score of our own for him yet.",
+  // SCOPE, NOT A MARKET FACT. `ROSTER_CAVEATS`/`_PVO_CAVEATS` are CONSTANTS
+  // (roster_auditor.py:59, :81) applied to every row unconditionally; the
+  // producer's own words for them are "Market overlay is excluded" (:77-80) and
+  // "market signals are currently excluded" (:71-73). An earlier draft read
+  // "Nobody is quoting a market price for him right now" — a claim about the
+  // market that the token never made and that the same card disproves, since
+  // ValuationTwoLane prints "Market value 5082 · 30th overall" a few lines above
+  // it (playerDetail.live.json: market.status "available" beside this caveat).
+  no_market_overlay:
+    "Market prices are deliberately left out of this read — it rests on our own numbers.",
+  // ALSO SCOPE. The only emitter is roster_auditor.py:493-494, which appends
+  // this when `biological_debt_score()` returns None — i.e. when EITHER the
+  // age-decline risk or the internal value it weights by was missing from the
+  // roster record (:281-292, :247). It does NOT mean we have no value score:
+  // the same payload carries `dynasty_value_score: 77.5`, which the card prints
+  // as "Dynasty value 77.5" right beside this line.
+  no_internal_value_signal:
+    "We could not work out his age-weighted value risk — one of the two inputs it needs was missing from this record.",
   engine_b_not_decision_grade:
     "Our active-player model is a sharp second opinion, not a proven market-beater — weigh it accordingly.",
   no_engine_b_projection:
@@ -267,6 +322,44 @@ const TOKEN_SENTENCES: Record<string, string> = {
   veteran_scoring_requires_engine_b:
     "Scoring a veteran takes the active-player model, not this one.",
   no_usage_efficiency_signal: "No usage or efficiency data went into this.",
+  // Risk flags (pvo_assembler.py:118, roster_auditor.py:62-63). The amber
+  // treatment keys off the RAW token, so these sentences say "decline" freely.
+  age_past_position_cliff:
+    "He is past the age where production usually starts falling at his position.",
+  age_at_position_cliff:
+    "He is at the age where production usually starts falling at his position.",
+  snap_share_below_40pct: "He was on the field for under 40% of his team's snaps.",
+  identity_conflict_requires_manual_review:
+    "Two different player records look like him — someone has to untangle that by hand.",
+  identity_unverified: "We have not confirmed this is the right player record.",
+  engine_b_experimental_v1_fallback:
+    "His score came from an experimental build of the active-player model, not the released one.",
+  // Absence, not suppression: no counter-argument was produced for him. Callers
+  // that follow the absence rule render nothing for it.
+  counter_argument_unavailable: "No counter-argument was written for him.",
+
+  // ── Roster-audit trust envelope (roster_audit_models.py:42-77, :86) ───────
+  trust_status_unavailable:
+    "We could not read the model's own validation record for this position, so it is treated as unproven.",
+  trust_status_stale:
+    "The model's validation record is for a different build than the one scoring today, so it is treated as unproven.",
+  negative_r2_lower_bound:
+    "In testing, the model's accuracy band reached below no-better-than-average.",
+  low_sample_holdout: "The accuracy test for this position ran on few players.",
+  player_row_dropped_corrupt:
+    "A roster row could not be read and was left out of this table.",
+  qb_context_card_dropped_corrupt:
+    "A quarterback context card could not be read and was left out.",
+
+  // ── Quarterback college context (roster_auditor.py:530-560) ──────────────
+  // Context signal only — never a model input, and never a verdict on a player.
+  low_td_int_ratio_bust_context:
+    "In college he threw comparatively few touchdowns for his interceptions.",
+  all_purpose_yards_mobility_context:
+    "He piled up all-purpose yards in college — a sign he moves as well as he throws.",
+  missing_qb_college_context: "We have no college context numbers for him.",
+  p2s_context_unavailable:
+    "How often pressure turned into a sack is not carried in this lane.",
 
   // ── Market overlay ───────────────────────────────────────────────────────
   fantasycalc_overlay: "FantasyCalc prices, laid over our own numbers.",
@@ -275,8 +368,19 @@ const TOKEN_SENTENCES: Record<string, string> = {
     "The price gap is descriptive — we have not proven it is an edge.",
 
   // ── What changed overnight (what_changed/daily_diff.py:225-307) ──────────
+  // NOT a universal negative. `_model_score_deltas` (daily_diff.py:334-379)
+  // compares only `set(prior) & set(latest)` — players present in BOTH captures
+  // — and the DG-084 guard forces the delta to 0.0 whenever either side is None
+  // (115 of today's joinable rows are unscored). An empty delta list therefore
+  // means nothing moved AMONG THE PLAYERS WE COULD COMPARE, which is what the
+  // sentence now says.
   vintage_changed_no_score_delta:
-    "Our projections were rebuilt on a newer model run, and not one player's score moved.",
+    "Our projections were rebuilt on a newer model run, and none of the players we could compare moved.",
+  // daily_diff.py:255-271 — a compared date carried more than one model vintage,
+  // so both the window and the per-player deltas would be ambiguous. The producer
+  // refuses to emit a comparison rather than fabricate one; say exactly that.
+  model_multi_vintage_ambiguous:
+    "Two different model runs landed on the same day, so we will not claim what moved overnight.",
   baseline_holding:
     "Our projections are the same run as yesterday, so there is nothing to compare.",
   insufficient_history: "Not enough days captured yet to compare one to the next.",
@@ -331,6 +435,20 @@ const TOKEN_SENTENCES: Record<string, string> = {
   generic_future_pick_round_only:
     "We know the round but not the slot, so this is a round-level price.",
   decision_supported_false: "Context to weigh, not a call to act on.",
+
+  // ── Trade Lab market lane (trade_lab/market_reconciler.py:21-27, :326) ────
+  // The lane prints these beside its own numbers, so each sentence keeps the
+  // scope limit its token carries rather than softening it.
+  market_overlay_display_only: "Market values here are shown for context only.",
+  fantasycalc_raw_scale_not_xvar:
+    "These are FantasyCalc's own numbers on their own scale — not our value over replacement.",
+  market_values_not_model_inputs: "Market values never feed our model.",
+  fantasycalc_uncovered: "FantasyCalc does not carry a price for this asset.",
+  fantasycalc_pick_unavailable: "FantasyCalc does not carry a price for this pick.",
+
+  // ── Accuracy Tracker (realized_outcome_scorecard.py:74-96) ───────────────
+  awaiting_first_finalized_week:
+    "No week has finished yet, so nothing has been graded.",
 };
 
 // Real-shape tokens the producers build at runtime — a prefix or a pattern
@@ -412,7 +530,8 @@ const INPUT_NAMES: Record<string, string> = {
   player_id: "his player record",
 };
 
-function inputName(key: string): string {
+/** The football name for one model input. Exported for the QB context cards. */
+export function inputName(key: string): string {
   const known = INPUT_NAMES[key];
   if (known !== undefined) return known;
   console.warn("Copy dictionary: no name for model input", key);
@@ -587,7 +706,8 @@ export function reportCountLabel(status: string): string {
 
 const SUBSYSTEM_STATE_LABELS: Record<string, string> = {
   ok: "All good",
-  degraded: "Running behind",
+  // Same correction as the value word: `degraded` is not a claim about lateness.
+  degraded: "Something needs attention",
   unavailable: "Unavailable",
 };
 
@@ -614,10 +734,56 @@ export function subsystemStateLabel(status: string): string {
 const TRUST_GRADE_WORDS: Record<string, string> = {
   PRE_MODEL: "Not modelled yet",
   EXPERIMENTAL: "Experimental — the checks are not passing",
-  ACTIVE_B: "In use, edge unproven",
+  // backtest_harness.py:335-347 assigns ACTIVE_B in THREE different cases: the
+  // rank-correlation or stability check failed (`not g1_pass or not g2_pass`),
+  // the market test was deferred for under-coverage, or the model lost to the
+  // market. "In use, edge unproven" named only the last two and turned a failed
+  // accuracy check into a milder "we just haven't proven it". The one thing true
+  // of all three is that the ladder is not clear, so that is what it says.
+  ACTIVE_B: "In use — it has not cleared every check we run",
   ACTIVE_B_VALIDATED: "In use, ranks well in testing",
   DECISION_GRADE: "Cleared every check we run",
 };
+
+/**
+ * The roster audit's per-position Engine-B trust chip
+ * (roster_audit_models.py:42-77). A THIRD vocabulary again: `EXPERIMENTAL` here
+ * means the position's validation record is missing or stale, which is not what
+ * it means on a player's `model_grade` or on the trust console's ladder — so it
+ * gets its own shelf rather than colliding inside either.
+ */
+const POSITION_TRUST_WORDS: Record<string, string> = {
+  VALIDATED: "checked out in testing",
+  PROVISIONAL: "provisional",
+  EXPERIMENTAL: "experimental — not validated",
+};
+
+export function positionTrustWord(status: string): string {
+  const known = POSITION_TRUST_WORDS[status];
+  if (known !== undefined) return known;
+  if (findRawCopy(status).length === 0) return status;
+  console.warn("Copy dictionary: no word for position trust status", status);
+  return humanize(status);
+}
+
+/**
+ * Roster-audit liquidity risk (`roster_auditor.py` `liquidity_risk`) — how many
+ * second-round picks are on hand to patch depth with. Its own shelf because the
+ * bare value `LOW` is far too generic to sit in the shared value words.
+ */
+const LIQUIDITY_WORDS: Record<string, string> = {
+  HIGH_NO_SECOND_ROUND_ESCAPE_HATCH: "no second-round picks to patch depth with",
+  MEDIUM_LIMITED_ESCAPE_HATCH: "one second-round pick to patch depth with",
+  LOW: "second-round picks in hand to patch depth with",
+};
+
+export function liquidityWord(risk: string): string {
+  const known = LIQUIDITY_WORDS[risk];
+  if (known !== undefined) return known;
+  if (findRawCopy(risk).length === 0) return risk;
+  console.warn("Copy dictionary: no word for liquidity risk", risk);
+  return humanize(risk);
+}
 
 export function trustGradeWord(grade: string): string {
   const known = TRUST_GRADE_WORDS[grade];

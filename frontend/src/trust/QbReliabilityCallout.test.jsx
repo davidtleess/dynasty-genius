@@ -48,8 +48,15 @@ describe("QbReliabilityCallout", () => {
     expect(
       screen.getByText("QB magnitude predictions carry elevated uncertainty."),
     ).toBeTruthy();
-    expect(screen.getByText("OOS R2: 0.14")).toBeTruthy();
-    expect(screen.getByText("Spearman: 0.31")).toBeTruthy();
+    // DG-109: both NUMBERS are unchanged and still pinned; only their names
+    // stopped being "OOS R2" and "Spearman" — the data-science register
+    // David rejected, on a callout that rides the Model Trust surface.
+    expect(
+      screen.getByText("Share of the variation it explains on unseen seasons: 0.14"),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("How closely its ranking tracks the real one: 0.31"),
+    ).toBeTruthy();
   });
 
   it("renders not-available tokens without fabricating null figures", async () => {
@@ -62,8 +69,14 @@ describe("QbReliabilityCallout", () => {
       />,
     );
 
-    expect(screen.getByText("OOS R2: not available")).toBeTruthy();
-    expect(screen.getByText("Spearman: not available")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Share of the variation it explains on unseen seasons: not available",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("How closely its ranking tracks the real one: not available"),
+    ).toBeTruthy();
   });
 
   it("renders nothing for non-QB positions or missing reliability", async () => {

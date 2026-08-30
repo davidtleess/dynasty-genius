@@ -43,7 +43,11 @@ const SHOUTED_TOKEN_PATTERN = /(?<![A-Za-z])[A-Z]{4,}(?![A-Za-z])/g;
  * only with that argument in hand — the dictionary is the answer to everything
  * else.
  */
-const ALLOWED_SHOUTS: ReadonlySet<string> = new Set<string>([]);
+const ALLOWED_SHOUTS: ReadonlySet<string> = new Set<string>([
+  // A manager reads this as a year, not as a column name. It appears in the
+  // model card's own account of why fold-to-fold error widens around 2020.
+  "COVID",
+]);
 
 const EXEMPT_SUBTREE_SELECTOR = "[data-receipt],[data-user-text]";
 const SKIPPED_TAGS: ReadonlySet<string> = new Set(["SCRIPT", "STYLE", "TEMPLATE"]);
