@@ -27,13 +27,11 @@ describe("H2 reset Task 5 Daily What-Changed restart", () => {
     // DG-111: CaveatBlock, ChartFrame and DisclosureLine left this surface with
     // the furniture they drew — the stacked caveat blocks, the "Movement
     // history / Series pending" panel, and the seven stamped disclosure lines.
-    // The remaining primitives still carry the surface.
-    for (const primitive of [
-      "MetricCell",
-      "PlayerIdentity",
-      "SeriesSlot",
-      "ValueHero",
-    ]) {
+    // DG-113 retires ValueHero with it: the masthead's "Your roster moved · 3"
+    // figure was a COUNT where the morning needs a verdict, and the count now
+    // lives inside a sentence that says what it means. The row primitives still
+    // carry the surface.
+    for (const primitive of ["MetricCell", "PlayerIdentity", "SeriesSlot"]) {
       expect(
         source,
         `Daily What-Changed must import and consume the ${primitive} primitive instead of rebuilding it locally`,
@@ -41,18 +39,31 @@ describe("H2 reset Task 5 Daily What-Changed restart", () => {
     }
   });
 
-  it("restarts the layout around one title, a desk-header tape, a feed, and a right rail", () => {
+  it("stacks the morning read: header, verdict, worth a look, then the feed", () => {
     const source = stripComments(readSurface());
 
     expect(source).toContain('className="dg-wc__desk-header"');
-    expect(source).toContain('className="dg-wc__layout"');
     expect(source).toContain('className="dg-wc__feed"');
-    expect(source).toContain('className="dg-wc__rail"');
-    // DG-111: the FEED DIAGNOSTICS panel is retired; its content lives in the
-    // one receipt sheet, shut by default, alongside the old RECEIPTS content.
+    // DG-113 §2.6: the right-hand rail leaves the page. It carried the
+    // "Partial Market Sync" monospace tape, FEED DIAGNOSTICS and RECEIPTS —
+    // three panels of plumbing occupying a fifth of the first viewport every
+    // morning. Every fact is in the health sheet behind the freshness line.
+    expect(source).not.toContain('className="dg-wc__layout"');
+    expect(source).not.toContain('className="dg-wc__rail"');
     expect(source).not.toContain('className="dg-wc__diagnostics"');
-    expect(source).toContain('className="dg-wc__receipts"');
+    expect(source).not.toContain('className="dg-wc__receipts"');
+    expect(source).not.toContain("<UiDailyTape");
+    // …and the sheet keeps the receipt id, so the raw producer tokens still
+    // have exactly one home on this surface and it is still declared.
+    expect(source).toContain('data-testid="wc-health-sheet"');
     expect(source).toContain('data-testid="wc-provenance"');
+
+    // The three questions, in order, each addressable.
+    expect(source).toContain('data-testid="wc-verdict"');
+    expect(source).toContain('data-testid="wc-worth-a-look"');
+    expect(source).toContain('data-testid="wc-your-roster"');
+    expect(source).toContain('data-testid="wc-around-the-league"');
+    expect(source).toContain('data-testid="wc-where-you-stand"');
 
     expect((source.match(/<h2\b/g) ?? []).length).toBe(1);
     expect(source).not.toContain("dg-wc__status");
@@ -115,17 +126,42 @@ describe("H2 reset Task 5 Daily What-Changed restart", () => {
       ).not.toContain(backendNoun);
     }
 
-    expect(source).toContain("Current roster context");
-    expect(source).toContain("today's movement");
+    // DG-113 kills "Current roster context" and the five count rows under it.
+    // Its worst line was "Starting lineup value: 97.39" printed directly above
+    // "Weekly lineup strength: 97.39" — one number under two names — beside
+    // "Card count: 5" and "David roster player count: 27". Prose-ified debug
+    // output is still debug output; the block is now "Where you stand", and the
+    // roster-value figures live on the Roster surface that can label them.
+    expect(source).not.toContain("Current roster context");
+    for (const debugLine of [
+      "Starting lineup value",
+      "Weekly lineup strength",
+      "Top-asset core value",
+      "Whole-roster value, capped",
+      "Card count",
+      "Partner ranking count",
+      "David roster player count",
+      "League roster count",
+      "Total capacity",
+    ]) {
+      expect(
+        source,
+        `DG-113 retired the debug dump; "${debugLine}" must not come back`,
+      ).not.toContain(debugLine);
+    }
+    expect(source).toContain("Where you stand");
   });
 
   it("keeps the Task-5 blast radius token-clean and removes local primitive shims", () => {
     const css = readCss();
 
-    expect(css).toContain(".dg-wc__layout");
     expect(css).toContain(".dg-wc__feed");
-    expect(css).toContain(".dg-wc__rail");
     expect(css).toContain(".dg-motion-daily-open");
+    // DG-113: the two-column desk becomes one column. The rail's rules go with
+    // the rail — a stylesheet keeping selectors for markup that no longer
+    // exists is how a dead layout gets quietly rebuilt.
+    expect(css).not.toContain(".dg-wc__layout");
+    expect(css).not.toContain(".dg-wc__rail");
 
     for (const localShim of [
       ".dg-wc__tape",
