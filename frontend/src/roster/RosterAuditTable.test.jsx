@@ -69,7 +69,8 @@ describe("RosterAuditTable", () => {
   it("says why the blank value cells are blank, once, under the table", () => {
     render(<RosterAuditTable players={realPvoAudit().players} />);
 
-    const note = screen.getByText(/no value score yet/i);
+    // Named by the column's own name, not a sixth synonym for the same field.
+    const note = screen.getByText(/no dynasty value yet/i);
     expect(note.textContent).toMatch(/1 of these 1 players/i);
     // The honest half: a blank is a refusal to guess, and the reason is one
     // press away on the row itself.
@@ -79,7 +80,7 @@ describe("RosterAuditTable", () => {
 
   it("says nothing about unscored players when every player is scored", () => {
     render(<RosterAuditTable players={activeAudit().players} />);
-    expect(screen.queryByText(/no value score yet/i)).toBeNull();
+    expect(screen.queryByText(/no dynasty value yet/i)).toBeNull();
   });
 
   // DG-117 defect 1: at 390 this table is 559px inside a 358px column and it
