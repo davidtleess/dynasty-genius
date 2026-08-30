@@ -82,8 +82,15 @@ export function RosterAuditTable(
               draft said "no value score", which is a sixth name for a field the
               header calls "Dynasty value" — the exact drift this ticket exists
               to close, committed inside the fix for it. */}
-          {unscored} of these {rendered.length} players have no{" "}
-          {fieldLabel("dynasty_value_score").toLowerCase()} yet, so those cells are left
+          {/* "has" when it is one player: the note is counted from the rows on
+              screen, so a filter can leave exactly one. And it says THAT NUMBER
+              is blank, not that the cell is — the cell can still carry the
+              player's position percentile beside the dash, and a sentence
+              calling a populated cell blank would be wrong about what the
+              reader is looking at. */}
+          {unscored} of these {rendered.length} players{" "}
+          {unscored === 1 ? "has" : "have"} no{" "}
+          {fieldLabel("dynasty_value_score").toLowerCase()} yet, so that number is left
           blank rather than guessed. Open Details on a row to see what is missing for
           that player.
         </p>

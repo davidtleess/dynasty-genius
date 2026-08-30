@@ -39,6 +39,37 @@ describe("DG primitive CSS contract", () => {
     expect(modelLane?.[0]).not.toContain("--dg-market");
   });
 
+  // DG-117: the containment this ticket is about is two CSS lines, and a panel
+  // finding was that nothing pinned either of them. Both look like strays and
+  // both are load-bearing, so deleting one has to fail a test rather than
+  // quietly return the page to scrolling sideways.
+  it("keeps a wide table's overflow inside its own scroller", () => {
+    expect(readUiCss()).toMatch(/\.dg-table-scroll\s*\{[^}]*overflow-x:\s*auto/);
+  });
+
+  it("keeps the shell's main column able to shrink below its content", () => {
+    // A grid ITEM defaults to `min-width: auto` — "never smaller than my
+    // content" — so a 1039px table pushed the whole shell wider and every
+    // `overflow-x` rule inside it was inert. Wrapping the tables alone took
+    // Model Trust from 665px of sideways scroll to 218px; this line took it
+    // to 0.
+    const shellCss = readFileSync(resolve(uiDir, "../shell/AppShell.css"), "utf8");
+    const block = shellCss.match(/\.dg-shell__main\s*\{[^}]*\}/);
+    expect(block, ".dg-shell__main rule missing").not.toBeNull();
+    expect(block?.[0]).toMatch(/min-inline-size:\s*0/);
+  });
+
+  // The receipt panel is anchored to its trigger, so at 390px it opened past
+  // the right edge and took the document 158px sideways (Daily What-Changed,
+  // measured in Chromium). ReceiptTrigger measures and shifts it back; this is
+  // the half that keeps it narrower than the phone in the first place.
+  it("keeps an open receipt panel narrower than the viewport", () => {
+    const panel = readUiCss().match(/\.dg-ui-receipt__panel\s*\{[^}]*\}/);
+    expect(panel, ".dg-ui-receipt__panel rule missing").not.toBeNull();
+    expect(panel?.[0]).toMatch(/max-inline-size:\s*calc\(100vw/);
+    expect(panel?.[0]).toMatch(/overflow-wrap:\s*anywhere/);
+  });
+
   it("keeps team colors identity-only and out of row backgrounds/status lanes", () => {
     const css = readUiCss();
 

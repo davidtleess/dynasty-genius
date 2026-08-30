@@ -154,6 +154,26 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
     expect(findRawCopy("asset_xvar")).toEqual(["asset_xvar"]);
   });
 
+  // PANEL FINDINGS on the rule itself, both proven against it before the fix.
+  it("catches the plural, and reports one offender exactly once", () => {
+    // The first way a term drifts is by being pluralised, and a rule that
+    // rejects every suffix walked straight past it: findRawCopy("xVARs") was [].
+    expect(findRawCopy("the xVARs on this roster")).toEqual(["xVARs"]);
+    expect(jargonReplacement("xVARs")).toBe(VALUE_OVER_REPLACEMENT);
+
+    // Blanking by VALUE blanked the wrong occurrence when an earlier one was
+    // skipped by the lookarounds, so the real offender survived into the shout
+    // pass and was named twice: findRawCopy("myXVAR XVAR") gave
+    // ["XVAR","XVAR"] for one offender. Blanking AT THE MATCH ends that.
+    expect(findRawCopy("myXVAR XVAR")).toEqual(["XVAR"]);
+    // Two genuine offenders are still two findings — and "2XVAR" is one of
+    // them, not a duplicate of its neighbour: the shout pattern's lookbehind
+    // excludes a preceding LETTER only, so a digit-prefixed shout is a raw
+    // token in its own right and the rule is right to name it.
+    expect(findRawCopy("ENGINE_B and XVAR")).toEqual(["ENGINE_B", "XVAR"]);
+    expect(findRawCopy("2XVAR and XVAR")).toEqual(["XVAR", "XVAR"]);
+  });
+
   it("exempts the receipt layer and the league's own words, and nothing else", () => {
     const host = document.createElement("div");
     host.innerHTML = `

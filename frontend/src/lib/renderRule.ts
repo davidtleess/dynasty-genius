@@ -77,14 +77,22 @@ const JARGON_TERMS: readonly { term: string; use: string }[] = [
   { term: "xVAR", use: "Value over replacement" },
 ];
 
+// The trailing `s?` catches the plural. A term this rule exists to stop drifts
+// first by being pluralised — "the xVARs on this roster" — and a word-boundary
+// rule that rejects any suffix would have walked straight past it (panel
+// finding, verified: `findRawCopy("xVARs")` returned nothing).
 const JARGON_PATTERN = new RegExp(
-  `(?<![A-Za-z0-9])(?:${JARGON_TERMS.map((j) => j.term).join("|")})(?![A-Za-z0-9])`,
+  `(?<![A-Za-z0-9])(?:${JARGON_TERMS.map((j) => j.term).join("|")})s?(?![A-Za-z0-9])`,
   "gi",
 );
 
 /** What the dictionary calls a jargon term, for the failure message. */
 export function jargonReplacement(token: string): string | undefined {
-  return JARGON_TERMS.find((j) => j.term.toLowerCase() === token.toLowerCase())?.use;
+  const lower = token.toLowerCase();
+  const singular = lower.replace(/s$/, "");
+  return JARGON_TERMS.find(
+    (j) => j.term.toLowerCase() === lower || j.term.toLowerCase() === singular,
+  )?.use;
 }
 
 const EXEMPT_SUBTREE_SELECTOR = "[data-receipt],[data-user-text]";
@@ -112,12 +120,22 @@ export type RawCopyFinding = {
 export function findRawCopy(text: string): string[] {
   const found: string[] = [];
   let remaining = text;
-  const claim = (match: string): void => {
+  // Blanked AT THE MATCH, not by value: `remaining.replace(match, …)` blanks the
+  // first occurrence of that substring, which is a different one whenever an
+  // earlier occurrence was skipped by the lookarounds — and the real offender
+  // then survived into the next pass and was reported twice ("2XVAR and XVAR"
+  // gave ["XVAR","XVAR"]). Every pass runs over a string of the same length
+  // with positions preserved, so an index from one is valid in the next.
+  const claim = (match: string, index: number): void => {
     found.push(match);
-    remaining = remaining.replace(match, " ".repeat(match.length));
+    remaining =
+      remaining.slice(0, index) +
+      " ".repeat(match.length) +
+      remaining.slice(index + match.length);
   };
-  for (const match of text.matchAll(RAW_KEY_PATTERN)) claim(match[0]);
-  for (const match of [...remaining.matchAll(JARGON_PATTERN)]) claim(match[0]);
+  for (const match of text.matchAll(RAW_KEY_PATTERN)) claim(match[0], match.index ?? 0);
+  for (const match of [...remaining.matchAll(JARGON_PATTERN)])
+    claim(match[0], match.index ?? 0);
   for (const match of remaining.matchAll(SHOUTED_TOKEN_PATTERN)) {
     if (!ALLOWED_SHOUTS.has(match[0])) {
       found.push(match[0]);
