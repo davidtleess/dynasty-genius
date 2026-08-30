@@ -50,11 +50,24 @@
      itself in --dg-model-muted and --dg-market, which made the furniture look
      like a reading of the data. Chrome is near-achromatic BY CONTRACT
      (chroma <= 0.03, enforced in visualFoundation.test.js) so it can never
-     drift back into a lane. Measured on this canvas: --dg-chrome 7.43:1 on
-     white / 7.27:1 on the dark bg; --dg-chrome-strong 15.99:1 / 15.32:1;
-     --dg-chrome-strong on --dg-chrome-surface 13.42:1 / 11.51:1. */
+     drift back into a lane.
+
+     It is a three-rung LADDER and the rungs must actually differ. DG-115's
+     first cut declared --dg-chrome-strong byte-identical to --dg-text, which
+     made it not an emphasis token at all: the panel measured the global
+     player-search hover repainting text from --dg-text to --dg-chrome-strong
+     and changing nothing on screen. --dg-chrome-strong now sits one step
+     BEYOND body ink in both scopes — darker than --dg-text on the light
+     canvas, brighter on the dark one — so "strong" is a fact about the pixel,
+     not just a name.
+
+     Measured on this canvas (light / dark): --dg-chrome 7.43:1 / 7.27:1 on
+     the page background; --dg-chrome-strong 19.67:1 / 18.32:1 there, versus
+     --dg-text's 15.99:1 / 15.32:1; --dg-chrome-strong on --dg-chrome-surface
+     16.50:1 / 13.77:1; --dg-surface-raised ink on a --dg-chrome-strong fill
+     (the command palette's selected row) 18.57:1 / 15.52:1. */
   --dg-chrome: oklch(0.45 0.008 250);
-  --dg-chrome-strong: oklch(0.25 0.01 255);
+  --dg-chrome-strong: oklch(0.15 0.01 255);
   --dg-chrome-surface: oklch(0.94 0.004 255);
 
   /* Direction: which way a number moved, never whether to act on it. The sign
@@ -125,10 +138,16 @@
   --dg-radius-round: 999px; /* pills, dots, meters, avatars */
 }
 
-/* H2 I1: the film-room dark scope (vision spec §3) lands INERT — nothing sets
-   data-theme in I1 (guarded by tokensI1.test.js); the toggle ships with I2's
-   David-previewed visual flip. Hue meaning never changes between themes —
-   only lightness/chroma. */
+/* The film-room dark scope (vision spec §3). It is NOT inert: I2a activated it
+   statically at index.html:3 (`<html data-theme="dark">`), so this block is the
+   palette the product actually paints with today and the :root values above are
+   the light scope it would fall back to. What tokensI1.test.js still guards is
+   that index.html is the ONLY activation point and no theme toggle exists (that
+   UX is I5). Hue meaning never changes between themes — only lightness/chroma.
+   (This comment read "lands INERT — nothing sets data-theme in I1" until
+   DG-115's panel caught it; that stopped being true when I2a shipped, and it is
+   the one line in this file that would mislead a reader about which palette
+   renders.) */
 /* H2 I2a base layer: the page consumes the semantic aliases so the theme
    attribute governs the whole canvas. */
 body {
@@ -164,7 +183,7 @@ body {
   /* Chrome and direction follow the same rule: lightness/chroma re-tuned for
      the dark canvas, hue meaning unchanged. */
   --dg-chrome: oklch(0.7 0.008 250);
-  --dg-chrome-strong: oklch(0.92 0.005 250);
+  --dg-chrome-strong: oklch(0.98 0.005 250);
   --dg-chrome-surface: oklch(0.28 0.014 250);
   --dg-up: oklch(0.74 0.15 145);
   --dg-down: oklch(0.7 0.17 25);

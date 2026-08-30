@@ -164,14 +164,25 @@
   appearance: none;
   border: 0;
   background: none;
-  padding: 0;
+  display: block;
+  inline-size: 100%;
+  box-sizing: border-box;
+  padding: var(--dg-space-1) var(--dg-space-2);
   font: inherit;
   color: var(--dg-text);
   text-align: start;
   cursor: pointer;
+  border-radius: var(--dg-radius-control);
 }
 
+/* DG-115 panel fix: this hover repainted the row --dg-chrome-strong, which
+   DG-115's first cut had declared byte-identical to --dg-text — the row's
+   resting color. The affordance was a measured no-op. It is now the shell's
+   own neutral emphasis pattern, the same filled block the active rail item
+   wears, so the highlight is a shape as well as an ink change and does not
+   depend on either one alone. */
 .dg-shell__search .dg-asset-search__results button:hover {
+  background: var(--dg-chrome-surface);
   color: var(--dg-chrome-strong);
 }
 

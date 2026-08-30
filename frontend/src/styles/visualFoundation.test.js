@@ -32,10 +32,18 @@ const srcDir = resolve(stylesDir, "..");
 const frontendRoot = resolve(srcDir, "..");
 const tokensPath = resolve(stylesDir, "tokens.css");
 
-/** Shell chrome: the frame around the product, never a reading of the data. */
+/**
+ * Shell chrome: the frame around the product, never a reading of the data.
+ * Every stylesheet under shell/ plus the command palette — listed rather than
+ * globbed so adding shell furniture is a deliberate act, and widened by the
+ * DG-115 panel, which pointed out that ShellStatusDrawer and ParkedSurfaceCard
+ * are equally furniture and were outside the guard.
+ */
 const CHROME_FILES = [
   "shell/AppShell.css",
   "shell/TrustStrip.css",
+  "shell/ShellStatusDrawer.css",
+  "shell/ParkedSurfaceCard.css",
   "command/CommandPalette.css",
 ];
 
@@ -220,8 +228,12 @@ describe("DG-115 visual foundation", () => {
     const offenders = [];
 
     for (const { path, css } of readChromeCss()) {
+      // `[,)]` rather than `)`: a lane token written WITH a fallback —
+      // `var(--dg-model-muted, oklch(...))`, the form the pixel-identity
+      // contract in tokensI1.test.js encourages elsewhere — was invisible to
+      // the first draft of this regex. (DG-115 panel.)
       for (const match of stripComments(css).matchAll(
-        /var\((--dg-(?:model|market)[a-z-]*)\)/g,
+        /var\((--dg-(?:model|market)[a-z-]*)[,)]/g,
       )) {
         offenders.push(`${path} paints chrome with ${match[1]}`);
       }
@@ -282,15 +294,53 @@ describe("DG-115 visual foundation", () => {
     expect(shadowed, "the ladder and borders carry depth — no shadows").toEqual([]);
   });
 
+  /*
+   * Adopt-or-delete, and what it does NOT cover.
+   *
+   * This is the rule that made DG-115 delete --dg-pos-qb/rb/wr/te and
+   * --dg-dvs-floor: five COLOR tokens with zero consumers that had never
+   * rendered a pixel while the palette described them as a live family. A
+   * palette carries what the product paints with, and a re-added dead hue now
+   * has to be painted somewhere real to survive.
+   *
+   * The ordered numeric SCALES are exempt, and the DG-115 panel proved why
+   * with a case rather than an argument: --dg-space-6 has exactly one consumer
+   * (`.dg-divergence` in trade/TradeLab.css), and the sibling ticket landing
+   * next deletes that rule. Under a blanket rule, one lane removing one block
+   * turns main red pointing at tokens.css — a file it never touched — and the
+   * cheapest way out is to re-add a use of 2rem somewhere it is not wanted.
+   * That is the rule bullying the design instead of serving it. A scale is a
+   * declared vocabulary: a rung nobody stands on today is not dead weight, but
+   * a GAP in the middle of one is a real defect, and the ascending-and-complete
+   * assertions in the first two tests above already pin exactly that. So the
+   * scales keep the property that matters and give up the one that misfires.
+   *
+   * Everything else — every color, the chrome family, the direction pair,
+   * fonts, focus — stays under the hard rule.
+   *
+   * The exemption is the EXACT rungs the tests above already pin, never a name
+   * prefix: `--dg-text-muted` is a color that happens to share four words with
+   * the type scale, and it stays under the hard rule where it belongs. A new
+   * rung has to join its scale array — where the ascending-and-complete check
+   * catches it — or be consumed like anything else.
+   */
+  const SCALE_TOKENS = new Set([
+    ...TYPE_SCALE,
+    ...WEIGHT_TOKENS,
+    ...LEADING_TOKENS,
+    ...SPACING_SCALE,
+    ...RADIUS_TOKENS,
+  ]);
+
   it("leaves no token in the file with nobody consuming it", () => {
     const root = parseScope(readTokensCss(), ":root");
     const consumers = sourceFiles()
       .map((filePath) => readFileSync(filePath, "utf8"))
       .join("\n");
 
-    const orphans = Object.keys(root).filter(
-      (token) => !new RegExp(`var\\(${token}[,)]`).test(consumers),
-    );
+    const orphans = Object.keys(root)
+      .filter((token) => !SCALE_TOKENS.has(token))
+      .filter((token) => !new RegExp(`var\\(${token}[,)]`).test(consumers));
 
     expect(
       orphans,

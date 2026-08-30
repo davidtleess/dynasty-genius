@@ -365,7 +365,10 @@
   fill: var(--dg-market);
 }
 
-/* Worklist #3: rank numeral + lane-colored deltas + column header line. */
+/* Worklist #3: rank numeral + delta cells + column header line. (This line
+   read "lane-colored deltas" until DG-115 — which is the change that took the
+   lane hue OFF the deltas and replaced it with direction color, ten lines
+   below.) */
 .dg-wc__rank {
   font-family: var(--dg-font-mono);
   font-variant-numeric: tabular-nums;

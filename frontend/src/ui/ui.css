@@ -410,7 +410,16 @@
 }
 
 /* The one focal number per row (Codex R2): MetricCell carries row emphasis —
-   one step larger and heavier than sibling values, never sentiment-colored. */
+   one step larger and heavier than sibling values. The KIT's own emphasis is
+   never colored: it is --dg-text here and nothing in this file tints it.
+   One surface overrides that at higher specificity — what-changed paints the
+   delta cell's focal value with the direction pair (DailyWhatChanged.css,
+   `.dg-wc__delta-cell[data-direction] .dg-ui-metric__value`, 0-3-0 over this
+   rule's 0-1-0), on David's 2026-08-30 "Green up / red down" ruling. That is
+   direction, not sentiment: it says which way the number moved, never whether
+   the move is good for you. This comment said "never sentiment-colored" flat
+   before DG-115; the override is recorded here so the kit's contract is not
+   read as a promise the product no longer keeps. */
 .dg-ui-metric__value--emphasis {
   font-size: var(--dg-text-lg);
   font-weight: var(--dg-weight-semibold);

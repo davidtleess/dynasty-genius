@@ -202,16 +202,36 @@ describe("design tokens", () => {
 
   /*
    * The half of the ban that has teeth on the SCREEN rather than in the
-   * palette. A signal color is one that makes a claim: direction (up/down),
-   * lane (model/market), or warning (cliff/caveat). Neutral text, chrome and
+   * palette. A signal color is one that makes a CLAIM ABOUT THE NUMBER:
+   * direction (up/down) or lane (model/market). Neutral text, chrome and
    * surface tokens make none — the Track Record's `.dg-sb__verdict` is the
    * model's own report card written in prose, sized and muted with neutral
    * tokens, and it is exactly the kind of verdict this product SHOULD state.
    * What it may never do is hand the argument to a hue.
+   *
+   * The warning family (--dg-caveat / --dg-cliff) is deliberately NOT a signal
+   * color here, and that is an honesty decision rather than an oversight.
+   * DG-115's panel injected `.dg-trade__verdict-stale { color: var(--dg-caveat) }`
+   * and this rule rejected it — which would have made "this verdict is stale"
+   * or "this verdict is unvalidated" unpaintable in the one hue the product
+   * reserves for exactly that. A caveat hue softens a claim; it can never
+   * manufacture one, and the honesty law says stale must still be able to say
+   * it is stale. Wave 2's verdict-first morning read needs that door open.
+   *
+   * KNOWN BYPASS, recorded so the next hand does not read this as airtight.
+   * It matches the literal verdict words in a SELECTOR against a literal
+   * signal `var()` in that rule's own body, so a synonym
+   * (`.dg-trade__acquire-call { color: var(--dg-up) }`) or one alias hop
+   * (`--dg-signal-strong: var(--dg-down)`, then spent) both pass. Both were
+   * demonstrated on a scratch tree by the panel. This is a tripwire against
+   * the obvious move, not a proof of absence; the real guarantee is that the
+   * palette holds only two tokens in those arcs and visualFoundation.test.js
+   * fails on any token nobody consumes, so a smuggled third has nowhere to hide
+   * for long.
    */
   it("keeps signal color off anything named for a verdict", () => {
     const SIGNAL_TOKEN =
-      /var\(--dg-(?:up|down|model|model-emphasis|model-muted|market|market-emphasis|market-muted|cliff|caveat)[,)]/;
+      /var\(--dg-(?:up|down|model|model-emphasis|model-muted|market|market-emphasis|market-muted)[,)]/;
     const painted = [];
 
     for (const filePath of cssFiles()) {
