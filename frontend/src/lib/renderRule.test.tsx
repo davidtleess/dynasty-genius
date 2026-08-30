@@ -15,12 +15,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { LeaguePulse } from "../league-pulse/LeaguePulse";
 import { PlayerDetailCard } from "../player/PlayerDetailCard";
 import { PlayerInspector } from "../player/PlayerInspector";
+import { TrustStrip } from "../shell/TrustStrip";
 import { SystemHealthCard } from "../system-health/SystemHealthCard";
 import { DailyTape } from "../ui/DailyTape";
 import { DailyWhatChanged } from "../what-changed/DailyWhatChanged";
 import leaguePulseLive from "./__fixtures__/leaguePulse.live.json";
 import playerDetailLive from "./__fixtures__/playerDetail.live.json";
 import systemHealthLive from "./__fixtures__/systemHealth.live.json";
+import trustSurfaceLive from "./__fixtures__/trustSurface.live.json";
 import whatChangedLive from "./__fixtures__/whatChanged.live.json";
 import { auditRenderedCopy, findRawCopy, formatRawCopyFindings } from "./renderRule";
 
@@ -124,6 +126,15 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
     await screen.findByText(/data freshness/i);
 
     expectClean(container, "System health card");
+  });
+
+  it("holds on the trust strip, which rides every surface, with live data", async () => {
+    mockRoutes({ "/api/trust-surface/QB": trustSurfaceLive as Wire });
+
+    const { container } = render(<TrustStrip position="QB" />);
+    await screen.findByText("In use, edge unproven");
+
+    expectClean(container, "Trust strip");
   });
 
   it("holds on the daily tape in both its states", () => {

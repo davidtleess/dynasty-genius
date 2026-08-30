@@ -210,6 +210,15 @@ const VALUE_WORDS: Record<string, string> = {
   starter_slot: "Starting lineup",
   bench: "Bench",
 
+  // Which market the model was benchmarked against
+  // (eval/backtest_harness.py:70-78). The survivor-bias warning is part of the
+  // fact and travels with the name.
+  fantasycalc_native: "FantasyCalc, captured the same day",
+  dynastyprocess_ecr_2qb: "DynastyProcess expert consensus (superflex/2QB)",
+  ktc_community_csv: "KeepTradeCut community rankings",
+  fantasycalc_history_api_survivor_biased:
+    "FantasyCalc history — survivor-biased, it only sees players still ranked today",
+
   // Plain health words.
   ok: "Running normally",
   degraded: "Running behind",
@@ -594,6 +603,29 @@ export function subsystemStateLabel(status: string): string {
 //     so a future non-FantasyCalc source is named correctly rather than
 //     mislabelled inside a truth-bearing caveat.
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The trust surface's own grade ladder (eval/backtest_artifact.py:122-125,
+ * assigned at backtest_harness.py:335-348). It is a SEPARATE vocabulary from a
+ * player's `model_grade` — `EXPERIMENTAL` means "this build is experimental"
+ * there and "the gates have not been cleared" here — so it gets its own shelf
+ * rather than colliding inside the shared value words.
+ */
+const TRUST_GRADE_WORDS: Record<string, string> = {
+  PRE_MODEL: "Not modelled yet",
+  EXPERIMENTAL: "Experimental — the checks are not passing",
+  ACTIVE_B: "In use, edge unproven",
+  ACTIVE_B_VALIDATED: "In use, ranks well in testing",
+  DECISION_GRADE: "Cleared every check we run",
+};
+
+export function trustGradeWord(grade: string): string {
+  const known = TRUST_GRADE_WORDS[grade];
+  if (known !== undefined) return known;
+  if (findRawCopy(grade).length === 0) return grade;
+  console.warn("Copy dictionary: no word for trust grade", grade);
+  return humanize(grade);
+}
 
 const SOURCED_CAVEATS: Record<string, (sourceLabel: string) => string> = {
   market_overlay_static_caveat: (source) =>
