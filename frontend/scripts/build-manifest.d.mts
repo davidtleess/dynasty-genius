@@ -8,6 +8,8 @@ import type { Plugin } from "vite";
 export interface BuildManifest {
   built_at: string;
   openapi_sha256: string;
+  /** True when the tree that produced this bundle was not `source_sha` itself. */
+  source_dirty: boolean;
   source_sha: string;
 }
 
@@ -19,6 +21,7 @@ export interface BuildManifestOptions {
 
 export declare const MANIFEST_FILE_NAME: string;
 export declare function readSourceSha(repoRoot: string): string;
+export declare function readTreeDirty(repoRoot: string): boolean;
 export declare function hashFileSha256(filePath: string): string;
 export declare function computeBuildManifest(
   options?: BuildManifestOptions,

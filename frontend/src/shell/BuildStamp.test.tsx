@@ -19,6 +19,7 @@ function manifest(overrides = {}) {
   return {
     built_at: BUILT_AT,
     openapi_sha256: OPENAPI_SHA256,
+    source_dirty: false,
     source_sha: SOURCE_SHA,
     ...overrides,
   };
@@ -56,9 +57,14 @@ describe("BuildStamp (DG-076 build manifest surface)", () => {
     await renderStamp(okJson(manifest()));
 
     const stamp = await screen.findByTestId("dg-build-stamp");
-    expect(globalThis.fetch).toHaveBeenCalledWith(MANIFEST_URL);
+    // cache: "no-cache" forces ETag revalidation. The manifest URL is fixed and
+    // unhashed and StaticFiles sends no Cache-Control, so default heuristic
+    // caching could otherwise show the PREVIOUS build's sha after a redeploy —
+    // stale-as-fresh on the one line that exists to end stale mysteries.
+    expect(globalThis.fetch).toHaveBeenCalledWith(MANIFEST_URL, { cache: "no-cache" });
     expect(stamp.textContent).toContain("Build 0123456");
     expect(stamp.textContent).toContain("schema 89abcdef");
+    expect(stamp.textContent).not.toContain("dirty");
     expect(stamp.textContent).toContain("Aug 29, 6:15 PM ET");
     // Full receipts stay one press away in title text, never truncated away.
     expect(within(stamp).getByTitle(new RegExp(SOURCE_SHA))).toBeTruthy();
@@ -84,6 +90,25 @@ describe("BuildStamp (DG-076 build manifest surface)", () => {
 
   it("renders nothing on manifest shape drift rather than an unverified identity", async () => {
     await renderStamp(okJson(manifest({ source_sha: "not-a-sha" })));
+    await settled();
+    expect(screen.queryByTestId("dg-build-stamp")).toBeNull();
+  });
+
+  it("marks a dirty-tree build so the sha is never read as the tree that produced it", async () => {
+    await renderStamp(okJson(manifest({ source_dirty: true })));
+
+    const stamp = await screen.findByTestId("dg-build-stamp");
+    expect(stamp.textContent).toContain("Build 0123456+dirty");
+    // The full receipt says plainly why the commit is not the whole answer.
+    expect(within(stamp).getByTitle(/uncommitted/i)).toBeTruthy();
+  });
+
+  it("renders nothing when the manifest cannot say whether its tree was clean", async () => {
+    // A manifest with no source_dirty field is of unknown provenance. Showing
+    // it would silently assert "clean" — the exact fabrication this field ends.
+    const { source_dirty, ...withoutDirty } = manifest();
+    void source_dirty;
+    await renderStamp(okJson(withoutDirty));
     await settled();
     expect(screen.queryByTestId("dg-build-stamp")).toBeNull();
   });
