@@ -209,8 +209,8 @@
     }
   ],
   "totals": {
-    "focus_visible_selectors": 16,
-    "focus_token_consumers": 13,
+    "focus_visible_selectors": 19,
+    "focus_token_consumers": 16,
     "hover_selectors": 8,
     "elevation_consumers": 0,
     "row_treatment_selectors": 40,
