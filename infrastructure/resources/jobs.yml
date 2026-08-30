@@ -27,9 +27,13 @@ resources:
           timeout_seconds: 300
       
       schedule:
+        # RETIRED 2026-08-30 (David's ruling, DG-101). Was UNPAUSED with this same cron —
+        # "0 * * * * ?" is EVERY MINUTE, not hourly, and it was declared unpaused with the
+        # deployment/billing state unverified. PAUSED here so a stray `bundle deploy` cannot
+        # re-arm it; the live workspace teardown is step 2 of the runbook in databricks.yml.
         quartz_cron_expression: "0 * * * * ?"
         timezone_id: "America/New_York"
-        pause_status: UNPAUSED
+        pause_status: PAUSED
       
       email_notifications:
         on_start: []
