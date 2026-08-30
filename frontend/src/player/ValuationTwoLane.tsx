@@ -2,6 +2,11 @@
 // divergence. Model (blue) and market (amber) are never blended; the divergence
 // element is uniform-neutral slate — direction is conveyed by LABEL TEXT only,
 // never by directional brand colour, and the numeric delta is not rendered.
+//
+// DG-043: every fact is a real labeled pair — <div><dt>label</dt><dd>value</dd></div>
+// groups are the only children the <dl> carries (axe definition-list), and per
+// David's 2026-08-29 prose ruling the labels speak plain fantasy language:
+// no raw pipeline keys, no raw ISO timestamps on screen.
 import type { z } from "zod";
 
 import type { zPlayerDetailResponse } from "../lib/api/zod.gen";
@@ -17,16 +22,91 @@ const DIVERGENCE_LABELS: Record<string, string> = {
   inside_band: "Inside band",
 };
 
+// Rendered when a value the backend owns is simply absent — never a zero, never
+// a guess.
+const UNKNOWN = "—";
+
+// Raw caveat keys never reach the screen (prose ruling). Known keys get the
+// sentence a smart friend would say; an unknown key degrades to its own words
+// (underscores to spaces) — reformatted, never given fabricated meaning.
+//
+// Each sentence is built from the lane's OWN source label rather than a
+// hardcoded provider name, so a future non-FantasyCalc market source is named
+// correctly instead of being mislabeled inside a truth-bearing caveat.
+const CAVEAT_SENTENCES: Record<string, (sourceLabel: string) => string> = {
+  market_overlay_static_caveat: (sourceLabel) =>
+    sourceLabel === UNKNOWN
+      ? "Market values come from a saved snapshot, not a live feed."
+      : `Market values come from a saved ${sourceLabel} snapshot, not a live feed.`,
+  source_timestamp_is_fetch_time_not_publish_time: () =>
+    "The capture date above is when we pulled these prices, not when the source published them.",
+  // Emitted for every TE by universe_market_divergence.py:291 — 62 of the 398
+  // players carrying a market overlay today. Without a sentence here it reached
+  // the screen as the half-broken "Te review period.", which is exactly the raw
+  // pipeline key the prose ruling forbids.
+  te_review_period: () =>
+    "Tight end values are under review, so treat this one as a work in progress.",
+};
+
+function caveatSentence(caveat: string, sourceLabel: string): string {
+  const known = CAVEAT_SENTENCES[caveat];
+  if (known !== undefined) {
+    return known(sourceLabel);
+  }
+  const words = caveat.replaceAll("_", " ").trim();
+  return `${words.charAt(0).toUpperCase()}${words.slice(1)}.`;
+}
+
 // The artifact emits percentiles on a 0-100 scale (compute_dvs_pct_batch rounds
 // to one decimal; the sibling xvar_percentile_overall is 0-100 too), so render
 // as-is. Multiplying by 100 here was a latent unit bug that never fired while
 // the field was NULL on every row (pre-DG-086).
 function percent(value: number | null | undefined): string {
-  return value === null || value === undefined ? "—" : `${Math.round(value)}%`;
+  return value === null || value === undefined ? UNKNOWN : `${Math.round(value)}%`;
 }
 
 function marketSourceLabel(source: string | null | undefined): string {
-  return source === "fantasycalc" ? "FantasyCalc" : (source ?? "—");
+  return source === "fantasycalc" ? "FantasyCalc" : (source ?? UNKNOWN);
+}
+
+// Readable capture date ("Jul 22, 2026"). UTC so the shown day never shifts
+// with the viewer's clock; an unparseable timestamp falls back to the raw
+// string (honest, never fabricated) and an absent one renders the em dash.
+const CAPTURE_DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+// Per ECMAScript, an ISO date-time carrying NO timezone designator is parsed as
+// the viewer's LOCAL time. Formatting that instant back out in UTC then shifts
+// the calendar day — west of Greenwich an evening stamp renders as tomorrow, a
+// date the viewer has not reached. The legacy refresh path forwards
+// `source_timestamp` verbatim (scripts/run_market_divergence_refresh.py:293), so
+// an offset-less stamp is reachable. Pin those to UTC: the day shown is then
+// always the calendar day the source itself wrote.
+const OFFSETLESS_ISO = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/;
+
+function captureDate(timestamp: string | null | undefined): string {
+  if (timestamp === null || timestamp === undefined) {
+    return UNKNOWN;
+  }
+  const trimmed = timestamp.trim();
+  const pinned = OFFSETLESS_ISO.test(trimmed)
+    ? `${trimmed.replace(" ", "T")}Z`
+    : timestamp;
+  const parsed = Date.parse(pinned);
+  return Number.isNaN(parsed) ? timestamp : CAPTURE_DATE_FORMAT.format(parsed);
+}
+
+function Fact({ label, value }: { label: string; value: string | number | null }) {
+  return (
+    <div className="dg-two-lane__fact">
+      <dt>{label}</dt>
+      <dd>{value ?? UNKNOWN}</dd>
+    </div>
+  );
 }
 
 export function ValuationTwoLane({
@@ -50,14 +130,17 @@ export function ValuationTwoLane({
       >
         {model ? (
           <dl className="dg-two-lane__facts">
-            <span>{model.engine_path}</span>
-            <span>{model.model_grade}</span>
-            <span>{model.dynasty_value_score}</span>
-            <span>{model.xvar}</span>
-            <span>{percent(model.xvar_percentile_position)}</span>
-            <span>{model.projection_1y ?? "—"}</span>
-            <span>{model.projection_2y ?? "—"}</span>
-            <span>{model.projection_3y ?? "—"}</span>
+            <Fact label="Engine" value={model.engine_path} />
+            <Fact label="Model grade" value={model.model_grade} />
+            <Fact label="Dynasty value" value={model.dynasty_value_score} />
+            <Fact label="Value above replacement (xVAR)" value={model.xvar} />
+            <Fact
+              label="Position percentile"
+              value={percent(model.xvar_percentile_position)}
+            />
+            <Fact label="1-year projection" value={model.projection_1y} />
+            <Fact label="2-year projection" value={model.projection_2y} />
+            <Fact label="3-year projection" value={model.projection_3y} />
           </dl>
         ) : (
           <p className="dg-two-lane__degraded">Model unavailable</p>
@@ -70,16 +153,23 @@ export function ValuationTwoLane({
         className="dg-two-lane__lane dg-two-lane__lane--market"
       >
         {market?.status === "available" ? (
-          <dl className="dg-two-lane__facts">
-            <span>{marketSourceLabel(market.source)}</span>
-            <span>{market.market_value}</span>
-            <span>Overall {market.market_rank_overall}</span>
-            <span>Position {market.market_rank_position}</span>
-            <span>{market.source_timestamp}</span>
+          <>
+            <dl className="dg-two-lane__facts">
+              <Fact label="Source" value={marketSourceLabel(market.source)} />
+              <Fact label="Market value" value={market.market_value} />
+              <Fact label="Overall rank" value={market.market_rank_overall} />
+              <Fact label="Position rank" value={market.market_rank_position} />
+              <Fact
+                label="Prices captured"
+                value={captureDate(market.source_timestamp)}
+              />
+            </dl>
             {market.caveats.map((caveat) => (
-              <span key={caveat}>{caveat}</span>
+              <p key={caveat} className="dg-two-lane__note">
+                {caveatSentence(caveat, marketSourceLabel(market.source))}
+              </p>
             ))}
-          </dl>
+          </>
         ) : (
           <p className="dg-two-lane__degraded">Market unavailable</p>
         )}

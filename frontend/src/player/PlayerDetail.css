@@ -61,6 +61,42 @@
 
 .dg-two-lane__lane {
   padding-left: 0.6rem;
+  min-width: 0;
+}
+
+/* DG-043: facts are labeled dt/dd pairs, one per row — never a run-on line.
+ * overflow-wrap keeps any long value inside the lane at a 390px viewport. */
+.dg-two-lane__facts {
+  display: grid;
+  gap: var(--dg-space-1);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.dg-two-lane__fact {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--dg-space-2);
+  align-items: baseline;
+  min-width: 0;
+}
+
+.dg-two-lane__fact dt {
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+}
+
+.dg-two-lane__fact dd {
+  margin: 0;
+}
+
+/* Caveat prose — one plain sentence per line, muted, outside the fact list. */
+.dg-two-lane__note {
+  margin: var(--dg-space-1) 0 0;
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 /* Model axis: blue. */
@@ -75,10 +111,13 @@
   color: var(--dg-market-emphasis);
 }
 
-/* Divergence: uniform-neutral slate — NOT a model/market or directional hue. */
+/* Divergence: uniform-neutral slate — NOT a model/market or directional hue.
+ * DG-043: tokens, not raw literals — the old raw slate literal measured
+ * 3.23:1 on the dark canvas (axe color-contrast, serious). The neutral text
+ * and border tokens keep the uniform-neutral discipline in both themes. */
 .dg-two-lane__divergence--neutral {
-  border-left: 3px solid oklch(0.7 0.02 255);
-  color: oklch(0.5 0.02 255);
+  border-left: 3px solid var(--dg-border-strong);
+  color: var(--dg-text-muted);
 }
 
 /* Constitutional age-cliff warning — amber cliff token, not a directional hue. */
