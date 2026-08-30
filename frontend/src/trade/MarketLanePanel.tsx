@@ -91,6 +91,15 @@ export function MarketLanePanel({
     reconciliation.adjusted_market_received !== reconciliation.market_received_raw ||
     reconciliation.adjusted_market_sent !== reconciliation.market_sent_raw;
 
+  // The one caveat whose sentence refers to a capture date. With no date to
+  // refer to, its fact is carried by the freshness line above instead of
+  // dangling here — the fact survives, the broken reference does not.
+  const shownCaveats = reconciliation.caveats.filter(
+    (caveat) =>
+      Boolean(reconciliation.source_timestamp) ||
+      caveat !== "source_timestamp_is_fetch_time_not_publish_time",
+  );
+
   return (
     <section
       className="dg-lane dg-lane--market"
@@ -116,11 +125,18 @@ export function MarketLanePanel({
           null timestamp, at nothing at all. Freshness belongs beside the prices
           it qualifies, and it renders either way now: a missing pull time is
           itself a freshness fact, and the measured live payload returns
-          `source_timestamp: null`. */}
+          `source_timestamp: null`.
+
+          DG-116 panel fix: relocating the line fixed WHERE the caveat points,
+          not WHETHER it is true. On the live null-timestamp payload the lane
+          said there was no capture date and four lines later explained what
+          "the capture date above" means. So on a null timestamp that one caveat
+          is carried HERE instead, with its fact intact and nothing to dangle
+          from; `hiddenCaveats` below is what keeps it from being said twice. */}
       <p className="dg-lane__timestamp">
         {reconciliation.source_timestamp
           ? `Prices pulled ${formatCaptureTimestamp(reconciliation.source_timestamp)}`
-          : "No pull time came back with these prices, so we cannot say how fresh they are."}
+          : `No capture date came back with these prices, so we cannot say how fresh they are — and when one does come back it is when we pulled the prices, not when ${SOURCE_LABEL} published them.`}
       </p>
 
       {/* FantasyCalc-native forced-cut capacity ranges. Scale-isolated from the
@@ -141,9 +157,21 @@ export function MarketLanePanel({
         // (market_reconciler.py:534-537). That is a missing PRICE, not a rules
         // conflict, and the live payload proves it: the status arrives beside
         // the caveat "Rasheen Ali (11570): no FantasyCalc value".
+        //
+        // DG-116 panel fix: the replacement was singular and said the cost was
+        // "left out of the numbers here", which is false on a multi-cut set
+        // where only SOME cuts are unpriced. `penalty_market_value` sums the
+        // priced overlays regardless of the block (market_reconciler.py:458-462)
+        // and `adjusted_market_received` subtracts it unconditionally (:613), so
+        // the priced part IS in the numbers — and the label eight lines above
+        // then reads "Difference, after the forced cut" on the same screen.
+        // Reproduced live: send Jaxson Dart, get Brock Bowers + Malik Nabers →
+        // status "blocked", unresolved_cut_count 1 of 2 cuts,
+        // penalty_market_value 707, received 14,170 → 13,463.
         <p className="dg-forced-cut-blocked">
-          We could not put a market price on the player this trade forces you to cut, so
-          that cost is left out of the numbers here.
+          {penalty.penalty_market_value > 0
+            ? `We could not put a market price on ${penalty.unresolved_cut_count} of the ${penalty.forced_cut_candidates.length} forced cuts, so that part of the cost is missing here. The ${penalty.forced_cut_candidates.length - penalty.unresolved_cut_count === 1 ? "one" : "ones"} we could price ${penalty.forced_cut_candidates.length - penalty.unresolved_cut_count === 1 ? "is" : "are"} already taken out of the numbers above.`
+            : `We could not put a market price on the forced ${penalty.unresolved_cut_count === 1 ? "cut" : "cuts"}, so that cost is left out of the numbers here.`}
         </p>
       ) : (
         <div className="dg-forced-cut-ranges">
@@ -168,6 +196,17 @@ export function MarketLanePanel({
             </ul>
           )}
         </div>
+      )}
+      {/* The run bar invites a manager to fill in the other roster number so we
+          will also price what that manager has to cut. The backend can decline
+          — `"unavailable"` is "known roster, inadequate coverage"
+          (market_reconciler.py:585-590) — and nothing on this surface said so,
+          so the promise was made and the decline was silent. */}
+      {reconciliation.counterparty_market_penalty_status === "unavailable" && (
+        <p className="dg-forced-cut-blocked">
+          We could not price what the other manager would have to cut, so their side of
+          the squeeze is not in these numbers.
+        </p>
       )}
       <div className="dg-lane__sides">
         <AssetSide title="What you send" assets={reconciliation.sent_assets} />
@@ -200,12 +239,10 @@ export function MarketLanePanel({
           caveats need this lane's own source named INSIDE the sentence, so a
           future non-FantasyCalc source is named correctly rather than
           mislabelled inside a truth-bearing caveat. */}
-      {reconciliation.caveats.length > 0 && (
+      {shownCaveats.length > 0 && (
         <TokenNotes
           className="dg-lane__caveats"
-          notes={reconciliation.caveats.map((caveat) =>
-            sourcedCaveat(caveat, SOURCE_LABEL),
-          )}
+          notes={shownCaveats.map((caveat) => sourcedCaveat(caveat, SOURCE_LABEL))}
         />
       )}
     </section>

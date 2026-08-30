@@ -30,9 +30,15 @@ export function RunComparisonBar({
             onCounterpartyChange(raw === "" ? null : Number(raw));
           }}
         />
+        {/* WAS an unconditional promise. `_select_counterparty_penalty` can
+            return "unavailable" for a known roster with inadequate coverage
+            (market_reconciler.py:585-590), in which case the sent side is left
+            unadjusted and no counterparty penalty comes back at all — so the
+            promise has to be a try, and the market lane now says when it could
+            not be kept. */}
         <p className="dg-run-bar__help">
-          Fill this in and we will also price what the other side would have to cut to
-          fit the deal.
+          Fill this in and we will try to price what the other side would have to cut to
+          fit the deal. If we cannot, the market lane says so.
         </p>
       </div>
       <button type="button" className="dg-run-bar__run" onClick={onRun}>

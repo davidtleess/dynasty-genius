@@ -322,6 +322,30 @@ describe("Trade Lab — both prices, plainly", () => {
     expect(roster.labels?.length ?? 0).toBeGreaterThan(0);
   });
 
+  it("does not keep a priced verdict standing over a board that has changed", async () => {
+    // DG-116 panel finding, measured in a browser: this ticket wires up
+    // `removeAsset` (dead since the surface shipped), which made a new state
+    // reachable — price a trade, remove both sides, and the columns read
+    // "Nothing here yet." while the verdict and both lanes went on asserting the
+    // arithmetic of a trade no longer on screen, with the empty-board guidance
+    // suppressed because it is gated on `hasRun`.
+    installFetch();
+    render(<TradeLab />);
+
+    await priceATrade();
+    expect(screen.getByTestId("trade-verdict")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: /build a trade/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /remove Ja'Marr Chase/i }));
+
+    expect(screen.queryByTestId("trade-verdict")).toBeNull();
+    expect(screen.queryByTestId("model-lane")).toBeNull();
+    expect(screen.queryByTestId("market-lane")).toBeNull();
+    // The guidance the stale verdict was standing on top of comes back.
+    expect(screen.getByRole("region", { name: /build a trade/i })).toBeTruthy();
+    expect(document.body.textContent).not.toContain("8,400");
+  });
+
   it("styles the native controls instead of leaving browser chrome on the dark canvas", () => {
     const input = ruleBody(".dg-trade-lab input");
     const button = ruleBody(".dg-trade-lab button");

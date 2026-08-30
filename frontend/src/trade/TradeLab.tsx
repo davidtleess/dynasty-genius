@@ -70,12 +70,28 @@ export function TradeLab({
     status: "idle",
   });
 
+  // A priced result describes ONE board. The moment the board changes it stops
+  // being true of what is on screen, so it is cleared rather than left standing.
+  //
+  // DG-116 panel finding, measured: this ticket wires up `removeAsset` (dead
+  // since the surface shipped), which made a new state reachable — price a
+  // trade, remove both sides, and the columns read "Nothing here yet." while
+  // 2,900 characters of verdict and both lanes went on asserting the arithmetic
+  // of a trade that was no longer there, with the empty-board guidance
+  // suppressed because it is gated on `hasRun`. The honesty law's "stale must
+  // still say it is stale" is satisfied here by not keeping the stale thing.
+  function clearPricing(): void {
+    setModelLane({ status: "idle" });
+    setMarketLane({ status: "idle" });
+  }
+
   function select(entry: CatalogEntry): void {
     setTrade((current) => {
       const next = addAsset(current, activeSide, entry);
       saveTrade(next);
       return next;
     });
+    clearPricing();
     // Selecting an asset also opens the player inspector (entry-point wiring).
     onSelectPlayer?.(entry);
   }
@@ -86,6 +102,7 @@ export function TradeLab({
       saveTrade(next);
       return next;
     });
+    clearPricing();
   }
 
   function setCounterparty(value: number | null): void {

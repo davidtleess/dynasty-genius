@@ -300,6 +300,13 @@ describe("TradeVerdict", () => {
         model={modelReconciliation({
           adjusted_david_received_value: 2.85,
           adjusted_within_parity_band: false,
+          // DG-116 panel fix: this case needs BOTH lanes to be allowed a
+          // direction, so the model's capacity-aware status has to be one that
+          // states one. The default fixture status is
+          // `uncertain_range_crosses_parity`, which is the backend REFUSING to
+          // call the direction — see the test below, which is the live
+          // Dart→Bowers payload and is the reason this override exists.
+          adjusted_favors_status: "counterparty",
         })}
         market={marketReconciliation({
           market_delta_for_david: 2338,
@@ -310,15 +317,234 @@ describe("TradeVerdict", () => {
       />,
     );
 
-    // The live case this came from: send Jaxson Dart, get Brock Bowers. The
-    // market has the deal going one way and the model the other, while neither
-    // player's own price is outside the band. Both statements are true, and the
-    // copy has to let them stand together.
+    // The market has the deal going one way and the model the other, while
+    // neither player's own price is outside the band. Both statements are true,
+    // and the copy has to let them stand together.
     const verdict = screen.getByTestId("trade-verdict");
     expect(verdict.textContent).toMatch(/the market and our model disagree here/i);
     expect(verdict.textContent).toMatch(
       /taken one player at a time, our prices and the market's agree/i,
     );
+  });
+
+  // ── DG-116 panel: the three states where a lane may NOT be given a direction.
+  // Each fixture below is a payload measured off the running API on 2026-08-30,
+  // not a hand-made shape.
+
+  it("refuses a model direction when the capacity range crosses parity", () => {
+    // LIVE: POST /api/trade/reconcile, send Jaxson Dart (12508), get Brock
+    // Bowers (11604) → side_a 18.43, adjusted_david_received_value 2.85,
+    // adjusted_received_value_range [30.68, 2.85] (inverted, so the lane's own
+    // RangeRow fails it closed to "Range unavailable"), and
+    // adjusted_favors_status "uncertain_range_crosses_parity" — _favors_status
+    // (reconciler.py:82-105) saying the two ends of the range fall on opposite
+    // sides of even. The first cut of this block printed the low end as the
+    // answer: "by our model you give up more than you get back".
+    render(
+      <TradeVerdict
+        model={modelReconciliation({
+          adjusted_david_received_value: 2.85,
+          adjusted_favors_status: "uncertain_range_crosses_parity",
+          adjusted_received_value_range: [30.68, 2.85],
+          adjusted_within_parity_band: false,
+          base_evaluation: {
+            caveats: [],
+            decision_supported: false,
+            fairness_delta: 15.58,
+            favors: "counterparty",
+            favors_xvar_margin: 15.58,
+            side_a: tradeSide(18.43),
+            side_b: tradeSide(2.85),
+            within_parity_band: false,
+          },
+        })}
+        market={marketReconciliation({ market_delta_for_david: 2369 })}
+      />,
+    );
+
+    const text = screen.getByTestId("trade-verdict").textContent ?? "";
+    // The arithmetic David asked for is still stated.
+    expect(text).toContain("18.43");
+    expect(text).toContain("2.85");
+    // The direction the producer refused to call is not manufactured.
+    expect(text).toMatch(/our model cannot say which way this one goes/i);
+    expect(text).not.toMatch(/by our model you give up more than you get back/i);
+    expect(text).not.toMatch(/the market and our model disagree here/i);
+    // And the range that carries the uncertainty is on screen, both ends.
+    expect(text).toContain("30.68");
+    expect(text).toMatch(/both sides of even/i);
+  });
+
+  it("says an unscored player is missing from the model totals, never a zero in them", () => {
+    // LIVE: send Jaxson Dart (12508), get Malik Nabers (11632) → side_b
+    // side_value 0.0 WITH base_evaluation.caveats
+    // ["11632: unscored (PRE_MODEL) — excluded from trade math"]
+    // (evaluator.py:90-98). The catalog returns xvar: null for him. The model
+    // did not price him at zero, it dropped him.
+    render(
+      <TradeVerdict
+        model={modelReconciliation({
+          adjusted_david_received_value: 0,
+          adjusted_favors_status: "counterparty",
+          base_evaluation: {
+            caveats: ["11632: unscored (PRE_MODEL) — excluded from trade math"],
+            decision_supported: false,
+            fairness_delta: 18.43,
+            favors: "counterparty",
+            favors_xvar_margin: 18.43,
+            side_a: tradeSide(18.43),
+            side_b: tradeSide(0),
+            within_parity_band: false,
+          },
+        })}
+        market={marketReconciliation({
+          market_delta_for_david: 1451,
+          received_assets: [
+            marketOverlay({
+              asset_ref: {
+                asset_kind: "player",
+                decision_supported: false,
+                player_id: "11632",
+                sleeper_id: "11632",
+              },
+              label: "Malik Nabers",
+              market_value: 6626,
+              divergence_context: divergenceContext("inside_band"),
+            }),
+          ],
+        })}
+      />,
+    );
+
+    const text = screen.getByTestId("trade-verdict").textContent ?? "";
+    expect(text).toMatch(/our model has no value yet for Malik Nabers/i);
+    expect(text).toMatch(/not a zero in them/i);
+    expect(text).toMatch(/our model cannot say which way this one goes/i);
+    expect(text).not.toMatch(/by our model you give up more than you get back/i);
+    // The raw id never reaches the screen; the name does.
+    expect(text).not.toContain("11632");
+    expect(text).not.toContain("PRE_MODEL");
+  });
+
+  it("says an unpriced asset is missing from the market totals, never a zero in them", () => {
+    // market_sent_raw / market_received_raw sum only `market_value is not None`
+    // (market_reconciler.py:598-602), so an asset FantasyCalc does not price is
+    // silently absent from the side total the verdict prints.
+    render(
+      <TradeVerdict
+        model={modelReconciliation({ adjusted_favors_status: "david" })}
+        market={marketReconciliation({
+          received_assets: [
+            marketOverlay({
+              label: "2027 Round 1 Pick",
+              market_value: null,
+              divergence_context: divergenceContext("unavailable"),
+            }),
+          ],
+        })}
+      />,
+    );
+
+    const text = screen.getByTestId("trade-verdict").textContent ?? "";
+    expect(text).toMatch(/no market price came back for 2027 Round 1 Pick/i);
+    expect(text).toMatch(/not a zero in them/i);
+    expect(text).toMatch(/the market pricing cannot say which way this one goes/i);
+  });
+
+  it("narrows the per-player agreement to the players it actually compared", () => {
+    // LIVE: send Jaxson Dart (inside_band), get Malik Nabers (unavailable).
+    // `_classify_divergence` returns `unavailable` for a missing artifact row
+    // and for every draft pick (market_reconciler.py:722-729, 779-791), and
+    // 11,861 of the 12,201 rows in the live artifact carry it — a mixed board
+    // is the ordinary board. This block used `assets.some(inside_band)`, so one
+    // compared player spoke for every uncompared one.
+    render(
+      <TradeVerdict
+        model={modelReconciliation({ adjusted_favors_status: "david" })}
+        market={marketReconciliation({
+          sent_assets: [
+            marketOverlay({
+              label: "Jaxson Dart",
+              divergence_context: divergenceContext("inside_band"),
+            }),
+          ],
+          received_assets: [
+            marketOverlay({
+              label: "Malik Nabers",
+              divergence_context: divergenceContext("unavailable"),
+            }),
+          ],
+        })}
+      />,
+    );
+
+    const text = screen.getByTestId("trade-verdict").textContent ?? "";
+    expect(text).not.toMatch(
+      /taken one player at a time, our prices and the market's agree\./i,
+    );
+    expect(text).toMatch(/agree on the ones we could compare/i);
+    expect(text).toMatch(
+      /no price of our own to compare against the market for Malik Nabers/i,
+    );
+  });
+
+  it("states the forced cut as the roster's state, not as something the trade causes", () => {
+    // LIVE: POST /api/trade/reconcile with {"david_assets": [], "received_assets": []}
+    // — no trade at all — returns post_trade_overflow 1 and forced_cut_candidates
+    // ['Rasheen Ali']. A 1-for-1 Dart→Bowers swap returns the same one. The cut
+    // set is RC v1's answer for the post-trade roster (reconciler.py:190-215),
+    // with no delta against today in it, so "Making room for this trade means
+    // cutting Rasheen Ali." blamed a pre-existing squeeze on the trade.
+    render(
+      <TradeVerdict
+        model={modelReconciliation({
+          adjusted_favors_status: "david",
+          roster_penalty: {
+            decision_supported: false,
+            forced_cut_candidates: [
+              { decision_supported: false, full_name: "Rasheen Ali", position: "RB" },
+            ],
+            forced_cut_recovery_range: [1.2, 2.3],
+            forced_cut_value_at_risk_range: [0.8, 1.9],
+            forced_cut_penalty_xvar: 3.1,
+            penalty_caveats: [],
+            penalty_status: "ok",
+            pool_deficits: {},
+            post_trade_overflow: 1,
+            post_trade_total_players: 27,
+          },
+        })}
+        market={marketReconciliation()}
+      />,
+    );
+
+    const text = screen.getByTestId("trade-verdict").textContent ?? "";
+    expect(text).not.toMatch(/making room for this trade means cutting/i);
+    expect(text).toMatch(/with this trade in place the roster is over the limit/i);
+    expect(text).toContain("Rasheen Ali");
+    expect(text).toMatch(/does not tell you whether you were already short of room/i);
+  });
+
+  it("says whose forced cut came off the sent side when the other roster is priced in", () => {
+    // `adjusted_market_sent = market_sent_raw - counterparty_penalty
+    // .penalty_market_value` — "the value the counterparty receives after its
+    // own capacity cost" (market_reconciler.py:585, 628-632). Printed bare under
+    // "You give up", that is a different number for the same side than the lane
+    // below prints, with nothing saying why.
+    render(
+      <TradeVerdict
+        model={modelReconciliation({ adjusted_favors_status: "david" })}
+        market={marketReconciliation({
+          adjusted_market_sent: 7900,
+          counterparty_market_penalty_status: "available",
+          market_sent_raw: 8400,
+          market_delta_for_david: -800,
+        })}
+      />,
+    );
+
+    const text = screen.getByTestId("trade-verdict").textContent ?? "";
+    expect(text).toMatch(/worth to the other manager after their own forced cut/i);
   });
 
   it("says a comparison is missing rather than implying the prices agree", () => {

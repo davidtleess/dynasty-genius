@@ -420,6 +420,61 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
       const verdict = render(<TradeVerdict model={model} market={market} />);
       expectClean(verdict.container, `Trade Lab verdict (${signal})`);
       verdict.unmount();
+
+      // DG-116 panel fixes added three states in which a lane is not allowed a
+      // direction, and each one builds its sentence out of producer material:
+      // the unscored caveat (which carries the raw key `PRE_MODEL` and a
+      // Sleeper id), the capacity range, and an unpriced asset's label. All
+      // three go through the audit here rather than being trusted.
+      const unscored = render(
+        <TradeVerdict
+          model={
+            {
+              ...model,
+              adjusted_david_received_value: 0,
+              base_evaluation: {
+                ...model.base_evaluation,
+                caveats: ["100: unscored (PRE_MODEL) — excluded from trade math"],
+                side_b: side(0),
+              },
+            } as Wire
+          }
+          market={market}
+        />,
+      );
+      expectClean(unscored.container, `Trade Lab verdict, unscored (${signal})`);
+      unscored.unmount();
+
+      const uncertain = render(
+        <TradeVerdict
+          model={
+            {
+              ...model,
+              adjusted_favors_status: "uncertain_range_crosses_parity",
+              adjusted_received_value_range: [30.68, 2.85],
+            } as Wire
+          }
+          market={market}
+        />,
+      );
+      expectClean(uncertain.container, `Trade Lab verdict, uncertain (${signal})`);
+      uncertain.unmount();
+
+      const unpriced = render(
+        <TradeVerdict
+          model={model}
+          market={
+            {
+              ...market,
+              received_assets: [
+                { ...overlay("2027 Round 1 Pick", signal), market_value: null },
+              ],
+            } as Wire
+          }
+        />,
+      );
+      expectClean(unpriced.container, `Trade Lab verdict, unpriced (${signal})`);
+      unpriced.unmount();
     }
   });
 
