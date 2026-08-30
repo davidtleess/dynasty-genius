@@ -158,4 +158,109 @@ describe("ValuationTwoLane labeled pairs (DG-043)", () => {
     const dt = within(lane).getByText("Prices captured");
     expect(within(dt.closest("div")).getByText("—")).toBeTruthy();
   });
+
+  // DG-043 panel fix 1 — te_review_period is a LIVE key: the producer appends it
+  // to every TE (universe_market_divergence.py:291), 62 of the 398 players
+  // carrying a market overlay today. It had no sentence, so it fell through the
+  // humanizer and reached the screen as "Te review period." — a raw pipeline key
+  // in all but spelling, which is what the prose ruling forbids.
+  it("speaks the live te_review_period caveat as a real sentence", () => {
+    renderLanes({
+      market: { ...market, caveats: ["te_review_period"] },
+    });
+
+    const lane = screen.getByTestId("player-market-lane");
+    expect(within(lane).queryByText("te_review_period")).toBeNull();
+    expect(within(lane).queryByText("Te review period.")).toBeNull();
+    expect(
+      within(lane).getByText(
+        "Tight end values are under review, so treat this one as a work in progress.",
+      ),
+    ).toBeTruthy();
+  });
+
+  // DG-043 panel fix 2 — the static-snapshot caveat used to hardcode
+  // "FantasyCalc" while marketSourceLabel() already defended against a non-
+  // FantasyCalc source. The two disagreed about whether the source is knowable,
+  // so a second market source would have been NAMED WRONG inside a truth-bearing
+  // caveat. The sentence is now built from the lane's own source.
+  it("names the caveat's market source from the data, not a hardcoded provider", () => {
+    renderLanes({
+      market: {
+        ...market,
+        source: "keeptradecut",
+        caveats: ["market_overlay_static_caveat"],
+      },
+    });
+
+    const lane = screen.getByTestId("player-market-lane");
+    expect(within(lane).queryByText(/FantasyCalc/)).toBeNull();
+    expect(
+      within(lane).getByText(
+        "Market values come from a saved keeptradecut snapshot, not a live feed.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("drops the provider name entirely rather than inventing one when source is absent", () => {
+    renderLanes({
+      market: {
+        ...market,
+        source: null,
+        caveats: ["market_overlay_static_caveat"],
+      },
+    });
+
+    const lane = screen.getByTestId("player-market-lane");
+    expect(
+      within(lane).getByText(
+        "Market values come from a saved snapshot, not a live feed.",
+      ),
+    ).toBeTruthy();
+    expect(within(lane).queryByText(/saved — snapshot/)).toBeNull();
+  });
+
+  // DG-043 panel fix 3 — an ISO stamp with NO offset is parsed as LOCAL time by
+  // Date.parse but was formatted back out in UTC, shifting the calendar day. At
+  // any negative UTC offset an evening stamp rendered as TOMORROW — a date the
+  // viewer has not reached. The legacy refresh path forwards source_timestamp
+  // verbatim, so this input is reachable.
+  it("shows the source's own calendar day for an offset-less timestamp", () => {
+    renderLanes({
+      market: {
+        ...market,
+        source_timestamp: "2026-08-29T21:00:00",
+        caveats: [],
+      },
+    });
+
+    const lane = screen.getByTestId("player-market-lane");
+    const dt = within(lane).getByText("Prices captured");
+    expect(within(dt.closest("div")).getByText("Aug 29, 2026")).toBeTruthy();
+    expect(within(lane).queryByText("Aug 30, 2026")).toBeNull();
+  });
+
+  it("still honours an explicit offset rather than pinning it to UTC", () => {
+    renderLanes({
+      market: {
+        ...market,
+        source_timestamp: "2026-08-29T13:00:01.968686+00:00",
+        caveats: [],
+      },
+    });
+
+    const lane = screen.getByTestId("player-market-lane");
+    const dt = within(lane).getByText("Prices captured");
+    expect(within(dt.closest("div")).getByText("Aug 29, 2026")).toBeTruthy();
+  });
+
+  it("falls back to the raw string when the timestamp cannot be parsed", () => {
+    renderLanes({
+      market: { ...market, source_timestamp: "not-a-date", caveats: [] },
+    });
+
+    const lane = screen.getByTestId("player-market-lane");
+    const dt = within(lane).getByText("Prices captured");
+    expect(within(dt.closest("div")).getByText("not-a-date")).toBeTruthy();
+  });
 });
