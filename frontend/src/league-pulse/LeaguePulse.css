@@ -30,6 +30,10 @@
 
 .dg-league-pulse__sources {
   display: flex;
+  /* DG-117: two source lines on one unwrapping flex row overran a 390px
+     viewport by 2px. Two pixels is still a page that scrolls sideways, and the
+     browser gives the whole document the scrollbar for it. */
+  flex-wrap: wrap;
   gap: 0.75rem;
   list-style: none;
   padding: 0;

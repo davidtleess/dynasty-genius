@@ -5,6 +5,7 @@
 // BCa 95% CIs. When a fold's Kendall OR Spearman CI band spans zero, the row carries an
 // explicit NEUTRAL "CI includes zero" note — a factual statement that the per-fold edge
 // is statistically indistinguishable from zero, NOT a pass/fail or red/green judgement.
+import { TableScroll } from "../ui/TableScroll";
 import type { TrustConsoleViewModel } from "./trustViewModel";
 
 type Fold = TrustConsoleViewModel["folds"][number];
@@ -54,47 +55,54 @@ export function FoldTable({ folds }: { folds: TrustConsoleViewModel["folds"] }) 
       <p className="dg-trust-lede">
         The season-by-season working behind that, in the statistician's own terms.
       </p>
-      <table
-        className="dg-trust-folds__table"
-        aria-label="Per-fold backtest results"
-        data-receipt
-      >
-        <thead>
-          <tr>
-            {COLUMNS.map((col) => (
-              <th key={col} scope="col">
-                {col}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {folds.map((fold: Fold) => {
-            const ciIncludesZero =
-              includesZero(fold.kendall_tau_bca_ci95) ||
-              includesZero(fold.spearman_rho_bca_ci95);
-            return (
-              <tr key={fold.fold_index}>
-                <td>Fold {fold.fold_index}</td>
-                <td>{fold.train_years.join(", ")}</td>
-                <td>{fold.test_year}</td>
-                <td>{fold.n_train}</td>
-                <td>{fold.n_test}</td>
-                <td>{f2(fold.kendall_tau)}</td>
-                <td>{ci(fold.kendall_tau_bca_ci95)}</td>
-                <td>{f2(fold.spearman_rho)}</td>
-                <td>{ci(fold.spearman_rho_bca_ci95)}</td>
-                <td>{f2(fold.rank_ic)}</td>
-                <td>{f2(fold.rmse)}</td>
-                <td>{f2(fold.mae)}</td>
-                <td className="dg-trust-folds__ci-note">
-                  {ciIncludesZero ? "CI includes zero" : ""}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {/* DG-117: thirteen columns of statistics, `white-space: nowrap` on every
+          cell, 1039px of table inside a 358px column at 390px — and the page
+          took all 665px of the overflow. Model Trust was the worst sideways
+          scroll in the product. The receipt keeps every column; the scrolling
+          moves inside it. */}
+      <TableScroll label="Per-fold backtest results">
+        <table
+          className="dg-trust-folds__table"
+          aria-label="Per-fold backtest results"
+          data-receipt
+        >
+          <thead>
+            <tr>
+              {COLUMNS.map((col) => (
+                <th key={col} scope="col">
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {folds.map((fold: Fold) => {
+              const ciIncludesZero =
+                includesZero(fold.kendall_tau_bca_ci95) ||
+                includesZero(fold.spearman_rho_bca_ci95);
+              return (
+                <tr key={fold.fold_index}>
+                  <td>Fold {fold.fold_index}</td>
+                  <td>{fold.train_years.join(", ")}</td>
+                  <td>{fold.test_year}</td>
+                  <td>{fold.n_train}</td>
+                  <td>{fold.n_test}</td>
+                  <td>{f2(fold.kendall_tau)}</td>
+                  <td>{ci(fold.kendall_tau_bca_ci95)}</td>
+                  <td>{f2(fold.spearman_rho)}</td>
+                  <td>{ci(fold.spearman_rho_bca_ci95)}</td>
+                  <td>{f2(fold.rank_ic)}</td>
+                  <td>{f2(fold.rmse)}</td>
+                  <td>{f2(fold.mae)}</td>
+                  <td className="dg-trust-folds__ci-note">
+                    {ciIncludesZero ? "CI includes zero" : ""}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </TableScroll>
     </section>
   );
 }

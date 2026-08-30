@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 
 import type { RosterCapacityResponse } from "../lib/api/types.gen";
 import { zRosterCapacityResponse } from "../lib/api/zod.gen";
-import { describeToken } from "../lib/copy";
+import { describeToken, fieldLabel } from "../lib/copy";
 import { PlayerNameButton } from "../player/playerSelection";
+import { TableScroll } from "../ui/TableScroll";
 import "./RosterCapacitySandbox.css";
 
 type State =
@@ -188,39 +189,45 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
           {(data.candidates ?? []).length === 0 ? (
             <p className="dg-rc__empty">No capacity candidates.</p>
           ) : (
-            <table className="dg-rc__table">
-              <thead>
-                <tr className="dg-rc__row">
-                  <th scope="col">Player</th>
-                  <th scope="col">Pos</th>
-                  <th scope="col">Cut exposure rank</th>
-                  <th scope="col">xVAR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.candidates ?? []).map((c) => (
-                  <tr key={c.sleeper_player_id} className="dg-rc__row">
-                    <td>
-                      {/* DG-110: the cut list names players and had no way to
-                          open one of them. */}
-                      <PlayerNameButton
-                        sleeperId={c.sleeper_player_id}
-                        name={c.full_name}
-                        context={c.position ?? undefined}
-                        className="dg-rc__name"
-                      />
-                    </td>
-                    <td>{c.position}</td>
-                    <td>{c.cut_priority}</td>
-                    <td>
-                      {c.raw_xvar === null || c.raw_xvar === undefined
-                        ? "unavailable"
-                        : fmt(c.raw_xvar)}
-                    </td>
+            // DG-117: four columns fit 390px today, but the cut list is the
+            // one table a manager reads on a phone before kickoff and it must
+            // never be the thing that takes the page sideways.
+            <TableScroll label="Cut candidates">
+              <table className="dg-rc__table">
+                <thead>
+                  <tr className="dg-rc__row">
+                    <th scope="col">Player</th>
+                    <th scope="col">Pos</th>
+                    <th scope="col">Cut exposure rank</th>
+                    {/* DG-117: the bare acronym, on David's cut list. */}
+                    <th scope="col">{fieldLabel("xvar")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(data.candidates ?? []).map((c) => (
+                    <tr key={c.sleeper_player_id} className="dg-rc__row">
+                      <td>
+                        {/* DG-110: the cut list names players and had no way to
+                          open one of them. */}
+                        <PlayerNameButton
+                          sleeperId={c.sleeper_player_id}
+                          name={c.full_name}
+                          context={c.position ?? undefined}
+                          className="dg-rc__name"
+                        />
+                      </td>
+                      <td>{c.position}</td>
+                      <td>{c.cut_priority}</td>
+                      <td>
+                        {c.raw_xvar === null || c.raw_xvar === undefined
+                          ? "unavailable"
+                          : fmt(c.raw_xvar)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableScroll>
           )}
 
           {(data.scenarios ?? []).map((scenario, index) => (
