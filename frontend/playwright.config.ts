@@ -20,10 +20,18 @@ export default defineConfig({
   },
   // Serve the REAL built app via vite preview; the spec supplies route mocks
   // so no gitignored app/data artifact is ever required.
+  //
+  // DG-118: `reuseExistingServer` was true, which meant that if ANY vite preview
+  // was already listening on 4173 — another worktree, another agent, a stale
+  // process from an hour ago — this gate would silently grade THAT bundle and
+  // write a receipt with this ticket's name on it. A gate that cannot say which
+  // build it measured is decoration. Now it always builds and serves its own,
+  // and `--strictPort` in the `preview` script makes a busy port a loud failure
+  // instead of a quiet substitution.
   webServer: {
     command: "npm run build && npm run preview",
     url: "http://127.0.0.1:4173",
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

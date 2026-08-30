@@ -49,9 +49,13 @@ function PartnerCard({ ranking }: { ranking: LeaguePulsePartnerRanking }) {
 
   return (
     <article className="dg-league-pulse__partner-card">
-      <h4 className="dg-league-pulse__partner-name" data-user-text>
+      {/* DG-118: h4 under an h2 section heading. When these cards lived on
+          League Pulse the outline ran h1 → h2 → h3 → h4; DG-114 moved them to
+          their own destination, where nothing renders an h2 or h3 above them.
+          Both levels drop by one so the outline is h1 → h2 → h3 again. */}
+      <h3 className="dg-league-pulse__partner-name" data-user-text>
         {ranking.counterparty_team_name ?? "Unknown counterparty"}
-      </h4>
+      </h3>
       <p className="dg-league-pulse__partner-roster">
         Roster {ranking.counterparty_roster_id}
       </p>
@@ -102,7 +106,7 @@ export function PartnerRankings({
 }) {
   return (
     <section aria-label="Partner Rankings" className="dg-league-pulse__partners">
-      <h3 className="dg-league-pulse__section-heading">Partner Rankings</h3>
+      <h2 className="dg-league-pulse__section-heading">Partner Rankings</h2>
       <p className="dg-league-pulse__section-note">
         Market-influenced context — not a validated ranking. The partner score is partly
         market-derived. Two-lane evidence is shown for context.

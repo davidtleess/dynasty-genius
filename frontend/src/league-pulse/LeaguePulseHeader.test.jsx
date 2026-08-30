@@ -23,7 +23,9 @@ describe("LeaguePulseHeader", () => {
   it("renders artifact-state honesty, source versions, withheld counts, and non-grade status", () => {
     render(<LeaguePulseHeader data={headerResponse()} />);
 
-    const banner = screen.getByRole("banner", { name: /league pulse status/i });
+    // DG-118: a `region`, not a `banner` — a page has one banner and the shell
+    // owns it; this panel is a named landmark inside `main`.
+    const banner = screen.getByRole("region", { name: /league pulse status/i });
     expect(within(banner).getByRole("heading", { name: "League Pulse" })).toBeTruthy();
     // DG-111: three stamps here — "EXPERIMENTAL — a read-only league snapshot.",
     // the "Diagnostic Workspace…" paragraph and "Descriptive only — not

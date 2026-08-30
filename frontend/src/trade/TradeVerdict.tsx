@@ -555,7 +555,11 @@ export function TradeVerdict({
       data-testid="trade-verdict"
       aria-label="Both prices"
     >
-      <h3 className="dg-verdict__title">Both prices</h3>
+      {/* DG-118: h3 directly under the shell's h1 — axe heading-order, measured
+          on the built bundle in the PRICED state, which no gate had ever
+          rendered. The verdict and the two lane panels below it are siblings at
+          the top of this surface, so all three are h2. */}
+      <h2 className="dg-verdict__title">Both prices</h2>
       <div className="dg-verdict__rows">
         {marketRow !== null && (
           <LaneRow

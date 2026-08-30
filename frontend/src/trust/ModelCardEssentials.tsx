@@ -31,21 +31,25 @@ export function ModelCardEssentials({
       <div className="dg-trust-quoted" data-receipt>
         <p className="dg-trust-card__use">{card.intended_use}</p>
 
-        <h4 className="dg-trust-card__heading">Out of scope</h4>
+        {/* DG-118: these three were <h4> under the shell's <h1> and nothing in
+            between, so Model Trust's outline jumped h1 → h4 (axe: heading-order,
+            measured on the built bundle). They are the surface's top-level
+            sections, so h2 is what they were always describing. */}
+        <h2 className="dg-trust-card__heading">Out of scope</h2>
         <ul className="dg-trust-card__list">
           {card.out_of_scope_uses.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
 
-        <h4 className="dg-trust-card__heading">Caveats</h4>
+        <h2 className="dg-trust-card__heading">Caveats</h2>
         <ul className="dg-trust-card__list">
           {card.caveats.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
 
-        <h4 className="dg-trust-card__heading">Known failure modes</h4>
+        <h2 className="dg-trust-card__heading">Known failure modes</h2>
         <ul className="dg-trust-card__list">
           {card.known_failure_modes.map((item) => (
             <li key={item}>{item}</li>

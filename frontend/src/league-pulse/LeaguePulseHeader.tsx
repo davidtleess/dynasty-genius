@@ -46,12 +46,15 @@ export function LeaguePulseHeader({ data }: { data: LeaguePulseResponse }) {
   const sources = data.source_artifacts;
 
   return (
-    // biome-ignore lint/a11y/noInteractiveElementToNoninteractiveRole: <header> is a banner landmark (not interactive); explicit role="banner"+aria-label names it for the contract test, and <div role="banner"> trips useSemanticElements instead (AppShell Trust-strip pattern).
-    <header
-      role="banner"
-      aria-label="League Pulse status"
-      className="dg-league-pulse__header"
-    >
+    // DG-118: this was `<header role="banner">`. A banner is THE page's banner,
+    // and the shell already has one (`.dg-shell__trust`), so on League Pulse the
+    // document carried two banners and one of them was nested inside `main` —
+    // axe: landmark-no-duplicate-banner + landmark-banner-is-top-level, measured
+    // on the built bundle at both widths. Nobody knew, because the gate had
+    // never visited this surface. A labelled <section> is a `region`: still a
+    // named landmark a screen-reader user can jump to, without claiming to be
+    // the banner of a page it is one panel of.
+    <section aria-label="League Pulse status" className="dg-league-pulse__header">
       <h2 className="dg-league-pulse__heading">League Pulse</h2>
       <p className="dg-league-pulse__diagnostic">{LEAGUE_SNAPSHOT_COPY}</p>
       <SnapshotStamp capturedAt={data.captured_at} caveats={data.caveats} />
@@ -82,6 +85,6 @@ export function LeaguePulseHeader({ data }: { data: LeaguePulseResponse }) {
           )}
         </li>
       </ul>
-    </header>
+    </section>
   );
 }

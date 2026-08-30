@@ -318,7 +318,9 @@ describe("TrustConsole", () => {
     const panel = screen.getByRole("region", { name: "Model trust truth" });
     expect(within(panel).queryByText("ACTIVE_B_VALIDATED")).toBeNull();
 
-    const footer = screen.getByRole("contentinfo", { name: "Model trust provenance" });
+    // DG-118: a `region`, not a `contentinfo` — the page footer belongs to the
+    // page, and this receipt sheet lives inside `main`.
+    const footer = screen.getByRole("region", { name: "Model trust provenance" });
     // DG-109: the grade is still demoted to the footer and still bound to its
     // qualifier — the two things this test exists to hold. It is now said in
     // words, with the raw enum on `data-grade` for CSS and for this assertion.

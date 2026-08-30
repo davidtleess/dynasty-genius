@@ -190,7 +190,7 @@ describe("League Pulse · the withheld count follows its panel", () => {
 
     render(<LeaguePulse />);
 
-    const banner = await screen.findByRole("banner", { name: /league pulse status/i });
+    const banner = await screen.findByRole("region", { name: /league pulse status/i });
     // "…who's contending, who's rebuilding, and who to call." survived the move
     // of the panel that answered the third clause. It does not survive here.
     expect(within(banner).queryByText(/who to call/i)).toBeNull();

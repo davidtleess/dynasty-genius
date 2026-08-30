@@ -53,11 +53,13 @@ export function ProvenanceFooter({
     : [];
 
   return (
-    <footer
-      className="dg-trust-prov"
-      role="contentinfo"
-      aria-label="Model trust provenance"
-    >
+    // DG-118: this was `<footer role="contentinfo">`. Contentinfo is THE page's
+    // footer, and this one sits inside `main` — axe:
+    // landmark-contentinfo-is-top-level, measured on the built bundle at both
+    // widths and never seen because the gate had never visited Model Trust. A
+    // labelled <section> is a `region`: the receipt sheet stays a named landmark
+    // without claiming to be the footer of the whole product.
+    <section className="dg-trust-prov" aria-label="Model trust provenance">
       {/* The receipt sheet, declared. Everything inside cites a run, a hash or a
           source key by its real name — that is the point of it. */}
       <div className="dg-trust-prov__receipts" data-receipt>
@@ -96,6 +98,6 @@ export function ProvenanceFooter({
         <span className="dg-trust-prov__value">{trustGradeWord(overallGrade)}</span>
         <span className="dg-trust-prov__qualifier">{MODEL_GRADE_QUALIFIER}</span>
       </div>
-    </footer>
+    </section>
   );
 }
