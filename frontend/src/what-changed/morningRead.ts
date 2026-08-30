@@ -63,6 +63,14 @@ export function movementWords(delta: number): string {
   return `${delta > 0 ? "up" : "down"} ${num(Math.abs(delta))}`;
 }
 
+/**
+ * A dictionary sentence already ends in a full stop; a humanized fallback does
+ * not. Both have to sit in front of another sentence without running into it.
+ */
+export function endSentence(text: string): string {
+  return /[.!?]$/.test(text) ? text : `${text}.`;
+}
+
 const WEEKDAY = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York",
   weekday: "long",
@@ -193,10 +201,30 @@ export function movement(
         "so there is nothing of yours to compare.",
     };
   }
+  // PANEL FIX, TWO OF THEM, both on the scope of this one clause.
+  //
+  // (a) "on both of the last two days" is not decoration. `roster_deltas` keeps
+  //     only roster players present in BOTH captures (daily_diff.py:143-147), so
+  //     a bare "the market priced 26 of your 27" asserts pricing COVERAGE when
+  //     what it measured is two-day overlap. A player who entered the priced
+  //     pool this morning is priced and is still absent from this list — 10
+  //     players entered league-wide today — so the unscoped sentence undercounts
+  //     him on any morning that happens. Rule 3 of this module's own header
+  //     already said this; the rendered clause was the one place it was not said.
+  //
+  // (b) An unknown roster size falls to the SCOPED wording, not the confident
+  //     one. The old ternary sent `rosterCount === null` to "the market priced
+  //     all 26 of your players" — a completeness claim built from a number we do
+  //     not have. Not reachable on today's producer (report.py:88,107 feeds one
+  //     snapshot path to both the diff and the section, so a missing snapshot
+  //     kills the market lane first), but the default must be the humble branch.
+  const bothDays = "on both of the last two days";
   const coverage =
     rosterCount !== null && rosterCount > rows.length
-      ? `The market priced ${num(rows.length)} of your ${num(rosterCount)} players`
-      : `The market priced all ${num(rows.length)} of your players`;
+      ? `The market priced ${num(rows.length)} of your ${num(rosterCount)} players ${bothDays}`
+      : rosterCount !== null
+        ? `The market priced all ${num(rows.length)} of your players ${bothDays}`
+        : `The market priced ${num(rows.length)} of your players ${bothDays}`;
   const movers = rows.filter((row) => row.value_delta !== 0);
   if (movers.length === 0) {
     return {
@@ -241,6 +269,58 @@ export type CutPressure =
     }
   | { kind: "unknown"; why: string };
 
+// ── each section's OWN clock ─────────────────────────────────────────────────
+
+export type StaleInput = { label: string; hours: number };
+
+/**
+ * Sections whose own staleness caveat says they are stale.
+ *
+ * PANEL FIX — THE BLOCKER. A section's age and the REPORT's age are two
+ * different clocks and they demonstrably diverge: on the live payload
+ * `league_opportunity.staleness_caveat.age_hours` is 119.4 inside a report whose
+ * own age is 0.0h. `_section_envelope` (report.py:450-486) stamps every section
+ * with `is_stale = age_hours >= stale_after_hours` against ITS OWN
+ * `captured_at`, so when the roster-cut job fails and yesterday's artifact is
+ * reused the section still comes back `status: "ok"` — complete, well-formed,
+ * and a day old.
+ *
+ * The verdict and the named-cut card are built from exactly that section and
+ * were reading only the report's clock, so a stale artifact produced an
+ * unqualified "you're carrying 27 players in 26 spots, so one has to go" plus
+ * "start with Rasheen Ali" underneath a header saying the numbers were current.
+ * The only disclosure was `sectionNotice` at the FOOT of the page, below the
+ * whole tape — which is the opposite of this build's own stated rule that a
+ * notice travels with the claim it qualifies.
+ *
+ * `sleeper_snapshot` is in this list for the same reason: its
+ * `david_roster_player_count` was promoted INTO the verdict sentence when the
+ * debug dump was deleted, and the only place its notice used to render went
+ * with the dump.
+ */
+export function staleInputs(
+  entries: ReadonlyArray<{ label: string; section: WhatChangedStructuralSection }>,
+): StaleInput[] {
+  return entries
+    .filter((entry) => entry.section.staleness_caveat?.is_stale === true)
+    .map((entry) => ({
+      label: entry.label,
+      hours: entry.section.staleness_caveat?.age_hours ?? 0,
+    }));
+}
+
+/** The one sentence that says which inputs under this verdict are not today's. */
+export function staleInputClause(inputs: readonly StaleInput[]): string | null {
+  if (inputs.length === 0) return null;
+  const only = inputs.length === 1 ? inputs[0] : undefined;
+  if (only !== undefined) {
+    return `Heads up: the ${only.label} behind this is ${only.hours} hours old, so it is the last verified read rather than this morning's.`;
+  }
+  const labels = inputs.map((input) => `the ${input.label}`);
+  const named = `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+  return `Heads up: ${named} behind this are the last verified reads rather than this morning's.`;
+}
+
 /**
  * Read the roster-limit check.
  *
@@ -269,8 +349,13 @@ export function cutPressure(section: WhatChangedStructuralSection): CutPressure 
   ) {
     return {
       kind: "unknown",
+      // A dictionary sentence already ends in a full stop; a humanized fallback
+      // does not, and this string is followed immediately by another sentence.
+      // The only token report.py:497 emits for this section IS in the dictionary
+      // with its stop, so this is defensive — but an unmapped token would
+      // otherwise render "Missing roster cut artifact It will be back…".
       why: section.aborted_reason
-        ? describeToken(section.aborted_reason)
+        ? endSentence(describeToken(section.aborted_reason))
         : "The roster-limit check didn't come through this morning.",
     };
   }
@@ -281,9 +366,30 @@ export function cutPressure(section: WhatChangedStructuralSection): CutPressure 
       totalCapacity: summary.total_capacity,
     };
   }
+  // PANEL FIX — THE BLOCKER. Rank 1 alone does not license the value claim; a
+  // FIGURE at rank 1 does.
+  //
+  // `_tier_sort_key` (roster_cut_engine.py:171-181) returns `(tier_order,
+  // score)` where score is `float("inf")` for tier C and tier D, and tiers C/D
+  // are exactly the entries carrying neither `xvar_percentile_overall` nor
+  // `dynasty_value_score` (:161-168, with engine_path defaulting to PRE_MODEL at
+  // :248, which returns "D" BEFORE the xvar test). Tier A sorts before B before
+  // C before D, so a rank-1 candidate can only be tier C/D when the ENTIRE
+  // droppable pool lacks both numbers — and then every sort key is identical,
+  // `active_pool.sort()` (:359) is stable, and `cut_priority == 1` is simply
+  // `roster["players"][0]`. Naming that player and justifying him with a value
+  // ranking would be fabricating the one thing the card exists to report.
+  //
+  // The frontend cannot check the tier — `scoring_tier` and `engine_path` are
+  // not serialised (report.py:425-427 sends cut_priority, dvs and xvar_pct
+  // only) — but it does not need to: the figure's own absence is the tell, and
+  // the unranked card below already says the honest thing.
   const ranked =
     (section.top_candidates ?? []).find(
-      (candidate) => candidate.cut_priority === 1 && candidate.player_name,
+      (candidate) =>
+        candidate.cut_priority === 1 &&
+        candidate.player_name &&
+        (candidate.xvar_pct != null || candidate.dvs != null),
     ) ?? null;
   return {
     kind: "cut",
@@ -331,17 +437,30 @@ export function verdict({
   pressure,
   moved,
   stalenessClause,
+  inputStaleClause,
 }: {
   pressure: CutPressure;
   moved: RosterMovement;
   /** Present only when the report itself is old; the header says it too. */
   stalenessClause: string | null;
+  /**
+   * Present when a SECTION this verdict is built from is stale on its own
+   * clock, which is a different clock from the report's — see `staleInputs`.
+   * It leads the detail so it sits directly under the headline it qualifies,
+   * rather than at the foot of the page below the whole tape.
+   */
+  inputStaleClause?: string | null;
 }): Verdict {
   const tailClause = stalenessClause === null ? "" : ` ${stalenessClause}`;
-  const prefix =
+  const prefix = [
     pressure.kind === "unknown"
-      ? `${pressure.why} It will be back on the next run. `
-      : "";
+      ? `${pressure.why} It will be back on the next run.`
+      : null,
+    inputStaleClause ?? null,
+  ]
+    .filter((part): part is string => part !== null)
+    .map((part) => `${part} `)
+    .join("");
   const detail = `${prefix}${moved.sentence}${tailClause}`;
   const detailParts =
     moved.kind === "moved"
@@ -405,8 +524,14 @@ export type Recommendation = {
    * it is named like one.
    */
   headline: string;
-  /** Exactly two sentences of reason, each clause from a field on this page. */
-  reasons: [string, string];
+  /**
+   * Sentences of reason, each clause from a field on this page.
+   *
+   * Was a fixed pair. It is a list now because a card built on a STALE section
+   * has a third thing it must say, and dropping that clause to preserve a tuple
+   * would be exactly the trade the honesty law forbids.
+   */
+  reasons: string[];
   action: RecommendationAction;
 };
 
@@ -435,10 +560,13 @@ export function worthALook({
   pressure,
   moved,
   window,
+  inputStaleClause,
 }: {
   pressure: CutPressure;
   moved: RosterMovement;
   window: ComparisonWindow | null | undefined;
+  /** Set when the section behind the cut card is stale on its own clock. */
+  inputStaleClause?: string | null;
 }): WorthALook {
   const cards: Recommendation[] = [];
   const missing: string[] = [];
@@ -446,6 +574,18 @@ export function worthALook({
   if (pressure.kind === "unknown") {
     missing.push(
       `We'd normally check your roster limit here. ${pressure.why} It will be back on the next run.`,
+    );
+  }
+
+  // PANEL FIX: this block has TWO inputs and only one of them was able to
+  // report its own absence. With the roster limit clear and the market
+  // comparison never run, the block fell through to "Nothing worth acting on
+  // today." — an unscoped all-clear standing on one input, directly above a
+  // method line explaining a price-move rule that never got to run. The clean
+  // verdict headline is scoped for exactly this reason; so is this now.
+  if (moved.kind === "not-compared") {
+    missing.push(
+      "We'd normally check your biggest price move here. We couldn't compare your prices against an earlier day, so that check didn't run this morning.",
     );
   }
 
@@ -459,7 +599,14 @@ export function worthALook({
           pressure.cutsRequired === 1
             ? `Your required cut: start with ${ranked.player_name}.`
             : `Your ${num(pressure.cutsRequired)} required cuts: start with ${ranked.player_name}.`,
-        reasons: [crowding, rankedCutReason(ranked)],
+        reasons: [
+          crowding,
+          rankedCutReason(ranked),
+          // The directive names a real player. If the artifact it came from is
+          // a day old, that travels WITH the directive — not to the foot of
+          // the page, and not only into the verdict above it.
+          ...(inputStaleClause ? [inputStaleClause] : []),
+        ],
         action: {
           kind: "surface",
           label: "Open the cut list",
@@ -476,10 +623,13 @@ export function worthALook({
         reasons: [
           crowding,
           // The list exists but its head is a forced roster-rules review, or
+          // its head carries no value figure (so the whole pool sorted on
+          // `inf` and rank 1 is just roster order — see `cutPressure`), or
           // there is no list at all. Either way the value ordering that would
           // name a player is not there, and inventing one is the whole thing
           // this module refuses to do.
           "We don't have a value-ranked list of who to drop this morning, so this one is yours to judge.",
+          ...(inputStaleClause ? [inputStaleClause] : []),
         ],
         action: {
           kind: "surface",
@@ -499,23 +649,33 @@ export function worthALook({
 /**
  * Why the producer put this player at the top of the cut list.
  *
- * The ordering is `_tier_sort_key` (roster_cut_engine.py:171-181): tier first,
- * then the tier's own score ASCENDING. A rank-1 candidate carrying `xvar_pct`
- * is tier A, tier A sorts before every other tier, and tier A sorts on
- * `xvar_percentile_overall` — so he has the lowest value over replacement of
- * anyone the list ranks, and no unranked tier can be hiding below him. A rank-1
- * candidate WITHOUT `xvar_pct` was sorted on dynasty value instead, and the
- * sentence says that instead. With neither number the ordering still holds but
- * has no figure to show, so no figure is shown.
+ * TWO PANEL FIXES, and the second is the one that mattered.
+ *
+ * (a) DIRECTION. The old sentence said he "sits at the bottom of it" while
+ *     `cut_priority` 1 is the HEAD of the list (`enumerate(active_pool,
+ *     start=1)` after an ascending sort, roster_cut_engine.py:359-375). Bottom
+ *     of a lowest-value-first list reads as the opposite of where he is.
+ *
+ * (b) WHAT IS ACTUALLY PROVABLE. The old docstring claimed a rank-1 candidate
+ *     carrying `xvar_pct` "is tier A", so nothing unranked could hide below
+ *     him. That is not exact: `_scoring_tier` (:161-168) tests
+ *     `engine_path == "PRE_MODEL"` FIRST and returns "D", and engine_path
+ *     defaults to PRE_MODEL at :248 — so a tier-D candidate can carry
+ *     `xvar_pct`. The frontend is not sent `scoring_tier` or `engine_path` and
+ *     therefore cannot tell the two apart. So the sentence no longer asserts a
+ *     total ordering it cannot verify. It says the two things the payload does
+ *     entail: the producer's cut list of droppable players puts him first, and
+ *     here is the value figure it carries for him. `cutPressure` has already
+ *     guaranteed one of the figures exists before this is called.
  */
 function rankedCutReason(candidate: WhatChangedCutCandidate): string {
   const lead =
-    "Our cut list ranks the players you're allowed to drop lowest-value first, and he sits at the bottom of it";
+    "Our cut list ranks the players you're allowed to drop and puts him first";
   if (candidate.xvar_pct != null) {
     return `${lead} — his ${VALUE_OVER_REPLACEMENT.toLowerCase()} is at the ${candidate.xvar_pct} percentile.`;
   }
   if (candidate.dvs != null) {
-    return `${lead} — ranked on dynasty value, where his is ${candidate.dvs}.`;
+    return `${lead} — his dynasty value is ${candidate.dvs}.`;
   }
   return `${lead}.`;
 }
@@ -643,6 +803,18 @@ export function whereYouStand(
 
 export type LeagueMovers = {
   rows: WhatChangedMarketDelta[];
+  /**
+   * Each surviving row's position in the producer's UNFILTERED `top_movers`,
+   * 1-based and parallel to `rows`.
+   *
+   * PANEL FIX: renumbering the survivors 1..N silently shifted every rank below
+   * an excluded player — today's displayed #10 is the league's 11th biggest
+   * mover, because Jaxson Dart was lifted out above him. The exclusion is
+   * already accounted for in words in the footer; the numeral has to be
+   * accounted for too, and the honest numeral is the one the row held in the
+   * list it came from.
+   */
+  ranks: number[];
   /** How many were dropped because they are already up in "your roster". */
   excluded: number;
 };
@@ -664,8 +836,14 @@ export function leagueMovers(market: WhatChangedMarketSection): LeagueMovers {
       .filter((id): id is string => typeof id === "string" && id !== ""),
   );
   const all = market.top_movers ?? [];
-  const rows = all.filter(
-    (row) => typeof row.sleeper_id !== "string" || !mine.has(row.sleeper_id),
-  );
-  return { rows, excluded: all.length - rows.length };
+  const kept = all
+    .map((row, index) => ({ row, rank: index + 1 }))
+    .filter(
+      ({ row }) => typeof row.sleeper_id !== "string" || !mine.has(row.sleeper_id),
+    );
+  return {
+    rows: kept.map((entry) => entry.row),
+    ranks: kept.map((entry) => entry.rank),
+    excluded: all.length - kept.length,
+  };
 }

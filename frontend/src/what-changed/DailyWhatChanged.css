@@ -628,7 +628,6 @@
   min-width: 0;
 }
 
-
 /* ── The single orchestrated daily-open moment ─────────────────────────────
    Gated on the Task-4 .dg-motion-daily-open class the surface root carries:
    feed regions settle top-down, once, on open. Tokens from motion.css. */

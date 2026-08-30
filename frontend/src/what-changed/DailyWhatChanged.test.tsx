@@ -713,8 +713,12 @@ describe("DailyWhatChanged", () => {
           market: {
             top_movers: [],
             roster_deltas: null,
+            // Both arrays PRESENT and empty — the producer looked and found
+            // nobody. That is the only shape that licenses printing a zero;
+            // the shape where the producer sends no keys at all is its own
+            // test below ("never counts a pool the producer declined to send").
             entered: [],
-            exited: null,
+            exited: [],
             total_movers_count: 0,
           },
           model: {
@@ -733,7 +737,19 @@ describe("DailyWhatChanged", () => {
     await waitFor(() =>
       expect(screen.getByText(/market values held steady overnight/i)).toBeTruthy(),
     );
-    expect(screen.getByText(/Your roster's market values held steady/i)).toBeTruthy();
+    // PANEL FIX: an empty `roster_deltas` on a comparison that RAN means the
+    // market priced none of his players on both dates (daily_diff.py:143-147) —
+    // a coverage fact. "Your roster's market values held steady" was the
+    // section asserting the movement claim the verdict directly above it
+    // refuses to make.
+    // Said in the verdict AND in the section — they agree now, which is the
+    // point, so this matches all of them rather than exactly one.
+    expect(
+      screen.getAllByText(
+        /market didn't price any of your players on both of the last two days/i,
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/Your roster's market values held steady/i)).toBeNull();
     // DG-113 §2.5: the two chip walls collapse to one line you can open, and
     // "No entered assets." — a raw-noun negative — becomes a sentence about
     // people. Absence is still said; it is just said in English.
@@ -996,10 +1012,17 @@ describe("DailyWhatChanged", () => {
     await waitFor(() =>
       expect(freshness.getAttribute("data-status")).not.toBe("unknown"),
     );
-    // One healthy store in this fixture → the green branch, and it says what it
-    // is claiming: complete AND up to date, which is exactly what "ok" means
-    // on a store (missing 0, not stale, not sub-floor, no caveats).
-    expect(freshness.textContent).toMatch(/all of our daily feeds is complete/i);
+    // One healthy store in this fixture, and its `last_capture_date` equals the
+    // payload's own `checked_at` day (2026-07-05), so today's capture really is
+    // in and the sentence may say so.
+    //
+    // PANEL FIX: the green branch used to say "complete and up to date" off
+    // `store_status` alone. `ok` means nothing missing, nothing stale, nothing
+    // thin — and a store can be all three while today's capture simply has not
+    // come due yet, so "up to date" was carrying more weight than the field can
+    // bear. There are two branches now and this fixture takes the stronger one
+    // BECAUSE the dates match, not because the status is ok.
+    expect(freshness.textContent).toMatch(/our daily feed is in for today/i);
     expect(
       freshness.querySelector("[data-freshness-dot]")?.getAttribute("data-status"),
     ).toBe("ok");
@@ -1053,6 +1076,10 @@ describe("DailyWhatChanged", () => {
     // complete and up to date" is the easiest false sentence on this page.
     expect(freshness.textContent).not.toMatch(/complete and up to date/i);
     expect(freshness.textContent).not.toMatch(/ran on time/i);
+    // Both halves of the green branch, so neither can be reached from an
+    // endpoint that never answered.
+    expect(freshness.textContent).not.toMatch(/in for today/i);
+    expect(freshness.textContent).not.toMatch(/landed everything/i);
     // The dot goes neutral rather than green — it has nothing to be green about.
     expect(
       freshness.querySelector("[data-freshness-dot]")?.getAttribute("data-status"),
@@ -1707,7 +1734,14 @@ describe("DG-111 a comparison that never ran never reads as 'nothing moved'", ()
     expect(sheet.textContent).toContain("fantasycalc_overlay");
   });
 
-  it("keeps saying 'held steady' when the comparison genuinely ran and nothing moved", async () => {
+  // PANEL FIX. This test used to assert the section said "held steady" here.
+  // It ran, and it found none of his players carrying a price on BOTH dates —
+  // `roster_deltas` keeps only players present in both captures
+  // (daily_diff.py:143-147). That is a coverage fact, not a movement fact, and
+  // the verdict already said so; the section was two inches below it saying the
+  // opposite. The two now agree, and the test pins the agreement rather than
+  // the string.
+  it("calls an empty priced set a coverage fact, in the verdict and in the section alike", async () => {
     mockFetch(
       200,
       whatChangedResponse({
@@ -1726,9 +1760,15 @@ describe("DG-111 a comparison that never ran never reads as 'nothing moved'", ()
 
     await waitFor(() => expect(screen.getByTestId("wc-your-roster")).toBeTruthy());
     const market = screen.getByTestId("wc-your-roster");
-    expect(
-      within(market).getByText(/held steady — no movement on this tape/i),
-    ).toBeTruthy();
+    const coverage = /didn't price any of your players on both of the last two days/i;
+    expect(within(market).getByText(coverage)).toBeTruthy();
+    expect(screen.getByTestId("wc-verdict").textContent).toMatch(coverage);
+    // Neither surface may retype "we have no prices to compare" as "the prices
+    // did not change".
+    expect(within(market).queryByText(/held steady/i)).toBeNull();
+    expect(screen.getByTestId("wc-verdict").textContent).not.toMatch(
+      /held steady|nothing moved/i,
+    );
     expect(within(market).queryByTestId("wc-market-degraded")).toBeNull();
     // No rows on screen means no trend slots to explain, so the note that
     // explains blank ones does not render either.

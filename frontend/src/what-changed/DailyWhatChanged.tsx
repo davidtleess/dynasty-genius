@@ -31,11 +31,14 @@ import {
   verdict as buildVerdict,
   type ComparisonWindow,
   cutPressure,
+  endSentence,
   leagueMovers,
   movement,
   num,
   RECOMMENDATION_METHOD,
   type Recommendation,
+  staleInputClause,
+  staleInputs,
   whereYouStand,
   windowPhrase,
   worthALook,
@@ -440,6 +443,18 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
       ? (sections.sleeper_snapshot.david_roster_player_count ?? null)
       : null,
   );
+  // The two sections the verdict and the cut card are BUILT from, each carrying
+  // its own staleness clock — which is not the report's (see `staleInputs`).
+  // `drop_pressure` produces the headline and the named cut; `sleeper_snapshot`
+  // produces the "your 27 players" total that the deleted debug dump used to be
+  // the only home for, and with the dump went the only place its notice
+  // rendered.
+  const inputStaleClause = staleInputClause(
+    staleInputs([
+      { label: "roster-limit check", section: sections.drop_pressure },
+      { label: "roster read", section: sections.sleeper_snapshot },
+    ]),
+  );
   const verdict = buildVerdict({
     pressure,
     moved,
@@ -449,8 +464,14 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
     stalenessClause: isStale
       ? "Everything below is the last verified snapshot, not this morning's."
       : null,
+    inputStaleClause,
   });
-  const recommendations = worthALook({ pressure, moved, window: marketWindow });
+  const recommendations = worthALook({
+    pressure,
+    moved,
+    window: marketWindow,
+    inputStaleClause,
+  });
   const standing = whereYouStand(data, pressure);
 
   const baselineRows = data.structural_context.baseline_roster_rows;
@@ -562,7 +583,7 @@ function MorningHeader({
   // corrects itself. The feed clause simply waits.
   const feeds: FeedHealth =
     capture.status === "loading"
-      ? { kind: "read", rows: [], behind: 0, allGaps: false }
+      ? { kind: "read", rows: [], behind: 0, allGaps: false, allRanToday: false }
       : feedHealth(capture.status === "ready" ? capture.data : null);
   const line = freshnessLine(
     freshnessSentence(data.generated_at, hours),
@@ -609,7 +630,25 @@ function MorningHeader({
         <HealthSheet
           data={data}
           feeds={feeds}
-          captureUnread={capture.status !== "ready"}
+          // PANEL FIX: the header separates loading from unread precisely so a
+          // sentence claiming we could not reach the feed check is never
+          // printed for the 200ms before it answers — and then handed the
+          // sheet a boolean that folded the two back together. The sheet gets
+          // the same three states the header has.
+          captureState={
+            capture.status === "ready"
+              ? "ready"
+              : capture.status === "loading"
+                ? "loading"
+                : "unread"
+          }
+          provenanceState={
+            provenance.status === "ready"
+              ? "ready"
+              : provenance.status === "loading"
+                ? "loading"
+                : "unread"
+          }
           provenance={
             provenance.status === "ready"
               ? {
@@ -636,12 +675,14 @@ function MorningHeader({
 function HealthSheet({
   data,
   feeds,
-  captureUnread,
+  captureState,
+  provenanceState,
   provenance,
 }: {
   data: WhatChangedResponse;
   feeds: FeedHealth;
-  captureUnread: boolean;
+  captureState: "ready" | "loading" | "unread";
+  provenanceState: "ready" | "loading" | "unread";
   provenance: { registryVersion: number; status: string } | null;
 }) {
   const market = data.daily_diff.market;
@@ -654,11 +695,13 @@ function HealthSheet({
   return (
     <div className="dg-wc__sheet" data-testid="wc-health-sheet">
       <h3 className="dg-wc__sheet-title">The feeds behind these numbers</h3>
-      {captureUnread ? (
+      {captureState === "unread" ? (
         <p className="dg-wc__sheet-line">
           The feed check didn't answer this morning, so we can't show you how the daily
           captures are doing.
         </p>
+      ) : captureState === "loading" ? (
+        <p className="dg-wc__sheet-line">Checking the daily feeds…</p>
       ) : (
         <ul className="dg-wc__feed-list">
           {feeds.kind === "read" &&
@@ -673,6 +716,19 @@ function HealthSheet({
               </li>
             ))}
         </ul>
+      )}
+      {/* PANEL FIX: an endpoint that did not answer is not evidence that the
+          model files are fine — the same standard the capture half is already
+          held to. A sheet that says nothing here looks complete while a whole
+          trust axis is quietly missing from it. */}
+      {provenanceState === "unread" && (
+        <p className="dg-wc__sheet-line">
+          The model-file check didn't answer this morning, so we can't tell you whether
+          our projections are being served from the files we expect.
+        </p>
+      )}
+      {provenanceState === "loading" && (
+        <p className="dg-wc__sheet-line">Checking the model files…</p>
       )}
       {provenance !== null && (
         // Three states, not two. `_overall_status` (system_model_provenance.py:62-75)
@@ -875,12 +931,6 @@ function WhereYouStandBlock({
   );
 }
 
-// A dictionary sentence already ends in a full stop; a humanized fallback does
-// not. Both have to sit in front of the age clause without running into it.
-function endSentence(text: string): string {
-  return /[.!?]$/.test(text) ? text : `${text}.`;
-}
-
 // Every producer reason on the report, verbatim and de-duplicated. The surface
 // above says these in English; this is the copy that keeps the exact token, so
 // a humanized sentence is a translation and never a deletion.
@@ -989,11 +1039,6 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
   // slices of one `deltas_by_id` map, so an unfiltered league table repeats his
   // roster rows with identical numbers — Jaxson Dart was #1 of both.
   const league = leagueMovers(market);
-  // Voice: strip the raw backend key prefix from entered/exited ids — full
-  // name resolution for these rows rides the identity slice (residual debt,
-  // recorded in the Increment-1 delta doc).
-  const entered = market.entered ?? [];
-  const exited = market.exited ?? [];
   const when = windowPhrase(market.comparison_window as ComparisonWindow | null);
 
   // The market lane's trouble arrives on either axis, and only one of them is an
@@ -1010,6 +1055,32 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
   // looked and nothing moved". The empty-state copy has to stop making the
   // second claim, or the honesty sentence above is arguing with the page.
   const compared = marketReasons.length === 0;
+  // PANEL FIX — THE BLOCKER. `market.entered ?? []` manufactured a zero the
+  // producer declined to supply. BOTH of daily_diff's failure returns carry no
+  // `entered`/`exited` keys at all — `missing_sleeper_snapshot`
+  // (daily_diff.py:102-107) and `insufficient_history` (:112-117) return only
+  // status/decision_supported/comparison_window/market_source — so on those
+  // mornings the page said "we couldn't compare" at the top of this region and
+  // "New to the priced pool: 0 · Dropped out: 0 / Nobody new carried a price
+  // today" four inches below it. A producer that declines to answer, rendered
+  // as a confident negative, is the phase-2A failure class exactly.
+  //
+  // The counts render only when the comparison ran AND both arrays are actually
+  // present. A null array on an otherwise-ok lane is the same absence wearing a
+  // different hat, so it takes the same branch.
+  const pool =
+    compared && market.entered != null && market.exited != null
+      ? { entered: market.entered, exited: market.exited }
+      : null;
+
+  // The cards lead with the biggest MOVES; the tape carries every remaining
+  // row, flat ones included, in the producer's own order. The rank numeral is
+  // the row's position in `roster_deltas` — so the tape resumes at 4 instead of
+  // restarting at 1 on the fourth-biggest mover, which is what it did before.
+  const cardRows = rosterDeltas.filter((row) => row.value_delta !== 0).slice(0, 3);
+  const onACard = new Set(cardRows);
+  const tapeRows = rosterDeltas.filter((row) => !onACard.has(row));
+  const tapeRanks = tapeRows.map((row) => rosterDeltas.indexOf(row) + 1);
   // The trend note explains BLANK sparklines. It is only true when a blank one
   // is on screen: once a player's series has points, `LaneSeriesSlot` draws a
   // real line and the note would be contradicting the picture beside it.
@@ -1045,17 +1116,34 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
 
         {rosterDeltas.length === 0 ? (
           <p className="dg-wc__quiet">
+            {/* PANEL FIX: "held steady" was the section contradicting the
+                verdict two inches above it, and the section was the false half.
+                An empty `roster_deltas` on a SUCCESSFUL comparison means the
+                market priced none of his players on both dates
+                (daily_diff.py:143-147) — a coverage fact, not a movement fact.
+                `movement()` already refuses to call it movement; this string is
+                the one place the old reading survived. */}
             {compared
-              ? "Your roster's market values held steady — no movement on this tape."
+              ? "The market didn't price any of your players on both of the last two days, so there is nothing of yours to compare."
               : "No day-over-day comparison for your roster on this tape."}
           </p>
         ) : (
           <>
-            {/* DG-113 §2.4: the three biggest moves get room to be read; the
-                rest stay on the tape below. Both are the SAME rows in the same
-                producer order, so the cards are a lead, never a second list. */}
-            <MoverCards rows={rosterDeltas.slice(0, 3)} when={when} />
-            {rosterDeltas.length > 3 && <MarketRows rows={rosterDeltas.slice(3)} />}
+            {/* DG-113 §2.4: the biggest moves get room to be read; the rest
+                stay on the tape below. Both are the SAME rows in the same
+                producer order, so the cards are a lead, never a second list.
+
+                PANEL FIX: the cards are sliced off MOVERS, not off
+                `roster_deltas`. That list keeps every roster player priced on
+                both days EVEN IF FLAT (daily_diff.py:143-147); only `movers`
+                filters `value_delta != 0`. Slicing the unfiltered list put
+                players who did not move into three large cards under a heading
+                reading "What moved", directly below a verdict saying "1 of them
+                moved" — the same list/mover conflation SR-16 fixed on the hero
+                this replaced. The tape then carries everything the cards did
+                not, so no row is dropped and none is shown twice. */}
+            <MoverCards rows={cardRows} when={when} />
+            {tapeRows.length > 0 && <MarketRows rows={tapeRows} ranks={tapeRanks} />}
           </>
         )}
 
@@ -1082,12 +1170,16 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
             {compared
               ? league.excluded > 0
                 ? "Every one of the day's biggest movers is already on your roster, above."
-                : "No player movement on this tape — market values held steady overnight."
+                : // `when`, not a hardcoded "overnight". The word is a claim
+                  // about elapsed time and is only true when the two compared
+                  // captures are adjacent days; `windowPhrase` is the one place
+                  // that is decided, and this string was the last literal.
+                  `No player movement on this tape — market values held steady ${when}.`
               : "No day-over-day comparison league-wide on this tape."}
           </p>
         ) : (
           <>
-            <MarketRows rows={league.rows} />
+            <MarketRows rows={league.rows} ranks={league.ranks} />
             {/* SR-16: honest truncation — the league-wide total stays on the
                 surface and never pretends to be about his roster, and a nullish
                 total is never invented. DG-113 adds the second half of the
@@ -1107,22 +1199,29 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
         {/* DG-113 §2.5: the two chip walls become one line you can open. Who
             entered and left the priced pool is real, and it is not what the
             morning is about. */}
-        <details className="dg-wc__pool">
-          <summary className="dg-wc__pool-summary">
-            New to the priced pool: {num(entered.length)} · Dropped out:{" "}
-            {num(exited.length)}
-          </summary>
-          <h4 className="dg-wc__group">New to the pool</h4>
-          <UniverseChipList
-            items={entered}
-            emptyLabel="Nobody new carried a price today."
-          />
-          <h4 className="dg-wc__group">Dropped out</h4>
-          <UniverseChipList
-            items={exited}
-            emptyLabel="Nobody dropped out of the priced pool today."
-          />
-        </details>
+        {pool === null ? (
+          <p className="dg-wc__quiet">
+            We couldn't compare the priced pool against an earlier day, so we can't tell
+            you who joined it or dropped out of it.
+          </p>
+        ) : (
+          <details className="dg-wc__pool">
+            <summary className="dg-wc__pool-summary">
+              New to the priced pool: {num(pool.entered.length)} · Dropped out:{" "}
+              {num(pool.exited.length)}
+            </summary>
+            <h4 className="dg-wc__group">New to the pool</h4>
+            <UniverseChipList
+              items={pool.entered}
+              emptyLabel="Nobody new carried a price today."
+            />
+            <h4 className="dg-wc__group">Dropped out</h4>
+            <UniverseChipList
+              items={pool.exited}
+              emptyLabel="Nobody dropped out of the priced pool today."
+            />
+          </details>
+        )}
       </section>
     </>
   );
@@ -1232,7 +1331,24 @@ function UniverseChipList({
 // each row is one player's line on the tape.
 const ROW_CAP = 10;
 
-function MarketRows({ rows }: { rows: WhatChangedMarketDelta[] }) {
+/**
+ * The tape.
+ *
+ * PANEL FIX — `ranks`. The numeral used to be `i + 1` over whatever slice the
+ * caller handed in, which stopped being the row's rank the moment DG-113 put
+ * three rows on cards above it and pulled his own players out of the league
+ * list. The caller now says what each numeral means, because only the caller
+ * knows: for the roster tape it is the position in `roster_deltas`, and for the
+ * league it is the position in the producer's unfiltered `top_movers`. Both are
+ * the number the row actually holds in the list it came from.
+ */
+function MarketRows({
+  rows,
+  ranks,
+}: {
+  rows: WhatChangedMarketDelta[];
+  ranks?: number[];
+}) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? rows : rows.slice(0, ROW_CAP);
   return (
@@ -1245,14 +1361,18 @@ function MarketRows({ rows }: { rows: WhatChangedMarketDelta[] }) {
         {visible.map((r, i) => (
           <AssetRow
             key={r.sleeper_id ?? i}
-            rank={i + 1}
+            rank={ranks?.[i] ?? i + 1}
             sleeperId={r.sleeper_id}
             name={r.player_name ?? humanAssetKey(r.player_key)}
             position={r.position ?? ""}
             teamId={(r as { team_id?: string | null }).team_id}
+            // PANEL FIX: `num()`, not `String()`. The mover cards directly above
+            // print the same quantity through `num()`, so the screen carried
+            // "5,204" on a card and "3873" on the row beneath it — one number,
+            // two spellings, stacked with nothing in between.
             currentValue={
               (r as { current_value?: number | null }).current_value != null
-                ? String((r as { current_value?: number | null }).current_value)
+                ? num((r as { current_value: number }).current_value)
                 : undefined
             }
             lane="market"

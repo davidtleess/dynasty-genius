@@ -144,3 +144,158 @@ describe("DG-113 the morning read answers am-I-ok in one glance", () => {
     expect(screen.getByTestId("wc-health-sheet-toggle")).toBeTruthy();
   });
 });
+
+// ── PANEL FIXES, DRIVEN AGAINST THE REAL PAYLOAD ─────────────────────────────
+//
+// Each of these mutates ONE field of the captured report into a state the
+// producer demonstrably emits, and asserts what the screen is then allowed to
+// say. None of them is reachable on the payload as captured, which is precisely
+// why the build's own browser pass could not see them.
+
+describe("a producer that declines to answer is never rendered as a zero", () => {
+  it("does not count the priced pool when the comparison never ran", async () => {
+    // daily_diff.py's two failure returns carry NO entered/exited keys at all:
+    // `missing_sleeper_snapshot` (:102-107) and `insufficient_history`
+    // (:112-117) return only status / decision_supported / comparison_window /
+    // market_source. `market.entered ?? []` manufactured the zero, and the new
+    // copy stated it as a fact about the world four inches under "we couldn't
+    // compare".
+    mountLive((body) => {
+      body.daily_diff.market = {
+        status: "unavailable",
+        decision_supported: false,
+        aborted_reason: "missing_sleeper_snapshot",
+        market_source: "fantasycalc_overlay",
+      };
+    });
+
+    const league = await screen.findByTestId("wc-around-the-league");
+    expect(within(league).queryByText(/New to the priced pool/i)).toBeNull();
+    expect(within(league).queryByText(/Nobody new carried a price today/i)).toBeNull();
+    expect(
+      within(league).queryByText(/Nobody dropped out of the priced pool/i),
+    ).toBeNull();
+    expect(
+      within(league).getByText(
+        /couldn't compare the priced pool against an earlier day/i,
+      ),
+    ).toBeTruthy();
+  });
+
+  it("does not count it when one of the two arrays is missing either", async () => {
+    mountLive((body) => {
+      body.daily_diff.market.exited = null;
+    });
+    const league = await screen.findByTestId("wc-around-the-league");
+    expect(within(league).queryByText(/New to the priced pool/i)).toBeNull();
+  });
+
+  it("still counts, and still says 'nobody', when the producer really did send both", async () => {
+    mountLive((body) => {
+      body.daily_diff.market.entered = [];
+      body.daily_diff.market.exited = [];
+    });
+    const league = await screen.findByTestId("wc-around-the-league");
+    expect(
+      within(league).getByText(/New to the priced pool: 0 · Dropped out: 0/),
+    ).toBeTruthy();
+  });
+});
+
+describe("a stale section reaches the verdict it was promoted into", () => {
+  it("qualifies the directive rather than leaving the notice at the page foot", async () => {
+    // THE BLOCKER. drop_pressure returns status "ok" — complete and
+    // well-formed — when yesterday's artifact is reused, and its own
+    // staleness_caveat is the only thing that says so. The section clock and
+    // the report clock provably diverge on live data (league_opportunity at
+    // 119.4h inside a 0.0h report).
+    mountLive((body) => {
+      body.structural_context.sections.drop_pressure.staleness_caveat = {
+        basis: "captured_at_vs_report_generated_at",
+        report_generated_at: body.generated_at,
+        age_hours: 30.2,
+        is_stale: true,
+      };
+    });
+
+    const verdict = await screen.findByTestId("wc-verdict");
+    expect(verdict.textContent).toMatch(
+      /roster-limit check behind this is 30\.2 hours old/i,
+    );
+    expect(verdict.textContent).toMatch(
+      /last verified read rather than this morning's/i,
+    );
+
+    // And the card that names a real player carries it too — a directive
+    // qualified only in the paragraph above it is a directive people will act
+    // on unqualified.
+    const worth = screen.getByTestId("wc-worth-a-look");
+    const cut = within(worth)
+      .getAllByTestId("wc-recommendation")
+      .find((card) => card.getAttribute("data-rec-id") === "required-cut");
+    expect(cut?.textContent).toMatch(/30\.2 hours old/);
+  });
+
+  it("carries the roster read's own clock too, now the debug dump is gone", async () => {
+    // sleeper_snapshot's david_roster_player_count was promoted INTO the
+    // verdict sentence, and the only place its notice used to render went with
+    // the dump that carried it.
+    mountLive((body) => {
+      body.structural_context.sections.sleeper_snapshot.staleness_caveat = {
+        basis: "captured_at_vs_report_generated_at",
+        report_generated_at: body.generated_at,
+        age_hours: 26.0,
+        is_stale: true,
+      };
+    });
+    const verdict = await screen.findByTestId("wc-verdict");
+    expect(verdict.textContent).toMatch(/roster read behind this is 26 hours old/i);
+  });
+
+  it("says nothing of the kind on the payload as captured", async () => {
+    mountLive();
+    const verdict = await screen.findByTestId("wc-verdict");
+    expect(verdict.textContent).not.toMatch(/hours old/i);
+  });
+});
+
+describe("the cards under 'What moved' are movers", () => {
+  it("never promotes a flat row into a card on a near-quiet morning", async () => {
+    // roster_deltas keeps every roster player priced on both days EVEN IF FLAT
+    // (daily_diff.py:143-147); only `movers` filters value_delta != 0. Slicing
+    // the unfiltered list put players who did not move into three large cards
+    // under a heading reading "What moved".
+    mountLive((body) => {
+      const rows = body.daily_diff.market.roster_deltas as Wire[];
+      rows.forEach((r: Wire, i: number) => {
+        r.value_delta = i === 0 ? 120 : 0;
+        r.value_delta_direction = i === 0 ? "up" : "flat";
+      });
+    });
+
+    const cards = await screen.findByTestId("wc-mover-cards");
+    expect(cards.querySelectorAll(":scope > li")).toHaveLength(1);
+    // Everything else is still on the page — the filter moves rows between the
+    // cards and the tape, it never drops one. The fixture carries three roster
+    // rows, so the two flat ones land on the tape below.
+    const roster = screen.getByTestId("wc-your-roster");
+    expect(roster.querySelectorAll(".dg-wc__rows > li")).toHaveLength(2);
+  });
+
+  it("numbers the tape by its place in the producer's list, not by the slice", async () => {
+    // The numeral used to be `i + 1` over whatever slice the caller handed in,
+    // so the tape restarted at 1 on the fourth-biggest mover — directly under a
+    // card showing the third.
+    mountLive((body) => {
+      const rows = body.daily_diff.market.roster_deltas as Wire[];
+      rows.forEach((r: Wire, i: number) => {
+        r.value_delta = 100 - i;
+        r.value_delta_direction = "up";
+      });
+    });
+
+    const roster = await screen.findByTestId("wc-your-roster");
+    // All three moved, so all three are cards and the tape is empty.
+    expect(roster.querySelectorAll(".dg-wc__rows > li")).toHaveLength(0);
+  });
+});

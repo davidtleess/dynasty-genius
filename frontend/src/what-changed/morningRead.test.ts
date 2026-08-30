@@ -23,6 +23,8 @@ import {
   cutPressure,
   leagueMovers,
   movement,
+  staleInputClause,
+  staleInputs,
   verdict,
   whereYouStand,
   windowPhrase,
@@ -320,9 +322,17 @@ describe("worthALook — the spade is called, and only from fields on the page",
       "You're carrying 27 players in 26 spots, so one has to go.",
     );
     expect(cut?.reasons[1]).toMatch(
-      /ranks the players you're allowed to drop lowest-value first/i,
+      /ranks the players you're allowed to drop and puts him first/i,
     );
     expect(cut?.reasons[1]).toMatch(/36\.8 percentile/);
+    // `cut_priority` 1 is the HEAD of the list (roster_cut_engine.py:359-375),
+    // so "the bottom of it" read as the opposite of where he is.
+    expect(cut?.reasons[1]).not.toMatch(/bottom of it/i);
+    // And it no longer asserts the total ordering the frontend cannot verify:
+    // `_scoring_tier` returns "D" for engine_path PRE_MODEL BEFORE it looks at
+    // xvar_pct (roster_cut_engine.py:161-168), and neither `scoring_tier` nor
+    // `engine_path` is serialised to this payload (report.py:425-427).
+    expect(cut?.reasons[1]).not.toMatch(/lowest-value first/i);
   });
 
   it("prices a market move as a share of the player's price, and states its size", () => {
@@ -485,5 +495,258 @@ describe("leagueMovers — his own players belong to exactly one list", () => {
     );
     expect(result.rows).toHaveLength(1);
     expect(result.excluded).toBe(0);
+  });
+});
+
+// ── PANEL FIXES ──────────────────────────────────────────────────────────────
+//
+// Every spec below pins a defect a refuter found by reading the producer, on a
+// morning the live payload does not happen to produce. They are here so the
+// fix cannot be undone by someone restoring the more confident sentence.
+
+describe("a section's OWN clock is not the report's", () => {
+  const STALE_CUT = section({
+    summary: { roster_id: 1, total_players: 27, total_capacity: 26, cuts_required: 1 },
+    top_candidates: [
+      {
+        sleeper_player_id: "11570",
+        player_name: "Rasheen Ali",
+        position: "RB",
+        cut_priority: 1,
+        dvs: 20.7,
+        xvar_pct: 36.8,
+      },
+    ],
+    staleness_caveat: {
+      basis: "captured_at_vs_report_generated_at",
+      report_generated_at: "2026-08-30T13:00:00+00:00",
+      age_hours: 30.2,
+      is_stale: true,
+    },
+  });
+
+  it("finds a stale section inside a fresh report", () => {
+    // The two clocks provably diverge on live data: league_opportunity carries
+    // age_hours 119.4 inside a report whose own age is 0.0h. `_section_envelope`
+    // (report.py:450-486) stamps is_stale from the SECTION's captured_at.
+    const found = staleInputs([
+      { label: "roster-limit check", section: STALE_CUT },
+      { label: "roster read", section: section() },
+    ]);
+    expect(found).toEqual([{ label: "roster-limit check", hours: 30.2 }]);
+    expect(staleInputClause(found)).toMatch(
+      /roster-limit check behind this is 30\.2 hours old/i,
+    );
+    expect(staleInputClause([])).toBeNull();
+  });
+
+  it("names both inputs when both are stale", () => {
+    const clause = staleInputClause([
+      { label: "roster-limit check", hours: 30 },
+      { label: "roster read", hours: 40 },
+    ]);
+    expect(clause).toMatch(/the roster-limit check and the roster read/i);
+    expect(clause).toMatch(/last verified reads rather than this morning's/i);
+  });
+
+  it("puts the staleness clause under the headline it qualifies, not at the page foot", () => {
+    // THE BLOCKER. drop_pressure comes back status "ok" — complete, well-formed
+    // and a day old — when yesterday's artifact is reused. The verdict was
+    // reading only staleHours(generated_at), the REPORT's clock, so it printed
+    // an unqualified directive under a header saying the numbers were current.
+    const pressure = cutPressure(STALE_CUT);
+    const clause = staleInputClause(
+      staleInputs([{ label: "roster-limit check", section: STALE_CUT }]),
+    );
+    const v = verdict({
+      pressure,
+      moved: movement(market({ roster_deltas: [] }), 27),
+      stalenessClause: null,
+      inputStaleClause: clause,
+    });
+    expect(v.headline).toMatch(/one has to go/);
+    expect(v.detail).toMatch(/roster-limit check behind this is 30\.2 hours old/i);
+    // It LEADS the detail, so it sits directly beneath the headline.
+    expect(v.detail.indexOf("Heads up")).toBe(0);
+  });
+
+  it("carries the same clause onto the card that names a real player", () => {
+    const clause = staleInputClause(
+      staleInputs([{ label: "roster-limit check", section: STALE_CUT }]),
+    );
+    const { cards } = worthALook({
+      pressure: cutPressure(STALE_CUT),
+      moved: movement(market({ roster_deltas: [] }), 27),
+      window: null,
+      inputStaleClause: clause,
+    });
+    const cut = cards.find((c) => c.id === "required-cut");
+    expect(cut?.headline).toMatch(/start with Rasheen Ali/);
+    expect(cut?.reasons.some((r) => /30\.2 hours old/.test(r))).toBe(true);
+  });
+
+  it("says nothing about staleness when neither section is stale", () => {
+    const v = verdict({
+      pressure: cutPressure(CROWDED),
+      moved: movement(market({ roster_deltas: [] }), 27),
+      stalenessClause: null,
+      inputStaleClause: staleInputClause(
+        staleInputs([{ label: "roster-limit check", section: CROWDED }]),
+      ),
+    });
+    expect(v.detail).not.toMatch(/Heads up/i);
+  });
+});
+
+describe("rank 1 without a figure is not a value ranking", () => {
+  const NO_FIGURES = section({
+    summary: { roster_id: 1, total_players: 27, total_capacity: 26, cuts_required: 1 },
+    top_candidates: [
+      {
+        sleeper_player_id: "999",
+        player_name: "Somebody",
+        position: "WR",
+        cut_priority: 1,
+        dvs: null,
+        xvar_pct: null,
+      },
+    ],
+  });
+
+  it("refuses to name him, because the sort that ranked him was degenerate", () => {
+    // THE BLOCKER. `_tier_sort_key` (roster_cut_engine.py:171-181) scores tier C
+    // and tier D at float("inf"), and those tiers are exactly the entries with
+    // neither xvar_pct nor dvs (:161-168). Tier A sorts before B before C before
+    // D, so a rank-1 candidate can only be C/D when the WHOLE droppable pool
+    // lacks both numbers — every key identical, the sort stable, and
+    // cut_priority 1 is just roster["players"][0].
+    const pressure = cutPressure(NO_FIGURES);
+    expect(pressure.kind).toBe("cut");
+    if (pressure.kind !== "cut") throw new Error("unreachable");
+    expect(pressure.ranked).toBeNull();
+
+    const { cards } = worthALook({
+      pressure,
+      moved: movement(market({ roster_deltas: [] }), 27),
+      window: null,
+    });
+    const card = cards[0];
+    expect(card?.id).toBe("required-cut-unranked");
+    expect(card?.headline).toBe("One cut is due.");
+    expect(card?.headline).not.toMatch(/Somebody/);
+    expect(card?.reasons.join(" ")).toMatch(/don't have a value-ranked list/i);
+    // And no card anywhere on the block may name him.
+    expect(cards.map((c) => c.headline).join(" ")).not.toMatch(/Somebody/);
+  });
+
+  it("still names him when the producer carried a figure for him", () => {
+    const pressure = cutPressure(CROWDED);
+    if (pressure.kind !== "cut") throw new Error("unreachable");
+    expect(pressure.ranked?.player_name).toBe("Rasheen Ali");
+  });
+
+  it("names him on dynasty value alone when that is the only figure", () => {
+    const dvsOnly = section({
+      summary: {
+        roster_id: 1,
+        total_players: 27,
+        total_capacity: 26,
+        cuts_required: 1,
+      },
+      top_candidates: [
+        {
+          sleeper_player_id: "7",
+          player_name: "Only DVS",
+          position: "TE",
+          cut_priority: 1,
+          dvs: 12.5,
+          xvar_pct: null,
+        },
+      ],
+    });
+    const { cards } = worthALook({
+      pressure: cutPressure(dvsOnly),
+      moved: movement(market({ roster_deltas: [] }), 27),
+      window: null,
+    });
+    expect(cards[0]?.headline).toMatch(/start with Only DVS/);
+    expect(cards[0]?.reasons[1]).toMatch(/his dynasty value is 12\.5/i);
+  });
+});
+
+describe("'worth a look' scopes its all-clear to the checks that ran", () => {
+  it("says the price check did not run rather than falling through to quiet", () => {
+    // Two inputs, and only one could report its own absence. With the roster
+    // limit clear and the market comparison never run, the block rendered
+    // "Nothing worth acting on today." on one input — directly above a method
+    // line explaining a rule that never got to execute.
+    const clear = section({
+      summary: {
+        roster_id: 1,
+        total_players: 25,
+        total_capacity: 26,
+        cuts_required: 0,
+      },
+    });
+    const notCompared = movement(
+      market({ status: "unavailable", aborted_reason: "missing_sleeper_snapshot" }),
+      27,
+    );
+    expect(notCompared.kind).toBe("not-compared");
+    const { cards, missing } = worthALook({
+      pressure: cutPressure(clear),
+      moved: notCompared,
+      window: null,
+    });
+    expect(cards).toHaveLength(0);
+    expect(missing.join(" ")).toMatch(/biggest price move/i);
+    expect(missing.join(" ")).toMatch(/didn't run this morning/i);
+  });
+});
+
+describe("the coverage clause carries its own scope", () => {
+  it("says 'on both of the last two days', because that is what the list is", () => {
+    // roster_deltas keeps only roster players present in BOTH captures
+    // (daily_diff.py:143-147). A bare "priced 26 of your 27" asserts pricing
+    // coverage; a player who ENTERED the priced pool this morning is priced and
+    // still absent from this list.
+    const moved = movement(
+      market({ roster_deltas: [row({ value_delta: 10, current_value: 100 })] }),
+      27,
+    );
+    expect(moved.sentence).toMatch(
+      /priced 1 of your 27 players on both of the last two days/i,
+    );
+  });
+
+  it("declines the confident wording when the roster size is unknown", () => {
+    const moved = movement(
+      market({ roster_deltas: [row({ value_delta: 10, current_value: 100 })] }),
+      null,
+    );
+    expect(moved.sentence).not.toMatch(/all 1 of your players/i);
+    expect(moved.sentence).toMatch(
+      /priced 1 of your players on both of the last two days/i,
+    );
+  });
+});
+
+describe("league rank numerals survive the roster exclusion", () => {
+  it("keeps each row's position in the producer's unfiltered list", () => {
+    // Renumbering the survivors 1..N shifts every rank below an excluded
+    // player: today's displayed #10 is the league's 11th biggest mover.
+    const result = leagueMovers(
+      market({
+        roster_deltas: [row({ sleeper_id: "mine" })],
+        top_movers: [
+          row({ sleeper_id: "a", player_name: "First" }),
+          row({ sleeper_id: "mine", player_name: "His" }),
+          row({ sleeper_id: "c", player_name: "Third" }),
+        ],
+      }),
+    );
+    expect(result.rows.map((r) => r.player_name)).toEqual(["First", "Third"]);
+    expect(result.ranks).toEqual([1, 3]);
+    expect(result.excluded).toBe(1);
   });
 });
