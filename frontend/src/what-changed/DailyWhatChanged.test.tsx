@@ -148,7 +148,12 @@ function whatChangedResponse(overrides: ResponseOverrides = {}): WhatChangedResp
         team_posture: structuralSection({
           david_roster_id: 1,
           david_team_name: "David",
-          david_posture: "Contender",
+          // team_posture.py:98-102 emits the UPPERCASE enum. This fixture said
+          // "Contender", which is not a value the producer can produce — and
+          // because it is already plain English, `valueWord` passed it straight
+          // through, so every spec built on it was exercising the dictionary's
+          // BYPASS rather than the dictionary. DG-113 needs the real word.
+          david_posture: "CONTENDER",
           team_count: 12,
           staleness_caveat: {
             basis: "team_posture_snapshot",
@@ -251,6 +256,15 @@ function whatChangedResponse(overrides: ResponseOverrides = {}): WhatChangedResp
       },
     },
   }) as WhatChangedResponse;
+}
+
+// DG-113: the receipts moved from an always-open right rail into the health
+// sheet behind the header's "Details" control. Every spec that reads a receipt
+// line now has to open it first — which is the point of the change, and worth
+// one helper rather than a dozen repeated clicks.
+async function openHealthSheet() {
+  fireEvent.click(await screen.findByTestId("wc-health-sheet-toggle"));
+  return screen.getByTestId("wc-health-sheet");
 }
 
 function mockFetch(status: number, body: unknown) {
@@ -471,26 +485,32 @@ describe("DailyWhatChanged", () => {
     // same timestamps, same comparison window.
     expect(screen.queryAllByText("Descriptive only — not decision-grade.")).toEqual([]);
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
-    expect(screen.getByText(/since the last snapshot/i)).toBeTruthy();
-    const generatedAt = screen.getByText("Report built Jul 1, 2026, 8:00 AM EDT.");
-    expect(generatedAt).toBeTruthy();
+    // DG-113: the "What changed … since the last snapshot" subtitle is gone.
+    // The verdict says what the morning is, which is what a subtitle under a
+    // date was reaching for and could not do.
+    expect(screen.queryByText(/since the last snapshot/i)).toBeNull();
+
+    const sheet = await openHealthSheet();
+    const generatedAt = within(sheet).getByText("Built Jul 1, 2026, 8:00 AM EDT.");
     expect(generatedAt.getAttribute("title")).toBe("2026-07-01T12:00:00+00:00");
     expect(
-      screen.getByText(/Market prices captured 2026-06-30 vs 2026-07-01/i),
+      within(sheet).getByText(/Market prices compared 2026-06-30 against 2026-07-01/i),
     ).toBeTruthy();
 
-    const market = screen.getByRole("region", {
-      name: /market price-discovery overlay/i,
-    });
+    // DG-113 §2.4/§2.5: one market region became two, because his roster and
+    // the league are two different questions and used to be two headings
+    // inside one box that repeated players between them.
+    const mine = screen.getByTestId("wc-your-roster");
+    const league = screen.getByTestId("wc-around-the-league");
     const model = screen.getByRole("region", { name: /model output changes/i });
-    expect(within(market).getByText("Market Mover")).toBeTruthy();
-    expect(within(market).getByText("Delta Receiver")).toBeTruthy();
-    expect(within(market).getByText("Entered Rookie")).toBeTruthy();
-    expect(within(market).getByText("Exited Veteran")).toBeTruthy();
-    expect(within(market).queryByText("Model Delta")).toBeNull();
+    expect(within(league).getByText("Market Mover")).toBeTruthy();
+    expect(within(mine).getByText("Delta Receiver")).toBeTruthy();
+    expect(within(league).getByText("Entered Rookie")).toBeTruthy();
+    expect(within(league).getByText("Exited Veteran")).toBeTruthy();
+    expect(within(mine).queryByText("Model Delta")).toBeNull();
     expect(within(model).getByText("Model Delta")).toBeTruthy();
     expect(within(model).queryByText("Market Mover")).toBeNull();
-    expect(within(market).queryByText("Hidden Cut Candidate")).toBeNull();
+    expect(within(mine).queryByText("Hidden Cut Candidate")).toBeNull();
     expect(within(model).queryByText("Hidden Cut Candidate")).toBeNull();
   });
 
@@ -546,14 +566,21 @@ describe("DailyWhatChanged", () => {
     const { container } = render(<DailyWhatChanged />);
 
     await waitFor(() => expect(screen.getByText("-8")).toBeTruthy());
-    const market = screen.getByRole("region", {
-      name: /market price-discovery overlay/i,
-    });
-    expect(within(market).getByText("+11")).toBeTruthy();
+    const league = screen.getByTestId("wc-around-the-league");
+    expect(within(league).getByText("+11")).toBeTruthy();
     expect(screen.getByText("-1.25")).toBeTruthy();
     expect(screen.getByText("+0.04")).toBeTruthy();
     expect(screen.getByText("-0.75")).toBeTruthy();
-    expect(screen.queryByText(/\b(buy|sell|hold|start|sit)\b/i)).toBeNull();
+    // DG-113 AMENDS THIS LIST. The blanket ban on buy/sell/start/sit words was
+    // the repealed no-recommendation law wearing a test's clothes; David's
+    // 2026-08-30 ruling green-lights a named verdict, and "Worth a look" says
+    // "start with Rasheen Ali" on a live payload. What is still banned is the
+    // thing this spec was actually protecting — a delta ROW turning into a
+    // directive, which is where a price movement would be silently retyped as
+    // advice. So the ban is scoped to the rows.
+    for (const row of container.querySelectorAll(".dg-wc__player-row")) {
+      expect(row.textContent ?? "").not.toMatch(/\b(buy|sell|hold|start|sit)\b/i);
+    }
     expect(screen.queryByText(/optimizer|recommender|trend optimizer/i)).toBeNull();
     expect(screen.queryByText(/transaction recommender/i)).toBeNull();
     expect(screen.queryByText(/[▲▼⬆⬇]/u)).toBeNull();
@@ -652,10 +679,7 @@ describe("DailyWhatChanged", () => {
     // DG-111: the degradation is still stated — in prose on the surface, and
     // with the producer's own token preserved verbatim in the receipt sheet.
     // A degraded morning stays loud; it just speaks English first.
-    await waitFor(() =>
-      expect(screen.getByText(/Feed status: degraded/i)).toBeTruthy(),
-    );
-    expect(screen.getByTestId("wc-market-degraded").textContent).toMatch(
+    expect((await screen.findByTestId("wc-market-degraded")).textContent).toMatch(
       /Market snapshot stale/,
     );
     expect(screen.getByTestId("wc-model-degraded").textContent).toMatch(
@@ -664,7 +688,12 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByTestId("wc-model-degraded").textContent).toMatch(
       /Pvo seed stale/,
     );
-    const raw = screen.getByTestId("wc-raw-reasons").textContent;
+    // DG-113: the raw producer tokens are still kept verbatim, still in the
+    // declared receipt layer, now inside the health sheet rather than an
+    // always-open rail — one press down, complete when asked.
+    await openHealthSheet();
+    const raw = screen.getByTestId("wc-provenance").textContent;
+    expect(raw).toMatch(/Feed status: degraded/i);
     for (const token of [
       "market_snapshot_stale",
       "feature_source_unverifiable",
@@ -684,8 +713,12 @@ describe("DailyWhatChanged", () => {
           market: {
             top_movers: [],
             roster_deltas: null,
+            // Both arrays PRESENT and empty — the producer looked and found
+            // nobody. That is the only shape that licenses printing a zero;
+            // the shape where the producer sends no keys at all is its own
+            // test below ("never counts a pool the producer declined to send").
             entered: [],
-            exited: null,
+            exited: [],
             total_movers_count: 0,
           },
           model: {
@@ -704,9 +737,27 @@ describe("DailyWhatChanged", () => {
     await waitFor(() =>
       expect(screen.getByText(/market values held steady overnight/i)).toBeTruthy(),
     );
-    expect(screen.getByText(/Your roster's market values held steady/i)).toBeTruthy();
-    expect(screen.getByText(/no entered assets/i)).toBeTruthy();
-    expect(screen.getByText(/no exited assets/i)).toBeTruthy();
+    // PANEL FIX: an empty `roster_deltas` on a comparison that RAN means the
+    // market priced none of his players on both dates (daily_diff.py:143-147) —
+    // a coverage fact. "Your roster's market values held steady" was the
+    // section asserting the movement claim the verdict directly above it
+    // refuses to make.
+    // Said in the verdict AND in the section — they agree now, which is the
+    // point, so this matches all of them rather than exactly one.
+    expect(
+      screen.getAllByText(
+        /market didn't price any of your players on both of the last two days/i,
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/Your roster's market values held steady/i)).toBeNull();
+    // DG-113 §2.5: the two chip walls collapse to one line you can open, and
+    // "No entered assets." — a raw-noun negative — becomes a sentence about
+    // people. Absence is still said; it is just said in English.
+    expect(screen.getByText(/New to the priced pool: 0 · Dropped out: 0/)).toBeTruthy();
+    expect(screen.getByText(/Nobody new carried a price today/i)).toBeTruthy();
+    expect(
+      screen.getByText(/Nobody dropped out of the priced pool today/i),
+    ).toBeTruthy();
     // DG-111 REVIEW-PANEL FIX. `comparison_window.status` is set ONLY where the
     // producer refused to compare (daily_diff.py:237-241), so an empty delta
     // list here means "we did not look", and the surface must not say
@@ -741,7 +792,8 @@ describe("DailyWhatChanged", () => {
     ).toBeNull();
     // ...but not lost either: the verbatim token is in the receipt sheet, which
     // is the one layer the render rule permits a raw pipeline key.
-    expect(screen.getByTestId("wc-raw-reasons").textContent).toContain(
+    await openHealthSheet();
+    expect(screen.getByTestId("wc-provenance").textContent).toContain(
       "insufficient_history",
     );
     expect(screen.queryByText(/top mover unavailable/i)).toBeNull();
@@ -810,126 +862,106 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByText("model-key-fallback")).toBeTruthy();
     expect(screen.getByText("Second Model Delta")).toBeTruthy();
     expect(screen.getByText("-0")).toBeTruthy();
-    expect(screen.getByText(/model window 2026-06-30 vs 2026-07-01/i)).toBeTruthy();
+    const sheet = await openHealthSheet();
+    expect(
+      within(sheet).getByText(/model window 2026-06-30 against 2026-07-01/i),
+    ).toBeTruthy();
     expect(screen.queryByText(/semantic-old/i)).toBeNull();
     expect(screen.queryByText(/semantic-new/i)).toBeNull();
     expect(
-      screen
+      within(sheet)
         .getByText(/Projection basis changed within this window/i)
         .getAttribute("title"),
     ).toContain("semantic-old → semantic-new");
   });
 
-  it("renders structural current-state baseline summaries without named candidate or card lists", async () => {
+  // DG-113 REPLACES THIS SPEC WHOLESALE, and the replacement is narrower on
+  // purpose.
+  //
+  // What it used to pin was "Current roster context": five accordion sections
+  // printing "Team count: 12", "Partner ranking count: 2", "Card count: 3",
+  // "Total capacity: 28", "David roster player count: 30" — and, worst,
+  // "Starting lineup value: 31.4" directly above "Weekly lineup strength:
+  // 42.75", two names for two quantities a manager cannot tell apart, which on
+  // the live payload print the SAME NUMBER (97.39 and 97.39). Prose-ified debug
+  // output is still debug output. The block is now "Where you stand" and says
+  // two things in sentences; spec §2.6 leaves the roster-value figures to the
+  // Roster surface, which can label them properly.
+  //
+  // The suppression half of the old spec is DELIBERATELY GONE, not lost. It
+  // asserted that no cut candidate was ever named, on the reasoning that a
+  // named list "reads as a drop directive". David's 2026-08-30 ruling settles
+  // that the other way — "call a spade a spade, and I've given it the green
+  // light" — so the named cut is now a REQUIREMENT, pinned in MorningRead.test
+  // and morningRead.test. What survives here is the part the ruling did not
+  // touch: unranked internal objects (divergence cards, partner rankings) still
+  // never reach this surface, because nothing on this page is built from them.
+  it("says where you stand in sentences, and leaves the internal object counts off the page", async () => {
     mockFetch(200, whatChangedResponse());
 
     render(<DailyWhatChanged />);
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole("region", { name: /structural current-state baseline/i }),
-      ).toBeTruthy(),
-    );
-    expect(screen.getByText(/backdrop for today's movement/i)).toBeTruthy();
+    const stand = await screen.findByTestId("wc-where-you-stand");
     expect(screen.queryByText(/current_not_delta=true/i)).toBeNull();
+    expect(screen.queryByRole("region", { name: /structural current-state/i })).toBe(
+      null,
+    );
 
-    const baseline = screen.getByRole("region", {
-      name: /structural current-state baseline/i,
-    });
-    for (const label of [
-      "Team Posture",
-      "Team Value",
-      "League Opportunity",
-      "Drop Pressure",
-      "Sleeper Snapshot",
+    // The posture, in the dictionary's word, with what produced it said out
+    // loud — "Contending" reading as a plan somebody made is exactly the sort
+    // of unearned meaning a bare enum acquires on the way to a screen.
+    expect(stand.textContent).toMatch(/contending/i);
+    expect(stand.textContent).toMatch(/formula over your roster/i);
+    // The roster against its limit, once.
+    expect(stand.textContent).toMatch(/30 players in 28 spots/i);
+
+    // The staleness FACT survives, in words, beside the claim it qualifies:
+    // DG-111 says how old and that it is stale, DG-109's dictionary says WHICH
+    // pair of clocks the age was measured between, and the producer's own basis
+    // token stays verbatim in the title attribute.
+    const postureNotice = within(stand).getAllByTestId("wc-section-notice")[0];
+    expect(postureNotice?.textContent).toMatch(/Team posture snapshot/i);
+    expect(postureNotice?.textContent).toMatch(/1\.5 hours old/i);
+    expect(postureNotice?.textContent).toMatch(/stale/i);
+    expect(postureNotice?.getAttribute("title")).toContain("team_posture_snapshot");
+    expect(within(stand).queryByText(/team_posture_snapshot/)).toBeNull();
+
+    // THE DEBUG DUMP. Every one of these rendered on David's front page.
+    const page = document.body.textContent ?? "";
+    for (const debugLine of [
+      "Starting lineup value",
+      "Weekly lineup strength",
+      "Top-asset core value",
+      "Whole-roster value, capped",
+      "Card count",
+      "Partner ranking count",
+      "David roster player count",
+      "League roster count",
+      "Team count",
+      "Cuts required:",
+      "Total players:",
+      "Total capacity:",
     ]) {
-      // DG-111: the "Status: ok" stamp and the disclosure line are retired from
-      // every section. A clean section says nothing at all; only a section with
-      // something wrong speaks, and it speaks in a sentence.
-      const section = within(baseline).getByRole("region", { name: label });
-      expect(within(section).queryByText(/^Status:/)).toBeNull();
-      expect(
-        within(section).queryByText("Descriptive only — not decision-grade."),
-      ).toBeNull();
+      expect(page, `the debug dump must not come back: ${debugLine}`).not.toContain(
+        debugLine,
+      );
     }
 
-    const posture = within(baseline).getByRole("region", { name: "Team Posture" });
-    expect(within(posture).getByText(/contender/i)).toBeTruthy();
-    expect(within(posture).getByText(/team count: 12/i)).toBeTruthy();
-    // The staleness FACT survives, in words. DG-111 says how old and that it is
-    // stale; DG-109's dictionary says WHICH pair of clocks the age was measured
-    // between — both facts in one notice — and the producer's own basis token is
-    // kept verbatim in the title attribute (and in the receipt sheet).
-    const postureNotice = within(posture).getByTestId("wc-section-notice");
-    expect(postureNotice.textContent).toMatch(/Team posture snapshot/i);
-    expect(postureNotice.textContent).toMatch(/1\.5 hours old/i);
-    expect(postureNotice.textContent).toMatch(/stale/i);
-    expect(postureNotice.getAttribute("title")).toContain("team_posture_snapshot");
-    // No raw producer token reaches the visible sentence (DG-109's render rule).
-    expect(within(posture).queryByText(/team_posture_snapshot/)).toBeNull();
-    // A clean section stays silent — that is the "one caveat, only where it
-    // changes something" rule, mechanically enforced.
-    expect(
-      within(
-        within(baseline).getByRole("region", { name: "Sleeper Snapshot" }),
-      ).queryByTestId("wc-section-notice"),
-    ).toBeNull();
-
-    const teamValue = within(baseline).getByRole("region", { name: "Team Value" });
-    expect(within(teamValue).getByText(/Starting lineup value: 31.4/i)).toBeTruthy();
-    expect(within(teamValue).getByText(/Weekly lineup strength: 42.75/i)).toBeTruthy();
-    expect(within(teamValue).getByText(/Top-asset core value: 88.2/i)).toBeTruthy();
-    expect(
-      within(teamValue).getByText(/Whole-roster value, capped: 104.6/i),
-    ).toBeTruthy();
-
-    const opportunity = within(baseline).getByRole("region", {
-      name: "League Opportunity",
-    });
-    expect(within(opportunity).getByText(/partner ranking count: 2/i)).toBeTruthy();
-    expect(within(opportunity).getByText(/card count: 3/i)).toBeTruthy();
-    // DG-109: the opportunity counts printed their own shouted enums. The counts
-    // are unchanged; only the words are.
-    expect(
-      within(opportunity).getByText(/We value him more than the market does: 2/i),
-    ).toBeTruthy();
-    expect(within(opportunity).getByText(/Depth context: 1/i)).toBeTruthy();
-    // DG-111: the section's own trouble is one notice, and the raw token stays
-    // on the element rather than in the sentence.
-    expect(within(opportunity).getByTestId("wc-section-notice").textContent).toMatch(
-      /League opportunity partial source/i,
-    );
-    expect(
-      within(opportunity).getByTestId("wc-section-notice").getAttribute("title"),
-    ).toContain("league_opportunity_partial_source");
-
-    const dropPressure = within(baseline).getByRole("region", {
-      name: "Drop Pressure",
-    });
-    expect(within(dropPressure).getByText(/cuts required: 2/i)).toBeTruthy();
-    expect(within(dropPressure).getByText(/total players: 30/i)).toBeTruthy();
-    expect(within(dropPressure).getByText(/total capacity: 28/i)).toBeTruthy();
-
-    const sleeper = within(baseline).getByRole("region", { name: "Sleeper Snapshot" });
-    expect(within(sleeper).getByText(/david roster player count: 30/i)).toBeTruthy();
-    expect(within(sleeper).getByText(/league roster count: 12/i)).toBeTruthy();
-
-    expect(screen.queryByText("Hidden Cut Candidate")).toBeNull();
-    expect(screen.queryByText("Second Hidden Cut Candidate")).toBeNull();
-    expect(screen.queryByText("97")).toBeNull();
-    expect(screen.queryByText("98")).toBeNull();
+    // Unranked internal objects still never surface: nothing on this page is
+    // built from a divergence card or a partner ranking, so nothing about them
+    // — names or counts — has any business being printed here.
     expect(screen.queryByText("Hidden Divergence Asset One")).toBeNull();
     expect(screen.queryByText("Hidden Divergence Asset Two")).toBeNull();
     expect(screen.queryByText("Hidden Depth Asset")).toBeNull();
-    expect(
-      screen.queryByText(/recommended|target|drop list|opportunity ranking/i),
-    ).toBeNull();
-    expect(screen.queryByText(/\b(best|should|buy|sell|start|sit)\b/i)).toBeNull();
-    expect(screen.queryByText(/[▲▼⬆⬇]/u)).toBeNull();
+    // The cut candidates in this fixture are ranked 97 and 98 — no rank-1
+    // candidate — so the recommendation refuses to name one and says why.
+    expect(screen.queryByText("Hidden Cut Candidate")).toBeNull();
+    expect(screen.queryByText("Second Hidden Cut Candidate")).toBeNull();
+    expect(screen.getByTestId("wc-worth-a-look").textContent).toMatch(
+      /don't have a value-ranked list/i,
+    );
 
-    for (const section of within(baseline).getAllByRole("region")) {
-      expect(section.className).not.toMatch(/red|green|success|danger/);
-    }
+    expect(screen.queryByText(/[▲▼⬆⬇]/u)).toBeNull();
   });
 
   it("renders unavailable for non-OK responses and parse-error for invalid 200 bodies", async () => {
@@ -952,7 +984,19 @@ describe("DailyWhatChanged", () => {
     );
   });
 
-  it("renders the I2a daily tape from capture-health and model-provenance substrate facts", async () => {
+  // DG-113 REPLACES THE TWO TAPE SPECS. The tape was a monospace strip reading
+  // "Market Sync Active: 12 consecutive days tracked · Projection Update: July
+  // 5, current" at the top of the right rail. Spec §2.1 retires it along with
+  // the rail; the same two endpoints now feed ONE freshness sentence with a dot
+  // and, behind it, a health sheet listing each feed as a plain row. The facts
+  // are the same facts; the register is a sentence rather than a ticker.
+  it("says how the feeds are doing in one sentence, with the detail one press down", async () => {
+    // The dot carries BOTH freshness axes — how old this report is, and how the
+    // feeds behind it are doing. This spec is about the second, so the first is
+    // pinned to the fixture's own morning rather than left to drift with the
+    // wall clock (which would make a 2026-07-01 fixture permanently stale).
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-07-01T13:00:00+00:00"));
     mockFetchByUrl({
       "/api/league/what-changed": { status: 200, body: whatChangedResponse() },
       "/api/system/capture-health": { status: 200, body: captureHealthResponse() },
@@ -964,29 +1008,38 @@ describe("DailyWhatChanged", () => {
 
     render(<DailyWhatChanged />);
 
-    const tape = await screen.findByRole("region", { name: /daily tape/i });
+    const freshness = await screen.findByTestId("wc-freshness");
+    await waitFor(() =>
+      expect(freshness.getAttribute("data-status")).not.toBe("unknown"),
+    );
+    // One healthy store in this fixture, and its `last_capture_date` equals the
+    // payload's own `checked_at` day (2026-07-05), so today's capture really is
+    // in and the sentence may say so.
+    //
+    // PANEL FIX: the green branch used to say "complete and up to date" off
+    // `store_status` alone. `ok` means nothing missing, nothing stale, nothing
+    // thin — and a store can be all three while today's capture simply has not
+    // come due yet, so "up to date" was carrying more weight than the field can
+    // bear. There are two branches now and this fixture takes the stronger one
+    // BECAUSE the dates match, not because the status is ok.
+    expect(freshness.textContent).toMatch(/our daily feed is in for today/i);
     expect(
-      within(tape).getByText(/market sync active: 12 consecutive days tracked/i),
+      freshness.querySelector("[data-freshness-dot]")?.getAttribute("data-status"),
+    ).toBe("ok");
+    // The tape's own markup is gone from the page entirely.
+    expect(document.querySelector(".dg-ui-tape")).toBeNull();
+
+    const sheet = await openHealthSheet();
+    expect(within(sheet).getByText(/Daily market prices/i)).toBeTruthy();
+    expect(within(sheet).getByText(/Last ran Sunday, July 5/i)).toBeTruthy();
+    // A healthy feed says when it ran and nothing else — no "Status: ok" stamp.
+    expect(within(sheet).queryByText(/^Status:/)).toBeNull();
+    expect(
+      within(sheet).getByText(/Every model file our projections are served from/i),
     ).toBeTruthy();
-    expect(within(tape).getByText(/projection update: july 5, current/i)).toBeTruthy();
-    // DG-111: the third "Status: Synced / Status: Degraded" stamp is retired.
-    // A clean tape says nothing; a degraded one says what it means.
-    expect(within(tape).queryByText(/status: synced/i)).toBeNull();
-    expect(
-      within(tape).queryByText(
-        /capture streak|last capture|model vintage|registry version/i,
-      ),
-    ).toBeNull();
-    expect(
-      within(tape)
-        .getByText(/market sync active/i)
-        .getAttribute("title"),
-    ).toContain("Days captured in a row — 12 (from consecutive_days)");
-    expect(
-      within(tape)
-        .getByText(/projection update/i)
-        .getAttribute("title"),
-    ).toContain("Model registry version — 4 (from registry_version)");
+    // The registry version is a receipt, not prose.
+    expect(within(sheet).queryByText(/registry version 4/i)).toBeNull();
+
     expect(globalThis.fetch).toHaveBeenCalledWith(
       "/api/system/capture-health",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
@@ -997,7 +1050,9 @@ describe("DailyWhatChanged", () => {
     );
   });
 
-  it("degrades the daily tape honestly when substrate endpoints are unavailable", async () => {
+  it("never claims the feeds are fine when it could not read them", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-07-01T13:00:00+00:00"));
     mockFetchByUrl({
       "/api/league/what-changed": { status: 200, body: whatChangedResponse() },
       "/api/system/capture-health": {
@@ -1012,22 +1067,79 @@ describe("DailyWhatChanged", () => {
 
     render(<DailyWhatChanged />);
 
-    const tape = await screen.findByRole("region", { name: /daily tape/i });
+    const freshness = await screen.findByTestId("wc-freshness");
+    await waitFor(() =>
+      expect(freshness.textContent).toMatch(/couldn't reach the feed check/i),
+    );
+    // THE FAILURE THIS SPEC EXISTS FOR: an endpoint that did not answer is not
+    // evidence that the feeds are healthy, and "all our daily feeds are
+    // complete and up to date" is the easiest false sentence on this page.
+    expect(freshness.textContent).not.toMatch(/complete and up to date/i);
+    expect(freshness.textContent).not.toMatch(/ran on time/i);
+    // Both halves of the green branch, so neither can be reached from an
+    // endpoint that never answered.
+    expect(freshness.textContent).not.toMatch(/in for today/i);
+    expect(freshness.textContent).not.toMatch(/landed everything/i);
+    // The dot goes neutral rather than green — it has nothing to be green about.
     expect(
-      within(tape).getByText(/partial market sync: some inputs are being verified/i),
+      freshness.querySelector("[data-freshness-dot]")?.getAttribute("data-status"),
+    ).toBe("unknown");
+
+    const sheet = await openHealthSheet();
+    expect(
+      within(sheet).getByText(/feed check didn't answer this morning/i),
     ).toBeTruthy();
+    // Model provenance failed its own parse, so it says nothing at all rather
+    // than reporting a status it never received.
+    expect(within(sheet).queryByText(/model file/i)).toBeNull();
+  });
+
+  it("names which feed is behind and why, from the condition that actually degraded it", async () => {
+    const health = captureHealthResponse();
+    // A store that RAN today but is missing four days of history — the live
+    // shape of market_divergence_history. The spec's example sentence for this
+    // state ("ran a day behind") would be false three ways over.
+    health.overall_status = "degraded";
+    const store = health.stores[0] as NonNullable<(typeof health.stores)[0]>;
+    health.stores = [
+      {
+        ...store,
+        caveats: [],
+        store_id: "market_divergence_history",
+        store_status: "degraded",
+        timeline: {
+          ...store.timeline,
+          expected_days: 53,
+          present_days: 49,
+          missing_dates_count: 4,
+        },
+      },
+    ];
+    mockFetchByUrl({
+      "/api/league/what-changed": { status: 200, body: whatChangedResponse() },
+      "/api/system/capture-health": { status: 200, body: health },
+      "/api/system/model-provenance": {
+        status: 200,
+        body: modelProvenanceResponse(),
+      },
+    });
+
+    render(<DailyWhatChanged />);
+
+    const freshness = await screen.findByTestId("wc-freshness");
+    await waitFor(() =>
+      expect(freshness.textContent).toMatch(/gaps earlier in their history/i),
+    );
+    expect(freshness.textContent).not.toMatch(/behind|late|a day late/i);
     expect(
-      within(tape).getByText(/projections active using the latest verified data/i),
+      freshness.querySelector("[data-freshness-dot]")?.getAttribute("data-status"),
+    ).toBe("attention");
+
+    const sheet = await openHealthSheet();
+    expect(within(sheet).getByText(/Model-versus-market price gaps/i)).toBeTruthy();
+    expect(
+      within(sheet).getByText(/4 days of its 53-day history never landed/i),
     ).toBeTruthy();
-    // DG-111: the third "Status: Synced / Status: Degraded" stamp is retired.
-    // A clean tape says nothing; a degraded one says what it means.
-    expect(within(tape).queryByText(/status: degraded/i)).toBeNull();
-    expect(within(tape).getByText(/some of this data is behind/i)).toBeTruthy();
-    expect(
-      within(tape).queryByText(
-        /capture health|model provenance|capture streak|model vintage|registry version/i,
-      ),
-    ).toBeNull();
   });
 
   it("reserves honest empty chart slots without rendering I2b sparkline paths", async () => {
@@ -1054,16 +1166,27 @@ describe("DailyWhatChanged", () => {
     expect(screen.queryByLabelText(/sparkline|trend/i)).toBeNull();
   });
 
-  it("renders Increment-1 model-first AssetRows with real identity assets and lane symmetry", async () => {
+  it("renders AssetRows with real identity assets and lane symmetry, market first", async () => {
     mockFetch(200, increment1Response());
 
     const { container } = render(<DailyWhatChanged />);
 
     await waitFor(() => expect(screen.getByText("Bijan Robinson")).toBeTruthy());
     const model = screen.getByRole("region", { name: /model output/i });
-    const market = screen.getByRole("region", { name: /market price/i });
+    const market = screen.getByTestId("wc-your-roster");
+    // DG-113 REVERSES THIS. Model-first was argued as "the model is the
+    // rational anchor; market-first would anchor the morning read on crowd
+    // noise before the model's evaluation" — sound when this page was a
+    // two-lane delta surface with nothing above it. It has a verdict above it
+    // now, and the verdict is what anchors the morning. Meanwhile the model
+    // region on a live payload is one honest sentence explaining why no
+    // comparison ran, which is not the thing to open a morning on.
+    //
+    // The isolation the ordering was really protecting is untouched and is
+    // asserted below: a market price never renders inside the model region and
+    // vice versa.
     expect(
-      model.compareDocumentPosition(market) & Node.DOCUMENT_POSITION_FOLLOWING,
+      market.compareDocumentPosition(model) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
     const modelRow = within(model)
@@ -1089,11 +1212,27 @@ describe("DailyWhatChanged", () => {
       }),
     ).toBeTruthy();
 
-    const marketRow = within(market)
-      .getByText("Luther Burden")
-      .closest("[data-asset-row]");
-    expect(marketRow).toBeTruthy();
-    expect(within(marketRow as HTMLElement).getByText("—")).toBeTruthy();
+    // DG-113 §2.4: the day's three biggest roster moves lead as CARDS, so a
+    // one-mover payload puts Luther Burden on a card rather than a tape row.
+    const card = within(market).getByText("Luther Burden").closest(".dg-wc__card");
+    expect(card).toBeTruthy();
+    expect(within(card as HTMLElement).getByText("+99")).toBeTruthy();
+    // This row carries no `current_value`, so the card shows the change and no
+    // level — it does not reach into the sparkline's last point to manufacture
+    // one. A delta without its level is worse than a delta alone only if you
+    // invent the level.
+    expect(card?.querySelector(".dg-wc__card-value")).toBeNull();
+    // A card carries the market lane and only the market lane. That is not the
+    // lane-symmetry rule being dropped — a tape row shows an explicit dash
+    // because model and market rows are INTERLEAVED there and the dash says
+    // which lane is silent. All three cards sit inside the market region, whose
+    // own subtitle says what they are, so there is no pairing to be silent
+    // about and a dash would be furniture.
+    expect(card?.querySelector("[data-lane='model']")).toBeNull();
+    expect(card?.querySelector("[data-lane='market']")).toBeTruthy();
+    expect(
+      within(market).getByText(/kept separate from our own projections/i),
+    ).toBeTruthy();
     expect(
       container.querySelector("[data-lane='market'] [data-lane='model']"),
     ).toBeNull();
@@ -1128,18 +1267,20 @@ describe("DailyWhatChanged", () => {
 
     render(<DailyWhatChanged />);
 
-    await waitFor(() =>
-      // Copy amended with SR-16: quietDay is derived from HIS roster's movers,
-      // so the sentence scopes itself to the roster to stay true on days the
-      // league moved but his roster held.
-      expect(
-        screen.getByText(
-          /No valuation deltas observed on your roster since the last capture/i,
-        ),
-      ),
+    // DG-113: quietDay is still derived from HIS roster's movers, and the copy
+    // is still scoped to the roster so it stays true on days the league moved
+    // and his did not. "No valuation deltas observed" is gone with the rest of
+    // the lab register; the verdict says the same fact in a sentence.
+    const verdict = await screen.findByTestId("wc-verdict");
+    // roster_deltas is EMPTY with a comparison that ran, which is not "nothing
+    // moved" — it is "none of his players carried a price on both days". The
+    // two are different facts and the sentence says the one that is true.
+    expect(verdict.textContent).toMatch(
+      /didn't price any of your players on both of the last two days/i,
     );
+    expect(verdict.textContent).not.toMatch(/held steady|nothing moved/i);
     expect(
-      screen.getByText("no movement on your roster since the prior snapshot"),
+      screen.getByText(/here is the roster the report was built against/i),
     ).toBeTruthy();
     expect(screen.getByText("Tetairoa McMillan")).toBeTruthy();
     const row = screen.getByText("Tetairoa McMillan").closest("[data-asset-row]");
@@ -1168,11 +1309,17 @@ describe("DailyWhatChanged", () => {
   });
 });
 
-// SR-16 / DG-081 — the hero is the number David acts on: how many of HIS
-// players moved, not a list-length sum (51) and not league-wide churn (456).
-// Flat roster rows are present-in-both-snapshots rows, NOT movers — counting
-// .length would print a near-constant 26 every morning (wallpaper).
-describe("DailyWhatChanged roster-mover hero", () => {
+// SR-16 / DG-081 — the number David acts on is how many of HIS players moved,
+// not a list-length sum (51) and not league-wide churn (456). Flat roster rows
+// are present-in-both-snapshots rows, NOT movers — counting .length would print
+// a near-constant 26 every morning (wallpaper).
+//
+// DG-113 keeps every one of those rules and moves them into the verdict
+// sentence. The ValueHero that carried them ("Your roster moved · 26 · largest
+// Tank Dell +139") was a figure with a caption where the morning needs a
+// sentence, and a bare count never answered "am I ok" — 26 is a good morning or
+// a bad one depending on facts the tile could not hold.
+describe("DailyWhatChanged roster movement in the verdict", () => {
   function marketRow(name: string, delta: number, idx: number) {
     return {
       sleeper_id: `hero-${idx}`,
@@ -1188,13 +1335,7 @@ describe("DailyWhatChanged roster-mover hero", () => {
     };
   }
 
-  function heroElement(): HTMLElement {
-    return screen
-      .getByText("Your roster moved")
-      .closest(".dg-ui-value-hero") as HTMLElement;
-  }
-
-  it("derives the hero from his roster's movers with the largest name in the basis, and keeps the league total honest", async () => {
+  it("counts his movers, names the largest, and keeps the league total honest", async () => {
     const rosterDeltas = [
       marketRow("Tank Dell", 139, 0),
       marketRow("Fernando Mendoza", -84, 1),
@@ -1220,14 +1361,19 @@ describe("DailyWhatChanged roster-mover hero", () => {
     );
 
     render(<DailyWhatChanged />);
-    await waitFor(() => expect(screen.getByText("Your roster moved")).toBeTruthy());
+    const verdict = await screen.findByTestId("wc-verdict");
 
-    const hero = heroElement();
-    expect(within(hero).getByText("26")).toBeTruthy();
-    expect(within(hero).getByText(/largest Tank Dell \+139/)).toBeTruthy();
-    expect(
-      screen.getByText("Showing 25 of 456 market movers league-wide"),
-    ).toBeTruthy();
+    // 26 roster rows, all 26 moved, Tank Dell largest at +139. The COVERAGE
+    // clause is the DG-113 addition: `roster_deltas` holds only the roster
+    // players the market priced in both captures (26 here against a 30-player
+    // roster in the fixture's sleeper snapshot), and a "your roster" total that
+    // hid that would be rounding a subset up to the whole team.
+    expect(verdict.textContent).toMatch(/priced 26 of your 30 players/i);
+    expect(verdict.textContent).toMatch(/every one of them moved/i);
+    expect(verdict.textContent).toMatch(/Tank Dell most of all, up 139/);
+    // 25 league rows, none of them his (different sleeper ids), so nothing is
+    // excluded and the count is the plain one.
+    expect(screen.getByText(/Showing 25 of 456 movers league-wide\./)).toBeTruthy();
   });
 
   it("counts only rows that actually moved — flat roster rows never inflate the hero", async () => {
@@ -1252,12 +1398,14 @@ describe("DailyWhatChanged roster-mover hero", () => {
     );
 
     render(<DailyWhatChanged />);
-    await waitFor(() => expect(screen.getByText("Your roster moved")).toBeTruthy());
+    const verdict = await screen.findByTestId("wc-verdict");
 
-    const hero = heroElement();
-    expect(within(hero).getByText("6")).toBeTruthy();
-    expect(within(hero).queryByText("26")).toBeNull();
-    expect(within(hero).getByText(/largest True Mover 6 \+60/)).toBeTruthy();
+    // 26 priced, only 6 of them moved. The sentence must not report 26 movers.
+    expect(verdict.textContent).toMatch(/priced 26 of your 30 players/i);
+    expect(verdict.textContent).toMatch(/6 of them moved/);
+    expect(verdict.textContent).not.toMatch(/26 of them moved/);
+    expect(verdict.textContent).not.toMatch(/every one of them moved/i);
+    expect(verdict.textContent).toMatch(/True Mover 6 most of all, up 60/);
   });
 
   it("never renders a league-wide total the payload does not carry", async () => {
@@ -1274,10 +1422,50 @@ describe("DailyWhatChanged roster-mover hero", () => {
     );
 
     render(<DailyWhatChanged />);
-    await waitFor(() => expect(screen.getByText("Your roster moved")).toBeTruthy());
+    await screen.findByTestId("wc-verdict");
 
-    expect(screen.getByText("Showing 25 market movers")).toBeTruthy();
+    expect(screen.getByText(/Showing 25 movers\./)).toBeTruthy();
     expect(screen.queryByText(/Showing 25 of/)).toBeNull();
+  });
+
+  // DG-113 §2.5 — THE DUPLICATE DAVID SAW. Both lists are slices of the same
+  // `deltas_by_id` map (daily_diff.py:135-160), so a roster player who is also
+  // a top mover lands in both with identical numbers. Filtering him out of the
+  // league list is only half the job: the footer count has to account for where
+  // those rows went, or a silently shrinking total is a second untruth.
+  it("takes his own players out of the league list and says where they went", async () => {
+    const shared = marketRow("Shared Mover", 300, 7);
+    mockFetch(
+      200,
+      whatChangedResponse({
+        daily_diff: {
+          market: {
+            roster_deltas: [shared, marketRow("Roster Only", 20, 8)],
+            top_movers: [
+              shared,
+              marketRow("League Only One", 250, 200),
+              marketRow("League Only Two", 200, 201),
+            ],
+            total_movers_count: 457,
+          },
+          model: { deltas: [] },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+    await screen.findByTestId("wc-verdict");
+
+    const mine = screen.getByTestId("wc-your-roster");
+    const league = screen.getByTestId("wc-around-the-league");
+    expect(within(mine).getAllByText("Shared Mover").length).toBe(1);
+    expect(within(league).queryByText("Shared Mover")).toBeNull();
+    expect(within(league).getByText("League Only One")).toBeTruthy();
+    expect(
+      within(league).getByText(
+        /Showing 2 of 457 movers league-wide — 1 more is yours, and is up in what moved\./,
+      ),
+    ).toBeTruthy();
   });
 });
 
@@ -1440,14 +1628,14 @@ describe("DG-111 the stale morning still says it is stale, in prose", () => {
 
     render(<DailyWhatChanged />);
 
-    const market = await screen.findByRole("region", {
-      name: /market price-discovery overlay/i,
-    });
+    const market = await screen.findByTestId("wc-your-roster");
     // Prose on the surface: the reason is said in words, not as a raw key…
     const marketNote = within(market).getByTestId("wc-market-degraded");
     expect(marketNote.textContent).toMatch(/Market snapshot stale/);
     expect(marketNote.textContent).not.toContain("market_snapshot_stale");
-    // …and the raw producer token is still reachable, verbatim, in the receipt.
+    // …and the raw producer token is still reachable, verbatim, in the receipt,
+    // which DG-113 moved one press down into the health sheet.
+    await openHealthSheet();
     const receipts = screen.getByTestId("wc-provenance");
     expect(receipts.textContent).toContain("market_snapshot_stale");
     expect(receipts.textContent).toContain("pvo_seed_stale");
@@ -1505,12 +1693,8 @@ describe("DG-111 a comparison that never ran never reads as 'nothing moved'", ()
 
     render(<DailyWhatChanged />);
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole("region", { name: /market price-discovery/i }),
-      ).toBeTruthy(),
-    );
-    const market = screen.getByRole("region", { name: /market price-discovery/i });
+    await waitFor(() => expect(screen.getByTestId("wc-your-roster")).toBeTruthy());
+    const market = screen.getByTestId("wc-your-roster");
 
     // 1. The false claim is gone — both halves of it.
     expect(within(market).queryByText(/held steady/i)).toBeNull();
@@ -1518,8 +1702,14 @@ describe("DG-111 a comparison that never ran never reads as 'nothing moved'", ()
       within(market).getByText(/No day-over-day comparison for your roster/i),
     ).toBeTruthy();
     expect(
-      within(market).getByText(/No day-over-day comparison league-wide/i),
+      within(screen.getByTestId("wc-around-the-league")).getByText(
+        /No day-over-day comparison league-wide/i,
+      ),
     ).toBeTruthy();
+    // …and the verdict does not fill the silence either.
+    expect(screen.getByTestId("wc-verdict").textContent).toMatch(
+      /couldn't compare your prices against an earlier day, so we can't say what moved/i,
+    );
 
     // 2. The fact is VISIBLE, not hidden behind a shut receipt sheet.
     const notice = within(market).getByTestId("wc-market-degraded");
@@ -1533,19 +1723,25 @@ describe("DG-111 a comparison that never ran never reads as 'nothing moved'", ()
     expect(notice.getAttribute("title")).toBe("insufficient_history");
     expect(within(market).queryByText(/insufficient_history/)).toBeNull();
 
-    // 3. The receipt sheet still records it verbatim — `producerReasons` reads
+    // 3. The health sheet still records it verbatim — `producerReasons` reads
     //    the MARKET comparison window now, not only the model's.
-    expect(screen.getByTestId("wc-raw-reasons").textContent).toContain(
+    const sheet = await openHealthSheet();
+    expect(screen.getByTestId("wc-provenance").textContent).toContain(
       "insufficient_history",
     );
     // 4. And the market source survives in the sheet even though the comparison
     //    window carried no dates.
-    expect(screen.getByTestId("wc-provenance").textContent).toContain(
-      "fantasycalc_overlay",
-    );
+    expect(sheet.textContent).toContain("fantasycalc_overlay");
   });
 
-  it("keeps saying 'held steady' when the comparison genuinely ran and nothing moved", async () => {
+  // PANEL FIX. This test used to assert the section said "held steady" here.
+  // It ran, and it found none of his players carrying a price on BOTH dates —
+  // `roster_deltas` keeps only players present in both captures
+  // (daily_diff.py:143-147). That is a coverage fact, not a movement fact, and
+  // the verdict already said so; the section was two inches below it saying the
+  // opposite. The two now agree, and the test pins the agreement rather than
+  // the string.
+  it("calls an empty priced set a coverage fact, in the verdict and in the section alike", async () => {
     mockFetch(
       200,
       whatChangedResponse({
@@ -1562,19 +1758,58 @@ describe("DG-111 a comparison that never ran never reads as 'nothing moved'", ()
 
     render(<DailyWhatChanged />);
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole("region", { name: /market price-discovery/i }),
-      ).toBeTruthy(),
+    await waitFor(() => expect(screen.getByTestId("wc-your-roster")).toBeTruthy());
+    const market = screen.getByTestId("wc-your-roster");
+    const coverage = /didn't price any of your players on both of the last two days/i;
+    expect(within(market).getByText(coverage)).toBeTruthy();
+    expect(screen.getByTestId("wc-verdict").textContent).toMatch(coverage);
+    // Neither surface may retype "we have no prices to compare" as "the prices
+    // did not change".
+    expect(within(market).queryByText(/held steady/i)).toBeNull();
+    expect(screen.getByTestId("wc-verdict").textContent).not.toMatch(
+      /held steady|nothing moved/i,
     );
-    const market = screen.getByRole("region", { name: /market price-discovery/i });
-    expect(
-      within(market).getByText(/held steady — no movement on this tape/i),
-    ).toBeTruthy();
     expect(within(market).queryByTestId("wc-market-degraded")).toBeNull();
     // No rows on screen means no trend slots to explain, so the note that
     // explains blank ones does not render either.
     expect(within(market).queryByTestId("wc-trend-note")).toBeNull();
+  });
+
+  // DG-113, found rendering on the LIVE payload for 2026-08-30.
+  it("treats two model runs on one day as a refusal, not a degradation, and points at nothing", async () => {
+    mockFetch(
+      200,
+      whatChangedResponse({
+        daily_diff: {
+          model: {
+            status: "model_multi_vintage_ambiguous",
+            deltas: [],
+            comparison_window: { status: "model_multi_vintage_ambiguous" },
+            feature_freshness: null,
+            pvo_staleness: null,
+          },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+
+    const notice = await screen.findByTestId("wc-model-degraded");
+    // The producer refuses to emit a comparison rather than fabricate one
+    // (daily_diff.py:255-271). That is a refusal, exactly like
+    // insufficient_history — not a fault — and spending "degraded" on it is the
+    // DG-047 cry-wolf pattern in new clothes.
+    expect(notice.textContent).toMatch(/couldn't compare our projections/i);
+    expect(notice.textContent).not.toMatch(/came back degraded/i);
+    // The dictionary sentence renders whole, as its own sentence, rather than
+    // spliced between em-dashes with its full stop shaved off.
+    expect(notice.textContent).toContain(
+      "Two different model runs landed on the same day, so we will not claim what moved overnight.",
+    );
+    // …and there is no closing instruction, because there are no model rows
+    // below for one to apply to. "Treat the model numbers below as provisional"
+    // was pointing at an empty region.
+    expect(notice.textContent).not.toMatch(/below/i);
   });
 
   it("still calls a real market abort a degradation, and says why", async () => {
@@ -1597,14 +1832,10 @@ describe("DG-111 a comparison that never ran never reads as 'nothing moved'", ()
 
     render(<DailyWhatChanged />);
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole("region", { name: /market price-discovery/i }),
-      ).toBeTruthy(),
+    await waitFor(() => expect(screen.getByTestId("wc-your-roster")).toBeTruthy());
+    const notice = within(screen.getByTestId("wc-your-roster")).getByTestId(
+      "wc-market-degraded",
     );
-    const notice = within(
-      screen.getByRole("region", { name: /market price-discovery/i }),
-    ).getByTestId("wc-market-degraded");
     expect(notice.textContent).toMatch(/came back degraded/i);
     expect(notice.textContent).toMatch(/could not read your Sleeper roster/i);
     expect(notice.getAttribute("title")).toBe("missing_sleeper_snapshot");

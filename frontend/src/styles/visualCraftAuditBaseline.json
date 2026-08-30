@@ -200,20 +200,20 @@
     },
     {
       "path": "what-changed/DailyWhatChanged.css",
-      "focus_visible_selectors": 2,
-      "focus_token_consumers": 2,
+      "focus_visible_selectors": 5,
+      "focus_token_consumers": 5,
       "hover_selectors": 1,
       "elevation_consumers": 0,
-      "row_treatment_selectors": 6,
-      "card_treatment_selectors": 0
+      "row_treatment_selectors": 11,
+      "card_treatment_selectors": 5
     }
   ],
   "totals": {
-    "focus_visible_selectors": 16,
-    "focus_token_consumers": 13,
+    "focus_visible_selectors": 19,
+    "focus_token_consumers": 16,
     "hover_selectors": 8,
     "elevation_consumers": 0,
-    "row_treatment_selectors": 35,
-    "card_treatment_selectors": 9
+    "row_treatment_selectors": 40,
+    "card_treatment_selectors": 14
   }
 }

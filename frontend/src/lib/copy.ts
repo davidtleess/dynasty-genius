@@ -937,3 +937,52 @@ export function formatCaptureTimestamp(iso: string | null | undefined): string {
 // IS this model's standing). One constant, so the two can never drift apart.
 export const MODEL_STANDING_SENTENCE =
   "Our model is a sharp second opinion, not a proven market-beater — weigh it accordingly.";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8 · DG-113 — the morning read's own vocabulary.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The three daily capture stores, in words.
+ *
+ * Names taken from `app/config/capture_cadence.json` (config version 3), which
+ * is what the health endpoint reports on: each entry there is one table, on one
+ * daily schedule, with its own `capture_start_date`. The names say what the
+ * feed carries rather than which table it lands in — `fc_forward_capture` reads
+ * `fc_forward_capture_raw` filtered to `fc_native`, i.e. FantasyCalc's daily
+ * prices; `model_forward_capture` snapshots our own scores on the 09:45 chain
+ * step; `market_divergence_history` is the day-by-day record of where the two
+ * disagree.
+ */
+const FEED_NAMES: Record<string, string> = {
+  fc_forward_capture: "Daily market prices",
+  model_forward_capture: "Daily model scores",
+  market_divergence_history: "Model-versus-market price gaps",
+};
+
+export function feedName(storeId: string): string {
+  const known = FEED_NAMES[storeId];
+  if (known !== undefined) return known;
+  console.warn("Copy dictionary: no name for feed", storeId);
+  return humanize(storeId);
+}
+
+/**
+ * A position code as the group of players it names, for prose that counts them
+ * ("1 spot among quarterbacks"). Deliberately partial: a code with no entry
+ * here produces NO position clause at all rather than a humanized guess, so an
+ * unfamiliar code can never invent a group of players that does not exist.
+ */
+const POSITION_GROUPS: Record<string, string> = {
+  QB: "quarterbacks",
+  RB: "running backs",
+  WR: "receivers",
+  TE: "tight ends",
+  K: "kickers",
+  DEF: "defenses",
+};
+
+export function positionGroup(position: string | null | undefined): string | null {
+  if (position === null || position === undefined) return null;
+  return POSITION_GROUPS[position.trim().toUpperCase()] ?? null;
+}

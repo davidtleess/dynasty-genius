@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { TEAM_COLORS } from "../generated/teamColors";
 import type {
   WhatChangedEnteredExited,
@@ -7,7 +7,6 @@ import type {
   WhatChangedModelDelta,
   WhatChangedModelSection,
   WhatChangedResponse,
-  WhatChangedStructuralContext,
   WhatChangedStructuralSection,
 } from "../lib/api/types.gen";
 import {
@@ -15,13 +14,7 @@ import {
   zModelProvenanceResponse,
   zWhatChangedResponse,
 } from "../lib/api/zod.gen";
-import {
-  describeToken,
-  fieldLabel,
-  formatCaptureTimestamp,
-  receiptDetail,
-  valueWord,
-} from "../lib/copy";
+import { describeToken, fieldLabel, formatCaptureTimestamp } from "../lib/copy";
 import { useEndpointResource } from "../lib/useEndpointResource";
 import {
   PlayerNameButton,
@@ -29,12 +22,27 @@ import {
   type SelectPlayer,
   usePlayerSelection,
 } from "../player/playerSelection";
-import { DailyTape as UiDailyTape } from "../ui/DailyTape";
 import { MetricCell } from "../ui/MetricCell";
 import { PlayerIdentity } from "../ui/PlayerIdentity";
 import { ReceiptTrigger } from "../ui/ReceiptTrigger";
 import { SeriesSlot } from "../ui/SeriesSlot";
-import { ValueHero } from "../ui/ValueHero";
+import { type FeedHealth, feedHealth, freshnessLine } from "./feedHealth";
+import {
+  verdict as buildVerdict,
+  type ComparisonWindow,
+  cutPressure,
+  endSentence,
+  leagueMovers,
+  movement,
+  num,
+  RECOMMENDATION_METHOD,
+  type Recommendation,
+  staleInputClause,
+  staleInputs,
+  whereYouStand,
+  windowPhrase,
+  worthALook,
+} from "./morningRead";
 import { projectionBasisTitle } from "./projectionBasis";
 import "./DailyWhatChanged.css";
 
@@ -405,201 +413,522 @@ function freshnessSentence(generatedAt: string, hours: number | null): string {
   return `These numbers are as of ${formatCaptureTimestamp(generatedAt)}.`;
 }
 
+/**
+ * DG-113 — the morning read.
+ *
+ * Reading order is the order of David's three questions: am I ok (the header's
+ * freshness line, then the verdict), what should I look at ("Worth a look"),
+ * what moved (his roster, then the league), and last the standing context.
+ *
+ * The model region keeps its place BELOW the market one now. The old comment
+ * here argued model-first so the morning would not be anchored on crowd noise;
+ * that was written when the page was a two-lane delta surface with no verdict.
+ * It has one now, the verdict is what anchors the morning, and on live payloads
+ * the model region is a single honest sentence about why no comparison ran —
+ * which is not the thing to open on.
+ */
 function ReadyView({ data }: { data: WhatChangedResponse }) {
   const daily = data.daily_diff;
-  const marketWindow = (daily.market.comparison_window ?? null) as {
-    from_date?: string | null;
-    to_date?: string | null;
-  } | null;
-  // SR-16: the hero is the number David acts on — how many of HIS players
-  // moved. roster_deltas is NOT a mover list (it holds every roster player
-  // present in both snapshots, flat ones included), so filter on value_delta;
-  // counting .length would print a near-constant roster size every morning.
-  const rosterMovers = (daily.market.roster_deltas ?? []).filter(
-    (row) => row.value_delta !== 0,
-  );
-  const largestMover = rosterMovers.reduce<(typeof rosterMovers)[number] | null>(
-    (best, row) =>
-      best === null || Math.abs(row.value_delta) > Math.abs(best.value_delta)
-        ? row
-        : best,
-    null,
-  );
-  // DG-110: the basis says exactly what it always said — how many of his
-  // players moved, and which one moved most, by how much. The largest mover's
-  // NAME is now the handle onto his card; the sentence is unchanged.
-  const largestMoverName = largestMover
-    ? (largestMover.player_name ?? largestMover.player_key)
-    : null;
-  const heroBasis =
-    largestMover && largestMoverName !== null ? (
-      <>
-        {`${rosterMovers.length} of your players; largest `}
-        <PlayerNameButton
-          sleeperId={largestMover.sleeper_id}
-          name={largestMoverName}
-          context={largestMover.position ?? undefined}
-          className="dg-wc__hero-open"
-        />
-        {` ${largestMover.value_delta > 0 ? "+" : ""}${largestMover.value_delta}`}
-      </>
-    ) : (
-      "no movement on your roster since the prior snapshot"
-    );
+  const marketWindow = (daily.market.comparison_window ??
+    null) as ComparisonWindow | null;
+  const sections = data.structural_context.sections;
 
   const hours = staleHours(data.generated_at);
   const isStale = hours === null || hours >= STALE_HOURS_THRESHOLD;
 
-  const baselineRows = (
-    data.structural_context as {
-      baseline_roster_rows?:
-        | {
-            sleeper_id: string;
-            player_name?: string | null;
-            position?: string | null;
-            team_id?: string | null;
-          }[]
-        | null;
-    }
-  ).baseline_roster_rows;
-  const quietDay = rosterMovers.length === 0;
+  const pressure = cutPressure(sections.drop_pressure);
+  const moved = movement(
+    daily.market,
+    sections.sleeper_snapshot.status === "ok"
+      ? (sections.sleeper_snapshot.david_roster_player_count ?? null)
+      : null,
+  );
+  // The two sections the verdict and the cut card are BUILT from, each carrying
+  // its own staleness clock — which is not the report's (see `staleInputs`).
+  // `drop_pressure` produces the headline and the named cut; `sleeper_snapshot`
+  // produces the "your 27 players" total that the deleted debug dump used to be
+  // the only home for, and with the dump went the only place its notice
+  // rendered.
+  const inputStaleClause = staleInputClause(
+    staleInputs([
+      { label: "roster-limit check", section: sections.drop_pressure },
+      { label: "roster read", section: sections.sleeper_snapshot },
+    ]),
+  );
+  const verdict = buildVerdict({
+    pressure,
+    moved,
+    // The header already carries the freshness sentence in full; the verdict
+    // only needs the reader to know the numbers under it are not this
+    // morning's. Saying it twice at full length is the stamp habit again.
+    stalenessClause: isStale
+      ? "Everything below is the last verified snapshot, not this morning's."
+      : null,
+    inputStaleClause,
+  });
+  const recommendations = worthALook({
+    pressure,
+    moved,
+    window: marketWindow,
+    inputStaleClause,
+  });
+  const standing = whereYouStand(data, pressure);
+
+  const baselineRows = data.structural_context.baseline_roster_rows;
+  const quietDay = moved.kind === "flat" || moved.kind === "none-priced";
 
   return (
     <section
       className={`dg-wc dg-motion-daily-open${isStale ? " dg-wc--stale" : ""}`}
       aria-label="Daily What-Changed"
     >
-      <header className="dg-wc__desk-header">
-        <div className="dg-wc__masthead">
-          <h2 className="dg-wc__title">{deskDate(data.generated_at)}</h2>
-          <ValueHero
-            label="Your roster moved"
-            value={String(rosterMovers.length)}
-            basis={heroBasis}
-          />
-        </div>
-        <p className="dg-wc__disclaimer">
-          What changed on your roster and around the league since the last snapshot.
-        </p>
-        <p
-          className={isStale ? "dg-wc__stale-badge" : "dg-wc__freshness"}
-          data-testid="wc-freshness"
-          title={data.generated_at}
-        >
-          {freshnessSentence(data.generated_at, hours)}
-        </p>
-      </header>
-      <div className="dg-wc__layout">
-        {/* Model movement FIRST (spec v3 §2, Gemini nudge finding): the model
-            is the rational anchor; market-first would anchor the morning read
-            on crowd noise before the model's evaluation. */}
-        <div className="dg-wc__feed" data-stale={isStale ? "true" : undefined}>
-          {quietDay && (
-            <div className="dg-wc__quiet-day">
-              <p className="dg-wc__quiet">
-                No valuation deltas observed on your roster since the last capture
-                (checked {deskDate(data.generated_at)}). The roster holds its baseline
-                below.
-              </p>
-              {baselineRows && baselineRows.length > 0 && (
-                <BaselineRosterRows rows={baselineRows} />
-              )}
-            </div>
-          )}
-          <ModelRegion model={daily.model} />
-          <MarketRegion market={daily.market} />
-          <StructuralBaseline ctx={data.structural_context} />
-        </div>
-        <ContextRail data={data} marketWindow={marketWindow} />
+      <MorningHeader data={data} hours={hours} isStale={isStale} />
+
+      <section
+        className="dg-wc__verdict"
+        data-testid="wc-verdict"
+        data-tone={verdict.tone}
+        aria-label="This morning's verdict"
+      >
+        <p className="dg-wc__verdict-headline">{verdict.headline}</p>
+        {verdict.detail !== "" && (
+          <p className="dg-wc__verdict-detail">
+            {/* DG-110's rule survives the hero it was written for: the largest
+                mover's NAME is still the handle onto his card, now inside the
+                sentence rather than under a figure. */}
+            {verdict.detailParts === null ? (
+              verdict.detail
+            ) : (
+              <>
+                {verdict.detailParts.lead}
+                <PlayerNameButton
+                  sleeperId={
+                    moved.kind === "moved" ? moved.largest.sleeper_id : undefined
+                  }
+                  name={verdict.detailParts.name}
+                  context={
+                    moved.kind === "moved"
+                      ? (moved.largest.position ?? undefined)
+                      : undefined
+                  }
+                  className="dg-wc__verdict-open"
+                />
+                {verdict.detailParts.tail}
+              </>
+            )}
+          </p>
+        )}
+      </section>
+
+      <WorthALookBlock
+        cards={recommendations.cards}
+        missing={recommendations.missing}
+      />
+
+      <div className="dg-wc__feed" data-stale={isStale ? "true" : undefined}>
+        <MarketRegion market={daily.market} />
+        {quietDay && baselineRows && baselineRows.length > 0 && (
+          <section className="dg-wc__region" aria-label="Your roster at rest">
+            <h3 className="dg-wc__region-title">Your roster, as it stands</h3>
+            <p className="dg-wc__overlay-note">
+              Nothing of yours moved, so here is the roster the report was built
+              against.
+            </p>
+            <BaselineRosterRows rows={baselineRows} />
+          </section>
+        )}
+        <ModelRegion model={daily.model} />
+        <WhereYouStandBlock
+          standing={standing}
+          postureSection={sections.team_posture}
+          dropSection={sections.drop_pressure}
+        />
       </div>
     </section>
   );
 }
 
-// DG-111 — the rail's furniture becomes one receipt sheet.
-//
-// It used to be three stacked panels: FEED DIAGNOSTICS (four status lines),
-// RECEIPTS (four provenance lines) and a "Movement history — Series pending"
-// chart frame with its own disclosure stamp. All of that was true and none of
-// it was what David needed at 7am. The content is intact and complete, one
-// press down, in a sheet that is shut by default. This is the only place on
-// the surface where machine vocabulary is allowed — including every producer
-// reason verbatim, so humanizing a token upstairs never destroys it.
-function ContextRail({
+// ── the header band ──────────────────────────────────────────────────────────
+
+/**
+ * DG-113 — one freshness sentence with a dot, and the health sheet behind it.
+ *
+ * This is what is left of the right-hand rail. The "Partial Market Sync"
+ * monospace tape, the FEED DIAGNOSTICS panel and the RECEIPTS panel are gone
+ * from the page; every fact they carried is in the sheet below, which is shut
+ * by default and expands IN FLOW — an accordion, so it can never overlap
+ * content at any scroll position (the same structural choice ShellStatusDrawer
+ * made and for the same reason).
+ */
+function MorningHeader({
   data,
-  marketWindow,
+  hours,
+  isStale,
 }: {
   data: WhatChangedResponse;
-  marketWindow: { from_date?: string | null; to_date?: string | null } | null;
+  hours: number | null;
+  isStale: boolean;
+}) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const capture = useEndpointResource({
+    url: "/api/system/capture-health",
+    schema: zCaptureHealthResponse,
+  });
+  const provenance = useEndpointResource({
+    url: "/api/system/model-provenance",
+    schema: zModelProvenanceResponse,
+  });
+  // Loading is NOT "unread": a sentence claiming we could not reach the feed
+  // check, printed for the 200ms before it answers, would be a lie that
+  // corrects itself. The feed clause simply waits.
+  const feeds: FeedHealth =
+    capture.status === "loading"
+      ? { kind: "read", rows: [], behind: 0, allGaps: false, allRanToday: false }
+      : feedHealth(capture.status === "ready" ? capture.data : null);
+  const line = freshnessLine(
+    freshnessSentence(data.generated_at, hours),
+    isStale,
+    capture.status === "loading" ? { kind: "unread" } : feeds,
+  );
+  const sentence =
+    capture.status === "loading"
+      ? freshnessSentence(data.generated_at, hours)
+      : line.sentence;
+
+  return (
+    <header className="dg-wc__desk-header">
+      <div className="dg-wc__masthead">
+        <div>
+          <p className="dg-wc__overline">Morning read</p>
+          <h2 className="dg-wc__title">{deskDate(data.generated_at)}</h2>
+        </div>
+        <p
+          className="dg-wc__freshness"
+          data-testid="wc-freshness"
+          data-status={capture.status === "loading" ? "unknown" : line.status}
+          title={data.generated_at}
+        >
+          <span
+            className="dg-wc__freshness-dot"
+            data-freshness-dot
+            data-status={capture.status === "loading" ? "unknown" : line.status}
+            aria-hidden="true"
+          />
+          <span>{sentence}</span>{" "}
+          <button
+            type="button"
+            className="dg-wc__details"
+            data-testid="wc-health-sheet-toggle"
+            aria-expanded={sheetOpen}
+            onClick={() => setSheetOpen((open) => !open)}
+          >
+            {sheetOpen ? "Hide details" : "Details"}
+          </button>
+        </p>
+      </div>
+      {sheetOpen && (
+        <HealthSheet
+          data={data}
+          feeds={feeds}
+          // PANEL FIX: the header separates loading from unread precisely so a
+          // sentence claiming we could not reach the feed check is never
+          // printed for the 200ms before it answers — and then handed the
+          // sheet a boolean that folded the two back together. The sheet gets
+          // the same three states the header has.
+          captureState={
+            capture.status === "ready"
+              ? "ready"
+              : capture.status === "loading"
+                ? "loading"
+                : "unread"
+          }
+          provenanceState={
+            provenance.status === "ready"
+              ? "ready"
+              : provenance.status === "loading"
+                ? "loading"
+                : "unread"
+          }
+          provenance={
+            provenance.status === "ready"
+              ? {
+                  registryVersion: provenance.data.registry_version,
+                  status: provenance.data.overall_status,
+                }
+              : null
+          }
+        />
+      )}
+    </header>
+  );
+}
+
+/**
+ * The health sheet: every feed as a plain row, then the report's own receipts.
+ *
+ * The receipt half keeps `data-receipt` — DG-109's declaration (renderRule.ts)
+ * that this subtree is the "where this comes from" layer, the one place a raw
+ * pipeline key is allowed, because a receipt that renamed the artifact it cites
+ * would stop being a receipt. The feed rows above it do NOT carry that
+ * exemption and are held to the dictionary like any other prose.
+ */
+function HealthSheet({
+  data,
+  feeds,
+  captureState,
+  provenanceState,
+  provenance,
+}: {
+  data: WhatChangedResponse;
+  feeds: FeedHealth;
+  captureState: "ready" | "loading" | "unread";
+  provenanceState: "ready" | "loading" | "unread";
+  provenance: { registryVersion: number; status: string } | null;
 }) {
   const market = data.daily_diff.market;
   const model = data.daily_diff.model;
   const modelWindow = model.comparison_window ?? null;
+  const marketWindow = (market.comparison_window ?? null) as ComparisonWindow | null;
   const basisTitle = projectionBasisTitle(modelWindow);
   const rawReasons = producerReasons(data);
 
   return (
-    <aside className="dg-wc__rail" aria-label="Report context">
-      <DailyTape />
-      {/* DG-111: the rail's "Feed diagnostics" and "Receipts" panels are one
-          sheet now, shut by default. Nothing in them was deleted — the surface
-          upstairs says every one of these facts in English, and this is where
-          the exact tokens stay.
-
-          `data-receipt` is DG-109's declaration (renderRule.ts:48) that this
-          subtree is the "where this comes from" layer, which is the one place
-          the render rule permits a raw pipeline key: a receipt that renamed the
-          artifact it cites would stop being a receipt. Without the attribute
-          this sheet would be the only raw copy on the front page. */}
-      <details className="dg-wc__receipts" data-receipt data-testid="wc-provenance">
-        <summary className="dg-wc__rail-title">Where this comes from</summary>
-        <p className="dg-wc__rail-line" title={data.generated_at}>
-          Report built {formatCaptureTimestamp(data.generated_at)}.
+    <div className="dg-wc__sheet" data-testid="wc-health-sheet">
+      <h3 className="dg-wc__sheet-title">The feeds behind these numbers</h3>
+      {captureState === "unread" ? (
+        <p className="dg-wc__sheet-line">
+          The feed check didn't answer this morning, so we can't show you how the daily
+          captures are doing.
         </p>
-        {marketWindow?.from_date && marketWindow?.to_date && (
-          <p className="dg-wc__rail-line">
-            Market prices captured {marketWindow.from_date} vs {marketWindow.to_date}.
-          </p>
-        )}
-        {/* The price feed every market number on this page came from. It is a
-            REQUIRED schema field (zod.gen.ts zWhatChangedMarketSection), so it
-            is always available — and it used to hang off the capture-window
-            conditional, which meant the sheet lost the source entirely on any
-            morning the window carried no dates. The sheet has to be complete
-            when asked, so it stands on its own line. */}
-        {market.market_source && (
-          <p className="dg-wc__rail-line">Market source: {market.market_source}.</p>
-        )}
-        {modelWindow?.from_date && modelWindow?.to_date && (
-          <p className="dg-wc__rail-line">
-            Model window {modelWindow.from_date} vs {modelWindow.to_date}.
-          </p>
-        )}
-        {basisTitle && (
-          <p className="dg-wc__rail-line" title={basisTitle}>
-            {model.vintage_changed
-              ? "Projection basis changed within this window"
-              : "Projection basis consistent across this window"}
-          </p>
-        )}
-        <p className="dg-wc__rail-line">
-          Feed status: {data.overall_status} · market {market.status} · model{" "}
-          {model.status}
+      ) : captureState === "loading" ? (
+        <p className="dg-wc__sheet-line">Checking the daily feeds…</p>
+      ) : (
+        <ul className="dg-wc__feed-list">
+          {feeds.kind === "read" &&
+            feeds.rows.map((row) => (
+              <li key={row.id} className="dg-wc__feed-row" data-feed-ok={row.ok}>
+                <span className="dg-wc__feed-dot" aria-hidden="true" />
+                <span className="dg-wc__feed-name">{row.name}</span>
+                <span className="dg-wc__feed-detail">
+                  {row.ran}
+                  {row.note !== null ? ` ${row.note}` : ""}
+                </span>
+              </li>
+            ))}
+        </ul>
+      )}
+      {/* PANEL FIX: an endpoint that did not answer is not evidence that the
+          model files are fine — the same standard the capture half is already
+          held to. A sheet that says nothing here looks complete while a whole
+          trust axis is quietly missing from it. */}
+      {provenanceState === "unread" && (
+        <p className="dg-wc__sheet-line">
+          The model-file check didn't answer this morning, so we can't tell you whether
+          our projections are being served from the files we expect.
         </p>
-        {rawReasons.length > 0 && (
-          <p className="dg-wc__rail-line" data-testid="wc-raw-reasons">
-            Producer reasons, verbatim: {rawReasons.join(", ")}
-          </p>
-        )}
-      </details>
-    </aside>
+      )}
+      {provenanceState === "loading" && (
+        <p className="dg-wc__sheet-line">Checking the model files…</p>
+      )}
+      {provenance !== null && (
+        // Three states, not two. `_overall_status` (system_model_provenance.py:62-75)
+        // separates "flagged but still serving" from "not cleared to serve at
+        // all", and collapsing those into one not-ok sentence would understate
+        // the second and overstate the first. The registry version number is a
+        // receipt, not prose, so it rides the title layer like every other one.
+        <p
+          className="dg-wc__sheet-line"
+          title={`registry_version=${provenance.registryVersion}`}
+        >
+          {provenance.status === "ok"
+            ? "Every model file our projections are served from is the one we expect."
+            : provenance.status === "blocked"
+              ? "A model file our projections need is not cleared to serve — the health panel in the shell names which."
+              : "At least one model file is flagged as different from what we expect, though it is still being served — the health panel in the shell names which."}
+        </p>
+      )}
+      <h3 className="dg-wc__sheet-title">Where this report comes from</h3>
+      <p className="dg-wc__sheet-line" title={data.generated_at}>
+        Built {formatCaptureTimestamp(data.generated_at)}.
+      </p>
+      {marketWindow?.from_date && marketWindow?.to_date && (
+        <p className="dg-wc__sheet-line">
+          Market prices compared {marketWindow.from_date} against {marketWindow.to_date}
+          .
+        </p>
+      )}
+      {/* A REQUIRED schema field (zod.gen.ts zWhatChangedMarketSection), so it
+          is always available — and it used to hang off the capture-window
+          conditional, which meant the sheet lost the source entirely on any
+          morning the window carried no dates. */}
+      {market.market_source && (
+        <p className="dg-wc__sheet-line" data-receipt>
+          Market source: {market.market_source}.
+        </p>
+      )}
+      {modelWindow?.from_date && modelWindow?.to_date && (
+        <p className="dg-wc__sheet-line">
+          Model window {modelWindow.from_date} against {modelWindow.to_date}.
+        </p>
+      )}
+      {basisTitle && (
+        <p className="dg-wc__sheet-line" title={basisTitle}>
+          {model.vintage_changed
+            ? "Projection basis changed within this window."
+            : "Projection basis consistent across this window."}
+        </p>
+      )}
+      <p className="dg-wc__sheet-line" data-receipt data-testid="wc-provenance">
+        Feed status: {data.overall_status} · market {market.status} · model{" "}
+        {model.status}
+        {rawReasons.length > 0
+          ? ` · producer reasons, verbatim: ${rawReasons.join(", ")}`
+          : ""}
+      </p>
+    </div>
   );
 }
 
-// A dictionary sentence already ends in a full stop; a humanized fallback does
-// not. Both have to sit in front of the age clause without running into it.
-function endSentence(text: string): string {
-  return /[.!?]$/.test(text) ? text : `${text}.`;
+// ── "worth a look" ───────────────────────────────────────────────────────────
+
+/**
+ * David's ruling green-lights this block: "call a spade a spade, and I've given
+ * it the green light."
+ *
+ * Two guards keep the spade honest. Every clause on a card is assembled in
+ * `morningRead.ts` from a field on this page — nothing here is a judgement the
+ * component made. And the METHOD line is always on screen: the rule that put a
+ * card here, or left the block empty, is stated rather than left for the reader
+ * to reverse-engineer. That line is not a caveat and does not soften anything;
+ * it is the difference between a recommendation and an oracle.
+ */
+function WorthALookBlock({
+  cards,
+  missing,
+}: {
+  cards: Recommendation[];
+  missing: string[];
+}) {
+  return (
+    <section
+      className="dg-wc__worth"
+      data-testid="wc-worth-a-look"
+      aria-label="Worth a look"
+    >
+      <h3 className="dg-wc__region-title">Worth a look</h3>
+      {cards.length === 0 && missing.length === 0 && (
+        <p className="dg-wc__quiet">Nothing worth acting on today.</p>
+      )}
+      {cards.map((card) => (
+        <article
+          key={card.id}
+          className="dg-wc__rec"
+          data-testid="wc-recommendation"
+          data-rec-id={card.id}
+        >
+          <p className="dg-wc__rec-verdict">{card.headline}</p>
+          {card.reasons.map((reason) => (
+            <p key={reason} className="dg-wc__rec-reason">
+              {reason}
+            </p>
+          ))}
+          {card.action.kind === "surface" ? (
+            // A real link, not a scripted handler: it survives a bare mount,
+            // it middle-clicks, and the shell reads `?surface=` on boot
+            // (useUrlSurfaceState) so it lands exactly where it says.
+            <a className="dg-wc__rec-action" href={`?surface=${card.action.slug}`}>
+              {card.action.label} →
+            </a>
+          ) : (
+            <PlayerNameButton
+              sleeperId={card.action.sleeperId}
+              name={card.action.name}
+              context={card.action.context}
+              className="dg-wc__rec-action"
+            >
+              {`${card.action.label} →`}
+            </PlayerNameButton>
+          )}
+        </article>
+      ))}
+      {missing.map((line) => (
+        <p key={line} className="dg-wc__quiet" data-testid="wc-missing-input">
+          {line}
+        </p>
+      ))}
+      <p className="dg-wc__method">{RECOMMENDATION_METHOD}</p>
+    </section>
+  );
+}
+
+// ── where you stand ──────────────────────────────────────────────────────────
+
+/**
+ * The prose that replaces "Current roster context".
+ *
+ * The five section stamps that used to sit here are gone with the counts they
+ * qualified. What survives is the rule underneath, and it is now stricter than
+ * it was: a section's honesty notice renders beside THE CLAIM IT QUALIFIES. The
+ * posture section's notice sits under the posture sentence; the drop-pressure
+ * section's sits under the roster count, which is the only other thing this
+ * block says. A notice for a section whose content is no longer on the page
+ * would be qualifying nothing.
+ */
+function WhereYouStandBlock({
+  standing,
+  postureSection,
+  dropSection,
+}: {
+  standing: ReturnType<typeof whereYouStand>;
+  postureSection: WhatChangedResponse["structural_context"]["sections"]["team_posture"];
+  dropSection: WhatChangedResponse["structural_context"]["sections"]["drop_pressure"];
+}) {
+  if (standing.posture === null && standing.roster === null) {
+    return null;
+  }
+  const postureNotice = sectionNotice(postureSection);
+  const dropNotice = sectionNotice(dropSection);
+  return (
+    <section
+      className="dg-wc__region"
+      data-testid="wc-where-you-stand"
+      aria-label="Where you stand"
+    >
+      <h3 className="dg-wc__region-title">Where you stand</h3>
+      {standing.teamName !== null && (
+        <p className="dg-wc__stand-team" data-user-text>
+          {standing.teamName}
+        </p>
+      )}
+      {standing.posture !== null && (
+        <p className="dg-wc__stand-line">{standing.posture}</p>
+      )}
+      {postureNotice && (
+        <p
+          className="dg-wc__baseline-meta"
+          data-testid="wc-section-notice"
+          title={postureSection.staleness_caveat?.basis ?? undefined}
+        >
+          {postureNotice}
+        </p>
+      )}
+      {standing.roster !== null && (
+        <p className="dg-wc__stand-line">{standing.roster}</p>
+      )}
+      {dropNotice && (
+        <p
+          className="dg-wc__baseline-meta"
+          data-testid="wc-section-notice"
+          title={dropSection.staleness_caveat?.basis ?? undefined}
+        >
+          {dropNotice}
+        </p>
+      )}
+      <a className="dg-wc__rec-action" href="?surface=roster-audit">
+        See the full roster →
+      </a>
+    </section>
+  );
 }
 
 // Every producer reason on the report, verbatim and de-duplicated. The surface
@@ -647,6 +976,14 @@ function humanAssetKey(key: string): string {
 const NOT_A_FAULT: ReadonlySet<string> = new Set([
   "insufficient_history",
   "baseline_holding",
+  // DG-113 adds the third, found rendering on the LIVE payload: two model runs
+  // landed on 2026-08-30, so the producer refuses to emit a comparison rather
+  // than fabricate one (daily_diff.py:255-271). That is the same species as the
+  // two above — a refusal, not a fault — and the dictionary sentence for it
+  // already says so in its own words ("we will not claim what moved
+  // overnight"). Calling it "came back degraded", as the page did this morning,
+  // is the cry-wolf pattern spending the word on a producer behaving correctly.
+  "model_multi_vintage_ambiguous",
 ]);
 
 /**
@@ -669,31 +1006,40 @@ const NOT_A_FAULT: ReadonlySet<string> = new Set([
 function laneNotice(
   lane: "market" | "model",
   reasons: readonly string[],
+  /** Whether this lane actually has rows under the notice. */
+  hasRows: boolean,
 ): string | null {
   if (reasons.length === 0) return null;
-  // A dictionary sentence ends in a full stop; here it is a CLAUSE inside a
-  // longer sentence, so the stop comes off. Nothing else about the string is
-  // touched — the words the dictionary chose are the words that render.
-  const said = reasons
-    .map((token) => describeToken(token).replace(/\.$/, ""))
-    .join("; ");
-  const numbers = lane === "market" ? "the prices below" : "the model numbers below";
-  if (reasons.every((token) => NOT_A_FAULT.has(token))) {
-    const subject = lane === "market" ? "market prices" : "our projections";
-    return `Heads up: we couldn't compare ${subject} against an earlier day — ${said} — so nothing below is a change, it's just where things stand.`;
+  // DG-113: the dictionary sentence is now its OWN sentence, not a clause
+  // spliced between em-dashes with its full stop shaved off. Read on the live
+  // payload the splice produced "…came back degraded — Two different model runs
+  // landed on the same day, so we will not claim what moved overnight — so
+  // treat the model numbers below as provisional": a capitalised sentence
+  // wedged mid-clause, then a second "so", then an instruction. The dictionary
+  // writes sentences; let them be sentences.
+  const said = reasons.map((token) => endSentence(describeToken(token))).join(" ");
+  const opening = reasons.every((token) => NOT_A_FAULT.has(token))
+    ? `Heads up: we couldn't compare ${lane === "market" ? "market prices" : "our projections"} against an earlier day.`
+    : `Heads up: ${lane === "market" ? "the market side" : "the model side"} came back degraded.`;
+  // …and the closing instruction renders ONLY when there is something below to
+  // apply it to. On today's payload the model lane has no rows at all, so
+  // "treat the model numbers below as provisional" was pointing at nothing.
+  if (!hasRows) {
+    return `${opening} ${said}`;
   }
-  const side = lane === "market" ? "the market side" : "the model side";
-  return `Heads up: ${side} came back degraded — ${said} — so treat ${numbers} as provisional.`;
+  const closing = reasons.every((token) => NOT_A_FAULT.has(token))
+    ? `So nothing below is a change — it is just where things stand.`
+    : `So treat ${lane === "market" ? "the prices" : "the model numbers"} below as provisional.`;
+  return `${opening} ${said} ${closing}`;
 }
 
 function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
-  const topMovers = market.top_movers ?? [];
   const rosterDeltas = market.roster_deltas ?? [];
-  // Voice: strip the raw backend key prefix from entered/exited ids — full
-  // name resolution for these rows rides the identity slice (residual debt,
-  // recorded in the Increment-1 delta doc).
-  const entered = market.entered ?? [];
-  const exited = market.exited ?? [];
+  // DG-113 §2.5: his own players come OUT of the league list. Both lists are
+  // slices of one `deltas_by_id` map, so an unfiltered league table repeats his
+  // roster rows with identical numbers — Jaxson Dart was #1 of both.
+  const league = leagueMovers(market);
+  const when = windowPhrase(market.comparison_window as ComparisonWindow | null);
 
   // The market lane's trouble arrives on either axis, and only one of them is an
   // `aborted_reason` — see `laneNotice`. `status` is the closed set
@@ -704,92 +1050,234 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
     : market.status !== "ok"
       ? [market.status]
       : [];
-  const notice = laneNotice("market", marketReasons);
+  const notice = laneNotice("market", marketReasons, rosterDeltas.length > 0);
   // No comparison ran → an empty row list means "we did not look", never "we
   // looked and nothing moved". The empty-state copy has to stop making the
   // second claim, or the honesty sentence above is arguing with the page.
   const compared = marketReasons.length === 0;
+  // PANEL FIX — THE BLOCKER. `market.entered ?? []` manufactured a zero the
+  // producer declined to supply. BOTH of daily_diff's failure returns carry no
+  // `entered`/`exited` keys at all — `missing_sleeper_snapshot`
+  // (daily_diff.py:102-107) and `insufficient_history` (:112-117) return only
+  // status/decision_supported/comparison_window/market_source — so on those
+  // mornings the page said "we couldn't compare" at the top of this region and
+  // "New to the priced pool: 0 · Dropped out: 0 / Nobody new carried a price
+  // today" four inches below it. A producer that declines to answer, rendered
+  // as a confident negative, is the phase-2A failure class exactly.
+  //
+  // The counts render only when the comparison ran AND both arrays are actually
+  // present. A null array on an otherwise-ok lane is the same absence wearing a
+  // different hat, so it takes the same branch.
+  const pool =
+    compared && market.entered != null && market.exited != null
+      ? { entered: market.entered, exited: market.exited }
+      : null;
+
+  // The cards lead with the biggest MOVES; the tape carries every remaining
+  // row, flat ones included, in the producer's own order. The rank numeral is
+  // the row's position in `roster_deltas` — so the tape resumes at 4 instead of
+  // restarting at 1 on the fourth-biggest mover, which is what it did before.
+  const cardRows = rosterDeltas.filter((row) => row.value_delta !== 0).slice(0, 3);
+  const onACard = new Set(cardRows);
+  const tapeRows = rosterDeltas.filter((row) => !onACard.has(row));
+  const tapeRanks = tapeRows.map((row) => rosterDeltas.indexOf(row) + 1);
   // The trend note explains BLANK sparklines. It is only true when a blank one
   // is on screen: once a player's series has points, `LaneSeriesSlot` draws a
   // real line and the note would be contradicting the picture beside it.
-  const anyPendingSeries = [...rosterDeltas, ...topMovers].some(
+  const anyPendingSeries = [...rosterDeltas, ...league.rows].some(
     (row) =>
       usableSeriesPoints((row as { market_series?: unknown }).market_series) === null,
   );
 
   return (
-    <section className="dg-wc__region" aria-label="Market price-discovery overlay">
-      <h3 className="dg-wc__region-title">Market movement</h3>
-      <p className="dg-wc__overlay-note">
-        Market prices — what the dynasty market is paying, kept separate from our own
-        projections.
-      </p>
-      {/* DG-111: was a "Market feed caveats" block printing the raw producer
-          token. One sentence now; the token itself is preserved verbatim in the
-          title attribute and in the receipt sheet, so nothing is lost. */}
-      {notice && (
-        <p
-          className="dg-wc__overlay-note"
-          data-testid="wc-market-degraded"
-          title={marketReasons.join(", ")}
-        >
-          {notice}
+    <>
+      <section
+        className="dg-wc__region"
+        data-testid="wc-your-roster"
+        aria-label="What moved on your roster"
+      >
+        <h3 className="dg-wc__region-title">What moved</h3>
+        <p className="dg-wc__overlay-note">
+          Market prices — what the dynasty market is paying, kept separate from our own
+          projections.
         </p>
-      )}
-
-      <h4 className="dg-wc__group">Your roster</h4>
-      {rosterDeltas.length === 0 ? (
-        <p className="dg-wc__quiet">
-          {compared
-            ? "Your roster's market values held steady — no movement on this tape."
-            : "No day-over-day comparison for your roster on this tape."}
-        </p>
-      ) : (
-        <MarketRows rows={rosterDeltas} />
-      )}
-
-      <h4 className="dg-wc__group">Around the league</h4>
-      {topMovers.length === 0 ? (
-        <p className="dg-wc__quiet">
-          {compared
-            ? "No player movement on this tape — market values held steady overnight."
-            : "No day-over-day comparison league-wide on this tape."}
-        </p>
-      ) : (
-        <>
-          <MarketRows rows={topMovers} />
-          {/* SR-16: honest truncation — the league-wide total stays on the
-              surface but never pretends to be about his roster, and a nullish
-              total is never invented. */}
-          <p className="dg-wc__overlay-note">
-            {market.total_movers_count != null
-              ? `Showing ${topMovers.length} of ${market.total_movers_count} market movers league-wide`
-              : `Showing ${topMovers.length} market movers`}
+        {/* DG-111: was a "Market feed caveats" block printing the raw producer
+            token. One sentence now; the token itself is preserved verbatim in
+            the title attribute and in the health sheet, so nothing is lost. */}
+        {notice && (
+          <p
+            className="dg-wc__overlay-note"
+            data-testid="wc-market-degraded"
+            title={marketReasons.join(", ")}
+          >
+            {notice}
           </p>
-        </>
-      )}
+        )}
 
-      {/* DG-111: this one line replaces the rail's "Movement history — Series
-          pending. History accrues one verified capture per day; the line begins
-          once enough days are on the books." panel. Same fact, said once, next
-          to the blank trend slots it explains — and, per the review panel, ONLY
-          when there is a blank slot on screen for it to explain. The panel it
-          replaced was true because the slot it wrapped was pending by
-          construction; an unconditional copy of it would contradict the first
-          real sparkline the page draws. */}
-      {anyPendingSeries && (
-        <p className="dg-wc__overlay-note" data-testid="wc-trend-note">
-          Trend lines fill in as daily prices accrue — one capture a day — so they stay
-          blank until enough days are on the books.
-        </p>
-      )}
+        {rosterDeltas.length === 0 ? (
+          <p className="dg-wc__quiet">
+            {/* PANEL FIX: "held steady" was the section contradicting the
+                verdict two inches above it, and the section was the false half.
+                An empty `roster_deltas` on a SUCCESSFUL comparison means the
+                market priced none of his players on both dates
+                (daily_diff.py:143-147) — a coverage fact, not a movement fact.
+                `movement()` already refuses to call it movement; this string is
+                the one place the old reading survived. */}
+            {compared
+              ? "The market didn't price any of your players on both of the last two days, so there is nothing of yours to compare."
+              : "No day-over-day comparison for your roster on this tape."}
+          </p>
+        ) : (
+          <>
+            {/* DG-113 §2.4: the biggest moves get room to be read; the rest
+                stay on the tape below. Both are the SAME rows in the same
+                producer order, so the cards are a lead, never a second list.
 
-      <h4 className="dg-wc__group">Entered</h4>
-      <UniverseChipList items={entered} emptyLabel="No entered assets." />
+                PANEL FIX: the cards are sliced off MOVERS, not off
+                `roster_deltas`. That list keeps every roster player priced on
+                both days EVEN IF FLAT (daily_diff.py:143-147); only `movers`
+                filters `value_delta != 0`. Slicing the unfiltered list put
+                players who did not move into three large cards under a heading
+                reading "What moved", directly below a verdict saying "1 of them
+                moved" — the same list/mover conflation SR-16 fixed on the hero
+                this replaced. The tape then carries everything the cards did
+                not, so no row is dropped and none is shown twice. */}
+            <MoverCards rows={cardRows} when={when} />
+            {tapeRows.length > 0 && <MarketRows rows={tapeRows} ranks={tapeRanks} />}
+          </>
+        )}
 
-      <h4 className="dg-wc__group">Exited</h4>
-      <UniverseChipList items={exited} emptyLabel="No exited assets." />
-    </section>
+        {/* DG-111: this one line replaces the rail's "Movement history — Series
+            pending" panel. Same fact, said once, next to the blank trend slots
+            it explains — and ONLY when there is a blank slot on screen for it
+            to explain, or it would contradict the first real sparkline drawn. */}
+        {anyPendingSeries && (
+          <p className="dg-wc__overlay-note" data-testid="wc-trend-note">
+            Trend lines fill in as daily prices accrue — one capture a day — so they
+            stay blank until enough days are on the books.
+          </p>
+        )}
+      </section>
+
+      <section
+        className="dg-wc__region"
+        data-testid="wc-around-the-league"
+        aria-label="Around the league"
+      >
+        <h3 className="dg-wc__region-title">Around the league</h3>
+        {league.rows.length === 0 ? (
+          <p className="dg-wc__quiet">
+            {compared
+              ? league.excluded > 0
+                ? "Every one of the day's biggest movers is already on your roster, above."
+                : // `when`, not a hardcoded "overnight". The word is a claim
+                  // about elapsed time and is only true when the two compared
+                  // captures are adjacent days; `windowPhrase` is the one place
+                  // that is decided, and this string was the last literal.
+                  `No player movement on this tape — market values held steady ${when}.`
+              : "No day-over-day comparison league-wide on this tape."}
+          </p>
+        ) : (
+          <>
+            <MarketRows rows={league.rows} ranks={league.ranks} />
+            {/* SR-16: honest truncation — the league-wide total stays on the
+                surface and never pretends to be about his roster, and a nullish
+                total is never invented. DG-113 adds the second half of the
+                honesty: rows removed by the roster filter are ACCOUNTED FOR
+                rather than silently shrinking the count. */}
+            <p className="dg-wc__overlay-note">
+              {market.total_movers_count != null
+                ? `Showing ${num(league.rows.length)} of ${num(market.total_movers_count)} movers league-wide`
+                : `Showing ${num(league.rows.length)} movers`}
+              {league.excluded > 0
+                ? ` — ${num(league.excluded)} more ${league.excluded === 1 ? "is" : "are"} yours, and ${league.excluded === 1 ? "is" : "are"} up in what moved.`
+                : "."}
+            </p>
+          </>
+        )}
+
+        {/* DG-113 §2.5: the two chip walls become one line you can open. Who
+            entered and left the priced pool is real, and it is not what the
+            morning is about. */}
+        {pool === null ? (
+          <p className="dg-wc__quiet">
+            We couldn't compare the priced pool against an earlier day, so we can't tell
+            you who joined it or dropped out of it.
+          </p>
+        ) : (
+          <details className="dg-wc__pool">
+            <summary className="dg-wc__pool-summary">
+              New to the priced pool: {num(pool.entered.length)} · Dropped out:{" "}
+              {num(pool.exited.length)}
+            </summary>
+            <h4 className="dg-wc__group">New to the pool</h4>
+            <UniverseChipList
+              items={pool.entered}
+              emptyLabel="Nobody new carried a price today."
+            />
+            <h4 className="dg-wc__group">Dropped out</h4>
+            <UniverseChipList
+              items={pool.exited}
+              emptyLabel="Nobody dropped out of the priced pool today."
+            />
+          </details>
+        )}
+      </section>
+    </>
+  );
+}
+
+/**
+ * The day's three biggest moves, with room to be read.
+ *
+ * The delta keeps the same `DeltaCell` the tape rows use, so the printed sign
+ * and the direction hue come off one function and cannot tell different
+ * stories — the card is a bigger frame around the same governed cell, not a
+ * second rendering of the same number with its own rules.
+ */
+function MoverCards({ rows, when }: { rows: WhatChangedMarketDelta[]; when: string }) {
+  return (
+    <ul className="dg-wc__cards" data-testid="wc-mover-cards">
+      {rows.map((row, index) => {
+        const name = row.player_name ?? humanAssetKey(row.player_key);
+        return (
+          <li key={row.sleeper_id ?? index} className="dg-wc__card">
+            <PlayerNameButton
+              sleeperId={row.sleeper_id}
+              name={name}
+              context={[row.position, row.team_id].filter(Boolean).join(" ")}
+              className="dg-wc__player-open"
+            >
+              <PlayerIdentity
+                name={name}
+                team={row.team_id ?? ""}
+                position={row.position ?? ""}
+                {...headshotProps(row.sleeper_id)}
+                teamId={row.team_id ?? undefined}
+                teamAccent={teamAccentFor(row.team_id)}
+              />
+            </PlayerNameButton>
+            <div className="dg-wc__card-figures">
+              {row.current_value != null && (
+                <span className="dg-wc__card-value">{num(row.current_value)}</span>
+              )}
+              <DeltaCell
+                label={`Market price change ${when}`}
+                value={row.value_delta}
+                emphasis="row-focal"
+                labelHidden
+              />
+            </div>
+            <span className="dg-wc__lane" data-lane="market">
+              <LaneSeriesSlot
+                series={(row as { market_series?: unknown }).market_series}
+                label={`${name} market series`}
+              />
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -843,7 +1331,24 @@ function UniverseChipList({
 // each row is one player's line on the tape.
 const ROW_CAP = 10;
 
-function MarketRows({ rows }: { rows: WhatChangedMarketDelta[] }) {
+/**
+ * The tape.
+ *
+ * PANEL FIX — `ranks`. The numeral used to be `i + 1` over whatever slice the
+ * caller handed in, which stopped being the row's rank the moment DG-113 put
+ * three rows on cards above it and pulled his own players out of the league
+ * list. The caller now says what each numeral means, because only the caller
+ * knows: for the roster tape it is the position in `roster_deltas`, and for the
+ * league it is the position in the producer's unfiltered `top_movers`. Both are
+ * the number the row actually holds in the list it came from.
+ */
+function MarketRows({
+  rows,
+  ranks,
+}: {
+  rows: WhatChangedMarketDelta[];
+  ranks?: number[];
+}) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? rows : rows.slice(0, ROW_CAP);
   return (
@@ -856,14 +1361,18 @@ function MarketRows({ rows }: { rows: WhatChangedMarketDelta[] }) {
         {visible.map((r, i) => (
           <AssetRow
             key={r.sleeper_id ?? i}
-            rank={i + 1}
+            rank={ranks?.[i] ?? i + 1}
             sleeperId={r.sleeper_id}
             name={r.player_name ?? humanAssetKey(r.player_key)}
             position={r.position ?? ""}
             teamId={(r as { team_id?: string | null }).team_id}
+            // PANEL FIX: `num()`, not `String()`. The mover cards directly above
+            // print the same quantity through `num()`, so the screen carried
+            // "5,204" on a card and "3873" on the row beneath it — one number,
+            // two spellings, stacked with nothing in between.
             currentValue={
               (r as { current_value?: number | null }).current_value != null
-                ? String((r as { current_value?: number | null }).current_value)
+                ? num((r as { current_value: number }).current_value)
                 : undefined
             }
             lane="market"
@@ -892,53 +1401,6 @@ function MarketRows({ rows }: { rows: WhatChangedMarketDelta[] }) {
   );
 }
 
-// H2 I2a daily tape: substrate facts ONLY — never movement or trend claims.
-// Each endpoint degrades independently to an honest unavailable line.
-function DailyTape() {
-  const capture = useEndpointResource({
-    url: "/api/system/capture-health",
-    schema: zCaptureHealthResponse,
-  });
-  const provenance = useEndpointResource({
-    url: "/api/system/model-provenance",
-    schema: zModelProvenanceResponse,
-  });
-
-  // The tape appears only once both substrate endpoints have settled — a
-  // half-loaded tape would juxtapose facts with placeholders. Ready facts and
-  // honest unavailable lines are the only two voices it has.
-  if (capture.status === "loading" || provenance.status === "loading") {
-    return null;
-  }
-
-  const firstStore = capture.status === "ready" ? capture.data.stores[0] : undefined;
-
-  // The surface maps endpoint truth onto the voice-guide tape primitive:
-  // manager prose on screen, raw values in the title layer (prose principle).
-  return (
-    <UiDailyTape
-      capture={
-        capture.status === "ready" && firstStore
-          ? {
-              consecutiveDays: firstStore.timeline.consecutive_days_current,
-              lastCaptureAt: firstStore.staleness.last_capture_date ?? "",
-              status: capture.data.overall_status === "ok" ? "ok" : "degraded",
-            }
-          : { consecutiveDays: 0, lastCaptureAt: "", status: "unavailable" }
-      }
-      provenance={
-        provenance.status === "ready"
-          ? {
-              registryVersion: provenance.data.registry_version,
-              modelVintage: provenance.data.overall_status,
-              status: provenance.data.overall_status === "ok" ? "ok" : "degraded",
-            }
-          : { registryVersion: 0, modelVintage: "unavailable", status: "unavailable" }
-      }
-    />
-  );
-}
-
 function ModelRegion({ model }: { model: WhatChangedModelSection }) {
   const deltas = model.deltas ?? [];
   const modelWindow = model.comparison_window ?? null;
@@ -950,7 +1412,7 @@ function ModelRegion({ model }: { model: WhatChangedModelSection }) {
     model.feature_freshness?.aborted_reason ?? null,
     model.pvo_staleness?.aborted_reason ?? null,
   ].filter((item): item is string => item != null);
-  const notice = laneNotice("model", caveats);
+  const notice = laneNotice("model", caveats, deltas.length > 0);
   // `comparison_window.status` is set ONLY on the two paths where the producer
   // refuses to compare — `insufficient_history` (fewer than two capture dates)
   // and `model_multi_vintage_ambiguous` (two model runs on one day). The success
@@ -1077,96 +1539,6 @@ function BaselineRosterRows({
   );
 }
 
-// Structural current-state context (Slice 2 semantics, Task 5 voice). It is
-// deliberately SUBORDINATE to the deltas above — a where-things-stand-now
-// anchor, not a change surface — and renders section SUMMARIES/COUNTS only.
-// The producer artifact carries named, priority-ranked drop candidates and
-// named divergence cards; those are DELIBERATELY not rendered here — a static
-// named/ranked cut list reads as a drop directive and duplicates the
-// interactive Roster Capacity sandbox. That deferral is enforced by RED
-// suppression assertions.
-function StructuralBaseline({ ctx }: { ctx: WhatChangedStructuralContext }) {
-  const s = ctx.sections;
-  return (
-    <section className="dg-wc__baseline" aria-label="Structural current-state baseline">
-      <h3 className="dg-wc__region-title">Current roster context</h3>
-      <p className="dg-wc__overlay-note">
-        Where the roster stands right now — the backdrop for today's movement, not the
-        movement itself.
-      </p>
-
-      <BaselineSection label="Team Posture" sec={s.team_posture}>
-        {s.team_posture.david_posture != null && (
-          <p className="dg-wc__baseline-line">
-            Where you stand: {valueWord(s.team_posture.david_posture)}
-          </p>
-        )}
-        {s.team_posture.team_count != null && (
-          <p className="dg-wc__baseline-line">
-            Team count: {s.team_posture.team_count}
-          </p>
-        )}
-      </BaselineSection>
-
-      <BaselineSection label="Team Value" sec={s.team_value}>
-        <TeamValueLines sec={s.team_value} />
-      </BaselineSection>
-
-      <BaselineSection label="League Opportunity" sec={s.league_opportunity}>
-        <p className="dg-wc__baseline-line">
-          Partner ranking count:{" "}
-          {s.league_opportunity.top_partner_rankings?.length ?? 0}
-        </p>
-        <p className="dg-wc__baseline-line">
-          Card count: {s.league_opportunity.top_cards?.length ?? 0}
-        </p>
-        {cardTypeCounts(s.league_opportunity.top_cards).map(([type, count]) => (
-          <p className="dg-wc__baseline-line" key={type}>
-            {valueWord(type)}: {count}
-          </p>
-        ))}
-        {/* DG-111: was a titled "Divergence caveat" block. Same fact, said the
-            way you would say it out loud. It is a caution, not permission. */}
-        <p className="dg-wc__baseline-line">
-          These are counts of divergence cards, not a proven edge — we have not
-          validated that they predict anything.
-        </p>
-      </BaselineSection>
-
-      <BaselineSection label="Drop Pressure" sec={s.drop_pressure}>
-        {s.drop_pressure.summary?.cuts_required != null && (
-          <p className="dg-wc__baseline-line">
-            Cuts required: {s.drop_pressure.summary.cuts_required}
-          </p>
-        )}
-        {s.drop_pressure.summary?.total_players != null && (
-          <p className="dg-wc__baseline-line">
-            Total players: {s.drop_pressure.summary.total_players}
-          </p>
-        )}
-        {s.drop_pressure.summary?.total_capacity != null && (
-          <p className="dg-wc__baseline-line">
-            Total capacity: {s.drop_pressure.summary.total_capacity}
-          </p>
-        )}
-      </BaselineSection>
-
-      <BaselineSection label="Sleeper Snapshot" sec={s.sleeper_snapshot}>
-        {s.sleeper_snapshot.david_roster_player_count != null && (
-          <p className="dg-wc__baseline-line">
-            David roster player count: {s.sleeper_snapshot.david_roster_player_count}
-          </p>
-        )}
-        {s.sleeper_snapshot.league_roster_count != null && (
-          <p className="dg-wc__baseline-line">
-            League roster count: {s.sleeper_snapshot.league_roster_count}
-          </p>
-        )}
-      </BaselineSection>
-    </section>
-  );
-}
-
 // DG-111 — per-section honesty, in a sentence, only when there is something to
 // say.
 //
@@ -1202,98 +1574,4 @@ function sectionNotice(sec: WhatChangedStructuralSection): string | null {
   // pair of clocks the age was taken between. An age without its basis is half a
   // fact, so the stale branch keeps both: how old, and against what.
   return stale?.is_stale ? `${lead} ${endSentence(describeToken(stale.basis))}` : lead;
-}
-
-function BaselineSection({
-  label,
-  sec,
-  children,
-}: {
-  label: string;
-  sec: WhatChangedStructuralSection;
-  children: ReactNode;
-}) {
-  const notice = sectionNotice(sec);
-  const rawTokens = [sec.staleness_caveat?.basis ?? null, sec.aborted_reason ?? null]
-    .filter((item): item is string => item != null)
-    .join(", ");
-
-  return (
-    <section className="dg-wc__baseline-section" aria-label={label}>
-      <h4 className="dg-wc__group">{label}</h4>
-      {/* One notice, not three. It carries every fact the retired trio carried —
-          the section's status when it is not ok, WHY it is short when the
-          producer aborted, and how stale it is measured against which clock —
-          and the verbatim producer tokens ride the title attribute and the
-          receipt sheet. A clean section says nothing, because silence here means
-          "ok" and only "ok": any other status produces a sentence. */}
-      {notice && (
-        <p
-          className="dg-wc__baseline-meta"
-          data-testid="wc-section-notice"
-          title={rawTokens || undefined}
-        >
-          {notice}
-        </p>
-      )}
-      {children}
-    </section>
-  );
-}
-
-// Team value in manager language; the raw producer field names live one layer
-// down in the title attributes (voice-guide prose principle).
-function TeamValueLines({ sec }: { sec: WhatChangedStructuralSection }) {
-  const v = sec.david_value_summary;
-  if (!v) {
-    return <p className="dg-wc__quiet">No team value summary.</p>;
-  }
-  return (
-    <>
-      {v.lineup_xvar != null && (
-        <p
-          className="dg-wc__baseline-line"
-          title={receiptDetail("lineup_xvar", v.lineup_xvar)}
-        >
-          Starting lineup value: {v.lineup_xvar}
-        </p>
-      )}
-      {v.starter_weighted_xvar != null && (
-        <p
-          className="dg-wc__baseline-line"
-          title={receiptDetail("starter_weighted_xvar", v.starter_weighted_xvar)}
-        >
-          Weekly lineup strength: {v.starter_weighted_xvar}
-        </p>
-      )}
-      {v.top_n_xvar != null && (
-        <p
-          className="dg-wc__baseline-line"
-          title={receiptDetail("top_n_xvar", v.top_n_xvar)}
-        >
-          Top-asset core value: {v.top_n_xvar}
-        </p>
-      )}
-      {v.total_xvar_capped != null && (
-        <p
-          className="dg-wc__baseline-line"
-          title={receiptDetail("total_xvar_capped", v.total_xvar_capped)}
-        >
-          Whole-roster value, capped: {v.total_xvar_capped}
-        </p>
-      )}
-    </>
-  );
-}
-
-// Count cards by type, preserving first-seen order for stable rendering.
-function cardTypeCounts(
-  cards: WhatChangedStructuralSection["top_cards"],
-): Array<[string, number]> {
-  const counts = new Map<string, number>();
-  for (const card of cards ?? []) {
-    const type = card.card_type ?? "UNKNOWN";
-    counts.set(type, (counts.get(type) ?? 0) + 1);
-  }
-  return [...counts.entries()];
 }

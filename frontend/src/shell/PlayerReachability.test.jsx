@@ -433,20 +433,20 @@ describe("DG-110 · a player is reachable from anywhere", () => {
     await expectCardOpened("Gone Guy");
   });
 
-  it("opens a player's card from the front page's largest-mover hero line", async () => {
+  it("opens a player's card from the front page's verdict sentence", async () => {
     mockEndpoints({
       "/api/league/what-changed": whatChangedResponse(),
       "/api/players/": playerCardFor,
     });
     render(<AppShell />);
 
-    const hero = (await screen.findByText("Your roster moved")).closest(
-      ".dg-ui-value-hero",
-    );
-    // The basis keeps saying exactly what it said: how many moved, and by how
-    // much the largest one moved. Only the name became a handle.
-    expect(hero.textContent).toContain("1 of your players; largest Jaxson Dart +306");
-    fireEvent.click(within(hero).getByRole("button", { name: /^Open Jaxson Dart/ }));
+    // DG-113 replaced the ValueHero ("Your roster moved · 1 · largest Jaxson
+    // Dart +306") with the verdict sentence. This rule follows the element:
+    // whatever names the largest mover on the front page, the name is a handle
+    // onto his card.
+    const verdict = await screen.findByTestId("wc-verdict");
+    expect(verdict.textContent).toContain("Jaxson Dart most of all, up 306");
+    fireEvent.click(within(verdict).getByRole("button", { name: /^Open Jaxson Dart/ }));
     await expectCardOpened("Jaxson Dart");
   });
 });

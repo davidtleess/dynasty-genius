@@ -43,6 +43,16 @@
   flex-wrap: wrap;
 }
 
+/* DG-113: "Morning read" above the date. The surface is named once, small,
+   where a masthead names a paper — the date is the headline. */
+.dg-wc__overline {
+  margin: 0 0 var(--dg-space-1);
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  letter-spacing: 0.06em;
+  color: var(--dg-chrome);
+}
+
 .dg-wc__title {
   margin: 0;
   font-family: var(--dg-font-display);
@@ -52,43 +62,16 @@
   letter-spacing: 0.01em;
 }
 
-.dg-wc__disclaimer {
-  margin: 0;
-  font-size: var(--dg-text-sm);
-  color: var(--dg-text-muted);
-  border-left: 1px solid var(--dg-border-strong);
-  padding-left: var(--dg-space-2);
-}
-
-/* ── Desk layout: feed + subordinate right rail ───────────────────────────── */
-
-.dg-wc__layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 18rem;
-  gap: var(--dg-space-4);
-  align-items: start;
-}
+/* ── One column now: the right-hand rail is retired (DG-113 §2.6) ─────────── */
 
 .dg-wc__feed {
   display: flex;
   flex-direction: column;
-  gap: var(--dg-space-3);
+  gap: var(--dg-space-5);
   min-width: 0;
 }
 
-.dg-wc__rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--dg-space-3);
-  font-size: var(--dg-text-sm);
-  color: var(--dg-text-muted);
-}
-
 @media (max-width: 768px) {
-  .dg-wc__layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   /* Mobile: a model lane can carry multiple metric cells plus the 120px
      series slot. Without wrapping, the lane becomes one unbreakable 500px
      strip and blows past a 390px viewport (the visual-smoke overflow catch). */
@@ -97,32 +80,6 @@
     flex-wrap: wrap;
     min-width: 0;
   }
-}
-
-.dg-wc__diagnostics,
-.dg-wc__receipts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--dg-space-1);
-  padding: var(--dg-space-2) var(--dg-space-3);
-  border: 1px solid var(--dg-border);
-  border-radius: var(--dg-radius-card);
-  background: var(--dg-surface-raised);
-}
-
-.dg-wc__rail-title {
-  margin: 0;
-  font-family: var(--dg-font-display);
-  font-size: var(--dg-text-sm);
-  font-weight: var(--dg-weight-semibold);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--dg-text);
-}
-
-.dg-wc__rail-line {
-  margin: 0;
-  overflow-wrap: anywhere;
 }
 
 /* ── Change feed regions ──────────────────────────────────────────────────── */
@@ -150,10 +107,12 @@
   font-style: italic;
 }
 
+/* Spec §5: ALL-CAPS section heads are killed; only the tiny table header keeps
+   its caps. This is a section head. */
 .dg-wc__group {
   margin: var(--dg-space-2) 0 0;
   font-size: var(--dg-text-sm);
-  text-transform: uppercase;
+  font-weight: var(--dg-weight-semibold);
   letter-spacing: 0.04em;
   color: var(--dg-text-muted);
 }
@@ -200,11 +159,6 @@
   background: var(--dg-surface-raised);
 }
 
-.dg-wc__player-row > :first-child {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
 .dg-wc__delta-cell {
   flex: none;
 }
@@ -224,76 +178,13 @@
   border: 0;
 }
 
-/* ── Structural current-state baseline — deliberately subordinate ─────────── */
-
-.dg-wc__baseline {
-  display: flex;
-  flex-direction: column;
-  gap: var(--dg-space-2);
-  padding: var(--dg-space-2) var(--dg-space-3);
-  margin-top: var(--dg-space-1);
-  border: 1px dashed var(--dg-border-strong);
-  border-radius: var(--dg-radius-card);
-  background: var(--dg-surface-raised);
-}
-
-.dg-wc__baseline-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--dg-space-1);
-  padding-top: var(--dg-space-2);
-  border-top: 1px solid var(--dg-border);
-}
-
-.dg-wc__baseline-meta,
-.dg-wc__baseline-line {
+/* A section's honesty notice, beside the claim it qualifies (DG-113). The
+   dashed "structural baseline" panel it used to live in is gone with the count
+   rows it wrapped. */
+.dg-wc__baseline-meta {
   margin: 0;
   font-size: var(--dg-text-sm);
   color: var(--dg-text-muted);
-}
-
-.dg-wc__meta-label {
-  color: var(--dg-text-muted);
-}
-
-.dg-wc__meta-value {
-  color: var(--dg-text);
-}
-
-/* ── The single orchestrated daily-open moment ─────────────────────────────
-   Gated on the Task-4 .dg-motion-daily-open class the surface root carries:
-   feed regions settle top-down, once, on open. Tokens from motion.css. */
-
-@media (prefers-reduced-motion: no-preference) {
-  .dg-motion-daily-open .dg-wc__region,
-  .dg-motion-daily-open .dg-wc__baseline {
-    animation: dg-wc-settle var(--dg-duration-moderate-01)
-      var(--dg-ease-productive-entrance) backwards;
-  }
-  .dg-motion-daily-open .dg-wc__region:nth-of-type(2) {
-    animation-delay: 0.05s;
-  }
-  .dg-motion-daily-open .dg-wc__baseline {
-    animation-delay: 0.1s;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dg-motion-daily-open .dg-wc__region,
-  .dg-motion-daily-open .dg-wc__baseline {
-    animation: none;
-  }
-}
-
-@keyframes dg-wc-settle {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 /* ── Increment 1: the AssetRow tape ── */
@@ -310,34 +201,292 @@
   justify-content: center;
 }
 
-.dg-wc__stale-badge {
+/* DG-113: ONE freshness sentence for every morning, with a status dot and the
+   control that opens the health sheet. The stale/fresh pair of classes is gone
+   — a stale morning is a different SENTENCE, not a different box, and the old
+   amber-bordered badge was the "Attention" stamp in another shape. */
+.dg-wc__freshness {
   margin: 0;
-  padding: var(--dg-space-1) var(--dg-space-3);
-  border: 1px solid var(--dg-caveat);
-  border-radius: var(--dg-radius-control);
+  max-width: 52ch;
   font-size: var(--dg-text-sm);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text-muted);
+}
+
+.dg-wc__freshness-dot {
+  display: inline-block;
+  width: var(--dg-space-2);
+  height: var(--dg-space-2);
+  margin-inline-end: var(--dg-space-2);
+  border-radius: var(--dg-radius-round);
+  background: var(--dg-chrome);
+}
+
+/* The dot restates the sentence beside it and is never the only channel: the
+   words say which feeds are behind and why. Green is arithmetic-free here —
+   it means "nothing on this page is flagged", which the sentence also says. */
+.dg-wc__freshness-dot[data-status="ok"] {
+  background: var(--dg-up);
+}
+
+.dg-wc__freshness-dot[data-status="attention"] {
+  background: var(--dg-caveat);
+}
+
+.dg-wc__details {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--dg-chrome-strong);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.dg-wc__details:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+/* ── The health sheet: in flow, so it can never overlap content ───────────── */
+
+.dg-wc__sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+  margin-top: var(--dg-space-3);
+  padding: var(--dg-space-3) var(--dg-space-4);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-card);
+  background: var(--dg-chrome-surface);
+}
+
+.dg-wc__sheet-title {
+  margin: 0;
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-base);
+  font-weight: var(--dg-weight-semibold);
+  color: var(--dg-chrome-strong);
+}
+
+.dg-wc__sheet-line {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.dg-wc__feed-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+}
+
+.dg-wc__feed-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--dg-space-1) var(--dg-space-2);
+  font-size: var(--dg-text-sm);
+}
+
+.dg-wc__feed-dot {
+  width: var(--dg-space-2);
+  height: var(--dg-space-2);
+  margin-top: var(--dg-space-2);
+  border-radius: var(--dg-radius-round);
+  background: var(--dg-caveat);
+}
+
+.dg-wc__feed-row[data-feed-ok="true"] .dg-wc__feed-dot {
+  background: var(--dg-up);
+}
+
+.dg-wc__feed-name {
+  color: var(--dg-text);
+  font-weight: var(--dg-weight-medium);
+}
+
+.dg-wc__feed-detail {
+  grid-column: 2;
+  color: var(--dg-text-muted);
+}
+
+/* ── The verdict: the biggest sentence on the page ────────────────────────── */
+
+/* The two headline measures — shorter than body prose, because a verdict and a
+   recommendation are meant to be taken in at a glance, not read across. */
+.dg-wc__verdict-headline,
+.dg-wc__rec-verdict {
+  max-width: 46ch;
+}
+
+.dg-wc__verdict {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+  padding: var(--dg-space-4) 0;
+  border-bottom: 1px solid var(--dg-border);
+}
+
+.dg-wc__verdict-headline {
+  margin: 0;
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-xl);
+  font-weight: var(--dg-weight-medium);
+  line-height: var(--dg-leading-snug);
   color: var(--dg-text);
 }
 
-/* One measure for both freshness sentences. */
-.dg-wc__stale-badge,
-.dg-wc__freshness {
-  max-width: 65ch;
+.dg-wc__verdict-detail {
+  margin: 0;
+  font-size: var(--dg-text-base);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text-muted);
 }
 
-/* DG-111: the healthy-morning twin of the stale sentence. It shares the stale
-   badge's measure (one declaration, so the raw-CSS census stays flat) and drops
-   the alarm border — a capture time is a fact, not a warning. */
-.dg-wc__freshness {
+/* ── "Worth a look" ───────────────────────────────────────────────────────── */
+
+.dg-wc__worth {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-3);
+}
+
+.dg-wc__rec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+  padding: var(--dg-space-3) var(--dg-space-4);
+  border: 1px solid var(--dg-border);
+  border-inline-start: 3px solid var(--dg-chrome-strong);
+  border-radius: var(--dg-radius-card);
+  background: var(--dg-surface);
+}
+
+.dg-wc__rec-verdict {
   margin: 0;
-  padding: var(--dg-space-1) 0;
+  font-size: var(--dg-text-lg);
+  font-weight: var(--dg-weight-semibold);
+  line-height: var(--dg-leading-snug);
+  color: var(--dg-text);
+}
+
+.dg-wc__rec-reason {
+  margin: 0;
+  font-size: var(--dg-text-base);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text-muted);
+}
+
+.dg-wc__rec-action {
+  align-self: flex-start;
+  font-size: var(--dg-text-base);
+  font-weight: var(--dg-weight-medium);
+  color: var(--dg-chrome-strong);
+}
+
+.dg-wc__rec-action:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+/* The rule that put a card here, or left the block empty. Not a caveat — the
+   method, stated once, so a recommendation is legible rather than oracular. */
+.dg-wc__method {
+  margin: 0;
   font-size: var(--dg-text-sm);
   color: var(--dg-text-muted);
 }
 
+/* ── The three biggest moves, with room to be read ────────────────────────── */
+
+.dg-wc__cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--dg-space-3);
+}
+
+.dg-wc__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+  padding: var(--dg-space-3);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-card);
+  background: var(--dg-surface-raised);
+  min-width: 0;
+}
+
+.dg-wc__card-figures {
+  display: flex;
+  align-items: baseline;
+  gap: var(--dg-space-3);
+  flex-wrap: wrap;
+}
+
+.dg-wc__card-value {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--dg-text-3xl);
+  font-weight: var(--dg-weight-bold);
+  line-height: var(--dg-leading-tight);
+  color: var(--dg-text);
+}
+
+/* ── Where you stand ──────────────────────────────────────────────────────── */
+
+.dg-wc__stand-team {
+  margin: 0;
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-lg);
+  font-weight: var(--dg-weight-semibold);
+  color: var(--dg-text);
+}
+
+.dg-wc__stand-line {
+  margin: 0;
+  font-size: var(--dg-text-base);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text-muted);
+}
+
+/* ONE reading measure for every prose block on the surface. Declared once
+   rather than per block: five copies of the same measure is five chances for
+   one of them to drift, and the audit ledger counts every one of them. */
+.dg-wc__verdict-detail,
+.dg-wc__rec-reason,
+.dg-wc__method,
+.dg-wc__stand-line,
+.dg-wc__overlay-note {
+  max-width: 62ch;
+}
+
+/* ── Entered / exited: one line you can open ──────────────────────────────── */
+
+.dg-wc__pool-summary {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  cursor: pointer;
+}
+
+.dg-wc__pool-summary:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
 /* Stale tape: rows desaturate (stale-degrades law) — information stays
-   readable; only the freshness claim is visually withdrawn. */
-.dg-wc--stale [data-asset-row] {
+   readable; only the freshness claim is visually withdrawn. DG-113 keeps this:
+   the amber badge that used to shout alongside it is gone, so the desaturation
+   and the header sentence are now the whole of how a stale morning reads. */
+.dg-wc--stale [data-asset-row],
+.dg-wc--stale .dg-wc__card {
   filter: saturate(0.35);
 }
 
@@ -460,4 +609,54 @@
 .dg-wc__player-open:focus-visible {
   outline: 2px solid var(--dg-focus);
   outline-offset: 2px;
+}
+
+/* The identity cluster is the column that grows; everything else is sized by
+   its content. This used to read `.dg-wc__player-row > :first-child`, which was
+   true when identity WAS the first child — the rank numeral has been in front
+   of it since worklist #3, so at (0,2,0) that rule beat `.dg-wc__rank`'s
+   `flex: none` and handed the whole spare width to a two-character number. It
+   was invisible while an 18rem rail ate the surplus; at 1440 with the rail
+   retired (DG-113) it left a 480px hole and shoved every row against the right
+   edge. Found in a real browser, not in a test — no assertion in this repo can
+   see a gap. Both identity forms are named, because `PlayerNameButton` renders
+   the bare `.dg-ui-player-id` when the surface has no selection sink. It sits
+   BELOW `.dg-wc__player-open` so the ascending-specificity rule holds. */
+.dg-wc__player-row > .dg-wc__player-open,
+.dg-wc__player-row > .dg-ui-player-id {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ── The single orchestrated daily-open moment ─────────────────────────────
+   Gated on the Task-4 .dg-motion-daily-open class the surface root carries:
+   feed regions settle top-down, once, on open. Tokens from motion.css. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .dg-motion-daily-open .dg-wc__region,
+  .dg-motion-daily-open .dg-wc__verdict {
+    animation: dg-wc-settle var(--dg-duration-moderate-01)
+      var(--dg-ease-productive-entrance) backwards;
+  }
+  .dg-motion-daily-open .dg-wc__region:nth-of-type(2) {
+    animation-delay: 0.05s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dg-motion-daily-open .dg-wc__region,
+  .dg-motion-daily-open .dg-wc__verdict {
+    animation: none;
+  }
+}
+
+@keyframes dg-wc-settle {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
