@@ -10,7 +10,7 @@
 .dg-ui-band-divider:focus-visible {
   outline: 2px solid var(--dg-focus);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--dg-radius-control);
 }
 
 /* ── Receipt ── */
@@ -29,7 +29,7 @@
   font-size: var(--dg-text-sm);
   line-height: 1;
   padding: 0 var(--dg-space-1);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
   cursor: pointer;
 }
 
@@ -50,7 +50,7 @@
   padding: var(--dg-space-2) var(--dg-space-3);
   background: var(--dg-surface-raised);
   border: 1px solid var(--dg-border-strong);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
   font-family: var(--dg-font-mono);
   font-size: var(--dg-text-sm);
   color: var(--dg-text);
@@ -61,7 +61,7 @@
   display: block;
   padding: var(--dg-space-2) var(--dg-space-3);
   border: 1px solid var(--dg-border-strong);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
   color: var(--dg-text);
 }
 
@@ -70,7 +70,7 @@
 }
 
 .dg-ui-caveat__title {
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   font-size: var(--dg-text-sm);
 }
 
@@ -124,7 +124,7 @@
   gap: var(--dg-space-1) var(--dg-space-4);
   padding: var(--dg-space-2) var(--dg-space-3);
   border: 1px solid var(--dg-border);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
   font-family: var(--dg-font-mono);
   font-size: var(--dg-text-sm);
   color: var(--dg-text);
@@ -190,7 +190,7 @@
   position: relative;
   width: 72px;
   height: 6px;
-  border-radius: 3px;
+  border-radius: var(--dg-radius-round);
   background: var(--dg-border);
 }
 
@@ -200,7 +200,7 @@
   transform: translateX(-50%);
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--dg-radius-round);
   background: var(--dg-spread-accent);
 }
 
@@ -222,7 +222,7 @@
   gap: var(--dg-space-2);
   padding: var(--dg-space-3);
   border: 1px solid var(--dg-border);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
 }
 
 .dg-ui-chart-frame__title {
@@ -250,24 +250,24 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: var(--dg-radius-round);
   border: 1px solid var(--dg-border-strong);
   background: var(--dg-surface-raised);
   color: var(--dg-text-muted);
   font-size: var(--dg-text-sm);
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
 }
 
 .dg-ui-player-id__name {
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   color: var(--dg-text);
 }
 
 .dg-ui-player-id__team {
   font-size: var(--dg-text-sm);
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   padding: 0 var(--dg-space-1);
-  border-radius: 3px;
+  border-radius: var(--dg-radius-control);
   border: 1px solid var(--dg-border-strong);
   color: var(--dg-text);
 }
@@ -293,7 +293,7 @@
   font-family: var(--dg-font-mono);
   font-variant-numeric: tabular-nums;
   font-size: var(--dg-text-lg);
-  font-weight: 700;
+  font-weight: var(--dg-weight-bold);
   color: var(--dg-text);
 }
 
@@ -318,7 +318,7 @@
   position: relative;
   width: 96px;
   height: 6px;
-  border-radius: 3px;
+  border-radius: var(--dg-radius-round);
   background: var(--dg-border);
   overflow: hidden;
 }
@@ -351,14 +351,14 @@
 .dg-ui-band-divider__tick {
   width: 3px;
   height: 14px;
-  border-radius: 1px;
+  border-radius: var(--dg-radius-round);
   background: var(--dg-model);
 }
 
 .dg-ui-band-divider__label {
   font-family: var(--dg-font-display);
   font-size: var(--dg-text-sm);
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--dg-text);
@@ -385,7 +385,7 @@
 .dg-ui-player-id__headshot {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: var(--dg-radius-round);
   object-fit: cover;
   flex: none;
 }
@@ -393,7 +393,7 @@
 .dg-ui-player-id__team-mark {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--dg-radius-round);
   flex: none;
   /* Increment 0 renders the mark as a neutral ring: the team-color binding is
      deliberately deferred (the frontend may not read the checked-in team map
@@ -410,10 +410,19 @@
 }
 
 /* The one focal number per row (Codex R2): MetricCell carries row emphasis —
-   one step larger and heavier than sibling values, never sentiment-colored. */
+   one step larger and heavier than sibling values. The KIT's own emphasis is
+   never colored: it is --dg-text here and nothing in this file tints it.
+   One surface overrides that at higher specificity — what-changed paints the
+   delta cell's focal value with the direction pair (DailyWhatChanged.css,
+   `.dg-wc__delta-cell[data-direction] .dg-ui-metric__value`, 0-3-0 over this
+   rule's 0-1-0), on David's 2026-08-30 "Green up / red down" ruling. That is
+   direction, not sentiment: it says which way the number moved, never whether
+   the move is good for you. This comment said "never sentiment-colored" flat
+   before DG-115; the override is recorded here so the kit's contract is not
+   read as a promise the product no longer keeps. */
 .dg-ui-metric__value--emphasis {
   font-size: var(--dg-text-lg);
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   color: var(--dg-text);
 }
 

@@ -10,7 +10,7 @@
   max-inline-size: 28rem;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--dg-border);
-  border-radius: 6px;
+  border-radius: var(--dg-radius-card);
   font-size: var(--dg-text-sm, 0.8125rem);
   color: var(--dg-text);
   background: var(--dg-surface-raised);
@@ -32,7 +32,7 @@
 }
 
 .dg-syshealth__title {
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
 }
 
 .dg-syshealth__subtitle {
@@ -41,7 +41,7 @@
 }
 
 .dg-syshealth__overall {
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
 }
 
 /* Degraded root: the one severity hue, prominent for core, muted for daily. */
@@ -90,7 +90,7 @@
 .dg-syshealth__subsystem[data-severity="degraded"],
 .dg-syshealth__report[data-severity="degraded"] {
   border: 1px solid var(--dg-cliff);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
   padding: 0.3rem 0.45rem;
 }
 
@@ -125,7 +125,7 @@
 }
 
 .dg-syshealth__report-name {
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
 }
 
 .dg-syshealth__receipt {

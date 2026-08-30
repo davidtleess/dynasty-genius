@@ -18,7 +18,7 @@
 }
 
 .dg-rc__status {
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   margin: 0;
 }
 
@@ -48,7 +48,7 @@
 
 .dg-rc__health {
   display: flex;
-  gap: 1.5rem;
+  gap: var(--dg-space-5);
   margin: 0;
 }
 
@@ -60,7 +60,7 @@
 .dg-rc__health dd {
   margin: 0;
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
 }
 
 .dg-rc__table {
@@ -81,7 +81,7 @@
 
 .dg-rc__range {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
 }
 
 .dg-rc__range-unavailable {

@@ -31,8 +31,8 @@
 .dg-sb__title {
   margin: 0;
   font-family: var(--dg-font-display);
-  font-size: 1.375rem;
-  font-weight: 600;
+  font-size: var(--dg-text-xl);
+  font-weight: var(--dg-weight-semibold);
   letter-spacing: -0.01em;
   text-wrap: balance;
 }
@@ -52,7 +52,7 @@
   gap: var(--dg-space-2);
   padding: var(--dg-space-3);
   border: 1px solid var(--dg-border);
-  border-radius: 6px;
+  border-radius: var(--dg-radius-card);
   background: var(--dg-surface);
 }
 
@@ -74,7 +74,7 @@
 .dg-sb__qlabel {
   margin: 0;
   font-size: var(--dg-text-sm);
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   color: var(--dg-text-muted);
 }
 
@@ -91,13 +91,13 @@
   margin: 0;
   font-family: var(--dg-font-display);
   font-size: var(--dg-text-lg);
-  font-weight: 600;
-  line-height: 1.3;
+  font-weight: var(--dg-weight-semibold);
+  line-height: var(--dg-leading-snug);
   text-wrap: balance;
 }
 
 .dg-sb__verdict--quiet {
-  font-weight: 500;
+  font-weight: var(--dg-weight-medium);
   color: var(--dg-text-muted);
 }
 
@@ -115,7 +115,7 @@
 
 .dg-sb__facts dt {
   font-size: var(--dg-text-sm);
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
   color: var(--dg-text-muted);
 }
 
@@ -136,7 +136,7 @@
 
 .dg-sb__value {
   font-family: var(--dg-font-display);
-  font-size: 2.5rem;
+  font-size: var(--dg-text-4xl);
   font-weight: 650;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -201,7 +201,7 @@
    The block mirrors the real layout's height so nothing jumps when content lands. */
 .dg-sb__skeleton {
   height: 5.5rem;
-  border-radius: 6px;
+  border-radius: var(--dg-radius-card);
   background: var(--dg-surface-raised);
 }
 
@@ -211,7 +211,7 @@
 
 @media (max-width: 32rem) {
   .dg-sb__value {
-    font-size: 2rem;
+    font-size: var(--dg-text-3xl);
   }
 
   .dg-sb__q {

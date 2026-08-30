@@ -41,7 +41,7 @@
 .dg-frozen-prediction__eyebrow {
   color: var(--dg-text-muted);
   font-size: var(--dg-text-sm);
-  font-weight: 600;
+  font-weight: var(--dg-weight-semibold);
 }
 
 .dg-frozen-prediction__state {

@@ -15,7 +15,7 @@
   font-family: var(--dg-font-sans);
   background: var(--dg-surface-raised);
   border: 1px solid var(--dg-border-strong);
-  border-radius: 8px;
+  border-radius: var(--dg-radius-card);
   color: var(--dg-text);
   z-index: 50;
 }
@@ -27,7 +27,7 @@
   font-size: var(--dg-text-lg);
   background: var(--dg-surface);
   border: 1px solid var(--dg-border);
-  border-radius: 4px;
+  border-radius: var(--dg-radius-control);
   color: var(--dg-text);
 }
 
@@ -52,12 +52,35 @@
   flex-direction: column;
 }
 
+/* Options are product rows, not native browser chips. These are real <button>
+   elements and nothing here reset their UA chrome, so every option was
+   rendering as light-grey ButtonFace with black ButtonText on top of a dark
+   raised panel — and any near-white selected ink then measured ~1.1:1 against
+   it. DG-115's panel caught that on the selected row; the reset is what makes
+   a legible selected state possible at all. */
 .dg-cmdk__option {
+  appearance: none;
+  border: 0;
+  background: none;
+  display: block;
+  inline-size: 100%;
+  box-sizing: border-box;
+  text-align: start;
+  cursor: pointer;
+  color: var(--dg-text);
   padding: var(--dg-space-2) var(--dg-space-3);
+  font: inherit;
   font-size: var(--dg-text-base);
+  border-radius: var(--dg-radius-control);
 }
 
+/* The palette is chrome. Selection is neutral emphasis, not the model lane —
+   and it is the only thing telling the reader where the arrow keys have got
+   to, so it is a filled row rather than an ink shade: --dg-chrome-strong fill
+   with the panel's own surface as ink, 15.52:1 on dark and 18.57:1 on light.
+   Weight carries it a second time, so the state survives without color. */
 .dg-cmdk__option[aria-selected="true"] {
-  color: var(--dg-model-emphasis);
-  font-weight: 600;
+  background: var(--dg-chrome-strong);
+  color: var(--dg-surface-raised);
+  font-weight: var(--dg-weight-semibold);
 }

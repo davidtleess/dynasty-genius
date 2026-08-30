@@ -114,9 +114,15 @@ export function DailyWhatChanged({
   );
 }
 
-// Signed and neutral: the sign encodes direction, so there is no arrow, color,
-// or buy/sell word to smuggle in a verdict. Raw value (not rounded) — the
-// backend owns precision. -0 keeps its sign rather than reading as +0.
+// The sign encodes direction in TEXT: no arrow glyph is fabricated and no
+// buy/sell word appears, so the delta reads correctly with color stripped out.
+// (AMENDED by DG-115: this comment used to say "and no color" too. Since
+// David's 2026-08-30 "Green up / red down" ruling the cell also carries a
+// direction hue — see deltaDirection() below. What survives unchanged is the
+// part that matters: the printed sign is always there, so the hue is a second
+// channel and never the only one, and neither channel says whether the move is
+// good for you.) Raw value (not rounded) — the backend owns precision. -0 keeps
+// its sign rather than reading as +0.
 function fmtSigned(value: number): string {
   if (Object.is(value, -0)) {
     return "-0";
@@ -128,13 +134,40 @@ const NEUTRAL_DASH = "—";
 const EXACT_ZERO_NOTE = "exact zero — shown as a neutral dash, not movement";
 
 // An exact zero is NOT movement, so it must not wear a direction sign: it
-// renders as the neutral dash. A negative zero means "declined by less than
-// display precision" and keeps its honest -0.
+// renders as the neutral dash. A negative zero keeps its honest -0 rather than
+// being flattened to +0 — we print the sign we were handed.
 function formatZeroDelta(value: number): string {
   if (value === 0 && !Object.is(value, -0)) {
     return NEUTRAL_DASH;
   }
   return fmtSigned(value);
+}
+
+/**
+ * DG-115 direction color (David's 2026-08-30 panel: "Green up / red down").
+ *
+ * The hue is derived from the SAME function that prints the characters, so the
+ * two can never tell different stories: whatever formatZeroDelta() renders as
+ * the neutral dash gets no direction, and otherwise the hue simply follows the
+ * printed sign. That is the whole claim — the color restates the sign the
+ * reader can already see, and the sign is always printed, so color is never
+ * the only channel.
+ *
+ * Two things it deliberately does NOT claim. (1) It says nothing about what a
+ * negative zero MEANS. An earlier draft of this comment read it as "declined by
+ * less than display precision"; the producer has no such concept — daily_diff.py
+ * emits a raw `latest - prior` subtraction with no rounding step (see its
+ * locked sign conventions at the top of the module), and value_delta is integer
+ * arithmetic, so -0 is not something it sets out to produce. We print the sign
+ * we were handed and color it to match; we do not narrate it. (2) A non-finite
+ * delta gets NO direction. The text for one is already wrong ("NaN"), which is
+ * a pre-existing hazard in an unvalidated field, but a hue that says "declined"
+ * over characters that say no such thing would be this change's own fabrication.
+ */
+function deltaDirection(value: number): "up" | "down" | undefined {
+  if (!Number.isFinite(value)) return undefined;
+  if (formatZeroDelta(value) === NEUTRAL_DASH) return undefined;
+  return value > 0 ? "up" : "down";
 }
 
 function DeltaCell({
@@ -151,10 +184,12 @@ function DeltaCell({
   labelHidden?: boolean | undefined;
 }) {
   const text = formatZeroDelta(value);
+  const direction = deltaDirection(value);
   return (
     <span
       className="dg-wc__delta-cell"
       title={text === NEUTRAL_DASH ? EXACT_ZERO_NOTE : undefined}
+      {...(direction !== undefined ? { "data-direction": direction } : {})}
     >
       {/* When the column header carries the visible label, the per-row label
           moves to a screen-reader-only element so assistive tech still names
