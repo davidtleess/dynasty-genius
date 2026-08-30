@@ -1,5 +1,18 @@
 # Dynasty Genius Roadmap
 
+> ## ⚠️ SUPERSEDED — HISTORICAL, NOT THE PLAN (banner added 2026-08-30, DG-101)
+>
+> **Last substantive change 2026-04-30 — four months before the current law set, and before
+> DG 3.0 existed.** Working from this file today reproduces exactly the doc-rot failure the
+> 2026-08-29 gap audit found. The governing documents are:
+> - `docs/strategies/2026-08-20-dynasty-genius-MASTER-architecture-and-build-plan.md` (David-approved)
+> - `docs/strategies/2026-08-20-dg-product-law-amendments-REV2.md`
+> - `~/dg-build/BOARD.md` + `~/dg-build/ROADMAP-LAYERS.md` (the live ticket board and ratified layer roadmap)
+> - `~/dg-build/IN-SEASON-QUEUE.md` (the ordered queue through the 2026 season)
+>
+> Anything below that promises buy/sell flags, verdicts, or a cloud-warehouse architecture is
+> **contradicted by current law**, not merely stale. Kept for history; do not plan from it.
+
 ## North Star
 
 Build a unified dynasty value system that scores all relevant players (QB/RB/WR/TE) across rookies and active NFL players.

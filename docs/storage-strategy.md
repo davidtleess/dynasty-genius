@@ -1,5 +1,20 @@
 # Storage Strategy
 
+> ## ⚠️ SUPERSEDED — HISTORICAL, NOT THE PLAN (banner added 2026-08-30, DG-101)
+>
+> **This document describes an architecture the product's own law now forbids.** It was last
+> substantively written before DG 3.0. The governing documents are:
+> - `docs/strategies/2026-08-20-dynasty-genius-MASTER-architecture-and-build-plan.md` (David-approved 2026-08-20)
+> - `docs/strategies/2026-08-20-dg-product-law-amendments-REV2.md`
+>
+> Specifically contradicted below: the master plan's restraint list (§9) rules out a cloud
+> warehouse, Delta, MLflow, and Postgres for this product. The Databricks bundle this doc
+> anticipates was **retired on David's ruling, 2026-08-30** (see DG-101). Nothing in `app/` or
+> `src/` imports Databricks, and no part of the live system depends on anything below.
+>
+> The sentence "This doc is the blueprint. Code follows." is **no longer true** and is retained
+> only so the record reads honestly. Kept for history; do not build from it.
+
 This doc defines where Dynasty Genius data lives — current state, target state, and the migration path between them. The system evolves from a local-file substrate to a Databricks Lakehouse on AWS S3. Both modes coexist during migration; the contracts agents implement against are the target.
 
 - Strategy and architecture: [system-design.md](system-design.md)
