@@ -6,8 +6,7 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 const TRUST_DIR = join(process.cwd(), "src", "trust");
-const GRADE_QUALIFIER =
-  "our own grade, not a claim that it beats the market";
+const GRADE_QUALIFIER = "our own grade, not a claim that it beats the market";
 
 function authoredTrustFiles() {
   if (!existsSync(TRUST_DIR)) {

@@ -646,17 +646,43 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByText(/Your roster's market values held steady/i)).toBeTruthy();
     expect(screen.getByText(/no entered assets/i)).toBeTruthy();
     expect(screen.getByText(/no exited assets/i)).toBeTruthy();
-    expect(screen.getByText(/Projections held steady/i)).toBeTruthy();
+    // DG-111 REVIEW-PANEL FIX. `comparison_window.status` is set ONLY where the
+    // producer refused to compare (daily_diff.py:237-241), so an empty delta
+    // list here means "we did not look", and the surface must not say
+    // "Projections held steady" — that is an affirmative claim about a
+    // comparison that never happened.
+    expect(screen.queryByText(/Projections held steady/i)).toBeNull();
+    expect(
+      screen.getByText(/No day-over-day comparison of our projections/i),
+    ).toBeTruthy();
+    // ...and a young capture history is NOT a degradation. Calling it one is the
+    // DG-047 cry-wolf pattern: it spends the word on a normal morning.
+    const modelNotice = screen.getByTestId("wc-model-degraded").textContent;
+    expect(modelNotice).toMatch(
+      /couldn't compare our projections against an earlier day/i,
+    );
+    expect(modelNotice).not.toMatch(/came back degraded/i);
     // DG-109 review fix: this line used to assert that the RAW key
     // `insufficient_history` was on David's screen — one of the 359 green tests
     // pinning the exact violation the ticket exists to remove, and positive
     // proof that ModelRegion's caveat branch rendered unconverted. Meanwhile the
     // dictionary entry for it was added by this branch and no render path
     // consulted it. Same fact, same branch, said in words now.
+    expect(modelNotice).toMatch(
+      /Not enough days captured yet to compare one to the next/,
+    );
+    // Not in body copy anywhere on the surface...
+    expect(modelNotice).not.toMatch(/insufficient_history/);
     expect(
-      screen.getByText("Not enough days captured yet to compare one to the next."),
-    ).toBeTruthy();
-    expect(screen.queryByText(/insufficient_history/i)).toBeNull();
+      within(screen.getByRole("region", { name: "Model output changes" })).queryByText(
+        /insufficient_history/i,
+      ),
+    ).toBeNull();
+    // ...but not lost either: the verbatim token is in the receipt sheet, which
+    // is the one layer the render rule permits a raw pipeline key.
+    expect(screen.getByTestId("wc-raw-reasons").textContent).toContain(
+      "insufficient_history",
+    );
     expect(screen.queryByText(/top mover unavailable/i)).toBeNull();
     expect(screen.queryByText(/0\.00/i)).toBeNull();
   });
@@ -1364,5 +1390,148 @@ describe("DG-111 the stale morning still says it is stale, in prose", () => {
     expect(screen.queryByRole("note", { name: /caveats/i })).toBeNull();
     expect(screen.queryByText(/^Status:/)).toBeNull();
     expect(screen.queryByText(/Feed diagnostics/i)).toBeNull();
+  });
+});
+
+// ── DG-111 REVIEW PANEL — the blocker, and the state no fixture ever drove ────
+//
+// `_build_market_section` (src/dynasty_genius/what_changed/daily_diff.py:111-117)
+// returns `status: "insufficient_history"` with NO `aborted_reason`, no
+// `roster_deltas` and no `top_movers` when fewer than two FantasyCalc capture
+// dates exist. The market region's heads-up used to be gated on
+// `market.aborted_reason` alone, so on that morning the surface fell silent and
+// its empty-state copy — "market values held steady overnight" — stood as an
+// affirmative claim about a comparison that was never made. Before DG-111 the
+// rail printed `Market feed: insufficient_history` in always-visible text;
+// moving that into a receipt sheet shut by default turned a cluttered truth into
+// a clean falsehood. That is the honesty law's one BLOCKING shape: a
+// truth-bearing behavior deleted instead of reworded.
+describe("DG-111 a comparison that never ran never reads as 'nothing moved'", () => {
+  it("speaks when the market lane has too little history, and drops the held-steady claim", async () => {
+    mockFetch(
+      200,
+      whatChangedResponse({
+        overall_status: "degraded",
+        daily_diff: {
+          overall_status: "degraded",
+          market: {
+            status: "insufficient_history",
+            market_source: "fantasycalc_overlay",
+            comparison_window: { status: "insufficient_history" },
+            roster_deltas: null,
+            top_movers: null,
+            entered: null,
+            exited: null,
+            total_movers_count: null,
+          },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /market price-discovery/i }),
+      ).toBeTruthy(),
+    );
+    const market = screen.getByRole("region", { name: /market price-discovery/i });
+
+    // 1. The false claim is gone — both halves of it.
+    expect(within(market).queryByText(/held steady/i)).toBeNull();
+    expect(
+      within(market).getByText(/No day-over-day comparison for your roster/i),
+    ).toBeTruthy();
+    expect(
+      within(market).getByText(/No day-over-day comparison league-wide/i),
+    ).toBeTruthy();
+
+    // 2. The fact is VISIBLE, not hidden behind a shut receipt sheet.
+    const notice = within(market).getByTestId("wc-market-degraded");
+    expect(notice.textContent).toMatch(
+      /couldn't compare market prices against an earlier day/i,
+    );
+    expect(notice.textContent).toMatch(/Not enough days captured yet/i);
+    // A young capture history is not a fault, and must not be called one.
+    expect(notice.textContent).not.toMatch(/came back degraded/i);
+    // The producer's own token rides the element, never the sentence.
+    expect(notice.getAttribute("title")).toBe("insufficient_history");
+    expect(within(market).queryByText(/insufficient_history/)).toBeNull();
+
+    // 3. The receipt sheet still records it verbatim — `producerReasons` reads
+    //    the MARKET comparison window now, not only the model's.
+    expect(screen.getByTestId("wc-raw-reasons").textContent).toContain(
+      "insufficient_history",
+    );
+    // 4. And the market source survives in the sheet even though the comparison
+    //    window carried no dates.
+    expect(screen.getByTestId("wc-provenance").textContent).toContain(
+      "fantasycalc_overlay",
+    );
+  });
+
+  it("keeps saying 'held steady' when the comparison genuinely ran and nothing moved", async () => {
+    mockFetch(
+      200,
+      whatChangedResponse({
+        daily_diff: {
+          market: {
+            status: "ok",
+            roster_deltas: [],
+            top_movers: [],
+            total_movers_count: 0,
+          },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /market price-discovery/i }),
+      ).toBeTruthy(),
+    );
+    const market = screen.getByRole("region", { name: /market price-discovery/i });
+    expect(
+      within(market).getByText(/held steady — no movement on this tape/i),
+    ).toBeTruthy();
+    expect(within(market).queryByTestId("wc-market-degraded")).toBeNull();
+    // No rows on screen means no trend slots to explain, so the note that
+    // explains blank ones does not render either.
+    expect(within(market).queryByTestId("wc-trend-note")).toBeNull();
+  });
+
+  it("still calls a real market abort a degradation, and says why", async () => {
+    mockFetch(
+      200,
+      whatChangedResponse({
+        overall_status: "degraded",
+        daily_diff: {
+          overall_status: "degraded",
+          market: {
+            status: "unavailable",
+            aborted_reason: "missing_sleeper_snapshot",
+            market_source: "fantasycalc_overlay",
+            roster_deltas: null,
+            top_movers: null,
+          },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /market price-discovery/i }),
+      ).toBeTruthy(),
+    );
+    const notice = within(
+      screen.getByRole("region", { name: /market price-discovery/i }),
+    ).getByTestId("wc-market-degraded");
+    expect(notice.textContent).toMatch(/came back degraded/i);
+    expect(notice.textContent).toMatch(/could not read your Sleeper roster/i);
+    expect(notice.getAttribute("title")).toBe("missing_sleeper_snapshot");
   });
 });

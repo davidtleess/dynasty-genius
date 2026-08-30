@@ -87,7 +87,9 @@ describe("TrustTruthPanel", () => {
     // rendered at the user. The state is unchanged and still non-dismissible;
     // it is now the product's one shared model-standing sentence.
     expect(within(panel).queryByText("decision_supported = false")).toBeNull();
-    expect(within(panel).queryByText("Descriptive only — not decision-grade.")).toBeNull();
+    expect(
+      within(panel).queryByText("Descriptive only — not decision-grade."),
+    ).toBeNull();
     expect(within(panel).getByTestId("model-standing").textContent).toMatch(
       /second opinion/i,
     );

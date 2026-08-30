@@ -7,7 +7,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { auditRenderedCopy } from "../lib/renderRule";
-import { EvidenceSection } from "./EvidenceSection";
+import { EVIDENCE_ABSENT_SENTENCE, EvidenceSection } from "./EvidenceSection";
 
 // biome-ignore lint/suspicious/noExplicitAny: the component's own Zod parse is the contract check; these are hand-built wire shapes.
 type Wire = any;
@@ -106,11 +106,17 @@ describe("EvidenceSection", () => {
     expect(auditRenderedCopy(container)).toEqual([]);
   });
 
-  // The other half of the same boundary: real absence still renders nothing, so
-  // the section does not announce an empty region (spec §6.6). The distinction
-  // matters — `counter_argument_unavailable` means none was WRITTEN, which is
-  // absence, while `evidence_suppressed_banned_term` means one was REMOVED.
-  it("renders nothing when the evidence is genuinely absent", () => {
+  // The other half of the same boundary. DG-109's rule stands — no per-field "No
+  // X available" row is rendered, because absence of content is not content —
+  // but DG-111 keeps the ONE sentence that stops the whole-block silence being
+  // read as a clean bill of health. A card that shows a projection and no
+  // evidence at all looks vetted, and it is not: an empty risk list means "we
+  // have no risk notes on him", never "he has no risks". The distinction
+  // DG-109 drew is intact — `counter_argument_unavailable` means none was
+  // WRITTEN (absence, and the sentence says so is OURS), while
+  // `evidence_suppressed_banned_term` means one was REMOVED (and speaks in its
+  // own words, asserted in the test above).
+  it("says an all-empty block is our gap, and never reads as a clean bill of health", () => {
     const { container } = render(
       <EvidenceSection
         evidence={evidence({
@@ -123,7 +129,12 @@ describe("EvidenceSection", () => {
       />,
     );
 
-    expect(container.querySelector(".dg-evidence")).toBeNull();
-    expect(container.textContent).toBe("");
+    // No "No counter-argument available" / "No risk flags available" rows.
+    expect(screen.queryByText(/^No .* available$/i)).toBeNull();
+    expect(container.querySelectorAll("li")).toHaveLength(0);
+    // One sentence, and it locates the absence in OUR notes, not in the player.
+    expect(screen.getByText(EVIDENCE_ABSENT_SENTENCE)).toBeTruthy();
+    expect(EVIDENCE_ABSENT_SENTENCE).toMatch(/not that there is nothing to say/i);
+    expect(auditRenderedCopy(container)).toEqual([]);
   });
 });

@@ -123,7 +123,9 @@ describe("RosterCapacitySandbox", () => {
     // no-nomination register David repealed is gone.
     expect(screen.queryByText("Descriptive only — not decision-grade.")).toBeNull();
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
-    expect(screen.getByText(/sorted most expendable first/i)).toBeTruthy();
+    expect(
+      screen.getByText(/ordered by what we know, not by who to drop/i),
+    ).toBeTruthy();
 
     const cumulative = screen.getByText("-27.83 to -12.50");
     expect(cumulative.tagName).toBe("SPAN");

@@ -118,10 +118,10 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
           further down; this one now speaks only where there IS something below
           to qualify. The element itself is conditional, so a clean read does not
           ship an empty styled paragraph. */}
-      {data.artifact_status !== "ok" && !blocked && (
+      {data.artifact_status === "degraded" && !blocked && (
         <p className="dg-rc__status" data-artifact-status={data.artifact_status}>
-          Heads up: this capacity read came back {describeToken(data.artifact_status)},
-          so treat the ranges below as provisional.
+          Heads up: this capacity read came back degraded, so treat the ranges below as
+          provisional.
         </p>
       )}
 
@@ -140,8 +140,8 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
 
       {blocked ? (
         <p className="dg-rc__blocked">
-          This capacity read was blocked, so there are no numbers to show — not
-          zero cuts required, no reading at all.
+          This capacity read was blocked, so there are no numbers to show — not zero
+          cuts required, no reading at all.
         </p>
       ) : (
         <>

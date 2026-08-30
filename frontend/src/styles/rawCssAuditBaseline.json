@@ -89,7 +89,7 @@
       "raw_rgb": 0,
       "raw_spacing_values": 4,
       "raw_radius_values": 0,
-      "raw_font_size_values": 3,
+      "raw_font_size_values": 2,
       "non_token_font_families": 0
     },
     {
@@ -209,7 +209,7 @@
     "raw_rgb": 0,
     "raw_spacing_values": 70,
     "raw_radius_values": 30,
-    "raw_font_size_values": 45,
+    "raw_font_size_values": 44,
     "non_token_font_families": 0
   }
 }

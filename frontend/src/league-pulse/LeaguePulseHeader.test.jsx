@@ -42,9 +42,7 @@ describe("LeaguePulseHeader", () => {
         "This league snapshot was built from data captured 2026-06-22.",
       ),
     ).toBeTruthy();
-    expect(
-      within(banner).getByText(/4 records were dropped as unreadable/i),
-    ).toBeTruthy();
+    expect(within(banner).getByText(/4 records could not be matched up/i)).toBeTruthy();
     expect(
       within(banner).queryByText("Descriptive only — not decision-grade."),
     ).toBeNull();

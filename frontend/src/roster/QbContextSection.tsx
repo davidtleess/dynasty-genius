@@ -33,8 +33,8 @@ export function QbContextSection({
     <section className="dg-roster__qb" aria-label="QB context cards">
       <h2>QB context</h2>
       <p className="dg-roster__qb-note">
-        How his passing has actually gone — context for reading the roster above, not
-        a grade on him.
+        How his passing has actually gone — context for reading the roster above, not a
+        grade on him.
       </p>
       <ul>
         {list.map((c) => (

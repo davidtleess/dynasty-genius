@@ -43,7 +43,7 @@ Film-room charcoal, dark-first (`[data-theme="dark"]` on `index.html`); a light 
 
 ## Components
 
-Compose from `frontend/src/ui/` primitives — never rebuild locally: ReceiptTrigger, CaveatBlock, MetricCell, ValueHero, PlayerIdentity, SpreadBar, ValueBandDivider, GradedBar, DailyTape, DisclosureLine, SeriesSlot, ChartFrame. Radius vocabulary: 4px controls/blocks, 6px region containers, 3px chips. One focus grammar: 2px `--dg-focus` outline, offset 2. Every quiet/pending/failure state is a *designed* primitive state, never raw text.
+Compose from `frontend/src/ui/` primitives — never rebuild locally: ReceiptTrigger, TokenNotes, MetricCell, ValueHero, PlayerIdentity, SpreadBar, ValueBandDivider, GradedBar, DailyTape, SeriesSlot, ChartFrame. (DG-111 retired `CaveatBlock` and `DisclosureLine`: David repealed the stamped-caveat register on 2026-08-29, so a surface says the fact in a sentence where it applies and puts the producer's own tokens behind a receipt. `TokenNotes` is where a list of backend tokens goes.) Radius vocabulary: 4px controls/blocks, 6px region containers, 3px chips. One focus grammar: 2px `--dg-focus` outline, offset 2. Every quiet/pending/failure state is a *designed* primitive state, never raw text.
 
 ## Motion (plain CSS, Carbon-derived tokens; no motion runtime)
 

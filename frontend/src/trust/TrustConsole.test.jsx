@@ -317,9 +317,7 @@ describe("TrustConsole", () => {
     expect(footer.querySelector('[data-grade="ACTIVE_B_VALIDATED"]')).toBeTruthy();
     expect(within(footer).getByText("In use, ranks well in testing")).toBeTruthy();
     expect(
-      within(footer).getByText(
-        "internal model grade — not a market-edge or decision-support claim",
-      ),
+      within(footer).getByText("our own grade, not a claim that it beats the market"),
     ).toBeTruthy();
     expect(within(footer).getByText("dynastyprocess_ecr_2qb")).toBeTruthy();
     expect(

@@ -620,7 +620,12 @@ function laneNotice(
   reasons: readonly string[],
 ): string | null {
   if (reasons.length === 0) return null;
-  const said = reasons.map((token) => describeToken(token)).join("; ");
+  // A dictionary sentence ends in a full stop; here it is a CLAUSE inside a
+  // longer sentence, so the stop comes off. Nothing else about the string is
+  // touched — the words the dictionary chose are the words that render.
+  const said = reasons
+    .map((token) => describeToken(token).replace(/\.$/, ""))
+    .join("; ");
   const numbers = lane === "market" ? "the prices below" : "the model numbers below";
   if (reasons.every((token) => NOT_A_FAULT.has(token))) {
     const subject = lane === "market" ? "market prices" : "our projections";
@@ -1128,7 +1133,9 @@ function sectionNotice(sec: WhatChangedStructuralSection): string | null {
     );
   }
   if (sec.aborted_reason) {
-    parts.push(`part of it did not come through — ${describeToken(sec.aborted_reason)}`);
+    parts.push(
+      `part of it did not come through — ${describeToken(sec.aborted_reason)}`,
+    );
   } else if (sec.status !== "ok" && parts.length === 0) {
     parts.push(`this section came back ${describeToken(sec.status)}`);
   }

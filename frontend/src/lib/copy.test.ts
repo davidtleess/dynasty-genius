@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   describeToken,
-  MODEL_STANDING_SENTENCE,
   fieldLabel,
   formatCaptureTimestamp,
   lookupToken,
+  MODEL_STANDING_SENTENCE,
   receiptDetail,
   reportCountLabel,
   reportStateLabel,
