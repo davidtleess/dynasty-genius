@@ -4,7 +4,7 @@ import type {
   zTradeMarketReconciliation,
   zTradeRosterReconciliation,
 } from "../lib/api/zod.gen";
-import { valueWord } from "../lib/copy";
+import { VALUE_OVER_REPLACEMENT, valueWord } from "../lib/copy";
 
 type ModelReconciliation = z.infer<typeof zTradeRosterReconciliation>;
 type MarketReconciliation = z.infer<typeof zTradeMarketReconciliation>;
@@ -38,7 +38,7 @@ type MarketAsset = MarketReconciliation["sent_assets"][number];
 //
 // THE SCALE LAW (the reason a blended number would be a lie): the two lanes are
 // on DIFFERENT SCALES. The market lane carries FantasyCalc's own points; the
-// model lane counts value over a replacement-level player. The backend says so
+// model lane counts value over replacement. The backend says so
 // itself in the caveat `fantasycalc_raw_scale_not_xvar` — "These are
 // FantasyCalc's own numbers on their own scale — not our value over
 // replacement" (copy.ts). The copy below states that in the reader's path so a
@@ -571,18 +571,19 @@ export function TradeVerdict({
             lane="model"
             heading="By our model"
             sentence={modelRow.sentence}
-            scale="Value over a replacement-level player."
+            scale={`${VALUE_OVER_REPLACEMENT}.`}
             notes={modelRow.notes}
           />
         )}
       </div>
       <p className="dg-verdict__read">{read}</p>
       {/* The scale law, in the reader's path and not in a footnote: two numbers
-          on different scales must never be subtracted from one another. */}
+          on different scales must never be subtracted from one another. The
+          quantity is named with DG-117's constant, which is the ONE name for it
+          across the product — its jargon rule exists because this product had
+          four spellings of it on David's screen. */}
       <p className="dg-verdict__scale-law">
-        Those two numbers sit on different scales, so there is no subtracting one from
-        the other: the market's are FantasyCalc points, ours count value over a
-        replacement-level player.
+        {`Those two numbers sit on different scales, so there is no subtracting one from the other: the market's are FantasyCalc points, ours are ${VALUE_OVER_REPLACEMENT.toLowerCase()}.`}
       </p>
       {cut !== null && <p className="dg-verdict__cut">{cut}</p>}
       {market !== null && (

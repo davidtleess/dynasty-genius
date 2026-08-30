@@ -9,7 +9,7 @@
 // a call he explicitly declined to bless).
 //
 // THE HONESTY LAW THIS FILE GUARDS: the two pricings are on DIFFERENT SCALES.
-// The model lane counts value over a replacement-level player; the market lane
+// The model lane counts value over replacement; the market lane
 // carries FantasyCalc's own points. The backend says so itself in the caveat
 // `fantasycalc_raw_scale_not_xvar` (market_reconciler.py:21-27). So the copy
 // must SAY the scales differ rather than inviting a subtraction across them,
@@ -259,7 +259,7 @@ describe("Trade Lab — both prices, plainly", () => {
 
     expect(text).toMatch(/different scales/i);
     expect(text).toMatch(/FantasyCalc/);
-    expect(text).toMatch(/value over a replacement-level player/i);
+    expect(text).toMatch(/value over replacement/i);
     // The one number that must never exist: a merged score across the scales.
     expect(text).not.toMatch(/\b(blended|combined|net difference|overall score)\b/i);
   });
