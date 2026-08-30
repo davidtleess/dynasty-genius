@@ -1,85 +1,59 @@
 {
-  "config_version": 2,
-  "timezone": "America/New_York",
-  "receipts": {
-    "com.davidleess.dynasty-nflverse-usage-capture": {
-      "receipt_path": "app/data/nflverse_usage/nflverse_usage_status_latest.json",
-      "timestamp_fields": [
-        "finished_at",
-        "started_at"
-      ]
-    },
-    "com.davidleess.dynasty-league-transaction-capture": {
-      "receipt_path": "app/data/league_transactions/transaction_capture_status_latest.json",
-      "timestamp_fields": [
-        "finished_at",
-        "started_at"
-      ]
-    },
-    "com.davidleess.dynasty-daily-chain": {
-      "receipt_path": "app/data/ops/daily_chain_latest_report.json",
-      "timestamp_fields": []
-    },
-    "com.davidleess.dynasty-ff-playerids-snapshot": {
-      "receipt_path": "app/data/ops/ff_playerids_snapshot_status_latest.json",
-      "timestamp_fields": [
-        "finished_at"
-      ]
-    },
-    "com.davidleess.dynasty-model-pvo-refresh": {
-      "receipt_path": "app/data/model_capture/pvo_refresh_latest_report.json",
-      "timestamp_fields": []
-    },
-    "com.davidleess.dynasty-league-opportunity-map": {
-      "receipt_path": "app/data/valuation/league_opportunity_latest.json",
-      "timestamp_fields": [
-        "captured_at"
-      ]
-    },
-    "com.davidleess.dynasty-market-divergence-refresh": {
-      "receipt_path": "app/data/valuation_runtime/market_divergence_refresh_status_latest.json",
-      "timestamp_fields": [
-        "finished_at",
-        "started_at"
-      ]
-    },
-    "com.davidleess.dynasty-realized-outcome-scoring": {
-      "receipt_path": "app/data/valuation_runtime/realized_outcome_scoring_status_latest.json",
-      "timestamp_fields": [
-        "finished_at",
-        "started_at"
-      ]
-    },
-    "com.davidleess.dynasty-roster-capacity-audit": {
-      "receipt_path": "app/data/ops/roster_capacity_audit_status_latest.json",
-      "timestamp_fields": [
-        "finished_at",
-        "started_at"
-      ]
-    },
-    "com.davidleess.dynasty-backup-irreplaceable": {
-      "receipt_path": "app/data/ops/backup_status_latest.json",
-      "timestamp_fields": [
-        "finished_at",
-        "started_at"
-      ]
-    },
-    "com.davidleess.dynasty-capture-gap-alert": {
-      "receipt_path": "app/data/ops/capture_gap_alert_state.json",
-      "timestamp_fields": [
-        "updated_at"
-      ]
-    },
-    "com.davidleess.dynasty-replay-verify": {
-      "receipt_path": "app/data/ops/replay_reproducibility_latest.json",
-      "timestamp_fields": [
-        "generated_at"
-      ]
-    }
+ "config_version": 2,
+ "timezone": "America/New_York",
+ "receipts": {
+  "com.davidleess.dynasty-nflverse-usage-capture": {
+   "receipt_path": "app/data/nflverse_usage/nflverse_usage_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
   },
-  "unguarded": {
-    "com.davidleess.dynasty-catchup-guard": "the guard itself \u2014 self-guarding is circular; hybrid schedule since DG-082 (15-min calendar lattice + StartInterval 900 + RunAtLoad); manual remedy is launchctl kickstart",
-    "com.davidleess.dynasty-api": "KeepAlive service, not a scheduled job (DG-087/SR-12) \u2014 no calendar slot to miss; launchd itself restarts it, and a receipts entry for a slotless label would surface as unconfigured and degrade the guard; manual remedy: launchctl kickstart -k for a hang; a SPAWN failure (penalty box) clears only with bootout gui/501/<label> then bootstrap gui/501 <plist> \u2014 kickstart cannot clear it",
-    "com.davidleess.dynasty-nflverse-vintage-sync": "DG-100 vintage-sync channel: plist committed but NOT YET BOOTSTRAPPED \u2014 guarding an uninstalled label makes the guard kick-fail it every 15-min tick (the DG-087 corollary). At David's install sitting, MOVE this label to receipts as: {\"receipt_path\": \"app/data/ops/nflverse_vintage_backup_status.json\", \"timestamp_fields\": [\"finished_at\", \"started_at\"]} in the same sitting as the bootstrap. Until then a slept-through 07:00 slot heals at the next day's run (the channel is additive and idempotent)."
+  "com.davidleess.dynasty-league-transaction-capture": {
+   "receipt_path": "app/data/league_transactions/transaction_capture_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-daily-chain": {
+   "receipt_path": "app/data/ops/daily_chain_latest_report.json",
+   "timestamp_fields": []
+  },
+  "com.davidleess.dynasty-ff-playerids-snapshot": {
+   "receipt_path": "app/data/ops/ff_playerids_snapshot_status_latest.json",
+   "timestamp_fields": ["finished_at"]
+  },
+  "com.davidleess.dynasty-model-pvo-refresh": {
+   "receipt_path": "app/data/model_capture/pvo_refresh_latest_report.json",
+   "timestamp_fields": []
+  },
+  "com.davidleess.dynasty-league-opportunity-map": {
+   "receipt_path": "app/data/valuation/league_opportunity_latest.json",
+   "timestamp_fields": ["captured_at"]
+  },
+  "com.davidleess.dynasty-market-divergence-refresh": {
+   "receipt_path": "app/data/valuation_runtime/market_divergence_refresh_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-realized-outcome-scoring": {
+   "receipt_path": "app/data/valuation_runtime/realized_outcome_scoring_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-roster-capacity-audit": {
+   "receipt_path": "app/data/ops/roster_capacity_audit_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-backup-irreplaceable": {
+   "receipt_path": "app/data/ops/backup_status_latest.json",
+   "timestamp_fields": ["finished_at", "started_at"]
+  },
+  "com.davidleess.dynasty-capture-gap-alert": {
+   "receipt_path": "app/data/ops/capture_gap_alert_state.json",
+   "timestamp_fields": ["updated_at"]
+  },
+  "com.davidleess.dynasty-replay-verify": {
+   "receipt_path": "app/data/ops/replay_reproducibility_latest.json",
+   "timestamp_fields": ["generated_at"]
   }
+ },
+ "unguarded": {
+  "com.davidleess.dynasty-catchup-guard": "the guard itself — self-guarding is circular; hybrid schedule since DG-082 (15-min calendar lattice + StartInterval 900 + RunAtLoad); manual remedy is launchctl kickstart",
+  "com.davidleess.dynasty-api": "KeepAlive service, not a scheduled job (DG-087/SR-12) — no calendar slot to miss; launchd itself restarts it, and a receipts entry for a slotless label would surface as unconfigured and degrade the guard; manual remedy: launchctl kickstart -k for a hang; a SPAWN failure (penalty box) clears only with bootout gui/501/<label> then bootstrap gui/501 <plist> — kickstart cannot clear it",
+  "com.davidleess.dynasty-nflverse-vintage-sync": "DG-100 vintage-sync channel: plist committed but NOT YET BOOTSTRAPPED — guarding an uninstalled label makes the guard kick-fail it every 15-min tick (the DG-087 corollary). At David's install sitting, MOVE this label to receipts as: {\"receipt_path\": \"app/data/ops/nflverse_vintage_backup_status.json\", \"timestamp_fields\": [\"finished_at\", \"started_at\"]} in the same sitting as the bootstrap. Until then a slept-through 07:00 slot heals at the next day's run (the channel is additive and idempotent)."
+ }
 }
