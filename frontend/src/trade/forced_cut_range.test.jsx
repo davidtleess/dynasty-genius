@@ -235,7 +235,9 @@ describe("Trade Lab forced-cut range rendering", () => {
     for (const required of ["700", "1000", "200", "500"]) {
       expect(text).toContain(required);
     }
-    expect(text).toContain("market replacement pool stale");
+    expect(text).toContain(
+      "Market replacement data is stale, so this range is the widest one possible.",
+    );
     expect(text).not.toMatch(/xVAR|PVO|forced_cut_penalty_xvar|penalty_status/i);
 
     rerender(

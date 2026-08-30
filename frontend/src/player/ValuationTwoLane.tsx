@@ -10,52 +10,17 @@
 import type { z } from "zod";
 
 import type { zPlayerDetailResponse } from "../lib/api/zod.gen";
+import { sourcedCaveat, valueWord } from "../lib/copy";
+import { TokenNotes } from "../ui/TokenNotes";
 
 type PlayerDetail = z.infer<typeof zPlayerDetailResponse>;
 type ModelLane = PlayerDetail["model"];
 type MarketLane = PlayerDetail["market"];
 type Divergence = PlayerDetail["divergence"];
 
-const DIVERGENCE_LABELS: Record<string, string> = {
-  model_higher_than_market: "Model higher than market",
-  model_lower_than_market: "Model lower than market",
-  inside_band: "Inside band",
-};
-
 // Rendered when a value the backend owns is simply absent — never a zero, never
 // a guess.
 const UNKNOWN = "—";
-
-// Raw caveat keys never reach the screen (prose ruling). Known keys get the
-// sentence a smart friend would say; an unknown key degrades to its own words
-// (underscores to spaces) — reformatted, never given fabricated meaning.
-//
-// Each sentence is built from the lane's OWN source label rather than a
-// hardcoded provider name, so a future non-FantasyCalc market source is named
-// correctly instead of being mislabeled inside a truth-bearing caveat.
-const CAVEAT_SENTENCES: Record<string, (sourceLabel: string) => string> = {
-  market_overlay_static_caveat: (sourceLabel) =>
-    sourceLabel === UNKNOWN
-      ? "Market values come from a saved snapshot, not a live feed."
-      : `Market values come from a saved ${sourceLabel} snapshot, not a live feed.`,
-  source_timestamp_is_fetch_time_not_publish_time: () =>
-    "The capture date above is when we pulled these prices, not when the source published them.",
-  // Emitted for every TE by universe_market_divergence.py:291 — 62 of the 398
-  // players carrying a market overlay today. Without a sentence here it reached
-  // the screen as the half-broken "Te review period.", which is exactly the raw
-  // pipeline key the prose ruling forbids.
-  te_review_period: () =>
-    "Tight end values are under review, so treat this one as a work in progress.",
-};
-
-function caveatSentence(caveat: string, sourceLabel: string): string {
-  const known = CAVEAT_SENTENCES[caveat];
-  if (known !== undefined) {
-    return known(sourceLabel);
-  }
-  const words = caveat.replaceAll("_", " ").trim();
-  return `${words.charAt(0).toUpperCase()}${words.slice(1)}.`;
-}
 
 // The artifact emits percentiles on a 0-100 scale (compute_dvs_pct_batch rounds
 // to one decimal; the sibling xvar_percentile_overall is 0-100 too), so render
@@ -67,6 +32,13 @@ function percent(value: number | null | undefined): string {
 
 function marketSourceLabel(source: string | null | undefined): string {
   return source === "fantasycalc" ? "FantasyCalc" : (source ?? UNKNOWN);
+}
+
+// The caveat sentences name the source, so an absent source must reach them as
+// an empty string rather than as the em dash the FACT rows use.
+function sourceForSentence(source: string | null | undefined): string {
+  const label = marketSourceLabel(source);
+  return label === UNKNOWN ? "" : label;
 }
 
 // Readable capture date ("Jul 22, 2026"). UTC so the shown day never shifts
@@ -100,6 +72,12 @@ function captureDate(timestamp: string | null | undefined): string {
   return Number.isNaN(parsed) ? timestamp : CAPTURE_DATE_FORMAT.format(parsed);
 }
 
+// An enum the backend may simply not have. Absent stays the em dash the numeric
+// facts use — never a fabricated word, never the string "null".
+function enumFact(value: string | null | undefined): string {
+  return value === null || value === undefined ? UNKNOWN : valueWord(value);
+}
+
 function Fact({ label, value }: { label: string; value: string | number | null }) {
   return (
     <div className="dg-two-lane__fact">
@@ -118,8 +96,13 @@ export function ValuationTwoLane({
   market: MarketLane;
   divergence: Divergence;
 }) {
+  // "unavailable" is the players route's own fallback when no divergence block
+  // exists (app/api/routes/players.py:295) — say that, rather than a bare word
+  // that could read as a verdict on the player.
   const divergenceLabel =
-    DIVERGENCE_LABELS[divergence.status] ?? "Divergence unavailable";
+    divergence.status === "unavailable"
+      ? "We have no price comparison for him right now."
+      : valueWord(divergence.status);
 
   return (
     <div className="dg-two-lane">
@@ -130,8 +113,10 @@ export function ValuationTwoLane({
       >
         {model ? (
           <dl className="dg-two-lane__facts">
-            <Fact label="Engine" value={model.engine_path} />
-            <Fact label="Model grade" value={model.model_grade} />
+            {/* Which model scored him and what state that score is in are both
+                FACTS, not machinery — they stay, said in words. */}
+            <Fact label="Scored by" value={enumFact(model.engine_path)} />
+            <Fact label="Model status" value={enumFact(model.model_grade)} />
             <Fact label="Dynasty value" value={model.dynasty_value_score} />
             <Fact label="Value above replacement (xVAR)" value={model.xvar} />
             <Fact
@@ -164,11 +149,12 @@ export function ValuationTwoLane({
                 value={captureDate(market.source_timestamp)}
               />
             </dl>
-            {market.caveats.map((caveat) => (
-              <p key={caveat} className="dg-two-lane__note">
-                {caveatSentence(caveat, marketSourceLabel(market.source))}
-              </p>
-            ))}
+            <TokenNotes
+              className="dg-two-lane__notes"
+              notes={market.caveats.map((caveat) =>
+                sourcedCaveat(caveat, sourceForSentence(market.source)),
+              )}
+            />
           </>
         ) : (
           <p className="dg-two-lane__degraded">Market unavailable</p>

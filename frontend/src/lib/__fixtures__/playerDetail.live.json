@@ -1,0 +1,85 @@
+{
+  "caveats": [],
+  "decision_supported": false,
+  "degradation": null,
+  "divergence": {
+    "delta": -0.133,
+    "status": "model_lower_than_market"
+  },
+  "evidence": {
+    "caveats": {
+      "caveats": [],
+      "items": [
+        "Signal completeness 83% \u2014 missing: ppg_t_minus_1, ppg_t_minus_2, snap_share_t_minus_1",
+        "no_market_overlay",
+        "no_internal_value_signal",
+        "engine_b_not_decision_grade"
+      ]
+    },
+    "counter_argument": {
+      "caveats": ["counter_argument_unavailable"],
+      "status": "experimental",
+      "text": null
+    },
+    "risk_flags": {
+      "caveats": [],
+      "items": []
+    },
+    "top_drivers": {
+      "caveats": [],
+      "items": ["age_not_near_position_cliff"]
+    }
+  },
+  "frozen_prediction": {
+    "basis": "model_supported_prediction_captured",
+    "coverage": {
+      "current_rostered_skill_in_frozen_prediction_cohort_count": 221,
+      "current_rostered_skill_not_in_frozen_prediction_cohort_count": 53,
+      "current_rostered_skill_player_count": 274
+    },
+    "decision_supported": false,
+    "frozen_capture_date": "2026-08-05",
+    "message": "A model prediction was frozen for 2026 outcome evaluation.",
+    "season": 2026,
+    "status": "included"
+  },
+  "identity": {
+    "age": 22.0,
+    "draft_class": null,
+    "name": "Jaxson Dart",
+    "nfl_draft_pick": null,
+    "nfl_draft_round": null,
+    "position": "QB",
+    "sleeper_id": "12508",
+    "team": "NYG"
+  },
+  "market": {
+    "caveats": [
+      "market_overlay_static_caveat",
+      "source_timestamp_is_fetch_time_not_publish_time"
+    ],
+    "market_rank_overall": 30,
+    "market_rank_position": 11,
+    "market_value": 5082.0,
+    "source": "fantasycalc",
+    "source_timestamp": "2026-08-29T13:00:01.968686+00:00",
+    "status": "available"
+  },
+  "model": {
+    "dynasty_value_score": 77.5,
+    "engine_path": "ENGINE_B",
+    "model_grade": "ACTIVE_B",
+    "model_version": "engine_b_v2_qb",
+    "projection_1y": null,
+    "projection_2y": 15.576,
+    "projection_3y": null,
+    "xvar": 18.43,
+    "xvar_percentile_position": 58.3
+  },
+  "model_status": "modeled",
+  "sleeper_id": "12508",
+  "source_timestamps": {
+    "market": "2026-08-29T13:00:01.968686+00:00",
+    "pvo": "2026-08-29T18:00:02.778437+00:00"
+  }
+}

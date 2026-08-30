@@ -30,8 +30,12 @@ describe("LeaguePulseHeader", () => {
     const capturedAt = within(banner).getByText("as of Jun 22, 2026, 2:00 PM EDT");
     expect(capturedAt).toBeTruthy();
     expect(capturedAt.getAttribute("title")).toBe("2026-06-22T18:00:00Z");
+    // DG-109: the capture date the caveat carried survives verbatim; only the
+    // token's vocabulary changed.
     expect(
-      within(banner).getByText("League Pulse artifact state (2026-06-22)"),
+      within(banner).getByText(
+        "This league snapshot was built from data captured 2026-06-22.",
+      ),
     ).toBeTruthy();
     expect(within(banner).getByText(/4 records withheld/i)).toBeTruthy();
     expect(
@@ -39,13 +43,19 @@ describe("LeaguePulseHeader", () => {
     ).toBeTruthy();
     expect(within(banner).queryByText(/decision_supported=false/i)).toBeNull();
 
-    for (const version of [
-      "team_posture.v1",
-      "team_value_matrix.v1",
-      "league_opportunity.v2",
+    // The three artifact versions stay VERBATIM — they are the receipt, and a
+    // receipt that renamed what it cites would stop being one. DG-109 only
+    // labels them and declares the list as the receipt layer.
+    for (const [label, version] of [
+      ["Team posture data", "team_posture.v1"],
+      ["Team value data", "team_value_matrix.v1"],
+      ["League opportunity data", "league_opportunity.v2"],
     ]) {
-      expect(within(banner).getByText(version)).toBeTruthy();
+      expect(within(banner).getByText(`${label}: ${version}`)).toBeTruthy();
     }
+    expect(
+      within(banner).getByText("Team posture data: team_posture.v1").closest("ul"),
+    ).toHaveProperty("dataset.receipt");
   });
 
   it("does not render a withheld note when all dropped counts are zero", () => {

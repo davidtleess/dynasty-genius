@@ -30,9 +30,13 @@ describe("DailyTape", () => {
     expect(
       screen.queryByText(/registry version|model vintage|capture streak/i),
     ).toBeNull();
-    expect(screen.getByText(/projection update/i).getAttribute("title")).toContain(
-      "registry_version=4",
-    );
+    // DG-109: the receipt now names the field in words AND keeps the raw field
+    // name, through the one shared `receiptDetail` helper.
+    const provenanceTitle = screen
+      .getByText(/projection update/i)
+      .getAttribute("title");
+    expect(provenanceTitle).toContain("Model registry version — 4");
+    expect(provenanceTitle).toContain("(from registry_version)");
   });
 
   it("treats date-only capture values as local calendar dates", async () => {

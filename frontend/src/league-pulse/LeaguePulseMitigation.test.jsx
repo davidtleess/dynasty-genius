@@ -124,8 +124,10 @@ describe("League Pulse graduation mitigation", () => {
     const postureSection = within(surface).getByRole("region", {
       name: /team postures/i,
     });
-    const contender = within(postureSection).getByText("CONTENDER");
-    const rebuilding = within(postureSection).getByText("REBUILDING");
+    // DG-109: the posture enums still render as the neutral, marked labels
+    // they always were — in a manager's words rather than in shouted caps.
+    const contender = within(postureSection).getByText("Contending");
+    const rebuilding = within(postureSection).getByText("Rebuilding");
 
     for (const label of [contender, rebuilding]) {
       const marker = label.closest("[data-posture-neutral]");

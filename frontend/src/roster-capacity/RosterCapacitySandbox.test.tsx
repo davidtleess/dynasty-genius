@@ -156,9 +156,14 @@ describe("RosterCapacitySandbox", () => {
     await waitFor(() =>
       expect(screen.getByText(/artifact status: degraded/i)).toBeTruthy(),
     );
-    expect(screen.getByText(/Freshness unverifiable/i)).toBeTruthy();
+    // DG-109: the same fact — we could not confirm the capture time — as a
+    // sentence rather than a status token.
+    expect(screen.getByText(/could not confirm when this was captured/i)).toBeTruthy();
     expect(
-      screen.getByText(/Waiver range unavailable \(stale_snapshot\)/i),
+      // The producer's own reason survives verbatim in its own words.
+      screen.getByText(
+        /No replacement-value range for this position — stale snapshot/i,
+      ),
     ).toBeTruthy();
     expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
   });
@@ -180,10 +185,10 @@ describe("RosterCapacitySandbox", () => {
     render(<RosterCapacitySandbox />);
 
     await waitFor(() =>
-      expect(screen.getByText(/capacity audit blocked/i)).toBeTruthy(),
+      expect(screen.getByText(/roster-capacity check could not run/i)).toBeTruthy(),
     );
     expect(
-      screen.getByText(/Capacity audit blocked \(malformed_snapshot\)/i),
+      screen.getByText(/roster-capacity check could not run — malformed snapshot/i),
     ).toBeTruthy();
     expect(screen.queryByText("-27.83 to -12.50")).toBeNull();
     expect(screen.queryByRole("table")).toBeNull();
@@ -237,7 +242,9 @@ describe("RosterCapacitySandbox", () => {
     );
     expect(screen.getByText(/RB range unavailable/i)).toBeTruthy();
     expect(
-      screen.getByText(/Waiver range unavailable \(coverage_floor\)/i),
+      screen.getByText(
+        /No replacement-value range for this position — coverage floor/i,
+      ),
     ).toBeTruthy();
     expect(screen.queryByText("0.00 to 0.00")).toBeNull();
   });
@@ -305,7 +312,7 @@ describe("RosterCapacitySandbox", () => {
     expect(screen.getByText("-3.50 to 2.25")).toBeTruthy();
     expect(screen.getByText("-1.50 to 0.50")).toBeTruthy();
     expect(screen.getByText("TE range unavailable")).toBeTruthy();
-    expect(screen.getByText(/null_bounds/i)).toBeTruthy();
+    expect(screen.getByText(/null bounds/i)).toBeTruthy();
     expect(screen.queryByText("0.00 to 0.00")).toBeNull();
     for (const row of screen.getAllByRole("row")) {
       expect(within(row).queryByRole("checkbox")).toBeNull();

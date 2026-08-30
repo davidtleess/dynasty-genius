@@ -1,17 +1,10 @@
 import type { z } from "zod";
 
 import type { zTradeMarketReconciliation } from "../lib/api/zod.gen";
-import { humanizeToken, RangeRow } from "./forcedCutRange";
+import { describeToken, valueWord } from "../lib/copy";
+import { RangeRow } from "./forcedCutRange";
 
 type MarketReconciliation = z.infer<typeof zTradeMarketReconciliation>;
-
-// Backend neutral divergence labels -> human display text. No verdict wording.
-const SIGNAL_DISPLAY: Record<string, string> = {
-  model_higher_than_market: "Model higher than market",
-  model_lower_than_market: "Model lower than market",
-  inside_band: "Inside band",
-  unavailable: "Unavailable",
-};
 
 // Market Snapshot (amber lane). Renders raw FantasyCalc values, the market
 // side difference, advisory realism warnings, and per-asset neutral
@@ -67,7 +60,7 @@ export function MarketLanePanel({
           {penalty.caveats.length > 0 && (
             <ul className="dg-lane__caveats" aria-label="Capacity caveats">
               {penalty.caveats.map((caveat) => (
-                <li key={caveat}>{humanizeToken(caveat)}</li>
+                <li key={caveat}>{describeToken(caveat)}</li>
               ))}
             </ul>
           )}
@@ -79,8 +72,7 @@ export function MarketLanePanel({
             {asset.label}
             {asset.divergence_context && (
               <span className="dg-lane__signal">
-                {SIGNAL_DISPLAY[asset.divergence_context.signal_label] ??
-                  asset.divergence_context.signal_label}
+                {valueWord(asset.divergence_context.signal_label)}
               </span>
             )}
           </li>

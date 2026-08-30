@@ -91,12 +91,17 @@
 }
 
 /* Caveat prose — one plain sentence per line, muted, outside the fact list. */
-.dg-two-lane__note {
+.dg-two-lane__note,
+.dg-two-lane__notes {
   margin: var(--dg-space-1) 0 0;
   color: var(--dg-text-muted);
   font-size: var(--dg-text-sm);
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+.dg-two-lane__notes {
+  padding-inline-start: var(--dg-space-4);
 }
 
 /* Model axis: blue. */

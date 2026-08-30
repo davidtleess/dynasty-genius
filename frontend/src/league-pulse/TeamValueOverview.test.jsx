@@ -60,35 +60,57 @@ describe("TeamValueOverview", () => {
 
     expect(card.getByText(/roster 9/i)).toBeTruthy();
 
+    // DG-109: the allowlists are unchanged — the same five value views, three
+    // age fields and three pick fields render, now under labels in words.
     for (const valueView of [
-      "starter_weighted_xvar",
-      "lineup_xvar",
-      "depth_credit_xvar",
-      "total_xvar_capped",
-      "top_n_xvar",
+      "Starter-weighted value",
+      "Starting lineup value",
+      "Credit for depth",
+      "Whole roster, capped",
+      "Top-asset core",
     ]) {
       expect(card.getByText(valueView)).toBeTruthy();
     }
 
-    for (const ageField of ["value_weighted_age", "median_age", "pct_value_over_28"]) {
+    for (const ageField of [
+      "Age, weighted by value",
+      "Median age",
+      "Share of value on players over 28",
+    ]) {
       expect(card.getByText(ageField)).toBeTruthy();
     }
 
-    for (const pickField of ["owned_count", "outgoing_count", "pick_value_status"]) {
+    for (const pickField of [
+      "Picks owned",
+      "Picks traded away",
+      "How picks are priced",
+    ]) {
       expect(card.getByText(pickField)).toBeTruthy();
     }
+    // `pick_value_status: "unvalued"` — the enum speaks rather than showing.
+    expect(card.getByText("No price")).toBeTruthy();
 
     for (const position of ["QB", "RB", "WR", "TE"]) {
-      expect(card.getByText(new RegExp(`${position}\\s+z_score`, "i"))).toBeTruthy();
+      expect(
+        card.getByText(new RegExp(`${position}:.*vs\\. the league average`, "i")),
+      ).toBeTruthy();
     }
-    expect(card.getByText(/QB\s+z_score\s+0\.40\s+balanced/i)).toBeTruthy();
-    expect(card.getByText(/RB\s+z_score\s+-0\.30\s+deficit/i)).toBeTruthy();
+    expect(
+      card.getByText(/QB:\s+0\.40\s+vs\. the league average — even/i),
+    ).toBeTruthy();
+    expect(
+      card.getByText(/RB:\s+-0\.30\s+vs\. the league average — thin/i),
+    ).toBeTruthy();
+
+    // No raw pipeline key survives on this card.
+    expect(card.queryByText(/z_score/i)).toBeNull();
+    expect(card.queryByText(/starter_weighted_xvar/i)).toBeNull();
 
     expect(card.queryByText(/ignored_value_view/i)).toBeNull();
     expect(card.queryByText(/ignored_age_key/i)).toBeNull();
     expect(card.queryByText(/ignored_pick_key/i)).toBeNull();
     expect(card.queryByText(/hide me/i)).toBeNull();
-    expect(card.queryByText(/DL\s+z_score/i)).toBeNull();
+    expect(card.queryByText(/DL:/i)).toBeNull();
     expect(card.queryByText(/Hidden Player/i)).toBeNull();
   });
 

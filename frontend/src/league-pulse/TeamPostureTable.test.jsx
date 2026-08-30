@@ -40,17 +40,24 @@ describe("TeamPostureTable", () => {
     const card = within(row);
 
     expect(card.getByText(/roster 9/i)).toBeTruthy();
-    expect(card.getByText("ASCENDING")).toBeTruthy();
+    // DG-109: the posture is the same fact, said the way a manager says it.
+    expect(card.getByText("Rising")).toBeTruthy();
+    expect(card.queryByText("ASCENDING")).toBeNull();
     expect(card.getByText(/0\.812/)).toBeTruthy();
-    expect(card.getByText("phase18_heuristic_posture")).toBeTruthy();
+    // The heuristic caveat still travels with the posture — as a sentence.
+    expect(
+      card.getByText(/not a read on what that manager actually intends/i),
+    ).toBeTruthy();
+    expect(card.queryByText("phase18_heuristic_posture")).toBeNull();
 
-    for (const component of [
-      "starter_weighted_xvar_z",
-      "age_window_score",
-      "early_pick_balance_score",
-      "development_stash_score",
+    // The allowlist is unchanged; only its labels are in words now.
+    for (const label of [
+      "Starter strength vs. the league",
+      "Age window",
+      "Early-pick balance",
+      "Taxi and development stash",
     ]) {
-      expect(card.getByText(component)).toBeTruthy();
+      expect(card.getByText(label)).toBeTruthy();
     }
 
     expect(card.queryByText(/ignored_component/i)).toBeNull();

@@ -184,8 +184,16 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     expect(modelLane.className).toContain("model");
     expect(marketLane.className).toContain("market");
 
-    expect(within(modelLane).getByText("ENGINE_A")).toBeTruthy();
-    expect(within(modelLane).getByText("PROSPECT_D")).toBeTruthy();
+    // DG-109: both model facts survive — in words, not as ENGINE_A / PROSPECT_D.
+    expect(
+      within(modelLane).getByText("Rookie model — draft capital and age"),
+    ).toBeTruthy();
+    expect(
+      within(modelLane).getByText(
+        "Scored by the rookie model — accuracy grade D, its weakest",
+      ),
+    ).toBeTruthy();
+    expect(within(modelLane).queryByText("ENGINE_A")).toBeNull();
     expect(within(modelLane).getByText("85.14")).toBeTruthy();
     expect(within(modelLane).getByText("10.31")).toBeTruthy();
     expect(within(modelLane).getByText("91%")).toBeTruthy();
@@ -215,7 +223,9 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     const divergence = within(card).getByTestId("player-divergence");
     expect(divergence.className).toContain("neutral");
     expect(divergence.className).not.toMatch(/model|market|blue|amber|green|red/i);
-    expect(within(divergence).getByText("Model lower than market")).toBeTruthy();
+    expect(
+      within(divergence).getByText("The market prices him higher than we do"),
+    ).toBeTruthy();
     expect(within(divergence).queryByText("-0.237")).toBeNull();
   });
 
@@ -264,7 +274,12 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     expect(within(card).getByText("Model unavailable")).toBeTruthy();
     expect(within(card).getByTestId("player-market-lane")).toBeTruthy();
     expect(within(card).getByText("Market unavailable")).toBeTruthy();
-    expect(within(card).getByText("Evidence unavailable")).toBeTruthy();
+    // DG-109: absence renders NOTHING. A null evidence block asserted nothing
+    // about the player, so the section disappears rather than announcing an
+    // empty region. The model/market lanes still say they are unavailable —
+    // those ARE facts about data we expected and do not have.
+    expect(within(card).queryByRole("region", { name: /evidence/i })).toBeNull();
+    expect(within(card).queryByText("Evidence unavailable")).toBeNull();
     expect(within(card).queryByText(/evidence incomplete/i)).toBeNull();
   });
 
@@ -330,10 +345,14 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     renderPage();
 
     const evidence = await screen.findByRole("region", { name: /evidence/i });
-    expect(within(evidence).getByText("No counter-argument available")).toBeTruthy();
-    expect(within(evidence).getByText("Experimental")).toBeTruthy();
-    expect(within(evidence).getByText("No top drivers available")).toBeTruthy();
-    expect(within(evidence).getByText("No caveats available")).toBeTruthy();
+    // DG-109, David's prose ruling: absence is not content. An unavailable
+    // counter-argument, an empty driver list and an empty caveat list each
+    // asserted NOTHING about this player, so none of them renders a row.
+    expect(within(evidence).queryByText("No counter-argument available")).toBeNull();
+    expect(within(evidence).queryByText("No top drivers available")).toBeNull();
+    expect(within(evidence).queryByText("No caveats available")).toBeNull();
+    expect(within(evidence).queryByText("No risk flags available")).toBeNull();
+    // What IS present still speaks, and keeps its constitutional amber.
     expect(within(evidence).getByText("RB age cliff approaching")).toBeTruthy();
     expect(within(evidence).queryByText(/Premium valuation/i)).toBeNull();
     expect(within(evidence).queryByText(/fabricated/i)).toBeNull();
@@ -342,7 +361,9 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     expect(within(marketLane).getByText("Market unavailable")).toBeTruthy();
     expect(screen.getByTestId("player-divergence").className).toContain("neutral");
     expect(
-      within(screen.getByTestId("player-divergence")).getByText("Inside band"),
+      within(screen.getByTestId("player-divergence")).getByText(
+        "Our price and the market's agree",
+      ),
     ).toBeTruthy();
   });
 });

@@ -80,6 +80,16 @@
   font-size: var(--dg-text-sm);
 }
 
+/* ── Receipt note: a backend token the copy dictionary has no sentence for
+   yet. It stays on screen (the fact is never dropped) but reads as the raw
+   feed line it is, never as prose we wrote. ── */
+.dg-ui-raw-note {
+  margin: var(--dg-space-1) 0 0;
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
 /* ── Metric cell: mono, tabular, right-aligned numerals. ── */
 .dg-ui-metric {
   display: inline-flex;
