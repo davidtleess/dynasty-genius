@@ -1,14 +1,14 @@
 import type { z } from "zod";
 
 import type { zTradeRosterReconciliation } from "../lib/api/zod.gen";
-import { describeToken } from "../lib/copy";
+import { describeToken, VALUE_OVER_REPLACEMENT } from "../lib/copy";
 import { PlayerNameButton } from "../player/playerSelection";
 import { TokenNotes } from "../ui/TokenNotes";
 import { RangeRow } from "./forcedCutRange";
 
 type ModelReconciliation = z.infer<typeof zTradeRosterReconciliation>;
 
-// Model View (blue lane). Renders the xVAR side values, the forced-cut capacity
+// Model View (blue lane). Renders the value-over-replacement side values, the forced-cut capacity
 // value-at-risk / recovery ranges (PR #92 net RC v1 ranges — the old gross
 // scalar is a backend compatibility field and is never displayed), and the
 // parity state. The backend's favors / adjusted_favors fields are intentionally
@@ -31,7 +31,10 @@ export function ModelLanePanel({
       data-testid="model-lane"
       data-visual-weight="equal"
     >
-      <h3 className="dg-lane__title">Model view (xVAR)</h3>
+      {/* DG-117: was "Model view (xVAR)". Same lane, same numbers, one name. */}
+      <h3 className="dg-lane__title">
+        Model view — {VALUE_OVER_REPLACEMENT.toLowerCase()}
+      </h3>
       <dl className="dg-lane__metrics">
         <dt>Sent</dt>
         <dd>{evaluation.side_a.side_value}</dd>

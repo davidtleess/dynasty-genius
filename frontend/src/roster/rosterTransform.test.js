@@ -154,9 +154,9 @@ describe("applyGroup", () => {
     const groups = applyGroup(ps, "xvar_bracket", "none");
 
     expect(groups.map((g) => g.label)).toEqual([
-      "xVAR 0.0+",
-      "xVAR below 0.0 (sub-replacement)",
-      "xVAR not modeled",
+      "Value over replacement 0.0 and above",
+      "Value over replacement below 0.0 — worth less than a replacement",
+      "No value over replacement figure",
     ]);
     expect(groups.map((g) => g.players.map((p) => p.player_id))).toEqual([
       ["replacement", "positive"],
@@ -181,9 +181,9 @@ describe("applyGroup", () => {
     const groups = applyGroup(ps, "xvar_bracket", "none");
 
     expect(groups.map((g) => g.label)).toEqual([
-      "xVAR 0.0+",
-      "xVAR below 0.0 (sub-replacement)",
-      "xVAR not modeled",
+      "Value over replacement 0.0 and above",
+      "Value over replacement below 0.0 — worth less than a replacement",
+      "No value over replacement figure",
     ]);
     expect(groups.map((g) => g.players.map((p) => p.player_id))).toEqual([
       ["zero"],
@@ -200,7 +200,9 @@ describe("applyGroup", () => {
       "xvar_bracket",
       "none",
     );
-    expect(allMissing.map((g) => g.label)).toEqual(["xVAR not modeled"]);
+    expect(allMissing.map((g) => g.label)).toEqual([
+      "No value over replacement figure",
+    ]);
     expect(allMissing[0].players.map((p) => p.player_id)).toEqual(["a", "b"]);
 
     const singleBucket = applyGroup(
@@ -208,7 +210,9 @@ describe("applyGroup", () => {
       "xvar_bracket",
       "none",
     );
-    expect(singleBucket.map((g) => g.label)).toEqual(["xVAR 0.0+"]);
+    expect(singleBucket.map((g) => g.label)).toEqual([
+      "Value over replacement 0.0 and above",
+    ]);
     expect(singleBucket[0].players.map((p) => p.player_id)).toEqual(["a", "b"]);
   });
 

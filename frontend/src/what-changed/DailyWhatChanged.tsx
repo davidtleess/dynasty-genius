@@ -17,6 +17,7 @@ import {
 } from "../lib/api/zod.gen";
 import {
   describeToken,
+  fieldLabel,
   formatCaptureTimestamp,
   receiptDetail,
   valueWord,
@@ -1012,7 +1013,10 @@ function ModelRows({ rows }: { rows: WhatChangedModelDelta[] }) {
             labelHidden
           />
           <DeltaCell label="Percentile" value={r.dvs_pct_delta} />
-          <DeltaCell label="Above replacement" value={r.xvar_delta} />
+          {/* DG-117: was "Above replacement" — a fifth spelling of the one
+              quantity. `xvar_delta` is the change in it, and the column sits
+              under a "change" header, so the label is the quantity's name. */}
+          <DeltaCell label={fieldLabel("xvar")} value={r.xvar_delta} />
         </AssetRow>
       ))}
     </ul>

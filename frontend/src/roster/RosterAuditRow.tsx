@@ -11,7 +11,7 @@
 import { useState } from "react";
 
 import type { RosterAuditResponse } from "../lib/api";
-import { liquidityWord, valueWord } from "../lib/copy";
+import { fieldLabel, liquidityWord, valueWord } from "../lib/copy";
 import { PlayerNameButton } from "../player/playerSelection";
 import { TokenNotes } from "../ui/TokenNotes";
 
@@ -65,7 +65,10 @@ export function RosterAuditRow({ player }: { player: Player }) {
         <td>{player.nfl_team ?? "—"}</td>
         <td>{num(player.age)}</td>
         <td>{valueWord(player.model_grade)}</td>
-        <td>{player.model_status_applies ? "applies" : "n/a"}</td>
+        {/* DG-117: the "applies" / "n/a" cell is gone — see RosterAuditTable's
+            COLUMNS note. `model_status_applies` still rides the row on
+            `data-applies`, which is what the trust de-emphasis in
+            RosterAudit.css and RosterAuditTable.test.jsx read. */}
         <td>
           {num(player.dynasty_value_score)}
           {player.dvs_pct != null ? ` (${player.dvs_pct}%)` : ""}
@@ -79,7 +82,7 @@ export function RosterAuditRow({ player }: { player: Player }) {
       </tr>
       {open && (
         <tr className="dg-roster__detail">
-          <td colSpan={10}>
+          <td colSpan={9}>
             {player.counter_argument?.text && (
               <p>Counter-argument: {player.counter_argument.text}</p>
             )}
@@ -100,7 +103,7 @@ export function RosterAuditRow({ player }: { player: Player }) {
               {num(player.projection_3y)}
             </p>
             <p>
-              Value over replacement: {num(player.xvar)} · Age-weighted value risk:{" "}
+              {fieldLabel("xvar")}: {num(player.xvar)} · Age-weighted value risk:{" "}
               {num(ra?.biological_debt_score)}
             </p>
             {ra?.liquidity_risk && (

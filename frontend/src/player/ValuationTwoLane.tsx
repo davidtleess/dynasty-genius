@@ -10,7 +10,7 @@
 import type { z } from "zod";
 
 import type { zPlayerDetailResponse } from "../lib/api/zod.gen";
-import { sourcedCaveat, valueWord } from "../lib/copy";
+import { fieldLabel, sourcedCaveat, valueWord } from "../lib/copy";
 import { TokenNotes } from "../ui/TokenNotes";
 
 type PlayerDetail = z.infer<typeof zPlayerDetailResponse>;
@@ -118,7 +118,10 @@ export function ValuationTwoLane({
             <Fact label="Scored by" value={enumFact(model.engine_path)} />
             <Fact label="Model status" value={enumFact(model.model_grade)} />
             <Fact label="Dynasty value" value={model.dynasty_value_score} />
-            <Fact label="Value above replacement (xVAR)" value={model.xvar} />
+            {/* DG-117: was "Value above replacement (xVAR)" — a fourth name for
+                the quantity the roster surfaces and League Pulse already spell
+                differently. The dictionary spells it once now. */}
+            <Fact label={fieldLabel("xvar")} value={model.xvar} />
             <Fact
               label="Position percentile"
               value={percent(model.xvar_percentile_position)}

@@ -1,4 +1,5 @@
 import type { RosterAuditResponse } from "../lib/api";
+import { VALUE_OVER_REPLACEMENT } from "../lib/copy";
 
 export type Player = NonNullable<RosterAuditResponse["players"]>[number];
 
@@ -90,22 +91,38 @@ const BAND_ORDER: { token: string; label: string }[] = [
 ];
 const MISSING_BAND = { key: "__missing_age_signal__", label: "Missing age signal" };
 
-// Coarse, descriptive xVAR display-binning (Task B). Edges are NOT model tiers:
-// 0.0 is the only principled boundary (xVAR = value above replacement). Non-finite
-// and null/undefined xvar route to "not modeled" via num(), matching applySort.
+// Coarse, descriptive display-binning of value over replacement (Task B). Edges
+// are NOT model tiers: 0.0 is the only principled boundary — above it a player
+// is worth more than a freely available replacement at his position, below it
+// less. Non-finite and null/undefined xvar route to the no-figure bucket via
+// num(), matching applySort.
+//
+// DG-117: the three headings spelled the quantity as "xVAR", a fourth name for
+// what the row detail beside them calls "Value over replacement". The boundary,
+// the ordering and the buckets are unchanged; only the words are. The last
+// heading states the absence and nothing more — the row's own Model status cell
+// and its Details panel carry WHY that player has no figure, and inventing a
+// cause here would be a claim this transform cannot see.
 const XVAR_BRACKET_ORDER: {
   token: string;
   label: string;
   test: (x: number) => boolean;
 }[] = [
-  { token: "xvar_positive", label: "xVAR 0.0+", test: (x) => x >= 0 },
+  {
+    token: "xvar_positive",
+    label: `${VALUE_OVER_REPLACEMENT} 0.0 and above`,
+    test: (x) => x >= 0,
+  },
   {
     token: "xvar_negative",
-    label: "xVAR below 0.0 (sub-replacement)",
+    label: `${VALUE_OVER_REPLACEMENT} below 0.0 — worth less than a replacement`,
     test: (x) => x < 0,
   },
 ];
-const XVAR_NOT_MODELED = { key: "__xvar_not_modeled__", label: "xVAR not modeled" };
+const XVAR_NOT_MODELED = {
+  key: "__xvar_not_modeled__",
+  label: `No ${VALUE_OVER_REPLACEMENT.toLowerCase()} figure`,
+};
 
 export function applyGroup(
   players: Player[],

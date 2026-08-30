@@ -80,7 +80,9 @@ describe("ValuationTwoLane labeled pairs (DG-043)", () => {
       ["Scored by", "Rookie model — draft capital and age"],
       ["Model status", "Scored by the rookie model — accuracy grade D, its weakest"],
       ["Dynasty value", "85.14"],
-      ["Value above replacement (xVAR)", "10.31"],
+      // DG-117: the card was the fourth place spelling this one quantity its
+      // own way. The dictionary spells it now.
+      ["Value over replacement", "10.31"],
       ["Position percentile", "91%"],
       ["1-year projection", "6.1"],
       ["2-year projection", "9.8"],

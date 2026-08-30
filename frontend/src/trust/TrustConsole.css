@@ -201,6 +201,12 @@
 .dg-trust-prov__row,
 .dg-trust-prov__grade {
   display: flex;
+  /* DG-117: the second half of Model Trust's sideways scroll. With the fold
+     table contained, the page still ran 218px wide at 390 — the provenance
+     footer prints a 64-character artifact hash and a 40-character git SHA, and
+     a hash has no space in it to break at. On one unwrapping flex line that is
+     a 442px value in a 358px column, and the page went with it. */
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
 
@@ -212,6 +218,12 @@
 .dg-trust-prov__value {
   color: var(--dg-text);
   font-variant-numeric: tabular-nums;
+  /* The hash stays whole and stays readable — it just wraps. `anywhere` rather
+     than `break-word` because there is no break opportunity in a hash at all,
+     and a flex item's `min-width: auto` floor has to come off before any
+     wrapping inside it can shrink the item. */
+  overflow-wrap: anywhere;
+  min-inline-size: 0;
 }
 
 .dg-trust-prov__snapshots {

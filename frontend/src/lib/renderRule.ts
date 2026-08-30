@@ -49,6 +49,44 @@ const ALLOWED_SHOUTS: ReadonlySet<string> = new Set<string>([
   "COVID",
 ]);
 
+/**
+ * DG-117 — THE JARGON LIST.
+ *
+ * The two patterns above catch machinery by its SHAPE: an underscore, or a
+ * shout. A term that is neither still reads as machinery, and the 2026-08-30
+ * closeout audit found the proof — `xVAR` survived the whole copy dictionary
+ * because it is four characters with only three capitals, so the shout floor
+ * (four) never saw it. It then acquired THREE different names on screen for one
+ * quantity: "Value above replacement (xVAR)", "xVAR bracket", bare "xVAR", and
+ * "Value over replacement" — a manager cannot know those are the same number.
+ *
+ * So shape is not enough: a term whose only defence is that it looks like a
+ * word needs naming outright. Each entry is a claim that the product has ONE
+ * agreed name for the thing, held in `copy.ts`, and that this spelling is not
+ * it. Adding an entry without adding the replacement to the dictionary is how
+ * the drift starts again.
+ *
+ * Matched case-insensitively and only as a whole word, so a player named
+ * "Xavier" and a receipt citing `asset_xvar` (already caught as a raw key) are
+ * unaffected. The receipt layer keeps its exemption: `[data-receipt]` may cite
+ * the artifact's own vocabulary, because a receipt that renamed what it cites
+ * would stop being a receipt.
+ */
+const JARGON_TERMS: readonly { term: string; use: string }[] = [
+  // copy.ts VALUE_OVER_REPLACEMENT is the one name.
+  { term: "xVAR", use: "Value over replacement" },
+];
+
+const JARGON_PATTERN = new RegExp(
+  `(?<![A-Za-z0-9])(?:${JARGON_TERMS.map((j) => j.term).join("|")})(?![A-Za-z0-9])`,
+  "gi",
+);
+
+/** What the dictionary calls a jargon term, for the failure message. */
+export function jargonReplacement(token: string): string | undefined {
+  return JARGON_TERMS.find((j) => j.term.toLowerCase() === token.toLowerCase())?.use;
+}
+
 const EXEMPT_SUBTREE_SELECTOR = "[data-receipt],[data-user-text]";
 const SKIPPED_TAGS: ReadonlySet<string> = new Set(["SCRIPT", "STYLE", "TEMPLATE"]);
 const AUDITED_ATTRIBUTES = ["aria-label", "alt", "placeholder"] as const;
@@ -65,17 +103,21 @@ export type RawCopyFinding = {
 /**
  * Every raw token inside one string. Empty array means the string is clean.
  *
- * Underscore keys are matched first and then blanked out, so `ENGINE_B` is
- * reported once as the key it is rather than a second time as its shouted
- * halves — one offender, one line to fix.
+ * ONE OFFENDER, ONE LINE TO FIX. The three passes run most-specific first and
+ * blank out what they claim, so a token is reported once by the pass that has
+ * the most to say about it: `ENGINE_B` is the key it is, not a second time as
+ * its shouted halves, and `XVAR` is jargon with a named replacement, not a
+ * bare shout the author has to go and look up.
  */
 export function findRawCopy(text: string): string[] {
   const found: string[] = [];
   let remaining = text;
-  for (const match of text.matchAll(RAW_KEY_PATTERN)) {
-    found.push(match[0]);
-    remaining = remaining.replace(match[0], " ".repeat(match[0].length));
-  }
+  const claim = (match: string): void => {
+    found.push(match);
+    remaining = remaining.replace(match, " ".repeat(match.length));
+  };
+  for (const match of text.matchAll(RAW_KEY_PATTERN)) claim(match[0]);
+  for (const match of [...remaining.matchAll(JARGON_PATTERN)]) claim(match[0]);
   for (const match of remaining.matchAll(SHOUTED_TOKEN_PATTERN)) {
     if (!ALLOWED_SHOUTS.has(match[0])) {
       found.push(match[0]);
@@ -149,6 +191,10 @@ export function auditRenderedCopy(root: Element): RawCopyFinding[] {
 export function formatRawCopyFindings(findings: RawCopyFinding[]): string {
   if (findings.length === 0) return "no raw copy";
   return findings
-    .map((f) => `  ${f.token}\n      in: ${f.context}\n      at: ${f.where}`)
+    .map((f) => {
+      const use = jargonReplacement(f.token);
+      const fix = use === undefined ? "" : `\n      say: ${use}`;
+      return `  ${f.token}${fix}\n      in: ${f.context}\n      at: ${f.where}`;
+    })
     .join("\n");
 }

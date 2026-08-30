@@ -28,6 +28,62 @@ import { TokenNotes } from "../ui/TokenNotes";
 // not carry a sleeper id, so the container hands down the id it already read
 // for the same player on the roster (same payload, same player_id key) — a
 // join, never a guess. No id, no link.
+//
+// ── DG-117: THE DASH WALL ───────────────────────────────────────────────────
+//
+// All five of David's quarterbacks came back with every metric null, so the
+// section rendered fifteen em dashes under three labels and then repeated the
+// same two caveats five times each. An em dash beside a label asserts nothing;
+// it is an empty column dressed up, and it is the exact thing the honesty law
+// forbids. What the payload actually says is not "no data" but something
+// specific and sayable: `identity_coverage` is "NONE" on every card, and the
+// producer only fetches passing telemetry for a card whose coverage is FULL or
+// PARTIAL (roster_auditor.py:596-604). So the numbers are absent because the
+// player was never matched to the record they come from — which is what the
+// section now says, in one sentence, in place of the dashes.
+//
+// Nothing is deleted: a card that HAS numbers still prints them, the names stay
+// pressable, and every caveat still reaches the screen. Caveats that every card
+// carries are said once for all of them rather than once per card, because a
+// caveat true of all five is a fact about the data lane, not about a player.
+
+type Card = NonNullable<RosterAuditResponse["qb_context_cards"]>[number];
+
+/** True when the card carries at least one of the three passing readings. */
+function hasNumbers(card: Card): boolean {
+  return card.epa_per_dropback != null || card.cpoe != null || card.dakota != null;
+}
+
+// Why a card has no numbers, read off the field that decides it. Coverage is
+// the producer's own gate: FULL/PARTIAL means it went and fetched, anything
+// else means it never did (roster_auditor.py:596-604). The two cases are
+// genuinely different and a reader deserves the one that is true.
+function matched(card: Card): boolean {
+  return card.identity_coverage === "FULL" || card.identity_coverage === "PARTIAL";
+}
+
+function whyNoNumbers(card: Card): string {
+  return matched(card)
+    ? "we have his record but no passing numbers in it yet"
+    : "we have not matched him to the passing records these come from";
+}
+
+function sectionWhyNoNumbers(cards: Card[]): string {
+  return cards.every((c) => !matched(c))
+    ? "We have not matched any of these quarterbacks to the passing records these numbers come from, so there is nothing to show for them yet."
+    : "We have these quarterbacks' records but no passing numbers in them yet, so there is nothing to show for them.";
+}
+
+/** Caveat tokens carried by every card — a fact about the lane, not a player. */
+function sharedCaveats(cards: Card[]): string[] {
+  const first = cards[0];
+  if (cards.length < 2 || first === undefined) return [];
+  const rest = cards.slice(1);
+  return (first.qb_context_caveats ?? []).filter((token) =>
+    rest.every((card) => (card.qb_context_caveats ?? []).includes(token)),
+  );
+}
+
 export function QbContextSection({
   cards,
   sleeperIdByPlayerId = {},
@@ -37,6 +93,9 @@ export function QbContextSection({
 }) {
   const list = cards ?? [];
   if (list.length === 0) return null;
+  const noneHaveNumbers = list.every((c) => !hasNumbers(c));
+  const shared = sharedCaveats(list);
+
   return (
     <section className="dg-roster__qb" aria-label="QB context cards">
       <h2>QB context</h2>
@@ -44,6 +103,9 @@ export function QbContextSection({
         How his passing has actually gone — context for reading the roster above, not a
         grade on him.
       </p>
+      {noneHaveNumbers && (
+        <p className="dg-roster__qb-empty">{sectionWhyNoNumbers(list)}</p>
+      )}
       <ul>
         {list.map((c) => (
           <li
@@ -59,17 +121,31 @@ export function QbContextSection({
                 className="dg-roster__name"
               />
             </strong>
-            <span>
-              {" "}
-              {inputName("epa_per_dropback")}: {c.epa_per_dropback ?? "—"} ·{" "}
-              {inputName("cpoe")}: {c.cpoe ?? "—"} · {inputName("dakota")}:{" "}
-              {c.dakota ?? "—"}
-            </span>
+            {hasNumbers(c) ? (
+              <span>
+                {" "}
+                {inputName("epa_per_dropback")}: {c.epa_per_dropback ?? "—"} ·{" "}
+                {inputName("cpoe")}: {c.cpoe ?? "—"} · {inputName("dakota")}:{" "}
+                {c.dakota ?? "—"}
+              </span>
+            ) : noneHaveNumbers ? null : (
+              // One card among several is empty: the section sentence above does
+              // not apply, so this row carries its own reason rather than a dash.
+              <span> — no passing numbers yet, {whyNoNumbers(c)}.</span>
+            )}
             <TokenNotes tokens={c.qb_context_annotations ?? []} />
-            <TokenNotes tokens={c.qb_context_caveats ?? []} />
+            <TokenNotes
+              tokens={(c.qb_context_caveats ?? []).filter((t) => !shared.includes(t))}
+            />
           </li>
         ))}
       </ul>
+      {shared.length > 0 && (
+        <div className="dg-roster__qb-shared">
+          <p>True of every quarterback here:</p>
+          <TokenNotes tokens={shared} />
+        </div>
+      )}
     </section>
   );
 }

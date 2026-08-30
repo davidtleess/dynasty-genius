@@ -91,6 +91,13 @@
 .dg-shell__main {
   grid-area: main;
   padding: var(--dg-space-4);
+  /* DG-117: a grid ITEM defaults to `min-width: auto`, which means "never
+     smaller than my content" — so a 1039px table inside this column pushed the
+     column past its track and the page scrolled sideways with it. The `minmax(0,
+     1fr)` on the tracks only constrains the TRACK; the item needs its own floor
+     removed before `overflow-x: auto` inside it can ever take effect. Both
+     breakpoints: the desktop track is a bare `1fr` and has the same trap. */
+  min-inline-size: 0;
 }
 
 .dg-shell__title {
