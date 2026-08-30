@@ -3,8 +3,17 @@
 // mysteries: dist built Aug 22 was serving three days behind an Aug 25 trunk
 // with nothing to flag it).
 //
-// The manifest carries exactly three facts, each read ONCE per build:
+// The manifest carries exactly four facts, each read ONCE per build:
 //   source_sha      — `git rev-parse HEAD` of the repo the build runs in
+//   source_dirty    — whether the tree differed from that commit at build time.
+//                     A sha alone is a FALSE receipt for a dirty build: the
+//                     named commit is not the tree that produced the bundle.
+//                     (This module's own first artifact proved it — a manifest
+//                     naming a commit that contained no BuildStamp.tsx, sitting
+//                     beside a bundle that did.) The build still succeeds —
+//                     building mid-edit is normal — but it says so, and the
+//                     ticket's sha-vs-serving-HEAD health check must treat a
+//                     dirty build as "cannot match" rather than "match".
 //   openapi_sha256  — sha256 of frontend/openapi.json AS-IS, byte-for-byte.
 //                     REGEN TRAP (reference_openapi_regen_trap): never
 //                     regenerate the working copy to get this hash — a dirty
@@ -56,6 +65,29 @@ export function readSourceSha(repoRoot) {
   return raw;
 }
 
+/** True when the working tree differs from HEAD — staged or unstaged edits to
+ * tracked files, and untracked files too (an untracked .tsx still compiles into
+ * the bundle, which is precisely how the first false receipt happened).
+ *
+ * `git status --porcelain` omits gitignored paths by default, so the build's
+ * own dist/ output and node_modules never mark their own provenance dirty.
+ * Throws loud when the directory cannot answer — a build that cannot tell
+ * whether its tree is clean cannot state provenance at all. */
+export function readTreeDirty(repoRoot) {
+  let raw;
+  try {
+    raw = execFileSync("git", ["-C", repoRoot, "status", "--porcelain"], {
+      stdio: ["ignore", "pipe", "pipe"],
+    }).toString();
+  } catch (cause) {
+    throw new Error(
+      `DG-076 build manifest: cannot read tree status from ${repoRoot} (is it a git checkout?)`,
+      { cause },
+    );
+  }
+  return raw.trim().length > 0;
+}
+
 /** sha256 hex digest of the file's bytes exactly as they sit on disk. */
 export function hashFileSha256(filePath) {
   return createHash("sha256").update(readFileSync(filePath)).digest("hex");
@@ -70,6 +102,7 @@ export function computeBuildManifest({
   return {
     built_at: now().toISOString(),
     openapi_sha256: hashFileSha256(openapiPath),
+    source_dirty: readTreeDirty(repoRoot),
     source_sha: readSourceSha(repoRoot),
   };
 }
