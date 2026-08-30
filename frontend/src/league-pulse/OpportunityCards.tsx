@@ -5,6 +5,7 @@ import type {
   LeaguePulseMarketCard,
 } from "../lib/api";
 import { describeToken, fieldLabel, valueWord } from "../lib/copy";
+import { PlayerNameButton } from "../player/playerSelection";
 import { TokenNotes } from "../ui/TokenNotes";
 
 // Opportunity Cards (No-Verdict T4b) — TWO visually separated lanes (hard
@@ -112,8 +113,17 @@ function RosterCapacityPool({ pool }: { pool: LeaguePulseCapacityCandidatePool }
       <ul className="dg-league-pulse__capacity-list">
         {items.map((item) => (
           <li key={item.sleeper_player_id} className="dg-league-pulse__capacity-row">
+            {/* DG-110: the pool names real players — each name opens his card.
+                The list stays flat and unselected; opening a card is reading,
+                not nominating a cut. The name is still a person's own name, so
+                DG-109's data-user-text exemption stays on the wrapper and now
+                covers the button's label too. */}
             <span className="dg-league-pulse__capacity-name" data-user-text>
-              {item.full_name}
+              <PlayerNameButton
+                sleeperId={item.sleeper_player_id}
+                name={item.full_name}
+                context={item.position ?? undefined}
+              />
             </span>
             <span className="dg-league-pulse__capacity-position">{item.position}</span>
             {item.value_status === "unvalued" ? (

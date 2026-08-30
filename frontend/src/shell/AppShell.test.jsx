@@ -65,14 +65,18 @@ describe("AppShell", () => {
     const toggle = screen.getByRole("button", { name: "Toggle player inspector" });
     const inspector = screen.getByRole("complementary", { name: "Player inspector" });
 
+    // DG-110: it starts CLOSED. An inspector that opened empty on every first
+    // load read as a broken panel; it opens when there is a player in it.
+    expect(inspector.dataset.state).toBe("closed");
+
+    fireEvent.click(toggle);
     expect(inspector.dataset.state).toBe("open");
+    expect(screen.getByRole("navigation", { name: "Primary surfaces" })).toBeTruthy();
+    // Opened by hand with nothing picked, it says so rather than sitting blank.
+    expect(screen.getByText(/no player picked yet/i)).toBeTruthy();
 
     fireEvent.click(toggle);
     expect(inspector.dataset.state).toBe("closed");
-    expect(screen.getByRole("navigation", { name: "Primary surfaces" })).toBeTruthy();
-
-    fireEvent.click(toggle);
-    expect(inspector.dataset.state).toBe("open");
   });
 
   it("renders the Model Trust placeholder from the primary navigation", () => {

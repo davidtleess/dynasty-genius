@@ -91,6 +91,14 @@ function ReadyView({
     positions: [],
     prospect: "all",
   });
+  // DG-110: QB context cards key on player_id and carry no sleeper id; the
+  // roster rows in this same payload carry both, so the card can be opened by
+  // the id already on screen for that exact player.
+  const sleeperIdByPlayerId = Object.fromEntries(
+    allPlayers
+      .filter((p) => typeof p.sleeper_id === "string" && p.sleeper_id !== "")
+      .map((p) => [p.player_id, p.sleeper_id as string]),
+  );
   const allPositions = Array.from(new Set(allPlayers.map((p) => p.position)));
   const filtered = applyFilter(allPlayers, {
     positions: ctrl.positions,
@@ -132,7 +140,7 @@ function ReadyView({
           )}
         </>
       )}
-      <QbContextSection cards={cards} />
+      <QbContextSection cards={cards} sleeperIdByPlayerId={sleeperIdByPlayerId} />
     </div>
   );
 }

@@ -96,10 +96,66 @@
   padding: var(--dg-space-3);
 }
 
+/* Collapsed, the inspector keeps ONE thing on screen: its own handle. The
+   old rule zeroed the whole column including the toggle, so closing the panel
+   removed the only control that could reopen it (DG-110 reachability). */
 .dg-shell__inspector[data-state="closed"] {
-  inline-size: 0;
+  inline-size: auto;
+  padding: var(--dg-space-3) var(--dg-space-2);
+}
+
+.dg-shell__inspector[data-state="closed"] .dg-player-inspector,
+.dg-shell__inspector[data-state="closed"] .dg-shell__inspector-empty {
+  display: none;
+}
+
+.dg-shell__inspector-empty {
+  margin: var(--dg-space-2) 0 0;
+  max-inline-size: 14rem;
+  color: var(--dg-text-muted);
+}
+
+/* The global player finder sits above the rail: one place to reach any
+   player from any surface. */
+.dg-shell__search {
+  padding-block-end: var(--dg-space-2);
+  border-block-end: 1px solid var(--dg-border);
+  margin-block-end: var(--dg-space-2);
+}
+
+.dg-shell__search .dg-asset-search__input {
+  inline-size: 100%;
+  padding: var(--dg-space-2);
+  font: inherit;
+  background: var(--dg-surface);
+  border: 1px solid var(--dg-border);
+  border-radius: 4px;
+  color: var(--dg-text);
+}
+
+.dg-shell__search .dg-asset-search__input:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 1px;
+}
+
+.dg-shell__search .dg-asset-search__results {
+  list-style: none;
+  margin: var(--dg-space-1) 0 0;
   padding: 0;
-  overflow: hidden;
+}
+
+.dg-shell__palette-trigger {
+  padding: var(--dg-space-1) var(--dg-space-3);
+  font: inherit;
+  background: var(--dg-surface);
+  border: 1px solid var(--dg-border);
+  border-radius: 4px;
+  color: var(--dg-text);
+  cursor: pointer;
+}
+
+.dg-shell__palette-shortcut {
+  color: var(--dg-text-muted);
 }
 
 .dg-shell__inspector-toggle {

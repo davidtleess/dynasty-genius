@@ -1,86 +1,77 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import { zTradeAssetCatalogResponse } from "../lib/api/zod.gen";
 import type { CatalogEntry } from "./tradeState";
-
-// Each request parses a large catalog server-side, so responses resolve out of
-// order; the debounce + per-request abort below keep the dropdown pinned to
-// the text currently in the box (SR-15). One in-flight request at a time —
-// deliberately no caching, no retry.
-const DEBOUNCE_MS = 200;
+import { useAssetCatalogSearch } from "./useAssetCatalogSearch";
 
 // Reads the read-only asset catalog and validates the 200 at the SDK boundary
-// with the generated Zod schema (same honest-degradation pattern as TrustStrip):
-// any non-ok response or shape mismatch clears results rather than rendering raw.
-export function AssetSearch({ onSelect }: { onSelect: (entry: CatalogEntry) => void }) {
-  const [results, setResults] = useState<CatalogEntry[]>([]);
+// with the generated Zod schema (same honest-degradation pattern as
+// TrustStrip): any non-ok response or shape mismatch says so rather than
+// rendering raw or going quietly blank. The fetch/debounce/abort contract
+// lives in useAssetCatalogSearch, shared with the shell's global player search
+// and the command palette (DG-110).
+export function AssetSearch({
+  onSelect,
+  label = "Search tradeable assets",
+  placeholder,
+  filter,
+}: {
+  onSelect: (entry: CatalogEntry) => void;
+  /** Accessible name for the box — the shell's copy differs from Trade Lab's. */
+  label?: string;
+  placeholder?: string | undefined;
+  /** Optional gate: offer only results this caller can actually open. */
+  filter?: ((entry: CatalogEntry) => boolean) | undefined;
+}) {
   const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query), DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  useEffect(() => {
-    // Min-length guard mirrors the backend OOM guard; never query the universe
-    // on an empty/short input.
-    if (debouncedQuery.trim().length < 3) {
-      setResults([]);
-      return;
-    }
-    const controller = new AbortController();
-
-    async function run(): Promise<void> {
-      try {
-        const response = await fetch(
-          `/api/trade/assets?q=${encodeURIComponent(debouncedQuery)}`,
-          {
-            signal: controller.signal,
-          },
-        );
-        if (controller.signal.aborted) {
-          return;
-        }
-        if (!response.ok) {
-          setResults([]);
-          return;
-        }
-        const body: unknown = await response.json();
-        if (controller.signal.aborted) {
-          return;
-        }
-        const parsed = zTradeAssetCatalogResponse.safeParse(body);
-        setResults(parsed.success ? (parsed.data.results as CatalogEntry[]) : []);
-      } catch {
-        // Abort of a superseded request is not an error and must not clear
-        // results; anything else on a live request degrades to empty.
-        if (!controller.signal.aborted) {
-          setResults([]);
-        }
-      }
-    }
-
-    void run();
-    return () => controller.abort();
-  }, [debouncedQuery]);
+  const search = useAssetCatalogSearch(query);
+  const results = filter === undefined ? search.results : search.results.filter(filter);
 
   return (
     <div className="dg-asset-search">
       <input
         type="search"
-        aria-label="Search tradeable assets"
+        className="dg-asset-search__input"
+        aria-label={label}
+        placeholder={placeholder}
         onChange={(event) => setQuery(event.target.value)}
       />
+      {/* A silent empty box is a dead end and, after a failed read, a lie:
+          an empty catalog answer and an unreadable one say different things. */}
+      {search.status === "unavailable" && (
+        <p className="dg-asset-search__notice" role="status">
+          Search is down right now — we could not read the player list.
+        </p>
+      )}
+      {search.status === "ready" && results.length === 0 && (
+        <p className="dg-asset-search__notice" role="status">
+          Nobody we track matches that.
+        </p>
+      )}
       <ul className="dg-asset-search__results">
         {results.map((entry) => (
           <li key={entry.asset_id}>
             <button type="button" onClick={() => onSelect(entry)}>
               {entry.label}
             </button>
+            <ResultMeta entry={entry} />
           </li>
         ))}
       </ul>
     </div>
   );
+}
+
+// Position and the team that rosters him, when the catalog carries them —
+// enough to tell two same-named players apart. Rendered OUTSIDE the button so
+// the button's accessible name stays the player's name. Absence renders
+// nothing: an unrostered player gets no invented "free agent" label.
+function ResultMeta({ entry }: { entry: CatalogEntry }) {
+  const position = typeof entry.position === "string" ? entry.position : null;
+  const owner =
+    typeof entry.roster_owner_name === "string" ? entry.roster_owner_name : null;
+  const parts = [position, owner].filter((part): part is string => part !== null);
+  if (parts.length === 0) {
+    return null;
+  }
+  return <span className="dg-asset-search__meta">{parts.join(" · ")}</span>;
 }
