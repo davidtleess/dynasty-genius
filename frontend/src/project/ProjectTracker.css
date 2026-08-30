@@ -9,7 +9,7 @@
   align-items: center;
 }
 .dg-tracker__warnings {
-  color: #d18;
+  color: var(--dg-caveat);
   font-size: 0.85rem;
 }
 .dg-tracker__phase-head {

@@ -100,6 +100,46 @@ const SCORECARD_INACTIVE_FIXTURE = {
   decision_supported: false,
 };
 
+// DG-105: the axe color-contrast pass computes styles node by node while it
+// scrolls below-the-fold content into view, so an entrance animation caught
+// mid-run reports phantom foregrounds (measured: --dg-text-muted #95999d at
+// opacity 0.75 over the canvas = #767a7e, 3.97:1 — a 3-pass/4-fail coin flip
+// on the same tree). Two layers make the gate deterministic WITHOUT excluding
+// any axe rule: the page runs under prefers-reduced-motion (the app's own
+// reduce path collapses every animation to its settled end state — the state
+// a reader actually reads), and settleMotion() proves quiescence right before
+// every axe scan.
+async function emulateReducedMotion(page: Page) {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+}
+
+async function settleMotion(page: Page) {
+  // rAF-polled: pumping frames drives any straggling finite animation or
+  // transition (focus feedback, chart stages) to completion.
+  //
+  // Quiescence, not emptiness. A finished animation only LEAVES
+  // document.getAnimations() when it has no forward fill, and an endless one
+  // (a spinner) never leaves at all — so `length === 0` would wait forever the
+  // first time anyone adds `animation-fill-mode: forwards` or an infinite
+  // loop. With Playwright's 30s default that hang would surface as a bare
+  // timeout on the line before the axe scan and read like a contrast failure,
+  // which is exactly the misdiagnosis this ticket exists to end. Neither shape
+  // exists in the tree today (grep for `infinite`/`forwards` returns nothing),
+  // so this changes no current behaviour; it keeps the gate legible when one
+  // appears. The explicit timeout makes a genuine never-settling animation
+  // fail fast and by name.
+  await page.waitForFunction(
+    () =>
+      document.getAnimations().every((animation) => {
+        const timing = animation.effect?.getComputedTiming();
+        const endless = timing?.iterations === Number.POSITIVE_INFINITY;
+        return endless || animation.playState === "finished";
+      }),
+    undefined,
+    { timeout: 10_000 },
+  );
+}
+
 async function captureMidScroll(page: Page, path: string) {
   await page.evaluate(() => {
     const maxY = Math.max(
@@ -398,6 +438,7 @@ test("daily open evidence bundle: desktop, mobile, focus capture, axe report", a
   page,
 }) => {
   mkdirSync(ARTIFACT_DIR, { recursive: true });
+  await emulateReducedMotion(page);
 
   await page.route("**/api/league/what-changed", (route) =>
     route.fulfill({ json: whatChanged }),
@@ -437,6 +478,7 @@ test("daily open evidence bundle: desktop, mobile, focus capture, axe report", a
 
   // Axe accessibility smoke over the main region. Increment 1 hardens this
   // evidence surface: the report is still written, but violations fail RED.
+  await settleMotion(page);
   const axeResults = await new AxeBuilder({ page }).include("main").analyze();
   writeFileSync(
     `${ARTIFACT_DIR}/axe-report.json`,
@@ -467,6 +509,7 @@ test("daily open evidence bundle: desktop, mobile, focus capture, axe report", a
 
 test("asset primitive capture evidence bundle asserts axe zero", async ({ page }) => {
   mkdirSync(ARTIFACT_DIR, { recursive: true });
+  await emulateReducedMotion(page);
 
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.goto("/?surface=asset-primitive-capture");
@@ -489,6 +532,7 @@ test("asset primitive capture evidence bundle asserts axe zero", async ({ page }
     path: `${ARTIFACT_DIR}/asset-primitive-capture-focus.png`,
   });
 
+  await settleMotion(page);
   const axeResults = await new AxeBuilder({ page }).include("main").analyze();
   writeFileSync(
     `${ARTIFACT_DIR}/asset-primitive-capture-axe-report.json`,
@@ -524,6 +568,7 @@ test("asset primitive capture evidence bundle asserts axe zero", async ({ page }
 // read rather than placeholder values.
 test("model scoreboard evidence bundle", async ({ page }) => {
   mkdirSync(ARTIFACT_DIR, { recursive: true });
+  await emulateReducedMotion(page);
 
   await page.route("**/api/model-scoreboard", (route) =>
     route.fulfill({ json: MODEL_SCOREBOARD_FIXTURE }),
@@ -546,6 +591,7 @@ test("model scoreboard evidence bundle", async ({ page }) => {
     `${ARTIFACT_DIR}/model-scoreboard-desktop-mid-scroll.png`,
   );
 
+  await settleMotion(page);
   const axeResults = await new AxeBuilder({ page }).include("main").analyze();
   writeFileSync(
     `${ARTIFACT_DIR}/model-scoreboard-axe-report.json`,

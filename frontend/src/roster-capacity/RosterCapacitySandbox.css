@@ -6,13 +6,13 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  color: #1f2430;
+  color: var(--dg-text);
 }
 
 .dg-rc__disclaimer {
   font-size: 0.85rem;
-  color: #55606f;
-  border-left: 3px solid #c7ccd6;
+  color: var(--dg-text-muted);
+  border-left: 3px solid var(--dg-border-strong);
   padding-left: 0.6rem;
   margin: 0;
 }
@@ -35,14 +35,14 @@
 .dg-rc__caveat,
 .dg-rc__pool {
   font-size: 0.85rem;
-  color: #55606f;
+  color: var(--dg-text-muted);
 }
 
 .dg-rc__sort-basis,
 .dg-rc__empty,
 .dg-rc__blocked {
   font-size: 0.85rem;
-  color: #55606f;
+  color: var(--dg-text-muted);
   margin: 0;
 }
 
@@ -54,7 +54,7 @@
 
 .dg-rc__health dt {
   font-size: 0.75rem;
-  color: #55606f;
+  color: var(--dg-text-muted);
 }
 
 .dg-rc__health dd {
@@ -69,7 +69,7 @@
 }
 
 .dg-rc__row {
-  border-bottom: 1px solid #e2e5ea;
+  border-bottom: 1px solid var(--dg-border);
   text-align: left;
 }
 
@@ -85,10 +85,10 @@
 }
 
 .dg-rc__range-unavailable {
-  color: #55606f;
+  color: var(--dg-text-muted);
   font-style: italic;
 }
 
 .dg-rc__notice {
-  color: #55606f;
+  color: var(--dg-text-muted);
 }

@@ -16,9 +16,18 @@
   --dg-border: oklch(0.92 0.005 255);
   --dg-border-strong: oklch(0.35 0.012 255);
   --dg-text: oklch(0.25 0.01 255);
-  --dg-text-muted: oklch(0.55 0.02 260);
+  /* DG-105 headroom retune: L 0.55 read 4.85:1 on white — legal but with no
+     margin for small text (DG-090's 46-node census). L 0.51 reads 5.72:1 on
+     white and 5.39:1 on --dg-surface-raised. */
+  --dg-text-muted: oklch(0.51 0.02 260);
   --dg-focus: oklch(0.5 0.16 255);
-  --dg-caveat: oklch(0.7 0.15 72);
+  /* DG-105 settles caveat-as-text: --dg-caveat IS a text color (scoreboard
+     unit warning, league-pulse EXPERIMENTAL, tracker warnings), so both theme
+     values must carry >=4.5:1 body-text contrast on their canvases. The old
+     light value (0.7 0.15 72) read 2.75:1 on white — border/background-grade
+     only. L 0.55 C 0.12 reads 4.96:1 on white, 4.66:1 on raised; hue stays 72
+     (amber caveat family — never a verdict hue). */
+  --dg-caveat: oklch(0.55 0.12 72);
 
   /* Model axis: cool blue. DG-computed valuation signal. */
   --dg-model: oklch(0.55 0.15 255);
