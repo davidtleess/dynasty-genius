@@ -1,0 +1,111 @@
+/*
+ * DG-114 — the player card drawer (spec §3 shape, §4.4 phone).
+ *
+ * Desktop: a 640px panel against the right edge over a scrim. Phone: the same
+ * panel at full width, which makes it the full-screen sheet the spec asks for
+ * without a second component.
+ *
+ * The drawer's own frame is CHROME — neutral by contract, listed in
+ * visualFoundation.test.js so it can never borrow the model-blue or
+ * market-amber lanes. The card INSIDE it keeps its lane colors; those are
+ * readings of data and belong to the data.
+ */
+.dg-player-drawer__layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Painted from the canvas token rather than a black wash: on the dark theme a
+   black scrim is invisible against the page and the drawer looks like it is
+   floating on nothing. */
+.dg-player-drawer__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--dg-bg);
+  opacity: 0.72;
+}
+
+.dg-player-drawer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  inline-size: min(640px, 100%);
+  block-size: 100%;
+  background: var(--dg-surface);
+  border-inline-start: 1px solid var(--dg-border-strong);
+  overflow-y: auto;
+  /* DG-117's rule, applied at the source: a flex/grid item's automatic minimum
+     size is its content, so without this a wide table inside the card widens
+     the panel instead of scrolling inside its own container. */
+  min-inline-size: 0;
+}
+
+/* Sticky, so the way out is on screen wherever you have read to — the spec's
+   "sticky back header" on the phone sheet, and the same on desktop. */
+.dg-player-drawer__bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dg-space-3);
+  padding: var(--dg-space-3) var(--dg-space-4);
+  background: var(--dg-surface);
+  border-block-end: 1px solid var(--dg-border);
+}
+
+.dg-player-drawer__label {
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  letter-spacing: 0.06em;
+  color: var(--dg-chrome);
+}
+
+.dg-player-drawer__close {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* A real touch target, not a 12px glyph: the phone sheet's only way out. */
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  font: inherit;
+  font-size: var(--dg-text-lg);
+  line-height: var(--dg-leading-tight);
+  background: transparent;
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-control);
+  color: var(--dg-chrome-strong);
+  cursor: pointer;
+}
+
+.dg-player-drawer__close:hover {
+  background: var(--dg-chrome-surface);
+}
+
+.dg-player-drawer__close:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+.dg-player-drawer__body {
+  padding: var(--dg-space-4);
+  min-inline-size: 0;
+}
+
+@media (max-width: 768px) {
+  /* Full-screen sheet: no scrim gutter to press, so the bar's close button and
+     Back are the ways out — both are always on screen. */
+  .dg-player-drawer {
+    border-inline-start: 0;
+  }
+
+  .dg-player-drawer__body {
+    padding: var(--dg-space-3);
+  }
+}

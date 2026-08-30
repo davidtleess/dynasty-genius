@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { TradePartners } from "../trade/TradePartners";
 import { leaguePulseResponse } from "./fixtures";
 import { LeaguePulse } from "./LeaguePulse";
 
@@ -79,7 +80,6 @@ describe("League Pulse graduation mitigation", () => {
     for (const panel of [
       screen.getByRole("region", { name: /team postures/i }),
       screen.getByRole("region", { name: /team value overview/i }),
-      screen.getByRole("region", { name: /partner rankings/i }),
       screen.getByRole("region", { name: /model-native opportunity cards/i }),
       screen.getByRole("region", { name: /market overlay opportunity cards/i }),
     ]) {
@@ -88,6 +88,27 @@ describe("League Pulse graduation mitigation", () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     }
+  });
+
+  // DG-114: the contract is "wherever posture words render", not "on League
+  // Pulse". Partner Rankings prints perspective_posture and counterparty_posture
+  // and now lives on Trades, so the same paragraph, carrying the same contract
+  // marker, has to stand above it there.
+  it("renders the same copy above the partner cards at their new address", async () => {
+    mockFetch();
+
+    render(<TradePartners />);
+
+    const panel = await screen.findByRole("region", { name: /partner rankings/i });
+    const mitigation = screen.getByText(MITIGATION_COPY);
+    const mitigationBlock = mitigation.closest("[data-mitigation-contract]");
+
+    expect(mitigationBlock.getAttribute("data-mitigation-contract")).toBe(
+      "league_pulse_fe_mitigation_v1",
+    );
+    expect(
+      mitigationBlock.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("couples the disclosed FE posture basis to the registered producer weights", async () => {

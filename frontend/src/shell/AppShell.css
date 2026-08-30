@@ -1,15 +1,27 @@
 /*
- * AppShell layout (Surface-1, T3). Consumes the design tokens (tokens.css):
- * left rail, sticky Trust-strip slot, main column, collapsible right inspector.
- * Calm, dense analytical cockpit; no verdict colors.
+ * AppShell layout (Surface-1, T3 · DG-114 navigation shell). Consumes the design
+ * tokens (tokens.css): left rail, sticky Trust-strip slot, main column.
+ *
+ * DG-114 removed the third column. The right rail used to hold a "Player
+ * inspector" — a neutral preview whose only real action was a button into the
+ * card the press had already asked for — and it sat there empty on every load
+ * that had not selected anybody. The card now opens as a drawer over the
+ * surface (player/PlayerCardDrawer.css), so the shell is two columns and the
+ * main column got the width back.
  */
 .dg-shell {
+  /* The phone tab bar's height, named once because two rules depend on it: the
+     bar's own minimum, and the bottom padding the main column needs so its last
+     row is not sitting underneath the bar. 52px touch target + 4px above and
+     below. */
+  --dg-shell-tabbar: 3.75rem;
+
   display: grid;
-  grid-template-columns: 14rem 1fr auto;
+  grid-template-columns: 14rem minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   grid-template-areas:
-    "rail trust trust"
-    "rail main inspector";
+    "rail trust"
+    "rail main";
   min-block-size: 100vh;
   font-family: var(--dg-font-sans);
   font-size: var(--dg-text-base);
@@ -27,29 +39,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--dg-space-1);
-}
-
-.dg-shell__parked-badge {
-  font-size: var(--dg-text-sm);
-  opacity: 0.65;
-}
-
-/* Developer utility zone: visually separated from the David-facing rail. */
-.dg-shell__developer {
-  display: flex;
-  flex-direction: column;
-  gap: var(--dg-space-1);
-  margin-block-start: auto;
-  padding-block-start: var(--dg-space-3);
-  border-block-start: 1px solid var(--dg-border-strong);
-}
-
-.dg-shell__developer-label {
-  padding-inline: var(--dg-space-3);
-  font-size: var(--dg-text-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.55;
 }
 
 /* DG-115: the rail is chrome, not a reading. It used to be painted
@@ -75,17 +64,44 @@
   font-weight: var(--dg-weight-semibold);
 }
 
-.dg-shell__trust {
-  grid-area: trust;
-  position: sticky;
-  inset-block-start: 0;
+.dg-shell__nav-item:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+/* DG-114 · the view switcher. A destination that holds more than one surface
+   (Roster, Trades, Track record) shows its views here. These are not tabs in
+   the ARIA sense and must not pretend to be: each one is a `?surface=` URL, so
+   they are navigation, and a bookmark of a view is the same thing as pressing
+   the chip. */
+.dg-shell__views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dg-space-2);
+  margin-block: var(--dg-space-3) var(--dg-space-4);
+}
+
+.dg-shell__view-item {
+  appearance: none;
   padding: var(--dg-space-2) var(--dg-space-4);
-  /* Fresh-agent review #2 shipping-blocker: a sticky header with no painted
-     surface lets content scroll THROUGH it. The strip is an opaque layer with
-     a real boundary at every scroll position, both breakpoints. */
-  background: var(--dg-bg);
-  border-block-end: 1px solid var(--dg-border);
-  z-index: 3;
+  font: inherit;
+  background: transparent;
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-round);
+  color: var(--dg-chrome);
+  cursor: pointer;
+}
+
+.dg-shell__view-item[aria-current="page"] {
+  background: var(--dg-chrome-surface);
+  border-color: var(--dg-chrome-strong);
+  color: var(--dg-chrome-strong);
+  font-weight: var(--dg-weight-semibold);
+}
+
+.dg-shell__view-item:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
 }
 
 .dg-shell__main {
@@ -100,36 +116,14 @@
   min-inline-size: 0;
 }
 
+/* Spec §5: page title 28px/700. It was 18px — the same size as a section
+   heading inside the page, so the page had no top of its hierarchy. */
 .dg-shell__title {
   margin: 0;
-  font-size: var(--dg-text-lg);
-}
-
-.dg-shell__inspector {
-  grid-area: inspector;
-  padding: var(--dg-space-3);
-}
-
-/* Collapsed, the inspector keeps ONE thing on screen: its own handle. The
-   old rule zeroed the whole column including the toggle, so closing the panel
-   removed the only control that could reopen it (DG-110 reachability). */
-.dg-shell__inspector[data-state="closed"] {
-  inline-size: auto;
-  padding: var(--dg-space-3) var(--dg-space-2);
-}
-
-/* Declared BEFORE the collapsed-state rule that also targets it: the reverse
-   order is a descending-specificity trap (and a lint warning) — the low
-   specificity rule must not follow the higher one. */
-.dg-shell__inspector-empty {
-  margin: var(--dg-space-2) 0 0;
-  max-inline-size: 14rem;
-  color: var(--dg-text-muted);
-}
-
-.dg-shell__inspector[data-state="closed"] .dg-player-inspector,
-.dg-shell__inspector[data-state="closed"] .dg-shell__inspector-empty {
-  display: none;
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-2xl);
+  font-weight: var(--dg-weight-bold);
+  line-height: var(--dg-leading-tight);
 }
 
 /* The global player finder sits above the rail: one place to reach any
@@ -222,70 +216,25 @@
   color: var(--dg-text-muted);
 }
 
-.dg-shell__inspector-toggle {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  cursor: pointer;
-  color: var(--dg-chrome);
-}
-
 /* Worklist #1: the bar is the product's — wordmark left, status pill right.
    Declared BEFORE the phone media query: a media query adds no specificity, so
    when this block followed it the `gap` shorthand silently re-set the row-gap
    the phone rule was trying to tighten. */
 .dg-shell__trust {
+  grid-area: trust;
+  position: sticky;
+  inset-block-start: 0;
+  padding: var(--dg-space-2) var(--dg-space-4);
+  /* Fresh-agent review #2 shipping-blocker: a sticky header with no painted
+     surface lets content scroll THROUGH it. The strip is an opaque layer with
+     a real boundary at every scroll position, both breakpoints. */
+  background: var(--dg-bg);
+  border-block-end: 1px solid var(--dg-border);
+  z-index: 3;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--dg-space-4);
-}
-
-/* Below 768px the cockpit stacks: nav flows as a wrapped row on top, then the
-   trust strip, then the main column at full width. The fixed 14rem rail column
-   otherwise crushes the content to a sliver (the Task-1 mobile debt finding).
-   Full icon-mode rail collapse remains I5 scope; this is the honest stack. */
-@media (max-width: 768px) {
-  .dg-shell {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto 1fr auto;
-    grid-template-areas:
-      "rail"
-      "trust"
-      "main"
-      "inspector";
-  }
-
-  .dg-shell__rail {
-    flex-flow: row wrap;
-    align-items: baseline;
-    border-block-end: 1px solid var(--dg-border);
-  }
-
-  .dg-shell__rail-primary {
-    flex-flow: row wrap;
-    column-gap: var(--dg-space-1);
-  }
-
-  .dg-shell__developer {
-    margin-block-start: 0;
-    padding-block-start: 0;
-    border-block-start: 0;
-    flex-flow: row wrap;
-    align-items: baseline;
-  }
-
-  /* Mobile: the trust strip scrolls away with the page — a pinned panel
-     eating ~45% of a phone viewport was fresh-agent review #2's mobile 1/10.
-     The strip stays first in the information order; it just doesn't squat. */
-  .dg-shell__trust {
-    position: static;
-    /* Three unbreakable items (wordmark, search trigger, status pill) do not
-       fit 390px on one line; they stack instead of forcing a page scroll. */
-    flex-wrap: wrap;
-    row-gap: var(--dg-space-2);
-  }
 }
 
 .dg-shell__wordmark {
@@ -303,4 +252,96 @@
   display: flex;
   flex-direction: column;
   gap: var(--dg-space-4);
+}
+
+/* ── THE PHONE (spec §4.4; David's 2026-08-30 panel: "Build the phone shell
+   now"). The wrapped link-cloud is gone: eleven links, three "(Parked)" badges
+   and a Developer heading used ~430px of the first screen, so a manager opening
+   the app on a phone scrolled past the whole navigation before reading a word
+   of his own roster. Five destinations, pinned to the bottom edge, where a
+   thumb is. ── */
+@media (max-width: 768px) {
+  .dg-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "trust"
+      "main";
+  }
+
+  /* The rail's BOX disappears — its padding and its border were the top of
+     that 430px — while its two children stay in the tree and are governed
+     directly below: the finder hides, the nav becomes the tab bar. */
+  .dg-shell__rail {
+    display: contents;
+  }
+
+  /* The phone's search is the top bar's, one tap away and full width. Keeping
+     both would put two search fields on a 390px screen. */
+  .dg-shell__search {
+    display: none;
+  }
+
+  .dg-shell__rail-primary {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: 0;
+    z-index: 4;
+    flex-direction: row;
+    gap: 0;
+    min-block-size: var(--dg-shell-tabbar);
+    padding: var(--dg-space-1);
+    background: var(--dg-bg);
+    border-block-start: 1px solid var(--dg-border-strong);
+  }
+
+  .dg-shell__nav-item {
+    flex: 1 1 0;
+    /* Five labels across 390px: they have to shrink, and "Track record" has to
+       stay two words that fit rather than one word that clips. */
+    min-inline-size: 0;
+    padding: var(--dg-space-1);
+    font-size: var(--dg-text-sm);
+    line-height: var(--dg-leading-snug);
+    text-align: center;
+    border-radius: var(--dg-radius-control);
+  }
+
+  .dg-shell__main {
+    padding: var(--dg-space-3);
+    /* The tab bar is fixed, so it is out of flow and does not push anything.
+       Without this the last row of every surface sits underneath it. */
+    padding-block-end: var(--dg-shell-tabbar);
+  }
+
+  /* Spec §5: 52px rows on the phone. Applied at the shell because it is a
+     density rule for every table on every surface, not a property of any one
+     of them. The tables keep every column they have — DG-117 gave each one its
+     own horizontal scroll container, and hiding a column would hide a fact
+     rather than move it. */
+  .dg-shell__main :is(td, th) {
+    min-block-size: 52px;
+  }
+
+  /* Mobile: the trust strip scrolls away with the page — a pinned panel
+     eating ~45% of a phone viewport was fresh-agent review #2's mobile 1/10.
+     The strip stays first in the information order; it just doesn't squat. */
+  .dg-shell__trust {
+    position: static;
+    flex-wrap: wrap;
+    row-gap: var(--dg-space-2);
+  }
+
+  /* Two deliberate rows instead of three ragged ones: wordmark and status on
+     the first, the search as a full-width target on the second. */
+  .dg-shell__palette-trigger {
+    flex: 1 0 100%;
+    text-align: start;
+  }
+
+  /* There is no ⌘ key on a phone. Showing the shortcut there is a small untrue
+     thing on a bar whose whole job is to be trusted at a glance. */
+  .dg-shell__palette-shortcut {
+    display: none;
+  }
 }

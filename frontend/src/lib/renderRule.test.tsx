@@ -39,8 +39,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LeaguePulse } from "../league-pulse/LeaguePulse";
 import { ModelScoreboard } from "../model-scoreboard/ModelScoreboard";
+import { PlayerCardDrawer } from "../player/PlayerCardDrawer";
 import { PlayerDetailCard } from "../player/PlayerDetailCard";
-import { PlayerInspector } from "../player/PlayerInspector";
+import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { RealizedOutcomeScorecard } from "../realized-outcome/RealizedOutcomeScorecard";
 import { RosterAudit } from "../roster/RosterAudit";
 import { RosterCapacitySandbox } from "../roster-capacity/RosterCapacitySandbox";
@@ -50,6 +51,7 @@ import { SystemHealthCard } from "../system-health/SystemHealthCard";
 import { MarketLanePanel } from "../trade/MarketLanePanel";
 import { ModelLanePanel } from "../trade/ModelLanePanel";
 import { TradeLab } from "../trade/TradeLab";
+import { TradePartners } from "../trade/TradePartners";
 import { TradeVerdict } from "../trade/TradeVerdict";
 import { TrustConsole } from "../trust/TrustConsole";
 import { DailyTape } from "../ui/DailyTape";
@@ -496,6 +498,18 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
     expectClean(container, "League Pulse");
   });
 
+  // DG-114 moved Partner Rankings off League Pulse and onto Trades, so the
+  // League Pulse mount above no longer covers those cards. They are covered
+  // here instead — the panel is unchanged, only its address moved.
+  it("holds on the trade partners view with live data", async () => {
+    mockRoutes({ "/api/league/pulse": leaguePulseLive as Wire });
+
+    const { container } = render(<TradePartners />);
+    await screen.findByLabelText(/partner rankings/i);
+
+    expectClean(container, "Trade partners");
+  });
+
   it("holds on the Model Trust console with live data", async () => {
     mockRoutes({
       "/api/trust-surface/QB": trustSurfaceLive as Wire,
@@ -541,18 +555,17 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
     expectClean(container, "player card");
   });
 
-  it("holds on the player inspector with live data", async () => {
+  it("holds on the player card drawer, which frames every player read", async () => {
     mockRoutes({ "/api/players/12508": playerDetailLive as Wire });
 
     const { container } = render(
-      <PlayerInspector
-        player={{ sleeperId: "12508", label: "Jaxson Dart" }}
-        onClose={() => {}}
-      />,
+      <PlayerCardDrawer onClose={() => {}}>
+        <PlayerDetailPage sleeperId="12508" />
+      </PlayerCardDrawer>,
     );
     await waitFor(() => expect(screen.queryByText(/loading/i)).toBeNull());
 
-    expectClean(container, "player inspector");
+    expectClean(container, "player card drawer");
   });
 
   it("holds on the data-freshness card with live data", async () => {

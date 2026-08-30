@@ -1347,7 +1347,7 @@ describe("DG-089 player selection from the change feed", () => {
     expect(screen.queryByRole("button", { name: /open market mover/i })).toBeNull();
   });
 
-  it("AppShell wires the feed to the inspector: clicking a mover opens it", async () => {
+  it("AppShell wires the feed to the player card: clicking a mover opens it", async () => {
     // Default-503 variant of mockFetchByUrl: AppShell fetches more endpoints
     // than this test cares about; each degrades honestly on 503.
     const responses: Record<string, { status: number; body: unknown }> = {
@@ -1368,11 +1368,15 @@ describe("DG-089 player selection from the change feed", () => {
     const button = await screen.findByRole("button", { name: /^Open Market Mover/ });
     fireEvent.click(button);
 
-    const inspector = await screen.findByRole("complementary", {
-      name: "Player inspector",
-    });
+    // DG-114: the press opens the CARD, not a preview of it. The card is the
+    // producer's, so what it renders is the producer's answer for this player —
+    // here /api/players/ is unmocked and degrades on 503 exactly as production
+    // does. What this check owns is that the press routed THIS player's id into
+    // the card, and that the card is what opened.
+    const card = await screen.findByRole("dialog", { name: "Player card" });
+    expect(card).toBeTruthy();
     await waitFor(() => {
-      expect(within(inspector).getByText("Market Mover")).toBeTruthy();
+      expect(globalThis.fetch).toHaveBeenCalledWith("/api/players/player-2");
     });
   });
 });

@@ -9,7 +9,7 @@
 // where it belongs, instead of stamped at the top of every region.
 import type { z } from "zod";
 import type { zPlayerDetailResponse } from "../lib/api/zod.gen";
-import { MODEL_STANDING_SENTENCE } from "../lib/copy";
+import { MODEL_STANDING_SENTENCE, receiptLine } from "../lib/copy";
 import { EvidenceSection } from "./EvidenceSection";
 import { FrozenPredictionStatus } from "./FrozenPredictionStatus";
 import "./PlayerDetail.css";
@@ -30,6 +30,14 @@ export function PlayerDetailCard({ detail }: { detail: PlayerDetail }) {
         <p className="dg-player-detail__meta">
           {detail.identity.position} · {detail.identity.team} · age{" "}
           {detail.identity.age}
+        </p>
+        {/* DG-109 put the bare Sleeper id in the receipt layer, labelled, on the
+            inspector preview: it is a lookup key, not information about the
+            player, and it stays on screen saying what it is. DG-114 retired that
+            preview, so the receipt comes here — the card is the only place a
+            player is read now, and a fact does not leave with its furniture. */}
+        <p className="dg-player-detail__id" data-receipt>
+          {receiptLine("Sleeper id", detail.sleeper_id)}
         </p>
       </header>
 

@@ -46,6 +46,15 @@
       "card_treatment_selectors": 0
     },
     {
+      "path": "player/PlayerCardDrawer.css",
+      "focus_visible_selectors": 1,
+      "focus_token_consumers": 1,
+      "hover_selectors": 1,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 0,
+      "card_treatment_selectors": 0
+    },
+    {
       "path": "player/PlayerDetail.css",
       "focus_visible_selectors": 0,
       "focus_token_consumers": 0,
@@ -101,8 +110,8 @@
     },
     {
       "path": "shell/AppShell.css",
-      "focus_visible_selectors": 2,
-      "focus_token_consumers": 2,
+      "focus_visible_selectors": 4,
+      "focus_token_consumers": 4,
       "hover_selectors": 1,
       "elevation_consumers": 0,
       "row_treatment_selectors": 0,
@@ -200,9 +209,9 @@
     }
   ],
   "totals": {
-    "focus_visible_selectors": 13,
-    "focus_token_consumers": 10,
-    "hover_selectors": 7,
+    "focus_visible_selectors": 16,
+    "focus_token_consumers": 13,
+    "hover_selectors": 8,
     "elevation_consumers": 0,
     "row_treatment_selectors": 35,
     "card_treatment_selectors": 9

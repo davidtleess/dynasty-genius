@@ -8,6 +8,10 @@ export const SURFACE_SLUGS = {
   "Daily What-Changed": "what-changed",
   "Roster Audit": "roster-audit",
   "Trade Lab": "trade-lab",
+  // DG-114: partner rankings move off League Pulse and become the second view
+  // of Trades (spec §4.1). A NEW slug — every slug that existed before this
+  // ticket still resolves to the surface it always did.
+  "Trade Partners": "trade-partners",
   "Roster Capacity": "roster-capacity",
   "League Pulse": "league-pulse",
   "Model Trust": "model-trust",
@@ -51,16 +55,29 @@ function readSurfaceFromLocation(): Surface {
 
 export function useUrlSurfaceState(): {
   activeSurface: Surface;
-  navigateSurface: (surface: Surface) => void;
+  navigateSurface: (surface: Surface, options?: { replace?: boolean }) => void;
 } {
   const [activeSurface, setActiveSurface] = useState<Surface>(readSurfaceFromLocation);
 
-  const navigateSurface = useCallback((surface: Surface) => {
-    // The URL carries exactly the I1 contract: `?surface=<slug>` and nothing
-    // else — stale non-I1 params (e.g. a pre-I3 `player=`) are dropped.
-    window.history.pushState(null, "", `?surface=${slugForSurface(surface)}`);
-    setActiveSurface(surface);
-  }, []);
+  // DG-114: `replace` exists for exactly one caller — a navigation made while
+  // the player card's own history entry is on top of the stack. Pushing there
+  // would strand that entry behind the new surface, so Back would walk through
+  // a card that is no longer open. Replacing consumes it instead. Ordinary rail
+  // navigation still pushes, so Back still walks surfaces.
+  const navigateSurface = useCallback(
+    (surface: Surface, options?: { replace?: boolean }) => {
+      // The URL carries exactly the I1 contract: `?surface=<slug>` and nothing
+      // else — stale non-I1 params (e.g. a pre-I3 `player=`) are dropped.
+      const url = `?surface=${slugForSurface(surface)}`;
+      if (options?.replace === true) {
+        window.history.replaceState(null, "", url);
+      } else {
+        window.history.pushState(null, "", url);
+      }
+      setActiveSurface(surface);
+    },
+    [],
+  );
 
   useEffect(() => {
     function onPopState() {
