@@ -1,0 +1,39 @@
+/*
+ * DG-110 — the player-name handle.
+ *
+ * Every name that opens a card is a real <button>, so without a reset it
+ * paints as a native browser chip: a white box floating on the dark canvas.
+ * This is the same reset the change feed's row handle already carries
+ * (dg-wc__player-open), lifted to one place so every surface that gained a
+ * handle looks like the product rather than like a form control.
+ *
+ * The underline is the affordance: David's verdict was that things were hard
+ * to find, and a name that silently became pressable is still hard to find.
+ * Where the handle wraps a whole identity cluster (headshot + name + team, the
+ * change feed's rows and chips), the row's own class turns it off — the
+ * cluster is its own affordance and its geometry is already tuned.
+ */
+.dg-player-open {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in oklch, currentColor 45%, transparent);
+}
+
+.dg-player-open:hover {
+  text-decoration-color: currentColor;
+}
+
+.dg-player-open:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}

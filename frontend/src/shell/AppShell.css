@@ -144,6 +144,34 @@
   padding: 0;
 }
 
+/* Results are product rows, not native browser chips floating on the canvas. */
+.dg-shell__search .dg-asset-search__results button {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--dg-text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.dg-shell__search .dg-asset-search__results button:hover {
+  color: var(--dg-model-emphasis);
+}
+
+.dg-shell__search .dg-asset-search__results button:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+.dg-shell__search .dg-asset-search__meta,
+.dg-shell__search .dg-asset-search__notice {
+  display: block;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
 .dg-shell__palette-trigger {
   padding: var(--dg-space-1) var(--dg-space-3);
   font: inherit;

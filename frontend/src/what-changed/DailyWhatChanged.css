@@ -426,6 +426,9 @@
   color: inherit;
   text-align: inherit;
   cursor: pointer;
+  /* The identity cluster (headshot + name + team mark) is its own affordance;
+     the shared handle's underline would cut through it. */
+  text-decoration: none;
   /* Shrink-wrap the identity cluster: a 100%-width flex item cannot share a
      line inside the flex-wrap row and would shatter the 32px tape geometry
      (panel finding, proven in-browser). The focus ring hugs the affordance. */

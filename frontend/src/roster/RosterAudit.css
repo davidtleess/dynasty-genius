@@ -86,3 +86,27 @@
   align-items: center;
   font-size: 0.85rem;
 }
+
+/* DG-110: the row's inline evidence moved to its own control when the name
+   became the handle onto the player's card. Quiet by design — the name leads,
+   the receipt follows. */
+.dg-roster__expand {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--dg-border);
+  border-radius: 3px;
+  padding: 0 0.35rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--dg-text-muted);
+  cursor: pointer;
+}
+
+.dg-roster__expand:hover {
+  color: var(--dg-text);
+}
+
+.dg-roster__expand:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
