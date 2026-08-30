@@ -10,8 +10,11 @@
   gap: 0.5rem;
 }
 
-.dg-roster__disclaimer {
-  font-weight: 600;
+/* DG-111: `.dg-roster__disclaimer` styled the "Context signal — not
+   decision-grade." stamp, which is retired. What replaces it is a plain
+   sentence saying what the QB numbers are, so it reads as body copy — quieter
+   than the stamp, not louder. */
+.dg-roster__qb-note {
   opacity: 0.85;
 }
 
@@ -69,11 +72,6 @@
   padding: 0.5rem 0;
   background: var(--dg-surface, oklch(1 0 255));
   border-bottom: 1px solid var(--dg-border, oklch(0.92 0.005 255));
-}
-
-.dg-roster__controls-disclaimer {
-  font-size: 0.85rem;
-  opacity: 0.8;
 }
 
 .dg-roster__pos {

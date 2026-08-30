@@ -105,12 +105,14 @@ function ReadyView({ data }: { data: RealizedOutcomeScorecardResponse }) {
           ? "Data maturity: not yet started"
           : `Data maturity: ${maturity}% of tracked weeks finalized`}
       </p>
-      <p className="dg-ro__meta">Descriptive only — not decision-grade.</p>
-
+      {/* DG-111: the stamp is retired. The sentence below it is not a stamp —
+          it says what this scorecard actually measures, which is a different
+          thing from what a player is worth, and that distinction is the whole
+          point of the section. Reworded into plain speech, kept. */}
       <p className="dg-ro__note">
-        Model Input Fidelity is an input/fidelity audit — it checks whether realized NFL
-        usage matches the model's input assumptions. It is a diagnostic on the inputs,
-        not a player verdict.
+        Model Input Fidelity checks one thing: whether what players actually did on the
+        field matches what the model assumed they would do. It grades our inputs, not
+        the players.
       </p>
     </section>
   );

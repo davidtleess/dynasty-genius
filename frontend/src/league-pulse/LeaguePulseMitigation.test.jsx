@@ -21,8 +21,15 @@ const cssSource = readFileSync(
 );
 
 // league_pulse_fe_mitigation_v1
+//
+// DG-111 — replacement copy. David's 2026-08-29 ruling is the sign-off that
+// released the byte lock; the replacement is recorded verbatim in the ticket.
+// Every fact the lock protected survives, in the same DOM position ahead of
+// every panel: the labels are COMPUTED from four named roster signals, the
+// weights are disclosed directly below, and a manager's real intent, private
+// valuations and willingness to trade are explicitly beyond what we can see.
 const MITIGATION_COPY =
-  "Opponent posture labels (contender, rebuilding, and similar) are mathematical heuristics computed from four weighted roster signals — starter-weighted model value, roster age profile, early draft-pick balance, and taxi/development stash — with the weights disclosed in this panel's basis. They do not represent the actual trade intent, active strategy, or internal valuations of other league managers, which are unobservable.";
+  "We label each team contending, rebuilding and so on by reading four things off its roster — starter-weighted model value, roster age profile, early draft-pick balance, and taxi/development stash — weighted as shown below. That is our read of the roster, not a read of the manager: what they actually intend to do, how they really value their own players, and whether they want to trade at all are things nobody can see from here.";
 
 const EXPECTED_WEIGHT_LABELS = {
   starter_weighted_model_value: "starter-weighted model value",

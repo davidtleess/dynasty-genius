@@ -47,7 +47,9 @@ describe("LeaguePulse container", () => {
     expect(
       within(surface).getByRole("banner", { name: /league pulse status/i }),
     ).toBeTruthy();
-    expect(within(surface).getByText(/not decision-grade/i)).toBeTruthy();
+    // DG-111: the header band speaks one sentence now instead of three stamps.
+    expect(within(surface).queryByText(/not decision-grade/i)).toBeNull();
+    expect(within(surface).getByText(/read-only snapshot/i)).toBeTruthy();
     const capturedAt = within(surface).getByText("as of Jun 22, 2026, 2:00 PM EDT");
     expect(capturedAt).toBeTruthy();
     expect(capturedAt.getAttribute("title")).toBe("2026-06-22T18:00:00Z");

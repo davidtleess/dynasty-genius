@@ -27,6 +27,19 @@
 //    read those arrays, so a suppressed card fell through the `hasContent` gate
 //    and rendered as silence — visually identical to a player with no evidence.
 //    The per-field caveats are now read, so the withholding speaks.
+//
+// DG-111 — THE ONE THING ABSENCE MUST NOT DO IS READ AS A CLEAN BILL OF HEALTH.
+// An empty risk list means "we have no risk notes on him", never "he has no
+// risks". DG-109 makes the whole section disappear when every field is empty,
+// which is correct for the furniture and wrong for the reader: a card that shows
+// a projection and no evidence at all looks vetted. So the empty case is not
+// silence — it is one sentence saying the notes are missing, not the risks.
+// (`EVIDENCE_ABSENT_SENTENCE` below; proven by PlayerDetailPage.test.jsx.)
+//
+// The lists carry aria-labels because they have no visible headings: without
+// them a risk flag and a top driver are the same anonymous bullet to a screen
+// reader. Telling them apart visually is DG-091 phase-2B design work and is NOT
+// done here.
 import type { z } from "zod";
 
 import type { zPlayerDetailResponse } from "../lib/api/zod.gen";
@@ -34,6 +47,11 @@ import { lookupToken } from "../lib/copy";
 import { TokenNotes } from "../ui/TokenNotes";
 
 type Evidence = NonNullable<z.infer<typeof zPlayerDetailResponse>["evidence"]>;
+
+// DG-111 §B3. Says exactly what is true — our tables are empty — and refuses the
+// reading the blank would otherwise invite.
+export const EVIDENCE_ABSENT_SENTENCE =
+  "We don't have evidence notes on this player yet — that means nothing is written down, not that there is nothing to say.";
 
 function isAgeCliffFlag(text: string): boolean {
   return text.toLowerCase().includes("cliff");
@@ -73,10 +91,14 @@ function EvidenceBody({ evidence }: { evidence: Evidence }) {
         <p className="dg-evidence__counter">{counterArgument.text}</p>
       ) : null}
 
-      <TokenNotes className="dg-evidence__drivers" tokens={drivers} />
+      <TokenNotes
+        className="dg-evidence__drivers"
+        ariaLabel="What is driving this"
+        tokens={drivers}
+      />
 
       {spokenRisks.length > 0 && (
-        <ul className="dg-evidence__risks">
+        <ul className="dg-evidence__risks" aria-label="Risks">
           {spokenRisks.map((note) => (
             // The amber age-cliff treatment is constitutional, so it keys off
             // the RAW token — the sentence says "decline", not "cliff".
@@ -104,9 +126,14 @@ function EvidenceBody({ evidence }: { evidence: Evidence }) {
         </p>
       )}
 
-      <TokenNotes className="dg-evidence__caveats" tokens={caveats} />
+      <TokenNotes
+        className="dg-evidence__caveats"
+        ariaLabel="Caveats"
+        tokens={caveats}
+      />
       <TokenNotes
         className="dg-evidence__field-caveats"
+        ariaLabel="Notes on this evidence"
         tokens={fieldCaveats(evidence)}
       />
     </>
@@ -126,11 +153,14 @@ export function EvidenceSection({ evidence }: { evidence: Evidence | null }) {
     evidence.caveats.items.length > 0 ||
     // A card whose evidence was WITHHELD has no items and must still speak.
     fieldCaveats(evidence).length > 0;
-  if (!hasContent) return null;
 
   return (
     <section className="dg-evidence" aria-label="Evidence">
-      <EvidenceBody evidence={evidence} />
+      {hasContent ? (
+        <EvidenceBody evidence={evidence} />
+      ) : (
+        <p className="dg-evidence__empty">{EVIDENCE_ABSENT_SENTENCE}</p>
+      )}
     </section>
   );
 }

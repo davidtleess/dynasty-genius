@@ -10,13 +10,14 @@
   gap: 0.75rem;
 }
 
-.dg-player-detail__banner {
+/* DG-111: `__banner` (the stamped disclosure line) and `__experimental-badge`
+   are retired with the elements they styled. The model's standing is now one
+   sentence at the foot of the card, and it inherits the same muted, never
+   directional treatment the badge had — it is context for reading the numbers
+   above, not a call. */
+.dg-player-detail__standing {
+  margin-block-start: 0.75rem;
   font-size: 0.8rem;
-  color: var(--dg-model-muted);
-}
-
-.dg-player-detail__experimental-badge {
-  /* Experimental state — muted, never a directional/decision hue. */
   color: var(--dg-model-muted);
 }
 

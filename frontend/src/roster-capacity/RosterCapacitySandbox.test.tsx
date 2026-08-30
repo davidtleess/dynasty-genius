@@ -118,10 +118,13 @@ describe("RosterCapacitySandbox", () => {
       ).toBeTruthy(),
     );
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/roster/capacity");
-    expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
+    // DG-111: the stamp is retired and the sort basis speaks plainly. The
+    // ordering fact (most expendable first) is unchanged — only the
+    // no-nomination register David repealed is gone.
+    expect(screen.queryByText("Descriptive only — not decision-grade.")).toBeNull();
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
     expect(
-      screen.getByText(/sorted by cut exposure rank as diagnostic order/i),
+      screen.getByText(/ordered by what we know, not by who to drop/i),
     ).toBeTruthy();
 
     const cumulative = screen.getByText("-27.83 to -12.50");
@@ -153,8 +156,10 @@ describe("RosterCapacitySandbox", () => {
 
     render(<RosterCapacitySandbox />);
 
+    // DG-111: "Artifact status: degraded" became a sentence that says what a
+    // degraded read means for the numbers under it.
     await waitFor(() =>
-      expect(screen.getByText(/artifact status: degraded/i)).toBeTruthy(),
+      expect(screen.getByText(/this capacity read came back degraded/i)).toBeTruthy(),
     );
     // DG-109: the same fact — we could not confirm the capture time — as a
     // sentence rather than a status token.
@@ -165,7 +170,7 @@ describe("RosterCapacitySandbox", () => {
         /No replacement-value range for this position — stale snapshot/i,
       ),
     ).toBeTruthy();
-    expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
+    expect(screen.queryByText("Descriptive only — not decision-grade.")).toBeNull();
   });
 
   it("renders blocked artifacts as blocked state without stale numbers", async () => {
@@ -192,7 +197,7 @@ describe("RosterCapacitySandbox", () => {
     ).toBeTruthy();
     expect(screen.queryByText("-27.83 to -12.50")).toBeNull();
     expect(screen.queryByRole("table")).toBeNull();
-    expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
+    expect(screen.queryByText("Descriptive only — not decision-grade.")).toBeNull();
   });
 
   it("renders unavailable on non-OK response and parse error on invalid 200", async () => {

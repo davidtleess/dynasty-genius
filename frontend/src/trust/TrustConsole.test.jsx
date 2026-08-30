@@ -9,10 +9,13 @@ import { AppShell } from "../shell/AppShell";
 import { TrustConsole } from "./TrustConsole";
 
 const TRUST_DIR = join(process.cwd(), "src", "trust");
+// DG-111: the truth statement now speaks English. Same three facts — tied with
+// consensus, no proven edge, therefore a second opinion. See TrustTruthPanel.
 const TRUST_TRUTH_COPY =
-  "Consensus-competitive, edge unproven. Engine B is statistically tied with " +
-  "DynastyProcess expert consensus rankings; season by season, the range around " +
-  "its ranking-quality edge still includes zero.";
+  "Honest read: our model ranks players about as well as expert consensus — " +
+  "DynastyProcess's 2QB rankings, which is what we measure it against — but it " +
+  "has not proven it beats them. Season by season across our test years, the " +
+  "range around its ranking-quality edge still includes zero.";
 
 function authoredTrustFiles() {
   if (!existsSync(TRUST_DIR)) {
@@ -223,7 +226,9 @@ describe("TrustConsole", () => {
     await screen.findByText("Trust data loaded");
     const panel = screen.getByRole("region", { name: "Model trust truth" });
     expect(within(panel).getByText(TRUST_TRUTH_COPY)).toBeTruthy();
-    expect(within(panel).getByText("Experimental — not validated")).toBeTruthy();
+    // DG-111: the unvalidated state is a sentence now, not a stamp.
+    expect(within(panel).queryByText("Experimental — not validated")).toBeNull();
+    expect(within(panel).getByText(/not a track record/i)).toBeTruthy();
     expect(within(panel).queryByText("ACTIVE_B_VALIDATED")).toBeNull();
   });
 
@@ -312,9 +317,7 @@ describe("TrustConsole", () => {
     expect(footer.querySelector('[data-grade="ACTIVE_B_VALIDATED"]')).toBeTruthy();
     expect(within(footer).getByText("In use, ranks well in testing")).toBeTruthy();
     expect(
-      within(footer).getByText(
-        "internal model grade — not a market-edge or decision-support claim",
-      ),
+      within(footer).getByText("our own grade, not a claim that it beats the market"),
     ).toBeTruthy();
     expect(within(footer).getByText("dynastyprocess_ecr_2qb")).toBeTruthy();
     expect(

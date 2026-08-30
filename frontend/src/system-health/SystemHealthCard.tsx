@@ -158,11 +158,11 @@ function HealthBody({ data, now }: { data: SystemHealth; now: Date }) {
           ))}
         </ul>
       </details>
+      {/* DG-111: the backend's own disclaimer stays — it is data this endpoint
+          publishes. The stamped "Descriptive only — not decision-grade." line
+          beside it was ours, repeated from every other surface, and is gone. */}
       <footer className="dg-syshealth__footer">
         <span className="dg-syshealth__disclaimer">{data.disclaimer}</span>
-        <span className="dg-syshealth__decision">
-          Descriptive only — not decision-grade.
-        </span>
       </footer>
     </div>
   );

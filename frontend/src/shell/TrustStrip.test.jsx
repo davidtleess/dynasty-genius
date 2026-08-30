@@ -7,8 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TrustStrip } from "./TrustStrip";
 
-const GRADE_QUALIFIER =
-  "internal model grade — not a market-edge or decision-support claim";
+const GRADE_QUALIFIER = "our own grade, not a claim that it beats the market";
 const TRUST_STRIP_CSS = join(process.cwd(), "src", "shell", "TrustStrip.css");
 
 function trustSurfaceResponse(overrides = {}) {

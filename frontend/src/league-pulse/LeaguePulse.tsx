@@ -71,19 +71,27 @@ export function LeaguePulse() {
     >
       <LeaguePulseHeader data={state.data} />
       {/* The graduation mitigation contract (league_pulse_fe_mitigation_v1):
-          exact no-intent-certainty copy + the posture basis mirroring the
-          registered POSTURE_SIGNAL_WEIGHTS export in team_posture.py. */}
+          no-intent-certainty copy + the posture basis mirroring the registered
+          POSTURE_SIGNAL_WEIGHTS export in team_posture.py.
+
+          DG-111 — this paragraph was byte-locked. David's 2026-08-29 ruling is
+          the sign-off that replaces it, and the replacement is recorded verbatim
+          in the ticket. Every fact the lock protected is still here, in the same
+          DOM position, ahead of every panel: the labels are computed, not
+          observed; they come from these four roster signals; the weights are
+          disclosed right below; and a manager's real intent is not something we
+          can see. Only the register changed. */}
       <div
         className="dg-league-pulse__mitigation"
         data-mitigation-contract="league_pulse_fe_mitigation_v1"
       >
         <p className="dg-league-pulse__mitigation-copy">
-          Opponent posture labels (contender, rebuilding, and similar) are mathematical
-          heuristics computed from four weighted roster signals — starter-weighted model
-          value, roster age profile, early draft-pick balance, and taxi/development
-          stash — with the weights disclosed in this panel&apos;s basis. They do not
-          represent the actual trade intent, active strategy, or internal valuations of
-          other league managers, which are unobservable.
+          We label each team contending, rebuilding and so on by reading four things off
+          its roster — starter-weighted model value, roster age profile, early
+          draft-pick balance, and taxi/development stash — weighted as shown below. That
+          is our read of the roster, not a read of the manager: what they actually
+          intend to do, how they really value their own players, and whether they want
+          to trade at all are things nobody can see from here.
         </p>
         <dl
           className="dg-league-pulse__mitigation-basis"

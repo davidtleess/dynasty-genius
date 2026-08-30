@@ -18,9 +18,10 @@ describe("RosterAudit container", () => {
     mockFetch(200, activeAudit());
     render(<RosterAudit />);
     await waitFor(() => expect(screen.getByRole("table")).toBeTruthy());
-    expect(
-      screen.getAllByText(/experimental — not decision-grade/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    // DG-111: the "Experimental — not decision-grade." stamp is retired from
+    // this surface (it rendered twice: header and filter bar). A degraded
+    // roster read still says so in a sentence.
+    expect(screen.queryAllByText(/experimental — not decision-grade/i)).toEqual([]);
   });
   it("renders config-error on 422", async () => {
     mockFetch(422, { detail: { error: "roster_config_error", message: "x" } });
@@ -65,8 +66,9 @@ describe("RosterAudit container", () => {
     await waitFor(() =>
       expect(screen.getByText(/no rows match the current filters/i)).toBeTruthy(),
     );
-    expect(
-      screen.getAllByText(/experimental — not decision-grade/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    // DG-111: the "Experimental — not decision-grade." stamp is retired from
+    // this surface (it rendered twice: header and filter bar). A degraded
+    // roster read still says so in a sentence.
+    expect(screen.queryAllByText(/experimental — not decision-grade/i)).toEqual([]);
   });
 });

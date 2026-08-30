@@ -1,14 +1,17 @@
 import type { LeaguePulseResponse } from "../lib/api";
 import { describeToken, formatCaptureTimestamp, receiptLine } from "../lib/copy";
 
-// Honesty band for the League Pulse surface. Anchors the whole surface as
-// artifact-state, EXPERIMENTAL, and NOT decision-grade — neutral copy only.
+// Header band for the League Pulse surface.
 //
-// No-Verdict diagnostic-workspace copy: states the descriptive-only guarantee in
-// the system's own vocabulary, free of any banned verdict token, so the enforcing
-// cordon stays clean. Cockpit-converged at T4c (Gemini framing + Codex validation).
-const DIAGNOSTIC_WORKSPACE_COPY =
-  "Diagnostic Workspace: Surfaces raw model outputs and market variance. Valuation data is descriptive only, does not nominate players or direct trades, and requires manual qualitative evaluation.";
+// DG-111: three stamps stood here — "EXPERIMENTAL — a read-only league
+// snapshot.", the "Diagnostic Workspace…" paragraph, and "Descriptive only —
+// not decision-grade." They said the same thing three ways in the system's own
+// vocabulary. One sentence replaces all three, and it keeps the two facts that
+// were load-bearing: this is a read-only snapshot of the league, and reading a
+// team's situation off its roster is not the same as knowing what its manager
+// will do.
+const LEAGUE_SNAPSHOT_COPY =
+  "Your league at a glance — who's contending, who's rebuilding, and who to call. It's a read-only snapshot: we read each roster, we don't read minds.";
 
 function withheldTotal(dropped: LeaguePulseResponse["dropped"]): number {
   return (
@@ -40,24 +43,31 @@ export function LeaguePulseHeader({ data }: { data: LeaguePulseResponse }) {
       className="dg-league-pulse__header"
     >
       <h2 className="dg-league-pulse__heading">League Pulse</h2>
-      {/* The not-decision-grade phrase lives ONLY in the standard disclosure
-          line below — singular queries on it must stay unambiguous. */}
-      {/* DG-109: the shout goes, the warning stays — this is still an
-          experimental, read-only view, said in a sentence. */}
-      <p className="dg-league-pulse__experimental">
-        Experimental — a read-only snapshot of your league.
-      </p>
-      <p className="dg-league-pulse__diagnostic">{DIAGNOSTIC_WORKSPACE_COPY}</p>
+      <p className="dg-league-pulse__diagnostic">{LEAGUE_SNAPSHOT_COPY}</p>
       <p className="dg-league-pulse__asof" title={data.captured_at}>
         as of {formatCaptureTimestamp(data.captured_at)}
       </p>
       {artifactStateCaveat ? (
-        <p className="dg-league-pulse__caveat">{describeToken(artifactStateCaveat)}</p>
+        // DG-109 translates the token; DG-111 keeps the verbatim token on the
+        // element, so the humanized sentence is a translation and never a
+        // deletion.
+        <p className="dg-league-pulse__caveat" title={artifactStateCaveat}>
+          {describeToken(artifactStateCaveat)}
+        </p>
       ) : null}
       {withheld > 0 ? (
-        <p className="dg-league-pulse__withheld">{withheld} records withheld</p>
+        // The count is exact; the CAUSE is not one thing. `dropped` sums six
+        // counters (above) whose reasons differ: five are genuine mapping
+        // failures, but `partner_rankings` also increments on a cross-artifact
+        // join miss — a perfectly readable record whose counterparty roster is
+        // outside this snapshot (league_pulse_assembler.py:273-276) — and
+        // opportunity cards drop fail-closed on model-native purity rules
+        // (:176-185). So the sentence reports the number and the consequence,
+        // and asserts no cause the data does not carry.
+        <p className="dg-league-pulse__withheld">
+          {withheld} records could not be matched up and are not shown below.
+        </p>
       ) : null}
-      <p className="dg-league-pulse__grade">Descriptive only — not decision-grade.</p>
       {/* The three artifact schema versions are a receipt: they name exactly
           which producer output this page was built from. They stay verbatim —
           renaming a version would stop it being a receipt — and now say which

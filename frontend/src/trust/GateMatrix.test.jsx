@@ -108,7 +108,7 @@ describe("GateMatrix", () => {
     expectGate(matrix, "G4 Divergence validity", "DEFERRED");
   });
 
-  it("frames MET as point-estimate state, not decision support", async () => {
+  it("frames a met gate as a point estimate, never as proof", async () => {
     const { GateMatrix } = await import("./GateMatrix");
 
     render(
@@ -127,7 +127,7 @@ describe("GateMatrix", () => {
     expectGate(matrix, "G3 Market superiority", "MET");
     expect(
       within(matrix).getByText(
-        'A gate reading "met" is a single point estimate, not decision support',
+        'A gate reading "met" is a single point estimate — it does not mean the model is proven',
       ),
     ).toBeTruthy();
     expect(within(matrix).getByText(/CIs include zero/i)).toBeTruthy();

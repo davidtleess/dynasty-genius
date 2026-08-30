@@ -465,15 +465,19 @@ describe("DailyWhatChanged", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: /Wednesday, July 1/i }),
     ).toBeTruthy();
-    expect(screen.getAllByText("Descriptive only — not decision-grade.").length).toBe(
-      7,
-    );
+    // DG-111: was seven stamped "Descriptive only — not decision-grade." lines
+    // and a "delta surface" subtitle. Now: zero stamps, one plain subtitle, and
+    // the provenance the rail used to shout is one press down — same facts,
+    // same timestamps, same comparison window.
+    expect(screen.queryAllByText("Descriptive only — not decision-grade.")).toEqual([]);
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
-    expect(screen.getByText(/delta surface/i)).toBeTruthy();
-    const generatedAt = screen.getByText("Generated: Jul 1, 2026, 8:00 AM EDT");
+    expect(screen.getByText(/since the last snapshot/i)).toBeTruthy();
+    const generatedAt = screen.getByText("Report built Jul 1, 2026, 8:00 AM EDT.");
     expect(generatedAt).toBeTruthy();
     expect(generatedAt.getAttribute("title")).toBe("2026-07-01T12:00:00+00:00");
-    expect(screen.getByText(/captured 2026-06-30 vs 2026-07-01/i)).toBeTruthy();
+    expect(
+      screen.getByText(/Market prices captured 2026-06-30 vs 2026-07-01/i),
+    ).toBeTruthy();
 
     const market = screen.getByRole("region", {
       name: /market price-discovery overlay/i,
@@ -584,13 +588,30 @@ describe("DailyWhatChanged", () => {
 
     render(<DailyWhatChanged />);
 
-    await waitFor(() => expect(screen.getByText(/status: degraded/i)).toBeTruthy());
-    expect(screen.getByText(/market_snapshot_stale/i)).toBeTruthy();
-    expect(screen.getByText(/feature_source_unverifiable/i)).toBeTruthy();
-    expect(screen.getByText(/pvo_seed_stale/i)).toBeTruthy();
-    expect(screen.getAllByText("Descriptive only — not decision-grade.").length).toBe(
-      7,
+    // DG-111: the degradation is still stated — in prose on the surface, and
+    // with the producer's own token preserved verbatim in the receipt sheet.
+    // A degraded morning stays loud; it just speaks English first.
+    await waitFor(() =>
+      expect(screen.getByText(/Feed status: degraded/i)).toBeTruthy(),
     );
+    expect(screen.getByTestId("wc-market-degraded").textContent).toMatch(
+      /Market snapshot stale/,
+    );
+    expect(screen.getByTestId("wc-model-degraded").textContent).toMatch(
+      /Feature source unverifiable/,
+    );
+    expect(screen.getByTestId("wc-model-degraded").textContent).toMatch(
+      /Pvo seed stale/,
+    );
+    const raw = screen.getByTestId("wc-raw-reasons").textContent;
+    for (const token of [
+      "market_snapshot_stale",
+      "feature_source_unverifiable",
+      "pvo_seed_stale",
+    ]) {
+      expect(raw).toContain(token);
+    }
+    expect(screen.queryAllByText("Descriptive only — not decision-grade.")).toEqual([]);
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
   });
 
@@ -625,17 +646,43 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByText(/Your roster's market values held steady/i)).toBeTruthy();
     expect(screen.getByText(/no entered assets/i)).toBeTruthy();
     expect(screen.getByText(/no exited assets/i)).toBeTruthy();
-    expect(screen.getByText(/Projections held steady/i)).toBeTruthy();
+    // DG-111 REVIEW-PANEL FIX. `comparison_window.status` is set ONLY where the
+    // producer refused to compare (daily_diff.py:237-241), so an empty delta
+    // list here means "we did not look", and the surface must not say
+    // "Projections held steady" — that is an affirmative claim about a
+    // comparison that never happened.
+    expect(screen.queryByText(/Projections held steady/i)).toBeNull();
+    expect(
+      screen.getByText(/No day-over-day comparison of our projections/i),
+    ).toBeTruthy();
+    // ...and a young capture history is NOT a degradation. Calling it one is the
+    // DG-047 cry-wolf pattern: it spends the word on a normal morning.
+    const modelNotice = screen.getByTestId("wc-model-degraded").textContent;
+    expect(modelNotice).toMatch(
+      /couldn't compare our projections against an earlier day/i,
+    );
+    expect(modelNotice).not.toMatch(/came back degraded/i);
     // DG-109 review fix: this line used to assert that the RAW key
     // `insufficient_history` was on David's screen — one of the 359 green tests
     // pinning the exact violation the ticket exists to remove, and positive
     // proof that ModelRegion's caveat branch rendered unconverted. Meanwhile the
     // dictionary entry for it was added by this branch and no render path
     // consulted it. Same fact, same branch, said in words now.
+    expect(modelNotice).toMatch(
+      /Not enough days captured yet to compare one to the next/,
+    );
+    // Not in body copy anywhere on the surface...
+    expect(modelNotice).not.toMatch(/insufficient_history/);
     expect(
-      screen.getByText("Not enough days captured yet to compare one to the next."),
-    ).toBeTruthy();
-    expect(screen.queryByText(/insufficient_history/i)).toBeNull();
+      within(screen.getByRole("region", { name: "Model output changes" })).queryByText(
+        /insufficient_history/i,
+      ),
+    ).toBeNull();
+    // ...but not lost either: the verbatim token is in the receipt sheet, which
+    // is the one layer the render rule permits a raw pipeline key.
+    expect(screen.getByTestId("wc-raw-reasons").textContent).toContain(
+      "insufficient_history",
+    );
     expect(screen.queryByText(/top mover unavailable/i)).toBeNull();
     expect(screen.queryByText(/0\.00/i)).toBeNull();
   });
@@ -735,25 +782,37 @@ describe("DailyWhatChanged", () => {
       "Drop Pressure",
       "Sleeper Snapshot",
     ]) {
+      // DG-111: the "Status: ok" stamp and the disclosure line are retired from
+      // every section. A clean section says nothing at all; only a section with
+      // something wrong speaks, and it speaks in a sentence.
       const section = within(baseline).getByRole("region", { name: label });
-      expect(within(section).getByText(/status:/i)).toBeTruthy();
+      expect(within(section).queryByText(/^Status:/)).toBeNull();
       expect(
-        within(section).getByText("Descriptive only — not decision-grade."),
-      ).toBeTruthy();
+        within(section).queryByText("Descriptive only — not decision-grade."),
+      ).toBeNull();
     }
 
     const posture = within(baseline).getByRole("region", { name: "Team Posture" });
     expect(within(posture).getByText(/contender/i)).toBeTruthy();
     expect(within(posture).getByText(/team count: 12/i)).toBeTruthy();
-    // DG-109: the staleness line used to read
-    // `captured_at_vs_report_generated_at — stale (age 1.5h)`. Every fact in it
-    // survives — which clocks were compared, that it is stale, and how old.
+    // The staleness FACT survives, in words. DG-111 says how old and that it is
+    // stale; DG-109's dictionary says WHICH pair of clocks the age was measured
+    // between — both facts in one notice — and the producer's own basis token is
+    // kept verbatim in the title attribute (and in the receipt sheet).
+    const postureNotice = within(posture).getByTestId("wc-section-notice");
+    expect(postureNotice.textContent).toMatch(/Team posture snapshot/i);
+    expect(postureNotice.textContent).toMatch(/1\.5 hours old/i);
+    expect(postureNotice.textContent).toMatch(/stale/i);
+    expect(postureNotice.getAttribute("title")).toContain("team_posture_snapshot");
+    // No raw producer token reaches the visible sentence (DG-109's render rule).
+    expect(within(posture).queryByText(/team_posture_snapshot/)).toBeNull();
+    // A clean section stays silent — that is the "one caveat, only where it
+    // changes something" rule, mechanically enforced.
     expect(
-      within(posture).getByText(
-        /Team posture snapshot\. It has gone stale at 1\.5 hours old\./i,
-      ),
-    ).toBeTruthy();
-    expect(within(posture).queryByText(/team_posture_snapshot/i)).toBeNull();
+      within(
+        within(baseline).getByRole("region", { name: "Sleeper Snapshot" }),
+      ).queryByTestId("wc-section-notice"),
+    ).toBeNull();
 
     const teamValue = within(baseline).getByRole("region", { name: "Team Value" });
     expect(within(teamValue).getByText(/Starting lineup value: 31.4/i)).toBeTruthy();
@@ -768,13 +827,20 @@ describe("DailyWhatChanged", () => {
     });
     expect(within(opportunity).getByText(/partner ranking count: 2/i)).toBeTruthy();
     expect(within(opportunity).getByText(/card count: 3/i)).toBeTruthy();
+    // DG-109: the opportunity counts printed their own shouted enums. The counts
+    // are unchanged; only the words are.
     expect(
       within(opportunity).getByText(/We value him more than the market does: 2/i),
     ).toBeTruthy();
     expect(within(opportunity).getByText(/Depth context: 1/i)).toBeTruthy();
+    // DG-111: the section's own trouble is one notice, and the raw token stays
+    // on the element rather than in the sentence.
+    expect(within(opportunity).getByTestId("wc-section-notice").textContent).toMatch(
+      /League opportunity partial source/i,
+    );
     expect(
-      within(opportunity).getByText(/League opportunity partial source/i),
-    ).toBeTruthy();
+      within(opportunity).getByTestId("wc-section-notice").getAttribute("title"),
+    ).toContain("league_opportunity_partial_source");
 
     const dropPressure = within(baseline).getByRole("region", {
       name: "Drop Pressure",
@@ -842,7 +908,9 @@ describe("DailyWhatChanged", () => {
       within(tape).getByText(/market sync active: 12 consecutive days tracked/i),
     ).toBeTruthy();
     expect(within(tape).getByText(/projection update: july 5, current/i)).toBeTruthy();
-    expect(within(tape).getByText(/status: synced/i)).toBeTruthy();
+    // DG-111: the third "Status: Synced / Status: Degraded" stamp is retired.
+    // A clean tape says nothing; a degraded one says what it means.
+    expect(within(tape).queryByText(/status: synced/i)).toBeNull();
     expect(
       within(tape).queryByText(
         /capture streak|last capture|model vintage|registry version/i,
@@ -890,7 +958,10 @@ describe("DailyWhatChanged", () => {
     expect(
       within(tape).getByText(/projections active using the latest verified data/i),
     ).toBeTruthy();
-    expect(within(tape).getByText(/status: degraded/i)).toBeTruthy();
+    // DG-111: the third "Status: Synced / Status: Degraded" stamp is retired.
+    // A clean tape says nothing; a degraded one says what it means.
+    expect(within(tape).queryByText(/status: degraded/i)).toBeNull();
+    expect(within(tape).getByText(/some of this data is behind/i)).toBeTruthy();
     expect(
       within(tape).queryByText(
         /capture health|model provenance|capture streak|model vintage|registry version/i,
@@ -967,14 +1038,19 @@ describe("DailyWhatChanged", () => {
     ).toBeNull();
   });
 
-  it("renders stale generated_at as a non-urgent header badge and desaturates rows", async () => {
+  // DG-111: the badge said "Stale data caveat — the capture is 27.5 hours old."
+  // The word "caveat" is gone; the age, the staleness and the desaturated rows
+  // are not.
+  it("renders stale generated_at as a non-urgent header sentence and desaturates rows", async () => {
     const body = increment1Response();
     body.generated_at = new Date(Date.now() - 27.5 * 60 * 60 * 1000).toISOString();
     mockFetch(200, body);
 
     const { container } = render(<DailyWhatChanged />);
 
-    await waitFor(() => expect(screen.getByText(/stale data caveat/i)).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("wc-freshness").textContent).toMatch(/didn't land/i),
+    );
     expect(screen.getByText(/2[67](\.\d)? hours/i)).toBeTruthy();
     expect(container.querySelector(".dg-wc--stale")).toBeTruthy();
     expect(
@@ -1227,5 +1303,235 @@ describe("DG-089 player selection from the change feed", () => {
     await waitFor(() => {
       expect(within(inspector).getByText("Market Mover")).toBeTruthy();
     });
+  });
+});
+
+// ── DG-111 — the furniture is retired; the facts speak in prose ──────────────
+// David, 2026-08-29: "I really don't care for the caveats and the hard wording
+// governance… I'd rather use layman's terms and call a spade a spade."
+// The honesty law that survives his ruling: stale must still SAY it is stale.
+// These tests exist so a future edit cannot quietly delete the fact along with
+// the stamp that used to carry it.
+describe("DG-111 the stale morning still says it is stale, in prose", () => {
+  it("says the capture is old in one plain sentence, with the real age, and no stamp", async () => {
+    const body = increment1Response();
+    body.generated_at = new Date(Date.now() - 27.5 * 60 * 60 * 1000).toISOString();
+    mockFetch(200, body);
+
+    render(<DailyWhatChanged />);
+
+    const stale = await screen.findByTestId("wc-freshness");
+    // The FACT: it is old, by this many hours, and what you see is the last
+    // verified snapshot rather than today's.
+    expect(stale.textContent).toMatch(/2[67](\.\d)? hours old/i);
+    expect(stale.textContent).toMatch(/last verified snapshot/i);
+    expect(stale.textContent).toMatch(/not today/i);
+    // The FURNITURE: gone.
+    expect(stale.textContent).not.toMatch(/caveat/i);
+    expect(screen.queryByText("Descriptive only — not decision-grade.")).toBeNull();
+  });
+
+  it("says so even when the capture time is unreadable — never silence", async () => {
+    const body = increment1Response();
+    body.generated_at = "not-a-timestamp";
+    mockFetch(200, body);
+
+    render(<DailyWhatChanged />);
+
+    const stale = await screen.findByTestId("wc-freshness");
+    expect(stale.textContent).toMatch(/couldn't read/i);
+    expect(stale.textContent).toMatch(/last verified snapshot/i);
+  });
+
+  it("names a degraded feed in prose and keeps the raw reason in the receipt sheet", async () => {
+    mockFetch(
+      200,
+      whatChangedResponse({
+        overall_status: "degraded",
+        daily_diff: {
+          overall_status: "degraded",
+          market: { status: "degraded", aborted_reason: "market_snapshot_stale" },
+          model: {
+            status: "degraded",
+            pvo_staleness: {
+              decision_supported: false,
+              pvo_source_status: "not_ready",
+              aborted_reason: "pvo_seed_stale",
+            },
+          },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+
+    const market = await screen.findByRole("region", {
+      name: /market price-discovery overlay/i,
+    });
+    // Prose on the surface: the reason is said in words, not as a raw key…
+    const marketNote = within(market).getByTestId("wc-market-degraded");
+    expect(marketNote.textContent).toMatch(/Market snapshot stale/);
+    expect(marketNote.textContent).not.toContain("market_snapshot_stale");
+    // …and the raw producer token is still reachable, verbatim, in the receipt.
+    const receipts = screen.getByTestId("wc-provenance");
+    expect(receipts.textContent).toContain("market_snapshot_stale");
+    expect(receipts.textContent).toContain("pvo_seed_stale");
+  });
+
+  it("a healthy morning carries no caveat furniture at all", async () => {
+    mockFetch(200, whatChangedResponse());
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: /daily what-changed/i })).toBeTruthy(),
+    );
+    expect(screen.queryAllByText("Descriptive only — not decision-grade.")).toEqual([]);
+    expect(screen.queryByRole("note", { name: /caveats/i })).toBeNull();
+    expect(screen.queryByText(/^Status:/)).toBeNull();
+    expect(screen.queryByText(/Feed diagnostics/i)).toBeNull();
+  });
+});
+
+// ── DG-111 REVIEW PANEL — the blocker, and the state no fixture ever drove ────
+//
+// `_build_market_section` (src/dynasty_genius/what_changed/daily_diff.py:111-117)
+// returns `status: "insufficient_history"` with NO `aborted_reason`, no
+// `roster_deltas` and no `top_movers` when fewer than two FantasyCalc capture
+// dates exist. The market region's heads-up used to be gated on
+// `market.aborted_reason` alone, so on that morning the surface fell silent and
+// its empty-state copy — "market values held steady overnight" — stood as an
+// affirmative claim about a comparison that was never made. Before DG-111 the
+// rail printed `Market feed: insufficient_history` in always-visible text;
+// moving that into a receipt sheet shut by default turned a cluttered truth into
+// a clean falsehood. That is the honesty law's one BLOCKING shape: a
+// truth-bearing behavior deleted instead of reworded.
+describe("DG-111 a comparison that never ran never reads as 'nothing moved'", () => {
+  it("speaks when the market lane has too little history, and drops the held-steady claim", async () => {
+    mockFetch(
+      200,
+      whatChangedResponse({
+        overall_status: "degraded",
+        daily_diff: {
+          overall_status: "degraded",
+          market: {
+            status: "insufficient_history",
+            market_source: "fantasycalc_overlay",
+            comparison_window: { status: "insufficient_history" },
+            roster_deltas: null,
+            top_movers: null,
+            entered: null,
+            exited: null,
+            total_movers_count: null,
+          },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /market price-discovery/i }),
+      ).toBeTruthy(),
+    );
+    const market = screen.getByRole("region", { name: /market price-discovery/i });
+
+    // 1. The false claim is gone — both halves of it.
+    expect(within(market).queryByText(/held steady/i)).toBeNull();
+    expect(
+      within(market).getByText(/No day-over-day comparison for your roster/i),
+    ).toBeTruthy();
+    expect(
+      within(market).getByText(/No day-over-day comparison league-wide/i),
+    ).toBeTruthy();
+
+    // 2. The fact is VISIBLE, not hidden behind a shut receipt sheet.
+    const notice = within(market).getByTestId("wc-market-degraded");
+    expect(notice.textContent).toMatch(
+      /couldn't compare market prices against an earlier day/i,
+    );
+    expect(notice.textContent).toMatch(/Not enough days captured yet/i);
+    // A young capture history is not a fault, and must not be called one.
+    expect(notice.textContent).not.toMatch(/came back degraded/i);
+    // The producer's own token rides the element, never the sentence.
+    expect(notice.getAttribute("title")).toBe("insufficient_history");
+    expect(within(market).queryByText(/insufficient_history/)).toBeNull();
+
+    // 3. The receipt sheet still records it verbatim — `producerReasons` reads
+    //    the MARKET comparison window now, not only the model's.
+    expect(screen.getByTestId("wc-raw-reasons").textContent).toContain(
+      "insufficient_history",
+    );
+    // 4. And the market source survives in the sheet even though the comparison
+    //    window carried no dates.
+    expect(screen.getByTestId("wc-provenance").textContent).toContain(
+      "fantasycalc_overlay",
+    );
+  });
+
+  it("keeps saying 'held steady' when the comparison genuinely ran and nothing moved", async () => {
+    mockFetch(
+      200,
+      whatChangedResponse({
+        daily_diff: {
+          market: {
+            status: "ok",
+            roster_deltas: [],
+            top_movers: [],
+            total_movers_count: 0,
+          },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /market price-discovery/i }),
+      ).toBeTruthy(),
+    );
+    const market = screen.getByRole("region", { name: /market price-discovery/i });
+    expect(
+      within(market).getByText(/held steady — no movement on this tape/i),
+    ).toBeTruthy();
+    expect(within(market).queryByTestId("wc-market-degraded")).toBeNull();
+    // No rows on screen means no trend slots to explain, so the note that
+    // explains blank ones does not render either.
+    expect(within(market).queryByTestId("wc-trend-note")).toBeNull();
+  });
+
+  it("still calls a real market abort a degradation, and says why", async () => {
+    mockFetch(
+      200,
+      whatChangedResponse({
+        overall_status: "degraded",
+        daily_diff: {
+          overall_status: "degraded",
+          market: {
+            status: "unavailable",
+            aborted_reason: "missing_sleeper_snapshot",
+            market_source: "fantasycalc_overlay",
+            roster_deltas: null,
+            top_movers: null,
+          },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /market price-discovery/i }),
+      ).toBeTruthy(),
+    );
+    const notice = within(
+      screen.getByRole("region", { name: /market price-discovery/i }),
+    ).getByTestId("wc-market-degraded");
+    expect(notice.textContent).toMatch(/came back degraded/i);
+    expect(notice.textContent).toMatch(/could not read your Sleeper roster/i);
+    expect(notice.getAttribute("title")).toBe("missing_sleeper_snapshot");
   });
 });

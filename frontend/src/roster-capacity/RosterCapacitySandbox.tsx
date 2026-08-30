@@ -101,16 +101,37 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
 
   return (
     <section className="dg-rc" aria-label="Roster Capacity Sandbox">
-      <p className="dg-rc__disclaimer">Descriptive only — not decision-grade.</p>
+      {/* DG-111: two stamps became one sentence that says what the surface is.
+          The "no verdict, no nominated cut" clause stated the register David
+          repealed; what it usefully meant — this shows the squeeze, it does not
+          pick the man — survives in plain words. The raw artifact status only
+          speaks when it is not clean. */}
       <p className="dg-rc__disclaimer">
-        Capacity facts and value-at-risk ranges; no verdict, no nominated cut.
+        Where your roster is tight, and what each cut would cost you.
       </p>
-      <p className="dg-rc__status">Artifact status: {data.artifact_status}</p>
+      {/* REVIEW-PANEL FIX: this fired for EVERY non-ok status including
+          `blocked`, and told the reader to treat "the ranges below" as
+          provisional on the one path where there are no ranges below at all —
+          the blocked branch renders no health block, no table and no scenario
+          ranges. "Provisional" also softens "blocked": provisional means
+          tentative, blocked means nothing is shown. Blocked gets its own line
+          further down; this one now speaks only where there IS something below
+          to qualify. The element itself is conditional, so a clean read does not
+          ship an empty styled paragraph. */}
+      {data.artifact_status === "degraded" && !blocked && (
+        <p className="dg-rc__status" data-artifact-status={data.artifact_status}>
+          Heads up: this capacity read came back degraded, so treat the ranges below as
+          provisional.
+        </p>
+      )}
 
       {caveats.length > 0 && (
         <ul className="dg-rc__caveats" aria-label="Caveats">
           {caveats.map((caveat) => (
-            <li key={caveat} className="dg-rc__caveat">
+            // The producer's own token stays on the element: this surface has
+            // no receipt sheet, so without the title the exact string the
+            // pipeline emitted would be nowhere in the product.
+            <li key={caveat} className="dg-rc__caveat" title={caveat}>
               {describeToken(caveat)}
             </li>
           ))}
@@ -119,7 +140,8 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
 
       {blocked ? (
         <p className="dg-rc__blocked">
-          No capacity numbers are shown for a blocked artifact.
+          This capacity read was blocked, so there are no numbers to show — not zero
+          cuts required, no reading at all.
         </p>
       ) : (
         <>
@@ -136,9 +158,30 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
             </dl>
           )}
 
+          {/* REVIEW-PANEL FIX — THE BLOCKER. This read "Sorted most expendable
+              first — if you have to cut someone, start at the top", which is not
+              true of the rows that actually sit at the top, and it is the one
+              line on this surface a manager would act on.
+
+              What the order really is (src/dynasty_genius/roster_cut_engine.py):
+                · `forced_candidates` are PREPENDED with cut_priority=0 (:288-300)
+                  — IR/reserve compliance problems, ordered for roster legality.
+                  An injured star in an illegal reserve slot leads the list.
+                · the rest sort by `_tier_sort_key` (:171-180), whose PRIMARY key
+                  is the data-availability tier from `_scoring_tier` (:161-168):
+                  A = we have an xVAR percentile, B = we have a dynasty value
+                  score, C = neither, D = pre-model. Value is only the SECONDARY
+                  key. So every scored player — your best included — sorts ahead
+                  of every unscored one.
+              Neither the tier nor `candidate_source` is rendered in the table
+              (name, position, cut exposure rank, xVAR), so nothing else on screen
+              corrects the sentence: it has to be true on its own. The retired
+              string ("…as diagnostic order — not a cut sequence.") existed to
+              forbid exactly the reading the replacement asserted. */}
           <p className="dg-rc__sort-basis">
-            Candidates sorted by cut exposure rank as diagnostic order — not a cut
-            sequence.
+            Ordered by what we know, not by who to drop: anyone with a roster-legality
+            problem comes first, then the players we have a score for — lowest score at
+            the top — and last the ones we can't score yet.
           </p>
 
           {(data.candidates ?? []).length === 0 ? (

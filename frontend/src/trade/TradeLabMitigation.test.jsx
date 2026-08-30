@@ -9,8 +9,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TradeLab } from "./TradeLab";
 
+// DG-111 — trade_lab_fe_mitigation_v1 replacement copy. David's 2026-08-29
+// ruling is the sign-off that released the byte lock; the replacement is
+// recorded verbatim in the ticket. Every fact the lock protected survives:
+// no win/lose verdict is computed, fit is not judged, the two pricings stay
+// separate rather than blended, a stale or missing price says so in its own
+// lane, and the call is the manager's. Only the register changed.
 const MITIGATION_COPY =
-  "This diagnostic panel does not calculate whether you win or lose this trade, and it does not judge if this transaction fits your team. It keeps the model and market views separate and surfaces stale or unavailable data as caveats, so you can evaluate the numbers yourself.";
+  "We price both sides two ways — what the dynasty market is paying, and what our model says — and keep the two apart instead of blending them into one number. Where a price is stale or missing, that lane says so. We don't call the winner and we don't judge whether the deal fits your team: that part is yours.";
 
 const STYLE_SOURCE = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), "TradeLab.css"),
@@ -267,7 +273,10 @@ describe("Trade Lab mitigation contract", () => {
       expect(screen.getByTestId("divergence-strip")).toBeTruthy();
     });
 
-    expect(disclaimer.textContent).toMatch(/\bwin\b/i);
+    // The point of this line: the note itself legitimately uses verdict
+    // vocabulary ("we don't call the winner"), so the result-surface scan below
+    // must be scoped to the RESULT surfaces and never false-fail on it.
+    expect(disclaimer.textContent).toMatch(/\bwinner\b/i);
     const resultText = [
       screen.getByTestId("trade-lane-pair").textContent ?? "",
       screen.getByTestId("divergence-strip").textContent ?? "",
