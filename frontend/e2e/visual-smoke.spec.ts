@@ -115,9 +115,29 @@ async function emulateReducedMotion(page: Page) {
 
 async function settleMotion(page: Page) {
   // rAF-polled: pumping frames drives any straggling finite animation or
-  // transition (focus feedback, chart stages) to completion; finished
-  // animations without forward fill leave document.getAnimations().
-  await page.waitForFunction(() => document.getAnimations().length === 0);
+  // transition (focus feedback, chart stages) to completion.
+  //
+  // Quiescence, not emptiness. A finished animation only LEAVES
+  // document.getAnimations() when it has no forward fill, and an endless one
+  // (a spinner) never leaves at all — so `length === 0` would wait forever the
+  // first time anyone adds `animation-fill-mode: forwards` or an infinite
+  // loop. With Playwright's 30s default that hang would surface as a bare
+  // timeout on the line before the axe scan and read like a contrast failure,
+  // which is exactly the misdiagnosis this ticket exists to end. Neither shape
+  // exists in the tree today (grep for `infinite`/`forwards` returns nothing),
+  // so this changes no current behaviour; it keeps the gate legible when one
+  // appears. The explicit timeout makes a genuine never-settling animation
+  // fail fast and by name.
+  await page.waitForFunction(
+    () =>
+      document.getAnimations().every((animation) => {
+        const timing = animation.effect?.getComputedTiming();
+        const endless = timing?.iterations === Number.POSITIVE_INFINITY;
+        return endless || animation.playState === "finished";
+      }),
+    undefined,
+    { timeout: 10_000 },
+  );
 }
 
 async function captureMidScroll(page: Page, path: string) {
