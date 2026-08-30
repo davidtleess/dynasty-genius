@@ -204,7 +204,7 @@
       "focus_token_consumers": 5,
       "hover_selectors": 1,
       "elevation_consumers": 0,
-      "row_treatment_selectors": 9,
+      "row_treatment_selectors": 11,
       "card_treatment_selectors": 5
     }
   ],
@@ -213,7 +213,7 @@
     "focus_token_consumers": 13,
     "hover_selectors": 8,
     "elevation_consumers": 0,
-    "row_treatment_selectors": 38,
+    "row_treatment_selectors": 40,
     "card_treatment_selectors": 14
   }
 }

@@ -926,6 +926,14 @@ function humanAssetKey(key: string): string {
 const NOT_A_FAULT: ReadonlySet<string> = new Set([
   "insufficient_history",
   "baseline_holding",
+  // DG-113 adds the third, found rendering on the LIVE payload: two model runs
+  // landed on 2026-08-30, so the producer refuses to emit a comparison rather
+  // than fabricate one (daily_diff.py:255-271). That is the same species as the
+  // two above — a refusal, not a fault — and the dictionary sentence for it
+  // already says so in its own words ("we will not claim what moved
+  // overnight"). Calling it "came back degraded", as the page did this morning,
+  // is the cry-wolf pattern spending the word on a producer behaving correctly.
+  "model_multi_vintage_ambiguous",
 ]);
 
 /**
@@ -948,21 +956,31 @@ const NOT_A_FAULT: ReadonlySet<string> = new Set([
 function laneNotice(
   lane: "market" | "model",
   reasons: readonly string[],
+  /** Whether this lane actually has rows under the notice. */
+  hasRows: boolean,
 ): string | null {
   if (reasons.length === 0) return null;
-  // A dictionary sentence ends in a full stop; here it is a CLAUSE inside a
-  // longer sentence, so the stop comes off. Nothing else about the string is
-  // touched — the words the dictionary chose are the words that render.
-  const said = reasons
-    .map((token) => describeToken(token).replace(/\.$/, ""))
-    .join("; ");
-  const numbers = lane === "market" ? "the prices below" : "the model numbers below";
-  if (reasons.every((token) => NOT_A_FAULT.has(token))) {
-    const subject = lane === "market" ? "market prices" : "our projections";
-    return `Heads up: we couldn't compare ${subject} against an earlier day — ${said} — so nothing below is a change, it's just where things stand.`;
+  // DG-113: the dictionary sentence is now its OWN sentence, not a clause
+  // spliced between em-dashes with its full stop shaved off. Read on the live
+  // payload the splice produced "…came back degraded — Two different model runs
+  // landed on the same day, so we will not claim what moved overnight — so
+  // treat the model numbers below as provisional": a capitalised sentence
+  // wedged mid-clause, then a second "so", then an instruction. The dictionary
+  // writes sentences; let them be sentences.
+  const said = reasons.map((token) => endSentence(describeToken(token))).join(" ");
+  const opening = reasons.every((token) => NOT_A_FAULT.has(token))
+    ? `Heads up: we couldn't compare ${lane === "market" ? "market prices" : "our projections"} against an earlier day.`
+    : `Heads up: ${lane === "market" ? "the market side" : "the model side"} came back degraded.`;
+  // …and the closing instruction renders ONLY when there is something below to
+  // apply it to. On today's payload the model lane has no rows at all, so
+  // "treat the model numbers below as provisional" was pointing at nothing.
+  if (!hasRows) {
+    return `${opening} ${said}`;
   }
-  const side = lane === "market" ? "the market side" : "the model side";
-  return `Heads up: ${side} came back degraded — ${said} — so treat ${numbers} as provisional.`;
+  const closing = reasons.every((token) => NOT_A_FAULT.has(token))
+    ? `So nothing below is a change — it is just where things stand.`
+    : `So treat ${lane === "market" ? "the prices" : "the model numbers"} below as provisional.`;
+  return `${opening} ${said} ${closing}`;
 }
 
 function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
@@ -987,7 +1005,7 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
     : market.status !== "ok"
       ? [market.status]
       : [];
-  const notice = laneNotice("market", marketReasons);
+  const notice = laneNotice("market", marketReasons, rosterDeltas.length > 0);
   // No comparison ran → an empty row list means "we did not look", never "we
   // looked and nothing moved". The empty-state copy has to stop making the
   // second claim, or the honesty sentence above is arguing with the page.
@@ -1274,7 +1292,7 @@ function ModelRegion({ model }: { model: WhatChangedModelSection }) {
     model.feature_freshness?.aborted_reason ?? null,
     model.pvo_staleness?.aborted_reason ?? null,
   ].filter((item): item is string => item != null);
-  const notice = laneNotice("model", caveats);
+  const notice = laneNotice("model", caveats, deltas.length > 0);
   // `comparison_window.status` is set ONLY on the two paths where the producer
   // refuses to compare — `insufficient_history` (fewer than two capture dates)
   // and `model_multi_vintage_ambiguous` (two model runs on one day). The success

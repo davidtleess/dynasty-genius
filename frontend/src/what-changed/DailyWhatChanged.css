@@ -107,10 +107,12 @@
   font-style: italic;
 }
 
+/* Spec §5: ALL-CAPS section heads are killed; only the tiny table header keeps
+   its caps. This is a section head. */
 .dg-wc__group {
   margin: var(--dg-space-2) 0 0;
   font-size: var(--dg-text-sm);
-  text-transform: uppercase;
+  font-weight: var(--dg-weight-semibold);
   letter-spacing: 0.04em;
   color: var(--dg-text-muted);
 }
@@ -155,11 +157,6 @@
 
 .dg-wc__player-row:hover {
   background: var(--dg-surface-raised);
-}
-
-.dg-wc__player-row > :first-child {
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
 .dg-wc__delta-cell {
@@ -613,6 +610,24 @@
   outline: 2px solid var(--dg-focus);
   outline-offset: 2px;
 }
+
+/* The identity cluster is the column that grows; everything else is sized by
+   its content. This used to read `.dg-wc__player-row > :first-child`, which was
+   true when identity WAS the first child — the rank numeral has been in front
+   of it since worklist #3, so at (0,2,0) that rule beat `.dg-wc__rank`'s
+   `flex: none` and handed the whole spare width to a two-character number. It
+   was invisible while an 18rem rail ate the surplus; at 1440 with the rail
+   retired (DG-113) it left a 480px hole and shoved every row against the right
+   edge. Found in a real browser, not in a test — no assertion in this repo can
+   see a gap. Both identity forms are named, because `PlayerNameButton` renders
+   the bare `.dg-ui-player-id` when the surface has no selection sink. It sits
+   BELOW `.dg-wc__player-open` so the ascending-specificity rule holds. */
+.dg-wc__player-row > .dg-wc__player-open,
+.dg-wc__player-row > .dg-ui-player-id {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 
 /* ── The single orchestrated daily-open moment ─────────────────────────────
    Gated on the Task-4 .dg-motion-daily-open class the surface root carries:

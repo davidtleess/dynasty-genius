@@ -1735,6 +1735,43 @@ describe("DG-111 a comparison that never ran never reads as 'nothing moved'", ()
     expect(within(market).queryByTestId("wc-trend-note")).toBeNull();
   });
 
+  // DG-113, found rendering on the LIVE payload for 2026-08-30.
+  it("treats two model runs on one day as a refusal, not a degradation, and points at nothing", async () => {
+    mockFetch(
+      200,
+      whatChangedResponse({
+        daily_diff: {
+          model: {
+            status: "model_multi_vintage_ambiguous",
+            deltas: [],
+            comparison_window: { status: "model_multi_vintage_ambiguous" },
+            feature_freshness: null,
+            pvo_staleness: null,
+          },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+
+    const notice = await screen.findByTestId("wc-model-degraded");
+    // The producer refuses to emit a comparison rather than fabricate one
+    // (daily_diff.py:255-271). That is a refusal, exactly like
+    // insufficient_history — not a fault — and spending "degraded" on it is the
+    // DG-047 cry-wolf pattern in new clothes.
+    expect(notice.textContent).toMatch(/couldn't compare our projections/i);
+    expect(notice.textContent).not.toMatch(/came back degraded/i);
+    // The dictionary sentence renders whole, as its own sentence, rather than
+    // spliced between em-dashes with its full stop shaved off.
+    expect(notice.textContent).toContain(
+      "Two different model runs landed on the same day, so we will not claim what moved overnight.",
+    );
+    // …and there is no closing instruction, because there are no model rows
+    // below for one to apply to. "Treat the model numbers below as provisional"
+    // was pointing at an empty region.
+    expect(notice.textContent).not.toMatch(/below/i);
+  });
+
   it("still calls a real market abort a degradation, and says why", async () => {
     mockFetch(
       200,
