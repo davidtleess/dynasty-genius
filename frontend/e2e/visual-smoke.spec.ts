@@ -22,7 +22,9 @@
 // than quietly widening the blind spot again.
 //
 // On each of those, at each width, the gate asserts:
-//   · content is actually on the screen (see THE FALSE RECEIPT below),
+//   · content is in the DOM and laid out (see THE FALSE RECEIPT below) — read
+//     that as "the surface rendered", never as "a reader can see it"; the
+//     difference is spelled out in NOT COVERED,
 //   · the PAGE does not scroll sideways,
 //   · axe reports zero violations, using AXE'S OWN COMPOSITED COLOURS,
 //   · no raw pipeline token reached visible text (the DG-109 render rule,
@@ -45,6 +47,30 @@
 //   · Real backend responses. Every surface runs on frozen fixtures captured
 //     from the live product, so this gate proves the SHELL is sound, never that
 //     today's data is.
+//   · EVERYTHING BETWEEN "IN THE DOM" AND "IN FRONT OF THE READER". This is the
+//     largest hole and it is one mechanism, not three: the gate measures the
+//     document and the DOM, never the viewport. `innerText` counts text that is
+//     CLIPPED out of a fixed-height ancestor (measured: 938 of Model Trust's
+//     1238px hidden behind `overflow: hidden`, green at both widths, 3112 chars
+//     still counted against an 1800 floor), and neither axe nor the content
+//     floor objects to content OCCLUDED by an opaque fixed element (measured: a
+//     bottom tab bar grown to 192px against `main`'s 61px of reserved padding
+//     buries six leaf nodes on the phone, and 10 of 11 surfaces stay green).
+//     Screenshots are ARCHIVED for exactly this reason, and they are archived,
+//     not compared — a change that keeps the layout legal and axe-clean but
+//     looks wrong passes.
+//   · A HORIZONTAL OVERFLOW ABSORBED BEFORE IT REACHES THE DOCUMENT. Only the
+//     document and body are measured, deliberately (see
+//     `expectNoHorizontalOverflow`), so a container that overflows inside a
+//     legal page is not flagged: reverting DG-117's `flex-wrap` on League
+//     Pulse's source list puts that list 10px past its own box with
+//     `documentElement.scrollWidth` still exactly 390. Measuring elements
+//     instead would condemn `TableScroll`, which is the correct pattern, so
+//     this is a chosen trade rather than an oversight.
+//   · A SMALL REGRESSION IN CONTENT VOLUME. `minMainText` and `content.min` are
+//     floors against catastrophe, deliberately calibrated 40-47% under the
+//     measured value so they cannot flake (Cut list renders 21 rows against a
+//     minimum of 5). They catch an empty screen, never a thinned one.
 //
 // ── THE MOTION PATH, STATED PLAINLY ──────────────────────────────────────────
 //
@@ -76,22 +102,29 @@
 //
 // A surface whose backend is unavailable renders an error card: no rows, a
 // sentence, and a small, clean axe count. That looks like a pass and is the
-// most dangerous output this file can produce. Three independent assertions
-// stand against it, because three separate measurement errors this weekend all
-// had the same shape — a reading taken without checking the conditions behind
-// it:
+// most dangerous output this file can produce. Four independent assertions
+// stand against it, because every measurement error this weekend had the same
+// shape — a reading taken without checking the conditions behind it:
 //   1. `ready` — a locator that exists ONLY in the loaded state, never in the
 //      loading, unavailable, config-error or parse-error state.
 //   2. `content` — a minimum count of real content nodes, plus a floor on the
-//      visible text in <main>. A fixture that goes stale against the generated
-//      Zod schema lands in `parse-error` with a two-line card; both of these
-//      catch it. (That is not hypothetical: this file's own hand-written
-//      capture-health fixture had drifted from the schema and had been silently
-//      parse-erroring on the front page for some time. It is a captured live
-//      fixture now.)
+//      visible text in <main>. These catch a surface whose PRIMARY read failed:
+//      the whole surface lands on a two-line card and neither the marker nor
+//      the rows survive.
 //   3. `assertEveryReadFixtured` — a catch-all route records any /api/ request
 //      no fixture answered and fails the test by name, so a surface cannot
 //      quietly degrade around a new endpoint.
+//   4. `parseLiveFixture` — every fixture is parsed against the generated
+//      schema its endpoint is parsed with, at module load. Guards 1-3 CANNOT
+//      see a rotted fixture on a SECONDARY read, and that is measured, not
+//      assumed: this file's own capture-health fixture had drifted out of
+//      `zCaptureHealthResponse`, and re-rotting it leaves every surface test
+//      green at both widths while the front page silently swaps the sentence
+//      that tells David whether his feeds ran. A secondary read that fails to
+//      parse rewrites one clause; it renders no error card, drops no rows, and
+//      MAIN TEXT GOES UP. Only parsing the fixture itself catches that, so that
+//      is where the guard is. `src/lib/__fixtures__/liveFixtures.test.js` runs
+//      the same lock in the three-second unit suite.
 //
 // ── AND THE CLOCK ────────────────────────────────────────────────────────────
 //
@@ -104,6 +137,7 @@ import type { AxeResults, Result as AxeViolation } from "axe-core";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
+import { parseLiveFixture } from "../src/lib/__fixtures__/liveFixtureSchemas";
 import {
   findRawCopy,
   formatRawCopyFindings,
@@ -133,10 +167,17 @@ const WIDTHS = [
 // Captured read-only from the running product and frozen. The same files the
 // jsdom render-rule test reads, so the two gates cannot disagree about what the
 // product was handed.
+//
+// EVERY ONE IS PARSED against the generated schema its endpoint is parsed with,
+// at module load, before a browser opens. That is guard 4 in THE FALSE RECEIPT
+// above, and it is here rather than in an assertion about rendered output
+// because a rotted fixture on a SECONDARY read produces no error card at all —
+// see the note in `liveFixtureSchemas.ts`.
 function fixture(name: string): unknown {
-  return JSON.parse(
+  const raw: unknown = JSON.parse(
     readFileSync(new URL(`../src/lib/__fixtures__/${name}`, import.meta.url), "utf8"),
   );
+  return parseLiveFixture(name, raw);
 }
 
 const LIVE = {
@@ -584,10 +625,14 @@ async function expectTrustStripPainted(page: Page): Promise<void> {
     styles.backgroundColor,
     "Trust strip must paint an opaque surface; transparent sticky chrome lets content scroll through it.",
   ).not.toMatch(/rgba?\(\s*0\s*,\s*0\s*,\s*0\s*(?:,\s*0(?:\.0+)?)?\s*\)/i);
+  // FULLY opaque, not merely "not alpha zero". The earlier check rejected only
+  // an exact alpha of 0, so `rgba(10, 14, 17, 0.4)` — content ghosting through
+  // sticky chrome, the shipping blocker this guard was written for — passed it.
+  const alpha = /rgba\([^)]*,\s*([0-9.]+)\s*\)$/i.exec(styles.backgroundColor);
   expect(
-    styles.backgroundColor,
-    "Trust strip must not be transparent.",
-  ).not.toMatch(/rgba\([^)]*,\s*0(?:\.0+)?\s*\)$/i);
+    alpha === null ? 1 : Number(alpha[1]),
+    `Trust strip is semi-transparent (${styles.backgroundColor}); content scrolls through it.`,
+  ).toBe(1);
   expect(styles.backgroundImage).toBe("none");
   expect(styles.borderBottomColor).not.toBe("rgba(0, 0, 0, 0)");
 }
@@ -935,7 +980,12 @@ for (const spec of GATED_SURFACES) {
         await expect(target).toBeVisible({ timeout: 5_000 });
         await target.focus();
         await expect(target).toBeFocused();
-        await page.screenshot({ path: `${ARTIFACT_DIR}/${spec.focus.artifact}.png` });
+        // Keyed by width like every other capture. Without the label the 390
+        // run overwrote the 1440 one and half the focus evidence was gone
+        // before the run ended.
+        await page.screenshot({
+          path: `${ARTIFACT_DIR}/${spec.focus.artifact}-${viewport.label}.png`,
+        });
       }
 
       await runAxe(page, spec, reduceLabel, `${base}-axe.json`);

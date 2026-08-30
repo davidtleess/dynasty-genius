@@ -18,6 +18,17 @@ import { DESTINATIONS } from "../shell/destinations";
 const VISUAL_SMOKE_SPEC = resolve(process.cwd(), "e2e", "visual-smoke.spec.ts");
 const source = readFileSync(VISUAL_SMOKE_SPEC, "utf8");
 
+// The other contract on the same file. It is not a duplicate of this one: it is
+// the one `dg-land.sh` runs, because the land gate is `pytest -q` and vitest is
+// not in it.
+const PYTEST_TWIN = resolve(
+  process.cwd(),
+  "..",
+  "tests",
+  "contract",
+  "test_horizon2_browser_evidence_gate_red.py",
+);
+
 // The spec's own prose is part of what this file pins — it is where the coverage
 // boundary is stated — so most checks read the whole file. The "no rule was
 // excluded" check must not, because the sentence PROMISING no rule is excluded
@@ -30,9 +41,12 @@ const code = source
 
 describe("visual smoke evidence contract", () => {
   it("gates every view of every nav destination", () => {
+    // `code`, not `source`: a comment naming a surface — "TODO: gate surface:
+    // "Waiver Radar"" — satisfied the raw-source match and bought a green lock
+    // for a surface no test visits. The lock must see CODE.
     const missing = DESTINATIONS.flatMap((destination) =>
       destination.views
-        .filter((view) => !source.includes(`surface: "${view.surface}"`))
+        .filter((view) => !code.includes(`surface: "${view.surface}"`))
         .map((view) => `${destination.label} · ${view.label} (${view.surface})`),
     );
 
@@ -88,6 +102,60 @@ describe("visual smoke evidence contract", () => {
     expect(source).toContain("contrast_readings");
     expect(source).toContain('exercisedRules.has("color-contrast")');
     expect(code).not.toMatch(/disableRules\(|withRules\(|\.exclude\(/);
+  });
+
+  it("keeps the fixture-rot lock the false-receipt guards cannot replace", () => {
+    // Guards 1-3 watch RENDERED OUTPUT, and a fixture that rots on a secondary
+    // read produces no error card, drops no rows and makes main's text LONGER.
+    // Measured on capture-health: every surface test stayed green at both
+    // widths while the front page swapped the sentence about David's feeds. So
+    // the fixture is parsed against its endpoint's generated schema instead.
+    expect(source).toContain("parseLiveFixture");
+    expect(source).toContain("liveFixtureSchemas");
+
+    const schemaMap = readFileSync(
+      resolve(process.cwd(), "src", "lib", "__fixtures__", "liveFixtureSchemas.ts"),
+      "utf8",
+    );
+    expect(schemaMap).toContain("zCaptureHealthResponse");
+  });
+
+  it("stays in step with its pytest twin, which is what actually gates a land", () => {
+    // `dg-land.sh` runs `pytest -q` and nothing else, so a SECOND contract on
+    // this same spec lives in Python. DG-118 updated this file and did not look
+    // for that one, and four of its pins broke — the branch could not land and
+    // no three-second suite could say why. This reads the twin's literal pins
+    // and checks each one against the spec here, so that drift fails fast.
+    const twin = readFileSync(PYTEST_TWIN, "utf8");
+    const withoutLineComments = source
+      .split("\n")
+      .filter((line) => !line.trimStart().startsWith("//"))
+      .join("\n");
+
+    const pattern =
+      /^\s*assert\s+(['"])(.*?)\1\s+(not\s+)?in\s+(spec|spec_without_comments)\s*(?:,|$)/gm;
+    const broken = [];
+    let pins = 0;
+    for (const match of twin.matchAll(pattern)) {
+      const [, , literal, negated, variable] = match;
+      const haystack = variable === "spec" ? source : withoutLineComments;
+      const present = haystack.includes(literal);
+      pins += 1;
+      if (present === (negated !== undefined)) {
+        broken.push(
+          `${negated === undefined ? "requires" : "forbids"} ${JSON.stringify(literal)}`,
+        );
+      }
+    }
+
+    expect(
+      pins,
+      "parsed almost no pins out of the pytest twin — this check has gone vacuous, which is the failure it exists to prevent:",
+    ).toBeGreaterThanOrEqual(25);
+    expect(
+      broken,
+      `the pytest contract at ${PYTEST_TWIN} disagrees with this spec, so the branch cannot land:`,
+    ).toEqual([]);
   });
 
   it("states which motion path is gated, in the spec's own words", () => {
