@@ -15,6 +15,12 @@ import type { CatalogEntry } from "./tradeState";
 const DEBOUNCE_MS = 200;
 const MIN_QUERY_LENGTH = 3;
 
+// The server sorts matches by xVAR descending and cuts the list here, so a
+// broad query silently returns a top-N. We send the cap explicitly rather than
+// leaning on the endpoint default, so callers can say "the first N" and have
+// that number be true (DG-110 panel: undisclosed truncation).
+export const CATALOG_PAGE_SIZE = 50;
+
 // "No match" and "we could not read the list" are different facts and must not
 // collapse into one silent empty list: idle (nothing asked yet / too short),
 // ready (the catalog answered — results may legitimately be empty) and
@@ -48,7 +54,7 @@ export function useAssetCatalogSearch(query: string): CatalogSearchState {
     async function run(): Promise<void> {
       try {
         const response = await fetch(
-          `/api/trade/assets?q=${encodeURIComponent(debouncedQuery)}`,
+          `/api/trade/assets?q=${encodeURIComponent(debouncedQuery)}&limit=${CATALOG_PAGE_SIZE}`,
           { signal: controller.signal },
         );
         if (controller.signal.aborted) {

@@ -50,7 +50,11 @@ export function RosterAuditRow({ player }: { player: Player }) {
           <button
             type="button"
             className="dg-roster__expand"
-            aria-label={`Expand ${player.full_name}`}
+            // The accessible name CONTAINS the visible word ("Details"), so
+            // voice control saying "Details" matches it; open/closed state is
+            // carried by aria-expanded, not baked into a label that used to
+            // say "Expand" even while the row was already expanded.
+            aria-label={`Details for ${player.full_name}`}
             aria-expanded={open}
             onClick={() => setOpen((o) => !o)}
           >

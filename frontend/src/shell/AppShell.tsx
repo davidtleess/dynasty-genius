@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { type Command, CommandPalette } from "../command/CommandPalette";
 import { AssetPrimitiveCapture } from "../dev/AssetPrimitiveCapture";
@@ -90,6 +90,27 @@ export function AppShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
   const palettePlayers = useAssetCatalogSearch(paletteQuery);
+  const inspectorRef = useRef<HTMLElement>(null);
+
+  // Below 768px the shell stacks and the inspector sits under the whole feed,
+  // so opening a card was a visual no-op — the click did something the user
+  // could not see. Bring it into view when it is off-screen; `block: "nearest"`
+  // leaves the desktop layout (where it is already beside the main column)
+  // untouched.
+  useEffect(() => {
+    if (selectedPlayer === null) {
+      return;
+    }
+    const element = inspectorRef.current;
+    if (element === null || typeof element.scrollIntoView !== "function") {
+      return;
+    }
+    const rect = element.getBoundingClientRect();
+    const onScreen = rect.top < window.innerHeight && rect.bottom > 0;
+    if (!onScreen) {
+      element.scrollIntoView({ block: "nearest" });
+    }
+  }, [selectedPlayer]);
 
   // Any surface (asset search, Trade Lab chip) may select a player → opens the
   // inspector. Players only; non-player catalog entries are not inspectable in v1.
@@ -102,6 +123,10 @@ export function AppShell() {
   function selectPlayerById(sleeperId: string, label: string): void {
     setSelectedPlayer({ sleeperId, label });
     setInspectorOpen(true);
+    // Every other navigation path clears the full-detail page; without this a
+    // new selection left the PREVIOUS player's card filling the main column
+    // while the inspector showed the one actually asked for.
+    setFullDetailSleeperId(null);
   }
 
   function selectPlayer(entry: CatalogEntry): void {
@@ -125,8 +150,9 @@ export function AppShell() {
   }));
 
   // Players typed into the palette come back from the same catalog the search
-  // box reads. Position and rostering team ride along when the catalog carries
-  // them; an unrostered player simply shows fewer words, never an invented one.
+  // box reads — rostered players only, so an unrostered player is not findable
+  // here at all. Position and rostering manager ride along when present; a row
+  // missing them shows fewer words, never an invented one.
   const playerCommands: Command[] = palettePlayers.results
     .filter(isOpenablePlayer)
     .map((entry) => {
@@ -147,14 +173,23 @@ export function AppShell() {
         <div className="dg-shell__rail">
           {/* One place to find any player, from any surface (DG-110). It opens
               the card and nothing else — no trade draft is touched. */}
-          <div className="dg-shell__search">
+          {/* A <search> landmark: without one the input is page content
+              contained by no landmark, on every surface. */}
+          <search className="dg-shell__search">
             <AssetSearch
               onSelect={selectPlayer}
               label="Find a player"
               placeholder="Find a player…"
               filter={isOpenablePlayer}
+              // The catalog behind this box is ROSTERED players plus future
+              // picks — not the whole tracked universe. Saying "nobody we
+              // track matches that" over it was false for every unrostered
+              // player the product names elsewhere (League Pulse), and for
+              // every pick the filter drops.
+              emptyNotice="No player on a roster in your league matches that. This box finds rostered players."
+              filteredNotice="Only future picks match that. Picks are handled in Trade Lab."
             />
-          </div>
+          </search>
           <nav className="dg-shell__rail-primary" aria-label="Primary surfaces">
             {[...ACTIVE_SURFACES, ...PARKED_SURFACE_NAMES].map((surface) => (
               <button
@@ -252,6 +287,7 @@ export function AppShell() {
         </main>
 
         <aside
+          ref={inspectorRef}
           className="dg-shell__inspector"
           aria-label="Player inspector"
           data-state={inspectorOpen ? "open" : "closed"}
@@ -272,7 +308,7 @@ export function AppShell() {
             />
           ) : (
             <p className="dg-shell__inspector-empty">
-              No player picked yet. Search above, or click any player's name.
+              No player picked yet. Search in the sidebar, or click any player's name.
             </p>
           )}
         </aside>
@@ -280,6 +316,13 @@ export function AppShell() {
         <CommandPalette
           commands={commands}
           extraCommands={playerCommands}
+          // Same rule the search box follows: a failed read says it failed
+          // rather than rendering a list with no players in it.
+          notice={
+            palettePlayers.status === "unavailable"
+              ? "We could not read the player list, so no players are shown here. Surfaces still work."
+              : undefined
+          }
           open={paletteOpen}
           onOpenChange={setPaletteOpen}
           onQueryChange={setPaletteQuery}

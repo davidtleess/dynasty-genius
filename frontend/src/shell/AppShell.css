@@ -104,15 +104,18 @@
   padding: var(--dg-space-3) var(--dg-space-2);
 }
 
-.dg-shell__inspector[data-state="closed"] .dg-player-inspector,
-.dg-shell__inspector[data-state="closed"] .dg-shell__inspector-empty {
-  display: none;
-}
-
+/* Declared BEFORE the collapsed-state rule that also targets it: the reverse
+   order is a descending-specificity trap (and a lint warning) — the low
+   specificity rule must not follow the higher one. */
 .dg-shell__inspector-empty {
   margin: var(--dg-space-2) 0 0;
   max-inline-size: 14rem;
   color: var(--dg-text-muted);
+}
+
+.dg-shell__inspector[data-state="closed"] .dg-player-inspector,
+.dg-shell__inspector[data-state="closed"] .dg-shell__inspector-empty {
+  display: none;
 }
 
 /* The global player finder sits above the rail: one place to reach any
@@ -138,10 +141,15 @@
   outline-offset: 1px;
 }
 
+/* Bounded and scrolled: a broad query returns up to 50 rows, and an unbounded
+   list pushed the primary rail nav off the bottom of the viewport — the app's
+   own navigation became unreachable from its search box. */
 .dg-shell__search .dg-asset-search__results {
   list-style: none;
   margin: var(--dg-space-1) 0 0;
   padding: 0;
+  max-block-size: 40vh;
+  overflow-y: auto;
 }
 
 /* Results are product rows, not native browser chips floating on the canvas. */
@@ -198,6 +206,17 @@
   color: var(--dg-market);
 }
 
+/* Worklist #1: the bar is the product's — wordmark left, status pill right.
+   Declared BEFORE the phone media query: a media query adds no specificity, so
+   when this block followed it the `gap` shorthand silently re-set the row-gap
+   the phone rule was trying to tighten. */
+.dg-shell__trust {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--dg-space-4);
+}
+
 /* Below 768px the cockpit stacks: nav flows as a wrapped row on top, then the
    trust strip, then the main column at full width. The fixed 14rem rail column
    otherwise crushes the content to a sliver (the Task-1 mobile debt finding).
@@ -242,14 +261,6 @@
     flex-wrap: wrap;
     row-gap: var(--dg-space-2);
   }
-}
-
-/* Worklist #1: the bar is the product's — wordmark left, status pill right. */
-.dg-shell__trust {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--dg-space-4);
 }
 
 .dg-shell__wordmark {

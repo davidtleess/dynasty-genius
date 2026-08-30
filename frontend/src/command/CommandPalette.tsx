@@ -35,6 +35,7 @@ function matchesQuery(label: string, query: string): boolean {
 export function CommandPalette({
   commands,
   extraCommands = [],
+  notice,
   onQueryChange,
   placeholder = "Search players and surfaces…",
   open: controlledOpen,
@@ -43,6 +44,12 @@ export function CommandPalette({
   commands: Command[];
   /** Already-matched commands (server-side search) — appended unfiltered. */
   extraCommands?: Command[];
+  /**
+   * A fact about the extra commands that the list itself cannot show — chiefly
+   * "the player list could not be read". Without it a failed read renders an
+   * empty palette, which reads as "no such player" (DG-110 panel).
+   */
+  notice?: string | undefined;
   /** DG-110: lets the shell run a live player search on the typed text. */
   onQueryChange?: ((query: string) => void) | undefined;
   placeholder?: string;
@@ -107,6 +114,9 @@ export function CommandPalette({
   function handleSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
       changeOpen(false);
+      // Reopening must not restore a stale query and its stale player results;
+      // every other close path already resets.
+      resetQuery();
       return;
     }
     if (event.key === "ArrowDown") {
@@ -146,6 +156,11 @@ export function CommandPalette({
         }}
         onKeyDown={handleSearchKeyDown}
       />
+      {notice !== undefined && (
+        <p className="dg-cmdk__notice" role="status">
+          {notice}
+        </p>
+      )}
       <div className="dg-cmdk__list" role="listbox" aria-label="Commands">
         {filtered.map((command, index) => (
           <button
@@ -153,6 +168,10 @@ export function CommandPalette({
             type="button"
             role="option"
             className="dg-cmdk__option"
+            // Arrow keys drive selection from the input's roving index; keeping
+            // options out of the tab order stops Tab walking the listbox out
+            // from under that model while they stay clickable.
+            tabIndex={-1}
             aria-selected={index === activeIndex ? "true" : "false"}
             onClick={() => {
               command.run();

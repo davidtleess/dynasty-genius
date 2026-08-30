@@ -176,7 +176,12 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
     await screen.findByLabelText(/roster audit status/i);
     // The per-player detail rows are collapsed by default and carry the drivers,
     // risk flags and caveats, so the audit has to see them opened.
-    for (const button of screen.getAllByRole("button", { name: /^Expand / })) {
+    // DG-110 renamed this control's accessible name to "Details for <player>"
+    // so it contains its own visible word. The audit must still OPEN every row
+    // — the drivers, risk flags and caveats it inspects live behind them.
+    const detailControls = screen.getAllByRole("button", { name: /^Details for / });
+    expect(detailControls.length).toBeGreaterThan(0);
+    for (const button of detailControls) {
       button.click();
     }
     await waitFor(() => expect(screen.getAllByRole("row").length).toBeGreaterThan(1));

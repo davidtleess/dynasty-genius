@@ -98,7 +98,12 @@
   padding: 0 0.35rem;
   font: inherit;
   font-size: 0.8rem;
-  color: var(--dg-text-muted);
+  /* Full text color, NOT --dg-text-muted: rows whose model status does not
+     apply carry opacity 0.55 (the trust de-emphasis above), and muted text
+     composited through that reads 2.78:1 — below the 4.5:1 floor DG-105 just
+     cleared. --dg-text lands at 5.29:1 on those rows. The control stays quiet
+     through its size and border, not through a contrast failure. */
+  color: var(--dg-text);
   cursor: pointer;
 }
 

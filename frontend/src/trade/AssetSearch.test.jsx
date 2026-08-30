@@ -79,7 +79,7 @@ describe("AssetSearch", () => {
       // Pins the SR-15 contract: every request carries an abort signal so a
       // superseded query can never render over the current one.
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        "/api/trade/assets?q=cha",
+        "/api/trade/assets?q=cha&limit=50",
         expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
     });
@@ -242,7 +242,9 @@ describe("AssetSearch stale-response and debounce guards", () => {
     });
 
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-    expect(globalThis.fetch.mock.calls[0][0]).toBe("/api/trade/assets?q=brown");
+    expect(globalThis.fetch.mock.calls[0][0]).toBe(
+      "/api/trade/assets?q=brown&limit=50",
+    );
     expect(screen.getByRole("button", { name: "A.J. Brown" })).toBeTruthy();
   });
 });

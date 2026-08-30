@@ -348,7 +348,7 @@ describe("DG-110 · a player is reachable from anywhere", () => {
     // The row's inline evidence is truth-bearing and survives the rewiring.
     // DG-109 turned the raw `no_market_overlay` key into the sentence it always
     // meant, so the receipt is asserted by its words now — reworded, not lost.
-    fireEvent.click(screen.getByRole("button", { name: /expand rasheen ali/i }));
+    fireEvent.click(screen.getByRole("button", { name: /details for rasheen ali/i }));
     expect(
       screen.getByText(/Market prices are deliberately left out of this read/i),
     ).toBeTruthy();
@@ -576,5 +576,108 @@ describe("DG-110 · the inspector never opens empty", () => {
     });
     fireEvent.click(await screen.findByRole("button", { name: "Chase" }));
     await expectCardOpened("Chase");
+  });
+});
+
+// The panel's blocking finding: the finder's empty-state sentence asserted
+// something false. The catalog behind it is ROSTERED players plus future picks
+// (asset_catalog.py skips rows whose league_context.rostered is false), yet the
+// box said "Nobody we track matches that" — a claim about the whole tracked
+// universe, and one the product contradicts elsewhere by naming unrostered
+// players on League Pulse. Three distinct facts, three distinct sentences.
+describe("DG-110 · the finder states only what is true", () => {
+  function pickEntry(id) {
+    return catalogEntry({
+      asset_id: id,
+      kind: "future_pick",
+      label: `2027 round 1 (via ${id})`,
+      market_ref: { asset_kind: "future_pick", decision_supported: false, year: 2027 },
+      position: null,
+      roster_owner_name: null,
+    });
+  }
+
+  async function typeInFinder(value) {
+    fireEvent.change(screen.getByRole("searchbox", { name: /find a player/i }), {
+      target: { value },
+    });
+  }
+
+  it("says picks matched — not that nothing did — when the filter drops every row", async () => {
+    mockEndpoints({
+      "/api/trade/assets": catalogResponse([pickEntry("1"), pickEntry("2")]),
+    });
+    render(<AppShell />);
+    await typeInFinder("2027");
+
+    expect(await screen.findByText(/only future picks match that/i)).toBeTruthy();
+    // The false sentence must not appear over a non-empty catalog answer.
+    expect(screen.queryByText(/nobody we track/i)).toBeNull();
+  });
+
+  it("names the scope it actually covers when the catalog itself is empty", async () => {
+    mockEndpoints({ "/api/trade/assets": catalogResponse([]) });
+    render(<AppShell />);
+    await typeInFinder("zzz");
+
+    expect(
+      await screen.findByText(/no player on a roster in your league matches that/i),
+    ).toBeTruthy();
+    expect(screen.queryByText(/nobody we track/i)).toBeNull();
+  });
+
+  it("discloses that the server cut the list instead of showing a top-50 as everything", async () => {
+    const full = Array.from({ length: 50 }, (_, i) =>
+      catalogEntry({ asset_id: String(i), label: `Player ${i}` }),
+    );
+    mockEndpoints({ "/api/trade/assets": catalogResponse(full) });
+    render(<AppShell />);
+    await typeInFinder("pla");
+
+    expect(await screen.findByText(/showing the first 50 matches/i)).toBeTruthy();
+  });
+
+  it("clears the box on selection so the result list stops burying the rail nav", async () => {
+    mockEndpoints({
+      "/api/trade/assets": catalogResponse(),
+      "/api/players/": playerDetailResponse(),
+    });
+    render(<AppShell />);
+    await typeInFinder("cha");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Chase" }));
+    await expectCardOpened("Chase");
+
+    await waitFor(() => {
+      expect(screen.getByRole("searchbox", { name: /find a player/i }).value).toBe("");
+    });
+    // The rail's own result list is what buried the nav — it must empty out
+    // once the cleared query settles past the debounce.
+    await waitFor(() => {
+      expect(
+        document.querySelectorAll(".dg-shell__search .dg-asset-search__results li")
+          .length,
+      ).toBe(0);
+    });
+  });
+});
+
+// The same lie the search box was fixed for lived on the palette path this
+// ticket created: a failed catalog read left the player results silently
+// absent, which reads as "no such player".
+describe("DG-110 · the palette says when the player list could not be read", () => {
+  it("shows a failed-read notice instead of a list with no players in it", async () => {
+    // /api/trade/assets is unmocked here, so it degrades on 503 as in production.
+    mockEndpoints({});
+    render(<AppShell />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /search players and surfaces/i }),
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "Command palette" }), {
+      target: { value: "mahomes" },
+    });
+
+    expect(await screen.findByText(/could not read the player list/i)).toBeTruthy();
   });
 });
