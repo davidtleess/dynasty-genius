@@ -173,6 +173,9 @@
 }
 
 .dg-shell__palette-trigger {
+  /* Proven at 390: without this the label breaks into four stacked words and
+     the bar grows a ragged column. The bar wraps instead (see the ≤768 block). */
+  white-space: nowrap;
   padding: var(--dg-space-1) var(--dg-space-3);
   font: inherit;
   background: var(--dg-surface);
@@ -234,6 +237,10 @@
      The strip stays first in the information order; it just doesn't squat. */
   .dg-shell__trust {
     position: static;
+    /* Three unbreakable items (wordmark, search trigger, status pill) do not
+       fit 390px on one line; they stack instead of forcing a page scroll. */
+    flex-wrap: wrap;
+    row-gap: var(--dg-space-2);
   }
 }
 
