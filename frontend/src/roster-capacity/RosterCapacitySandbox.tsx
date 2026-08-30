@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { RosterCapacityResponse } from "../lib/api/types.gen";
 import { zRosterCapacityResponse } from "../lib/api/zod.gen";
-import { describeStatusToken } from "../lib/copy";
+import { describeToken } from "../lib/copy";
 import "./RosterCapacitySandbox.css";
 
 type State =
@@ -111,7 +111,7 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
         <ul className="dg-rc__caveats" aria-label="Caveats">
           {caveats.map((caveat) => (
             <li key={caveat} className="dg-rc__caveat">
-              {describeStatusToken(caveat)}
+              {describeToken(caveat)}
             </li>
           ))}
         </ul>

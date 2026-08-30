@@ -1,9 +1,13 @@
-import { Fragment } from "react";
-
 import type { LeaguePulseTeamPosture } from "../lib/api";
+import { fieldLabel, valueWord } from "../lib/copy";
+import { TokenNotes } from "../ui/TokenNotes";
 
-// Team Postures — compact descriptive context (contender / rebuilding / …).
+// Team Postures — compact descriptive context (contending / rebuilding / …).
 // Strict component allowlist; unknown keys suppressed.
+//
+// DG-109: the four component names and the posture label all go through the
+// copy dictionary. The allowlist, the suppression of unknown keys and the
+// two-decimal precision are unchanged — only the words are.
 
 const COMPONENT_KEYS = [
   "starter_weighted_xvar_z",
@@ -16,30 +20,30 @@ function PostureCard({ posture }: { posture: LeaguePulseTeamPosture }) {
   const components = posture.components as Record<string, number>;
   return (
     <article className="dg-league-pulse__posture-card">
-      <h4 className="dg-league-pulse__posture-name">
+      {/* The manager named their own team; the dictionary does not rename it. */}
+      <h4 className="dg-league-pulse__posture-name" data-user-text>
         {posture.team_name ?? "Unknown team"}
       </h4>
       <p className="dg-league-pulse__posture-roster">Roster {posture.roster_id}</p>
       <p className="dg-league-pulse__posture-label" data-posture-neutral="true">
-        {posture.posture_label}
+        {valueWord(posture.posture_label)}
       </p>
       <p className="dg-league-pulse__posture-score">{posture.score.toFixed(3)}</p>
       <dl className="dg-league-pulse__posture-components">
         {COMPONENT_KEYS.map((k) => {
           const value = components[k];
           return typeof value === "number" ? (
-            <Fragment key={k}>
-              <dt>{k}</dt>
+            <div key={k} className="dg-league-pulse__component-row">
+              <dt>{fieldLabel(k)}</dt>
               <dd>{value.toFixed(2)}</dd>
-            </Fragment>
+            </div>
           ) : null;
         })}
       </dl>
-      <ul className="dg-league-pulse__posture-caveats">
-        {(posture.caveats ?? []).map((c) => (
-          <li key={c}>{c}</li>
-        ))}
-      </ul>
+      <TokenNotes
+        className="dg-league-pulse__posture-caveats"
+        tokens={posture.caveats ?? []}
+      />
     </article>
   );
 }

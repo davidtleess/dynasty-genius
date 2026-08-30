@@ -1,5 +1,5 @@
 import type { LeaguePulseResponse } from "../lib/api";
-import { describeStatusToken, formatCaptureTimestamp } from "../lib/copy";
+import { describeToken, formatCaptureTimestamp, receiptLine } from "../lib/copy";
 
 // Honesty band for the League Pulse surface. Anchors the whole surface as
 // artifact-state, EXPERIMENTAL, and NOT decision-grade — neutral copy only.
@@ -42,26 +42,37 @@ export function LeaguePulseHeader({ data }: { data: LeaguePulseResponse }) {
       <h2 className="dg-league-pulse__heading">League Pulse</h2>
       {/* The not-decision-grade phrase lives ONLY in the standard disclosure
           line below — singular queries on it must stay unambiguous. */}
+      {/* DG-109: the shout goes, the warning stays — this is still an
+          experimental, read-only view, said in a sentence. */}
       <p className="dg-league-pulse__experimental">
-        EXPERIMENTAL — a read-only league snapshot.
+        Experimental — a read-only snapshot of your league.
       </p>
       <p className="dg-league-pulse__diagnostic">{DIAGNOSTIC_WORKSPACE_COPY}</p>
       <p className="dg-league-pulse__asof" title={data.captured_at}>
         as of {formatCaptureTimestamp(data.captured_at)}
       </p>
       {artifactStateCaveat ? (
-        <p className="dg-league-pulse__caveat">
-          {describeStatusToken(artifactStateCaveat)}
-        </p>
+        <p className="dg-league-pulse__caveat">{describeToken(artifactStateCaveat)}</p>
       ) : null}
       {withheld > 0 ? (
         <p className="dg-league-pulse__withheld">{withheld} records withheld</p>
       ) : null}
       <p className="dg-league-pulse__grade">Descriptive only — not decision-grade.</p>
-      <ul className="dg-league-pulse__sources">
-        <li>{schemaVersion(sources.team_posture)}</li>
-        <li>{schemaVersion(sources.team_value_matrix)}</li>
-        <li>{schemaVersion(sources.league_opportunity)}</li>
+      {/* The three artifact schema versions are a receipt: they name exactly
+          which producer output this page was built from. They stay verbatim —
+          renaming a version would stop it being a receipt — and now say which
+          artifact each one belongs to. */}
+      <ul className="dg-league-pulse__sources" data-receipt>
+        <li>{receiptLine("Team posture data", schemaVersion(sources.team_posture))}</li>
+        <li>
+          {receiptLine("Team value data", schemaVersion(sources.team_value_matrix))}
+        </li>
+        <li>
+          {receiptLine(
+            "League opportunity data",
+            schemaVersion(sources.league_opportunity),
+          )}
+        </li>
       </ul>
     </header>
   );

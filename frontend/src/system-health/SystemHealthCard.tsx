@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import type { z } from "zod";
 
 import { zSystemHealthErrorResponse, zSystemHealthResponse } from "../lib/api/zod.gen";
+import {
+  artifactName,
+  reportCountLabel,
+  reportStateLabel,
+  subsystemName,
+  subsystemStateLabel,
+  tierName,
+} from "../lib/copy";
 import "./SystemHealthCard.css";
 
 // The validated shape IS the generated Zod schema's output (validated at the SDK
@@ -23,9 +31,14 @@ const EXPECTED_SUBSYSTEMS = [
   "tier_readiness",
 ] as const;
 
+// DG-109: `inputs_degraded` is in the contract (zod.gen.ts:973) and was missing
+// here, so a report in that state was silently DROPPED from the summary — the
+// live card said "9 reports: 6 fresh · 2 stale" over nine rows. Every status the
+// contract can carry now appears in the count.
 const REPORT_STATUS_ORDER: ReportRow["status"][] = [
   "fresh",
   "freshness_overdue",
+  "inputs_degraded",
   "stale",
   "corrupt_or_empty",
   "dormant",
@@ -40,6 +53,10 @@ const DEGRADING_REPORT_STATUSES: ReadonlySet<ReportRow["status"]> = new Set([
   "corrupt_or_empty",
   "missing",
   "producer_failed",
+  // Mirrors _DEGRADING_STATUSES in app/api/routes/system_health_models.py:360.
+  // It was absent here, so a report the backend counted as degrading rendered
+  // without the severity accent.
+  "inputs_degraded",
 ]);
 
 export function SystemHealthCard({ now }: { now?: Date }) {
@@ -151,26 +168,20 @@ function HealthBody({ data, now }: { data: SystemHealth; now: Date }) {
   );
 }
 
-// Manager-readable tier names for the degraded headline — the raw taxonomy
-// (`core_substrate`) still rides the `data-affected-tier` attribute for CSS and
-// tests; it just no longer surfaces as snake_case in the one most prominent line.
-const TIER_DISPLAY_NAMES: Record<string, string> = {
-  core_substrate: "core data",
-  daily_diagnostics: "daily updates",
-  auxiliary: "secondary data",
-};
-
-function tierDisplayName(tier: string): string {
-  return TIER_DISPLAY_NAMES[tier] ?? tier;
-}
-
 // When degraded the worst tier leads so a core failure cannot read benign inside
 // a mostly-fresh count. Describes state; never a verdict or a prescribed action.
+// The raw taxonomy (`core_substrate`) still rides the `data-affected-tier`
+// attribute for CSS and tests; it just no longer surfaces as snake_case.
 function overallLine(data: SystemHealth): string {
   if (data.overall_status === "degraded" && data.worst_affected_tier !== null) {
-    return `degraded · ${tierDisplayName(data.worst_affected_tier)} affected`;
+    return `Running behind — ${tierName(data.worst_affected_tier)} affected`;
   }
-  return data.overall_status;
+  // The rollup's `ok` means no feed is in a degrading state. It deliberately
+  // does NOT claim everything just ran — a dormant off-season feed is `ok` too
+  // — so the sentence says what the rollup actually knows.
+  return data.overall_status === "ok"
+    ? "Nothing needs attention"
+    : subsystemStateLabel(data.overall_status);
 }
 
 function countsLine(reports: ReportRow[]): string {
@@ -180,33 +191,9 @@ function countsLine(reports: ReportRow[]): string {
     counts.set(row.status, (counts.get(row.status) ?? 0) + 1);
   }
   const parts = REPORT_STATUS_ORDER.filter((status) => counts.has(status)).map(
-    (status) => `${counts.get(status)} ${reportStatusCountLabel(status)}`,
+    (status) => `${counts.get(status)} ${reportCountLabel(status)}`,
   );
   return `${reports.length} reports: ${parts.join(" · ")}`;
-}
-
-// The collapsed line needs a countable phrase, not the row's full sentence.
-// EVERY status maps — a raw enum like `1 freshness_overdue` in the summary is
-// manager-facing snake_case, the exact voice this fix removes (Codex). Lowercase
-// to sit beside its siblings ("3 fresh · 1 pending").
-function reportStatusCountLabel(status: ReportRow["status"]): string {
-  switch (status) {
-    case "freshness_overdue":
-      return "pending";
-    case "corrupt_or_empty":
-      return "unreadable";
-    case "missing":
-      return "no data";
-    case "producer_failed":
-      // A COUNT label, so it has to read correctly at any n: the line renders
-      // `${count} ${label}` (:183). "2 run failed" is ungrammatical; every
-      // sibling here is a phrase that survives counting ("pending",
-      // "unreadable", "no data"), and this one now matches them.
-      return "failed";
-    // fresh / stale / dormant already read as plain words.
-    default:
-      return status;
-  }
 }
 
 function CheckedAt({ raw, now }: { raw: string; now: Date }) {
@@ -261,13 +248,16 @@ function SubsystemList({ subsystems }: { subsystems: SubsystemRow[] }) {
         >
           <span className="dg-syshealth__report-line">
             <span className="dg-syshealth__report-name">
-              {subsystemDisplayName(row.subsystem_id)}
+              {subsystemName(row.subsystem_id)}
             </span>
             <span className="dg-syshealth__subsystem-status">
-              {subsystemStatusLabel(row.status)}
+              {subsystemStateLabel(row.status)}
             </span>
           </span>
-          <span className="dg-syshealth__receipt dg-syshealth__meta">
+          {/* The disclosed receipt: the guard's own id and the basis string it
+              wrote. Both stay verbatim — a receipt that renamed what it cites
+              would stop being a receipt. */}
+          <span className="dg-syshealth__receipt dg-syshealth__meta" data-receipt>
             <span>{row.subsystem_id}</span>
             <span>{row.basis}</span>
           </span>
@@ -279,7 +269,10 @@ function SubsystemList({ subsystems }: { subsystems: SubsystemRow[] }) {
           className="dg-syshealth__subsystem"
           data-health-status="not_reported"
         >
-          {`${id} — not reported (unverified)`}
+          <span className="dg-syshealth__report-name">{subsystemName(id)}</span>
+          <span className="dg-syshealth__subsystem-status">
+            Not reported — we could not verify it
+          </span>
         </li>
       ))}
     </ul>
@@ -299,17 +292,17 @@ function ReportItem({ row, now }: { row: ReportRow; now: Date }) {
     >
       <span className="dg-syshealth__report-line">
         <span className="dg-syshealth__report-name">
-          {artifactDisplayName(row.artifact_id)}
+          {artifactName(row.artifact_id)}
         </span>
         <span className="dg-syshealth__report-status">
-          {reportStatusLabel(row.status)}
+          {reportStateLabel(row.status)}
         </span>
         <ReportTimestamp row={row} now={now} />
       </span>
       {/* Disclosed receipt — the raw producer/artifact/basis provenance stays
           visible (never truncated, never hover-only); it just no longer sits
           inline between the manager-prose status and the next row. */}
-      <span className="dg-syshealth__receipt dg-syshealth__meta">
+      <span className="dg-syshealth__receipt dg-syshealth__meta" data-receipt>
         <span>{row.artifact_id}</span>
         <span>{row.basis}</span>
         <span>{row.tier}</span>
@@ -323,90 +316,17 @@ function ReportItem({ row, now }: { row: ReportRow; now: Date }) {
   );
 }
 
-// The raw `artifact_id` still rides in the disclosed receipt line; the row LEADS
-// with a manager-readable name so the surface reads as data-freshness, not a
-// snake_case schema dump. Unknown ids fall back to the raw id — never a blank.
-const ARTIFACT_DISPLAY_NAMES: Record<string, string> = {
-  pvo_refresh: "Model valuations",
-  feature_refresh: "Model inputs",
-  // Matches the "Daily What-Changed" navigation surface, not Gemini's "change
-  // log" — a card row must not rename a surface the manager knows by another name.
-  what_changed: "Daily what-changed",
-  roster_capacity: "Roster capacity",
-  league_opportunity: "League opportunity",
-  realized_outcome: "Realized outcomes",
-  market_divergence: "Divergence margins",
-};
-
-function artifactDisplayName(artifactId: string): string {
-  return ARTIFACT_DISPLAY_NAMES[artifactId] ?? artifactId;
-}
-
-// Present subsystem rows lead with a manager-readable name over the raw id in the
-// receipt (same layering as report rows). The missing-guard branch keeps the raw
-// id: an unreported integrity guard IS a raw-key signal, and its absence is an
-// exception state, not a normal row.
-const SUBSYSTEM_DISPLAY_NAMES: Record<string, string> = {
-  model_provenance: "Model provenance",
-  capture_health: "Capture health",
-  tier_readiness: "Tier readiness",
-};
-
-function subsystemDisplayName(subsystemId: string): string {
-  return SUBSYSTEM_DISPLAY_NAMES[subsystemId] ?? subsystemId;
-}
-
-function subsystemStatusLabel(status: SubsystemRow["status"]): string {
-  switch (status) {
-    case "ok":
-      return "OK";
-    case "degraded":
-      return "Degraded";
-    case "unavailable":
-      return "Unavailable";
-    default:
-      return status;
-  }
-}
-
-// Every status speaks the same register — a short manager-readable phrase, never
-// a bare enum — so the failure sentence no longer reads as the lone prose in a
-// field of tokens. Descriptive only; no verdict, no prescribed action.
+// DG-109: the eight report states, their count phrases and the artifact /
+// subsystem / tier display names all moved into the one copy dictionary
+// (lib/copy.ts). The reasoning that shaped them is preserved there:
 //
 // `producer_failed` keeps its full sentence: it is the one state whose
 // consequence a manager acts on — the board in front of them is not today's. It
 // names no date, because the contract carries no last-successful-run timestamp;
 // `observed_at` here is when the run FAILED, and printing that as "last
-// successful" would be the build-clock lie this whole change removed.
-//
-// DG-033: it also names no SUBSYSTEM. It used to say "Daily divergence sync
-// failed. Showing margins from the last successful sync." for every artifact,
-// so an aborted pvo_refresh — rendered one span away as "Model valuations" —
-// told the manager a different subsystem had broken. The row already carries
-// its own name and timestamp; the sentence only has to be true of all of them.
-// It also stops short of asserting WHICH values are on screen: a pvo capture-
-// stage abort (run_pvo_refresh.py:429, :558) publishes its runtime, while a
-// refresh- or publish-stage abort (:345, :388, :492) restores the prior one.
-function reportStatusLabel(status: ReportRow["status"]): string {
-  switch (status) {
-    case "fresh":
-      return "Fresh";
-    case "freshness_overdue":
-      return "Pending — within grace";
-    case "stale":
-      return "Stale";
-    case "corrupt_or_empty":
-      return "Unreadable";
-    case "dormant":
-      return "Dormant — off-season expected";
-    case "missing":
-      return "No data recorded";
-    case "producer_failed":
-      return "Last run failed. Earlier values may still be in use.";
-    default:
-      return status;
-  }
-}
+// successful" would be a build-clock lie. DG-033: it also names no SUBSYSTEM,
+// because the row already carries its own name and timestamp and the sentence
+// only has to be true of all of them.
 
 function ReportTimestamp({ row, now }: { row: ReportRow; now: Date }) {
   if (row.observed_at === null) {

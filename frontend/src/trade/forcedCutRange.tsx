@@ -5,11 +5,6 @@
 // missing or inverted data, so a range never reads as false precision or as a
 // tidy fabricated number.
 
-// Turn a backend snake_case token (caveat/status) into plain display copy.
-export function humanizeToken(token: string): string {
-  return token.replace(/_/g, " ");
-}
-
 // Neutral display string for a [low, high] range. Fails closed — returns null
 // (caller renders "Range unavailable") when the range is missing, malformed, or
 // inverted (low > high). We never render an inverted or partial range.

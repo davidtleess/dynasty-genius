@@ -736,8 +736,15 @@ describe("DailyWhatChanged", () => {
     const posture = within(baseline).getByRole("region", { name: "Team Posture" });
     expect(within(posture).getByText(/contender/i)).toBeTruthy();
     expect(within(posture).getByText(/team count: 12/i)).toBeTruthy();
-    expect(within(posture).getByText(/team_posture_snapshot/i)).toBeTruthy();
-    expect(within(posture).getByText(/stale/i)).toBeTruthy();
+    // DG-109: the staleness line used to read
+    // `captured_at_vs_report_generated_at — stale (age 1.5h)`. Every fact in it
+    // survives — which clocks were compared, that it is stale, and how old.
+    expect(
+      within(posture).getByText(
+        /Team posture snapshot\. It has gone stale at 1\.5 hours old\./i,
+      ),
+    ).toBeTruthy();
+    expect(within(posture).queryByText(/team_posture_snapshot/i)).toBeNull();
 
     const teamValue = within(baseline).getByRole("region", { name: "Team Value" });
     expect(within(teamValue).getByText(/Starting lineup value: 31.4/i)).toBeTruthy();
@@ -752,10 +759,12 @@ describe("DailyWhatChanged", () => {
     });
     expect(within(opportunity).getByText(/partner ranking count: 2/i)).toBeTruthy();
     expect(within(opportunity).getByText(/card count: 3/i)).toBeTruthy();
-    expect(within(opportunity).getByText(/DIVERGENCE_MODEL_HIGH: 2/i)).toBeTruthy();
-    expect(within(opportunity).getByText(/DEPTH_CONTEXT: 1/i)).toBeTruthy();
     expect(
-      within(opportunity).getByText(/league_opportunity_partial_source/i),
+      within(opportunity).getByText(/We value him more than the market does: 2/i),
+    ).toBeTruthy();
+    expect(within(opportunity).getByText(/Depth context: 1/i)).toBeTruthy();
+    expect(
+      within(opportunity).getByText(/League opportunity partial source/i),
     ).toBeTruthy();
 
     const dropPressure = within(baseline).getByRole("region", {
@@ -834,12 +843,12 @@ describe("DailyWhatChanged", () => {
       within(tape)
         .getByText(/market sync active/i)
         .getAttribute("title"),
-    ).toContain("consecutive_days=12");
+    ).toContain("Days captured in a row — 12 (from consecutive_days)");
     expect(
       within(tape)
         .getByText(/projection update/i)
         .getAttribute("title"),
-    ).toContain("registry_version=4");
+    ).toContain("Model registry version — 4 (from registry_version)");
     expect(globalThis.fetch).toHaveBeenCalledWith(
       "/api/system/capture-health",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),

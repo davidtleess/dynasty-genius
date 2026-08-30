@@ -1,0 +1,507 @@
+{
+  "captured_at": "2026-08-29T13:00:46.608346+00:00",
+  "card_section_counts": [
+    {
+      "decision_supported": false,
+      "section_cap": 20,
+      "shown_count": 20,
+      "sort_key": "absolute_model_market_delta_desc",
+      "total_count": 172
+    },
+    {
+      "decision_supported": false,
+      "section_cap": 20,
+      "shown_count": 8,
+      "sort_key": "positional_z_differential_desc",
+      "total_count": 8
+    },
+    {
+      "decision_supported": false,
+      "section_cap": 20,
+      "shown_count": 2,
+      "sort_key": "taxi_long_term_value_desc",
+      "total_count": 2
+    }
+  ],
+  "caveats": ["league_pulse_artifact_state_2026-08-29"],
+  "decision_supported": false,
+  "dropped": {
+    "decision_supported": false,
+    "market_overlay_cards": 0,
+    "model_native_cards": 0,
+    "partner_rankings": 0,
+    "roster_capacity_candidate_pools": 0,
+    "team_postures": 0,
+    "team_values": 0
+  },
+  "market_overlay_cards": [
+    {
+      "card_id": "opp-0141",
+      "card_type": "UNROSTERED_MODEL_MARKET_DIVERGENCE",
+      "caveats": [
+        "waiver_status_from_sleeper_snapshot",
+        "market_overlay_unvalidated_divergence"
+      ],
+      "decision_supported": false,
+      "evidence": {
+        "asset_xvar": -10.24,
+        "evidence_status": "evidence_complete",
+        "model_minus_market_delta": 0.724,
+        "signal": "MODEL_HIGH_MARKET_LOW"
+      },
+      "evidence_status": "evidence_complete",
+      "rationale_primary": "market_divergence_context",
+      "rationale_secondary": ["market_divergence_context"],
+      "roster_capacity_candidates": {
+        "caveats": [],
+        "decision_supported": false,
+        "items": [
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 20.7,
+            "full_name": "Rasheen Ali",
+            "position": "RB",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "11570",
+            "value_status": "valued",
+            "xvar_pct": 36.8
+          },
+          {
+            "capacity_conflict_status": "roster_capacity_pressure",
+            "caveats": [],
+            "decision_supported": false,
+            "dvs": 37.8,
+            "full_name": "Kyle Williams",
+            "position": "WR",
+            "rule_conflict_label": null,
+            "sleeper_player_id": "12547",
+            "value_status": "valued",
+            "xvar_pct": 42.9
+          }
+        ],
+        "narrowing_rule": "all_capacity_candidates",
+        "pool_status": "available",
+        "selection_rule": "descriptive_candidate_pool_no_tool_selection",
+        "sort_key": "xvar_pct_ascending_then_full_name_then_sleeper_player_id"
+      },
+      "score_components": {
+        "divergence_score": 0.724,
+        "feasibility_score": 0.9,
+        "fit_score": 0.4
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.724
+    },
+    {
+      "card_id": "opp-0060",
+      "card_type": "DIVERGENCE_MARKET_HIGH",
+      "caveats": [
+        "market_overlay_context_only",
+        "market_overlay_unvalidated_divergence"
+      ],
+      "decision_supported": false,
+      "evidence": {
+        "asset_roster_id": 11,
+        "asset_xvar": -42.06,
+        "evidence_status": "evidence_complete",
+        "market_percentile": 0.629,
+        "model_minus_market_delta": -0.466,
+        "model_percentile": 0.163,
+        "signal": "MODEL_LOW_MARKET_HIGH"
+      },
+      "evidence_status": "evidence_complete",
+      "rationale_primary": "market_divergence_context",
+      "rationale_secondary": ["market_divergence_context"],
+      "roster_capacity_candidates": null,
+      "score_components": {
+        "divergence_score": 0.466,
+        "feasibility_score": 0.5,
+        "fit_score": 0.35
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.466
+    },
+    {
+      "card_id": "opp-0017",
+      "card_type": "DIVERGENCE_MODEL_HIGH",
+      "caveats": [
+        "market_overlay_context_only",
+        "market_overlay_unvalidated_divergence"
+      ],
+      "decision_supported": false,
+      "evidence": {
+        "asset_roster_id": 1,
+        "asset_xvar": -9.4,
+        "evidence_status": "evidence_complete",
+        "market_percentile": 0.352,
+        "model_minus_market_delta": 0.445,
+        "model_percentile": 0.797,
+        "signal": "MODEL_HIGH_MARKET_LOW"
+      },
+      "evidence_status": "evidence_complete",
+      "rationale_primary": "market_divergence_context",
+      "rationale_secondary": ["market_divergence_context"],
+      "roster_capacity_candidates": null,
+      "score_components": {
+        "divergence_score": 0.445,
+        "feasibility_score": 0.5,
+        "fit_score": 0.0
+      },
+      "sort_key": "absolute_model_market_delta_desc",
+      "sort_value": 0.445
+    },
+    {
+      "card_id": "opp-0181",
+      "card_type": "TAXI_LONG_TERM_VALUE_PRESENT",
+      "caveats": [
+        "taxi_activation_cost_requires_manual_review",
+        "market_overlay_unvalidated_divergence"
+      ],
+      "decision_supported": false,
+      "evidence": {
+        "lineup_role": "taxi",
+        "model_minus_market_delta": -0.205,
+        "raw_xvar": 10.31,
+        "signal": "MODEL_LOW_MARKET_HIGH"
+      },
+      "evidence_status": "evidence_complete",
+      "rationale_primary": "taxi_long_term_value_present",
+      "rationale_secondary": ["activation_cost_represented"],
+      "roster_capacity_candidates": null,
+      "score_components": {
+        "divergence_score": 0.205,
+        "feasibility_score": 0.4,
+        "fit_score": 0.412
+      },
+      "sort_key": "taxi_long_term_value_desc",
+      "sort_value": 10.31
+    }
+  ],
+  "model_native_cards": [
+    {
+      "card_id": "opp-0007",
+      "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
+      "caveats": ["future_pick_values_deferred"],
+      "decision_supported": false,
+      "evidence": {
+        "counterparty_position_z": 2.203,
+        "counterparty_surplus_label": "surplus",
+        "perspective_position_z": -1.162,
+        "perspective_surplus_label": "deficit",
+        "position": "WR",
+        "positional_z_differential": 3.365
+      },
+      "evidence_status": "evidence_gated",
+      "rationale_primary": "opportunity_signal",
+      "rationale_secondary": ["opportunity_signal"],
+      "score_components": {
+        "feasibility_score": 0.5,
+        "fit_score": 0.841
+      },
+      "sort_key": "positional_z_differential_desc",
+      "sort_value": 3.365
+    },
+    {
+      "card_id": "opp-0004",
+      "card_type": "ROSTER_SURPLUS_DEFICIT_MATCH",
+      "caveats": ["future_pick_values_deferred"],
+      "decision_supported": false,
+      "evidence": {
+        "counterparty_position_z": 1.924,
+        "counterparty_surplus_label": "surplus",
+        "perspective_position_z": -0.821,
+        "perspective_surplus_label": "deficit",
+        "position": "QB",
+        "positional_z_differential": 2.745
+      },
+      "evidence_status": "evidence_gated",
+      "rationale_primary": "opportunity_signal",
+      "rationale_secondary": ["opportunity_signal"],
+      "score_components": {
+        "feasibility_score": 0.5,
+        "fit_score": 0.686
+      },
+      "sort_key": "positional_z_differential_desc",
+      "sort_value": 2.745
+    }
+  ],
+  "partner_rankings": [
+    {
+      "caveats": ["partner_score_market_influenced"],
+      "counterparty_roster_id": 7,
+      "counterparty_team_name": "YippeKiYay MarshalFaulker",
+      "decision_supported": false,
+      "evidence": {
+        "counterparty_posture": "CONTENDER",
+        "divergence_row_count": 5,
+        "perspective_posture": "REBUILDING",
+        "position_scores": {
+          "RB": 0.554,
+          "WR": 0.841
+        }
+      },
+      "market_influenced": true,
+      "matched_positions": ["RB", "WR"],
+      "partner_score": 2.091,
+      "score_components": {
+        "activity_recency_score": 0.0,
+        "complementarity_score": 0.841,
+        "divergence_density_score": 1.0,
+        "posture_alignment_score": 0.25
+      }
+    },
+    {
+      "caveats": ["partner_score_market_influenced"],
+      "counterparty_roster_id": 4,
+      "counterparty_team_name": "Free Kelly",
+      "decision_supported": false,
+      "evidence": {
+        "counterparty_posture": "CONTENDER",
+        "divergence_row_count": 11,
+        "perspective_posture": "REBUILDING",
+        "position_scores": {
+          "QB": 0.686,
+          "WR": 0.55
+        }
+      },
+      "market_influenced": true,
+      "matched_positions": ["QB", "WR"],
+      "partner_score": 1.936,
+      "score_components": {
+        "activity_recency_score": 0.0,
+        "complementarity_score": 0.686,
+        "divergence_density_score": 1.0,
+        "posture_alignment_score": 0.25
+      }
+    }
+  ],
+  "perspective_roster_id": 1,
+  "source_artifacts": {
+    "decision_supported": false,
+    "league_opportunity": {
+      "captured_at": "2026-08-25T13:35:02.862720+00:00",
+      "schema_version": "league_opportunity.v2"
+    },
+    "team_posture": {
+      "captured_at": "2026-08-29T13:00:46.608346+00:00",
+      "schema_version": "team_posture.v1"
+    },
+    "team_value_matrix": {
+      "captured_at": "2026-08-29T13:00:46.604969+00:00",
+      "schema_version": "team_value_matrix.v1"
+    }
+  },
+  "status": "degraded",
+  "team_postures": [
+    {
+      "caveats": ["phase18_heuristic_posture", "future_pick_values_deferred"],
+      "components": {
+        "age_window_score": 1.0,
+        "development_stash_score": 0.605,
+        "early_pick_balance_score": 1.0,
+        "starter_weighted_xvar_z": -1.394
+      },
+      "decision_supported": false,
+      "posture_label": "REBUILDING",
+      "roster_id": 1,
+      "score": -0.456,
+      "team_name": "Woodbury Riders"
+    },
+    {
+      "caveats": ["phase18_heuristic_posture", "future_pick_values_deferred"],
+      "components": {
+        "age_window_score": 0.4,
+        "development_stash_score": 0.0,
+        "early_pick_balance_score": 1.0,
+        "starter_weighted_xvar_z": 0.657
+      },
+      "decision_supported": false,
+      "posture_label": "ASCENDING",
+      "roster_id": 2,
+      "score": 0.624,
+      "team_name": null
+    }
+  ],
+  "team_values": [
+    {
+      "age_profile": {
+        "median_age": 23.0,
+        "pct_value_over_28": 0.0,
+        "value_weighted_age": 22.62
+      },
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [],
+        "owned": [
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 1,
+            "dynasty_value_score": null,
+            "original_roster_id": 1,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027,
+            "xvar": 11.1553
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 1,
+            "dynasty_value_score": null,
+            "original_roster_id": 3,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027,
+            "xvar": 11.1553
+          }
+        ]
+      },
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 5,
+          "starter_xvar": 18.43,
+          "surplus_label": "deficit",
+          "z_score": -0.821
+        },
+        "RB": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 5,
+          "starter_xvar": 60.3,
+          "surplus_label": "deficit",
+          "z_score": -0.804
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 3,
+          "starter_xvar": -5.64,
+          "surplus_label": "deficit",
+          "z_score": -1.269
+        },
+        "WR": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 14,
+          "starter_xvar": 24.3,
+          "surplus_label": "deficit",
+          "z_score": -1.162
+        }
+      },
+      "roster_id": 1,
+      "team_name": "Woodbury Riders",
+      "value_views": {
+        "decision_supported": false,
+        "depth_credit_xvar": 0.0,
+        "lineup_xvar": 97.39,
+        "starter_weighted_xvar": 97.39,
+        "top_n_xvar": 116.19,
+        "total_xvar_capped": 117.98
+      }
+    },
+    {
+      "age_profile": {
+        "median_age": 25.5,
+        "pct_value_over_28": 0.2865,
+        "value_weighted_age": 25.74
+      },
+      "decision_supported": false,
+      "future_picks": {
+        "outgoing": [],
+        "owned": [
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 2,
+            "dynasty_value_score": null,
+            "original_roster_id": 2,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 1,
+            "season": 2027,
+            "xvar": 11.1553
+          },
+          {
+            "caveats": [
+              "pick_value_historical_expected",
+              "pick_value_floored_at_replacement",
+              "pick_value_thin_sample",
+              "decision_supported_false",
+              "generic_future_pick_round_only"
+            ],
+            "current_roster_id": 2,
+            "dynasty_value_score": null,
+            "original_roster_id": 2,
+            "pick_value_resolution": "round_tier",
+            "pick_value_status": "active_v1_historical",
+            "reconstruction_method": "automated_sleeper_traded_picks",
+            "round": 2,
+            "season": 2027,
+            "xvar": 0.1076
+          }
+        ]
+      },
+      "positional_summary": {
+        "QB": {
+          "depth_xvar_adj": 1.11,
+          "n_rostered": 4,
+          "starter_xvar": 30.49,
+          "surplus_label": "neutral",
+          "z_score": -0.304
+        },
+        "RB": {
+          "depth_xvar_adj": 0.477,
+          "n_rostered": 7,
+          "starter_xvar": 155.42,
+          "surplus_label": "surplus",
+          "z_score": 1.483
+        },
+        "TE": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 2,
+          "starter_xvar": 2.85,
+          "surplus_label": "neutral",
+          "z_score": 0.551
+        },
+        "WR": {
+          "depth_xvar_adj": 0.0,
+          "n_rostered": 7,
+          "starter_xvar": 55.6,
+          "surplus_label": "neutral",
+          "z_score": -0.265
+        }
+      },
+      "roster_id": 2,
+      "team_name": null,
+      "value_views": {
+        "decision_supported": false,
+        "depth_credit_xvar": 1.587,
+        "lineup_xvar": 244.36,
+        "starter_weighted_xvar": 245.947,
+        "top_n_xvar": 244.36,
+        "total_xvar_capped": 248.49
+      }
+    }
+  ]
+}

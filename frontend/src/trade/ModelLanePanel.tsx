@@ -1,7 +1,8 @@
 import type { z } from "zod";
 
 import type { zTradeRosterReconciliation } from "../lib/api/zod.gen";
-import { humanizeToken, RangeRow } from "./forcedCutRange";
+import { describeToken } from "../lib/copy";
+import { RangeRow } from "./forcedCutRange";
 
 type ModelReconciliation = z.infer<typeof zTradeRosterReconciliation>;
 
@@ -71,7 +72,7 @@ export function ModelLanePanel({
       {penalty.penalty_caveats.length > 0 && (
         <ul className="dg-lane__caveats" aria-label="Penalty caveats">
           {penalty.penalty_caveats.map((caveat) => (
-            <li key={caveat}>{humanizeToken(caveat)}</li>
+            <li key={caveat}>{describeToken(caveat)}</li>
           ))}
         </ul>
       )}

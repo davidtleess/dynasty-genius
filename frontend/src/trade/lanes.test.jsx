@@ -183,7 +183,9 @@ describe("Trade Lab lane panels", () => {
     expect(within(lane).getByText("8400")).toBeTruthy();
     expect(within(lane).getByText("7100")).toBeTruthy();
     expect(within(lane).getByText("-1300")).toBeTruthy();
-    expect(within(lane).getByText("Model higher than market")).toBeTruthy();
+    expect(
+      within(lane).getByText("We price him higher than the market does"),
+    ).toBeTruthy();
     expect(within(lane).getByText(/advisory/i)).toBeTruthy();
     expect(within(lane).getByText("fantasycalc_uncovered")).toBeTruthy();
     expect(within(lane).getByText("fantasycalc_cache_warm")).toBeTruthy();

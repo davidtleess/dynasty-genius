@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import type { z } from "zod";
 
 import { zPlayerDetailResponse } from "../lib/api/zod.gen";
+import { receiptLine } from "../lib/copy";
 import { FrozenPredictionStatus } from "./FrozenPredictionStatus";
 
 type PlayerDetail = z.infer<typeof zPlayerDetailResponse>;
@@ -97,8 +98,15 @@ export function PlayerInspector({
 
   return (
     <div className="dg-player-inspector">
-      <p className="dg-player-inspector__name">{player.label}</p>
-      <p className="dg-player-inspector__id">{player.sleeperId}</p>
+      <p className="dg-player-inspector__name" data-user-text>
+        {player.label}
+      </p>
+      {/* DG-109: the bare Sleeper id used to sit under his name as if it were
+          information about the player. It is a lookup key, so it moves to the
+          receipt layer and says what it is. */}
+      <p className="dg-player-inspector__id" data-receipt>
+        {receiptLine("Sleeper id", player.sleeperId)}
+      </p>
       {preview.status === "ready" && <NeutralPreview detail={preview.detail} />}
       {preview.status === "unavailable" && (
         <p className="dg-player-inspector__counts">Preview unavailable</p>

@@ -75,8 +75,10 @@ describe("ValuationTwoLane labeled pairs (DG-043)", () => {
     expectValidDefinitionList(lane.querySelector("dl"));
 
     const pairs = [
-      ["Engine", "ENGINE_A"],
-      ["Model grade", "PROSPECT_D"],
+      // DG-109: which model scored him and what state the score is in are both
+      // FACTS and both stay — said in words, not as ENGINE_A / PROSPECT_D.
+      ["Scored by", "Rookie model — draft capital and age"],
+      ["Model status", "Scored by the rookie model — accuracy grade D, its weakest"],
       ["Dynasty value", "85.14"],
       ["Value above replacement (xVAR)", "10.31"],
       ["Position percentile", "91%"],
@@ -139,14 +141,19 @@ describe("ValuationTwoLane labeled pairs (DG-043)", () => {
     expect(dl.textContent).not.toContain("snapshot, not a live feed");
   });
 
-  it("humanizes an unknown caveat key instead of fabricating meaning for it", () => {
+  it("keeps an unmapped caveat on screen in the receipt layer, never dressed as prose", () => {
     renderLanes({
       market: { ...market, caveats: ["some_future_caveat_key"] },
     });
 
     const lane = screen.getByTestId("player-market-lane");
-    expect(within(lane).queryByText("some_future_caveat_key")).toBeNull();
-    expect(within(lane).getByText("Some future caveat key.")).toBeTruthy();
+    // DG-109: the FACT is not dropped — it renders raw and labelled as raw, in
+    // the receipt layer, so the crew adds a sentence for it. It is never
+    // half-humanized into body copy that reads like a claim we wrote.
+    const receipt = within(lane).getByTestId("untranslated-tokens");
+    expect(receipt.textContent).toContain("some_future_caveat_key");
+    expect(receipt.dataset.receipt).toBeDefined();
+    expect(within(lane).queryByText("Some future caveat key.")).toBeNull();
   });
 
   it("keeps honest degradation when the timestamp is absent", () => {

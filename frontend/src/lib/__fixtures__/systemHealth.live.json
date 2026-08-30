@@ -1,0 +1,141 @@
+{
+  "checked_at": "2026-08-30T12:11:16.399196+00:00",
+  "config_version": 2,
+  "decision_supported": false,
+  "disclaimer": "System health reflects pipeline completion, artifact freshness, and model provenance verification. It does not evaluate model accuracy or guarantee trade edge.",
+  "overall_status": "degraded",
+  "reports": [
+    {
+      "age_seconds": 65472,
+      "artifact_id": "pvo_refresh",
+      "artifact_path": "app/data/model_capture/pvo_refresh_latest_report.json",
+      "basis": "mtime_fresh",
+      "decision_supported": false,
+      "disclosures": ["timestamp_source:mtime_fallback"],
+      "observed_at": "2026-08-29T18:00:03.839727+00:00",
+      "producer": "scripts/run_pvo_refresh.py",
+      "status": "fresh",
+      "tier": "core_substrate"
+    },
+    {
+      "age_seconds": null,
+      "artifact_id": "feature_refresh",
+      "artifact_path": "app/data/features_runtime/feature_refresh_latest_report.json",
+      "basis": "EARLIER SEASON: pbp 2025 (ValueError), player_stats 2025 (ConnectionError), snap_counts 2025 (ValueError) | LIVE: participation (334,682 rows; season not reported by source), rosters 2026",
+      "decision_supported": false,
+      "disclosures": [],
+      "observed_at": "2026-08-29T13:00:45.492170+00:00",
+      "producer": "scripts/run_feature_refresh.py",
+      "status": "inputs_degraded",
+      "tier": "daily_diagnostics"
+    },
+    {
+      "age_seconds": 83422,
+      "artifact_id": "what_changed",
+      "artifact_path": "app/data/what_changed/what_changed_latest_report.json",
+      "basis": "past_grace",
+      "decision_supported": false,
+      "disclosures": [],
+      "observed_at": "2026-08-29T13:00:53.738268+00:00",
+      "producer": "scripts/run_what_changed_report.py",
+      "status": "stale",
+      "tier": "daily_diagnostics"
+    },
+    {
+      "age_seconds": 260896,
+      "artifact_id": "roster_capacity",
+      "artifact_path": "app/data/roster_capacity/roster_capacity_latest.json",
+      "basis": "embedded_timestamp_fresh",
+      "decision_supported": false,
+      "disclosures": [],
+      "observed_at": "2026-08-27T11:42:59.608018+00:00",
+      "producer": "scripts/run_roster_capacity_audit.py",
+      "status": "fresh",
+      "tier": "daily_diagnostics"
+    },
+    {
+      "age_seconds": 260896,
+      "artifact_id": "roster_capacity_status",
+      "artifact_path": "app/data/ops/roster_capacity_audit_status_latest.json",
+      "basis": "embedded_timestamp_fresh",
+      "decision_supported": false,
+      "disclosures": [],
+      "observed_at": "2026-08-27T11:42:59.608510+00:00",
+      "producer": "scripts/run_roster_capacity_audit.py",
+      "status": "fresh",
+      "tier": "daily_diagnostics"
+    },
+    {
+      "age_seconds": 426973,
+      "artifact_id": "league_opportunity",
+      "artifact_path": "app/data/valuation/league_opportunity_latest.json",
+      "basis": "embedded_timestamp_fresh",
+      "decision_supported": false,
+      "disclosures": [],
+      "observed_at": "2026-08-25T13:35:02.862720+00:00",
+      "producer": "scripts/build_league_opportunity_map.py",
+      "status": "fresh",
+      "tier": "auxiliary"
+    },
+    {
+      "age_seconds": 425475,
+      "artifact_id": "realized_outcome",
+      "artifact_path": "app/data/valuation_runtime/realized_outcome_scoring_status_latest.json",
+      "basis": "embedded_timestamp_fresh",
+      "decision_supported": false,
+      "disclosures": [],
+      "observed_at": "2026-08-25T14:00:01.244378+00:00",
+      "producer": "scripts/run_realized_outcome_scoring.py",
+      "status": "fresh",
+      "tier": "auxiliary"
+    },
+    {
+      "age_seconds": 65474,
+      "artifact_id": "market_divergence",
+      "artifact_path": "app/data/valuation_runtime/market_divergence_refresh_status_latest.json",
+      "basis": "embedded_timestamp_fresh",
+      "decision_supported": false,
+      "disclosures": [],
+      "observed_at": "2026-08-29T18:00:02.032690+00:00",
+      "producer": "scripts/run_market_divergence_refresh.py",
+      "status": "fresh",
+      "tier": "core_substrate"
+    },
+    {
+      "age_seconds": 83429,
+      "artifact_id": "league_capture",
+      "artifact_path": "app/data/league_runtime/capture_status_latest.json",
+      "basis": "past_grace",
+      "decision_supported": false,
+      "disclosures": [],
+      "observed_at": "2026-08-29T13:00:46.637959+00:00",
+      "producer": "scripts/run_league_snapshot_capture.py",
+      "status": "stale",
+      "tier": "core_substrate"
+    }
+  ],
+  "subsystems": [
+    {
+      "basis": "adapter_status:ok",
+      "decision_supported": false,
+      "status": "ok",
+      "subsystem_id": "model_provenance",
+      "tier": "core_substrate"
+    },
+    {
+      "basis": "2 of 3 stores degraded \u2014 model_forward_capture: missing 1 of 67 days (2026-08-12); market_divergence_history: missing 4 of 52 days (2026-07-10, 2026-07-12, 2026-07-17, 2026-08-12)",
+      "decision_supported": false,
+      "status": "degraded",
+      "subsystem_id": "capture_health",
+      "tier": "core_substrate"
+    },
+    {
+      "basis": "roster_capacity: live_precondition_not_ok:capture_health_ok=degraded; daily_what_changed: live_precondition_not_ok:capture_health_ok=degraded; model_trust_console: live_precondition_not_ok:capture_health_ok=degraded; trade_lab: live_precondition_not_ok:capture_health_ok=degraded; league_pulse: live_precondition_not_ok:capture_health_ok=degraded",
+      "decision_supported": false,
+      "status": "degraded",
+      "subsystem_id": "tier_readiness",
+      "tier": "daily_diagnostics"
+    }
+  ],
+  "worst_affected_tier": "core_substrate"
+}

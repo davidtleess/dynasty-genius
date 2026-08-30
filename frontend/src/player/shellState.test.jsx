@@ -176,7 +176,9 @@ describe("Surface-3 shell player selection state", () => {
       expect(inspector().dataset.state).toBe("open");
     });
     expect(within(inspector()).getByText("Chase")).toBeTruthy();
-    expect(within(inspector()).getByText("13269")).toBeTruthy();
+    // DG-109: the Sleeper id is a lookup key, not information about the
+    // player — it stays on screen, labelled, in the receipt layer.
+    expect(within(inspector()).getByText("Sleeper id: 13269")).toBeTruthy();
     expect(
       within(inspector()).getByRole("button", { name: "Open full evidence card" }),
     ).toBeTruthy();
@@ -201,7 +203,9 @@ describe("Surface-3 shell player selection state", () => {
 
     expect(inspector().dataset.state).toBe("open");
     expect(within(inspector()).getByText("Chase")).toBeTruthy();
-    expect(within(inspector()).getByText("13269")).toBeTruthy();
+    // DG-109: the Sleeper id is a lookup key, not information about the
+    // player — it stays on screen, labelled, in the receipt layer.
+    expect(within(inspector()).getByText("Sleeper id: 13269")).toBeTruthy();
   });
 
   it("opens the full player detail page in main from the inspector action", async () => {

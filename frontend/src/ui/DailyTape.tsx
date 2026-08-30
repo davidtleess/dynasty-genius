@@ -1,6 +1,9 @@
 // DG primitive: the daily tape — substrate facts in dynasty-manager PROSE
-// (voice guide §3); raw technical values live one layer down in title attrs.
-// Never movement or trend claims.
+// (voice guide §3); raw technical values live one layer down in the receipt
+// (title) layer, now through the copy dictionary's one `receiptDetail` helper
+// rather than this file's own `field=value` string. Never movement or trend
+// claims.
+import { receiptDetail } from "../lib/copy";
 import "./ui.css";
 
 const TAPE_DATE = new Intl.DateTimeFormat("en-US", {
@@ -31,7 +34,7 @@ export function DailyTape({
     <section className="dg-ui-tape" aria-label="Daily tape">
       <span
         className="dg-ui-tape__fact"
-        title={`consecutive_days=${capture.consecutiveDays} last_capture_at=${capture.lastCaptureAt}`}
+        title={`${receiptDetail("consecutive_days", capture.consecutiveDays)} · ${receiptDetail("last_capture_at", capture.lastCaptureAt)}`}
       >
         {capture.status === "ok"
           ? `Market Sync Active: ${capture.consecutiveDays} consecutive days tracked`
@@ -39,7 +42,7 @@ export function DailyTape({
       </span>
       <span
         className="dg-ui-tape__fact"
-        title={`registry_version=${provenance.registryVersion} model_vintage=${provenance.modelVintage}`}
+        title={`${receiptDetail("registry_version", provenance.registryVersion)} · ${receiptDetail("model_vintage", provenance.modelVintage)}`}
       >
         {provenance.status === "ok"
           ? `Projection Update: ${tapeDate(capture.lastCaptureAt)}, current`

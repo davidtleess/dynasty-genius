@@ -1,11 +1,11 @@
-import { Fragment } from "react";
-
 import type {
   LeaguePulseCapacityCandidatePool,
   LeaguePulseCard,
   LeaguePulseCardSectionCount,
   LeaguePulseMarketCard,
 } from "../lib/api";
+import { describeToken, fieldLabel, valueWord } from "../lib/copy";
+import { TokenNotes } from "../ui/TokenNotes";
 
 // Opportunity Cards (No-Verdict T4b) — TWO visually separated lanes (hard
 // scale-separation, allowlist-enforced): model-native cards carry NO market
@@ -41,33 +41,41 @@ const OVERLAY_SCORE = ["fit_score", "divergence_score", "feasibility_score"] as 
 const MARKET_LANE_BANNER = "Descriptive market signal, not a validated edge.";
 const SORT_CAVEAT =
   "A larger value reflects a wider mathematical magnitude, not a prioritized transaction order.";
-const UNVALUED_COPY = "Valuation Unavailable - evaluate qualitatively";
+// Studio spec §6 voice guide, verbatim rewrite of a string seen on screen:
+// "Tank DellWRValuation Unavailable - evaluate qualitatively" →
+// "Tank Dell — no price available right now; judge this one yourself."
+const UNVALUED_COPY = "No price available right now — judge this one yourself.";
 const IR_BLOCKER_COPY = "IR-conflict non-dismissible blocker";
-
-const SECTION_TITLE: Record<string, string> = {
-  positional_z_differential_desc: "Positional Imbalances",
-  absolute_model_market_delta_desc: "Market Divergences",
-  taxi_long_term_value_desc: "Taxi Squad",
-};
-const SORT_METRIC_LABEL: Record<string, string> = {
-  positional_z_differential_desc: "Positional z differential",
-  absolute_model_market_delta_desc: "Market divergence magnitude",
-  taxi_long_term_value_desc: "Taxi long term value",
-};
 
 type AnyCard = LeaguePulseCard | LeaguePulseMarketCard;
 
-function sectionTitle(sortKey: string): string {
-  return SECTION_TITLE[sortKey] ?? sortKey;
+// An evidence value is either an enum the dictionary speaks or a plain number.
+// Absence renders NOTHING — the old `String(evidence[k])` printed the literal
+// "null" for `lineup_role` on every non-taxi card.
+const NUMERIC_EVIDENCE = new Set([
+  "perspective_position_z",
+  "counterparty_position_z",
+  "positional_z_differential",
+  "model_minus_market_delta",
+  "market_percentile",
+  "model_percentile",
+  "asset_xvar",
+]);
+
+function evidenceValue(key: string, raw: unknown): string | null {
+  if (raw === null || raw === undefined || raw === "") return null;
+  if (key === "position") return String(raw);
+  if (NUMERIC_EVIDENCE.has(key)) return String(raw);
+  return valueWord(String(raw));
 }
 
-function sortMetricLabel(sortKey: string): string {
-  return SORT_METRIC_LABEL[sortKey] ?? sortKey;
-}
-
-function humanizeStatus(status: string): string {
-  const spaced = status.replace(/_/g, " ");
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+function Pair({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="dg-league-pulse__pair">
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
 }
 
 function groupBySortKey<T extends AnyCard>(cards: T[]): [string, T[]][] {
@@ -104,7 +112,9 @@ function RosterCapacityPool({ pool }: { pool: LeaguePulseCapacityCandidatePool }
       <ul className="dg-league-pulse__capacity-list">
         {items.map((item) => (
           <li key={item.sleeper_player_id} className="dg-league-pulse__capacity-row">
-            <span className="dg-league-pulse__capacity-name">{item.full_name}</span>
+            <span className="dg-league-pulse__capacity-name" data-user-text>
+              {item.full_name}
+            </span>
             <span className="dg-league-pulse__capacity-position">{item.position}</span>
             {item.value_status === "unvalued" ? (
               <span className="dg-league-pulse__capacity-unvalued">
@@ -112,7 +122,7 @@ function RosterCapacityPool({ pool }: { pool: LeaguePulseCapacityCandidatePool }
               </span>
             ) : (
               <span className="dg-league-pulse__capacity-xvar">
-                {`xVAR pct: ${item.xvar_pct}`}
+                {`Value over replacement: ${item.xvar_pct}th percentile`}
               </span>
             )}
           </li>
@@ -141,50 +151,48 @@ function OpportunityCard({
   return (
     <article className="dg-league-pulse__opportunity-card">
       <p className="dg-league-pulse__opportunity-category">
-        {sectionTitle(card.sort_key)}
+        {valueWord(card.sort_key)}
       </p>
-      <h4 className="dg-league-pulse__opportunity-type">{card.card_type}</h4>
+      <h4 className="dg-league-pulse__opportunity-type">{valueWord(card.card_type)}</h4>
       <p className="dg-league-pulse__sort-metric">
-        {`Sort metric: ${sortMetricLabel(card.sort_key)} ${card.sort_value.toFixed(2)}`}
+        {`Sorted on ${fieldLabel(card.sort_key)}: ${card.sort_value.toFixed(2)}`}
       </p>
       <p className="dg-league-pulse__evidence-status dg-league-pulse__evidence-status--neutral">
-        {`Evidence status: ${humanizeStatus(card.evidence_status)}`}
+        {`Evidence behind it: ${valueWord(card.evidence_status)}`}
       </p>
-      <p className="dg-league-pulse__opportunity-rationale">{card.rationale_primary}</p>
+      <p className="dg-league-pulse__opportunity-rationale">
+        {describeToken(card.rationale_primary)}
+      </p>
       {secondary.length > 0 ? (
         <p className="dg-league-pulse__opportunity-secondary">
-          Context: {secondary.join(", ")}
+          Context: {secondary.map((token) => describeToken(token)).join(" ")}
         </p>
       ) : null}
 
       <dl className="dg-league-pulse__opportunity-evidence">
         {evidenceKeys
           .filter((k) => k in evidence)
-          .map((k) => (
-            <Fragment key={k}>
-              <dt>{k}</dt>
-              <dd>{String(evidence[k])}</dd>
-            </Fragment>
-          ))}
+          .map((k) => {
+            const shown = evidenceValue(k, evidence[k]);
+            return shown === null ? null : (
+              <Pair key={k} label={fieldLabel(k)} value={shown} />
+            );
+          })}
       </dl>
 
       <dl className="dg-league-pulse__opportunity-components">
         {scoreKeys.map((k) => {
           const value = score[k];
           return typeof value === "number" ? (
-            <Fragment key={k}>
-              <dt>{k}</dt>
-              <dd>{value.toFixed(2)}</dd>
-            </Fragment>
+            <Pair key={k} label={fieldLabel(k)} value={value.toFixed(2)} />
           ) : null;
         })}
       </dl>
 
-      <ul className="dg-league-pulse__opportunity-caveats">
-        {(card.caveats ?? []).map((c) => (
-          <li key={c}>{c}</li>
-        ))}
-      </ul>
+      <TokenNotes
+        className="dg-league-pulse__opportunity-caveats"
+        tokens={card.caveats ?? []}
+      />
 
       {showsCapacity ? <RosterCapacityPool pool={pool} /> : null}
     </article>

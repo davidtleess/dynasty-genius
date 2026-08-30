@@ -51,7 +51,11 @@ export function PlayerIdentity({
   const showFallback = imageStatus === "missing" || imageFailed;
 
   return (
-    <span className="dg-ui-player-id">
+    // DG-109: everything this primitive renders is somebody else's proper noun
+    // — the player's name, his NFL team code, his position. The copy dictionary
+    // does not translate names, so the subtree declares itself user text and the
+    // render rule leaves it alone.
+    <span className="dg-ui-player-id" data-user-text>
       {showImage ? (
         <img
           className="dg-ui-player-id__headshot"
