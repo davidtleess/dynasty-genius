@@ -117,6 +117,62 @@ def _registry_referenced_paths() -> set[str]:
     return paths
 
 
+_LARGE_TREE_THRESHOLD_BYTES = 1 << 30  # 1 GiB
+
+
+def _oversized_uncovered_entries(
+    app_data_root: Path,
+    payload: dict[str, Any],
+    threshold_bytes: int = _LARGE_TREE_THRESHOLD_BYTES,
+    rel_prefix: str = "app/data",
+) -> list[tuple[str, int]]:
+    """Top-level entries under app/data whose UNACCOUNTED bytes exceed the
+    threshold — neither covered by a manifest entry nor excluded with a reason.
+
+    DG-100's defect class: the scan above sees only ``*.db`` files, so a 30GB
+    tree of raw ``.json`` vintage snapshots was structurally invisible to
+    anti-rot. This helper makes any big data tree demand an explicit decision.
+
+    Attribution is NET of decided subtrees: a directory's size counts only the
+    files not already covered/excluded individually (``app/data/ops`` holds the
+    4GB excluded ``backup_staging`` — its residual is the small remainder, so
+    granular decisions keep working and no blanket exclusion is invited).
+    Symlinks are skipped at every level: worktrees share stores via symlink,
+    and the sweep's authority run is the real tree.
+    """
+    entries = _covered_manifest_entries(payload)
+    excluded = _excluded_manifest_paths(payload)
+    oversized: list[tuple[str, int]] = []
+    if not app_data_root.exists():
+        return oversized
+    for top in sorted(app_data_root.iterdir()):
+        if top.is_symlink():
+            continue
+        rel = f"{rel_prefix}/{top.name}"
+        if _is_covered(rel, entries) or _is_excluded(rel, excluded):
+            continue
+        if top.is_file():
+            size = top.stat().st_size
+        else:
+            size = 0
+            stack = [top]
+            while stack:
+                current = stack.pop()
+                for child in current.iterdir():
+                    child_rel = f"{rel_prefix}/{child.relative_to(app_data_root).as_posix()}"
+                    if child.is_symlink():
+                        continue
+                    if _is_covered(child_rel, entries) or _is_excluded(child_rel, excluded):
+                        continue
+                    if child.is_dir():
+                        stack.append(child)
+                    elif child.is_file():
+                        size += child.stat().st_size
+        if size > threshold_bytes:
+            oversized.append((rel, size))
+    return oversized
+
+
 def _present_app_data_dbs() -> set[str]:
     app_data = REPO_ROOT / "app" / "data"
     if not app_data.exists():
@@ -194,6 +250,57 @@ def test_backup_manifest_exact_file_exclusion_stays_exact_only() -> None:
     # The staging DIRECTORY keeps recursive semantics; a prefixed sibling does not.
     assert _is_excluded("app/data/ops/backup_staging/run/app/data/copy.db", excluded)
     assert not _is_excluded("app/data/ops/backup_staging_OTHER/store.db", excluded)
+
+
+def test_a_large_uncovered_tree_is_flagged_and_a_decided_one_is_not(tmp_path: Path) -> None:
+    """DG-100 regression, synthetic: a big non-.db tree with no manifest decision
+    must be flagged; an exclusion-with-reason (directory semantics) clears it;
+    and a decided SUBTREE nets out of its parent's attributed size."""
+    app_data = tmp_path / "app_data"
+    big = app_data / "vintages"
+    big.mkdir(parents=True)
+    (big / "snap.json").write_bytes(b"x" * (2 << 20))  # 2 MiB
+    small = app_data / "markers"
+    staging = small / "staging"
+    staging.mkdir(parents=True)
+    (staging / "copy.db").write_bytes(b"y" * (2 << 20))  # 2 MiB, all under staging
+    (small / "note.json").write_bytes(b"z" * 10)
+
+    undecided = {"required": [], "optional": [], "exclusions": []}
+    flagged = _oversized_uncovered_entries(app_data, undecided, threshold_bytes=1 << 20)
+    assert flagged == [
+        ("app/data/markers", (2 << 20) + 10),  # staging 2MiB + the 10-byte note
+        ("app/data/vintages", 2 << 20),
+    ]
+
+    decided = {
+        "required": [],
+        "optional": [],
+        "exclusions": [
+            {"path": "app/data/vintages/", "reason": "protected by a dedicated channel"},
+            {"path": "app/data/markers/staging", "reason": "transient copies"},
+        ],
+    }
+    assert _oversized_uncovered_entries(app_data, decided, threshold_bytes=1 << 20) == []
+
+    # A symlinked top-level entry is skipped — worktrees share stores by symlink.
+    (app_data / "shared").symlink_to(big)
+    assert _oversized_uncovered_entries(app_data, decided, threshold_bytes=1 << 20) == []
+
+
+def test_no_large_app_data_tree_lacks_a_backup_decision() -> None:
+    """Live sweep (vacuously true in a fresh clone): every top-level entry under
+    app/data above 1 GiB of unaccounted bytes must be backed up or explicitly
+    excluded with a reason. This is the *.db scan's blind spot closed — the
+    30GB nflverse vintage tree lived here unseen with no recorded decision."""
+    payload = _manifest_payload()
+    oversized = _oversized_uncovered_entries(REPO_ROOT / "app" / "data", payload)
+
+    assert oversized == [], (
+        "backup manifest rot (DG-100 class): large app/data trees with no "
+        "backup decision — add a manifest entry or an exclusion-with-reason for: "
+        + ", ".join(f"{path} ({size} bytes)" for path, size in oversized)
+    )
 
 
 def test_a_required_directory_entry_covers_its_descendants_but_not_a_prefixed_sibling() -> None:

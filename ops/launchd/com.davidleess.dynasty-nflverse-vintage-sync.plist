@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  nflverse vintage-record sync — DG-100's incremental offsite channel
+  (decision recorded 2026-08-29 under David's delegation; ticket DG-100).
+
+  Runs scripts/backup_nflverse_vintages.py daily at 07:00 local — after the
+  06:15 nflverse capture writes the day's snapshot files, before the
+  09:00 chain and the 10:15 nightly backup. Additive-only against ONE stable
+  prefix (gs://dynasty-genius-backup-dtl/dynasty-genius/nflverse-vintages/raw):
+  uploads only files the remote does not hold, verifies each by download +
+  sha256, never deletes, never overwrites. A same-name/different-size remote
+  object is a named failure (history changed), exit 1.
+  READ-ONLY over app/data/nflverse_usage/raw; its only writes are its receipts:
+    app/data/ops/nflverse_vintage_backup_status.json   (always-written marker)
+    app/data/ops/nflverse_vintage_sync_active.json     (run-start sentinel)
+  Exit codes: 0 completed (including nothing-new-to-sync) / 1 any failure.
+
+  A normal day uploads only that morning's snapshot files — minutes, not
+  hours. The ONE-TIME initial backfill (~30GB) is run manually, off-schedule.
+
+  Committed but LOADED MANUALLY BY DAVID — the agent does not load it.
+  Install as a symlink (rollback = bootout + remove symlink), then register
+  the label with the catch-up guard (app/config/catchup_guard.json, daily
+  lookback, keyed on the marker's finished_at) in the same sitting:
+    ln -s /Users/davidleess/dynasty-genius-product/ops/launchd/com.davidleess.dynasty-nflverse-vintage-sync.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.davidleess.dynasty-nflverse-vintage-sync.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.davidleess.dynasty-nflverse-vintage-sync</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/davidleess/dynasty-genius-product/.venv/bin/python3.14</string>
+        <string>/Users/davidleess/dynasty-genius-product/scripts/backup_nflverse_vintages.py</string>
+        <string>--repo-root</string>
+        <string>/Users/davidleess/dynasty-genius-product</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/davidleess/dynasty-genius-product</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/nflverse_vintage_sync.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/davidleess/dynasty-genius-product/app/data/logs/nflverse_vintage_sync.err.log</string>
+</dict>
+</plist>
