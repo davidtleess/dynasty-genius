@@ -1,5 +1,6 @@
 import type { RosterAuditResponse } from "../lib/api";
 import { inputName } from "../lib/copy";
+import { PlayerNameButton } from "../player/playerSelection";
 import { TokenNotes } from "../ui/TokenNotes";
 
 // QB context cards: supplementary signal only. Empty -> nothing.
@@ -22,10 +23,17 @@ import { TokenNotes } from "../ui/TokenNotes";
 // annotation/caveat lists printed their raw tokens. `DAKOTA` was the only one the
 // render rule could even see (six capitals); the rest are the data-science
 // register regardless. Every number is unchanged.
+//
+// DG-110: the card's name opens that quarterback's card. The QB contract does
+// not carry a sleeper id, so the container hands down the id it already read
+// for the same player on the roster (same payload, same player_id key) — a
+// join, never a guess. No id, no link.
 export function QbContextSection({
   cards,
+  sleeperIdByPlayerId = {},
 }: {
   cards: NonNullable<RosterAuditResponse["qb_context_cards"]>;
+  sleeperIdByPlayerId?: Record<string, string>;
 }) {
   const list = cards ?? [];
   if (list.length === 0) return null;
@@ -43,7 +51,14 @@ export function QbContextSection({
             className="dg-roster__qb-card"
             data-coverage={c.identity_coverage}
           >
-            <strong>{c.full_name}</strong>
+            <strong>
+              <PlayerNameButton
+                sleeperId={sleeperIdByPlayerId[c.player_id]}
+                name={c.full_name}
+                context="QB"
+                className="dg-roster__name"
+              />
+            </strong>
             <span>
               {" "}
               {inputName("epa_per_dropback")}: {c.epa_per_dropback ?? "—"} ·{" "}

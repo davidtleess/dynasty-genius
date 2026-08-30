@@ -27,7 +27,7 @@ describe("RosterAuditTable", () => {
 
   it("row-expand reveals detail (counter-argument, drivers, full caveats)", () => {
     render(<RosterAuditTable players={realPvoAudit().players} />);
-    fireEvent.click(screen.getByRole("button", { name: /expand vet rb/i }));
+    fireEvent.click(screen.getByRole("button", { name: /details for vet rb/i }));
     expect(screen.getByText(/do not use for dynasty decisions/i)).toBeTruthy();
   });
 

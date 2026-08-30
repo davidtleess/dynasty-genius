@@ -36,6 +36,14 @@
   outline-offset: 1px;
 }
 
+/* A fact the list cannot show — chiefly a failed player-list read. Full text
+   color, not muted: a degraded state is not decoration. */
+.dg-cmdk__notice {
+  margin: 0;
+  padding: var(--dg-space-2) var(--dg-space-3);
+  color: var(--dg-text);
+}
+
 .dg-cmdk__list {
   list-style: none;
   margin: 0;

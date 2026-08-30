@@ -55,6 +55,15 @@
       "card_treatment_selectors": 0
     },
     {
+      "path": "player/playerSelection.css",
+      "focus_visible_selectors": 1,
+      "focus_token_consumers": 1,
+      "hover_selectors": 1,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 0,
+      "card_treatment_selectors": 0
+    },
+    {
       "path": "project/ProjectTracker.css",
       "focus_visible_selectors": 0,
       "focus_token_consumers": 0,
@@ -83,18 +92,18 @@
     },
     {
       "path": "roster/RosterAudit.css",
-      "focus_visible_selectors": 0,
-      "focus_token_consumers": 0,
-      "hover_selectors": 0,
+      "focus_visible_selectors": 1,
+      "focus_token_consumers": 1,
+      "hover_selectors": 1,
       "elevation_consumers": 0,
       "row_treatment_selectors": 2,
       "card_treatment_selectors": 0
     },
     {
       "path": "shell/AppShell.css",
-      "focus_visible_selectors": 0,
-      "focus_token_consumers": 0,
-      "hover_selectors": 0,
+      "focus_visible_selectors": 2,
+      "focus_token_consumers": 2,
+      "hover_selectors": 1,
       "elevation_consumers": 0,
       "row_treatment_selectors": 0,
       "card_treatment_selectors": 0
@@ -191,9 +200,9 @@
     }
   ],
   "totals": {
-    "focus_visible_selectors": 7,
-    "focus_token_consumers": 5,
-    "hover_selectors": 1,
+    "focus_visible_selectors": 11,
+    "focus_token_consumers": 9,
+    "hover_selectors": 4,
     "elevation_consumers": 0,
     "row_treatment_selectors": 27,
     "card_treatment_selectors": 9

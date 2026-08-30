@@ -86,3 +86,32 @@
   align-items: center;
   font-size: 0.85rem;
 }
+
+/* DG-110: the row's inline evidence moved to its own control when the name
+   became the handle onto the player's card. Quiet by design — the name leads,
+   the receipt follows. */
+.dg-roster__expand {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--dg-border);
+  border-radius: 3px;
+  padding: 0 0.35rem;
+  font: inherit;
+  font-size: 0.8rem;
+  /* Full text color, NOT --dg-text-muted: rows whose model status does not
+     apply carry opacity 0.55 (the trust de-emphasis above), and muted text
+     composited through that reads 2.78:1 — below the 4.5:1 floor DG-105 just
+     cleared. --dg-text lands at 5.29:1 on those rows. The control stays quiet
+     through its size and border, not through a contrast failure. */
+  color: var(--dg-text);
+  cursor: pointer;
+}
+
+.dg-roster__expand:hover {
+  color: var(--dg-text);
+}
+
+.dg-roster__expand:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}

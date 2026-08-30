@@ -2,6 +2,7 @@ import type { z } from "zod";
 
 import type { zTradeMarketReconciliation } from "../lib/api/zod.gen";
 import { describeToken, sourcedCaveat, valueWord } from "../lib/copy";
+import { PlayerNameButton } from "../player/playerSelection";
 import { TokenNotes } from "../ui/TokenNotes";
 import { RangeRow } from "./forcedCutRange";
 
@@ -74,7 +75,16 @@ export function MarketLanePanel({
       <ul className="dg-lane__assets">
         {reconciliation.sent_assets.map((asset) => (
           <li key={asset.label}>
-            {asset.label}
+            {/* DG-110: a priced player in the result opens his card. Picks
+                have no card and stay plain text. */}
+            <PlayerNameButton
+              sleeperId={
+                asset.asset_ref.asset_kind === "player"
+                  ? asset.asset_ref.sleeper_id
+                  : null
+              }
+              name={asset.label}
+            />
             {asset.divergence_context && (
               <span className="dg-lane__signal">
                 {valueWord(asset.divergence_context.signal_label)}

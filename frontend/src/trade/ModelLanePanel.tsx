@@ -2,6 +2,7 @@ import type { z } from "zod";
 
 import type { zTradeRosterReconciliation } from "../lib/api/zod.gen";
 import { describeToken } from "../lib/copy";
+import { PlayerNameButton } from "../player/playerSelection";
 import { TokenNotes } from "../ui/TokenNotes";
 import { RangeRow } from "./forcedCutRange";
 
@@ -81,13 +82,18 @@ export function ModelLanePanel({
       {penalty.forced_cut_candidates.length > 0 && (
         <ul className="dg-lane__cuts" aria-label="Forced cut candidates">
           {penalty.forced_cut_candidates.map((cut, index) => {
+            const sleeperId =
+              typeof cut.sleeper_player_id === "string" ? cut.sleeper_player_id : null;
             const name =
               typeof cut.full_name === "string"
                 ? cut.full_name
-                : typeof cut.sleeper_player_id === "string"
-                  ? cut.sleeper_player_id
-                  : `cut ${index + 1}`;
-            return <li key={name}>{name}</li>;
+                : (sleeperId ?? `cut ${index + 1}`);
+            // DG-110: a named cut candidate opens that player's card.
+            return (
+              <li key={name}>
+                <PlayerNameButton sleeperId={sleeperId} name={name} />
+              </li>
+            );
           })}
         </ul>
       )}
