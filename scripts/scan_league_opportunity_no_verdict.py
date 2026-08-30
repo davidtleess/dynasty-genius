@@ -32,6 +32,26 @@ a glob, so a newly introduced violation anywhere fails immediately even mid-migr
 Both buckets are now empty, so the cordon is FULLY ENFORCING across the whole surface: any
 newly introduced No-Verdict token fails immediately. ``KNOWN_DEBT_ALLOWLIST`` (their union)
 is empty; :func:`allowlist_by_bucket` still reports per-bucket so the contract is explicit.
+
+DG-104 split (David's ruling, 2026-08-29; recorded verbatim in
+~/dg-build/DG091-DESIGN-BRIEF.md): the frontend speaks plain fantasy-football prose and MAY
+state overall recommendations. This cordon served BOTH purposes at once, so per the ticket's
+ambiguity rule it is split rather than dropped:
+
+- DIED, on AUTHORED FRONTEND COPY ONLY (presentation, David's 2026-08-29 ruling): the bare
+  ``recommend`` stem as an English word, and the visible action-verb + "candidate" label
+  phrase. Both matched David's own green-lit copy ("We recommend selling high", a card headed
+  "Drop candidate"), which is exactly the blockade DG-104 exists to lift.
+- STAYS ARMED EVERYWHERE, including on those copy files (measurement law): identifier-shaped
+  machinery — ``recommended_action``, ``RECOMMENDATION``, ``toolRecommendation``,
+  ``tool_nominated``, ``opportunity_score``, action-candidate ENUMS, snake_case
+  action-candidate FIELDS. A verdict FIELD still cannot enter on a copy file.
+- UNTOUCHED: every generated-contract and backend surface (openapi.json, types.gen.ts,
+  zod.gen.ts, producers, DTOs, assemblers). ``presentation_surface`` defaults to False, so
+  those paths scan byte-for-byte as they did before.
+
+Opting a path in is a per-file scope decision made by the caller (see
+:func:`scan_paths`), never a global relaxation.
 """
 
 from __future__ import annotations
@@ -119,22 +139,59 @@ def _is_action_candidate_field(identifier: str) -> bool:
     return any(part in _ACTION_TERMS for part in parts)
 
 
-def _identifier_is_banned(identifier: str) -> bool:
+# A prose-shaped word: one word, no underscore and no internal capital
+# ("recommend", "Recommended", "recommendation"). Anything else carrying the
+# stem is identifier-shaped machinery ("recommended_action", "RECOMMENDATION",
+# "toolRecommendation") and stays banned everywhere.
+_PROSE_WORD = re.compile(r"^[A-Za-z][a-z]*$")
+
+
+def _is_prose_shaped(identifier: str) -> bool:
+    return bool(_PROSE_WORD.match(identifier))
+
+
+def _identifier_is_banned(identifier: str, *, presentation_surface: bool = False) -> bool:
+    if _RECOMMEND.search(identifier) and not (
+        presentation_surface and _is_prose_shaped(identifier)
+    ):
+        return True
     return bool(
-        _RECOMMEND.search(identifier)
-        or _TOOL_NOMINATED.search(identifier)
+        _TOOL_NOMINATED.search(identifier)
         or _OPPORTUNITY_SCORE.search(identifier)
         or _is_action_candidate_enum(identifier)
         or _is_action_candidate_field(identifier)
     )
 
 
-def scan_text(text: str) -> set[str]:
-    """Return the set of banned tokens (identifiers + action-candidate phrases) in text."""
+def scan_text(text: str, *, presentation_surface: bool = False) -> set[str]:
+    """Return the set of banned tokens (identifiers + action-candidate phrases) in text.
+
+    ``presentation_surface`` marks an AUTHORED frontend copy file (a .tsx the
+    team writes prose into), where David's 2026-08-29 ruling applies: the
+    frontend speaks plain fantasy-football prose and MAY state overall
+    recommendations. On such a file the cordon's PRESENTATION half stands down —
+    the bare ``recommend`` stem as an English word, and the visible
+    action-verb + "candidate" label phrase — because those match David's own
+    green-lit copy. The MEASUREMENT half is untouched even there: identifier-
+    shaped machinery (``recommended_action``, ``RECOMMENDATION``,
+    ``tool_nominated``, ``opportunity_score``, action-candidate enums and
+    snake_case action-candidate fields) still fails closed, so a leaked verdict
+    FIELD cannot ride in on a copy file.
+
+    The default is False, so every generated-contract and backend surface
+    (openapi.json, types.gen.ts, zod.gen.ts, producers, DTOs, assemblers) keeps
+    the full cordon exactly as before — that half is measurement law, and a
+    presentation ruling does not touch it.
+    """
     tokens: set[str] = {
-        ident for ident in _IDENTIFIER.findall(text) if _identifier_is_banned(ident)
+        ident
+        for ident in _IDENTIFIER.findall(text)
+        if _identifier_is_banned(ident, presentation_surface=presentation_surface)
     }
-    tokens.update(match.group(0) for match in _ACTION_CANDIDATE_PHRASE.finditer(text))
+    if not presentation_surface:
+        tokens.update(
+            match.group(0) for match in _ACTION_CANDIDATE_PHRASE.finditer(text)
+        )
     return tokens
 
 
@@ -143,16 +200,24 @@ def scan_paths(
     *,
     root: Path | None = None,
     allowlist: list[AllowlistEntry] | None = None,
+    presentation_paths: list[Path] | None = None,
 ) -> list[Finding]:
     """Scan ``paths`` and return findings not suppressed by the exact allowlist.
 
     ``root`` (when given) is the base the reported/allowlist paths are relative to.
     A finding is suppressed only when an allowlist entry matches its (path, token)
     exactly.
+
+    ``presentation_paths`` names the subset of ``paths`` that are AUTHORED
+    frontend copy, scanned with the presentation half stood down per David's
+    2026-08-29 ruling (see :func:`scan_text`). Naming a path here is a scope
+    decision about that one file, never a global relaxation: everything not
+    listed keeps the full cordon.
     """
     if allowlist is None:
         allowlist = KNOWN_DEBT_ALLOWLIST
     allowed: set[tuple[str, str]] = {(entry.path, entry.token) for entry in allowlist}
+    presentation: set[Path] = {Path(p) for p in (presentation_paths or [])}
 
     findings: list[Finding] = []
     seen: set[tuple[str, str]] = set()
@@ -183,7 +248,8 @@ def scan_paths(
         except (FileNotFoundError, IsADirectoryError):
             _add(rel, "scanner_file_unavailable", suppressible=False)
             continue
-        for token in sorted(scan_text(text)):
+        is_presentation = path in presentation
+        for token in sorted(scan_text(text, presentation_surface=is_presentation)):
             _add(rel, token, suppressible=True)
     return findings
 
