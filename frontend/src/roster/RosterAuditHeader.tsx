@@ -1,5 +1,5 @@
 import type { RosterAuditResponse } from "../lib/api";
-import { positionTrustWord } from "../lib/copy";
+import { POSITION_TRUST_LEDE, positionTrustWord } from "../lib/copy";
 import { TokenNotes } from "../ui/TokenNotes";
 
 type Props = {
@@ -46,7 +46,16 @@ export function RosterAuditHeader({
           word a person reads changed. The chips get their OWN vocabulary —
           `EXPERIMENTAL` here means the position's validation record is missing or
           stale (roster_audit_models.py:55-76), which is not what the same word
-          means on a player's model grade. */}
+          means on a player's model grade.
+
+          DG-117: DG-109 translated the enums but left the crew's own register in
+          place — "RB checked out in testing" — and left the row with no subject
+          at all, so a manager could not tell what had been checked. The lede
+          names the subject once; the words are now the manager's. Same states,
+          same `data-status`, same count of chips. */}
+      {Object.keys(modelStatusByPosition).length > 0 && (
+        <p className="dg-roster__model-status-lede">{POSITION_TRUST_LEDE}</p>
+      )}
       <ul className="dg-roster__model-status">
         {Object.entries(modelStatusByPosition).map(([pos, st]) => (
           <li key={pos} className="dg-roster__chip" data-status={st}>

@@ -25,7 +25,7 @@ describe("RosterAuditHeader", () => {
     expect(
       document.querySelector('.dg-roster__chip[data-status="EXPERIMENTAL"]'),
     ).toBeTruthy();
-    expect(screen.getByText(/experimental — not validated/i)).toBeTruthy();
+    expect(screen.getByText(/not proven/i)).toBeTruthy();
     expect(screen.getByText(/1 .*dropped/i)).toBeTruthy();
     // DG-111: the "Experimental — not decision-grade." stamp is retired from
     // this surface (it rendered twice: header and filter bar). A degraded
@@ -35,5 +35,41 @@ describe("RosterAuditHeader", () => {
     // The market-scope caveat still reaches the screen; it just says what it is
     // rather than printing `no_market_overlay`.
     expect(screen.getByText(/market prices are deliberately left out/i)).toBeTruthy();
+  });
+
+  // DG-117. The chips read "RB checked out in testing" on a surface David
+  // opens in one click — crew vocabulary for a state a manager has never been
+  // told the subject of. Two things had to change and neither is the state
+  // itself: the words become plain English, and the row acquires a subject so
+  // the chips are about something.
+  it("says what the chips are about, in the manager's language, not QA's", () => {
+    render(
+      <RosterAuditHeader
+        status="active"
+        modelStatusByPosition={{
+          QB: "PROVISIONAL",
+          RB: "VALIDATED",
+          TE: "EXPERIMENTAL",
+        }}
+        caveats={[]}
+        droppedPlayerCount={0}
+      />,
+    );
+
+    // The subject: without it the chips name a state of nothing.
+    expect(screen.getByText(/our active-player model/i)).toBeTruthy();
+
+    // The three states, each still distinguishable and still carried on the
+    // data attribute the CSS and the tests key off.
+    expect(screen.getByText(/passed its accuracy checks/i)).toBeTruthy();
+    expect(screen.getByText(/missed an accuracy one/i)).toBeTruthy();
+    expect(screen.getByText(/not proven/i)).toBeTruthy();
+    expect(document.querySelector('[data-status="VALIDATED"]')).toBeTruthy();
+    expect(document.querySelector('[data-status="PROVISIONAL"]')).toBeTruthy();
+    expect(document.querySelector('[data-status="EXPERIMENTAL"]')).toBeTruthy();
+
+    // The QA register, gone.
+    expect(screen.queryByText(/checked out in testing/i)).toBeNull();
+    expect(screen.queryByText(/^provisional$/i)).toBeNull();
   });
 });

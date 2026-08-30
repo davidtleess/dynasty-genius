@@ -29,10 +29,23 @@
 
 .dg-roster__chip {
   display: inline-flex;
+  /* DG-117: the chips say what they mean now ("passed the safety checks,
+     missed an accuracy one" where they used to say "provisional"), and a chip
+     that cannot wrap is a chip that overflows a 358px column and takes the
+     page sideways. It wraps inside its own border instead. */
+  flex-wrap: wrap;
+  max-inline-size: 100%;
   gap: 0.25rem;
   padding: 0.125rem 0.5rem;
   border: 1px solid currentcolor;
   border-radius: 0.25rem;
+}
+
+/* The chips report a state of something; without this line they report a state
+   of nothing. Body-adjacent, quieter than the chips it introduces. */
+.dg-roster__model-status-lede {
+  margin: 0;
+  color: var(--dg-text-muted);
 }
 
 /* Trust de-emphasis: EXPERIMENTAL positions and non-applicable rows read softer. */
@@ -52,6 +65,28 @@
 .dg-roster__detail td {
   font-size: 0.875rem;
   opacity: 0.9;
+}
+
+/* DG-117: the sentence that explains the blank value cells. It sits OUTSIDE the
+   table's scroll region deliberately — an explanation a reader has to scroll
+   sideways to find explains nothing. */
+.dg-roster__unscored-note {
+  margin: 0;
+  color: var(--dg-text-muted);
+}
+
+/* DG-117: what replaced fifteen em dashes. Plain body copy, not a notice
+   panel — it is the section saying what it has, not a warning. */
+.dg-roster__qb-empty {
+  margin: 0;
+}
+
+.dg-roster__qb-shared {
+  color: var(--dg-text-muted);
+}
+
+.dg-roster__qb-shared p {
+  margin: 0;
 }
 
 .dg-roster__qb {

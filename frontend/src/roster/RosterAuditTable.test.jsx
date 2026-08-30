@@ -36,6 +36,69 @@ describe("RosterAuditTable", () => {
     const headerText = container.querySelector("thead")?.textContent ?? "";
     expect(headerText).not.toMatch(/\b(sell|buy|hold|drop now|must|tier|win|loss)\b/i);
   });
+
+  // DG-117. On David's live roster this table was 23 of 27 rows of "Not scored
+  // yet / n/a / —", with two adjacent columns saying nothing at all.
+  //
+  // `model_status_applies` is `engine_used == "engine_b"`
+  // (roster_audit_models.py:264) — it was FALSE on all 27 rows, so the column
+  // was 27 identical "n/a"s. Worse, it was misleading where it did vary: the
+  // four players who ARE scored are scored by the rookie model, and the column
+  // told him "n/a" about them too. The fact it carried — which model scored
+  // him — is what the neighbouring Model status cell already says in words, so
+  // the column goes and nothing goes with it.
+  it("does not render a column whose only value is that it does not apply", () => {
+    const { container } = render(<RosterAuditTable players={realPvoAudit().players} />);
+    const headers = [...container.querySelectorAll("thead th")].map(
+      (th) => th.textContent,
+    );
+
+    expect(headers).not.toContain("Model status applies");
+    expect(within(screen.getByRole("table")).queryByText("n/a")).toBeNull();
+    expect(headers).not.toContain("Model grade");
+
+    // The fact survives, in the dictionary's own name for the field — the same
+    // name the player card gives it, so one field has one name in both places.
+    expect(headers).toContain("Model status");
+    const row = within(screen.getByRole("table")).getAllByRole("row")[1];
+    expect(within(row).getByText("Not scored yet")).toBeTruthy();
+    // And the raw grade still rides the row for CSS and tests.
+    expect(row.getAttribute("data-grade")).toBe("PRE_MODEL");
+  });
+
+  it("says why the blank value cells are blank, once, under the table", () => {
+    render(<RosterAuditTable players={realPvoAudit().players} />);
+
+    const note = screen.getByText(/no value score yet/i);
+    expect(note.textContent).toMatch(/1 of these 1 players/i);
+    // The honest half: a blank is a refusal to guess, and the reason is one
+    // press away on the row itself.
+    expect(note.textContent).toMatch(/blank rather than guessed/i);
+    expect(note.textContent).toMatch(/details/i);
+  });
+
+  it("says nothing about unscored players when every player is scored", () => {
+    render(<RosterAuditTable players={activeAudit().players} />);
+    expect(screen.queryByText(/no value score yet/i)).toBeNull();
+  });
+
+  // DG-117 defect 1: at 390 this table is 559px inside a 358px column and it
+  // took the whole PAGE sideways with it — 185px of horizontal scroll, every
+  // other element on the surface squeezed. A wide table scrolls inside its own
+  // container or it does not scroll at all.
+  it("scrolls inside its own container instead of taking the page sideways", () => {
+    const { container } = render(<RosterAuditTable players={activeAudit().players} />);
+    const table = container.querySelector("table");
+    const scroller = table.closest(".dg-table-scroll");
+
+    expect(scroller).toBeTruthy();
+    // Reachable by keyboard: a scroll region a mouse can drag and a keyboard
+    // cannot is a surface a keyboard user cannot read. A NAMED <section> is a
+    // region by element, so the reader who tabs in is told what they landed in.
+    expect(scroller.tagName).toBe("SECTION");
+    expect(scroller.getAttribute("tabindex")).toBe("0");
+    expect(scroller.getAttribute("aria-label")).toBeTruthy();
+  });
 });
 
 const row = (id, pos) => ({

@@ -1,17 +1,22 @@
+import { fieldLabel } from "../lib/copy";
 import type { GroupKey, ProspectFilter, SortKey } from "./rosterTransform";
 
+// DG-117: both controls named the same quantity two different ways ("Value
+// above replacement (xVAR)" to sort by, "xVAR bracket" to group by) while the
+// row detail below already called it "Value over replacement". One name now,
+// spelled by the dictionary at both sites.
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "none", label: "Default (aging urgency)" },
   { value: "age_cliff_risk", label: "Age-cliff risk" },
   { value: "age", label: "Age" },
   { value: "signal_completeness", label: "Signal completeness" },
-  { value: "xvar", label: "Value above replacement (xVAR)" },
+  { value: "xvar", label: fieldLabel("xvar") },
 ];
 const GROUP_OPTIONS: { value: GroupKey; label: string }[] = [
   { value: "none", label: "None" },
   { value: "position", label: "Position" },
   { value: "depreciation_band", label: "Depreciation band" },
-  { value: "xvar_bracket", label: "xVAR bracket" },
+  { value: "xvar_bracket", label: fieldLabel("xvar") },
 ];
 const PROSPECT_OPTIONS: { value: ProspectFilter; label: string }[] = [
   { value: "all", label: "All" },

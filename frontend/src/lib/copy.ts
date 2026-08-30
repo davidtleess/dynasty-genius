@@ -56,6 +56,23 @@ function humanize(token: string): string {
 // 1 · Field labels — what a column, stat or definition-list term is called.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * DG-117 — ONE name for one quantity.
+ *
+ * `xvar` is how much more a player is worth than a freely available
+ * waiver-wire replacement at his position. On 2026-08-30 it had FOUR names on
+ * screen at once — "Value above replacement (xVAR)" on the player card and the
+ * roster filter, "xVAR bracket" in the roster group-by, bare "xVAR" on Roster
+ * Capacity and the trade model lane, and "Above replacement" on the front
+ * page — beside "Value over replacement" from this dictionary on League Pulse.
+ * A manager reading four names has no way to know they are one number.
+ *
+ * The spec's name (DG091-STUDIO-SPEC.md §6 rule 5) is the one that stands.
+ * Every render site now spells it from here, and `renderRule.ts`'s jargon list
+ * fails the build if the acronym comes back.
+ */
+export const VALUE_OVER_REPLACEMENT = "Value over replacement";
+
 const FIELD_LABELS: Record<string, string> = {
   // Team posture components (src/dynasty_genius/team_posture.py:145-150).
   starter_weighted_xvar_z: "Starter strength vs. the league",
@@ -101,7 +118,7 @@ const FIELD_LABELS: Record<string, string> = {
   model_minus_market_delta: "Our price minus the market's",
   market_percentile: "Market percentile",
   model_percentile: "Our percentile",
-  asset_xvar: "Value over replacement",
+  asset_xvar: VALUE_OVER_REPLACEMENT,
   divergence_score: "Size of the price gap",
   lineup_role: "Lineup role",
 
@@ -109,7 +126,7 @@ const FIELD_LABELS: Record<string, string> = {
   engine_path: "Which model scored him",
   model_grade: "Model status",
   dynasty_value_score: "Dynasty value",
-  xvar: "Value over replacement",
+  xvar: VALUE_OVER_REPLACEMENT,
   xvar_percentile_position: "Position percentile",
   projection_1y: "1-year projection",
   projection_2y: "2-year projection",
@@ -760,12 +777,41 @@ const TRUST_GRADE_WORDS: Record<string, string> = {
  * means the position's validation record is missing or stale, which is not what
  * it means on a player's `model_grade` or on the trust console's ladder — so it
  * gets its own shelf rather than colliding inside either.
+ *
+ * DG-117: these read "checked out in testing" / "provisional" / "experimental —
+ * not validated". That is how a QA engineer signs off a build, not how a manager
+ * reads a football product, and it was on David's screen one click into the
+ * rail. The STATES are unchanged — the words are.
+ *
+ * What each one actually means, from the gate that assigns it
+ * (eval/composite_gate.py:86-146, read through
+ * roster_audit_models.py:41-77):
+ *   VALIDATED    every backtest season cleared the ranking and confidence-band
+ *                checks (a first cold-start season may be excused), the most
+ *                recent season cleared both, and the safety floors held.
+ *   PROVISIONAL  the safety floors held — no leakage, enough coverage, enough
+ *                seasons — but a season missed one of those accuracy checks.
+ *   EXPERIMENTAL either a safety floor failed, or the roster-audit loader could
+ *                not read or could not date this position's validation record
+ *                and failed closed. Both mean the same thing to a reader:
+ *                nothing here is proven. WHICH of them it was rides the
+ *                envelope caveats beside the chips
+ *                (`trust_status_unavailable` / `trust_status_stale`), so this
+ *                word must not claim to know.
  */
 const POSITION_TRUST_WORDS: Record<string, string> = {
-  VALIDATED: "checked out in testing",
-  PROVISIONAL: "provisional",
-  EXPERIMENTAL: "experimental — not validated",
+  VALIDATED: "passed its accuracy checks",
+  PROVISIONAL: "passed the safety checks, missed an accuracy one",
+  EXPERIMENTAL: "not proven",
 };
+
+/**
+ * What the per-position chips are chips OF. Rendered once above the row: the
+ * chips named a state without ever naming its subject, so "RB · provisional"
+ * told a manager nothing about what was provisional.
+ */
+export const POSITION_TRUST_LEDE =
+  "How far our active-player model has been checked, position by position:";
 
 export function positionTrustWord(status: string): string {
   const known = POSITION_TRUST_WORDS[status];

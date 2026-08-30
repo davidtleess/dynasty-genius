@@ -7,10 +7,26 @@
 /* ── Focus grammar: one visible keyboard-position language, everywhere. ── */
 .dg-ui-receipt__trigger:focus-visible,
 .dg-ui-caveat a:focus-visible,
+.dg-table-scroll:focus-visible,
 .dg-ui-band-divider:focus-visible {
   outline: 2px solid var(--dg-focus);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* ── Table scroll region (DG-117) ──
+ * A table wider than its column takes the overflow HERE, not on the page. At
+ * 390px the roster table (559px) and the fold table (1039px) each dragged the
+ * whole document sideways — 185px and 665px measured in Chromium — which
+ * stranded every other element on the surface beside a band of empty canvas.
+ *
+ * `auto`, not `scroll`: a table that fits shows nothing at all. The contain
+ * keeps a sideways flick inside the table instead of handing it to the page —
+ * the same fix in the second place a browser can leak it. */
+.dg-table-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  max-inline-size: 100%;
 }
 
 /* ── Receipt ── */

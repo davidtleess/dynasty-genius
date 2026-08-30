@@ -182,11 +182,11 @@
     },
     {
       "path": "ui/ui.css",
-      "focus_visible_selectors": 3,
+      "focus_visible_selectors": 4,
       "focus_token_consumers": 1,
       "hover_selectors": 0,
       "elevation_consumers": 0,
-      "row_treatment_selectors": 0,
+      "row_treatment_selectors": 2,
       "card_treatment_selectors": 0
     },
     {
@@ -200,11 +200,11 @@
     }
   ],
   "totals": {
-    "focus_visible_selectors": 11,
+    "focus_visible_selectors": 12,
     "focus_token_consumers": 9,
     "hover_selectors": 4,
     "elevation_consumers": 0,
-    "row_treatment_selectors": 27,
+    "row_treatment_selectors": 29,
     "card_treatment_selectors": 9
   }
 }

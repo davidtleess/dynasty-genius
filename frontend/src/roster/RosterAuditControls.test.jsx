@@ -23,7 +23,14 @@ describe("RosterAuditControls", () => {
     const groupOptions = Array.from(screen.getByLabelText(/group by/i).options).map(
       (option) => [option.value, option.textContent],
     );
-    expect(groupOptions).toContainEqual(["xvar_bracket", "xVAR bracket"]);
+    // DG-117: one name for the quantity, spelled by the dictionary. The sort
+    // control and the group control name it identically — a manager reading
+    // both must be able to tell they are the same number.
+    const sortOptions = Array.from(screen.getByLabelText(/sort by/i).options).map(
+      (option) => [option.value, option.textContent],
+    );
+    expect(groupOptions).toContainEqual(["xvar_bracket", "Value over replacement"]);
+    expect(sortOptions).toContainEqual(["xvar", "Value over replacement"]);
     // DG-111: the "Experimental — not decision-grade." stamp is retired from
     // this surface (it rendered twice: header and filter bar). A degraded
     // roster read still says so in a sentence.

@@ -64,7 +64,13 @@ import systemHealthLive from "./__fixtures__/systemHealth.live.json";
 import trustSurfaceLive from "./__fixtures__/trustSurface.live.json";
 import whatChangedLive from "./__fixtures__/whatChanged.live.json";
 import whatChangedDegradedLive from "./__fixtures__/whatChangedDegraded.live.json";
-import { auditRenderedCopy, findRawCopy, formatRawCopyFindings } from "./renderRule";
+import { VALUE_OVER_REPLACEMENT } from "./copy";
+import {
+  auditRenderedCopy,
+  findRawCopy,
+  formatRawCopyFindings,
+  jargonReplacement,
+} from "./renderRule";
 
 // biome-ignore lint/suspicious/noExplicitAny: fixtures are captured wire payloads; the components' own Zod parse is the contract check under test.
 type Wire = any;
@@ -126,6 +132,26 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
     expect(
       findRawCopy("Age is on his side — years from the usual QB decline."),
     ).toEqual([]);
+  });
+
+  // DG-117. The shape patterns above are blind to a term that looks like a
+  // word: "xVAR" is three capitals under a four-capital floor and carries no
+  // underscore, so it walked through the whole DG-109 dictionary pass and ended
+  // up with FOUR spellings of one quantity on David's screen. The jargon list
+  // is the rule that can see it, and the dictionary is where the one name lives.
+  it("names jargon the shape patterns cannot see, and says what to use instead", () => {
+    expect(findRawCopy("Value above replacement (xVAR)")).toEqual(["xVAR"]);
+    expect(findRawCopy("xVAR bracket")).toEqual(["xVAR"]);
+    // Case-insensitive: no spelling of it is the agreed name.
+    expect(findRawCopy("xvar 0.0+")).toEqual(["xvar"]);
+    expect(findRawCopy("XVAR")).toEqual(["XVAR"]);
+    // The one name, and only that one, passes.
+    expect(findRawCopy(VALUE_OVER_REPLACEMENT)).toEqual([]);
+    expect(jargonReplacement("xVAR")).toBe(VALUE_OVER_REPLACEMENT);
+    // Whole word only — a player named Xavier is not machinery, and an
+    // underscore key is still reported once, as the key it is.
+    expect(findRawCopy("Xavier Legette · WR")).toEqual([]);
+    expect(findRawCopy("asset_xvar")).toEqual(["asset_xvar"]);
   });
 
   it("exempts the receipt layer and the league's own words, and nothing else", () => {
