@@ -29,8 +29,9 @@
 
 .dg-roster__chip {
   display: inline-flex;
-  /* DG-117: the chips say what they mean now ("passed the safety checks,
-     missed an accuracy one" where they used to say "provisional"), and a chip
+  /* DG-117: the chips say what they mean now ("passed the safety checks, but
+     not every season we tested confirmed it" where they used to say
+     "provisional"), and a chip
      that cannot wrap is a chip that overflows a 358px column and takes the
      page sideways. It wraps inside its own border instead. */
   flex-wrap: wrap;

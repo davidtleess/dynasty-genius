@@ -70,6 +70,33 @@ describe("QbContextSection", () => {
       expect(screen.getAllByText(/no college context numbers/i).length).toBe(1);
       expect(screen.getByText(/true of every quarterback here/i)).toBeTruthy();
     });
+
+    // REVIEW-PANEL FIX. The state that broke it: nobody has numbers, but the
+    // producer matched ONE of them. The section used to hoist "We have these
+    // quarterbacks' records but no passing numbers in them yet" over the whole
+    // list — false about the unmatched card, whose own reason was suppressed in
+    // exactly that branch. A hoisted sentence may only say what is true of
+    // every card; anything else goes back to per-card reasons.
+    it("never says we have a record for a quarterback we did not match", () => {
+      const matchedCard = { ...bare("1", "J.J. McCarthy"), identity_coverage: "FULL" };
+      const { container } = render(
+        <QbContextSection cards={[matchedCard, bare("2", "Mac Jones")]} />,
+      );
+
+      // The claim that was false: gone, in the state that produced it.
+      expect(container.textContent).not.toMatch(/we have these quarterbacks' records/i);
+      // Each card now carries the reason that is true of IT.
+      expect(
+        screen.getByText(/we have his record but no passing numbers in it yet/i),
+      ).toBeTruthy();
+      expect(
+        screen.getByText(/we have not matched him to the passing records/i),
+      ).toBeTruthy();
+      // And the all-unmatched sentence must not appear when one IS matched.
+      expect(
+        screen.queryByText(/have not matched any of these quarterbacks/i),
+      ).toBeNull();
+    });
   });
 
   it("keeps the numbers, and each card's own caveat, when there is data", () => {

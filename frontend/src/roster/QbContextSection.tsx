@@ -68,10 +68,30 @@ function whyNoNumbers(card: Card): string {
     : "we have not matched him to the passing records these come from";
 }
 
-function sectionWhyNoNumbers(cards: Card[]): string {
-  return cards.every((c) => !matched(c))
-    ? "We have not matched any of these quarterbacks to the passing records these numbers come from, so there is nothing to show for them yet."
-    : "We have these quarterbacks' records but no passing numbers in them yet, so there is nothing to show for them.";
+/*
+ * DG-117 REVIEW-PANEL FIX. This used to carry a second sentence for the mixed
+ * case — "We have these quarterbacks' records but no passing numbers in them
+ * yet" — chosen whenever ANY card was matched, and said over every card on
+ * screen including the ones the producer explicitly could not match. It was
+ * false about those, and the per-card reason that would have corrected it was
+ * suppressed in exactly that branch, so nothing on screen said otherwise.
+ *
+ * A hoisted sentence may only say what is true of every card at once. The one
+ * such sentence is this: nobody was matched. Everything else goes back to the
+ * per-card reason below, which can tell a matched quarterback from an
+ * unmatched one because it reads each card's own `identity_coverage`.
+ *
+ * Reachable, not hypothetical: `fetch_qb_nfl_stats` can return no rows for a
+ * matched quarterback (a resolved id with no snaps yet — every matched QB in
+ * the preseason), and the identity bridge does not resolve all five today, so
+ * "one matched with no numbers beside four unmatched" is an ordinary payload.
+ */
+const NO_QB_MATCHED =
+  "We have not matched any of these quarterbacks to the passing records these numbers come from, so there is nothing to show for them yet.";
+
+/** The hoisted sentence, or null when no one sentence is true of every card. */
+function sectionWhyNoNumbers(cards: Card[]): string | null {
+  return cards.every((c) => !matched(c)) ? NO_QB_MATCHED : null;
 }
 
 /** Caveat tokens carried by every card — a fact about the lane, not a player. */
@@ -94,6 +114,9 @@ export function QbContextSection({
   const list = cards ?? [];
   if (list.length === 0) return null;
   const noneHaveNumbers = list.every((c) => !hasNumbers(c));
+  // Non-null only when one sentence covers every card; when it is null each
+  // empty card carries its own reason instead of borrowing a shared one.
+  const hoisted = noneHaveNumbers ? sectionWhyNoNumbers(list) : null;
   const shared = sharedCaveats(list);
 
   return (
@@ -103,9 +126,7 @@ export function QbContextSection({
         How his passing has actually gone — context for reading the roster above, not a
         grade on him.
       </p>
-      {noneHaveNumbers && (
-        <p className="dg-roster__qb-empty">{sectionWhyNoNumbers(list)}</p>
-      )}
+      {hoisted !== null && <p className="dg-roster__qb-empty">{hoisted}</p>}
       <ul>
         {list.map((c) => (
           <li
@@ -128,9 +149,10 @@ export function QbContextSection({
                 {inputName("cpoe")}: {c.cpoe ?? "—"} · {inputName("dakota")}:{" "}
                 {c.dakota ?? "—"}
               </span>
-            ) : noneHaveNumbers ? null : (
-              // One card among several is empty: the section sentence above does
-              // not apply, so this row carries its own reason rather than a dash.
+            ) : hoisted !== null ? null : (
+              // No sentence above covers this card — either because some cards
+              // have numbers, or because coverage differs between them — so it
+              // carries its own reason rather than a dash or someone else's.
               <span> — no passing numbers yet, {whyNoNumbers(c)}.</span>
             )}
             <TokenNotes tokens={c.qb_context_annotations ?? []} />

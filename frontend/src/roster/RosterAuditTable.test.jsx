@@ -71,7 +71,9 @@ describe("RosterAuditTable", () => {
 
     // Named by the column's own name, not a sixth synonym for the same field.
     const note = screen.getByText(/no dynasty value yet/i);
-    expect(note.textContent).toMatch(/1 of these 1 players/i);
+    // Panel finding: the count is computed, so one unscored player is a state
+    // this sentence has to read correctly in.
+    expect(note.textContent).toMatch(/1 of these 1 players has no/i);
     // The honest half: a blank is a refusal to guess, and the reason is one
     // press away on the row itself.
     expect(note.textContent).toMatch(/blank rather than guessed/i);

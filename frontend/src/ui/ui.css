@@ -63,6 +63,13 @@
   flex-direction: column;
   gap: var(--dg-space-1);
   min-width: 14rem;
+  /* DG-117: a panel wider than the phone it opens on cannot be brought back
+     inside by shifting it, so cap it at the viewport first and let a long
+     source string wrap instead of forcing the box wider. Every character still
+     reaches the screen — a receipt that hid what it cites would stop being one.
+     The cap is inert on desktop, where the viewport dwarfs it. */
+  max-inline-size: calc(100vw - 1rem);
+  overflow-wrap: anywhere;
   padding: var(--dg-space-2) var(--dg-space-3);
   background: var(--dg-surface-raised);
   border: 1px solid var(--dg-border-strong);

@@ -790,7 +790,11 @@ const TRUST_GRADE_WORDS: Record<string, string> = {
  *                checks (a first cold-start season may be excused), the most
  *                recent season cleared both, and the safety floors held.
  *   PROVISIONAL  the safety floors held — no leakage, enough coverage, enough
- *                seasons — but a season missed one of those accuracy checks.
+ *                seasons — but a season the gate cannot excuse missed one of
+ *                those two checks. WHICH check it missed is not knowable here:
+ *                the loader hands the front end the bare status and nothing
+ *                else (roster_audit_models.py:42-77 returns `model_status`
+ *                only), so this word must not name one.
  *   EXPERIMENTAL either a safety floor failed, or the roster-audit loader could
  *                not read or could not date this position's validation record
  *                and failed closed. Both mean the same thing to a reader:
@@ -799,9 +803,27 @@ const TRUST_GRADE_WORDS: Record<string, string> = {
  *                (`trust_status_unavailable` / `trust_status_stale`), so this
  *                word must not claim to know.
  */
+/*
+ * DG-117 REVIEW-PANEL FIX — PROVISIONAL said "missed an accuracy one", and on
+ * David's screen that is false. The gate runs TWO per-season checks and names
+ * them separately: `fold_rank_pass` is the accuracy one (Spearman >= threshold
+ * AND R² > floor, composite_gate.py:29-37) and `fold_ci_adequate` is a SAMPLE
+ * adequacy one (the 95% CI on that Spearman is narrow enough to trust the
+ * estimate, composite_gate.py:39-42). QB is PROVISIONAL today on the second,
+ * not the first: backtest_result_QB.json records `failed_rank_folds: []` with
+ * `validity_spearman_pass: true` and `validity_r2_pass: true`, and the single
+ * unexcused failure is fold 3's `failed_ci_folds`. So the chip told a manager
+ * his quarterback model was not accurate enough, when the producer says every
+ * accuracy check passed and one backtest season was simply too thin to confirm
+ * the result from.
+ *
+ * The word now says the union of the two, because the union is all the front
+ * end can know — it receives the bare status string. It still refuses to soften:
+ * a season did fail a check, and that is stated.
+ */
 const POSITION_TRUST_WORDS: Record<string, string> = {
   VALIDATED: "passed its accuracy checks",
-  PROVISIONAL: "passed the safety checks, missed an accuracy one",
+  PROVISIONAL: "passed the safety checks, but not every season we tested confirmed it",
   EXPERIMENTAL: "not proven",
 };
 

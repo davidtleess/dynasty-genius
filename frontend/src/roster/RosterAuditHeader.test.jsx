@@ -62,8 +62,16 @@ describe("RosterAuditHeader", () => {
     // The three states, each still distinguishable and still carried on the
     // data attribute the CSS and the tests key off.
     expect(screen.getByText(/passed its accuracy checks/i)).toBeTruthy();
-    expect(screen.getByText(/missed an accuracy one/i)).toBeTruthy();
+    expect(screen.getByText(/not every season we tested confirmed it/i)).toBeTruthy();
     expect(screen.getByText(/not proven/i)).toBeTruthy();
+
+    // REVIEW-PANEL FIX. PROVISIONAL must not name WHICH check a season missed.
+    // The gate runs two per-season checks — accuracy (`fold_rank_pass`) and
+    // sample adequacy (`fold_ci_adequate`) — and the loader hands the front end
+    // the bare status, so naming one is a claim the surface cannot make. It was
+    // wrong on the live payload: QB's `failed_rank_folds` is empty and its only
+    // unexcused failure is a CI-adequacy fold.
+    expect(screen.queryByText(/missed an accuracy one/i)).toBeNull();
     expect(document.querySelector('[data-status="VALIDATED"]')).toBeTruthy();
     expect(document.querySelector('[data-status="PROVISIONAL"]')).toBeTruthy();
     expect(document.querySelector('[data-status="EXPERIMENTAL"]')).toBeTruthy();
