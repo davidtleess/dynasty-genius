@@ -15,12 +15,13 @@ import {
   zModelProvenanceResponse,
   zWhatChangedResponse,
 } from "../lib/api/zod.gen";
-import { formatCaptureTimestamp } from "../lib/copy";
+import {
+  describeStatusToken,
+  formatCaptureTimestamp,
+  humanizeToken,
+} from "../lib/copy";
 import { useEndpointResource } from "../lib/useEndpointResource";
-import { CaveatBlock } from "../ui/CaveatBlock";
-import { ChartFrame } from "../ui/ChartFrame";
 import { DailyTape as UiDailyTape } from "../ui/DailyTape";
-import { DisclosureLine } from "../ui/DisclosureLine";
 import { MetricCell } from "../ui/MetricCell";
 import { PlayerIdentity } from "../ui/PlayerIdentity";
 import { ReceiptTrigger } from "../ui/ReceiptTrigger";
@@ -44,13 +45,17 @@ type State =
 type SelectPlayer = (sleeperId: string, name: string) => void;
 const SelectPlayerContext = createContext<SelectPlayer | null>(null);
 
-// Read-only Daily What-Changed surface, restarted on the governed primitive
-// library (H2 reset Task 5). It reports the day-over-day market and model
-// DELTAS — what changed since the prior snapshot — and issues no verdict.
-// Market (price-discovery overlay) and model (output changes) stay in
-// structurally isolated regions so a market price swing never reads as a model
-// signal. The desk reads top-down: one dated masthead with the tape, then the
-// change feed, with feed diagnostics and receipts in a subordinate right rail.
+// The Daily What-Changed surface: the day-over-day market and model deltas.
+// Market and model stay in structurally isolated regions so a market price
+// swing never reads as a model signal. The desk reads top-down: one dated
+// masthead with the tape, then the change feed.
+//
+// DG-111 (David, 2026-08-29): the stamped honesty furniture is retired. Seven
+// "Descriptive only — not decision-grade." lines, six "Status:" stamps, the
+// stacked caveat blocks and the FEED DIAGNOSTICS / RECEIPTS / Movement-history
+// rail are gone. Every FACT they carried survives — as one plain sentence
+// where it applies, with the producer's verbatim token kept reachable in the
+// "Where this comes from" sheet at the bottom of the rail.
 export function DailyWhatChanged({
   onSelectPlayer,
 }: {
@@ -334,6 +339,36 @@ function staleHours(generatedAt: string): number | null {
   return (Date.now() - parsed) / 3_600_000;
 }
 
+// DG-111 — the freshness fact, in one sentence, every morning.
+//
+// This REPLACES the "Stale data caveat — the capture is 27.5 hours old. The
+// tape below reflects the last verified capture, not this morning." badge. The
+// three facts it carried are all still here and are the only reason this line
+// exists: (1) the data is old, (2) by exactly this much, (3) what you are
+// looking at is the last verified snapshot rather than today's. The
+// unreadable-timestamp branch stays loud rather than falling silent — an
+// unparseable capture time is the one case where saying nothing would be a lie
+// of omission.
+function freshnessSentence(generatedAt: string, hours: number | null): string {
+  if (hours === null) {
+    return (
+      "We couldn't read when this data was captured, so treat everything below as " +
+      "the last verified snapshot, not today's."
+    );
+  }
+  if (hours >= STALE_HOURS_THRESHOLD) {
+    return (
+      `This morning's capture didn't land — everything below is ${hours.toFixed(1)} ` +
+      "hours old, the last verified snapshot, not today's."
+    );
+  }
+  // Deliberately "as of", not "current" or "fresh": the report can be up to 26
+  // hours old and still sit under the stale threshold, so this line states the
+  // capture time and lets the reader judge it. It never claims freshness the
+  // timestamp does not support.
+  return `These numbers are as of ${formatCaptureTimestamp(generatedAt)}.`;
+}
+
 function ReadyView({ data }: { data: WhatChangedResponse }) {
   const daily = data.daily_diff;
   const marketWindow = (daily.market.comparison_window ?? null) as {
@@ -391,20 +426,16 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
             basis={heroBasis}
           />
         </div>
-        {isStale && (
-          <p className="dg-wc__stale-badge">
-            Stale data caveat —{" "}
-            {hours === null
-              ? "the capture time could not be read"
-              : `the capture is ${hours.toFixed(1)} hours old`}
-            . The tape below reflects the last verified capture, not this morning.
-          </p>
-        )}
         <p className="dg-wc__disclaimer">
-          A daily delta surface (what changed since the prior snapshot); no verdict, no
-          nominated move.
+          What changed on your roster and around the league since the last snapshot.
         </p>
-        <DisclosureLine />
+        <p
+          className={isStale ? "dg-wc__stale-badge" : "dg-wc__freshness"}
+          data-testid="wc-freshness"
+          title={data.generated_at}
+        >
+          {freshnessSentence(data.generated_at, hours)}
+        </p>
       </header>
       <div className="dg-wc__layout">
         {/* Model movement FIRST (spec v3 §2, Gemini nudge finding): the model
@@ -433,10 +464,15 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
   );
 }
 
-// Subordinate right rail: the report's own operational context. Feed
-// diagnostics (this surface's feeds, not whole-app system health — that axis
-// stays in the shell) and provenance receipts, plus the honest pending slot
-// where movement history will accrue.
+// DG-111 — the rail's furniture becomes one receipt sheet.
+//
+// It used to be three stacked panels: FEED DIAGNOSTICS (four status lines),
+// RECEIPTS (four provenance lines) and a "Movement history — Series pending"
+// chart frame with its own disclosure stamp. All of that was true and none of
+// it was what David needed at 7am. The content is intact and complete, one
+// press down, in a sheet that is shut by default. This is the only place on
+// the surface where machine vocabulary is allowed — including every producer
+// reason verbatim, so humanizing a token upstairs never destroys it.
 function ContextRail({
   data,
   marketWindow,
@@ -448,32 +484,25 @@ function ContextRail({
   const model = data.daily_diff.model;
   const modelWindow = model.comparison_window ?? null;
   const basisTitle = projectionBasisTitle(modelWindow);
+  const rawReasons = producerReasons(data);
 
   return (
     <aside className="dg-wc__rail" aria-label="Report context">
       <DailyTape />
-      <section className="dg-wc__diagnostics" aria-label="Feed diagnostics">
-        <h3 className="dg-wc__rail-title">Feed diagnostics</h3>
-        <p className="dg-wc__rail-line">Feed status: {data.overall_status}</p>
-        <p className="dg-wc__rail-line">Market feed: {market.status}</p>
-        <p className="dg-wc__rail-line">Model feed: {model.status}</p>
-        {market.market_source && (
-          <p className="dg-wc__rail-line">Market source: {market.market_source}</p>
-        )}
-      </section>
-      <section className="dg-wc__receipts" aria-label="Report receipts">
-        <h3 className="dg-wc__rail-title">Receipts</h3>
+      <details className="dg-wc__receipts" data-testid="wc-provenance">
+        <summary className="dg-wc__rail-title">Where this comes from</summary>
         <p className="dg-wc__rail-line" title={data.generated_at}>
-          Generated: {formatCaptureTimestamp(data.generated_at)}
+          Report built {formatCaptureTimestamp(data.generated_at)}.
         </p>
         {marketWindow?.from_date && marketWindow?.to_date && (
           <p className="dg-wc__rail-line">
-            Captured {marketWindow.from_date} vs {marketWindow.to_date}
+            Market prices captured {marketWindow.from_date} vs {marketWindow.to_date}
+            {market.market_source ? `, from ${market.market_source}` : ""}.
           </p>
         )}
         {modelWindow?.from_date && modelWindow?.to_date && (
           <p className="dg-wc__rail-line">
-            Model window {modelWindow.from_date} vs {modelWindow.to_date}
+            Model window {modelWindow.from_date} vs {modelWindow.to_date}.
           </p>
         )}
         {basisTitle && (
@@ -483,15 +512,41 @@ function ContextRail({
               : "Projection basis consistent across this window"}
           </p>
         )}
-      </section>
-      <ChartFrame
-        title="Movement history"
-        summary="History accrues one verified capture per day; the line begins once enough days are on the books."
-      >
-        <SeriesSlot status="pending" label="Daily movement history" />
-      </ChartFrame>
+        <p className="dg-wc__rail-line">
+          Feed status: {data.overall_status} · market {market.status} · model{" "}
+          {model.status}
+        </p>
+        {rawReasons.length > 0 && (
+          <p className="dg-wc__rail-line" data-testid="wc-raw-reasons">
+            Producer reasons, verbatim: {rawReasons.join(", ")}
+          </p>
+        )}
+      </details>
     </aside>
   );
+}
+
+// Every producer reason on the report, verbatim and de-duplicated. The surface
+// above says these in English; this is the copy that keeps the exact token, so
+// a humanized sentence is a translation and never a deletion.
+function producerReasons(data: WhatChangedResponse): string[] {
+  const model = data.daily_diff.model;
+  const sections = data.structural_context.sections as unknown as Record<
+    string,
+    WhatChangedStructuralSection
+  >;
+  return [
+    ...new Set(
+      [
+        data.daily_diff.market.aborted_reason ?? null,
+        model.comparison_window?.status ?? null,
+        model.feature_freshness?.aborted_reason ?? null,
+        model.pvo_staleness?.aborted_reason ?? null,
+        ...Object.values(sections).map((sec) => sec?.aborted_reason ?? null),
+        ...Object.values(sections).map((sec) => sec?.staleness_caveat?.basis ?? null),
+      ].filter((item): item is string => item != null && item !== ""),
+    ),
+  ];
 }
 
 function humanAssetKey(key: string): string {
@@ -511,14 +566,22 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
     <section className="dg-wc__region" aria-label="Market price-discovery overlay">
       <h3 className="dg-wc__region-title">Market movement</h3>
       <p className="dg-wc__overlay-note">
-        Price-discovery deltas — market overlay only, isolated from model output.
+        Market prices — what the dynasty market is paying, kept separate from our own
+        projections.
       </p>
+      {/* DG-111: was a "Market feed caveats" block printing the raw producer
+          token. One sentence now; the token itself is preserved verbatim in the
+          title attribute and in the receipt sheet, so nothing is lost. */}
       {market.aborted_reason && (
-        <CaveatBlock
-          tone="neutral"
-          title="Market feed caveats"
-          items={[market.aborted_reason]}
-        />
+        <p
+          className="dg-wc__overlay-note"
+          data-testid="wc-market-degraded"
+          title={market.aborted_reason}
+        >
+          Heads up: the market side came back degraded —{" "}
+          {describeStatusToken(market.aborted_reason)} — so treat the prices below as
+          provisional.
+        </p>
       )}
 
       <h4 className="dg-wc__group">Your roster</h4>
@@ -548,6 +611,15 @@ function MarketRegion({ market }: { market: WhatChangedMarketSection }) {
           </p>
         </>
       )}
+
+      {/* DG-111: this one line replaces the rail's "Movement history — Series
+          pending. History accrues one verified capture per day; the line begins
+          once enough days are on the books." panel. Same fact, said once, next
+          to the blank trend slots it explains. */}
+      <p className="dg-wc__overlay-note" data-testid="wc-trend-note">
+        Trend lines fill in as daily prices accrue — one capture a day — so they stay
+        blank until enough days are on the books.
+      </p>
 
       <h4 className="dg-wc__group">Entered</h4>
       <UniverseChipList items={entered} emptyLabel="No entered assets." />
@@ -703,8 +775,18 @@ function ModelRegion({ model }: { model: WhatChangedModelSection }) {
   return (
     <section className="dg-wc__region" aria-label="Model output changes">
       <h3 className="dg-wc__region-title">Model output changes</h3>
+      {/* DG-111: one sentence in place of the stacked caveat block; the raw
+          tokens ride the title attribute and the receipt sheet. */}
       {caveats.length > 0 && (
-        <CaveatBlock tone="neutral" title="Model feed caveats" items={caveats} />
+        <p
+          className="dg-wc__overlay-note"
+          data-testid="wc-model-degraded"
+          title={caveats.join(", ")}
+        >
+          Heads up: the model side came back degraded —{" "}
+          {caveats.map((item) => describeStatusToken(item)).join("; ")} — so treat the
+          model numbers below as provisional.
+        </p>
       )}
       {deltas.length === 0 ? (
         <p className="dg-wc__quiet">
@@ -865,13 +947,12 @@ function StructuralBaseline({ ctx }: { ctx: WhatChangedStructuralContext }) {
             {type}: {count}
           </p>
         ))}
-        <CaveatBlock
-          tone="neutral"
-          title="Divergence caveat"
-          items={[
-            "Divergence card counts are an unvalidated descriptive overlay (Gate-4 deferred); a tally of card types, not a proven edge.",
-          ]}
-        />
+        {/* DG-111: was a titled "Divergence caveat" block. Same fact, said the
+            way you would say it out loud. It is a caution, not permission. */}
+        <p className="dg-wc__baseline-line">
+          These are counts of divergence cards, not a proven edge — we have not
+          validated that they predict anything.
+        </p>
       </BaselineSection>
 
       <BaselineSection label="Drop Pressure" sec={s.drop_pressure}>
@@ -908,10 +989,40 @@ function StructuralBaseline({ ctx }: { ctx: WhatChangedStructuralContext }) {
   );
 }
 
-// Per-section shell: accessible-named region + status honesty stamp + the
-// standard disclosure + caveats. The status label and value stay in separate
-// nodes so a section's "Status: <value>" never collapses into one text node
-// (which would let a section status collide with the top-level status).
+// DG-111 — per-section honesty, in a sentence, only when there is something to
+// say.
+//
+// Each of these five sections used to carry the same three-part stamp: a
+// "Status: ok" line, a disclosure line, and a "Context caveats" block printing
+// `captured_at_vs_report_generated_at — fresh (age 0h)`. Five identical
+// paragraphs of nothing, every morning.
+//
+// What survives is the rule underneath: a section that is NOT clean must say so
+// in words. A healthy section renders silence — silence here means "ok" and
+// only "ok", because any other status produces a sentence. The producer's own
+// tokens stay verbatim in the title attribute and in the receipt sheet.
+function sectionNotice(sec: WhatChangedStructuralSection): string | null {
+  const parts: string[] = [];
+  const stale = sec.staleness_caveat;
+  if (stale?.is_stale) {
+    parts.push(
+      `${humanizeToken(stale.basis)} is ${stale.age_hours} hours old and flagged stale, so this is the last verified read rather than a fresh one`,
+    );
+  }
+  if (sec.aborted_reason) {
+    parts.push(
+      `part of it did not come through — ${describeStatusToken(sec.aborted_reason)}`,
+    );
+  } else if (sec.status !== "ok" && parts.length === 0) {
+    parts.push(`this section came back ${sec.status}`);
+  }
+  if (parts.length === 0) {
+    return null;
+  }
+  const sentence = parts.join("; ");
+  return `Heads up: ${sentence}.`;
+}
+
 function BaselineSection({
   label,
   sec,
@@ -921,25 +1032,22 @@ function BaselineSection({
   sec: WhatChangedStructuralSection;
   children: ReactNode;
 }) {
-  const caveats = [
-    sec.staleness_caveat
-      ? `${sec.staleness_caveat.basis} — ${
-          sec.staleness_caveat.is_stale ? "stale" : "fresh"
-        } (age ${sec.staleness_caveat.age_hours}h)`
-      : null,
-    sec.aborted_reason ?? null,
-  ].filter((item): item is string => item != null);
+  const notice = sectionNotice(sec);
+  const rawTokens = [sec.staleness_caveat?.basis ?? null, sec.aborted_reason ?? null]
+    .filter((item): item is string => item != null)
+    .join(", ");
 
   return (
     <section className="dg-wc__baseline-section" aria-label={label}>
       <h4 className="dg-wc__group">{label}</h4>
-      <p className="dg-wc__baseline-meta">
-        <span className="dg-wc__meta-label">Status:</span>{" "}
-        <span className="dg-wc__meta-value">{sec.status}</span>
-      </p>
-      <DisclosureLine />
-      {caveats.length > 0 && (
-        <CaveatBlock tone="neutral" title="Context caveats" items={caveats} />
+      {notice && (
+        <p
+          className="dg-wc__baseline-meta"
+          data-testid="wc-section-notice"
+          title={rawTokens || undefined}
+        >
+          {notice}
+        </p>
       )}
       {children}
     </section>

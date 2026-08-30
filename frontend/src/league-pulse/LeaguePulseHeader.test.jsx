@@ -25,18 +25,25 @@ describe("LeaguePulseHeader", () => {
 
     const banner = screen.getByRole("banner", { name: /league pulse status/i });
     expect(within(banner).getByRole("heading", { name: "League Pulse" })).toBeTruthy();
-    expect(within(banner).getByText(/experimental/i)).toBeTruthy();
-    expect(within(banner).getByText(/not decision-grade/i)).toBeTruthy();
+    // DG-111: three stamps here — "EXPERIMENTAL — a read-only league snapshot.",
+    // the "Diagnostic Workspace…" paragraph and "Descriptive only — not
+    // decision-grade." — became one sentence. The two load-bearing facts stay:
+    // it is a read-only snapshot, and we read rosters, not minds.
+    expect(within(banner).queryByText(/not decision-grade/i)).toBeNull();
+    expect(within(banner).getByText(/read-only snapshot/i)).toBeTruthy();
+    expect(within(banner).getByText(/we don't read minds/i)).toBeTruthy();
     const capturedAt = within(banner).getByText("as of Jun 22, 2026, 2:00 PM EDT");
     expect(capturedAt).toBeTruthy();
     expect(capturedAt.getAttribute("title")).toBe("2026-06-22T18:00:00Z");
     expect(
       within(banner).getByText("League Pulse artifact state (2026-06-22)"),
     ).toBeTruthy();
-    expect(within(banner).getByText(/4 records withheld/i)).toBeTruthy();
     expect(
-      within(banner).getByText("Descriptive only — not decision-grade."),
+      within(banner).getByText(/4 records were dropped as unreadable/i),
     ).toBeTruthy();
+    expect(
+      within(banner).queryByText("Descriptive only — not decision-grade."),
+    ).toBeNull();
     expect(within(banner).queryByText(/decision_supported=false/i)).toBeNull();
 
     for (const version of [

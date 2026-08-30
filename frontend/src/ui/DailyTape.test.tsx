@@ -26,7 +26,9 @@ describe("DailyTape", () => {
       screen.getByText(/market sync active: 32 consecutive days tracked/i),
     ).toBeTruthy();
     expect(screen.getByText(/projection update: july 5, current/i)).toBeTruthy();
-    expect(screen.getByText(/status: synced/i)).toBeTruthy();
+    // DG-111: the third "Status: Synced / Status: Degraded" stamp is retired.
+    // A clean tape says nothing; a degraded one says what it means.
+    expect(screen.queryByText(/status: synced/i)).toBeNull();
     expect(
       screen.queryByText(/registry version|model vintage|capture streak/i),
     ).toBeNull();

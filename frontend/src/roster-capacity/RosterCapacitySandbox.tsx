@@ -101,11 +101,19 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
 
   return (
     <section className="dg-rc" aria-label="Roster Capacity Sandbox">
-      <p className="dg-rc__disclaimer">Descriptive only — not decision-grade.</p>
+      {/* DG-111: two stamps became one sentence that says what the surface is.
+          The "no verdict, no nominated cut" clause stated the register David
+          repealed; what it usefully meant — this shows the squeeze, it does not
+          pick the man — survives in plain words. The raw artifact status only
+          speaks when it is not clean. */}
       <p className="dg-rc__disclaimer">
-        Capacity facts and value-at-risk ranges; no verdict, no nominated cut.
+        Where your roster is tight, and what each cut would cost you.
       </p>
-      <p className="dg-rc__status">Artifact status: {data.artifact_status}</p>
+      <p className="dg-rc__status" data-artifact-status={data.artifact_status}>
+        {data.artifact_status === "ok"
+          ? null
+          : `Heads up: this capacity read came back ${data.artifact_status}, so treat the ranges below as provisional.`}
+      </p>
 
       {caveats.length > 0 && (
         <ul className="dg-rc__caveats" aria-label="Caveats">
@@ -136,9 +144,12 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
             </dl>
           )}
 
+          {/* DG-111: was "Candidates sorted by cut exposure rank as diagnostic
+              order — not a cut sequence." The "not a cut sequence" clause was
+              the no-nomination register David repealed on 2026-08-29; the
+              ordering it described is unchanged and is now simply said. */}
           <p className="dg-rc__sort-basis">
-            Candidates sorted by cut exposure rank as diagnostic order — not a cut
-            sequence.
+            Sorted most expendable first — if you have to cut someone, start at the top.
           </p>
 
           {(data.candidates ?? []).length === 0 ? (

@@ -19,7 +19,11 @@ describe("RosterAuditHeader", () => {
     expect(screen.getByText("WR")).toBeTruthy();
     expect(screen.getByText("EXPERIMENTAL")).toBeTruthy();
     expect(screen.getByText(/1 .*dropped/i)).toBeTruthy();
-    expect(screen.getByText(/experimental — not decision-grade/i)).toBeTruthy();
+    // DG-111: the "Experimental — not decision-grade." stamp is retired from
+    // this surface (it rendered twice: header and filter bar). A degraded
+    // roster read still says so in a sentence.
+    expect(screen.queryByText(/experimental — not decision-grade/i)).toBeNull();
+    expect(screen.getByText(/this roster read came back degraded/i)).toBeTruthy();
     expect(screen.getByText(/no_market_overlay/)).toBeTruthy();
   });
 });

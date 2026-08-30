@@ -45,9 +45,15 @@ export function DailyTape({
           ? `Projection Update: ${tapeDate(capture.lastCaptureAt)}, current`
           : "Projections active using the latest verified data"}
       </span>
-      <span className="dg-ui-tape__fact">
-        {healthy ? "Status: Synced" : "Status: Degraded"}
-      </span>
+      {/* DG-111: was a third "Status: Synced / Status: Degraded" stamp — the
+          same fact the two lines above already carry, restated as a machine
+          word. On a clean morning it says nothing; when something is off it
+          says what that means for what you are about to read. */}
+      {healthy ? null : (
+        <span className="dg-ui-tape__fact">
+          Some of this data is behind — the lines above say which part.
+        </span>
+      )}
     </section>
   );
 }

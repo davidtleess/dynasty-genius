@@ -1,10 +1,14 @@
-// H1 shared copy helpers (spec 2026-07-05 §1c). Single source of truth for
-// status-token translation and capture-timestamp formatting.
+// Shared copy helpers. Single source of truth for status-token translation and
+// capture-timestamp formatting.
 //
-// Translation contract: mathematically descriptive, never permissive — a
-// caveat must never soften into permission. Unmapped tokens render RAW with a
-// console.warn (fail-safe: never crash, never invent copy). Suffixes, dates,
-// and position codes are preserved verbatim so precision is never lost.
+// Translation contract: a caveat must never soften into permission. Unmapped
+// tokens are HUMANIZED — underscores to spaces, sentence case — and still fire
+// a console.warn so the crew adds a real sentence (DG-111: a raw pipeline key
+// is not English and never belongs in body copy). The humanizer only
+// REFORMATS: it never adds meaning the token did not carry, and every call
+// site keeps the verbatim token reachable (a title attribute or the receipt
+// sheet) so precision is preserved, not destroyed. Suffixes, dates, and
+// position codes are preserved verbatim in the mapped shapes.
 
 const EXACT_TOKENS: Record<string, string> = {
   insufficient_history: "Not enough capture history for a comparison window",
@@ -40,7 +44,18 @@ export function describeStatusToken(token: string): string {
     return `${positionMatch[1]} waiver range unavailable (${positionMatch[2]})`;
   }
   console.warn("Unmapped status token", token);
-  return token;
+  return humanizeToken(token);
+}
+
+// Reformat-only fallback: `market_snapshot_stale` -> "Market snapshot stale".
+// Adds no meaning; a token that is already a sentence fragment survives as one.
+// Exported so a surface can humanize a producer string it renders directly.
+export function humanizeToken(token: string): string {
+  const words = token.replaceAll("_", " ").trim();
+  if (words === "") {
+    return token;
+  }
+  return `${words.charAt(0).toUpperCase()}${words.slice(1)}`;
 }
 
 // Deterministic regardless of host locale/timezone (CI-stable): fixed en-US +
@@ -67,7 +82,18 @@ export function formatCaptureTimestamp(iso: string | null | undefined): string {
   return CAPTURE_TIME_FORMAT.format(new Date(parsed));
 }
 
-// The standard non-decision-grade disclosure line (spec §1c, exact string
-// LOCKED). The API field decision_supported=false is unchanged — the UI just
-// stops quoting the field name at the user.
-export const DISCLOSURE_LINE = "Descriptive only — not decision-grade.";
+// DG-111 — what replaced the stamp.
+//
+// "Descriptive only — not decision-grade." used to render on every region of
+// every surface (seven times on the front page alone). David repealed that
+// register on 2026-08-29: "I don't care to persist the governance of language
+// and caveats and lack of overall recommendation from the back end into the
+// front end. I'd rather use layman's terms and call a spade a spade."
+//
+// The API field `decision_supported=false` is UNCHANGED and the honest reading
+// of it survives — but as ONE sentence, in plain words, on the two surfaces
+// where it actually changes how you read a number: the player card (whose
+// projection came from this model) and the Model Trust console (whose subject
+// IS this model's standing). One constant so the two can never drift.
+export const MODEL_STANDING_SENTENCE =
+  "Our model is a sharp second opinion, not a proven market-beater — weigh it accordingly.";

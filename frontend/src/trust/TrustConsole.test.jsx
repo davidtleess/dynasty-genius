@@ -9,8 +9,10 @@ import { AppShell } from "../shell/AppShell";
 import { TrustConsole } from "./TrustConsole";
 
 const TRUST_DIR = join(process.cwd(), "src", "trust");
+// DG-111: the truth statement now speaks English. Same three facts — tied with
+// consensus, no proven edge, therefore a second opinion. See TrustTruthPanel.
 const TRUST_TRUTH_COPY =
-  "Consensus-competitive, edge unproven. Engine B is statistically tied with DynastyProcess ECR expert consensus; per-fold NDCG-diff bootstrap CIs include zero.";
+  "Honest read: our model ranks players about as well as expert consensus, but it has not proven it beats the market — measured over our test seasons, the edge could genuinely be zero.";
 
 function authoredTrustFiles() {
   if (!existsSync(TRUST_DIR)) {
@@ -221,7 +223,9 @@ describe("TrustConsole", () => {
     await screen.findByText("Trust data loaded");
     const panel = screen.getByRole("region", { name: "Model trust truth" });
     expect(within(panel).getByText(TRUST_TRUTH_COPY)).toBeTruthy();
-    expect(within(panel).getByText("Experimental — not validated")).toBeTruthy();
+    // DG-111: the unvalidated state is a sentence now, not a stamp.
+    expect(within(panel).queryByText("Experimental — not validated")).toBeNull();
+    expect(within(panel).getByText(/not a track record/i)).toBeTruthy();
     expect(within(panel).queryByText("ACTIVE_B_VALIDATED")).toBeNull();
   });
 

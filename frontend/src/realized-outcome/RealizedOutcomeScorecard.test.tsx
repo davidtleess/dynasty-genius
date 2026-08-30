@@ -63,11 +63,14 @@ describe("RealizedOutcomeScorecard", () => {
     expect(screen.getByText(/awaiting_first_finalized_week/i)).toBeTruthy();
     expect(screen.getByText(/Settlement status: unsettled/i)).toBeTruthy();
     expect(screen.getByText(/Data maturity: not yet started/i)).toBeTruthy();
-    expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
+    // DG-111: the stamp is retired. The Model Input Fidelity paragraph is NOT
+    // a stamp — it says what the scorecard measures, and that it grades our
+    // inputs rather than the players. Kept, reworded into plain speech.
+    expect(screen.queryByText("Descriptive only — not decision-grade.")).toBeNull();
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
     expect(screen.getByText(/model input fidelity/i)).toBeTruthy();
-    expect(screen.getByText(/input\/fidelity audit/i)).toBeTruthy();
-    expect(screen.getByText(/not a player verdict/i)).toBeTruthy();
+    expect(screen.getByText(/what the model assumed they would do/i)).toBeTruthy();
+    expect(screen.getByText(/grades our inputs, not the players/i)).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByText(/certificate|verifier|recommender/i)).toBeNull();
     expect(screen.queryByText(/\b(buy|sell|start|sit)\b/i)).toBeNull();

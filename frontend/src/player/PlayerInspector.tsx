@@ -53,7 +53,10 @@ function NeutralPreview({ detail }: { detail: PlayerDetail }) {
           </p>
         </>
       )}
-      <p className="dg-player-inspector__decision">Decision support only</p>
+      {/* DG-111: the "Decision support only" stamp is retired. It stated the
+          backend's decision_supported=false register on a preview that shows no
+          grades or scores at all; the model's standing is now said once, in
+          plain words, at the foot of the full card. */}
     </div>
   );
 }

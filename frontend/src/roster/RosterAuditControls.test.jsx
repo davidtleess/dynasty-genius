@@ -24,7 +24,10 @@ describe("RosterAuditControls", () => {
       (option) => [option.value, option.textContent],
     );
     expect(groupOptions).toContainEqual(["xvar_bracket", "xVAR bracket"]);
-    expect(screen.getByText(/experimental — not decision-grade/i)).toBeTruthy();
+    // DG-111: the "Experimental — not decision-grade." stamp is retired from
+    // this surface (it rendered twice: header and filter bar). A degraded
+    // roster read still says so in a sentence.
+    expect(screen.queryByText(/experimental — not decision-grade/i)).toBeNull();
   });
 
   it("emits sort change", () => {

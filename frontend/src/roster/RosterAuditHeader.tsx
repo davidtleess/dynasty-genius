@@ -17,10 +17,19 @@ export function RosterAuditHeader({
 }: Props) {
   return (
     <section className="dg-roster__header" aria-label="Roster audit status">
+      {/* DG-111: the "Status: ok" chip and the "Experimental — not
+          decision-grade." stamp are retired. The status still drives the
+          data-status attribute (CSS + tests read it) and, when it is anything
+          but ok, it is said out loud in a sentence — which is the only time it
+          ever told David anything. */}
       <div className="dg-roster__status" data-status={status}>
-        Status: <strong>{status}</strong>
+        {status === "degraded" ? (
+          <span>
+            Heads up: this roster read came back degraded — treat the numbers below as
+            provisional.
+          </span>
+        ) : null}
       </div>
-      <p className="dg-roster__disclaimer">Experimental — not decision-grade.</p>
       <ul className="dg-roster__model-status">
         {Object.entries(modelStatusByPosition).map(([pos, st]) => (
           <li key={pos} className="dg-roster__chip" data-status={st}>

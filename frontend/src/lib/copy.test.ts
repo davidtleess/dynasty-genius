@@ -25,17 +25,25 @@ describe("H1 copy helpers", () => {
     });
   });
 
-  it("renders unmapped status tokens raw and warns without crashing", () => {
+  // DG-111: an unmapped token used to render RAW in body copy — a pipeline key
+  // on David's screen. It is now humanized (reformat only, no invented
+  // meaning) and the warn still fires so the crew adds a real sentence. Every
+  // call site keeps the verbatim token in a title attribute or the receipt
+  // sheet, so this is a translation, never a deletion.
+  it("humanizes unmapped status tokens and still warns, without crashing", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    return loadCopy().then(({ describeStatusToken }) => {
+    return loadCopy().then(({ describeStatusToken, humanizeToken }) => {
       expect(describeStatusToken("some_new_backend_token")).toBe(
-        "some_new_backend_token",
+        "Some new backend token",
       );
       expect(warn).toHaveBeenCalledWith(
         "Unmapped status token",
         "some_new_backend_token",
       );
+      // Reformat only: no word is added, removed, or reordered.
+      expect(humanizeToken("market_snapshot_stale")).toBe("Market snapshot stale");
+      expect(humanizeToken("")).toBe("");
     });
   });
 

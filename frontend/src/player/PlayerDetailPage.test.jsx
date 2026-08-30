@@ -172,9 +172,13 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     const card = await screen.findByRole("article", {
       name: /player detail for chase/i,
     });
+    // DG-111: the card's opening stamp is retired. The model's standing is now
+    // said once, in plain words, at the FOOT of the card — after the numbers it
+    // qualifies, not shouted before them.
     expect(
-      within(card).getByText("Descriptive only — not decision-grade."),
-    ).toBeTruthy();
+      within(card).queryByText("Descriptive only — not decision-grade."),
+    ).toBeNull();
+    expect(within(card).getByTestId("model-standing")).toBeTruthy();
     expect(within(card).queryByRole("button", { name: /dismiss/i })).toBeNull();
 
     const modelLane = within(card).getByTestId("player-model-lane");
@@ -247,7 +251,11 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     expect(document.querySelector(".green, .red, .verdict")).toBeNull();
   });
 
-  it("renders explicit Experimental degradation when the player has no active model score", async () => {
+  // DG-111: the "Experimental" badge over the bare phrase "No active model
+  // score" is retired. The FACT is unchanged and is now a sentence — see the
+  // "DG-111 the unscored player still says so, in prose" block below for the
+  // full wording contract. The producer's own reason still renders verbatim.
+  it("states the unscored player's degradation in prose, keeping the producer's reason", async () => {
     mockPlayerDetail(unmodeledDetail());
 
     renderPage();
@@ -255,8 +263,10 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     const card = await screen.findByRole("article", {
       name: /player detail for chase/i,
     });
-    expect(within(card).getByText("Experimental")).toBeTruthy();
-    expect(within(card).getByText("No active model score")).toBeTruthy();
+    expect(within(card).queryByText("Experimental")).toBeNull();
+    expect(within(card).getByTestId("player-unscored").textContent).toMatch(
+      /Not scored yet/i,
+    );
     expect(
       within(card).getByText("No active model score for this player category."),
     ).toBeTruthy();
@@ -320,20 +330,23 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     const card = await screen.findByRole("article", {
       name: /player detail for chase/i,
     });
-    expect(within(card).getByText("Experimental")).toBeTruthy();
+    expect(within(card).getByTestId("player-unscored")).toBeTruthy();
     expect(within(card).getByText("Included in 2026 model snapshot")).toBeTruthy();
   });
 
-  it("degrades missing evidence elements independently without fabricating text", async () => {
+  // DG-111: absence renders nothing. The four "No X available" rows and the
+  // "Experimental" badge said nothing about the PLAYER — only about our tables.
+  // What is present still renders in full, and nothing is fabricated.
+  it("renders only the evidence that exists, without fabricating text or stamping absences", async () => {
     mockPlayerDetail(partialDetail());
 
     renderPage();
 
     const evidence = await screen.findByRole("region", { name: /evidence/i });
-    expect(within(evidence).getByText("No counter-argument available")).toBeTruthy();
-    expect(within(evidence).getByText("Experimental")).toBeTruthy();
-    expect(within(evidence).getByText("No top drivers available")).toBeTruthy();
-    expect(within(evidence).getByText("No caveats available")).toBeTruthy();
+    expect(within(evidence).queryByText("No counter-argument available")).toBeNull();
+    expect(within(evidence).queryByText("Experimental")).toBeNull();
+    expect(within(evidence).queryByText("No top drivers available")).toBeNull();
+    expect(within(evidence).queryByText("No caveats available")).toBeNull();
     expect(within(evidence).getByText("RB age cliff approaching")).toBeTruthy();
     expect(within(evidence).queryByText(/Premium valuation/i)).toBeNull();
     expect(within(evidence).queryByText(/fabricated/i)).toBeNull();
@@ -344,5 +357,77 @@ describe("PlayerDetailPage full Decision-Evidence-Card", () => {
     expect(
       within(screen.getByTestId("player-divergence")).getByText("Inside band"),
     ).toBeTruthy();
+  });
+});
+
+// ── DG-111 — the unscored player still says he is unscored, in prose ─────────
+// The stamps ("Descriptive only — not decision-grade.", the "Experimental"
+// badge, "Decision support only") are retired by David's 2026-08-29 ruling.
+// The FACT underneath one of them — this player has no model score — is not.
+describe("DG-111 the unscored player still says so, in prose", () => {
+  it("says 'not scored yet' in a sentence and keeps the backend's own reason", async () => {
+    mockPlayerDetail(unmodeledDetail());
+
+    renderPage();
+
+    const card = await screen.findByRole("article", { name: /player detail for/i });
+    const unscored = within(card).getByTestId("player-unscored");
+    expect(unscored.textContent).toMatch(/Not scored yet/i);
+    expect(unscored.textContent).toMatch(/Chase/);
+    expect(unscored.textContent).toMatch(/projection stays blank/i);
+    // The producer's own explanation survives verbatim — never swallowed.
+    expect(unscored.textContent).toContain(
+      "No active model score for this player category.",
+    );
+    // The furniture is gone.
+    expect(within(card).queryByText("Experimental")).toBeNull();
+    expect(
+      within(card).queryByText("Descriptive only — not decision-grade."),
+    ).toBeNull();
+  });
+
+  it("says nothing about absent evidence rather than stamping four empty rows", async () => {
+    mockPlayerDetail(partialDetail());
+
+    renderPage();
+
+    const evidence = await screen.findByRole("region", { name: /evidence/i });
+    expect(within(evidence).queryByText("No counter-argument available")).toBeNull();
+    expect(within(evidence).queryByText("No top drivers available")).toBeNull();
+    expect(within(evidence).queryByText("No caveats available")).toBeNull();
+    expect(within(evidence).queryByText("Experimental")).toBeNull();
+    // What IS there still shows.
+    expect(within(evidence).getByText("RB age cliff approaching")).toBeTruthy();
+  });
+
+  it("never lets an all-empty evidence block read as a clean bill of health", async () => {
+    mockPlayerDetail(
+      modeledDetail({
+        evidence: {
+          caveats: { caveats: [], items: [] },
+          counter_argument: { caveats: [], status: "experimental", text: null },
+          risk_flags: { caveats: [], items: [] },
+          top_drivers: { caveats: [], items: [] },
+        },
+      }),
+    );
+
+    renderPage();
+
+    const evidence = await screen.findByRole("region", { name: /evidence/i });
+    expect(evidence.textContent).toMatch(/don't have/i);
+    expect(evidence.textContent).not.toMatch(/no risk flags/i);
+  });
+
+  it("states the model's standing once, in plain words, at the bottom of the card", async () => {
+    mockPlayerDetail(modeledDetail());
+
+    renderPage();
+
+    const card = await screen.findByRole("article", { name: /player detail for/i });
+    const standing = within(card).getAllByTestId("model-standing");
+    expect(standing).toHaveLength(1);
+    expect(standing[0].textContent).toMatch(/second opinion/i);
+    expect(standing[0].textContent).not.toMatch(/decision-grade/i);
   });
 });
