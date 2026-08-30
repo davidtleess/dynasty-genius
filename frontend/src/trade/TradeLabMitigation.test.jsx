@@ -183,7 +183,7 @@ async function runComparison() {
     target: { value: "cha" },
   });
   fireEvent.click(await screen.findByRole("button", { name: "Chase" }));
-  fireEvent.click(screen.getByRole("button", { name: /run comparison/i }));
+  fireEvent.click(screen.getByRole("button", { name: /price this trade/i }));
 }
 
 function assertNodeAppearsBefore(first, second) {
@@ -270,7 +270,7 @@ describe("Trade Lab mitigation contract", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("trade-lane-pair")).toBeTruthy();
-      expect(screen.getByTestId("divergence-strip")).toBeTruthy();
+      expect(screen.getByTestId("trade-verdict")).toBeTruthy();
     });
 
     // The point of this line: the note itself legitimately uses verdict
@@ -279,7 +279,7 @@ describe("Trade Lab mitigation contract", () => {
     expect(disclaimer.textContent).toMatch(/\bwinner\b/i);
     const resultText = [
       screen.getByTestId("trade-lane-pair").textContent ?? "",
-      screen.getByTestId("divergence-strip").textContent ?? "",
+      screen.getByTestId("trade-verdict").textContent ?? "",
     ].join(" ");
     expect(resultText).not.toMatch(
       /\b(suitable|unsuitable|recommended|buy|sell|hold|winner|loser|favors)\b/i,

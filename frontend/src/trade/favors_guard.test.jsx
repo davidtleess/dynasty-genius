@@ -139,9 +139,9 @@ function assertForcedCutRangesAreRenderedWithoutVerdictText(text) {
     expect(text).toContain(required);
   }
 
-  expect(text).toMatch(/value-at-risk range/i);
-  expect(text).toMatch(/recovery range/i);
-  expect(text).toMatch(/adjusted fairness delta range/i);
+  expect(text).toMatch(/what the forced cut could cost you/i);
+  expect(text).toMatch(/what you could get back off waivers/i);
+  expect(text).toMatch(/how far from even, once the cut is counted/i);
   expect(text).toMatch(/data stale/i);
   expect(text).not.toContain("3.1");
 
@@ -190,16 +190,19 @@ describe("Trade Lab favors non-render guard", () => {
       target: { value: "cha" },
     });
     fireEvent.click(await screen.findByRole("button", { name: "Chase" }));
-    fireEvent.click(screen.getByRole("button", { name: /run comparison/i }));
+    fireEvent.click(screen.getByRole("button", { name: /price this trade/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId("model-lane")).toBeTruthy();
       expect(screen.getByTestId("market-lane")).toBeTruthy();
-      expect(screen.getByTestId("divergence-strip")).toBeTruthy();
+      expect(screen.getByTestId("trade-verdict")).toBeTruthy();
     });
 
     assertNoFavorsVerdictText(screen.getByTestId("model-lane").textContent ?? "");
-    assertNoFavorsVerdictText(screen.getByTestId("divergence-strip").textContent ?? "");
+    // The verdict block is where the direction of each pricing is finally said
+    // out loud, so it is the surface this guard matters most on: plain
+    // arithmetic is allowed, the typed favors field and its vocabulary are not.
+    assertNoFavorsVerdictText(screen.getByTestId("trade-verdict").textContent ?? "");
     assertForcedCutRangesAreRenderedWithoutVerdictText(
       screen.getByTestId("model-lane").textContent ?? "",
     );

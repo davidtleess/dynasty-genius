@@ -164,11 +164,11 @@
     },
     {
       "path": "trade/TradeLab.css",
-      "focus_visible_selectors": 0,
-      "focus_token_consumers": 0,
-      "hover_selectors": 0,
+      "focus_visible_selectors": 1,
+      "focus_token_consumers": 1,
+      "hover_selectors": 3,
       "elevation_consumers": 0,
-      "row_treatment_selectors": 0,
+      "row_treatment_selectors": 6,
       "card_treatment_selectors": 0
     },
     {
@@ -200,11 +200,11 @@
     }
   ],
   "totals": {
-    "focus_visible_selectors": 12,
-    "focus_token_consumers": 9,
-    "hover_selectors": 4,
+    "focus_visible_selectors": 13,
+    "focus_token_consumers": 10,
+    "hover_selectors": 7,
     "elevation_consumers": 0,
-    "row_treatment_selectors": 29,
+    "row_treatment_selectors": 35,
     "card_treatment_selectors": 9
   }
 }

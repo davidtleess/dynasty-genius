@@ -50,6 +50,7 @@ import { SystemHealthCard } from "../system-health/SystemHealthCard";
 import { MarketLanePanel } from "../trade/MarketLanePanel";
 import { ModelLanePanel } from "../trade/ModelLanePanel";
 import { TradeLab } from "../trade/TradeLab";
+import { TradeVerdict } from "../trade/TradeVerdict";
 import { TrustConsole } from "../trust/TrustConsole";
 import { DailyTape } from "../ui/DailyTape";
 import { DailyWhatChanged } from "../what-changed/DailyWhatChanged";
@@ -312,6 +313,169 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
 
     const modelLane = render(<ModelLanePanel reconciliation={model} />);
     expectClean(modelLane.container, "Trade Lab model lane");
+  });
+
+  // The verdict block reads the per-asset `signal_label` enum, and the strip it
+  // replaced rendered those keys straight to the screen — `inside_band` was on
+  // the live surface under a drafted trade. It was never in this audit, which
+  // is exactly how it survived; it is now.
+  it("holds on the Trade Lab verdict for every divergence signal", () => {
+    const overlay = (label: string, signal: string) =>
+      ({
+        asset_ref: {
+          asset_kind: "player",
+          decision_supported: false,
+          player_id: "100",
+          sleeper_id: "100",
+        },
+        caveats: [],
+        coverage_gap: null,
+        decision_supported: false,
+        divergence_context: {
+          caveats: [],
+          decision_supported: false,
+          percentile_delta: 0.32,
+          sigma_threshold: 0.25,
+          signal_label: signal,
+          source_signal_status: null,
+        },
+        format_key: "dynasty_sf_ppr",
+        label,
+        market_value: 8400,
+        market_volatility: null,
+        resolution: "player_sleeper_id",
+        source: "fantasycalc",
+        source_timestamp: null,
+        trend_30d: null,
+      }) as Wire;
+
+    const side = (value: number) => ({
+      assets: [],
+      caveats: [],
+      side_value: value,
+      unpriced_count: 0,
+    });
+    const model = {
+      adjusted_david_received_value: 39.1,
+      adjusted_fairness_delta: 2.1,
+      adjusted_fairness_delta_range: [1.2, 2.3],
+      adjusted_favors: "david",
+      adjusted_favors_status: "david",
+      adjusted_received_value_range: [38, 40],
+      adjusted_within_parity_band: false,
+      base_evaluation: {
+        caveats: [],
+        decision_supported: false,
+        fairness_delta: 2.1,
+        favors: "david",
+        favors_xvar_margin: 2.1,
+        side_a: side(41.2),
+        side_b: side(39.1),
+        within_parity_band: false,
+      },
+      caveats: [],
+      decision_supported: false,
+      roster_penalty: {
+        decision_supported: false,
+        forced_cut_candidates: [
+          { decision_supported: false, full_name: "Rasheen Ali", position: "RB" },
+        ],
+        forced_cut_penalty_xvar: 0,
+        forced_cut_recovery_range: [1.2, 2.3],
+        forced_cut_value_at_risk_range: [0.8, 1.9],
+        penalty_caveats: [],
+        penalty_status: "ok",
+        pool_deficits: {},
+        post_trade_overflow: 1,
+        post_trade_total_players: 25,
+      },
+    } as Wire;
+
+    for (const signal of [
+      "model_higher_than_market",
+      "model_lower_than_market",
+      "inside_band",
+      "unavailable",
+    ]) {
+      const market = {
+        adjusted_market_received: 7100,
+        adjusted_market_sent: 8400,
+        caveats: [],
+        counterparty_forced_cut_penalty: null,
+        counterparty_market_penalty_status: "not_requested",
+        coverage_gaps: [],
+        david_forced_cut_penalty: null,
+        decision_supported: false,
+        format_key: "dynasty_sf_ppr",
+        market_delta_for_david: -1300,
+        market_received_raw: 7100,
+        market_sent_raw: 8400,
+        market_source: "fantasycalc",
+        realism_warnings: [],
+        received_assets: [overlay("De'Von Achane", signal)],
+        sent_assets: [overlay("Jaxson Dart", signal)],
+        source_timestamp: null,
+      } as Wire;
+
+      const verdict = render(<TradeVerdict model={model} market={market} />);
+      expectClean(verdict.container, `Trade Lab verdict (${signal})`);
+      verdict.unmount();
+
+      // DG-116 panel fixes added three states in which a lane is not allowed a
+      // direction, and each one builds its sentence out of producer material:
+      // the unscored caveat (which carries the raw key `PRE_MODEL` and a
+      // Sleeper id), the capacity range, and an unpriced asset's label. All
+      // three go through the audit here rather than being trusted.
+      const unscored = render(
+        <TradeVerdict
+          model={
+            {
+              ...model,
+              adjusted_david_received_value: 0,
+              base_evaluation: {
+                ...model.base_evaluation,
+                caveats: ["100: unscored (PRE_MODEL) — excluded from trade math"],
+                side_b: side(0),
+              },
+            } as Wire
+          }
+          market={market}
+        />,
+      );
+      expectClean(unscored.container, `Trade Lab verdict, unscored (${signal})`);
+      unscored.unmount();
+
+      const uncertain = render(
+        <TradeVerdict
+          model={
+            {
+              ...model,
+              adjusted_favors_status: "uncertain_range_crosses_parity",
+              adjusted_received_value_range: [30.68, 2.85],
+            } as Wire
+          }
+          market={market}
+        />,
+      );
+      expectClean(uncertain.container, `Trade Lab verdict, uncertain (${signal})`);
+      uncertain.unmount();
+
+      const unpriced = render(
+        <TradeVerdict
+          model={model}
+          market={
+            {
+              ...market,
+              received_assets: [
+                { ...overlay("2027 Round 1 Pick", signal), market_value: null },
+              ],
+            } as Wire
+          }
+        />,
+      );
+      expectClean(unpriced.container, `Trade Lab verdict, unpriced (${signal})`);
+      unpriced.unmount();
+    }
   });
 
   it("holds on Roster Capacity with live data", async () => {

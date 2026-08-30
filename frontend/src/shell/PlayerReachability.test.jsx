@@ -524,11 +524,11 @@ describe("DG-110 · a player is reachable from the trade result lanes", () => {
     goToSurface("Trade Lab");
 
     fireEvent.change(
-      screen.getByRole("searchbox", { name: "Search tradeable assets" }),
+      screen.getByRole("searchbox", { name: "Add a player or a draft pick" }),
       { target: { value: "cha" } },
     );
     fireEvent.click(await screen.findByRole("button", { name: "Chase" }));
-    fireEvent.click(screen.getByRole("button", { name: "Run comparison" }));
+    fireEvent.click(screen.getByRole("button", { name: "Price this trade" }));
 
     const marketLane = await screen.findByTestId("market-lane");
     fireEvent.click(within(marketLane).getByRole("button", { name: /^Open Chase/ }));

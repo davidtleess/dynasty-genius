@@ -92,15 +92,15 @@ async function selectSearchResult(label = "Chase") {
 }
 
 function runButton() {
-  return screen.getByRole("button", { name: /run comparison/i });
+  return screen.getByRole("button", { name: /price this trade/i });
 }
 
 function sentRegion() {
-  return screen.getByRole("region", { name: /david sends/i });
+  return screen.getByRole("region", { name: /you send/i });
 }
 
 function receivedRegion() {
-  return screen.getByRole("region", { name: /david receives/i });
+  return screen.getByRole("region", { name: /you get/i });
 }
 
 describe("TradeLab two-side builder and parallel run", () => {
@@ -162,7 +162,7 @@ describe("TradeLab two-side builder and parallel run", () => {
     installTradeLabFetch();
 
     render(<TradeLab />);
-    fireEvent.click(screen.getByRole("button", { name: /david receives/i }));
+    fireEvent.click(screen.getByRole("button", { name: /you get/i }));
     await selectSearchResult();
 
     expect(within(receivedRegion()).getByText("Chase")).toBeTruthy();
@@ -174,7 +174,7 @@ describe("TradeLab two-side builder and parallel run", () => {
 
     render(<TradeLab />);
     await selectSearchResult();
-    fireEvent.change(screen.getByLabelText(/counterparty roster/i), {
+    fireEvent.change(screen.getByLabelText(/their roster number/i), {
       target: { value: "4" },
     });
     fireEvent.click(runButton());

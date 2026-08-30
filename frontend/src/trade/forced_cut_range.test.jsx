@@ -81,6 +81,30 @@ function marketPenalty(overrides = {}) {
   };
 }
 
+/** A priced (or unpriced) forced-cut overlay, as the market lane receives it. */
+function marketCutOverlay(label, sleeperId, marketValue) {
+  return {
+    asset_ref: {
+      asset_kind: "player",
+      decision_supported: false,
+      player_id: label,
+      sleeper_id: sleeperId,
+    },
+    caveats: [],
+    coverage_gap: null,
+    decision_supported: false,
+    divergence_context: null,
+    format_key: "dynasty_sf_ppr",
+    label,
+    market_value: marketValue,
+    market_volatility: null,
+    resolution: "player_sleeper_id",
+    source: "fantasycalc",
+    source_timestamp: null,
+    trend_30d: null,
+  };
+}
+
 function marketReconciliation(overrides = {}) {
   const base = {
     adjusted_market_received: 7100,
@@ -123,9 +147,13 @@ describe("Trade Lab forced-cut range rendering", () => {
 
     const lane = screen.getByTestId("model-lane");
     const text = lane.textContent ?? "";
-    expect(within(lane).getByText(/value-at-risk range/i)).toBeTruthy();
-    expect(within(lane).getByText(/recovery range/i)).toBeTruthy();
-    expect(within(lane).getByText(/adjusted fairness delta range/i)).toBeTruthy();
+    // DG-116 relabels these rows in plain language; the FACT each row carries
+    // is unchanged, and the gross scalar is still never displayed.
+    expect(within(lane).getByText(/what the forced cut could cost you/i)).toBeTruthy();
+    expect(within(lane).getByText(/what you could get back off waivers/i)).toBeTruthy();
+    expect(
+      within(lane).getByText(/how far from even, once the cut is counted/i),
+    ).toBeTruthy();
     for (const required of ["0", "19.5", "-4.25", "6.75"]) {
       expect(text).toContain(required);
     }
@@ -154,11 +182,16 @@ describe("Trade Lab forced-cut range rendering", () => {
     );
 
     const text = screen.getByTestId("model-lane").textContent ?? "";
-    expect(text).toMatch(/transaction blocked/i);
+    // WAS /transaction blocked/i. `penalty_status = "blocked"` is set when the
+    // capacity audit did not return ok, or when a forced cut carries no model
+    // value (reconciler.py:204-207, :261-284) — both mean "we could not compute
+    // the cut's cost", neither means the league would reject the trade.
+    expect(text).toMatch(/could not work out what the forced cut would cost/i);
     expect(text).toMatch(/manual capacity review required/i);
     expect(text).not.toContain("77.7");
-    expect(text).not.toMatch(/value-at-risk range|recovery range/i);
-    expect(text).not.toMatch(/blocked\b.*blocked\b/i);
+    expect(text).not.toMatch(
+      /what the forced cut could cost you|what you could get back off waivers/i,
+    );
     expect(text).not.toMatch(/\bTE\b|pool deficits/i);
   });
 
@@ -228,10 +261,8 @@ describe("Trade Lab forced-cut range rendering", () => {
 
     let lane = screen.getByTestId("market-lane");
     let text = lane.textContent ?? "";
-    expect(
-      within(lane).getByText(/fantasycalc capacity value-at-risk range/i),
-    ).toBeTruthy();
-    expect(within(lane).getByText(/fantasycalc recovery range/i)).toBeTruthy();
+    expect(within(lane).getByText(/what the forced cut could cost you/i)).toBeTruthy();
+    expect(within(lane).getByText(/what you could get back off waivers/i)).toBeTruthy();
     for (const required of ["700", "1000", "200", "500"]) {
       expect(text).toContain(required);
     }
@@ -247,8 +278,12 @@ describe("Trade Lab forced-cut range rendering", () => {
     );
     lane = screen.getByTestId("market-lane");
     text = lane.textContent ?? "";
-    expect(text).toMatch(/no capacity penalty/i);
-    expect(text).not.toMatch(/value-at-risk range|recovery range/i);
+    // A null penalty says the cost never came back — never that the roster has
+    // room, which the field cannot support.
+    expect(text).toMatch(/no forced-cut cost came back/i);
+    expect(text).not.toMatch(
+      /what the forced cut could cost you|what you could get back off waivers/i,
+    );
   });
 
   it("renders a market stale-data caveat from uncertain status even without backend caveats", () => {
@@ -267,11 +302,123 @@ describe("Trade Lab forced-cut range rendering", () => {
 
     const lane = screen.getByTestId("market-lane");
     const text = lane.textContent ?? "";
-    expect(
-      within(lane).getByText(/fantasycalc capacity value-at-risk range/i),
-    ).toBeTruthy();
-    expect(within(lane).getByText(/fantasycalc recovery range/i)).toBeTruthy();
+    expect(within(lane).getByText(/what the forced cut could cost you/i)).toBeTruthy();
+    expect(within(lane).getByText(/what you could get back off waivers/i)).toBeTruthy();
     expect(text).toMatch(/market replacement data stale/i);
     expect(text).not.toMatch(/uncertain_pool_unavailable/i);
+  });
+
+  // ── DG-116 panel fixes on the market lane ──────────────────────────────────
+
+  it("says the whole forced-cut cost is missing only when none of it was priced", () => {
+    render(
+      <MarketLanePanel
+        reconciliation={marketReconciliation({
+          david_forced_cut_penalty: marketPenalty({
+            forced_cut_candidates: [],
+            forced_cut_market_recovery_range: null,
+            forced_cut_market_value_at_risk_range: null,
+            market_penalty_status: "blocked",
+            penalty_market_value: 0,
+            unresolved_cut_count: 1,
+          }),
+        })}
+      />,
+    );
+
+    const text = screen.getByTestId("market-lane").textContent ?? "";
+    expect(text).toMatch(
+      /could not put a market price on the forced cut, so that cost is left out/i,
+    );
+    expect(text).not.toMatch(/transaction blocked|roster rules/i);
+  });
+
+  it("says which part of a multi-cut cost is missing when only some cuts are priced", () => {
+    // LIVE: send Jaxson Dart (12508), get Brock Bowers (11604) + Malik Nabers
+    // (11632) → market_penalty_status "blocked" with unresolved_cut_count 1,
+    // forced_cut_candidates [Rasheen Ali (no price), Kyle Williams (707)],
+    // penalty_market_value 707, and received 14,170 → 13,463. The priced cut IS
+    // in the numbers (market_reconciler.py:458-462 sums it regardless of the
+    // block; :613 subtracts it unconditionally), so "that cost is left out of
+    // the numbers here" was false on exactly this payload — while the label
+    // above it read "Difference, after the forced cut" on the same screen.
+    render(
+      <MarketLanePanel
+        reconciliation={marketReconciliation({
+          adjusted_market_received: 13463,
+          market_received_raw: 14170,
+          market_delta_for_david: 8288,
+          david_forced_cut_penalty: marketPenalty({
+            forced_cut_candidates: [
+              marketCutOverlay("Rasheen Ali", "11570", null),
+              marketCutOverlay("Kyle Williams", "11565", 707),
+            ],
+            forced_cut_market_recovery_range: null,
+            forced_cut_market_value_at_risk_range: null,
+            market_penalty_status: "blocked",
+            penalty_market_value: 707,
+            unresolved_cut_count: 1,
+          }),
+        })}
+      />,
+    );
+
+    const text = screen.getByTestId("market-lane").textContent ?? "";
+    expect(text).toMatch(/could not put a market price on 1 of the 2 forced cuts/i);
+    expect(text).toMatch(/the one we could price is already taken out of the numbers/i);
+    expect(text).not.toMatch(/that cost is left out of the numbers here/i);
+    // And the label that already flagged the adjustment is still there.
+    expect(text).toMatch(/difference, after the forced cut/i);
+  });
+
+  it("never explains a capture date the same lane says did not come back", () => {
+    // The live payload returns source_timestamp: null while the unconditional
+    // base caveat `source_timestamp_is_fetch_time_not_publish_time` resolves to
+    // "The capture date above is when we pulled these prices…". Both were on
+    // screen together: one denying the date, the other explaining it.
+    const { rerender } = render(
+      <MarketLanePanel
+        reconciliation={marketReconciliation({
+          caveats: ["source_timestamp_is_fetch_time_not_publish_time"],
+          source_timestamp: null,
+        })}
+      />,
+    );
+
+    let text = screen.getByTestId("market-lane").textContent ?? "";
+    expect(text).toMatch(/no capture date came back with these prices/i);
+    expect(text).not.toMatch(/the capture date above/i);
+    // The FACT the caveat carries survives; only the dangling reference goes.
+    expect(text).toMatch(/when we pulled the prices, not when FantasyCalc published/i);
+
+    // With a real timestamp the caveat is unchanged and still points at it.
+    rerender(
+      <MarketLanePanel
+        reconciliation={marketReconciliation({
+          caveats: ["source_timestamp_is_fetch_time_not_publish_time"],
+        })}
+      />,
+    );
+    text = screen.getByTestId("market-lane").textContent ?? "";
+    expect(text).toMatch(/prices pulled/i);
+    expect(text).toMatch(/the capture date above/i);
+  });
+
+  it("says when the other manager's forced cut could not be priced", () => {
+    // `_select_counterparty_penalty` returns "unavailable" for a known roster
+    // with inadequate coverage (market_reconciler.py:585-590): the sent side is
+    // left unadjusted and no penalty comes back. The run bar invites the manager
+    // onto this path, so the decline has to be said out loud.
+    render(
+      <MarketLanePanel
+        reconciliation={marketReconciliation({
+          counterparty_market_penalty_status: "unavailable",
+        })}
+      />,
+    );
+
+    const text = screen.getByTestId("market-lane").textContent ?? "";
+    expect(text).toMatch(/could not price what the other manager would have to cut/i);
+    expect(text).not.toMatch(/unavailable/i);
   });
 });

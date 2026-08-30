@@ -6,14 +6,14 @@ import {
   zTradeRosterReconciliation,
 } from "../lib/api/zod.gen";
 import { AssetSearch } from "./AssetSearch";
-import { DivergenceStrip } from "./DivergenceStrip";
 import { LaneDegradedState } from "./LaneDegradedState";
 import { MarketLanePanel } from "./MarketLanePanel";
 import { ModelLanePanel } from "./ModelLanePanel";
 import { RunComparisonBar } from "./RunComparisonBar";
 import { TradeSideBuilder } from "./TradeSideBuilder";
+import { TradeVerdict } from "./TradeVerdict";
 import type { CatalogEntry, Side, Trade } from "./tradeState";
-import { addAsset, loadTrade, saveTrade } from "./tradeState";
+import { addAsset, loadTrade, removeAsset, saveTrade } from "./tradeState";
 import "./TradeLab.css";
 
 // David's league context. The model and market lanes are kept physically
@@ -70,14 +70,39 @@ export function TradeLab({
     status: "idle",
   });
 
+  // A priced result describes ONE board. The moment the board changes it stops
+  // being true of what is on screen, so it is cleared rather than left standing.
+  //
+  // DG-116 panel finding, measured: this ticket wires up `removeAsset` (dead
+  // since the surface shipped), which made a new state reachable — price a
+  // trade, remove both sides, and the columns read "Nothing here yet." while
+  // 2,900 characters of verdict and both lanes went on asserting the arithmetic
+  // of a trade that was no longer there, with the empty-board guidance
+  // suppressed because it is gated on `hasRun`. The honesty law's "stale must
+  // still say it is stale" is satisfied here by not keeping the stale thing.
+  function clearPricing(): void {
+    setModelLane({ status: "idle" });
+    setMarketLane({ status: "idle" });
+  }
+
   function select(entry: CatalogEntry): void {
     setTrade((current) => {
       const next = addAsset(current, activeSide, entry);
       saveTrade(next);
       return next;
     });
+    clearPricing();
     // Selecting an asset also opens the player inspector (entry-point wiring).
     onSelectPlayer?.(entry);
+  }
+
+  function drop(side: Side, assetId: string): void {
+    setTrade((current) => {
+      const next = removeAsset(current, side, assetId);
+      saveTrade(next);
+      return next;
+    });
+    clearPricing();
   }
 
   function setCounterparty(value: number | null): void {
@@ -113,6 +138,7 @@ export function TradeLab({
   const modelData = modelLane.status === "ready" ? modelLane.data : null;
   const marketData = marketLane.status === "ready" ? marketLane.data : null;
   const hasRun = modelLane.status !== "idle" || marketLane.status !== "idle";
+  const isEmptyBoard = trade.sent.length === 0 && trade.received.length === 0;
 
   return (
     <section className="dg-trade-lab" aria-label="Trade Lab">
@@ -134,49 +160,87 @@ export function TradeLab({
           and we don't judge whether the deal fits your team: that part is yours.
         </p>
       </aside>
-      <AssetSearch onSelect={select} />
-      <div className="dg-trade-lab__sides">
-        <TradeSideBuilder
-          side="sent"
-          label="David sends"
-          entries={trade.sent}
-          active={activeSide === "sent"}
-          onActivate={setActiveSide}
-          onSelectPlayer={onSelectPlayer}
+      <div className="dg-trade-lab__builder">
+        <AssetSearch
+          onSelect={select}
+          label="Add a player or a draft pick"
+          placeholder="Start typing a name…"
+          visibleLabel
+          hint={
+            activeSide === "sent"
+              ? "Picking someone puts him on the side you send."
+              : "Picking someone puts him on the side you get."
+          }
         />
-        <TradeSideBuilder
-          side="received"
-          label="David receives"
-          entries={trade.received}
-          active={activeSide === "received"}
-          onActivate={setActiveSide}
-          onSelectPlayer={onSelectPlayer}
+        <div className="dg-trade-lab__sides">
+          <TradeSideBuilder
+            side="sent"
+            label="You send"
+            entries={trade.sent}
+            active={activeSide === "sent"}
+            onActivate={setActiveSide}
+            onRemove={drop}
+            onSelectPlayer={onSelectPlayer}
+          />
+          <TradeSideBuilder
+            side="received"
+            label="You get"
+            entries={trade.received}
+            active={activeSide === "received"}
+            onActivate={setActiveSide}
+            onRemove={drop}
+            onSelectPlayer={onSelectPlayer}
+          />
+        </div>
+        <RunComparisonBar
+          counterpartyRosterId={trade.counterpartyRosterId}
+          onCounterpartyChange={setCounterparty}
+          onRun={() => void run()}
         />
       </div>
-      <RunComparisonBar
-        counterpartyRosterId={trade.counterpartyRosterId}
-        onCounterpartyChange={setCounterparty}
-        onRun={() => void run()}
-      />
+      {/* What used to be here was roughly 700px of empty canvas. A first-time
+          board now says what the surface does and how to work it. */}
+      {!hasRun && isEmptyBoard && (
+        <section className="dg-trade-lab__empty" aria-label="Build a trade">
+          <h2 className="dg-trade-lab__empty-title">Build a trade</h2>
+          <ol className="dg-trade-lab__empty-steps">
+            <li>
+              Choose a column — <strong>You send</strong> or <strong>You get</strong>.
+            </li>
+            <li>
+              Search a player or a draft pick above and pick him; he lands on the column
+              you chose.
+            </li>
+            <li>
+              Press <strong>Price this trade</strong>.
+            </li>
+          </ol>
+          <p className="dg-trade-lab__empty-note">
+            You will get both sides priced two ways — what the dynasty market is paying
+            for them, and what our own model makes of them — side by side, with the
+            disagreement named where there is one.
+          </p>
+        </section>
+      )}
       {hasRun && (
         <>
+          {(modelData || marketData) && (
+            <TradeVerdict model={modelData} market={marketData} />
+          )}
           <div className="dg-trade-lab__lanes" data-testid="trade-lane-pair">
             {modelLane.status === "ready" && (
               <ModelLanePanel reconciliation={modelLane.data} />
             )}
             {modelLane.status === "unavailable" && (
-              <LaneDegradedState label="Model lane" />
+              <LaneDegradedState label="Our model" />
             )}
             {marketLane.status === "ready" && (
               <MarketLanePanel reconciliation={marketLane.data} />
             )}
             {marketLane.status === "unavailable" && (
-              <LaneDegradedState label="Market lane" />
+              <LaneDegradedState label="Market prices" />
             )}
           </div>
-          {(modelData || marketData) && (
-            <DivergenceStrip model={modelData} market={marketData} />
-          )}
         </>
       )}
     </section>
