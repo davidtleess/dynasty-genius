@@ -116,21 +116,24 @@ describe("OpportunityCards T4b render contract", () => {
       name: /market overlay opportunity cards/i,
     });
 
-    expect(within(modelLane).getByText("Positional Imbalances")).toBeTruthy();
+    // DG-109: the same grouping, named the way a manager would name it.
+    expect(within(modelLane).getByText("Where your rosters are lopsided")).toBeTruthy();
     expect(
       within(modelLane).getByText("Showing 1 of 3 matches in this category"),
     ).toBeTruthy();
     expect(
-      within(modelLane).getByText(/Sort metric:\s*Positional z differential\s*1\.60/i),
+      within(modelLane).getByText(/Sorted on the gap between your rosters:\s*1\.60/i),
     ).toBeTruthy();
 
-    expect(within(marketLane).getByText("Market Divergences")).toBeTruthy();
+    expect(
+      within(marketLane).getByText("Where we and the market disagree"),
+    ).toBeTruthy();
     expect(
       within(marketLane).getByText("Showing 1 of 7 matches in this category"),
     ).toBeTruthy();
     expect(
       within(marketLane).getByText(
-        /Sort metric:\s*Market divergence magnitude\s*0\.72/i,
+        /Sorted on how far our price sits from the market's:\s*0\.72/i,
       ),
     ).toBeTruthy();
     expect(
@@ -141,8 +144,8 @@ describe("OpportunityCards T4b render contract", () => {
 
     expect(screen.queryByText(/opportunity_score/i)).toBeNull();
     expect(document.querySelector(".dg-league-pulse__score-badge")).toBeNull();
-    expect(within(modelLane).queryByText(/market_percentile/i)).toBeNull();
-    expect(within(modelLane).queryByText(/model_minus_market_delta/i)).toBeNull();
+    expect(within(modelLane).queryByText(/Market percentile/i)).toBeNull();
+    expect(within(modelLane).queryByText(/Our price minus the market's/i)).toBeNull();
     expect(within(modelLane).queryByText(/9\.9/)).toBeNull();
     expect(within(modelLane).queryByText(/hide me/i)).toBeNull();
     expect(within(marketLane).queryByText(/ignored_overlay_evidence/i)).toBeNull();
@@ -152,8 +155,10 @@ describe("OpportunityCards T4b render contract", () => {
   it("renders evidence status as neutral slate copy without green red or warning classes", () => {
     renderCards(responseForRenderContract());
 
-    const card = articleFor("ROSTER_SURPLUS_DEFICIT_MATCH");
-    const status = within(card).getByText(/Evidence status:\s*Evidence complete/i);
+    const card = articleFor("Your surplus meets their need");
+    const status = within(card).getByText(
+      /Evidence behind it:\s*Every input we wanted was there/i,
+    );
 
     expect(status.className).toContain("dg-league-pulse__evidence-status");
     expect(status.className).toContain("dg-league-pulse__evidence-status--neutral");
@@ -257,10 +262,13 @@ describe("OpportunityCards T4b render contract", () => {
       }),
     );
 
-    const noPressureArticle = articleFor("no_capacity_pressure_context");
+    // These four rationale tokens are not in the producer's own label map, so
+    // the dictionary humanizes them in place and warns — the raw key still
+    // never reaches the screen.
+    const noPressureArticle = articleFor("No capacity pressure context");
     expect(within(noPressureArticle).queryByText(/Roster capacity/i)).toBeNull();
 
-    const neutralArticle = articleFor("neutral_capacity_context");
+    const neutralArticle = articleFor("Neutral capacity context");
     const neutralCapacity = within(neutralArticle).getByTestId(
       "roster-capacity-candidates",
     );
@@ -270,7 +278,7 @@ describe("OpportunityCards T4b render contract", () => {
     );
     expect(
       within(neutralCapacity).getByText(
-        "Valuation Unavailable - evaluate qualitatively",
+        "No price available right now — judge this one yourself.",
       ),
     ).toBeTruthy();
     expect(
@@ -282,7 +290,7 @@ describe("OpportunityCards T4b render contract", () => {
       expect(input.checked).toBe(false);
     }
 
-    const blockerArticle = articleFor("hard_conflict_capacity_context");
+    const blockerArticle = articleFor("Hard conflict capacity context");
     const blockerCapacity = within(blockerArticle).getByTestId(
       "roster-capacity-candidates",
     );
@@ -291,8 +299,8 @@ describe("OpportunityCards T4b render contract", () => {
       within(blockerCapacity).getByText("IR-conflict non-dismissible blocker"),
     ).toBeTruthy();
 
-    const taxiArticle = articleFor("taxi_long_term_context");
-    expect(within(taxiArticle).getByText("Taxi Squad")).toBeTruthy();
+    const taxiArticle = articleFor("Taxi long term context");
+    expect(within(taxiArticle).getByText("Taxi squad")).toBeTruthy();
     expect(within(taxiArticle).queryByText("Taxi Hidden WR")).toBeNull();
   });
 });

@@ -1,0 +1,653 @@
+{
+  "caveats": ["no_market_overlay"],
+  "decision_supported": false,
+  "dropped_player_count": 0,
+  "engine": "pvo_assembler_v1",
+  "model_status_by_position": {
+    "QB": "PROVISIONAL",
+    "RB": "VALIDATED",
+    "TE": "VALIDATED",
+    "WR": "VALIDATED"
+  },
+  "players": [
+    {
+      "age": 25.0,
+      "caveats": [
+        "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+        "Signal completeness 29% \u2014 missing: aging_curve_value, games_t, ppg_t, ppg_t_minus_1, ppg_t_minus_1_available, ppg_t_minus_2, ppg_t_minus_2_available, snap_share, snap_share_t_minus_1, snap_share_t_minus_1_available",
+        "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
+        "no_market_overlay",
+        "no_internal_value_signal",
+        "no_usage_signal",
+        "age_curve_only"
+      ],
+      "counter_argument": {
+        "caveats": ["counter_argument_unavailable"],
+        "status": "experimental",
+        "text": null
+      },
+      "decision_supported": false,
+      "draft_class": null,
+      "dvs_engine": null,
+      "dvs_pct": null,
+      "dynasty_value_score": null,
+      "engine_used": null,
+      "full_name": "Rasheen Ali",
+      "inputs_missing": [
+        "aging_curve_value",
+        "games_t",
+        "ppg_t",
+        "ppg_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_t_minus_2",
+        "ppg_t_minus_2_available",
+        "snap_share",
+        "snap_share_t_minus_1",
+        "snap_share_t_minus_1_available"
+      ],
+      "inputs_present": ["player_id", "full_name", "position", "age"],
+      "is_prospect": false,
+      "model_grade": "PRE_MODEL",
+      "model_status_applies": false,
+      "model_version": null,
+      "nfl_draft_pick": null,
+      "nfl_draft_round": null,
+      "nfl_team": "BAL",
+      "player_id": "11570",
+      "position": "RB",
+      "projection_1y": null,
+      "projection_2y": null,
+      "projection_3y": null,
+      "risk_flags": {
+        "caveats": [],
+        "items": []
+      },
+      "roster_audit": {
+        "age_cliff_risk": 0.6667,
+        "age_value_context": "no_engine_b_projection",
+        "biological_debt_score": null,
+        "caveats": [
+          "no_market_overlay",
+          "no_internal_value_signal",
+          "no_usage_signal",
+          "age_curve_only"
+        ],
+        "cliff_age": 26,
+        "decision_supported": false,
+        "liquidity_risk": null,
+        "signal": "approaching_cliff",
+        "signal_drivers": ["age_within_two_years_of_position_cliff"],
+        "years_to_cliff": 1
+      },
+      "signal_completeness": 0.2857,
+      "sleeper_id": "11570",
+      "top_drivers": {
+        "caveats": [],
+        "items": ["age_within_two_years_of_position_cliff"]
+      },
+      "xvar": null
+    },
+    {
+      "age": 24.0,
+      "caveats": [
+        "roster_audit_reconciled_from_universe_pvo",
+        "current_draft_rookie_engine_a_value_preserved",
+        "no_market_overlay",
+        "no_internal_value_signal",
+        "no_usage_signal",
+        "age_curve_only"
+      ],
+      "counter_argument": {
+        "caveats": ["counter_argument_unavailable"],
+        "status": "experimental",
+        "text": null
+      },
+      "decision_supported": false,
+      "draft_class": null,
+      "dvs_engine": "A",
+      "dvs_pct": null,
+      "dynasty_value_score": 61.55,
+      "engine_used": "engine_a",
+      "full_name": "Kaelon Black",
+      "inputs_missing": [],
+      "inputs_present": [],
+      "is_prospect": true,
+      "model_grade": "PROSPECT_C",
+      "model_status_applies": false,
+      "model_version": "20260502T153931Z",
+      "nfl_draft_pick": null,
+      "nfl_draft_round": null,
+      "nfl_team": "SFO",
+      "player_id": "kaelon_black_rb",
+      "position": "RB",
+      "projection_1y": null,
+      "projection_2y": null,
+      "projection_3y": null,
+      "risk_flags": {
+        "caveats": [],
+        "items": []
+      },
+      "roster_audit": {
+        "age_cliff_risk": 0.3333,
+        "age_value_context": "no_engine_b_projection",
+        "biological_debt_score": null,
+        "caveats": [
+          "no_market_overlay",
+          "no_internal_value_signal",
+          "no_usage_signal",
+          "age_curve_only"
+        ],
+        "cliff_age": 26,
+        "decision_supported": false,
+        "liquidity_risk": null,
+        "signal": "approaching_cliff",
+        "signal_drivers": ["age_within_two_years_of_position_cliff"],
+        "years_to_cliff": 2
+      },
+      "signal_completeness": 0.8333,
+      "sleeper_id": "13414",
+      "top_drivers": {
+        "caveats": [],
+        "items": ["age_within_two_years_of_position_cliff"]
+      },
+      "xvar": 13.4
+    },
+    {
+      "age": 26.0,
+      "caveats": [
+        "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+        "Signal completeness 24% \u2014 missing: aging_curve_value, games_t, ppg_t, ppg_t_minus_1, ppg_t_minus_1_available, ppg_t_minus_2, ppg_t_minus_2_available, snap_share, snap_share_t_minus_1, snap_share_t_minus_1_available, tprr, weighted_opportunity, yprr",
+        "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
+        "no_market_overlay",
+        "no_internal_value_signal",
+        "no_usage_signal",
+        "age_curve_only"
+      ],
+      "counter_argument": {
+        "caveats": ["counter_argument_unavailable"],
+        "status": "experimental",
+        "text": null
+      },
+      "decision_supported": false,
+      "draft_class": null,
+      "dvs_engine": null,
+      "dvs_pct": null,
+      "dynasty_value_score": null,
+      "engine_used": null,
+      "full_name": "Garrett Wilson",
+      "inputs_missing": [
+        "aging_curve_value",
+        "games_t",
+        "ppg_t",
+        "ppg_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_t_minus_2",
+        "ppg_t_minus_2_available",
+        "snap_share",
+        "snap_share_t_minus_1",
+        "snap_share_t_minus_1_available",
+        "tprr",
+        "weighted_opportunity",
+        "yprr"
+      ],
+      "inputs_present": ["player_id", "full_name", "position", "age"],
+      "is_prospect": false,
+      "model_grade": "PRE_MODEL",
+      "model_status_applies": false,
+      "model_version": null,
+      "nfl_draft_pick": null,
+      "nfl_draft_round": null,
+      "nfl_team": "NYJ",
+      "player_id": "8146",
+      "position": "WR",
+      "projection_1y": null,
+      "projection_2y": null,
+      "projection_3y": null,
+      "risk_flags": {
+        "caveats": [],
+        "items": []
+      },
+      "roster_audit": {
+        "age_cliff_risk": 0.3333,
+        "age_value_context": "no_engine_b_projection",
+        "biological_debt_score": null,
+        "caveats": [
+          "no_market_overlay",
+          "no_internal_value_signal",
+          "no_usage_signal",
+          "age_curve_only"
+        ],
+        "cliff_age": 28,
+        "decision_supported": false,
+        "liquidity_risk": null,
+        "signal": "approaching_cliff",
+        "signal_drivers": ["age_within_two_years_of_position_cliff"],
+        "years_to_cliff": 2
+      },
+      "signal_completeness": 0.2353,
+      "sleeper_id": "8146",
+      "top_drivers": {
+        "caveats": [],
+        "items": ["age_within_two_years_of_position_cliff"]
+      },
+      "xvar": null
+    },
+    {
+      "age": 25.0,
+      "caveats": [
+        "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+        "Signal completeness 24% \u2014 missing: aging_curve_value, games_t, ppg_t, ppg_t_minus_1, ppg_t_minus_1_available, ppg_t_minus_2, ppg_t_minus_2_available, snap_share, snap_share_t_minus_1, snap_share_t_minus_1_available, tprr, weighted_opportunity, yprr",
+        "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
+        "no_market_overlay",
+        "no_internal_value_signal",
+        "no_usage_signal",
+        "age_curve_only"
+      ],
+      "counter_argument": {
+        "caveats": ["counter_argument_unavailable"],
+        "status": "experimental",
+        "text": null
+      },
+      "decision_supported": false,
+      "draft_class": null,
+      "dvs_engine": null,
+      "dvs_pct": null,
+      "dynasty_value_score": null,
+      "engine_used": null,
+      "full_name": "Xavier Legette",
+      "inputs_missing": [
+        "aging_curve_value",
+        "games_t",
+        "ppg_t",
+        "ppg_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_t_minus_2",
+        "ppg_t_minus_2_available",
+        "snap_share",
+        "snap_share_t_minus_1",
+        "snap_share_t_minus_1_available",
+        "tprr",
+        "weighted_opportunity",
+        "yprr"
+      ],
+      "inputs_present": ["player_id", "full_name", "position", "age"],
+      "is_prospect": false,
+      "model_grade": "PRE_MODEL",
+      "model_status_applies": false,
+      "model_version": null,
+      "nfl_draft_pick": null,
+      "nfl_draft_round": null,
+      "nfl_team": "CAR",
+      "player_id": "11626",
+      "position": "WR",
+      "projection_1y": null,
+      "projection_2y": null,
+      "projection_3y": null,
+      "risk_flags": {
+        "caveats": [],
+        "items": []
+      },
+      "roster_audit": {
+        "age_cliff_risk": 0.0,
+        "age_value_context": "no_engine_b_projection",
+        "biological_debt_score": null,
+        "caveats": [
+          "no_market_overlay",
+          "no_internal_value_signal",
+          "no_usage_signal",
+          "age_curve_only"
+        ],
+        "cliff_age": 28,
+        "decision_supported": false,
+        "liquidity_risk": null,
+        "signal": "no_age_signal",
+        "signal_drivers": ["age_not_near_position_cliff"],
+        "years_to_cliff": 3
+      },
+      "signal_completeness": 0.2353,
+      "sleeper_id": "11626",
+      "top_drivers": {
+        "caveats": [],
+        "items": ["age_not_near_position_cliff"]
+      },
+      "xvar": null
+    },
+    {
+      "age": 23.0,
+      "caveats": [
+        "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+        "Signal completeness 29% \u2014 missing: aging_curve_value, games_t, ppg_t, ppg_t_minus_1, ppg_t_minus_1_available, ppg_t_minus_2, ppg_t_minus_2_available, snap_share, snap_share_t_minus_1, snap_share_t_minus_1_available",
+        "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
+        "no_market_overlay",
+        "no_internal_value_signal",
+        "no_usage_signal",
+        "age_curve_only"
+      ],
+      "counter_argument": {
+        "caveats": ["counter_argument_unavailable"],
+        "status": "experimental",
+        "text": null
+      },
+      "decision_supported": false,
+      "draft_class": null,
+      "dvs_engine": null,
+      "dvs_pct": null,
+      "dynasty_value_score": null,
+      "engine_used": null,
+      "full_name": "TreVeyon Henderson",
+      "inputs_missing": [
+        "aging_curve_value",
+        "games_t",
+        "ppg_t",
+        "ppg_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_t_minus_2",
+        "ppg_t_minus_2_available",
+        "snap_share",
+        "snap_share_t_minus_1",
+        "snap_share_t_minus_1_available"
+      ],
+      "inputs_present": ["player_id", "full_name", "position", "age"],
+      "is_prospect": false,
+      "model_grade": "PRE_MODEL",
+      "model_status_applies": false,
+      "model_version": null,
+      "nfl_draft_pick": null,
+      "nfl_draft_round": null,
+      "nfl_team": "NE",
+      "player_id": "12529",
+      "position": "RB",
+      "projection_1y": null,
+      "projection_2y": null,
+      "projection_3y": null,
+      "risk_flags": {
+        "caveats": [],
+        "items": []
+      },
+      "roster_audit": {
+        "age_cliff_risk": 0.0,
+        "age_value_context": "no_engine_b_projection",
+        "biological_debt_score": null,
+        "caveats": [
+          "no_market_overlay",
+          "no_internal_value_signal",
+          "no_usage_signal",
+          "age_curve_only"
+        ],
+        "cliff_age": 26,
+        "decision_supported": false,
+        "liquidity_risk": null,
+        "signal": "no_age_signal",
+        "signal_drivers": ["age_not_near_position_cliff"],
+        "years_to_cliff": 3
+      },
+      "signal_completeness": 0.2857,
+      "sleeper_id": "12529",
+      "top_drivers": {
+        "caveats": [],
+        "items": ["age_not_near_position_cliff"]
+      },
+      "xvar": null
+    },
+    {
+      "age": 22.4,
+      "caveats": [
+        "roster_audit_reconciled_from_universe_pvo",
+        "current_draft_rookie_engine_a_value_preserved",
+        "no_market_overlay",
+        "no_internal_value_signal",
+        "no_usage_signal",
+        "age_curve_only"
+      ],
+      "counter_argument": {
+        "caveats": ["counter_argument_unavailable"],
+        "status": "experimental",
+        "text": null
+      },
+      "decision_supported": false,
+      "draft_class": null,
+      "dvs_engine": "A",
+      "dvs_pct": null,
+      "dynasty_value_score": 70.99,
+      "engine_used": "engine_a",
+      "full_name": "Omar Cooper Jr.",
+      "inputs_missing": [],
+      "inputs_present": [],
+      "is_prospect": true,
+      "model_grade": "PROSPECT_C",
+      "model_status_applies": false,
+      "model_version": "20260502T153931Z",
+      "nfl_draft_pick": null,
+      "nfl_draft_round": null,
+      "nfl_team": "NYJ",
+      "player_id": "omar_cooper_wr",
+      "position": "WR",
+      "projection_1y": null,
+      "projection_2y": null,
+      "projection_3y": null,
+      "risk_flags": {
+        "caveats": [],
+        "items": []
+      },
+      "roster_audit": {
+        "age_cliff_risk": 0.0,
+        "age_value_context": "no_engine_b_projection",
+        "biological_debt_score": null,
+        "caveats": [
+          "no_market_overlay",
+          "no_internal_value_signal",
+          "no_usage_signal",
+          "age_curve_only"
+        ],
+        "cliff_age": 28,
+        "decision_supported": false,
+        "liquidity_risk": null,
+        "signal": "no_age_signal",
+        "signal_drivers": ["age_not_near_position_cliff"],
+        "years_to_cliff": 6
+      },
+      "signal_completeness": 0.8333,
+      "sleeper_id": "13276",
+      "top_drivers": {
+        "caveats": [],
+        "items": ["age_not_near_position_cliff"]
+      },
+      "xvar": 1.79
+    },
+    {
+      "age": 27.0,
+      "caveats": [
+        "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+        "Signal completeness 22% \u2014 missing: aging_curve_value, cpoe, dakota, epa_per_dropback, games_t, is_dual_threat, ppg_t, ppg_t_minus_1, ppg_t_minus_1_available, ppg_t_minus_2, ppg_t_minus_2_available, snap_share, snap_share_t_minus_1, snap_share_t_minus_1_available",
+        "Fewer than 50% of required signals present \u2014 do not use for dynasty decisions until data is refreshed",
+        "no_market_overlay",
+        "no_internal_value_signal",
+        "no_usage_signal",
+        "age_curve_only"
+      ],
+      "counter_argument": {
+        "caveats": ["counter_argument_unavailable"],
+        "status": "experimental",
+        "text": null
+      },
+      "decision_supported": false,
+      "draft_class": null,
+      "dvs_engine": null,
+      "dvs_pct": null,
+      "dynasty_value_score": null,
+      "engine_used": null,
+      "full_name": "Mac Jones",
+      "inputs_missing": [
+        "aging_curve_value",
+        "cpoe",
+        "dakota",
+        "epa_per_dropback",
+        "games_t",
+        "is_dual_threat",
+        "ppg_t",
+        "ppg_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_t_minus_2",
+        "ppg_t_minus_2_available",
+        "snap_share",
+        "snap_share_t_minus_1",
+        "snap_share_t_minus_1_available"
+      ],
+      "inputs_present": ["player_id", "full_name", "position", "age"],
+      "is_prospect": false,
+      "model_grade": "PRE_MODEL",
+      "model_status_applies": false,
+      "model_version": null,
+      "nfl_draft_pick": null,
+      "nfl_draft_round": null,
+      "nfl_team": "SF",
+      "player_id": "7527",
+      "position": "QB",
+      "projection_1y": null,
+      "projection_2y": null,
+      "projection_3y": null,
+      "risk_flags": {
+        "caveats": [],
+        "items": []
+      },
+      "roster_audit": {
+        "age_cliff_risk": 0.0,
+        "age_value_context": "no_engine_b_projection",
+        "biological_debt_score": null,
+        "caveats": [
+          "no_market_overlay",
+          "no_internal_value_signal",
+          "no_usage_signal",
+          "age_curve_only"
+        ],
+        "cliff_age": 33,
+        "decision_supported": false,
+        "liquidity_risk": null,
+        "signal": "no_age_signal",
+        "signal_drivers": ["age_not_near_position_cliff"],
+        "years_to_cliff": 6
+      },
+      "signal_completeness": 0.2222,
+      "sleeper_id": "7527",
+      "top_drivers": {
+        "caveats": [],
+        "items": ["age_not_near_position_cliff"]
+      },
+      "xvar": null
+    },
+    {
+      "age": 22.0,
+      "caveats": [
+        "roster_audit_reconciled_from_universe_pvo",
+        "current_draft_rookie_engine_a_value_preserved",
+        "no_market_overlay",
+        "no_internal_value_signal",
+        "no_usage_signal",
+        "age_curve_only"
+      ],
+      "counter_argument": {
+        "caveats": [],
+        "status": "available",
+        "text": "Premium valuation assumes continued high-level rushing or outlier passing efficiency; any dip in mobility or supporting cast could lead to a rapid value correction."
+      },
+      "decision_supported": false,
+      "draft_class": null,
+      "dvs_engine": "A",
+      "dvs_pct": null,
+      "dynasty_value_score": 85.14,
+      "engine_used": "engine_a",
+      "full_name": "Fernando Mendoza",
+      "inputs_missing": [],
+      "inputs_present": [],
+      "is_prospect": true,
+      "model_grade": "PROSPECT_D",
+      "model_status_applies": false,
+      "model_version": "20260502T153931Z",
+      "nfl_draft_pick": null,
+      "nfl_draft_round": null,
+      "nfl_team": "LVR",
+      "player_id": "fernando_mendoza_qb",
+      "position": "QB",
+      "projection_1y": null,
+      "projection_2y": null,
+      "projection_3y": null,
+      "risk_flags": {
+        "caveats": [],
+        "items": []
+      },
+      "roster_audit": {
+        "age_cliff_risk": 0.0,
+        "age_value_context": "no_engine_b_projection",
+        "biological_debt_score": null,
+        "caveats": [
+          "no_market_overlay",
+          "no_internal_value_signal",
+          "no_usage_signal",
+          "age_curve_only"
+        ],
+        "cliff_age": 33,
+        "decision_supported": false,
+        "liquidity_risk": null,
+        "signal": "no_age_signal",
+        "signal_drivers": ["age_not_near_position_cliff"],
+        "years_to_cliff": 11
+      },
+      "signal_completeness": 1.0,
+      "sleeper_id": "13269",
+      "top_drivers": {
+        "caveats": [],
+        "items": ["age_not_near_position_cliff"]
+      },
+      "xvar": 10.31
+    }
+  ],
+  "qb_context_cards": [
+    {
+      "context_role": "context_signal",
+      "cpoe": null,
+      "dakota": null,
+      "decision_supported": false,
+      "dropback_count": null,
+      "epa_per_dropback": null,
+      "full_name": "J.J. McCarthy",
+      "identity_coverage": "NONE",
+      "pass_attempts": null,
+      "player_id": "11565",
+      "qb_context_annotations": [],
+      "qb_context_caveats": ["missing_qb_college_context", "p2s_context_unavailable"],
+      "source_qb_context_annotations": "cfbd_qb_context_annotations"
+    },
+    {
+      "context_role": "context_signal",
+      "cpoe": null,
+      "dakota": null,
+      "decision_supported": false,
+      "dropback_count": null,
+      "epa_per_dropback": null,
+      "full_name": "Dillon Gabriel",
+      "identity_coverage": "NONE",
+      "pass_attempts": null,
+      "player_id": "12486",
+      "qb_context_annotations": [],
+      "qb_context_caveats": ["missing_qb_college_context", "p2s_context_unavailable"],
+      "source_qb_context_annotations": "cfbd_qb_context_annotations"
+    },
+    {
+      "context_role": "context_signal",
+      "cpoe": null,
+      "dakota": null,
+      "decision_supported": false,
+      "dropback_count": null,
+      "epa_per_dropback": null,
+      "full_name": "Jaxson Dart",
+      "identity_coverage": "NONE",
+      "pass_attempts": null,
+      "player_id": "12508",
+      "qb_context_annotations": [],
+      "qb_context_caveats": ["missing_qb_college_context", "p2s_context_unavailable"],
+      "source_qb_context_annotations": "cfbd_qb_context_annotations"
+    }
+  ],
+  "reason": "Roster audit uses Engine B active-player projections and age curve signals. Market overlay is excluded.",
+  "status": "active"
+}

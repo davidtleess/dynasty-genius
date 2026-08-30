@@ -15,7 +15,12 @@ import {
   zModelProvenanceResponse,
   zWhatChangedResponse,
 } from "../lib/api/zod.gen";
-import { formatCaptureTimestamp } from "../lib/copy";
+import {
+  describeToken,
+  formatCaptureTimestamp,
+  receiptDetail,
+  valueWord,
+} from "../lib/copy";
 import { useEndpointResource } from "../lib/useEndpointResource";
 import { CaveatBlock } from "../ui/CaveatBlock";
 import { ChartFrame } from "../ui/ChartFrame";
@@ -454,11 +459,14 @@ function ContextRail({
       <DailyTape />
       <section className="dg-wc__diagnostics" aria-label="Feed diagnostics">
         <h3 className="dg-wc__rail-title">Feed diagnostics</h3>
-        <p className="dg-wc__rail-line">Feed status: {data.overall_status}</p>
-        <p className="dg-wc__rail-line">Market feed: {market.status}</p>
-        <p className="dg-wc__rail-line">Model feed: {model.status}</p>
+        {/* DG-109: these three lines used to print the producer's own status
+            enums — `vintage_changed_no_score_delta`, `fantasycalc_overlay`.
+            The state each one reports is unchanged; only the vocabulary is. */}
+        <p className="dg-wc__rail-line">Overall: {valueWord(data.overall_status)}</p>
+        <p className="dg-wc__rail-line">Market feed: {describeToken(market.status)}</p>
+        <p className="dg-wc__rail-line">Model feed: {describeToken(model.status)}</p>
         {market.market_source && (
-          <p className="dg-wc__rail-line">Market source: {market.market_source}</p>
+          <p className="dg-wc__rail-line">{describeToken(market.market_source)}</p>
         )}
       </section>
       <section className="dg-wc__receipts" aria-label="Report receipts">
@@ -492,6 +500,12 @@ function ContextRail({
       </ChartFrame>
     </aside>
   );
+}
+
+// A dictionary sentence already ends in a full stop; a humanized fallback does
+// not. Both have to sit in front of the age clause without running into it.
+function endSentence(text: string): string {
+  return /[.!?]$/.test(text) ? text : `${text}.`;
 }
 
 function humanAssetKey(key: string): string {
@@ -694,6 +708,9 @@ function DailyTape() {
 function ModelRegion({ model }: { model: WhatChangedModelSection }) {
   const deltas = model.deltas ?? [];
   const modelWindow = model.comparison_window ?? null;
+  // These three are raw producer enums. CaveatBlock now runs them through the
+  // dictionary itself (see its header) — on a quiet day all three are absent,
+  // which is exactly why the fixture-pinned test never caught them here.
   const caveats = [
     modelWindow?.status ?? null,
     model.feature_freshness?.aborted_reason ?? null,
@@ -838,7 +855,7 @@ function StructuralBaseline({ ctx }: { ctx: WhatChangedStructuralContext }) {
       <BaselineSection label="Team Posture" sec={s.team_posture}>
         {s.team_posture.david_posture != null && (
           <p className="dg-wc__baseline-line">
-            Posture: {s.team_posture.david_posture}
+            Where you stand: {valueWord(s.team_posture.david_posture)}
           </p>
         )}
         {s.team_posture.team_count != null && (
@@ -862,7 +879,7 @@ function StructuralBaseline({ ctx }: { ctx: WhatChangedStructuralContext }) {
         </p>
         {cardTypeCounts(s.league_opportunity.top_cards).map(([type, count]) => (
           <p className="dg-wc__baseline-line" key={type}>
-            {type}: {count}
+            {valueWord(type)}: {count}
           </p>
         ))}
         <CaveatBlock
@@ -921,25 +938,33 @@ function BaselineSection({
   sec: WhatChangedStructuralSection;
   children: ReactNode;
 }) {
-  const caveats = [
-    sec.staleness_caveat
-      ? `${sec.staleness_caveat.basis} — ${
-          sec.staleness_caveat.is_stale ? "stale" : "fresh"
-        } (age ${sec.staleness_caveat.age_hours}h)`
-      : null,
-    sec.aborted_reason ?? null,
-  ].filter((item): item is string => item != null);
+  // DG-109: this line read `captured_at_vs_report_generated_at — fresh (age 0h)`
+  // on David's screen. Every fact in it survives — WHICH clock the age was
+  // measured against, whether it is stale, and how old — said as a sentence.
+  const stalenessLine = sec.staleness_caveat
+    ? `${endSentence(describeToken(sec.staleness_caveat.basis))} ${
+        sec.staleness_caveat.is_stale ? "It has gone stale" : "Still current"
+      } at ${sec.staleness_caveat.age_hours} hours old.`
+    : null;
+  const caveats = [stalenessLine].filter((item): item is string => item != null);
 
   return (
     <section className="dg-wc__baseline-section" aria-label={label}>
       <h4 className="dg-wc__group">{label}</h4>
       <p className="dg-wc__baseline-meta">
         <span className="dg-wc__meta-label">Status:</span>{" "}
-        <span className="dg-wc__meta-value">{sec.status}</span>
+        <span className="dg-wc__meta-value">{describeToken(sec.status)}</span>
       </p>
       <DisclosureLine />
       {caveats.length > 0 && (
         <CaveatBlock tone="neutral" title="Context caveats" items={caveats} />
+      )}
+      {sec.aborted_reason != null && (
+        <CaveatBlock
+          tone="neutral"
+          title="Why this section is short"
+          items={[describeToken(sec.aborted_reason)]}
+        />
       )}
       {children}
     </section>
@@ -956,27 +981,33 @@ function TeamValueLines({ sec }: { sec: WhatChangedStructuralSection }) {
   return (
     <>
       {v.lineup_xvar != null && (
-        <p className="dg-wc__baseline-line" title={`lineup_xvar=${v.lineup_xvar}`}>
+        <p
+          className="dg-wc__baseline-line"
+          title={receiptDetail("lineup_xvar", v.lineup_xvar)}
+        >
           Starting lineup value: {v.lineup_xvar}
         </p>
       )}
       {v.starter_weighted_xvar != null && (
         <p
           className="dg-wc__baseline-line"
-          title={`starter_weighted_xvar=${v.starter_weighted_xvar}`}
+          title={receiptDetail("starter_weighted_xvar", v.starter_weighted_xvar)}
         >
           Weekly lineup strength: {v.starter_weighted_xvar}
         </p>
       )}
       {v.top_n_xvar != null && (
-        <p className="dg-wc__baseline-line" title={`top_n_xvar=${v.top_n_xvar}`}>
+        <p
+          className="dg-wc__baseline-line"
+          title={receiptDetail("top_n_xvar", v.top_n_xvar)}
+        >
           Top-asset core value: {v.top_n_xvar}
         </p>
       )}
       {v.total_xvar_capped != null && (
         <p
           className="dg-wc__baseline-line"
-          title={`total_xvar_capped=${v.total_xvar_capped}`}
+          title={receiptDetail("total_xvar_capped", v.total_xvar_capped)}
         >
           Whole-roster value, capped: {v.total_xvar_capped}
         </p>

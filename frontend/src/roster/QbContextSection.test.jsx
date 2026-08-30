@@ -9,7 +9,11 @@ describe("QbContextSection", () => {
     render(<QbContextSection cards={activeAudit().qb_context_cards} />);
     expect(screen.getByText("QB One")).toBeTruthy();
     expect(screen.getByText(/context signal — not decision-grade/i)).toBeTruthy();
-    expect(screen.getByText(/low_td_int_ratio_bust_context/)).toBeTruthy();
+    // DG-109: the annotation still reaches the screen — it just says what it
+    // means instead of printing the producer's key.
+    expect(
+      screen.getByText(/comparatively few touchdowns for his interceptions/i),
+    ).toBeTruthy();
   });
   it("renders nothing when there are no cards", () => {
     const { container } = render(<QbContextSection cards={[]} />);

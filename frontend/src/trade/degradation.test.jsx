@@ -252,9 +252,12 @@ describe("TradeLab honest lane degradation", () => {
     });
 
     expect(within(screen.getByTestId("model-lane")).getByText("41.2")).toBeTruthy();
+    // DG-109: the caveat still reaches the lane and still carries its whole
+    // fact — that the date shown is when WE pulled the prices, not when the
+    // source published them. It just no longer prints the producer's key.
     expect(
       within(screen.getByTestId("market-lane")).getByText(
-        "source_timestamp_is_fetch_time_not_publish_time",
+        "The capture date above is when we pulled these prices, not when the source published them.",
       ),
     ).toBeTruthy();
     expect(

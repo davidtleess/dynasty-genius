@@ -1,7 +1,9 @@
 import type { z } from "zod";
 
 import type { zTradeRosterReconciliation } from "../lib/api/zod.gen";
-import { humanizeToken, RangeRow } from "./forcedCutRange";
+import { describeToken } from "../lib/copy";
+import { TokenNotes } from "../ui/TokenNotes";
+import { RangeRow } from "./forcedCutRange";
 
 type ModelReconciliation = z.infer<typeof zTradeRosterReconciliation>;
 
@@ -71,7 +73,7 @@ export function ModelLanePanel({
       {penalty.penalty_caveats.length > 0 && (
         <ul className="dg-lane__caveats" aria-label="Penalty caveats">
           {penalty.penalty_caveats.map((caveat) => (
-            <li key={caveat}>{humanizeToken(caveat)}</li>
+            <li key={caveat}>{describeToken(caveat)}</li>
           ))}
         </ul>
       )}
@@ -90,12 +92,9 @@ export function ModelLanePanel({
         </ul>
       )}
 
+      {/* Same DG-109 review fix as the market lane: this block was left raw. */}
       {reconciliation.caveats.length > 0 && (
-        <ul className="dg-lane__caveats">
-          {reconciliation.caveats.map((caveat) => (
-            <li key={caveat}>{caveat}</li>
-          ))}
-        </ul>
+        <TokenNotes className="dg-lane__caveats" tokens={reconciliation.caveats} />
       )}
     </section>
   );

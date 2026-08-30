@@ -71,11 +71,19 @@ describe("ProvenanceFooter", () => {
       "dynastyprocess_ecr_2qb",
       "2020: 2026-05-31",
       "2021: 2026-05-31",
-      "ACTIVE_B_VALIDATED",
       GRADE_QUALIFIER,
     ]) {
       expect(within(footer).getByText(text)).toBeTruthy();
     }
+    // DG-109: the grade is still here and still demoted — it just no longer
+    // SHOUTS `ACTIVE_B_VALIDATED` at David. The raw value rides `data-grade` so
+    // CSS and tests keep addressing it, and the qualifier above still travels
+    // with it, so the constitutional binding is unchanged.
+    expect(within(footer).getByText("In use, ranks well in testing")).toBeTruthy();
+    expect(footer.querySelector('[data-grade="ACTIVE_B_VALIDATED"]')).toBeTruthy();
+    // The provenance rows still cite their artifacts by their REAL names — that
+    // is what makes them receipts — and now say so with a declared exemption.
+    expect(footer.querySelector("[data-receipt]")).toBeTruthy();
   });
 
   it("uses neutral not-available tokens for nullable provenance fields", async () => {

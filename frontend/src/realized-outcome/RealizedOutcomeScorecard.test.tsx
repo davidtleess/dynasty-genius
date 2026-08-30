@@ -60,8 +60,17 @@ describe("RealizedOutcomeScorecard", () => {
     expect(screen.getByText(/accuracy tracker/i)).toBeTruthy();
     expect(screen.getByText(/loop inactive/i)).toBeTruthy();
     expect(screen.getByText(/2026 data accrues from sept/i)).toBeTruthy();
-    expect(screen.getByText(/awaiting_first_finalized_week/i)).toBeTruthy();
-    expect(screen.getByText(/Settlement status: unsettled/i)).toBeTruthy();
+    // DG-109: the reason and the settlement state are unchanged and still on
+    // screen — this is the surface's NORMAL pre-season state, not a degraded
+    // branch, so these two enums were what it said on a good day.
+    expect(
+      screen.getByText(/No week has finished yet, so nothing has been graded./i),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Settlement status: Not enough finished weeks for this to settle/i,
+      ),
+    ).toBeTruthy();
     expect(screen.getByText(/Data maturity: not yet started/i)).toBeTruthy();
     expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();

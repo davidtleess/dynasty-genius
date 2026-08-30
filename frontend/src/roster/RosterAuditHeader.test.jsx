@@ -15,11 +15,20 @@ describe("RosterAuditHeader", () => {
         droppedPlayerCount={a.dropped_player_count}
       />,
     );
-    expect(screen.getByText(/degraded/i)).toBeTruthy();
+    // DG-109: the STATES are unchanged and still assert-able — they moved from
+    // the visible text to the data attributes the CSS already keyed off — and
+    // each one now also has to say itself in words.
+    expect(screen.getByText(/something needs attention/i)).toBeTruthy();
+    expect(document.querySelector('[data-status="degraded"]')).toBeTruthy();
     expect(screen.getByText("WR")).toBeTruthy();
-    expect(screen.getByText("EXPERIMENTAL")).toBeTruthy();
+    expect(
+      document.querySelector('.dg-roster__chip[data-status="EXPERIMENTAL"]'),
+    ).toBeTruthy();
+    expect(screen.getByText(/experimental — not validated/i)).toBeTruthy();
     expect(screen.getByText(/1 .*dropped/i)).toBeTruthy();
     expect(screen.getByText(/experimental — not decision-grade/i)).toBeTruthy();
-    expect(screen.getByText(/no_market_overlay/)).toBeTruthy();
+    // The market-scope caveat still reaches the screen; it just says what it is
+    // rather than printing `no_market_overlay`.
+    expect(screen.getByText(/market prices are deliberately left out/i)).toBeTruthy();
   });
 });

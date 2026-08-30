@@ -1,10 +1,13 @@
-import { Fragment } from "react";
-
 import type { LeaguePulseTeamValue } from "../lib/api";
+import { fieldLabel, valueWord } from "../lib/copy";
 
 // Team Value Overview — compact descriptive context. Strict per-field allowlists;
 // NO raw player list (Inc1 excludes it); unknown nested keys + non-skill positions
 // suppressed.
+//
+// DG-109: every allowlisted key is now a labelled pair in words, and the
+// positional line reads as a sentence instead of `QB z_score -0.82 deficit`.
+// The allowlists and the suppression rules are untouched.
 
 const VALUE_VIEW_KEYS = [
   "starter_weighted_xvar",
@@ -20,6 +23,25 @@ const PICK_KEYS = ["owned_count", "outgoing_count", "pick_value_status"] as cons
 
 const POSITIONS = ["QB", "RB", "WR", "TE"] as const;
 
+/**
+ * A pick field's value: the two counts are numbers, `pick_value_status` is an
+ * enum that has to speak. Absence renders nothing rather than the string
+ * "null".
+ */
+function pickValue(key: string, raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null;
+  return key === "pick_value_status" ? valueWord(String(raw)) : String(raw);
+}
+
+function Pair({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="dg-league-pulse__pair">
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
 function ValueCard({ value }: { value: LeaguePulseTeamValue }) {
   const views = value.value_views as unknown as Record<string, unknown>;
   const age = value.age_profile as Record<string, number>;
@@ -28,36 +50,30 @@ function ValueCard({ value }: { value: LeaguePulseTeamValue }) {
 
   return (
     <article className="dg-league-pulse__value-card">
-      <h4 className="dg-league-pulse__value-name">
+      <h4 className="dg-league-pulse__value-name" data-user-text>
         {value.team_name ?? "Unknown team"}
       </h4>
       <p className="dg-league-pulse__value-roster">Roster {value.roster_id}</p>
 
       <dl className="dg-league-pulse__value-views">
         {VALUE_VIEW_KEYS.filter((k) => k in views).map((k) => (
-          <Fragment key={k}>
-            <dt>{k}</dt>
-            <dd>{String(views[k])}</dd>
-          </Fragment>
+          <Pair key={k} label={fieldLabel(k)} value={String(views[k])} />
         ))}
       </dl>
 
       <dl className="dg-league-pulse__value-age">
         {AGE_KEYS.filter((k) => k in age).map((k) => (
-          <Fragment key={k}>
-            <dt>{k}</dt>
-            <dd>{String(age[k])}</dd>
-          </Fragment>
+          <Pair key={k} label={fieldLabel(k)} value={String(age[k])} />
         ))}
       </dl>
 
       <dl className="dg-league-pulse__value-picks">
-        {PICK_KEYS.filter((k) => k in picks).map((k) => (
-          <Fragment key={k}>
-            <dt>{k}</dt>
-            <dd>{String(picks[k])}</dd>
-          </Fragment>
-        ))}
+        {PICK_KEYS.filter((k) => k in picks).map((k) => {
+          const shown = pickValue(k, picks[k]);
+          return shown === null ? null : (
+            <Pair key={k} label={fieldLabel(k)} value={shown} />
+          );
+        })}
       </dl>
 
       <ul className="dg-league-pulse__value-positions">
@@ -67,9 +83,11 @@ function ValueCard({ value }: { value: LeaguePulseTeamValue }) {
           const fields = entry as Record<string, unknown>;
           const z = fields.z_score;
           if (typeof z !== "number") return null;
+          const depth = fields.surplus_label;
           return (
             <li key={position}>
-              {position} z_score {z.toFixed(2)} {String(fields.surplus_label ?? "")}
+              {`${position}: ${z.toFixed(2)} ${fieldLabel("z_score")}`}
+              {typeof depth === "string" ? ` — ${valueWord(depth).toLowerCase()}` : ""}
             </li>
           );
         })}

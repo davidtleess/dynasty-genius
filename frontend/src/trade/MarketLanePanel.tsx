@@ -1,17 +1,15 @@
 import type { z } from "zod";
 
 import type { zTradeMarketReconciliation } from "../lib/api/zod.gen";
-import { humanizeToken, RangeRow } from "./forcedCutRange";
+import { describeToken, sourcedCaveat, valueWord } from "../lib/copy";
+import { TokenNotes } from "../ui/TokenNotes";
+import { RangeRow } from "./forcedCutRange";
 
 type MarketReconciliation = z.infer<typeof zTradeMarketReconciliation>;
 
-// Backend neutral divergence labels -> human display text. No verdict wording.
-const SIGNAL_DISPLAY: Record<string, string> = {
-  model_higher_than_market: "Model higher than market",
-  model_lower_than_market: "Model lower than market",
-  inside_band: "Inside band",
-  unavailable: "Unavailable",
-};
+// This lane is FantasyCalc-native end to end (its title says so), and the two
+// sourced caveats name the source inside their own sentence.
+const SOURCE_LABEL = "FantasyCalc";
 
 // Market Snapshot (amber lane). Renders raw FantasyCalc values, the market
 // side difference, advisory realism warnings, and per-asset neutral
@@ -67,7 +65,7 @@ export function MarketLanePanel({
           {penalty.caveats.length > 0 && (
             <ul className="dg-lane__caveats" aria-label="Capacity caveats">
               {penalty.caveats.map((caveat) => (
-                <li key={caveat}>{humanizeToken(caveat)}</li>
+                <li key={caveat}>{describeToken(caveat)}</li>
               ))}
             </ul>
           )}
@@ -79,8 +77,7 @@ export function MarketLanePanel({
             {asset.label}
             {asset.divergence_context && (
               <span className="dg-lane__signal">
-                {SIGNAL_DISPLAY[asset.divergence_context.signal_label] ??
-                  asset.divergence_context.signal_label}
+                {valueWord(asset.divergence_context.signal_label)}
               </span>
             )}
           </li>
@@ -90,25 +87,36 @@ export function MarketLanePanel({
         <ul className="dg-lane__warnings">
           {reconciliation.realism_warnings.map((warning) => (
             <li key={warning.warning_type}>
-              <span className="dg-lane__severity">{warning.severity}</span>{" "}
+              <span className="dg-lane__severity">{valueWord(warning.severity)}</span>{" "}
               {warning.message}
             </li>
           ))}
         </ul>
       )}
+      {/* DG-109 review fix: the penalty caveats above were converted and these
+          two were not — same component, and `reconciliation.caveats` was in the
+          same `dg-lane__caveats` class thirty lines down. Trade Lab is an active
+          nav surface, so the raw keys (`fantasycalc_uncovered`,
+          `market_overlay_display_only`, `decision_supported_false`) were on
+          David's screen with a drafted trade. */}
       {reconciliation.coverage_gaps.length > 0 && (
-        <ul className="dg-lane__coverage" aria-label="Coverage gaps">
-          {reconciliation.coverage_gaps.map((gap) => (
-            <li key={gap}>{gap}</li>
-          ))}
-        </ul>
+        <TokenNotes
+          className="dg-lane__coverage"
+          ariaLabel="Coverage gaps"
+          tokens={reconciliation.coverage_gaps}
+        />
       )}
+      {/* Through `sourcedCaveat`, not the plain lookup: two of the base market
+          caveats need this lane's own source named INSIDE the sentence, so a
+          future non-FantasyCalc source is named correctly rather than
+          mislabelled inside a truth-bearing caveat. */}
       {reconciliation.caveats.length > 0 && (
-        <ul className="dg-lane__caveats">
-          {reconciliation.caveats.map((caveat) => (
-            <li key={caveat}>{caveat}</li>
-          ))}
-        </ul>
+        <TokenNotes
+          className="dg-lane__caveats"
+          notes={reconciliation.caveats.map((caveat) =>
+            sourcedCaveat(caveat, SOURCE_LABEL),
+          )}
+        />
       )}
       {reconciliation.source_timestamp && (
         <p className="dg-lane__timestamp">{reconciliation.source_timestamp}</p>

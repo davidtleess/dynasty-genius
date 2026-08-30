@@ -94,6 +94,14 @@ async function renderCard(body: unknown, response: Partial<MockResponse> = {}) {
   render(<SystemHealthCard now={FIXED_NOW} />);
 }
 
+// The whole text of the subsystem row that leads with `name` — the name and the
+// state live in sibling spans, so the assertion has to read the row, not a node.
+function subsystemRowText(name: string): string {
+  const row = screen.getByText(name).closest("li");
+  expect(row).toBeTruthy();
+  return row?.textContent ?? "";
+}
+
 describe("SystemHealthCard RED contract", () => {
   beforeEach(() => {
     globalThis.fetch = vi.fn();
@@ -160,7 +168,16 @@ describe("SystemHealthCard RED contract", () => {
     await renderCard(healthResponse());
 
     await screen.findByRole("status", { name: "Data freshness" });
-    expect(screen.getByText("ok")).toBeTruthy();
+    // DG-109 review fix: the headline may claim ONLY what the rollup checked.
+    // `rollup_health_status` scores core-substrate and daily-diagnostics rows
+    // and nothing else (_TIER_SEVERITY has no `auxiliary` key), and neither
+    // `freshness_overdue` nor `dormant` degrades anything — so an earlier draft
+    // reading "Nothing needs attention" was wider than the rollup and could be
+    // contradicted by the card's own rows. This fixture is the quiet case: one
+    // fresh, one dormant, one overdue, nothing degrading anywhere.
+    expect(screen.getByText("No main feed is stale, missing or failed")).toBeTruthy();
+    expect(screen.queryByText(/nothing needs attention/i)).toBeNull();
+    expect(screen.queryByText("ok")).toBeNull();
     expect(screen.getByText(/3 reports/i)).toBeTruthy();
     expect(screen.getByText(/1 fresh/i)).toBeTruthy();
     expect(screen.getByText(/1 dormant/i)).toBeTruthy();
@@ -206,7 +223,10 @@ describe("SystemHealthCard RED contract", () => {
       }),
     );
 
-    await screen.findByText(/degraded/i);
+    // DG-109: `degraded` is not a claim about LATENESS — the rollup raises it for
+    // a stale, unreadable, missing or failed feed alike, and "Running behind"
+    // understated every one of those but the first.
+    await screen.findByText(/something needs attention/i);
     expect(
       screen.getByTestId("health-report-core_stale").getAttribute("data-severity"),
     ).toBe("degraded");
@@ -219,6 +239,43 @@ describe("SystemHealthCard RED contract", () => {
     expect(
       screen.getByTestId("health-report-feature_refresh").getAttribute("data-severity"),
     ).toBeNull();
+  });
+
+  // The amber-blindness case, and the reason the ok line was rewritten. The
+  // backend's rollup DELIBERATELY ignores auxiliary rows (system_health_models.py
+  // :363 `_TIER_SEVERITY` has no `auxiliary` key, and it tags the suppression
+  // `auxiliary_info_only` at :653-654), so `overall_status` is "ok" with a failed
+  // auxiliary producer on the same screen. The headline must not swallow that.
+  it("does not read as all-clear when a feed outside the rollup's scope has failed", async () => {
+    await renderCard(
+      healthResponse({
+        overall_status: "ok",
+        worst_affected_tier: null,
+        reports: [
+          report(),
+          report({
+            artifact_id: "league_opportunity",
+            status: "producer_failed",
+            tier: "auxiliary",
+            disclosures: ["auxiliary_info_only"],
+          }),
+        ],
+      }),
+    );
+
+    const card = await screen.findByRole("status", { name: "Data freshness" });
+    expect(
+      within(card).getByText(
+        "Main feeds are healthy — one feed outside them is not; it is listed below",
+      ),
+    ).toBeTruthy();
+    expect(within(card).queryByText(/nothing needs attention/i)).toBeNull();
+    expect(within(card).queryByText(/no main feed is stale/i)).toBeNull();
+    // The row itself still says what happened, in full.
+    expect(
+      within(card).getByText("Last run failed. Earlier values may still be in use."),
+    ).toBeTruthy();
+    expect(within(card).getByText(/1 failed/i)).toBeTruthy();
   });
 
   it("renders producer_failed as a degrading manager-prose row, not a raw enum", async () => {
@@ -294,7 +351,10 @@ describe("SystemHealthCard RED contract", () => {
     );
 
     const card = await screen.findByRole("status", { name: "Data freshness" });
-    expect(within(card).getByText(/degraded.*core data affected/i)).toBeTruthy();
+    // Both facts stay: that it is degraded, and WHICH tier is affected.
+    expect(
+      within(card).getByText(/something needs attention.*core data affected/i),
+    ).toBeTruthy();
     expect(card.getAttribute("data-health-status")).toBe("degraded");
     expect(card.getAttribute("data-affected-tier")).toBe("core_substrate");
   });
@@ -314,15 +374,24 @@ describe("SystemHealthCard RED contract", () => {
       }),
     );
 
-    await screen.findAllByText("new_guard");
-    expect(
-      screen.getByText(/model_provenance.*not reported.*unverified/i),
-    ).toBeTruthy();
-    expect(screen.getByText(/tier_readiness.*not reported.*unverified/i)).toBeTruthy();
+    await screen.findAllByText(/new guard/i);
+    // An absent guard is still explicitly unverified — DG-109 only changes the
+    // words. The guard is named, and the sentence still says we could not
+    // verify it.
+    expect(subsystemRowText("Model provenance")).toMatch(
+      /not reported.*could not verify/i,
+    );
+    expect(subsystemRowText("Tier readiness")).toMatch(
+      /not reported.*could not verify/i,
+    );
+    // The duplicate id still surfaces as a visible conflict: one name row plus
+    // one receipt row per payload entry.
+    expect(screen.getAllByText("Capture health")).toHaveLength(2);
     expect(screen.getAllByText("capture_health")).toHaveLength(2);
-    // An unknown subsystem has no display name, so its raw id renders in both the
-    // name slot (fallback) and the disclosed receipt — surfaced, never dropped.
-    expect(screen.getAllByText("new_guard")).toHaveLength(2);
+    // An unknown subsystem has no dictionary entry, so its id humanizes in the
+    // name slot and stays verbatim in the disclosed receipt — never dropped.
+    expect(screen.getAllByText("New guard")).toHaveLength(1);
+    expect(screen.getAllByText("new_guard")).toHaveLength(1);
   });
 
   it("renders empty report and subsystem collections without fabricating healthy rows", async () => {
@@ -330,10 +399,8 @@ describe("SystemHealthCard RED contract", () => {
 
     await screen.findByText(/no report freshness rows reported/i);
     expect(screen.queryByText(/1 fresh|fresh ·/i)).toBeNull();
-    for (const id of ["model_provenance", "capture_health", "tier_readiness"]) {
-      expect(
-        screen.getByText(new RegExp(`${id}.*not reported.*unverified`, "i")),
-      ).toBeTruthy();
+    for (const name of ["Model provenance", "Capture health", "Tier readiness"]) {
+      expect(subsystemRowText(name)).toMatch(/not reported.*could not verify/i);
     }
   });
 

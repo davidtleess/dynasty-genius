@@ -58,28 +58,37 @@ describe("PartnerRankings", () => {
     const row = within(card);
 
     expect(row.getByText(/roster 8/i)).toBeTruthy();
-    // Exact match: must be an explicit partner_score label, not the caveat token.
-    expect(row.getByText("partner_score")).toBeTruthy();
+    // Exact match: the score's own label, still distinct from the caveat that
+    // says the score is market-influenced. The two must never collapse.
+    expect(row.getByText("Trade-fit score")).toBeTruthy();
     expect(row.getByText(/0\.742/)).toBeTruthy();
     expect(row.getByText(/RB, WR/)).toBeTruthy();
     expect(row.getByText(/market-influenced/i)).toBeTruthy();
-    expect(row.getByText("partner_score_market_influenced")).toBeTruthy();
+    expect(
+      row.getByText(
+        /partly market-derived, so it is context rather than a proven edge/i,
+      ),
+    ).toBeTruthy();
+    expect(row.queryByText("partner_score_market_influenced")).toBeNull();
 
     for (const component of [
-      "complementarity_score",
-      "divergence_density_score",
-      "activity_recency_score",
-      "posture_alignment_score",
+      "How well the rosters fit",
+      "How often we disagree on price",
+      "How recently they've traded",
+      "Whether you're pointed opposite ways",
     ]) {
       expect(row.getByText(component)).toBeTruthy();
     }
 
-    expect(row.getByText(/perspective_posture/i)).toBeTruthy();
-    expect(row.getByText(/CONTENDER/)).toBeTruthy();
-    expect(row.getByText(/counterparty_posture/i)).toBeTruthy();
-    expect(row.getByText(/REBUILDING/)).toBeTruthy();
-    expect(row.getByText(/divergence_row_count/i)).toBeTruthy();
+    // Both postures still render, both said in words.
+    expect(row.getByText("Where you are")).toBeTruthy();
+    expect(row.getByText("Contending")).toBeTruthy();
+    expect(row.getByText("Where they are")).toBeTruthy();
+    expect(row.getByText("Rebuilding")).toBeTruthy();
+    expect(row.getByText("Players we price differently")).toBeTruthy();
     expect(row.getByText("4")).toBeTruthy();
+    expect(row.queryByText(/CONTENDER/)).toBeNull();
+    expect(row.queryByText(/perspective_posture/i)).toBeNull();
 
     for (const [position, value] of [
       ["QB", "0.12"],
