@@ -6,20 +6,25 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { leaguePulseResponse } from "../league-pulse/fixtures";
 import { AppShell } from "./AppShell";
 
-const NAV_LABELS = [
-  "Daily What-Changed",
-  "Roster Audit",
-  "Trade Lab",
-  "Roster Capacity",
-  "League Pulse",
-  "Model Trust",
-  "Accuracy Tracker",
-  "Rookie Board (Parked)",
-  "Waiver Radar (Parked)",
-  "Research Assistant (Parked)",
-];
+// DG-114: five destinations, not eleven surface links. The surfaces themselves
+// are unchanged and still addressed by the same `?surface=` slugs — what moved
+// is how you get to them. `goTo` presses the rail item, then the view chip when
+// the destination holds more than one surface.
+const NAV_LABELS = ["Today", "Roster", "Trades", "League", "Track record"];
 
-afterEach(() => vi.restoreAllMocks());
+function goTo(destination, view) {
+  const navigation = screen.getByRole("navigation", { name: "Primary surfaces" });
+  fireEvent.click(within(navigation).getByRole("button", { name: destination }));
+  if (view !== undefined) {
+    const views = screen.getByRole("navigation", { name: `${destination} views` });
+    fireEvent.click(within(views).getByRole("button", { name: view }));
+  }
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  window.history.replaceState(null, "", "/");
+});
 
 describe("AppShell", () => {
   it("renders the persistent shell regions and north-star navigation surfaces", () => {
@@ -27,9 +32,11 @@ describe("AppShell", () => {
 
     expect(screen.getByRole("navigation", { name: "Primary surfaces" })).toBeTruthy();
     expect(screen.getByRole("banner", { name: "Trust strip" })).toBeTruthy();
+    // DG-114: the third column is gone. The player card opens as a drawer over
+    // the surface on press, so there is no standing panel to sit empty.
     expect(
-      screen.getByRole("complementary", { name: "Player inspector" }),
-    ).toBeTruthy();
+      screen.queryByRole("complementary", { name: "Player inspector" }),
+    ).toBeNull();
 
     const navigation = screen.getByRole("navigation", { name: "Primary surfaces" });
     expect(
@@ -49,45 +56,36 @@ describe("AppShell", () => {
     render(<AppShell />);
 
     const navigation = screen.getByRole("navigation", { name: "Primary surfaces" });
-    fireEvent.click(within(navigation).getByRole("button", { name: "Trade Lab" }));
+    goTo("Trades");
 
     expect(screen.getByRole("navigation", { name: "Primary surfaces" })).toBeTruthy();
     expect(screen.getByRole("banner", { name: "Trust strip" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Trade Lab", level: 1 })).toBeTruthy();
-    expect(
-      within(navigation).getByRole("button", { name: "Trade Lab" }),
-    ).toHaveProperty("ariaCurrent", "page");
+    expect(screen.getByRole("heading", { name: "Trades", level: 1 })).toBeTruthy();
+    expect(within(navigation).getByRole("button", { name: "Trades" })).toHaveProperty(
+      "ariaCurrent",
+      "page",
+    );
   });
 
-  it("toggles the player inspector open and closed without unmounting the shell", () => {
+  it("opens no player panel until a player is picked", () => {
     render(<AppShell />);
 
-    const toggle = screen.getByRole("button", { name: "Toggle player inspector" });
-    const inspector = screen.getByRole("complementary", { name: "Player inspector" });
-
-    // DG-110: it starts CLOSED. An inspector that opened empty on every first
-    // load read as a broken panel; it opens when there is a player in it.
-    expect(inspector.dataset.state).toBe("closed");
-
-    fireEvent.click(toggle);
-    expect(inspector.dataset.state).toBe("open");
+    // DG-110 kept an empty inspector off the first load; DG-114 removes the
+    // panel itself. Nothing player-shaped is on screen until a name is pressed.
+    expect(screen.queryByRole("dialog", { name: "Player card" })).toBeNull();
+    expect(screen.queryByText(/no player picked yet/i)).toBeNull();
     expect(screen.getByRole("navigation", { name: "Primary surfaces" })).toBeTruthy();
-    // Opened by hand with nothing picked, it says so rather than sitting blank.
-    expect(screen.getByText(/no player picked yet/i)).toBeTruthy();
-
-    fireEvent.click(toggle);
-    expect(inspector.dataset.state).toBe("closed");
   });
 
   it("renders the Model Trust placeholder from the primary navigation", () => {
     render(<AppShell />);
 
     const navigation = screen.getByRole("navigation", { name: "Primary surfaces" });
-    fireEvent.click(within(navigation).getByRole("button", { name: "Model Trust" }));
+    goTo("Track record", "Model trust");
 
     const main = screen.getByRole("main");
     expect(
-      within(main).getByRole("heading", { name: "Model Trust", level: 1 }),
+      within(main).getByRole("heading", { name: "Track record", level: 1 }),
     ).toBeTruthy();
     for (const position of ["QB", "RB", "WR", "TE"]) {
       expect(within(main).getByRole("button", { name: position })).toBeTruthy();
@@ -114,7 +112,7 @@ describe("AppShell", () => {
       }),
     });
     render(<AppShell />);
-    fireEvent.click(screen.getByRole("button", { name: "Roster Audit" }));
+    goTo("Roster", "All players");
     // DG-111: the roster surface no longer stamps a disclaimer; the surface is
     // recognised by its own controls instead.
     await waitFor(() =>
@@ -146,9 +144,10 @@ describe("AppShell", () => {
       }),
     });
 
+    // DG-114: the crew's tracker left the navigation entirely (David, verbatim:
+    // "Remove from nav entirely"). It is reached at its URL and nowhere else.
+    window.history.replaceState(null, "", "/?surface=project-tracker");
     render(<AppShell />);
-    const developer = screen.getByRole("navigation", { name: /Developer/i });
-    fireEvent.click(within(developer).getByRole("button", { name: "Project Tracker" }));
 
     await waitFor(() => expect(screen.getByText("Phase 1")).toBeTruthy());
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/internal/project-plan");
@@ -162,7 +161,7 @@ describe("AppShell", () => {
     });
 
     render(<AppShell />);
-    fireEvent.click(screen.getByRole("button", { name: "League Pulse" }));
+    goTo("League");
 
     await waitFor(() =>
       expect(screen.getByRole("region", { name: /league pulse/i })).toBeTruthy(),
@@ -197,7 +196,7 @@ describe("AppShell", () => {
     });
 
     render(<AppShell />);
-    fireEvent.click(screen.getByRole("button", { name: "Roster Capacity" }));
+    goTo("Roster", "Cut list");
 
     await waitFor(() =>
       expect(
@@ -279,7 +278,7 @@ describe("AppShell", () => {
     });
 
     render(<AppShell />);
-    fireEvent.click(screen.getByRole("button", { name: "Daily What-Changed" }));
+    goTo("Today");
 
     await waitFor(() =>
       expect(screen.getByRole("region", { name: /daily what-changed/i })).toBeTruthy(),
@@ -315,7 +314,7 @@ describe("AppShell", () => {
     });
 
     render(<AppShell />);
-    fireEvent.click(screen.getByRole("button", { name: "Accuracy Tracker" }));
+    goTo("Track record", "Accuracy tracker");
 
     await waitFor(() =>
       expect(

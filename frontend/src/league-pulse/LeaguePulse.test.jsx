@@ -55,16 +55,21 @@ describe("LeaguePulse container", () => {
     expect(capturedAt.getAttribute("title")).toBe("2026-06-22T18:00:00Z");
   });
 
-  it("renders partner rankings inside the ready region", async () => {
+  it("no longer carries partner rankings — they answer a trade question", async () => {
     mockFetch(200, leaguePulseResponse());
 
     render(<LeaguePulse />);
 
+    // DG-114 (spec §4.1): who to call about a trade moved to Trades, beside the
+    // trade builder. League answers who is contending and who is rebuilding.
+    // The panel itself is unchanged and is covered at its new address in
+    // trade/TradePartners; the posture disclosure it depends on travelled with
+    // it, and still renders here too.
     const surface = await screen.findByTestId("league-pulse-ready");
     expect(
-      within(surface).getByRole("region", { name: /partner rankings/i }),
-    ).toBeTruthy();
-    expect(within(surface).getByText(/market-influenced context/i)).toBeTruthy();
+      within(surface).queryByRole("region", { name: /partner rankings/i }),
+    ).toBeNull();
+    expect(within(surface).getByTestId("league-pulse-posture-basis")).toBeTruthy();
   });
 
   it("renders team postures and values inside the ready region", async () => {

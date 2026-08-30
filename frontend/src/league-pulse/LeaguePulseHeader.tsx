@@ -1,5 +1,6 @@
 import type { LeaguePulseResponse } from "../lib/api";
-import { describeToken, formatCaptureTimestamp, receiptLine } from "../lib/copy";
+import { receiptLine } from "../lib/copy";
+import { SnapshotStamp } from "./SnapshotStamp";
 
 // Header band for the League Pulse surface.
 //
@@ -10,14 +11,26 @@ import { describeToken, formatCaptureTimestamp, receiptLine } from "../lib/copy"
 // were load-bearing: this is a read-only snapshot of the league, and reading a
 // team's situation off its roster is not the same as knowing what its manager
 // will do.
+//
+// DG-114 REVIEW FIX: "and who to call" left with the panel that answered it.
+// Partner Rankings is on Trades now, so this sentence was promising a section
+// the page no longer contains — a false sentence on a live surface. The
+// replacement keeps both load-bearing facts and adds a plain pointer to where
+// the partner panel went, which is a navigation fact and asserts nothing about
+// the ranking itself (it still declines to be a validated one).
 const LEAGUE_SNAPSHOT_COPY =
-  "Your league at a glance — who's contending, who's rebuilding, and who to call. It's a read-only snapshot: we read each roster, we don't read minds.";
+  "Your league at a glance — who's contending and who's rebuilding. It's a read-only snapshot: we read each roster, we don't read minds. Partner rankings now sit under Trades, beside the trade builder.";
 
+// The panels THIS page renders. `dropped.partner_rankings` is deliberately not
+// summed here: the sentence below says the records "are not shown below", and
+// since DG-114 the partner panel is not below — it is on Trades, where that
+// counter is now disclosed against the panel it belongs to (TradePartners.tsx).
+// Summing it here would attach a count to a page whose content it does not
+// describe; dropping it entirely would lose the fact. It moved with its panel.
 function withheldTotal(dropped: LeaguePulseResponse["dropped"]): number {
   return (
     (dropped.market_overlay_cards ?? 0) +
     (dropped.model_native_cards ?? 0) +
-    (dropped.partner_rankings ?? 0) +
     (dropped.roster_capacity_candidate_pools ?? 0) +
     (dropped.team_postures ?? 0) +
     (dropped.team_values ?? 0)
@@ -30,9 +43,6 @@ function schemaVersion(source: Record<string, unknown>): string {
 
 export function LeaguePulseHeader({ data }: { data: LeaguePulseResponse }) {
   const withheld = withheldTotal(data.dropped);
-  const artifactStateCaveat = (data.caveats ?? []).find((c) =>
-    c.startsWith("league_pulse_artifact_state_"),
-  );
   const sources = data.source_artifacts;
 
   return (
@@ -44,26 +54,14 @@ export function LeaguePulseHeader({ data }: { data: LeaguePulseResponse }) {
     >
       <h2 className="dg-league-pulse__heading">League Pulse</h2>
       <p className="dg-league-pulse__diagnostic">{LEAGUE_SNAPSHOT_COPY}</p>
-      <p className="dg-league-pulse__asof" title={data.captured_at}>
-        as of {formatCaptureTimestamp(data.captured_at)}
-      </p>
-      {artifactStateCaveat ? (
-        // DG-109 translates the token; DG-111 keeps the verbatim token on the
-        // element, so the humanized sentence is a translation and never a
-        // deletion.
-        <p className="dg-league-pulse__caveat" title={artifactStateCaveat}>
-          {describeToken(artifactStateCaveat)}
-        </p>
-      ) : null}
+      <SnapshotStamp capturedAt={data.captured_at} caveats={data.caveats} />
       {withheld > 0 ? (
-        // The count is exact; the CAUSE is not one thing. `dropped` sums six
-        // counters (above) whose reasons differ: five are genuine mapping
-        // failures, but `partner_rankings` also increments on a cross-artifact
-        // join miss — a perfectly readable record whose counterparty roster is
-        // outside this snapshot (league_pulse_assembler.py:273-276) — and
-        // opportunity cards drop fail-closed on model-native purity rules
-        // (:176-185). So the sentence reports the number and the consequence,
-        // and asserts no cause the data does not carry.
+        // The count is exact; the CAUSE is not one thing. The five counters
+        // summed above fail for different reasons — most are genuine mapping
+        // failures, and opportunity cards also drop fail-closed on model-native
+        // purity rules (league_pulse_assembler.py:176-185). So the sentence
+        // reports the number and the consequence, and asserts no cause the data
+        // does not carry.
         <p className="dg-league-pulse__withheld">
           {withheld} records could not be matched up and are not shown below.
         </p>

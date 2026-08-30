@@ -145,7 +145,7 @@ function mockAssetFetch() {
 }
 
 async function openTradeLabAndSelectAsset() {
-  fireEvent.click(screen.getByRole("button", { name: "Trade Lab" }));
+  fireEvent.click(screen.getByRole("button", { name: "Trades" }));
   fireEvent.change(
     screen.getByRole("searchbox", { name: "Add a player or a draft pick" }),
     {
@@ -155,8 +155,8 @@ async function openTradeLabAndSelectAsset() {
   fireEvent.click(await screen.findByRole("button", { name: "Chase" }));
 }
 
-function inspector() {
-  return screen.getByRole("complementary", { name: "Player inspector" });
+function playerCard() {
+  return screen.getByRole("dialog", { name: "Player card" });
 }
 
 describe("Surface-3 shell player selection state", () => {
@@ -170,33 +170,38 @@ describe("Surface-3 shell player selection state", () => {
     localStorage.clear();
   });
 
-  it("opens the minimal player inspector when an AssetSearch result is selected", async () => {
+  it("opens the player's card when an AssetSearch result is selected", async () => {
+    mockAssetAndPlayerFetch();
     render(<AppShell />);
 
     await openTradeLabAndSelectAsset();
 
-    await waitFor(() => {
-      expect(inspector().dataset.state).toBe("open");
-    });
-    expect(within(inspector()).getByText("Chase")).toBeTruthy();
-    // DG-109: the Sleeper id is a lookup key, not information about the
-    // player — it stays on screen, labelled, in the receipt layer.
-    expect(within(inspector()).getByText("Sleeper id: 13269")).toBeTruthy();
+    const card = await screen.findByRole("dialog", { name: "Player card" });
     expect(
-      within(inspector()).getByRole("button", { name: "Open full evidence card" }),
+      await within(card).findByRole("article", { name: /player detail for chase/i }),
     ).toBeTruthy();
-    expect(within(inspector()).queryByText(/dynasty value score/i)).toBeNull();
-    expect(within(inspector()).queryByText(/edge/i)).toBeNull();
+    // DG-109: the Sleeper id is a lookup key, not information about the
+    // player — it stays on screen, labelled, in the receipt layer. DG-114
+    // retired the preview it used to live on; the fact moved to the card.
+    expect(within(card).getByText("Sleeper id: 13269")).toBeTruthy();
+    // DG-114: the press asked for the card, so the card is what opens. There is
+    // no second button to reach it.
+    expect(
+      within(card).queryByRole("button", { name: "Open full evidence card" }),
+    ).toBeNull();
   });
 
-  it("lets a Trade Lab player chip reopen the inspector after close", async () => {
+  it("lets a Trade Lab player chip reopen the card after it is closed", async () => {
+    mockAssetAndPlayerFetch();
     render(<AppShell />);
 
     await openTradeLabAndSelectAsset();
     fireEvent.click(
-      within(inspector()).getByRole("button", { name: "Close player inspector" }),
+      within(playerCard()).getByRole("button", { name: "Close player card" }),
     );
-    expect(inspector().dataset.state).toBe("closed");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Player card" })).toBeNull(),
+    );
 
     fireEvent.click(
       within(screen.getByRole("region", { name: /you send/i })).getByRole("button", {
@@ -204,30 +209,28 @@ describe("Surface-3 shell player selection state", () => {
       }),
     );
 
-    expect(inspector().dataset.state).toBe("open");
-    expect(within(inspector()).getByText("Chase")).toBeTruthy();
-    // DG-109: the Sleeper id is a lookup key, not information about the
-    // player — it stays on screen, labelled, in the receipt layer.
-    expect(within(inspector()).getByText("Sleeper id: 13269")).toBeTruthy();
+    const card = await screen.findByRole("dialog", { name: "Player card" });
+    expect(
+      await within(card).findByRole("article", { name: /player detail for chase/i }),
+    ).toBeTruthy();
   });
 
-  it("opens the full player detail page in main from the inspector action", async () => {
+  it("opens the card OVER the surface instead of replacing it", async () => {
     mockAssetAndPlayerFetch();
     render(<AppShell />);
 
     await openTradeLabAndSelectAsset();
-    fireEvent.click(
-      within(inspector()).getByRole("button", { name: "Open full evidence card" }),
-    );
+    await screen.findByRole("dialog", { name: "Player card" });
 
-    const card = await screen.findByRole("article", {
-      name: /player detail for chase/i,
-    });
+    // The retired behaviour: the full card took over the main column, so the
+    // trade you were building disappeared behind the player you were checking.
+    // It is still there, and closing the card puts you back on it.
     expect(
-      within(screen.getByRole("main")).getByRole("article", {
+      within(screen.getByRole("main")).queryByRole("article", {
         name: /player detail for chase/i,
       }),
-    ).toBe(card);
+    ).toBeNull();
+    expect(screen.getByRole("region", { name: /you send/i })).toBeTruthy();
     await waitFor(() => {
       expect(globalThis.fetch).toHaveBeenCalledWith("/api/players/13269");
     });

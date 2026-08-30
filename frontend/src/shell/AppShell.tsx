@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { type Command, CommandPalette } from "../command/CommandPalette";
 import { AssetPrimitiveCapture } from "../dev/AssetPrimitiveCapture";
 import { LeaguePulse } from "../league-pulse/LeaguePulse";
 import { ModelScoreboard } from "../model-scoreboard/ModelScoreboard";
+import { PlayerCardDrawer } from "../player/PlayerCardDrawer";
 import { PlayerDetailPage } from "../player/PlayerDetailPage";
-import { PlayerInspector } from "../player/PlayerInspector";
 import { PlayerSelectionProvider } from "../player/playerSelection";
 import { ProjectTracker } from "../project/ProjectTracker";
 import { RealizedOutcomeScorecard } from "../realized-outcome/RealizedOutcomeScorecard";
@@ -13,16 +13,20 @@ import { RosterAudit } from "../roster/RosterAudit";
 import { RosterCapacitySandbox } from "../roster-capacity/RosterCapacitySandbox";
 import { AssetSearch } from "../trade/AssetSearch";
 import { TradeLab } from "../trade/TradeLab";
+import { TradePartners } from "../trade/TradePartners";
 import type { CatalogEntry } from "../trade/tradeState";
-import { useAssetCatalogSearch } from "../trade/useAssetCatalogSearch";
+import {
+  MIN_QUERY_LENGTH,
+  useAssetCatalogSearch,
+} from "../trade/useAssetCatalogSearch";
 import { TrustConsole } from "../trust/TrustConsole";
 import { DailyWhatChanged } from "../what-changed/DailyWhatChanged";
 import "./AppShell.css";
+import { DESTINATIONS, destinationForSurface } from "./destinations";
 import { ParkedSurfaceCard } from "./ParkedSurfaceCard";
 import { ShellStatusDrawer } from "./ShellStatusDrawer";
-import { useUrlSurfaceState } from "./useUrlSurfaceState";
-
-type SelectedPlayer = { sleeperId: string; label: string };
+import { usePlayerCard } from "./usePlayerCard";
+import { type Surface, useUrlSurfaceState } from "./useUrlSurfaceState";
 
 function readSleeperId(entry: CatalogEntry): string | null {
   const ref = entry.market_ref;
@@ -43,33 +47,26 @@ function isOpenablePlayer(entry: CatalogEntry): boolean {
   return entry.kind === "player" && readSleeperId(entry) !== null;
 }
 
-// North-star Decision Surfaces (01-north-star-architecture.md), H1 daily-login
-// order (spec 2026-07-05 §1a/1b): active surfaces first, parked last (visible
-// with a "Parked" badge — hiding them would hide honest gaps), and the
-// Project Tracker dev utility in a separated Developer zone, out of the
-// primary rail.
-const ACTIVE_SURFACES = [
-  "Daily What-Changed",
-  "Roster Audit",
-  "Trade Lab",
-  "Roster Capacity",
-  "League Pulse",
-  "Model Trust",
-  "Accuracy Tracker",
-] as const;
+// The two facts the player finder must state about its own SCOPE, hoisted to
+// module constants so the rail's box and the command palette say them in the
+// same words and cannot drift apart.
+//
+// DG-114 REVIEW FIX: at 390 the rail's box is display:none and the palette is
+// the only finder on screen, so a scoping sentence that lives on the box alone
+// is a sentence David never sees on his phone — and a silent empty list reads
+// as "we do not track him", which is false for every unrostered player the
+// product names elsewhere (League Pulse prints them).
+const NO_ROSTERED_MATCH =
+  "No player on a roster in your league matches that. This box finds rostered players.";
+const ONLY_PICKS_MATCH =
+  "Only future picks match that. Picks are handled in Trade Lab.";
+const PLAYER_LIST_UNREADABLE =
+  "We could not read the player list, so no players are shown here. Surfaces still work.";
 
 const PARKED_SURFACE_NAMES = [
   "Rookie Board",
   "Waiver Radar",
   "Research Assistant",
-] as const;
-
-const DEVELOPER_SURFACES = ["Project Tracker"] as const;
-
-const SURFACES = [
-  ...ACTIVE_SURFACES,
-  ...PARKED_SURFACE_NAMES,
-  ...DEVELOPER_SURFACES,
 ] as const;
 
 function isParked(surface: string): boolean {
@@ -78,55 +75,36 @@ function isParked(surface: string): boolean {
 
 export function AppShell() {
   // H2 I1: surface selection lives in the URL (?surface=<slug>) — one
-  // navigateSurface path shared by the rail and the command palette.
+  // navigateSurface path shared by the rail, the view switcher and the palette.
+  // DG-114 groups eleven of those surfaces into five destinations WITHOUT
+  // touching the slugs: `destinations.ts` is the map, and every URL that
+  // resolved yesterday resolves today.
   const { activeSurface, navigateSurface } = useUrlSurfaceState();
-  // DG-110: the inspector opens when there is a player to inspect. It used to
-  // start open and empty, which read as a broken panel on every first load.
-  const [inspectorOpen, setInspectorOpen] = useState(false);
-  const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer | null>(null);
-  // When set, the main view shows the full Decision-Evidence-Card page for this
-  // player (opened from the inspector's "Open full evidence card" action).
-  const [fullDetailSleeperId, setFullDetailSleeperId] = useState<string | null>(null);
+  const playerCard = usePlayerCard();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
   const palettePlayers = useAssetCatalogSearch(paletteQuery);
-  const inspectorRef = useRef<HTMLElement>(null);
 
-  // Below 768px the shell stacks and the inspector sits under the whole feed,
-  // so opening a card was a visual no-op — the click did something the user
-  // could not see. Bring it into view when it is off-screen; `block: "nearest"`
-  // leaves the desktop layout (where it is already beside the main column)
-  // untouched.
-  useEffect(() => {
-    if (selectedPlayer === null) {
-      return;
-    }
-    const element = inspectorRef.current;
-    if (element === null || typeof element.scrollIntoView !== "function") {
-      return;
-    }
-    const rect = element.getBoundingClientRect();
-    const onScreen = rect.top < window.innerHeight && rect.bottom > 0;
-    if (!onScreen) {
-      element.scrollIntoView({ block: "nearest" });
-    }
-  }, [selectedPlayer]);
+  // The active destination, or null when the surface was reached by URL alone
+  // (the parked cards, the crew's Project Tracker, the capture target). In that
+  // case NOTHING in the rail claims to be where you are, which is the truth.
+  const activeDestination = destinationForSurface(activeSurface);
 
-  // Any surface (asset search, Trade Lab chip) may select a player → opens the
-  // inspector. Players only; non-player catalog entries are not inspectable in v1.
-  // The sleeper id lives on market_ref (the catalog entry's top-level sleeper_id
-  // is not part of the generated schema, so it is stripped at the Zod boundary).
-  // DG-089: one selection sink for every surface — catalog entries (Trade Lab,
-  // asset search) and the change feed's mover rows land in the same inspector.
-  // DG-110: that sink is now published on a context, so every surface printing
-  // a player's name opens the same card without new prop plumbing.
+  function goToSurface(surface: Surface): void {
+    // The card's history entry, if one is on top, is consumed rather than
+    // pushed past — see usePlayerCard.ts. Nothing else can navigate while the
+    // card is open (it is modal), but ⌘K listens on the document, so the case
+    // is reachable and is handled rather than left to chance.
+    const replace = playerCard.consumeHistoryEntry();
+    navigateSurface(surface, { replace });
+  }
+
+  // Any surface (asset search, Trade Lab chip, a name in a table) may select a
+  // player. DG-110 published that sink on a context so every surface printing a
+  // name opens the same card; DG-114 makes what opens the CARD itself, in a
+  // drawer, instead of a preview with a button into the card.
   function selectPlayerById(sleeperId: string, label: string): void {
-    setSelectedPlayer({ sleeperId, label });
-    setInspectorOpen(true);
-    // Every other navigation path clears the full-detail page; without this a
-    // new selection left the PREVIOUS player's card filling the main column
-    // while the inspector showed the one actually asked for.
-    setFullDetailSleeperId(null);
+    playerCard.open(sleeperId, label);
   }
 
   function selectPlayer(entry: CatalogEntry): void {
@@ -140,14 +118,21 @@ export function AppShell() {
     selectPlayerById(sleeperId, entry.label);
   }
 
-  const commands: Command[] = SURFACES.map((surface) => ({
-    id: surface.toLowerCase().replace(/\s+/g, "-"),
-    label: surface,
-    run: () => {
-      navigateSurface(surface);
-      setFullDetailSleeperId(null);
-    },
-  }));
+  // The palette indexes what the rail indexes: the five destinations by their
+  // own names, and the views inside a grouped destination so "cut list" and
+  // "accuracy" still find their surface by typing. The parked surfaces and the
+  // Project Tracker are in neither — David's ruling is that they leave the
+  // navigation entirely and stay reachable at their URL.
+  const commands: Command[] = DESTINATIONS.flatMap((destination) =>
+    destination.views.map((view) => ({
+      id: `surface-${view.surface.toLowerCase().replace(/\s+/g, "-")}`,
+      label:
+        destination.views.length === 1
+          ? destination.label
+          : `${destination.label} · ${view.label}`,
+      run: () => goToSurface(view.surface),
+    })),
+  );
 
   // Players typed into the palette come back from the same catalog the search
   // box reads — rostered players only, so an unrostered player is not findable
@@ -166,6 +151,30 @@ export function AppShell() {
         run: () => selectPlayer(entry),
       };
     });
+
+  // What to say when the palette's list is EMPTY. Each branch states a fact we
+  // actually hold: `status` separates a failed read from an answered one,
+  // `results` is what the catalog said, and the list is only empty when no
+  // surface and no openable player matched. Nothing here claims "no such
+  // player" while the answer is still in flight.
+  const paletteEmptyNotice = ((): string | undefined => {
+    // The read failed: `notice` already says so above the list, and saying it
+    // twice on one screen is furniture.
+    if (palettePlayers.status === "unavailable") {
+      return undefined;
+    }
+    const typed = paletteQuery.trim();
+    if (typed.length > 0 && typed.length < MIN_QUERY_LENGTH) {
+      return `Type at least ${MIN_QUERY_LENGTH} letters to search players.`;
+    }
+    if (palettePlayers.status !== "ready") {
+      return undefined;
+    }
+    // The catalog matched rows and the openable-player filter removed every one
+    // of them — a different fact from "nothing matched", and the same sentence
+    // the rail's box has been giving that case since DG-110.
+    return palettePlayers.results.length > 0 ? ONLY_PICKS_MATCH : NO_ROSTERED_MATCH;
+  })();
 
   return (
     <PlayerSelectionProvider value={selectPlayerById}>
@@ -186,46 +195,26 @@ export function AppShell() {
               // track matches that" over it was false for every unrostered
               // player the product names elsewhere (League Pulse), and for
               // every pick the filter drops.
-              emptyNotice="No player on a roster in your league matches that. This box finds rostered players."
-              filteredNotice="Only future picks match that. Picks are handled in Trade Lab."
+              emptyNotice={NO_ROSTERED_MATCH}
+              filteredNotice={ONLY_PICKS_MATCH}
             />
           </search>
+          {/* ONE nav element for both breakpoints: at 390 CSS lays these five
+              out as a fixed bottom tab bar. Rendering a second copy would give
+              assistive tech two navigations with the same name and let them
+              drift apart. */}
           <nav className="dg-shell__rail-primary" aria-label="Primary surfaces">
-            {[...ACTIVE_SURFACES, ...PARKED_SURFACE_NAMES].map((surface) => (
+            {DESTINATIONS.map((destination) => (
               <button
-                key={surface}
+                key={destination.label}
                 type="button"
                 className="dg-shell__nav-item"
-                data-parked={isParked(surface) ? "true" : undefined}
-                aria-current={activeSurface === surface ? "page" : undefined}
-                onClick={() => {
-                  navigateSurface(surface);
-                  setFullDetailSleeperId(null);
-                }}
+                aria-current={
+                  activeDestination?.label === destination.label ? "page" : undefined
+                }
+                onClick={() => goToSurface(destination.views[0]?.surface as Surface)}
               >
-                {surface}
-                {isParked(surface) && (
-                  <span className="dg-shell__parked-badge"> (Parked)</span>
-                )}
-              </button>
-            ))}
-          </nav>
-          {/* Dev utility zone — visually separated, out of the primary rail
-              (H1 §1b): the primary rail is David-facing surfaces only. */}
-          <nav className="dg-shell__developer" aria-label="Developer">
-            <span className="dg-shell__developer-label">Developer</span>
-            {DEVELOPER_SURFACES.map((surface) => (
-              <button
-                key={surface}
-                type="button"
-                className="dg-shell__nav-item dg-shell__nav-item--developer"
-                aria-current={activeSurface === surface ? "page" : undefined}
-                onClick={() => {
-                  navigateSurface(surface);
-                  setFullDetailSleeperId(null);
-                }}
-              >
-                {surface}
+                {destination.label}
               </button>
             ))}
           </nav>
@@ -242,7 +231,7 @@ export function AppShell() {
               and live but out of the first viewport. */}
           <span className="dg-shell__wordmark">Dynasty Genius</span>
           {/* The palette used to answer only to a keystroke nobody had been
-              told about (DG-110). */}
+              told about (DG-110). At 390 this is the search in the top bar. */}
           <button
             type="button"
             className="dg-shell__palette-trigger"
@@ -255,63 +244,58 @@ export function AppShell() {
         </header>
 
         <main className="dg-shell__main">
-          {fullDetailSleeperId ? (
-            <PlayerDetailPage sleeperId={fullDetailSleeperId} />
-          ) : (
-            <>
-              <h1 className="dg-shell__title">{activeSurface}</h1>
-              {isParked(activeSurface) && <ParkedSurfaceCard surface={activeSurface} />}
-              {activeSurface === "Asset Primitive Capture" && <AssetPrimitiveCapture />}
-              {activeSurface === "Roster Audit" && <RosterAudit />}
-              {activeSurface === "Roster Capacity" && <RosterCapacitySandbox />}
-              {activeSurface === "Daily What-Changed" && (
-                <DailyWhatChanged onSelectPlayer={selectPlayerById} />
-              )}
-              {activeSurface === "Accuracy Tracker" && (
-                <div className="dg-shell__stack">
-                  {/* The record leads: what has actually been measured about this model,
-                      market question first. The per-cohort scorecard beneath it is the
-                      drill-down for a live week once one exists. */}
-                  <ModelScoreboard />
-                  <RealizedOutcomeScorecard />
-                </div>
-              )}
-              {activeSurface === "Trade Lab" && (
-                <TradeLab onSelectPlayer={selectPlayer} />
-              )}
-              {activeSurface === "Model Trust" && <TrustConsole />}
-              {activeSurface === "Project Tracker" && <ProjectTracker />}
-              {activeSurface === "League Pulse" && <LeaguePulse />}
-            </>
+          <h1 className="dg-shell__title">
+            {activeDestination?.label ?? activeSurface}
+          </h1>
+          {/* The view switcher for a destination that holds more than one
+              surface. Each view IS a `?surface=` slug, so the switcher and a
+              bookmark are the same navigation by two routes. */}
+          {activeDestination !== null && activeDestination.views.length > 1 && (
+            <nav
+              className="dg-shell__views"
+              aria-label={`${activeDestination.label} views`}
+            >
+              {activeDestination.views.map((view) => (
+                <button
+                  key={view.surface}
+                  type="button"
+                  className="dg-shell__view-item"
+                  aria-current={activeSurface === view.surface ? "page" : undefined}
+                  onClick={() => goToSurface(view.surface)}
+                >
+                  {view.label}
+                </button>
+              ))}
+            </nav>
           )}
+          {isParked(activeSurface) && <ParkedSurfaceCard surface={activeSurface} />}
+          {activeSurface === "Asset Primitive Capture" && <AssetPrimitiveCapture />}
+          {activeSurface === "Roster Audit" && <RosterAudit />}
+          {activeSurface === "Roster Capacity" && <RosterCapacitySandbox />}
+          {activeSurface === "Daily What-Changed" && (
+            <DailyWhatChanged onSelectPlayer={selectPlayerById} />
+          )}
+          {activeSurface === "Accuracy Tracker" && (
+            <div className="dg-shell__stack">
+              {/* The record leads: what has actually been measured about this model,
+                  market question first. The per-cohort scorecard beneath it is the
+                  drill-down for a live week once one exists. */}
+              <ModelScoreboard />
+              <RealizedOutcomeScorecard />
+            </div>
+          )}
+          {activeSurface === "Trade Lab" && <TradeLab onSelectPlayer={selectPlayer} />}
+          {activeSurface === "Trade Partners" && <TradePartners />}
+          {activeSurface === "Model Trust" && <TrustConsole />}
+          {activeSurface === "Project Tracker" && <ProjectTracker />}
+          {activeSurface === "League Pulse" && <LeaguePulse />}
         </main>
 
-        <aside
-          ref={inspectorRef}
-          className="dg-shell__inspector"
-          aria-label="Player inspector"
-          data-state={inspectorOpen ? "open" : "closed"}
-        >
-          <button
-            type="button"
-            className="dg-shell__inspector-toggle"
-            aria-label="Toggle player inspector"
-            onClick={() => setInspectorOpen((open) => !open)}
-          >
-            Inspector
-          </button>
-          {selectedPlayer ? (
-            <PlayerInspector
-              player={selectedPlayer}
-              onClose={() => setInspectorOpen(false)}
-              onOpenFullDetail={() => setFullDetailSleeperId(selectedPlayer.sleeperId)}
-            />
-          ) : (
-            <p className="dg-shell__inspector-empty">
-              No player picked yet. Search in the sidebar, or click any player's name.
-            </p>
-          )}
-        </aside>
+        {playerCard.player !== null && (
+          <PlayerCardDrawer onClose={playerCard.close}>
+            <PlayerDetailPage sleeperId={playerCard.player.sleeperId} />
+          </PlayerCardDrawer>
+        )}
 
         <CommandPalette
           commands={commands}
@@ -319,10 +303,11 @@ export function AppShell() {
           // Same rule the search box follows: a failed read says it failed
           // rather than rendering a list with no players in it.
           notice={
-            palettePlayers.status === "unavailable"
-              ? "We could not read the player list, so no players are shown here. Surfaces still work."
-              : undefined
+            palettePlayers.status === "unavailable" ? PLAYER_LIST_UNREADABLE : undefined
           }
+          // The scope of what was searched, said out loud when the list comes
+          // back empty — see paletteEmptyNotice above.
+          emptyNotice={paletteEmptyNotice}
           open={paletteOpen}
           onOpenChange={setPaletteOpen}
           onQueryChange={setPaletteQuery}

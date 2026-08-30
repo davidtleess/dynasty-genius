@@ -45,6 +45,10 @@ const CHROME_FILES = [
   "shell/ShellStatusDrawer.css",
   "shell/ParkedSurfaceCard.css",
   "command/CommandPalette.css",
+  // DG-114: the player card drawer's FRAME — scrim, sticky bar, close button.
+  // The card inside it keeps its lane colors, because those are readings of
+  // data; the box around it is furniture like every other entry here.
+  "player/PlayerCardDrawer.css",
 ];
 
 const TYPE_SCALE = [

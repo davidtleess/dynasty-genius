@@ -72,8 +72,17 @@ describe("AppShell H2 I1 URL surface state", () => {
 
     render(<AppShell />);
 
-    expect(screen.getByRole("heading", { name: "Trade Lab", level: 1 })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Trade Lab" })).toHaveProperty(
+    // DG-114 groups Trade Lab under the Trades destination. The SLUG is
+    // untouched — that is the point of the check — so a bookmark saved before
+    // the grouping still lands on the trade builder, with Trades lit in the rail
+    // and the builder's own view chip current inside it.
+    expect(screen.getByRole("heading", { name: "Trades", level: 1 })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Trades" })).toHaveProperty(
+      "ariaCurrent",
+      "page",
+    );
+    const views = screen.getByRole("navigation", { name: "Trades views" });
+    expect(within(views).getByRole("button", { name: "Build a trade" })).toHaveProperty(
       "ariaCurrent",
       "page",
     );
@@ -85,9 +94,7 @@ describe("AppShell H2 I1 URL surface state", () => {
 
     render(<AppShell />);
 
-    expect(
-      screen.getByRole("heading", { name: "Daily What-Changed", level: 1 }),
-    ).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Today", level: 1 })).toBeTruthy();
   });
 
   it("updates the URL from rail navigation without adding player state", async () => {
@@ -96,7 +103,7 @@ describe("AppShell H2 I1 URL surface state", () => {
 
     render(<AppShell />);
     const navigation = screen.getByRole("navigation", { name: "Primary surfaces" });
-    fireEvent.click(within(navigation).getByRole("button", { name: "League Pulse" }));
+    fireEvent.click(within(navigation).getByRole("button", { name: "League" }));
 
     await waitFor(() =>
       expect(screen.getByRole("region", { name: /league pulse/i })).toBeTruthy(),
@@ -120,7 +127,7 @@ describe("AppShell H2 I1 URL surface state", () => {
       expect(screen.getByRole("region", { name: /league pulse/i })).toBeTruthy(),
     );
     expect(window.location.search).toBe("?surface=league-pulse");
-    expect(screen.getByRole("button", { name: "League Pulse" })).toHaveProperty(
+    expect(screen.getByRole("button", { name: "League" })).toHaveProperty(
       "ariaCurrent",
       "page",
     );

@@ -16,9 +16,19 @@ ROOT = Path(__file__).resolve().parents[2]
 # sentence. The No-Verdict cordon this test enforces is unchanged and is what the
 # assertions below still check: the header nominates no player, directs no trade,
 # and says in plain words that reading a roster is not reading a manager.
+#
+# DG-114 (2026-08-30): "and who to call" LEFT WITH ITS PANEL. Partner Rankings
+# moved from League Pulse to Trades (spec §4.1), so the header was promising a
+# section the page no longer contains — a false sentence on a live surface, and
+# the reason the review blocked the land. The clause is struck and a plain
+# pointer to the panel's new address replaces it. Both facts the cordon cares
+# about survive verbatim: it is a read-only snapshot, and we read rosters rather
+# than minds. The pointer names a place in the product; it nominates no player
+# and directs no trade, and the assertions below re-prove that on the new string.
 HEADER_COPY = (
-    "Your league at a glance — who's contending, who's rebuilding, and who to "
-    "call. It's a read-only snapshot: we read each roster, we don't read minds."
+    "Your league at a glance — who's contending and who's rebuilding. It's a "
+    "read-only snapshot: we read each roster, we don't read minds. Partner "
+    "rankings now sit under Trades, beside the trade builder."
 )
 OLD_LEAGUE_OPPORTUNITY_TOKENS = {
     "recommended_drop",

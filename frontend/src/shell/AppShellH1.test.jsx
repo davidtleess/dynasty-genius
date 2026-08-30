@@ -5,18 +5,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AppShell } from "./AppShell";
 
-const PRIMARY_LABELS = [
-  "Daily What-Changed",
-  "Roster Audit",
-  "Trade Lab",
-  "Roster Capacity",
-  "League Pulse",
-  "Model Trust",
-  "Accuracy Tracker",
-  "Rookie Board (Parked)",
-  "Waiver Radar (Parked)",
-  "Research Assistant (Parked)",
-];
+// DG-114 amends this contract on David's authority (2026-08-30 panel, verbatim
+// option label: "Remove from nav entirely"). H1 §1b put the parked surfaces LAST
+// in the rail with a "(Parked)" badge, on the argument that hiding them would
+// hide an honest gap. David has now ruled the other way: roadmap is not product,
+// so they leave the navigation and stay reachable at their URL — where the
+// honest gap is still stated in full, by the same parked card, which the third
+// check below still mounts and reads. The fact survives; the rail entry does not.
+const PRIMARY_LABELS = ["Today", "Roster", "Trades", "League", "Track record"];
 
 function healthResponse() {
   return {
@@ -153,24 +149,26 @@ function installFetch() {
   });
 }
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  window.history.replaceState(null, "", "/");
+});
 
 describe("AppShell H1 daily-login UX contract", () => {
-  it("boots directly to Daily What-Changed on a fresh mount", async () => {
+  it("boots directly to the morning read on a fresh mount", async () => {
     installFetch();
 
     render(<AppShell />);
 
-    expect(
-      screen.getByRole("heading", { name: "Daily What-Changed", level: 1 }),
-    ).toBeTruthy();
+    // Same surface, same first screen; the destination is called Today now.
+    expect(screen.getByRole("heading", { name: "Today", level: 1 })).toBeTruthy();
     await waitFor(() =>
       expect(screen.getByRole("region", { name: /daily what-changed/i })).toBeTruthy(),
     );
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/league/what-changed");
   });
 
-  it("orders primary rail active first and parked last with exact parked badges", () => {
+  it("leads the rail with the morning read and carries no parked entry at all", () => {
     installFetch();
 
     render(<AppShell />);
@@ -182,11 +180,11 @@ describe("AppShell H1 daily-login UX contract", () => {
         .map((button) => button.textContent.replace(/\s+/g, " ").trim()),
     ).toEqual(PRIMARY_LABELS);
     for (const label of ["Rookie Board", "Waiver Radar", "Research Assistant"]) {
-      const item = within(navigation).getByRole("button", {
-        name: new RegExp(label, "i"),
-      });
-      expect(within(item).getByText("(Parked)")).toBeTruthy();
+      expect(
+        within(navigation).queryByRole("button", { name: new RegExp(label, "i") }),
+      ).toBeNull();
     }
+    expect(within(navigation).queryByText("(Parked)")).toBeNull();
     expect(
       within(navigation).queryByRole("button", { name: /Project Tracker/i }),
     ).toBeNull();
@@ -195,10 +193,9 @@ describe("AppShell H1 daily-login UX contract", () => {
   it("renders parked educational cards with evidence paths and unpark conditions", () => {
     installFetch();
 
-    render(<AppShell />);
-    const navigation = screen.getByRole("navigation", { name: "Primary surfaces" });
-
-    fireEvent.click(within(navigation).getByRole("button", { name: /Rookie Board/i }));
+    // Out of the rail, still at its URL, still saying exactly why it is parked.
+    window.history.replaceState(null, "", "/?surface=rookie-board");
+    const first = render(<AppShell />);
     expect(screen.getByRole("heading", { name: "Rookie Board — parked" })).toBeTruthy();
     expect(screen.getByText(/failed its pre-registered promotion gates/i)).toBeTruthy();
     expect(
@@ -207,16 +204,18 @@ describe("AppShell H1 daily-login UX contract", () => {
     expect(
       screen.getByText(/David-ratified spec for a React rookie surface/i),
     ).toBeTruthy();
+    first.unmount();
 
-    fireEvent.click(within(navigation).getByRole("button", { name: /Waiver Radar/i }));
+    window.history.replaceState(null, "", "/?surface=waiver-radar");
+    const second = render(<AppShell />);
     expect(screen.getByRole("heading", { name: "Waiver Radar — parked" })).toBeTruthy();
     expect(screen.getByText(/needs in-season usage signals/i)).toBeTruthy();
     expect(screen.getByText("PRODUCT.md")).toBeTruthy();
     expect(screen.getByText(/In-season 2026 usage accrual/i)).toBeTruthy();
+    second.unmount();
 
-    fireEvent.click(
-      within(navigation).getByRole("button", { name: /Research Assistant/i }),
-    );
+    window.history.replaceState(null, "", "/?surface=research-assistant");
+    render(<AppShell />);
     expect(
       screen.getByRole("heading", { name: "Research Assistant — parked" }),
     ).toBeTruthy();
@@ -224,22 +223,23 @@ describe("AppShell H1 daily-login UX contract", () => {
     expect(screen.getByText(/David-prioritized design cycle/i)).toBeTruthy();
   });
 
-  it("keeps Project Tracker out of primary rail but reachable in Developer zone and Cmd-K", async () => {
+  it("keeps Project Tracker out of every navigation affordance and reachable at its URL", async () => {
     installFetch();
 
+    // The Developer zone in the rail is gone with the parked entries: the crew
+    // reaches its own tracker the way the spec says (§4.1), by URL.
+    window.history.replaceState(null, "", "/?surface=project-tracker");
     render(<AppShell />);
+    await waitFor(() => expect(screen.getByText("Horizon 1")).toBeTruthy());
 
     const primary = screen.getByRole("navigation", { name: "Primary surfaces" });
     expect(
       within(primary).queryByRole("button", { name: /Project Tracker/i }),
     ).toBeNull();
-
-    const developer = screen.getByRole("navigation", { name: /Developer/i });
-    fireEvent.click(within(developer).getByRole("button", { name: "Project Tracker" }));
-    await waitFor(() => expect(screen.getByText("Horizon 1")).toBeTruthy());
+    expect(screen.queryByRole("navigation", { name: /Developer/i })).toBeNull();
 
     fireEvent.keyDown(document, { key: "k", metaKey: true });
-    expect(screen.getByRole("option", { name: "Project Tracker" })).toBeTruthy();
-    expect(screen.getByRole("option", { name: "Rookie Board" })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "Project Tracker" })).toBeNull();
+    expect(screen.queryByRole("option", { name: "Rookie Board" })).toBeNull();
   });
 });

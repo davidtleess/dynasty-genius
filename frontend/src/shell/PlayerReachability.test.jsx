@@ -8,8 +8,8 @@
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
 import { leaguePulseResponse } from "../league-pulse/fixtures";
+import playerDetailLive from "../lib/__fixtures__/playerDetail.live.json";
 import { AppShell } from "./AppShell";
 
 const DRAFT_KEY = "dg.tradeLab.draft";
@@ -242,29 +242,32 @@ function whatChangedResponse() {
   };
 }
 
-function playerDetailResponse() {
+// DG-114: a press now opens the CARD, not a preview of it, so the card has to
+// parse. This is David's own captured player payload with the identity swapped
+// to whichever player the press asked for — the reachability question is
+// whether the right sleeper id reached the card, and the name it renders is the
+// card's answer to that.
+const NAME_BY_SLEEPER_ID = {
+  11565: "J.J. McCarthy",
+  11570: "Rasheen Ali",
+  11571: "Cut Candidate",
+  12508: "Jaxson Dart",
+  13269: "Chase",
+  "drop-1": "Depth WR",
+  "player-3": "New Arrival",
+  "player-4": "Gone Guy",
+};
+
+function playerCardFor(url) {
+  const sleeperId = String(url).split("/api/players/")[1];
+  const name = NAME_BY_SLEEPER_ID[sleeperId];
+  if (name === undefined) {
+    throw new Error(`no captured card for sleeper id ${sleeperId}`);
+  }
   return {
-    caveats: [],
-    decision_supported: false,
-    degradation: null,
-    divergence: null,
-    evidence: null,
-    frozen_prediction: null,
-    identity: {
-      age: 22,
-      draft_class: 2025,
-      name: "Player Card",
-      nfl_draft_pick: 25,
-      nfl_draft_round: 1,
-      position: "QB",
-      sleeper_id: "12508",
-      team: "NYG",
-    },
-    market: null,
-    model: null,
-    model_status: "modeled",
-    sleeper_id: "12508",
-    source_timestamps: {},
+    ...playerDetailLive,
+    identity: { ...playerDetailLive.identity, name, sleeper_id: sleeperId },
+    sleeper_id: sleeperId,
   };
 }
 
@@ -274,7 +277,13 @@ function mockEndpoints(routes) {
   globalThis.fetch = vi.fn().mockImplementation((input) => {
     const url = typeof input === "string" ? input : String(input);
     const key = Object.keys(routes).find((route) => url.startsWith(route));
-    const body = key === undefined ? { detail: "down" } : routes[key];
+    const route = key === undefined ? undefined : routes[key];
+    const body =
+      key === undefined
+        ? { detail: "down" }
+        : typeof route === "function"
+          ? route(url)
+          : route;
     const ok = key !== undefined;
     return Promise.resolve({
       ok,
@@ -284,24 +293,41 @@ function mockEndpoints(routes) {
   });
 }
 
-function inspector() {
-  return screen.getByRole("complementary", { name: "Player inspector" });
+function playerCard() {
+  return screen.getByRole("dialog", { name: "Player card" });
 }
 
 async function expectCardOpened(name) {
-  await waitFor(() => {
-    expect(inspector().dataset.state).toBe("open");
-  });
-  expect(within(inspector()).getByText(name)).toBeTruthy();
+  const card = await screen.findByRole("dialog", { name: "Player card" });
+  expect(
+    await within(card).findByRole("article", {
+      name: new RegExp(`player detail for ${name}`, "i"),
+    }),
+  ).toBeTruthy();
 }
 
-function goToSurface(label) {
+// DG-114: one press opens the card, so the reachability checks close it again
+// before asking for the next one — exactly what a person does.
+function closeCard() {
+  fireEvent.click(
+    within(playerCard()).getByRole("button", { name: "Close player card" }),
+  );
+}
+
+function goToSurface(destination, view) {
   fireEvent.click(
     within(screen.getByRole("navigation", { name: "Primary surfaces" })).getByRole(
       "button",
-      { name: label },
+      { name: destination },
     ),
   );
+  if (view !== undefined) {
+    fireEvent.click(
+      within(
+        screen.getByRole("navigation", { name: `${destination} views` }),
+      ).getByRole("button", { name: view }),
+    );
+  }
 }
 
 beforeEach(() => {
@@ -318,7 +344,7 @@ describe("DG-110 · a player is reachable from anywhere", () => {
   it("finds any tracked player from the shell without touching the trade draft", async () => {
     mockEndpoints({
       "/api/trade/assets": catalogResponse(),
-      "/api/players/": playerDetailResponse(),
+      "/api/players/": playerCardFor,
     });
     render(<AppShell />);
 
@@ -337,13 +363,14 @@ describe("DG-110 · a player is reachable from anywhere", () => {
   it("opens a player's card from his name on Roster Audit, and keeps the row detail", async () => {
     mockEndpoints({
       "/api/roster/audit": rosterAuditResponse(),
-      "/api/players/": playerDetailResponse(),
+      "/api/players/": playerCardFor,
     });
     render(<AppShell />);
-    goToSurface("Roster Audit");
+    goToSurface("Roster", "All players");
 
     fireEvent.click(await screen.findByRole("button", { name: /^Open Rasheen Ali/ }));
     await expectCardOpened("Rasheen Ali");
+    closeCard();
 
     // The row's inline evidence is truth-bearing and survives the rewiring.
     // DG-109 turned the raw `no_market_overlay` key into the sentence it always
@@ -357,10 +384,10 @@ describe("DG-110 · a player is reachable from anywhere", () => {
   it("opens a player's card from a QB context card", async () => {
     mockEndpoints({
       "/api/roster/audit": rosterAuditResponse(),
-      "/api/players/": playerDetailResponse(),
+      "/api/players/": playerCardFor,
     });
     render(<AppShell />);
-    goToSurface("Roster Audit");
+    goToSurface("Roster", "All players");
 
     const qb = await screen.findByRole("region", { name: /qb context cards/i });
     fireEvent.click(within(qb).getByRole("button", { name: /^Open J\.J\. McCarthy/ }));
@@ -370,10 +397,10 @@ describe("DG-110 · a player is reachable from anywhere", () => {
   it("opens a player's card from a Roster Capacity cut candidate", async () => {
     mockEndpoints({
       "/api/roster/capacity": rosterCapacityResponse(),
-      "/api/players/": playerDetailResponse(),
+      "/api/players/": playerCardFor,
     });
     render(<AppShell />);
-    goToSurface("Roster Capacity");
+    goToSurface("Roster", "Cut list");
 
     fireEvent.click(await screen.findByRole("button", { name: /^Open Rasheen Ali/ }));
     await expectCardOpened("Rasheen Ali");
@@ -382,10 +409,10 @@ describe("DG-110 · a player is reachable from anywhere", () => {
   it("opens a player's card from a League Pulse capacity pool", async () => {
     mockEndpoints({
       "/api/league/pulse": leaguePulseResponse(),
-      "/api/players/": playerDetailResponse(),
+      "/api/players/": playerCardFor,
     });
     render(<AppShell />);
-    goToSurface("League Pulse");
+    goToSurface("League");
 
     fireEvent.click(await screen.findByRole("button", { name: /^Open Depth WR/ }));
     await expectCardOpened("Depth WR");
@@ -394,12 +421,13 @@ describe("DG-110 · a player is reachable from anywhere", () => {
   it("opens a player's card from the front page's entered and exited chips", async () => {
     mockEndpoints({
       "/api/league/what-changed": whatChangedResponse(),
-      "/api/players/": playerDetailResponse(),
+      "/api/players/": playerCardFor,
     });
     render(<AppShell />);
 
     fireEvent.click(await screen.findByRole("button", { name: /^Open New Arrival/ }));
     await expectCardOpened("New Arrival");
+    closeCard();
 
     fireEvent.click(screen.getByRole("button", { name: /^Open Gone Guy/ }));
     await expectCardOpened("Gone Guy");
@@ -408,7 +436,7 @@ describe("DG-110 · a player is reachable from anywhere", () => {
   it("opens a player's card from the front page's largest-mover hero line", async () => {
     mockEndpoints({
       "/api/league/what-changed": whatChangedResponse(),
-      "/api/players/": playerDetailResponse(),
+      "/api/players/": playerCardFor,
     });
     render(<AppShell />);
 
@@ -457,7 +485,7 @@ describe("DG-110 · a player is reachable from the trade result lanes", () => {
       roster_penalty: {
         decision_supported: false,
         forced_cut_candidates: [
-          { full_name: "Cut Candidate", sleeper_player_id: "11570", position: "RB" },
+          { full_name: "Cut Candidate", sleeper_player_id: "11571", position: "RB" },
         ],
         forced_cut_recovery_range: [1.2, 2.3],
         forced_cut_value_at_risk_range: [0.8, 1.9],
@@ -518,10 +546,10 @@ describe("DG-110 · a player is reachable from the trade result lanes", () => {
       "/api/trade/assets": catalogResponse(),
       "/api/trade/reconcile/market": marketReconciliation(),
       "/api/trade/reconcile": modelReconciliation(),
-      "/api/players/": playerDetailResponse(),
+      "/api/players/": playerCardFor,
     });
     render(<AppShell />);
-    goToSurface("Trade Lab");
+    goToSurface("Trades", "Build a trade");
 
     fireEvent.change(
       screen.getByRole("searchbox", { name: "Add a player or a draft pick" }),
@@ -533,6 +561,7 @@ describe("DG-110 · a player is reachable from the trade result lanes", () => {
     const marketLane = await screen.findByTestId("market-lane");
     fireEvent.click(within(marketLane).getByRole("button", { name: /^Open Chase/ }));
     await expectCardOpened("Chase");
+    closeCard();
 
     const modelLane = screen.getByTestId("model-lane");
     fireEvent.click(
@@ -546,7 +575,7 @@ describe("DG-110 · the command palette indexes players", () => {
   it("has a visible trigger and a placeholder, and opens a player from a typed name", async () => {
     mockEndpoints({
       "/api/trade/assets": catalogResponse(),
-      "/api/players/": playerDetailResponse(),
+      "/api/players/": playerCardFor,
     });
     render(<AppShell />);
 
@@ -561,15 +590,17 @@ describe("DG-110 · the command palette indexes players", () => {
   });
 });
 
-describe("DG-110 · the inspector never opens empty", () => {
-  it("stays closed on first load and opens on the first selection", async () => {
+describe("DG-110 · the player panel never opens empty", () => {
+  it("is absent on first load and opens on the first selection", async () => {
     mockEndpoints({
       "/api/trade/assets": catalogResponse(),
-      "/api/players/": playerDetailResponse(),
+      "/api/players/": playerCardFor,
     });
     render(<AppShell />);
 
-    expect(inspector().dataset.state).toBe("closed");
+    // DG-110 stopped an empty inspector opening on load; DG-114 removes the
+    // standing panel altogether, so there is nothing to be empty.
+    expect(screen.queryByRole("dialog", { name: "Player card" })).toBeNull();
 
     fireEvent.change(screen.getByRole("searchbox", { name: /find a player/i }), {
       target: { value: "cha" },
@@ -640,7 +671,7 @@ describe("DG-110 · the finder states only what is true", () => {
   it("clears the box on selection so the result list stops burying the rail nav", async () => {
     mockEndpoints({
       "/api/trade/assets": catalogResponse(),
-      "/api/players/": playerDetailResponse(),
+      "/api/players/": playerCardFor,
     });
     render(<AppShell />);
     await typeInFinder("cha");

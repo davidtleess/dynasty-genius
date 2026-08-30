@@ -140,10 +140,18 @@ describe("TrustConsole", () => {
   it("mounts a minimal Model Trust placeholder with position controls", () => {
     render(<AppShell />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Model Trust" }));
+    // DG-114: Model Trust is the first view of the Track record destination.
+    // Its `?surface=model-trust` slug is untouched — this is the rail route.
+    fireEvent.click(screen.getByRole("button", { name: "Track record" }));
 
     const main = screen.getByRole("main");
-    expect(within(main).getByRole("heading", { name: "Model Trust" })).toBeTruthy();
+    expect(within(main).getByRole("heading", { name: "Track record" })).toBeTruthy();
+    expect(
+      within(screen.getByRole("navigation", { name: "Track record views" })).getByRole(
+        "button",
+        { name: "Model trust" },
+      ),
+    ).toHaveProperty("ariaCurrent", "page");
     for (const position of ["QB", "RB", "WR", "TE"]) {
       expect(within(main).getByRole("button", { name: position })).toBeTruthy();
     }

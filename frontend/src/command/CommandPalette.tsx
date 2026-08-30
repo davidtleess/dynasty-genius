@@ -36,6 +36,7 @@ export function CommandPalette({
   commands,
   extraCommands = [],
   notice,
+  emptyNotice,
   onQueryChange,
   placeholder = "Search players and surfaces…",
   open: controlledOpen,
@@ -50,6 +51,19 @@ export function CommandPalette({
    * empty palette, which reads as "no such player" (DG-110 panel).
    */
   notice?: string | undefined;
+  /**
+   * What to say when the list comes back with NOTHING in it. Separate from
+   * `notice` because it is a different fact: `notice` is about the read, this
+   * is about the scope of what was searched.
+   *
+   * DG-114 REVIEW FIX. At 390 the rail's search box is hidden (AppShell.css:
+   * two search fields on a 390px screen is one too many), which made this
+   * palette the only player finder on a phone — and it rendered an empty
+   * listbox and nothing else. An empty list reads as "we do not track him",
+   * which is exactly the absence-vs-scope confusion DG-110 fixed for the box
+   * this replaced. The scoping sentence has to be here too.
+   */
+  emptyNotice?: string | undefined;
   /** DG-110: lets the shell run a live player search on the typed text. */
   onQueryChange?: ((query: string) => void) | undefined;
   placeholder?: string;
@@ -113,6 +127,12 @@ export function CommandPalette({
 
   function handleSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
+      // Escape belongs to the TOPMOST layer. The player card's drawer listens
+      // for Escape on `document`, and this React handler runs first (at the
+      // root container), so without stopping the native event here one press
+      // dismissed the palette AND the card underneath it — measured in
+      // Chromium: {palette:true, drawer:true} -> {palette:false, drawer:false}.
+      event.stopPropagation();
       changeOpen(false);
       // Reopening must not restore a stale query and its stale player results;
       // every other close path already resets.
@@ -159,6 +179,11 @@ export function CommandPalette({
       {notice !== undefined && (
         <p className="dg-cmdk__notice" role="status">
           {notice}
+        </p>
+      )}
+      {filtered.length === 0 && emptyNotice !== undefined && (
+        <p className="dg-cmdk__notice" role="status">
+          {emptyNotice}
         </p>
       )}
       <div className="dg-cmdk__list" role="listbox" aria-label="Commands">
