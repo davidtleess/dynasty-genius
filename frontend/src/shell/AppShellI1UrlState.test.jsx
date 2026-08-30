@@ -106,7 +106,7 @@ describe("AppShell H2 I1 URL surface state", () => {
     fireEvent.click(within(navigation).getByRole("button", { name: "League" }));
 
     await waitFor(() =>
-      expect(screen.getByRole("region", { name: /league pulse/i })).toBeTruthy(),
+      expect(screen.getByRole("region", { name: "League Pulse" })).toBeTruthy(),
     );
     expect(window.location.search).toBe("?surface=league-pulse");
     expect(window.location.search).not.toContain("player=");
@@ -124,7 +124,7 @@ describe("AppShell H2 I1 URL surface state", () => {
     fireEvent.keyDown(search, { key: "Enter" });
 
     await waitFor(() =>
-      expect(screen.getByRole("region", { name: /league pulse/i })).toBeTruthy(),
+      expect(screen.getByRole("region", { name: "League Pulse" })).toBeTruthy(),
     );
     expect(window.location.search).toBe("?surface=league-pulse");
     expect(screen.getByRole("button", { name: "League" })).toHaveProperty(

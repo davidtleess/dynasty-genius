@@ -107,7 +107,8 @@ export function MarketLanePanel({
       data-testid="market-lane"
       data-visual-weight="equal"
     >
-      <h3 className="dg-lane__title">The market</h3>
+      {/* DG-118: sibling of the verdict heading — see TradeVerdict.tsx. */}
+      <h2 className="dg-lane__title">The market</h2>
       <p className="dg-lane__scale">FantasyCalc points</p>
       <dl className="dg-lane__metrics">
         <dt>You send</dt>

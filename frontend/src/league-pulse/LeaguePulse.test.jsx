@@ -23,7 +23,7 @@ describe("LeaguePulse container", () => {
 
     expect(screen.getByText(/loading league pulse/i)).toBeTruthy();
     await waitFor(() =>
-      expect(screen.getByRole("region", { name: /league pulse/i })).toBeTruthy(),
+      expect(screen.getByRole("region", { name: "League Pulse" })).toBeTruthy(),
     );
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/league/pulse");
   });
@@ -45,7 +45,7 @@ describe("LeaguePulse container", () => {
 
     const surface = await screen.findByTestId("league-pulse-ready");
     expect(
-      within(surface).getByRole("banner", { name: /league pulse status/i }),
+      within(surface).getByRole("region", { name: /league pulse status/i }),
     ).toBeTruthy();
     // DG-111: the header band speaks one sentence now instead of three stamps.
     expect(within(surface).queryByText(/not decision-grade/i)).toBeNull();

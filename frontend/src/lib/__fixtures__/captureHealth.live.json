@@ -1,0 +1,187 @@
+{
+  "overall_status": "degraded",
+  "config_version": 3,
+  "checked_at": "2026-08-30T20:25:16.612621+00:00",
+  "stores": [
+    {
+      "store_id": "fc_forward_capture",
+      "store_status": "ok",
+      "store_presence": "present",
+      "timeline": {
+        "capture_start_date": "2026-06-24",
+        "first_date": "2026-06-24",
+        "last_date": "2026-08-30",
+        "expected_days": 68,
+        "present_days": 68,
+        "missing_dates_count": 0,
+        "missing_ranges": [],
+        "missing_ranges_total": 0,
+        "max_contiguous_gap_days": 0,
+        "consecutive_days_current": 68
+      },
+      "staleness": {
+        "last_capture_date": "2026-08-30",
+        "expected_by": "2026-08-30T12:00:00-04:00",
+        "stale": false,
+        "grace_hours": 3
+      },
+      "density": {
+        "floor_pct": 50,
+        "baseline_median_rows": 473,
+        "baseline_window": 14,
+        "sub_floor_dates": []
+      },
+      "flags": {
+        "warn_missing": false,
+        "warn_basis": "off_season>=3 consecutive",
+        "window_risk": false,
+        "window_risk_basis": ">=7 contiguous missing days"
+      },
+      "schedule_drift": {
+        "target_local": "09:00",
+        "chain_step": "run_fc_forward_capture",
+        "recorded_start": "2026-08-30T09:00:01.605441-04:00",
+        "drift_minutes": 0,
+        "exceeds_grace": false,
+        "basis": "chain_report"
+      },
+      "caveats": [],
+      "decision_supported": false
+    },
+    {
+      "store_id": "model_forward_capture",
+      "store_status": "degraded",
+      "store_presence": "present",
+      "timeline": {
+        "capture_start_date": "2026-06-24",
+        "first_date": "2026-06-24",
+        "last_date": "2026-08-30",
+        "expected_days": 68,
+        "present_days": 67,
+        "missing_dates_count": 1,
+        "missing_ranges": [
+          {
+            "from": "2026-08-12",
+            "to": "2026-08-12",
+            "days": 1
+          }
+        ],
+        "missing_ranges_total": 1,
+        "max_contiguous_gap_days": 1,
+        "consecutive_days_current": 18
+      },
+      "staleness": {
+        "last_capture_date": "2026-08-30",
+        "expected_by": "2026-08-30T12:45:00-04:00",
+        "stale": false,
+        "grace_hours": 3
+      },
+      "density": {
+        "floor_pct": 50,
+        "baseline_median_rows": 12203,
+        "baseline_window": 14,
+        "sub_floor_dates": []
+      },
+      "flags": {
+        "warn_missing": false,
+        "warn_basis": "off_season>=3 consecutive",
+        "window_risk": false,
+        "window_risk_basis": ">=7 contiguous missing days"
+      },
+      "schedule_drift": {
+        "target_local": "09:45",
+        "chain_step": "run_pvo_refresh",
+        "recorded_start": "2026-08-30T09:00:47.887580-04:00",
+        "drift_minutes": -44,
+        "exceeds_grace": false,
+        "basis": "chain_report"
+      },
+      "caveats": [],
+      "decision_supported": false
+    },
+    {
+      "store_id": "market_divergence_history",
+      "store_status": "degraded",
+      "store_presence": "present",
+      "timeline": {
+        "capture_start_date": "2026-07-09",
+        "first_date": "2026-07-09",
+        "last_date": "2026-08-30",
+        "expected_days": 53,
+        "present_days": 49,
+        "missing_dates_count": 4,
+        "missing_ranges": [
+          {
+            "from": "2026-07-10",
+            "to": "2026-07-10",
+            "days": 1
+          },
+          {
+            "from": "2026-07-12",
+            "to": "2026-07-12",
+            "days": 1
+          },
+          {
+            "from": "2026-07-17",
+            "to": "2026-07-17",
+            "days": 1
+          },
+          {
+            "from": "2026-08-12",
+            "to": "2026-08-12",
+            "days": 1
+          }
+        ],
+        "missing_ranges_total": 4,
+        "max_contiguous_gap_days": 1,
+        "consecutive_days_current": 18
+      },
+      "staleness": {
+        "last_capture_date": "2026-08-30",
+        "expected_by": "2026-08-30T12:40:00-04:00",
+        "stale": false,
+        "grace_hours": 3
+      },
+      "density": {
+        "floor_pct": 50,
+        "baseline_median_rows": 12209,
+        "baseline_window": 14,
+        "sub_floor_dates": []
+      },
+      "flags": {
+        "warn_missing": false,
+        "warn_basis": "off_season>=3 consecutive",
+        "window_risk": false,
+        "window_risk_basis": ">=7 contiguous missing days"
+      },
+      "schedule_drift": {
+        "target_local": "09:40",
+        "chain_step": "run_market_divergence_refresh",
+        "recorded_start": "2026-08-30T09:00:51.601522-04:00",
+        "drift_minutes": -39,
+        "exceeds_grace": false,
+        "basis": "chain_report"
+      },
+      "caveats": [],
+      "decision_supported": false
+    }
+  ],
+  "backup": {
+    "status": "ok",
+    "reasons": [],
+    "marker_present": true,
+    "marker": {
+      "run_id": "20260830T141500Z",
+      "status": "completed",
+      "started_at": "2026-08-30T14:15:00.836311+00:00",
+      "finished_at": "2026-08-30T14:51:16.433736+00:00",
+      "sha256_verified": true,
+      "files": 703,
+      "bytes": 3742836731,
+      "failures": ["missing_optional:app/data/footballguys/observations.db"]
+    },
+    "threshold_hours": 26,
+    "decision_supported": false
+  },
+  "decision_supported": false
+}

@@ -60,7 +60,7 @@ describe("ProvenanceFooter", () => {
       />,
     );
 
-    const footer = screen.getByRole("contentinfo", { name: "Model trust provenance" });
+    const footer = screen.getByRole("region", { name: "Model trust provenance" });
     for (const text of [
       "483f87f9-1a16-4750-a825-0165c7335696",
       "2026-05-31T00:00:00Z",
@@ -96,7 +96,7 @@ describe("ProvenanceFooter", () => {
       />,
     );
 
-    const footer = screen.getByRole("contentinfo", { name: "Model trust provenance" });
+    const footer = screen.getByRole("region", { name: "Model trust provenance" });
     expect(within(footer).getAllByText("not available").length).toBeGreaterThanOrEqual(
       2,
     );

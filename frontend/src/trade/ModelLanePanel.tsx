@@ -39,7 +39,8 @@ export function ModelLanePanel({
           is the ONE name for it, and its jargon rule flags every other
           spelling — so the scale line uses the constant rather than declaring a
           fifth phrasing of the same thing. */}
-      <h3 className="dg-lane__title">Our model</h3>
+      {/* DG-118: sibling of the verdict heading — see TradeVerdict.tsx. */}
+      <h2 className="dg-lane__title">Our model</h2>
       <p className="dg-lane__scale">{VALUE_OVER_REPLACEMENT}</p>
       <dl className="dg-lane__metrics">
         <dt>You send</dt>

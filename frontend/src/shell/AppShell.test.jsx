@@ -164,7 +164,7 @@ describe("AppShell", () => {
     goTo("League");
 
     await waitFor(() =>
-      expect(screen.getByRole("region", { name: /league pulse/i })).toBeTruthy(),
+      expect(screen.getByRole("region", { name: "League Pulse" })).toBeTruthy(),
     );
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/league/pulse");
   });
