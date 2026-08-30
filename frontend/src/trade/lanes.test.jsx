@@ -3,10 +3,10 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { DivergenceStrip } from "./DivergenceStrip";
 import { MarketLanePanel } from "./MarketLanePanel";
 import { ModelLanePanel } from "./ModelLanePanel";
 import { TradeLab } from "./TradeLab";
+import { TradeVerdict } from "./TradeVerdict";
 
 function tradeSide(sideValue) {
   return {
@@ -164,9 +164,11 @@ describe("Trade Lab lane panels", () => {
     expect(lane.getAttribute("data-lane")).toBe("model");
     expect(within(lane).getByText("41.2")).toBeTruthy();
     expect(within(lane).getByText("39.1")).toBeTruthy();
-    expect(within(lane).getByText(/value-at-risk range/i)).toBeTruthy();
-    expect(within(lane).getByText(/recovery range/i)).toBeTruthy();
-    expect(within(lane).getByText(/adjusted fairness delta range/i)).toBeTruthy();
+    expect(within(lane).getByText(/what the forced cut could cost you/i)).toBeTruthy();
+    expect(within(lane).getByText(/what you could get back off waivers/i)).toBeTruthy();
+    expect(
+      within(lane).getByText(/how far from even, once the cut is counted/i),
+    ).toBeTruthy();
     for (const required of ["0.8", "1.9", "1.2", "2.3", "-1.4", "4.2"]) {
       expect(text).toContain(required);
     }
@@ -180,9 +182,11 @@ describe("Trade Lab lane panels", () => {
 
     const lane = screen.getByTestId("market-lane");
     expect(lane.getAttribute("data-lane")).toBe("market");
-    expect(within(lane).getByText("8400")).toBeTruthy();
-    expect(within(lane).getByText("7100")).toBeTruthy();
-    expect(within(lane).getByText("-1300")).toBeTruthy();
+    // 8,400 is both the side total and this single asset's own price, so the
+    // duplicate is expected — the assertion is that the grouped form renders.
+    expect(within(lane).getAllByText("8,400").length).toBeGreaterThan(0);
+    expect(within(lane).getByText("7,100")).toBeTruthy();
+    expect(within(lane).getByText("-1,300")).toBeTruthy();
     expect(
       within(lane).getByText("We price him higher than the market does"),
     ).toBeTruthy();
@@ -244,31 +248,37 @@ describe("Trade Lab lane panels", () => {
   });
 });
 
-describe("DivergenceStrip", () => {
-  it("shows model and market deltas as separate labelled facts without a blended number", () => {
+describe("TradeVerdict", () => {
+  it("prices both sides separately and never merges them into one number", () => {
     render(
-      <DivergenceStrip
-        model={modelReconciliation({ adjusted_fairness_delta: 2.1 })}
+      <TradeVerdict
+        model={modelReconciliation({
+          adjusted_david_received_value: 44.6,
+          adjusted_within_parity_band: false,
+        })}
         market={marketReconciliation({ market_delta_for_david: -1300 })}
       />,
     );
 
-    const strip = screen.getByTestId("divergence-strip");
-    expect(within(strip).getByText(/model lane/i)).toBeTruthy();
-    expect(within(strip).getByText("2.1")).toBeTruthy();
-    expect(within(strip).getByText(/market lane/i)).toBeTruthy();
-    expect(within(strip).getByText("-1300")).toBeTruthy();
-    expect(strip.textContent).not.toMatch(/combined|blended|average|vs/i);
-    expect(strip.textContent).not.toContain("-1297.9");
+    const verdict = screen.getByTestId("trade-verdict");
+    expect(verdict.textContent).toMatch(/by our model/i);
+    expect(verdict.textContent).toMatch(/by market prices/i);
+    // Each row's arithmetic is the difference of the two numbers printed beside
+    // it — 44.6 - 41.2 on the model scale, 7,100 - 8,400 on the market's.
+    expect(verdict.textContent).toContain("3.4");
+    expect(verdict.textContent).toContain("1,300");
+    expect(verdict.textContent).not.toMatch(/combined|blended|average/i);
+    // The one number that would be a lie: a subtraction across the two scales.
+    expect(verdict.textContent).not.toContain("-1297.9");
+    expect(verdict.textContent).toMatch(/different scales/i);
   });
 
   it.each([
-    ["model_higher_than_market", "model_higher_than_market"],
-    ["inside_band", "inside_band"],
-    ["unavailable", "unavailable"],
-  ])("surfaces backend signal label %s without client-side verdict wording", (label) => {
+    ["model_higher_than_market", "We price him higher than the market does"],
+    ["model_lower_than_market", "The market prices him higher than we do"],
+  ])("says the %s signal in words, never as the backend key", (label, sentence) => {
     render(
-      <DivergenceStrip
+      <TradeVerdict
         model={modelReconciliation()}
         market={marketReconciliation({
           sent_assets: [
@@ -278,18 +288,70 @@ describe("DivergenceStrip", () => {
       />,
     );
 
-    const strip = screen.getByTestId("divergence-strip");
-    expect(strip.textContent).toContain(label);
-    expect(strip.textContent).not.toMatch(/\bwin\b|\bloss\b|\bfair\b|\bmust\b/i);
+    const verdict = screen.getByTestId("trade-verdict");
+    expect(verdict.textContent).not.toContain(label);
+    expect(verdict.textContent).toContain(sentence);
+    expect(verdict.textContent).not.toMatch(/\bwin\b|\bloss\b|\bfair\b|\bmust\b/i);
   });
 
-  it("degrades gracefully when lane data is missing", () => {
-    render(<DivergenceStrip model={null} market={null} />);
+  it("lets the side totals disagree while each player's own price agrees", () => {
+    render(
+      <TradeVerdict
+        model={modelReconciliation({
+          adjusted_david_received_value: 2.85,
+          adjusted_within_parity_band: false,
+        })}
+        market={marketReconciliation({
+          market_delta_for_david: 2338,
+          sent_assets: [
+            marketOverlay({ divergence_context: divergenceContext("inside_band") }),
+          ],
+        })}
+      />,
+    );
 
-    const strip = screen.getByTestId("divergence-strip");
-    expect(strip.textContent).toMatch(/model lane/i);
-    expect(strip.textContent).toMatch(/market lane/i);
-    expect(strip.textContent).not.toMatch(/NaN|undefined|null/);
+    // The live case this came from: send Jaxson Dart, get Brock Bowers. The
+    // market has the deal going one way and the model the other, while neither
+    // player's own price is outside the band. Both statements are true, and the
+    // copy has to let them stand together.
+    const verdict = screen.getByTestId("trade-verdict");
+    expect(verdict.textContent).toMatch(/the market and our model disagree here/i);
+    expect(verdict.textContent).toMatch(
+      /taken one player at a time, our prices and the market's agree/i,
+    );
+  });
+
+  it("says a comparison is missing rather than implying the prices agree", () => {
+    render(
+      <TradeVerdict
+        model={modelReconciliation()}
+        market={marketReconciliation({
+          sent_assets: [
+            marketOverlay({ divergence_context: divergenceContext("unavailable") }),
+          ],
+        })}
+      />,
+    );
+
+    const verdict = screen.getByTestId("trade-verdict");
+    expect(verdict.textContent).not.toContain("unavailable");
+    expect(verdict.textContent).toMatch(/no player-by-player comparison/i);
+  });
+
+  it("names the surviving price when one lane did not load", () => {
+    const { rerender } = render(
+      <TradeVerdict model={null} market={marketReconciliation()} />,
+    );
+    expect(screen.getByTestId("trade-verdict").textContent).toMatch(
+      /our model's price for this trade did not load/i,
+    );
+
+    rerender(<TradeVerdict model={modelReconciliation()} market={null} />);
+    const verdict = screen.getByTestId("trade-verdict");
+    expect(verdict.textContent).toMatch(
+      /the market's price for this trade did not load/i,
+    );
+    expect(verdict.textContent).not.toMatch(/NaN|undefined|null/);
   });
 });
 
@@ -328,17 +390,17 @@ describe("TradeLab two-lane response wiring", () => {
       target: { value: "cha" },
     });
     fireEvent.click(await screen.findByRole("button", { name: "Chase" }));
-    fireEvent.click(screen.getByRole("button", { name: /run comparison/i }));
+    fireEvent.click(screen.getByRole("button", { name: /price this trade/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId("model-lane")).toBeTruthy();
       expect(screen.getByTestId("market-lane")).toBeTruthy();
     });
-    // Delta appears in both the market panel and the wired DivergenceStrip;
+    // Values appear in both the lane panel and the verdict block above it;
     // scope each assertion so the duplicate is intentional, not ambiguous.
     expect(within(screen.getByTestId("model-lane")).getByText("41.2")).toBeTruthy();
-    expect(within(screen.getByTestId("market-lane")).getByText("-1300")).toBeTruthy();
-    expect(screen.getByTestId("divergence-strip")).toBeTruthy();
+    expect(within(screen.getByTestId("market-lane")).getByText("-1,300")).toBeTruthy();
+    expect(screen.getByTestId("trade-verdict")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/combined|blended|average/i);
     expect(document.body.textContent).not.toMatch(/favors/i);
   });

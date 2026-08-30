@@ -178,7 +178,7 @@ async function runComparison() {
     target: { value: "cha" },
   });
   fireEvent.click(await screen.findByRole("button", { name: "Chase" }));
-  fireEvent.click(screen.getByRole("button", { name: /run comparison/i }));
+  fireEvent.click(screen.getByRole("button", { name: /price this trade/i }));
 }
 
 // DG-111: the panel's standing note is the mitigation paragraph itself now —
@@ -225,14 +225,18 @@ describe("TradeLab honest lane degradation", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("status", { name: /model lane unavailable/i }),
+        screen.getByRole("status", { name: /our model unavailable/i }),
       ).toBeTruthy();
       expect(
-        screen.getByRole("status", { name: /market lane unavailable/i }),
+        screen.getByRole("status", { name: /market prices unavailable/i }),
       ).toBeTruthy();
     });
     expect(screen.queryByText("41.2")).toBeNull();
+    // DG-116 groups the market lane's thousands, so the rendered form is the
+    // grouped one; both spellings must be absent when the lane is unavailable.
+    expect(screen.queryByText("8,400")).toBeNull();
     expect(screen.queryByText("8400")).toBeNull();
+    expect(screen.queryByText("-1,300")).toBeNull();
     expect(screen.queryByText("-1300")).toBeNull();
   });
 
@@ -283,11 +287,11 @@ describe("TradeLab honest lane degradation", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("status", { name: /model lane unavailable/i }),
+        screen.getByRole("status", { name: /our model unavailable/i }),
       ).toBeTruthy();
       expect(screen.getByTestId("market-lane")).toBeTruthy();
     });
-    expect(within(screen.getByTestId("market-lane")).getByText("-1300")).toBeTruthy();
+    expect(within(screen.getByTestId("market-lane")).getByText("-1,300")).toBeTruthy();
     expect(screen.getByTestId("market-lane").textContent).not.toMatch(
       /decision-grade/i,
     );
@@ -306,10 +310,11 @@ describe("TradeLab honest lane degradation", () => {
     await waitFor(() => {
       expect(screen.getByTestId("model-lane")).toBeTruthy();
       expect(
-        screen.getByRole("status", { name: /market lane unavailable/i }),
+        screen.getByRole("status", { name: /market prices unavailable/i }),
       ).toBeTruthy();
     });
     expect(within(screen.getByTestId("model-lane")).getByText("41.2")).toBeTruthy();
+    expect(screen.queryByText("-1,300")).toBeNull();
     expect(screen.queryByText("-1300")).toBeNull();
   });
 });

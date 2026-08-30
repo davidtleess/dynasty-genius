@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import type { CatalogEntry } from "./tradeState";
 import { CATALOG_PAGE_SIZE, useAssetCatalogSearch } from "./useAssetCatalogSearch";
@@ -13,6 +13,8 @@ export function AssetSearch({
   onSelect,
   label = "Search tradeable assets",
   placeholder,
+  visibleLabel = false,
+  hint,
   filter,
   emptyNotice = "Nothing in the catalog matches that.",
   filteredNotice = "Some assets matched, but none this box can open.",
@@ -21,6 +23,15 @@ export function AssetSearch({
   /** Accessible name for the box — the shell's copy differs from Trade Lab's. */
   label?: string;
   placeholder?: string | undefined;
+  /**
+   * Draw `label` as a real, readable <label> above the box instead of hiding it
+   * in an aria-label. The rail's box sits under a heading and reads fine with a
+   * placeholder; Trade Lab's was a bare white rectangle with nothing on screen
+   * saying what it was for (DG-116).
+   */
+  visibleLabel?: boolean;
+  /** One line under the box explaining what selecting a result will do. */
+  hint?: string | undefined;
   /** Optional gate: offer only results this caller can actually open. */
   filter?: ((entry: CatalogEntry) => boolean) | undefined;
   /**
@@ -33,6 +44,7 @@ export function AssetSearch({
   /** What to say when the catalog DID match but `filter` removed every row. */
   filteredNotice?: string;
 }) {
+  const inputId = useId();
   const [query, setQuery] = useState("");
   const search = useAssetCatalogSearch(query);
   // Three different facts, three different sentences. `answered` is what the
@@ -45,14 +57,22 @@ export function AssetSearch({
 
   return (
     <div className="dg-asset-search">
+      {visibleLabel && (
+        <label className="dg-asset-search__label" htmlFor={inputId}>
+          {label}
+        </label>
+      )}
       <input
+        // With a visible <label> the aria-label would only compete with it, and
+        // the spoken name should be the words on screen.
+        {...(visibleLabel ? { id: inputId } : { "aria-label": label })}
         type="search"
         className="dg-asset-search__input"
-        aria-label={label}
         placeholder={placeholder}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
+      {hint !== undefined && <p className="dg-asset-search__hint">{hint}</p>}
       {/* A silent empty box is a dead end and, after a failed read, a lie:
           an empty catalog answer and an unreadable one say different things. */}
       {search.status === "unavailable" && (

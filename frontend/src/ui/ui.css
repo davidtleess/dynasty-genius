@@ -111,6 +111,15 @@
   font-family: var(--dg-font-mono);
   font-size: var(--dg-text-sm);
   color: var(--dg-text-muted);
+  /* Same class of bug the daily tape hit (see `.dg-ui-tape__fact` below): these
+     notes are single unbroken snake_case tokens, so min-content width is the
+     whole token and normal wrapping cannot break them. Measured at 390 on Trade
+     Lab with a real drafted trade —
+     `cross_lane_manual_review_suppressed_market_coverage_incomplete` painted
+     127px past the viewport and made the WHOLE PAGE scroll sideways. The note
+     must stay legible and complete; `anywhere` lets it wrap instead of
+     dragging the document with it. */
+  overflow-wrap: anywhere;
 }
 
 /* ── Metric cell: mono, tabular, right-aligned numerals. ── */

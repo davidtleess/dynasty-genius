@@ -123,9 +123,13 @@ describe("Trade Lab forced-cut range rendering", () => {
 
     const lane = screen.getByTestId("model-lane");
     const text = lane.textContent ?? "";
-    expect(within(lane).getByText(/value-at-risk range/i)).toBeTruthy();
-    expect(within(lane).getByText(/recovery range/i)).toBeTruthy();
-    expect(within(lane).getByText(/adjusted fairness delta range/i)).toBeTruthy();
+    // DG-116 relabels these rows in plain language; the FACT each row carries
+    // is unchanged, and the gross scalar is still never displayed.
+    expect(within(lane).getByText(/what the forced cut could cost you/i)).toBeTruthy();
+    expect(within(lane).getByText(/what you could get back off waivers/i)).toBeTruthy();
+    expect(
+      within(lane).getByText(/how far from even, once the cut is counted/i),
+    ).toBeTruthy();
     for (const required of ["0", "19.5", "-4.25", "6.75"]) {
       expect(text).toContain(required);
     }
@@ -154,11 +158,16 @@ describe("Trade Lab forced-cut range rendering", () => {
     );
 
     const text = screen.getByTestId("model-lane").textContent ?? "";
-    expect(text).toMatch(/transaction blocked/i);
+    // WAS /transaction blocked/i. `penalty_status = "blocked"` is set when the
+    // capacity audit did not return ok, or when a forced cut carries no model
+    // value (reconciler.py:204-207, :261-284) — both mean "we could not compute
+    // the cut's cost", neither means the league would reject the trade.
+    expect(text).toMatch(/could not work out what the forced cut would cost/i);
     expect(text).toMatch(/manual capacity review required/i);
     expect(text).not.toContain("77.7");
-    expect(text).not.toMatch(/value-at-risk range|recovery range/i);
-    expect(text).not.toMatch(/blocked\b.*blocked\b/i);
+    expect(text).not.toMatch(
+      /what the forced cut could cost you|what you could get back off waivers/i,
+    );
     expect(text).not.toMatch(/\bTE\b|pool deficits/i);
   });
 
@@ -228,10 +237,8 @@ describe("Trade Lab forced-cut range rendering", () => {
 
     let lane = screen.getByTestId("market-lane");
     let text = lane.textContent ?? "";
-    expect(
-      within(lane).getByText(/fantasycalc capacity value-at-risk range/i),
-    ).toBeTruthy();
-    expect(within(lane).getByText(/fantasycalc recovery range/i)).toBeTruthy();
+    expect(within(lane).getByText(/what the forced cut could cost you/i)).toBeTruthy();
+    expect(within(lane).getByText(/what you could get back off waivers/i)).toBeTruthy();
     for (const required of ["700", "1000", "200", "500"]) {
       expect(text).toContain(required);
     }
@@ -247,8 +254,12 @@ describe("Trade Lab forced-cut range rendering", () => {
     );
     lane = screen.getByTestId("market-lane");
     text = lane.textContent ?? "";
-    expect(text).toMatch(/no capacity penalty/i);
-    expect(text).not.toMatch(/value-at-risk range|recovery range/i);
+    // A null penalty says the cost never came back — never that the roster has
+    // room, which the field cannot support.
+    expect(text).toMatch(/no forced-cut cost came back/i);
+    expect(text).not.toMatch(
+      /what the forced cut could cost you|what you could get back off waivers/i,
+    );
   });
 
   it("renders a market stale-data caveat from uncertain status even without backend caveats", () => {
@@ -267,10 +278,8 @@ describe("Trade Lab forced-cut range rendering", () => {
 
     const lane = screen.getByTestId("market-lane");
     const text = lane.textContent ?? "";
-    expect(
-      within(lane).getByText(/fantasycalc capacity value-at-risk range/i),
-    ).toBeTruthy();
-    expect(within(lane).getByText(/fantasycalc recovery range/i)).toBeTruthy();
+    expect(within(lane).getByText(/what the forced cut could cost you/i)).toBeTruthy();
+    expect(within(lane).getByText(/what you could get back off waivers/i)).toBeTruthy();
     expect(text).toMatch(/market replacement data stale/i);
     expect(text).not.toMatch(/uncertain_pool_unavailable/i);
   });

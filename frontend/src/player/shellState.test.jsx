@@ -146,9 +146,12 @@ function mockAssetFetch() {
 
 async function openTradeLabAndSelectAsset() {
   fireEvent.click(screen.getByRole("button", { name: "Trade Lab" }));
-  fireEvent.change(screen.getByRole("searchbox", { name: "Search tradeable assets" }), {
-    target: { value: "cha" },
-  });
+  fireEvent.change(
+    screen.getByRole("searchbox", { name: "Add a player or a draft pick" }),
+    {
+      target: { value: "cha" },
+    },
+  );
   fireEvent.click(await screen.findByRole("button", { name: "Chase" }));
 }
 
@@ -196,7 +199,7 @@ describe("Surface-3 shell player selection state", () => {
     expect(inspector().dataset.state).toBe("closed");
 
     fireEvent.click(
-      within(screen.getByRole("region", { name: /david sends/i })).getByRole("button", {
+      within(screen.getByRole("region", { name: /you send/i })).getByRole("button", {
         name: "Chase",
       }),
     );

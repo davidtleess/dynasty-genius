@@ -23,7 +23,14 @@ export function formatRange(
   if (low > high) {
     return null;
   }
-  return `${low} to ${high}`;
+  // Two decimals, matching what the backend rounds its own scalars to. The
+  // unrounded join printed "39.62 to 67.44999999999999" on a real drafted trade
+  // — binary float noise read as fifteen digits of precision we do not have.
+  return `${round2(low)} to ${round2(high)}`;
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 // One labelled range row. The label and value live in separate spans so a
