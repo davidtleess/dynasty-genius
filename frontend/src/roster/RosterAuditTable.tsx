@@ -78,9 +78,14 @@ export function RosterAuditTable(
       </TableScroll>
       {unscored > 0 && (
         <p className="dg-roster__unscored-note">
-          {unscored} of these {rendered.length} players have no value score yet, so
-          those cells are left blank rather than guessed. Open Details on a row to see
-          what is missing for that player.
+          {/* The sentence names the column by the column's own name. An earlier
+              draft said "no value score", which is a sixth name for a field the
+              header calls "Dynasty value" — the exact drift this ticket exists
+              to close, committed inside the fix for it. */}
+          {unscored} of these {rendered.length} players have no{" "}
+          {fieldLabel("dynasty_value_score").toLowerCase()} yet, so those cells are left
+          blank rather than guessed. Open Details on a row to see what is missing for
+          that player.
         </p>
       )}
     </>
