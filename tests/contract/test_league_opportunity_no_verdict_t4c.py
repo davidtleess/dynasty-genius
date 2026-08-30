@@ -170,6 +170,13 @@ def test_t4c_scanner_bucket_is_enforcing_with_no_remaining_known_debt() -> None:
     assert scanner.WHAT_CHANGED_GOVERNANCE_DEBT == []
     assert scanner.KNOWN_DEBT_ALLOWLIST == []
 
+    # DG-104: the two authored .tsx copy files scan with the cordon's
+    # presentation half stood down (David's 2026-08-29 ruling); their
+    # measurement half — and every other surface here — is unchanged.
+    authored_copy = [
+        Path("frontend/src/league-pulse/OpportunityCards.tsx"),
+        Path("frontend/src/league-pulse/LeaguePulseHeader.tsx"),
+    ]
     surfaces = [
         Path("src/dynasty_genius/league_opportunity_map.py"),
         Path("app/api/routes/league_pulse_models.py"),
@@ -177,12 +184,11 @@ def test_t4c_scanner_bucket_is_enforcing_with_no_remaining_known_debt() -> None:
         Path("frontend/openapi.json"),
         Path("frontend/src/lib/api/types.gen.ts"),
         Path("frontend/src/lib/api/zod.gen.ts"),
-        Path("frontend/src/league-pulse/OpportunityCards.tsx"),
-        Path("frontend/src/league-pulse/LeaguePulseHeader.tsx"),
+        *authored_copy,
         Path("src/dynasty_genius/what_changed/report.py"),
         Path("app/api/routes/league_what_changed_models.py"),
     ]
-    raw = scanner.scan_paths(surfaces, allowlist=[])
+    raw = scanner.scan_paths(surfaces, allowlist=[], presentation_paths=authored_copy)
 
     assert raw == []
 

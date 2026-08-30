@@ -32,10 +32,19 @@ class FalsificationRow(TypedDict):
 # recommendations. The scanner's presentation-language gates (banned_phrase,
 # banned_standalone_word, CSS content scanning) died under that authority — every
 # fixture that tripped them moved to must_not_trip/legal_voice/ and now MUST pass.
-# The evidence-typing gate (banned_field_render) is measurement law and stays
-# ARMED: rendering a typed verdict/dynasty_tier/confidence/recommended_action/
-# roster_action field remains banned — the backend contract does not grow verdict
-# fields, only the frontend's voice is freed.
+# The evidence-typing gates are measurement law and stay ARMED, in BOTH the
+# forms that publish a typed field:
+#   banned_field_render - rendering a typed verdict/dynasty_tier/confidence/
+#       recommended_action/roster_action property in visible JSX.
+#   banned_field_label  - publishing the same typed field as a label in visible
+#       rendered text ("Confidence score: 82%"). Splitting at gate granularity
+#       alone would have left the render gate bypassable by retyping the
+#       machinery as prose; the label gate's phrase list is DERIVED from the
+#       vocabulary (banned_phrases naming a humanized banned_fields entry), so
+#       exactly "confidence score" / "dynasty tier" / "recommended action"
+#       survive and every other phrase died with the presentation gate.
+# The backend contract does not grow verdict fields; only the frontend's voice
+# is freed.
 FALSIFICATION_MATRIX: tuple[FalsificationRow, ...] = (
     {
         "row_id": "generated_types_may_declare_verdict_and_dynasty_tier",
@@ -153,6 +162,27 @@ FALSIFICATION_MATRIX: tuple[FalsificationRow, ...] = (
         "expected": "fail",
         "fixture": "must_trip/fields/RosterActionBinding.tsx",
         "rationale": "Specific roster-action fields are banned when rendered.",
+    },
+    {
+        "row_id": "typed_field_published_as_label_prose_fails",
+        "expected": "fail",
+        "fixture": "must_trip/fields/FieldLabelProse.tsx",
+        "rationale": (
+            "'Confidence score: 82%' / 'Dynasty tier: X' publish the same typed "
+            "machinery the render gate bans, only spelled as prose. The repealed "
+            "phrases in the same file (sell high, must start, strong win, buy "
+            "low) must stay silent, so this row pins the split itself."
+        ),
+    },
+    {
+        "row_id": "plain_confidence_and_tier_prose_stays_legal",
+        "expected": "pass",
+        "fixture": "must_not_trip/legal_voice/PlainConfidenceProse.tsx",
+        "rationale": (
+            "The label gate is derived from field-naming phrases only: bare "
+            "'confidence', 'second tier', 'verdict', and 'recommendation' are "
+            "plain prose David green-lit and must not be re-blocked."
+        ),
     },
     {
         "row_id": "bare_action_field_binding_is_allowed",
@@ -415,6 +445,8 @@ def test_t6_false_positive_fixtures_do_not_trip() -> None:
 
 
 def test_t6_banned_language_fixtures_trip_with_deterministic_output() -> None:
+    multi_finding_rows = 0
+
     for row in _rows("fail"):
         assert row["fixture"] is not None
         fixture = FIXTURE_ROOT / row["fixture"]
@@ -425,6 +457,16 @@ def test_t6_banned_language_fixtures_trip_with_deterministic_output() -> None:
         assert result.returncode != 0, f"{row['row_id']} should fail"
         assert str(fixture.relative_to(REPO_ROOT)) in output
         assert lines == sorted(lines), "Scanner output must be deterministic and sorted"
+        if len(lines) > 1:
+            multi_finding_rows += 1
+
+    # A one-element list is always sorted, so the assertion above proves nothing
+    # unless at least one fail fixture emits several findings whose SOURCE order
+    # differs from their sorted order. FieldLabelProse.tsx binds on lines 9 and
+    # 10 precisely so ":10:" must sort ahead of ":9:".
+    assert multi_finding_rows >= 1, (
+        "Sortedness is unfalsifiable without a multi-finding fail fixture"
+    )
 
 
 def test_t6_scanner_fails_closed_on_parse_error(tmp_path: Path) -> None:

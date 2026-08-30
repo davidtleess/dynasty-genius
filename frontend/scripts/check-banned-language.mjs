@@ -11,9 +11,20 @@
 // What SURVIVES is the evidence-typing half, which is measurement law and not
 // presentation: rendering a typed decision FIELD (verdict / dynasty_tier /
 // confidence / recommended_action / roster_action) exposes machinery the
-// backend contract does not carry and must not grow. That gate stays armed:
-//   banned_fields - terminal property name rendered in visible JSX
+// backend contract does not carry and must not grow. Two gates stay armed:
+//   banned_field_render - terminal property name rendered in visible JSX
 //                   (child expression or a visible attribute expression).
+//   banned_field_label - the SAME typed field published as a label in visible
+//                   rendered text ("Confidence score: 82%") instead of as a
+//                   property access. Without this the render gate is trivially
+//                   bypassed by retyping the machinery as prose, which would
+//                   let the frontend publish a calibrated-sounding readout the
+//                   backend contract does not produce. Its phrase list is
+//                   DERIVED from the vocabulary artifact — a banned_phrases
+//                   entry that names a humanized banned_fields entry — never a
+//                   hand-kept list, so the two lists cannot drift apart. Only
+//                   phrases naming a typed field survive; every other phrase
+//                   died with the presentation gates.
 //
 // The vocabulary artifact banned_vocabulary.json keeps ALL its lists: its
 // banned_phrases / banned_standalone_words still bind the BACKEND evidence
@@ -71,6 +82,40 @@ try {
 
 const bannedFields = new Set(vocabulary.banned_fields ?? []);
 
+function escapeRegExp(literal) {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// DERIVED display twins of the banned FIELDS: every banned_phrases entry that
+// names a humanized banned_fields entry as a whole word. "confidence" ->
+// "confidence score", "dynasty_tier" -> "dynasty tier", "recommended_action" ->
+// "recommended action". Phrases naming no typed field ("sell high", "buy low",
+// "must start") are presentation language and are NOT collected — they died
+// with the phrase gate. Deriving rather than hard-coding means a vocabulary
+// change can never leave the render gate and the label gate out of step.
+function deriveFieldDisplayTwins(fields, phrases) {
+  const humanized = [...fields].map((field) => ({
+    field,
+    name: field.replace(/_/g, " ").toLowerCase(),
+  }));
+  const twins = new Map();
+  for (const phrase of phrases) {
+    const lower = String(phrase).toLowerCase();
+    for (const { field, name } of humanized) {
+      if (new RegExp(`\\b${escapeRegExp(name)}\\b`).test(lower)) {
+        twins.set(lower, field);
+        break;
+      }
+    }
+  }
+  return twins;
+}
+
+const fieldDisplayTwins = deriveFieldDisplayTwins(
+  bannedFields,
+  vocabulary.banned_phrases ?? [],
+);
+
 const findings = [];
 const fileTextCache = new Map();
 
@@ -111,6 +156,44 @@ function isJsxChild(node) {
   return parent && (ts.isJsxElement(parent) || ts.isJsxFragment(parent));
 }
 
+// Visible rendered TEXT gate: the same typed field published as a label.
+// `text` must be the verbatim source slice starting at `startPos` so the
+// reported line:column lands on the phrase itself.
+function scanVisibleText(file, sourceFile, text, startPos) {
+  if (fieldDisplayTwins.size === 0) return;
+  const lower = text.toLowerCase();
+  for (const [twin, field] of fieldDisplayTwins) {
+    let index = lower.indexOf(twin);
+    while (index !== -1) {
+      const { line, character } = sourceFile.getLineAndCharacterOfPosition(
+        startPos + index,
+      );
+      record(file, line + 1, character + 1, "banned_field_label", `${field} as "${twin}"`);
+      index = lower.indexOf(twin, index + twin.length);
+    }
+  }
+}
+
+// String-ish literals inside a visible expression are rendered text too:
+// {"Confidence score"} / {`Dynasty tier: ${t}`} reach the screen exactly as a
+// bare JSX text child does. +1 steps past the opening quote/backtick/`}` so the
+// literal's own text aligns with the source offset.
+function scanVisibleLiterals(file, sourceFile, expression) {
+  const visit = (node) => {
+    if (
+      ts.isStringLiteral(node) ||
+      ts.isNoSubstitutionTemplateLiteral(node) ||
+      ts.isTemplateHead(node) ||
+      ts.isTemplateMiddle(node) ||
+      ts.isTemplateTail(node)
+    ) {
+      scanVisibleText(file, sourceFile, node.text, node.getStart(sourceFile) + 1);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(expression);
+}
+
 function scanTypeScript(file, text, scriptKind) {
   const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKind);
   if (sourceFile.parseDiagnostics && sourceFile.parseDiagnostics.length > 0) {
@@ -121,15 +204,27 @@ function scanTypeScript(file, text, scriptKind) {
   const walk = (node) => {
     if (ts.isJsxAttribute(node) && node.initializer) {
       const name = node.name.getText(sourceFile);
-      if (
-        VISIBLE_ATTRIBUTES.has(name) &&
-        ts.isJsxExpression(node.initializer) &&
-        node.initializer.expression
-      ) {
-        scanRenderedExpression(file, sourceFile, node.initializer.expression);
+      if (VISIBLE_ATTRIBUTES.has(name)) {
+        const initializer = node.initializer;
+        if (ts.isJsxExpression(initializer) && initializer.expression) {
+          scanRenderedExpression(file, sourceFile, initializer.expression);
+          scanVisibleLiterals(file, sourceFile, initializer.expression);
+        } else if (ts.isStringLiteral(initializer)) {
+          scanVisibleText(
+            file,
+            sourceFile,
+            initializer.text,
+            initializer.getStart(sourceFile) + 1,
+          );
+        }
       }
     } else if (ts.isJsxExpression(node) && isJsxChild(node) && node.expression) {
       scanRenderedExpression(file, sourceFile, node.expression);
+      scanVisibleLiterals(file, sourceFile, node.expression);
+    } else if (ts.isJsxText(node)) {
+      // Verbatim source slice: JsxText carries its own leading whitespace, so
+      // pos..end is exactly what the reader sees.
+      scanVisibleText(file, sourceFile, sourceFile.text.slice(node.pos, node.end), node.pos);
     }
     ts.forEachChild(node, walk);
   };

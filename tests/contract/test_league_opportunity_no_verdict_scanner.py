@@ -213,6 +213,15 @@ def test_current_known_debt_allowlist_enumerates_real_phase1_surface_debt() -> N
     assert scanner.KNOWN_DEBT_ALLOWLIST == []
 
 
+# AUTHORED frontend copy: DG-104 stands the cordon's PRESENTATION half down here
+# per David's 2026-08-29 ruling (plain prose, overall recommendations allowed).
+# The measurement half stays armed on these same files — see the split test below.
+AUTHORED_COPY_SURFACES = [
+    Path("frontend/src/league-pulse/OpportunityCards.tsx"),
+    Path("frontend/src/league-pulse/LeaguePulseHeader.tsx"),
+]
+
+
 def test_current_phase1_surfaces_scan_clean_after_exact_known_debt_allowlist() -> None:
     """Current debt is allowed only because each known occurrence is pinned exactly."""
     scanner = _scanner()
@@ -223,15 +232,64 @@ def test_current_phase1_surfaces_scan_clean_after_exact_known_debt_allowlist() -
         Path("frontend/openapi.json"),
         Path("frontend/src/lib/api/types.gen.ts"),
         Path("frontend/src/lib/api/zod.gen.ts"),
-        Path("frontend/src/league-pulse/OpportunityCards.tsx"),
-        Path("frontend/src/league-pulse/LeaguePulseHeader.tsx"),
+        *AUTHORED_COPY_SURFACES,
         Path("src/dynasty_genius/what_changed/report.py"),
         Path("app/api/routes/league_what_changed_models.py"),
     ]
 
-    findings = scanner.scan_paths(current_surfaces, allowlist=scanner.KNOWN_DEBT_ALLOWLIST)
+    findings = scanner.scan_paths(
+        current_surfaces,
+        allowlist=scanner.KNOWN_DEBT_ALLOWLIST,
+        presentation_paths=AUTHORED_COPY_SURFACES,
+    )
 
     assert findings == []
+
+
+def test_authored_copy_may_recommend_in_prose_but_never_leak_a_verdict_field(
+    tmp_path: Path,
+) -> None:
+    """DG-104 split: prose is freed on authored copy; machinery still fails closed.
+
+    Without this the cordon would go red on the first plain-language League Pulse
+    land — on exactly the words David green-lit on 2026-08-29.
+    """
+    scanner = _scanner()
+    copy_file = _write(
+        tmp_path / "OpportunityCards.tsx",
+        "<h2>Drop candidate</h2><p>We recommend selling high on him.</p>",
+    )
+    machinery_file = _write(
+        tmp_path / "Leak.tsx",
+        "<p>{card.recommended_action}</p><p>{card.opportunity_score}</p>",
+    )
+
+    prose = scanner.scan_paths(
+        [copy_file], root=tmp_path, allowlist=[], presentation_paths=[copy_file]
+    )
+    leak = scanner.scan_paths(
+        [machinery_file],
+        root=tmp_path,
+        allowlist=[],
+        presentation_paths=[machinery_file],
+    )
+
+    assert prose == [], "Green-lit recommendation prose must not trip authored copy"
+    assert _tokens(leak) == {"recommended_action", "opportunity_score"}
+
+
+def test_presentation_relaxation_never_leaks_to_contract_surfaces(
+    tmp_path: Path,
+) -> None:
+    """The default is the full cordon: an unlisted path keeps every rule."""
+    scanner = _scanner()
+    contract_file = _write(
+        tmp_path / "types.gen.ts", "export type X = { recommend: string };"
+    )
+
+    findings = scanner.scan_paths([contract_file], root=tmp_path, allowlist=[])
+
+    assert _tokens(findings) == {"recommend"}
 
 
 def test_empty_whitespace_and_case_insensitive_tokens(tmp_path: Path) -> None:

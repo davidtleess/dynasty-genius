@@ -48,7 +48,7 @@
           "evidence": [
             "frontend/scripts/check-banned-language.mjs"
           ],
-          "expectation": "zero directive tokens on the graduated path",
+          "expectation": "no typed decision field (verdict/dynasty_tier/confidence/recommended_action/roster_action) reaches the graduated path — neither as a rendered property nor as its display label ('Confidence score: 82%'); the DIRECTIVE-VOCABULARY half of this component was repealed by David's 2026-08-29 ruling (the frontend speaks plain prose and may state overall recommendations) and is no longer claimed — component id retained as a stable key, pending David's re-ratification",
           "optional": false
         }
       ],
@@ -102,7 +102,7 @@
           "evidence": [
             "frontend/scripts/check-banned-language.mjs"
           ],
-          "expectation": "zero directive tokens on the graduated path",
+          "expectation": "no typed decision field (verdict/dynasty_tier/confidence/recommended_action/roster_action) reaches the graduated path — neither as a rendered property nor as its display label ('Confidence score: 82%'); the DIRECTIVE-VOCABULARY half of this component was repealed by David's 2026-08-29 ruling (the frontend speaks plain prose and may state overall recommendations) and is no longer claimed — component id retained as a stable key, pending David's re-ratification",
           "optional": false
         }
       ],
@@ -166,7 +166,7 @@
             "frontend/scripts/check-banned-language.mjs",
             "frontend/src/trust/ProvenanceFooter.test.jsx"
           ],
-          "expectation": "zero directive tokens on the graduated path",
+          "expectation": "no typed decision field (verdict/dynasty_tier/confidence/recommended_action/roster_action) reaches the graduated path — neither as a rendered property nor as its display label ('Confidence score: 82%'); the DIRECTIVE-VOCABULARY half of this component was repealed by David's 2026-08-29 ruling (the frontend speaks plain prose and may state overall recommendations) and is no longer claimed — component id retained as a stable key, pending David's re-ratification",
           "optional": false
         }
       ],
@@ -226,7 +226,7 @@
             "frontend/scripts/check-banned-language.mjs",
             "frontend/src/trade/favors_guard.test.jsx"
           ],
-          "expectation": "no directive/verdict vocabulary in rendered trade surfaces; favors fields never rendered; banned-language gate enforcing",
+          "expectation": "favors fields never rendered; no typed decision field (verdict/dynasty_tier/confidence/recommended_action/roster_action) reaches the graduated path — neither as a rendered property nor as its display label ('Confidence score: 82%'); the DIRECTIVE-VOCABULARY half of this component was repealed by David's 2026-08-29 ruling (the frontend speaks plain prose and may state overall recommendations) and is no longer claimed — component id retained as a stable key, pending David's re-ratification",
           "optional": false
         }
       ],
@@ -284,7 +284,7 @@
             "frontend/scripts/check-banned-language.mjs",
             "frontend/src/league-pulse/LeaguePulseMitigation.test.jsx"
           ],
-          "expectation": "no intent/strategy-certainty or directive vocabulary in rendered pulse surfaces; posture labels disclosed as heuristics; banned-language gate enforcing",
+          "expectation": "posture labels disclosed as heuristics; no typed decision field (verdict/dynasty_tier/confidence/recommended_action/roster_action) reaches the graduated path — neither as a rendered property nor as its display label ('Confidence score: 82%'); the DIRECTIVE-VOCABULARY half of this component was repealed by David's 2026-08-29 ruling (the frontend speaks plain prose and may state overall recommendations) and is no longer claimed — component id retained as a stable key, pending David's re-ratification",
           "optional": false
         }
       ],
