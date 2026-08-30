@@ -14,6 +14,7 @@
 //     player card is addressed BY sleeper id; a row we cannot open honestly
 //     stays unlinked rather than opening an empty card.
 import { createContext, type ReactNode, useContext } from "react";
+import "./playerSelection.css";
 
 export type SelectPlayer = (sleeperId: string, label: string) => void;
 
@@ -65,7 +66,7 @@ export function PlayerNameButton({
   return (
     <button
       type="button"
-      className={className}
+      className={className ? `dg-player-open ${className}` : "dg-player-open"}
       aria-label={context ? `Open ${name}, ${context}` : `Open ${name}`}
       onClick={() => selectPlayer(openId, name)}
     >
