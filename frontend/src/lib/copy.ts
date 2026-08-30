@@ -393,6 +393,15 @@ const TOKEN_SENTENCES: Record<string, string> = {
     "Age measured against this section's weekly refresh schedule.",
   freshness_unverifiable: "We could not confirm when this was captured.",
   pre_capture_window: "This is from before we started capturing.",
+  // The two producer aborts the front page can actually hit. daily_diff.py:100-107
+  // gives up on the market section when the Sleeper roster snapshot is missing —
+  // without it there is no roster to price. report.py:490-497 gives up on a
+  // structural section when its artifact is absent. Both refuse to emit numbers
+  // rather than guess, so both sentences say the comparison did not happen.
+  missing_sleeper_snapshot:
+    "We could not read your Sleeper roster, so there is nothing to compare your prices against.",
+  missing_structural_artifact:
+    "The file this section is built from was not there, so this part did not run.",
 
   // ── League Pulse ─────────────────────────────────────────────────────────
   phase18_heuristic_posture:
@@ -842,7 +851,21 @@ export function formatCaptureTimestamp(iso: string | null | undefined): string {
   return CAPTURE_TIME_FORMAT.format(new Date(parsed));
 }
 
-// The standard non-decision-grade disclosure line (spec §1c, exact string
-// LOCKED). The API field decision_supported=false is unchanged — the UI just
-// stops quoting the field name at the user.
-export const DISCLOSURE_LINE = "Descriptive only — not decision-grade.";
+// DG-111 — what replaced the stamp.
+//
+// `DISCLOSURE_LINE` ("Descriptive only — not decision-grade.") used to render on
+// every region of every surface — seven times on the front page alone. David
+// repealed that register on 2026-08-29: "I don't care to persist the governance
+// of language and caveats and lack of overall recommendation from the back end
+// into the front end. I'd rather use layman's terms and call a spade a spade."
+// That ruling IS the sign-off that released the exact-string lock; the constant
+// and the `ui/DisclosureLine.tsx` primitive are both gone, and
+// `ui/retiredFurniture.test.js` fails if either comes back.
+//
+// The API field `decision_supported=false` is UNCHANGED and the honest reading
+// of it survives — but as ONE sentence, in plain words, on the two surfaces
+// where it actually changes how you read a number: the player card (whose
+// projection came from this model) and the Model Trust console (whose subject
+// IS this model's standing). One constant, so the two can never drift apart.
+export const MODEL_STANDING_SENTENCE =
+  "Our model is a sharp second opinion, not a proven market-beater — weigh it accordingly.";

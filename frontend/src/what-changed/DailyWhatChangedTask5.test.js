@@ -24,10 +24,11 @@ describe("H2 reset Task 5 Daily What-Changed restart", () => {
   it("builds the daily-open surface from the governed primitive library", () => {
     const source = readSurface();
 
+    // DG-111: CaveatBlock, ChartFrame and DisclosureLine left this surface with
+    // the furniture they drew — the stacked caveat blocks, the "Movement
+    // history / Series pending" panel, and the seven stamped disclosure lines.
+    // The remaining primitives still carry the surface.
     for (const primitive of [
-      "CaveatBlock",
-      "ChartFrame",
-      "DisclosureLine",
       "MetricCell",
       "PlayerIdentity",
       "SeriesSlot",
@@ -47,8 +48,11 @@ describe("H2 reset Task 5 Daily What-Changed restart", () => {
     expect(source).toContain('className="dg-wc__layout"');
     expect(source).toContain('className="dg-wc__feed"');
     expect(source).toContain('className="dg-wc__rail"');
-    expect(source).toContain('className="dg-wc__diagnostics"');
+    // DG-111: the FEED DIAGNOSTICS panel is retired; its content lives in the
+    // one receipt sheet, shut by default, alongside the old RECEIPTS content.
+    expect(source).not.toContain('className="dg-wc__diagnostics"');
     expect(source).toContain('className="dg-wc__receipts"');
+    expect(source).toContain('data-testid="wc-provenance"');
 
     expect((source.match(/<h2\b/g) ?? []).length).toBe(1);
     expect(source).not.toContain("dg-wc__status");

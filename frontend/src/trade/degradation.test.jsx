@@ -181,8 +181,11 @@ async function runComparison() {
   fireEvent.click(screen.getByRole("button", { name: /run comparison/i }));
 }
 
+// DG-111: the panel's standing note is the mitigation paragraph itself now —
+// the "not decision-grade" stamp beneath it is retired. Same element, found by
+// the contract marker rather than by the stamp's words.
 function banner() {
-  return screen.getByText(/not decision-grade/i);
+  return document.querySelector("[data-mitigation-contract]");
 }
 
 describe("TradeLab honest lane degradation", () => {
@@ -263,7 +266,7 @@ describe("TradeLab honest lane degradation", () => {
     expect(
       within(screen.getByTestId("market-lane")).getByText(/stale|source/i),
     ).toBeTruthy();
-    expect(screen.getByText(/not decision-grade/i)).toBeTruthy();
+    expect(banner().textContent).toMatch(/that part is yours/i);
     expect(screen.getByTestId("market-lane").textContent).not.toMatch(
       /verdict|win|loss/i,
     );
@@ -288,7 +291,7 @@ describe("TradeLab honest lane degradation", () => {
     expect(screen.getByTestId("market-lane").textContent).not.toMatch(
       /decision-grade/i,
     );
-    expect(screen.getByText(/not decision-grade/i)).toBeTruthy();
+    expect(banner().textContent).toMatch(/that part is yours/i);
   });
 
   it("treats a 200 response that fails Zod parsing as that lane unavailable", async () => {

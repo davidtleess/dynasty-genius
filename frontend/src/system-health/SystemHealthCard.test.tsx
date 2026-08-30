@@ -441,11 +441,14 @@ describe("SystemHealthCard RED contract", () => {
     expect(document.body.textContent).not.toMatch(/-\d+\s*(s|m|h|sec|min|hour)/i);
   });
 
-  it("renders the exact disclaimer and descriptive disclosure in accessible text", async () => {
+  // DG-111: the backend's own disclaimer (a field this endpoint publishes) is
+  // still rendered verbatim. Our stamped line beside it, repeated from every
+  // other surface, is retired.
+  it("renders the backend's exact disclaimer in accessible text, with no added stamp", async () => {
     await renderCard(healthResponse());
 
     await screen.findByText(DISCLAIMER);
-    expect(screen.getByText("Descriptive only — not decision-grade.")).toBeTruthy();
+    expect(screen.queryByText("Descriptive only — not decision-grade.")).toBeNull();
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
   });
 

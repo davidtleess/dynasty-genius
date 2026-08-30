@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 
 const TRUST_DIR = join(process.cwd(), "src", "trust");
 const GRADE_QUALIFIER =
-  "internal model grade — not a market-edge or decision-support claim";
+  "our own grade, not a claim that it beats the market";
 
 function authoredTrustFiles() {
   if (!existsSync(TRUST_DIR)) {

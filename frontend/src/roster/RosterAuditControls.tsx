@@ -116,9 +116,9 @@ export function RosterAuditControls(
           ))}
         </select>
       </label>
-      <span className="dg-roster__controls-disclaimer">
-        Experimental — not decision-grade.
-      </span>
+      {/* DG-111: the filter bar carried a second copy of the header's
+          "Experimental — not decision-grade." stamp. A sort control is not a
+          place for a disclaimer; it is retired outright. */}
       {filteredOutCount > 0 && (
         <span className="dg-roster__filtered-note" role="status">
           {filteredOutCount} rows filtered out

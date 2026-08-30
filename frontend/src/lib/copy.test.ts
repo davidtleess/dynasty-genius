@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   describeToken,
+  MODEL_STANDING_SENTENCE,
   fieldLabel,
   formatCaptureTimestamp,
   lookupToken,
@@ -172,6 +173,9 @@ describe("the copy dictionary", () => {
       "partner_score_market_influenced",
       "thin_unrostered_pool_below_min_4",
       "valuation_coverage_below_floor",
+      // DG-111: the two producer aborts the front page can actually hit.
+      "missing_sleeper_snapshot",
+      "missing_structural_artifact",
     ];
     for (const seed of seeds) {
       const note = lookupToken(seed);
@@ -179,5 +183,25 @@ describe("the copy dictionary", () => {
       expect(findRawCopy(note.text), `${seed} translated to raw copy`).toEqual([]);
     }
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+// DG-111 — the stamp is gone and the fact it stood on is not.
+describe("DG-111 the retired disclosure line", () => {
+  it("exports no DISCLOSURE_LINE for a surface to reach for", async () => {
+    const mod = (await import("./copy")) as Record<string, unknown>;
+    expect(mod.DISCLOSURE_LINE).toBeUndefined();
+  });
+
+  it("says the model's standing in one plain sentence instead", () => {
+    // The fact `decision_supported=false` carried survives verbatim: a second
+    // opinion, and explicitly NOT a proven market-beater. It must never soften
+    // into permission, so the sentence is pinned here as well as at its two
+    // call sites (player card foot, Model Trust panel).
+    expect(MODEL_STANDING_SENTENCE).toBe(
+      "Our model is a sharp second opinion, not a proven market-beater — weigh it accordingly.",
+    );
+    expect(MODEL_STANDING_SENTENCE).toMatch(/not a proven market-beater/);
+    expect(findRawCopy(MODEL_STANDING_SENTENCE)).toEqual([]);
   });
 });

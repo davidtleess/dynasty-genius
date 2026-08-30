@@ -8,10 +8,17 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+# DG-111 (2026-08-30): David repealed the governance register in the front end —
+# "I don't care to persist the governance of language and caveats and lack of
+# overall recommendation from the back end into the front end." The three stamps
+# this header carried ("EXPERIMENTAL — a read-only league snapshot.", the
+# "Diagnostic Workspace:…" paragraph, and the disclosure line) became ONE
+# sentence. The No-Verdict cordon this test enforces is unchanged and is what the
+# assertions below still check: the header nominates no player, directs no trade,
+# and says in plain words that reading a roster is not reading a manager.
 HEADER_COPY = (
-    "Diagnostic Workspace: Surfaces raw model outputs and market variance. "
-    "Valuation data is descriptive only, does not nominate players or direct "
-    "trades, and requires manual qualitative evaluation."
+    "Your league at a glance — who's contending, who's rebuilding, and who to "
+    "call. It's a read-only snapshot: we read each roster, we don't read minds."
 )
 OLD_LEAGUE_OPPORTUNITY_TOKENS = {
     "recommended_drop",
@@ -260,6 +267,9 @@ def test_t4c_header_copy_is_scanner_clean_under_full_no_verdict_rules() -> None:
     assert HEADER_COPY in header_text
     assert "recommend" not in header_text.lower()
     assert scanner.scan_text(HEADER_COPY) == set()
+    # The cordon is on the RENDERED header, not on one sentence: no nomination
+    # and no directed trade anywhere in the file.
+    assert "nominat" not in header_text.lower()
 
 
 def test_t4c_opportunity_latest_write_publishes_latest_via_atomic_replace(

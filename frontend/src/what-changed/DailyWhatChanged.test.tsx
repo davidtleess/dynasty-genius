@@ -465,15 +465,19 @@ describe("DailyWhatChanged", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: /Wednesday, July 1/i }),
     ).toBeTruthy();
-    expect(screen.getAllByText("Descriptive only — not decision-grade.").length).toBe(
-      7,
-    );
+    // DG-111: was seven stamped "Descriptive only — not decision-grade." lines
+    // and a "delta surface" subtitle. Now: zero stamps, one plain subtitle, and
+    // the provenance the rail used to shout is one press down — same facts,
+    // same timestamps, same comparison window.
+    expect(screen.queryAllByText("Descriptive only — not decision-grade.")).toEqual([]);
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
-    expect(screen.getByText(/delta surface/i)).toBeTruthy();
-    const generatedAt = screen.getByText("Generated: Jul 1, 2026, 8:00 AM EDT");
+    expect(screen.getByText(/since the last snapshot/i)).toBeTruthy();
+    const generatedAt = screen.getByText("Report built Jul 1, 2026, 8:00 AM EDT.");
     expect(generatedAt).toBeTruthy();
     expect(generatedAt.getAttribute("title")).toBe("2026-07-01T12:00:00+00:00");
-    expect(screen.getByText(/captured 2026-06-30 vs 2026-07-01/i)).toBeTruthy();
+    expect(
+      screen.getByText(/Market prices captured 2026-06-30 vs 2026-07-01/i),
+    ).toBeTruthy();
 
     const market = screen.getByRole("region", {
       name: /market price-discovery overlay/i,
@@ -584,13 +588,30 @@ describe("DailyWhatChanged", () => {
 
     render(<DailyWhatChanged />);
 
-    await waitFor(() => expect(screen.getByText(/status: degraded/i)).toBeTruthy());
-    expect(screen.getByText(/market_snapshot_stale/i)).toBeTruthy();
-    expect(screen.getByText(/feature_source_unverifiable/i)).toBeTruthy();
-    expect(screen.getByText(/pvo_seed_stale/i)).toBeTruthy();
-    expect(screen.getAllByText("Descriptive only — not decision-grade.").length).toBe(
-      7,
+    // DG-111: the degradation is still stated — in prose on the surface, and
+    // with the producer's own token preserved verbatim in the receipt sheet.
+    // A degraded morning stays loud; it just speaks English first.
+    await waitFor(() =>
+      expect(screen.getByText(/Feed status: degraded/i)).toBeTruthy(),
     );
+    expect(screen.getByTestId("wc-market-degraded").textContent).toMatch(
+      /Market snapshot stale/,
+    );
+    expect(screen.getByTestId("wc-model-degraded").textContent).toMatch(
+      /Feature source unverifiable/,
+    );
+    expect(screen.getByTestId("wc-model-degraded").textContent).toMatch(
+      /Pvo seed stale/,
+    );
+    const raw = screen.getByTestId("wc-raw-reasons").textContent;
+    for (const token of [
+      "market_snapshot_stale",
+      "feature_source_unverifiable",
+      "pvo_seed_stale",
+    ]) {
+      expect(raw).toContain(token);
+    }
+    expect(screen.queryAllByText("Descriptive only — not decision-grade.")).toEqual([]);
     expect(screen.queryByText(/decision_supported=false/i)).toBeNull();
   });
 
@@ -735,25 +756,37 @@ describe("DailyWhatChanged", () => {
       "Drop Pressure",
       "Sleeper Snapshot",
     ]) {
+      // DG-111: the "Status: ok" stamp and the disclosure line are retired from
+      // every section. A clean section says nothing at all; only a section with
+      // something wrong speaks, and it speaks in a sentence.
       const section = within(baseline).getByRole("region", { name: label });
-      expect(within(section).getByText(/status:/i)).toBeTruthy();
+      expect(within(section).queryByText(/^Status:/)).toBeNull();
       expect(
-        within(section).getByText("Descriptive only — not decision-grade."),
-      ).toBeTruthy();
+        within(section).queryByText("Descriptive only — not decision-grade."),
+      ).toBeNull();
     }
 
     const posture = within(baseline).getByRole("region", { name: "Team Posture" });
     expect(within(posture).getByText(/contender/i)).toBeTruthy();
     expect(within(posture).getByText(/team count: 12/i)).toBeTruthy();
-    // DG-109: the staleness line used to read
-    // `captured_at_vs_report_generated_at — stale (age 1.5h)`. Every fact in it
-    // survives — which clocks were compared, that it is stale, and how old.
+    // The staleness FACT survives, in words. DG-111 says how old and that it is
+    // stale; DG-109's dictionary says WHICH pair of clocks the age was measured
+    // between — both facts in one notice — and the producer's own basis token is
+    // kept verbatim in the title attribute (and in the receipt sheet).
+    const postureNotice = within(posture).getByTestId("wc-section-notice");
+    expect(postureNotice.textContent).toMatch(/Team posture snapshot/i);
+    expect(postureNotice.textContent).toMatch(/1\.5 hours old/i);
+    expect(postureNotice.textContent).toMatch(/stale/i);
+    expect(postureNotice.getAttribute("title")).toContain("team_posture_snapshot");
+    // No raw producer token reaches the visible sentence (DG-109's render rule).
+    expect(within(posture).queryByText(/team_posture_snapshot/)).toBeNull();
+    // A clean section stays silent — that is the "one caveat, only where it
+    // changes something" rule, mechanically enforced.
     expect(
-      within(posture).getByText(
-        /Team posture snapshot\. It has gone stale at 1\.5 hours old\./i,
-      ),
-    ).toBeTruthy();
-    expect(within(posture).queryByText(/team_posture_snapshot/i)).toBeNull();
+      within(
+        within(baseline).getByRole("region", { name: "Sleeper Snapshot" }),
+      ).queryByTestId("wc-section-notice"),
+    ).toBeNull();
 
     const teamValue = within(baseline).getByRole("region", { name: "Team Value" });
     expect(within(teamValue).getByText(/Starting lineup value: 31.4/i)).toBeTruthy();
@@ -768,13 +801,20 @@ describe("DailyWhatChanged", () => {
     });
     expect(within(opportunity).getByText(/partner ranking count: 2/i)).toBeTruthy();
     expect(within(opportunity).getByText(/card count: 3/i)).toBeTruthy();
+    // DG-109: the opportunity counts printed their own shouted enums. The counts
+    // are unchanged; only the words are.
     expect(
       within(opportunity).getByText(/We value him more than the market does: 2/i),
     ).toBeTruthy();
     expect(within(opportunity).getByText(/Depth context: 1/i)).toBeTruthy();
+    // DG-111: the section's own trouble is one notice, and the raw token stays
+    // on the element rather than in the sentence.
+    expect(within(opportunity).getByTestId("wc-section-notice").textContent).toMatch(
+      /League opportunity partial source/i,
+    );
     expect(
-      within(opportunity).getByText(/League opportunity partial source/i),
-    ).toBeTruthy();
+      within(opportunity).getByTestId("wc-section-notice").getAttribute("title"),
+    ).toContain("league_opportunity_partial_source");
 
     const dropPressure = within(baseline).getByRole("region", {
       name: "Drop Pressure",
@@ -842,7 +882,9 @@ describe("DailyWhatChanged", () => {
       within(tape).getByText(/market sync active: 12 consecutive days tracked/i),
     ).toBeTruthy();
     expect(within(tape).getByText(/projection update: july 5, current/i)).toBeTruthy();
-    expect(within(tape).getByText(/status: synced/i)).toBeTruthy();
+    // DG-111: the third "Status: Synced / Status: Degraded" stamp is retired.
+    // A clean tape says nothing; a degraded one says what it means.
+    expect(within(tape).queryByText(/status: synced/i)).toBeNull();
     expect(
       within(tape).queryByText(
         /capture streak|last capture|model vintage|registry version/i,
@@ -890,7 +932,10 @@ describe("DailyWhatChanged", () => {
     expect(
       within(tape).getByText(/projections active using the latest verified data/i),
     ).toBeTruthy();
-    expect(within(tape).getByText(/status: degraded/i)).toBeTruthy();
+    // DG-111: the third "Status: Synced / Status: Degraded" stamp is retired.
+    // A clean tape says nothing; a degraded one says what it means.
+    expect(within(tape).queryByText(/status: degraded/i)).toBeNull();
+    expect(within(tape).getByText(/some of this data is behind/i)).toBeTruthy();
     expect(
       within(tape).queryByText(
         /capture health|model provenance|capture streak|model vintage|registry version/i,
@@ -967,14 +1012,19 @@ describe("DailyWhatChanged", () => {
     ).toBeNull();
   });
 
-  it("renders stale generated_at as a non-urgent header badge and desaturates rows", async () => {
+  // DG-111: the badge said "Stale data caveat — the capture is 27.5 hours old."
+  // The word "caveat" is gone; the age, the staleness and the desaturated rows
+  // are not.
+  it("renders stale generated_at as a non-urgent header sentence and desaturates rows", async () => {
     const body = increment1Response();
     body.generated_at = new Date(Date.now() - 27.5 * 60 * 60 * 1000).toISOString();
     mockFetch(200, body);
 
     const { container } = render(<DailyWhatChanged />);
 
-    await waitFor(() => expect(screen.getByText(/stale data caveat/i)).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("wc-freshness").textContent).toMatch(/didn't land/i),
+    );
     expect(screen.getByText(/2[67](\.\d)? hours/i)).toBeTruthy();
     expect(container.querySelector(".dg-wc--stale")).toBeTruthy();
     expect(
@@ -1227,5 +1277,92 @@ describe("DG-089 player selection from the change feed", () => {
     await waitFor(() => {
       expect(within(inspector).getByText("Market Mover")).toBeTruthy();
     });
+  });
+});
+
+// ── DG-111 — the furniture is retired; the facts speak in prose ──────────────
+// David, 2026-08-29: "I really don't care for the caveats and the hard wording
+// governance… I'd rather use layman's terms and call a spade a spade."
+// The honesty law that survives his ruling: stale must still SAY it is stale.
+// These tests exist so a future edit cannot quietly delete the fact along with
+// the stamp that used to carry it.
+describe("DG-111 the stale morning still says it is stale, in prose", () => {
+  it("says the capture is old in one plain sentence, with the real age, and no stamp", async () => {
+    const body = increment1Response();
+    body.generated_at = new Date(Date.now() - 27.5 * 60 * 60 * 1000).toISOString();
+    mockFetch(200, body);
+
+    render(<DailyWhatChanged />);
+
+    const stale = await screen.findByTestId("wc-freshness");
+    // The FACT: it is old, by this many hours, and what you see is the last
+    // verified snapshot rather than today's.
+    expect(stale.textContent).toMatch(/2[67](\.\d)? hours old/i);
+    expect(stale.textContent).toMatch(/last verified snapshot/i);
+    expect(stale.textContent).toMatch(/not today/i);
+    // The FURNITURE: gone.
+    expect(stale.textContent).not.toMatch(/caveat/i);
+    expect(screen.queryByText("Descriptive only — not decision-grade.")).toBeNull();
+  });
+
+  it("says so even when the capture time is unreadable — never silence", async () => {
+    const body = increment1Response();
+    body.generated_at = "not-a-timestamp";
+    mockFetch(200, body);
+
+    render(<DailyWhatChanged />);
+
+    const stale = await screen.findByTestId("wc-freshness");
+    expect(stale.textContent).toMatch(/couldn't read/i);
+    expect(stale.textContent).toMatch(/last verified snapshot/i);
+  });
+
+  it("names a degraded feed in prose and keeps the raw reason in the receipt sheet", async () => {
+    mockFetch(
+      200,
+      whatChangedResponse({
+        overall_status: "degraded",
+        daily_diff: {
+          overall_status: "degraded",
+          market: { status: "degraded", aborted_reason: "market_snapshot_stale" },
+          model: {
+            status: "degraded",
+            pvo_staleness: {
+              decision_supported: false,
+              pvo_source_status: "not_ready",
+              aborted_reason: "pvo_seed_stale",
+            },
+          },
+        },
+      }),
+    );
+
+    render(<DailyWhatChanged />);
+
+    const market = await screen.findByRole("region", {
+      name: /market price-discovery overlay/i,
+    });
+    // Prose on the surface: the reason is said in words, not as a raw key…
+    const marketNote = within(market).getByTestId("wc-market-degraded");
+    expect(marketNote.textContent).toMatch(/Market snapshot stale/);
+    expect(marketNote.textContent).not.toContain("market_snapshot_stale");
+    // …and the raw producer token is still reachable, verbatim, in the receipt.
+    const receipts = screen.getByTestId("wc-provenance");
+    expect(receipts.textContent).toContain("market_snapshot_stale");
+    expect(receipts.textContent).toContain("pvo_seed_stale");
+  });
+
+  it("a healthy morning carries no caveat furniture at all", async () => {
+    mockFetch(200, whatChangedResponse());
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: /daily what-changed/i })).toBeTruthy(),
+    );
+    expect(screen.queryAllByText("Descriptive only — not decision-grade.")).toEqual([]);
+    expect(screen.queryByRole("note", { name: /caveats/i })).toBeNull();
+    expect(screen.queryByText(/^Status:/)).toBeNull();
+    expect(screen.queryByText(/Feed diagnostics/i)).toBeNull();
   });
 });

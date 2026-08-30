@@ -181,7 +181,10 @@ describe("PlayerInspector neutral preview", () => {
       within(inspector).getByText("3 caveats · counter-argument available"),
     ).toBeTruthy();
     expect(within(inspector).getByText("2 drivers · 1 risk flag")).toBeTruthy();
-    expect(within(inspector).getByText("Decision support only")).toBeTruthy();
+    // DG-111: the "Decision support only" stamp is retired from this preview.
+    // It restated the backend register on a panel that renders no grade, score
+    // or delta at all; the model's standing is said once on the full card.
+    expect(within(inspector).queryByText("Decision support only")).toBeNull();
     expect(
       within(inspector).getByRole("button", { name: "Open full evidence card" }),
     ).toBeTruthy();

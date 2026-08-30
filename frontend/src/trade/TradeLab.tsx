@@ -116,19 +116,22 @@ export function TradeLab({
 
   return (
     <section className="dg-trade-lab" aria-label="Trade Lab">
-      {/* H1 §1d: ONE standard region caveat block. The inner paragraph is the
-          binding inc-3 mitigation contract (trade_lab_fe_mitigation_v1) —
-          exact, non-state-claiming copy, byte-untouched, always before the
-          lane pair in DOM order. Only its container changed. */}
+      {/* The inc-3 mitigation contract (trade_lab_fe_mitigation_v1), always
+          before the lane pair in DOM order.
+
+          DG-111 — this paragraph was byte-locked and carried the standard
+          disclosure line beneath it. David's 2026-08-29 ruling is the sign-off
+          that replaces both, and the replacement is recorded verbatim in the
+          ticket. Every fact survives: we do not compute a win/lose verdict, we
+          do not judge fit, the two pricings stay separate rather than blended,
+          a stale or missing price says so in its own lane, and the call is
+          yours. Said the way you would say it at the table. */}
       <aside className="dg-caveat-note" role="note" aria-label="Trade Lab caveat">
         <p data-mitigation-contract>
-          This diagnostic panel does not calculate whether you win or lose this trade,
-          and it does not judge if this transaction fits your team. It keeps the model
-          and market views separate and surfaces stale or unavailable data as caveats,
-          so you can evaluate the numbers yourself.
-        </p>
-        <p className="dg-caveat-note__disclosure">
-          Descriptive only — not decision-grade.
+          We price both sides two ways — what the dynasty market is paying, and what our
+          model says — and keep the two apart instead of blending them into one number.
+          Where a price is stale or missing, that lane says so. We don't call the winner
+          and we don't judge whether the deal fits your team: that part is yours.
         </p>
       </aside>
       <AssetSearch onSelect={select} />

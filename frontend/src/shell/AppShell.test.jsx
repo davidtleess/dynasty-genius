@@ -111,9 +111,12 @@ describe("AppShell", () => {
     });
     render(<AppShell />);
     fireEvent.click(screen.getByRole("button", { name: "Roster Audit" }));
+    // DG-111: the roster surface no longer stamps a disclaimer; the surface is
+    // recognised by its own controls instead.
     await waitFor(() =>
-      expect(screen.getByText(/experimental — not decision-grade/i)).toBeTruthy(),
+      expect(screen.getByRole("region", { name: /roster audit status/i })).toBeTruthy(),
     );
+    expect(screen.queryByText(/experimental — not decision-grade/i)).toBeNull();
   });
 
   it("renders the Project Tracker surface when its nav item is selected", async () => {

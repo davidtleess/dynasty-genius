@@ -50,9 +50,14 @@ export function GateMatrix({ gates }: { gates: TrustConsoleViewModel["gates"] })
           </li>
         ))}
       </ul>
-      {/* "met" is a point-estimate gate state, NOT decision support — non-dismissible. */}
+      {/* "met" is a point-estimate gate state and never a green light —
+          non-dismissible. DG-111 keeps the fact and drops the repealed register:
+          the reading is a single point estimate, so "met" says the estimate
+          cleared the bar and says nothing about whether the model is worth
+          acting on. */}
       <p className="dg-trust-gates__disclaimer">
-        A gate reading "met" is a single point estimate, not decision support
+        A gate reading "met" is a single point estimate — it does not mean the model is
+        proven
       </p>
       <p className="dg-trust-gates__justification">{gates.promotion_justification}</p>
     </section>

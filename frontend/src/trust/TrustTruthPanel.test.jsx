@@ -6,10 +6,16 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 const TRUST_DIR = join(process.cwd(), "src", "trust");
+// DG-111 — the same three facts, said in David's language, none of them
+// softened: tied with expert consensus (not ahead), no proven edge (the
+// measured difference could be zero), therefore a second opinion. The
+// bootstrap-CI evidence that used to be quoted here lives in the study on this
+// same surface (FoldTable / GateMatrix), which is where an NDCG diff belongs.
 const EXPECTED_TRUTH_COPY =
-  "Consensus-competitive, edge unproven. Engine B is statistically tied with " +
-  "DynastyProcess expert consensus rankings; season by season, the range around " +
-  "its ranking-quality edge still includes zero.";
+  "Honest read: our model ranks players about as well as expert consensus — " +
+  "DynastyProcess's 2QB rankings, which is what we measure it against — but it " +
+  "has not proven it beats them. Season by season across our test years, the " +
+  "range around its ranking-quality edge still includes zero.";
 
 function authoredTrustFiles() {
   if (!existsSync(TRUST_DIR)) {
@@ -66,20 +72,31 @@ describe("TrustTruthPanel", () => {
     expect(within(panel).queryByText(/R²|R2|r2/i)).toBeNull();
   });
 
-  it("shows non-dismissible decision support and experimental state", async () => {
-    const { TrustTruthPanel } = await import("./TrustTruthPanel");
+  // DG-111: "decision_supported = false" was a raw backend field name rendered
+  // at the user, and "Experimental — not validated" was a stamp. Both states
+  // survive as sentences, still non-dismissible.
+  it("states the decision-support and unvalidated states in prose, non-dismissibly", async () => {
+    const { TRUST_UNVALIDATED_COPY, TrustTruthPanel } = await import(
+      "./TrustTruthPanel"
+    );
 
     render(<TrustTruthPanel vm={trustViewModel()} />);
 
     const panel = screen.getByRole("region", { name: "Model trust truth" });
-    // DG-109: was `decision_supported = false`. The state is unchanged and still
-    // non-dismissible; it is now stated in the product's one shared disclosure
-    // sentence instead of by quoting the API field name at the user.
-    expect(
-      within(panel).getByText("Descriptive only — not decision-grade."),
-    ).toBeTruthy();
+    // DG-111: was `decision_supported = false` — a raw backend field name
+    // rendered at the user. The state is unchanged and still non-dismissible;
+    // it is now the product's one shared model-standing sentence.
+    expect(within(panel).queryByText("decision_supported = false")).toBeNull();
+    expect(within(panel).queryByText("Descriptive only — not decision-grade.")).toBeNull();
+    expect(within(panel).getByTestId("model-standing").textContent).toMatch(
+      /second opinion/i,
+    );
+    expect(within(panel).getByTestId("model-standing").textContent).toMatch(
+      /not a proven market-beater/i,
+    );
     expect(within(panel).queryByRole("button", { name: /dismiss/i })).toBeNull();
-    expect(within(panel).getByText("Experimental — not validated")).toBeTruthy();
+    expect(within(panel).getByText(TRUST_UNVALIDATED_COPY)).toBeTruthy();
+    expect(TRUST_UNVALIDATED_COPY).toMatch(/not a track record/i);
   });
 
   it("demotes overall grade out of the truth panel", async () => {
@@ -92,6 +109,7 @@ describe("TrustTruthPanel", () => {
     expect(within(panel).queryByText("ACTIVE_B_VALIDATED")).toBeNull();
     expect(within(panel).queryByText("ACTIVE_B")).toBeNull();
     expect(within(panel).queryByText("EXPERIMENTAL")).toBeNull();
+    expect(within(panel).queryByText("Experimental — not validated")).toBeNull();
     expect(within(panel).queryByText(/internal model grade/i)).toBeNull();
     expect(container.querySelector('[class*="badge"]')).toBeNull();
     expect(container.querySelector('[class*="success"]')).toBeNull();

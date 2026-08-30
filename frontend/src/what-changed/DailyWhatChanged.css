@@ -311,7 +311,22 @@
   border-radius: 4px;
   font-size: var(--dg-text-sm);
   color: var(--dg-text);
+}
+
+/* One measure for both freshness sentences. */
+.dg-wc__stale-badge,
+.dg-wc__freshness {
   max-width: 65ch;
+}
+
+/* DG-111: the healthy-morning twin of the stale sentence. It shares the stale
+   badge's measure (one declaration, so the raw-CSS census stays flat) and drops
+   the alarm border — a capture time is a fact, not a warning. */
+.dg-wc__freshness {
+  margin: 0;
+  padding: var(--dg-space-1) 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
 }
 
 /* Stale tape: rows desaturate (stale-degrades law) — information stays
