@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { RosterCapacityResponse } from "../lib/api/types.gen";
 import { zRosterCapacityResponse } from "../lib/api/zod.gen";
 import { describeStatusToken } from "../lib/copy";
+import { PlayerNameButton } from "../player/playerSelection";
 import "./RosterCapacitySandbox.css";
 
 type State =
@@ -156,7 +157,16 @@ function ReadyView({ data }: { data: RosterCapacityResponse }) {
               <tbody>
                 {(data.candidates ?? []).map((c) => (
                   <tr key={c.sleeper_player_id} className="dg-rc__row">
-                    <td>{c.full_name}</td>
+                    <td>
+                      {/* DG-110: the cut list names players and had no way to
+                          open one of them. */}
+                      <PlayerNameButton
+                        sleeperId={c.sleeper_player_id}
+                        name={c.full_name}
+                        context={c.position ?? undefined}
+                        className="dg-rc__name"
+                      />
+                    </td>
                     <td>{c.position}</td>
                     <td>{c.cut_priority}</td>
                     <td>

@@ -32,26 +32,59 @@ function matchesQuery(label: string, query: string): boolean {
   return true;
 }
 
-export function CommandPalette({ commands }: { commands: Command[] }) {
-  const [open, setOpen] = useState(false);
+export function CommandPalette({
+  commands,
+  extraCommands = [],
+  onQueryChange,
+  placeholder = "Search players and surfaces…",
+  open: controlledOpen,
+  onOpenChange,
+}: {
+  commands: Command[];
+  /** Already-matched commands (server-side search) — appended unfiltered. */
+  extraCommands?: Command[];
+  /** DG-110: lets the shell run a live player search on the typed text. */
+  onQueryChange?: ((query: string) => void) | undefined;
+  placeholder?: string;
+  /** Controlled open state; omit to keep the palette's own (⌘K only). */
+  open?: boolean | undefined;
+  onOpenChange?: ((open: boolean) => void) | undefined;
+}) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const open = controlledOpen ?? uncontrolledOpen;
+
+  // Both states move together, so a controlled shell and the ⌘K shortcut can
+  // never disagree about whether the palette is up.
+  function changeOpen(next: boolean): void {
+    setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  }
+
+  function resetQuery(): void {
+    setQuery("");
+    setActiveIndex(0);
+    onQueryChange?.("");
+  }
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setOpen(true);
+        setUncontrolledOpen(true);
+        onOpenChange?.(true);
         setQuery("");
         setActiveIndex(0);
+        onQueryChange?.("");
       }
     }
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, []);
+  }, [onOpenChange, onQueryChange]);
 
   useEffect(() => {
     if (open) {
@@ -60,8 +93,11 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
   }, [open]);
 
   const filtered = useMemo(
-    () => commands.filter((command) => matchesQuery(command.label, query)),
-    [commands, query],
+    () => [
+      ...commands.filter((command) => matchesQuery(command.label, query)),
+      ...extraCommands,
+    ],
+    [commands, extraCommands, query],
   );
 
   if (!open) {
@@ -70,7 +106,7 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
 
   function handleSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
-      setOpen(false);
+      changeOpen(false);
       return;
     }
     if (event.key === "ArrowDown") {
@@ -88,7 +124,8 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
       const active = filtered[activeIndex];
       if (active) {
         active.run();
-        setOpen(false);
+        changeOpen(false);
+        resetQuery();
       }
     }
   }
@@ -100,24 +137,31 @@ export function CommandPalette({ commands }: { commands: Command[] }) {
         type="text"
         className="dg-cmdk__search"
         aria-label="Command palette"
+        placeholder={placeholder}
         value={query}
         onChange={(event) => {
           setQuery(event.target.value);
           setActiveIndex(0);
+          onQueryChange?.(event.target.value);
         }}
         onKeyDown={handleSearchKeyDown}
       />
       <div className="dg-cmdk__list" role="listbox" aria-label="Commands">
         {filtered.map((command, index) => (
-          <div
+          <button
             key={command.id}
+            type="button"
             role="option"
-            tabIndex={-1}
             className="dg-cmdk__option"
             aria-selected={index === activeIndex ? "true" : "false"}
+            onClick={() => {
+              command.run();
+              changeOpen(false);
+              resetQuery();
+            }}
           >
             {command.label}
-          </div>
+          </button>
         ))}
       </div>
     </div>

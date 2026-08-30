@@ -6,6 +6,7 @@ import type {
   LeaguePulseCardSectionCount,
   LeaguePulseMarketCard,
 } from "../lib/api";
+import { PlayerNameButton } from "../player/playerSelection";
 
 // Opportunity Cards (No-Verdict T4b) — TWO visually separated lanes (hard
 // scale-separation, allowlist-enforced): model-native cards carry NO market
@@ -104,7 +105,16 @@ function RosterCapacityPool({ pool }: { pool: LeaguePulseCapacityCandidatePool }
       <ul className="dg-league-pulse__capacity-list">
         {items.map((item) => (
           <li key={item.sleeper_player_id} className="dg-league-pulse__capacity-row">
-            <span className="dg-league-pulse__capacity-name">{item.full_name}</span>
+            {/* DG-110: the pool names real players — each name opens his card.
+                The list stays flat and unselected; opening a card is reading,
+                not nominating a cut. */}
+            <span className="dg-league-pulse__capacity-name">
+              <PlayerNameButton
+                sleeperId={item.sleeper_player_id}
+                name={item.full_name}
+                context={item.position ?? undefined}
+              />
+            </span>
             <span className="dg-league-pulse__capacity-position">{item.position}</span>
             {item.value_status === "unvalued" ? (
               <span className="dg-league-pulse__capacity-unvalued">

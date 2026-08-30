@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { RosterAuditResponse } from "../lib/api";
+import { PlayerNameButton } from "../player/playerSelection";
 
 type Player = NonNullable<RosterAuditResponse["players"]>[number];
 
@@ -7,6 +8,11 @@ const num = (v: number | null | undefined) => (v == null ? "—" : String(v));
 
 // One roster row + an inline expand revealing the full per-player detail. Generated
 // types mark most fields optional/nullable, so every array/number is normalized.
+//
+// DG-110: the NAME opens the player's card — this table lists every player
+// David owns and had no route to any of their cards. The inline detail (the
+// row's caveats, drivers, risk flags, counter-argument) is truth-bearing and
+// stays exactly where it was, behind its own "Details" control.
 export function RosterAuditRow({ player }: { player: Player }) {
   const [open, setOpen] = useState(false);
   const ra = player.roster_audit;
@@ -22,12 +28,22 @@ export function RosterAuditRow({ player }: { player: Player }) {
         data-grade={player.model_grade}
       >
         <td>
+          {/* The card is addressed by sleeper id; a row without one stays
+              plain text rather than opening an empty card. */}
+          <PlayerNameButton
+            sleeperId={player.sleeper_id}
+            name={player.full_name}
+            context={[player.position, player.nfl_team].filter(Boolean).join(" ")}
+            className="dg-roster__name"
+          />{" "}
           <button
             type="button"
+            className="dg-roster__expand"
             aria-label={`Expand ${player.full_name}`}
+            aria-expanded={open}
             onClick={() => setOpen((o) => !o)}
           >
-            {player.full_name}
+            Details
           </button>
         </td>
         <td>{player.position}</td>

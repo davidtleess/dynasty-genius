@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { TEAM_COLORS } from "../generated/teamColors";
 import type {
   WhatChangedEnteredExited,
@@ -17,6 +17,12 @@ import {
 } from "../lib/api/zod.gen";
 import { formatCaptureTimestamp } from "../lib/copy";
 import { useEndpointResource } from "../lib/useEndpointResource";
+import {
+  PlayerNameButton,
+  PlayerSelectionProvider,
+  type SelectPlayer,
+  usePlayerSelection,
+} from "../player/playerSelection";
 import { CaveatBlock } from "../ui/CaveatBlock";
 import { ChartFrame } from "../ui/ChartFrame";
 import { DailyTape as UiDailyTape } from "../ui/DailyTape";
@@ -41,8 +47,10 @@ type State =
 // threading: AssetRow sits several layers beneath the surface prop, and every
 // player row on the feed should behave identically. With no handler (bare
 // mounts, tests), rows stay non-interactive — no phantom buttons.
-type SelectPlayer = (sleeperId: string, name: string) => void;
-const SelectPlayerContext = createContext<SelectPlayer | null>(null);
+//
+// DG-110 promoted that context out of this file: it is now the whole
+// product's one selection sink (player/playerSelection). The surface prop
+// still works for a bare mount and simply overrides what the shell provides.
 
 // Read-only Daily What-Changed surface, restarted on the governed primitive
 // library (H2 reset Task 5). It reports the day-over-day market and model
@@ -57,6 +65,9 @@ export function DailyWhatChanged({
   onSelectPlayer?: SelectPlayer | undefined;
 } = {}) {
   const [state, setState] = useState<State>({ status: "loading" });
+  // The shell's sink when it is mounted inside one; the explicit prop still
+  // wins so a bare mount can be driven directly.
+  const inheritedSelectPlayer = usePlayerSelection();
 
   useEffect(() => {
     let active = true;
@@ -91,9 +102,9 @@ export function DailyWhatChanged({
     return <p className="dg-wc__notice">Could not read daily What-Changed.</p>;
   }
   return (
-    <SelectPlayerContext.Provider value={onSelectPlayer ?? null}>
+    <PlayerSelectionProvider value={onSelectPlayer ?? inheritedSelectPlayer}>
       <ReadyView data={state.data} />
-    </SelectPlayerContext.Provider>
+    </PlayerSelectionProvider>
   );
 }
 
@@ -248,39 +259,27 @@ function AssetRow({
   currentValue?: string | undefined;
 }) {
   const otherLane = lane === "model" ? "market" : "model";
-  const selectPlayer = useContext(SelectPlayerContext);
-  // Trim before the truthiness gate — the file's boundary rule (see
-  // headshotProps): a whitespace-only id is as blank as null, and a blank id
-  // must degrade to the non-interactive identity, never a live button.
-  const openId = sleeperId?.trim() || null;
-  const identity = (
-    <PlayerIdentity
-      name={name}
-      team={teamId ?? ""}
-      position={position}
-      {...headshotProps(sleeperId)}
-      teamId={teamId ?? undefined}
-      teamAccent={teamAccentFor(teamId)}
-    />
-  );
-  // The button's aria-label replaces name-from-content, so carry the row
-  // context (position/team) the label would otherwise swallow for SR users.
-  const openContext = [position, teamId].filter(Boolean).join(" ");
+  // The trim-before-truthiness rule and the no-phantom-button rule both live
+  // in PlayerNameButton now (DG-110); a blank id still degrades to the plain,
+  // non-interactive identity.
   return (
     <li data-asset-row data-row-density="32px" className="dg-wc__player-row">
       {rank !== undefined && <span className="dg-wc__rank">{rank}</span>}
-      {selectPlayer && openId ? (
-        <button
-          type="button"
-          className="dg-wc__player-open"
-          aria-label={openContext ? `Open ${name}, ${openContext}` : `Open ${name}`}
-          onClick={() => selectPlayer(openId, name)}
-        >
-          {identity}
-        </button>
-      ) : (
-        identity
-      )}
+      <PlayerNameButton
+        sleeperId={sleeperId}
+        name={name}
+        context={[position, teamId].filter(Boolean).join(" ")}
+        className="dg-wc__player-open"
+      >
+        <PlayerIdentity
+          name={name}
+          team={teamId ?? ""}
+          position={position}
+          {...headshotProps(sleeperId)}
+          teamId={teamId ?? undefined}
+          teamAccent={teamAccentFor(teamId)}
+        />
+      </PlayerNameButton>
       <span data-lane={lane} className="dg-wc__lane">
         {currentValue !== undefined && (
           <span
@@ -354,11 +353,27 @@ function ReadyView({ data }: { data: WhatChangedResponse }) {
         : best,
     null,
   );
-  const heroBasis = largestMover
-    ? `${rosterMovers.length} of your players; largest ${
-        largestMover.player_name ?? largestMover.player_key
-      } ${largestMover.value_delta > 0 ? "+" : ""}${largestMover.value_delta}`
-    : "no movement on your roster since the prior snapshot";
+  // DG-110: the basis says exactly what it always said — how many of his
+  // players moved, and which one moved most, by how much. The largest mover's
+  // NAME is now the handle onto his card; the sentence is unchanged.
+  const largestMoverName = largestMover
+    ? (largestMover.player_name ?? largestMover.player_key)
+    : null;
+  const heroBasis =
+    largestMover && largestMoverName !== null ? (
+      <>
+        {`${rosterMovers.length} of your players; largest `}
+        <PlayerNameButton
+          sleeperId={largestMover.sleeper_id}
+          name={largestMoverName}
+          context={largestMover.position ?? undefined}
+          className="dg-wc__hero-open"
+        />
+        {` ${largestMover.value_delta > 0 ? "+" : ""}${largestMover.value_delta}`}
+      </>
+    ) : (
+      "no movement on your roster since the prior snapshot"
+    );
 
   const hours = staleHours(data.generated_at);
   const isStale = hours === null || hours >= STALE_HOURS_THRESHOLD;
@@ -574,17 +589,30 @@ function UniverseChipList({
   }
   return (
     <ul className="dg-wc__list">
-      {items.map((e, i) => (
-        <li key={e.sleeper_id ?? i} className="dg-wc__universe-chip">
-          <PlayerIdentity
-            name={e.player_name ?? humanAssetKey(e.player_key)}
-            team={e.team_id ?? ""}
-            position={e.position ?? ""}
-            {...headshotProps(e.sleeper_id)}
-            teamId={e.team_id ?? undefined}
-          />
-        </li>
-      ))}
+      {items.map((e, i) => {
+        // DG-110: a name that just entered or left the pool is exactly the
+        // one you want to look up; the chip opens his card like every other
+        // player row. No sleeper id, no button — same rule as the rows.
+        const name = e.player_name ?? humanAssetKey(e.player_key);
+        return (
+          <li key={e.sleeper_id ?? i} className="dg-wc__universe-chip">
+            <PlayerNameButton
+              sleeperId={e.sleeper_id}
+              name={name}
+              context={[e.position, e.team_id].filter(Boolean).join(" ")}
+              className="dg-wc__player-open"
+            >
+              <PlayerIdentity
+                name={name}
+                team={e.team_id ?? ""}
+                position={e.position ?? ""}
+                {...headshotProps(e.sleeper_id)}
+                teamId={e.team_id ?? undefined}
+              />
+            </PlayerNameButton>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -767,22 +795,10 @@ function BaselineRosterRows({
   // DG-089: quiet-day mornings show ONLY these rows — David's founding gesture
   // ("this is my player, let me click him") must work here too, same context
   // gate, same trim rule as AssetRow.
-  const selectPlayer = useContext(SelectPlayerContext);
   return (
     <ul className="dg-wc__rows">
       {rows.map((r) => {
         const name = r.player_name ?? r.sleeper_id;
-        const openId = r.sleeper_id?.trim() || null;
-        const openContext = [r.position, r.team_id].filter(Boolean).join(" ");
-        const identity = (
-          <PlayerIdentity
-            name={name}
-            team={r.team_id ?? ""}
-            position={r.position ?? ""}
-            {...headshotProps(r.sleeper_id)}
-            teamId={r.team_id ?? undefined}
-          />
-        );
         return (
           <li
             key={r.sleeper_id}
@@ -790,20 +806,20 @@ function BaselineRosterRows({
             data-row-density="32px"
             className="dg-wc__player-row"
           >
-            {selectPlayer && openId ? (
-              <button
-                type="button"
-                className="dg-wc__player-open"
-                aria-label={
-                  openContext ? `Open ${name}, ${openContext}` : `Open ${name}`
-                }
-                onClick={() => selectPlayer(openId, name)}
-              >
-                {identity}
-              </button>
-            ) : (
-              identity
-            )}
+            <PlayerNameButton
+              sleeperId={r.sleeper_id}
+              name={name}
+              context={[r.position, r.team_id].filter(Boolean).join(" ")}
+              className="dg-wc__player-open"
+            >
+              <PlayerIdentity
+                name={name}
+                team={r.team_id ?? ""}
+                position={r.position ?? ""}
+                {...headshotProps(r.sleeper_id)}
+                teamId={r.team_id ?? undefined}
+              />
+            </PlayerNameButton>
             <span data-lane="model" className="dg-wc__lane dg-wc__lane--flat">
               {NEUTRAL_DASH}
             </span>

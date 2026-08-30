@@ -92,8 +92,8 @@
     },
     {
       "path": "shell/AppShell.css",
-      "focus_visible_selectors": 0,
-      "focus_token_consumers": 0,
+      "focus_visible_selectors": 1,
+      "focus_token_consumers": 1,
       "hover_selectors": 0,
       "elevation_consumers": 0,
       "row_treatment_selectors": 0,
@@ -191,8 +191,8 @@
     }
   ],
   "totals": {
-    "focus_visible_selectors": 7,
-    "focus_token_consumers": 5,
+    "focus_visible_selectors": 8,
+    "focus_token_consumers": 6,
     "hover_selectors": 1,
     "elevation_consumers": 0,
     "row_treatment_selectors": 27,

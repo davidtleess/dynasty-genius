@@ -1141,7 +1141,17 @@ describe("DG-089 player selection from the change feed", () => {
     fireEvent.click(button);
     expect(onSelectPlayer).toHaveBeenCalledWith("player-2", "Market Mover");
 
-    fireEvent.click(screen.getByRole("button", { name: /^Open Delta Receiver/ }));
+    // DG-110 gave the same player a SECOND handle — the hero line names the
+    // largest mover, and that name opens the same card — so this row assertion
+    // now says which of the two handles it is exercising.
+    const receiverHandles = screen.getAllByRole("button", {
+      name: /^Open Delta Receiver/,
+    });
+    const row = receiverHandles.find((handle) =>
+      handle.className.includes("dg-wc__player-open"),
+    );
+    expect(row).toBeTruthy();
+    fireEvent.click(row as HTMLElement);
     expect(onSelectPlayer).toHaveBeenCalledWith("player-1", "Delta Receiver");
   });
 
