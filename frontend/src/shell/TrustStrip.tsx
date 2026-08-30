@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { z } from "zod";
 
 import { zTrustSurfaceResponse } from "../lib/api/zod.gen";
+import { trustGradeWord, valueWord } from "../lib/copy";
 import { MODEL_GRADE_QUALIFIER } from "../lib/trustCopy";
 import "./TrustStrip.css";
 
@@ -70,14 +71,18 @@ function TrustReady({ data }: { data: TrustSurface }) {
   return (
     <div className="dg-trust__body">
       <span className="dg-trust__label">Model grade</span>
-      <span className="dg-trust__grade">{data.overall_grade}</span>
+      {/* DG-109: the strip sits on EVERY surface, so its two raw values —
+          `ACTIVE_B` and `dynastyprocess_ecr_2qb` — were the last pipeline keys
+          on David's screen. The grade still drives the Unvalidated badge from
+          its RAW value below; only the word a person reads changed. */}
+      <span className="dg-trust__grade">{trustGradeWord(data.overall_grade)}</span>
       {/* The grade is never a headline edge claim in the shell — it always carries the
           same non-decision-grade qualifier the Model Trust Console footer uses. */}
       <span className="dg-trust__grade-qualifier">{MODEL_GRADE_QUALIFIER}</span>
       {unvalidated && <span className="dg-trust__badge">Unvalidated</span>}
       <span className="dg-trust__label">Source</span>
       <span className="dg-trust__source">
-        {data.market_source_label ?? data.market_source}
+        {valueWord(data.market_source_label ?? data.market_source)}
       </span>
       {freshnessDates.map((date) => (
         <span key={date} className="dg-trust__freshness">

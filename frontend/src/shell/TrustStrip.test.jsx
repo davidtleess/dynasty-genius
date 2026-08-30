@@ -90,10 +90,15 @@ describe("TrustStrip", () => {
 
     expect(screen.getByRole("status", { name: "Trust strip status" })).toBeTruthy();
 
-    await screen.findByText("EXPERIMENTAL");
+    // DG-109: the strip rides every surface, so its two raw values were the
+    // last pipeline keys on David's screen. Both facts survive in words — and
+    // the Unvalidated badge still keys off the RAW grade below.
+    await screen.findByText("Experimental — the checks are not passing");
+    expect(screen.queryByText("EXPERIMENTAL")).toBeNull();
 
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/trust-surface/QB");
-    expect(screen.getByText("fantasycalc_native")).toBeTruthy();
+    expect(screen.getByText("FantasyCalc, captured the same day")).toBeTruthy();
+    expect(screen.queryByText("fantasycalc_native")).toBeNull();
     expect(screen.getByText("2025-09-08")).toBeTruthy();
     expect(screen.getByText("Unvalidated")).toBeTruthy();
     expect(
@@ -115,7 +120,8 @@ describe("TrustStrip", () => {
 
     render(<TrustStrip position="WR" />);
 
-    await screen.findByText("ACTIVE_B_VALIDATED");
+    await screen.findByText("In use, ranks well in testing");
+    expect(screen.queryByText("ACTIVE_B_VALIDATED")).toBeNull();
 
     expect(screen.getByText(GRADE_QUALIFIER)).toBeTruthy();
     expect(screen.queryByText("Unvalidated")).toBeNull();
