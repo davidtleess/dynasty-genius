@@ -288,6 +288,7 @@
     inset-block-end: 0;
     z-index: 4;
     flex-direction: row;
+    align-items: stretch;
     gap: 0;
     min-block-size: var(--dg-shell-tabbar);
     padding: var(--dg-space-1);
@@ -298,7 +299,11 @@
   .dg-shell__nav-item {
     flex: 1 1 0;
     /* Five labels across 390px: they have to shrink, and "Track record" has to
-       stay two words that fit rather than one word that clips. */
+       stay two words that fit rather than one word that clips. Centred on both
+       axes so the tab whose label wraps sits level with the four that do not. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     min-inline-size: 0;
     padding: var(--dg-space-1);
     font-size: var(--dg-text-sm);
@@ -318,9 +323,21 @@
      density rule for every table on every surface, not a property of any one
      of them. The tables keep every column they have — DG-117 gave each one its
      own horizontal scroll container, and hiding a column would hide a fact
-     rather than move it. */
-  .dg-shell__main :is(td, th) {
-    min-block-size: 52px;
+     rather than move it.
+
+     THE ROW, not the cell. Two earlier cuts of this rule were measured in
+     Chromium and neither delivered 52: `min-block-size` on the cells gave 30px
+     rows (min-height on a table cell is undefined in CSS and Chromium ignores
+     it), and padding-block gave 51px, because these tables set 13px text and
+     the arithmetic lands just under. `block-size` on a table ROW is defined as
+     a MINIMUM, so it produces the number it names and a row whose content is
+     taller still grows past it.
+
+     Two class levels of specificity deliberately: a surface's own row rules are
+     single-class, and at equal specificity the winner would be decided by
+     stylesheet import order — not a thing a layout should depend on. */
+  .dg-shell .dg-shell__main tbody tr {
+    block-size: 52px;
   }
 
   /* Mobile: the trust strip scrolls away with the page — a pinned panel
@@ -332,10 +349,27 @@
     row-gap: var(--dg-space-2);
   }
 
-  /* Two deliberate rows instead of three ragged ones: wordmark and status on
-     the first, the search as a full-width target on the second. */
-  .dg-shell__palette-trigger {
+  /* The bar stacks into three rows — wordmark, search, status — and MEASURES
+     109px at 390 (Chromium, 2026-08-30). It is not one line, and the honest
+     reason is arithmetic: the wordmark is 138px and the unbreakable search
+     label 215px against 358px of usable width, so pairing any two of the three
+     is an 11px overrun that would wrap anyway. Three readable rows above the
+     fold beat a fragile fit, and 109px replaces the ~430px of link-cloud that
+     used to sit here.
+
+     The status pill takes a full row deliberately: its drawer expands IN FLOW
+     beneath it (ShellStatusDrawer's whole design, so nothing ever overlaps
+     content), and a pill squeezed to its own width would open a ~200px-wide
+     health panel on a 390px phone. */
+  .dg-shell__trust .dg-status-drawer {
     flex: 1 0 100%;
+    /* It hugs the RIGHT on desktop because that is the right end of the bar.
+       On its own full-width phone row it has to hug the left instead, or the
+       three rows read wordmark-left, search-left, status-right. */
+    align-items: flex-start;
+  }
+
+  .dg-shell__palette-trigger {
     text-align: start;
   }
 

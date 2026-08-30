@@ -25,4 +25,11 @@
   font-size: 0.8rem;
   opacity: 0.75;
   font-family: var(--dg-font-mono);
+  /* DG-114, measured at 390 in Chromium: the cited path is a 50-character
+     monospace string with no break opportunity in it, so it laid out 392px wide
+     inside a 324px column and took the whole DOCUMENT to 425px — every parked
+     surface scrolled sideways on a phone. Same class of defect DG-117 fixed on
+     Model Trust's artifact hash, and the same fix: a receipt path may wrap
+     mid-token, because the alternative is the page moving under your thumb. */
+  overflow-wrap: anywhere;
 }

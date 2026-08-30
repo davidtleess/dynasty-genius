@@ -291,6 +291,11 @@ describe("DG-114 · the phone shell", () => {
   });
 
   it("gives phone rows the 52px touch target the spec asks for", () => {
-    expect(phoneBlock(shellCss)).toMatch(/min-block-size:\s*52px/);
+    // On the ROW. Two earlier cuts were measured in Chromium and neither
+    // produced 52: `min-block-size` on the cells gave 30px rows (min-height on
+    // a table cell is undefined and Chromium ignores it) and `padding-block`
+    // gave 51px on the 13px tables. `block-size` on a table row is defined as a
+    // minimum, and measures exactly 52px on Roster and Track record at 390.
+    expect(phoneBlock(shellCss)).toMatch(/tbody tr\s*\{[^}]*block-size:\s*52px/);
   });
 });
